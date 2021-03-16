@@ -33,7 +33,6 @@ from qiskit.opflow import (
     CircuitStateFn, VectorStateFn, DictStateFn, OperatorStateFn, ListOp, ComposedOp, TensoredOp,
     SummedOp, OperatorBase, Zero, OpflowError
 )
-from qiskit.opflow import MatrixOperator
 
 
 # pylint: disable=invalid-name
@@ -63,9 +62,27 @@ class TestOpConstruction(QiskitOpflowTestCase):
         """ Test eval of ComposedOp """
         self.assertAlmostEqual(Minus.eval('1'), -.5 ** .5)
 
+    def test_xz_compose_phase(self):
+        """ Test phase composition """
+        self.assertEqual((-1j * Y).eval('0').eval('0'), 0)
+        self.assertEqual((-1j * Y).eval('0').eval('1'), 1)
+        self.assertEqual((-1j * Y).eval('1').eval('0'), -1)
+        self.assertEqual((-1j * Y).eval('1').eval('1'), 0)
+        self.assertEqual((X @ Z).eval('0').eval('0'), 0)
+        self.assertEqual((X @ Z).eval('0').eval('1'), 1)
+        self.assertEqual((X @ Z).eval('1').eval('0'), -1)
+        self.assertEqual((X @ Z).eval('1').eval('1'), 0)
+        self.assertEqual((1j * Y).eval('0').eval('0'), 0)
+        self.assertEqual((1j * Y).eval('0').eval('1'), -1)
+        self.assertEqual((1j * Y).eval('1').eval('0'), 1)
+        self.assertEqual((1j * Y).eval('1').eval('1'), 0)
+        self.assertEqual((Z @ X).eval('0').eval('0'), 0)
+        self.assertEqual((Z @ X).eval('0').eval('1'), -1)
+        self.assertEqual((Z @ X).eval('1').eval('0'), 1)
+        self.assertEqual((Z @ X).eval('1').eval('1'), 0)
+
     def test_evals(self):
         """ evals test """
-        # pylint: disable=no-member
         # TODO: Think about eval names
         self.assertEqual(Z.eval('0').eval('0'), 1)
         self.assertEqual(Z.eval('1').eval('0'), 0)
@@ -714,7 +731,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
     def test_matrix_op_conversions(self):
         """Test to reveal QiskitError when to_instruction or to_circuit method is called on
-        parametrized matrix op."""
+        parameterized matrix op."""
         m = np.array([[0, 0, 1, 0], [0, 0, 0, -1], [1, 0, 0, 0], [0, -1, 0, 0]])
         matrix_op = MatrixOp(m, Parameter('beta'))
         for method in ['to_instruction', 'to_circuit']:
@@ -788,7 +805,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertTrue(Operator(unitary).equiv(circuit))
 
     def test_op_to_circuit_with_parameters(self):
-        """On parametrized SummedOp, to_matrix_op returns ListOp, instead of MatrixOp. To avoid
+        """On parameterized SummedOp, to_matrix_op returns ListOp, instead of MatrixOp. To avoid
         the infinite recursion, OpflowError is raised. """
         m1 = np.array([[0, 0, 1, 0], [0, 0, 0, -1], [0, 0, 0, 0], [0, 0, 0, 0]])  # non-unitary
         m2 = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0], [0, -1, 0, 0]])  # non-unitary
@@ -908,11 +925,6 @@ class TestOpConstruction(QiskitOpflowTestCase):
             _ = MatrixOp('invalid')
 
         self.assertEqual(str(cm.exception), msg + "'str'")
-
-        with self.assertRaises(TypeError) as cm:
-            _ = MatrixOp(MatrixOperator(np.eye(2)))
-
-        self.assertEqual(str(cm.exception), msg + "'MatrixOperator'")
 
         with self.assertRaises(TypeError) as cm:
             _ = MatrixOp(None)

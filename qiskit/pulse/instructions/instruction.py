@@ -22,17 +22,16 @@ For example::
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
 import warnings
-
 from abc import ABC
 from collections import defaultdict
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
-
-import numpy as np
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.utils import format_parameter_value
+
+
 # pylint: disable=missing-return-doc
 
 
@@ -50,7 +49,7 @@ class Instruction(ABC):
 
         Args:
             operands: The argument list.
-            duration: Length of time taken by the instruction in terms of dt.
+            duration: Deprecated.
             channels: Tuple of pulse channels that this instruction operates on.
             name: Optional display name for this instruction.
 
@@ -59,48 +58,29 @@ class Instruction(ABC):
             PulseError: If the input ``channels`` are not all of
                 type :class:`Channel`.
         """
-        if not isinstance(duration, (int, np.integer)):
-            raise PulseError("Instruction duration must be an integer, "
-                             "got {} instead.".format(duration))
-        if duration < 0:
-            raise PulseError("{} duration of {} is invalid: must be nonnegative."
-                             "".format(self.__class__.__name__, duration))
-
         for channel in channels:
             if not isinstance(channel, Channel):
                 raise PulseError("Expected a channel, got {} instead.".format(channel))
 
-        self._duration = duration
+        if duration is not None:
+            warnings.warn('Specifying duration in the constructor is deprecated. '
+                          'Now duration is an abstract property rather than class variable. '
+                          'All subclasses should implement ``duration`` accordingly. '
+                          'See Qiskit-Terra #5679 for more information.',
+                          DeprecationWarning)
+
         self._channels = channels
-        self._timeslots = {channel: [(0, self.duration)] for channel in channels}
         self._operands = operands
         self._name = name
         self._hash = None
 
         self._parameter_table = defaultdict(list)
-        for idx, op in enumerate(operands):
-            if isinstance(op, ParameterExpression):
-                for param in op.parameters:
-                    self._parameter_table[param].append(idx)
-            elif isinstance(op, Channel) and op.is_parameterized():
-                for param in op.parameters:
-                    self._parameter_table[param].append(idx)
+        self._initialize_parameter_table(operands)
 
     @property
     def name(self) -> str:
         """Name of this instruction."""
         return self._name
-
-    @property
-    def command(self) -> None:
-        """The associated command. Commands are deprecated, so this method will be deprecated
-        shortly.
-
-        Returns:
-            Command: The deprecated command if available.
-        """
-        warnings.warn("The `command` method is deprecated. Commands have been removed and this "
-                      "method returns None.", DeprecationWarning)
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name
@@ -118,12 +98,6 @@ class Instruction(ABC):
         return self._channels
 
     @property
-    def timeslots(self) -> Dict[Channel, List[Tuple[int, int]]]:
-        """Occupied time slots by this instruction."""
-        warnings.warn("Access to Instruction timeslots is deprecated.")
-        return self._timeslots
-
-    @property
     def start_time(self) -> int:
         """Relative begin time of this instruction."""
         return 0
@@ -136,7 +110,7 @@ class Instruction(ABC):
     @property
     def duration(self) -> int:
         """Duration of this instruction."""
-        return self._duration
+        raise NotImplementedError
 
     @property
     def _children(self) -> Tuple['Instruction']:
@@ -192,6 +166,11 @@ class Instruction(ABC):
 
     def flatten(self) -> 'Instruction':
         """Return itself as already single instruction."""
+
+        warnings.warn('`This method is being deprecated. Please use '
+                      '`qiskit.pulse.transforms.flatten` function with this schedule.',
+                      DeprecationWarning)
+
         return self
 
     def shift(self,
@@ -254,6 +233,21 @@ class Instruction(ABC):
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
         return bool(self.parameters)
+
+    def _initialize_parameter_table(self,
+                                    operands: Tuple[Any]):
+        """A helper method to initialize parameter table.
+
+        Args:
+            operands: List of operands associated with this instruction.
+        """
+        for idx, op in enumerate(operands):
+            if isinstance(op, ParameterExpression):
+                for param in op.parameters:
+                    self._parameter_table[param].append(idx)
+            elif isinstance(op, Channel) and op.is_parameterized():
+                for param in op.parameters:
+                    self._parameter_table[param].append(idx)
 
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
@@ -319,7 +313,7 @@ class Instruction(ABC):
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule
         """
-        # pylint: disable=invalid-name, cyclic-import
+        # pylint: disable=cyclic-import
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style,

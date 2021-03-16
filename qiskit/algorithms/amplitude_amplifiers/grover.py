@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,31 +12,25 @@
 
 """Grover's search algorithm."""
 
-from typing import Optional, Union, Dict, List, Any, Callable
+import itertools
 import logging
-import warnings
-import operator
 import math
+import operator
+from typing import Iterator, List, Optional, Union
+
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.circuit.library import GroverOperator
-from qiskit.providers import Backend
-from qiskit.providers import BaseBackend
-from qiskit.quantum_info import Statevector
-
-from qiskit.utils import name_args
+from qiskit.providers import Backend, BaseBackend
 from qiskit.quantum_info import partial_trace
-from qiskit.utils.validation import validate_min, validate_in_set
-from qiskit.utils.quantum_instance import QuantumInstance
-from ..quantum_algorithm import QuantumAlgorithm
-from ..algorithm_result import AlgorithmResult
-
+from qiskit.utils import QuantumInstance
+from .amplification_problem import AmplificationProblem
+from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 
 logger = logging.getLogger(__name__)
 
 
-class Grover(QuantumAlgorithm):
+class Grover(AmplitudeAmplifier):
     r"""Grover's Search algorithm.
 
     Grover's Search [1, 2] is a well known quantum algorithm for that can be used for
@@ -110,153 +104,157 @@ class Grover(QuantumAlgorithm):
 
     """
 
-    @name_args([
-        ('oracle', ),
-        ('state_preparation', {bool: 'incremental'}),
-        ('iterations', ),
-        ('post_processing', {float: 'lam'}),
-        ('grover_operator', {list: 'rotation_counts'}),
-        ('quantum_instance', {str: 'mct_mode'}),
-        ('incremental', {(Backend, BaseBackend, QuantumInstance): 'quantum_instance'})
-    ], skip=1)  # skip the argument 'self'
     def __init__(self,
-                 oracle: Union[QuantumCircuit, Statevector],
-                 good_state: Optional[Union[Callable[[str], bool],
-                                            List[str], List[int], Statevector]] = None,
-                 state_preparation: Optional[QuantumCircuit] = None,
-                 iterations: Union[int, List[int]] = 1,
+                 iterations: Optional[Union[int, List[int], Iterator[int], float]] = None,
+                 growth_rate: Optional[float] = None,
                  sample_from_iterations: bool = False,
-                 post_processing: Callable[[List[int]], List[int]] = None,
-                 grover_operator: Optional[QuantumCircuit] = None,
                  quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,
-                 incremental: bool = False,
-                 num_iterations: Optional[int] = None,
-                 lam: Optional[float] = None,
-                 rotation_counts: Optional[List[int]] = None,
-                 mct_mode: Optional[str] = None,
                  ) -> None:
-        # pylint: disable=line-too-long
         r"""
         Args:
-            oracle: The oracle to flip the phase of good states, :math:`\mathcal{S}_f`.
-            good_state: A callable to check if a given measurement corresponds to a good state.
-                For convenience, a list of bitstrings, a list of integer or statevector can be
-                passed instead of a function. If the input is a list of bitstrings, each bitstrings
-                in the list represents a good state. If the input is a list of integer,
-                each integer represent the index of the good state to be :math:`|1\rangle`.
-                If it is a :class:`~qiskit.quantum_info.Statevector`, it represents a superposition
-                of all good states.
-            state_preparation: The state preparation :math:`\mathcal{A}`. If None then Grover's
-                 Search by default uses uniform superposition.
             iterations: Specify the number of iterations/power of Grover's operator to be checked.
-                It the number of solutions is known, this should be an integer specifying the
-                optimal number of iterations (see ``optimal_num_iterations``). Alternatively,
-                this can be a list of powers to check.
+                * If an int, only one circuit is run with that power of the Grover operator.
+                If the number of solutions is known, this is option should be used with the optimal
+                power. The optimal power can be computed with ``Grover.optimal_num_iterations``.
+                * If a list, all the powers in the list are run in the specified order.
+                * If an iterator, the powers yielded by the iterator are checked, until a maximum
+                number of iterations or maximum power is reached.
+            growth_rate: If specified, the iterator is set to increasing powers of ``growth_rate``,
+                i.e. to ``int(growth_rate ** 1), int(growth_rate ** 2), ...`` until a maximum
+                number of iterations is reached.
             sample_from_iterations: If True, instead of taking the values in ``iterations`` as
                 powers of the Grover operator, a random integer sample between 0 and smaller value
                 than the iteration is used as a power, see [1], Section 4.
-            post_processing: An optional post processing applied to the top measurement. Can be used
-                e.g. to convert from the bit-representation of the measurement `[1, 0, 1]` to a
-                DIMACS CNF format `[1, -2, 3]`.
-            grover_operator: A circuit implementing the Grover operator :math:`\mathcal{Q}`.
-                If None, the operator is constructed automatically using the
-                :class:`~qiskit.circuit.library.GroverOperator` from the circuit library.
             quantum_instance: A Quantum Instance or Backend to run the circuits.
-            incremental: DEPRECATED, use ``iterations`` instead.
-                Whether to use incremental search mode (True) or not (False).
-                Supplied *num_iterations* is ignored when True and instead the search task will
-                be carried out in successive rounds, using circuits built with incrementally
-                higher number of iterations for the repetition of the amplitude amplification
-                until a target is found or the maximal number :math:`\log N` (:math:`N` being the
-                total number of elements in the set from the oracle used) of iterations is
-                reached. The implementation follows Section 4 of [2].
-            num_iterations: DEPRECATED, use ``iterations`` instead.
-                How many times the marking and reflection phase sub-circuit is
-                repeated to amplify the amplitude(s) of the target(s). Has a minimum value of 1.
-            lam: DEPRECATED, use ``iterations`` instead.
-                For incremental search mode, the maximum number of repetition of amplitude
-                amplification increases by factor lam in every round,
-                :math:`R_{i+1} = lam \times R_{i}`. If this parameter is not set, the default
-                value lam = 1.34 is used, which is proved to be optimal [1].
-            rotation_counts: DEPRECATED, use ``iterations`` instead.
-                For incremental mode, if rotation_counts is defined, parameter *lam*
-                is ignored. rotation_counts is the list of integers that defines the number of
-                repetition of amplitude amplification for each round.
-            mct_mode: DEPRECATED, pass a custom ``grover_operator`` instead.
-                Multi-Control Toffoli mode ('basic' | 'basic-dirty-ancilla' |
-                'advanced' | 'noancilla')
 
         Raises:
-            TypeError: If ``init_state`` is of unsupported type or is of type ``InitialState` but
-                the oracle is not of type ``Oracle``.
-            TypeError: If ``oracle`` is of unsupported type.
-
+            ValueError: If ``growth_rate`` is a float but not larger than 1.
+            ValueError: If both ``iterations`` and ``growth_rate`` is set.
 
         References:
             [1]: Boyer et al., Tight bounds on quantum searching
                  `<https://arxiv.org/abs/quant-ph/9605034>`_
         """
-        super().__init__(quantum_instance)
-        _check_deprecated_args(mct_mode, rotation_counts, lam, num_iterations)
+        # set default value
+        if growth_rate is None and iterations is None:
+            growth_rate = 1.2
 
-        if mct_mode is None:
-            mct_mode = 'noancilla'
+        if growth_rate is not None and iterations is not None:
+            raise ValueError('Pass either a value for iterations or growth_rate, not both.')
 
-        self._oracle = oracle
-
-        # Construct GroverOperator circuit
-        if grover_operator is not None:
-            self._grover_operator = grover_operator
+        if growth_rate is not None:
+            # yield iterations ** 1, iterations ** 2, etc. and casts to int
+            self._iterations = map(lambda x: int(growth_rate ** x), itertools.count(1))
+        elif isinstance(iterations, int):
+            self._iterations = [iterations]
         else:
-            # wrap in method to hide the logic of handling deprecated arguments, can be simplified
-            # once the deprecated arguments are removed
-            self._grover_operator = _construct_grover_operator(oracle, state_preparation,
-                                                               mct_mode)
+            self._iterations = iterations
 
-        max_iterations = np.ceil(2 ** (len(self._grover_operator.reflection_qubits) / 2))
-        if incremental:  # TODO remove 3 months after 0.8.0
-            if rotation_counts is not None:
-                iterations = rotation_counts
-                self._sample_from_iterations = False
-            else:
-                if lam is None:
-                    lam = 1.34
+        self._quantum_instance = None
+        if quantum_instance is not None:
+            self.quantum_instance = quantum_instance
 
-                iterations = []
-                self._sample_from_iterations = True
-                power = 1.0
-                while power < max_iterations:
-                    iterations.append(int(power))
-                    power = lam * power
+        self._sample_from_iterations = sample_from_iterations
 
-        elif num_iterations is not None:  # TODO remove 3 months after 0.8.0
-            iterations = [num_iterations]
-        elif not isinstance(iterations, list):
-            iterations = [iterations]
-        # else: already a list
+    @property
+    def quantum_instance(self) -> Optional[QuantumInstance]:
+        """Get the quantum instance.
+        Returns:
+            The quantum instance used to run this algorithm.
+        """
+        return self._quantum_instance
 
-        # cutoff if max_iterations is exceeded (legacy code, should considered for removal?)
-        self._iterations = []
-        for iteration in iterations:
-            self._iterations += [iteration]
-            if iteration > max_iterations:
+    @quantum_instance.setter
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
+                                                       BaseBackend, Backend]) -> None:
+        """Set quantum instance.
+        Args:
+            quantum_instance: The quantum instance used to run this algorithm.
+        """
+        if isinstance(quantum_instance, (BaseBackend, Backend)):
+            quantum_instance = QuantumInstance(quantum_instance)
+        self._quantum_instance = quantum_instance
+
+    def amplify(self, amplification_problem: AmplificationProblem) -> 'GroverResult':
+        """Run the Grover algorithm.
+
+        Args:
+            amplification_problem: The amplification problem.
+
+        Returns:
+            The result as a ``GroverResult``, where e.g. the most likely state can be queried
+            as ``result.top_measurement``.
+        """
+        if isinstance(self._iterations, list):
+            max_iterations = len(self._iterations)
+            max_power = np.inf  # no cap on the power
+            iterator = iter(self._iterations)
+        else:
+            max_iterations = max(10, 2 ** amplification_problem.oracle.num_qubits)
+            max_power = np.ceil(
+                2 ** (len(amplification_problem.grover_operator.reflection_qubits) / 2))
+            iterator = self._iterations
+
+        result = GroverResult()
+
+        iterations = []
+        top_measurement = '0' * len(amplification_problem.objective_qubits)
+        oracle_evaluation = False
+        all_circuit_results = []
+        max_probability = 0
+        shots = 0
+
+        for _ in range(max_iterations):  # iterate at most to the max number of iterations
+            # get next power and check if allowed
+            power = next(iterator)
+
+            if power > max_power:
                 break
 
-        # check the type of good_state
-        _check_is_good_state(good_state)
+            iterations.append(power)  # store power
 
-        self._is_good_state = good_state
-        self._sample_from_iterations = sample_from_iterations
-        self._post_processing = post_processing
-        self._incremental = incremental
-        self._lam = lam
-        self._rotation_counts = rotation_counts
+            # sample from [0, power) if specified
+            if self._sample_from_iterations:
+                power = np.random.randint(power)
+            # Run a grover experiment for a given power of the Grover operator.
+            if self._quantum_instance.is_statevector:
+                qc = self.construct_circuit(amplification_problem, power, measurement=False)
+                circuit_results = self._quantum_instance.execute(qc).get_statevector()
+                num_bits = len(amplification_problem.objective_qubits)
 
-        if incremental or (isinstance(iterations, list) and len(iterations) > 1):
-            logger.debug('Incremental mode specified, \
-                ignoring "num_iterations" and "num_solutions".')
+                # trace out work qubits
+                if qc.width() != num_bits:
+                    indices = [i for i in range(qc.num_qubits)
+                               if i not in amplification_problem.objective_qubits]
+                    rho = partial_trace(circuit_results, indices)
+                    circuit_results = np.diag(rho.data)
 
-        self._ret = {}  # type: Dict[str, Any]
+                max_amplitude = max(circuit_results.max(), circuit_results.min(), key=abs)
+                max_amplitude_idx = np.where(circuit_results == max_amplitude)[0][0]
+                top_measurement = np.binary_repr(max_amplitude_idx, num_bits)
+                max_probability = np.abs(max_amplitude)**2
+                shots = 1
+            else:
+                qc = self.construct_circuit(amplification_problem, power, measurement=True)
+                circuit_results = self._quantum_instance.execute(qc).get_counts(qc)
+                top_measurement = max(circuit_results.items(), key=operator.itemgetter(1))[0]
+                shots = sum(circuit_results.values())
+                max_probability = max(circuit_results.items(), key=operator.itemgetter(1))[1] \
+                    / shots
+
+            all_circuit_results.append(circuit_results)
+            oracle_evaluation = amplification_problem.is_good_state(top_measurement)
+            if oracle_evaluation is True:
+                break  # we found a solution
+
+        result.iterations = iterations
+        result.top_measurement = top_measurement
+        result.assignment = amplification_problem.post_processing(top_measurement)
+        result.oracle_evaluation = oracle_evaluation
+        result.circuit_results = all_circuit_results
+        result.max_probability = max_probability
+
+        return result
 
     @staticmethod
     def optimal_num_iterations(num_solutions: int, num_qubits: int) -> int:
@@ -271,260 +269,64 @@ class Grover(QuantumAlgorithm):
         """
         return math.floor(np.pi * np.sqrt(2 ** num_qubits / num_solutions) / 4)
 
-    def _run_experiment(self, power):
-        """Run a grover experiment for a given power of the Grover operator."""
-        if self._quantum_instance.is_statevector:
-            qc = self.construct_circuit(power, measurement=False)
-            result = self._quantum_instance.execute(qc)
-            statevector = result.get_statevector(qc)
-            num_bits = len(self._grover_operator.reflection_qubits)
-            # trace out work qubits
-            if qc.width() != num_bits:
-                rho = partial_trace(statevector, range(num_bits, qc.width()))
-                statevector = np.diag(rho.data)
-            max_amplitude = max(statevector.max(), statevector.min(), key=abs)
-            max_amplitude_idx = np.where(statevector == max_amplitude)[0][0]
-            top_measurement = np.binary_repr(max_amplitude_idx, num_bits)
-
-        else:
-            qc = self.construct_circuit(power, measurement=True)
-            measurement = self._quantum_instance.execute(qc).get_counts(qc)
-            self._ret['measurement'] = measurement
-            top_measurement = max(measurement.items(), key=operator.itemgetter(1))[0]
-
-        self._ret['top_measurement'] = top_measurement
-
-        # as_list = [int(bit) for bit in top_measurement]
-        # return self.post_processing(as_list), self.is_good_state(top_measurement)
-        return self.post_processing(top_measurement), self.is_good_state(top_measurement)
-
-    def is_good_state(self, bitstr: str) -> bool:
-        """Check whether a provided bitstring is a good state or not.
-
-        Args:
-            bitstr: The measurement as bitstring.
-
-        Returns:
-            True if the measurement is a good state, False otherwise.
-        """
-        if callable(self._is_good_state):
-            return self._is_good_state(bitstr)
-        elif isinstance(self._is_good_state, list):
-            if all(isinstance(good_bitstr, str) for good_bitstr in self._is_good_state):
-                return bitstr in self._is_good_state
-            else:
-                return all(bitstr[good_index] == '1'  # type:ignore
-                           for good_index in self._is_good_state)
-        # else isinstance(self._is_good_state, Statevector) must be True
-        return bitstr in self._is_good_state.probabilities_dict()
-
-    def post_processing(self, measurement: List[int]) -> List[int]:
-        """Do the post-processing to the measurement result
-
-        Args:
-            measurement: The measurement as list of int.
-
-        Returns:
-            Do the post-processing based on the post_processing argument.
-            Just return the input bitstr
-        """
-        if self._post_processing is not None:
-            return self._post_processing(measurement)
-
-        return measurement
-
-    def construct_circuit(self, power: Optional[int] = None,
+    def construct_circuit(self, problem: AmplificationProblem,
+                          power: Optional[int] = None,
                           measurement: bool = False) -> QuantumCircuit:
         """Construct the circuit for Grover's algorithm with ``power`` Grover operators.
 
         Args:
+            problem: The amplification problem for the algorithm.
             power: The number of times the Grover operator is repeated. If None, this argument
                 is set to the first item in ``iterations``.
             measurement: Boolean flag to indicate if measurement should be included in the circuit.
 
         Returns:
             QuantumCircuit: the QuantumCircuit object for the constructed circuit
+
+        Raises:
+            ValueError: If no power is passed and the iterations are not an integer.
         """
         if power is None:
+            if len(self._iterations) > 1:
+                raise ValueError('Please pass ``power`` if the iterations are not an integer.')
             power = self._iterations[0]
 
-        qc = QuantumCircuit(self._grover_operator.num_qubits, name='Grover circuit')
-        qc.compose(self._grover_operator.state_preparation, inplace=True)
+        qc = QuantumCircuit(problem.oracle.num_qubits, name='Grover circuit')
+        qc.compose(problem.state_preparation, inplace=True)
         if power > 0:
-            qc.compose(self._grover_operator.power(power), inplace=True)
+            qc.compose(problem.grover_operator.power(power), inplace=True)
 
         if measurement:
-            measurement_cr = ClassicalRegister(len(self._grover_operator.reflection_qubits))
+            measurement_cr = ClassicalRegister(len(problem.objective_qubits))
             qc.add_register(measurement_cr)
-            qc.measure(self._grover_operator.reflection_qubits, measurement_cr)
+            qc.measure(problem.objective_qubits, measurement_cr)
 
-        self._ret['circuit'] = qc
         return qc
 
-    def _run(self) -> 'GroverResult':
-        # If ``rotation_counts`` is specified, run Grover's circuit for the powers specified
-        # in ``rotation_counts``. Once a good state is found (oracle_evaluation is True), stop.
-        for power in self._iterations:
-            if self._sample_from_iterations:
-                power = self.random.integers(power)
-            assignment, oracle_evaluation = self._run_experiment(power)
-            if oracle_evaluation:
-                break
 
-        # TODO remove all former dictionary logic
-        self._ret['result'] = assignment
-        self._ret['oracle_evaluation'] = oracle_evaluation
-
-        result = GroverResult()
-        if 'measurement' in self._ret:
-            result.measurement = dict(self._ret['measurement'])
-        if 'top_measurement' in self._ret:
-            result.top_measurement = self._ret['top_measurement']
-        if 'circuit' in self._ret:
-            result.circuit = self._ret['circuit']
-        result.assignment = self._ret['result']
-        result.oracle_evaluation = self._ret['oracle_evaluation']
-        return result
-
-    @property
-    def grover_operator(self) -> QuantumCircuit:
-        """Returns grover_operator."""
-        return self._grover_operator
-
-
-def _construct_grover_operator(oracle, state_preparation, mct_mode):
-    # check the type of state_preparation
-    if not (isinstance(state_preparation, QuantumCircuit) or state_preparation is None):
-        raise TypeError('Unsupported type "{}" of state_preparation'.format(
-            type(state_preparation)))
-
-    # check to oracle type
-    reflection_qubits = None
-    if not isinstance(oracle, (QuantumCircuit, Statevector)):
-        raise TypeError('Unsupported type "{}" of oracle'.format(type(oracle)))
-
-    grover_operator = GroverOperator(oracle=oracle,
-                                     state_preparation=state_preparation,
-                                     reflection_qubits=reflection_qubits,
-                                     mcx_mode=mct_mode)
-    return grover_operator
-
-
-def _check_deprecated_args(mct_mode, rotation_counts, lam, num_iterations):
-    """Check the deprecated args."""
-
-    if mct_mode is not None:
-        validate_in_set('mct_mode', mct_mode,
-                        {'basic', 'basic-dirty-ancilla', 'advanced', 'noancilla'})
-        warnings.warn('The mct_mode argument is deprecated as of 0.8.0, and will be removed no '
-                      'earlier than 3 months after the release date. If you want to use a '
-                      'special MCX mode you should use the GroverOperator in '
-                      'qiskit.circuit.library directly and pass it to the grover_operator '
-                      'keyword argument.', DeprecationWarning, stacklevel=3)
-
-    if rotation_counts is not None:
-        warnings.warn('The rotation_counts argument is deprecated as of 0.8.0, and will be '
-                      'removed no earlier than 3 months after the release date. '
-                      'If you want to use the incremental mode with the rotation_counts '
-                      'argument or you should use the iterations argument instead and pass '
-                      'a list of integers',
-                      DeprecationWarning, stacklevel=3)
-
-    if lam is not None:
-        warnings.warn('The lam argument is deprecated as of 0.8.0, and will be '
-                      'removed no earlier than 3 months after the release date. '
-                      'If you want to use the incremental mode with the lam argument, '
-                      'you should use the iterations argument instead and pass '
-                      'a list of integers calculated with the lam argument.',
-                      DeprecationWarning, stacklevel=3)
-
-    if num_iterations is not None:
-        validate_min('num_iterations', num_iterations, 1)
-        warnings.warn('The num_iterations argument is deprecated as of 0.8.0, and will be '
-                      'removed no earlier than 3 months after the release date. '
-                      'If you want to use the num_iterations argument '
-                      'you should use the iterations argument instead and pass an integer '
-                      'for the number of iterations.',
-                      DeprecationWarning, stacklevel=3)
-
-
-def _check_is_good_state(is_good_state):
-    """Check whether a provided is_good_state is one of the supported types or not"""
-    is_compatible = False
-    if callable(is_good_state):
-        is_compatible = True
-    if isinstance(is_good_state, list):
-        if all(isinstance(good_bitstr, str) for good_bitstr in is_good_state) or \
-           all(isinstance(good_index, int) for good_index in is_good_state):
-            is_compatible = True
-    if isinstance(is_good_state, Statevector):
-        is_compatible = True
-
-    if not is_compatible:
-        raise TypeError('Unsupported type "{}" of is_good_state'.format(type(is_good_state)))
-
-
-class GroverResult(AlgorithmResult):
+class GroverResult(AmplitudeAmplifierResult):
     """Grover Result."""
 
-    @property
-    def measurement(self) -> Optional[Dict[str, int]]:
-        """ returns measurement """
-        return self.get('measurement')
-
-    @measurement.setter
-    def measurement(self, value: Dict[str, int]) -> None:
-        """ set measurement """
-        self.data['measurement'] = value
+    def __init__(self) -> None:
+        super().__init__()
+        self._iterations = None
+        self._circuit_results = None
+        self._shots = None
 
     @property
-    def top_measurement(self) -> Optional[str]:
-        """ return top measurement """
-        return self.get('top_measurement')
+    def iterations(self) -> List[int]:
+        """All the powers of the Grover operator that have been tried.
 
-    @top_measurement.setter
-    def top_measurement(self, value: str) -> None:
-        """ set top measurement """
-        self.data['top_measurement'] = value
+        Returns:
+            The powers of the Grover operator tested.
+        """
+        return self._iterations
 
-    @property
-    def circuit(self) -> Optional[QuantumCircuit]:
-        """ return circuit """
-        return self.get('circuit')
+    @iterations.setter
+    def iterations(self, value: List[int]) -> None:
+        """Set the powers of the Grover operator that have been tried.
 
-    @circuit.setter
-    def circuit(self, value: QuantumCircuit) -> None:
-        """ set circuit """
-        self.data['circuit'] = value
-
-    @property
-    def assignment(self) -> List[int]:
-        """ return assignment """
-        return self.get('assignment')
-
-    @assignment.setter
-    def assignment(self, value: List[int]) -> None:
-        """ set assignment """
-        self.data['assignment'] = value
-
-    @property
-    def oracle_evaluation(self) -> bool:
-        """ return oracle evaluation """
-        return self.get('oracle_evaluation')
-
-    @oracle_evaluation.setter
-    def oracle_evaluation(self, value: bool) -> None:
-        """ set oracle evaluation """
-        self.data['oracle_evaluation'] = value
-
-    @staticmethod
-    def from_dict(a_dict: Dict) -> 'GroverResult':
-        """ create new object from a dictionary """
-        return GroverResult(a_dict)
-
-    def __getitem__(self, key: object) -> object:
-        if key == 'result':
-            warnings.warn('result deprecated, use assignment property.', DeprecationWarning)
-            return super().__getitem__('assignment')
-
-        return super().__getitem__(key)
+        Args:
+            value: A new value for the powers.
+        """
+        self._iterations = value

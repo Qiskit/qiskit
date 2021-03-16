@@ -12,7 +12,7 @@
 """
 N-qubit Pauli Operator Class
 """
-# pylint: disable=invalid-name, abstract-method
+# pylint: disable=invalid-name
 # pylint: disable=bad-docstring-quotes  # for deprecate_function decorator
 
 import re
@@ -26,6 +26,7 @@ from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.barrier import Barrier
+from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
 class Pauli(BasePauli):
@@ -145,7 +146,6 @@ class Pauli(BasePauli):
     # Set the max Pauli string size before truncation
     __truncate__ = 50
 
-    # pylint: disable = missing-param-doc, missing-type-doc
     def __init__(self, data=None, x=None, *, z=None, label=None):
         """Initialize the Pauli.
 
@@ -290,7 +290,7 @@ class Pauli(BasePauli):
     def __getitem__(self, qubits):
         """Return the unsigned Pauli group Pauli for subset of qubits."""
         # Set group phase to 0 so returned Pauli is always +1 coeff
-        if isinstance(qubits, (int, np.int)):
+        if isinstance(qubits, (int, np.integer)):
             qubits = [qubits]
         return Pauli((self.z[qubits], self.x[qubits]))
 
@@ -316,7 +316,7 @@ class Pauli(BasePauli):
             QiskitError: if ind is out of bounds for the array size or
                          number of qubits.
         """
-        if isinstance(qubits, (int, np.int)):
+        if isinstance(qubits, (int, np.integer)):
             qubits = [qubits]
         if max(qubits) > self.num_qubits - 1:
             raise QiskitError(
@@ -346,9 +346,9 @@ class Pauli(BasePauli):
 
         # Initialize empty operator
         ret_qubits = self.num_qubits + value.num_qubits
-        ret = Pauli((np.zeros(ret_qubits, dtype=np.bool),
-                     np.zeros(ret_qubits, dtype=np.bool)))
-        if isinstance(qubits, (int, np.int)):
+        ret = Pauli((np.zeros(ret_qubits, dtype=bool),
+                     np.zeros(ret_qubits, dtype=bool)))
+        if isinstance(qubits, (int, np.integer)):
             if value.num_qubits == 1:
                 qubits = [qubits]
             else:
@@ -426,48 +426,34 @@ class Pauli(BasePauli):
     # BaseOperator methods
     # ---------------------------------------------------------------------
 
-    def tensor(self, other):
-        """Return the tensor product Pauli self ⊗ other.
-
-        Args:
-            other (Pauli): another Pauli.
-
-        Returns:
-            Pauli: the tensor product Pauli.
-        """
-        if not isinstance(other, Pauli):
-            other = Pauli(other)
-        return Pauli(super().tensor(other))
-
-    def expand(self, other):
-        """Return the tensor product Pauli other ⊗ self.
-
-        Args:
-            other (Pauli): another Pauli.
-
-        Returns:
-            Pauli: the tensor product Pauli.
-        """
-        if not isinstance(other, Pauli):
-            other = Pauli(other)
-        return Pauli(super().expand(other))
-
     def compose(self, other, qargs=None, front=False, inplace=False):
-        """Return the composed Pauli self∘other.
+        """Return the operator composition with another Pauli.
 
         Args:
-            other (Pauli): another Pauli.
-            qargs (None or list): qubits to apply dot product on (default: None).
-            front (bool): If True use `dot` composition method (default: False).
+            other (Pauli): a Pauli object.
+            qargs (list or None): Optional, qubits to apply dot product
+                                  on (default: None).
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
             inplace (bool): If True update in-place (default: False).
 
         Returns:
-            Pauli: the output Pauli.
+            Pauli: The composed Pauli.
 
         Raises:
-            QiskitError: if other cannot be converted to a Pauli.
+            QiskitError: if other cannot be converted to an operator, or has
+                         incompatible dimensions for specified subsystems.
+
+        .. note::
+            Composition (``&``) by default is defined as `left` matrix multiplication for
+            matrix operators, while :meth:`dot` is defined as `right` matrix
+            multiplication. That is that ``A & B == A.compose(B)`` is equivalent to
+            ``B.dot(A)`` when ``A`` and ``B`` are of the same type.
+
+            Setting the ``front=True`` kwarg changes this to `right` matrix
+            multiplication and is equivalent to the :meth:`dot` method
+            ``A.dot(B) == A.compose(B, front=True)``.
         """
-        # pylint: disable=unused-argument
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
         if not isinstance(other, Pauli):
@@ -477,50 +463,45 @@ class Pauli(BasePauli):
                                      front=front,
                                      inplace=inplace))
 
+    # pylint: disable=arguments-differ
     def dot(self, other, qargs=None, inplace=False):
-        """Return the dot product Pauli self∘other.
+        """Return the right multiplied operator self * other.
 
         Args:
-            other (Pauli): another Pauli.
-            qargs (None or list): qubits to apply dot product on (default: None).
+            other (Pauli): an operator object.
+            qargs (list or None): Optional, qubits to apply dot product
+                                  on (default: None).
             inplace (bool): If True update in-place (default: False).
 
         Returns:
-            Pauli: the dot outer product table.
-
-        Raises:
-            QiskitError: if other cannot be converted to a Pauli.
+            Pauli: The operator self * other.
         """
-        return Pauli(super().dot(other, qargs=qargs, inplace=inplace))
+        return self.compose(other, qargs=qargs, front=True, inplace=inplace)
+
+    def tensor(self, other):
+        if not isinstance(other, Pauli):
+            other = Pauli(other)
+        return Pauli(super().tensor(other))
+
+    def expand(self, other):
+        if not isinstance(other, Pauli):
+            other = Pauli(other)
+        return Pauli(super().expand(other))
 
     def _multiply(self, other):
-        """Multiply Pauli by a phase.
-
-        Args:
-            other (complex): a complex number in [1, -1j, -1, 1j]
-
-        Returns:
-            Pauli: the Pauli other * self.
-
-        Raises:
-            QiskitError: if the phase is not in the set [1, -1j, -1, 1j].
-        """
         return Pauli(super()._multiply(other))
 
     def conjugate(self):
-        """Return the conjugated Pauli."""
         return Pauli(super().conjugate())
 
     def transpose(self):
-        """Return the transposed Pauli."""
         return Pauli(super().transpose())
 
     def adjoint(self):
-        """Return the adjoint Pauli."""
         return Pauli(super().adjoint())
 
     def inverse(self):
-        """Return the inverse Pauli."""
+        """Return the inverse of the Pauli."""
         return Pauli(super().adjoint())
 
     # ---------------------------------------------------------------------
@@ -618,9 +599,9 @@ class Pauli(BasePauli):
 
         # Convert to Symplectic representation
         num_qubits = len(pauli)
-        base_z = np.zeros((1, num_qubits), dtype=np.bool)
-        base_x = np.zeros((1, num_qubits), dtype=np.bool)
-        base_phase = np.array([phase], dtype=np.int)
+        base_z = np.zeros((1, num_qubits), dtype=bool)
+        base_x = np.zeros((1, num_qubits), dtype=bool)
+        base_phase = np.array([phase], dtype=int)
         for i, char in enumerate(pauli):
             if char == 'X':
                 base_x[0, num_qubits - 1 - i] = True
@@ -637,8 +618,8 @@ class Pauli(BasePauli):
         """Convert a ScalarOp to BasePauli data."""
         if op.num_qubits is None:
             raise QiskitError('{} is not an N-qubit identity'.format(op))
-        base_z = np.zeros((1, op.num_qubits), dtype=np.bool)
-        base_x = np.zeros((1, op.num_qubits), dtype=np.bool)
+        base_z = np.zeros((1, op.num_qubits), dtype=bool)
+        base_x = np.zeros((1, op.num_qubits), dtype=bool)
         base_phase = np.mod(
             cls._phase_from_complex(op.coeff) +
             np.sum(np.logical_and(base_z, base_x), axis=1), 4)
@@ -676,9 +657,9 @@ class Pauli(BasePauli):
 
         # Initialize identity Pauli
         ret = Pauli(
-            BasePauli(np.zeros((1, instr.num_qubits), dtype=np.bool),
-                      np.zeros((1, instr.num_qubits), dtype=np.bool),
-                      np.zeros(1, dtype=np.int)))
+            BasePauli(np.zeros((1, instr.num_qubits), dtype=bool),
+                      np.zeros((1, instr.num_qubits), dtype=bool),
+                      np.zeros(1, dtype=int)))
 
         # Add circuit global phase if specified
         if instr.global_phase:
@@ -726,7 +707,7 @@ class Pauli(BasePauli):
     def _make_np_bool(arr):
         if not isinstance(arr, (list, np.ndarray, tuple)):
             arr = [arr]
-        arr = np.asarray(arr).astype(np.bool)
+        arr = np.asarray(arr).astype(bool)
         return arr
 
     @staticmethod
@@ -816,7 +797,7 @@ class Pauli(BasePauli):
         self._z = pauli._z
         self._x = pauli._x
         self._phase = pauli._phase
-        self._set_dims(pauli.num_qubits * (2, ), pauli.num_qubits * (2, ))
+        self._op_shape = self._op_shape.expand(other._op_shape)
         return self
 
     @deprecate_function(
@@ -945,7 +926,7 @@ class Pauli(BasePauli):
         self._z = pauli._z
         self._x = pauli._x
         self._phase = pauli._phase
-        self._num_qubits = pauli._num_qubits
+        self._op_shape = pauli._op_shape
         return self
 
     @deprecate_function(
@@ -987,7 +968,7 @@ class Pauli(BasePauli):
         self._z = pauli._z
         self._x = pauli._x
         self._phase = pauli._phase
-        self._num_qubits = pauli._num_qubits
+        self._op_shape = pauli._op_shape
         return self
 
     @classmethod
@@ -1007,8 +988,8 @@ class Pauli(BasePauli):
             Pauli: single qubit pauli
         """
         tmp = Pauli(pauli_label)
-        ret = Pauli((np.zeros(num_qubits, dtype=np.bool),
-                     np.zeros(num_qubits, dtype=np.bool)))
+        ret = Pauli((np.zeros(num_qubits, dtype=bool),
+                     np.zeros(num_qubits, dtype=bool)))
         ret.x[index] = tmp.x[0]
         ret.z[index] = tmp.z[0]
         ret.phase = tmp.phase
@@ -1060,3 +1041,7 @@ def _phase_from_label(label):
     if label not in phases:
         raise QiskitError("Invalid Pauli phase label '{}'".format(label))
     return phases.get(label)
+
+
+# Update docstrings for API docs
+generate_apidocs(Pauli)

@@ -133,6 +133,9 @@ class ChannelEvents:
         # parse instructions
         for t0, inst in program.filter(channels=[channel]).instructions:
             if isinstance(inst, cls._waveform_group):
+                if inst.duration == 0:
+                    # special case, duration of delay can be zero
+                    continue
                 waveforms[t0] = inst
             elif isinstance(inst, cls._frame_group):
                 frames[t0].append(inst)
@@ -181,10 +184,8 @@ class ChannelEvents:
             frame = PhaseFreqTuple(phase, frequency)
 
             # Check if pulse has unbound parameters
-            if isinstance(inst, pulse.Play) and isinstance(inst.pulse, pulse.ParametricPulse):
-                params = inst.pulse.parameters
-                if any(isinstance(pval, circuit.Parameter) for pval in params.values()):
-                    is_opaque = True
+            if isinstance(inst, pulse.Play):
+                is_opaque = inst.is_parameterized()
 
             yield PulseInstruction(t0, self._dt, frame, inst, is_opaque)
 
@@ -206,10 +207,10 @@ class ChannelEvents:
                 phase=phase,
                 frequency=frequency)
 
-            # keep parameter expression to check either phase or frequency is parametrized
+            # keep parameter expression to check either phase or frequency is parameterized
             frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
 
-            # remove parameter expressions to find if next frame is parametrized
+            # remove parameter expressions to find if next frame is parameterized
             if isinstance(phase, circuit.ParameterExpression):
                 phase = float(phase.bind({param: 0 for param in phase.parameters}))
                 is_opaque = True

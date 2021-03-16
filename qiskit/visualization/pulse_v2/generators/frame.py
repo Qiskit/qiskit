@@ -255,9 +255,10 @@ def gen_raw_operand_values_compact(data: types.PulseInstruction,
     if data.frame.freq == 0:
         freq_sci_notation = '0.0'
     else:
+        abs_freq = np.abs(data.frame.freq)
         freq_sci_notation = '{base:.1f}e{exp:d}'.format(
-            base=data.frame.freq / (10**int(np.floor(np.log10(data.frame.freq)))),
-            exp=int(np.floor(np.log10(data.frame.freq)))
+            base=data.frame.freq / (10**int(np.floor(np.log10(abs_freq)))),
+            exp=int(np.floor(np.log10(abs_freq)))
         )
     frame_info = '{phase:.2f}\n{freq}'.format(phase=data.frame.phase,
                                               freq=freq_sci_notation)
@@ -415,8 +416,8 @@ def _freq_to_text(formatter: Dict[str, Any],
 
     try:
         value = freq/unit_table[unit]
-    except KeyError:
-        raise VisualizationError('Unit {unit} is not supported.'.format(unit=unit))
+    except KeyError as ex:
+        raise VisualizationError(f'Unit {unit} is not supported.') from ex
 
     latex = r'{val:.2f}~{{\rm {unit}}}'.format(val=value, unit=unit)
     plain = '{val:.2f} {unit}'.format(val=value, unit=unit)

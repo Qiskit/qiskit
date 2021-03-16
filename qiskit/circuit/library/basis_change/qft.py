@@ -19,8 +19,6 @@ from qiskit.circuit import QuantumRegister
 
 from ..blueprintcircuit import BlueprintCircuit
 
-# pylint: disable=no-member
-
 
 class QFT(BlueprintCircuit):
     r"""Quantum Fourier Transform Circuit.
@@ -189,7 +187,7 @@ class QFT(BlueprintCircuit):
 
     @do_swaps.setter
     def do_swaps(self, do_swaps: bool) -> None:
-        """Specifiy whether to do the final swaps of the QFT circuit or not.
+        """Specify whether to do the final swaps of the QFT circuit or not.
 
         Args:
             do_swaps: If True, the final swaps are applied, if False not.
@@ -252,11 +250,11 @@ class QFT(BlueprintCircuit):
         """Construct the circuit representing the desired state vector."""
         super()._build()
 
-        for j in range(self.num_qubits):
+        for j in reversed(range(self.num_qubits)):
             self.h(j)
-            num_entanglements = max(0, self.num_qubits - max(self.approximation_degree, j))
-            for k in range(j + 1, j + num_entanglements):
-                lam = np.pi / (2 ** (k - j))
+            num_entanglements = max(0, j-max(0, self.approximation_degree - (self.num_qubits-j-1)))
+            for k in reversed(range(j - num_entanglements, j)):
+                lam = np.pi / (2 ** (j - k))
                 self.cp(lam, j, k)
 
             if self.insert_barriers:

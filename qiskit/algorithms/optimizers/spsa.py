@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,13 +12,12 @@
 
 """Simultaneous Perturbation Stochastic Approximation optimizer."""
 
-import warnings
-from typing import Optional, List, Callable
+from typing import List, Callable
 import logging
 
 import numpy as np
 
-from qiskit.utils import aqua_globals
+from qiskit.utils import algorithm_globals
 from qiskit.utils.validation import validate_min
 from .optimizer import Optimizer, OptimizerSupportLevel
 
@@ -60,7 +59,6 @@ class SPSA(Optimizer):
     _C0 = 2 * np.pi * 0.1
     _OPTIONS = ['save_steps', 'last_avg']
 
-    # pylint: disable=unused-argument
     def __init__(self,
                  maxiter: int = 1000,
                  save_steps: int = 1,
@@ -70,8 +68,7 @@ class SPSA(Optimizer):
                  c2: float = 0.602,
                  c3: float = 0.101,
                  c4: float = 0,
-                 skip_calibration: bool = False,
-                 max_trials: Optional[int] = None) -> None:
+                 skip_calibration: bool = False) -> None:
         """
         Args:
             maxiter: Maximum number of iterations to perform.
@@ -84,18 +81,11 @@ class SPSA(Optimizer):
             c3: The gamma in the paper, and it is used to adjust c (c1) at each iteration.
             c4: The parameter used to control a as well.
             skip_calibration: Skip calibration and use provided c(s) as is.
-            max_trials: Deprecated, use maxiter.
         """
         validate_min('save_steps', save_steps, 1)
         validate_min('last_avg', last_avg, 1)
         super().__init__()
-        if max_trials is not None:
-            warnings.warn('The max_trials parameter is deprecated as of '
-                          '0.8.0 and will be removed no sooner than 3 months after the release. '
-                          'You should use maxiter instead.',
-                          DeprecationWarning)
-            maxiter = max_trials
-        for k, v in locals().items():
+        for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 self._options[k] = v
         self._maxiter = maxiter
@@ -176,7 +166,7 @@ class SPSA(Optimizer):
             a_spsa = float(self._parameters[0]) / np.power(k + 1 + self._parameters[4],
                                                            self._parameters[2])
             c_spsa = float(self._parameters[1]) / np.power(k + 1, self._parameters[3])
-            delta = 2 * aqua_globals.random.integers(2, size=np.shape(initial_theta)[0]) - 1
+            delta = 2 * algorithm_globals.random.integers(2, size=np.shape(initial_theta)[0]) - 1
             # plus and minus directions
             theta_plus = theta + c_spsa * delta
             theta_minus = theta - c_spsa * delta
@@ -234,7 +224,7 @@ class SPSA(Optimizer):
         for i in range(stat):
             if i % 5 == 0:
                 logger.debug('calibration step # %s of %s', str(i), str(stat))
-            delta = 2 * aqua_globals.random.integers(2, size=np.shape(initial_theta)[0]) - 1
+            delta = 2 * algorithm_globals.random.integers(2, size=np.shape(initial_theta)[0]) - 1
             theta_plus = initial_theta + initial_c * delta
             theta_minus = initial_theta - initial_c * delta
             if self._max_evals_grouped > 1:

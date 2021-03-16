@@ -19,9 +19,9 @@ import sys
 
 import numpy as np
 import qiskit.pulse as pulse
-from qiskit.circuit import Instruction, Gate, Parameter
+from qiskit.circuit import Instruction, Gate, Parameter, ParameterVector
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler.assemble import assemble
+from qiskit.compiler.assembler import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, Acquire, Play
 from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
@@ -229,6 +229,30 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].instructions[0].qubits, [0, 2, 5, 3])
         self.assertEqual(qobj.experiments[0].instructions[0].memory, [3, 0])
         self.assertEqual(qobj.experiments[0].instructions[0].params, [0.5, 0.4])
+
+    def test_assemble_unroll_parametervector(self):
+        """Verfiy that assemble unrolls parametervectors ref #5467"""
+        pv1 = ParameterVector('pv1', 3)
+        pv2 = ParameterVector('pv2', 3)
+        qc = QuantumCircuit(2, 2)
+        for i in range(3):
+            qc.rx(pv1[i], 0)
+            qc.ry(pv2[i], 1)
+        qc.barrier()
+        qc.measure([0, 1], [0, 1])
+
+        qc.bind_parameters({pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]})
+
+        qobj = assemble(qc, parameter_binds=[{pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]}])
+        validate_qobj_against_schema(qobj)
+
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(qobj.experiments[0].instructions[0].params[0], 0.100000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[1].params[0], 0.400000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[2].params[0], 0.200000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[3].params[0], 0.500000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[4].params[0], 0.300000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[5].params[0], 0.600000000000000)
 
     def test_measure_to_registers_when_conditionals(self):
         """Verify assemble_circuits maps all measure ops on to a register slot
@@ -623,7 +647,7 @@ class TestPulseAssembler(QiskitTestCase):
         schedule += pulse.Play(pulse.Waveform([0.1]*16, name='test0'),
                                pulse.DriveChannel(0),
                                name='test1')
-        schedule += pulse.Play(pulse.SamplePulse([0.1]*16, name='test1'),
+        schedule += pulse.Play(pulse.Waveform([0.1]*16, name='test1'),
                                pulse.DriveChannel(0),
                                name='test2')
         schedule += pulse.Play(pulse.Waveform([0.5]*16, name='test0'),
@@ -866,7 +890,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(len(qobj.config.pulse_library), 3)
 
     def test_assemble_with_delay(self):
-        """Test that delay instruction is ignored in assembly."""
+        """Test that delay instruction is not ignored in assembly."""
         delay_schedule = pulse.Delay(10, self.backend_config.drive(0))
         delay_schedule += self.schedule
         delay_qobj = assemble(delay_schedule, self.backend)
@@ -874,6 +898,46 @@ class TestPulseAssembler(QiskitTestCase):
         validate_qobj_against_schema(delay_qobj)
         self.assertEqual(delay_qobj.experiments[0].instructions[0].name, "delay")
         self.assertEqual(delay_qobj.experiments[0].instructions[0].duration, 10)
+        self.assertEqual(delay_qobj.experiments[0].instructions[0].t0, 0)
+
+    def test_delay_removed_on_acq_ch(self):
+        """Test that delay instructions on acquire channels are skipped on assembly with times
+        shifted properly.
+        """
+        delay0 = pulse.Delay(5, self.backend_config.acquire(0))
+        delay1 = pulse.Delay(7, self.backend_config.acquire(1))
+
+        sched0 = delay0
+        sched0 += self.schedule  # includes ``Acquire`` instr
+        sched0 += delay1
+
+        sched1 = self.schedule  # includes ``Acquire`` instr
+        sched1 += delay0
+        sched1 += delay1
+
+        sched2 = delay0
+        sched2 += delay1
+        sched2 += self.schedule  # includes ``Acquire`` instr
+
+        delay_qobj = assemble([sched0, sched1, sched2], self.backend)
+        validate_qobj_against_schema(delay_qobj)
+
+        # check that no delay instrs occur on acquire channels
+        is_acq_delay = False
+        for exp in delay_qobj.experiments:
+            for instr in exp.instructions:
+                if instr.name == "delay" and "a" in instr.ch:
+                    is_acq_delay = True
+
+        self.assertFalse(is_acq_delay)
+
+        # check that acquire instr are shifted from ``t0=5`` as needed
+        self.assertEqual(delay_qobj.experiments[0].instructions[1].t0, 10)
+        self.assertEqual(delay_qobj.experiments[0].instructions[1].name, "acquire")
+        self.assertEqual(delay_qobj.experiments[1].instructions[1].t0, 5)
+        self.assertEqual(delay_qobj.experiments[1].instructions[1].name, "acquire")
+        self.assertEqual(delay_qobj.experiments[2].instructions[1].t0, 12)
+        self.assertEqual(delay_qobj.experiments[2].instructions[1].name, "acquire")
 
     def test_assemble_schedule_enum(self):
         """Test assembling a schedule with enum input values to assemble."""
@@ -1288,7 +1352,6 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def test_unsupported_meas_level(self):
         """Test that assembly raises an error if meas_level is not supported"""
-        # pylint: disable=unused-variable
         backend = FakeOpenPulse2Q()
         backend.configuration().meas_levels = [1, 2]
         with self.assertRaises(SchemaValidationError):
@@ -1344,6 +1407,7 @@ class TestLogAssembler(QiskitTestCase):
     def setUp(self):
         super().setUp()
         logger = getLogger()
+        self.addCleanup(logger.setLevel, logger.level)
         logger.setLevel('DEBUG')
         self.output = io.StringIO()
         logger.addHandler(StreamHandlerRaiseException(self.output))

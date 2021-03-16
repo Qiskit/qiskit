@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ,method-hidden
 
 """ HamiltonianGate tests """
 
@@ -116,8 +115,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         self.assertEqual(len(nodes), 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, HamiltonianGate)
-        for qubit in dnode.qargs:
-            self.assertIn(qubit.index, [0, 1])
+        self.assertEqual(dnode.qargs, [qr[0], qr[1]])
         # Equality based on Pauli exponential identity
         np.testing.assert_array_almost_equal(dnode.op.to_matrix(), 1j*matrix.data)
         qc3 = dag_to_circuit(dag)
@@ -141,8 +139,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         self.assertEqual(len(nodes), 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, HamiltonianGate)
-        for qubit in dnode.qargs:
-            self.assertIn(qubit.index, [0, 1, 3])
+        self.assertEqual(dnode.qargs, [qr[0], qr[1], qr[3]])
         np.testing.assert_almost_equal(dnode.op.to_matrix(), 1j*matrix.data)
 
     def test_qobj_with_hamiltonian(self):

@@ -41,9 +41,8 @@ class UnaryOperator(Node):
         """
         try:
             return VALID_OPERATORS[self.value]
-        except KeyError:
-            raise NodeException("internal error: undefined prefix '%s'" %
-                                self.value)
+        except KeyError as ex:
+            raise NodeException(f"internal error: undefined prefix '{self.value}'") from ex
 
     def qasm(self, prec=None):
         """Return QASM representation."""

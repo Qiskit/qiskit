@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 """Tests for SparsePauliOp class."""
 
 import unittest
@@ -224,7 +223,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         value = spp_op1.compose(spp_op2).to_operator()
         self.assertEqual(value, target)
 
-        value = (spp_op1 @ spp_op2).to_operator()
+        value = (spp_op1 & spp_op2).to_operator()
         self.assertEqual(value, target)
 
     @combine(num_qubits=[1, 2, 3, 4])
@@ -252,7 +251,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         value = spp_op1.compose(spp_op2, qargs=qargs).to_operator()
         self.assertEqual(value, target)
 
-        value = (spp_op1 @ spp_op2(qargs)).to_operator()
+        value = (spp_op1 & spp_op2(qargs)).to_operator()
         self.assertEqual(value, target)
 
     @combine(num_qubits=[1, 2, 3])

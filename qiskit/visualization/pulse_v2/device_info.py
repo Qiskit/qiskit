@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """A collection of backend information formatted to generate drawing data.
 
 This instance will be provided to generator functions. The module provides an abstract

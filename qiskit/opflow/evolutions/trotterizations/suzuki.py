@@ -13,13 +13,16 @@
 """ Suzuki Class """
 
 from typing import List, Union, cast
-from qiskit.quantum_info import Pauli
 
-from .trotterization_base import TrotterizationBase
-from ...operator_base import OperatorBase
-from ...list_ops.composed_op import ComposedOp
-from ...list_ops.summed_op import SummedOp
-from ...primitive_ops.primitive_op import PrimitiveOp
+from numpy import isreal
+
+from qiskit.circuit import ParameterExpression
+from qiskit.opflow.evolutions.trotterizations.trotterization_base import TrotterizationBase
+from qiskit.opflow.list_ops.composed_op import ComposedOp
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 
 
 class Suzuki(TrotterizationBase):
@@ -53,29 +56,42 @@ class Suzuki(TrotterizationBase):
         self._order = order
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
-        if not isinstance(operator, SummedOp):
-            raise TypeError('Trotterization converters can only convert SummedOps.')
+        if not isinstance(operator, (SummedOp, PauliSumOp)):
+            raise TypeError('Trotterization converters can only convert SummedOp or PauliSumOp.')
 
-        composition_list = Suzuki._suzuki_recursive_expansion(
-            cast(List[List[Union[complex, Pauli]]], operator.oplist),
-            cast(float, operator.coeff),
-            self.order, self.reps)
+        if isinstance(operator.coeff, (float, ParameterExpression)):
+            coeff = operator.coeff
+        else:
+            if isreal(operator.coeff):
+                coeff = operator.coeff.real
+            else:
+                raise TypeError(
+                    "Coefficient of the operator must be float or ParameterExpression, "
+                    f"but {operator.coeff}:{type(operator.coeff)} is given."
+                )
 
-        single_rep = ComposedOp(cast(List[OperatorBase], composition_list))
+        if isinstance(operator, PauliSumOp):
+            comp_list = self._recursive_expansion(operator, coeff, self.order, self.reps)
+        if isinstance(operator, SummedOp):
+            comp_list = Suzuki._recursive_expansion(
+                operator.oplist, coeff, self.order, self.reps
+            )
+
+        single_rep = ComposedOp(cast(List[OperatorBase], comp_list))
         full_evo = single_rep.power(self.reps)
         return full_evo.reduce()
 
     @staticmethod
-    def _suzuki_recursive_expansion(op_list: List[List[Union[complex, Pauli]]],
-                                    evo_time: float,
-                                    expansion_order: int,
-                                    reps: int) -> List[PrimitiveOp]:
+    def _recursive_expansion(op_list: Union[List[OperatorBase], PauliSumOp],
+                             evo_time: Union[float, ParameterExpression],
+                             expansion_order: int,
+                             reps: int) -> List[PrimitiveOp]:
         """
-        Compute the list of pauli terms for a single slice of the suzuki expansion
+        Compute the list of pauli terms for a single slice of the Suzuki expansion
         following the paper https://arxiv.org/pdf/quant-ph/0508139.pdf.
 
         Args:
-            op_list: The slice's weighted Pauli list for the suzuki expansion
+            op_list: The slice's weighted Pauli list for the Suzuki expansion
             evo_time: The parameter lambda as defined in said paper,
                 adjusted for the evolution time and the number of time slices
             expansion_order: The order for the Suzuki expansion.
@@ -88,13 +104,13 @@ class Suzuki(TrotterizationBase):
             # Base first-order Trotter case
             return [(op * (evo_time / reps)).exp_i() for op in op_list]  # type: ignore
         if expansion_order == 2:
-            half = Suzuki._suzuki_recursive_expansion(op_list, evo_time / 2,
-                                                      expansion_order - 1, reps)
+            half = Suzuki._recursive_expansion(op_list, evo_time / 2,
+                                               expansion_order - 1, reps)
             return list(reversed(half)) + half
         else:
             p_k = (4 - 4 ** (1 / (2 * expansion_order - 1))) ** -1
-            side = 2 * Suzuki._suzuki_recursive_expansion(op_list, evo_time
-                                                          * p_k, expansion_order - 2, reps)
-            middle = Suzuki._suzuki_recursive_expansion(op_list, evo_time * (1 - 4 * p_k),
-                                                        expansion_order - 2, reps)
+            side = 2 * Suzuki._recursive_expansion(op_list, evo_time
+                                                   * p_k, expansion_order - 2, reps)
+            middle = Suzuki._recursive_expansion(op_list, evo_time * (1 - 4 * p_k),
+                                                 expansion_order - 2, reps)
             return side + middle + side

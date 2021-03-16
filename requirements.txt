@@ -1,6 +1,6 @@
 contextvars>=2.4;python_version<'3.7'
 jsonschema>=2.6
-retworkx>=0.7.0
+retworkx>=0.8.0
 numpy>=1.17
 ply>=3.10
 psutil>=5

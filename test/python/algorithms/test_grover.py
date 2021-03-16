@@ -10,20 +10,24 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" test Grover """
+"""Test Grover's algorithm."""
 
 import unittest
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
+import itertools
+import numpy as np
+from ddt import ddt, data
+
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.utils import QuantumInstance
-from qiskit.algorithms import Grover
+from qiskit.algorithms import Grover, AmplificationProblem
 from qiskit.circuit.library import GroverOperator
 from qiskit.quantum_info import Operator, Statevector
 
 
-class TestGroverConstructor(QiskitAlgorithmsTestCase):
-    """Test for the constructor of Grover"""
+@ddt
+class TestAmplificationProblem(QiskitAlgorithmsTestCase):
+    """Test the amplification problem."""
 
     def setUp(self):
         super().setUp()
@@ -31,167 +35,182 @@ class TestGroverConstructor(QiskitAlgorithmsTestCase):
         oracle.cz(0, 1)
         self._expected_grover_op = GroverOperator(oracle=oracle)
 
-    def test_oracle_quantumcircuit(self):
-        """Test QuantumCircuit oracle"""
+    @data('oracle_only', 'oracle_and_stateprep')
+    def test_groverop_getter(self, kind):
+        """Test the default construction of the Grover operator."""
         oracle = QuantumCircuit(2)
         oracle.cz(0, 1)
-        grover = Grover(oracle=oracle, good_state=["11"])
-        grover_op = grover._grover_operator
-        self.assertTrue(Operator(grover_op).equiv(Operator(self._expected_grover_op)))
 
-    def test_oracle_statevector(self):
-        """Test StateVector oracle"""
-        mark_state = Statevector.from_label('11')
-        grover = Grover(oracle=mark_state, good_state=['11'])
-        grover_op = grover._grover_operator
-        self.assertTrue(Operator(grover_op).equiv(Operator(self._expected_grover_op)))
+        if kind == 'oracle_only':
+            problem = AmplificationProblem(oracle)
+            expected = GroverOperator(oracle)
+        else:
+            stateprep = QuantumCircuit(2)
+            stateprep.ry(0.2, [0, 1])
+            problem = AmplificationProblem(oracle, state_preparation=stateprep)
+            expected = GroverOperator(oracle, stateprep)
 
-    def test_state_preparation_quantumcircuit(self):
-        """Test QuantumCircuit state_preparation"""
-        state_preparation = QuantumCircuit(2)
-        state_preparation.h(0)
-        oracle = QuantumCircuit(3)
-        oracle.cz(0, 1)
-        grover = Grover(oracle=oracle, state_preparation=state_preparation,
-                        good_state=["011"])
-        grover_op = grover._grover_operator
-        expected_grover_op = GroverOperator(oracle, state_preparation=state_preparation)
-        self.assertTrue(Operator(grover_op).equiv(Operator(expected_grover_op)))
+        self.assertEqual(Operator(expected), Operator(problem.grover_operator))
 
-    def test_is_good_state_list(self):
-        """Test List is_good_state"""
+    @data('list', 'statevector', 'callable')
+    def test_is_good_state(self, kind):
+        """Test is_good_state works on different input types."""
+        if kind == 'list':
+            is_good_state = ['00', '11']
+        elif kind == 'statevector':
+            is_good_state = Statevector(np.array([1, 0, 0, 1]) / np.sqrt(2))
+        else:
+            def is_good_state(bitstr):
+                # same as ``bitstr in ['00', '11']``
+                return sum(int(bit) for bit in bitstr) % 2 == 0
+
+        possible_states = [''.join(list(map(str, item)))
+                           for item in itertools.product([0, 1], repeat=2)]
+
         oracle = QuantumCircuit(2)
-        oracle.cz(0, 1)
-        is_good_state = ["11", "00"]
-        grover = Grover(oracle=oracle, good_state=is_good_state)
-        self.assertListEqual(grover._is_good_state, ["11", "00"])
+        problem = AmplificationProblem(oracle, is_good_state=is_good_state)
 
-    def test_is_good_state_statevector(self):
-        """Test StateVector is_good_state"""
-        oracle = QuantumCircuit(2)
-        oracle.cz(0, 1)
-        is_good_state = Statevector.from_label('11')
-        grover = Grover(oracle=oracle, good_state=is_good_state)
-        self.assertTrue(grover._is_good_state.equiv(Statevector.from_label('11')))
+        expected = [state in ['00', '11'] for state in possible_states]
+        # pylint: disable=not-callable
+        actual = [problem.is_good_state(state) for state in possible_states]
 
-    def test_grover_operator(self):
-        """Test GroverOperator"""
-        oracle = QuantumCircuit(2)
-        oracle.cz(0, 1)
-        grover_op = GroverOperator(oracle)
-        grover = Grover(oracle=grover_op.oracle,
-                        grover_operator=grover_op, good_state=["11"])
-        grover_op = grover._grover_operator
-        self.assertTrue(Operator(grover_op).equiv(Operator(self._expected_grover_op)))
+        self.assertListEqual(expected, actual)
 
 
-class TestGroverPublicMethods(QiskitAlgorithmsTestCase):
-    """Test for the public methods of Grover"""
-
-    def test_is_good_state(self):
-        """Test is_good_state"""
-        oracle = QuantumCircuit(2)
-        oracle.cz(0, 1)
-        list_str_good_state = ["11"]
-        grover = Grover(oracle=oracle, good_state=list_str_good_state)
-        self.assertTrue(grover.is_good_state("11"))
-
-        statevector_good_state = Statevector.from_label('11')
-        grover = Grover(oracle=oracle, good_state=statevector_good_state)
-        self.assertTrue(grover.is_good_state("11"))
-
-        list_int_good_state = [0, 1]
-        grover = Grover(oracle=oracle, good_state=list_int_good_state)
-        self.assertTrue(grover.is_good_state("11"))
-
-        def _callable_good_state(bitstr):
-            if bitstr == "11":
-                return True, bitstr
-            else:
-                return False, bitstr
-        grover = Grover(oracle=oracle, good_state=_callable_good_state)
-        self.assertTrue(grover.is_good_state("11"))
-
-    def test_construct_circuit(self):
-        """Test construct_circuit"""
-        oracle = QuantumCircuit(2)
-        oracle.cz(0, 1)
-        grover = Grover(oracle=oracle, good_state=["11"])
-        constructed = grover.construct_circuit(1)
-        grover_op = GroverOperator(oracle)
-        expected = QuantumCircuit(2)
-        expected.compose(grover_op.state_preparation, inplace=True)
-        expected.compose(grover_op, inplace=True)
-        self.assertTrue(Operator(constructed).equiv(Operator(expected)))
-
-    def test_grover_operator_getter(self):
-        """Test the getter of grover_operator"""
-        oracle = QuantumCircuit(2)
-        oracle.cz(0, 1)
-        grover = Grover(oracle=oracle, good_state=["11"])
-        constructed = grover.grover_operator
-        expected = GroverOperator(oracle)
-        self.assertTrue(Operator(constructed).equiv(Operator(expected)))
-
-
-class TestGroverFunctionality(QiskitAlgorithmsTestCase):
+class TestGrover(QiskitAlgorithmsTestCase):
     """Test for the functionality of Grover"""
 
     def setUp(self):
         super().setUp()
-        self._oracle = Statevector.from_label('111')
-        self._expected_grover_op = GroverOperator(oracle=self._oracle)
-        self._expected = QuantumCircuit(self._expected_grover_op.num_qubits)
-        self._expected.compose(self._expected_grover_op.state_preparation, inplace=True)
-        self._expected.compose(self._expected_grover_op.power(2), inplace=True)
-        backend = BasicAer.get_backend('statevector_simulator')
-        self._sv = QuantumInstance(backend)
+        self.statevector = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
+                                           seed_simulator=12, seed_transpiler=32)
+        self.qasm = QuantumInstance(BasicAer.get_backend('qasm_simulator'),
+                                    seed_simulator=12, seed_transpiler=32)
 
-    def test_iterations(self):
+    def test_fixed_iterations(self):
         """Test the iterations argument"""
-        grover = Grover(oracle=self._oracle, good_state=['111'], iterations=2)
-        ret = grover.run(self._sv)
-        self.assertTrue(Operator(ret['circuit']).equiv(Operator(self._expected)))
+        grover = Grover(iterations=2, quantum_instance=self.statevector)
+        problem = AmplificationProblem(Statevector.from_label('111'), is_good_state=['111'])
+        result = grover.amplify(problem)
+        self.assertEqual(result.top_measurement, '111')
 
-        grover = Grover(oracle=self._oracle, good_state=['111'], iterations=[1, 2, 3])
-        ret = grover.run(self._sv)
-        self.assertTrue(ret.oracle_evaluation)
-        self.assertIn(ret.top_measurement, ['111'])
+    def test_multiple_iterations(self):
+        """Test the algorithm for a list of iterations."""
+        grover = Grover(iterations=[1, 2, 3], quantum_instance=self.statevector)
+        problem = AmplificationProblem(Statevector.from_label('111'), is_good_state=['111'])
+        result = grover.amplify(problem)
+        self.assertEqual(result.top_measurement, '111')
 
+    def test_iterator(self):
+        """Test running the algorithm on an iterator."""
 
-class TestGroverExecution(QiskitAlgorithmsTestCase):
-    """Test for the execution of Grover"""
+        # step-function iterator
+        def iterator():
+            wait, value, count = 3, 1, 0
+            while True:
+                yield value
+                count += 1
+                if count % wait == 0:
+                    value += 1
 
-    def setUp(self):
-        super().setUp()
-        backend = BasicAer.get_backend('qasm_simulator')
-        self._qasm = QuantumInstance(backend)
+        grover = Grover(iterations=iterator(), quantum_instance=self.statevector)
+        problem = AmplificationProblem(Statevector.from_label('111'), is_good_state=['111'])
+        result = grover.amplify(problem)
+        self.assertEqual(result.top_measurement, '111')
+
+    def test_growth_rate(self):
+        """Test running the algorithm on a growth rate"""
+        grover = Grover(growth_rate=8/7, quantum_instance=self.statevector)
+        problem = AmplificationProblem(Statevector.from_label('111'), is_good_state=['111'])
+        result = grover.amplify(problem)
+        self.assertEqual(result.top_measurement, '111')
+
+    def test_max_num_iterations(self):
+        """Test the iteration stops when the maximum number of iterations is reached."""
+        def zero():
+            while True:
+                yield 0
+
+        grover = Grover(iterations=zero(), quantum_instance=self.statevector)
+        n = 5
+        problem = AmplificationProblem(Statevector.from_label('1' * n), is_good_state=['1' * n])
+        result = grover.amplify(problem)
+        self.assertEqual(len(result.iterations), 2 ** n)
+
+    def test_max_power(self):
+        """Test the iteration stops when the maximum power is reached."""
+        lam = 10.0
+        grover = Grover(growth_rate=lam, quantum_instance=self.statevector)
+        problem = AmplificationProblem(Statevector.from_label('111'), is_good_state=['111'])
+        result = grover.amplify(problem)
+        self.assertEqual(len(result.iterations), 0)
 
     def test_run_circuit_oracle(self):
         """Test execution with a quantum circuit oracle"""
         oracle = QuantumCircuit(2)
         oracle.cz(0, 1)
-        list_good_state = ["11"]
-        grover = Grover(oracle=oracle, good_state=list_good_state)
-        ret = grover.run(self._qasm)
-        self.assertIn(ret['top_measurement'], list_good_state)
+        problem = AmplificationProblem(oracle, is_good_state=['11'])
+
+        grover = Grover(quantum_instance=self.qasm)
+        result = grover.amplify(problem)
+        self.assertIn(result.top_measurement, ['11'])
 
     def test_run_state_vector_oracle(self):
         """Test execution with a state vector oracle"""
         mark_state = Statevector.from_label('11')
-        grover = Grover(oracle=mark_state, good_state=['11'])
-        ret = grover.run(self._qasm)
-        self.assertIn(ret['top_measurement'], ['11'])
+        problem = AmplificationProblem(mark_state, is_good_state=['11'])
 
-    def test_run_grover_operator_oracle(self):
+        grover = Grover(quantum_instance=self.qasm)
+        result = grover.amplify(problem)
+        self.assertIn(result.top_measurement, ['11'])
+
+    def test_run_custom_grover_operator(self):
         """Test execution with a grover operator oracle"""
         oracle = QuantumCircuit(2)
         oracle.cz(0, 1)
         grover_op = GroverOperator(oracle)
-        grover = Grover(oracle=grover_op.oracle,
-                        grover_operator=grover_op, good_state=["11"])
-        ret = grover.run(self._qasm)
-        self.assertIn(ret['top_measurement'], ['11'])
+        problem = AmplificationProblem(oracle=oracle, grover_operator=grover_op,
+                                       is_good_state=['11'])
+
+        grover = Grover(quantum_instance=self.qasm)
+        ret = grover.amplify(problem)
+        self.assertIn(ret.top_measurement, ['11'])
+
+    def test_construct_circuit(self):
+        """Test construct_circuit"""
+        oracle = QuantumCircuit(2)
+        oracle.cz(0, 1)
+        problem = AmplificationProblem(oracle)
+        grover = Grover()
+        constructed = grover.construct_circuit(problem, 2, measurement=False)
+
+        grover_op = GroverOperator(oracle)
+        expected = QuantumCircuit(2)
+        expected.h([0, 1])
+        expected.compose(grover_op.power(2), inplace=True)
+
+        self.assertTrue(Operator(constructed).equiv(Operator(expected)))
+
+    def test_circuit_result(self):
+        """Test circuit_result"""
+        oracle = QuantumCircuit(2)
+        oracle.cz(0, 1)
+        # is_good_state=['00'] is intentionally selected to obtain a list of results
+        problem = AmplificationProblem(oracle, is_good_state=['00'])
+        grover = Grover(iterations=[1, 2, 3, 4], quantum_instance=self.qasm)
+        result = grover.amplify(problem)
+        expected_results = [{'11': 1024}, {'00': 238, '01': 253, '10': 263, '11': 270},
+                            {'00': 238, '01': 253, '10': 263, '11': 270}, {'11': 1024}]
+        self.assertEqual(result.circuit_results, expected_results)
+
+    def test_max_probability(self):
+        """Test max_probability"""
+        oracle = QuantumCircuit(2)
+        oracle.cz(0, 1)
+        problem = AmplificationProblem(oracle, is_good_state=['11'])
+        grover = Grover(quantum_instance=self.qasm)
+        result = grover.amplify(problem)
+        self.assertEqual(result.max_probability, 1.0)
 
 
 if __name__ == '__main__':

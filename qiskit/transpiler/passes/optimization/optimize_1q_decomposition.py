@@ -12,17 +12,18 @@
 
 """Optimize chains of single-qubit gates using Euler 1q decomposer"""
 
+import copy
 import logging
+import math
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.quantum_info import Operator
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.quantum_info import OneQubitEulerDecomposer
+from qiskit.quantum_info.synthesis import one_qubit_decompose
+from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.converters import circuit_to_dag
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Optimize1qGatesDecomposition(TransformationPass):
@@ -37,24 +38,26 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 and the Euler basis.
         """
         super().__init__()
-        self.euler_basis_names = {
-            'U3': ['u3'],
-            'U': ['u'],
-            'PSX': ['p', 'sx'],
-            'U1X': ['u1', 'rx'],
-            'RR': ['r'],
-            'ZYZ': ['rz', 'ry'],
-            'ZXZ': ['rz', 'rx'],
-            'XYX': ['rx', 'ry'],
-            'ZSX': ['rz', 'sx'],
-        }
         self.basis = None
         if basis:
             self.basis = []
             basis_set = set(basis)
-            for basis_name, gates in self.euler_basis_names.items():
+            euler_basis_gates = one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
+            for euler_basis_name, gates in euler_basis_gates.items():
                 if set(gates).issubset(basis_set):
-                    self.basis.append(OneQubitEulerDecomposer(basis_name))
+                    basis_copy = copy.copy(self.basis)
+                    for base in basis_copy:
+                        # check if gates are a superset of another basis
+                        # and if so, remove that basis
+                        if set(euler_basis_gates[base.basis]).issubset(set(gates)):
+                            self.basis.remove(base)
+                        # check if the gates are a subset of another basis
+                        elif set(gates).issubset(set(euler_basis_gates[base.basis])):
+                            break
+                    # if not a subset, add it to the list
+                    else:
+                        self.basis.append(one_qubit_decompose.OneQubitEulerDecomposer(
+                            euler_basis_name))
 
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.
@@ -66,30 +69,40 @@ class Optimize1qGatesDecomposition(TransformationPass):
             DAGCircuit: the optimized DAG.
         """
         if not self.basis:
-            LOG.info("Skipping pass because no basis is set")
+            logger.info("Skipping pass because no basis is set")
             return dag
         runs = dag.collect_1q_runs()
+        identity_matrix = np.eye(2)
         for run in runs:
-            # Don't try to optimize a single 1q gate
+            single_u3 = False
+            # Don't try to optimize a single 1q gate, except for U3
             if len(run) <= 1:
                 params = run[0].op.params
                 # Remove single identity gates
                 if len(params) > 0 and np.array_equal(run[0].op.to_matrix(),
-                                                      np.eye(2)):
+                                                      identity_matrix):
                     dag.remove_op_node(run[0])
-                continue
+                    continue
+                if isinstance(run[0].op, U3Gate):
+                    param = float(params[0])
+                    if math.isclose(param, 0, rel_tol=0, abs_tol=1e-12) or math.isclose(
+                            param, np.pi/2, abs_tol=1e-12, rel_tol=0):
+                        single_u3 = True
+                    else:
+                        continue
+                else:
+                    continue
 
             new_circs = []
-            q = QuantumRegister(1, "q")
-            qc = QuantumCircuit(1)
-            for gate in run:
-                qc._append(gate.op, [q[0]], [])
-            operator = Operator(qc)
+            operator = run[0].op.to_matrix()
+            for gate in run[1:]:
+                operator = gate.op.to_matrix().dot(operator)
             for decomposer in self.basis:
-                new_circs.append(decomposer(operator))
+                new_circs.append(decomposer._decompose(operator))
             if new_circs:
-                new_circ = min(new_circs, key=lambda circ: circ.depth())
-                if qc.depth() > new_circ.depth():
+                new_circ = min(new_circs, key=len)
+                if (len(run) > len(new_circ) or (single_u3 and
+                                                 new_circ.data[0][0].name != 'u3')):
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
                     # Delete the other nodes in the run

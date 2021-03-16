@@ -14,6 +14,7 @@
 
 """Contains the terra version."""
 
+from collections.abc import Mapping
 import os
 import subprocess
 import pkg_resources
@@ -81,35 +82,70 @@ def get_version_info():
 __version__ = get_version_info()
 
 
-def _get_qiskit_versions():
-    out_dict = {}
-    out_dict['qiskit-terra'] = __version__
-    try:
-        from qiskit.providers import aer
-        out_dict['qiskit-aer'] = aer.__version__
-    except Exception:
-        out_dict['qiskit-aer'] = None
-    try:
-        from qiskit import ignis
-        out_dict['qiskit-ignis'] = ignis.__version__
-    except Exception:
-        out_dict['qiskit-ignis'] = None
-    try:
-        from qiskit.providers import ibmq
-        out_dict['qiskit-ibmq-provider'] = ibmq.__version__
-    except Exception:
-        out_dict['qiskit-ibmq-provider'] = None
-    try:
-        from qiskit import aqua
-        out_dict['qiskit-aqua'] = aqua.__version__
-    except Exception:
-        out_dict['qiskit-aqua'] = None
-    try:
-        out_dict['qiskit'] = pkg_resources.get_distribution('qiskit').version
-    except Exception:
-        out_dict['qiskit'] = None
+class QiskitVersion(Mapping):
+    """A lazy loading wrapper to get qiskit versions."""
 
-    return out_dict
+    __slots__ = ['_version_dict', '_loaded']
+
+    def __init__(self):
+        self._version_dict = {
+            'qiskit-terra': __version__,
+            'qiskit-aer': None,
+            'qiskit-ignis': None,
+            'qiskit-ibmq-provider': None,
+            'qiskit-aqua': None,
+            'qiskit': None}
+        self._loaded = False
+
+    def _load_versions(self):
+        try:
+            from qiskit.providers import aer
+            self._version_dict['qiskit-aer'] = aer.__version__
+        except Exception:
+            self._version_dict['qiskit-aer'] = None
+        try:
+            from qiskit import ignis
+            self._version_dict['qiskit-ignis'] = ignis.__version__
+        except Exception:
+            self._version_dict['qiskit-ignis'] = None
+        try:
+            from qiskit.providers import ibmq
+            self._version_dict['qiskit-ibmq-provider'] = ibmq.__version__
+        except Exception:
+            self._version_dict['qiskit-ibmq-provider'] = None
+        try:
+            from qiskit import aqua
+            self._version_dict['qiskit-aqua'] = aqua.__version__
+        except Exception:
+            self._version_dict['qiskit-aqua'] = None
+        try:
+            self._version_dict['qiskit'] = pkg_resources.get_distribution('qiskit').version
+        except Exception:
+            self._version_dict['qiskit'] = None
+        self._loaded = True
+
+    def __repr__(self):
+        if not self._loaded:
+            self._load_versions()
+        return repr(self._version_dict)
+
+    def __str__(self):
+        if not self._loaded:
+            self._load_versions()
+        return str(self._version_dict)
+
+    def __getitem__(self, key):
+        if not self._loaded:
+            self._load_versions()
+        return self._version_dict[key]
+
+    def __iter__(self):
+        if not self._loaded:
+            self._load_versions()
+        return iter(self._version_dict)
+
+    def __len__(self):
+        return len(self._version_dict)
 
 
-__qiskit_version__ = _get_qiskit_versions()
+__qiskit_version__ = QiskitVersion()

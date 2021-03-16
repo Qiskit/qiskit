@@ -76,7 +76,8 @@ class TestGroverOperator(QiskitTestCase):
         oracle.z(3)
         grover_op = GroverOperator(oracle, reflection_qubits=[0, 3])
         dag = circuit_to_dag(grover_op)
-        self.assertEqual(set(wire.index for wire in dag.idle_wires()), {1, 2})
+        self.assertEqual(set(dag.idle_wires()),
+                         {dag.qubits[1], dag.qubits[2]})
 
     def test_custom_state_in(self):
         """Test passing a custom state_in operator."""
@@ -106,12 +107,11 @@ class TestGroverOperator(QiskitTestCase):
             self.assertGroverOperatorIsCorrect(grover_op, oracle)
 
         with self.subTest('circuits match'):
-            expected = QuantumCircuit(*grover_op.qregs)
+            expected = QuantumCircuit(*grover_op.qregs, global_phase=np.pi)
             expected.compose(oracle, inplace=True)
             expected.h(0)  # state_in is H
             expected.compose(zero_reflection, inplace=True)
             expected.h(0)
-
             self.assertEqual(expected, grover_op)
 
     def test_num_mcx_ancillas(self):

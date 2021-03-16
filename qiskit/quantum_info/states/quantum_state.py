@@ -19,23 +19,26 @@ from abc import abstractmethod
 
 import numpy as np
 
-from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.result.counts import Counts
+from qiskit.utils.deprecation import deprecate_function
 
 
 class QuantumState:
     """Abstract quantum state base class"""
 
-    def __init__(self, dims):
-        """Initialize a state object."""
-        # Dimension attributes
-        # Note that the tuples of input and output dims are ordered
-        # from least-significant to most-significant subsystems
-        self._dims = None        # tuple of dimensions of each subsystem
-        self._dim = None         # combined dimension of all subsystems
-        self._num_qubits = None  # number of qubit subsystems if N-qubit state
-        self._set_dims(dims)
+    def __init__(self, op_shape=None):
+        """Initialize a QuantumState object.
+
+        Args:
+            op_shape (OpShape): Optional, an OpShape object for state dimensions.
+
+        .. note::
+
+            If `op_shape`` is specified it will take precedence over other
+            kwargs.
+        """
+        self._op_shape = op_shape
         # RNG for measure functions
         self._rng_generator = None
 
@@ -48,12 +51,12 @@ class QuantumState:
     @property
     def dim(self):
         """Return total state dimension."""
-        return self._dim
+        return self._op_shape.shape[0]
 
     @property
     def num_qubits(self):
         """Return the number of qubits if a N-qubit state or None otherwise."""
-        return self._num_qubits
+        return self._op_shape.num_qubits
 
     @property
     def _rng(self):
@@ -61,31 +64,9 @@ class QuantumState:
             return np.random
         return self._rng_generator
 
-    def _reshape(self, dims=None):
-        """Reshape dimensions of the state.
-
-        Arg:
-            dims (tuple): new subsystem dimensions.
-
-        Returns:
-            self: returns self with reshaped dimensions.
-
-        Raises:
-            QiskitError: if combined size of all subsystem dimensions are not constant.
-        """
-        if dims is not None:
-            if np.product(dims) != self._dim:
-                raise QiskitError(
-                    "Reshaped dims are incompatible with combined dimension."
-                )
-            self._dims = tuple(dims)
-        return self
-
     def dims(self, qargs=None):
         """Return tuple of input dimension for specified subsystems."""
-        if qargs is None:
-            return self._dims
-        return tuple(self._dims[i] for i in qargs)
+        return self._op_shape.dims_l(qargs)
 
     def copy(self):
         """Make a copy of current operator."""
@@ -359,36 +340,6 @@ class QuantumState:
 
         return outcome, ret
 
-    @classmethod
-    def _automatic_dims(cls, dims, size):
-        """Check if input dimension corresponds to qubit subsystems."""
-        if dims is None:
-            dims = size
-        elif np.product(dims) != size:
-            raise QiskitError("dimensions do not match size.")
-        if isinstance(dims, (int, np.integer)):
-            num_qubits = int(np.log2(dims))
-            if 2 ** num_qubits == size:
-                return num_qubits * (2,)
-            return (dims,)
-        return tuple(dims)
-
-    def _set_dims(self, dims):
-        """Set dimension attribute"""
-        # Shape lists the dimension of each subsystem starting from
-        # least significant through to most significant.
-        self._dims = tuple(dims)
-        # The total input and output dimensions are given by the product
-        # of all subsystem dimensions
-        self._dim = np.product(dims)
-        # Check if an N-qubit operator
-        if set(self._dims) == {2}:
-            # If so set the number of qubits
-            self._num_qubits = len(self._dims)
-        else:
-            # Otherwise set the number of qubits to None
-            self._num_qubits = None
-
     @staticmethod
     def _index_to_ket_array(inds, dims, string_labels=False):
         """Convert an index array into a ket array.
@@ -566,6 +517,14 @@ class QuantumState:
         return np.ravel(new_probs)
 
     # Overloads
+    def __and__(self, other):
+        return self.evolve(other)
+
+    @deprecate_function(
+        'Using `psi @ U` as shorthand for `psi.evolve(U)` is deprecated'
+        ' as of version 0.17.0 and will be removed no earlier than 3 months'
+        ' after the release date. It has been superceded by the `&` operator'
+        ' (`psi & U == psi.evolve(U)`) instead.')
     def __matmul__(self, other):
         # Check for subsystem case return by __call__ method
         if isinstance(other, tuple) and len(other) == 2:

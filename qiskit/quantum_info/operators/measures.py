@@ -10,11 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 """
 A collection of useful quantum information functions for operators.
 """
 
+import logging
 import warnings
 import numpy as np
 from scipy import sparse
@@ -34,11 +34,13 @@ try:
 except ImportError:
     _HAS_CVX = False
 
+logger = logging.getLogger(__name__)
+
 
 def process_fidelity(channel,
                      target=None,
                      require_cp=True,
-                     require_tp=False):
+                     require_tp=True):
     r"""Return the process fidelity of a noisy quantum channel.
 
 
@@ -70,19 +72,21 @@ def process_fidelity(channel,
         channel (Operator or QuantumChannel): input quantum channel.
         target (Operator or QuantumChannel or None): target quantum channel.
             If `None` target is the identity operator [Default: None].
-        require_cp (bool): require channel to be completely-positive
-            [Default: True].
-        require_tp (bool): require channel to be trace-preserving
-            [Default: False].
+        require_cp (bool): check if input and target channels are
+                           completely-positive and if non-CP log warning
+                           containing negative eigenvalues of Choi-matrix
+                           [Default: True].
+        require_tp (bool): check if input and target channels are
+                           trace-preserving and if non-TP log warning
+                           containing negative eigenvalues of partial
+                           Choi-matrix :math:`Tr_{\mbox{out}}[\mathcal{E}] - I`
+                           [Default: True].
 
     Returns:
         float: The process fidelity :math:`F_{\text{pro}}`.
 
     Raises:
         QiskitError: if the channel and target do not have the same dimensions.
-        QiskitError: if the channel and target are not completely-positive
-                     (with ``require_cp=True``) or not trace-preserving
-                     (with ``require_tp=True``).
     """
     # Format inputs
     channel = _input_formatter(
@@ -99,24 +103,26 @@ def process_fidelity(channel,
 
     # Validate complete-positivity and trace-preserving
     for label, chan in [('Input', channel), ('Target', target)]:
-        if isinstance(chan, Operator) and (require_cp or require_tp):
-            is_unitary = chan.is_unitary()
-            # Validate as unitary
-            if require_cp and not is_unitary:
-                raise QiskitError('{} channel is not completely-positive'.format(label))
-            if require_tp and not is_unitary:
-                raise QiskitError('{} channel is not trace-preserving'.format(label))
-        elif chan is not None:
-            # Validate as QuantumChannel
-            if require_cp and not chan.is_cp():
-                raise QiskitError('{} channel is not completely-positive'.format(label))
-            if require_tp and not chan.is_tp():
-                raise QiskitError('{} channel is not trace-preserving'.format(label))
+        if chan is not None and require_cp:
+            cp_cond = _cp_condition(chan)
+            neg = cp_cond < -1 * chan.atol
+            if np.any(neg):
+                logger.warning(
+                    '%s channel is not CP. Choi-matrix has negative eigenvalues: %s',
+                    label, cp_cond[neg])
+        if chan is not None and require_tp:
+            tp_cond = _tp_condition(chan)
+            non_zero = np.logical_not(np.isclose(
+                tp_cond, 0, atol=chan.atol, rtol=chan.rtol))
+            if np.any(non_zero):
+                logger.warning(
+                    '%s channel is not TP. Tr_2[Choi] - I has non-zero eigenvalues: %s',
+                    label, tp_cond[non_zero])
 
     if isinstance(target, Operator):
         # Compute fidelity with unitary target by applying the inverse
         # to channel and computing fidelity with the identity
-        channel = channel @ target.adjoint()
+        channel = channel.compose(target.adjoint())
         target = None
 
     input_dim, _ = channel.dim
@@ -161,10 +167,15 @@ def average_gate_fidelity(channel,
         channel (QuantumChannel or Operator): noisy quantum channel.
         target (Operator or None): target unitary operator.
             If `None` target is the identity operator [Default: None].
-        require_cp (bool): require channel to be completely-positive
-            [Default: True].
-        require_tp (bool): require channel to be trace-preserving
-            [Default: False].
+        require_cp (bool): check if input and target channels are
+                           completely-positive and if non-CP log warning
+                           containing negative eigenvalues of Choi-matrix
+                           [Default: True].
+        require_tp (bool): check if input and target channels are
+                           trace-preserving and if non-TP log warning
+                           containing negative eigenvalues of partial
+                           Choi-matrix :math:`Tr_{\mbox{out}}[\mathcal{E}] - I`
+                           [Default: True].
 
     Returns:
         float: The average gate fidelity :math:`F_{\text{ave}}`.
@@ -172,9 +183,6 @@ def average_gate_fidelity(channel,
     Raises:
         QiskitError: if the channel and target do not have the same dimensions,
                      or have different input and output dimensions.
-        QiskitError: if the channel and target or are not completely-positive
-                     (with ``require_cp=True``) or not trace-preserving
-                     (with ``require_tp=True``).
     """
     # Format inputs
     channel = _input_formatter(
@@ -185,11 +193,11 @@ def average_gate_fidelity(channel,
     if target is not None:
         try:
             target = Operator(target)
-        except QiskitError:
+        except QiskitError as ex:
             raise QiskitError(
                 'Target channel is not a unitary channel. To compare '
                 'two non-unitary channels use the '
-                '`qiskit.quantum_info.process_fidelity` function instead.')
+                '`qiskit.quantum_info.process_fidelity` function instead.') from ex
     dim, _ = channel.dim
     f_pro = process_fidelity(channel,
                              target=target,
@@ -215,10 +223,15 @@ def gate_error(channel, target=None, require_cp=True, require_tp=False):
         channel (QuantumChannel): noisy quantum channel.
         target (Operator or None): target unitary operator.
             If `None` target is the identity operator [Default: None].
-        require_cp (bool): require channel to be completely-positive
-            [Default: True].
-        require_tp (bool): require channel to be trace-preserving
-            [Default: False].
+        require_cp (bool): check if input and target channels are
+                           completely-positive and if non-CP log warning
+                           containing negative eigenvalues of Choi-matrix
+                           [Default: True].
+        require_tp (bool): check if input and target channels are
+                           trace-preserving and if non-TP log warning
+                           containing negative eigenvalues of partial
+                           Choi-matrix :math:`Tr_{\mbox{out}}[\mathcal{E}] - I`
+                           [Default: True].
 
     Returns:
         float: The average gate error :math:`E`.
@@ -226,9 +239,6 @@ def gate_error(channel, target=None, require_cp=True, require_tp=False):
     Raises:
         QiskitError: if the channel and target do not have the same dimensions,
                      or have different input and output dimensions.
-        QiskitError: if the channel and target or are not completely-positive
-                     (with ``require_cp=True``) or not trace-preserving
-                     (with ``require_tp=True``).
     """
     # Format inputs
     channel = _input_formatter(
@@ -375,3 +385,28 @@ def _input_formatter(obj, fallback_class, func_name, arg_name):
     warnings.warn(
         'Treating array input as a {} object'.format(fallback_class.__name__))
     return fallback_class(obj)
+
+
+def _cp_condition(channel):
+    """Return Choi-matrix eigenvalues for checking if channel is CP"""
+    if isinstance(channel, QuantumChannel):
+        if not isinstance(channel, Choi):
+            channel = Choi(channel)
+        return np.linalg.eigvalsh(channel.data)
+    unitary = Operator(channel).data
+    return np.tensordot(unitary, unitary.conj(), axes=([0, 1], [0, 1])).real
+
+
+def _tp_condition(channel):
+    """Return partial tr Choi-matrix eigenvalues for checking if channel is TP"""
+    if isinstance(channel, QuantumChannel):
+        if not isinstance(channel, Choi):
+            channel = Choi(channel)
+        choi = channel.data
+        dims = tuple(np.sqrt(choi.shape).astype(int))
+        shape = dims + dims
+        tr_choi = np.trace(np.reshape(choi, shape), axis1=1, axis2=3)
+    else:
+        unitary = Operator(channel).data
+        tr_choi = np.tensordot(unitary, unitary.conj(), axes=(0, 0))
+    return np.linalg.eigvalsh(tr_choi - np.eye(len(tr_choi)))

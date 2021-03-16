@@ -32,15 +32,6 @@ circuits created by the algorithm and its components.
 
 .. currentmodule:: qiskit.algorithms
 
-Algorithms Base Class
-=====================
-
-.. autosummary::
-   :toctree: ../stubs/
-   :nosignatures:
-
-   QuantumAlgorithm
-
 Algorithms
 ==========
 
@@ -54,8 +45,28 @@ Amplitude Amplifiers
    :toctree: ../stubs/
    :nosignatures:
 
+   AmplificationProblem
    Grover
    GroverResult
+
+Amplitude Estimators
+++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   AmplitudeEstimator
+   AmplitudeEstimatorResult
+   AmplitudeEstimation
+   AmplitudeEstimationResult
+   EstimationProblem
+   FasterAmplitudeEstimation
+   FasterAmplitudeEstimationResult
+   IterativeAmplitudeEstimation
+   IterativeAmplitudeEstimationResult
+   MaximumLikelihoodAmplitudeEstimation
+   MaximumLikelihoodAmplitudeEstimationResult
 
 Eigensolvers
 ++++++++++++
@@ -85,6 +96,7 @@ Algorithms to find factors of a number.
    :nosignatures:
 
    Shor
+   ShorResult
 
 Minimum Eigensolvers
 ++++++++++++++++++++
@@ -111,15 +123,22 @@ Exceptions
 .. autosummary::
    :toctree: ../stubs/
 
-   AlgorithmnError
+   AlgorithmError
 """
 
 from .algorithm_result import AlgorithmResult
-from .quantum_algorithm import QuantumAlgorithm
-from .variational_quantum_algorithm import VQAlgorithm, VQResult
-from .amplitude_amplifiers import Grover, GroverResult
-from .eigen_solvers import NumPyEigensolver, ExactEigensolver, Eigensolver, EigensolverResult
-from .factorizers import Shor
+from .variational_algorithm import VariationalAlgorithm, VariationalResult
+from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
+from .amplitude_estimators import (
+    AmplitudeEstimator, AmplitudeEstimatorResult,
+    AmplitudeEstimation, AmplitudeEstimationResult,
+    FasterAmplitudeEstimation, FasterAmplitudeEstimationResult,
+    IterativeAmplitudeEstimation, IterativeAmplitudeEstimationResult,
+    MaximumLikelihoodAmplitudeEstimation, MaximumLikelihoodAmplitudeEstimationResult,
+    EstimationProblem
+)
+from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
+from .factorizers import Shor, ShorResult
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
                                     NumPyMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
@@ -127,16 +146,27 @@ from .exceptions import AlgorithmError
 
 __all__ = [
     'AlgorithmResult',
-    'QuantumAlgorithm',
-    'VQAlgorithm',
-    'VQResult',
+    'VariationalAlgorithm',
+    'VariationalResult',
+    'AmplificationProblem',
     'Grover',
     'GroverResult',
+    'AmplitudeEstimator',
+    'AmplitudeEstimatorResult',
+    'AmplitudeEstimation',
+    'AmplitudeEstimationResult',
+    'FasterAmplitudeEstimation',
+    'FasterAmplitudeEstimationResult',
+    'IterativeAmplitudeEstimation',
+    'IterativeAmplitudeEstimationResult',
+    'MaximumLikelihoodAmplitudeEstimation',
+    'MaximumLikelihoodAmplitudeEstimationResult',
+    'EstimationProblem',
     'NumPyEigensolver',
-    'ExactEigensolver',
     'Eigensolver',
     'EigensolverResult',
     'Shor',
+    'ShorResult',
     'VQE',
     'VQEResult',
     'QAOA',

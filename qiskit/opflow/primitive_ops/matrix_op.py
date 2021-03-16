@@ -10,38 +10,35 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" MatrixOp Class """
+"""MatrixOp Class """
 
-from typing import Union, Optional, Set, Dict, List, cast, get_type_hints
-import logging
+from typing import Dict, List, Optional, Set, Union, cast, get_type_hints
+
 import numpy as np
 from scipy.sparse import spmatrix
 
 from qiskit import QuantumCircuit
-from qiskit.quantum_info import Operator
-from qiskit.circuit import ParameterExpression, Instruction
+from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.extensions.hamiltonian_gate import HamiltonianGate
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.list_ops.tensored_op import TensoredOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.circuit_op import CircuitOp
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
+from qiskit.quantum_info import Operator, Statevector
 from qiskit.utils import arithmetic
-
-from ..exceptions import OpflowError
-from ..operator_base import OperatorBase
-from ..primitive_ops.circuit_op import CircuitOp
-from ..list_ops.summed_op import SummedOp
-from ..list_ops.tensored_op import TensoredOp
-from .primitive_op import PrimitiveOp
-from ..legacy.matrix_operator import MatrixOperator
-
-logger = logging.getLogger(__name__)
 
 
 class MatrixOp(PrimitiveOp):
     """ Class for Operators represented by matrices, backed by Terra's ``Operator`` module.
-
     """
+
+    primitive: Operator
 
     def __init__(self,
                  primitive: Union[list, np.ndarray, spmatrix, Operator],
-                 coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> None:
+                 coeff: Union[complex, ParameterExpression] = 1.0) -> None:
         """
         Args:
             primitive: The matrix-like object which defines the behavior of the underlying function.
@@ -74,9 +71,9 @@ class MatrixOp(PrimitiveOp):
 
     @property
     def num_qubits(self) -> int:
-        return len(self.primitive.input_dims())  # type: ignore
+        return len(self.primitive.input_dims())
 
-    def add(self, other: OperatorBase) -> OperatorBase:
+    def add(self, other: OperatorBase) -> Union["MatrixOp", SummedOp]:
         if not self.num_qubits == other.num_qubits:
             raise ValueError(
                 'Sum over operators with different numbers of qubits, {} and {}, is not well '
@@ -90,14 +87,13 @@ class MatrixOp(PrimitiveOp):
                 not isinstance(self.coeff, ParameterExpression) and \
                 not isinstance(other.coeff, ParameterExpression):
             return MatrixOp(
-                (self.coeff * self.primitive) + (other.coeff * other.primitive))  # type: ignore
+                (self.coeff * self.primitive) + (other.coeff * other.primitive))
 
         # Covers Paulis, Circuits, and all else.
         return SummedOp([self, other])
 
-    def adjoint(self) -> OperatorBase:
-        return MatrixOp(self.primitive.conjugate().transpose(),  # type: ignore
-                        coeff=self.coeff.conjugate())
+    def adjoint(self) -> "MatrixOp":
+        return MatrixOp(self.primitive.adjoint(), coeff=self.coeff.conjugate())
 
     def equals(self, other: OperatorBase) -> bool:
         if not isinstance(other, MatrixOp):
@@ -108,16 +104,16 @@ class MatrixOp(PrimitiveOp):
         if isinstance(self.coeff, ParameterExpression) and \
                 isinstance(other.coeff, ParameterExpression):
             return self.coeff == other.coeff and self.primitive == other.primitive
-        return self.coeff * self.primitive == other.coeff * other.primitive  # type: ignore
+        return self.coeff * self.primitive == other.coeff * other.primitive
 
     def _expand_dim(self, num_qubits: int) -> 'MatrixOp':
         identity = np.identity(2**num_qubits, dtype=complex)
-        return MatrixOp(self.primitive.tensor(Operator(identity)), coeff=self.coeff)  # type: ignore
+        return MatrixOp(self.primitive.tensor(Operator(identity)), coeff=self.coeff)
 
-    def tensor(self, other: OperatorBase) -> OperatorBase:
-        if isinstance(other.primitive, Operator):  # type: ignore
-            return MatrixOp(self.primitive.tensor(other.primitive),  # type: ignore
-                            coeff=self.coeff * other.coeff)  # type: ignore
+    def tensor(self, other: OperatorBase) -> Union["MatrixOp", TensoredOp]:
+        if isinstance(other, MatrixOp):
+            return MatrixOp(self.primitive.tensor(other.primitive),
+                            coeff=self.coeff * other.coeff)
 
         return TensoredOp([self, other])
 
@@ -130,12 +126,12 @@ class MatrixOp(PrimitiveOp):
         if front:
             return other.compose(new_self)
         if isinstance(other, MatrixOp):
-            return MatrixOp(new_self.primitive.compose(other.primitive, front=True),  # type: ignore
+            return MatrixOp(new_self.primitive.compose(other.primitive, front=True),
                             coeff=new_self.coeff * other.coeff)
 
         return super(MatrixOp, new_self).compose(other)
 
-    def permute(self, permutation: Optional[List[int]] = None) -> 'MatrixOp':
+    def permute(self, permutation: Optional[List[int]] = None) -> OperatorBase:
         """Creates a new MatrixOp that acts on the permuted qubits.
 
         Args:
@@ -167,10 +163,10 @@ class MatrixOp(PrimitiveOp):
         for trans in transpositions:
             qc.swap(trans[0], trans[1])
         matrix = CircuitOp(qc).to_matrix()
-        return MatrixOp(matrix.transpose()) @ new_self @ MatrixOp(matrix)  # type: ignore
+        return MatrixOp(matrix.transpose()) @ new_self @ MatrixOp(matrix)
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
-        return self.primitive.data * self.coeff  # type: ignore
+        return self.primitive.data * self.coeff
 
     def __str__(self) -> str:
         prim_str = str(self.primitive)
@@ -179,16 +175,19 @@ class MatrixOp(PrimitiveOp):
         else:
             return "{} * {}".format(self.coeff, prim_str)
 
-    def eval(self,
-             front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
-             ) -> Union[OperatorBase, float, complex]:
+    def eval(
+        self,
+        front: Optional[
+            Union[str, Dict[str, complex], np.ndarray, OperatorBase, Statevector]
+        ] = None,
+    ) -> Union[OperatorBase, complex]:
         # For other ops' eval we return self.to_matrix_op() here, but that's unnecessary here.
         if front is None:
             return self
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from ..list_ops import ListOp
-        from ..state_fns import StateFn, OperatorStateFn
+        from ..state_fns import StateFn, VectorStateFn, OperatorStateFn
 
         new_front = None
 
@@ -197,14 +196,14 @@ class MatrixOp(PrimitiveOp):
             front = StateFn(front, is_measurement=False)
 
         if isinstance(front, ListOp) and front.distributive:
-            new_front = front.combo_fn([self.eval(front.coeff * front_elem)  # type: ignore
+            new_front = front.combo_fn([self.eval(front.coeff * front_elem)
                                         for front_elem in front.oplist])
 
         elif isinstance(front, OperatorStateFn):
             new_front = OperatorStateFn(self.adjoint().compose(front.to_matrix_op()).compose(self))
 
         elif isinstance(front, OperatorBase):
-            new_front = StateFn(self.to_matrix() @ front.to_matrix())
+            new_front = VectorStateFn(self.to_matrix() @ front.to_matrix())
 
         return new_front
 
@@ -218,7 +217,4 @@ class MatrixOp(PrimitiveOp):
         return self
 
     def to_instruction(self) -> Instruction:
-        return (self.coeff * self.primitive).to_instruction()  # type: ignore
-
-    def to_legacy_op(self, massive: bool = False) -> MatrixOperator:
-        return MatrixOperator(self.to_matrix(massive=massive))
+        return (self.coeff * self.primitive).to_instruction()

@@ -13,10 +13,9 @@
 """The Acquire instruction is used to trigger the qubit measurement unit and provide
 some metadata for the acquisition process, for example, where to store classified readout data.
 """
-import warnings
+from typing import Optional, Union
 
-from typing import List, Optional
-
+from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.exceptions import PulseError
@@ -41,7 +40,7 @@ class Acquire(Instruction):
     """
 
     def __init__(self,
-                 duration: int,
+                 duration: Union[int, ParameterExpression],
                  channel: AcquireChannel,
                  mem_slot: Optional[MemorySlot] = None,
                  reg_slot: Optional[RegisterSlot] = None,
@@ -75,9 +74,8 @@ class Acquire(Instruction):
         self._kernel = kernel
         self._discriminator = discriminator
 
-        all_channels = [chan for chan in [channel, mem_slot, reg_slot] if chan is not None]
-        super().__init__((duration, channel, mem_slot, reg_slot),
-                         duration, all_channels, name=name)
+        all_channels = tuple(chan for chan in [channel, mem_slot, reg_slot] if chan is not None)
+        super().__init__((duration, channel, mem_slot, reg_slot), None, all_channels, name=name)
 
     @property
     def channel(self) -> AcquireChannel:
@@ -85,6 +83,11 @@ class Acquire(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def duration(self) -> Union[int, ParameterExpression]:
+        """Duration of this instruction."""
+        return self.operands[0]
 
     @property
     def kernel(self) -> Kernel:
@@ -114,27 +117,6 @@ class Acquire(Instruction):
         fast-feedback computation.
         """
         return self.operands[3]
-
-    @property
-    def acquires(self) -> List[AcquireChannel]:
-        """Acquire channels to be acquired on."""
-        warnings.warn("Acquire.acquires is deprecated. Use the channel attribute instead.",
-                      DeprecationWarning)
-        return [self.channel]
-
-    @property
-    def mem_slots(self) -> List[MemorySlot]:
-        """MemorySlots."""
-        warnings.warn("Acquire.mem_slots is deprecated. Use the mem_slot attribute instead.",
-                      DeprecationWarning)
-        return [self.mem_slot]
-
-    @property
-    def reg_slots(self) -> List[RegisterSlot]:
-        """RegisterSlots."""
-        warnings.warn("Acquire.reg_slots is deprecated. Use the reg_slot attribute instead.",
-                      DeprecationWarning)
-        return [self.reg_slot]
 
     def __repr__(self) -> str:
         return "{}({}{}{}{}{}{})".format(

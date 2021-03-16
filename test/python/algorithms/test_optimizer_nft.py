@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,8 +16,8 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import BasicAer
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.utils import QuantumInstance, aqua_globals
-from qiskit.opflow import WeightedPauliOperator
+from qiskit.utils import QuantumInstance, algorithm_globals
+from qiskit.opflow import PauliSumOp
 from qiskit.algorithms.optimizers import NFT
 from qiskit.algorithms import VQE
 
@@ -28,26 +28,24 @@ class TestOptimizerNFT(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 50
-        aqua_globals.random_seed = self.seed
-        pauli_dict = {
-            'paulis': [{"coeff": {"imag": 0.0, "real": -1.052373245772859}, "label": "II"},
-                       {"coeff": {"imag": 0.0, "real": 0.39793742484318045}, "label": "IZ"},
-                       {"coeff": {"imag": 0.0, "real": -0.39793742484318045}, "label": "ZI"},
-                       {"coeff": {"imag": 0.0, "real": -0.01128010425623538}, "label": "ZZ"},
-                       {"coeff": {"imag": 0.0, "real": 0.18093119978423156}, "label": "XX"}
-                       ]
-        }
-        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict)
+        algorithm_globals.random_seed = self.seed
+        self.qubit_op = PauliSumOp.from_list([
+            ("II", -1.052373245772859),
+            ("IZ", 0.39793742484318045),
+            ("ZI", -0.39793742484318045),
+            ("ZZ", -0.01128010425623538),
+            ("XX", 0.18093119978423156),
+        ])
 
     def test_nft(self):
         """ Test NFT optimizer by using it """
 
-        result = VQE(self.qubit_op,
-                     RealAmplitudes(),
-                     NFT()).run(
-                         QuantumInstance(BasicAer.get_backend('statevector_simulator'),
-                                         seed_simulator=aqua_globals.random_seed,
-                                         seed_transpiler=aqua_globals.random_seed))
+        vqe = VQE(var_form=RealAmplitudes(),
+                  optimizer=NFT(),
+                  quantum_instance=QuantumInstance(BasicAer.get_backend('statevector_simulator'),
+                                                   seed_simulator=algorithm_globals.random_seed,
+                                                   seed_transpiler=algorithm_globals.random_seed))
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857275, places=6)
 
 
