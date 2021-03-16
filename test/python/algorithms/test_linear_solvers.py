@@ -110,7 +110,7 @@ class TestObservables(QiskitAlgorithmsTestCase):
         qcs = []
         for obs_circ in obs_circuits:
             qc = QuantumCircuit(num_qubits)
-            qc.isometry(init_state, list(range(num_qubits)))
+            qc.isometry(init_state, list(range(num_qubits)), None)
             qc.append(obs_circ, list(range(num_qubits)))
             qcs.append(qc)
 
@@ -124,6 +124,7 @@ class TestObservables(QiskitAlgorithmsTestCase):
                                (~StateFn(observable_op[1]) @ StateFn(qcs[i])).eval()])
 
         # Obtain result
+        print('statevecs', state_vecs)
         result = observable.post_processing(state_vecs, num_qubits)
 
         # Obtain analytical evaluation
