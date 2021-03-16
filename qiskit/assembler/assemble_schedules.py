@@ -240,34 +240,52 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
     Raises:
         QiskitError: If the instructions do not satisfy the measurement map.
     """
+    sorted_inst_map = dict(sorted(instruction_map.items(), key=lambda item: item[0]))
     meas_map_sets = [set(m) for m in meas_map]
+    time_qubit_dict = {time: inst.channel.index for time, insts in sorted_inst_map.items()
+                       for inst in insts}
 
-    # 1. sort the instr_map with time
-    # intersection - same q
-    for meas_set in meas_map_sets:
-        time_mapping = defaultdict(list)
-        # Check each acquisition time individually
-        for time, instrs in instruction_map.items():  # time = (start_time, duration)
-            measured_qubits = set()
-            for inst in instrs:
-                time_mapping[inst.channel.index].extend(time)
-                measured_qubits.add(inst.channel.index)
-
-            if not measured_qubits.issubset(meas_set):
-                intersection = measured_qubits.intersection(meas_set)
-                if intersection and intersection != meas_set:
-                    raise QiskitError('Qubits to be acquired: {} do not satisfy required qubits '
-                                      'in measurement map: {}'.format(measured_qubits, meas_set))
-
-            if measured_qubits == meas_set:
+    # 1. if the qubits are not in the meas_map -- Raise Error
+    if not set(time_qubit_dict.values()).issubset(set.union(*meas_map_sets)):
+        raise QiskitError("The measured qubits - {} is not in the measurement "
+                          "map - {}".format(set(time_qubit_dict.values()), meas_map))
+    # 2. if there is time overlap:
+    #    - if the overlap is in the same meas_map -- Raise Error
+    time = list(time_qubit_dict.keys())
+    if len(time) > 1:
+        for idx in range(len(time)-1):
+            check_time = time[idx]
+            ref_time = time[idx+1]
+            if check_time == ref_time:  # if the times are the same then no problem
                 continue
-            if len(time_mapping) > 1:
-                for qubit, (start_time, duration) in time_mapping.items():
-                    if qubit not in measured_qubits and measured_qubits.issubset(meas_set) \
-                            and start_time < time[0] < start_time + duration:
-                        raise QiskitError('Qubits in the measurement map: {} was '
-                                          'acquired disjointly'.format(meas_set))
+            for meas_set in meas_map_sets:
+                if len(meas_set) == 1 and meas_set.issubset(set(time_qubit_dict.values())):
+                    continue
+                else:
+                    time_in_meas_map = _get_keys(meas_set, time_qubit_dict)
+                    if _get_all_overlaps(time_in_meas_map):
+                        raise QiskitError("there is a time overlap for the qubits - {}".format(time_in_meas_map))
 
+def _get_all_overlaps(list_of_times):
+    for i, (start, end) in enumerate(list_of_times):
+        overlaps = _get_overlaps(end, list_of_times[i+1:])
+
+def _get_overlaps(end_time, remaining):
+    output = []
+
+    for r in remaining:
+        if r[0] < end:
+            output.append(r)
+            continue
+        break
+    return output
+
+def _get_keys(values, dictionary):
+    output = []
+    for k, v in dictionary.items():
+        if v in values:
+            output.append(k)
+    return(output)
 
 def _assemble_config(lo_converter: converters.LoConfigConverter,
                      experiment_config: Dict[str, Any],
