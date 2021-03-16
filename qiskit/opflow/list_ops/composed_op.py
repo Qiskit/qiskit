@@ -110,7 +110,7 @@ class ComposedOp(ListOp):
     def eval(
         self, front: Optional[Union[str, dict, np.ndarray, OperatorBase, Statevector]] = None
     ) -> Union[OperatorBase, complex]:
-        if self._is_emtpy():
+        if self._is_empty():
             return 0.0
 
         # pylint: disable=cyclic-import
