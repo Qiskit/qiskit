@@ -122,7 +122,7 @@ def process_fidelity(channel,
     if isinstance(target, Operator):
         # Compute fidelity with unitary target by applying the inverse
         # to channel and computing fidelity with the identity
-        channel = channel @ target.adjoint()
+        channel = channel.compose(target.adjoint())
         target = None
 
     input_dim, _ = channel.dim
