@@ -15,7 +15,8 @@
 from typing import Optional, Union
 from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
-from qiskit.opflow import EvolutionBase, OperatorBase, SummedOp, PauliSumOp
+from qiskit.opflow import (EvolutionBase, PauliTrotterEvolution, OperatorBase,
+                           SummedOp, PauliSumOp)
 from qiskit.providers import BaseBackend
 from .phase_estimation import PhaseEstimation
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
@@ -88,13 +89,14 @@ class HamiltonianPhaseEstimation:
 
     # pylint: disable=arguments-differ
     def estimate(self, hamiltonian: OperatorBase,
-                 evolution: EvolutionBase,
+                 evolution: Optional[EvolutionBase] = None,
                  state_preparation: Optional[QuantumCircuit] = None,
                  bound: Optional[float] = None) -> HamiltonianPhaseEstimationResult:
         """
         Args:
             hamiltonian: a Hermitian operator.
-            evolution: An evolution object that generates a unitary from `hamiltonian`.
+            evolution: An evolution object that generates a unitary from `hamiltonian`. If
+                `None`, then the default `PauliTrotterEvolution` is used.
             state_preparation: The circuit that prepares the state whose eigenphase will be
                 measured. If this parameter is omitted, no preparation circuit will be run and
                 input state will be the all-zero state in the computational basis.
@@ -110,6 +112,13 @@ class HamiltonianPhaseEstimation:
             ValueError: if `bound` is `None` and `hamiltonian` is not a Pauli sum (i.e. a
             `PauliSumOp` or a `SummedOp` whose terms are `PauliOp`s.)
         """
+        if isinstance(hamiltonian, PauliSumOp):
+            hamiltonian = hamiltonian.to_pauli_op()
+
+        if evolution is None:
+            evolution = PauliTrotterEvolution()
+
+        # remove identitiy terms
         # The term propto the identity is removed from hamiltonian.
         # This is done for three reasons:
         # 1. Work around an unknown bug that otherwise causes the energies to be wrong in some
@@ -118,10 +127,6 @@ class HamiltonianPhaseEstimation:
         # 3. Tighten the bound on the eigenvalues so that the spectrum is better resolved, i.e.
         #   occupies more of the range of values representable by the qubit register.
         # The coefficient of this term will be added to the eigenvalues.
-        if isinstance(hamiltonian, PauliSumOp):
-            hamiltonian = hamiltonian.to_pauli_op()
-
-        # remove identitiy terms
         id_coefficient, hamiltonian_no_id = _remove_identity(hamiltonian)
 
         # get the rescaling object
