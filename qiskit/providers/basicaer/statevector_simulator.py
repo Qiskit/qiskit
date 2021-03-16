@@ -40,7 +40,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
 
     DEFAULT_CONFIGURATION = {
         'backend_name': 'statevector_simulator',
-        'backend_version': '1.0.0',
+        'backend_version': '1.1.0',
         'n_qubits': min(24, MAX_QUBITS_MEMORY),
         'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
@@ -51,7 +51,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         'max_shots': 65536,
         'coupling_map': None,
         'description': 'A Python statevector simulator for qobj files',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
+        'basis_gates': ['u1', 'u2', 'u3', 'rz', 'sx', 'x', 'cx', 'id', 'unitary'],
         'gates': [
             {
                 'name': 'u1',
@@ -69,13 +69,28 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
                 'qasm_def': 'gate u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }'
             },
             {
+                'name': 'rz',
+                'parameters': ['phi'],
+                'qasm_def': 'gate rz(phi) q { U(0,0,phi) q; }'
+            },
+            {
+                'name': 'sx',
+                'parameters': [],
+                'qasm_def': 'gate sx(phi) q { U(pi/2,7*pi/2,pi/2) q; }'
+            },
+            {
+                'name': 'x',
+                'parameters': [],
+                'qasm_def': 'gate x q { U(pi,7*pi/2,pi/2) q; }'
+            },
+            {
                 'name': 'cx',
-                'parameters': ['c', 't'],
+                'parameters': [],
                 'qasm_def': 'gate cx c,t { CX c,t; }'
             },
             {
                 'name': 'id',
-                'parameters': ['a'],
+                'parameters': [],
                 'qasm_def': 'gate id a { U(0,0,0) a; }'
             },
             {

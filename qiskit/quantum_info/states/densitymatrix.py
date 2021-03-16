@@ -25,11 +25,15 @@ from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
+
+# pylint: disable=no-name-in-module
+from .cython.exp_value import density_expval_pauli_no_x, density_expval_pauli_with_x
 
 
 class DensityMatrix(QuantumState, TolerancesMixin):
@@ -338,6 +342,33 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         ret._op_shape = self._op_shape.reverse()
         return ret
 
+    def _expectation_value_pauli(self, pauli):
+        """Compute the expectation value of a Pauli.
+
+            Args:
+                pauli (Pauli): a Pauli operator to evaluate expval of.
+
+            Returns:
+                complex: the expectation value.
+            """
+        n_pauli = len(pauli)
+        qubits = np.arange(n_pauli)
+        x_mask = np.dot(1 << qubits, pauli.x)
+        z_mask = np.dot(1 << qubits, pauli.z)
+        pauli_phase = (-1j) ** pauli.phase if pauli.phase else 1
+
+        if x_mask + z_mask == 0:
+            return pauli_phase * self.trace()
+
+        data = np.ravel(self.data, order='F')
+        if x_mask == 0:
+            return pauli_phase * density_expval_pauli_no_x(data, self.num_qubits, z_mask)
+
+        x_max = qubits[pauli.x][-1]
+        y_phase = (-1j) ** np.sum(pauli.x & pauli.z)
+        return pauli_phase * density_expval_pauli_with_x(
+            data, self.num_qubits, z_mask, x_mask, y_phase, x_max)
+
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
 
@@ -348,9 +379,16 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         Returns:
             complex: the expectation value.
         """
+        if isinstance(oper, Pauli):
+            return self._expectation_value_pauli(oper)
+
+        if isinstance(oper, SparsePauliOp):
+            return sum([coeff * self._expectation_value_pauli(Pauli((z, x)))
+                        for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)])
+
         if not isinstance(oper, Operator):
             oper = Operator(oper)
-        return np.trace(Operator(self).dot(oper.adjoint(), qargs=qargs).data)
+        return np.trace(Operator(self).dot(oper, qargs=qargs).data)
 
     def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.

@@ -15,50 +15,56 @@
 """
 
 from string import ascii_uppercase, ascii_lowercase
+from typing import List, Optional
+
 import numpy as np
+
+import qiskit.circuit.library.standard_gates as gates
 from qiskit.exceptions import QiskitError
 
-
-def single_gate_params(gate, params=None):
-    """Apply a single qubit gate to the qubit.
-
-    Args:
-        gate(str): the single qubit gate name
-        params(list): the operation parameters op['params']
-    Returns:
-        tuple: a tuple of U gate parameters (theta, phi, lam)
-    Raises:
-        QiskitError: if the gate name is not valid
-    """
-    if gate in ('U', 'u3'):
-        return params[0], params[1], params[2]
-    elif gate == 'u2':
-        return np.pi / 2, params[0], params[1]
-    elif gate == 'u1':
-        return 0, 0, params[0]
-    elif gate == 'id':
-        return 0, 0, 0
-    raise QiskitError('Gate is not among the valid types: %s' % gate)
+# Single qubit gates supported by ``single_gate_params``.
+SINGLE_QUBIT_GATES = ('U', 'u1', 'u2', 'u3', 'rz', 'sx', 'x')
 
 
-def single_gate_matrix(gate, params=None):
+def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
     """Get the matrix for a single qubit.
 
     Args:
-        gate(str): the single qubit gate name
-        params(list): the operation parameters op['params']
+        gate: the single qubit gate name
+        params: the operation parameters op['params']
     Returns:
         array: A numpy array representing the matrix
+    Raises:
+        QiskitError: If a gate outside the supported set is passed in for the
+            ``Gate`` argument.
     """
+    if params is None:
+        params = []
 
-    # Converting sym to floats improves the performance of the simulator 10x.
-    # This a is a probable a FIXME since it might show bugs in the simulator.
-    (theta, phi, lam) = map(float, single_gate_params(gate, params))
+    if gate == 'U':
+        gc = gates.UGate
+    elif gate == 'u3':
+        gc = gates.U3Gate
+    elif gate == 'u2':
+        gc = gates.U2Gate
+    elif gate == 'u1':
+        gc = gates.U1Gate
+    elif gate == 'rz':
+        gc = gates.RZGate
+    elif gate == 'id':
+        gc = gates.IGate
+    elif gate == 'sx':
+        gc = gates.SXGate
+    elif gate == 'x':
+        gc = gates.XGate
+    else:
+        raise QiskitError('Gate is not a valid basis gate for this simulator: %s' % gate)
 
-    return np.array([[np.cos(theta / 2),
-                      -np.exp(1j * lam) * np.sin(theta / 2)],
-                     [np.exp(1j * phi) * np.sin(theta / 2),
-                      np.exp(1j * phi + 1j * lam) * np.cos(theta / 2)]])
+    return gc(*params).to_matrix()
+
+
+# Cache CX matrix as no parameters.
+_CX_MATRIX = gates.CXGate().to_matrix()
 
 
 def cx_gate_matrix():
