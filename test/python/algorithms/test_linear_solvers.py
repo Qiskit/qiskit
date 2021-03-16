@@ -80,7 +80,7 @@ class TestObservables(QiskitAlgorithmsTestCase):
         num_qubits = int(np.log2(len(vector)))
 
         qc = QuantumCircuit(num_qubits)
-        qc.initialize(init_state, list(range(num_qubits)))
+        qc.isometry(init_state, list(range(num_qubits)), None)
         qc.append(observable.observable_circuit(num_qubits), list(range(num_qubits)))
 
         # Observable operator
@@ -109,7 +109,7 @@ class TestObservables(QiskitAlgorithmsTestCase):
         obs_circuits = observable.observable_circuit(num_qubits)
         for obs_circ in obs_circuits:
             qc = QuantumCircuit(num_qubits)
-            qc.initialize(init_state, list(range(num_qubits)))
+            qc.isometry(init_state, list(range(num_qubits)))
             qc.append(obs_circ, list(range(num_qubits)))
 
         # Get observables
@@ -184,7 +184,7 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
 
         # Initial state circuit
         qc = QuantumCircuit(num_qubits)
-        qc.initialize(rhs)
+        qc.isometry(rhs, list(range(num_qubits)), None)
 
         hhl = HHL()
         solution = hhl.solve(matrix, qc, observable)

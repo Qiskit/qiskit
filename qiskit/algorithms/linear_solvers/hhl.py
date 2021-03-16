@@ -232,8 +232,9 @@ class HHL(LinearSolver):
             vector_circuit = vector
         elif isinstance(vector, np.ndarray):
             nb = int(np.log2(len(vector)))
-            vector_circuit = QuantumCircuit(nb).initialize(vector / np.linalg.norm(vector),
-                                                           list(range(nb)))
+            vector_circuit = QuantumCircuit(nb).isometry(vector / np.linalg.norm(vector),
+                                                         list(range(nb)),
+                                                         None)
 
         # If state preparation is probabilistic the number of qubit flags should increase
         nf = 1
