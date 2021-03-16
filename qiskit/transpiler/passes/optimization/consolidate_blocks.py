@@ -136,7 +136,7 @@ class ConsolidateBlocks(TransformationPass):
             else:
                 subcirc = QuantumCircuit(q)
             block_index_map = self._block_qargs_to_indices(block_qargs,
-                                                            global_index_map)
+                                                           global_index_map)
             basis_count = 0
             for nd in block:
                 if nd.op.name == basis_gate_name:
