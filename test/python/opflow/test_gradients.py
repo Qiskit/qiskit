@@ -147,7 +147,8 @@ class TestGradients(QiskitOpflowTestCase):
     def test_gradient_ryy(self, method):
         """Test the state gradient for YY rotation
         """
-        ham = Y ^ Y
+        alpha = Parameter('alpha')
+        ham = TensoredOp([Y, alpha*Y])
         a = Parameter('a')
 
         q = QuantumRegister(2)
@@ -159,6 +160,7 @@ class TestGradients(QiskitOpflowTestCase):
         values_dict = [{a: np.pi / 8}, {a: np.pi}]
         correct_values = [[0], [0]]
         for i, value_dict in enumerate(values_dict):
+            value_dict[alpha] = 1.
             np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
                                                  correct_values[i], decimal=1)
 
