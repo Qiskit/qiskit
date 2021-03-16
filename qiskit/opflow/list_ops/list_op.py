@@ -72,13 +72,13 @@ class ListOp(OperatorBase):
             identity - it accepts the list of values, and returns them in a list.
         """
         super().__init__()
-        self._oplist = self._get_op_list(oplist)
+        self._oplist = self._check_input_types(oplist)
         self._combo_fn = combo_fn
         self._coeff = coeff
         self._abelian = abelian
         self._grad_combo_fn = grad_combo_fn
 
-    def _get_op_list(self, oplist):
+    def _check_input_types(self, oplist):
         if all(isinstance(x, OperatorBase) for x in oplist):
             return list(oplist)
         else:
