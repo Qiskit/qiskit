@@ -163,7 +163,7 @@ class EquivalenceLibrary():
             ImportError: when pydot or pillow are not installed.
         """
         try:
-            import pydot  # pylint: disable=unused-import
+            import pydot
             has_pydot = True
         except ImportError:
             has_pydot = False

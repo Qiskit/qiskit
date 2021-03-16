@@ -247,10 +247,10 @@ class TestSuperOp(ChannelTestCase):
         chan2 = SuperOp(mat2)
         targ = SuperOp(np.dot(mat2, mat1))
         self.assertEqual(chan1.compose(chan2), targ)
-        self.assertEqual(chan1 @ chan2, targ)
+        self.assertEqual(chan1 & chan2, targ)
         targ = SuperOp(np.dot(mat1, mat2))
         self.assertEqual(chan2.compose(chan1), targ)
-        self.assertEqual(chan2 @ chan1, targ)
+        self.assertEqual(chan2 & chan1, targ)
 
         # Compose different dimensions
         chan1 = SuperOp(self.rand_matrix(16, 4))
@@ -345,41 +345,41 @@ class TestSuperOp(ChannelTestCase):
         full_op = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op3, qargs=[0, 1, 2]), SuperOp(targ))
-        self.assertEqual(op @ op3([0, 1, 2]), SuperOp(targ))
+        self.assertEqual(op & op3([0, 1, 2]), SuperOp(targ))
         # op3 qargs=[2, 1, 0]
         full_op = SuperOp(mat_a).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_c))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op3, qargs=[2, 1, 0]), SuperOp(targ))
-        self.assertEqual(op @ op3([2, 1, 0]), SuperOp(targ))
+        self.assertEqual(op & op3([2, 1, 0]), SuperOp(targ))
 
         # op2 qargs=[0, 1]
         full_op = iden.tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op2, qargs=[0, 1]), SuperOp(targ))
-        self.assertEqual(op @ op2([0, 1]), SuperOp(targ))
+        self.assertEqual(op & op2([0, 1]), SuperOp(targ))
         # op2 qargs=[2, 0]
         full_op = SuperOp(mat_a).tensor(iden).tensor(SuperOp(mat_b))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op2, qargs=[2, 0]), SuperOp(targ))
-        self.assertEqual(op @ op2([2, 0]), SuperOp(targ))
+        self.assertEqual(op & op2([2, 0]), SuperOp(targ))
 
         # op1 qargs=[0]
         full_op = iden.tensor(iden).tensor(SuperOp(mat_a))
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op1, qargs=[0]), SuperOp(targ))
-        self.assertEqual(op @ op1([0]), SuperOp(targ))
+        self.assertEqual(op & op1([0]), SuperOp(targ))
 
         # op1 qargs=[1]
         full_op = iden.tensor(SuperOp(mat_a)).tensor(iden)
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op1, qargs=[1]), SuperOp(targ))
-        self.assertEqual(op @ op1([1]), SuperOp(targ))
+        self.assertEqual(op & op1([1]), SuperOp(targ))
 
         # op1 qargs=[2]
         full_op = SuperOp(mat_a).tensor(iden).tensor(iden)
         targ = np.dot(full_op.data, mat)
         self.assertEqual(op.compose(op1, qargs=[2]), SuperOp(targ))
-        self.assertEqual(op @ op1([2]), SuperOp(targ))
+        self.assertEqual(op & op1([2]), SuperOp(targ))
 
     def test_dot_subsystem(self):
         """Test subsystem dot method."""
@@ -540,12 +540,6 @@ class TestSuperOp(ChannelTestCase):
         chan3 = depol.power(3)
         targ3 = SuperOp(self.depol_sop(1 - p_id3))
         self.assertEqual(chan3, targ3)
-
-    def test_power_except(self):
-        """Test power method raises exceptions."""
-        chan = SuperOp(self.depol_sop(1))
-        # Non-integer power raises error
-        self.assertRaises(QiskitError, chan.power, 0.5)
 
     def test_add(self):
         """Test add method."""
