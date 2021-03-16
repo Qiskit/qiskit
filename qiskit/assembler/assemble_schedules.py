@@ -268,15 +268,15 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
                         raise QiskitError("there is a time overlap for the qubits - {}".format(meas_set))
 
 def _get_all_overlaps(list_of_times):
-    for i, (start, end) in enumerate(list_of_times):
-        overlaps = _get_overlaps(end, list_of_times[i+1:])
+    for i, (start, duration) in enumerate(list_of_times):
+        overlaps = _get_overlaps(start+duration, list_of_times[i+1:])
+    return overlaps
 
 def _get_overlaps(end_time, remaining):
     output = []
-
-    for r in remaining:
-        if r[0] < end_time:
-            output.append(r)
+    for remain in remaining:
+        if remain[0] < end_time:
+            output.append(remain)
             continue
         break
     return output
