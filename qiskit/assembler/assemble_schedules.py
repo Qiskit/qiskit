@@ -274,7 +274,7 @@ def _get_overlaps(end_time, remaining):
     output = []
 
     for r in remaining:
-        if r[0] < end:
+        if r[0] < end_time:
             output.append(r)
             continue
         break
