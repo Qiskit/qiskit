@@ -74,7 +74,7 @@ class TensoredOp(ListOp):
     def eval(
         self, front: Union[str, dict, np.ndarray, OperatorBase, Statevector] = None
     ) -> Union[OperatorBase, complex]:
-        if self._is_emtpy():
+        if self._is_empty():
             return 0.0
         return cast(Union[OperatorBase, complex], self.to_matrix_op().eval(front=front))
 
