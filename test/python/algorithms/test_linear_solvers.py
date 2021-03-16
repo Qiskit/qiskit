@@ -80,7 +80,7 @@ class TestObservables(QiskitAlgorithmsTestCase):
         num_qubits = int(np.log2(len(vector)))
 
         qc = QuantumCircuit(num_qubits)
-        qc.initialize(init_state, list(range(num_qubits)))
+        qc.isometry(init_state, list(range(num_qubits)), None)
         qc.append(observable.observable_circuit(num_qubits), list(range(num_qubits)))
 
         # Observable operator
@@ -107,16 +107,21 @@ class TestObservables(QiskitAlgorithmsTestCase):
 
         # Get observable circuits
         obs_circuits = observable.observable_circuit(num_qubits)
+        qcs = []
         for obs_circ in obs_circuits:
             qc = QuantumCircuit(num_qubits)
-            qc.initialize(init_state, list(range(num_qubits)))
+            qc.isometry(init_state, list(range(num_qubits)), None)
             qc.append(obs_circ, list(range(num_qubits)))
+            qcs.append(qc)
 
         # Get observables
         observable_ops = observable.observable(num_qubits)
         state_vecs = []
-        for observable_op in observable_ops:
-            state_vecs.append((~StateFn(observable_op) @ StateFn(qc)).eval())
+        # First is the norm
+        state_vecs.append((~StateFn(observable_ops[0]) @ StateFn(qcs[0])).eval())
+        for i, observable_op in enumerate(observable_ops[1::]):
+            state_vecs.append([(~StateFn(observable_op[0]) @ StateFn(qcs[i])).eval(),
+                               (~StateFn(observable_op[1]) @ StateFn(qcs[i])).eval()])
 
         # Obtain result
         result = observable.post_processing(state_vecs, num_qubits)
@@ -184,7 +189,7 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
 
         # Initial state circuit
         qc = QuantumCircuit(num_qubits)
-        qc.initialize(rhs)
+        qc.isometry(rhs, list(range(num_qubits)), None)
 
         hhl = HHL()
         solution = hhl.solve(matrix, qc, observable)
