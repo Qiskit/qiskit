@@ -90,12 +90,6 @@ class DAGNode:
     def __gt__(self, other):
         return self._node_id > other._node_id
 
-    def __hash__(self):
-        """Needed for ancestors function, which returns a set.
-        To be in a set requires the object to be hashable
-        """
-        return hash(id(self))
-
     def __str__(self):
         # TODO is this used anywhere other than in DAG drawing?
         # needs to be unique as it is what pydot uses to distinguish nodes
