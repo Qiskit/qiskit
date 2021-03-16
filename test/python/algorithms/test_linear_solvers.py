@@ -110,7 +110,7 @@ class TestObservables(QiskitAlgorithmsTestCase):
         qcs = []
         for obs_circ in obs_circuits:
             qc = QuantumCircuit(num_qubits)
-            qc.isometry(init_state, list(range(num_qubits)), None)
+            qc.isometry(init_state, list(range(num_qubits)))
             qc.append(obs_circ, list(range(num_qubits)))
             qcs.append(qc)
 
