@@ -263,8 +263,9 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
                     continue
                 else:
                     time_in_meas_map = _get_keys(meas_set, time_qubit_dict)
+                    # import pdb; pdb.set_trace()
                     if _get_all_overlaps(time_in_meas_map):
-                        raise QiskitError("there is a time overlap for the qubits - {}".format(time_in_meas_map))
+                        raise QiskitError("there is a time overlap for the qubits - {}".format(meas_set))
 
 def _get_all_overlaps(list_of_times):
     for i, (start, end) in enumerate(list_of_times):
