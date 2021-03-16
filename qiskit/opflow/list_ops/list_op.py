@@ -515,7 +515,7 @@ class ListOp(OperatorBase):
                               coeff=self.coeff, abelian=self.abelian
                               ).reduce()
 
-    def _is_emtpy(self):
+    def _is_empty(self):
         return len(self.oplist) == 0
 
     # Array operations:
