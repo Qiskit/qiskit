@@ -36,11 +36,20 @@ class PhaseEstimationResult(PhaseEstimatorResult):
             circuit_result: result object returned by method running circuit.
             phases: ndarray or dict of phases and frequencies determined by QPE.
         """
-        # int: number of qubits in phase-readout register
-        self._num_evaluation_qubits = num_evaluation_qubits
+        super().__init__()
 
         self._phases = phases
+        # int: number of qubits in phase-readout register
+        self._num_evaluation_qubits = num_evaluation_qubits
         self._circuit_result = circuit_result
+
+    @property
+    def phases(self) -> Union[numpy.ndarray, dict]:
+        """Return all phases and their frequencies computed by QPE.
+
+        This is an array or dict whose values correspond to weights on bit strings.
+        """
+        return self._phases
 
     @property
     def circuit_result(self) -> Result:
