@@ -365,7 +365,7 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
         self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), 'ZSX', {'rz': 3, 'sx': 2})
 
 
-ONEQ_BASES = ['U3', "U321", 'U', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR']
+ONEQ_BASES = ['U3', "U321", 'U', 'U1X', 'PSX', 'ZSX', 'ZSXX', 'ZYZ', 'ZXZ', 'XYX', 'RR']
 SIMP_TOL = [(False, 1.e-14), (True, 1.E-12)]  # Please don't broaden the tolerance (fix the decomp)
 
 
@@ -401,6 +401,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
         """Test decompositions of psx and zsx at special values of parameters"""
         oqed_psx = OneQubitEulerDecomposer(basis='PSX')
         oqed_zsx = OneQubitEulerDecomposer(basis='ZSX')
+        oqed_zsxx = OneQubitEulerDecomposer(basis='ZSXX')
         theta = np.pi / 3
         phi = np.pi / 5
         lam = np.pi / 7
@@ -424,8 +425,10 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
             unitary = gate.to_matrix()
             qc_psx = oqed_psx(unitary)
             qc_zsx = oqed_zsx(unitary)
+            qc_zsxx = oqed_zsxx(unitary)
             self.assertTrue(np.allclose(unitary, Operator(qc_psx).data))
             self.assertTrue(np.allclose(unitary, Operator(qc_zsx).data))
+            self.assertTrue(np.allclose(unitary, Operator(qc_zsxx).data))
 
 
 # FIXME: streamline the set of test cases
@@ -954,7 +957,8 @@ class TestTwoQubitDecompose(CheckDecompositions):
              euler_bases=[('U321', ['u3', 'u2', 'u1']), ('U3', ['u3']), ('U', ['u']),
                           ('U1X', ['u1', 'rx']), ('RR', ['r']),
                           ('PSX', ['p', 'sx']), ('ZYZ', ['rz', 'ry']), ('ZXZ', ['rz', 'rx']),
-                          ('XYX', ['rx', 'ry']), ('ZSX', ['rz', 'sx'])],
+                          ('XYX', ['rx', 'ry']), ('ZSX', ['rz', 'sx']),
+                          ('ZSXX', ['rz', 'sx', 'x'])],
              kak_gates=[(CXGate(), 'cx'), (CZGate(), 'cz'), (iSwapGate(), 'iswap'),
                         (RXXGate(np.pi / 2), 'rxx')],
              name='test_euler_basis_selection_{seed}_{euler_bases[0]}_{kak_gates[1]}')

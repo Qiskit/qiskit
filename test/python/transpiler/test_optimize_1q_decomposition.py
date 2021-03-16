@@ -418,7 +418,23 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
+        self.assertEqual(expected, result)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
 
+    def test_y_simplification_rz_sx_x(self):
+        """Test that a y gate gets decomposed to x-zx with ibmq basis."""
+        qc = QuantumCircuit(1)
+        qc.y(0)
+        basis = ["id", "rz", "sx", "x", "cx"]
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1)
+        expected.x(0)
+        expected.rz(np.pi, 0)
         msg = f"expected:\n{expected}\nresult:\n{result}"
         self.assertEqual(expected, result, msg=msg)
 
