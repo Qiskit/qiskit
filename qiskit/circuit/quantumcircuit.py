@@ -2095,14 +2095,12 @@ class QuantumCircuit:
             else:
                 del self._parameter_table[parameter]  # clear evaluated expressions
 
-                # clear cache
-                self._parameters = None
-
         if (isinstance(self.global_phase, ParameterExpression) and
                 parameter in self.global_phase.parameters):
             self.global_phase = self.global_phase.assign(parameter, value)
-            self._parameters = None
 
+        # clear parameter cache
+        self._parameters = None
         self._assign_calibration_parameters(parameter, value)
 
     def _assign_calibration_parameters(self, parameter, value):
