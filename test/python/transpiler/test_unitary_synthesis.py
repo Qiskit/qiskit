@@ -62,6 +62,29 @@ class TestUnitarySynthesis(QiskitTestCase):
 
         self.assertTrue(set(out.count_ops()).issubset(basis_gates))
 
+    @data(
+        ['u3', 'cx'],
+        ['u1', 'u2', 'u3', 'cx'],
+        ['rx', 'ry', 'rxx'],
+        ['rx', 'rz', 'iswap'],
+        ['u3', 'rx', 'rz', 'cz', 'iswap'],
+    )
+    def test_three_qubit_synthesis_to_basis(self, basis_gates):
+        """Verify three qubit unitaries are synthesized to match basis gates."""
+        circuit_to_op = QuantumCircuit(3)
+        circuit_to_op.h(0)
+        circuit_to_op.h(1)
+        circuit_to_op.ccx(0, 1, 2)
+        circuit_op = Operator(circuit_to_op)
+
+        qc = QuantumCircuit(3)
+        qc.unitary(circuit_op, [0, 1, 2])
+        dag = circuit_to_dag(qc)
+
+        out = UnitarySynthesis(basis_gates).run(dag)
+
+        self.assertTrue(set(out.count_ops()).issubset(basis_gates))
+
 
 if __name__ == '__main__':
     unittest.main()
