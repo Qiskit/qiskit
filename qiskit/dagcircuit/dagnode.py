@@ -56,12 +56,14 @@ class DAGNode:
         """Returns the condition of the node.op"""
         if self.type and self.type == 'op':
             return self._op.condition
+        return None
 
     @condition.setter
     def condition(self, new_condition):
         """Sets the node.condition which sets the node.op.condition."""
-        if self.type and self.type == 'op':
-            self._op.condition = new_condition
+        if not self.type or self.type != 'op':
+            raise QiskitError("The node %s is not an op node" % (str(self)))
+        self._op.condition = new_condition
 
     @property
     def qargs(self):
