@@ -71,13 +71,11 @@ class RVGate(Gate):
     def to_matrix(self):
         """Return a numpy.array for the R(v) gate."""
         v = numpy.asarray(self.params, dtype=float)
-        angle = numpy.pi * numpy.sqrt(v.dot(v))
-        print('angle: ', angle)
+        magnitude = numpy.sqrt(v.dot(v))
+        angle = numpy.pi * magnitude
         if angle == 0:
             return numpy.array([[1, 0], [0, 1]])
-        nx, ny, nz = v
-        print('v: ', v)
-        print('nx, ny, nz: ', nx, ny, nz)
+        nx, ny, nz = v / magnitude
         sin = numpy.sin(angle / 2)
         cos = numpy.cos(angle / 2)
         return numpy.array([[cos - 1j * nz * sin, (-ny - 1j * nx) * sin],
