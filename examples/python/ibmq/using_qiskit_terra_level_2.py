@@ -20,20 +20,11 @@ It builds some circuits and transpiles them with the pass_manager.
 # Import the Qiskit modules
 from qiskit import IBMQ, BasicAer
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.compiler import assemble
+from qiskit.compiler import transpile, assemble
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
 
-from qiskit.transpiler import PassManager
 from qiskit.transpiler import CouplingMap
-from qiskit.transpiler.passes import Unroller
-from qiskit.transpiler.passes import FullAncillaAllocation
-from qiskit.transpiler.passes import EnlargeWithAncilla
-from qiskit.transpiler.passes import TrivialLayout
-from qiskit.transpiler.passes import Decompose
-from qiskit.transpiler.passes import CXDirection
-from qiskit.transpiler.passes import LookaheadSwap
 
 
 provider = IBMQ.load_account()
@@ -46,60 +37,52 @@ qc1.measure([0, 1], [0, 1])
 
 # Making another circuit: GHZ State
 qc2 = QuantumCircuit(4, 4)
-qc2.h([0, 1, 2, 3])
+qc2.h([0])
 qc2.cx(0, 1)
 qc2.cx(0, 2)
 qc2.cx(0, 3)
 qc2.measure([0, 1, 2, 3], [0, 1, 2, 3])
 
+
+def status_header(sort):
+    print(f"{sort:<25} |  jobs | status")
+    print("===========================================")
+
+
+def format_status(status):
+    status = status.to_dict()
+    print(f"{status['backend_name'][:25]:>25} | {status['pending_jobs']:5d} | {status['status_msg'][:6]:>6}")
+
+
 # Setting up the backend
-print("(Aer Backends)")
+status_header("Aer Backends")
 for backend in BasicAer.backends():
-    print(backend.status())
+    format_status(backend.status())
 qasm_simulator = BasicAer.get_backend('qasm_simulator')
 
 
 # Compile and run the circuit on a real device backend
 # See a list of available remote backends
-print("\n(IBMQ Backends)")
+status_header("IBMQ Backends")
 for backend in provider.backends():
-    print(backend.status())
+    format_status(backend.status())
 
 try:
     # select least busy available device and execute.
-    least_busy_device = least_busy(provider.backends(simulator=False))
+    least_busy_device = least_busy([backend for backend in provider.backends(simulator=False)
+                                    if backend.status().pending_jobs > 0])
 except:
     print("All devices are currently unavailable.")
 
 print("Running on current least busy device: ", least_busy_device)
 
 
-# making a pass manager to compile the circuits
+# compiling the circuits
 coupling_map = CouplingMap(least_busy_device.configuration().coupling_map)
 print("coupling map: ", coupling_map)
 
-pm = PassManager()
-
-# Use the trivial layout
-pm.append(TrivialLayout(coupling_map))
-
-# Extend the the dag/layout with ancillas using the full coupling map
-pm.append(FullAncillaAllocation(coupling_map))
-pm.append(EnlargeWithAncilla())
-
-# Swap mapper
-pm.append(LookaheadSwap(coupling_map))
-
-# Expand swaps
-pm.append(Decompose(SwapGate))
-
-# Simplify CXs
-pm.append(CXDirection(coupling_map))
-
-# unroll to single qubit gates
-pm.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
-qc1_new = pm.run(qc1)
-qc2_new = pm.run(qc2)
+qc1_new = transpile(qc1, backend=least_busy_device)
+qc2_new = transpile(qc2, backend=least_busy_device)
 
 print("Bell circuit before passes:")
 print(qc1)
