@@ -23,6 +23,7 @@ from qiskit.opflow.list_ops.tensored_op import TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.matrix_op import MatrixOp
 from qiskit.opflow.state_fns.state_fn import StateFn
+from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.quantum_info import Statevector
 
 
@@ -211,6 +212,9 @@ class OperatorStateFn(StateFn):
         if isinstance(front, ListOp) and type(front) == ListOp:
             return front.combo_fn([self.eval(front.coeff * front_elem)
                                    for front_elem in front.oplist])
+
+        # if isinstance(front, CircuitStateFn):
+        #     front = front.eval()
 
         return front.adjoint().eval(cast(OperatorBase, self.primitive.eval(front))) * self.coeff
 

@@ -135,7 +135,7 @@ class CircuitStateFn(StateFn):
         return SummedOp([self, other])
 
     def adjoint(self) -> "CircuitStateFn":
-        return CircuitStateFn(self.primitive.inverse(),
+        return CircuitStateFn(self.primitive,
                               coeff=self.coeff.conjugate(),
                               is_measurement=(not self.is_measurement))
 
@@ -223,6 +223,8 @@ class CircuitStateFn(StateFn):
         statevector = execute(qc,
                               statevector_backend,
                               optimization_level=0).result().get_statevector()
+        if self.is_measurement:
+            statevector = np.transpose(np.conj(statevector))
         from ..operator_globals import EVAL_SIG_DIGITS
         return np.round(statevector * self.coeff, decimals=EVAL_SIG_DIGITS)
 
