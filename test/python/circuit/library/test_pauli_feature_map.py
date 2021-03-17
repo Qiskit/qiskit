@@ -123,6 +123,11 @@ class TestDataPreparation(QiskitTestCase):
         encoding.alpha = 1.4
         self.assertEqual(encoding.alpha, 1.4)
 
+    def test_zzfeaturemap_raises_if_too_small(self):
+        """Test the ``ZZFeatureMap`` raises an error if the number of qubits is smaller than 2."""
+        with self.assertRaises(ValueError):
+            _ = ZZFeatureMap(1)
+
 
 if __name__ == '__main__':
     unittest.main()
