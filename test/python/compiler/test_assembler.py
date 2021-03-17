@@ -1435,11 +1435,11 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         backend = FakeOpenPulse2Q()
         new_style_schedule = Schedule()
         acq_dur = 1200
-        for i in range(5):
+        for i in range(2):
             new_style_schedule += Acquire(acq_dur, AcquireChannel(i), MemorySlot(i))
 
         deprecated_style_schedule = Schedule()
-        for i in range(5):
+        for i in range(2):
             deprecated_style_schedule += Acquire(1200, AcquireChannel(i), MemorySlot(i))
 
         # The Qobj IDs will be different
@@ -1452,8 +1452,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         self.assertEqual(n_qobj, d_qobj)
 
         assembled_acquire = n_qobj.experiments[0].instructions[0]
-        self.assertEqual(assembled_acquire.qubits, [0, 1, 2, 3, 4])
-        self.assertEqual(assembled_acquire.memory_slot, [0, 1, 2, 3, 4])
+        self.assertEqual(assembled_acquire.qubits, [0, 1])
+        self.assertEqual(assembled_acquire.memory_slot, [0, 1])
 
 
 class StreamHandlerRaiseException(StreamHandler):
