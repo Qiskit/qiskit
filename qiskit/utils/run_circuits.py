@@ -24,7 +24,6 @@ import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.providers import Backend, BaseBackend, JobStatus, JobError, BaseJob
 from qiskit.providers.jobstatus import JOB_FINAL_STATES
-from qiskit.providers.basicaer import BasicAerJob
 from qiskit.result import Result
 from qiskit.qobj import QasmQobj
 from ..exceptions import QiskitError, MissingOptionalLibraryError

@@ -30,7 +30,10 @@ import logging
 import uuid
 import time
 from math import log2, sqrt
+import warnings
+
 import numpy as np
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
@@ -141,7 +144,8 @@ class UnitarySimulatorPy(BackendV1):
     @classmethod
     def _default_options(cls):
         return Options(shots=1,
-                       initial_unitary=None, chop_threshold=1e-15)
+                       initial_unitary=None, chop_threshold=1e-15,
+                       parameter_binds=None)
 
     def _add_unitary(self, gate, qubits):
         """Apply an N-qubit unitary matrix.
