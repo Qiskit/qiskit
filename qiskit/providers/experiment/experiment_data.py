@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,28 +10,47 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Experiment data abstract interface."""
+"""Experiment data class."""
 
 import logging
 import uuid
 import json
-from datetime import datetime
-from abc import ABC, abstractmethod
-from typing import Optional, List, Any, Union, Tuple, Callable, Dict, Set
+from abc import abstractmethod
+from typing import Optional, List, Any, Union, Tuple, Callable, Dict
+import copy
+from concurrent import futures
+import queue
+from collections import OrderedDict, defaultdict
+from functools import wraps
+import traceback
 
-import qiskit.providers.experiment.experiment_service as experiment_service
-from .local_service import LocalExperimentService
-from .exceptions import ExperimentError, ExperimentDataNotFound, ExperimentDataExists
+from qiskit.version import __qiskit_version__
+from qiskit.providers import Job, BaseJob, Backend, BaseBackend
+from qiskit.result import Result
+from qiskit.providers import JobStatus
+from qiskit.exceptions import QiskitError
+
+from .exceptions import ExperimentError, ExperimentEntryNotFound, ExperimentEntryExists
 from .analysis_result import AnalysisResultV1 as AnalysisResult
 from .json import NumpyEncoder, NumpyDecoder
-from .utils import MonitoredList, MonitoredDict
-from ..job import JobV1 as Job
+from .utils import save_data
 
 LOG = logging.getLogger(__name__)
 
 
+def auto_save(func: Callable):
+    """Decorate the input function."""
+    @wraps(func)
+    def _wrapped(self, *args, **kwargs):
+        return_val = func(self, *args, **kwargs)
+        if self.auto_save:
+            self.save()
+        return return_val
+    return _wrapped
+
+
 class ExperimentData:
-    """Base common type for all versioned ExperimentData abstract classes.
+    """Base common type for all versioned ExperimentData classes.
 
     Note this class should not be inherited from directly, it is intended
     to be used for type checking. When implementing a provider you should use
@@ -41,303 +60,237 @@ class ExperimentData:
     version = 0
 
 
-class ExperimentDataV1(ExperimentData, ABC):
-    """Class to handle experiment data."""
+class ExperimentDataV1(ExperimentData):
+    """Class to handle experiment data.
+
+    This class serves as a data container for experiment data and any analysis
+    results or figures associated with the experiment. It also provides methods
+    used to interact with the database, such as saving the experiment data in
+    the database or retrieving its figured.
+    """
 
     version = 1
-    data_version = 1
+    _metadata_version = 1
+    _executor = futures.ThreadPoolExecutor()
+    """Threads used for asynchronous processing."""
+
+    _json_encoder = NumpyEncoder
+    _json_decoder = NumpyDecoder
 
     def __init__(
             self,
-            experiment_type: Optional[str] = None,
+            backend: Union[Backend, BaseBackend],
+            experiment_type: str,
+            experiment_id: Optional[str] = None,
             tags: Optional[List[str]] = None,
-            jobs: Optional[List[Job]] = None,
+            job_ids: Optional[List[str]] = None,
             share_level: Optional[str] = None,
-            backend_name: Optional[str] = None,
-            data: Optional[Dict] = None,
+            metadata: Optional[Dict] = None,
             figure_names: Optional[List[str]] = None,
-            auto_save: bool = True,
-            save_local: bool = True,
-            save_remote: bool = True,
-            local_service: Optional[experiment_service.ExperimentServiceV1] = None,
-            remote_service: Optional[experiment_service.ExperimentServiceV1] = None
+            notes: Optional[str] = None
     ):
         """Initializes the experiment data.
 
         Args:
-            experiment_type: Experiment type. If ``None``, the class name is used.
+            backend: Backend the experiment runs on. It can either be a
+                :class:`~qiskit.providers.Backend` instance or just backend name.
+            experiment_type: Experiment type.
+            experiment_id: Experiment ID. One will be generated if not supplied.
             tags: Tags to be associated with the experiment.
-            jobs: Experiment jobs.
+            job_ids: IDs of jobs submitted for the experiment.
             share_level: Whether this experiment can be shared with others. This
                 is applicable only if the experiment service supports sharing. See
                 the specific service provider's documentation on valid values.
-            backend_name: Name of the backend this experiment is for.
-            data: Additional experiment data. Note that ``_source_path`` and
-                ``_data_version`` are reserved keys and cannot be in `data`.
+            metadata: Additional experiment metadata.
             figure_names: Name of figures associated with this experiment.
-            auto_save: ``True`` if changes to the experiment data, including newly
-                generated analysis results and figures, should be automatically saved.
-            save_local: ``True`` if changes should be saved in the local database.
-            save_remote: ``True`` if changes should be saved in the remote database.
-                Data will not be saved remotely if no remote experiment
-                service can be found.
-            local_service: Local experiment service to use.
-            remote_service: Remote experiment service to use.
+            notes: Freeform notes about the experiment.
 
         Raises:
             ExperimentError: If an input argument is invalid.
         """
-        # Save the class path and data version in order to recreate the object later.
-        # No good place to save them in the database so `data` is used, which means
-        # we need to verify there are no conflicts.
-        self._source = {'_source_path': f"{self.__class__.__module__}.{self.__class__.__name__}",
-                        '_data_version': self.data_version}
-        data = data or {}
-        for key in self._source:
-            if key in data and data[key] != self._source[key]:
-                raise ExperimentError(f"{key} is reserved and cannot be in data.")
+        metadata = metadata or {}
+        self._source = metadata.pop(
+            "_source",
+            {"class": f"{self.__class__.__module__}.{self.__class__.__name__}",
+             "data_version": self._metadata_version,
+             "_qiskit_version": __qiskit_version__})
 
-        # Data to be saved in DB.
-        self._id = str(uuid.uuid4())
-        self._type = experiment_type or self.__class__.__name__
-        self._tags = MonitoredList.create_with_callback(
-            callback=self._monitored_callback, init_data=tags)
-        self._job_ids = {job.job_id() for job in jobs} if jobs else set()
-        self._share_level = share_level
-        self._data = MonitoredDict.create_with_callback(
-            callback=self._monitored_callback, init_data=data)
-        self._backend_name = None
-        if backend_name:
-            self._backend_name = backend_name
-        elif jobs:
-            self._backend_name = jobs[0].backend().name()
-        self._creation_date = datetime.now()
-        self._figure_names = MonitoredList.create_with_callback(
-            callback=self._jobs_list_callback, init_data=figure_names)
-
-        # Other metadata
-        self.save_local = save_local
-        self.save_remote = save_remote
-        self._local_service = local_service or LocalExperimentService()
-        self._remote_service = remote_service  # Determined after jobs are submitted if None.
-        self._analysis_results = []
-        self.auto_save = auto_save
-        self._jobs = MonitoredList.create_with_callback(
-            callback=self._jobs_list_callback, init_data=jobs)
-        self._created_local = False
-        self._created_remote = False
-
-    def _jobs_list_callback(self):
-        """Callback function invoked when a monitored job list changes."""
-        self._job_ids = {job.job_id() for job in self._jobs}
-        if self.auto_save:
-            self.save()
-
-    def _monitored_callback(self):
-        """Callback function invoked when a monitored collection changes."""
-        if self.auto_save:
-            self.save()
-
-    @classmethod
-    def from_stored_data(cls, **kwargs) -> ExperimentData:
-        """Return an ``ExperimentData`` instance from the stored data.
-
-        Args:
-            kwargs: Dictionary that contains the stored data.
-
-        Returns:
-            An ``ExperimentData`` instance.
-        """
-        obj = cls(
-            experiment_type=kwargs.get('type', None),
-            tags=kwargs.get('tags', []),
-            share_level=kwargs.get('share_level', None),
-            backend_name=kwargs.get('backend_name', None),
-            figure_names=kwargs.get('figure_names', []))
-        # Turn off auto_save during initialization.
-        saved_auto_save = obj.auto_save
-        obj.auto_save = False
-        obj._id = kwargs['experiment_id']
-        _data = obj._deserialize_data(json.dumps(kwargs.get('data', {})))
-        obj._source = {'_source_path', _data.pop('_source_path', ''),
-                       '_data_version', _data.pop('_data_version', cls.data_version)}
-        obj._data.update(_data)
-        obj._job_ids = kwargs.get('job_ids', set())
-        obj._creation_date = kwargs.get('creation_date', obj._creation_date)
-        obj._jobs.append(kwargs.get('jobs'), [])
-        obj._analysis_results.append(kwargs.get('analysis_results', []))
-        obj.auto_save = saved_auto_save
-
-        return obj
-
-    def save(
-            self,
-            save_local: Optional[bool] = None,
-            save_remote: Optional[bool] = None,
-            remote_service: Optional[experiment_service.ExperimentServiceV1] = None
-    ) -> None:
-        """Save this experiment in the database.
-
-        Args:
-            save_local: ``True`` if data should be saved locally. If ``None``, the
-                ``save_local`` attribute of this object is used.
-            save_remote: ``True`` if data should be saved remotely. If ``None``, the
-                ``save_remote`` attribute of this object is used.
-            remote_service: Remote experiment service to be used to save the data.
-                Not applicable if `local_only` is set to ``True``. If ``None``, the
-                provider used to submit jobs will be used.
-
-        Raises:
-            ExperimentError: If the experiment contains invalid data.
-        """
-        if not self._backend_name and not self._jobs:
-            raise ExperimentError("Experiment can only be saved after jobs are submitted.")
-        self._backend_name = self._backend_name or self._jobs[0].backend().name()
-
-        _data = json.loads(self._serialize_data())
-        for key in self._source:
-            if key in _data and _data[key] != self._source[key]:
-                raise ExperimentError(f"{key} is reserved and cannot be in data.")
-        _data.update(self._source)
-
-        update_data = {'experiment_id': self._id, 'data': _data,
-                       'job_ids': self.job_ids, 'tags': self.tags}
-        new_data = {'experiment_type': self._type, 'backend_name': self._backend_name,
-                    'creation_date': self.creation_date}
-        if self.share_level:
-            update_data['share_level'] = self.share_level
-
-        save_local = save_local if save_local is not None else self.save_local
-        if save_local:
-            self._created_local, _ = self._save(
-                is_new=self._created_local,
-                new_func=self._local_service.create_experiment,
-                update_func=self._local_service.update_experiment,
-                new_data=new_data, update_data=update_data)
-
-        if self._is_access_remote(save_remote=save_remote, remote_service=remote_service):
-            remote_service = remote_service or self.remote_service
-            self._created_remote, _ = self._save(
-                is_new=self._created_remote,
-                new_func=remote_service.create_experiment,
-                update_func=remote_service.update_experiment,
-                new_data=new_data, update_data=update_data)
-
-    def _save(
-            self,
-            is_new: bool,
-            new_func: Callable,
-            update_func: Callable,
-            new_data: Dict,
-            update_data: Dict
-    ) -> Tuple[bool, Any]:
-        """Save data in the database.
-
-        Args:
-            is_new: ``True`` if `new_func` should be called. Otherwise `update_func` is called.
-            new_func: Function to create new entry in the database.
-            update_func: Function to update an existing entry in the database.
-            new_data: In addition to `update_data`, this data will be stored if creating
-                a new entry.
-            update_data: Data to be stored if updating an existing entry.
-
-        Returns:
-            A tuple of whether the data was saved and the function return value.
-        """
-        attempts = 0
+        self._service = None
+        self._backend = backend
+        self.auto_save = False
         try:
-            # Attempt 3x for the unlikely scenario wherein is_new=False but the
-            # entry doesn't actually exists. The second try might also fail if an entry
-            # with the same ID somehow got created in the meantime.
-            while attempts < 3:
-                attempts += 1
-                if is_new:
-                    try:
-                        return True, new_func(**{**new_data, **update_data})
-                    except ExperimentDataExists:
-                        is_new = False
-                else:
-                    try:
-                        return True, update_func(**update_data)
-                    except ExperimentDataNotFound:
-                        is_new = True
-            raise ExperimentError("Unable to determine the existence of the entry.")
-        except Exception as ex:
-            # Don't fail the experiment just because its data cannot be saved.
-            LOG.error(f"Unable to save the experiment data: {str(ex)}")
-            return False, None
+            self._service = backend.provider().service('experiment')
+            self.auto_save = self._service.option['auto_save']
+        except Exception:  # pylint: disable=broad-except
+            pass
 
-    def _is_access_remote(
+        self._id = experiment_id or str(uuid.uuid4())
+        self._type = experiment_type
+        self._tags = tags or []
+        self._share_level = share_level
+        self._notes = notes or ""
+        self._metadata = copy.deepcopy(metadata)
+
+        job_ids = job_ids or []
+        self._jobs = OrderedDict((k, None) for k in job_ids)
+        self._job_futures = []
+        self._errors = []
+
+        self._data_queue = queue.Queue()
+        self._data = []
+
+        figure_names = figure_names or []
+        self._figures = dict.fromkeys(figure_names)
+        self._figures_queue = queue.Queue()
+        self._figure_names = figure_names  # Only used by add_figure.
+
+        self._analysis_results_queue = queue.Queue()
+        self._analysis_results = []
+
+        self._created_in_db = False
+
+    def add_data(
             self,
-            save_remote: Optional[bool] = None,
-            remote_service: Optional[experiment_service.ExperimentServiceV1] = None
-    ) -> bool:
-        """Determine whether data should be saved in the remote database.
+            data: Union[Result, List[Result], Job, List[Job], Dict, List[Dict]],
+            post_processing_callback: Optional[Callable] = None
+    ):
+        """Add experiment data.
 
         Args:
-            save_remote: Used to overwrite the default ``save_remote`` option.
-                ``None`` if the default should be used.
-            remote_service: Used to overwrite the default remote database
-                service. ``None`` if the default should be used.
+            data: Experiment data to add.
+                Several types are accepted for convenience:
 
-        Returns:
-            ``True`` if data should be saved in the remote database. ``False``
-            otherwise.
+                    * Result: Add data from this ``Result`` object.
+                    * List[Result]: Add data from the ``Result`` objects.
+                    * Job: Add data from the job result.
+                    * List[Job]: Add data from the job results.
+                    * Dict: Add this data.
+                    * List[Dict]: Add this list of data.
+            post_processing_callback: Callback function invoked when all pending
+                jobs finish. This ``ExperimentData`` object is the only argument
+                to be passed to the callback function.
         """
-        _save_remote = save_remote if save_remote is not None else self.save_remote
-        if _save_remote:
-            if remote_service or self.remote_service:
-                return True
-            self.save_remote = False
-            err_msg = "Unable to access the remote experiment database " \
-                      "because no suitable service is found."
-            if save_remote:
-                # Raise if user explicitly asked for save_remote.
-                raise ExperimentError(err_msg)
-            LOG.warning(err_msg)
-            return False
-        return False
+        if isinstance(data, dict):
+            self._add_single_data(data)
+        elif isinstance(data, Result):
+            self._add_result_data(data)
+        elif isinstance(data, (Job, BaseJob)):
+            self._jobs[data.job_id()] = data
+            self._job_futures.append(
+                (data, self._executor.submit(self._wait_for_job, data, post_processing_callback)))
+            if self.auto_save:
+                self.save()
+        elif isinstance(data, list):
+            for dat in data:
+                self.add_data(dat)
+        else:
+            raise QiskitError(f"Invalid data type {type(data)}.")
 
-    @abstractmethod
-    def _serialize_data(self, encoder: Optional[json.JSONEncoder] = NumpyEncoder) -> str:
-        """Serialize experiment data into JSON string.
+    def _wait_for_job(
+            self, job: Union[Job, BaseJob],
+            job_done_callback: Optional[Callable] = None
+    ) -> None:
+        """Wait for a job to finish.
 
         Args:
-            encoder: Custom JSON encoder to use.
-
-        Returns:
-            Serialized JSON string.
+            job: Job to wait for.
+            job_done_callback: Callback function to invoke when job finishes.
         """
-        pass
+        LOG.debug(f"Waiting for job {job.job_id()} to finish.")
+        self._add_result_data(job.result())
+        if job_done_callback:
+            job_done_callback(self)
 
-    @abstractmethod
-    def _deserialize_data(
+    def _add_result_data(self, result: Result) -> None:
+        """Add data from a Result object
+
+        Args:
+            result: Result object containing data to be added.
+        """
+        for i in range(len(result.results)):
+            data = result.data(i)
+            data['job_id'] = result.job_id
+            if 'counts' in data:
+                # Format to Counts object rather than hex dict
+                data['counts'] = result.get_counts(i)
+            self._add_single_data(data)
+
+    def _add_single_data(self, data: Dict[str, any]) -> None:
+        """Add a single data dictionary to the experiment.
+
+        Args:
+            data: Data to be added.
+        """
+        self._data_queue.put_nowait(data)
+
+    def data(
             self,
-            data: str,
-            decoder: Optional[json.JSONDecoder] = NumpyDecoder
-    ) -> Any:
-        """Deserialize experiment from JSON string.
+            index: Optional[Union[int, slice, str]] = None
+    ) -> Union[Dict, List[Dict]]:
+        """Return the experiment data at the specified index.
 
         Args:
-            data: Data to be deserialized.
-            decoder: Custom decoder to use.
+            index: Index of the data to be returned.
+                Several types are accepted for convenience:
+
+                    * None: Return all experiment data.
+                    * int: Specific index of the data.
+                    * slice: A list slice of data indexes.
+                    * str: ID of the job that produced the data.
 
         Returns:
-            Deserialized data.
+            Experiment data.
         """
-        pass
+        # Get job results if missing experiment data.
+        if not self._data and self._backend.provider():
+            for jid in self._jobs:
+                if self._jobs[jid] is None:
+                    try:
+                        self._jobs[jid] = self._backend.provider().retrieve_job(jid)
+                    except Exception:  # pylint: disable=broad-except
+                        pass
+                if self._jobs[jid] is not None:
+                    self._add_result_data(self._jobs[jid].result())
+        self._collect_from_queues()
 
-    def save_figure(
+        if index is None:
+            return self._data
+        if isinstance(index, (int, slice)):
+            return self._data[index]
+        if isinstance(index, str):
+            return [data for data in self._data if data.get("job_id") == index]
+        raise QiskitError(f"Invalid index type {type(index)}.")
+
+    def _collect_from_queues(self):
+        """Collect entries from queues."""
+        while not self._data_queue.empty():
+            try:
+                self._data.append(self._data_queue.get_nowait())
+            except queue.Empty:
+                pass
+
+        while not self._analysis_results_queue.empty():
+            try:
+                self._analysis_results.append(self._analysis_results_queue.get_nowait())
+            except queue.Empty:
+                pass
+
+        while not self._figures_queue.empty():
+            try:
+                fig = self._figures_queue.get_nowait()
+                self._figures[fig[0]] = fig[1]
+            except queue.Empty:
+                pass
+
+    @auto_save
+    def add_figure(
             self,
             figure: Union[str, bytes],
-            figure_name: str = None,
-            overwrite=False,
-            remote_service: experiment_service.ExperimentServiceV1 = None
+            figure_name: Optional[str] = None,
+            overwrite: bool = False,
+            service: Optional['ExperimentServiceV1'] = None
     ) -> Tuple[str, int]:
-        """Save the experiment figure in the remote database.
-
-        Note that figures are not saved in the local database because they are
-        not structured data.
+        """Save the experiment figure.
 
         Args:
             figure: Name of the figure file or figure data to upload.
@@ -345,11 +298,15 @@ class ExperimentDataV1(ExperimentData, ABC):
                 given, or a generated name.
             overwrite: Whether to overwrite the figure if one already exists with
                 the same name.
-            remote_service: Remote experiment service to be used to save the data.
-                If ``None``, the  provider used to submit jobs will be used.
+            service: Experiment service to be used to save the figure.
 
         Returns:
-            A tuple of the name and size of the saved figure.
+            A tuple of the name and size of the saved figure. Returned size
+            is 0 if there is no experiment service to use.
+
+        Raises:
+            ExperimentEntryExists: If the figure with the same name already exists,
+                and `overwrite=True` is not specified.
         """
         if not figure_name:
             if isinstance(figure, str):
@@ -357,24 +314,24 @@ class ExperimentDataV1(ExperimentData, ABC):
             else:
                 figure_name = f"figure_{self.id}_{len(self.figure_names)}"
 
-        existing_figure = figure_name in self.figure_names
+        existing_figure = figure_name in self._figure_names
         if existing_figure and not overwrite:
-            raise ExperimentError(f"A figure with the name {figure_name} for this experiment "
-                                  f"already exists. Specify overwrite=True if you "
-                                  f"want to overwrite it.")
+            raise ExperimentEntryExists(f"A figure with the name {figure_name} for this experiment "
+                                        f"already exists. Specify overwrite=True if you "
+                                        f"want to overwrite it.")
 
-        out = {'', 0}
-        if self._is_access_remote(save_remote=True, remote_service=remote_service):
+        out = [figure_name, 0]
+        service = service or self._service
+        if service:
             data = {'experiment_id': self.id, 'figure': figure, 'figure_name': figure_name}
-            remote_service = remote_service or self.remote_service
-            _, out = self._save(is_new=not existing_figure,
-                                new_func=remote_service.create_figure,
-                                update_func=remote_service.update_figure,
-                                new_data={},
-                                update_data=data)
-        if not existing_figure:
-            self._figure_names.append(figure_name)
+            _, out = save_data(is_new=not existing_figure,
+                               new_func=service.create_figure,
+                               update_func=service.update_figure,
+                               new_data={},
+                               update_data=data)
 
+        self._figures_queue.put_nowait((figure_name, figure))
+        self._figure_names.append(figure_name)
         return out
 
     def figure(
@@ -382,7 +339,7 @@ class ExperimentDataV1(ExperimentData, ABC):
             figure_name: str,
             file_name: Optional[str] = None
     ) -> Union[int, bytes]:
-        """Retrieve the specified experiment figure from the remote database.
+        """Retrieve the specified experiment figure.
 
         Args:
             figure_name: Name of the figure.
@@ -396,34 +353,183 @@ class ExperimentDataV1(ExperimentData, ABC):
         Raises:
             ExperimentDataNotFound: If the figure cannot be found.
         """
-        if self._is_access_remote(save_remote=True):
-            return self.remote_service.figure(self.id, figure_name, file_name)
+        self._collect_from_queues()
 
-        raise ExperimentDataNotFound("Unable to retrieve figure because there is "
-                                     "no access to remote database.")
+        figure_data = self._figures.get(figure_name, None)
+        if figure_data is not None:
+            if isinstance(figure_data, str):
+                with open(figure_data, 'rb') as file:
+                    figure_data = file.read()
+            if file_name:
+                with open(file_name, 'wb') as output:
+                    num_bytes = output.write(figure_data)
+                    return num_bytes
+            return figure_data
+        elif self.service:
+            return self.service.figure(experiment_id=self.id,
+                                       figure_name=figure_name, file_name=file_name)
+        raise ExperimentEntryNotFound(f"Figure {figure_name} not found.")
 
-    def save_analysis_result(
+    @auto_save
+    def add_analysis_result(
             self,
             result: AnalysisResult,
-            save_local: Optional[bool] = None,
-            save_remote: Optional[bool] = None,
-            remote_service: experiment_service.ExperimentServiceV1 = None
+            service: 'ExperimentServiceV1' = None
     ) -> None:
         """Save the analysis result.
 
         Args:
             result: Analysis result to be saved.
-            save_local: ``True`` if data should be saved locally. If ``None``, the
-                ``save_local`` attribute of this object is used.
-            save_remote: ``True`` if data should be saved remotely. If ``None``, the
-                ``save_remote`` attribute of this object is used.
-            remote_service: Remote experiment service to be used to save the data.
-                Not applicable if `local_only` is set to ``True``. If ``None``, the
-                provider used to submit jobs will be used.
+            service: Experiment service to be used to save the data.
+                If ``None``, the default service is used.
         """
-        result.save(save_local=save_local, save_remote=save_remote, remote_service=remote_service)
-        if result.id not in [res.id for res in self._analysis_results]:
-            self._analysis_results.append(result)
+        self._analysis_results_queue.put_nowait(result)
+        if self.auto_save:
+            result.save(service=service)
+
+    def analysis_result(
+            self,
+            index: Optional[Union[int, slice, str]],
+            refresh: bool = False) -> Union[AnalysisResult, List[AnalysisResult]]:
+        """Return analysis results associated with this experiment.
+
+        Args:
+            index: Index of the analysis result to be returned.
+                Several types are accepted for convenience:
+
+                    * None: Return all analysis results.
+                    * int: Specific index of the analysis results.
+                    * slice: A list slice of indexes.
+                    * str: ID of the analysis result.
+            refresh: Retrieve the latest analysis results from the server, if
+                an experiment service is available.
+
+        Returns:
+            Analysis results for this experiment.
+        """
+        self._collect_from_queues()
+
+        if self.service and (not self._analysis_results or refresh):
+            self._analysis_results = self.service.analysis_results(
+                experiment_id=self.id, limit=None)
+
+        if index is None:
+            return self._analysis_results
+        if isinstance(index, (int, slice)):
+            return self._analysis_results[index]
+        if isinstance(index, str):
+            for res in self._analysis_results:
+                if res.id == index:
+                    return res
+            raise QiskitError(f"Analysis result {index} not found.")
+        raise QiskitError(f"Invalid index type {type(index)}.")
+
+    def save(
+            self,
+            service: Optional['ExperimentServiceV1'] = None
+    ) -> None:
+        """Save this experiment in the database.
+
+        Args:
+            service: Experiment service to be used to save the data.
+                If ``None``, the provider used to submit jobs will be used.
+
+        Raises:
+            ExperimentError: If the experiment contains invalid data.
+        """
+        service = service or self._service
+        if not service:
+            LOG.warning("Experiment cannot be saved because no experiment service is available.")
+            return
+
+        self._collect_from_queues()
+        metadata = json.loads(self._serialize_metadata())
+        metadata.update(self._source)
+
+        update_data = {'experiment_id': self._id, 'metadata': metadata,
+                       'job_ids': self.job_ids, 'tags': self.tags}
+        new_data = {'experiment_type': self._type, 'backend_name': self._backend.name()}
+        if self.share_level:
+            update_data['share_level'] = self.share_level
+
+        self._created_in_db, _ = save_data(
+            is_new=self._created_in_db,
+            new_func=service.create_experiment,
+            update_func=service.update_experiment,
+            new_data=new_data, update_data=update_data)
+
+    def _serialize_metadata(self) -> str:
+        """Serialize experiment data into JSON string.
+
+        Returns:
+            Serialized JSON string.
+        """
+        return json.dumps(self._metadata, cls=self._json_encoder)
+
+    @abstractmethod
+    def deserialize_data(self, data: str) -> Any:
+        """Deserialize experiment from JSON string.
+
+        Args:
+            data: Data to be deserialized.
+
+        Returns:
+            Deserialized data.
+        """
+        return json.loads(data, cls=self._json_decoder)
+
+    def status(self) -> str:
+        """Return the data processing status.
+
+        Returns:
+            Data processing status.
+        """
+        job_stats = defaultdict(list)
+        for idx, item in enumerate(self._job_futures):
+            job, fut = item
+            if not fut.done():
+                job_stats[job.status()].append(job)
+            elif fut.exception():
+                ex = fut.exception()
+                self._errors.append(traceback.print_exception(type(ex), ex, ex.__traceback__))
+            else:
+                self._job_futures[idx] = None
+
+        self._job_futures = list(filter(None, self._job_futures))
+
+        for stat in [JobStatus.INITIALIZING, JobStatus.VALIDATING, JobStatus.QUEUED,
+                     JobStatus.RUNNING, JobStatus.CANCELLED]:
+            if stat in job_stats:
+                return stat.name
+
+        if JobStatus.ERROR in job_stats:
+            self._errors.extend([f"Job {bad_job.job_id()} failed" for bad_job in job_stats[JobStatus.ERROR]])
+
+        if not self._errors:
+            return "ERROR"
+
+        if self._job_futures:
+            return "POST_PROCESSING"
+
+        return "DONE"
+
+    def tags(self) -> List[str]:
+        """Return tags assigned to this experiment data.
+
+        Returns:
+            A list of tags assigned to this experiment data.
+
+        """
+        return self._tags
+
+    @auto_save
+    def update_tags(self, new_tags: List[str]) -> None:
+        """Set tags for this experiment.
+
+        Args:
+            new_tags: New tags for the experiment.
+        """
+        self._tags = new_tags
 
     @property
     def id(self) -> str:
@@ -435,12 +541,30 @@ class ExperimentDataV1(ExperimentData, ABC):
         return self._id
 
     @property
-    def job_ids(self) -> Set[str]:
+    def job_ids(self) -> List[str]:
         """Return experiment job IDs.
 
-        Returns: A list of jobs IDs for this experiment.
+        Returns: IDs of jobs submitted for this experiment.
         """
-        return self._job_ids
+        return list(self._jobs.keys())
+
+    @property
+    def backend(self) -> Union[BaseBackend, Backend]:
+        """Return backend.
+
+        Returns:
+            Backend this experiment is for.
+        """
+        return self._backend
+
+    @property
+    def metadata(self) -> Dict:
+        """Return experiment metadata.
+
+        Returns:
+            Experiment metadata.
+        """
+        return self._metadata
 
     @property
     def type(self) -> str:
@@ -452,30 +576,13 @@ class ExperimentDataV1(ExperimentData, ABC):
         return self._type
 
     @property
-    def tags(self):
-        """Return tags associated with this experiment."""
-        return self._tags
-
-    @tags.setter
-    def tags(self, new_tags: List[str]) -> None:
-        """Set tags for this experiment.
-
-        Args:
-            new_tags: New tags for the experiment.
-        """
-        self._tags = MonitoredList.create_with_callback(
-            callback=self._monitored_callback, init_data=new_tags)
-        if self.auto_save:
-            self.save()
-
-    @property
     def figure_names(self) -> List[str]:
         """Return names of the figures associated with this experiment.
 
         Returns:
             Names of figures associated with this experiment.
         """
-        return self._figure_names
+        return list(self._figures.keys())
 
     @property
     def share_level(self) -> str:
@@ -500,52 +607,36 @@ class ExperimentDataV1(ExperimentData, ABC):
             self.save()
 
     @property
-    def data(self) -> Dict:
-        """Return experiment data
+    def notes(self) -> str:
+        """Return experiment notes.
 
         Returns:
-            Experiment data.
+            Experiment notes.
         """
-        return self._data
+        return self._notes
+
+    @notes.setter
+    def notes(self, new_notes: str) -> None:
+        """Update experiment notes.
+
+        Args:
+            new_notes: New experiment notes.
+        """
+        self._notes = new_notes
+        if self.auto_save:
+            self.save()
 
     @property
-    def creation_date(self) -> datetime:
-        """Return experiment creation date.
+    def service(self) -> Optional['ExperimentServiceV1']:
+        """Return the database service.
 
         Returns:
-            Experiment creation date in local timezone.
+            Service that can be used to access this experiment in a database.
         """
-        return self._creation_date
+        return self._service
 
-    @property
-    def local_service(self) -> LocalExperimentService:
-        """Return the local database service.
-
-        Returns:
-            Service that can be used to access this experiment in a remote database.
-        """
-        return self._local_service
-
-    @property
-    def remote_service(self) -> Optional[experiment_service.ExperimentServiceV1]:
-        """Return the remote database service.
-
-        Returns:
-            Service that can be used to access this experiment in a remote database.
-        """
-        if self._remote_service:
-            return self._remote_service
-        if self._jobs:
-            try:
-                provider = self._jobs[0].backend().provider()
-                self._remote_service = provider.get_service('experiment')
-                return self._remote_service
-            except Exception:
-                pass
-        return None
-
-    @remote_service.setter
-    def remote_service(self, service: experiment_service.ExperimentServiceV1) -> None:
+    @service.setter
+    def service(self, service: 'ExperimentServiceV1') -> None:
         """Set the service to be used for storing experiment data remotely.
 
         Args:
@@ -554,20 +645,29 @@ class ExperimentDataV1(ExperimentData, ABC):
         Raises:
             ExperimentError: If a remote experiment service is already being used.
         """
-        if self._remote_service:
-            raise ExperimentError("A remote experiment service is already being used.")
-        self._remote_service = service
+        if self._service:
+            raise ExperimentError("An experiment service is already being used.")
+        self._service = service
 
     @property
-    def analysis_results(self) -> Optional[List[AnalysisResult]]:
-        """Return analysis results associated with this experiment.
+    def source(self) -> Dict:
+        """Return the class name and version."""
+        return self._source
 
-        Returns:
-            Analysis results for this experiment, or ``None`` if they
-            cannot be retrieved.
-        """
-        if self._analysis_results is None and self.remote_service:
-            self._analysis_results = self.remote_service.analysis_results(
-                    experiment_id=self.id, limit=None)
-
-        return self._analysis_results
+    def __str__(self):
+        line = 51 * '-'
+        n_res = len(self._analysis_results)
+        status = self.status()
+        ret = line
+        ret += f'\nExperiment: {self.type}'
+        ret += f'\nExperiment ID: {self.id}'
+        ret += f'\nStatus: {status}'
+        if status == "ERROR":
+            ret += "\n".join(self._errors)
+        ret += f'\nCircuits: {len(self._data)}'
+        ret += f'\nAnalysis Results: {n_res}'
+        ret += '\n' + line
+        if n_res:
+            ret += '\nLast Analysis Result'
+            ret += f'\n{str(self._analysis_results[-1])}'
+        return ret

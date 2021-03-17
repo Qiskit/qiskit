@@ -14,7 +14,7 @@ import logging
 from typing import Callable, Optional, Tuple, Dict, Any
 from functools import wraps
 
-from .exceptions import ExperimentDataNotFound, ExperimentDataExists, ExperimentError
+from .exceptions import ExperimentEntryNotFound, ExperimentEntryExists, ExperimentError
 
 LOG = logging.getLogger(__name__)
 
@@ -49,12 +49,12 @@ def save_data(
             if is_new:
                 try:
                     return True, new_func(**{**new_data, **update_data})
-                except ExperimentDataExists:
+                except ExperimentEntryExists:
                     is_new = False
             else:
                 try:
                     return True, update_func(**update_data)
-                except ExperimentDataNotFound:
+                except ExperimentEntryNotFound:
                     is_new = True
         raise ExperimentError("Unable to determine the existence of the entry.")
     except Exception as ex:

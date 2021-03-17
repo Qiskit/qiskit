@@ -18,6 +18,7 @@ from typing import Optional, Dict, List, Any, Union, Tuple
 from .experiment_data import ExperimentDataV1 as ExperimentData
 from .analysis_result import AnalysisResultV1 as AnalysisResult
 from .constants import ResultQuality
+from .device_component import DeviceComponent
 
 
 class ExperimentService:
@@ -43,15 +44,30 @@ class ExperimentServiceV1(ExperimentService, ABC):
     """
     version = 1
 
+    def __init__(self):
+        """Initialize an ExperimentService instance."""
+        self._options = self._default_options()
+
+    @classmethod
+    @abstractmethod
+    def _default_options(cls) -> Dict:
+        """Return the default options
+
+        Returns:
+            A dictionary of default options.
+        """
+        pass
+
     @abstractmethod
     def create_experiment(
             self,
             experiment_type: str,
             backend_name: str,
-            data: Dict,
+            metadata: Optional[Dict] = None,
             experiment_id: Optional[str] = None,
             job_ids: Optional[List[str]] = None,
             tags: Optional[List[str]] = None,
+            notes: Optional[str] = None,
             **kwargs: Any
     ) -> str:
         """Create a new experiment in the database.
@@ -59,18 +75,19 @@ class ExperimentServiceV1(ExperimentService, ABC):
         Args:
             experiment_type: Experiment type.
             backend_name: Name of the backend the experiment ran on.
-            data: Data to be saved in the database.
+            metadata: Experiment metadata.
             experiment_id: Experiment ID. It must be in the ``uuid4`` format.
                 One will be generated if not supplied.
             job_ids: IDs of experiment jobs.
             tags: Tags to be associated with the experiment.
+            notes: Freeform notes about the experiment.
             kwargs: Additional keywords supported by the service provider.
 
         Returns:
             Experiment ID.
 
         Raises:
-            ExperimentDataExists: If the experiment already exits.
+            ExperimentEntryExists: If the experiment already exits.
         """
         pass
 
@@ -78,22 +95,24 @@ class ExperimentServiceV1(ExperimentService, ABC):
     def update_experiment(
             self,
             experiment_id: str,
-            data: Dict,
-            job_ids: List[str],
-            tags: List[str],
+            metadata: Optional[Dict] = None,
+            job_ids: Optional[List[str]] = None,
+            notes: Optional[str] = None,
+            tags: Optional[List[str]] = None,
             **kwargs: Any
     ) -> None:
         """Update an existing experiment.
 
         Args:
             experiment_id: Experiment ID.
-            data: Data to be saved in the database.
+            metadata: Experiment metadata.
             job_ids: IDs of experiment jobs.
+            notes: Freeform notes about the experiment.
             tags: Tags to be associated with the experiment.
             kwargs: Additional keywords supported by the service provider.
 
         Raises:
-            ExperimentDataNotFound: If the experiment does not exist.
+            ExperimentEntryNotFound: If the experiment does not exist.
         """
         pass
 
@@ -108,7 +127,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
             Retrieved experiment.
 
         Raises:
-            ExperimentDataNotFound: If the experiment does not exist.
+            ExperimentEntryNotFound: If the experiment does not exist.
         """
         pass
 
@@ -116,17 +135,20 @@ class ExperimentServiceV1(ExperimentService, ABC):
     def experiments(
             self,
             limit: Optional[int] = 10,
+            device_components: Optional[Union[str, DeviceComponent]] = None,
             experiment_type: Optional[str] = None,
             backend_name: Optional[str] = None,
             tags: Optional[List[str]] = None,
             tags_operator: Optional[str] = "OR",
             **filters: Any) -> List[ExperimentData]:
-        """Retrieve all experiments, with optional filtering.
+        """Retrieve all experiment data, with optional filtering.
 
         Args:
             limit: Number of experiments to retrieve. ``None`` means no limit.
-            backend_name: Backend name used for filtering.
+            device_components: Filter by device components. An experiment must have analysis
+                results with device components matching the given list exactly to be included.
             experiment_type: Experiment type used for filtering.
+            backend_name: Backend name used for filtering.
             tags: Filter by tags assigned to experiments. This can be used
                 with `tags_operator` for granular filtering.
             tags_operator: Logical operator to use when filtering by tags. Valid
@@ -140,7 +162,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
             **filters: Additional filtering keywords supported by the service provider.
 
         Returns:
-            A list of experiments.
+            A list of experiment data.
         """
         pass
 
@@ -150,6 +172,9 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
         Args:
             experiment_id: Experiment ID.
+
+        Raises:
+            ExperimentEntryNotFound: If the experiment does not exist.
         """
         pass
 
@@ -159,8 +184,10 @@ class ExperimentServiceV1(ExperimentService, ABC):
             experiment_id: str,
             data: Dict,
             result_type: str,
+            device_components: Optional[Union[str, DeviceComponent]] = None,
             tags: Optional[List[str]] = None,
-            quality: Union[ResultQuality, int] = ResultQuality.AVERAGE,
+            quality: Union[ResultQuality, str] = ResultQuality.UNKNOWN,
+            verified: bool = False,
             result_id: Optional[str] = None,
             **kwargs: Any
     ) -> str:
@@ -170,11 +197,10 @@ class ExperimentServiceV1(ExperimentService, ABC):
             experiment_id: ID of the experiment this result is for.
             data: Result data to be stored.
             result_type: Analysis result type.
+            device_components: Target device components, such as qubits.
             tags: Tags to be associated with the analysis result.
-            quality: Quality of this analysis. It can be a
-                :class:`qiskit.providers.experiment.ResultQuality` or
-                an integer ranging from 1-5, with 1 being the lowest
-                quality.
+            quality: Quality of this analysis.
+            verified: Whether the result quality has been verified.
             result_id: Analysis result ID. It must be in the ``uuid4`` format.
                 One will be generated if not supplied.
             kwargs: Additional keywords supported by the service provider.
@@ -183,7 +209,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
             Analysis result ID.
 
         Raises:
-            ExperimentDataExists: If the analysis result already exits.
+            ExperimentEntryExists: If the analysis result already exits.
         """
         pass
 
@@ -193,7 +219,8 @@ class ExperimentServiceV1(ExperimentService, ABC):
             result_id: str,
             data: Optional[Dict] = None,
             tags: Optional[List[str]] = None,
-            quality: Union[ResultQuality, str] = ResultQuality.AVERAGE,
+            quality: Union[ResultQuality, str] = ResultQuality.UNKNOWN,
+            verified: bool = False,
             **kwargs: Any
     ) -> None:
         """Update an existing analysis result.
@@ -201,15 +228,13 @@ class ExperimentServiceV1(ExperimentService, ABC):
         Args:
             result_id: Analysis result ID.
             data: Result data to be stored.
-            quality: Quality of this analysis. It can be a
-                :class:`qiskit.providers.experiment.ResultQuality` or
-                an integer ranging from 1-5, with 1 being the lowest
-                quality.
+            quality: Quality of this analysis.
+            verified: Whether the result quality has been verified.
             tags: Tags to be associated with the analysis result.
             kwargs: Additional keywords supported by the service provider.
 
         Raises:
-            ExperimentDataNotFound: If the analysis result does not exist.
+            ExperimentEntryNotFound: If the analysis result does not exist.
         """
         pass
 
@@ -224,7 +249,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
             Retrieved analysis result.
 
         Raises:
-            ExperimentDataNotFound: If the analysis result does not exist.
+            ExperimentEntryNotFound: If the analysis result does not exist.
         """
         pass
 
@@ -232,10 +257,12 @@ class ExperimentServiceV1(ExperimentService, ABC):
     def analysis_results(
             self,
             limit: Optional[int] = 10,
+            device_components: Optional[Union[str, DeviceComponent]] = None,
             experiment_id: Optional[str] = None,
             result_type: Optional[str] = None,
             backend_name: Optional[str] = None,
-            quality: Optional[List[Tuple[str, Union[int, ResultQuality]]]] = None,
+            quality: Optional[Union[ResultQuality, str]] = None,
+            verified: Optional[bool] = None,
             tags: Optional[List[str]] = None,
             tags_operator: Optional[str] = "OR",
             **filters: Any
@@ -244,17 +271,13 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
         Args:
             limit: Number of analysis results to retrieve. ``None`` means no limit.
+            device_components: Target device components, such as qubits.
             experiment_id: Experiment ID used for filtering.
             result_type: Analysis result type used for filtering.
             backend_name: Backend name used for filtering. If specified, analysis
                 results associated with experiments on that backend are returned.
-            quality: Quality value used for filtering. Each element in this list is a tuple
-                of an operator and a value. The operator is one of
-                ``lt``, ``le``, ``gt``, ``ge``, and ``eq``. The value is one of the
-                :class:`ResultQuality` values or an integer. For example,
-                ``analysis_results(quality=[('gt', 3), ('lt', 5)])``
-                will return all analysis results with a quality value in between 3
-                and 5 (i.e. 4).
+            quality: Quality value used for filtering.
+            verified: Whether the result quality has been verified.
             tags: Filter by tags assigned to analysis results. This can be used
                 with `tags_operator` for granular filtering.
             tags_operator: Logical operator to use when filtering by tags. Valid
@@ -278,6 +301,9 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
         Args:
             analysis_result_id: Analysis result ID.
+
+        Raises:
+            ExperimentEntryNotFound: If the analysis result does not exist.
         """
         pass
 
@@ -300,7 +326,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
             A tuple of the name and size of the saved figure.
 
         Raises:
-            ExperimentDataExists: If the figure already exits.
+            ExperimentEntryExists: If the figure already exits.
         """
         pass
 
@@ -322,7 +348,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
             A dictionary with name and size of the uploaded figure.
 
         Raises:
-            ExperimentDataNotFound: If the figure does not exist.
+            ExperimentEntryNotFound: If the figure does not exist.
         """
         pass
 
@@ -346,7 +372,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
             content of the figure in bytes.
 
         Raises:
-            ExperimentDataNotFound: If the figure does not exist.
+            ExperimentEntryNotFound: If the figure does not exist.
         """
         pass
 
@@ -361,5 +387,39 @@ class ExperimentServiceV1(ExperimentService, ABC):
         Args:
             experiment_id: Experiment ID.
             figure_name: Name of the figure.
+
+        Raises:
+            ExperimentEntryNotFound: If the figure does not exist.
         """
         pass
+
+    def set_options(self, **fields):
+        """Set the options fields for the service.
+
+        Args:
+            fields: The fields to update the options
+
+        Raises:
+            AttributeError: If the field passed in is not part of the
+                options
+        """
+        for field in fields:
+            if field not in self._options:
+                raise AttributeError(
+                    "Options field %s is not valid for this "
+                    "service." % field)
+        self._options.update(**fields)
+
+    def option(self, field: str) -> Any:
+        """Get the value of the specified option.
+
+        Args:
+            field: Option field to retrieve.
+
+        Returns:
+            Option value.
+        """
+        if field not in self._options:
+            raise AttributeError(
+                f"Options field {field} is not valid for this service.")
+        return self._options[field]

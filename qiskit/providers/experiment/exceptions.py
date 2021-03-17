@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,11 +20,11 @@ class ExperimentError(QiskitError):
     pass
 
 
-class ExperimentDataNotFound(ExperimentError):
-    """Errors raised when an experiment or its associated data cannot be found."""
+class ExperimentEntryNotFound(ExperimentError):
+    """Errors raised when an experiment entry cannot be found."""
     pass
 
 
-class ExperimentDataExists(ExperimentError):
-    """Errors raised when an experiment or its associated data already exists."""
+class ExperimentEntryExists(ExperimentError):
+    """Errors raised when an experiment entry already exists."""
     pass

@@ -68,5 +68,4 @@ from .constants import ResultQuality
 from .experiment_data import ExperimentData, ExperimentDataV1
 from .analysis_result import AnalysisResult, AnalysisResultV1
 from .experiment_service import ExperimentService, ExperimentServiceV1
-from .local_service import LocalExperimentService
-from .exceptions import ExperimentError, ExperimentDataExists, ExperimentDataNotFound
+from .exceptions import ExperimentError, ExperimentEntryExists, ExperimentEntryNotFound

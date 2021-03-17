@@ -15,11 +15,9 @@
 import enum
 
 
-class ResultQuality(enum.IntEnum):
+class ResultQuality(enum.Enum):
     """Possible values for analysis result quality."""
 
-    LOWEST = 1
-    LOW = 2
-    UNKNOWN = 3
-    HIGH = 4
-    HIGHEST = 5
+    BAD = "BAD"
+    GOOD = "GOOD"
+    UNKNOWN = "UNKNOWN"
