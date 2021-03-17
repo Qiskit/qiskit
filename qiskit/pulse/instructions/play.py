@@ -20,6 +20,7 @@ from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.pulse.utils import deprecated_functionality
 
 
 class Play(Instruction):
@@ -51,13 +52,6 @@ class Play(Instruction):
             name = pulse.name
         super().__init__((pulse, channel), None, (channel,), name=name)
 
-        if pulse.is_parameterized():
-            for value in pulse.parameters.values():
-                if isinstance(value, ParameterExpression):
-                    for param in value.parameters:
-                        # Table maps parameter to operand index, 0 for ``pulse``
-                        self._parameter_table[param].append(0)
-
     @property
     def pulse(self) -> Pulse:
         """A description of the samples that will be played."""
@@ -84,13 +78,14 @@ class Play(Instruction):
         """
         super()._initialize_parameter_table(operands)
 
-        if self.pulse.is_parameterized():
+        if any(isinstance(val, ParameterExpression) for val in self.pulse.parameters.values()):
             for value in self.pulse.parameters.values():
                 if isinstance(value, ParameterExpression):
                     for param in value.parameters:
                         # Table maps parameter to operand index, 0 for ``pulse``
                         self._parameter_table[param].append(0)
 
+    @deprecated_functionality
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Play':

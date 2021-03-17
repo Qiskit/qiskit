@@ -11,18 +11,19 @@
 # that they have been altered from the originals.
 """Basic rescheduling functions which take schedule or instructions and return new schedules."""
 
-import numpy as np
 import warnings
 from collections import defaultdict
 from copy import deepcopy
 from typing import List, Optional, Iterable
 
+import numpy as np
+
 from qiskit.pulse import channels as chans, exceptions, instructions
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.instructions import directives
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.pulse.schedule import Schedule, ScheduleBlock, PulseProgram, ScheduleComponent
 from qiskit.pulse.exceptions import UnassignedDurationError
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.instructions import directives
+from qiskit.pulse.schedule import Schedule, ScheduleBlock, ScheduleComponent
 
 
 def block_to_schedule(block: ScheduleBlock) -> Schedule:
@@ -90,7 +91,7 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     return new_schedules
 
 
-def flatten(program: PulseProgram) -> PulseProgram:
+def flatten(program: Schedule) -> Schedule:
     """Flatten (inline) any called nodes into a Schedule tree with no nested children.
 
     Args:
@@ -102,9 +103,7 @@ def flatten(program: PulseProgram) -> PulseProgram:
     Raises:
         PulseError: When invalid data format is given.
     """
-    if isinstance(program, ScheduleBlock):
-        return program
-    elif isinstance(program, Schedule):
+    if isinstance(program, Schedule):
         return Schedule(*program.instructions, name=program.name, metadata=program.metadata)
     else:
         raise PulseError(f'Invalid input program {program.__class__.__name__} is specified.')

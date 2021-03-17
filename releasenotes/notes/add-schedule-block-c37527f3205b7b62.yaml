@@ -31,3 +31,17 @@ features:
     a measurement ``measure_sched``, i.e. a Rabi experiment.
     You can reuse the ``block`` object for every scanned duration
     by assigning a target duration value.
+deprecations:
+  - |
+    :method:`assign_parameters`, :method:`is_parameterized`, and :method:`parameters` are
+    being deprecated from :py:class:`~qiskit.pulse.channels.Channel`,
+    :py:class:`~qiskit.pulse.library.Pulse`, :py:class:`~qiskit.pulse.instructions.Instruction`,
+    and their subclasses.
+upgrade:
+  - |
+    In pulse programs, the parameter framework is replaced with the visitor pattern.
+    This removes the parameter management logic from each object consisting a program,
+    yielding performance improvements of object construction with pulse programming.
+    Parameter management logic is newly implemented in
+    :py:mod:`~qiskit.pulse.parameter_manager`. This upgrade may influence code developers who
+    are providing custom pulse instruction based on Qiskit Pulse.

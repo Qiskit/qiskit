@@ -19,11 +19,16 @@ import numpy as np
 from qiskit.pulse import channels as chans, instructions
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
+from qiskit.pulse.utils import instruction_duration_validation
 
 
 class AlignmentKind(abc.ABC):
     """An abstract class for schedule alignment."""
     is_sequential = None
+
+    def __init__(self):
+        """Create new context."""
+        self._context_params = tuple()
 
     @abc.abstractmethod
     def align(self, schedule: Schedule) -> Schedule:
@@ -40,14 +45,13 @@ class AlignmentKind(abc.ABC):
         """
         pass
 
-    @property
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {'alignment': self.__class__.__name__}
 
     def __eq__(self, other):
         """Check equality of two transforms."""
-        return isinstance(other, type(self)) and self.to_dict == other.to_dict
+        return isinstance(other, type(self)) and self.to_dict() == other.to_dict()
 
 
 class AlignLeft(AlignmentKind):
@@ -206,8 +210,11 @@ class AlignEquispaced(AlignmentKind):
             duration: Duration of this context. This should be larger than the schedule duration.
                 If the specified duration is shorter than the schedule duration,
                 no alignment is performed and the input schedule is just returned.
+                This duration can be parametrized.
         """
-        self._duration = duration
+        super().__init__()
+
+        self._context_params = (duration, )
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -221,11 +228,14 @@ class AlignEquispaced(AlignmentKind):
         Returns:
             Schedule with reallocated instructions.
         """
+        duration = self._context_params[0]
+        instruction_duration_validation(duration)
+
         total_duration = sum([child.duration for _, child in schedule._children])
-        if self._duration and self._duration < total_duration:
+        if duration < total_duration:
             return schedule
 
-        total_delay = self._duration - total_duration
+        total_delay = duration - total_duration
 
         if len(schedule._children) > 1:
             # Calculate the interval in between sub-schedules.
@@ -246,13 +256,11 @@ class AlignEquispaced(AlignmentKind):
             aligned.insert(_t0, child, inplace=True)
             _t0 = int(aligned.stop_time + interval)
 
-        return pad(aligned, aligned.channels, until=self._duration, inplace=True)
+        return pad(aligned, aligned.channels, until=duration, inplace=True)
 
-    @property
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
-        return {'alignment': self.__class__.__name__,
-                'duration': self._duration}
+        return {'alignment': self.__class__.__name__, 'duration': self._context_params[0]}
 
 
 class AlignFunc(AlignmentKind):
@@ -280,11 +288,14 @@ class AlignFunc(AlignmentKind):
             duration: Duration of this context. This should be larger than the schedule duration.
                 If the specified duration is shorter than the schedule duration,
                 no alignment is performed and the input schedule is just returned.
+                This duration can be parametrized.
             func: A function that takes an index of sub-schedule and returns the
                 fractional coordinate of of that sub-schedule. The returned value should be
                 defined within [0, 1]. The pulse index starts from 1.
         """
-        self._duration = duration
+        super().__init__()
+
+        self._context_params = (duration, )
         self._func = func
 
     def align(self, schedule: Schedule) -> Schedule:
@@ -299,25 +310,28 @@ class AlignFunc(AlignmentKind):
         Returns:
             Schedule with reallocated instructions.
         """
-        if self._duration < schedule.duration:
+        duration = self._context_params[0]
+        instruction_duration_validation(duration)
+
+        if duration < schedule.duration:
             return schedule
 
         aligned = Schedule()
         for ind, (_, child) in enumerate(schedule._children):
-            _t_center = self._duration * self._func(ind + 1)
+            _t_center = duration * self._func(ind + 1)
             _t0 = int(_t_center - 0.5 * child.duration)
-            if _t0 < 0 or _t0 > self._duration:
+            if _t0 < 0 or _t0 > duration:
                 PulseError('Invalid schedule position t=%d is specified at index=%d' % (_t0, ind))
             aligned.insert(_t0, child, inplace=True)
 
-        return pad(aligned, aligned.channels, until=self._duration, inplace=True)
+        return pad(aligned, aligned.channels, until=duration, inplace=True)
 
-    @property
     def to_dict(self) -> Dict[str, Any]:
-        """Returns dictionary to represent this alignment."""
-        return {'alignment': self.__class__.__name__,
-                'duration': self._duration,
-                'func': self._func}
+        """Returns dictionary to represent this alignment.
+
+        .. note:: ``func`` is not presented in this dictionary.
+        """
+        return {'alignment': self.__class__.__name__, 'duration': self._context_params[0]}
 
 
 def pad(schedule: Schedule,

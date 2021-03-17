@@ -1,0 +1,419 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+# pylint: disable=invalid-name
+
+""""Central management of pulse program parameters.
+
+Background
+==========
+
+In contrast to ``QuantumCircuit``, in pulse programs parameter objects can be stored in
+every places at different layers, for example
+
+- program's variable: ``ScheduleBlock.alignment_context._context_params``
+
+- instruction's operands: ``ShiftPhase.phase``, ...
+
+- operand's parameters: ``pulse.parameters``, ``channel.index`` ...
+
+This complexity is due to tight coupling of program to underlying device Hamiltonian,
+i.e. variance of physical parameters of qubits and their coupling.
+If we want to define a program that can be used with arbitrary qubits,
+we should be able to parametrize every control parameters in the program
+since they are basically qubit dependent, also varying from time to time.
+
+
+Implementation
+==============
+
+Managing parameters in each object consisting a program, i.e. ``ParameterTable`` model,
+makes the framework quite complicated. In the ``ParameterManager`` class this module provides,
+the parameter assignment operation is performed by the visitor instance.
+
+The visitor pattern is a way of separating data processing from an object on which it operates.
+This removes the overhead of parameter management from each piece of the program.
+Computational complexity of the parameter assignment operation may be increased
+from the parameter table model of ~O(1), however usually this calculation occurs
+only once before the program is executed. Thus this doesn't hurt user experience during
+pulse programming. On the contrary, it removes parameter table object and associated logic
+from each object, yielding smaller object creation cost and higher performance
+as the data amount scales.
+
+Note that we don't need to write any parameter management logic for each object,
+and thus this parameter framework gives greater scalability to the pulse module.
+"""
+from copy import deepcopy, copy
+from typing import List, Dict, Set, Any
+
+from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse import instructions, channels
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.library import ParametricPulse, Waveform
+from qiskit.pulse.schedule import Schedule, ScheduleBlock
+from qiskit.pulse.transforms.alignments import AlignmentKind
+from qiskit.pulse.utils import format_parameter_value
+
+
+class NodeVisitor:
+    """A node visitor base class that walks instruction data in various pulse programs
+    and calls visitor functions for every node found.
+
+    Though this class implementation is based on Python AST, each node doesn't have
+    dedicated node class due to lack of abstract syntax tree for pulse programs in Qiskit.
+    Instead of parsing pulse programs, this visitor class finds the associated visitor function
+    based on class name of the instruction node, i.e. ``Play``, ``Call``, etc...
+    The `.visit` method recursively checks superclass of given node since some parametrized
+    components such as ``DriveChannel`` may share common superclass with other subclasses.
+    In this example, we can just define ``visit_Channel`` method instead of defining
+    the same visitor function for every subclasses.
+
+    Some instructions may have special logic or data structure to store parameter objects,
+    and visitor functions for these nodes should be individually defined.
+
+    Because pulse programs can be nested into another pulse program,
+    the visitor function should be able to recursively call proper visitor functions.
+    If visitor function is not defined for a given node, ``generic_visit``
+    method is called. Usually this method is provided for operating on object
+    defined outside of the Qiskit Pulse module.
+    """
+    def visit(self, node: Any):
+        """Visit a node."""
+        visitor = self._get_visitor(node.__class__)
+        return visitor(node)
+
+    def _get_visitor(self, node_class):
+        """A helper function to recursively investigate superclass visitor method."""
+        if node_class == object:
+            return self.generic_visit
+
+        try:
+            return getattr(self, f'visit_{node_class.__name__}')
+        except AttributeError:
+            # check super class
+            return self._get_visitor(node_class.__base__)
+
+    def visit_ScheduleBlock(self, node: ScheduleBlock):
+        """Visit ``ScheduleBlock``. Recursively visit context blocks and overwrite.
+
+        .. note:: ``ScheduleBlock`` can have parameters in blocks and its alignment.
+        """
+        raise NotImplementedError
+
+    def visit_Schedule(self, node: Schedule):
+        """Visit ``Schedule``. Recursively visit schedule children and overwrite."""
+        raise NotImplementedError
+
+    def generic_visit(self, node: Any):
+        """Called if no explicit visitor function exists for a node."""
+        raise NotImplementedError
+
+
+class ParameterSetter(NodeVisitor):
+    """Node visitor for parameter binding.
+
+    This visitor is initialized with a dictionary of parameters to be assigned,
+    and assign values to operands of nodes found.
+    """
+    def __init__(self, param_map: Dict[ParameterExpression, ParameterValueType]):
+        self._param_map = param_map
+
+    # Top layer: Assign parameters to programs
+
+    def visit_ScheduleBlock(self, node: ScheduleBlock):
+        """Visit ``ScheduleBlock``. Recursively visit context blocks and overwrite.
+
+        .. note:: ``ScheduleBlock`` can have parameters in blocks and its alignment.
+        """
+        # accessing to protected member
+        node._blocks = [self.visit(block) for block in node.instructions]
+        node._alignment_context = self.visit(node.alignment_context)
+
+        return node
+
+    def visit_Schedule(self, node: Schedule):
+        """Visit ``Schedule``. Recursively visit schedule children and overwrite."""
+        # accessing to private member
+        node._Schedule__children = [(t0, self.visit(sched)) for t0, sched in node.instructions]
+
+        # update timeslots
+        for chan in copy(node.channels):
+            if isinstance(chan.index, ParameterExpression):
+                chan_timeslots = node._timeslots.pop(chan)
+                new_channel = self.visit_Channel(chan)
+
+                # Merge with existing channel
+                if new_channel in node.timeslots:
+                    sched = Schedule()
+                    sched._timeslots = {new_channel: chan_timeslots}
+                    node._add_timeslots(0, sched)
+                # Or add back under the new name
+                else:
+                    node._timeslots[new_channel] = chan_timeslots
+
+        return node
+
+    def visit_AlignmentKind(self, node: AlignmentKind):
+        """Assign parameters to block's ``AlignmentKind`` specification."""
+        new_parameters = tuple(self.visit(param) for param in node._context_params)
+        node._context_params = new_parameters
+
+        return node
+
+    # Mid layer: Assign parameters to instructions
+
+    def visit_Call(self, node: instructions.Call):
+        """Assign parameters to ``Call`` instruction.
+
+        .. note:: ``Call`` instruction has a special parameter handling logic.
+            This instruction separately keeps program, i.e. parametrized schedule,
+            and bound parameters until execution. The parameter assignment operation doesn't
+            immediately override its operand data.
+        """
+        new_table = copy(node._parameter_table)
+
+        for parameter, value in new_table.items():
+            if isinstance(value, ParameterExpression):
+                new_table[parameter] = self._assign_parameter_expression(value)
+        node._parameter_table = new_table
+
+        return node
+
+    def visit_Instruction(self, node: instructions.Instruction):
+        """Assign parameters to general pulse instruction.
+
+        .. note:: All parametrized object should be stored in the operands.
+            Otherwise parameter cannot be detected.
+        """
+        node._operands = tuple(self.visit(op) for op in node.operands)
+
+        return node
+
+    # Lower layer: Assign parameters to operands
+
+    def visit_Channel(self, node: channels.Channel):
+        """Assign parameters to ``Channel`` object."""
+        if isinstance(node.index, ParameterExpression):
+            new_index = self._assign_parameter_expression(node.index)
+
+            # validate
+            if not isinstance(new_index, ParameterExpression):
+                if not isinstance(new_index, int) or new_index < 0:
+                    raise PulseError('Channel index must be a nonnegative integer')
+
+            # create new object not to accidentally override timeslots without evaluation.
+            return node.__class__(index=new_index)
+
+        return node
+
+    def visit_ParametricPulse(self, node: ParametricPulse):
+        """Assign parameters to ``ParametricPulse`` object."""
+        new_parameters = {}
+        for op, op_value in node.parameters.items():
+            if isinstance(op_value, ParameterExpression):
+                op_value = self._assign_parameter_expression(op_value)
+            new_parameters[op] = op_value
+
+        return node.__class__(**new_parameters, name=node.name)
+
+    def visit_Waveform(self, node: Waveform):
+        """Assign parameters to ``Waveform`` object.
+
+        .. node:: No parameter can be assigned to ``Waveform`` object.
+        """
+        return node
+
+    def generic_visit(self, node: Any):
+        """Assign parameters to object that doesn't belong to Qiskit Pulse module."""
+        if isinstance(node, ParameterExpression):
+            return self._assign_parameter_expression(node)
+        else:
+            return node
+
+    def _assign_parameter_expression(self, param_expr: ParameterExpression):
+        """A helper function to assign parameter value to parameter expression."""
+        new_value = copy(param_expr)
+        for parameter in param_expr.parameters:
+            if parameter in self._param_map:
+                new_value = new_value.assign(parameter, self._param_map[parameter])
+
+        return format_parameter_value(new_value)
+
+
+class ParameterGetter(NodeVisitor):
+    """Node visitor for parameter finding.
+
+    This visitor initializes empty parameter array, and recursively visits nodes
+    and add parameters found to the array.
+    """
+    def __init__(self):
+        self.parameters = set()
+
+    # Top layer: Get parameters from programs
+
+    def visit_ScheduleBlock(self, node: ScheduleBlock):
+        """Visit ``ScheduleBlock``. Recursively visit context blocks and search parameters.
+
+        .. note:: ``ScheduleBlock`` can have parameters in blocks and its alignment.
+        """
+        for parameter in node.parameters:
+            self.parameters.add(parameter)
+
+    def visit_Schedule(self, node: Schedule):
+        """Visit ``Schedule``. Recursively visit schedule children and search parameters."""
+        for parameter in node.parameters:
+            self.parameters.add(parameter)
+
+    def visit_AlignmentKind(self, node: AlignmentKind):
+        """Get parameters from block's ``AlignmentKind`` specification."""
+        for param in node._context_params:
+            self.visit(param)
+
+    # Mid layer: Get parameters from instructions
+
+    def visit_Call(self, node: instructions.Call):
+        """Get parameters from ``Call`` instruction.
+
+        .. note:: ``Call`` instruction has a special parameter handling logic.
+            This instruction separately keeps parameters and program.
+        """
+        for parameter in node.parameters:
+            self.parameters.add(parameter)
+
+    def visit_Instruction(self, node: instructions.Instruction):
+        """Get parameters from general pulse instruction.
+
+        .. note:: All parametrized object should be stored in the operands.
+            Otherwise parameter cannot be detected.
+        """
+        for op in node.operands:
+            self.visit(op)
+
+    # Lower layer: Get parameters from operands
+
+    def visit_Channel(self, node: channels.Channel):
+        """Get parameters from ``Channel`` object."""
+        if isinstance(node.index, ParameterExpression):
+            self._parse_parameter_expression(node.index)
+
+    def visit_ParametricPulse(self, node: ParametricPulse):
+        """Get parameters from ``ParametricPulse`` object."""
+        for op_value in node.parameters.values():
+            if isinstance(op_value, ParameterExpression):
+                self._parse_parameter_expression(op_value)
+
+    def visit_Waveform(self, node: Waveform):
+        """Get parameters from ``Waveform`` object.
+
+        .. node:: No parameter can be assigned to ``Waveform`` object.
+        """
+        pass
+
+    def generic_visit(self, node: Any):
+        """Get parameters from object that doesn't belong to Qiskit Pulse module."""
+        if isinstance(node, ParameterExpression):
+            self._parse_parameter_expression(node)
+
+    def _parse_parameter_expression(self, param_expr: ParameterExpression):
+        """A helper function to get parameters from parameter expression."""
+        for parameter in param_expr.parameters:
+            self.parameters.add(parameter)
+
+
+class ParameterManager:
+    """Helper class to manage parameter objects associated with arbitrary pulse programs.
+
+    This object is implicitly initialized with the parameter object storage
+    that stores parameter objects added to the parent pulse program.
+
+    Parameter assignment logic is implemented based on the visitor pattern.
+    Instruction data and its location are not directly associated with this object.
+    """
+    def __init__(self):
+        """Create new parameter table for pulse programs."""
+        self._parameters = set()
+
+    @property
+    def parameters(self) -> Set:
+        """Parameters which determine the schedule behavior."""
+        return self._parameters
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return bool(self.parameters)
+
+    def get_parameters(self, parameter_name: str) -> List[Parameter]:
+        """Get parameter object bound to this schedule by string name.
+
+        Because different ``Parameter`` objects can have the same name,
+        this method returns a list of ``Parameter`` s for the provided name.
+
+        Args:
+            parameter_name: Name of parameter.
+
+        Returns:
+            Parameter objects that have corresponding name.
+        """
+        return [param for param in self.parameters if param.name == parameter_name]
+
+    def assign_parameters(self,
+                          pulse_program: Any,
+                          value_dict: Dict[ParameterExpression, ParameterValueType],
+                          inplace: bool = True
+                          ) -> Any:
+        """Modify and return program data with parameters assigned according to the input.
+
+        Args:
+            pulse_program: Arbitrary pulse program associated with this manager instance.
+            value_dict: A mapping from Parameters to either numeric values or another
+                Parameter expression.
+            inplace: Set ``True`` to overwrite existing program data.
+
+        Returns:
+            Updated program data.
+        """
+        if inplace:
+            source = pulse_program
+        else:
+            source = deepcopy(pulse_program)
+
+        new_parameters = set()
+        valid_map = dict()
+        # override existing parameter and filter out invalid parameters
+        for parameter in self.parameters:
+            if parameter in value_dict:
+                value = value_dict[parameter]
+                valid_map[parameter] = value
+                if isinstance(value, ParameterExpression):
+                    for new_parameter in value.parameters:
+                        new_parameters.add(new_parameter)
+            else:
+                new_parameters.add(parameter)
+        self._parameters = new_parameters
+
+        if valid_map:
+            visitor = ParameterSetter(param_map=valid_map)
+            return visitor.visit(source)
+        return source
+
+    def update_parameter_table(self, new_node: Any):
+        """A helper function to update parameter table with given data node.
+
+        Args:
+            new_node: A new data node to be added.
+        """
+        visitor = ParameterGetter()
+        visitor.visit(new_node)
+
+        for parameter in visitor.parameters:
+            self._parameters.add(parameter)

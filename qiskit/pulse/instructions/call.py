@@ -16,9 +16,7 @@ from typing import Optional, Union, Dict, Tuple, Any, Set
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.instructions import instruction
-from qiskit.pulse.utils import format_parameter_value
-
-# TODO This instruction should support ScheduleBlock when it's ready.
+from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
 
 
 class Call(instruction.Instruction):
@@ -89,6 +87,7 @@ class Call(instruction.Instruction):
             for value in operands[0].parameters:
                 self._parameter_table[value] = value
 
+    @deprecated_functionality
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Call':
@@ -117,6 +116,7 @@ class Call(instruction.Instruction):
 
         return self
 
+    @deprecated_functionality
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
         return any(isinstance(value, ParameterExpression) for value in self.arguments.values())

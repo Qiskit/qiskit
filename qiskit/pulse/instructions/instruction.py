@@ -29,7 +29,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.utils import format_parameter_value
+from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
 
 
 # pylint: disable=missing-return-doc
@@ -226,10 +226,12 @@ class Instruction(ABC):
         return self.insert(time, schedule, name=name)
 
     @property
+    @deprecated_functionality
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
         return set(self._parameter_table.keys())
 
+    @deprecated_functionality
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
         return bool(self.parameters)
@@ -245,10 +247,11 @@ class Instruction(ABC):
             if isinstance(op, ParameterExpression):
                 for param in op.parameters:
                     self._parameter_table[param].append(idx)
-            elif isinstance(op, Channel) and op.is_parameterized():
+            elif isinstance(op, Channel) and isinstance(op.index, ParameterExpression):
                 for param in op.parameters:
                     self._parameter_table[param].append(idx)
 
+    @deprecated_functionality
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Instruction':
@@ -284,6 +287,19 @@ class Instruction(ABC):
                         self._parameter_table[new_parameter] = entry
 
         self._operands = tuple(new_operands)
+
+        # update channels, likely this has no effect
+        new_channels = list()
+
+        for chan in self._channels:
+            if chan.is_parameterized():
+                for param in chan.parameters:
+                    if param in value_dict:
+                        chan = chan.assign(param, value_dict[param])
+            new_channels.append(chan)
+
+        self._channels = tuple(new_channels)
+
         return self
 
     def draw(self, dt: float = 1, style=None,

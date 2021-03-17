@@ -12,6 +12,7 @@
 
 """Module for common pulse programming utilities."""
 import functools
+import warnings
 from typing import List, Dict, Union
 
 import numpy as np
@@ -95,3 +96,17 @@ def instruction_duration_validation(duration: int):
         raise QiskitError(
             'Instruction duration must be a non-negative integer, '
             'got {} instead.'.format(duration))
+
+
+def deprecated_functionality(func):
+    """A decorator that raises deprecation warning without showing alternative method."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        warnings.warn(f'Calling {func.__name__} is being deprecated and will be removed soon. '
+                      'No alternative method will be provided with this change. '
+                      'If there is any practical usage of this functionality, please write '
+                      'an issue in Qiskit/qiskit-terra repository.',
+                      category=DeprecationWarning,
+                      stacklevel=2)
+        return func(*args, **kwargs)
+    return wrapper

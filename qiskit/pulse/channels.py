@@ -21,13 +21,14 @@ channel types can be created. Then, they must be supported in the PulseQobj sche
 assembler.
 """
 from abc import ABCMeta
-from typing import Any, Set
+from typing import Any, Set, Union
 
 import numpy as np
 
 from qiskit.circuit import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.utils import deprecated_functionality
 
 
 class Channel(metaclass=ABCMeta):
@@ -74,7 +75,7 @@ class Channel(metaclass=ABCMeta):
             self._parameters = index.parameters
 
     @property
-    def index(self) -> int:
+    def index(self) -> Union[int, ParameterExpression]:
         """Return the index of this channel. The index is a label for a control signal line
         typically mapped trivially to a qubit index. For instance, ``DriveChannel(0)`` labels
         the signal line driving the qubit labeled with index 0.
@@ -100,14 +101,17 @@ class Channel(metaclass=ABCMeta):
             raise PulseError('Channel index must be a nonnegative integer')
 
     @property
+    @deprecated_functionality
     def parameters(self) -> Set:
         """Parameters which determine the channel index."""
         return self._parameters
 
+    @deprecated_functionality
     def is_parameterized(self) -> bool:
         """Return True iff the channel is parameterized."""
         return bool(self.parameters)
 
+    @deprecated_functionality
     def assign(self, parameter: Parameter, value: ParameterValueType) -> 'Channel':
         """Return a new channel with the input Parameter assigned to value.
 
