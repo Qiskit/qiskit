@@ -102,6 +102,9 @@ class TestObservables(QiskitAlgorithmsTestCase):
     @unpack
     def test_matrix_functional(self, observable, vector):
         """Test the matrix functional class."""
+        from qiskit.transpiler.passes import RemoveResetInZeroState
+        tpass = RemoveResetInZeroState()
+
         init_state = vector / np.linalg.norm(vector)
         num_qubits = int(np.log2(len(vector)))
 
@@ -110,9 +113,9 @@ class TestObservables(QiskitAlgorithmsTestCase):
         qcs = []
         for obs_circ in obs_circuits:
             qc = QuantumCircuit(num_qubits)
-            qc.isometry(init_state, list(range(num_qubits)), None)
+            qc.initialize(init_state, list(range(num_qubits)))
             qc.append(obs_circ, list(range(num_qubits)))
-            qcs.append(qc)
+            qcs.append(tpass(qc.decompose()))
 
         # Get observables
         observable_ops = observable.observable(num_qubits)
