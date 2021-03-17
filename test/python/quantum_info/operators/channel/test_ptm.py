@@ -125,7 +125,7 @@ class TestPTM(ChannelTestCase):
         chan = chan1.compose(chan2)
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(rho.evolve(chan), rho_targ)
-        chan = chan1 @ chan2
+        chan = chan1 & chan2
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(rho.evolve(chan), rho_targ)
 
