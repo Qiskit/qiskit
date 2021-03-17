@@ -364,6 +364,22 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
                                       {'rz': 2, 'sx': 1})
         self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), 'ZSX', {'rz': 3, 'sx': 2})
 
+    def test_special_ZSXX(self):
+        """Special cases of ZSXX"""
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'ZSXX', {})
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), 'ZSXX', {'rz': 1})
+        self.check_oneq_special_cases(U3Gate(-np.pi/2, 0.2, 0.0).to_matrix(), 'ZSXX',
+                                      {'rz': 2, 'sx': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.0, 0.21).to_matrix(), 'ZSXX',
+                                      {'rz': 2, 'sx': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.12, 0.2).to_matrix(), 'ZSXX',
+                                      {'rz': 2, 'sx': 1})
+        self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), 'ZSXX', {'rz': 3, 'sx': 2})
+        self.check_oneq_special_cases(U3Gate(np.pi, 0.2, 0.3).to_matrix(), 'ZSXX',
+                                      {'rz': 1, 'x': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi, -np.pi/2, np.pi/2).to_matrix(), 'ZSXX',
+                                      {'x': 1})
+
 
 ONEQ_BASES = ['U3', "U321", 'U', 'U1X', 'PSX', 'ZSX', 'ZSXX', 'ZYZ', 'ZXZ', 'XYX', 'RR']
 SIMP_TOL = [(False, 1.e-14), (True, 1.E-12)]  # Please don't broaden the tolerance (fix the decomp)
