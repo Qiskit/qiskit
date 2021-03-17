@@ -12,12 +12,12 @@
 
 """DictToCircuitSum Class """
 
-from ..operator_base import OperatorBase
-from ..state_fns.dict_state_fn import DictStateFn
-from ..state_fns.vector_state_fn import VectorStateFn
-from ..state_fns.circuit_state_fn import CircuitStateFn
-from ..list_ops.list_op import ListOp
-from .converter_base import ConverterBase
+from qiskit.opflow.converters.converter_base import ConverterBase
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
+from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
+from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 
 
 class DictToCircuitSum(ConverterBase):

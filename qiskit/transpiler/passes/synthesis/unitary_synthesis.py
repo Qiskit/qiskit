@@ -89,7 +89,7 @@ class UnitarySynthesis(TransformationPass):
             if len(node.qargs) == 1:
                 if decomposer1q is None:
                     continue
-                synth_dag = circuit_to_dag(decomposer1q(node.op.to_matrix()))
+                synth_dag = circuit_to_dag(decomposer1q._decompose(node.op.to_matrix()))
             elif len(node.qargs) == 2:
                 if decomposer2q is None:
                     continue
