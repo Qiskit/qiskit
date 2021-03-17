@@ -12,10 +12,11 @@
 """A collection of passes to reallocate the timeslots of instructions according to context."""
 
 import abc
-from typing import Optional, Iterable, Callable, Dict, Any
+from typing import Optional, Iterable, Callable, Dict, Any, Union
 
 import numpy as np
 
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse import channels as chans, instructions
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
@@ -203,7 +204,7 @@ class AlignEquispaced(AlignmentKind):
     """
     is_sequential = True
 
-    def __init__(self, duration: int):
+    def __init__(self, duration: Union[int, ParameterExpression]):
         """Create new equispaced context.
 
         Args:
@@ -281,7 +282,7 @@ class AlignFunc(AlignmentKind):
     """
     is_sequential = True
 
-    def __init__(self, duration: int, func: Callable):
+    def __init__(self, duration: Union[int, ParameterExpression], func: Callable):
         """Create new equispaced context.
 
         Args:
