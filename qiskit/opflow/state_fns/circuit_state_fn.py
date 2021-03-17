@@ -281,7 +281,7 @@ class CircuitStateFn(StateFn):
                                    for front_elem in front.oplist])
 
         # Composable with circuit
-        if isinstance(front, (PauliOp, CircuitOp, MatrixOp, CircuitStateFn)):
+        if isinstance(front, (PauliOp, CircuitOp, MatrixOp)):
             new_front = self.compose(front)
             return new_front.eval()
 
