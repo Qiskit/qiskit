@@ -15,10 +15,11 @@
 from abc import abstractmethod
 from typing import List, Optional, Union, Dict, Iterable, Tuple
 
+import matplotlib.pyplot as plt
+
 import numpy as np
 import os
 import csv
-import warnings
 
 from pathlib import Path
 
@@ -40,6 +41,66 @@ from qiskit.quantum_info import state_fidelity
 
 from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
 
+class ForwardEuler:
+
+    def __init__(self,
+                 fun: callable,
+                 t0: float,
+                 y0: Iterable,
+                 t_bound: float,
+                 num_t_steps: int):
+        """
+        Forward Euler ODE solver
+        Args:
+            fun :
+                Right-hand side of the system. The calling signature is ``fun(t, y)``.
+                Here ``t`` is a scalar, and there are two options for the ndarray ``y``:
+                It can either have shape (n,); then ``fun`` must return array_like with
+                shape (n,). Alternatively it can have shape (n, k); then ``fun``
+                must return an array_like with shape (n, k), i.e., each column
+                corresponds to a single column in ``y``. The choice between the two
+                options is determined by `vectorized` argument (see below). The
+                vectorized implementation allows a faster approximation of the Jacobian
+                by finite differences (required for this solver).
+            t0 :
+                Initial time.
+            y0 :shape (n,)
+                Initial state.
+            t_bound :
+                Boundary time - the integration won't continue beyond it. It also
+                determines the direction of the integration.
+            num_t_steps:
+                Number of time steps for forward Euler
+
+        Attributes:
+            status : string
+                Current status of the solver: 'running' or 'finished'.
+            t_bound : float
+                Boundary time.
+            t : float
+                Current time.
+            y : ndarray
+                Current state.
+            step_size : float
+                Size of time steps
+        """
+        self.fun = fun
+        self.t = t0
+        self.y = y0
+        self.t_bound = t_bound
+        self.step_size = (t_bound - t0)/num_t_steps
+        self.status = 'running'
+
+    def step(self):
+        """
+        Take an Euler step
+
+        """
+        self.y = list(np.add(self.y, self.step_size * self.fun(self.t, self.y)))
+        self.t += self.step_size
+        if self.t == self.t_bound:
+            self.status = 'finished'
+
 
 class VarQTE(EvolutionBase):
     """Variational Quantum Time Evolution.
@@ -56,7 +117,7 @@ class VarQTE(EvolutionBase):
                  parameters: Optional[Union[ParameterExpression, List[ParameterExpression],
                                             ParameterVector]] = None,
                  init_parameter_values: Optional[Union[List, np.ndarray]] = None,
-                 ode_solver: Optional[Union[OdeSolver, ode]] = None,
+                 ode_solver: Optional[Union[OdeSolver, ode, ForwardEuler]] = None,
                  backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
                  snapshot_dir: Optional[str] = None,
                  faster: bool = True,
@@ -110,7 +171,7 @@ class VarQTE(EvolutionBase):
             self._grad_circ_sampler = CircuitSampler(self._backend)
             self._metric_circ_sampler = CircuitSampler(self._backend)
             if not faster:
-                self._nat_grad_circ_sampler = CircuitSampler(self._backend)
+                self._nat_grad_circ_sampler = CircuitSampler(self._backend, caching='all')
         self._faster = faster
         self._ode_solver = ode_solver
         if self._ode_solver is None:
@@ -537,8 +598,7 @@ class VarQTE(EvolutionBase):
 
         """
         if self._backend is not None:
-            grad_res = np.array(self._grad_circ_sampler.convert(self._grad,
-                                                                params=param_dict).eval())
+            grad_res = self._grad_circ_sampler.convert(self._grad, params=param_dict).eval()
             # Get the QFI/4
             metric_res = np.array(self._metric_circ_sampler.convert(self._metric,
                                                            params=param_dict).eval()) * 0.25
@@ -659,7 +719,7 @@ class VarQTE(EvolutionBase):
         if len(data_directories) != len(error_bound_directories):
             raise Warning('Please provide data and error bound directories of the same length '
                           'corresponding to the same data.')
-        import matplotlib.pyplot as plt
+
         for j, data_dir in enumerate(data_directories):
             with open(os.path.join(data_dir, 'varqte_output.csv'), mode='r') as csv_file:
                 fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
@@ -707,10 +767,7 @@ class VarQTE(EvolutionBase):
 
             error_bounds = np.load(error_bound_directories[j])
 
-            if reverse_bound_directories is not None:
-                reverse_error_bounds = np.load(reverse_bound_directories[j])
-
-            plt.figure(1)
+            plt.figure(0)
             plt.title('Actual Error and Error Bound ')
             plt.scatter(time, error_bounds, color='blue', marker='o', s=40,
                         label='error bound')
@@ -721,16 +778,31 @@ class VarQTE(EvolutionBase):
             plt.legend(loc='best')
             plt.xlabel('time')
             plt.ylabel('error')
-            plt.autoscale(enable=True)
+            # plt.autoscale(enable=True)
                           # plt.xticks(range(counter-1))
             plt.savefig(os.path.join(data_dir, 'error_bound_actual.png'))
+            plt.close()
+
             if reverse_bound_directories is not None:
+                reverse_error_bounds = np.load(reverse_bound_directories[j])
+                plt.figure(1)
+                plt.title('Reverse Error Bound ')
+                plt.scatter(time, error_bounds, color='blue', marker='o', s=40,
+                            label='error bound')
+
+                plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
+                plt.scatter(time, phase_agnostic_true_error, color='orange', marker='x', s=40,
+                            label='phase agnostic true error')
+                plt.legend(loc='best')
+                plt.xlabel('time')
+                plt.ylabel('error')
+                plt.autoscale(enable=True)
                 plt.scatter(time, reverse_error_bounds, color='green', marker='o', s=40,
                             label='reverse error bound')
                 plt.legend(loc='best')
-                plt.autoscale(enable=True)
+                # plt.autoscale(enable=True)
                 plt.savefig(os.path.join(data_dir, 'error_bound_actual_reverse.png'))
-            plt.close()
+                plt.close()
 
             plt.figure(2)
             plt.title('Fidelity')
@@ -738,7 +810,7 @@ class VarQTE(EvolutionBase):
                         label='fidelity')
             plt.xlabel('time')
             plt.ylabel('fidelity')
-            plt.autoscale(enable=True)
+            # plt.autoscale(enable=True)
             # plt.xticks(range(counter-1))
             plt.savefig(os.path.join(data_dir, 'fidelity.png'))
             plt.close()
@@ -752,71 +824,7 @@ class VarQTE(EvolutionBase):
             plt.xlabel('time')
             plt.ylabel('energy')
             plt.legend(loc='best')
-            plt.autoscale(enable=True)
+            # plt.autoscale(enable=True)
             plt.savefig(os.path.join(data_dir, 'energy.png'))
             plt.close()
         return
-
-
-class ForwardEuler:
-
-    def __init__(self,
-                 fun: callable,
-                 t0: float,
-                 y0: Iterable,
-                 t_bound: float,
-                 num_t_steps: int):
-        """
-        Forward Euler ODE solver
-        Args:
-            fun :
-                Right-hand side of the system. The calling signature is ``fun(t, y)``.
-                Here ``t`` is a scalar, and there are two options for the ndarray ``y``:
-                It can either have shape (n,); then ``fun`` must return array_like with
-                shape (n,). Alternatively it can have shape (n, k); then ``fun``
-                must return an array_like with shape (n, k), i.e., each column
-                corresponds to a single column in ``y``. The choice between the two
-                options is determined by `vectorized` argument (see below). The
-                vectorized implementation allows a faster approximation of the Jacobian
-                by finite differences (required for this solver).
-            t0 :
-                Initial time.
-            y0 :shape (n,)
-                Initial state.
-            t_bound :
-                Boundary time - the integration won't continue beyond it. It also
-                determines the direction of the integration.
-            num_t_steps:
-                Number of time steps for forward Euler
-
-        Attributes:
-            status : string
-                Current status of the solver: 'running' or 'finished'.
-            t_bound : float
-                Boundary time.
-            t : float
-                Current time.
-            y : ndarray
-                Current state.
-            step_size : float
-                Size of time steps
-        """
-        self.fun = fun
-        self.t = t0
-        self.y = y0
-        self.t_bound = t_bound
-        self.step_size = (t_bound - t0)/num_t_steps
-        self.status = 'running'
-
-    def step(self):
-        """
-        Take an Euler step
-
-        """
-        self.y = list(np.add(self.y, self.step_size * self.fun(self.t, self.y)))
-        self.t += self.step_size
-        if self.t == self.t_bound:
-            self.status = 'finished'
-
-
-

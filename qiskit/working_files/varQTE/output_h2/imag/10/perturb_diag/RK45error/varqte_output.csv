@@ -1,0 +1,3 @@
+t,params,num_params,num_time_steps,error_bound,error_bound_factor,error_grad,resid,fidelity,true_error,phase_agnostic_true_error,true_to_euler_error,trained_to_euler_error,target_energy,trained_energy,energy_error,h_norm,h_squared,variance,dtdt_trained,re_im_grad
+0,"[0.         0.         0.         0.         1.57079633 1.57079633
+ 0.         0.        ]",8,10,,,4.134904422018411e-07,2.4110604412382877e-07,1.0,0.0,1e-06,,,0.3162,0.3162,0.0,,0.63791514,0.5379327,0.5379331497566386,-0.5379329248782339
