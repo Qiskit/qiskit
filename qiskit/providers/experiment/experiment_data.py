@@ -503,7 +503,8 @@ class ExperimentDataV1(ExperimentData):
                 return stat.name
 
         if JobStatus.ERROR in job_stats:
-            self._errors.extend([f"Job {bad_job.job_id()} failed" for bad_job in job_stats[JobStatus.ERROR]])
+            self._errors.extend([f"Job {bad_job.job_id()} failed" for bad_job
+                                 in job_stats[JobStatus.ERROR]])
 
         if not self._errors:
             return "ERROR"
