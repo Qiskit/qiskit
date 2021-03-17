@@ -765,8 +765,11 @@ class TestParametrizedBlockOperation(BaseTestBlock):
 
         ref_sched = pulse.Schedule()
         ref_sched = ref_sched.insert(0, pulse.Delay(10, self.d0))
+        ref_sched = ref_sched.insert(10, pulse.Delay(20, self.d0))
         ref_sched = ref_sched.insert(30, pulse.Delay(10, self.d0))
+        ref_sched = ref_sched.insert(40, pulse.Delay(20, self.d0))
         ref_sched = ref_sched.insert(60, pulse.Delay(10, self.d0))
+        ref_sched = ref_sched.insert(70, pulse.Delay(20, self.d0))
         ref_sched = ref_sched.insert(90, pulse.Delay(10, self.d0))
 
         self.assertScheduleEqual(block, ref_sched)

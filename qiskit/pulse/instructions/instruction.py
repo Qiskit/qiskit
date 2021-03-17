@@ -248,7 +248,7 @@ class Instruction(ABC):
                 for param in op.parameters:
                     self._parameter_table[param].append(idx)
             elif isinstance(op, Channel) and isinstance(op.index, ParameterExpression):
-                for param in op.parameters:
+                for param in op.index.parameters:
                     self._parameter_table[param].append(idx)
 
     @deprecated_functionality
