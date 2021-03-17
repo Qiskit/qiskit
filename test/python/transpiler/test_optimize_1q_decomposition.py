@@ -434,6 +434,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected = QuantumCircuit(1)
         expected.x(0)
         expected.rz(-np.pi, 0)
+        expected.global_phase += np.pi
         msg = f"expected:\n{expected}\nresult:\n{result}"
         self.assertEqual(expected, result, msg=msg)
 

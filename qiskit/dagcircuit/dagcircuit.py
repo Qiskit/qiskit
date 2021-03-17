@@ -893,7 +893,7 @@ class DAGCircuit:
         try:
             self_phase = float(self.global_phase)
             other_phase = float(other.global_phase)
-            if (self_phase - other_phase + np.pi) % (2 * np.pi) - np.pi > 1.E-10:  # XXX: tolerance
+            if abs((self_phase - other_phase + np.pi) % (2 * np.pi) - np.pi) > 1.E-10:  # XXX: atol?
                 return False
         except TypeError:
             if self.global_phase != other.global_phase:
