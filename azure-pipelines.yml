@@ -164,7 +164,7 @@ stages:
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -U -c constraints.txt .
-            pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
+            pip install -U "qiskit-aer" "z3-solver" "scikit-quant" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
             pip check
@@ -513,7 +513,7 @@ stages:
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -U -c constraints.txt -e .
-            pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
+            pip install -U "qiskit-aer" "z3-solver" "scikit-quant" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
             pip check
