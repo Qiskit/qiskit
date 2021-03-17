@@ -81,11 +81,9 @@ def measure(qubits: List[int],
                     mem_slot = channels.MemorySlot(qubit_mem_slots[inst.channel.index])
                 else:
                     mem_slot = channels.MemorySlot(unused_mem_slots.pop())
-                schedule = schedule.insert(time, instructions.Acquire(
-                    inst.duration, inst.channel, mem_slot=mem_slot))
+                inst = instructions.Acquire(inst.duration, inst.channel, mem_slot=mem_slot)
             # Measurement pulses should only be added if its qubit was measured by the user
-            else:
-                schedule = schedule.insert(time, inst)
+            schedule = schedule.insert(time, inst)
 
     return schedule
 
