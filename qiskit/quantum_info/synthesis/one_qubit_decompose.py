@@ -347,7 +347,7 @@ class OneQubitEulerDecomposer:
                      phi,
                      lam,
                      phase,
-                     simplify=False,
+                     simplify=True,
                      atol=DEFAULT_ATOL):
         gphase = phase - (phi+lam)/2
         qr = QuantumRegister(1, 'qr')
