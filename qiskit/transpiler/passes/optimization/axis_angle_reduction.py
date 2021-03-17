@@ -193,6 +193,8 @@ class AxisAngleReduction(TransformationPass):
 
     def _commutation_analysis(self, rel_tol=1e-9, abs_tol=0.0):
         dfprop = self.property_set['axis-angle']
+        if not dfprop:
+            return
         buniq = dfprop.axis.unique()  # basis unique
         # merge collinear axes iff either contains a variable rotation
         naxes = len(buniq)
