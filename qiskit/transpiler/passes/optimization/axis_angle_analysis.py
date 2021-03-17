@@ -44,7 +44,7 @@ class AxisAngleAnalysis(AnalysisPass):
             dag (DAGCircuit): circuit graph
         """
         props = list()
-        dfprop = dict()
+        dfprop = pd.DataFrame()
         var_gate_class = dict()
         decimals = 12
         rel_tol = 1e-9
