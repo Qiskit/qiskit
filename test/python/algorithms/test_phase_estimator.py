@@ -18,7 +18,7 @@ import numpy as np
 from qiskit.algorithms.phase_estimators import PhaseEstimation, HamiltonianPhaseEstimation
 from qiskit.opflow.evolutions import PauliTrotterEvolution, MatrixEvolution
 import qiskit
-from qiskit.opflow import (H, X, Y, Z, I)
+from qiskit.opflow import (H, X, Y, Z, I, StateFn)
 
 
 class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
@@ -47,7 +47,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         a1 = 0.5
         a2 = 1.0
         hamiltonian = ((a1 * X) + (a2 * Z))
-        state_preparation = H.to_circuit()
+        state_preparation = StateFn(H.to_circuit())
         result = self.hamiltonian_pe(hamiltonian, state_preparation)
         phase_dict = result.filter_phases(0.162, as_float=True)
         phases = list(phase_dict.keys())
@@ -86,7 +86,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         hamiltonian = (-1.0523732457728587 * (I ^ I)) + (0.3979374248431802 * (I ^ Z)) \
             + (-0.3979374248431802 * (Z ^ I)) + (-0.011280104256235324 * (Z ^ Z)) \
             + (0.18093119978423147 * (X ^ X))
-        state_preparation = (I ^ H).to_circuit()
+        state_preparation = StateFn((I ^ H).to_circuit())
         evo = PauliTrotterEvolution(trotter_mode='suzuki', reps=4)
         result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evo)
         with self.subTest('Most likely eigenvalues'):

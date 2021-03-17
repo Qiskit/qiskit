@@ -16,7 +16,7 @@ from typing import Optional, Union
 from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import (EvolutionBase, PauliTrotterEvolution, OperatorBase,
-                           SummedOp, PauliSumOp)
+                           SummedOp, PauliSumOp, StateFn)
 from qiskit.providers import BaseBackend
 from .phase_estimation import PhaseEstimation
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
@@ -89,17 +89,17 @@ class HamiltonianPhaseEstimation:
 
     # pylint: disable=arguments-differ
     def estimate(self, hamiltonian: OperatorBase,
+                 state_preparation: Optional[StateFn] = None,
                  evolution: Optional[EvolutionBase] = None,
-                 state_preparation: Optional[QuantumCircuit] = None,
                  bound: Optional[float] = None) -> HamiltonianPhaseEstimationResult:
         """
         Args:
             hamiltonian: a Hermitian operator.
-            evolution: An evolution object that generates a unitary from `hamiltonian`. If
-                `None`, then the default `PauliTrotterEvolution` is used.
-            state_preparation: The circuit that prepares the state whose eigenphase will be
+            state_preparation: The `StateFn` to be prepared, whose eigenphase will be
                 measured. If this parameter is omitted, no preparation circuit will be run and
                 input state will be the all-zero state in the computational basis.
+            evolution: An evolution object that generates a unitary from `hamiltonian`. If
+                `None`, then the default `PauliTrotterEvolution` is used.
             bound: An upper bound on the absolute value of the eigenvalues of
                 `hamiltonian`. If omitted, then `hamiltonian` must be a Pauli sum, in which case
                 then a bound will be computed.
@@ -135,6 +135,8 @@ class HamiltonianPhaseEstimation:
         # get the unitary
         unitary = self._get_unitary(hamiltonian_no_id, pe_scale, evolution)
 
+        if state_preparation is not None:
+            state_preparation=state_preparation.to_circuit()
         # run phase estimation
         phase_estimation_result = self._phase_estimation.estimate(
             unitary=unitary, state_preparation=state_preparation)
