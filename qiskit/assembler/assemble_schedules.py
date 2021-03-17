@@ -263,6 +263,7 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
             raise QiskitError('Qubits {} in the measurement map: {} was '
                               'acquired disjointly'.format(measured_qubits, meas_map))
 
+
 def _assemble_config(lo_converter: converters.LoConfigConverter,
                      experiment_config: Dict[str, Any],
                      run_config: RunConfig) -> qobj.PulseQobjConfig:
