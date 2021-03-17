@@ -75,9 +75,8 @@ class UserConfig:
                                                   'state_drawer',
                                                   fallback=None)
             if state_drawer:
-                valid_state_drawers = ['auto', 'text', 'latex',
-                                       'latex_source', 'qsphere',
-                                       'hinton', 'bloch']
+                valid_state_drawers = ['repr', 'text', 'latex', 'latex_source',
+                                       'qsphere', 'hinton', 'bloch']
                 if state_drawer not in valid_state_drawers:
                     valid_choices_string = "', '".join(c for c in valid_state_drawers)
                     raise exceptions.QiskitUserConfigError(
