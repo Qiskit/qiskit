@@ -890,7 +890,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(len(qobj.config.pulse_library), 3)
 
     def test_assemble_with_delay(self):
-        """Test that delay instruction is ignored in assembly."""
+        """Test that delay instruction is not ignored in assembly."""
         delay_schedule = pulse.Delay(10, self.backend_config.drive(0))
         delay_schedule += self.schedule
         delay_qobj = assemble(delay_schedule, self.backend)
@@ -898,6 +898,46 @@ class TestPulseAssembler(QiskitTestCase):
         validate_qobj_against_schema(delay_qobj)
         self.assertEqual(delay_qobj.experiments[0].instructions[0].name, "delay")
         self.assertEqual(delay_qobj.experiments[0].instructions[0].duration, 10)
+        self.assertEqual(delay_qobj.experiments[0].instructions[0].t0, 0)
+
+    def test_delay_removed_on_acq_ch(self):
+        """Test that delay instructions on acquire channels are skipped on assembly with times
+        shifted properly.
+        """
+        delay0 = pulse.Delay(5, self.backend_config.acquire(0))
+        delay1 = pulse.Delay(7, self.backend_config.acquire(1))
+
+        sched0 = delay0
+        sched0 += self.schedule  # includes ``Acquire`` instr
+        sched0 += delay1
+
+        sched1 = self.schedule  # includes ``Acquire`` instr
+        sched1 += delay0
+        sched1 += delay1
+
+        sched2 = delay0
+        sched2 += delay1
+        sched2 += self.schedule  # includes ``Acquire`` instr
+
+        delay_qobj = assemble([sched0, sched1, sched2], self.backend)
+        validate_qobj_against_schema(delay_qobj)
+
+        # check that no delay instrs occur on acquire channels
+        is_acq_delay = False
+        for exp in delay_qobj.experiments:
+            for instr in exp.instructions:
+                if instr.name == "delay" and "a" in instr.ch:
+                    is_acq_delay = True
+
+        self.assertFalse(is_acq_delay)
+
+        # check that acquire instr are shifted from ``t0=5`` as needed
+        self.assertEqual(delay_qobj.experiments[0].instructions[1].t0, 10)
+        self.assertEqual(delay_qobj.experiments[0].instructions[1].name, "acquire")
+        self.assertEqual(delay_qobj.experiments[1].instructions[1].t0, 5)
+        self.assertEqual(delay_qobj.experiments[1].instructions[1].name, "acquire")
+        self.assertEqual(delay_qobj.experiments[2].instructions[1].t0, 12)
+        self.assertEqual(delay_qobj.experiments[2].instructions[1].name, "acquire")
 
     def test_assemble_schedule_enum(self):
         """Test assembling a schedule with enum input values to assemble."""
