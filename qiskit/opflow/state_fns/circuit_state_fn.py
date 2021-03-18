@@ -231,8 +231,6 @@ class CircuitStateFn(StateFn):
         statevector = execute(qc,
                               statevector_backend,
                               optimization_level=0).result().get_statevector()
-        if self.is_measurement:
-            statevector = np.transpose(np.conj(statevector))
         from ..operator_globals import EVAL_SIG_DIGITS
         return np.round(statevector * self.coeff, decimals=EVAL_SIG_DIGITS)
 
@@ -289,7 +287,7 @@ class CircuitStateFn(StateFn):
                                    for front_elem in front.oplist])
 
         # Composable with circuit
-        if isinstance(front, (PauliOp, CircuitOp, MatrixOp)):
+        if isinstance(front, (PauliOp, CircuitOp, MatrixOp, CircuitStateFn)):
             new_front = self.compose(front)
             return new_front.eval()
 
