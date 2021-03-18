@@ -19,7 +19,6 @@ from heapq import heappush, heappop
 from itertools import zip_longest
 from itertools import count as iter_count
 from collections import defaultdict
-import copy
 
 import numpy as np
 
@@ -155,7 +154,7 @@ class BasisTranslator(TransformationPass):
 
                 if (len(bound_target_dag.op_nodes()) == 1
                         and len(bound_target_dag.op_nodes()[0].qargs) == len(node.qargs)):
-                    dag_op = copy.copy(bound_target_dag.op_nodes()[0].op)
+                    dag_op = bound_target_dag.op_nodes()[0].op.copy()
                     dag.substitute_node(node, dag_op, inplace=True)
 
                     if bound_target_dag.global_phase:
