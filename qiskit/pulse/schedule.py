@@ -404,7 +404,7 @@ class Schedule:
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name, inplace=inplace)
 
-    def flatten(self) -> 'PulseProgram':
+    def flatten(self) -> 'Schedule':
         """Deprecated."""
         from qiskit.pulse.transforms import flatten
 
