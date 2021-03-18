@@ -1225,15 +1225,12 @@ class QuantumCircuit:
             QasmError: If circuit has free parameters.
         """
         from qiskit.circuit.controlledgate import ControlledGate
+        from qiskit.qasm import qelib1_basis
 
         if self.num_parameters > 0:
             raise QasmError('Cannot represent circuits with unbound parameters in OpenQASM 2.')
 
-        existing_gate_names = ['ch', 'cp', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
-                               'csx', 'cu', 'cu1', 'cu3', 'dcx', 'h', 'i', 'id', 'iden', 'iswap',
-                               'ms', 'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's',
-                               'sdg', 'swap', 'sx', 'x', 'y', 'z', 't', 'tdg', 'u', 'u1', 'u2',
-                               'u3']
+        existing_gate_names = list(qelib1_basis)
 
         existing_composite_circuits = []
 

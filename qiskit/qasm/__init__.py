@@ -54,3 +54,11 @@ if HAS_PYGMENTS:
         from .pygments import OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
     except Exception:  # pylint: disable=broad-except
         HAS_PYGMENTS = False
+
+from os import path
+
+qelib1_path = path.join(path.dirname(__file__), 'libs', 'qelib1.inc')
+with open(qelib1_path, mode='r') as qelib1_file:
+    qelib1_basis = [line.replace('(', ' ').split()[1] for line in qelib1_file if
+                    line.startswith('gate')]
+qelib1_basis = tuple(qelib1_basis)  # make it immutable
