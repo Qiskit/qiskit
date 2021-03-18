@@ -10,19 +10,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
 """The HHL algorithm."""
-import warnings
+
 from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
 
-from qiskit.quantum_info import Operator
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
-from qiskit.opflow import Z, I, StateFn, TensoredOp
+from qiskit.opflow import Z, I, StateFn, TensoredOp, ExpectationBase, CircuitSampler, ListOp
+from qiskit.providers import Backend
+from qiskit.quantum_info import Operator
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils import QuantumInstance
+
 from .linear_solver import LinearSolver, LinearSolverResult
 from .matrices.linear_system_matrix import LinearSystemMatrix
 from .observables.linear_system_observable import LinearSystemObservable
@@ -31,14 +33,16 @@ from .observables.linear_system_observable import LinearSystemObservable
 class HHL(LinearSolver):
     """The HHL algorithm to solve systems of linear equations"""
 
-    def __init__(self, epsilon: float = 1e-2) -> None:
+    def __init__(self,
+                 epsilon: float = 1e-2,
+                 expectation: Optional[ExpectationBase] = None,
+                 quantum_instance: Optional[Union[Backend, QuantumInstance]] = None) -> None:
         r"""
         Args:
-         epsilon : Error tolerance of the approximation to the solution, i.e. if x is the exact
-          solution and ::math::`\tilde{x}` the one calculated by the algorithm, then
-          ::math::`||x - \tilde{x}|| < epsilon`.
+            epsilon: Error tolerance of the approximation to the solution, i.e. if x is the exact
+                solution and ::math::`\tilde{x}` the one calculated by the algorithm, then
+                :math:`||x - \tilde{x}|| < epsilon`.
 
-        .. note::
 
         References:
 
@@ -54,6 +58,13 @@ class HHL(LinearSolver):
         self._epsilon_r = epsilon / 3  # conditioned rotation
         self._epsilon_s = epsilon / 3  # state preparation
         self._epsilon_a = epsilon / 6  # hamiltonian simulation
+
+        if quantum_instance is not None:
+            self._sampler = CircuitSampler(quantum_instance)
+        else:
+            self._sampler = None
+
+        self._expectation = expectation
 
         # For now the default reciprocal implementation is exact
         self._exact_reciprocal = True
@@ -93,8 +104,8 @@ class HHL(LinearSolver):
         na = qc.num_ancillas
 
         # Create the Operators Zero and One
-        zero_op = ((I + Z) / 2)
-        one_op = ((I - Z) / 2)
+        zero_op = (I + Z) / 2
+        one_op = (I - Z) / 2
 
         # Norm observable
         observable = one_op ^ TensoredOp((nl + na) * [zero_op]) ^ (I ^ nb)
@@ -102,16 +113,13 @@ class HHL(LinearSolver):
 
         return np.real(np.sqrt(norm_2) / scaling)
 
-    def _calculate_observable(self, qc: QuantumCircuit,
-                              observable: Optional[Union[LinearSystemObservable, BaseOperator,
-                                                         List[LinearSystemObservable],
-                                                         List[BaseOperator]]] = None,
-                              observable_circuit: Optional[Union[QuantumCircuit,
-                                                                 List[QuantumCircuit]]] = None,
+    def _calculate_observable(self, solution: QuantumCircuit,
+                              observable: Optional[Union[LinearSystemObservable, BaseOperator]] = None,
+                              observable_circuit: Optional[QuantumCircuit] = None,
                               post_processing: Optional[Callable[[Union[float, List[float]]],
                                                                  Union[float, List[float]]]] = None,
-                              scaling: Optional[float] = 1) -> Tuple[Union[float, List[float]],
-                                                                     Union[float, List[float]]]:
+                              scaling: float = 1) -> Tuple[Union[float, List[float]],
+                                                           Union[float, List[float]]]:
         """Calculates the value of the observable(s) given.
 
         Args:
@@ -126,91 +134,67 @@ class HHL(LinearSolver):
              tuple.
         """
         # Get the number of qubits
-        nb = qc.qregs[0].size
-        nl = qc.qregs[1].size
-        na = qc.num_ancillas
+        nb = solution.qregs[0].size
+        nl = solution.qregs[1].size
+        na = solution.num_ancillas
 
-        if observable is not None and isinstance(observable, list):
-            if isinstance(observable[0], LinearSystemObservable):
-                # Warning if post_processing or observable_circuit are not None
-                if observable_circuit is not None or post_processing is not None:
-                    warnings.warn("observable_circuit and post_processing are taken from the "
-                                  "LinearSystemObservable, but arguments for at least one of these "
-                                  "were given.")
-                observable_circuit = []
-                post_processing = []
-                observables_list = []
-                for obs in observable:
-                    observable_circuit.append(obs.observable_circuit(nb))
-                    post_processing.append(obs.post_processing)
-                    observables_list.append(obs.observable(nb))
-                observable = observables_list
-        elif observable is not None and isinstance(observable, LinearSystemObservable):
-            # Warning if post_processing or observable_circuit are not None
-            if observable_circuit is not None or post_processing is not None:
-                warnings.warn("observable_circuit and post_processing are taken from the "
-                              "LinearSystemObservable, but arguments for at least one of these "
-                              "were given.")
+        # if the observable is given construct post_processing and observable_circuit
+        if observable is not None:
             observable_circuit = observable.observable_circuit(nb)
             post_processing = observable.post_processing
-            observable = observable.observable(nb)
+
+            if isinstance(observable, LinearSystemObservable):
+                observable = observable.observable(nb)
+
+        # in the other case use the identity as observable
+        else:
+            observable = I ^ nb
 
         # Create the Operators Zero and One
-        zero_op = ((I + Z) / 2)
-        one_op = ((I - Z) / 2)
-        # List of quantum circuits with observable_circuit gates appended
-        qcs = []
-        # Observable gates
-        if observable_circuit is not None and isinstance(observable_circuit, list):
-            for circ in observable_circuit:
-                qc_temp = QuantumCircuit(qc.num_qubits)
-                qc_temp.append(qc, list(range(qc.num_qubits)))
-                qc_temp.append(circ, list(range(nb)))
-                qcs.append(qc_temp)
-        elif observable_circuit is not None:
-            qc.append(observable_circuit, list(range(nb)))
+        zero_op = (I + Z) / 2
+        one_op = (I - Z) / 2
 
-        # Update observable to include ancilla and rotation qubit
-        result = []
-        if isinstance(observable, list):
-            for i, obs in enumerate(observable):
-                if isinstance(obs, list):
-                    result_temp = []
-                    for ob in obs:
-                        new_observable = one_op ^ TensoredOp((nl + na) * [zero_op]) ^ ob
-                        if qcs:
-                            result_temp.append((~StateFn(new_observable) @ StateFn(qcs[i])).eval())
-                        else:
-                            result_temp.append((~StateFn(new_observable) @ StateFn(qc)).eval())
-                    result.append(result_temp)
-                else:
-                    if obs is None:
-                        obs = I ^ nb
-                    new_observable = one_op ^ TensoredOp((nl + na) * [zero_op]) ^ obs
-                    if qcs:
-                        result.append((~StateFn(new_observable) @ StateFn(qcs[i])).eval())
-                    else:
-                        result.append((~StateFn(new_observable) @ StateFn(qc)).eval())
-        else:
-            if observable is None:
-                observable = I ^ nb
+        is_list = True
+        if not isinstance(observable_circuit, list):
+            is_list = False
+            observable_circuit = [observable_circuit]
+            observable = [observable]
 
-            new_observable = one_op ^ TensoredOp((nl + na) * [zero_op]) ^ observable
-            if qcs:
-                for circ in qcs:
-                    result.append((~StateFn(new_observable) @ StateFn(circ)).eval())
+        expectations = []
+        for circ, obs in zip(observable_circuit, observable):
+            circuit = QuantumCircuit(solution.num_qubits)
+            circuit.append(solution, circuit.qubits)
+            circuit.append(circ, range(nb))
+
+            if isinstance(obs, list):
+                sub_expectations = []
+                for sub_obs in obs:
+                    ob = one_op ^ TensoredOp((nl + na) * [zero_op]) ^ sub_obs
+                    sub_expectations.append(~StateFn(ob) @ StateFn(circuit))
+                expectations.append(ListOp(sub_expectations))
             else:
-                result = (~StateFn(new_observable) @ StateFn(qc)).eval()
+                ob = one_op ^ TensoredOp((nl + na) * [zero_op]) ^ obs
+                expectations.append(~StateFn(ob) @ StateFn(circuit))
 
-        if isinstance(result, list):
-            circuit_results = result
+        if is_list:
+            # execute all in a list op to send circuits in batches
+            expectations = ListOp(expectations)
         else:
-            circuit_results = [result]
-        if post_processing is not None:
+            expectations = expectations[0]
 
-            return post_processing(result, nb, scaling), circuit_results
-        else:
-            return result, circuit_results
+        if self._expectation is not None:
+            expectations = self._expectation.convert(expectations)
+
+        if self._sampler is not None:
+            expectations = self._sampler.convert(expectations)
+
+        # evaluate
+        expectation_results = expectations.eval()
+
+        # apply post_processing
+        result = post_processing(expectation_results, nb, scaling)
+
+        return result, expectation_results
 
     def construct_circuit(self, matrix: Union[np.ndarray, QuantumCircuit],
                           vector: Union[np.ndarray, QuantumCircuit]) -> QuantumCircuit:
@@ -232,8 +216,9 @@ class HHL(LinearSolver):
             vector_circuit = vector
         elif isinstance(vector, np.ndarray):
             nb = int(np.log2(len(vector)))
-            vector_circuit = QuantumCircuit(nb).isometry(vector / np.linalg.norm(vector),
-                                                         list(range(nb)), None)
+            vector_circuit = QuantumCircuit(nb)
+            vector_circuit.isometry(vector / np.linalg.norm(vector),
+                                    list(range(nb)), None)
 
         # If state preparation is probabilistic the number of qubit flags should increase
         nf = 1
@@ -360,9 +345,23 @@ class HHL(LinearSolver):
             post_processing: Optional function to compute the value of the observable.
                 Default is the raw value of measuring the observable.
 
+        Raises:
+            ValueError: If an invalid combination of observable, observable_circuit and
+                post_processing is passed.
+
         Returns:
             The result of the linear system.
         """
+        # verify input
+        if observable is not None:
+            if observable_circuit is not None or post_processing is not None:
+                raise ValueError('If observable is passed, observable_circuit and post_processing '
+                                 'cannot be set.')
+        elif observable_circuit is not None or post_processing is not None:
+            if observable_circuit is None or post_processing is None:
+                raise ValueError('If one of observable_circuit or post_processing is passed, '
+                                 'both must be passed.')
+
         # Hamiltonian simulation circuit - default is Trotterization
         if isinstance(matrix, LinearSystemMatrix):
             matrix_array = matrix.matrix
@@ -376,7 +375,10 @@ class HHL(LinearSolver):
         solution = LinearSolverResult()
         solution.state = self.construct_circuit(matrix, vector)
         solution.euclidean_norm = self._calculate_norm(solution.state, lambda_min)
-        solution.observable, solution.circuit_results = \
-            self._calculate_observable(solution.state, observable, observable_circuit,
-                                       post_processing, lambda_min)
+
+        if observable is not None or observable_circuit is not None:
+            solution.observable, solution.circuit_results = \
+                self._calculate_observable(solution.state, observable, observable_circuit,
+                                           post_processing, lambda_min)
+
         return solution

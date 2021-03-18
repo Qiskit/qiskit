@@ -122,9 +122,9 @@ class TestObservables(QiskitAlgorithmsTestCase):
         state_vecs = []
         # First is the norm
         state_vecs.append((~StateFn(observable_ops[0]) @ StateFn(qcs[0])).eval())
-        for i, observable_op in enumerate(observable_ops[1::]):
-            state_vecs.append([(~StateFn(observable_op[0]) @ StateFn(qcs[i + 1])).eval(),
-                               (~StateFn(observable_op[1]) @ StateFn(qcs[i + 1])).eval()])
+        for i in range(1, len(observable_ops), 2):
+            state_vecs += [(~StateFn(observable_ops[i]) @ StateFn(qcs[i])).eval(),
+                           (~StateFn(observable_ops[i + 1]) @ StateFn(qcs[i + 1])).eval()]
 
         # Obtain result
         result = observable.post_processing(state_vecs, num_qubits)
