@@ -258,15 +258,14 @@ class TestCall(QiskitTestCase):
         self.assertTrue(call.is_parameterized())
         self.assertEqual(len(call.parameters), 2)
 
-    def test_assign_parameters(self):
-        """Test assigning parameter doesn't immediately update program."""
-        call = instructions.Call(subroutine=self.function)
-        call.assign_parameters({self.param1: 0.1, self.param2: 0.2})
+    def test_call_initialize_with_parameter(self):
+        """Test call instruction with parameterized subroutine with initial dict."""
+        init_dict = {self.param1: 0.1, self.param2: 0.5}
+        call = instructions.Call(subroutine=self.function, value_dict=init_dict)
 
-        self.assertFalse(call.is_parameterized())
+        with pulse.build() as ref_sched:
+            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
 
-        subroutine = call.subroutine
-        self.assertTrue(subroutine.is_parameterized())
-
-        arguments = call.arguments
-        self.assertDictEqual(arguments, {self.param1: 0.1, self.param2: 0.2})
+        self.assertEqual(call.assigned_subroutine(), ref_sched)
