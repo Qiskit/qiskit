@@ -15,7 +15,7 @@
 import numpy as np
 
 from qiskit import pulse, circuit
-from qiskit.pulse import channels, configuration, instructions, library
+from qiskit.pulse import channels, configuration, instructions, library, exceptions
 from qiskit.test import QiskitTestCase
 
 
@@ -191,18 +191,27 @@ class TestSnapshot(QiskitTestCase):
 class TestPlay(QiskitTestCase):
     """Play tests."""
 
+    def setUp(self):
+        """Setup play tests."""
+        super().setUp()
+        self.duration = 4
+        self.pulse_op = library.Waveform([1.0] * self.duration, name='test')
+
     def test_play(self):
         """Test basic play instruction."""
-        duration = 4
-        pulse_op = library.Waveform([1.0] * duration, name='test')
-        play = instructions.Play(pulse_op, channels.DriveChannel(1))
+        play = instructions.Play(self.pulse_op, channels.DriveChannel(1))
 
         self.assertIsInstance(play.id, int)
-        self.assertEqual(play.name, pulse_op.name)
-        self.assertEqual(play.duration, duration)
+        self.assertEqual(play.name, self.pulse_op.name)
+        self.assertEqual(play.duration, self.duration)
         self.assertEqual(repr(play),
                          "Play(Waveform(array([1.+0.j, 1.+0.j, 1.+0.j, 1.+0.j]), name='test'),"
                          " DriveChannel(1), name='test')")
+
+    def test_play_non_pulse_ch_raises(self):
+        """Test that play instruction on non-pulse channel raises a pulse error."""
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(self.pulse_op, channels.AcquireChannel(0))
 
 
 class TestDirectives(QiskitTestCase):
