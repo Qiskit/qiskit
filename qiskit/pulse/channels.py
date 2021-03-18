@@ -69,7 +69,8 @@ class Channel(metaclass=ABCMeta):
         """
         self._validate_index(index)
         self._index = index
-        self._hash = None
+        self._hash = hash((self.__class__.__name__, self._index))
+
         self._parameters = set()
         if isinstance(index, ParameterExpression):
             self._parameters = index.parameters
@@ -157,8 +158,8 @@ class Channel(metaclass=ABCMeta):
         return type(self) is type(other) and self._index == other._index
 
     def __hash__(self):
-        if self._hash is None:
-            self._hash = hash((type(self), self._index))
+        # this is used to equality check of unordered channels of schedule
+        # i.e. set(self.channels) == set(other.channels)
         return self._hash
 
 

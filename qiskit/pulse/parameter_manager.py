@@ -53,7 +53,7 @@ Note that we don't need to write any parameter management logic for each object,
 and thus this parameter framework gives greater scalability to the pulse module.
 """
 from copy import deepcopy, copy
-from typing import List, Dict, Set, Any
+from typing import List, Dict, Set, Any, Union
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
@@ -139,6 +139,7 @@ class ParameterSetter(NodeVisitor):
         node._blocks = [self.visit(block) for block in node.instructions]
         node._alignment_context = self.visit(node.alignment_context)
 
+        self._update_parameter_manager(node)
         return node
 
     def visit_Schedule(self, node: Schedule):
@@ -161,6 +162,7 @@ class ParameterSetter(NodeVisitor):
                 else:
                     node._timeslots[new_channel] = chan_timeslots
 
+        self._update_parameter_manager(node)
         return node
 
     def visit_AlignmentKind(self, node: AlignmentKind):
@@ -180,12 +182,12 @@ class ParameterSetter(NodeVisitor):
             and bound parameters until execution. The parameter assignment operation doesn't
             immediately override its operand data.
         """
-        new_table = copy(node._parameter_table)
+        new_table = copy(node.arguments)
 
         for parameter, value in new_table.items():
             if isinstance(value, ParameterExpression):
                 new_table[parameter] = self._assign_parameter_expression(value)
-        node._parameter_table = new_table
+        node._arguments = new_table
 
         return node
 
@@ -211,7 +213,7 @@ class ParameterSetter(NodeVisitor):
                 if not isinstance(new_index, int) or new_index < 0:
                     raise PulseError('Channel index must be a nonnegative integer')
 
-            # create new object not to accidentally override timeslots without evaluation.
+            # return new instance to prevent accidentally override timeslots without evaluation
             return node.__class__(index=new_index)
 
         return node
@@ -248,6 +250,20 @@ class ParameterSetter(NodeVisitor):
                 new_value = new_value.assign(parameter, self._param_map[parameter])
 
         return format_parameter_value(new_value)
+
+    def _update_parameter_manager(self, node: Union[Schedule, ScheduleBlock]):
+        """A helper function to update parameter manager of pulse program."""
+        new_parameters = set()
+
+        for parameter in node.parameters:
+            if parameter in self._param_map:
+                value = self._param_map[parameter]
+                if isinstance(value, ParameterExpression):
+                    for new_parameter in value.parameters:
+                        new_parameters.add(new_parameter)
+            else:
+                new_parameters.add(parameter)
+        node._parameter_manager._parameters = new_parameters
 
 
 class ParameterGetter(NodeVisitor):
@@ -387,20 +403,7 @@ class ParameterManager:
         else:
             source = deepcopy(pulse_program)
 
-        new_parameters = set()
-        valid_map = dict()
-        # override existing parameter and filter out invalid parameters
-        for parameter in self.parameters:
-            if parameter in value_dict:
-                value = value_dict[parameter]
-                valid_map[parameter] = value
-                if isinstance(value, ParameterExpression):
-                    for new_parameter in value.parameters:
-                        new_parameters.add(new_parameter)
-            else:
-                new_parameters.add(parameter)
-        self._parameters = new_parameters
-
+        valid_map = {par: val for par, val in value_dict.items() if par in self.parameters}
         if valid_map:
             visitor = ParameterSetter(param_map=valid_map)
             return visitor.visit(source)

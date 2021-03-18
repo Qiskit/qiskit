@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """An instruction for blocking time on a channel; useful for scheduling alignment."""
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import Channel
@@ -46,7 +46,7 @@ class Delay(Instruction):
             channel: The channel that will have the delay.
             name: Name of the delay for display purposes.
         """
-        super().__init__((duration, channel), None, (channel,), name=name)
+        super().__init__(operands=(duration, channel), name=name)
 
     @property
     def channel(self) -> Channel:
@@ -54,6 +54,11 @@ class Delay(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def channels(self) -> Tuple[Channel]:
+        """Returns channels that this schedule uses."""
+        return tuple((self.channel, ))
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:

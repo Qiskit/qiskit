@@ -13,7 +13,7 @@
 """Frequency instructions module. These instructions allow the user to manipulate
 the frequency of a channel.
 """
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
@@ -46,7 +46,7 @@ class SetFrequency(Instruction):
         """
         if not isinstance(frequency, ParameterExpression):
             frequency = float(frequency)
-        super().__init__((frequency, channel), None, (channel,), name=name)
+        super().__init__(operands=(frequency, channel), name=name)
 
     @property
     def frequency(self) -> Union[float, ParameterExpression]:
@@ -59,6 +59,11 @@ class SetFrequency(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def channels(self) -> Tuple[PulseChannel]:
+        """Returns channels that this schedule uses."""
+        return tuple((self.channel, ))
 
     @property
     def duration(self) -> int:
@@ -82,7 +87,7 @@ class ShiftFrequency(Instruction):
         """
         if not isinstance(frequency, ParameterExpression):
             frequency = float(frequency)
-        super().__init__((frequency, channel), None, (channel,), name=name)
+        super().__init__(operands=(frequency, channel), name=name)
 
     @property
     def frequency(self) -> Union[float, ParameterExpression]:
@@ -95,6 +100,11 @@ class ShiftFrequency(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def channels(self) -> Tuple[PulseChannel]:
+        """Returns channels that this schedule uses."""
+        return tuple((self.channel, ))
 
     @property
     def duration(self) -> int:

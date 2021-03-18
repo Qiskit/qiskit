@@ -13,8 +13,7 @@
 
 import warnings
 from collections import defaultdict
-from copy import deepcopy
-from typing import List, Optional, Iterable
+from typing import List, Optional, Iterable, Union
 
 import numpy as np
 
@@ -109,7 +108,7 @@ def flatten(program: Schedule) -> Schedule:
         raise PulseError(f'Invalid input program {program.__class__.__name__} is specified.')
 
 
-def inline_subroutines(program: Schedule) -> Schedule:
+def inline_subroutines(program: Union[Schedule, ScheduleBlock]) -> Union[Schedule, ScheduleBlock]:
     """Recursively remove call instructions and inline the respective subroutine instructions.
 
     Assigned parameter values, which are stored in the parameter table, are also applied.
@@ -120,22 +119,62 @@ def inline_subroutines(program: Schedule) -> Schedule:
 
     Returns:
         A schedule without subroutine.
+
+    Raises:
+        PulseError: When input program is not valid data format.
     """
-    schedule = Schedule(name=program.name, metadata=program.metadata)
-    for t0, inst in program.instructions:
+    if isinstance(program, Schedule):
+        return _inline_schedule(program)
+    elif isinstance(program, ScheduleBlock):
+        return _inline_block(program)
+    else:
+        raise PulseError(f'Invalid program {program.__class__.__name__} is specified.')
+
+
+def _inline_schedule(schedule: Schedule) -> Schedule:
+    """A helper function to inline subroutine of schedule.
+
+    .. note:: If subroutine is ``ScheduleBlock`` it is converted into Schedule to get ``t0``.
+    """
+    ret_schedule = Schedule(name=schedule.name,
+                            metadata=schedule.metadata)
+    for t0, inst in schedule.instructions:
         if isinstance(inst, instructions.Call):
             # bind parameter
-            if bool(inst.arguments):
-                subroutine = deepcopy(inst.subroutine)
-                subroutine.assign_parameters(value_dict=inst.arguments)
-            else:
-                subroutine = inst.subroutine
+            subroutine = inst.assigned_subroutine()
+            # convert into schedule if block is given
+            if isinstance(subroutine, ScheduleBlock):
+                subroutine = block_to_schedule(subroutine)
             # recursively inline the program
-            inline_schedule = inline_subroutines(subroutine)
-            schedule.insert(t0, inline_schedule, inplace=True)
+            inline_schedule = _inline_schedule(subroutine)
+            ret_schedule.insert(t0, inline_schedule, inplace=True)
         else:
-            schedule.insert(t0, inst, inplace=True)
-    return schedule
+            ret_schedule.insert(t0, inst, inplace=True)
+    return ret_schedule
+
+
+def _inline_block(block: ScheduleBlock) -> ScheduleBlock:
+    """A helper function to inline subroutine of schedule block.
+
+    .. note:: If subroutine is ``Schedule`` the function raises an error.
+    """
+    ret_block = ScheduleBlock(alignment_context=block.alignment_context,
+                              name=block.name,
+                              metadata=block.metadata)
+    for inst in block.instructions:
+        if isinstance(inst, instructions.Call):
+            # bind parameter
+            subroutine = inst.assigned_subroutine()
+            if isinstance(subroutine, Schedule):
+                raise PulseError(f'A subroutine {subroutine.name} is a pulse Schedule. '
+                                 'This program cannot be inserted into ScheduleBlock because '
+                                 't0 associated with instruction will be lost.')
+            # recursively inline the program
+            inline_block = _inline_block(subroutine)
+            ret_block.append(inline_block, inplace=True)
+        else:
+            ret_block.append(inst, inplace=True)
+    return ret_block
 
 
 def remove_directives(schedule: Schedule) -> Schedule:

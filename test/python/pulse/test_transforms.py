@@ -819,7 +819,11 @@ class _TestDirective(directives.Directive):
 
     def __init__(self, *channels):
         """Test directive"""
-        super().__init__(tuple(channels), 0, tuple(channels))
+        super().__init__(operands=tuple(channels))
+
+    @property
+    def channels(self):
+        return self.operands
 
 
 class TestRemoveDirectives(QiskitTestCase):

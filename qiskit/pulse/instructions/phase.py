@@ -15,7 +15,7 @@ This includes ``SetPhase`` instructions which lock the modulation to a particula
 at that moment, and ``ShiftPhase`` instructions which increase the existing phase by a
 relative amount.
 """
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
@@ -50,7 +50,7 @@ class ShiftPhase(Instruction):
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
         """
-        super().__init__((phase, channel), None, (channel,), name=name)
+        super().__init__(operands=(phase, channel), name=name)
 
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
@@ -63,6 +63,11 @@ class ShiftPhase(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def channels(self) -> Tuple[PulseChannel]:
+        """Returns channels that this schedule uses."""
+        return tuple((self.channel, ))
 
     @property
     def duration(self) -> int:
@@ -95,7 +100,7 @@ class SetPhase(Instruction):
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
         """
-        super().__init__((phase, channel), None, (channel,), name=name)
+        super().__init__(operands=(phase, channel), name=name)
 
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
@@ -108,6 +113,11 @@ class SetPhase(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def channels(self) -> Tuple[PulseChannel]:
+        """Returns channels that this schedule uses."""
+        return tuple((self.channel, ))
 
     @property
     def duration(self) -> int:

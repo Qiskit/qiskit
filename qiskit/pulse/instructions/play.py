@@ -50,7 +50,7 @@ class Play(Instruction):
             raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
         if name is None:
             name = pulse.name
-        super().__init__((pulse, channel), None, (channel,), name=name)
+        super().__init__(operands=(pulse, channel), name=name)
 
     @property
     def pulse(self) -> Pulse:
@@ -63,6 +63,11 @@ class Play(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def channels(self) -> Tuple[PulseChannel]:
+        """Returns channels that this schedule uses."""
+        return tuple((self.channel, ))
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:

@@ -42,15 +42,15 @@ class Instruction(ABC):
 
     def __init__(self,
                  operands: Tuple,
-                 duration: int,
-                 channels: Tuple[Channel],
+                 duration: int = None,
+                 channels: Tuple[Channel] = None,
                  name: Optional[str] = None):
         """Instruction initializer.
 
         Args:
             operands: The argument list.
             duration: Deprecated.
-            channels: Tuple of pulse channels that this instruction operates on.
+            channels: Deprecated.
             name: Optional display name for this instruction.
 
         Raises:
@@ -58,10 +58,6 @@ class Instruction(ABC):
             PulseError: If the input ``channels`` are not all of
                 type :class:`Channel`.
         """
-        for channel in channels:
-            if not isinstance(channel, Channel):
-                raise PulseError("Expected a channel, got {} instead.".format(channel))
-
         if duration is not None:
             warnings.warn('Specifying duration in the constructor is deprecated. '
                           'Now duration is an abstract property rather than class variable. '
@@ -69,13 +65,21 @@ class Instruction(ABC):
                           'See Qiskit-Terra #5679 for more information.',
                           DeprecationWarning)
 
-        self._channels = channels
+        if channels is not None:
+            warnings.warn('Specifying ``operands`` in the constructor is deprecated. '
+                          'All channels should be stored in ``operands``.',
+                          DeprecationWarning)
+
         self._operands = operands
         self._name = name
         self._hash = None
 
         self._parameter_table = defaultdict(list)
         self._initialize_parameter_table(operands)
+
+        for channel in self.channels:
+            if not isinstance(channel, Channel):
+                raise PulseError("Expected a channel, got {} instead.".format(channel))
 
     @property
     def name(self) -> str:
@@ -95,7 +99,7 @@ class Instruction(ABC):
     @property
     def channels(self) -> Tuple[Channel]:
         """Returns channels that this schedule uses."""
-        return self._channels
+        raise NotImplementedError
 
     @property
     def start_time(self) -> int:
@@ -287,18 +291,6 @@ class Instruction(ABC):
                         self._parameter_table[new_parameter] = entry
 
         self._operands = tuple(new_operands)
-
-        # update channels, likely this has no effect
-        new_channels = list()
-
-        for chan in self._channels:
-            if chan.is_parameterized():
-                for param in chan.parameters:
-                    if param in value_dict:
-                        chan = chan.assign(param, value_dict[param])
-            new_channels.append(chan)
-
-        self._channels = tuple(new_channels)
 
         return self
 

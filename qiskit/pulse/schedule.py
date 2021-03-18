@@ -1296,11 +1296,11 @@ class ScheduleBlock:
         instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])
         if len(self.instructions) > 25:
             instructions += ", ..."
-        return '{}({}, name="{}", transform="{}")'.format(
+        return '{}({}, name="{}", transform={})'.format(
             self.__class__.__name__,
             instructions,
             name,
-            self.alignment_context.__class__.__name__
+            repr(self.alignment_context)
         )
 
     def __add__(self, other: BlockComponent) -> 'ScheduleBlock':

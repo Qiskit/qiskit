@@ -54,6 +54,13 @@ class AlignmentKind(abc.ABC):
         """Check equality of two transforms."""
         return isinstance(other, type(self)) and self.to_dict() == other.to_dict()
 
+    def __repr__(self):
+        name = self.__class__.__name__
+        opts = self.to_dict()
+        opts.pop('alignment')
+        opts_str = ', '.join(f'{key}={val}' for key, val in opts.items())
+        return f'{name}({opts_str})'
+
 
 class AlignLeft(AlignmentKind):
     """Align instructions in as-soon-as-possible manner.
@@ -261,7 +268,8 @@ class AlignEquispaced(AlignmentKind):
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
-        return {'alignment': self.__class__.__name__, 'duration': self._context_params[0]}
+        return {'alignment': self.__class__.__name__,
+                'duration': self._context_params[0]}
 
 
 class AlignFunc(AlignmentKind):
@@ -330,9 +338,11 @@ class AlignFunc(AlignmentKind):
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment.
 
-        .. note:: ``func`` is not presented in this dictionary.
+        .. note:: ``func`` is not presented in this dictionary. Just name.
         """
-        return {'alignment': self.__class__.__name__, 'duration': self._context_params[0]}
+        return {'alignment': self.__class__.__name__,
+                'duration': self._context_params[0],
+                'func': self._func.__name__}
 
 
 def pad(schedule: Schedule,
