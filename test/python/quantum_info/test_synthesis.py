@@ -236,8 +236,6 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     """Test TwoQubitWeylDecomposition()
     """
 
-    # pylint: disable=invalid-name
-
     def test_two_qubit_weyl_decomposition_cnot(self):
         """Verify Weyl KAK decomposition for U~CNOT"""
         for k1l, k1r, k2l, k2r in K1K2S:
@@ -408,7 +406,6 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
     @combine(seed=range(10), name='test_exact_supercontrolled_decompose_random_{seed}')
     def test_exact_supercontrolled_decompose_random(self, seed):
         """Exact decomposition for random supercontrolled basis and random target (seed={seed})"""
-        # pylint: disable=invalid-name
         k1 = np.kron(random_unitary(2, seed=seed).data, random_unitary(2, seed=seed + 1).data)
         k2 = np.kron(random_unitary(2, seed=seed + 2).data, random_unitary(2, seed=seed + 3).data)
         basis_unitary = k1 @ Ud(np.pi / 4, 0, 0) @ k2
@@ -525,7 +522,8 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
     @combine(seed=range(10),
-             euler_bases=[('U3', ['u3']), ('U', ['u']), ('U1X', ['u1', 'rx']), ('RR', ['r']),
+             euler_bases=[('U321', ['u3', 'u2', 'u1']), ('U3', ['u3']), ('U', ['u']),
+                          ('U1X', ['u1', 'rx']), ('RR', ['r']),
                           ('PSX', ['p', 'sx']), ('ZYZ', ['rz', 'ry']), ('ZXZ', ['rz', 'rx']),
                           ('XYX', ['rx', 'ry']), ('ZSX', ['rz', 'sx'])],
              kak_gates=[(CXGate(), 'cx'), (CZGate(), 'cz'), (iSwapGate(), 'iswap'),
