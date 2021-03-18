@@ -213,8 +213,10 @@ class OperatorStateFn(StateFn):
             return front.combo_fn([self.eval(front.coeff * front_elem)
                                    for front_elem in front.oplist])
 
-        # if isinstance(front, CircuitStateFn):
-        #     front = front.eval()
+        # If we evaluate against a circuit, evaluate it to a vector so we
+        # make sure to only do the expensive circuit simulation once
+        if isinstance(front, CircuitStateFn):
+            front = front.eval()
 
         return front.adjoint().eval(cast(OperatorBase, self.primitive.eval(front))) * self.coeff
 
