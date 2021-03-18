@@ -33,7 +33,7 @@ features:
     by assigning a target duration value.
 deprecations:
   - |
-    :method:`assign_parameters`, :method:`is_parameterized`, and :method:`parameters` are
+    :meth:`assign_parameters`, :meth:`is_parameterized`, and :meth:`parameters` are
     being deprecated from :py:class:`~qiskit.pulse.channels.Channel`,
     :py:class:`~qiskit.pulse.library.Pulse`, :py:class:`~qiskit.pulse.instructions.Instruction`,
     and their subclasses.
