@@ -126,10 +126,12 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(phases[0], 1.490, delta=0.001)
         self.assertAlmostEqual(phases[1], -0.090, delta=0.001)
 
-    def _setup_from_bound(self, evolution):
+    def _setup_from_bound(self, evolution, op_class):
         hamiltonian = self.hamiltonian_1
         state_preparation = None
         bound = 1.2 * sum([abs(hamiltonian.coeff * coeff) for coeff in hamiltonian.coeffs])
+        if op_class == 'MatrixOp':
+            hamiltonian = hamiltonian.to_matrix_op()
         backend = qiskit.BasicAer.get_backend('statevector_simulator')
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         phase_est = HamiltonianPhaseEstimation(num_evaluation_qubits=6,
@@ -142,20 +144,22 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
 
     def test_from_bound(self):
         """HamiltonianPhaseEstimation with bound"""
-        result = self._setup_from_bound(MatrixEvolution())
-        cutoff = 0.01
-        phases = result.filter_phases(cutoff)
-        with self.subTest('test phases has the correct length'):
-            self.assertEqual(len(phases), 2)
-        with self.subTest('test scaled phases are correct'):
-            self.assertEqual(list(phases.keys()), [1.5, -1.5])
-        phases = result.filter_phases(cutoff, scaled=False)
-        with self.subTest('test unscaled phases are correct'):
-            self.assertEqual(list(phases.keys()), [0.25, 0.75])
+        for op_class in ('SummedOp', 'MatrixOp'):
+            result = self._setup_from_bound(MatrixEvolution(), op_class)
+            cutoff = 0.01
+            phases = result.filter_phases(cutoff)
+            with self.subTest(f'test phases has the correct length: {op_class}'):
+                self.assertEqual(len(phases), 2)
+                with self.subTest(f'test scaled phases are correct: {op_class}'):
+                    self.assertEqual(list(phases.keys()), [1.5, -1.5])
+                    phases = result.filter_phases(cutoff, scaled=False)
+                with self.subTest(f'test unscaled phases are correct: {op_class}'):
+                    self.assertEqual(list(phases.keys()), [0.25, 0.75])
 
     def test_trotter_from_bound(self):
         """HamiltonianPhaseEstimation with bound and Trotterization"""
-        result = self._setup_from_bound(PauliTrotterEvolution(trotter_mode='suzuki', reps=3))
+        result = self._setup_from_bound(PauliTrotterEvolution(trotter_mode='suzuki', reps=3),
+                                        op_class='SummedOp')
         phase_dict = result.filter_phases(0.1)
         phases = list(phase_dict.keys())
         with self.subTest('test phases has the correct length'):

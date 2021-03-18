@@ -16,7 +16,7 @@ from typing import Optional, Union
 from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import (EvolutionBase, PauliTrotterEvolution, OperatorBase,
-                           SummedOp, PauliOp, PauliSumOp, StateFn)
+                           SummedOp, PauliOp, MatrixOp, PauliSumOp, StateFn)
 from qiskit.providers import BaseBackend
 from .phase_estimation import PhaseEstimation
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
@@ -101,8 +101,10 @@ class HamiltonianPhaseEstimation:
             evolution: An evolution object that generates a unitary from `hamiltonian`. If
                 `None`, then the default `PauliTrotterEvolution` is used.
             bound: An upper bound on the absolute value of the eigenvalues of
-                `hamiltonian`. If omitted, then `hamiltonian` must be a Pauli sum, in which case
-                then a bound will be computed.
+                `hamiltonian`. If omitted, then `hamiltonian` must be a Pauli sum, or a
+                PauliOp, in which case a bound will be computed. If `hamiltonian`
+                is a `MatrixOp`, then `bound` may not be `None`. The tighter the bound,
+                the higher the resolution of computed phases.
 
         Returns:
             HamiltonianPhaseEstimationResult instance containing the result of the estimation
@@ -115,30 +117,42 @@ class HamiltonianPhaseEstimation:
         if not isinstance(evolution, EvolutionBase):
             raise TypeError(f'Expecting type EvolutionBase, got {type(evolution)}')
 
+        if evolution is None:
+            evolution = PauliTrotterEvolution()
+
         if isinstance(hamiltonian, PauliSumOp):
             hamiltonian = hamiltonian.to_pauli_op()
         elif isinstance(hamiltonian, PauliOp):
             hamiltonian = SummedOp([hamiltonian])
 
-        if evolution is None:
-            evolution = PauliTrotterEvolution()
+        if isinstance(hamiltonian, SummedOp):
+            # remove identitiy terms
+            # The term propto the identity is removed from hamiltonian.
+            # This is done for three reasons:
+            # 1. Work around an unknown bug that otherwise causes the energies to be wrong in some
+            #    cases.
+            # 2. Allow working with a simpler Hamiltonian, one with fewer terms.
+            # 3. Tighten the bound on the eigenvalues so that the spectrum is better resolved, i.e.
+            #   occupies more of the range of values representable by the qubit register.
+            # The coefficient of this term will be added to the eigenvalues.
+            id_coefficient, hamiltonian_no_id = _remove_identity(hamiltonian)
 
-        # remove identitiy terms
-        # The term propto the identity is removed from hamiltonian.
-        # This is done for three reasons:
-        # 1. Work around an unknown bug that otherwise causes the energies to be wrong in some
-        #    cases.
-        # 2. Allow working with a simpler Hamiltonian, one with fewer terms.
-        # 3. Tighten the bound on the eigenvalues so that the spectrum is better resolved, i.e.
-        #   occupies more of the range of values representable by the qubit register.
-        # The coefficient of this term will be added to the eigenvalues.
-        id_coefficient, hamiltonian_no_id = _remove_identity(hamiltonian)
+            # get the rescaling object
+            pe_scale = self._get_scale(hamiltonian_no_id, bound)
 
-        # get the rescaling object
-        pe_scale = self._get_scale(hamiltonian_no_id, bound)
+            # get the unitary
+            unitary = self._get_unitary(hamiltonian_no_id, pe_scale, evolution)
 
-        # get the unitary
-        unitary = self._get_unitary(hamiltonian_no_id, pe_scale, evolution)
+        elif isinstance(hamiltonian, MatrixOp):
+            if bound is None:
+                raise ValueError('bound must be specified if Hermitian operator is MatrixOp')
+
+            # Do not subtract an identity term from the matrix, so do not compensate.
+            id_coefficient = 0.0
+            pe_scale = self._get_scale(hamiltonian, bound)
+            unitary = self._get_unitary(hamiltonian, pe_scale, evolution)
+        else:
+            raise TypeError(f'Hermitian operator of type {type(hamiltonian)} not supported.')
 
         if state_preparation is not None:
             state_preparation=state_preparation.to_circuit()
