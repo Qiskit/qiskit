@@ -23,6 +23,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.library.standard_gates import (UGate, PhaseGate, U3Gate,
                                                    U2Gate, U1Gate, RXGate, RYGate,
                                                    RZGate, RGate, SXGate)
+from qiskit.circuit.library.generalized_gates import RVGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
@@ -35,6 +36,7 @@ ONE_QUBIT_EULER_BASIS_GATES = {
     'PSX': ['p', 'sx'],
     'U1X': ['u1', 'rx'],
     'RR': ['r'],
+    'RV': ['rv'],
     'ZYZ': ['rz', 'ry'],
     'ZXZ': ['rz', 'rx'],
     'XYX': ['rx', 'ry'],
@@ -93,12 +95,15 @@ class OneQubitEulerDecomposer:
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
           - :math:`e^{i\gamma} R\left(-\pi,\frac{\phi-\lambda+\pi}{2}\right).`
             :math:`R\left(\theta+\pi,\frac{\pi}{2}-\lambda\right)`
+        * - 'RV'
+          - :math:`e^{i\gamma} R\left(-\pi,\frac{\phi-\lambda+\pi}{2}\right).`
     """
 
     def __init__(self, basis='U3'):
         """Initialize decomposer
 
-        Supported bases are: 'U', 'PSX', 'ZSX', 'U321', 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ', 'XYX'.
+        Supported bases are: 'U', 'PSX', 'ZSX', 'U321', 'U3', 'U1X',
+                             'RR', 'RV', 'ZYZ', 'ZXZ', 'XYX'.
 
         Args:
             basis (str): the decomposition basis [Default: 'U3']
@@ -169,6 +174,7 @@ class OneQubitEulerDecomposer:
             'ZSX': (self._params_u1x, self._circuit_zsx),
             'U1X': (self._params_u1x, self._circuit_u1x),
             'RR': (self._params_zyz, self._circuit_rr),
+            'RV': (self._params_rv, self._circuit_rv),
             'ZYZ': (self._params_zyz, self._circuit_zyz),
             'ZXZ': (self._params_zxz, self._circuit_zxz),
             'XYX': (self._params_xyx, self._circuit_xyx)
@@ -244,6 +250,32 @@ class OneQubitEulerDecomposer:
             dtype=complex)
         theta, phi, lam, phase = OneQubitEulerDecomposer._params_zyz(mat_zyz)
         return -theta, phi, lam, phase
+
+    @staticmethod
+    def _params_rv(mat):
+        """Return the vx, vy, vz coordinates."""
+        alpha = -.5 * np.arctan2(np.imag(np.linalg.det(mat)),
+                                 np.real(np.linalg.det(mat)))
+        V = np.exp(1.j * alpha) * mat  # V is now special unitary
+
+        # Find nx, ny, nz such that V takes the form of an RV(nx, ny, nz)
+        # and nx**2 + ny**2 + nz**2 = 1, so that RV becomes SU(2)
+        N = np.sqrt(np.imag(V[0][1])**2 + np.real(V[0][1])**2 + np.imag(V[0][0])**2)
+
+        if np.isclose(N, 0.0):
+            vx = vy = vz = 0
+        else:
+            nx = -np.imag(V[0][1]) / N
+            ny = -np.real(V[0][1]) / N
+            nz = -np.imag(V[0][0]) / N
+            s = N / (nx**2 + ny**2 + nz**2)
+            c = np.real(V[0][0])
+            theta = 2 * np.arctan2(s, c)
+            vx = nx * (theta / np.pi)
+            vy = ny * (theta / np.pi)
+            vz = nz * (theta / np.pi)
+
+        return vx, vy, vz, -alpha
 
     @staticmethod
     def _params_u3(mat):
@@ -533,6 +565,19 @@ class OneQubitEulerDecomposer:
         if not simplify or not math.isclose(theta, -np.pi, abs_tol=atol):
             circuit._append(RGate(theta + np.pi, np.pi / 2 - lam), [qr[0]], [])
         circuit._append(RGate(-np.pi, 0.5 * (phi - lam + np.pi)), [qr[0]], [])
+        return circuit
+
+    @staticmethod
+    def _circuit_rv(vx,
+                    vy,
+                    vz,
+                    phase,
+                    simplify=True,
+                    atol=DEFAULT_ATOL):
+        # pylint: disable=unused-argument
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr, global_phase=phase)
+        circuit._append(RVGate(vx, vy, vz), [qr[0]], [])
         return circuit
 
 

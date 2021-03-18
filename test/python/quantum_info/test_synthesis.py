@@ -168,7 +168,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
                 maxdist = np.max(np.abs(target_unitary + decomp_unitary))
             self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
-    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR'],
+    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR', 'RV'],
              name='test_one_qubit_clifford_{basis}_basis')
     def test_one_qubit_clifford_all_basis(self, basis):
         """Verify for {basis} basis and all Cliffords."""
@@ -182,7 +182,8 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
                               ('U1X', 1e-7),
                               ('PSX', 1e-7),
                               ('ZSX', 1e-7),
-                              ('RR', 1e-12)],
+                              ('RR', 1e-12),
+                              ('RV', 1e-12)],
              name='test_one_qubit_hard_thetas_{basis_tolerance[0]}_basis')
     # Lower tolerance for U1X test since decomposition since it is
     # less numerically accurate. This is due to it having 5 matrix
@@ -193,8 +194,8 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
             self.check_one_qubit_euler_angles(Operator(gate), basis_tolerance[0],
                                               basis_tolerance[1])
 
-    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR'], seed=range(50),
-             name='test_one_qubit_random_{basis}_basis_{seed}')
+    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR', 'RV'],
+             seed=range(50), name='test_one_qubit_random_{basis}_basis_{seed}')
     def test_one_qubit_random_all_basis(self, basis, seed):
         """Verify for {basis} basis and random_unitary (seed={seed})."""
         unitary = random_unitary(2, seed=seed)
@@ -523,7 +524,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
 
     @combine(seed=range(10),
              euler_bases=[('U321', ['u3', 'u2', 'u1']), ('U3', ['u3']), ('U', ['u']),
-                          ('U1X', ['u1', 'rx']), ('RR', ['r']),
+                          ('U1X', ['u1', 'rx']), ('RR', ['r']), ('RV', ['rv']),
                           ('PSX', ['p', 'sx']), ('ZYZ', ['rz', 'ry']), ('ZXZ', ['rz', 'rx']),
                           ('XYX', ['rx', 'ry']), ('ZSX', ['rz', 'sx'])],
              kak_gates=[(CXGate(), 'cx'), (CZGate(), 'cz'), (iSwapGate(), 'iswap'),

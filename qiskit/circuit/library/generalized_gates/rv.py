@@ -18,8 +18,7 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class RVGate(Gate):
-    r"""Single-qubit rotation around arbitrary rotation
-    axis v, where ||v|| is angle of rotation in radians.
+    r"""Single-qubit rotation around arbitrary axis v, with angle ||v||.
 
     **Circuit symbol:**
 
@@ -41,20 +40,18 @@ class RVGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, vx, vy, vz, basis='U'):
+    def __init__(self, vx, vy, vz):
         """Create new rv single-qubit gate.
 
         Args:
             vx (float): x-component
             vy (float): y-component
             vz (float): z-component
-            basis (str, optional): basis (see
-                :class:`~qiskit.quantum_info.synthesis.one_qubit_decompose.OneQubitEulerDecomposer`)
         """
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
         super().__init__('rv', 1, [vx, vy, vz])
-        self._decomposer = OneQubitEulerDecomposer(basis=basis)
+        self._decomposer = OneQubitEulerDecomposer(basis='U')
 
     def _define(self):
         try:
