@@ -30,7 +30,8 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
 
     def hamiltonian_pe(self, hamiltonian, state_preparation=None, num_evaluation_qubits=6,
                        backend=qiskit.BasicAer.get_backend('statevector_simulator'),
-                       evolution=MatrixEvolution()):
+                       evolution=MatrixEvolution(),
+                       bound=None):
         """Run HamiltonianPhaseEstimation and return result with all  phases."""
         quantum_instance = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         phase_est = HamiltonianPhaseEstimation(
@@ -38,7 +39,8 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
             quantum_instance=quantum_instance)
         result = phase_est.estimate(
             hamiltonian=hamiltonian,
-            state_preparation=state_preparation, evolution=evolution)
+            state_preparation=state_preparation, evolution=evolution,
+            bound=bound)
         return result
 
     # pylint: disable=invalid-name
@@ -80,6 +82,20 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
             self.assertAlmostEqual(phases[0], 1.484, delta=0.001)
         with self.subTest('Use PauliTrotterEvolution, second phase'):
             self.assertAlmostEqual(phases[1], -1.484, delta=0.001)
+
+    def test_single_pauli_op(self):
+        """Two eigenvalues from Pauli sum with X, Y, Z"""
+        hamiltonian = Z
+        state_preparation = None
+        result = self.hamiltonian_pe(hamiltonian, state_preparation)
+        eigv = result.most_likely_eigenvalue
+        with self.subTest('First eigenvalue'):
+            self.assertAlmostEqual(eigv, 1.0, delta=0.001)
+        state_preparation = StateFn(X.to_circuit())
+        result = self.hamiltonian_pe(hamiltonian, state_preparation, bound=1.05)
+        eigv = result.most_likely_eigenvalue
+        with self.subTest('Second eigenvalue'):
+            self.assertAlmostEqual(eigv, -0.98, delta=0.01)
 
     def test_H2_hamiltonian(self):
         """Test H2 hamiltonian"""

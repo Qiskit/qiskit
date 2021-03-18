@@ -16,7 +16,7 @@ from typing import Optional, Union
 from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import (EvolutionBase, PauliTrotterEvolution, OperatorBase,
-                           SummedOp, PauliSumOp, StateFn)
+                           SummedOp, PauliOp, PauliSumOp, StateFn)
 from qiskit.providers import BaseBackend
 from .phase_estimation import PhaseEstimation
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
@@ -112,8 +112,13 @@ class HamiltonianPhaseEstimation:
             ValueError: if `bound` is `None` and `hamiltonian` is not a Pauli sum (i.e. a
             `PauliSumOp` or a `SummedOp` whose terms are `PauliOp`s.)
         """
+        if not isinstance(evolution, EvolutionBase):
+            raise TypeError(f'Expecting type EvolutionBase, got {type(evolution)}')
+
         if isinstance(hamiltonian, PauliSumOp):
             hamiltonian = hamiltonian.to_pauli_op()
+        elif isinstance(hamiltonian, PauliOp):
+            hamiltonian = SummedOp([hamiltonian])
 
         if evolution is None:
             evolution = PauliTrotterEvolution()
