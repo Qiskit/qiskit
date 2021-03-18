@@ -24,6 +24,24 @@ Qiskit consists of four foundational elements:
 
 - :ref:`Qiskit Aqua <Aqua>`: Building algorithms and applications
 
+Interested in Quantum hardware design?
+######################################
+
+   .. panels::
+
+    Qiskit Metal
+    ^^^^^^^^^^^^^^
+
+    .. figure:: images/metal.png
+      :scale: 35 %
+      :align: center
+
+    ++++++
+    :link-badge:`https://qiskit.org/metal,"Website",cls=badge-dark text-white`
+    :link-badge:`https://qiskit.org/documentation/metal/,"Documentation",cls=badge-primary text-white`
+
+
+
 .. toctree::
   :maxdepth: 2
   :hidden:
