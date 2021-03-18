@@ -1,7 +1,10 @@
 ---
 features:
   - |
-    This adds a general rotation gate, similar to the UGate, but instead of specifying
-    Euler angles the three components of a rotation vector are specified where the direction
-    of the vector specifies the rotation axis and the magnitude specifies the rotation angle
-    about the axis in radians.
+    Added a general single-qubit rotation gate
+    (:py:class:`~qiskit.circuit.library.generalized_gates.RVGate`) that has an
+    alternative parameterization compared to the UGate. Instead of specifying
+    Euler angles, the three components of a rotation vector (vx, vy, vz)
+    are specified where the direction of the vector specifies the rotation
+    axis and the vector magnitude specifies the rotation angle about the axis
+    as a multiple of pi radians.
