@@ -21,13 +21,13 @@ from qiskit.circuit.library import BlueprintCircuit
 class LinearSystemMatrix(BlueprintCircuit, ABC):
     """Base class for linear system matrices."""
 
-    def __init__(self, num_state_qubits: int, tolerance: float, evo_time: float,
+    def __init__(self, num_state_qubits: int, tolerance: float, evolution_time: float,
                  name: str = 'ls_matrix') -> None:
         """
         Args:
             num_state_qubits: the number of qubits where the unitary acts.
             tolerance: the accuracy desired for the approximation
-            evo_time: the time of the Hamiltonian simulation
+            evolution_time: the time of the Hamiltonian simulation
             name: The name of the object.
         """
         super().__init__(name=name)
@@ -40,7 +40,7 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
         # store parameters
         self.num_state_qubits = num_state_qubits
         self.tolerance = tolerance
-        self.evo_time = evo_time
+        self.evo_time = evolution_time
 
     @property
     def num_state_qubits(self) -> int:
