@@ -495,8 +495,8 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(2)
         circuit.x(0)
         circuit.x(0)
-        circuit.x(2).c_if(cr, 2)
         circuit.measure(2, 1)
+        circuit.x(2).c_if(cr, 2)
         self.circuit_drawer(circuit, cregbundle=False, reverse_bits=True,
                             filename='reverse_bits_cond_true.png')
         self.circuit_drawer(circuit, cregbundle=False, reverse_bits=False,
