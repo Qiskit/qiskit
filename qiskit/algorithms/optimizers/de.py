@@ -45,7 +45,7 @@ class DIFF_EVOLUTION(Optimizer):
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html
     """
 
-    _OPTIONS = ['strategy', 'maxiter', 'pop_size', 'mutation',
+    _OPTIONS = ['strategy', 'maxiter', 'popsize', 'mutation',
                 'recombination', 'init', 'tol', 'atol', 
                 'polish', 'disp', 'workers']
 
