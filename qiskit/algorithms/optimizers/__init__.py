@@ -119,6 +119,7 @@ from .nlopts.isres import ISRES
 from .snobfit import SNOBFIT
 from .bobyqa import BOBYQA
 from .imfil import IMFIL
+from .de import DIFF_EVOLUTION
 
 __all__ = ['Optimizer',
            'OptimizerSupportLevel',
@@ -136,4 +137,4 @@ __all__ = ['Optimizer',
            'SPSA',
            'TNC',
            'CRS', 'DIRECT_L', 'DIRECT_L_RAND', 'ESCH', 'ISRES',
-           'SNOBFIT', 'BOBYQA', 'IMFIL']
+           'SNOBFIT', 'BOBYQA', 'IMFIL', 'DIFF_EVOLUTION']
