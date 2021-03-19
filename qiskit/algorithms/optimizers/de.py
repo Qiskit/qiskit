@@ -43,12 +43,11 @@ class DIFF_EVOLUTION(Optimizer):
     Uses scipy.optimize.differential_evolution
     For further detail, please refer to
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html
-
     """
 
     _OPTIONS = ['strategy', 'maxiter', 'pop_size', 'mutation',
-                'recombination', 'tol', 'atol', 'polish',
-                'disp', 'init', 'updating', 'workers']
+                'recombination', 'init', 'tol', 'atol', 
+                'polish', 'disp', 'workers']
 
     def __init__(self,
                  strategy: str = 'currenttobest1bin',
@@ -111,7 +110,7 @@ class DIFF_EVOLUTION(Optimizer):
         return {
             'gradient': OptimizerSupportLevel.ignored,
             'bounds': OptimizerSupportLevel.required,
-            'initial_point': OptimizerSupportLevel.required
+            'initial_point': OptimizerSupportLevel.ignored
         }
 
     def optimize(self,
