@@ -76,14 +76,17 @@ not. To install the `scikit-quant` dependent package you can use
 Global Optimizers
 =================
 The global optimizers here include NLopt for their core function and can only be
-used if their dependent NLopt package is manually installed. See the following
-section for installation instructions.
+used if their dependent NLopt package is manually installed. Additionally, the
+differential evolution (DE) optimizer from the ``scipy`` package can be utilized.
+
+See the following
+section for installation instructions for NLopt.
 
 .. toctree::
 
    qiskit.algorithms.optimizers.nlopts
 
-The global optimizers from NLopt are as follows:
+The global optimizers are as follows:
 
 .. autosummary::
    :toctree: ../stubs/
@@ -94,8 +97,8 @@ The global optimizers from NLopt are as follows:
    DIRECT_L_RAND
    ESCH
    ISRES
-
-
+   DE
+   
 """
 
 from .optimizer import OptimizerSupportLevel, Optimizer
