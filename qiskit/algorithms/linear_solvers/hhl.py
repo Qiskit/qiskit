@@ -42,6 +42,9 @@ class HHL(LinearSolver):
             epsilon: Error tolerance of the approximation to the solution, i.e. if x is the exact
                 solution and ::math::`\tilde{x}` the one calculated by the algorithm, then
                 :math:`||x - \tilde{x}|| < epsilon`.
+            expectation: The expectation converter applied to the expectation values before
+                evaluation.
+            quantum_instance: Quantum Instance or Backend
 
 
         References:
@@ -229,7 +232,10 @@ class HHL(LinearSolver):
                 raise ValueError("Input matrix must be hermitian!")
             if matrix.shape[0] != 2 ** vector_circuit.num_qubits:
                 raise ValueError("Input vector dimension does not match input "
-                                 "matrix dimension!")
+                                 "matrix dimension! Vector dimension: " +
+                                 str(vector_circuit.num_qubits) +
+                                 ". Matrix dimension: " +
+                                 str(matrix.shape[0]))
 
         # Set the tolerance for the matrix approximation
         matrix_circuit.tolerance = self._epsilon_a
