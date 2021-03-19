@@ -25,6 +25,6 @@ pygments>=2.4
 tweedledum==0.1b0
 networkx>=2.2
 scikit-learn>=0.20.0
-scikit-quant;platform_system != 'Windows'
+scikit-quant<=0.7;platform_system != 'Windows'
 jax;platform_system != 'Windows'
 jaxlib;platform_system != 'Windows'

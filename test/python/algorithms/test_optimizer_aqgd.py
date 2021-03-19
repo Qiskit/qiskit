@@ -14,15 +14,17 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit import BasicAer
+from qiskit import Aer
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.opflow import PauliSumOp
 from qiskit.algorithms.optimizers import AQGD
 from qiskit.algorithms import VQE, AlgorithmError
 from qiskit.opflow.gradients import Gradient
+from qiskit.test import slow_test
 
 
+@unittest.skipUnless(Aer, 'Aer is required to run these tests')
 class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
     """ Test AQGD optimizer using RY for analytic gradient with VQE """
 
@@ -38,9 +40,10 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
             ("XX", 0.18093119978423156),
         ])
 
+    @slow_test
     def test_simple(self):
         """ test AQGD optimizer with the parameters as single values."""
-        q_instance = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
+        q_instance = QuantumInstance(Aer.get_backend('statevector_simulator'),
                                      seed_simulator=algorithm_globals.random_seed,
                                      seed_transpiler=algorithm_globals.random_seed)
 
@@ -54,7 +57,7 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
 
     def test_list(self):
         """ test AQGD optimizer with the parameters as lists. """
-        q_instance = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
+        q_instance = QuantumInstance(Aer.get_backend('statevector_simulator'),
                                      seed_simulator=algorithm_globals.random_seed,
                                      seed_transpiler=algorithm_globals.random_seed)
 
@@ -69,9 +72,10 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
         """ tests that AQGD raises an exception when incorrect values are passed. """
         self.assertRaises(AlgorithmError, AQGD, maxiter=[1000], eta=[1.0, 0.5], momentum=[0.0, 0.5])
 
+    @slow_test
     def test_int_values(self):
         """ test AQGD with int values passed as eta and momentum. """
-        q_instance = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
+        q_instance = QuantumInstance(Aer.get_backend('statevector_simulator'),
                                      seed_simulator=algorithm_globals.random_seed,
                                      seed_transpiler=algorithm_globals.random_seed)
 
