@@ -18,7 +18,7 @@ import numpy as np
 from scipy.optimize import differential_evolution
 from .optimizer import Optimizer, OptimizerSupportLevel
 
-class DifferentialEvolution(Optimizer):
+class DIFF_EVOLUTION(Optimizer):
     """
     Differential Evolution (DE) optimizer
 
@@ -52,11 +52,11 @@ class DifferentialEvolution(Optimizer):
 
     def __init__(self,
                  strategy: str = 'currenttobest1bin',
-                 maxiter: int = 60,
-                 popsize: int = 20,
+                 maxiter: int = 10,
+                 popsize: int = 10,
                  mutation: Union[float, tuple] = (0.5,1),
                  recombination: float = 0.7,
-                 init: str = 'latinhybercube',
+                 init: str = 'latinhypercube',
                  tol: float = 0.01,
                  atol: float = 0,
                  polish: bool = True,
