@@ -18,12 +18,12 @@ import numpy as np
 from scipy.optimize import differential_evolution
 from .optimizer import Optimizer, OptimizerSupportLevel
 
-class DIFF_EVOLUTION(Optimizer):
+class DE(Optimizer):
     """
     Differential Evolution (DE) optimizer
 
-    DE is a global and derivative-free optimizer that seeks to find the
-    optimal value of an objective function through stochastically
+    DE is a global and derivative-free optimizer that seeks
+    to find the optimal value of an objective function through stochastically
     searching the optimization space of possible solutions.
     DE belongs to the family of evolutionary optimization techniques
     such as genetic and particle swarm algorithms. It is best suited
@@ -46,14 +46,14 @@ class DIFF_EVOLUTION(Optimizer):
     """
 
     _OPTIONS = ['strategy', 'maxiter', 'popsize', 'mutation',
-                'recombination', 'init', 'tol', 'atol', 
+                'recombination', 'init', 'tol', 'atol',
                 'polish', 'disp', 'workers']
 
     def __init__(self,
                  strategy: str = 'currenttobest1bin',
                  maxiter: int = 10,
                  popsize: int = 10,
-                 mutation: Union[float, tuple] = (0.5,1),
+                 mutation: Union[float, tuple] = (0.5, 1),
                  recombination: float = 0.7,
                  init: str = 'latinhypercube',
                  tol: float = 0.01,
