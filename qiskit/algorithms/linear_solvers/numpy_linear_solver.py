@@ -12,7 +12,6 @@
 """The Numpy LinearSolver algorithm (classical)."""
 
 from typing import List, Union, Optional, Callable
-import logging
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -22,8 +21,6 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .linear_solver import LinearSolverResult, LinearSolver
 from .observables.linear_system_observable import LinearSystemObservable
 
-logger = logging.getLogger(__name__)
-
 
 class NumPyLinearSolver(LinearSolver):
     """
@@ -32,6 +29,7 @@ class NumPyLinearSolver(LinearSolver):
     This linear system solver computes the exact value of the given observable(s) or the full
     solution vector if no observable is specified.
     """
+
     def solve(self, matrix: Union[np.ndarray, QuantumCircuit],
               vector: Union[np.ndarray, QuantumCircuit],
               observable: Optional[Union[LinearSystemObservable, BaseOperator,

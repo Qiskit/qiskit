@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """The matrix functional of the vector solution to the linear systems."""
+
 from typing import Union, List
 import numpy as np
 from scipy.sparse import diags
@@ -18,6 +19,7 @@ from scipy.sparse import diags
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Statevector
 from qiskit.opflow import I, Z, TensoredOp
+
 from .linear_system_observable import LinearSystemObservable
 
 
@@ -28,9 +30,9 @@ class MatrixFunctional(LinearSystemObservable):
         """
         Args:
             main_diag: The main diagonal of the tridiagonal Toeplitz symmetric matrix to compute
-             the functional.
+                the functional.
             off_diag: The off diagonal of the tridiagonal Toeplitz symmetric matrix to compute
-             the functional.
+                the functional.
         """
         self._main_diag = main_diag
         self._off_diag = off_diag

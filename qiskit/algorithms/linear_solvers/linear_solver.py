@@ -17,9 +17,10 @@ from typing import Union, Optional, List, Callable
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.result import Result
 from qiskit.algorithms import AlgorithmResult
+from qiskit.result import Result
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+
 from .observables.linear_system_observable import LinearSystemObservable
 
 
@@ -33,6 +34,7 @@ class LinearSolverResult(AlgorithmResult):
 
     Note:
     """
+
     def __init__(self) -> None:
         super().__init__()
 

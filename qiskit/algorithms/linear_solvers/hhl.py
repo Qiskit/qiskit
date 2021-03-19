@@ -15,7 +15,7 @@
 from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
@@ -114,7 +114,8 @@ class HHL(LinearSolver):
         return np.real(np.sqrt(norm_2) / scaling)
 
     def _calculate_observable(self, solution: QuantumCircuit,
-                              observable: Optional[Union[LinearSystemObservable, BaseOperator]] = None,
+                              observable: Optional[Union[LinearSystemObservable,
+                                                         BaseOperator]] = None,
                               observable_circuit: Optional[QuantumCircuit] = None,
                               post_processing: Optional[Callable[[Union[float, List[float]]],
                                                                  Union[float, List[float]]]] = None,
@@ -166,15 +167,8 @@ class HHL(LinearSolver):
             circuit.append(solution, circuit.qubits)
             circuit.append(circ, range(nb))
 
-            if isinstance(obs, list):
-                sub_expectations = []
-                for sub_obs in obs:
-                    ob = one_op ^ TensoredOp((nl + na) * [zero_op]) ^ sub_obs
-                    sub_expectations.append(~StateFn(ob) @ StateFn(circuit))
-                expectations.append(ListOp(sub_expectations))
-            else:
-                ob = one_op ^ TensoredOp((nl + na) * [zero_op]) ^ obs
-                expectations.append(~StateFn(ob) @ StateFn(circuit))
+            ob = one_op ^ TensoredOp((nl + na) * [zero_op]) ^ obs
+            expectations.append(~StateFn(ob) @ StateFn(circuit))
 
         if is_list:
             # execute all in a list op to send circuits in batches
@@ -340,8 +334,7 @@ class HHL(LinearSolver):
             observable: Optional information to be extracted from the solution.
                 Default is the probability of success of the algorithm.
             observable_circuit: Optional circuit to be applied to the solution to extract
-             information.
-                Default is `None`.
+                information. Default is `None`.
             post_processing: Optional function to compute the value of the observable.
                 Default is the raw value of measuring the observable.
 
@@ -357,10 +350,6 @@ class HHL(LinearSolver):
             if observable_circuit is not None or post_processing is not None:
                 raise ValueError('If observable is passed, observable_circuit and post_processing '
                                  'cannot be set.')
-        elif observable_circuit is not None or post_processing is not None:
-            if observable_circuit is None or post_processing is None:
-                raise ValueError('If one of observable_circuit or post_processing is passed, '
-                                 'both must be passed.')
 
         # Hamiltonian simulation circuit - default is Trotterization
         if isinstance(matrix, LinearSystemMatrix):

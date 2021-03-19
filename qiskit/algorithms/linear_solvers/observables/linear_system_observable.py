@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """An abstract class for linear systems solvers in Qiskit's aqua module."""
+
 from abc import ABC, abstractmethod
 from typing import Union, List
 import numpy as np
@@ -21,6 +22,7 @@ from qiskit.opflow import TensoredOp
 
 class LinearSystemObservable(ABC):
     """An abstract class for linear system observables in Qiskit."""
+
     @abstractmethod
     def observable(self, num_qubits: int) -> Union[TensoredOp, List[TensoredOp]]:
         """The observable operator.

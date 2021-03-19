@@ -10,8 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The absolute value of the average of the components of the vector solution to the
-linear systems."""
+"""The absolute value of the average of a linear system of equations solution."""
+
 from typing import Union, List
 import numpy as np
 
@@ -23,10 +23,12 @@ from .linear_system_observable import LinearSystemObservable
 
 
 class AbsoluteAverage(LinearSystemObservable):
-    r"""A class for the absolute value of the average of the components of the vector solution
-    to the linear systems.
-    For a vector :math:`x=(x_1,...,x_N)`, the average is defined as
-    :math:`\abs{\frac{1}{N}\sum_{i-1}^{N}x_i}`."""
+    r"""An observable for the absolute average of a linear system of equations solution.
+
+    For a vector :math:`x=(x_1,...,x_N)`, the absolute average is defined as
+    :math:`\abs{\frac{1}{N}\sum_{i=1}^{N}x_i}`.
+    """
+
     def observable(self, num_qubits: int) -> Union[TensoredOp, List[TensoredOp]]:
         """The observable operator.
 
@@ -36,7 +38,7 @@ class AbsoluteAverage(LinearSystemObservable):
         Returns:
             The observable as a sum of Pauli strings.
         """
-        zero_op = ((I + Z) / 2)
+        zero_op = (I + Z) / 2
         return TensoredOp(num_qubits * [zero_op])
 
     def observable_circuit(self, num_qubits: int) -> Union[QuantumCircuit, List[QuantumCircuit]]:

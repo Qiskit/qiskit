@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """An abstract class for linear systems solvers in Qiskit's aqua module."""
+
 from abc import ABC, abstractmethod
 
 from qiskit import QuantumCircuit
@@ -22,8 +23,7 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
 
     def __init__(self, num_state_qubits: int, tolerance: float, evo_time: float,
                  name: str = 'ls_matrix') -> None:
-        """Create a new linear system matrix circuit.
-
+        """
         Args:
             num_state_qubits: the number of qubits where the unitary acts.
             tolerance: the accuracy desired for the approximation
@@ -127,7 +127,7 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
 
         Args:
             power: The power to raise this circuit to.
-            matrix_power (bool): If True, the circuit is converted to a matrix and then the
+            matrix_power: If True, the circuit is converted to a matrix and then the
                 matrix power is computed. If False, and ``power`` is a positive integer,
                 the implementation defaults to ``repeat``.
 

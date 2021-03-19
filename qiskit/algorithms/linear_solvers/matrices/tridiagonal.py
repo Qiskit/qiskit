@@ -9,11 +9,14 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Hamiltonian simulation of tridiagonal Toeplitz symmetric matrices."""
+
 import numpy as np
 from scipy.sparse import diags
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
+
 from .linear_system_matrix import LinearSystemMatrix
 
 
@@ -251,7 +254,8 @@ class Tridiagonal(LinearSystemMatrix):
         qc.x(0)
         qc.p(theta, 0)
 
-        def control():
+        # pylint: disable=unused-argument
+        def control(num_ctrl_qubits=1, label=None, ctrl_state=None):
             qc_control = QuantumCircuit(self.num_state_qubits + 1, name='main_diag')
             qc_control.p(theta, 0)
             return qc_control
@@ -308,7 +312,8 @@ class Tridiagonal(LinearSystemMatrix):
             qc.x(qr[i])
             qc.cx(qr[i], qr[i + 1])
 
-        def control():
+        # pylint: disable=unused-argument
+        def control(num_ctrl_qubits=1, label=None, ctrl_state=None):
             qr_state = QuantumRegister(self.num_state_qubits + 1)
             if self.num_state_qubits > 1:
                 qr_ancilla = AncillaRegister(max(1, self.num_state_qubits - 1))
@@ -373,7 +378,8 @@ class Tridiagonal(LinearSystemMatrix):
         """
         qc_raw = QuantumCircuit(self.num_state_qubits)
 
-        def control():
+        # pylint: disable=unused-argument
+        def control(num_ctrl_qubits=1, label=None, ctrl_state=None):
             qr_state = QuantumRegister(self.num_state_qubits + 1, 'state')
             if self.num_state_qubits > 1:
                 qr_ancilla = AncillaRegister(max(1, self.num_state_qubits - 1))
