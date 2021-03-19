@@ -47,6 +47,9 @@ class Play(Instruction):
         """
         if not isinstance(pulse, Pulse):
             raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
+        if not isinstance(channel, PulseChannel):
+            raise PulseError("The `channel` argument to `Play` must be of type "
+                             "`channels.PulseChannel`.")
         if name is None:
             name = pulse.name
         super().__init__((pulse, channel), None, (channel,), name=name)
