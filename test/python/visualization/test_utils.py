@@ -306,19 +306,19 @@ class TestVisualizationUtils(QiskitTestCase):
     def test_generate_latex_label_mathmode_underscore_outside(self):
         """Test generate latex label with underscore outside mathmode."""
         self.assertEqual(
-            'abc{\\_}{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            'abc_{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
             utils.generate_latex_label('$abc$_∭X∀Y'))
 
     def test_generate_latex_label_escaped_dollar_signs(self):
         """Test generate latex label with escaped dollarsign."""
         self.assertEqual(
-            '{\\$}{\\ensuremath{\\forall}}{\\$}',
+            '${\\ensuremath{\\forall}}$',
             utils.generate_latex_label(r'\$∀\$'))
 
     def test_generate_latex_label_escaped_dollar_sign_in_mathmode(self):
         """Test generate latex label with escaped dollar sign in mathmode."""
         self.assertEqual(
-            'a$bc{\\_}{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            'a$bc_{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
             utils.generate_latex_label(r'$a$bc$_∭X∀Y'))
 
     def test_array_to_latex(self):
