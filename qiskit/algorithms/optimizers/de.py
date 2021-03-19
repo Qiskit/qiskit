@@ -110,7 +110,7 @@ class DIFF_EVOLUTION(Optimizer):
         """
         return {
             'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.ignored,
+            'bounds': OptimizerSupportLevel.required,
             'initial_point': OptimizerSupportLevel.required
         }
 
