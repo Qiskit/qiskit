@@ -1,7 +1,9 @@
 import numpy as np
-import os
 import time
 
+import os
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+os.environ['QISKIT_IN_PARALLEL'] = 'True'
 
 from scipy.integrate import Radau, ode, solve_ivp, RK45, RK23
 from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
@@ -10,7 +12,7 @@ from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolv
 
 from qiskit import Aer, QuantumCircuit
 
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, ParameterVector
 
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
 
@@ -23,7 +25,7 @@ from qiskit.opflow import Z, I, Y, X
 np.random.seed = 11
 
 # Evolution time
-t = 1
+t = 0.1
 
 num_time_steps = [10]
 depths = [1]
@@ -62,24 +64,25 @@ for nts in num_time_steps:
                 # observable = SummedOp([(Z ^ X), 3. * (Y ^ Y), (Z ^ X), (I ^ Z), (Z ^ I)]).reduce()
                 # Define Ansatz
                 # ansatz = RealAmplitudes(observable.num_qubits, reps=d)
-                # ansatz = EfficientSU2(observable.num_qubits, reps=d)
+                ansatz = EfficientSU2(observable.num_qubits, reps=d)
+                parameters = ansatz.ordered_parameters
 
                 # Define a set of initial parameters
-                parameters = [Parameter('a'), Parameter('b')]
-                ansatz = QuantumCircuit(observable.num_qubits)
-                ansatz.h([1])
-                ansatz.rzz(parameters[0], [0], [1])
-                ansatz.rzz(parameters[0], [1], [2])
-                ansatz.rzz(parameters[0], [2], [0])
-                ansatz.rx(parameters[1], [0])
-                ansatz.rx(parameters[1], [1])
-                ansatz.rx(parameters[1], [2])
+                # parameters = ParameterVector('a', length=6)
+                # ansatz = QuantumCircuit(observable.num_qubits)
+                # ansatz.h([1])
+                # ansatz.rzz(parameters[0], [0], [1])
+                # ansatz.rzz(parameters[1], [1], [2])
+                # ansatz.rzz(parameters[2], [2], [0])
+                # ansatz.rx(parameters[3], [0])
+                # ansatz.rx(parameters[4], [1])
+                # ansatz.rx(parameters[5], [2])
 
                 print(ansatz)
 
                 init_param_values = np.zeros(len(parameters))
-                # for i in range(ansatz.num_qubits):
-                #     init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2
+                for i in range(ansatz.num_qubits):
+                    init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2
                 # initial_point = [np.pi/3, -np.pi/3, np.pi/2., np.pi/3.]
                 # initial_point = np.zeros(len(parameters))
                 # for i in range(ansatz.num_qubits):
@@ -88,8 +91,8 @@ for nts in num_time_steps:
                 # initial_point = [np.pi/3, -np.pi/3, np.pi/2., np.pi / 5, np.pi/4, -np.pi/7,
                 # np.pi/8., np.pi / 9]
                 # for i in range(ansatz.num_qubits):
-                #     initial_point[-(i + 1)] = np.pi / 2
-                # print(initial_point)
+                #     init_param_values[-(i + 1)] = np.pi / 2
+                print(init_param_values)
 
                 # Now we stack the observable and the quantum state together.
                 # The evolution time needs to be added as a coefficient to the operator
@@ -102,7 +105,7 @@ for nts in num_time_steps:
                 varqrte_snapshot_dir = os.path.join('..', 'output_ising', 'real',
                                                     str(nts),
                                                     reg_names[j],
-                                                    ode_solvers_names[k] + 'nat_grad')
+                                                    ode_solvers_names[k] + 'error')
                 t0 = time.time()
                 varqrte = VarQRTE(parameters=parameters,
                                 grad_method='lin_comb',
@@ -111,7 +114,7 @@ for nts in num_time_steps:
                                 ode_solver=ode_solver,
                                 backend=Aer.get_backend('statevector_simulator'),
                                 regularization=reg,
-                                error_based_ode=False,
+                                error_based_ode=True,
                                 snapshot_dir=varqrte_snapshot_dir
                                 # snapshot_dir=os.path.join('..', 'test')
                                 )

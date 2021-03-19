@@ -224,8 +224,9 @@ class VarQITE(VarQTE):
             eigvals = sorted(eigvals)
             e0 = eigvals[0]
             e1 = eigvals[1]
+            # Reverse error bound final time
             reverse_bounds = [stddevs[-1] / (e1 - e0)]
-            reverse_bounds_temp = np.multiply(gradient_errors, gradient_error_factors)
+            reverse_bounds_temp = np.flip(np.multiply(gradient_errors, gradient_error_factors))
             # reverse_bounds_temp[-1] = reverse_bounds[0]
             reverse_times = np.flip(times)
             for j, dt in enumerate(reverse_times):
@@ -233,8 +234,8 @@ class VarQITE(VarQTE):
                     continue
                 # if use_integral_approx:
                     # TODO check here if correct
-                reverse_bounds.append(reverse_bounds[0] - np.trapz(reverse_bounds_temp[-(j+1):],
-                                                                   x=times[-(j+1):]))
+                reverse_bounds.append(reverse_bounds[0] - np.trapz(reverse_bounds_temp[:j],
+                                                                   x=reverse_times[:j]))
 
                 # else:
                 #

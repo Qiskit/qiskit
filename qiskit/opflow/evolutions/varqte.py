@@ -15,11 +15,11 @@
 from abc import abstractmethod
 from typing import List, Optional, Union, Dict, Iterable, Tuple
 
-import matplotlib.pyplot as plt
-
 import numpy as np
 import os
 import csv
+
+import matplotlib.pyplot as plt
 
 from pathlib import Path
 
@@ -598,7 +598,8 @@ class VarQTE(EvolutionBase):
 
         """
         if self._backend is not None:
-            grad_res = self._grad_circ_sampler.convert(self._grad, params=param_dict).eval()
+            grad_res = np.array(self._grad_circ_sampler.convert(self._grad,
+                                                                params=param_dict).eval())
             # Get the QFI/4
             metric_res = np.array(self._metric_circ_sampler.convert(self._metric,
                                                            params=param_dict).eval()) * 0.25
@@ -772,12 +773,13 @@ class VarQTE(EvolutionBase):
             plt.scatter(time, error_bounds, color='blue', marker='o', s=40,
                         label='error bound')
 
-            plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
+            # plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
             plt.scatter(time, phase_agnostic_true_error, color='orange', marker='x', s=40,
-                        label='phase agnostic true error')
+                        label='true error')
             plt.legend(loc='best')
             plt.xlabel('time')
             plt.ylabel('error')
+            plt.ylim(bottom=0)
             # plt.autoscale(enable=True)
                           # plt.xticks(range(counter-1))
             plt.savefig(os.path.join(data_dir, 'error_bound_actual.png'))
@@ -790,13 +792,14 @@ class VarQTE(EvolutionBase):
                 plt.scatter(time, error_bounds, color='blue', marker='o', s=40,
                             label='error bound')
 
-                plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
+                # plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
                 plt.scatter(time, phase_agnostic_true_error, color='orange', marker='x', s=40,
-                            label='phase agnostic true error')
+                            label='true error')
                 plt.legend(loc='best')
                 plt.xlabel('time')
                 plt.ylabel('error')
-                plt.autoscale(enable=True)
+                plt.ylim(bottom=0)
+                # plt.autoscale(enable=True)
                 plt.scatter(time, reverse_error_bounds, color='green', marker='o', s=40,
                             label='reverse error bound')
                 plt.legend(loc='best')
@@ -812,6 +815,7 @@ class VarQTE(EvolutionBase):
             plt.ylabel('fidelity')
             # plt.autoscale(enable=True)
             # plt.xticks(range(counter-1))
+            plt.ylim((0, 1))
             plt.savefig(os.path.join(data_dir, 'fidelity.png'))
             plt.close()
 
