@@ -13,6 +13,7 @@
 """An abstract class for linear systems solvers in Qiskit's aqua module."""
 
 from abc import ABC, abstractmethod
+from typing import Tuple
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import BlueprintCircuit
@@ -94,12 +95,12 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
         self._evo_time = evo_time
 
     @property
-    def eigs_bounds(self) -> [float, float]:
+    def eigs_bounds(self) -> Tuple[float, float]:
         """Return lower and upper bounds on the eigenvalues of the matrix."""
         return None
 
     @property
-    def condition_bounds(self) -> [float, float]:
+    def condition_bounds(self) -> Tuple[float, float]:
         """Return lower and upper bounds on the condition number of the matrix."""
         return None
 
