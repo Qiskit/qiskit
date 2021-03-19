@@ -17,6 +17,12 @@ pr:
     include:
     - '*'  # must quote since "*" is a YAML reserved character; we want a string
 
+schedules:
+- cron: "0 6 * * *"
+  displayName: Nightly slow build
+  branches:
+    include:
+      - master
 
 stages:
   - stage: 'Wheel_Builds'
@@ -823,3 +829,82 @@ stages:
           displayName: 'Install dependencies'
         - bash: python -m unittest discover -v test/ipynb
           displayName: 'Run image test'
+  - stage: 'Cron_jobs'
+    condition: eq(variables['Build.Reason'], 'Schedule')
+    jobs:
+    - job: 'Linux_Slow_Tests'
+      pool: {vmImage: 'ubuntu-latest'}
+      strategy:
+        matrix:
+          Python37:
+            python.version: '3.8'
+      variables:
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        QISKIT_TEST_CAPTURE_STREAMS: 1
+        QISKIT_TESTS: run_slow
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+        - task: Cache@2
+          inputs:
+            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              stestr | "$(Agent.OS)" | "$(python.version)"
+              stestr | "$(Agent.OS)"
+              stestr
+            path: .stestr
+          displayName: Cache pip
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/bin/activate
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -U -c constraints.txt .
+            pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
+            python setup.py build_ext --inplace
+            sudo apt install -y graphviz
+            pip check
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            source test-job/bin/activate
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+            stestr run
+          displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          displayName: 'Copy images'
+          inputs:
+            contents: '**/*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          displayName: 'Publish images'
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_linux'
+        - bash: |
+            set -e
+            source test-job/bin/activate
+            pip install -U junitxml
+            mkdir -p junit
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+          condition: succeededOrFailed()
+          displayName: 'Generate results'
+        - task: PublishTestResults@2
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            testRunTitle: 'Test results for Linux Python $(python.version)'
