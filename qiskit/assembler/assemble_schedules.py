@@ -260,14 +260,14 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
     for idx, instr in enumerate(sorted_inst_map[:-1]):
         if sorted_inst_map[idx+1][0] == instr[0]:
             continue
-        measured_qubits = set()
-        measured_qubits.update([inst.channel.index for inst in instr[1]],
-                               [inst.channel.index for inst in sorted_inst_map[idx+1][1]])
         inst_end_time = instr[0][0] + instr[0][1]
-        if sorted_inst_map[idx+1][0][0] < inst_end_time and \
-                any(measured_qubits.issubset(meas_set) for meas_set in meas_map_sets):
-            raise QiskitError('Qubits {} in the measurement map: {} was '
-                              'acquired disjointly'.format(measured_qubits, meas_map))
+        if sorted_inst_map[idx+1][0][0] < inst_end_time:
+            measured_qubits = set()
+            measured_qubits.update([inst.channel.index for inst in instr[1]],
+                                   [inst.channel.index for inst in sorted_inst_map[idx+1][1]])
+            if any(measured_qubits.issubset(meas_set) for meas_set in meas_map_sets):
+                raise QiskitError('Qubits {} in the measurement map: {} was '
+                                  'acquired disjointly'.format(measured_qubits, meas_map))
 
 
 def _assemble_config(lo_converter: converters.LoConfigConverter,
