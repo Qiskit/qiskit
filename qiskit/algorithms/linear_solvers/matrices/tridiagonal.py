@@ -16,6 +16,7 @@ import numpy as np
 from scipy.sparse import diags
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
+from qiskit.circuit.library import UGate, MCMTVChain
 
 from .linear_system_matrix import LinearSystemMatrix
 
@@ -205,39 +206,6 @@ class Tridiagonal(LinearSystemMatrix):
 
         self.compose(self.power(1), inplace=True)
 
-    def _cn_gate(self, controls: int, ancilla: int, phi: float, ulambda: float, theta: float) \
-            -> QuantumCircuit:
-        """Apply an n-controlled gate.
-
-        Args:
-            controls: number of control qubits
-            ancilla: number of ancilla qubits
-            phi: argument for a general qiskit u gate
-            ulambda: argument for a general qiskit u gate
-            theta: argument for a general qiskit u gate
-
-        Returns:
-            The quantum circuit implementing a multi-controlled unitary applied as [q_target] +
-            qr_controls[:] + qr_ancilla[:].
-        """
-        qr = QuantumRegister(controls + 1)
-        qr_ancilla = QuantumRegister(ancilla)
-        qc = QuantumCircuit(qr, qr_ancilla, name='cn_gate')
-        q_tgt = qr[0]
-        qr_controls = qr[1:]
-        # The first Toffoli
-        qc.ccx(qr_controls[0], qr_controls[1], qr_ancilla[0])
-        for i in range(2, controls):
-            qc.ccx(qr_controls[i], qr_ancilla[i - 2], qr_ancilla[i - 1])
-        # Now apply the 1-controlled version of the gate with control the last ancilla bit
-        qc.cu(theta, phi, ulambda, 0, qr_ancilla[controls - 2], q_tgt)
-
-        # Uncompute ancillae
-        for i in range(controls - 1, 1, -1):
-            qc.ccx(qr_controls[i], qr_ancilla[i - 2], qr_ancilla[i - 1])
-        qc.ccx(qr_controls[0], qr_controls[1], qr_ancilla[0])
-        return qc
-
     def _main_diag(self, theta: float = 1) -> QuantumCircuit:
         """Circuit implementing the matrix consisting of entries in the main diagonal.
 
@@ -298,10 +266,11 @@ class Tridiagonal(LinearSystemMatrix):
                 q_controls.append(qr[j - 1])
             qc.x(qr[i])
 
-            # Multicontrolled x rotation
+            # Multicontrolled rotation
             if len(q_controls) > 1:
-                qc.append(self._cn_gate(len(q_controls), len(qr_ancilla), 3 * np.pi / 2, np.pi / 2,
-                                        -2 * theta), [qr[i]] + q_controls[:] + qr_ancilla[:])
+                ugate = UGate(-2 * theta, 3 * np.pi / 2, np.pi / 2)
+                qc.append(MCMTVChain(ugate, len(q_controls), 1), q_controls[:] + [qr[i]] +
+                          qr_ancilla[:len(q_controls)-1])
             else:
                 qc.cu(-2 * theta, 3 * np.pi / 2, np.pi / 2, 0, q_controls[0], qr[i])
 
@@ -343,9 +312,9 @@ class Tridiagonal(LinearSystemMatrix):
 
                 # Multicontrolled x rotation
                 if len(q_controls) > 1:
-                    qc_control.append(self._cn_gate(len(q_controls), len(qr_ancilla),
-                                                    3 * np.pi / 2, np.pi / 2, -2 * theta),
-                                      [qr[i]] + q_controls[:] + qr_ancilla[:])
+                    ugate = UGate(-2 * theta, 3 * np.pi / 2, np.pi / 2)
+                    qc_control.append(MCMTVChain(ugate, len(q_controls), 1), q_controls[:] +
+                                      [qr[i]] + qr_ancilla[:len(q_controls)-1])
                 else:
                     qc_control.cu(-2 * theta, 3 * np.pi / 2, np.pi / 2, 0, q_controls[0], qr[i])
 
