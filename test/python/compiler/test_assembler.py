@@ -1242,8 +1242,8 @@ class TestPulseAssembler(QiskitTestCase):
                      meas_lo_freq=self.default_meas_lo_freq,
                      meas_map=[[0, 1]])
 
-    def test_assemble_disjoint_time(self):
-        """Test that assembly errors when qubits are measured in disjoint time."""
+    def test_assemble_overlapping_time(self):
+        """Test that assembly errors when qubits are measured in overlapping time."""
         schedule = Schedule()
         schedule = schedule.append(
             Acquire(5, AcquireChannel(0), MemorySlot(0)),
@@ -1257,9 +1257,9 @@ class TestPulseAssembler(QiskitTestCase):
                      meas_lo_freq=self.default_meas_lo_freq,
                      meas_map=[[0, 1]])
 
-    def test_assemble_non_disjoint_time_single_meas_map(self):
-        """Test that assembly works when qubits are measured in non-disjoint time
-        within the same measurement map list."""
+    def test_assemble_non_overlapping_time_single_meas_map(self):
+        """Test that assembly works when qubits are measured in non-overlapping
+        time within the same measurement map list."""
         schedule = Schedule()
         schedule = schedule.append(
             Acquire(5, AcquireChannel(0), MemorySlot(0)),
@@ -1273,7 +1273,7 @@ class TestPulseAssembler(QiskitTestCase):
                         meas_map=[[0, 1]])
         validate_qobj_against_schema(qobj)
 
-    def test_assemble_non_disjoint_time(self):
+    def test_assemble_disjoint_time(self):
         """Test that assembly works when qubits are measured in disjoint time."""
         schedule = Schedule()
         schedule = schedule.append(
@@ -1285,7 +1285,7 @@ class TestPulseAssembler(QiskitTestCase):
         qobj = assemble(schedule,
                         qubit_lo_freq=self.default_qubit_lo_freq,
                         meas_lo_freq=self.default_meas_lo_freq,
-                        meas_map=[[0], [1]])
+                        meas_map=[[0, 2], [1, 3]])
         validate_qobj_against_schema(qobj)
 
     def test_assemble_invalid_qubits(self):
