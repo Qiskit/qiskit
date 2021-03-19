@@ -46,7 +46,7 @@ class Tridiagonal(LinearSystemMatrix):
         self._trotter = None
 
         # store parameters
-        self.main_entry = main_diag
+        self.main_diag = main_diag
         self.off_diag = off_diag
         super().__init__(num_state_qubits=num_state_qubits, tolerance=tolerance, evo_time=evo_time,
                          name=name)
@@ -77,12 +77,12 @@ class Tridiagonal(LinearSystemMatrix):
             self._reset_registers(num_state_qubits)
 
     @property
-    def main_entry(self) -> float:
+    def main_diag(self) -> float:
         """Return the entry in the main diagonal."""
         return self._main_entry
 
     @main_entry.setter
-    def main_entry(self, main_entry: float) -> None:
+    def main_diag(self, main_entry: float) -> None:
         """Set the entry in the main diagonal.
         Args:
             main_entry: The new entry in the main diagonal.
@@ -231,7 +231,7 @@ class Tridiagonal(LinearSystemMatrix):
         qc.control = control
         return qc
 
-    def _off_diags(self, theta: float = 1) -> QuantumCircuit:
+    def _off_diag(self, theta: float = 1) -> QuantumCircuit:
         """Circuit implementing the matrix consisting of entries in the off diagonals.
 
         Args:
@@ -371,10 +371,10 @@ class Tridiagonal(LinearSystemMatrix):
             # for _ in range(power):
             for _ in range(0, trotter_new):
                 if qr_ancilla:
-                    qc.append(self._off_diags(self.evo_time * power / trotter_new).control(),
+                    qc.append(self._off_diag(self.evo_time * power / trotter_new).control(),
                               [q_control] + qr[:] + qr_ancilla[:])
                 else:
-                    qc.append(self._off_diags(self.evo_time * power / trotter_new).control(),
+                    qc.append(self._off_diag(self.evo_time * power / trotter_new).control(),
                               [q_control] + qr[:])
             # exp(-iA2t/2m)
             qc.u(-self.off_diag * self.evo_time * power / trotter_new, 3 * np.pi / 2, np.pi / 2,
