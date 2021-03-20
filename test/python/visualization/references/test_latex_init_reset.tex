@@ -1,8 +1,8 @@
 % \documentclass[preview]{standalone}
 % If the image is too large to fit on this documentclass use
 \documentclass[draft]{beamer}
-% img_width = 1, img_depth = 3
-\usepackage[size=custom,height=10,width=10,scale=0.7]{beamerposter}
+% img_width = 2, img_depth = 4
+\usepackage[size=custom,height=10,width=22,scale=0.7]{beamerposter}
 % instead and customize the height and width (in cm) to fit.
 % Large images may run out of memory quickly.
 % To fix this use the LuaLaTeX compiler, which dynamically
@@ -15,8 +15,9 @@
 \begin{document}
 
 \begin{equation*}
-    \Qcircuit @C=1.0em @R=0.0em @!R {
-	 	\lstick{ {q}_{0} :  } & \gate{H} & \qw & \qw\\
+    \Qcircuit @C=1.0em @R=1.0em @!R {
+	 	\lstick{ {q}_{0} :  } & \gate{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1}\mathrm{)}} & \multigate{1}{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1},\mathrm{0},\mathrm{0}\mathrm{)}} & \qw & \qw\\
+	 	\lstick{ {q}_{1} :  } & \gate{\left|0\right\rangle} & \ghost{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1},\mathrm{0},\mathrm{0}\mathrm{)}} & \qw & \qw\\
 	 }
 \end{equation*}
 
