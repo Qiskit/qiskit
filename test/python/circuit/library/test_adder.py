@@ -69,10 +69,9 @@ class TestAdder(QiskitTestCase):
         self.assertAdditionIsCorrect(num_state_qubits, adder, inplace)
 
     @data(
-        [RippleCarryAdder]
+        RippleCarryAdder
         # other adders to be added here
     )
-    @unpack
     def test_raises_on_wrong_num_bits(self, adder):
         """Test an error is raised for a bad number of qubits."""
         with self.assertRaises(ValueError):
