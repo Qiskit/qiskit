@@ -59,6 +59,7 @@ class TestAdder(QiskitTestCase):
         np.testing.assert_array_almost_equal(expectations, probabilities)
 
     @data(
+        (3, RippleCarryAdder, True),
         (5, RippleCarryAdder, True)
         # other adders to be added here
     )
