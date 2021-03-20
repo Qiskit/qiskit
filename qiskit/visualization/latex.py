@@ -485,7 +485,8 @@ class QCircuitImage:
         # Put side text to the right between bottom wire in wire_list and the one above it
         # \settowidth allows redefining \glen to the width of the gate. This avoids overlapping.
         self._latex[wire_max][col] += (" \\cds{-1}{\\settowidth{\\glen}{\\ensuremath{%s}}"
-        " \\hspace{0.5em}\\hspace{\\glen}\\ensuremath{%s}}" % (gate_text, gate_text))
+                                       " \\hspace{0.5em}\\hspace{\\glen}\\ensuremath{%s}}"
+                                       % (gate_text, gate_text))
         return 4    # num_cols for side text gates
 
     def _build_measure(self, op, col):
