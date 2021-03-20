@@ -13,6 +13,8 @@
 % \usepackage[landscape]{geometry}
 % Comment out the above line if using the beamer documentclass.
 \begin{document}
+% Delete the command below if there are no CP, CU1, RZZ in the circuit.
+\newlength{\glen}
 
 \begin{equation*}
     \Qcircuit @C=1.0em @R=0.2em @!R {
@@ -22,7 +24,7 @@
 	 	\lstick{ {q}_{3} :  } & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qswap \qwx[-1] & \qw & \qw & \ghost{\mathrm{Dcx}} & \qw & \qw\\
 	 	\lstick{ {q}_{4} :  } & \gate{\mathrm{Z}} & \gate{\mathrm{S}} & \qw & \qw & \qw & \gate{\mathrm{S}^\dagger} & \gate{\mathrm{T}} & \gate{\mathrm{T}^\dagger} & \gate{\mathrm{P}\,\mathrm{(}\mathrm{\frac{\pi}{2}}\mathrm{)}} & \gate{\mathrm{U}_1\,\mathrm{(}\mathrm{\frac{\pi}{2}}\mathrm{)}} & \qw & \qw & \qw & \qw & \qw\\
 	 	\lstick{ {q}_{5} :  } & \ctrl{1} & \ctrl{1} & \qw & \qw & \qw & \gate{\mathrm{Y}} & \gate{\mathrm{R}_\mathrm{X}\,\mathrm{(}\mathrm{\frac{\pi}{3}}\mathrm{)}} & \multigate{1}{\mathrm{R}_{\mathrm{ZX}}\,\mathrm{(}\mathrm{\frac{\pi}{2}}\mathrm{)}} & \gate{\mathrm{U}_2\,\mathrm{(}\mathrm{\frac{\pi}{2}},\mathrm{\frac{\pi}{2}}\mathrm{)}} \barrier[0em]{1} & \qw & \gate{\left|0\right\rangle} & \qw & \qw & \qw & \qw\\
-	 	\lstick{ {q}_{6} :  } & \control\qw & \control \qw $\cds{-1}{\hspace{3.2em}\mathrm{U}_1\,\mathrm{(}\mathrm{\frac{\pi}{2}}\mathrm{)}}$ & \qw & \qw & \qw & \qw & \qw & \ghost{\mathrm{R}_{\mathrm{ZX}}\,\mathrm{(}\mathrm{\frac{\pi}{2}}\mathrm{)}} & \qw & \qw & \qw & \qw & \qw & \qw & \qw\\
+	 	\lstick{ {q}_{6} :  } & \control\qw & \control \qw \cds{-1}{\settowidth{\glen}{\ensuremath{\mathrm{U}_1\,\mathrm{(}\mathrm{\frac{\pi}{2}}\mathrm{)}}} \hspace{0.5em}\hspace{\glen}\ensuremath{\mathrm{U}_1\,\mathrm{(}\mathrm{\frac{\pi}{2}}\mathrm{)}}} & \qw & \qw & \qw & \qw & \qw & \ghost{\mathrm{R}_{\mathrm{ZX}}\,\mathrm{(}\mathrm{\frac{\pi}{2}}\mathrm{)}} & \qw & \qw & \qw & \qw & \qw & \qw & \qw\\
 	 }
 \end{equation*}
 

@@ -140,6 +140,8 @@ class QCircuitImage:
 % \usepackage[landscape]{geometry}
 % Comment out the above line if using the beamer documentclass.
 \begin{document}
+% Delete the command below if there are no CP, CU1, RZZ in the circuit.
+\newlength{\glen}
 """
         qcircuit_line = r"""
 \begin{equation*}
@@ -481,7 +483,9 @@ class QCircuitImage:
                                                            + "}")
         self._latex[wire_last][col] = "\\control \\qw"
         # Put side text to the right between bottom wire in wire_list and the one above it
-        self._latex[wire_max][col] += " $\\cds{-1}{\\hspace{3.2em}%s}$" % gate_text
+        # \settowidth allows redefining \glen to the width of the gate. This avoids overlapping.
+        self._latex[wire_max][col] += (" \\cds{-1}{\\settowidth{\\glen}{\\ensuremath{%s}}"
+        " \\hspace{0.5em}\\hspace{\\glen}\\ensuremath{%s}}" % (gate_text, gate_text))
         return 4    # num_cols for side text gates
 
     def _build_measure(self, op, col):

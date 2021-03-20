@@ -13,6 +13,8 @@
 % \usepackage[landscape]{geometry}
 % Comment out the above line if using the beamer documentclass.
 \begin{document}
+% Delete the command below if there are no CP, CU1, RZZ in the circuit.
+\newlength{\glen}
 
 \begin{equation*}
     \Qcircuit @C=1.0em @R=0.2em @!R {
@@ -20,7 +22,7 @@
 	 	\lstick{ {q}_{1} :  } & \gate{\mathrm{X}} & \qswap & \ctrl{-1} & \qw & \qw & \qw & \qw & \qw\\
 	 	\lstick{ {q}_{2} :  } & \qw & \qswap \qwx[-1] & \ctrlo{-1} & \qw & \qw & \qw & \qw & \qw\\
 	 	\lstick{ {q}_{3} :  } & \qw & \qw & \ctrl{-3} & \qw & \qw & \qw & \qw & \qw\\
-	 	\lstick{ {q}_{4} :  } & \qw & \qw & \ctrlo{-1} $\cds{-1}{\hspace{3.2em}\mathrm{ZZ}\,\mathrm{(}\mathrm{\frac{3\pi}{4}}\mathrm{)}}$ & \qw & \qw & \qw & \qw & \qw\\
+	 	\lstick{ {q}_{4} :  } & \qw & \qw & \ctrlo{-1} \cds{-1}{\settowidth{\glen}{\ensuremath{\mathrm{ZZ}\,\mathrm{(}\mathrm{\frac{3\pi}{4}}\mathrm{)}}} \hspace{0.5em}\hspace{\glen}\ensuremath{\mathrm{ZZ}\,\mathrm{(}\mathrm{\frac{3\pi}{4}}\mathrm{)}}} & \qw & \qw & \qw & \qw & \qw\\
 	 }
 \end{equation*}
 
