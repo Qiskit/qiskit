@@ -20,7 +20,7 @@ from qiskit.circuit.library import PhaseEstimation
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
 from qiskit.opflow import Z, I, StateFn, TensoredOp, ExpectationBase, CircuitSampler, ListOp
-from qiskit.providers import Backend
+from qiskit.providers import Backend, BaseBackend
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils import QuantumInstance
@@ -276,7 +276,7 @@ class HHL(LinearSolver):
             # the most to the solution of the system
             delta = self._get_delta(nl, lambda_min, lambda_max)
             # Update evolution time
-            matrix_circuit.evo_time = 2 * np.pi * delta / lambda_min
+            matrix_circuit.evolution_time = 2 * np.pi * delta / lambda_min
         else:
             delta = 1
 

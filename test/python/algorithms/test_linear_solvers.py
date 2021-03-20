@@ -43,7 +43,7 @@ class TestMatrices(QiskitAlgorithmsTestCase):
     def test_tridiagonal(self, matrix, time=1.0, power=1):
         """Test the Tridiagonal class."""
         if time is not None:
-            matrix.evo_time = time
+            matrix.evolution_time = time
 
         num_qubits = matrix.num_state_qubits
         pow_circ = matrix.power(power).control()
@@ -58,7 +58,7 @@ class TestMatrices(QiskitAlgorithmsTestCase):
         approx_exp = partial_trace(np.dot(proj, circ_matrix), [0] +
                                    list(range(num_qubits + 1, circ_qubits))).data
 
-        exact_exp = expm(1j * matrix.evo_time * power * matrix.matrix)
+        exact_exp = expm(1j * matrix.evolution_time * power * matrix.matrix)
         np.testing.assert_array_almost_equal(approx_exp, exact_exp, decimal=2)
 
 
@@ -180,8 +180,9 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         * the constructed circuits
     """
     @idata([
-        [Tridiagonal(2, 1, 1/3, trotter=2), [1.0, -2.1, 3.2, -4.3], MatrixFunctional(1, 1/2)],
-        [Tridiagonal(3, 1, -1/2, trotter=2), [-9/4, -0.3, 8/7, 10, -5, 11.1, 13/11, -27/12],
+        [Tridiagonal(2, 1, 1/3, trotter_steps=2), [1.0, -2.1, 3.2, -4.3],
+         MatrixFunctional(1, 1/2)],
+        [Tridiagonal(3, 1, -1/2, trotter_steps=2), [-9/4, -0.3, 8/7, 10, -5, 11.1, 13/11, -27/12],
          AbsoluteAverage()]
     ])
     @unpack

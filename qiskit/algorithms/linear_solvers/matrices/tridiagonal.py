@@ -25,7 +25,7 @@ class Tridiagonal(LinearSystemMatrix):
     """Class of tridiagonal Toeplitz symmetric matrices"""
 
     def __init__(self, num_state_qubits: int, main_diag: float, off_diag: float,
-                 tolerance: float = 1e-2, evo_time: float = 1.0, trotter: int = 1,
+                 tolerance: float = 1e-2, evolution_time: float = 1.0, trotter_steps: int = 1,
                  name: str = 'tridi') -> None:
         """
         Args:
@@ -33,8 +33,8 @@ class Tridiagonal(LinearSystemMatrix):
             main_diag: the main diagonal entry
             off_diag: the off diagonal entry
             tolerance: the accuracy desired for the approximation
-            evo_time: the time of the Hamiltonian simulation
-            trotter: the number of Trotter steps
+            evolution_time: the time of the Hamiltonian simulation
+            trotter_steps: the number of Trotter steps
             name: The name of the object.
         """
         # define internal parameters
@@ -42,14 +42,14 @@ class Tridiagonal(LinearSystemMatrix):
         self._main_diag = None
         self._off_diag = None
         self._tolerance = None
-        self._evo_time = None  # makes sure the eigenvalues are contained in [0,1)
+        self._evolution_time = None  # makes sure the eigenvalues are contained in [0,1)
         self._trotter_steps = None
 
         # store parameters
         self.main_diag = main_diag
         self.off_diag = off_diag
-        super().__init__(num_state_qubits=num_state_qubits, tolerance=tolerance, evo_time=evo_time,
-                         name=name)
+        super().__init__(num_state_qubits=num_state_qubits, tolerance=tolerance,
+                         evolution_time=evolution_time, name=name)
         self.trotter_steps = trotter_steps
 
     @property
@@ -79,15 +79,15 @@ class Tridiagonal(LinearSystemMatrix):
     @property
     def main_diag(self) -> float:
         """Return the entry in the main diagonal."""
-        return self._main_entry
+        return self._main_diag
 
-    @main_entry.setter
-    def main_diag(self, main_entry: float) -> None:
+    @main_diag.setter
+    def main_diag(self, main_diag: float) -> None:
         """Set the entry in the main diagonal.
         Args:
-            main_entry: The new entry in the main diagonal.
+            main_diag: The new entry in the main diagonal.
         """
-        self._main_entry = main_entry
+        self._main_diag = main_diag
 
     @property
     def off_diag(self) -> float:
@@ -116,22 +116,22 @@ class Tridiagonal(LinearSystemMatrix):
         self._tolerance = tolerance
 
     @property
-    def evo_time(self) -> float:
+    def evolution_time(self) -> float:
         """Return the time of the evolution."""
-        return self._evo_time
+        return self._evolution_time
 
-    @evo_time.setter
-    def evo_time(self, evo_time: float) -> None:
+    @evolution_time.setter
+    def evolution_time(self, evolution_time: float) -> None:
         """Set the time of the evolution and update the number of Trotter steps because the error
          tolerance is a function of the evolution time and the number of trotter steps.
 
         Args:
-            evo_time: The new time of the evolution.
+            evolution_time: The new time of the evolution.
         """
-        self._evo_time = evo_time
+        self._evolution_time = evolution_time
         # Update the number of trotter steps. Max 7 for now, upper bounds too loose.
-        self.trotter_steps = int(np.ceil(np.sqrt(((evo_time * np.abs(self.off_diag)) ** 3) / 2
-                                                 / self.tolerance)))
+        self.trotter_steps = int(np.ceil(np.sqrt(((evolution_time * np.abs(self.off_diag)) ** 3) /
+                                                 2 / self.tolerance)))
 
     @property
     def trotter_steps(self) -> int:
@@ -139,7 +139,7 @@ class Tridiagonal(LinearSystemMatrix):
         return self._trotter_steps
 
     @trotter_steps.setter
-    def trotter(self, trotter_steps: int) -> None:
+    def trotter_steps(self, trotter_steps: int) -> None:
         """Set the number of trotter steps.
         Args:
             trotter_steps: The new number of trotter steps.
@@ -149,7 +149,7 @@ class Tridiagonal(LinearSystemMatrix):
     @property
     def matrix(self) -> np.ndarray:
         """Return the matrix."""
-        matrix = diags([self.off_diag, self.main_entry, self.off_diag], [-1, 0, 1],
+        matrix = diags([self.off_diag, self.main_diag, self.off_diag], [-1, 0, 1],
                        shape=(2 ** self.num_state_qubits, 2 ** self.num_state_qubits)).toarray()
         return matrix
 
@@ -210,12 +210,12 @@ class Tridiagonal(LinearSystemMatrix):
         """Circuit implementing the matrix consisting of entries in the main diagonal.
 
         Args:
-            theta: Scale factor for the main diagonal entries (e.g. evo_time/trotter_steps).
+            theta: Scale factor for the main diagonal entries (e.g. evolution_time/trotter_steps).
 
         Returns:
             The quantum circuit implementing the matrix consisting of entries in the main diagonal.
         """
-        theta *= self.main_entry
+        theta *= self.main_diag
         qc = QuantumCircuit(self.num_state_qubits, name='main_diag')
         qc.x(0)
         qc.p(theta, 0)
@@ -235,7 +235,7 @@ class Tridiagonal(LinearSystemMatrix):
         """Circuit implementing the matrix consisting of entries in the off diagonals.
 
         Args:
-            theta: Scale factor for the off diagonal entries (e.g. evo_time/trotter_steps).
+            theta: Scale factor for the off diagonal entries (e.g. evolution_time/trotter_steps).
 
         Returns:
             The quantum circuit implementing the matrix consisting of entries in the off diagonals.
@@ -330,8 +330,8 @@ class Tridiagonal(LinearSystemMatrix):
         return qc
 
     def inverse(self):
-        return Tridiagonal(self.num_state_qubits, self.main_entry, self.off_diag,
-                           evo_time=-1 * self.evo_time)
+        return Tridiagonal(self.num_state_qubits, self.main_diag, self.off_diag,
+                           evolution_time=-1 * self.evolution_time)
 
     def power(self, power: int, matrix_power: bool = False) -> QuantumCircuit:
         """Build powers of the circuit.
@@ -359,27 +359,28 @@ class Tridiagonal(LinearSystemMatrix):
             # Control will be qr[0]
             q_control = qr_state[0]
             qr = qr_state[1:]
-            # Since A1 commutes, one application with evo_time*2^{j} to the last qubit is enough
-            qc.append(self._main_diag_circ(self.evo_time * power).control(), [q_control] + qr[:])
+            # A1 commutes, so one application with evolution_time*2^{j} to the last qubit is enough
+            qc.append(self._main_diag_circ(self.evolution_time * power).control(), [q_control] +
+                      qr[:])
 
             # Update trotter steps to compensate the error
-            trotter_steps_new = int(np.ceil(np.sqrt(power) * self.trotter))
+            trotter_steps_new = int(np.ceil(np.sqrt(power) * self.trotter_steps))
 
             # exp(iA2t/2m)
-            qc.u(self.off_diag * self.evo_time * power / trotter_steps_new, 3 * np.pi / 2,
+            qc.u(self.off_diag * self.evolution_time * power / trotter_steps_new, 3 * np.pi / 2,
                  np.pi / 2, qr[0])
             # for _ in range(power):
             for _ in range(0, trotter_steps_new):
                 if qr_ancilla:
-                    qc.append(self._off_diag_circ(self.evo_time * power /
+                    qc.append(self._off_diag_circ(self.evolution_time * power /
                                                   trotter_steps_new).control(),
                               [q_control] + qr[:] + qr_ancilla[:])
                 else:
-                    qc.append(self._off_diag_circ(self.evo_time * power /
+                    qc.append(self._off_diag_circ(self.evolution_time * power /
                                                   trotter_steps_new).control(),
                               [q_control] + qr[:])
             # exp(-iA2t/2m)
-            qc.u(-self.off_diag * self.evo_time * power / trotter_steps_new, 3 * np.pi / 2,
+            qc.u(-self.off_diag * self.evolution_time * power / trotter_steps_new, 3 * np.pi / 2,
                  np.pi / 2, qr[0])
             return qc
 
