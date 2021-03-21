@@ -771,7 +771,7 @@ class MatplotlibDrawer:
                     continue
 
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                gate_text, ctrl_text = _get_gate_ctrl_text(op, 'mpl', self._style)
+                gate_text, ctrl_text = _get_gate_ctrl_text(op, 'mpl', style=self._style)
 
                 # if a standard_gate, no params, and no labels, layer_width is 1
                 if (not hasattr(op.op, 'params') and
@@ -823,7 +823,7 @@ class MatplotlibDrawer:
             #
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                gate_text, ctrl_text = _get_gate_ctrl_text(op, 'mpl', self._style)
+                gate_text, ctrl_text = _get_gate_ctrl_text(op, 'mpl', style=self._style)
                 fc, ec, gt, tc, sc, lc = self._get_colors(op)
 
                 # get qreg index
@@ -966,7 +966,7 @@ class MatplotlibDrawer:
                     if base_name not in ['u1', 'p']:
                         self._ctrl_qubit(q_xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
                     if base_name == 'u1':
-                        stext = self._style['disptex']['u1']
+                        stext = f"$\\mathrm{{{self._style['disptex']['u1']}}}$"
                     elif base_name == 'p':
                         stext = 'P'
                     else:

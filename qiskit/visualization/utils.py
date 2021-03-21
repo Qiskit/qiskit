@@ -36,7 +36,7 @@ except ImportError:
     HAS_PYLATEX = False
 
 
-def _get_gate_ctrl_text(op, drawer, style):
+def _get_gate_ctrl_text(op, drawer, style=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
     op_label = getattr(op.op, 'label', None)
     op_type = type(op.op)
@@ -60,23 +60,28 @@ def _get_gate_ctrl_text(op, drawer, style):
     else:
         gate_text = op.name
 
-    if gate_text in style['disptex']:
+    if drawer != 'text' and gate_text in style['disptex']:
         gate_text = f"$\\mathrm{{{style['disptex'][gate_text]}}}$"
 
     # Only captitalize internally-created gate or instruction names
     elif ((gate_text == op.name and op_type not in (Gate, Instruction))
           or (gate_text == base_name and base_type not in (Gate, Instruction))):
-        gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
-    else:
+        if drawer == 'latex':
+            gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
+        elif drawer == 'mpl':
+            gate_text = gate_text.capitalize()
+        else:
+            gate_text = gate_text.upper()
+
+    elif drawer == 'latex':
         gate_text = f"$\\mathrm{{{gate_text}}}$"
-    print(gate_text)
-    # Remove mathmode _, ^, and - formatting from user names and labels
-    if drawer == 'latex':
+        # Remove mathmode _, ^, and - formatting from user names and labels
         gate_text = gate_text.replace('_', '\\_')
         gate_text = gate_text.replace('^', '\\string^')
         gate_text = gate_text.replace('-', '\\mbox{-}')
+        ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
-    #ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
+    print(gate_text)
     return gate_text, ctrl_text
 
 def generate_latex_label(label):

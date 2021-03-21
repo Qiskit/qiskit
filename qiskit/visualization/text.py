@@ -27,6 +27,7 @@ from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGa
 from qiskit.extensions import UnitaryGate, HamiltonianGate
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.visualization.utils import _get_gate_ctrl_text
 from .exceptions import VisualizationError
 
 
@@ -956,6 +957,7 @@ class TextDrawing():
         connection_label = None
         ctrl_label = None
         box_label = None
+        box_label, ctrl_label = _get_gate_ctrl_text(instruction, 'text')
         conditional = False
         multi_qubit_instruction = len(instruction.qargs) >= 2 and not instruction.cargs
         label_multibox = False
@@ -975,15 +977,15 @@ class TextDrawing():
                     layer.set_qubit(instruction.qargs[i], gate)
                     current_cons.append((actual_index, gate))
 
-        if multi_qubit_instruction and \
+        """if multi_qubit_instruction and \
                 getattr(instruction.op, 'label', None) is not None and \
                 getattr(base_gate, 'label', None) is not None:
             # If a multi qubit instruction has a label, and the base gate has a
             # label, the label is applied to the bullet instead of the box.
             ctrl_label = getattr(instruction.op, 'label', None)
-            box_label = getattr(base_gate, 'label', None)
+            box_label = getattr(base_gate, 'label', None)"""
 
-        elif multi_qubit_instruction and \
+        if multi_qubit_instruction and \
                 getattr(instruction.op, 'label', None) is not None:
             # If a multi qubit instruction has a label, it is a box
             label_multibox = True
