@@ -14,34 +14,12 @@
 
 from os.path import basename, isfile
 
-from .classical_element import ClassicalElement
+from qiskit.circuit import Gate
 from .utils import HAS_TWEEDLEDUM
 
 
-class BooleanExpression(ClassicalElement):
-    """The Boolean Expression gate."""
-
-    def __init__(self, expression: str, name: str = None) -> None:
-        """
-        Args:
-            expression (str): The logical expression string.
-            name (str): Optional. Instruction gate name. Otherwise part of
-                        the expression is going to be used.
-        Raises:
-            ImportError: If tweedledum is not installed. Tweedledum is required.
-        """
-        if not HAS_TWEEDLEDUM:
-            raise ImportError("To use the BooleanExpression compiler, tweedledum "
-                              "must be installed. To install tweedledum run "
-                              '"pip install tweedledum==1.0.0b3".')
-        from tweedledum import BoolFunction
-        self._tweedledum_bool_expression = BoolFunction.from_expression(expression)
-        self.qregs = None  # TODO: Probably from self._tweedledum_bool_expression._signature
-
-        short_expr_for_name = (expression[:10] + '...') if len(expression) > 13 else expression
-        num_qubits = (self._tweedledum_bool_expression.num_outputs() +
-                      self._tweedledum_bool_expression.num_inputs())
-        super().__init__(name or short_expr_for_name, num_qubits=num_qubits, params=[])
+class ClassicalElement(Gate):
+    """The classical element gate."""
 
     def simulate(self, bitstring: str) -> bool:
         """Evaluate the expression on a bitstring.

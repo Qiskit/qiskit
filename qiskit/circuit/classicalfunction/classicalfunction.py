@@ -15,13 +15,13 @@
 import ast
 
 from qiskit.circuit import quantumregister
-from qiskit.circuit import gate
+from .classical_element import ClassicalElement
 from qiskit.exceptions import QiskitError
 from .utils import HAS_TWEEDLEDUM
 from .classical_function_visitor import ClassicalFunctionVisitor
 
 
-class ClassicalFunction(gate.Gate):
+class ClassicalFunction(ClassicalElement):
     """Represent a classical function function and its logic network."""
 
     def __init__(self, source, name=None):
