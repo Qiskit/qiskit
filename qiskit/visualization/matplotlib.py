@@ -33,6 +33,7 @@ except ImportError:
 
 from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.visualization.qcstyle import DefaultStyle, set_style
+from qiskit.visualization.utils import _get_gate_ctrl_text
 from qiskit.circuit import Delay
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
@@ -339,31 +340,6 @@ class MatplotlibDrawer:
                 param_parts[i] = str(e)
         param_parts = ', '.join(param_parts).replace('-', '$-$')
         return param_parts
-
-    def _get_gate_ctrl_text(self, op):
-        op_label = getattr(op.op, 'label', None)
-        base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-        base_label = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.label
-        ctrl_text = None
-        if base_label:
-            gate_text = base_label
-            ctrl_text = op_label
-        elif op_label and isinstance(op.op, ControlledGate):
-            gate_text = base_name
-            ctrl_text = op_label
-        elif op_label:
-            gate_text = op_label
-        elif base_name:
-            gate_text = base_name
-        else:
-            gate_text = op.name
-
-        if gate_text in self._style['disptex']:
-            gate_text = "{}".format(self._style['disptex'][gate_text])
-        elif gate_text in (op.name, base_name) and not isinstance(op.op, (Gate, Instruction)):
-            gate_text = gate_text.capitalize()
-
-        return gate_text, ctrl_text
 
     def _get_colors(self, op):
         base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
@@ -795,7 +771,7 @@ class MatplotlibDrawer:
                     continue
 
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                gate_text, ctrl_text = self._get_gate_ctrl_text(op)
+                gate_text, ctrl_text = _get_gate_ctrl_text(op, 'mpl', self._style)
 
                 # if a standard_gate, no params, and no labels, layer_width is 1
                 if (not hasattr(op.op, 'params') and
@@ -847,7 +823,7 @@ class MatplotlibDrawer:
             #
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                gate_text, ctrl_text = self._get_gate_ctrl_text(op)
+                gate_text, ctrl_text = _get_gate_ctrl_text(op, 'mpl', self._style)
                 fc, ec, gt, tc, sc, lc = self._get_colors(op)
 
                 # get qreg index

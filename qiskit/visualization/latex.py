@@ -25,7 +25,7 @@ from qiskit.circuit.measure import Measure
 from qiskit.visualization.qcstyle import DefaultStyle
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
-from .utils import generate_latex_label
+from .utils import _get_gate_ctrl_text, generate_latex_label
 
 
 class QCircuitImage:
@@ -318,50 +318,6 @@ class QCircuitImage:
 
         return (height, width, self.scale)
 
-    def _get_gate_ctrl_text(self, op):
-        """Load the gate_text and ctrl_text strings based on names and labels"""
-        op_label = getattr(op.op, 'label', None)
-        op_type = type(op.op)
-        base_name = base_label = base_type = None
-        if hasattr(op.op, 'base_gate'):
-            base_name = op.op.base_gate.name
-            base_label = op.op.base_gate.label
-            base_type = type(op.op.base_gate)
-        ctrl_text = None
-
-        if base_label:
-            gate_text = base_label
-            ctrl_text = op_label
-        elif op_label and isinstance(op.op, ControlledGate):
-            gate_text = base_name
-            ctrl_text = op_label
-        elif op_label:
-            gate_text = op_label
-        elif base_name:
-            gate_text = base_name
-        else:
-            gate_text = op.name
-
-        if gate_text in self._style['disptex']:
-            gate_text = self._style['disptex'][gate_text]
-            # Only add mathmode formatting if not already mathmode in disptex
-            if gate_text[0] != '$' and gate_text[-1] != '$':
-                gate_text = f"$\\mathrm{{{gate_text}}}$"
-
-        # Only captitalize internally-created gate or instruction names
-        elif ((gate_text == op.name and op_type not in (Gate, Instruction))
-              or (gate_text == base_name and base_type not in (Gate, Instruction))):
-            gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
-        else:
-            gate_text = f"$\\mathrm{{{gate_text}}}$"
-            # Remove mathmode _, ^, and - formatting from user names and labels
-            gate_text = gate_text.replace('_', '\\_')
-            gate_text = gate_text.replace('^', '\\string^')
-            gate_text = gate_text.replace('-', '\\mbox{-}')
-
-        ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
-        return gate_text, ctrl_text
-
     def _build_latex_array(self):
         """Returns an array of strings containing \\LaTeX for this circuit."""
 
@@ -383,7 +339,7 @@ class QCircuitImage:
                     self._build_barrier(op, column)
 
                 else:
-                    gate_text, _ = self._get_gate_ctrl_text(op)
+                    gate_text, _ = _get_gate_ctrl_text(op, 'latex', self._style)
                     gate_text = self._add_params_to_gate_text(op, gate_text)
                     gate_text = generate_latex_label(gate_text)
                     wire_list = [self.img_regs[qarg] for qarg in op.qargs]

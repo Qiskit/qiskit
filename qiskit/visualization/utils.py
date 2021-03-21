@@ -20,7 +20,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators.symplectic import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.circuit import Measure
+from qiskit.circuit import Measure, ControlledGate, Gate, Instruction
 
 try:
     import PIL
@@ -35,6 +35,49 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
+
+def _get_gate_ctrl_text(op, drawer, style):
+    """Load the gate_text and ctrl_text strings based on names and labels"""
+    op_label = getattr(op.op, 'label', None)
+    op_type = type(op.op)
+    base_name = base_label = base_type = None
+    if hasattr(op.op, 'base_gate'):
+        base_name = op.op.base_gate.name
+        base_label = op.op.base_gate.label
+        base_type = type(op.op.base_gate)
+    ctrl_text = None
+
+    if base_label:
+        gate_text = base_label
+        ctrl_text = op_label
+    elif op_label and isinstance(op.op, ControlledGate):
+        gate_text = base_name
+        ctrl_text = op_label
+    elif op_label:
+        gate_text = op_label
+    elif base_name:
+        gate_text = base_name
+    else:
+        gate_text = op.name
+
+    if gate_text in style['disptex']:
+        gate_text = f"$\\mathrm{{{style['disptex'][gate_text]}}}$"
+
+    # Only captitalize internally-created gate or instruction names
+    elif ((gate_text == op.name and op_type not in (Gate, Instruction))
+          or (gate_text == base_name and base_type not in (Gate, Instruction))):
+        gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
+    else:
+        gate_text = f"$\\mathrm{{{gate_text}}}$"
+    print(gate_text)
+    # Remove mathmode _, ^, and - formatting from user names and labels
+    if drawer == 'latex':
+        gate_text = gate_text.replace('_', '\\_')
+        gate_text = gate_text.replace('^', '\\string^')
+        gate_text = gate_text.replace('-', '\\mbox{-}')
+
+    #ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
+    return gate_text, ctrl_text
 
 def generate_latex_label(label):
     """Convert a label to a valid latex string."""
