@@ -264,14 +264,14 @@ class QCircuitImage:
             columns += 1
 
         # all gates take up 1 column except from those with side labels (ie cu1, cp, rzz)
-        # which take 4 columns
+        # which take 5 columns
         for layer in self.ops:
             column_width = 1
             for op in layer:
                 base_type = None if not hasattr(op.op, 'base_gate') else op.op.base_gate
                 if isinstance(op.op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate,
                                                                         RZZGate)):
-                    column_width = 4
+                    column_width = 5
             columns += column_width
 
         # every 3 characters is roughly one extra 'unit' of width in the cell
@@ -487,7 +487,7 @@ class QCircuitImage:
         self._latex[wire_max][col] += (" \\cds{-1}{\\settowidth{\\glen}{\\ensuremath{%s}}"
                                        " \\hspace{0.5em}\\hspace{\\glen}\\ensuremath{%s}}"
                                        % (gate_text, gate_text))
-        return 4    # num_cols for side text gates
+        return 5    # num_cols for side text gates
 
     def _build_measure(self, op, col):
         """Build a meter and the lines to the creg"""
