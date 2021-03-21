@@ -39,12 +39,15 @@ Pygments
 
 """
 
+from os import path
 from numpy import pi
 
 from .qasm import Qasm
 from .exceptions import QasmError
+
 try:
     import pygments
+
     HAS_PYGMENTS = True
 except ImportError:
     HAS_PYGMENTS = False
@@ -54,8 +57,6 @@ if HAS_PYGMENTS:
         from .pygments import OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
     except Exception:  # pylint: disable=broad-except
         HAS_PYGMENTS = False
-
-from os import path
 
 qelib1_path = path.join(path.dirname(__file__), 'libs', 'qelib1.inc')
 with open(qelib1_path, mode='r') as qelib1_file:
