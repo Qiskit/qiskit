@@ -50,11 +50,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     the minimum eigenvalue of the Hamiltonian :math:`H` of a given system.
 
     An instance of VQE requires defining two algorithmic sub-components:
-    a trial state (ansatz) from  :mod:`~qiskit.algorithms.variational_forms`, and one
-    of the classical :mod:`~qiskit.algorithms.optimizers`. The ansatz is varied, via its set
-    of parameters, by the optimizer, such that it works towards a state, as determined by the
-    parameters applied to the variational form, that will result in the minimum expectation value
-    being measured of the input operator (Hamiltonian).
+    a trial state (a.k.a. ansatz) which is a :class:`QuantumCircuit`, and one of the classical
+    :mod:`~qiskit.algorithms.optimizers`. The ansatz is varied, via its set of parameters, by the
+    optimizer, such that it works towards a state, as determined by the parameters applied to the
+    variational form, that will result in the minimum expectation value being measured of the input
+    operator (Hamiltonian).
 
     An optional array of parameter values, via the *initial_point*, may be provided as the
     starting point for the search of the minimum eigenvalue. This feature is particularly useful
