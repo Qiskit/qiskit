@@ -138,6 +138,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         if optimizer is None:
             optimizer = SLSQP()
 
+        # set the initial point to the preferred parameters of the variational form
+        if initial_point is None and hasattr(var_form, 'preferred_init_points'):
+            initial_point = var_form.preferred_init_points
+
         self._max_evals_grouped = max_evals_grouped
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
         self._expectation = expectation

@@ -197,6 +197,10 @@ class VariationalAlgorithm:
                 raise ValueError('Optimizer does not support initial point')
         else:
             if optimizer.is_initial_point_required:
+                if hasattr(var_form, 'preferred_init_points'):
+                    # Note: default implementation returns None, hence check again after below
+                    initial_point = var_form.preferred_init_points
+
                 if initial_point is None:  # If still None use a random generated point
                     low = [(l if l is not None else -2 * np.pi) for (l, u) in bounds]
                     high = [(u if u is not None else 2 * np.pi) for (l, u) in bounds]

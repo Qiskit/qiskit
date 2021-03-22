@@ -497,6 +497,15 @@ class NLocal(BlueprintCircuit):
         ret += '{}'.format(params)
         return ret
 
+    @property
+    def preferred_init_points(self) -> Optional[List[float]]:
+        """The initial points for the parameters. Can be stored as initial guess in optimization.
+
+        Returns:
+            The initial values for the parameters, or None, if none have been set.
+        """
+        return None
+
     # pylint: disable=too-many-return-statements
     def get_entangler_map(self, rep_num: int, block_num: int, num_block_qubits: int
                           ) -> List[List[int]]:
