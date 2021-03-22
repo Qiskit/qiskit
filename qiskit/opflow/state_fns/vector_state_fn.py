@@ -13,28 +13,31 @@
 """ VectorStateFn Class """
 
 
-from typing import Union, Set, Optional, Dict, List
+from typing import Dict, List, Optional, Set, Union, cast
+
 import numpy as np
+
 from qiskit import QuantumCircuit
-
-from qiskit.quantum_info import Statevector
 from qiskit.circuit import ParameterExpression
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.list_ops.tensored_op import TensoredOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.state_fns.state_fn import StateFn
+from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals, arithmetic
-
-from ..operator_base import OperatorBase
-from ..list_ops.list_op import ListOp
-from .state_fn import StateFn
 
 
 class VectorStateFn(StateFn):
     """ A class for state functions and measurements which are defined in vector
     representation, and stored using Terra's ``Statevector`` class.
     """
+    primitive: Statevector
 
     # TODO allow normalization somehow?
     def __init__(self,
                  primitive: Union[list, np.ndarray, Statevector] = None,
-                 coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+                 coeff: Union[complex, ParameterExpression] = 1.0,
                  is_measurement: bool = False) -> None:
         """
         Args:
@@ -68,11 +71,9 @@ class VectorStateFn(StateFn):
             # Covers Statevector and custom.
             return VectorStateFn((self.coeff * self.primitive) + (other.primitive * other.coeff),
                                  is_measurement=self._is_measurement)
-        # pylint: disable=cyclic-import
-        from .. import SummedOp
         return SummedOp([self, other])
 
-    def adjoint(self) -> OperatorBase:
+    def adjoint(self) -> "VectorStateFn":
         return VectorStateFn(self.primitive.conjugate(),
                              coeff=self.coeff.conjugate(),
                              is_measurement=(not self.is_measurement))
@@ -97,10 +98,12 @@ class VectorStateFn(StateFn):
         transpositions = arithmetic.transpositions(permutation)
         for trans in transpositions:
             qc.swap(trans[0], trans[1])
-        from .. import CircuitOp
+
+        from ..primitive_ops.circuit_op import CircuitOp
         matrix = CircuitOp(qc).to_matrix()
         vector = new_self.primitive.data
-        return VectorStateFn(primitive=matrix.dot(vector),
+        new_vector = cast(np.ndarray, matrix.dot(vector))
+        return VectorStateFn(primitive=new_vector,
                              coeff=self.coeff,
                              is_measurement=self.is_measurement)
 
@@ -127,8 +130,6 @@ class VectorStateFn(StateFn):
             return StateFn(self.primitive.tensor(other.primitive),
                            coeff=self.coeff * other.coeff,
                            is_measurement=self.is_measurement)
-        # pylint: disable=cyclic-import
-        from .. import TensoredOp
         return TensoredOp([self, other])
 
     def to_density_matrix(self, massive: bool = False) -> np.ndarray:
@@ -145,8 +146,9 @@ class VectorStateFn(StateFn):
 
     def to_circuit_op(self) -> OperatorBase:
         """ Return ``StateFnCircuit`` corresponding to this StateFn."""
+        # pylint: disable=cyclic-import
         from .circuit_state_fn import CircuitStateFn
-        csfn = CircuitStateFn.from_vector(self.primitive.data) * self.coeff  # type: ignore
+        csfn = CircuitStateFn.from_vector(self.primitive.data) * self.coeff
         return csfn.adjoint() if self.is_measurement else csfn
 
     def __str__(self) -> str:
@@ -161,9 +163,12 @@ class VectorStateFn(StateFn):
                                         self.coeff)
 
     # pylint: disable=too-many-return-statements
-    def eval(self,
-             front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
-             ) -> Union[OperatorBase, float, complex]:
+    def eval(
+        self,
+        front: Optional[
+            Union[str, Dict[str, complex], np.ndarray, Statevector, OperatorBase]
+        ] = None,
+    ) -> Union[OperatorBase, complex]:
         if front is None:  # this object is already a VectorStateFn
             return self
 
@@ -173,7 +178,7 @@ class VectorStateFn(StateFn):
                 'sf.adjoint() first to convert to measurement.')
 
         if isinstance(front, ListOp) and front.distributive:
-            return front.combo_fn([self.eval(front.coeff * front_elem)  # type: ignore
+            return front.combo_fn([self.eval(front.coeff * front_elem)
                                    for front_elem in front.oplist])
 
         if not isinstance(front, OperatorBase):
@@ -185,7 +190,7 @@ class VectorStateFn(StateFn):
         from .circuit_state_fn import CircuitStateFn
         from .dict_state_fn import DictStateFn
         if isinstance(front, DictStateFn):
-            return np.round(sum([v * self.primitive.data[int(b, 2)] * front.coeff  # type: ignore
+            return np.round(sum([v * self.primitive.data[int(b, 2)] * front.coeff
                                  for (b, v) in front.primitive.items()]) * self.coeff,
                             decimals=EVAL_SIG_DIGITS)
 
@@ -196,11 +201,10 @@ class VectorStateFn(StateFn):
 
         if isinstance(front, CircuitStateFn):
             # Don't reimplement logic from CircuitStateFn
-            return np.conj(
-                front.adjoint().eval(self.adjoint().primitive)) * self.coeff  # type: ignore
+            return np.conj(front.adjoint().eval(self.adjoint().primitive)) * self.coeff
 
         if isinstance(front, OperatorStateFn):
-            return front.adjoint().eval(self.primitive) * self.coeff  # type: ignore
+            return front.adjoint().eval(self.primitive) * self.coeff
 
         return front.adjoint().eval(self.adjoint().primitive).adjoint() * self.coeff  # type: ignore
 

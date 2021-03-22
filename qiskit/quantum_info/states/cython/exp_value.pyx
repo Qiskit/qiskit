@@ -17,30 +17,45 @@
 cimport cython
 import numpy as np
 
+cdef unsigned long long m1 = 0x5555555555555555
+cdef unsigned long long m2 = 0x3333333333333333
+cdef unsigned long long m4 = 0x0f0f0f0f0f0f0f0f
+cdef unsigned long long m8 = 0x00ff00ff00ff00ff
+cdef unsigned long long m16 = 0x0000ffff0000ffff
+cdef unsigned long long m32 = 0x00000000ffffffff
+
 cdef unsigned long long popcount(unsigned long long count):
-  count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
-  count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
-  count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
-  count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
-  count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
-  count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+  count = (count & m1) + ((count >> 1) & m1);
+  count = (count & m2) + ((count >> 2) & m2);
+  count = (count & m4) + ((count >> 4) & m4);
+  count = (count & m8) + ((count >> 8) & m8);
+  count = (count & m16) + ((count >> 16) & m16);
+  count = (count & m32) + ((count >> 32) & m32);
   return count
 
-def expval_pauli_no_x(complex[::1] data, unsigned long long z_mask, complex phase):
+
+def expval_pauli_no_x(complex[::1] data,
+                      unsigned long long num_qubits,
+                      unsigned long long z_mask):
     cdef double val = 0
     cdef int i
     cdef current_val
-    for i in range(data.shape[0]):
-        current_val = (phase * (data[i].real*data[i].real+data[i].imag*data[i].imag)).real
+    cdef unsigned long long size = 1 << num_qubits
+    for i in range(size):
+        current_val = (data[i].real*data[i].real+data[i].imag*data[i].imag).real
         if popcount(i & z_mask) & 1 != 0:
             current_val *= -1
         val += current_val
     return val
 
-def expval_pauli_with_x(complex[::1] data, unsigned long long z_mask,
-                          unsigned long long x_mask, complex phase,
-                          unsigned int x_max):
-        cdef unsigned long long mask_u = ~(2 ** (x_max + 1) - 1) & 0xffffffffffffffff
+
+def expval_pauli_with_x(complex[::1] data,
+                        unsigned long long num_qubits,
+                        unsigned long long z_mask,
+                        unsigned long long x_mask,
+                        complex phase,
+                        unsigned int x_max):
+        cdef unsigned long long mask_u = ~(2 ** (x_max + 1) - 1)
         cdef unsigned long long mask_l = 2**(x_max) - 1
         cdef double val = 0
         cdef unsigned int i
@@ -48,7 +63,8 @@ def expval_pauli_with_x(complex[::1] data, unsigned long long z_mask,
         cdef unsigned long long index_1
         cdef double current_val_0
         cdef double current_val_1
-        for i in range(data.shape[0] // 2):
+        cdef unsigned long long size = 1 << (num_qubits - 1)
+        for i in range(size):
             index_0 = ((i << 1) & mask_u) | (i & mask_l)
             index_1 = index_0 ^ x_mask
 
@@ -77,32 +93,43 @@ def expval_pauli_with_x(complex[::1] data, unsigned long long z_mask,
                 val += current_val_1
         return val
 
-def density_expval_pauli_no_x(complex[:, ::1] data, unsigned long long z_mask):
+
+def density_expval_pauli_no_x(complex[::1] data,
+                              unsigned long long num_qubits,
+                              unsigned long long z_mask):
     cdef double val = 0
     cdef int i
-    cdef current_val
-    for i in range(data.shape[0]):
-        current_val = (data[i][i]).real
+    cdef unsigned long long nrows = 1 << num_qubits
+    cdef unsigned long long stride = 1 + nrows
+    cdef unsigned long long index
+    for i in range(nrows):
+        index = i * stride
+        current_val = (data[index]).real
         if popcount(i & z_mask) & 1 != 0:
             current_val *= -1
         val += current_val
     return val
 
-def density_expval_pauli_with_x(complex[:, ::1] data, unsigned long long z_mask,
-                                unsigned long long x_mask, complex phase,
+
+def density_expval_pauli_with_x(complex[::1] data,
+                                unsigned long long num_qubits,
+                                unsigned long long z_mask,
+                                unsigned long long x_mask,
+                                complex phase,
                                 unsigned int x_max):
-        cdef unsigned long long mask_u = ~(2 ** (x_max + 1) - 1) & 0xffffffffffffffff
+        cdef unsigned long long mask_u = ~(2 ** (x_max + 1) - 1)
         cdef unsigned long long mask_l = 2**(x_max) - 1
         cdef double val = 0
         cdef unsigned int i
-        cdef unsigned long long index_0
-        cdef unsigned long long index_1
         cdef double current_val
-        for i in range(data.shape[0] // 2):
-            index_0 = ((i << 1) & mask_u) | (i & mask_l)
-            index_1 = index_0 ^ x_mask
-            current_val = 2 * (phase * data[index_1][index_0]).real
-            if popcount(index_0 & z_mask) & 1 != 0:
+        cdef unsigned long long nrows = 1 << num_qubits
+        cdef unsigned long long index_vec
+        cdef unsigned long long index_mat
+        for i in range(nrows >> 1):
+            index_vec = ((i << 1) & mask_u) | (i & mask_l)
+            index_mat = index_vec ^ x_mask + nrows * index_vec
+            current_val = 2 * (phase * data[index_mat]).real
+            if popcount(index_vec & z_mask) & 1 != 0:
                 current_val *= -1
             val += current_val
         return val

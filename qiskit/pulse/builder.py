@@ -635,7 +635,7 @@ def build(backend=None,
             circuit to pulse scheduler.
 
     Returns:
-        A new builder context which has the active builder inititalized.
+        A new builder context which has the active builder initialized.
     """
     return _PulseBuilder(
         backend=backend,
@@ -1868,6 +1868,64 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] 
 
 
 # Macros
+def macro(func: Callable):
+    """Wrap a Python function and activate the parent builder context at calling time.
+
+    This enables embedding Python functions as builder macros. This generates a new
+    :class:`pulse.Schedule` that is embedded in the parent builder context with
+    every call of the decorated macro function. The decorated macro function will
+    behave as if the function code was embedded inline in the parent builder context
+    after parameter substitution.
+
+
+    Examples:
+
+    .. jupyter-execute::
+
+        from qiskit import pulse
+
+        @pulse.macro
+        def measure(qubit: int):
+            pulse.play(pulse.GaussianSquare(16384, 256, 15872), pulse.measure_channel(qubit))
+            mem_slot = pulse.MemorySlot(qubit)
+            pulse.acquire(16384, pulse.acquire_channel(qubit), mem_slot)
+
+            return mem_slot
+
+        with pulse.build(backend=backend) as sched:
+            mem_slot = measure(0)
+            print(f"Qubit measured into {mem_slot}")
+
+        sched.draw()
+
+
+
+
+
+    Args:
+        func: The Python function to enable as a builder macro. There are no
+            requirements on the signature of the function, any calls to pulse
+            builder methods will be added to builder context the wrapped function
+            is called from.
+
+    Returns:
+        Callable: The wrapped ``func``.
+    """
+    func_name = getattr(func, '__name__', repr(func))
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        _builder = _active_builder()
+        # activate the pulse builder before calling the function
+        with build(backend=_builder.backend, name=func_name) as built:
+            output = func(*args, **kwargs)
+
+        _builder.call_schedule(built)
+        return output
+
+    return wrapper
+
+
 def measure(qubits: Union[List[int], int],
             registers: Union[List[StorageLocation], StorageLocation] = None,
             ) -> Union[List[StorageLocation], StorageLocation]:
