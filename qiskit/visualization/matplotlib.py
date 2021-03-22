@@ -972,7 +972,6 @@ class MatplotlibDrawer:
                 #
                 # draw controlled and special gates
                 #
-                
                 # cz and mcz gates
                 elif op.name != 'z' and base_name == 'z':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
