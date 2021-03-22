@@ -986,6 +986,10 @@ class TextDrawing():
             # reset
             layer.set_qubit(instruction.qargs[0], Reset(conditional=conditional))
 
+        elif (getattr(instruction.op, 'label', None) is not None and
+                len(instruction.qargs) >= 2 and not instruction.cargs):
+            layer.set_qu_multibox(instruction.qargs, box_label, conditional=conditional)
+
         elif isinstance(instruction.op, RZZGate):
             # rzz
             connection_label = "ZZ(%s)" % TextDrawing.params_for_label(instruction)[0]
