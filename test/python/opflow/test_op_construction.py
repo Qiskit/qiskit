@@ -967,6 +967,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         with self.subTest('eval empty TensoredOp '):
             self.assertEqual(TensoredOp([]).eval(), 0.0)
 
+
 class TestOpMethods(QiskitOpflowTestCase):
     """Basic method tests."""
 
