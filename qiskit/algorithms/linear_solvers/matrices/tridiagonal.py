@@ -22,7 +22,16 @@ from .linear_system_matrix import LinearSystemMatrix
 
 
 class Tridiagonal(LinearSystemMatrix):
-    """Class of tridiagonal Toeplitz symmetric matrices"""
+    r"""Class of tridiagonal Toeplitz symmetric matrices.
+
+    Given the main entry, :math:`a`, and the off diagonal entry, :math:`b`, the :math:`4\times 4`
+    dimensional tridiagonal Toeplitz symmetric matrix is
+    .. math::
+        |a b 0 0|
+        |b a b 0|
+        |0 b a b|
+        |0 0 b a|.
+    """
 
     def __init__(self, num_state_qubits: int, main_diag: float, off_diag: float,
                  tolerance: float = 1e-2, evolution_time: float = 1.0, trotter_steps: int = 1,
@@ -148,7 +157,8 @@ class Tridiagonal(LinearSystemMatrix):
 
     @property
     def matrix(self) -> np.ndarray:
-        """Return the matrix."""
+        """Returns the tridiagonal Toeplitz matrix built according to the main and off diagonal
+         entries."""
         matrix = diags([self.off_diag, self.main_diag, self.off_diag], [-1, 0, 1],
                        shape=(2 ** self.num_state_qubits, 2 ** self.num_state_qubits)).toarray()
         return matrix
