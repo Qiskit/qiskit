@@ -93,6 +93,10 @@ class HHL(LinearSolver):
         if isinstance(quantum_instance, (BaseBackend, Backend)):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
+        if quantum_instance is not None:
+            self._sampler = CircuitSampler(quantum_instance)
+        else:
+            self._sampler = None
 
     def _get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
         """Calculates the scaling factor to represent exactly lambda_min on nl binary digits.
