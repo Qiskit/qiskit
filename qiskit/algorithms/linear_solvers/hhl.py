@@ -14,7 +14,7 @@
 
 from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
-from qiskit.aqua.operators import PauliExpectation
+from qiskit.opflow import PauliExpectation
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation
@@ -273,16 +273,16 @@ class HHL(LinearSolver):
         matrix_circuit.tolerance = self._epsilon_a
 
         # check if the matrix can calculate the condition number and store the upper bound
-        if hasattr(matrix, "condition_bounds") and matrix.condition_bounds is not None:
-            kappa = matrix.condition_bounds[1]
+        if hasattr(matrix, "condition_bounds") and matrix.condition_bounds() is not None:
+            kappa = matrix.condition_bounds()[1]
         else:
             kappa = 1
         # Update the number of qubits required to represent the eigenvalues
         nl = max(nb + 1, int(np.log2(kappa)) + 1)
 
         # check if the matrix can calculate bounds for the eigenvalues
-        if hasattr(matrix, "eigs_bounds") and matrix.eigs_bounds is not None:
-            lambda_min, lambda_max = matrix.eigs_bounds
+        if hasattr(matrix, "eigs_bounds") and matrix.eigs_bounds() is not None:
+            lambda_min, lambda_max = matrix.eigs_bounds()
             # Constant so that the minimum eigenvalue is represented exactly, since it contributes
             # the most to the solution of the system
             delta = self._get_delta(nl, lambda_min, lambda_max)

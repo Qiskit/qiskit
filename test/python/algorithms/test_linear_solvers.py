@@ -36,12 +36,12 @@ class TestMatrices(QiskitAlgorithmsTestCase):
         * the constructed circuits
     """
     @idata([
-        [Tridiagonal(2, 1, -1/3)],
-        [Tridiagonal(3, 2, 1), 1.1, 3]
+        [TridiagonalToeplitz(2, 1, -1/3)],
+        [TridiagonalToeplitz(3, 2, 1), 1.1, 3]
     ])
     @unpack
-    def test_tridiagonal(self, matrix, time=1.0, power=1):
-        """Test the Tridiagonal class."""
+    def test_tridiagonal_toeplitz(self, matrix, time=1.0, power=1):
+        """Test the TridiagonalToeplitz class."""
         if time is not None:
             matrix.evolution_time = time
 
@@ -50,7 +50,7 @@ class TestMatrices(QiskitAlgorithmsTestCase):
         circ_qubits = pow_circ.num_qubits
         qc = QuantumCircuit(circ_qubits)
         qc.append(matrix.power(power).control(), list(range(circ_qubits)))
-        # extract the parts of the circuit matrix corresponding to Tridiagonal
+        # extract the parts of the circuit matrix corresponding to TridiagonalToeplitz
         zero_op = ((I + Z) / 2)
         one_op = ((I - Z) / 2)
         proj = Operator((zero_op ^ pow_circ.num_ancillas) ^ (I ^ num_qubits) ^ one_op).data
@@ -180,9 +180,9 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         * the constructed circuits
     """
     @idata([
-        [Tridiagonal(2, 1, 1/3, trotter_steps=2), [1.0, -2.1, 3.2, -4.3],
+        [TridiagonalToeplitz(2, 1, 1/3, trotter_steps=2), [1.0, -2.1, 3.2, -4.3],
          MatrixFunctional(1, 1/2)],
-        [Tridiagonal(3, 1, -1/2, trotter_steps=2), [-9/4, -0.3, 8/7, 10, -5, 11.1, 13/11, -27/12],
+        [TridiagonalToeplitz(3, 1, -1/2, trotter_steps=2), [-9/4, -0.3, 8/7, 10, -5, 11.1, 13/11, -27/12],
          AbsoluteAverage()]
     ])
     @unpack
