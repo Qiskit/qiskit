@@ -14,6 +14,7 @@
 
 from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
+from qiskit.aqua.operators import PauliExpectation
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation
@@ -43,7 +44,7 @@ class HHL(LinearSolver):
                 solution and ::math::`\tilde{x}` the one calculated by the algorithm, then
                 :math:`||x - \tilde{x}|| < epsilon`.
             exp_val: The expectation converter applied to the expectation values before
-                evaluation.
+                evaluation. If None then PauliExpectation is used.
             quantum_instance: Quantum Instance or Backend
 
 
@@ -67,7 +68,7 @@ class HHL(LinearSolver):
         else:
             self._sampler = None
 
-        self._exp_val = exp_val
+        self._exp_val = exp_val if exp_val else PauliExpectation()
         self._quantum_instance = quantum_instance
 
         # For now the default reciprocal implementation is exact
