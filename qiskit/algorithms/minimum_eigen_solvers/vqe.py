@@ -32,7 +32,6 @@ from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils.quantum_instance import QuantumInstance
 from ..optimizers import Optimizer, SLSQP
-from ..variational_forms import VariationalForm
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 from ..exceptions import AlgorithmError
@@ -87,7 +86,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     """
 
     def __init__(self,
-                 var_form: Optional[Union[QuantumCircuit, VariationalForm]] = None,
+                 var_form: Optional[QuantumCircuit] = None,
                  optimizer: Optional[Optimizer] = None,
                  initial_point: Optional[np.ndarray] = None,
                  gradient: Optional[Union[GradientBase, Callable]] = None,
@@ -495,8 +494,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         if self._ret.optimal_point is None:
             raise AlgorithmError("Cannot find optimal circuit before running the "
                                  "algorithm to find optimal params.")
-        if isinstance(self.var_form, VariationalForm):
-            return self._var_form.construct_circuit(self._ret.optimal_point)
         return self.var_form.assign_parameters(self._ret.optimal_parameters)
 
     def get_optimal_vector(self) -> Union[List[float], Dict[str, int]]:
