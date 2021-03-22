@@ -22,7 +22,7 @@ from qiskit.circuit.library import UGate, MCMTVChain
 from .linear_system_matrix import LinearSystemMatrix
 
 
-class Tridiagonal(LinearSystemMatrix):
+class TridiagonalToeplitz(LinearSystemMatrix):
     r"""Class of tridiagonal Toeplitz symmetric matrices.
 
     Given the main entry, :math:`a`, and the off diagonal entry, :math:`b`, the :math:`4\times 4`

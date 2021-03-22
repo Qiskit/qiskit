@@ -19,7 +19,7 @@ import numpy as np
 from ddt import ddt, idata, unpack
 from qiskit import QuantumCircuit
 from qiskit.algorithms.linear_solvers.hhl import HHL
-from qiskit.algorithms.linear_solvers.matrices.tridiagonal import Tridiagonal
+from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import TridiagonalToeplitz
 from qiskit.algorithms.linear_solvers.observables.absolute_average import AbsoluteAverage
 from qiskit.algorithms.linear_solvers.observables.matrix_functional import MatrixFunctional
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
