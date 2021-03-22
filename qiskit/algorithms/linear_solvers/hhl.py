@@ -35,14 +35,14 @@ class HHL(LinearSolver):
 
     def __init__(self,
                  epsilon: float = 1e-2,
-                 expectation: Optional[ExpectationBase] = None,
+                 exp_val: Optional[ExpectationBase] = None,
                  quantum_instance: Optional[Union[Backend, QuantumInstance]] = None) -> None:
         r"""
         Args:
             epsilon: Error tolerance of the approximation to the solution, i.e. if x is the exact
                 solution and ::math::`\tilde{x}` the one calculated by the algorithm, then
                 :math:`||x - \tilde{x}|| < epsilon`.
-            expectation: The expectation converter applied to the expectation values before
+            exp_val: The expectation converter applied to the expectation values before
                 evaluation.
             quantum_instance: Quantum Instance or Backend
 
@@ -67,7 +67,7 @@ class HHL(LinearSolver):
         else:
             self._sampler = None
 
-        self._expectation = expectation
+        self._exp_val = exp_val
         self._quantum_instance = quantum_instance
 
         # For now the default reciprocal implementation is exact
@@ -205,8 +205,8 @@ class HHL(LinearSolver):
         else:
             expectations = expectations[0]
 
-        if self._expectation is not None:
-            expectations = self._expectation.convert(expectations)
+        if self._exp_val is not None:
+            expectations = self._exp_val.convert(expectations)
 
         if self._sampler is not None:
             expectations = self._sampler.convert(expectations)
