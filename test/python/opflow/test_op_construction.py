@@ -393,6 +393,10 @@ class TestOpConstruction(QiskitOpflowTestCase):
             self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'ZZ'])
             self.assertListEqual([op.coeff for op in sum_op], [10, 2, 3])
 
+        sum_op = SummedOp([])
+        with self.subTest('SummedOp test 9'):
+            self.assertEqual(sum_op.reduce(), sum_op)
+
     def test_compose_op_of_different_dim(self):
         """
         Test if smaller operator expands to correct dim when composed with bigger operator.
