@@ -966,7 +966,10 @@ class MatplotlibDrawer:
                     if base_name not in ['u1', 'p']:
                         self._ctrl_qubit(q_xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
                     if base_name == 'u1':
-                        stext = f"$\\mathrm{{{self._style['disptex']['u1']}}}$"
+                        if self._style['disptex']['u1'].find('\\mathrm') >= 0:
+                            stext = self._style['disptex']['u1']
+                        else:
+                            stext = f"$\\mathrm{{{self._style['disptex']['u1']}}}$"
                     elif base_name == 'p':
                         stext = 'P'
                     else:

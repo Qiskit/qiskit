@@ -62,14 +62,12 @@ def _get_gate_ctrl_text(op, drawer, style=None):
 
     # For mpl and latex drawers, check style['disptex'] in qcstyle.py
     if drawer != 'text' and gate_text in style['disptex']:
-        print("1  ",gate_text)
         # First check if this entry is in the old style disptex that
         # included "$\\mathrm{  }$". If so, take it as is.
-        if style['disptex'][gate_text].find('\\mathrm') >= 0:
+        if style['disptex'][gate_text][0] == '$' and style['disptex'][gate_text][-1] == '$':
             gate_text = style['disptex'][gate_text]
         else:
             gate_text = f"$\\mathrm{{{style['disptex'][gate_text]}}}$"
-        print(gate_text)
 
     # Only captitalize internally-created gate or instruction names
     elif ((gate_text == op.name and op_type not in (Gate, Instruction))

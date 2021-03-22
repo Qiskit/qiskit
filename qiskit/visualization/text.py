@@ -936,7 +936,7 @@ class TextDrawing():
         base_gate = getattr(instruction.op, 'base_gate', None)
 
         box_label, ctrl_label = _get_gate_ctrl_text(instruction, 'text')
-        if box_label.lower() == instruction.op.name or (base_gate and 
+        if box_label.lower() == instruction.op.name or (base_gate and
                                                         box_label.lower() == base_gate.name):
             box_label = TextDrawing.special_label(instruction.op) or box_label
         params = TextDrawing.params_for_label(instruction)
@@ -997,7 +997,7 @@ class TextDrawing():
             layer.set_qubit(instruction.qargs[0],
                             BoxOnQuWire(box_label, conditional=conditional))
 
-        elif isinstance(instruction.op, ControlledGate):# and not label_multibox:
+        elif isinstance(instruction.op, ControlledGate):
             params_array = TextDrawing.controlled_wires(instruction, layer)
             controlled_top, controlled_bot, controlled_edge, rest = params_array
             gates = self._set_ctrl_state(instruction, conditional, ctrl_label,
