@@ -14,13 +14,13 @@
 
 from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
-from qiskit.opflow import PauliExpectation
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
-from qiskit.opflow import Z, I, StateFn, TensoredOp, ExpectationBase, CircuitSampler, ListOp
+from qiskit.opflow import (Z, I, StateFn, TensoredOp, ExpectationBase, CircuitSampler, ListOp,
+                           ExpectationFactory)
 from qiskit.providers import Backend, BaseBackend
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -36,14 +36,14 @@ class HHL(LinearSolver):
 
     def __init__(self,
                  epsilon: float = 1e-2,
-                 exp_val: Optional[ExpectationBase] = None,
+                 expectation: Optional[ExpectationBase] = None,
                  quantum_instance: Optional[Union[Backend, QuantumInstance]] = None) -> None:
         r"""
         Args:
             epsilon: Error tolerance of the approximation to the solution, i.e. if x is the exact
                 solution and ::math::`\tilde{x}` the one calculated by the algorithm, then
                 :math:`||x - \tilde{x}|| < epsilon`.
-            exp_val: The expectation converter applied to the expectation values before
+            expectation: The expectation converter applied to the expectation values before
                 evaluation. If None then PauliExpectation is used.
             quantum_instance: Quantum Instance or Backend. If None, a Statevector calculation is
                 done.
@@ -73,8 +73,7 @@ class HHL(LinearSolver):
         else:
             self._sampler = None
 
-        self._exp_val = exp_val if exp_val else PauliExpectation()
-        self._quantum_instance = quantum_instance
+        self._expectation = expectation
 
         # For now the default reciprocal implementation is exact
         self._exact_reciprocal = True
@@ -86,7 +85,7 @@ class HHL(LinearSolver):
         Returns:
             The quantum instance used to run this algorithm.
         """
-        return self._quantum_instance
+        return self._sampler.quantum_instance
 
     @quantum_instance.setter
     def quantum_instance(self, quantum_instance: Union[QuantumInstance,
@@ -96,13 +95,18 @@ class HHL(LinearSolver):
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
-            quantum_instance = QuantumInstance(quantum_instance)
-        self._quantum_instance = quantum_instance
-        if quantum_instance is not None:
-            self._sampler = CircuitSampler(quantum_instance)
-        else:
-            self._sampler = None
+        self._sampler.quantum_instance = quantum_instance
+
+    @property
+    def expectation(self) -> ExpectationBase:
+        """The expectation value algorithm used to construct the expectation measurement from
+        the observable. """
+        return self._expectation
+
+    @expectation.setter
+    def expectation(self, expectation: ExpectationBase) -> None:
+        """Set the expectation value algorithm."""
+        self._expectation = expectation
 
     def _get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
         """Calculates the scaling factor to represent exactly lambda_min on nl binary digits.
@@ -211,8 +215,16 @@ class HHL(LinearSolver):
         else:
             expectations = expectations[0]
 
-        if self._exp_val is not None:
-            expectations = self._exp_val.convert(expectations)
+        # check if an expectation converter is given
+        if self._expectation is not None:
+            expectations = self._expectation.convert(expectations)
+        # if otherwise a backend was specified, try to set the best expectation value
+        elif self._sampler is not None:
+            if is_list:
+                op = expectations.oplist[0]
+            else:
+                op = expectations
+            self._expectation = ExpectationFactory.build(op, self._sampler.quantum_instance)
 
         if self._sampler is not None:
             expectations = self._sampler.convert(expectations)
@@ -268,9 +280,12 @@ class HHL(LinearSolver):
                                  str(vector_circuit.num_qubits) +
                                  ". Matrix dimension: " +
                                  str(matrix.shape[0]))
+            matrix_circuit = QuantumCircuit(int(np.log2(matrix.shape[0])))
+            matrix_circuit.hamiltonian(matrix, 2 * np.pi, matrix_circuit.qubits)
 
         # Set the tolerance for the matrix approximation
-        matrix_circuit.tolerance = self._epsilon_a
+        if hasattr(matrix_circuit, "tolerance"):
+            matrix_circuit.tolerance = self._epsilon_a
 
         # check if the matrix can calculate the condition number and store the upper bound
         if hasattr(matrix, "condition_bounds") and matrix.condition_bounds() is not None:

@@ -98,6 +98,17 @@ Algorithms to find factors of a number.
    Shor
    ShorResult
 
+Linear Solvers
+++++++++++++++
+Algorithms to solve linear systems of equations.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   HHL
+   NumPyLinearSolver
+
 Minimum Eigensolvers
 ++++++++++++++++++++
 Algorithms that can find the minimum eigenvalue of an operator.
@@ -139,6 +150,7 @@ from .amplitude_estimators import (
 )
 from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
 from .factorizers import Shor, ShorResult
+from .linear_solvers import HHL, NumPyLinearSolver
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
                                     NumPyMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
@@ -170,6 +182,8 @@ __all__ = [
     'VQE',
     'VQEResult',
     'QAOA',
+    'HHL',
+    'NumPyLinearSolver',
     'NumPyMinimumEigensolver',
     'MinimumEigensolver',
     'MinimumEigensolverResult',

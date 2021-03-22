@@ -17,7 +17,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 from scipy.linalg import expm
 import numpy as np
 from ddt import ddt, idata, unpack
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, Aer
 from qiskit.algorithms.linear_solvers.hhl import HHL
 from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import TridiagonalToeplitz
 from qiskit.algorithms.linear_solvers.observables.absolute_average import AbsoluteAverage
