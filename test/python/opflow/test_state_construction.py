@@ -208,7 +208,7 @@ class TestStateConstruction(QiskitOpflowTestCase):
         self.assertEqual(bound.coeff, 0.3)
         self.assertEqual(bound.primitive.coeff, 0.2)
 
-    #6003
+    # #6003
     def test_flatten_statefn_composed_with_composed_op(self):
         """Test that composing a StateFn with a ComposedOp constructs a single ComposedOp
         """
