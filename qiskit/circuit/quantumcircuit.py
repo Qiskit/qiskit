@@ -538,8 +538,11 @@ class QuantumCircuit:
 
         return controlled_circ
 
+    @deprecate_function('The QuantumCircuit.combine() method is being deprecated. '
+                        'Use the compose() method which is more flexible w.r.t '
+                        'circuit register compatibility.')
     def combine(self, rhs):
-        """Append rhs to self if self contains compatible registers.
+        """DEPRECATED - Returns rhs appended to self if self contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -585,8 +588,11 @@ class QuantumCircuit:
 
         return circuit
 
+    @deprecate_function('The QuantumCircuit.extend() method is being deprecated. Use the '
+                        'compose() (potentially with the inplace=True argument) and tensor() '
+                        'methods which are more flexible w.r.t circuit register compatibility.')
     def extend(self, rhs):
-        """Append QuantumCircuit to the right hand side if it contains compatible registers.
+        """DEPRECATED - Append QuantumCircuit to the RHS if it contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -846,10 +852,16 @@ class QuantumCircuit:
         """
         return self._ancillas
 
+    @deprecate_function('The QuantumCircuit.__add__() method is being deprecated.'
+                        'Use the compose() method which is more flexible w.r.t '
+                        'circuit register compatibility.')
     def __add__(self, rhs):
         """Overload + to implement self.combine."""
         return self.combine(rhs)
 
+    @deprecate_function('The QuantumCircuit.__iadd__() method is being deprecated. Use the '
+                        'compose() (potentially with the inplace=True argument) and tensor() '
+                        'methods which are more flexible w.r.t circuit register compatibility.')
     def __iadd__(self, rhs):
         """Overload += to implement self.extend."""
         return self.extend(rhs)
@@ -1090,7 +1102,8 @@ class QuantumCircuit:
         for bit in bits:
             if isinstance(bit, AncillaQubit):
                 self._ancillas.append(bit)
-            elif isinstance(bit, Qubit):
+
+            if isinstance(bit, Qubit):
                 self._qubits.append(bit)
                 self._qubit_set.add(bit)
             elif isinstance(bit, Clbit):
@@ -1713,6 +1726,7 @@ class QuantumCircuit:
                      for inst, qargs, cargs in self._data]
 
         cpy._calibrations = copy.deepcopy(self._calibrations)
+        cpy._metadata = copy.deepcopy(self._metadata)
 
         if name:
             cpy.name = name
