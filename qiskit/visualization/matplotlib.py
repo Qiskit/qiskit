@@ -972,16 +972,7 @@ class MatplotlibDrawer:
                 #
                 # draw controlled and special gates
                 #
-                # cx gates
-                elif isinstance(op.op, ControlledGate) and base_name == 'x':
-                    num_ctrl_qubits = op.op.num_ctrl_qubits
-                    self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
-                                        q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
-                    tgt_color = self._style['dispcol']['target']
-                    tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
-                    self._x_tgt_qubit(q_xy[num_ctrl_qubits], ec=ec, ac=tgt)
-                    self._line(qreg_b, qreg_t, lc=lc)
-
+                
                 # cz and mcz gates
                 elif op.name != 'z' and base_name == 'z':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
