@@ -215,7 +215,7 @@ class DefaultStyle:
                 'dcx': 'Dcx',
                 'iswap': 'Iswap',
                 'ms': 'MS',
-                'rx': 'R_X',
+                'rx': "$\\mathrm{R_X}$",
                 'ry': 'R_Y',
                 'rz': 'R_Z',
                 'rxx': 'R_{XX}',

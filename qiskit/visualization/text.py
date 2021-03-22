@@ -936,7 +936,8 @@ class TextDrawing():
         base_gate = getattr(instruction.op, 'base_gate', None)
 
         box_label, ctrl_label = _get_gate_ctrl_text(instruction, 'text')
-        if box_label == instruction.op.name:
+        if box_label.lower() == instruction.op.name or (base_gate and 
+                                                        box_label.lower() == base_gate.name):
             box_label = TextDrawing.special_label(instruction.op) or box_label
         params = TextDrawing.params_for_label(instruction)
         if params:
