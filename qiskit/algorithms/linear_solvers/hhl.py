@@ -51,7 +51,11 @@ class HHL(LinearSolver):
 
         References:
 
-        [1]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2020).
+        [1]: Harrow, A. W., Hassidim, A., Lloyd, S. (2009).
+             Quantum algorithm for linear systems of equations.
+             `Phys. Rev. Lett. 103, 15 (2009), 1–15.
+              <https://doi.org/10.1103/PhysRevLett.103.150502> arXiv:0811.3171`_
+        [2]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2020).
              Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
              `arXiv:2009.04484 <http://arxiv.org/abs/2009.04484>`_
 
