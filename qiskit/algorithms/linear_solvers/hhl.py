@@ -68,6 +68,7 @@ class HHL(LinearSolver):
             self._sampler = None
 
         self._expectation = expectation
+        self._quantum_instance = quantum_instance
 
         # For now the default reciprocal implementation is exact
         self._exact_reciprocal = True
@@ -92,7 +93,7 @@ class HHL(LinearSolver):
         if isinstance(quantum_instance, (BaseBackend, Backend)):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
-        
+
     def _get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
         """Calculates the scaling factor to represent exactly lambda_min on nl binary digits.
 
@@ -148,7 +149,7 @@ class HHL(LinearSolver):
         """Calculates the value of the observable(s) given.
 
         Args:
-            qc: The quantum circuit preparing the solution x to the system.
+            solution: The quantum circuit preparing the solution x to the system.
             observable: Information to be extracted from the solution.
             observable_circuit: Circuit to be applied to the solution to extract information.
             post_processing: Function to compute the value of the observable.
