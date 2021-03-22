@@ -1,5 +1,0 @@
----
-deprecations:
-  - |
-    The legacy class `VariationalForm` and option `preferred_init_point` were
-    removed.
