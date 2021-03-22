@@ -796,36 +796,12 @@ class TextDrawing():
     def special_label(instruction):
         """Some instructions have special labels"""
         labels = {IGate: 'I',
-                  Initialize: 'initialize',
-                  UnitaryGate: 'unitary',
-                  HamiltonianGate: 'Hamiltonian',
                   SXGate: '√X',
                   SXdgGate: '√XDG'}
         instruction_type = type(instruction)
         if instruction_type in {Gate, Instruction}:
             return instruction.name
         return labels.get(instruction_type, None)
-
-    @staticmethod
-    def label_for_box(instruction, controlled=False):
-        """ Creates the label for a box."""
-        if controlled:
-            if getattr(instruction.op.base_gate, 'label', None) is not None:
-                return instruction.op.base_gate.label
-            label = TextDrawing.special_label(
-                instruction.op.base_gate) or instruction.op.base_gate.name.upper()
-        else:
-            if getattr(instruction.op, 'label', None) is not None:
-                return instruction.op.label
-            label = TextDrawing.special_label(instruction.op) or instruction.name.upper()
-        params = TextDrawing.params_for_label(instruction)
-
-        if params:
-            if isinstance(instruction.op, DelayInstruction) and instruction.op.unit:
-                label += "(%s[%s])" % (params[0], instruction.op.unit)
-            else:
-                label += "(%s)" % ','.join(params)
-        return label
 
     @staticmethod
     def merge_lines(top, bot, icod="top"):
@@ -955,13 +931,19 @@ class TextDrawing():
 
         current_cons = []
         connection_label = None
-        ctrl_label = None
-        box_label = None
-        box_label, ctrl_label = _get_gate_ctrl_text(instruction, 'text')
         conditional = False
         multi_qubit_instruction = len(instruction.qargs) >= 2 and not instruction.cargs
-        label_multibox = False
         base_gate = getattr(instruction.op, 'base_gate', None)
+
+        box_label, ctrl_label = _get_gate_ctrl_text(instruction, 'text')
+        if box_label == instruction.op.name:
+            box_label = TextDrawing.special_label(instruction.op) or box_label
+        params = TextDrawing.params_for_label(instruction)
+        if params:
+            if isinstance(instruction.op, DelayInstruction) and instruction.op.unit:
+                box_label += "(%s[%s])" % (params[0], instruction.op.unit)
+            else:
+                box_label += "(%s)" % ','.join(params)
 
         if instruction.condition is not None:
             # conditional
@@ -976,21 +958,6 @@ class TextDrawing():
                 if actual_index not in [i for i, j in current_cons]:
                     layer.set_qubit(instruction.qargs[i], gate)
                     current_cons.append((actual_index, gate))
-
-        """if multi_qubit_instruction and \
-                getattr(instruction.op, 'label', None) is not None and \
-                getattr(base_gate, 'label', None) is not None:
-            # If a multi qubit instruction has a label, and the base gate has a
-            # label, the label is applied to the bullet instead of the box.
-            ctrl_label = getattr(instruction.op, 'label', None)
-            box_label = getattr(base_gate, 'label', None)"""
-
-        if multi_qubit_instruction and \
-                getattr(instruction.op, 'label', None) is not None:
-            # If a multi qubit instruction has a label, it is a box
-            label_multibox = True
-            layer._set_multibox(instruction.op.label, qubits=instruction.qargs,
-                                conditional=conditional)
 
         if isinstance(instruction.op, MeasureInstruction):
             gate = MeasureFrom()
@@ -1008,6 +975,7 @@ class TextDrawing():
             for qubit in instruction.qargs:
                 if qubit in self.qregs:
                     layer.set_qubit(qubit, Barrier())
+
         elif isinstance(instruction.op, SwapGate):
             # swap
             gates = [Ex(conditional=conditional) for _ in range(len(instruction.qargs))]
@@ -1026,12 +994,9 @@ class TextDrawing():
         elif len(instruction.qargs) == 1 and not instruction.cargs:
             # unitary gate
             layer.set_qubit(instruction.qargs[0],
-                            BoxOnQuWire(TextDrawing.label_for_box(instruction),
-                                        conditional=conditional))
+                            BoxOnQuWire(box_label, conditional=conditional))
 
-        elif isinstance(instruction.op, ControlledGate) and not label_multibox:
-            label = box_label if box_label is not None \
-                else TextDrawing.label_for_box(instruction, controlled=True)
+        elif isinstance(instruction.op, ControlledGate):# and not label_multibox:
             params_array = TextDrawing.controlled_wires(instruction, layer)
             controlled_top, controlled_bot, controlled_edge, rest = params_array
             gates = self._set_ctrl_state(instruction, conditional, ctrl_label,
@@ -1055,7 +1020,7 @@ class TextDrawing():
             elif len(rest) > 1:
                 top_connect = '┴' if controlled_top else None
                 bot_connect = '┬' if controlled_bot else None
-                indexes = layer.set_qu_multibox(rest, label,
+                indexes = layer.set_qu_multibox(rest, box_label,
                                                 conditional=conditional,
                                                 controlled_edge=controlled_edge,
                                                 top_connect=top_connect, bot_connect=bot_connect)
@@ -1065,20 +1030,16 @@ class TextDrawing():
             elif base_gate.name == 'z':
                 gates.append(Bullet(conditional=conditional))
             else:
-                gates.append(BoxOnQuWire(label, conditional=conditional))
+                gates.append(BoxOnQuWire(box_label, conditional=conditional))
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif len(instruction.qargs) >= 2 and not instruction.cargs:
-            # multiple qubit gate
-            label = TextDrawing.label_for_box(instruction)
-            layer.set_qu_multibox(instruction.qargs, label, conditional=conditional)
+            layer.set_qu_multibox(instruction.qargs, box_label, conditional=conditional)
 
         elif instruction.qargs and instruction.cargs:
-            # multiple gate, involving both qargs AND cargs
-            label = TextDrawing.label_for_box(instruction)
             if self.cregbundle and instruction.cargs:
                 raise TextDrawerCregBundle('TODO')
-            layer._set_multibox(label, qubits=instruction.qargs, clbits=instruction.cargs,
+            layer._set_multibox(box_label, qubits=instruction.qargs, clbits=instruction.cargs,
                                 conditional=conditional)
         else:
             raise VisualizationError(

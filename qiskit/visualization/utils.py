@@ -81,7 +81,7 @@ def _get_gate_ctrl_text(op, drawer, style=None):
         gate_text = gate_text.replace('-', '\\mbox{-}')
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
-    print(gate_text)
+    print(gate_text, " XXXX ", ctrl_text)
     return gate_text, ctrl_text
 
 def generate_latex_label(label):
