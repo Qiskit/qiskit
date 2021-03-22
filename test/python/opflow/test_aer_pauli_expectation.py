@@ -195,8 +195,8 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
     def test_pauli_expectation_param_qobj(self):
         """ Test PauliExpectation with param_qobj """
         q_instance = QuantumInstance(self.backend, seed_simulator=self.seed,
-                                     seed_transpiler=self.seed, shots=20000)
-        qubit_op = (1 * I ^ I) + (2 * I ^ Z) + (3 * Z ^ I) + (4 * Z ^ Z) + (5 * X ^ X)
+                                     seed_transpiler=self.seed, shots=10000)
+        qubit_op = (0.1 * I ^ I) + (0.2 * I ^ Z) + (0.3 * Z ^ I) + (0.4 * Z ^ Z) + (0.5 * X ^ X)
         var_form = RealAmplitudes(qubit_op.num_qubits)
         ansatz_circuit_op = CircuitStateFn(var_form)
         observable = PauliExpectation().convert(~StateFn(qubit_op))

@@ -10,6 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
+"""Mock tokyo backend"""
 
 from .fake_tokyo import FakeTokyo

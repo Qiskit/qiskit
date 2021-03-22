@@ -98,7 +98,7 @@ OpaqueShape = NamedTuple(
     [('duration', np.ndarray),
      ('meta', Dict[str, Any])]
 )
-OpaqueShape.__doc__ = 'Data to represent a pulse instruction with parametrized shape.'
+OpaqueShape.__doc__ = 'Data to represent a pulse instruction with parameterized shape.'
 OpaqueShape.duration.__doc__ = 'Duration of instruction.'
 OpaqueShape.meta.__doc__ = 'Dictionary containing instruction details.'
 

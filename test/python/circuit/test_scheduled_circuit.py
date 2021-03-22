@@ -13,7 +13,7 @@
 # pylint: disable=missing-function-docstring
 
 """Test scheduled circuit (quantum circuit with duration)."""
-
+from ddt import ddt, data
 from qiskit import QuantumCircuit, QiskitError
 from qiskit import transpile, assemble
 from qiskit.test.mock.backends import FakeParis
@@ -23,6 +23,7 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.test.base import QiskitTestCase
 
 
+@ddt
 class TestScheduledCircuit(QiskitTestCase):
     """Test scheduled circuit (quantum circuit with duration)."""
     def setUp(self):
@@ -290,3 +291,17 @@ class TestScheduledCircuit(QiskitTestCase):
                               dt=self.dt/2
                               )
         self.assertEqual(scheduled.duration, org_duration*2)
+
+    @data('asap', 'alap')
+    def test_duration_on_same_instruction_instance(self, scheduling_method):
+        """See: https://github.com/Qiskit/qiskit-terra/issues/5771"""
+        assert(self.backend_with_dt.properties().gate_length('cx', (0, 1))
+               != self.backend_with_dt.properties().gate_length('cx', (1, 2)))
+        qc = QuantumCircuit(3)
+        qc.cz(0, 1)
+        qc.cz(1, 2)
+        sc = transpile(qc,
+                       backend=self.backend_with_dt,
+                       scheduling_method=scheduling_method)
+        cxs = [inst for inst, _, _ in sc.data if inst.name == 'cx']
+        self.assertNotEqual(cxs[0].duration, cxs[1].duration)

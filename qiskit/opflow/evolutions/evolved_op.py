@@ -12,17 +12,21 @@
 
 """ EvolutionOp Class """
 
-import logging
 from typing import List, Optional, Set, Union, cast
 
 import numpy as np
 import scipy
+
 from qiskit.circuit import Instruction, ParameterExpression
-
-from ..operator_base import OperatorBase
-from ..primitive_ops.primitive_op import PrimitiveOp
-
-logger = logging.getLogger(__name__)
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.composed_op import ComposedOp
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.list_ops.tensored_op import TensoredOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.matrix_op import MatrixOp
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
+from qiskit.quantum_info import Statevector
 
 
 class EvolvedOp(PrimitiveOp):
@@ -33,10 +37,11 @@ class EvolvedOp(PrimitiveOp):
     and it essentially represents a placeholder for a PrimitiveOp later, even though it doesn't
     actually hold a primitive object. We could have chosen for it to be an OperatorBase,
     but would have ended up copying and pasting a lot of code from PrimitiveOp."""
+    primitive: PrimitiveOp
 
     def __init__(self,
                  primitive: OperatorBase,
-                 coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> None:
+                 coeff: Union[complex, ParameterExpression] = 1.0) -> None:
         """
         Args:
             primitive: The operator being wrapped to signify evolution later.
@@ -45,32 +50,30 @@ class EvolvedOp(PrimitiveOp):
         super().__init__(primitive, coeff=coeff)
 
     def primitive_strings(self) -> Set[str]:
-        return self.primitive.primitive_strings()  # type: ignore
+        return self.primitive.primitive_strings()
 
     @property
     def num_qubits(self) -> int:
-        return self.primitive.num_qubits  # type: ignore
+        return self.primitive.num_qubits
 
-    def add(self, other: OperatorBase) -> OperatorBase:
-        # pylint: disable=import-outside-toplevel,cyclic-import
-        from ..list_ops.summed_op import SummedOp
+    def add(self, other: OperatorBase) -> Union["EvolvedOp", SummedOp]:
         if not self.num_qubits == other.num_qubits:
             raise ValueError(
                 'Sum over operators with different numbers of qubits, {} and {}, is not well '
                 'defined'.format(self.num_qubits, other.num_qubits))
 
         if isinstance(other, EvolvedOp) and self.primitive == other.primitive:
-            return EvolvedOp(self.primitive, coeff=self.coeff + other.coeff)  # type: ignore
+            return EvolvedOp(self.primitive, coeff=self.coeff + other.coeff)
 
         if isinstance(other, SummedOp):
-            op_list = [self] + cast(SummedOp, other).oplist  # type: ignore
-            return SummedOp(op_list)  # type: ignore
+            op_list = [cast(OperatorBase, self)] + other.oplist
+            return SummedOp(op_list)
 
         return SummedOp([self, other])
 
-    def adjoint(self) -> OperatorBase:
+    def adjoint(self) -> "EvolvedOp":
         return EvolvedOp(
-            self.primitive.adjoint() * -1,  # type: ignore
+            self.primitive.adjoint() * -1,
             coeff=self.coeff.conjugate()
         )
 
@@ -80,27 +83,23 @@ class EvolvedOp(PrimitiveOp):
 
         return self.primitive == other.primitive
 
-    def tensor(self, other: OperatorBase) -> OperatorBase:
-        # pylint: disable=import-outside-toplevel,cyclic-import
-        from ..list_ops.tensored_op import TensoredOp
+    def tensor(self, other: OperatorBase) -> TensoredOp:
         if isinstance(other, TensoredOp):
-            return TensoredOp([self] + other.oplist)  # type: ignore
+            return TensoredOp([cast(OperatorBase, self)] + other.oplist)
 
         return TensoredOp([self, other])
 
-    def _expand_dim(self, num_qubits: int) -> OperatorBase:
-        # pylint: disable=import-outside-toplevel,cyclic-import
+    def _expand_dim(self, num_qubits: int) -> TensoredOp:
+        # pylint: disable=cyclic-import
         from ..operator_globals import I
 
         return self.tensor(I ^ num_qubits)
 
-    def permute(self, permutation: List[int]) -> OperatorBase:
-        return EvolvedOp(self.primitive.permute(permutation), coeff=self.coeff)  # type: ignore
+    def permute(self, permutation: List[int]) -> "EvolvedOp":
+        return EvolvedOp(self.primitive.permute(permutation), coeff=self.coeff)
 
     def compose(self, other: OperatorBase,
                 permutation: Optional[List[int]] = None, front: bool = False) -> OperatorBase:
-        # pylint: disable=import-outside-toplevel,cyclic-import
-        from ..list_ops.composed_op import ComposedOp
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
         if front:
             return other.compose(new_self)
@@ -119,12 +118,10 @@ class EvolvedOp(PrimitiveOp):
     def __repr__(self) -> str:
         return "EvolvedOp({}, coeff={})".format(repr(self.primitive), self.coeff)
 
-    def reduce(self) -> OperatorBase:
-        return EvolvedOp(self.primitive.reduce(), coeff=self.coeff)  # type: ignore
+    def reduce(self) -> "EvolvedOp":
+        return EvolvedOp(self.primitive.reduce(), coeff=self.coeff)
 
-    def assign_parameters(self, param_dict: dict) -> OperatorBase:
-        # pylint: disable=import-outside-toplevel,cyclic-import
-        from ..list_ops import ListOp
+    def assign_parameters(self, param_dict: dict) -> Union["EvolvedOp", ListOp]:
         param_value = self.coeff
         if isinstance(self.coeff, ParameterExpression):
             unrolled_dict = self._unroll_param_dict(param_dict)
@@ -133,45 +130,45 @@ class EvolvedOp(PrimitiveOp):
             if self.coeff.parameters <= set(unrolled_dict.keys()):
                 binds = {param: unrolled_dict[param] for param in self.coeff.parameters}
                 param_value = float(self.coeff.bind(binds))
-        return EvolvedOp(
-            self.primitive.bind_parameters(param_dict), coeff=param_value)  # type: ignore
+        return EvolvedOp(self.primitive.bind_parameters(param_dict), coeff=param_value)
 
-    def eval(self,
-             front: Optional[Union[str, dict, np.ndarray,
-                                   OperatorBase]] = None) -> Union[OperatorBase, float, complex]:
-        return cast(Union[OperatorBase, float, complex], self.to_matrix_op().eval(front=front))
+    def eval(
+        self, front: Optional[Union[str, dict, np.ndarray, OperatorBase, Statevector]] = None
+    ) -> Union[OperatorBase, complex]:
+        return cast(Union[OperatorBase, complex], self.to_matrix_op().eval(front=front))
 
-    def to_matrix(self, massive: bool = False) -> Union[np.ndarray, List[np.ndarray]]:
-        # pylint: disable=import-outside-toplevel,cyclic-import
-        from ..list_ops import ListOp
-        if self.primitive.__class__.__name__ == ListOp.__name__:
-            return [
+    def to_matrix(self, massive: bool = False) -> np.ndarray:
+        if (
+            isinstance(self.primitive, ListOp)
+            and self.primitive.__class__.__name__ == ListOp.__name__
+        ):
+            return np.array([
                 op.exp_i().to_matrix(massive=massive)
-                * self.primitive.coeff  # type: ignore
+                * self.primitive.coeff
                 * self.coeff
-                for op in self.primitive.oplist  # type: ignore
-            ]
+                for op in self.primitive.oplist
+            ], dtype=complex)
 
-        prim_mat = -1.j * self.primitive.to_matrix()  # type: ignore
-        # pylint: disable=no-member
+        prim_mat = -1.j * self.primitive.to_matrix()
         return scipy.linalg.expm(prim_mat) * self.coeff
 
-    def to_matrix_op(self, massive: bool = False) -> OperatorBase:
+    def to_matrix_op(self, massive: bool = False) -> Union[ListOp, MatrixOp]:
         """ Returns a ``MatrixOp`` equivalent to this Operator. """
-        # pylint: disable=import-outside-toplevel,cyclic-import
-        from ..list_ops import ListOp
-        from ..primitive_ops.matrix_op import MatrixOp
-        if self.primitive.__class__.__name__ == ListOp.__name__:
+        primitive = self.primitive
+        if isinstance(primitive, ListOp) and primitive.__class__.__name__ == ListOp.__name__:
             return ListOp(
-                [op.exp_i().to_matrix_op() for op in self.primitive.oplist],  # type: ignore
-                coeff=self.primitive.coeff * self.coeff)  # type: ignore
+                [op.exp_i().to_matrix_op() for op in primitive.oplist],
+                coeff=primitive.coeff * self.coeff)
 
-        prim_mat = EvolvedOp(self.primitive).to_matrix(massive=massive)  # type: ignore
+        prim_mat = EvolvedOp(primitive).to_matrix(massive=massive)
         return MatrixOp(prim_mat, coeff=self.coeff)
 
     def log_i(self, massive: bool = False) -> OperatorBase:
-        return self.primitive * self.coeff  # type: ignore
+        return self.primitive * self.coeff
 
     # pylint: disable=arguments-differ
     def to_instruction(self, massive: bool = False) -> Instruction:
-        return self.primitive.to_matrix_op(massive=massive).exp_i()  # type: ignore
+        mat_op = self.primitive.to_matrix_op(massive=massive)
+        if not isinstance(mat_op, MatrixOp):
+            raise OpflowError("to_instruction is not allowed for ListOp.")
+        return mat_op.to_instruction()

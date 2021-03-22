@@ -31,18 +31,6 @@ class TestUserConfig(QiskitTestCase):
         self.assertEqual({},
                          config.settings)
 
-    def test_invalid_suppress_packaging_warnings(self):
-        test_config = """
-        [default]
-        suppress_packaging_warnings = 76
-        """
-        self.addCleanup(os.remove, self.file_path)
-        with open(self.file_path, 'w') as file:
-            file.write(test_config)
-            file.flush()
-            config = user_config.UserConfig(self.file_path)
-            self.assertRaises(ValueError, config.read_config_file)
-
     def test_invalid_optimization_level(self):
         test_config = """
         [default]
@@ -80,8 +68,7 @@ class TestUserConfig(QiskitTestCase):
             file.flush()
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
-            self.assertEqual({'circuit_drawer': 'latex',
-                              'parallel_enabled': user_config.PARALLEL_DEFAULT},
+            self.assertEqual({'circuit_drawer': 'latex'},
                              config.settings)
 
     def test_optimization_level_valid(self):
@@ -96,39 +83,7 @@ class TestUserConfig(QiskitTestCase):
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
             self.assertEqual(
-                {'transpile_optimization_level': 1,
-                 'parallel_enabled': user_config.PARALLEL_DEFAULT},
-                config.settings)
-
-    def test_valid_suppress_packaging_warnings_false(self):
-        test_config = """
-        [default]
-        suppress_packaging_warnings = false
-        """
-        self.addCleanup(os.remove, self.file_path)
-        with open(self.file_path, 'w') as file:
-            file.write(test_config)
-            file.flush()
-            config = user_config.UserConfig(self.file_path)
-            config.read_config_file()
-            self.assertEqual(
-                {'parallel_enabled': user_config.PARALLEL_DEFAULT},
-                config.settings)
-
-    def test_valid_suppress_packaging_warnings_true(self):
-        test_config = """
-        [default]
-        suppress_packaging_warnings = true
-        """
-        self.addCleanup(os.remove, self.file_path)
-        with open(self.file_path, 'w') as file:
-            file.write(test_config)
-            file.flush()
-            config = user_config.UserConfig(self.file_path)
-            config.read_config_file()
-            self.assertEqual(
-                {'parallel_enabled': user_config.PARALLEL_DEFAULT,
-                 'suppress_packaging_warnings': True},
+                {'transpile_optimization_level': 1},
                 config.settings)
 
     def test_invalid_num_processes(self):
@@ -156,8 +111,7 @@ class TestUserConfig(QiskitTestCase):
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
             self.assertEqual(
-                {'parallel_enabled': user_config.PARALLEL_DEFAULT,
-                 'num_processes': 31},
+                {'num_processes': 31},
                 config.settings)
 
     def test_valid_parallel(self):
@@ -197,6 +151,5 @@ class TestUserConfig(QiskitTestCase):
                               'circuit_mpl_style_path': ['~', '~/.qiskit'],
                               'transpile_optimization_level': 3,
                               'num_processes': 15,
-                              'parallel_enabled': False,
-                              'suppress_packaging_warnings': True},
+                              'parallel_enabled': False},
                              config.settings)

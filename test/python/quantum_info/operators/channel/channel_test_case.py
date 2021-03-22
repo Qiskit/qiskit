@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Tests for quantum channel representation class."""
 
 import numpy as np

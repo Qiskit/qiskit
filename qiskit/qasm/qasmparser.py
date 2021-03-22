@@ -27,7 +27,7 @@ from .qasmlexer import QasmLexer
 class QasmParser:
     """OPENQASM Parser."""
 
-    # pylint: disable=missing-docstring,invalid-name
+    # pylint: disable=missing-function-docstring,invalid-name
 
     def __init__(self, filename):
         """Create the parser."""
@@ -845,7 +845,7 @@ class QasmParser:
     # ----------------------------------------
     # barrier : BARRIER primary_list
     #
-    # Errors are covered by handling erros in primary_list
+    # Errors are covered by handling errors in primary_list
     # ----------------------------------------
     def p_barrier(self, program):
         """

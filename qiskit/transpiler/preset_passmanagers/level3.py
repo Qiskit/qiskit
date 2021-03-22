@@ -42,7 +42,6 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
-from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
@@ -122,7 +121,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                                property_name='trivial_layout_score')]
 
     _choose_layout_1 = [] if pass_manager_config.layout_method \
-        else CSPLayout(coupling_map, call_limit=1000, time_limit=10)
+        else CSPLayout(coupling_map, call_limit=10000, time_limit=60, seed=seed_transpiler)
 
     def _not_perfect_yet(property_set):
         if property_set['trivial_layout_score'] is not None:
@@ -192,7 +191,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _direction = [CXDirection(coupling_map)]
 
     # 8. Optimize iteratively until no more change in depth. Removes useless gates
-    # after reset and before measure, commutes gates and optimizes continguous blocks.
+    # after reset and before measure, commutes gates and optimizes contiguous blocks.
     _depth_check = [Depth(), FixedPoint('depth')]
 
     def _opt_control(property_set):
@@ -202,23 +201,13 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
 
-    if basis_gates and ('u1' in basis_gates or 'u2' in basis_gates or
-                        'u3' in basis_gates):
-        _opt = [
-            Collect2qBlocks(),
-            ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates),
-            Optimize1qGates(basis_gates),
-            CommutativeCancellation(),
-        ]
-    else:
-        _opt = [
-            Collect2qBlocks(),
-            ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates),
-            Optimize1qGatesDecomposition(basis_gates),
-            CommutativeCancellation(),
-        ]
+    _opt = [
+        Collect2qBlocks(),
+        ConsolidateBlocks(basis_gates=basis_gates),
+        UnitarySynthesis(basis_gates),
+        Optimize1qGatesDecomposition(basis_gates),
+        CommutativeCancellation(),
+    ]
 
     # Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:

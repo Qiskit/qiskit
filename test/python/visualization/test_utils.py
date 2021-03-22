@@ -13,10 +13,11 @@
 """Tests for visualization tools."""
 
 import unittest
+import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit
-from qiskit.visualization import utils
+from qiskit.visualization import utils, array_to_latex
 from qiskit.test import QiskitTestCase
 
 
@@ -305,20 +306,31 @@ class TestVisualizationUtils(QiskitTestCase):
     def test_generate_latex_label_mathmode_underscore_outside(self):
         """Test generate latex label with underscore outside mathmode."""
         self.assertEqual(
-            'abc{\\_}{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            'abc_{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
             utils.generate_latex_label('$abc$_∭X∀Y'))
 
     def test_generate_latex_label_escaped_dollar_signs(self):
         """Test generate latex label with escaped dollarsign."""
         self.assertEqual(
-            '{\\$}{\\ensuremath{\\forall}}{\\$}',
+            '${\\ensuremath{\\forall}}$',
             utils.generate_latex_label(r'\$∀\$'))
 
     def test_generate_latex_label_escaped_dollar_sign_in_mathmode(self):
         """Test generate latex label with escaped dollar sign in mathmode."""
         self.assertEqual(
-            'a$bc{\\_}{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            'a$bc_{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
             utils.generate_latex_label(r'$a$bc$_∭X∀Y'))
+
+    def test_array_to_latex(self):
+        """Test array_to_latex produces correct latex string"""
+        matrix = [[np.sqrt(1/2), 1/16, 1/np.sqrt(8)+3j, -.5+.5j],
+                  [1/3 - 1/3j, np.sqrt(1/2)*1j, 34.3210, -9/2]]
+        matrix = np.array(matrix)
+        exp_str = "\\begin{bmatrix}\\tfrac{1}{\\sqrt{2}}&\\tfrac{1}{16}&\\tfrac{1}{\\sqrt{8}}+3i&"\
+                  "\\tfrac{1}{2}(-1+i)\\\\\\tfrac{1}{3}(1+i)&\\tfrac{1}{\\sqrt{2}}i&34.321&"\
+                  "-\\tfrac{9}{2}\\\\\\end{bmatrix}"
+        result = array_to_latex(matrix, source=True).replace(' ', '').replace('\n', '')
+        self.assertEqual(exp_str, result)
 
 
 if __name__ == '__main__':

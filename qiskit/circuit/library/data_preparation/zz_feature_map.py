@@ -75,7 +75,13 @@ class ZZFeatureMap(PauliFeatureMap):
             insert_barriers: If True, barriers are inserted in between the evolution instructions
                 and hadamard layers.
 
+        Raises:
+            ValueError: If the feature dimension is smaller than 2.
         """
+        if feature_dimension < 2:
+            raise ValueError('The ZZFeatureMap contains 2-local interactions and cannot be '
+                             f'defined for less than 2 qubits. You provided {feature_dimension}.')
+
         super().__init__(feature_dimension=feature_dimension,
                          reps=reps,
                          entanglement=entanglement,

@@ -18,6 +18,8 @@ from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.test import QiskitTestCase
+from qiskit.pulse import Schedule
+from qiskit.circuit.gate import Gate
 
 
 class TestDagCompose(QiskitTestCase):
@@ -438,6 +440,20 @@ class TestDagCompose(QiskitTestCase):
 
         with self.assertRaisesRegex(DAGCircuitError, 'more than one creg'):
             circuit_left.compose(circuit_right)
+
+    def test_compose_calibrations(self):
+        """Test that compose carries over the calibrations."""
+        dag_cal = QuantumCircuit(1)
+        dag_cal.append(Gate('', 1, []), qargs=[0])
+        dag_cal.add_calibration(Gate('', 1, []), [0], Schedule())
+
+        empty_dag = circuit_to_dag(QuantumCircuit(1))
+        calibrated_dag = circuit_to_dag(dag_cal)
+        composed_dag = empty_dag.compose(calibrated_dag, inplace=False)
+
+        cal = {'': {((0,), ()): Schedule(name="sched0")}}
+        self.assertEqual(composed_dag.calibrations, cal)
+        self.assertEqual(calibrated_dag.calibrations, cal)
 
 
 if __name__ == '__main__':

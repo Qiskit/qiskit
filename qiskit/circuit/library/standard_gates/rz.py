@@ -77,7 +77,7 @@ class RZGate(Gate):
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-RZ gate.
+        """Return a (multi-)controlled-RZ gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
