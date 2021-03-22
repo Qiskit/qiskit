@@ -28,7 +28,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         creg0 = ClassicalRegister(2, 'c0')
         qreg1 = QuantumRegister(2, 'q1')
         creg1 = ClassicalRegister(2, 'c1')
-        circ = QuantumCircuit(qreg0, qreg1)
+        circ = QuantumCircuit(qreg0, qreg1, creg0, creg1)
         circ.x(qreg0[1])
         circ.x(qreg1[0])
 
@@ -41,6 +41,8 @@ class TestCircuitMultiRegs(QiskitTestCase):
         circ2 = QuantumCircuit()
         circ2.add_register(qreg0)
         circ2.add_register(qreg1)
+        circ2.add_register(creg0)
+        circ2.add_register(creg1)
         circ2.x(qreg0[1])
         circ2.x(qreg1[0])
 
