@@ -1343,23 +1343,23 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
         circuit.h(2)
         circuit.x(0)
         circuit.x(0)
-        circuit.x(2).c_if(cr, 2)
         circuit.measure(2, 1)
+        circuit.x(2).c_if(cr, 2)
         circuit.draw('text', cregbundle=False, reverse_bits=True)
 
-        expected = '\n'.join(["         ┌───┐      ┌───┐      ┌─┐",
-                              "qr_2: |0>┤ H ├──────┤ X ├──────┤M├",
-                              "         ├───┤      └─╥─┘      └╥┘",
-                              "qr_1: |0>┤ H ├────────╫─────────╫─",
-                              "         ├───┤┌───┐   ║   ┌───┐ ║ ",
-                              "qr_0: |0>┤ H ├┤ X ├───╫───┤ X ├─╫─",
-                              "         └───┘└───┘   ║   └───┘ ║ ",
-                              "cr2_0: 0 ═════════════╬═════════╬═",
-                              "                   ┌──╨──┐      ║ ",
-                              " cr_1: 0 ══════════╡     ╞══════╩═",
-                              "                   │ = 2 │        ",
-                              " cr_0: 0 ══════════╡     ╞════════",
-                              "                   └─────┘        "])
+        expected = '\n'.join(["         ┌───┐     ┌─┐      ┌───┐ ",
+                              "qr_2: |0>┤ H ├─────┤M├──────┤ X ├─",
+                              "         ├───┤     └╥┘      └─╥─┘ ",
+                              "qr_1: |0>┤ H ├──────╫─────────╫───",
+                              "         ├───┤┌───┐ ║ ┌───┐   ║   ",
+                              "qr_0: |0>┤ H ├┤ X ├─╫─┤ X ├───╫───",
+                              "         └───┘└───┘ ║ └───┘   ║   ",
+                              "cr2_0: 0 ═══════════╬═════════╬═══",
+                              "                    ║      ┌──╨──┐",
+                              " cr_1: 0 ═══════════╩══════╡     ╞",
+                              "                           │ = 2 │",
+                              " cr_0: 0 ══════════════════╡     ╞",
+                              "                           └─────┘"])
 
         self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=False,
                                                   reverse_bits=True)), expected)
@@ -1375,21 +1375,21 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
         circuit.h(2)
         circuit.x(0)
         circuit.x(0)
-        circuit.x(2).c_if(cr, 2)
         circuit.measure(2, 1)
+        circuit.x(2).c_if(cr, 2)
         circuit.draw('text', cregbundle=False, reverse_bits=False)
 
-        expected = '\n'.join(["         ┌───┐ ┌───┐ ┌───┐",
-                              "qr_0: |0>┤ H ├─┤ X ├─┤ X ├",
-                              "         ├───┤ └───┘ └───┘",
+        expected = '\n'.join(["         ┌───┐┌───┐ ┌───┐ ",
+                              "qr_0: |0>┤ H ├┤ X ├─┤ X ├─",
+                              "         ├───┤└───┘ └───┘ ",
                               "qr_1: |0>┤ H ├────────────",
-                              "         ├───┤ ┌───┐  ┌─┐ ",
-                              "qr_2: |0>┤ H ├─┤ X ├──┤M├─",
-                              "         └───┘┌┴─╨─┴┐ └╥┘ ",
-                              " cr_0: 0 ═════╡     ╞══╬══",
-                              "              │ = 2 │  ║  ",
-                              " cr_1: 0 ═════╡     ╞══╩══",
-                              "              └─────┘     ",
+                              "         ├───┤ ┌─┐  ┌───┐ ",
+                              "qr_2: |0>┤ H ├─┤M├──┤ X ├─",
+                              "         └───┘ └╥┘ ┌┴─╨─┴┐",
+                              " cr_0: 0 ═══════╬══╡     ╞",
+                              "                ║  │ = 2 │",
+                              " cr_1: 0 ═══════╩══╡     ╞",
+                              "                   └─────┘",
                               "cr2_0: 0 ═════════════════",
                               "                          "])
 
