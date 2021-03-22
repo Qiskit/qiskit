@@ -94,16 +94,6 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
         """
         self._evo_time = evo_time
 
-    @property
-    def eigs_bounds(self) -> Tuple[float, float]:
-        """Return lower and upper bounds on the eigenvalues of the matrix."""
-        return None
-
-    @property
-    def condition_bounds(self) -> Tuple[float, float]:
-        """Return lower and upper bounds on the condition number of the matrix."""
-        return None
-
     @evo_time.setter
     def evo_time(self, evo_time: float) -> None:
         """Set the time of the evolution.
@@ -112,6 +102,16 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
             evo_time: The new time of the evolution.
         """
         self._evo_time = evo_time
+
+    @abstractmethod
+    def eigs_bounds(self) -> Tuple[float, float]:
+        """Return lower and upper bounds on the eigenvalues of the matrix."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def condition_bounds(self) -> Tuple[float, float]:
+        """Return lower and upper bounds on the condition number of the matrix."""
+        raise NotImplementedError
 
     @abstractmethod
     def _reset_registers(self, num_state_qubits: int) -> None:

@@ -45,7 +45,8 @@ class HHL(LinearSolver):
                 :math:`||x - \tilde{x}|| < epsilon`.
             exp_val: The expectation converter applied to the expectation values before
                 evaluation. If None then PauliExpectation is used.
-            quantum_instance: Quantum Instance or Backend
+            quantum_instance: Quantum Instance or Backend. If None, a Statevector calculation is
+                done.
 
 
         References:
@@ -268,7 +269,7 @@ class HHL(LinearSolver):
         matrix_circuit.tolerance = self._epsilon_a
 
         # check if the matrix can calculate the condition number and store the upper bound
-        if hasattr(matrix, "condition_bounds"):
+        if hasattr(matrix, "condition_bounds") and matrix.condition_bounds is not None:
             kappa = matrix.condition_bounds[1]
         else:
             kappa = 1
@@ -276,7 +277,7 @@ class HHL(LinearSolver):
         nl = max(nb + 1, int(np.log2(kappa)) + 1)
 
         # check if the matrix can calculate bounds for the eigenvalues
-        if hasattr(matrix, "eigs_bounds"):
+        if hasattr(matrix, "eigs_bounds") and matrix.eigs_bounds is not None:
             lambda_min, lambda_max = matrix.eigs_bounds
             # Constant so that the minimum eigenvalue is represented exactly, since it contributes
             # the most to the solution of the system

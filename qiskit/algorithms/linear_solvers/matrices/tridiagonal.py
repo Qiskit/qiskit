@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Hamiltonian simulation of tridiagonal Toeplitz symmetric matrices."""
+from typing import Tuple
 
 import numpy as np
 from scipy.sparse import diags
@@ -163,20 +164,18 @@ class Tridiagonal(LinearSystemMatrix):
                        shape=(2 ** self.num_state_qubits, 2 ** self.num_state_qubits)).toarray()
         return matrix
 
-    @property
-    def eigs_bounds(self) -> [float, float]:
+    def eigs_bounds(self) -> Tuple[float, float]:
         """Return lower and upper bounds on the eigenvalues of the matrix."""
         matrix_array = self.matrix
         lambda_max = max(np.abs(np.linalg.eigvals(matrix_array)))
         lambda_min = min(np.abs(np.linalg.eigvals(matrix_array)))
-        return [lambda_min, lambda_max]
+        return lambda_min, lambda_max
 
-    @property
-    def condition_bounds(self) -> [float, float]:
+    def condition_bounds(self) -> Tuple[float, float]:
         """Return lower and upper bounds on the condition number of the matrix."""
         matrix_array = self.matrix
         kappa = np.linalg.cond(matrix_array)
-        return [kappa, kappa]
+        return kappa, kappa
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
