@@ -218,5 +218,6 @@ class TestStateConstruction(QiskitOpflowTestCase):
         self.assertEqual(len(ex), 3)
         self.assertEqual(ex.eval(), 1)
 
+
 if __name__ == '__main__':
     unittest.main()
