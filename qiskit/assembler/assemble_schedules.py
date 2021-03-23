@@ -258,8 +258,6 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
     # 2. if there is time overlap:
     #    - if the overlap is in the same meas_map -- Raise Error
     for idx, instr in enumerate(sorted_inst_map[:-1]):
-        if sorted_inst_map[idx+1][0] == instr[0]:
-            continue
         inst_end_time = instr[0][0] + instr[0][1]
         if sorted_inst_map[idx+1][0][0] < inst_end_time:
             measured_qubits = set()
