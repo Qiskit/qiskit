@@ -18,6 +18,7 @@ import pandas as pd
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.quantum_info.operators import Operator
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit import ControlledGate
 
 _CUTOFF_PRECISION = 1E-10
 
@@ -46,49 +47,64 @@ class AxisAngleAnalysis(AnalysisPass):
         props = list()
         dfprop = pd.DataFrame()
         var_gate_class = dict()
-        decimals = 12
-        rel_tol = 1e-9
-        abs_tol = 1e-9
         for node in dag.gate_nodes():
             # TODO: cache angle-axis evaluation
             if len(node.qargs) == 1:
-                try:
-                    # Operator does this to but maybe this is slightly more direct.
-                    mat = node.op.to_matrix()
-                except CircuitError:
-                    mat = Operator(node.op.definition).data
-                axis, angle, phase = _su2_axis_angle(mat)
-                if angle > np.pi:
-                    sym_angle = 2 * np.pi - angle
-                else:
-                    sym_angle = angle
-                quotient, remainder = divmod(2 * np.pi, sym_angle)
-                if math.isclose(remainder, 0, rel_tol=rel_tol, abs_tol=abs_tol):
-                    symmetry_order = int(quotient)
-                elif math.isclose(remainder, sym_angle, rel_tol=rel_tol, abs_tol=abs_tol):
-                    # divmod had a rounding error
-                    symmetry_order = int(quotient + 1)
-                else:
-                    symmetry_order = 1
-                nparams = len(node.op.params)
-                props.append({'id': node._node_id,
-                              'name': node.name,
-                              'nparams': nparams,
-                              'qubit': node.qargs[0],
-                              # needed for drop_duplicates; hashable type. Instead of rounding here
-                              # could consider putting the effect into the dot product test during
-                              # reduction.
-                              'axis': tuple(np.around(axis, decimals=decimals)),
-                              'angle': angle,
-                              'phase': phase,
-                              'symmetry_order': symmetry_order})
-                if node.name not in var_gate_class and nparams == 1:
+                prop1q = _get_1q_gate_props(node.op)
+                prop1q['id'] = node._node_id
+                prop1q['name'] = node.name
+                prop1q['qubit0'] = node.qargs[0]
+                prop1q['qubit1'] = None
+                props.append(prop1q)
+                if node.name not in var_gate_class and prop1q['nparams'] == 1:
                     var_gate_class[node.name] = node.op.__class__
+            elif len(node.qargs) == 2 and isinstance(node.op, ControlledGate):
+                prop2q = _get_1q_gate_props(node.op.base_gate)
+                prop2q['id'] = node._node_id
+                prop2q['name'] = node.name
+                prop2q['qubit0'] = node.qargs[0]
+                prop2q['qubit1'] = node.qargs[1]
+                props.append(prop2q)
         if props:
             dfprop = pd.DataFrame.from_dict(props).astype({'symmetry_order': int})
         self.property_set['axis-angle'] = dfprop
         self.property_set['var_gate_class'] = var_gate_class
 
+def _get_1q_gate_props(gate):
+    """
+    Get single qubit operator properties
+    """
+    decimals = 12
+    rel_tol = 1e-9
+    abs_tol = 1e-9
+    try:
+        # Operator does this too but maybe this is slightly more direct.
+        mat = gate.to_matrix()
+    except CircuitError:
+        mat = Operator(gate.definition).data
+    axis, angle, phase = _su2_axis_angle(mat)
+    if angle > np.pi:
+        sym_angle = 2 * np.pi - angle
+    else:
+        sym_angle = angle
+    quotient, remainder = divmod(2 * np.pi, sym_angle)
+    if math.isclose(remainder, 0, rel_tol=rel_tol, abs_tol=abs_tol):
+        symmetry_order = int(quotient)
+    elif math.isclose(remainder, sym_angle, rel_tol=rel_tol, abs_tol=abs_tol):
+        # divmod had a rounding error
+        symmetry_order = int(quotient + 1)
+    else:
+        symmetry_order = 1
+    nparams = len(gate.params)
+    prop = {'nparams': nparams,
+            # needed for drop_duplicates; hashable type. Instead of rounding here
+            # could consider putting the effect into the dot product test during
+            # reduction.
+            'axis': tuple(np.around(axis, decimals=decimals)),
+            'angle': angle,
+            'phase': phase,
+            'symmetry_order': symmetry_order}
+    return prop
 
 def _su2_axis_angle(mat):
     """

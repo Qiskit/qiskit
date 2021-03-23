@@ -60,12 +60,13 @@ class AxisAngleReduction(TransformationPass):
             node_it = dag.nodes_on_wire(wire)
             stack = list()  # list of (node, dfprop index)
             for node in node_it:
+                print(stack)
                 if node.type != 'op' or not isinstance(node.op, Gate):
                     del_list += self._eval_stack(stack, dag)
                     stack = list()
                     continue
-                # just doing 1q for now
-                if len(node.qargs) != 1:
+                # just doing 1q and 2q for now
+                if len(node.qargs) <= 2:
                     del_list += self._eval_stack(stack, dag)
                     stack = list()
                     continue
@@ -95,6 +96,7 @@ class AxisAngleReduction(TransformationPass):
         top_node = stack[-1][0]
         top_index = self._get_index(top_node._node_id)
         var_gate = dfprop.iloc[top_index].var_gate
+        breakpoint()
         if var_gate and not self._symmetry_complete(stack):
             del_list = self._reduce_stack(stack, var_gate, dag)
         else:
@@ -211,7 +213,6 @@ class AxisAngleReduction(TransformationPass):
         buniq_inverses = list(zip(*np.where(np.isclose(vdot, -1, rtol=rel_tol, atol=abs_tol))))
         buniq_common = buniq_parallel + buniq_inverses
         grouped_common = [list(group) for group in join_if_intersect(buniq_common)]
-
         dfprop['basis_group'] = None
         # "rotation sense" is used to indicate sense of rotation wrt : +1=ccw, -1=cw
         dfprop['rotation_sense'] = 1
@@ -222,7 +223,10 @@ class AxisAngleReduction(TransformationPass):
         unlabeled_axes = list(range(naxes))
         # determine if inverses have arbitrary single parameter rotation
         mask_1p = dfprop.nparams == 1
-        for group in grouped_common:
+        mask_1q = dfprop.qubit1.isnull()
+        mask_2q = ~mask_1q
+        # loop through parallel axis groups
+        for group in grouped_common: 
             lead = group[0]  # this will be the reference direction for the group
             mask = pd.Series(False, index=range(dfprop.shape[0]))
             for member in group:

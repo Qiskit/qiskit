@@ -225,6 +225,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.p(np.pi/3, 0)
         circ.p(np.pi/3, 0)
         ccirc = self.pmr.run(circ)
+        breakpoint()
         self.assertEqual(Operator(circ), Operator(ccirc))
 
     def test_global_phase_cancellation(self):
@@ -234,6 +235,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.rz(np.pi/2, 0)
         circ.rz(np.pi/2, 0)
         circ.rz(np.pi/2, 0)
+        breakpoint()
         ccirc = self.pmr.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
 
@@ -245,6 +247,16 @@ class TestAxisAngleReduction(QiskitTestCase):
         ccirc = self.pmr.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
 
+    def test_2q_controlled_gate(self):
+        """test no single qubit gates in circuit"""
+        circ = QuantumCircuit(2)
+        circ.cx(0, 1)
+        circ.cx(0, 1)
+        circ.x(1)
+        ccirc = self.pmr.run(circ)
+        breakpoint()
+        self.assertEqual(Operator(circ), Operator(ccirc))
+        
 
 def axis_angle_phase_equal(tup1, tup2):
     """tup is 3 component tuple of (np.array, angle, phase)"""
