@@ -263,10 +263,10 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
         next_inst_time = next_inst[0][0]
         if next_inst_time < inst_end_time:
             inst_qubits = {inst.channel.index for inst in inst[1]}
-            next_instr_qubits = {inst.channel.index for inst in next_inst[1]}
+            next_inst_qubits = {inst.channel.index for inst in next_inst[1]}
             for meas_set in meas_map_sets:
                 common_instr_qubits = inst_qubits.intersection(meas_set)
-                common_next = next_instr_qubits.intersection(meas_set)
+                common_next = next_inst_qubits.intersection(meas_set)
                 if common_instr_qubits and common_next:
                     raise QiskitError('Qubits {} and {} are in the same measurement grouping: {}. '
                                       'They must either be acquired at the same time, or disjointly'
