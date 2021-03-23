@@ -237,8 +237,8 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                            backend_properties, initial_layout,
                                            layout_method, routing_method, translation_method,
                                            scheduling_method, instruction_durations, dt,
-                                           approximation_degree, seed_transpiler, optimization_level,
-                                           callback, output_name)
+                                           approximation_degree, seed_transpiler,
+                                           optimization_level, callback, output_name)
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
 
