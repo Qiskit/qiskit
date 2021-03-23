@@ -139,9 +139,10 @@ class CircuitStateFn(StateFn):
     def adjoint(self) -> "CircuitStateFn":
         try:
             inverse = self.primitive.inverse()
-        except CircuitError:
+        except CircuitError as missing_inverse:
             raise OpflowError('Cannot take the adjoint of a non-unitary circuit, please '
-                              'avoid calling adjoint or ensure the circuit can be inverted.')
+                              'avoid calling adjoint or ensure the circuit can be inverted.') \
+                from missing_inverse
 
         return CircuitStateFn(inverse,
                               coeff=self.coeff.conjugate(),
