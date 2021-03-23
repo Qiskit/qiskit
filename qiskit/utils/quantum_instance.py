@@ -129,12 +129,14 @@ class QuantumInstance:
                         "shots from %s to 1.", shots)
             shots = 1
 
+        # TODO: exchange this for a Backend instancecheck once Aer's simulators implement that
+        # interface
         if hasattr(backend, 'options'):
             if 'shots' in backend.options:
                 if shots != backend.options['shots']:
                     logger.info('Overwriting the number of shots in the quantum instance with the '
                                 'settings from the backend.')
-                shots = backend.options['shots']
+                shots = backend.options.get('shots', 1024)
 
         max_shots = self._backend.configuration().max_shots
         if max_shots is not None and shots > max_shots:
