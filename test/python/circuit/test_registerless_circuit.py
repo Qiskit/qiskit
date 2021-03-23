@@ -55,7 +55,7 @@ class TestAddingBitsWithoutRegisters(QiskitTestCase):
 
         qc = QuantumCircuit(qubits, clbits, ancillas)
 
-        self.assertEqual(qc.qubits, qubits)
+        self.assertEqual(qc.qubits, qubits + ancillas)
         self.assertEqual(qc.clbits, clbits)
         self.assertEqual(qc.ancillas, ancillas)
 
@@ -97,6 +97,16 @@ class TestAddingBitsWithoutRegisters(QiskitTestCase):
 
         self.assertEqual(qc.qubits, list(qr) + [new_bit])
         self.assertEqual(qc.qregs, [qr])
+
+    def test_inserted_ancilla_bits_are_added_to_qubits(self):
+        """Verify AncillaQubits added via .add_bits are added to .qubits."""
+        anc = AncillaQubit()
+        qb = Qubit()
+
+        qc = QuantumCircuit()
+        qc.add_bits([anc, qb])
+
+        self.assertEqual(qc.qubits, [anc, qb])
 
 
 class TestGatesOnWires(QiskitTestCase):
