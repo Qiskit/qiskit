@@ -1078,6 +1078,24 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(res.count_ops()['ecr'], 1)
         self.assertTrue(Operator(res).equiv(circuit))
 
+    def test_approximation_degree_invalid(self):
+        """Test invalid approximation degree raises."""
+        circuit = QuantumCircuit(2)
+        circuit.swap(0, 1)
+        with self.assertRaises(QiskitError):
+            transpile(circuit, basis_gates=['u', 'cz'], approximation_degree=1.1)
+
+    def test_approximation_degree(self):
+        """Test more approximation gives lower-cost circuit."""
+        circuit = QuantumCircuit(2)
+        circuit.swap(0, 1)
+        circuit.h(0)
+        circ_10 = transpile(circuit, basis_gates=['u', 'cx'],
+                            translation_method='synthesis', approximation_degree=0.1)
+        circ_90 = transpile(circuit, basis_gates=['u', 'cx'],
+                            translation_method='synthesis', approximation_degree=0.9)
+        self.assertLess(circ_10.depth(), circ_90.depth())
+
 
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""
