@@ -1,0 +1,35 @@
+---
+fixes:
+  - |
+    The interpretation of the `meas_map` has historically been that any measurement of
+    `qubit<i>` must be accompanied by a measurement of all qubits in `meas_map[i]`.
+    However, the interpretation should now be that the qubits in `meas_map[i]` may not be
+    measured disjointly in time such that they overlap incompletely.
+    For example:
+
+    .. code-block:: python
+
+        # Good
+        meas_map = [[0, 1]]
+        sched = pulse.Schedule()
+        sched = sched.append(pulse.Acquire(10, acq1))
+
+        sched = pulse.Schedule()
+        sched = sched.append(pulse.Acquire(10, acq1))
+        sched = sched.append(pulse.Acquire(10, acq2))
+
+        sched = pulse.Schedule()
+        sched = sched.append(pulse.Acquire(10, acq1))
+        sched = sched.append(pulse.Acquire(10, acq2)) << 10
+
+        meas_map = [[0], [1]]
+        sched = pulse.Schedule()
+        sched = sched.append(pulse.Acquire(10, acq1))
+        sched = sched.append(pulse.Acquire(10, acq2)) << 1
+
+        # Bad
+        meas_map = [[0, 1]]
+        sched = pulse.Schedule()
+        sched = sched.append(pulse.Acquire(10, acq1))
+        sched = sched.append(pulse.Acquire(10, acq2)) << 1
+
