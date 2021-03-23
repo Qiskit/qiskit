@@ -13,8 +13,8 @@
 """Test phase estimation"""
 
 import unittest
-from ddt import ddt, data
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from ddt import ddt, data
 import numpy as np
 from qiskit.algorithms.phase_estimators import PhaseEstimation, HamiltonianPhaseEstimation
 from qiskit.opflow.evolutions import PauliTrotterEvolution, MatrixEvolution
