@@ -1431,7 +1431,7 @@ class TestConditional(QiskitTestCase):
 
         self.circuit.h(self.qreg[0]).c_if(self.creg[0], 1)
         self.dag = circuit_to_dag(self.circuit)
-        [gate_node] = self.dag.gate_nodes()
+        gate_node = self.dag.gate_nodes()[0]
         self.assertEqual(gate_node.op, HGate())
         self.assertEqual(gate_node.qargs, [self.qreg[0]])
         self.assertEqual(gate_node.cargs, [])
