@@ -585,18 +585,18 @@ class DAGCircuit:
             new_creg = None
             for bit in wire_map:
                 if bit in cond_creg:
-                    try:
-                        if is_reg:
+                    if is_reg:
+                        try:
                             candidate_creg = next(creg
                                                 for creg in target_cregs
                                                 if wire_map[bit] in creg)
-                        else:
-                            # If cond is on a single Clbit then the candidate_creg is
-                            # the target Clbit to which 'bit' is mapped to. 
-                            candidate_creg = wire_map[bit]
-                    except StopIteration as ex:
-                        raise DAGCircuitError('Did not find creg containing '
-                                              'mapped clbit in conditional.') from ex
+                        except StopIteration as ex:
+                            raise DAGCircuitError('Did not find creg containing '
+                                                'mapped clbit in conditional.') from ex
+                    else:
+                        # If cond is on a single Clbit then the candidate_creg is
+                        # the target Clbit to which 'bit' is mapped to. 
+                        candidate_creg = wire_map[bit]
 
                     if new_creg is None:
                         new_creg = candidate_creg

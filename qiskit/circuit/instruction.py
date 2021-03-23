@@ -347,7 +347,10 @@ class Instruction:
             raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
             raise CircuitError("condition value should be non-negative")
-        self.condition = (classical, val)
+        if isinstance(classical, Clbit):
+            self.condition = (classical, bool(val))
+        else:
+            self.condition = (classical, val)
         return self
 
     def copy(self, name=None):

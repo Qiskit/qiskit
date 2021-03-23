@@ -310,7 +310,7 @@ class TestCircuitAssembler(QiskitTestCase):
         validate_qobj_against_schema(qobj)
 
         inst_set = qobj.experiments[0].instructions
-        inst_set = [bfunc_op, h_op]
+        [bfunc_op, h_op] = inst_set
 
         self.assertEqual(len(inst_set), 2)
         self.assertEqual(bfunc_op.name, 'bfunc')

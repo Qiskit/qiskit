@@ -124,14 +124,28 @@ class TestStandard1Q(QiskitTestCase):
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'h')
         self.assertEqual(qargs, [self.qr[0]])
-        self.assertEqual(op.condtion, (self.cr, 7))
-    
+        self.assertEqual(op.condition, (self.cr, 7))
+
     def test_cif_single_bit(self):
-        self.circuit.h(self.qr[0]).c_if(self.cr[0],1)
+        self.circuit.h(self.qr[0]).c_if(self.cr[0], True)
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'h')
         self.assertEqual(qargs, [self.qr[0]])
-        self.assertEqual(op.condtion, (self.cr[0], 1))
+        self.assertEqual(op.condition, (self.cr[0], True))
+
+    def test_cif_cross(self):
+        aux_reg = ClassicalRegister(1)
+        self.circuit.add_register(aux_reg)
+        self.circuit.x([self.qr[0], self.qr[1]])
+        self.circuit.measure(self.qr[1], self.cr[1])
+        self.circuit.measure(self.qr[2], self.cr[2])
+        self.circuit.h(self.qr[0]).c_if(self.cr[0], True)
+        self.circuit.measure(self.qr[0], aux_reg[0])
+        backend = Aer.get_backend('qasm_simulator')
+        result = execute(self.circuit, backend=backend, shots=100).result().get_counts()
+        target = {'0 110': 100}
+        self.assertEqual(result, target)
+
 
     def test_crz(self):
         self.circuit.crz(1, self.qr[0], self.qr[1])
