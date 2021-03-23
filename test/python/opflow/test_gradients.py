@@ -19,7 +19,6 @@ from itertools import product
 import numpy as np
 from ddt import ddt, data, idata, unpack
 from sympy import Symbol, cos
-from scipy.sparse import csr_matrix
 
 try:
     import jax.numpy as jnp
