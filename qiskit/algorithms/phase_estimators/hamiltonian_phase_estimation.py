@@ -115,11 +115,10 @@ class HamiltonianPhaseEstimation:
                 `PauliSumOp` or a `SummedOp` whose terms are `PauliOp`s.)
             TypeError: if `evolution` is not of type `EvolutionBase`.
         """
-        if not isinstance(evolution, EvolutionBase):
-            raise TypeError(f'Expecting type EvolutionBase, got {type(evolution)}')
-
         if evolution is None:
             evolution = PauliTrotterEvolution()
+        elif not isinstance(evolution, EvolutionBase):
+            raise TypeError(f'Expecting type EvolutionBase, got {type(evolution)}')
 
         if isinstance(hamiltonian, PauliSumOp):
             hamiltonian = hamiltonian.to_pauli_op()
@@ -156,7 +155,7 @@ class HamiltonianPhaseEstimation:
             raise TypeError(f'Hermitian operator of type {type(hamiltonian)} not supported.')
 
         if state_preparation is not None:
-            state_preparation = state_preparation.to_circuit()
+            state_preparation = state_preparation.to_circuit_op().to_circuit()
         # run phase estimation
         phase_estimation_result = self._phase_estimation.estimate(
             unitary=unitary, state_preparation=state_preparation)
