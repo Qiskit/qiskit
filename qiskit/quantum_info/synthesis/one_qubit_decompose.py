@@ -86,12 +86,13 @@ class OneQubitEulerDecomposer:
             :math:`U_1(\theta+\pi).R_X\left(\frac{\pi}{2}\right).U_1(\lambda)`
         * - 'ZSX'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
-          - :math:`e^{i\gamma} U_1(\phi+\pi).R_X\left(\frac{\pi}{2}\right).`
-            :math:`R_Z(\theta+\pi).S_X\left(\frac{\pi}{2}\right).U_1(\lambda)`
+          - :math:`e^{i\gamma} RZ(\phi+\pi).S_X.`
+            :math:`R_Z(\theta+\pi).S_X.RZ(\lambda)`
         * - 'ZSXX'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
-          - :math:`e^{i\gamma} U_1(\phi+\pi).R_X\left(\frac{\pi}{2}\right).`
-            :math:`R_Z(\theta+\pi).S_X\left(\frac{\pi}{2}\right).U_1(\lambda)`
+          - :math:`e^{i\gamma} RZ(\phi+\pi).S_X.R_Z(\theta+\pi).S_X.RZ(\lambda)`
+            or
+            :math:`e^{i\gamma} RZ(\phi+\pi).X.RZ(\lambda)`
         * - 'U1X'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
           - :math:`e^{i\gamma} U_1(\phi+\pi).R_X\left(\frac{\pi}{2}\right).`
