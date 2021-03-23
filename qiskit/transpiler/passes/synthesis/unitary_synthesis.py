@@ -60,19 +60,21 @@ class UnitarySynthesis(TransformationPass):
 
     def __init__(self,
                  basis_gates: List[str],
-                 fidelity: float = 1):
+                 approximation_degree: float = 1):
         """
+        Synthesize unitaries over some basis gates.
+
         This pass can approximate 2-qubit unitaries given some approximation
-        error budget (expressed as approximation_degree). Other unitaries are
-        synthesized exactly.
+        closeness measure (expressed as approximation_degree). Other unitaries
+        are synthesized exactly.
 
         Args:
             basis_gates: List of gate names to target.
-            fidelity: minimum synthesis fidelity due to approximation.
+            approximation_degree: closeness of approximation (0: lowest, 1: highest).
         """
         super().__init__()
         self._basis_gates = basis_gates
-        self._fidelity = fidelity
+        self._approximation_degree = approximation_degree
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the UnitarySynthesis pass on `dag`.
@@ -103,7 +105,7 @@ class UnitarySynthesis(TransformationPass):
                 if decomposer2q is None:
                     continue
                 synth_dag = circuit_to_dag(decomposer2q(node.op.to_matrix(),
-                                                        basis_fidelity=self._fidelity))
+                                                        basis_fidelity=self._approximation_degree))
             else:
                 synth_dag = circuit_to_dag(
                     isometry.Isometry(node.op.to_matrix(), 0, 0).definition)
