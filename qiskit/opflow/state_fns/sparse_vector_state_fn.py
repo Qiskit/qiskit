@@ -10,15 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" VectorStateFn Class """
+"""SparseVectorStateFn class."""
 
 
-from typing import Dict, List, Optional, Set, Union, cast
+from typing import Dict, Optional, Set, Union
 
 import numpy as np
 import scipy
 
-from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
 from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.list_ops.summed_op import SummedOp
@@ -26,7 +25,7 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
-from qiskit.utils import algorithm_globals, arithmetic
+from qiskit.utils import algorithm_globals
 
 
 class SparseVectorStateFn(StateFn):
