@@ -16,7 +16,7 @@
 
 import copy
 import itertools
-import sys
+import functools
 import warnings
 import numbers
 import multiprocessing as mp
@@ -31,12 +31,12 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function, deprecate_arguments
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
-from .parametertable import ParameterTable
-from .parametervector import ParameterVector
+from .parametertable import ParameterTable, ParameterView
+from .parametervector import ParameterVector, ParameterVectorElement
 from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
@@ -162,18 +162,17 @@ class QuantumCircuit:
                                    "provided)" % ([type(reg).__name__ for reg in regs], regs))
 
             regs = tuple(int(reg) for reg in regs)  # cast to int
-
+        self._base_name = None
         if name is None:
-            name = self.cls_prefix() + str(self.cls_instances())
-            if sys.platform != "win32" and not is_main_process():
-                name += '-{}'.format(mp.current_process().pid)
-        self._increment_instances()
-
-        if not isinstance(name, str):
+            self._base_name = self.cls_prefix()
+            self._name_update()
+        elif not isinstance(name, str):
             raise CircuitError("The circuit name should be a string "
                                "(or None to auto-generate a name).")
-
-        self.name = name
+        else:
+            self._base_name = name
+            self.name = name
+        self._increment_instances()
 
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
@@ -301,6 +300,15 @@ class QuantumCircuit:
     def cls_prefix(cls):
         """Return the prefix to use for auto naming."""
         return cls.prefix
+
+    def _name_update(self):
+        """update name of instance using instance number"""
+        if not is_main_process():
+            pid_name = f'-{mp.current_process().pid}'
+        else:
+            pid_name = ''
+
+        self.name = f'{self._base_name}-{self.cls_instances()}{pid_name}'
 
     def has_register(self, register):
         """
@@ -530,8 +538,11 @@ class QuantumCircuit:
 
         return controlled_circ
 
+    @deprecate_function('The QuantumCircuit.combine() method is being deprecated. '
+                        'Use the compose() method which is more flexible w.r.t '
+                        'circuit register compatibility.')
     def combine(self, rhs):
-        """Append rhs to self if self contains compatible registers.
+        """DEPRECATED - Returns rhs appended to self if self contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -571,10 +582,17 @@ class QuantumCircuit:
             for key, sched in cals.items():
                 circuit.add_calibration(gate, qubits=key[0], schedule=sched, params=key[1])
 
+        for gate, cals in self.calibrations.items():
+            for key, sched in cals.items():
+                circuit.add_calibration(gate, qubits=key[0], schedule=sched, params=key[1])
+
         return circuit
 
+    @deprecate_function('The QuantumCircuit.extend() method is being deprecated. Use the '
+                        'compose() (potentially with the inplace=True argument) and tensor() '
+                        'methods which are more flexible w.r.t circuit register compatibility.')
     def extend(self, rhs):
-        """Append QuantumCircuit to the right hand side if it contains compatible registers.
+        """DEPRECATED - Append QuantumCircuit to the RHS if it contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -727,8 +745,14 @@ class QuantumCircuit:
         else:
             dest._data += mapped_instrs
 
-        for instr, _, _ in mapped_instrs:
-            dest._update_parameter_table(instr)
+        if front:
+            dest._parameter_table.clear()
+            for instr, _, _ in dest._data:
+                dest._update_parameter_table(instr)
+        else:
+            # just append new parameters
+            for instr, _, _ in mapped_instrs:
+                dest._update_parameter_table(instr)
 
         for gate, cals in other.calibrations.items():
             dest._calibrations[gate].update(cals)
@@ -828,10 +852,16 @@ class QuantumCircuit:
         """
         return self._ancillas
 
+    @deprecate_function('The QuantumCircuit.__add__() method is being deprecated.'
+                        'Use the compose() method which is more flexible w.r.t '
+                        'circuit register compatibility.')
     def __add__(self, rhs):
         """Overload + to implement self.combine."""
         return self.combine(rhs)
 
+    @deprecate_function('The QuantumCircuit.__iadd__() method is being deprecated. Use the '
+                        'compose() (potentially with the inplace=True argument) and tensor() '
+                        'methods which are more flexible w.r.t circuit register compatibility.')
     def __iadd__(self, rhs):
         """Overload += to implement self.extend."""
         return self.extend(rhs)
@@ -1054,7 +1084,7 @@ class QuantumCircuit:
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
                 new_bits = [bit for bit in register
-                            if bit not in self._qubit_set]
+                            if bit not in self._clbit_set]
                 self._clbits.extend(new_bits)
                 self._clbit_set.update(new_bits)
             elif isinstance(register, list):
@@ -1072,7 +1102,8 @@ class QuantumCircuit:
         for bit in bits:
             if isinstance(bit, AncillaQubit):
                 self._ancillas.append(bit)
-            elif isinstance(bit, Qubit):
+
+            if isinstance(bit, Qubit):
                 self._qubits.append(bit)
                 self._qubit_set.add(bit)
             elif isinstance(bit, Clbit):
@@ -1670,7 +1701,6 @@ class QuantumCircuit:
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
-
         cpy = copy.copy(self)
         # copy registers correctly, in copy.copy they are only copied via reference
         cpy.qregs = self.qregs.copy()
@@ -1696,6 +1726,7 @@ class QuantumCircuit:
                      for inst, qargs, cargs in self._data]
 
         cpy._calibrations = copy.deepcopy(self._calibrations)
+        cpy._metadata = copy.deepcopy(self._metadata)
 
         if name:
             cpy.name = name
@@ -1880,16 +1911,22 @@ class QuantumCircuit:
 
         # parameters in global phase
         if isinstance(self.global_phase, ParameterExpression):
-            return params.union(self.global_phase.parameters)
+            params = params.union(self.global_phase.parameters)
 
-        return params
+        # sort the parameters
+        sorted_by_name = sorted(list(params), key=functools.cmp_to_key(_compare_parameters))
+
+        # return as parameter view, which implements the set and list interface
+        return ParameterView(sorted_by_name)
 
     @property
     def num_parameters(self):
         """Convenience function to get the number of parameter objects in the circuit."""
         return len(self.parameters)
 
-    def assign_parameters(self, param_dict, inplace=False):
+    @deprecate_arguments({'param_dict': 'parameters'})
+    def assign_parameters(self, parameters, inplace=False,
+                          param_dict=None):  # pylint: disable=unused-argument
         """Assign parameters to new parameters or values.
 
         The keys of the parameter dictionary must be Parameter instances in the current circuit. The
@@ -1897,14 +1934,21 @@ class QuantumCircuit:
         The values can be assigned to the current circuit object or to a copy of it.
 
         Args:
-            param_dict (dict): A dictionary specifying the mapping from ``current_parameter``
-                to ``new_parameter``, where ``new_parameter`` can be a new parameter object
-                or a numeric value.
+            parameters (dict or iterable): Either a dictionary or iterable specifying the new
+                parameter values. If a dict, it specifies the mapping from ``current_parameter`` to
+                ``new_parameter``, where ``new_parameter`` can be a new parameter object or a
+                numeric value. If an iterable, the elements are assigned to the existing parameters
+                in the order they were inserted. You can call ``QuantumCircuit.parameters`` to check
+                this order.
             inplace (bool): If False, a copy of the circuit with the bound parameters is
                 returned. If True the circuit instance itself is modified.
+            param_dict (dict): Deprecated, use ``parameters`` instead.
 
         Raises:
-            CircuitError: If param_dict contains parameters not present in the circuit
+            CircuitError: If parameters is a dict and contains parameters not present in the
+                circuit.
+            ValueError: If parameters is a list/array and the length mismatches the number of free
+                parameters in the circuit.
 
         Returns:
             Optional(QuantumCircuit): A copy of the circuit with bound parameters, if
@@ -1951,43 +1995,63 @@ class QuantumCircuit:
 
         """
         # replace in self or in a copy depending on the value of in_place
-        bound_circuit = self if inplace else self.copy()
+        if inplace:
+            bound_circuit = self
+        else:
+            bound_circuit = self.copy()
+            self._increment_instances()
+            bound_circuit._name_update()
 
-        # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
-        unrolled_param_dict = self._unroll_param_dict(param_dict)
+        if isinstance(parameters, dict):
+            # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
+            unrolled_param_dict = self._unroll_param_dict(parameters)
 
-        # check that all param_dict items are in the _parameter_table for this circuit
-        params_not_in_circuit = [param_key for param_key in unrolled_param_dict
-                                 if param_key not in self.parameters]
-        if len(params_not_in_circuit) > 0:
-            raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                ', '.join(map(str, params_not_in_circuit))))
+            # check that all param_dict items are in the _parameter_table for this circuit
+            params_not_in_circuit = [param_key for param_key in unrolled_param_dict
+                                     if param_key not in self.parameters]
+            if len(params_not_in_circuit) > 0:
+                raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
+                    ', '.join(map(str, params_not_in_circuit))))
 
-        # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
-        for parameter, value in unrolled_param_dict.items():
-            bound_circuit._assign_parameter(parameter, value)
-
+            # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
+            for parameter, value in unrolled_param_dict.items():
+                bound_circuit._assign_parameter(parameter, value)
+        else:
+            if len(parameters) != self.num_parameters:
+                raise ValueError('Mismatching number of values and parameters. For partial binding '
+                                 'please pass a dictionary of {parameter: value} pairs.')
+            for i, value in enumerate(parameters):
+                bound_circuit._assign_parameter(self.parameters[i], value)
         return None if inplace else bound_circuit
 
-    def bind_parameters(self, value_dict):
+    @deprecate_arguments({'value_dict': 'values'})
+    def bind_parameters(self, values, value_dict=None):  # pylint: disable=unused-argument
         """Assign numeric parameters to values yielding a new circuit.
 
         To assign new Parameter objects or bind the values in-place, without yielding a new
         circuit, use the :meth:`assign_parameters` method.
 
         Args:
-            value_dict (dict): {parameter: value, ...}
+            values (dict or iterable): {parameter: value, ...} or [value1, value2, ...]
+            value_dict (dict): Deprecated, use ``values`` instead.
 
         Raises:
-            CircuitError: If value_dict contains parameters not present in the circuit
-            TypeError: If value_dict contains a ParameterExpression in the values.
+            CircuitError: If values is a dict and contains parameters not present in the circuit.
+            TypeError: If values contains a ParameterExpression.
 
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
         """
-        if any(isinstance(value, ParameterExpression) for value in value_dict.values()):
-            raise TypeError('Found ParameterExpression in values; use assign_parameters() instead.')
-        return self.assign_parameters(value_dict)
+        if isinstance(values, dict):
+            if any(isinstance(value, ParameterExpression) for value in values.values()):
+                raise TypeError(
+                    'Found ParameterExpression in values; use assign_parameters() instead.')
+            return self.assign_parameters(values)
+        else:
+            if any(isinstance(value, ParameterExpression) for value in values):
+                raise TypeError(
+                    'Found ParameterExpression in values; use assign_parameters() instead.')
+            return self.assign_parameters(values)
 
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}
@@ -2625,3 +2689,21 @@ def _circuit_from_qasm(qasm):
     ast = qasm.parse()
     dag = ast_to_dag(ast)
     return dag_to_circuit(dag)
+
+
+def _standard_compare(value1, value2):
+    if value1 < value2:
+        return -1
+    if value1 > value2:
+        return 1
+    return 0
+
+
+def _compare_parameters(param1, param2):
+    if isinstance(param1, ParameterVectorElement) and isinstance(param2, ParameterVectorElement):
+        # if they belong to a vector with the same name, sort by index
+        if param1.vector.name == param2.vector.name:
+            return _standard_compare(param1.index, param2.index)
+
+    # else sort by name
+    return _standard_compare(param1.name, param2.name)

@@ -27,7 +27,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         creg0 = ClassicalRegister(2, 'c0')
         qreg1 = QuantumRegister(2, 'q1')
         creg1 = ClassicalRegister(2, 'c1')
-        circ = QuantumCircuit(qreg0, qreg1)
+        circ = QuantumCircuit(qreg0, qreg1, creg0, creg1)
         circ.x(qreg0[1])
         circ.x(qreg1[0])
 
@@ -35,7 +35,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         meas.measure(qreg0, creg0)
         meas.measure(qreg1, creg1)
 
-        qc = circ + meas
+        qc = circ.compose(meas)
 
         backend_sim = BasicAer.get_backend('qasm_simulator')
 

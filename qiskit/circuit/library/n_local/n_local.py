@@ -20,6 +20,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.parametertable import ParameterTable
+from qiskit.utils.deprecation import deprecate_arguments
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -729,16 +730,19 @@ class NLocal(BlueprintCircuit):
                 parameterized_block = self._parameterize_block(block, params=params)
                 layer.compose(parameterized_block, i)
 
-            self += layer
+            self.compose(layer, inplace=True)
         else:
             # cannot prepend a block currently, just rebuild
             self._invalidate()
 
         return self
 
-    def assign_parameters(self, param_dict: Union[dict, List[float], List[Parameter],
+    @deprecate_arguments({'param_dict': 'parameters'})
+    def assign_parameters(self, parameters: Union[dict, List[float], List[Parameter],
                                                   ParameterVector],
-                          inplace: bool = False) -> Optional[QuantumCircuit]:
+                          inplace: bool = False,
+                          param_dict: Optional[dict] = None  # pylint: disable=unused-argument
+                          ) -> Optional[QuantumCircuit]:
         """Assign parameters to the n-local circuit.
 
         This method also supports passing a list instead of a dictionary. If a list
@@ -756,31 +760,31 @@ class NLocal(BlueprintCircuit):
         if self._data is None:
             self._build()
 
-        if not isinstance(param_dict, dict):
-            if len(param_dict) != self.num_parameters:
+        if not isinstance(parameters, dict):
+            if len(parameters) != self.num_parameters:
                 raise AttributeError('If the parameters are provided as list, the size must match '
                                      'the number of parameters ({}), but {} are given.'.format(
-                                         self.num_parameters, len(param_dict)
+                                         self.num_parameters, len(parameters)
                                      ))
-            unbound_params = [param for param in self._ordered_parameters if
-                              isinstance(param, ParameterExpression)]
+            unbound_parameters = [param for param in self._ordered_parameters if
+                                  isinstance(param, ParameterExpression)]
 
             # to get a sorted list of unique parameters, keep track of the already used parameters
             # in a set and add the parameters to the unique list only if not existing in the set
             used = set()
-            unbound_unique_params = []
-            for param in unbound_params:
+            unbound_unique_parameters = []
+            for param in unbound_parameters:
                 if param not in used:
-                    unbound_unique_params.append(param)
+                    unbound_unique_parameters.append(param)
                     used.add(param)
 
-            param_dict = dict(zip(unbound_unique_params, param_dict))
+            parameters = dict(zip(unbound_unique_parameters, parameters))
 
         if inplace:
-            new = [param_dict.get(param, param) for param in self.ordered_parameters]
+            new = [parameters.get(param, param) for param in self.ordered_parameters]
             self._ordered_parameters = new
 
-        return super().assign_parameters(param_dict, inplace=inplace)
+        return super().assign_parameters(parameters, inplace=inplace)
 
     def _parameterize_block(self, block, param_iter=None, rep_num=None, block_num=None,
                             indices=None, params=None):
@@ -828,7 +832,7 @@ class NLocal(BlueprintCircuit):
                 layer.compose(parameterized_block, indices, inplace=True)
 
             # add the layer to the circuit
-            self += layer
+            self.compose(layer, inplace=True)
 
     def _build_entanglement_layer(self, param_iter, i):
         """Build an entanglement layer."""
@@ -844,7 +848,7 @@ class NLocal(BlueprintCircuit):
                 layer.compose(parameterized_block, indices, inplace=True)
 
             # add the layer to the circuit
-            self += layer
+            self.compose(layer, inplace=True)
 
     def _build_additional_layers(self, which):
         if which == 'appended':
@@ -863,7 +867,7 @@ class NLocal(BlueprintCircuit):
             for indices in ent:
                 layer.compose(block, indices, inplace=True)
 
-            self += layer
+            self.compose(layer, inplace=True)
 
     def _build(self) -> None:
         """Build the circuit."""
@@ -880,7 +884,7 @@ class NLocal(BlueprintCircuit):
         # use the initial state circuit if it is not None
         if self._initial_state:
             circuit = self._initial_state.construct_circuit('circuit', register=self.qregs[0])
-            self += circuit
+            self.compose(circuit, inplace=True)
 
         param_iter = iter(self.ordered_parameters)
 
