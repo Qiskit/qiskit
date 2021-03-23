@@ -18,7 +18,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RYYGate(Gate):
-    r"""A parameteric 2-qubit :math:`Y \otimes Y` interaction (rotation about YY).
+    r"""A parametric 2-qubit :math:`Y \otimes Y` interaction (rotation about YY).
 
     This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
 

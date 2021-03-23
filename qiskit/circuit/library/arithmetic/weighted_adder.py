@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """Compute the weighted sum of qubit states."""
 
 from typing import List, Optional
@@ -163,24 +161,20 @@ class WeightedAdder(BlueprintCircuit):
             qr_state = QuantumRegister(self.num_state_qubits, name='state')
             qr_sum = QuantumRegister(self.num_sum_qubits, name='sum')
             self.qregs = [qr_state, qr_sum]
-            self._qubits = qr_state[:] + qr_sum[:]
             self._ancillas = []
 
             if self.num_carry_qubits > 0:
                 qr_carry = AncillaRegister(self.num_carry_qubits, name='carry')
                 self.qregs += [qr_carry]
-                self._qubits += qr_carry[:]
                 self._ancillas += qr_carry[:]
 
             if self.num_control_qubits > 0:
                 qr_control = AncillaRegister(self.num_control_qubits, name='control')
                 self.qregs += [qr_control]
-                self._qubits += qr_control[:]
                 self._ancillas += qr_control[:]
 
         else:
             self.qregs = []
-            self._qubits = []
             self._ancillas = []
 
     @property

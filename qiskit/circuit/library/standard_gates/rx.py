@@ -66,7 +66,7 @@ class RXGate(Gate):
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-RX gate.
+        """Return a (multi-)controlled-RX gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.

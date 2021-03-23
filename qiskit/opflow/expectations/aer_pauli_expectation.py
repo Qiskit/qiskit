@@ -16,15 +16,15 @@ import logging
 from typing import Union
 
 from qiskit.exceptions import MissingOptionalLibraryError
-from ..operator_base import OperatorBase
-from .expectation_base import ExpectationBase
-from ..list_ops.list_op import ListOp
-from ..list_ops.composed_op import ComposedOp
-from ..list_ops.summed_op import SummedOp
-from ..primitive_ops.pauli_op import PauliOp
-from ..primitive_ops.pauli_sum_op import PauliSumOp
-from ..state_fns.circuit_state_fn import CircuitStateFn
-from ..state_fns.operator_state_fn import OperatorStateFn
+from qiskit.opflow.expectations.expectation_base import ExpectationBase
+from qiskit.opflow.list_ops.composed_op import ComposedOp
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
+from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
+from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class AerPauliExpectation(ExpectationBase):
         else:
             return operator
 
-    # pylint: disable=inconsistent-return-statements,import-outside-toplevel
+    # pylint: disable=inconsistent-return-statements
     @classmethod
     def _replace_pauli_sums(cls, operator):
         try:
