@@ -268,7 +268,7 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
                 if common_instr_qubits and common_next:
                     raise QiskitError('Qubits {} and {} in the measurement map: {} was '
                                       'acquired disjointly'.format(common_instr_qubits,
-                                                          common_next, meas_map))
+                                                                   common_next, meas_map))
 
 def _assemble_config(lo_converter: converters.LoConfigConverter,
                      experiment_config: Dict[str, Any],
