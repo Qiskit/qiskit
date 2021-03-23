@@ -31,9 +31,9 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
-from qiskit.circuit import ControlledGate, Gate, Instruction
+from qiskit.circuit import ControlledGate, Gate
 from qiskit.visualization.qcstyle import DefaultStyle, set_style
-from qiskit.visualization.utils import _get_gate_ctrl_text
+from qiskit.visualization.utils import get_gate_ctrl_text
 from qiskit.circuit import Delay
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
@@ -771,7 +771,7 @@ class MatplotlibDrawer:
                     continue
 
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                gate_text, ctrl_text = _get_gate_ctrl_text(op, 'mpl', style=self._style)
+                gate_text, ctrl_text = get_gate_ctrl_text(op, 'mpl', style=self._style)
 
                 # if a standard_gate, no params, and no labels, layer_width is 1
                 if (not hasattr(op.op, 'params') and
@@ -823,7 +823,7 @@ class MatplotlibDrawer:
             #
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                gate_text, ctrl_text = _get_gate_ctrl_text(op, 'mpl', style=self._style)
+                gate_text, ctrl_text = get_gate_ctrl_text(op, 'mpl', style=self._style)
                 fc, ec, gt, tc, sc, lc = self._get_colors(op)
 
                 # get qreg index

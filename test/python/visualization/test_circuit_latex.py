@@ -478,6 +478,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.u1(pi/2, 4)
         circuit.cz(5, 6)
         circuit.cu1(pi/2, 5, 6)
+        circuit.cp(pi/2, 5, 6)
         circuit.y(5)
         circuit.rx(pi/3, 5)
         circuit.rzx(pi/2, 5, 6)

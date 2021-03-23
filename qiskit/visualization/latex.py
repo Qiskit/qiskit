@@ -17,7 +17,7 @@ import math
 import re
 
 import numpy as np
-from qiskit.circuit import Gate, Instruction, Clbit
+from qiskit.circuit import Gate, Clbit
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import (SwapGate, XGate, ZGate, RZZGate,
                                                    U1Gate, PhaseGate)
@@ -25,7 +25,7 @@ from qiskit.circuit.measure import Measure
 from qiskit.visualization.qcstyle import DefaultStyle
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
-from .utils import _get_gate_ctrl_text, generate_latex_label
+from .utils import get_gate_ctrl_text, generate_latex_label
 
 
 class QCircuitImage:
@@ -339,7 +339,7 @@ class QCircuitImage:
                     self._build_barrier(op, column)
 
                 else:
-                    gate_text, _ = _get_gate_ctrl_text(op, 'latex', style=self._style)
+                    gate_text, _ = get_gate_ctrl_text(op, 'latex', style=self._style)
                     gate_text = self._add_params_to_gate_text(op, gate_text)
                     gate_text = generate_latex_label(gate_text)
                     wire_list = [self.img_regs[qarg] for qarg in op.qargs]

@@ -36,7 +36,7 @@ except ImportError:
     HAS_PYLATEX = False
 
 
-def _get_gate_ctrl_text(op, drawer, style=None):
+def get_gate_ctrl_text(op, drawer, style=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
     op_label = getattr(op.op, 'label', None)
     op_type = type(op.op)
@@ -88,6 +88,7 @@ def _get_gate_ctrl_text(op, drawer, style=None):
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
     return gate_text, ctrl_text
+
 
 def generate_latex_label(label):
     """Convert a label to a valid latex string."""

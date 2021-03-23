@@ -1109,18 +1109,15 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
     def test_label_turns_to_box_2286(self):
         """ If there is a label, non-boxes turn into boxes
         See https://github.com/Qiskit/qiskit-terra/issues/2286 """
-        expected = '\n'.join(["           ┌───────────┐",
-                              "q_0: |0>─■─┤0          ├",
-                              "         │ │  cz label │",
-                              "q_1: |0>─■─┤1          ├",
-                              "           └───────────┘"])
+        expected = '\n'.join(["            cz label ",
+                              "q_0: |0>─■─────■─────",
+                              "         │     │     ",
+                              "q_1: |0>─■─────■─────",
+                              "                     "])
         qr = QuantumRegister(2, 'q')
         circ = QuantumCircuit(qr)
         circ.append(CZGate(), [qr[0], qr[1]])
         circ.append(CZGate(label='cz label'), [qr[0], qr[1]])
-
-        print(expected)
-        print(str(_text_circuit_drawer(circ)))
 
         self.assertEqual(str(_text_circuit_drawer(circ)), expected)
 
@@ -1305,7 +1302,6 @@ class TestTextDrawerParams(QiskitTestCase):
         phi, lam = Parameter('φ'), Parameter('λ')
         circuit = QuantumCircuit(1)
         circuit.u2(phi, lam, 0)
-        print(circuit)
         self.assertEqual(circuit.draw(output='text').single_string(), expected)
 
 
