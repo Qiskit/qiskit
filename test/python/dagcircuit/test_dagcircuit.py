@@ -1380,15 +1380,16 @@ class TestDagProperties(QiskitTestCase):
         dag = circuit_to_dag(qc)
         self.assertEqual(dag.depth(), 6)
 
+
 class TestConditional(QiskitTestCase):
     """Test the classical conditional gates.
     """
 
     def setUp(self):
         super().setUp()
-        self.qreg = QuantumRegister(3,'q')
-        self.creg = ClassicalRegister(2,'c')
-        self.creg2 = ClassicalRegister(2,'c2')
+        self.qreg = QuantumRegister(3, 'q')
+        self.creg = ClassicalRegister(2, 'c')
+        self.creg2 = ClassicalRegister(2, 'c2')
         self.qubit0 = self.qreg[0]
         self.circuit = QuantumCircuit(self.qreg, self.creg, self.creg2)
         self.dag = None
@@ -1452,6 +1453,7 @@ class TestConditional(QiskitTestCase):
                 (gate_node._node_id, self.dag.output_map[self.creg[0]]._node_id,
                  self.creg[0]),
             ]))
+
 
 if __name__ == '__main__':
     unittest.main()

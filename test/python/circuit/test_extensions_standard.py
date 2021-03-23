@@ -120,7 +120,7 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.ch, 'a', self.qr[1])
 
     def test_cif_reg(self):
-        self.circuit.h(self.qr[0]).c_if(self.cr,7)
+        self.circuit.h(self.qr[0]).c_if(self.cr, 7)
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'h')
         self.assertEqual(qargs, [self.qr[0]])
@@ -136,16 +136,15 @@ class TestStandard1Q(QiskitTestCase):
     def test_cif_cross(self):
         aux_reg = ClassicalRegister(1)
         self.circuit.add_register(aux_reg)
-        self.circuit.x([self.qr[0], self.qr[1]])
+        self.circuit.x([self.qr[1], self.qr[2]])
         self.circuit.measure(self.qr[1], self.cr[1])
         self.circuit.measure(self.qr[2], self.cr[2])
         self.circuit.h(self.qr[0]).c_if(self.cr[0], True)
         self.circuit.measure(self.qr[0], aux_reg[0])
-        backend = Aer.get_backend('qasm_simulator')
+        backend = BasicAer.get_backend('qasm_simulator')
         result = execute(self.circuit, backend=backend, shots=100).result().get_counts()
         target = {'0 110': 100}
         self.assertEqual(result, target)
-
 
     def test_crz(self):
         self.circuit.crz(1, self.qr[0], self.qr[1])
