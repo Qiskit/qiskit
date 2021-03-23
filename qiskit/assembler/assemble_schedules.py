@@ -277,6 +277,7 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
                                                      next_inst_time,
                                                      next_inst_time + next_inst[0][1]))
 
+
 def _assemble_config(lo_converter: converters.LoConfigConverter,
                      experiment_config: Dict[str, Any],
                      run_config: RunConfig) -> qobj.PulseQobjConfig:
