@@ -63,7 +63,7 @@ class UnitarySynthesis(TransformationPass):
                  fidelity: float = 1):
         """
         This pass can approximate 2-qubit unitaries given some approximation
-        error budget (expressed as synthesis_fidelity). Other unitaries are
+        error budget (expressed as approximation_degree). Other unitaries are
         synthesized exactly.
 
         Args:

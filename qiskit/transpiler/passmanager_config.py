@@ -27,7 +27,7 @@ class PassManagerConfig:
                  scheduling_method=None,
                  instruction_durations=None,
                  backend_properties=None,
-                 synthesis_fidelity=None,
+                 approximation_degree=None,
                  seed_transpiler=None):
         """Initialize a PassManagerConfig object
 
@@ -49,7 +49,8 @@ class PassManagerConfig:
             backend_properties (BackendProperties): Properties returned by a
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.
-            synthesis_fidelity (float): tolerable fidelity for approximate synthesis.
+            approximation_degree (float): heuristic dial used for circuit approximation
+                (1.0=no approximation, 0.0=maximal approximation)
             seed_transpiler (int): Sets random seed for the stochastic parts of
                 the transpiler.
         """
@@ -62,5 +63,5 @@ class PassManagerConfig:
         self.scheduling_method = scheduling_method
         self.instruction_durations = instruction_durations
         self.backend_properties = backend_properties
-        self.synthesis_fidelity = synthesis_fidelity
+        self.approximation_degree = approximation_degree
         self.seed_transpiler = seed_transpiler
