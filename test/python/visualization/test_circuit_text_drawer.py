@@ -864,17 +864,17 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
     def test_text_spacing_2378(self):
         """Small gates in the same layer as long gates.
         See https://github.com/Qiskit/qiskit-terra/issues/2378"""
-        expected = '\n'.join(["                     ",
-                              "q_0: |0>──────X──────",
-                              "              │      ",
-                              "q_1: |0>──────X──────",
-                              "        ┌───────────┐",
-                              "q_2: |0>┤ RZ(11111) ├",
-                              "        └───────────┘"])
+        expected = '\n'.join(["                   ",
+                              "q_0: |0>─────X─────",
+                              "             │     ",
+                              "q_1: |0>─────X─────",
+                              "        ┌─────────┐",
+                              "q_2: |0>┤ RZ(111) ├",
+                              "        └─────────┘"])
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.swap(qr[0], qr[1])
-        circuit.rz(11111, qr[2])
+        circuit.rz(111, qr[2])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
@@ -1958,11 +1958,11 @@ class TestTextNonRational(QiskitTestCase):
     def test_text_complex(self):
         """Complex numbers show up in the text
         See https://github.com/Qiskit/qiskit-terra/issues/3640 """
-        expected = '\n'.join(["     ┌────────────────────────────────────┐",
-                              "q_0: ┤0                                   ├",
-                              "     │  INITIALIZE(0.5+0.1j,0,0,0.86023j) │",
-                              "q_1: ┤1                                   ├",
-                              "     └────────────────────────────────────┘"])
+        expected = '\n'.join(["     ┌─────────────────────────────────┐",
+                              "q_0: ┤0                                ├",
+                              "     │  INITIALIZE(0.5+0.1j,0,0,0.86j) │",
+                              "q_1: ┤1                                ├",
+                              "     └─────────────────────────────────┘"])
         ket = numpy.array([0.5 + 0.1 * 1j, 0, 0, 0.8602325267042626 * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
@@ -1971,11 +1971,11 @@ class TestTextNonRational(QiskitTestCase):
     def test_text_complex_pireal(self):
         """Complex numbers including pi show up in the text
         See https://github.com/Qiskit/qiskit-terra/issues/3640 """
-        expected = '\n'.join(["        ┌────────────────────────────────┐",
-                              "q_0: |0>┤0                               ├",
-                              "        │  INITIALIZE(π/10,0,0,0.94937j) │",
-                              "q_1: |0>┤1                               ├",
-                              "        └────────────────────────────────┘"
+        expected = '\n'.join(["        ┌──────────────────────────────┐",
+                              "q_0: |0>┤0                             ├",
+                              "        │  INITIALIZE(π/10,0,0,0.949j) │",
+                              "q_1: |0>┤1                             ├",
+                              "        └──────────────────────────────┘"
                               ])
         ket = numpy.array([0.1 * numpy.pi, 0, 0, 0.9493702944526474 * 1j])
         circuit = QuantumCircuit(2)
@@ -1985,11 +1985,11 @@ class TestTextNonRational(QiskitTestCase):
     def test_text_complex_piimaginary(self):
         """Complex numbers including pi show up in the text
         See https://github.com/Qiskit/qiskit-terra/issues/3640 """
-        expected = '\n'.join(["        ┌────────────────────────────────┐",
-                              "q_0: |0>┤0                               ├",
-                              "        │  INITIALIZE(0.94937,0,0,π/10j) │",
-                              "q_1: |0>┤1                               ├",
-                              "        └────────────────────────────────┘"
+        expected = '\n'.join(["        ┌──────────────────────────────┐",
+                              "q_0: |0>┤0                             ├",
+                              "        │  INITIALIZE(0.949,0,0,π/10j) │",
+                              "q_1: |0>┤1                             ├",
+                              "        └──────────────────────────────┘"
                               ])
         ket = numpy.array([0.9493702944526474, 0, 0, 0.1 * numpy.pi * 1j])
         circuit = QuantumCircuit(2)

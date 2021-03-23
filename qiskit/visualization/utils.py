@@ -20,7 +20,8 @@ from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators.symplectic import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.circuit import Measure, ControlledGate, Gate, Instruction
+from qiskit.circuit import Measure, ControlledGate, Gate, Instruction, Delay
+from qiskit.circuit.tools import pi_check
 
 try:
     import PIL
@@ -88,6 +89,38 @@ def get_gate_ctrl_text(op, drawer, style=None):
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
     return gate_text, ctrl_text
+
+
+def get_param_str(op, drawer):
+    """Get the params as a string to add to the display"""
+    if (not hasattr(op.op, 'params')
+            or any(isinstance(param, np.ndarray) for param in op.op.params)):
+        return ""
+
+    param_list = []
+    for count, param in enumerate(op.op.params):
+        # Latex drawer will cause an xy-pic error if param string
+        # is too long, so we limit it to 4 params.
+        if drawer == 'latex' and count > 3:
+            param_list.append('...')
+            break
+        try:
+            param_list.append(pi_check(param, output=drawer, ndigits=3))
+        except TypeError:
+            param_list.append(str(param))
+
+    param_str = ""
+    if param_list:
+        if isinstance(op.op, Delay) and op.op.unit:
+            param_str = f"{param_list[0]}[{op.op.unit}]"
+        elif drawer == 'latex':
+            param_str = f"\\,(\\mathrm{{{','.join(param_list)}}})"
+        elif drawer == 'mpl':
+            param_str = f"{', '.join(param_list)}"
+        else:
+            param_str = f"({','.join(param_list)})"
+
+    return param_str
 
 
 def generate_latex_label(label):

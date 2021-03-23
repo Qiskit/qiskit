@@ -25,7 +25,7 @@ from qiskit.circuit.measure import Measure
 from qiskit.visualization.qcstyle import DefaultStyle
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
-from .utils import get_gate_ctrl_text, generate_latex_label
+from .utils import get_gate_ctrl_text, get_param_str, generate_latex_label
 
 
 class QCircuitImage:
@@ -340,7 +340,7 @@ class QCircuitImage:
 
                 else:
                     gate_text, _ = get_gate_ctrl_text(op, 'latex', style=self._style)
-                    gate_text = self._add_params_to_gate_text(op, gate_text)
+                    gate_text += get_param_str(op, 'latex')
                     gate_text = generate_latex_label(gate_text)
                     wire_list = [self.img_regs[qarg] for qarg in op.qargs]
 
@@ -505,22 +505,6 @@ class QCircuitImage:
             # ctrl_item[1] is ctrl_state for this bit
             control = "\\ctrlo" if ctrl_item[1] == '0' else "\\ctrl"
             self._latex[pos][col] = f"{control}" + "{" + str(nxt - wire_list[index]) + "}"
-
-    def _add_params_to_gate_text(self, op, gate_text):
-        """Add the params to the end of the current gate_text"""
-
-        # Must limit to 4 params or may get dimension too large error
-        # from xy-pic xymatrix command
-        if (len(op.op.params) > 0 and not any(
-                isinstance(param, np.ndarray) for param in op.op.params)):
-            gate_text += "\\,\\mathrm{(}"
-            for param_count, param in enumerate(op.op.params):
-                if param_count > 3:
-                    gate_text += "...,"
-                    break
-                gate_text += "\\mathrm{%s}," % pi_check(param, output='latex', ndigits=4)
-            gate_text = gate_text[:-1] + "\\mathrm{)}"
-        return gate_text
 
     def _add_condition(self, op, wire_list, col):
         """Add a condition to the _latex list"""

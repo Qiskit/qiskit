@@ -33,7 +33,7 @@ except ImportError:
 
 from qiskit.circuit import ControlledGate, Gate
 from qiskit.visualization.qcstyle import DefaultStyle, set_style
-from qiskit.visualization.utils import get_gate_ctrl_text
+from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
 from qiskit.circuit import Delay
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
@@ -330,16 +330,6 @@ class MatplotlibDrawer:
             if f == 1:
                 sum_text *= self._subfont_factor
             return sum_text
-
-    def _param_parse(self, v):
-        param_parts = [None] * len(v)
-        for i, e in enumerate(v):
-            try:
-                param_parts[i] = pi_check(e, output='mpl', ndigits=3)
-            except TypeError:
-                param_parts[i] = str(e)
-        param_parts = ', '.join(param_parts).replace('-', '$-$')
-        return param_parts
 
     def _get_colors(self, op):
         base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
@@ -787,7 +777,7 @@ class MatplotlibDrawer:
                 if (hasattr(op.op, 'params')
                         and not any(isinstance(param, np.ndarray) for param in op.op.params)
                         and len(op.op.params) > 0):
-                    param = self._param_parse(op.op.params)
+                    param = get_param_str(op, 'mpl')
                     if op.name == 'initialize':
                         param = '[%s]' % param
                     param = "${}$".format(param)
@@ -870,7 +860,7 @@ class MatplotlibDrawer:
                 # load param
                 if (op.type == 'op' and hasattr(op.op, 'params') and len(op.op.params) > 0
                         and not any(isinstance(param, np.ndarray) for param in op.op.params)):
-                    param = "{}".format(self._param_parse(op.op.params))
+                    param = "{}".format(get_param_str(op, 'mpl'))
                 else:
                     param = ''
 

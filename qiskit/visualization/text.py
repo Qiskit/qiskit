@@ -17,15 +17,13 @@ A module for drawing circuits in ascii art or some other text representation
 from warnings import warn
 from shutil import get_terminal_size
 import sys
-from numpy import ndarray
 
 from qiskit.circuit import ControlledGate, Gate
 from qiskit.circuit import Reset as ResetInstruction
 from qiskit.circuit import Measure as MeasureInstruction
-from qiskit.circuit import Delay as DelayInstruction
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.visualization.utils import get_gate_ctrl_text
+from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
 from .exceptions import VisualizationError
 
 
@@ -772,30 +770,6 @@ class TextDrawing():
         return "= %s" % instruction.condition[1]
 
     @staticmethod
-    def params_for_label(instruction):
-        """Get the params and format them to add them to a label. None if there
-        are no params or if the params are numpy.ndarrays."""
-        op = instruction.op
-        if not hasattr(op, 'params') or any(isinstance(param, ndarray) for param in op.params):
-            return ""
-
-        param_list = []
-        for param in op.params:
-            try:
-                str_param = pi_check(param, ndigits=5)
-                param_list.append('%s' % str_param)
-            except TypeError:
-                param_list.append('%s' % param)
-        param_str = ""
-        if param_list:
-            if isinstance(instruction.op, DelayInstruction) and instruction.op.unit:
-                param_str = "(%s[%s])" % (param_list[0], instruction.op.unit)
-            else:
-                param_str = "(%s)" % ','.join(param_list)
-
-        return param_str
-
-    @staticmethod
     def special_label(instruction):
         """Some instructions have special labels"""
         labels = {IGate: 'I',
@@ -937,7 +911,7 @@ class TextDrawing():
 
         gate_text, ctrl_text = get_gate_ctrl_text(instruction, 'text')
         gate_text = TextDrawing.special_label(instruction.op) or gate_text
-        gate_text += TextDrawing.params_for_label(instruction)
+        gate_text += get_param_str(instruction, 'text')
 
         if instruction.condition is not None:
             # conditional
@@ -981,7 +955,7 @@ class TextDrawing():
 
         elif isinstance(instruction.op, RZZGate):
             # rzz
-            connection_label = "ZZ%s" % TextDrawing.params_for_label(instruction)
+            connection_label = "ZZ%s" % get_param_str(instruction, 'text')
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
@@ -1001,7 +975,7 @@ class TextDrawing():
             elif base_gate.name in ['u1', 'p']:
                 # cu1
                 connection_label = "%s%s" % (base_gate.name.upper(),
-                                             TextDrawing.params_for_label(instruction))
+                                             get_param_str(instruction, 'text'))
                 gates.append(Bullet(conditional=conditional))
             elif base_gate.name == 'swap':
                 # cswap
@@ -1009,7 +983,7 @@ class TextDrawing():
                 add_connected_gate(instruction, gates, layer, current_cons)
             elif base_gate.name == 'rzz':
                 # crzz
-                connection_label = "ZZ%s" % TextDrawing.params_for_label(instruction)
+                connection_label = "ZZ%s" % get_param_str(instruction, 'text')
                 gates += [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             elif len(rest) > 1:
                 top_connect = '┴' if controlled_top else None
