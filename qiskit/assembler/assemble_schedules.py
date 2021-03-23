@@ -257,15 +257,15 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
                           "map - {}".format(all_measured_qubits, meas_map))
     # 2. if there is time overlap:
     #    - if the overlap is in the same meas_map -- Raise Error
-    for idx, instr in enumerate(sorted_inst_map[:-1]):
-        inst_end_time = instr[0][0] + instr[0][1]
-        next_instr = sorted_inst_map[idx+1]
-        next_instr_start_time = next_instr[0][0]
-        if next_instr_start_time < inst_end_time:
-            instr_qubits = {inst.channel.index for inst in instr[1]}
-            next_instr_qubits = {inst.channel.index for inst in sorted_inst_map[idx+1][1]}
+    for idx, inst in enumerate(sorted_inst_map[:-1]):
+        inst_end_time = inst[0][0] + inst[0][1]
+        next_inst = sorted_inst_map[idx+1]
+        next_inst_time = next_inst[0][0]
+        if next_inst_time < inst_end_time:
+            inst_qubits = {inst.channel.index for inst in inst[1]}
+            next_instr_qubits = {inst.channel.index for inst in next_inst[1]}
             for meas_set in meas_map_sets:
-                common_instr_qubits = instr_qubits.intersection(meas_set)
+                common_instr_qubits = inst_qubits.intersection(meas_set)
                 common_next = next_instr_qubits.intersection(meas_set)
                 if common_instr_qubits and common_next:
                     raise QiskitError('Qubits {} and {} are in the same measurement grouping: {}. '
@@ -273,8 +273,9 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
                                       '. Instead, they were acquired at times: {}-{} and '
                                       '{}-{}'.format(common_instr_qubits,
                                                      common_next, meas_map,
-                                                     instr[0][0], inst_end_time,
-                                                     next_inst_time, next_inst_time + next_inst[0][1]))
+                                                     inst[0][0], inst_end_time,
+                                                     next_inst_time,
+                                                     next_inst_time + next_inst[0][1]))
 
 def _assemble_config(lo_converter: converters.LoConfigConverter,
                      experiment_config: Dict[str, Any],
