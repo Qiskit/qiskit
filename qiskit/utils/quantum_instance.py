@@ -124,15 +124,22 @@ class QuantumInstance:
         self._pass_manager = pass_manager
 
         # setup run config
-        if shots is not None:
-            if self.is_statevector and shots != 1:
-                logger.info("statevector backend only works with shot=1, changing "
-                            "shots from %s to 1.", shots)
-                shots = 1
-            max_shots = self._backend.configuration().max_shots
-            if max_shots is not None and shots > max_shots:
-                raise QiskitError('The maximum shots supported by the selected backend is {} '
-                                  'but you specified {}'.format(max_shots, shots))
+        if self.is_statevector and shots != 1:
+            logger.info("statevector backend only works with shot=1, changing "
+                        "shots from %s to 1.", shots)
+            shots = 1
+
+        if hasattr(backend, 'options'):
+            if 'shots' in backend.options:
+                if shots != backend.options['shots']:
+                    logger.info('Overwriting the number of shots in the quantum instance with the '
+                                'settings from the backend.')
+                shots = backend.options['shots']
+
+        max_shots = self._backend.configuration().max_shots
+        if max_shots is not None and shots > max_shots:
+            raise QiskitError('The maximum shots supported by the selected backend is {} '
+                              'but you specified {}'.format(max_shots, shots))
 
         # pylint: disable=cyclic-import
         from qiskit.assembler.run_config import RunConfig
