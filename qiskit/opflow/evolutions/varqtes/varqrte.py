@@ -101,7 +101,6 @@ class VarQRTE(VarQTE):
         #     self._regularization = energy_reg
         #
 
-
     def _error_t(self,
                  param_values: Union[List, np.ndarray],
                  ng_res: Union[List, np.ndarray],

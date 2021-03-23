@@ -16,6 +16,7 @@ from abc import abstractmethod
 from typing import List, Optional, Union, Dict, Iterable, Tuple
 
 import numpy as np
+import scipy as sp
 import os
 import csv
 
@@ -400,8 +401,7 @@ class VarQTE(EvolutionBase):
             # return nat_grad_result
             # Use the natural gradient result as initial point for least squares solver
             # print('initial natural gradient result', nat_grad_result)
-            argmin = minimize(fun=argmin_fun, x0=nat_grad_result,
-                              method='COBYLA', tol=1e-6)
+            argmin = minimize(fun=argmin_fun, x0=nat_grad_result, method='COBYLA', tol=1e-6)
 
             print('final dt_omega', np.real(argmin.x))
             # self._et = argmin_fun(argmin.x)
@@ -608,14 +608,31 @@ class VarQTE(EvolutionBase):
             # Get the QFI/4
             metric_res = np.array(self._metric.assign_parameters(param_dict).eval()) * 0.25
 
-        w, v = np.linalg.eig(metric_res)
+        if any(np.abs(np.imag(grad_res_item)) > 1e-8 for grad_res_item in grad_res):
+            raise Warning('The imaginary part of the gradient are non-negligible.')
+        if np.any([[np.abs(np.imag(metric_res_item)) > 1e-8 for metric_res_item in metric_res_row]
+                for metric_res_row in metric_res]):
+            raise Warning('The imaginary part of the gradient are non-negligible.')
 
-        if not all(ew >= -1e-8 for ew in w):
-            raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8,
-                          '. Please use a regularized least-square solver for this problem.')
-        if not all(ew >= 0 for ew in w):
-            w = [max(0, ew) for ew in w]
-            metric_res = v @ np.diag(w) @ np.linalg.inv(v)
+        metric_res = np.real(metric_res)
+        grad_res = np.real(grad_res)
+
+        # Check if numerical instabilities lead to a metric which is not positive semidefinite
+        while True:
+            w, v = np.linalg.eigh(metric_res)
+
+            if not all(ew >= -1e-8 for ew in w):
+                raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8,
+                              '. Please use a regularized least-square solver for this problem.')
+            if not all(ew >= 0 for ew in w):
+                # If not all eigenvalues are non-negative, set them to a small positive
+                # value
+                w = [max(1e-10, ew) for ew in w]
+                # Recompose the adapted eigenvalues with the eigenvectors to get a new metric
+                metric_res = np.real(v @ np.diag(w) @ np.linalg.inv(v))
+            else:
+                # If all eigenvalues are non-negative use the metric
+                break
 
         if self._faster:
             if np.iscomplex(self._operator.coeff):
@@ -636,15 +653,13 @@ class VarQTE(EvolutionBase):
                     self._nat_grad_circ_sampler.convert(self._nat_grad, params=param_dict).eval()
             else:
                 nat_grad_result = self._nat_grad.assign_parameters(param_dict).eval()
+
+        if any(np.abs(np.imag(nat_grad_item)) > 1e-8 for nat_grad_item in nat_grad_result):
+            raise Warning('The imaginary part of the gradient are non-negligible.')
+
         print('nat grad result', nat_grad_result)
 
-        if any(np.abs(np.imag(grad_res_item)) > 1e-8 for grad_res_item in grad_res):
-            raise Warning('The imaginary part of the gradient are non-negligible.')
-        if np.any([[np.abs(np.imag(metric_res_item)) > 1e-8 for metric_res_item in metric_res_row]
-                for metric_res_row in metric_res]):
-            raise Warning('The imaginary part of the gradient are non-negligible.')
-
-        return np.real(nat_grad_result), np.real(grad_res), np.real(metric_res)
+        return np.real(nat_grad_result), grad_res, metric_res
 
     def _l2_norm_phase_agnostic(self,
                                 target_state: Union[List, np.ndarray],
@@ -768,6 +783,11 @@ class VarQTE(EvolutionBase):
 
             error_bounds = np.load(error_bound_directories[j])
 
+            energy_error_bounds = []
+
+            for j, er_b in enumerate(error_bounds):
+                energy_error_bounds.append(trained_energy[j]/2.*er_b**2 + stddevs[j]*er_b)
+
             plt.figure(0)
             plt.title('Actual Error and Error Bound ')
             plt.scatter(time, error_bounds, color='blue', marker='o', s=40,
@@ -815,16 +835,19 @@ class VarQTE(EvolutionBase):
             plt.ylabel('fidelity')
             # plt.autoscale(enable=True)
             # plt.xticks(range(counter-1))
-            plt.ylim((0, 1))
+            # plt.ylim((0, 1))
             plt.savefig(os.path.join(data_dir, 'fidelity.png'))
             plt.close()
 
             plt.figure(3)
             plt.title('Energy')
-            plt.scatter(time, true_energy, color='black', marker='o', s=40,
-                        label='true energy')
-            plt.scatter(time, trained_energy, color='grey', marker='x', s=40,
-                        label='trained energy')
+            plt.scatter(time, true_energy, color='orange', marker='x', s=40,
+                        label='target state')
+            plt.scatter(time, trained_energy, color='blue', marker='x', s=40,
+                        label='prepared state')
+            plt.errorbar(time, trained_energy, yerr=energy_error_bounds, fmt='x', ecolor='blue')
+            # plt.scatter(time, energy_error_bounds, color='blue', marker='o', s=40,
+            #             label='energy error bound')
             plt.xlabel('time')
             plt.ylabel('energy')
             plt.legend(loc='best')

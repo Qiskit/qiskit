@@ -26,9 +26,9 @@ from qiskit.opflow import Z, I, Y, X
 np.random.seed = 11
 
 # Evolution time
-t = 1
+t = 10
 
-num_time_steps = [10]
+num_time_steps = [100]
 depths = [1]
 
 

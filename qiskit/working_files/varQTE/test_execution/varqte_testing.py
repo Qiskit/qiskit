@@ -26,9 +26,9 @@ from qiskit.opflow import Z, I, Y, X
 np.random.seed = 11
 
 # Evolution time
-t = 10
+t = 1
 
-num_time_steps = [1]
+num_time_steps = [60]
 depths = [1]
 
 
@@ -40,9 +40,9 @@ ode_solvers_names = ['ForwardEuler', 'RK45']
 
 # ode_solvers = [BDF]
 # ode_solvers_names = ['BDF']
-
-# ode_solvers = [ RK23]
-# ode_solvers_names = ['RK23']
+#
+# ode_solvers = [RK45]
+# ode_solvers_names = ['RK45']
 regs = ['ridge', 'perturb_diag', None]
 reg_names = ['ridge', 'perturb_diag', 'None']
 # for nts in num_time_steps:
@@ -120,7 +120,7 @@ for nts in num_time_steps:
 
                 print('run time', (time.time()-t0)/60)
                 print('---------------------------------------------------------------------')
-                varqrte_snapshot_dir = os.path.join('..', 'test_output', 'real',
+                varqrte_snapshot_dir = os.path.join('..', 'output', 'real',
                                                     str(nts),
                                                     reg_names[j],
                                                     ode_solvers_names[k] + 'error')

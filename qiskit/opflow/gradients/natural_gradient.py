@@ -133,15 +133,27 @@ class NaturalGradient(GradientBase):
             nat_grad = NaturalGradient._regularized_sle_solver(
                 a, c, regularization=regularization)
         else:
-            w, v = np.linalg.eig(a)
-            if not all(ew >= -1e-8 for ew in w):
-                raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8, '. '
-                              'Please use a regularized least-square solver for this problem.')
-            if not all(ew >= 0 for ew in w):
-                w = [max(0, ew) for ew in w]
-                a = v @ np.diag(w) @ np.linalg.inv(v)
+            # Check if numerical instabilities lead to a metric which is not positive semidefinite
+            while True:
+                w, v = np.linalg.eigh(a)
 
-            nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
+                if not all(ew >= -1e-8 for ew in w):
+                    raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8,
+                                  '. Please use a regularized least-square solver for this '
+                                  'problem.')
+                if not all(ew >= 0 for ew in w):
+                    # If not all eigenvalues are non-negative, set them to a small positive
+                    # value
+                    w = [max(1e-10, ew) for ew in w]
+                    # Recompose the adapted eigenvalues with the eigenvectors to get a new metric
+                    a = np.real(v @ np.diag(w) @ np.linalg.inv(v))
+                else:
+                    # If all eigenvalues are non-negative use the metric
+                    break
+            try:
+                nat_grad = np.linalg.solve(a, c)
+            except np.linalg.LinAlgError:
+                nat_grad = np.linalg.lstsq(a, c, rcond=1e-2)[0]
             # try:
                 #             # Try to solve the system of linear equations Ax = C.
             #     nat_grad = np.linalg.solve(a, c)
