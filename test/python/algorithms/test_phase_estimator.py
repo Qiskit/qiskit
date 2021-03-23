@@ -13,6 +13,7 @@
 """Test phase estimation"""
 
 import unittest
+from ddt import ddt, data
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from qiskit.algorithms.phase_estimators import PhaseEstimation, HamiltonianPhaseEstimation
@@ -21,16 +22,13 @@ import qiskit
 from qiskit.opflow import (H, X, Y, Z, I, StateFn)
 
 
+@ddt
 class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     """Tests for obtaining eigenvalues from phase estimation"""
 
-    def setUp(self):
-        super().setUp()
-        self.hamiltonian_1 = ((0.5 * X) + Y + Z)
-
     def hamiltonian_pe(self, hamiltonian, state_preparation=None, num_evaluation_qubits=6,
                        backend=qiskit.BasicAer.get_backend('statevector_simulator'),
-                       evolution=MatrixEvolution(),
+                       evolution=None,
                        bound=None):
         """Run HamiltonianPhaseEstimation and return result with all  phases."""
         quantum_instance = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
@@ -43,55 +41,46 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
             bound=bound)
         return result
 
-    # pylint: disable=invalid-name
-    def test_pauli_sum_1(self):
+    @data(MatrixEvolution(), PauliTrotterEvolution('suzuki', 4))
+    def test_pauli_sum_1(self, evolution):
         """Two eigenvalues from Pauli sum with X, Z"""
-        a1 = 0.5
-        a2 = 1.0
-        hamiltonian = ((a1 * X) + (a2 * Z))
+        hamiltonian = 0.5 * X + Z
         state_preparation = StateFn(H.to_circuit())
-        result = self.hamiltonian_pe(hamiltonian, state_preparation)
-        phase_dict = result.filter_phases(0.162, as_float=True)
-        phases = list(phase_dict.keys())
-        self.assertAlmostEqual(phases[0], 1.125, delta=0.001)
-        self.assertAlmostEqual(phases[1], -1.125, delta=0.001)
-        evo = PauliTrotterEvolution(trotter_mode='suzuki', reps=4)
-        result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evo)
+
+        result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evolution)
         phase_dict = result.filter_phases(0.162, as_float=True)
         phases = list(phase_dict.keys())
         phases.sort()
-        with self.subTest('Use PauliTrotterEvolution, first phase'):
-            self.assertAlmostEqual(phases[0], -1.125, delta=0.001)
-        with self.subTest('Use PauliTrotterEvolution, second phase'):
-            self.assertAlmostEqual(phases[1], 1.125, delta=0.001)
 
-    def test_pauli_sum_2(self):
+        self.assertAlmostEqual(phases[0], -1.125, delta=0.001)
+        self.assertAlmostEqual(phases[1], 1.125, delta=0.001)
+
+    @data(MatrixEvolution(), PauliTrotterEvolution('suzuki', 3))
+    def test_pauli_sum_2(self, evolution):
         """Two eigenvalues from Pauli sum with X, Y, Z"""
-        hamiltonian = self.hamiltonian_1
+        hamiltonian = 0.5 * X + Y + Z
         state_preparation = None
-        result = self.hamiltonian_pe(hamiltonian, state_preparation)
+
+        result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evolution)
         phase_dict = result.filter_phases(0.1, as_float=True)
         phases = list(phase_dict.keys())
-        self.assertAlmostEqual(phases[0], 1.484, delta=0.001)
-        self.assertAlmostEqual(phases[1], -1.484, delta=0.001)
-        evo = PauliTrotterEvolution(trotter_mode='suzuki', reps=3)
-        result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evo)
-        phase_dict = result.filter_phases(0.1, as_float=True)
-        phases = list(phase_dict.keys())
-        with self.subTest('Use PauliTrotterEvolution, first phase'):
-            self.assertAlmostEqual(phases[0], 1.484, delta=0.001)
-        with self.subTest('Use PauliTrotterEvolution, second phase'):
-            self.assertAlmostEqual(phases[1], -1.484, delta=0.001)
+        phases.sort()
+
+        self.assertAlmostEqual(phases[0], -1.484, delta=0.001)
+        self.assertAlmostEqual(phases[1], 1.484, delta=0.001)
 
     def test_single_pauli_op(self):
         """Two eigenvalues from Pauli sum with X, Y, Z"""
         hamiltonian = Z
         state_preparation = None
-        result = self.hamiltonian_pe(hamiltonian, state_preparation)
+
+        result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=None)
         eigv = result.most_likely_eigenvalue
         with self.subTest('First eigenvalue'):
             self.assertAlmostEqual(eigv, 1.0, delta=0.001)
+
         state_preparation = StateFn(X.to_circuit())
+
         result = self.hamiltonian_pe(hamiltonian, state_preparation, bound=1.05)
         eigv = result.most_likely_eigenvalue
         with self.subTest('Second eigenvalue'):
@@ -127,7 +116,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(phases[1], -0.090, delta=0.001)
 
     def _setup_from_bound(self, evolution, op_class):
-        hamiltonian = self.hamiltonian_1
+        hamiltonian = 0.5 * X + Y + Z
         state_preparation = None
         bound = 1.2 * sum([abs(hamiltonian.coeff * coeff) for coeff in hamiltonian.coeffs])
         if op_class == 'MatrixOp':
@@ -169,6 +158,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
             self.assertAlmostEqual(phases[1], -1.5, delta=0.001)
 
 
+@ddt
 class TestPhaseEstimation(QiskitAlgorithmsTestCase):
     """Evolution tests."""
 
@@ -188,56 +178,41 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         phase = result.most_likely_phase
         return phase
 
-    def test_qpe_Z0(self):
+    @data('qasm_simulator', 'statevector_simulator')
+    def test_qpe_Z0(self, backend_type):
         """eigenproblem Z, |0>"""
+        backend = qiskit.BasicAer.get_backend(backend_type)
 
         unitary_circuit = Z.to_circuit()
         state_preparation = None  # prepare |0>
-        phase = self.one_phase(unitary_circuit, state_preparation)
+        phase = self.one_phase(unitary_circuit, state_preparation, backend=backend)
         self.assertEqual(phase, 0.0)
 
-    def test_qpe_Z0_statevector(self):
-        """eigenproblem Z, |0>, statevector simulator"""
-
-        unitary_circuit = Z.to_circuit()
-        state_preparation = None  # prepare |0>
-        phase = self.one_phase(unitary_circuit, state_preparation,
-                               backend=qiskit.BasicAer.get_backend('statevector_simulator'))
-        self.assertEqual(phase, 0.0)
-
-    def test_qpe_Z1(self):
+    @data('qasm_simulator', 'statevector_simulator')
+    def test_qpe_Z1(self, backend_type):
         """eigenproblem Z, |1>"""
+        backend = qiskit.BasicAer.get_backend(backend_type)
+
         unitary_circuit = Z.to_circuit()
         state_preparation = X.to_circuit()  # prepare |1>
-        phase = self.one_phase(unitary_circuit, state_preparation)
+        phase = self.one_phase(unitary_circuit, state_preparation, backend=backend)
         self.assertEqual(phase, 0.5)
 
-    def test_qpe_Z1_estimate(self):
-        """eigenproblem Z, |1>, estimate interface"""
-        unitary_circuit = Z.to_circuit()
-        state_preparation = X.to_circuit()  # prepare |1>
-        backend = qiskit.BasicAer.get_backend('statevector_simulator')
-        qi = qiskit.utils.QuantumInstance(backend=backend)
-        num_evaluation_qubits = 6
-        pe = PhaseEstimation(num_evaluation_qubits, quantum_instance=qi)
-        result = pe.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
-        phase = result.most_likely_phase
-        self.assertEqual(phase, 0.5)
-
-    def test_qpe_Xplus(self):
+    @data('plus', 'minus')
+    def test_qpe_Xplus(self, state):
         """eigenproblem X, |+>"""
         unitary_circuit = X.to_circuit()
-        state_preparation = H.to_circuit()  # prepare |+>
-        phase = self.one_phase(unitary_circuit, state_preparation)
-        self.assertEqual(phase, 0.0)
+        if state == 'minus':  # prepare |->
+            state_preparation = X.to_circuit()
+            state_preparation.h(0)
+        else:  # prepare |+>
+            state_preparation = H.to_circuit()
 
-    def test_qpe_Xminus(self):
-        """eigenproblem X, |->"""
-        unitary_circuit = X.to_circuit()
-        state_preparation = X.to_circuit()
-        state_preparation.append(H.to_circuit(), [0])  # prepare |->
         phase = self.one_phase(unitary_circuit, state_preparation)
-        self.assertEqual(phase, 0.5)
+        if state == 'minus':
+            self.assertEqual(phase, 0.5)
+        else:
+            self.assertEqual(phase, 0.0)
 
     def phase_estimation(self, unitary_circuit, state_preparation=None, num_evaluation_qubits=6,
                          backend=qiskit.BasicAer.get_backend('qasm_simulator')):
@@ -258,21 +233,17 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         result = self.phase_estimation(
             unitary_circuit, state_preparation,
             backend=qiskit.BasicAer.get_backend('statevector_simulator'))
+
         phases = result.filter_phases(1e-15, as_float=True)
         with self.subTest('test phases has correct values'):
             self.assertEqual(list(phases.keys()), [0.0, 0.5])
+
         with self.subTest('test phases has correct probabilities'):
             np.testing.assert_allclose(list(phases.values()), [0.5, 0.5])
 
-    def test_qpe_Zplus_strings(self):
-        """superposition eigenproblem Z, |+>, bitstrings"""
-        unitary_circuit = Z.to_circuit()
-        state_preparation = H.to_circuit()  # prepare |+>
-        result = self.phase_estimation(
-            unitary_circuit, state_preparation,
-            backend=qiskit.BasicAer.get_backend('statevector_simulator'))
-        phases = result.filter_phases(1e-15, as_float=False)
-        self.assertEqual(list(phases.keys()), ['000000', '100000'])
+        with self.subTest('test bitstring representation'):
+            phases = result.filter_phases(1e-15, as_float=False)
+            self.assertEqual(list(phases.keys()), ['000000', '100000'])
 
 
 if __name__ == '__main__':
