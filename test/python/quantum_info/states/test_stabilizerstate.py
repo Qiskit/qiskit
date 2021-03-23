@@ -22,12 +22,15 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 # from qiskit import QiskitError
-# from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit
 # from qiskit import transpile
 
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.states import StabilizerState
-from qiskit.quantum_info.operators.operator import Operator
+from qiskit.circuit.library import (IGate, XGate, YGate, ZGate, HGate,
+                                    SGate, SdgGate, CXGate, CZGate,
+                                    SwapGate)
+from qiskit.quantum_info.operators import Clifford, Operator
 
 
 logger = logging.getLogger(__name__)
@@ -144,6 +147,44 @@ class TestStabilizerState(QiskitTestCase):
             target = StabilizerState(cliff1.compose(cliff2, qargs))
             state = stab1.evolve(stab2, qargs)
             self.assertEqual(state, target)
+
+    def test_measure_single_qubit(self):
+        """Test a measurement of a single qubit"""
+        for _ in range(self.samples):
+            cliff = Clifford(XGate())
+            stab = StabilizerState(cliff)
+            value = stab._measure_and_update(0)
+            self.assertEqual(value, 1)
+
+            cliff = Clifford(IGate())
+            stab = StabilizerState(cliff)
+            value = stab._measure_and_update(0)
+            self.assertEqual(value, 0)
+
+            num_qubits = 4
+            qc = QuantumCircuit(num_qubits)
+            stab = StabilizerState(qc)
+            for i in range(num_qubits):
+                value = stab._measure_and_update(i)
+                self.assertEqual(value, 0)
+
+            for i in range(num_qubits):
+                qc.x(i)
+            stab = StabilizerState(qc)
+            for i in range(num_qubits):
+                value = stab._measure_and_update(i)
+                self.assertEqual(value, 1)
+
+            qc = QuantumCircuit(num_qubits)
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.cx(0, 2)
+            qc.cx(0, 3)
+            stab = StabilizerState(qc)
+            value = []
+            for i in range(num_qubits):
+                value.append(stab._measure_and_update(i))
+                self.assertEqual(value[i], value[0])
 
 
 if __name__ == '__main__':

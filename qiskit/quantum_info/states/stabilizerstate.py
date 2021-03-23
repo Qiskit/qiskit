@@ -14,19 +14,15 @@
 Stabilizer state class.
 """
 
-# import copy
+import copy
 # import re
 # from numbers import Number
-
-# import numpy as np
+import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
-# from qiskit.quantum_info.operators.operator import Operator
-# from qiskit.quantum_info.operators.op_shape import OpShape
-# from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.symplectic import Clifford, Pauli
 
 
@@ -150,7 +146,8 @@ class StabilizerState(QuantumState):
         """Evolve a stabilizer state by a Clifford operator.
 
         Args:
-            other (Clifford or QuantumCircuit or qiskit.circuit.Instruction): The Clifford operator to evolve by.
+            other (Clifford or QuantumCircuit or qiskit.circuit.Instruction):
+                The Clifford operator to evolve by.
             qargs (list): a list of stabilizer subsystem positions to apply the operator on.
 
         Returns:
@@ -237,3 +234,127 @@ class StabilizerState(QuantumState):
                    corresponding outcome.
         """
         pass
+
+    # -----------------------------------------------------------------------
+    # Helper functions for calculating the measurement
+    # -----------------------------------------------------------------------
+    def _measure_and_update(self, qubit, seed=None):
+        """ Measure a single qubit and return outcome and post-measure state.
+
+        Note that stabilizer state measurements only have three probabilities:
+        (p0, p1) = (0.5, 0.5), (1, 0), or (0, 1)
+        The random case happens if there is a row anti-commuting with Z[qubit]
+        """
+
+        if seed is None:
+            rng = np.random.default_rng()
+        elif isinstance(seed, np.random.Generator):
+            rng = seed
+        else:
+            rng = np.random.default_rng(seed)
+
+        num_qubits = self.data.num_qubits
+
+        # Check if there exists stabilizer anticommuting with Z[qubit]
+        # in this case the measurement outcome is random
+        z_anticommuting = np.nonzero(self.data.stabilizer.X[:, qubit])[0]
+
+        # Non-deterministic outcome
+        if len(z_anticommuting) != 0:
+            p_qubit = np.min(np.nonzero(self.data.stabilizer.X[:,qubit]))
+            p_qubit += num_qubits
+            outcome = rng.integers(2)
+
+            # Updating the StabilizerState
+            for i in range(2 * num_qubits):
+                # the last condition is not in the AG paper but we seem to need it
+                if (self.data.table.X[i][qubit]) and (i != p_qubit) and \
+                        (i != (p_qubit - num_qubits)):
+                    self._rowsum_nondeterministic(i, p_qubit)
+
+            self.data.table[p_qubit - num_qubits] = copy.deepcopy(self.data.table[p_qubit])
+            self.data.table.X[p_qubit] = np.zeros(num_qubits)
+            self.data.table.Z[p_qubit] = np.zeros(num_qubits)
+            self.data.table.Z[p_qubit][qubit] = True
+            self.data.table.phase[p_qubit] = outcome
+            return outcome
+
+        # Deterministic outcome - measuring it will not change the StabilizerState
+        aux_pauli = Pauli(num_qubits * 'I')
+        for i in range(num_qubits):
+            if self.data.table.X[i][qubit]:
+                aux_pauli = self._rowsum_deterministic(aux_pauli, i + num_qubits)
+        outcome = aux_pauli.phase
+        return outcome
+
+    @staticmethod
+    def _phase_exponent(x1, z1, x2, z2):
+        """ Exponent g of i such that Pauli(x1,z1) * Pauli(x2,z2) = i^g Pauli(x1+x2,z1+z2) """
+
+        phase = (x2 * z1 * (1 + 2 * z2 + 2 * x1) - x1 * z2 * (1 + 2 * z1 + 2 * x2)) % 4
+        if phase < 0:
+            phase += 4  # now phase in {0, 1, 3}
+
+        if phase == 2:
+            raise QiskitError(
+                'Invalid rowsum phase exponent in measurement calculation.')
+        return phase
+
+    def _rowsum(self, accum_pauli, accum_phase, row_pauli, row_phase):
+        """ Aaronson-Gottesman rowsum helper function """
+
+        newr = 2 * row_phase + 2 * accum_phase
+
+        for qubit in range(self.data.num_qubits):
+            newr += self._phase_exponent(row_pauli.x[qubit],
+                                         row_pauli.z[qubit],
+                                         accum_pauli.x[qubit],
+                                         accum_pauli.z[qubit])
+        newr %= 4
+        if (newr != 0) & (newr != 2):
+            raise QiskitError(
+                'Invalid rowsum in measurement calculation.')
+
+        accum_phase = int((newr == 2))
+        accum_pauli.x += row_pauli.x
+        accum_pauli.z += row_pauli.z
+        return accum_pauli, accum_phase
+
+    def _rowsum_nondeterministic(self, accum, row):
+        """ Updating StabilizerState Clifford table in the
+        non-deterministic rowsum calculation.
+        row and accum are rows in the StabilizerState Clifford table."""
+
+        row_phase = self.data.table.phase[row]
+        accum_phase = self.data.table.phase[accum]
+
+        row_pauli = self.data.table.pauli[row]
+        accum_pauli = self.data.table.pauli[accum]
+        row_pauli = Pauli(row_pauli.to_labels()[0])
+        accum_pauli = Pauli(accum_pauli.to_labels()[0])
+
+        accum_pauli, accum_phase = self._rowsum(accum_pauli, accum_phase,
+                                                row_pauli, row_phase)
+
+        self.data.table.phase[accum] = accum_phase
+        self.data.table.X[accum] = accum_pauli.x
+        self.data.table.Z[accum] = accum_pauli.z
+
+    def _rowsum_deterministic(self, aux_pauli, row):
+        """ Updating an auxilary Pauli aux_pauli in the
+        deterministic rowsum calculation.
+        The StabilizerState itself is not updated. """
+
+        row_phase = self.data.table.phase[row]
+        accum_phase = aux_pauli.phase
+
+        accum_pauli = aux_pauli
+        row_pauli = self.data.table.pauli[row]
+        row_pauli = Pauli(row_pauli.to_labels()[0])
+
+        accum_pauli, accum_phase = self._rowsum(accum_pauli, accum_phase,
+                                                row_pauli, row_phase)
+
+        aux_pauli = accum_pauli
+        aux_pauli.phase = accum_phase
+        return aux_pauli
