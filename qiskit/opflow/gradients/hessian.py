@@ -97,7 +97,7 @@ class Hessian(HessianBase):
             Exception: Unintended code is reached
             MissingOptionalLibraryError: jax not installed
         """
-        if not operator.parameters:
+        if len(operator.parameters) == 0:
             raise ValueError("The operator we are taking the gradient of is not parameterized!")
         if params is None:
             params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))

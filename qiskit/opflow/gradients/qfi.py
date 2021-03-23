@@ -54,7 +54,7 @@ class QFI(QFIBase):
         Raises:
             ValueError: If operator is not parameterized.
         """
-        if not operator.parameters:
+        if len(operator.parameters) == 0:
             raise ValueError("The operator we are taking the gradient of is not parameterized!")
 
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
