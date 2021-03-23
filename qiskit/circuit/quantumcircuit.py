@@ -17,7 +17,6 @@
 import copy
 import itertools
 import functools
-import sys
 import warnings
 import numbers
 import multiprocessing as mp
@@ -304,7 +303,7 @@ class QuantumCircuit:
 
     def _name_update(self):
         """update name of instance using instance number"""
-        if sys.platform != "win32" and not is_main_process():
+        if not is_main_process():
             pid_name = f'-{mp.current_process().pid}'
         else:
             pid_name = ''
