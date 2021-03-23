@@ -21,7 +21,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
 
-class TestCheckCNotDirection(QiskitTestCase):
+class TestCheckGateDirection(QiskitTestCase):
     """Tests the CheckGateDirection pass"""
 
     def test_trivial_map(self):
@@ -139,7 +139,7 @@ class TestCheckCNotDirection(QiskitTestCase):
          qr1:---.---
 
          qr2:---.---
-
+                |
          qr3:--(+)--
 
          CouplingMap map: [0]->[1]->[2]->[3]
