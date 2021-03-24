@@ -36,7 +36,7 @@ since they are basically qubit dependent, and also vary over time.
 Implementation
 ==============
 
-Managing parameters in each object consisting a program, i.e. ``ParameterTable`` model,
+Managing parameters in each object within a program, i.e. the ``ParameterTable`` model,
 makes the framework quite complicated. In the ``ParameterManager`` class this module provides,
 the parameter assignment operation is performed by the visitor instance.
 
