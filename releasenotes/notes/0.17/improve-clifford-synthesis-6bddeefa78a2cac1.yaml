@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    The :func:`~qiskit.quantum_info.clifford_decompose` function in the
+    The :func:`~qiskit.quantum_info.decompose_clifford` function in the
     :mod:`~qiskit.quantum_info` module (which gets used internally by the
     :meth:`qiskit.quantum_info.Clifford.to_circuit` method) has a new kwarg
     ``method`` which enables selecting the synthesis method used by either
@@ -14,7 +14,7 @@ features:
 upgrade:
   - |
     The default synthesis method used by
-    :func:`~qiskit.quantum_info.clifford_decompose` function in the
+    :func:`~qiskit.quantum_info.decompose_clifford` function in the
     :mod:`~qiskit.quantum_info` module (which gets used internally by the
     :meth:`qiskit.quantum_info.Clifford.to_circuit` method) for more than
     3 qubits now uses a non-optimal greedy compilation routine for Clifford
