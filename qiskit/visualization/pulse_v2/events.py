@@ -189,8 +189,7 @@ class ChannelEvents:
 
             # Check if pulse has unbound parameters
             if isinstance(inst, pulse.Play):
-                is_opaque = any(isinstance(val, circuit.ParameterExpression) for val in
-                                inst.pulse.parameters.values())
+                is_opaque = inst.pulse.is_parameterized()
 
             yield PulseInstruction(t0, self._dt, frame, inst, is_opaque)
 

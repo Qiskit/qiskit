@@ -63,7 +63,7 @@ class Snapshot(Instruction):
     @property
     def channels(self) -> Tuple[SnapshotChannel]:
         """Returns channels that this schedule uses."""
-        return tuple((self.channel, ))
+        return self.channel,
 
     @property
     def duration(self) -> int:

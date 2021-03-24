@@ -320,13 +320,13 @@ class ParameterGetter(NodeVisitor):
     def visit_Channel(self, node: channels.Channel):
         """Get parameters from ``Channel`` object."""
         if isinstance(node.index, ParameterExpression):
-            self._parse_parameter_expression(node.index)
+            self._add_parameters(node.index)
 
     def visit_ParametricPulse(self, node: ParametricPulse):
         """Get parameters from ``ParametricPulse`` object."""
         for op_value in node.parameters.values():
             if isinstance(op_value, ParameterExpression):
-                self._parse_parameter_expression(op_value)
+                self._add_parameters(op_value)
 
     def visit_Waveform(self, node: Waveform):
         """Get parameters from ``Waveform`` object.
@@ -338,9 +338,9 @@ class ParameterGetter(NodeVisitor):
     def generic_visit(self, node: Any):
         """Get parameters from object that doesn't belong to Qiskit Pulse module."""
         if isinstance(node, ParameterExpression):
-            self._parse_parameter_expression(node)
+            self._add_parameters(node)
 
-    def _parse_parameter_expression(self, param_expr: ParameterExpression):
+    def _add_parameters(self, param_expr: ParameterExpression):
         """A helper function to get parameters from parameter expression."""
         for parameter in param_expr.parameters:
             self.parameters.add(parameter)

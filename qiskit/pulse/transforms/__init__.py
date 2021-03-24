@@ -64,16 +64,6 @@ optimization of instructions and equality checks.
 
    block_to_dag
 
-
-Measures
-========
-
-The measure transforms schedule and align measurement and acquisition instructions.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-
 """
 
 from qiskit.pulse.transforms.alignments import (

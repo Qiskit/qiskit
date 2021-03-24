@@ -14,6 +14,8 @@
 
 """Test cases for parameter manager."""
 
+from copy import deepcopy
+
 from qiskit import pulse
 from qiskit.circuit import Parameter
 from qiskit.pulse.parameter_manager import ParameterGetter, ParameterSetter
@@ -73,8 +75,7 @@ class ParameterTestBase(QiskitTestCase):
 
         self.context_dur = Parameter('context_dur')
 
-    def create_fully_parametric_schedule(self):
-        """A helper function to generate a long schedule."""
+        # schedule under test
         subroutine = pulse.ScheduleBlock(
             alignment_context=AlignLeft()
         )
@@ -100,7 +101,7 @@ class ParameterTestBase(QiskitTestCase):
                                        mem_slot=pulse.MemorySlot(self.mem1),
                                        reg_slot=pulse.RegisterSlot(self.reg1))
 
-        return long_schedule
+        self.test_sched = long_schedule
 
 
 class TestParameterGetter(ParameterTestBase):
@@ -166,7 +167,7 @@ class TestParameterGetter(ParameterTestBase):
 
     def test_get_parameter_from_complex_schedule(self):
         """Test get parameters from complicated schedule."""
-        test_block = self.create_fully_parametric_schedule()
+        test_block = deepcopy(self.test_sched)
 
         visitor = ParameterGetter()
         visitor.visit(test_block)
@@ -283,7 +284,7 @@ class TestParameterSetter(ParameterTestBase):
 
     def test_set_parameter_to_complex_schedule(self):
         """Test get parameters from complicated schedule."""
-        test_block = self.create_fully_parametric_schedule()
+        test_block = deepcopy(self.test_sched)
 
         value_dict = {
             self.amp1_1: 0.1,
