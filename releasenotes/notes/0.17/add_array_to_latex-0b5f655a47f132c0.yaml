@@ -1,8 +1,9 @@
 ---
 features:
   - |
-    Can now use :func:`array_to_latex()` to represent vectors and matrices as
-    human-friendly LaTeX.
+    Added a new function :func:`~qiskit.visualization.array_to_latex` to
+    the :mod:`qiskit.visualization` module that can be used to represent
+    and visualize vectors and matrices with LaTeX.
 
     .. jupyter-execute::
 
