@@ -786,9 +786,10 @@ class VarQTE(EvolutionBase):
             error_bounds = np.load(error_bound_directories[j])
 
             energy_error_bounds = []
-
+            fidelity_bounds = []
             for s, er_b in enumerate(error_bounds):
                 energy_error_bounds.append(trained_energy[s]/2.*er_b**2 + stddevs[s]*er_b)
+                fidelity_bounds.append((1-er_b**2/2)**2)
 
             plt.figure(0)
             plt.title('Actual Error and Error Bound ')
@@ -831,13 +832,15 @@ class VarQTE(EvolutionBase):
 
             plt.figure(2)
             plt.title('Fidelity')
-            plt.scatter(time, fid, color='grey', marker='o', s=40,
+            plt.scatter(time, fid, color='orange', marker='x', s=40,
                         label='fidelity')
+            plt.scatter(time, fidelity_bounds, color='blue', marker='o', s=40,
+                        label='fidelity bound')
             plt.xlabel('time')
             plt.ylabel('fidelity')
             # plt.autoscale(enable=True)
             # plt.xticks(range(counter-1))
-            # plt.ylim((0, 1))
+            plt.ylim((0, 1))
             plt.savefig(os.path.join(data_dir, 'fidelity.png'))
             plt.close()
 
@@ -845,7 +848,7 @@ class VarQTE(EvolutionBase):
             plt.title('Energy')
             plt.scatter(time, true_energy, color='orange', marker='x', s=40,
                         label='target state')
-            plt.scatter(time, trained_energy, color='blue', marker='x', s=40,
+            plt.scatter(time, trained_energy, color='blue', marker='o', s=40,
                         label='prepared state')
             plt.errorbar(time, trained_energy, yerr=energy_error_bounds, fmt='x', ecolor='blue')
             # plt.scatter(time, energy_error_bounds, color='blue', marker='o', s=40,

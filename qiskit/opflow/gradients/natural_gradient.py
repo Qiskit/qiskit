@@ -150,10 +150,10 @@ class NaturalGradient(GradientBase):
                 else:
                     # If all eigenvalues are non-negative use the metric
                     break
-            try:
-                nat_grad = np.linalg.solve(a, c)
-            except np.linalg.LinAlgError:
-                nat_grad = np.linalg.lstsq(a, c, rcond=1e-2)[0]
+            # try:
+            #     nat_grad = np.linalg.solve(a, c)
+            # except np.linalg.LinAlgError:
+            nat_grad = np.linalg.lstsq(a, c, rcond=1e-2)[0]
             # try:
                 #             # Try to solve the system of linear equations Ax = C.
             #     nat_grad = np.linalg.solve(a, c)
