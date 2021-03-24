@@ -135,6 +135,7 @@ Functional Pauli Rotations
    PolynomialPauliRotations
    PiecewiseLinearPauliRotations
    PiecewisePolynomialPauliRotations
+   PiecewiseChebyshev
 
 Adders
 ++++++
@@ -311,6 +312,7 @@ from .arithmetic import (
     WeightedAdder,
     QuadraticForm,
     LinearAmplitudeFunction,
+    PiecewiseChebyshev,
 )
 from .n_local import (
     NLocal,

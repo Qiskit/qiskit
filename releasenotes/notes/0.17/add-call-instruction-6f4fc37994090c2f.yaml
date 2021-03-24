@@ -12,30 +12,6 @@ deprecations:
 
 features:
   - |
-    Pulse :py:class:`~qiskit.pulse.instructions.Call` instruction is added.
-    This instruction represents calling a schedule as a subroutine from within another schedule.
-    This is not exposed to end users, but internally used for compiling purpose.
-
-    This instruction is implicitly used in the pulse builder call function.
-    This defines a reference to another program, and no further optimization is performed
-    between call instructions.
-
-    For example,
-
-    .. code-block:: python
-
-      qc_x = QuantumCircuit(1)
-      qc_x.x(0)
-
-      with pulse.build(backend) as sched:
-          pulse.call(qc_x)
-          pulse.call(qc_x)
-
-    Because two call instructions are viewed as references to the external program,
-    two ``qc_x`` are not merged though they are consecutive x gates which form an identity.
-
-upgrade:
-  - |
     Pulse :py:func:`~qiskit.pulse.call` function can take parameter object with
     a parameterized subrotuine. We can assign different parameters for each subroutine call.
 
