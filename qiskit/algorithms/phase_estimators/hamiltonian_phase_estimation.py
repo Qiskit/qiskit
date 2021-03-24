@@ -26,22 +26,22 @@ from .phase_estimation_scale import PhaseEstimationScale
 class HamiltonianPhaseEstimation:
     r"""Run the Quantum Phase Estimation algorithm to find the eigenvalues of a Hermitian operator.
 
-    This class is nearly the same as :class:`~qiskit.algorithms.PhaseEstimator`, differing only
+    This class is nearly the same as :class:`~qiskit.algorithms.PhaseEstimation`, differing only
     in that the input in that class is a unitary operator, whereas here the input is a Hermitian
     operator from which a unitary will be obtained by scaling and exponentiating. The scaling is
     performed in order to prevent the phases from wrapping around :math:`2\pi`.
     The problem of estimating eigenvalues :math:`\lambda_j` of the Hermitian operator
     :math:`H` is solved by running a circuit representing
 
-    :math:
+    .. math::
 
-        \exp(i b H ) |\psi\rangle = \sum_j \exp(i b \lambda_j ) c_j |\lambda_j\rangle,
+        \exp(i b H) |\psi\rangle = \sum_j \exp(i b \lambda_j ) c_j |\lambda_j\rangle,
 
     where the input state is
 
-    :math:
+    .. math::
 
-        |\psi\rangle = \sum_j c_j |\lambda_j\rangle
+        |\psi\rangle = \sum_j c_j |\lambda_j\rangle,
 
     and :math:`\lambda_j` are the eigenvalues of :math:`H`.
 
@@ -80,7 +80,8 @@ class HamiltonianPhaseEstimation:
     def __init__(self,
                  num_evaluation_qubits: int,
                  quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
-        """Args:
+        """
+        Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
                 be estimated as a binary string with this many bits.
             quantum_instance: The quantum instance on which the circuit will be run.
@@ -119,7 +120,8 @@ class HamiltonianPhaseEstimation:
                  state_preparation: Optional[StateFn] = None,
                  evolution: Optional[EvolutionBase] = None,
                  bound: Optional[float] = None) -> HamiltonianPhaseEstimationResult:
-        """
+        """Run the Hamiltonian phase estimation algorithm.
+
         Args:
             hamiltonian: a Hermitian operator.
             state_preparation: The `StateFn` to be prepared, whose eigenphase will be

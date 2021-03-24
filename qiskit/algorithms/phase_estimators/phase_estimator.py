@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The Phase Estimator interface"""
+"""The Phase Estimator interface."""
 
 from typing import Optional
 from abc import ABC, abstractmethod, abstractproperty
@@ -19,7 +19,7 @@ from qiskit.algorithms.algorithm_result import AlgorithmResult
 
 
 class PhaseEstimator(ABC):
-    """The Phase Estimator interface
+    """The Phase Estimator interface.
 
     Algorithms that can compute a phase for a unitary operator and
     initial state may implement this interface to allow different

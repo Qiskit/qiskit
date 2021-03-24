@@ -59,17 +59,17 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
 
         Args:
             cutoff: Minimum weight of number of counts required to keep a bit string.
-                          The default value is `0.0`.
+                The default value is `0.0`.
             scaled: If False, return `phi` in :math:`[0, 1)` rather than the eigenvalues of
-                         the Hamiltonian.
+                the Hamiltonian.
             as_float: If `True`, returned keys are floats in :math:`[0.0, 1.0)`. If `False`
-                      returned keys are bit strings.
+                returned keys are bit strings.
 
         Raises:
             ValueError: if as_float` is `False` and `scaled` is `True`.
 
         Returns:
-              A dict of filtered phases.
+            A dict of filtered phases.
         """
         if scaled and not as_float:
             raise ValueError('`as_float` must be `True` if `scaled` is `True`.')
@@ -83,7 +83,7 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
 
     @property
     def most_likely_phase(self) -> float:
-        """The most likely phase of the unitary corresponding to the  Hamiltonian.
+        """The most likely phase of the unitary corresponding to the Hamiltonian.
 
         Returns:
             The most likely phase.

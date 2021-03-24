@@ -90,9 +90,9 @@ class PhaseEstimationResult(PhaseEstimatorResult):
 
         Args:
             cutoff: Minimum weight of number of counts required to keep a bit string.
-                    The default value is `0.0`.
+                The default value is `0.0`.
             as_float: If `True`, returned keys are floats in :math:`[0.0, 1.0)`. If `False`
-                      returned keys are bit strings.
+                returned keys are bit strings.
 
         Returns:
             A filtered dict of phases (keys) and frequencies (values).
@@ -136,7 +136,7 @@ def _bit_string_to_phase(binary_string: str) -> float:
         binary_string: A string of characters '0' and '1'.
 
     Returns:
-        a phase scaled to :math:`[0,1)`.
+        A phase scaled to :math:`[0,1)`.
     """
     n_qubits = len(binary_string)
     return int(binary_string, 2) / (2 ** n_qubits)

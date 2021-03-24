@@ -28,20 +28,22 @@ from .phase_estimator import PhaseEstimator
 
 
 class PhaseEstimation(PhaseEstimator):
-    """Run the Quantum Phase Estimation (QPE) algorithm.
+    r"""Run the Quantum Phase Estimation (QPE) algorithm.
 
     This runs QPE with a multi-qubit register for reading the phases [1]
     of input states.
 
     The algorithm takes as input a unitary :math:`U` and a state :math:`|\psi\rangle`,
     which may be written
-    :math:
+
+    .. math::
 
         |\psi\rangle = \sum_j c_j |\phi_j\rangle,
 
     where :math:`|\phi_j\rangle` are eigenstates of :math:`U`. We prepare the quantum register
     in the state :math:`|\psi\rangle` then apply :math:`U` leaving the register in the state
-    :math:
+
+    .. math::
 
         U|\psi\rangle = \sum_j \exp(i \phi_j) c_j |\phi_j\rangle.
 
@@ -58,8 +60,8 @@ class PhaseEstimation(PhaseEstimator):
     1) A unitary that will act on the the input state, or
     2) A quantum-phase-estimation circuit in which the unitary is already embedded.
 
-    In case 1), an instance of :class:`qiskit.circuit.PhaseEstimation`, a QPE circuit, containing the
-    input unitary will be constructed. After construction, the QPE circuit is run on a backend
+    In case 1), an instance of :class:`qiskit.circuit.PhaseEstimation`, a QPE circuit, containing
+    the input unitary will be constructed. After construction, the QPE circuit is run on a backend
     via the `run` method, and the frequencies or counts of the phases represented by bitstrings
     are recorded. The results are returned as an instance of
     :class:`~qiskit.algorithms.phase_estimator_result.PhaseEstimationResult`.
@@ -76,14 +78,11 @@ class PhaseEstimation(PhaseEstimator):
                  num_evaluation_qubits: int,
                  quantum_instance: Optional[Union[QuantumInstance,
                                                   BaseBackend, Backend]] = None) -> None:
-        """Args:
+        """
+        Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
                 be estimated as a binary string with this many bits.
             quantum_instance: The quantum instance on which the circuit will be run.
-
-           Raises: # TODO: fix this while refactoring
-               ValueError: unless only one of `unitary` and `pe_circuit` is `None`.
-                   `num_unitary_qubits` disagrees with size of `unitary`.
         """
 
         self._measurements_added = False
@@ -204,7 +203,7 @@ class PhaseEstimation(PhaseEstimator):
             ValueError: If neither `pe_circuit` nor `unitary` are passed.
 
         Returns:
-               An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
+            An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
         """
         num_evaluation_qubits = self._num_evaluation_qubits
 

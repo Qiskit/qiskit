@@ -43,8 +43,8 @@ class PhaseEstimationScale():
     def __init__(self, bound: float) -> None:
         """
         Args:
-            bound: an upper bound on the absolute value of the
-          eigenvalues of a Hermitian operator. (The operator is not needed here.)
+            bound: an upper bound on the absolute value of the eigenvalues of a Hermitian operator.
+                (The operator is not needed here.)
         """
         self._bound = bound
 
@@ -78,8 +78,8 @@ class PhaseEstimationScale():
         operator.
 
         Args:
-          phi: Normalized phase in :math:`[0, 1)` to be converted to an eigenvalue.
-          id_coefficient: All eigenvalues are shifted by this value.
+            phi: Normalized phase in :math:`[0, 1)` to be converted to an eigenvalue.
+            id_coefficient: All eigenvalues are shifted by this value.
 
         Returns:
             An eigenvalue computed from the input phase.
@@ -123,13 +123,13 @@ class PhaseEstimationScale():
         the generic case. A `PhaseEstimationScale` object is instantiated using this bound.
 
         Args:
-           pauli_sum:  A `SummedOp` whose terms are `PauliOp`s.
+            pauli_sum: A `SummedOp` whose terms are `PauliOp`s.
 
         Raises:
-           ValueError: if `pauli_sum` is not a sum of Pauli operators.'
+            ValueError: if `pauli_sum` is not a sum of Pauli operators.'
 
         Returns:
-           A `PhaseEstimationScale` object
+            A `PhaseEstimationScale` object
         """
         if pauli_sum.primitive_strings() != {'Pauli'}:
             raise ValueError(
