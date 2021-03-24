@@ -1,0 +1,9 @@
+---
+prelude: |
+    The Qiskit Terra 0.17.0 includes many new features and bug fixes. The
+    major features of this release are:
+
+      * The introduction of the :mod:`qiskit.algorithms` and
+        :mod:`qiskit.opflow` modules which were migrated from the
+        :mod:`qiskit.aqua` project.
+      * 
