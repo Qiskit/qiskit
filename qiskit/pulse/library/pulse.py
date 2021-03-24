@@ -44,8 +44,6 @@ class Pulse(ABC):
         """Return a dictionary containing the pulse's parameters."""
         pass
 
-    @deprecated_functionality
-    @abstractmethod
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
         raise NotImplementedError

@@ -95,8 +95,8 @@ class Waveform(Pulse):
 
         return samples
 
-    @deprecated_functionality
     def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
         return False
 
     @property

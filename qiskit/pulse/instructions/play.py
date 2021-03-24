@@ -101,3 +101,7 @@ class Play(Instruction):
         pulse = self.pulse.assign_parameters(value_dict)
         self._operands = (pulse, self.channel)
         return self
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return self.pulse.is_parameterized() or super().is_parameterized()

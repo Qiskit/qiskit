@@ -85,6 +85,7 @@ class ParametricPulse(Pulse):
         raise NotImplementedError
 
     def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
         return any(_is_parameterized(val) for val in self.parameters.values())
 
     @deprecated_functionality

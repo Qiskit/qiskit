@@ -69,3 +69,7 @@ class Snapshot(Instruction):
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return False

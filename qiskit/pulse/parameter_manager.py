@@ -66,8 +66,8 @@ from qiskit.pulse.utils import format_parameter_value
 
 
 class NodeVisitor:
-    """A node visitor base class that walks instruction data in various pulse programs
-    and calls visitor functions for every node found.
+    """A node visitor base class that walks instruction data in a pulse program of arbitrary
+    format and calls visitor functions for every node found.
 
     Though this class implementation is based on Python AST, each node doesn't have
     dedicated node class due to lack of abstract syntax tree for pulse programs in Qiskit.
@@ -146,21 +146,7 @@ class ParameterSetter(NodeVisitor):
         """Visit ``Schedule``. Recursively visit schedule children and overwrite."""
         # accessing to private member
         node._Schedule__children = [(t0, self.visit(sched)) for t0, sched in node.instructions]
-
-        # update timeslots
-        for chan in copy(node.channels):
-            if isinstance(chan.index, ParameterExpression):
-                chan_timeslots = node._timeslots.pop(chan)
-                new_channel = self.visit_Channel(chan)
-
-                # Merge with existing channel
-                if new_channel in node.timeslots:
-                    sched = Schedule()
-                    sched._timeslots = {new_channel: chan_timeslots}
-                    node._add_timeslots(0, sched)
-                # Or add back under the new name
-                else:
-                    node._timeslots[new_channel] = chan_timeslots
+        node._renew_timeslots()
 
         self._update_parameter_manager(node)
         return node
@@ -205,7 +191,7 @@ class ParameterSetter(NodeVisitor):
 
     def visit_Channel(self, node: channels.Channel):
         """Assign parameters to ``Channel`` object."""
-        if isinstance(node.index, ParameterExpression):
+        if node.is_parameterized():
             new_index = self._assign_parameter_expression(node.index)
 
             # validate
@@ -220,13 +206,16 @@ class ParameterSetter(NodeVisitor):
 
     def visit_ParametricPulse(self, node: ParametricPulse):
         """Assign parameters to ``ParametricPulse`` object."""
-        new_parameters = {}
-        for op, op_value in node.parameters.items():
-            if isinstance(op_value, ParameterExpression):
-                op_value = self._assign_parameter_expression(op_value)
-            new_parameters[op] = op_value
+        if node.is_parameterized():
+            new_parameters = {}
+            for op, op_value in node.parameters.items():
+                if isinstance(op_value, ParameterExpression):
+                    op_value = self._assign_parameter_expression(op_value)
+                new_parameters[op] = op_value
 
-        return node.__class__(**new_parameters, name=node.name)
+            return node.__class__(**new_parameters, name=node.name)
+
+        return node
 
     def visit_Waveform(self, node: Waveform):
         """Assign parameters to ``Waveform`` object.

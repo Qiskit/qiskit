@@ -580,6 +580,18 @@ class Schedule:
         self._remove_timeslots(time, old)
         self._add_timeslots(time, new)
 
+    def _renew_timeslots(self):
+        """Regenerate timeslots based on updated instructions.
+
+        .. note:: This method is only called by a visitor function associated with the
+            ``ParameterManager``, when parameters are assigned to the schedule.
+            This method regenerates timeslots based on new children,
+            because instruction channel index may be parametrized and updated.
+        """
+        self._timeslots.clear()
+        for t0, inst in self._children:
+            self._add_timeslots(t0, inst)
+
     def replace(self,
                 old: ScheduleComponent,
                 new: ScheduleComponent,

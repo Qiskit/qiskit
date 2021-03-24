@@ -170,7 +170,6 @@ class Call(instruction.Instruction):
 
         return self
 
-    @deprecated_functionality
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
         return any(isinstance(value, ParameterExpression) for value in self.arguments.values())

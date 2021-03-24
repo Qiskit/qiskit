@@ -107,10 +107,9 @@ class Channel(metaclass=ABCMeta):
         """Parameters which determine the channel index."""
         return self._parameters
 
-    @deprecated_functionality
     def is_parameterized(self) -> bool:
         """Return True iff the channel is parameterized."""
-        return bool(self.parameters)
+        return isinstance(self.index, ParameterExpression)
 
     @deprecated_functionality
     def assign(self, parameter: Parameter, value: ParameterValueType) -> 'Channel':

@@ -235,10 +235,9 @@ class Instruction(ABC):
         """Parameters which determine the instruction behavior."""
         return set(self._parameter_table.keys())
 
-    @deprecated_functionality
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return bool(self.parameters)
+        return any(chan.is_parameterized() for chan in self.channels)
 
     def _initialize_parameter_table(self,
                                     operands: Tuple[Any]):
