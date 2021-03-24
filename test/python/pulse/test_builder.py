@@ -367,6 +367,16 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
+    def test_play_name_argument(self):
+        """Test name argument for play instruction."""
+        d0 = pulse.DriveChannel(0)
+        test_pulse = library.Constant(10, 1.0)
+
+        with pulse.build() as schedule:
+            pulse.play(test_pulse, channel=d0, name='new_name')
+
+        self.assertEqual(schedule.instructions[0][1].name, 'new_name')
+
     def test_acquire_memory_slot(self):
         """Test acquire instruction into memory slot."""
         acquire0 = pulse.AcquireChannel(0)
@@ -405,6 +415,16 @@ class TestInstructions(TestBuilder):
         reference += pulse.Acquire(10, acquire0, mem_slot=mem0)
 
         self.assertEqual(schedule, reference)
+
+    def test_instruction_name_argument(self):
+        """Test setting the name of an instruction."""
+        d0 = pulse.DriveChannel(0)
+
+        for instruction_method in [pulse.delay, pulse.set_frequency, pulse.set_phase,
+                                   pulse.shift_frequency, pulse.shift_phase]:
+            with pulse.build() as schedule:
+                instruction_method(0, d0, name='instruction_name')
+            self.assertEqual(schedule.instructions[0][1].name, 'instruction_name')
 
     def test_set_frequency(self):
         """Test set frequency instruction."""
@@ -633,6 +653,29 @@ class TestUtilities(TestBuilder):
 
 class TestMacros(TestBuilder):
     """Test builder macros."""
+
+    def test_macro(self):
+        """Test builder macro decorator."""
+        @pulse.macro
+        def nested(a):
+            pulse.play(pulse.Gaussian(100, a, 20), pulse.drive_channel(0))
+            return a*2
+
+        @pulse.macro
+        def test():
+            pulse.play(pulse.Constant(100, 1.0), pulse.drive_channel(0))
+            output = nested(0.5)
+            return output
+
+        with pulse.build(self.backend) as schedule:
+            output = test()
+            self.assertEqual(output, 0.5*2)
+
+        reference = pulse.Schedule()
+        reference += pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(0))
+        reference += pulse.Play(pulse.Gaussian(100, 0.5, 20), pulse.DriveChannel(0))
+
+        self.assertEqual(schedule, reference)
 
     def test_measure(self):
         """Test utility function - measure."""

@@ -393,6 +393,10 @@ class TestOpConstruction(QiskitOpflowTestCase):
             self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'ZZ'])
             self.assertListEqual([op.coeff for op in sum_op], [10, 2, 3])
 
+        sum_op = SummedOp([])
+        with self.subTest('SummedOp test 9'):
+            self.assertEqual(sum_op.reduce(), sum_op)
+
     def test_compose_op_of_different_dim(self):
         """
         Test if smaller operator expands to correct dim when composed with bigger operator.
@@ -951,6 +955,17 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertNotEqual(sum_op, sum_op3)
         self.assertNotEqual(sum_op2, sum_op3)
         self.assertEqual(sum_op3, sum_op3)
+
+    def test_empty_listops(self):
+        """Test reduce and eval on ListOp with empty oplist."""
+        with self.subTest('reduce empty ComposedOp '):
+            self.assertEqual(ComposedOp([]).reduce(), ComposedOp([]))
+        with self.subTest('reduce empty TensoredOp '):
+            self.assertEqual(TensoredOp([]).reduce(), TensoredOp([]))
+        with self.subTest('eval empty ComposedOp '):
+            self.assertEqual(ComposedOp([]).eval(), 0.0)
+        with self.subTest('eval empty TensoredOp '):
+            self.assertEqual(TensoredOp([]).eval(), 0.0)
 
 
 class TestOpMethods(QiskitOpflowTestCase):
