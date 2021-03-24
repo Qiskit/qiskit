@@ -30,7 +30,7 @@ This complexity is due to tight coupling of program to underlying device Hamilto
 i.e. variance of physical parameters of qubits and their coupling.
 If we want to define a program that can be used with arbitrary qubits,
 we should be able to parametrize every control parameter in the program
-since they are basically qubit dependent, also varying from time to time.
+since they are basically qubit dependent, and also vary over time.
 
 
 Implementation
