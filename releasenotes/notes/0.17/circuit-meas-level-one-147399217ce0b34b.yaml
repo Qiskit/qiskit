@@ -1,5 +1,11 @@
 ---
 features:
   - |
-    Added `meas_level=1` (kerneled data) support to qasm circuit jobs.
-    `meas_return` is also enabled when level 1 is specified.
+    The :class:`~qiskit.circuit.QasmQobjConfig` class now has an optional
+    kwarg for ``meas_level`` and ``meas_return``. These fields can be used
+    to enable generating :class:`~qiskit.circuit.QasmQobj` job payloads that
+    support ``meas_level=1`` (kerneled data) for circuit jobs (previously
+    this was only exposed for :class:`~qiskit.circuit.PulseQobj` objects).
+    The :func:`~qiskit.compiler.assemble` function has been updated
+    to set this field for :class:`~qiskit.circuit.QasmQobj` objects it
+    generates.

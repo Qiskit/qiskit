@@ -1,7 +1,0 @@
----
-features:
-  - |
-    Added equivalences for rotation gates in equivalence library for standard 
-    gates. Included a single unit test in compiler/test_transpiler.py that 
-    checks the transpilation of an HGate into an RXGate and RYGate for
-    optimization level 0.
