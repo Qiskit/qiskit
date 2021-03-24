@@ -684,7 +684,7 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuits):
 def _parse_approximation_degree(approximation_degree, num_circuits):
     if not isinstance(approximation_degree, list):
         approximation_degree = [approximation_degree] * num_circuits
-    if not all(d <= 1.0 and d >= 0.0 for d in approximation_degree if d):
+    if not all(0.0 <= d <= 1.0 for d in approximation_degree if d):
         raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
     return approximation_degree
 
