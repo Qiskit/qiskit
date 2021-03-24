@@ -1,6 +1,10 @@
 ---
-features:
+fixes:
   - |
-    For ``n`` intervals allow ``n+1`` breakpoints in ``PiecewisePolynomialPauliRotations``
-    to specify another end interval than``2 ^ num_qubits``. From the end of the last 
-    interval to ``2 ^ num_qubits`` the function is the identity. 
+    Fixed the handling of breakpoints in the
+    :class:`~qiskit.circuit.library.PiecewisePolynomialPauliRotations` class
+    in the :mod:`qiskit.circuit.library`. Now for ``n`` intervals,
+    ``n+1`` breakpoints are allowed. This enables specifying another end
+    interval other than :math:`2^{num qubits}`. This is important because
+    from the end of the last interval to `:math:`2^{num qubits}` the function
+    is the identity.

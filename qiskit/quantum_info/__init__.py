@@ -115,6 +115,7 @@ Synthesis
    TwoQubitBasisDecomposer
    two_qubit_cnot_decompose
    Quaternion
+   clifford_decompose
 """
 
 from .operators import (Operator, ScalarOp, Pauli, Clifford, SparsePauliOp)
@@ -139,6 +140,7 @@ from .random import (random_quantum_channel, random_unitary,
                      random_cnotdihedral)
 
 from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
-                        two_qubit_cnot_decompose, Quaternion)
+                        two_qubit_cnot_decompose, Quaternion,
+                        clifford_decompose)
 
 from .analysis import hellinger_fidelity
