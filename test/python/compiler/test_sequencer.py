@@ -15,7 +15,7 @@
 """Tests basic functionality of the sequence function"""
 import unittest
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, pulse
 from qiskit.compiler import sequence, transpile, schedule
 from qiskit.pulse.transforms import pad
 from qiskit.test.mock import FakeParis
@@ -52,7 +52,8 @@ class TestSequence(QiskitTestCase):
         sc = transpile(qc, self.backend, scheduling_method='alap')
         actual = sequence(sc, self.backend)
         expected = schedule(transpile(qc, self.backend), self.backend)
-        self.assertEqual(actual, pad(expected))
+        self.assertEqual(actual.exclude(instruction_types=[pulse.Delay]),
+                         expected.exclude(instruction_types=[pulse.Delay]))
 
     @unittest.skip("not yet determined if delays on ancilla should be removed or not")
     def test_transpile_and_sequence_agree_with_schedule_for_circuits_without_measures(self):
