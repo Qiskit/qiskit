@@ -118,6 +118,9 @@ class SummedOp(ListOp):
         Returns:
             A collapsed version of self, if possible.
         """
+        if len(self.oplist) == 0:
+            return SummedOp([], coeff=self.coeff, abelian=self.abelian)
+
         # reduce constituents
         reduced_ops = sum(op.reduce() for op in self.oplist) * self.coeff
 
