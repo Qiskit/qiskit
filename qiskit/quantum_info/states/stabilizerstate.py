@@ -261,7 +261,7 @@ class StabilizerState(QuantumState):
 
         # Non-deterministic outcome
         if len(z_anticommuting) != 0:
-            p_qubit = np.min(np.nonzero(self.data.stabilizer.X[:,qubit]))
+            p_qubit = np.min(np.nonzero(self.data.stabilizer.X[:, qubit]))
             p_qubit += num_qubits
             outcome = rng.integers(2)
 
