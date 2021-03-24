@@ -956,6 +956,17 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertNotEqual(sum_op2, sum_op3)
         self.assertEqual(sum_op3, sum_op3)
 
+    def test_empty_listops(self):
+        """Test reduce and eval on ListOp with empty oplist."""
+        with self.subTest('reduce empty ComposedOp '):
+            self.assertEqual(ComposedOp([]).reduce(), ComposedOp([]))
+        with self.subTest('reduce empty TensoredOp '):
+            self.assertEqual(TensoredOp([]).reduce(), TensoredOp([]))
+        with self.subTest('eval empty ComposedOp '):
+            self.assertEqual(ComposedOp([]).eval(), 0.0)
+        with self.subTest('eval empty TensoredOp '):
+            self.assertEqual(TensoredOp([]).eval(), 0.0)
+
 
 class TestOpMethods(QiskitOpflowTestCase):
     """Basic method tests."""
