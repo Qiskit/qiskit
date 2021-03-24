@@ -57,36 +57,39 @@ for nts in num_time_steps:
                 # Define the Hamiltonian for the simulation
                 # observable = (Y ^ Y)
                 # observable = SummedOp([(Z ^ X), 0.8 * (Y ^ Y)]).reduce()
-                observable = SummedOp([0.25 * (I ^ X), 0.25 * (X ^ I), (Z ^ Z)]).reduce()
+                observable = SummedOp([-0.25 * (I ^ X ^ I), -0.25 * (X ^ I ^ I),
+                                       -0.25 * (I ^ I ^ X), 0.1 * (Z ^ Z ^ I),
+                                       0.1 * (I ^ Z ^ Z)]).reduce()
                 # observable = (Y ^ I)
                 # observable = SummedOp([(Z ^ X), 3. * (Y ^ Y), (Z ^ X), (I ^ Z), (Z ^ I)]).reduce()
                 # Define Ansatz
                 # ansatz = RealAmplitudes(observable.num_qubits, reps=d)
-                # ansatz = EfficientSU2(observable.num_qubits, reps=d)
-                # parameters = ansatz.ordered_parameters
+                ansatz = EfficientSU2(observable.num_qubits, su2_gates=['rx', 'ry', 'rz'],
+                                      entanglement='sca', reps=d)
+                parameters = ansatz.ordered_parameters
 
                 # Define a set of initial parameters
-                parameters = ParameterVector('a', length=12)
-                ansatz = QuantumCircuit(observable.num_qubits)
-                ansatz.ry(parameters[0], [0])
-                ansatz.ry(parameters[1], [1])
-                ansatz.rzz(parameters[2], [0], [1])
-                ansatz.rx(parameters[3], [0])
-                ansatz.rx(parameters[4], [1])
-                ansatz.rzz(parameters[5], [0], [1])
-                ansatz.ry(parameters[6], [0])
-                ansatz.ry(parameters[7], [1])
-                ansatz.rzz(parameters[8], [0], [1])
-                ansatz.rx(parameters[9], [0])
-                ansatz.rx(parameters[10], [1])
-                ansatz.rzz(parameters[11], [0], [1])
+                # parameters = ParameterVector('a', length=12)
+                # ansatz = QuantumCircuit(observable.num_qubits)
+                # ansatz.ry(parameters[0], [0])
+                # ansatz.ry(parameters[1], [1])
+                # ansatz.rzz(parameters[2], [0], [1])
+                # ansatz.rx(parameters[3], [0])
+                # ansatz.rx(parameters[4], [1])
+                # ansatz.rzz(parameters[5], [0], [1])
+                # ansatz.ry(parameters[6], [0])
+                # ansatz.ry(parameters[7], [1])
+                # ansatz.rzz(parameters[8], [0], [1])
+                # ansatz.rx(parameters[9], [0])
+                # ansatz.rx(parameters[10], [1])
+                # ansatz.rzz(parameters[11], [0], [1])
 
                 #
                 # print(ansatz)
                 # init_param_values = np.random.rand(len(parameters)) * 1e-3
                 init_param_values = np.zeros(len(parameters))
-                for i in range(ansatz.num_qubits):
-                    init_param_values[i] = np.pi / 2
+                # for i in range(ansatz.num_qubits):
+                #     init_param_values[i] = np.pi / 2
                 # initial_point = [np.pi/3, -np.pi/3, np.pi/2., np.pi/3.]
                 # initial_point = np.zeros(len(parameters))
                 # for i in range(ansatz.num_qubits):
@@ -107,11 +110,11 @@ for nts in num_time_steps:
                 print('depth ', d)
                 print('---------------------------------------------------------------------')
                 varqrte_snapshot_dir = os.path.join('..',
-                                                    'output_ising_transverse',
+                                                    'output_ising_transverse_var',
                                                     'real',
                                                     str(nts),
                                                     reg_names[j],
-                                                    ode_solvers_names[k] + 'error')
+                                                    ode_solvers_names[k] + 'nat_grad')
                 t0 = time.time()
                 varqrte = VarQRTE(parameters=parameters,
                                 grad_method='lin_comb',
@@ -120,7 +123,7 @@ for nts in num_time_steps:
                                 ode_solver=ode_solver,
                                 backend=Aer.get_backend('statevector_simulator'),
                                 regularization=reg,
-                                error_based_ode=True,
+                                error_based_ode=False,
                                 snapshot_dir=varqrte_snapshot_dir
                                 # snapshot_dir=os.path.join('..', 'test')
                                 )

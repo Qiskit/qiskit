@@ -131,6 +131,17 @@ class VarQRTE(VarQTE):
             h_squared = self._h_squared.assign_parameters(param_dict)
         h_squared = np.real(h_squared.eval())
 
+        # TODO ###################################################
+        # ⟨ψ(ω) | H | ψ(ω)〉^2 Hermitian
+        if self._backend is not None:
+            exp = self._operator_circ_sampler.convert(self._operator_eval,
+                                                      params=param_dict)
+        else:
+            exp = self._operator_eval.assign_parameters(param_dict)
+        exp = np.real(exp.eval())
+        eps_squared -= np.real(exp ** 2)
+        # TODO ###################################################
+
         eps_squared += h_squared
         # print('hsquared', h_squared)
 

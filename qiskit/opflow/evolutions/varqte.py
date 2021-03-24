@@ -335,7 +335,8 @@ class VarQTE(EvolutionBase):
         self._init_state = self._init_state.eval().primitive.data
         self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
         self._h_matrix = self._h.to_matrix(massive=True)
-        self._h_squared = ComposedOp([~StateFn(self._h ** 2), self._state])
+        h_squared = self._h ** 2
+        self._h_squared = ComposedOp([~StateFn(h_squared.reduce()), self._state])
 
         if not self._faster:
             # VarQRTE
@@ -402,6 +403,7 @@ class VarQTE(EvolutionBase):
             # Use the natural gradient result as initial point for least squares solver
             # print('initial natural gradient result', nat_grad_result)
             argmin = minimize(fun=argmin_fun, x0=nat_grad_result, method='COBYLA', tol=1e-6)
+            # argmin = sp.optimize.least_squares(fun=argmin_fun, x0=nat_grad_result, ftol=1e-6)
 
             print('final dt_omega', np.real(argmin.x))
             # self._et = argmin_fun(argmin.x)
@@ -785,8 +787,8 @@ class VarQTE(EvolutionBase):
 
             energy_error_bounds = []
 
-            for j, er_b in enumerate(error_bounds):
-                energy_error_bounds.append(trained_energy[j]/2.*er_b**2 + stddevs[j]*er_b)
+            for s, er_b in enumerate(error_bounds):
+                energy_error_bounds.append(trained_energy[s]/2.*er_b**2 + stddevs[s]*er_b)
 
             plt.figure(0)
             plt.title('Actual Error and Error Bound ')

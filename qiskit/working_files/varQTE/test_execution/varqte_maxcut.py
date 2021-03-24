@@ -49,6 +49,13 @@ regs = ['ridge', 'perturb_diag', None]
 reg_names = ['ridge', 'perturb_diag', 'None']
 # for nts in num_time_steps:
 # nts = num_time_steps[1]
+g = networkx.generators.random_graphs.random_regular_graph(4, 6)
+print('graph ', g)
+maxcut = Maxcut(g)
+qp = maxcut.to_quadratic_program()
+H, offset = qp.to_ising()
+observable = H
+print('H ising ', observable.to_pauli_op())
 for nts in num_time_steps:
     for k, ode_solver in enumerate(ode_solvers):
         for d in depths:
@@ -56,14 +63,8 @@ for nts in num_time_steps:
                 print(ode_solvers_names[k])
                 print(reg_names[j])
                 # Define the Hamiltonian for the simulation
-
-                g = networkx.generators.random_graphs.random_regular_graph(3, 50)
-                maxcut = Maxcut(g)
-                qp = maxcut.to_quadratic_program()
-                H, offset = qp.to_ising()
-                observable = H
                 # Define Ansatz
-                ansatz = RealAmplitudes(observable.num_qubits, reps=d)
+                ansatz = RealAmplitudes(observable.num_qubits, entanglement='sca', reps=d)
 
                 # Define a set of initial parameters
                 parameters = ansatz.ordered_parameters
@@ -81,10 +82,10 @@ for nts in num_time_steps:
                 print('depth ', d)
                 print('---------------------------------------------------------------------')
                 t0 = time.time()
-                varqite_snapshot_dir = os.path.join('..', 'output', 'imag',
+                varqite_snapshot_dir = os.path.join('..', 'output_maxcut', 'imag',
                                                     str(nts),
                                                     reg_names[j],
-                                                    ode_solvers_names[k] + 'error')
+                                                    ode_solvers_names[k] + 'nat_grad')
 
                 varqite = VarQITE(parameters=parameters, grad_method='lin_comb',
                                   init_parameter_values=init_param_values,
@@ -92,7 +93,7 @@ for nts in num_time_steps:
                                   ode_solver=ode_solver,
                                   backend=Aer.get_backend('statevector_simulator'),
                                   regularization=reg,
-                                  error_based_ode=True,
+                                  error_based_ode=False,
                                   snapshot_dir=varqite_snapshot_dir)
                 approx_time_evolved_state_imag = varqite.convert(op)
                 varqite_error_bounds, varqite_reverse_error_bounds = varqite.error_bound(
