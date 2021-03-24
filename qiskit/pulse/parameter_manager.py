@@ -18,7 +18,7 @@ Background
 ==========
 
 In contrast to ``QuantumCircuit``, in pulse programs parameter objects can be stored in
-every places at different layers, for example
+multiple places at different layers, for example
 
 - program's variable: ``ScheduleBlock.alignment_context._context_params``
 
