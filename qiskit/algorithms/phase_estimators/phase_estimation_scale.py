@@ -21,16 +21,17 @@ class PhaseEstimationScale():
     """Set and use a bound on eigenvalues of a Hermitian operator in order to ensure phases are in
     the desired range and to convert measured phases into eigenvectors.
 
-    The `bound` is set when constructing this class. Then the method `scale` is used to find the
+    The ``bound`` is set when constructing this class. Then the method ``scale`` is used to find the
     factor by which to scale the operator.
 
-    If `bound` is equal exactly to the largest eigenvalue, and the smallest eigenvalue is minus the
-    largest, then these two eigenvalues will not be distinguished. For example, if the Hermitian
-    operator is the Pauli `Z operator with eigenvalues `+1` and `-1`, and `bound` is `1`, then both
-    eigenvalues will be mapped to `1`. This can be avoided by making `bound` a bit larger.
+    If ``bound`` is equal exactly to the largest eigenvalue, and the smallest eigenvalue is minus
+    the largest, then these two eigenvalues will not be distinguished. For example, if the Hermitian
+    operator is the Pauli Z operator with eigenvalues :math:`1` and :math:`-1`, and ``bound`` is
+    :math:`1`, then both eigenvalues will be mapped to :math:`1`.
+    This can be avoided by making ``bound`` a bit larger.
 
-    Increasing `bound` decreases the part of the interval :math:`[0, 1)` that is used to map
-    eigenvalues to `phi`. However, sometimes this results in a better determination of the
+    Increasing ``bound`` decreases the part of the interval :math:`[0, 1)` that is used to map
+    eigenvalues to ``phi``. However, sometimes this results in a better determination of the
     eigenvalues, because 1) although there are fewer discrete phases in the useful range, it may
     shift one of the discrete phases closer to the actual phase. And, 2) If one of the discrete
     phases is close to, or exactly equal to the actual phase, then artifacts (probability) in
@@ -55,7 +56,7 @@ class PhaseEstimationScale():
         Return the scale factor by which a Hermitian operator must be multiplied
         so that the phase of the corresponding unitary is restricted to :math:`[-\pi, \pi]`.
         This factor is computed from the bound on the absolute values of the eigenvalues
-        of the operator. The methods `scale_phase` and `scale_phases` are used recover
+        of the operator. The methods ``scale_phase`` and ``scale_phases`` are used recover
         the eigenvalues corresponding the original (unscaled) Hermitian operator.
 
         Returns:
@@ -66,13 +67,13 @@ class PhaseEstimationScale():
     def scale_phase(self, phi: float, id_coefficient: float = 0.0) -> float:
         r"""Convert a phase into an eigenvalue.
 
-        The input phase `phi` corresponds to the eigenvalue of a unitary obtained by
+        The input phase ``phi`` corresponds to the eigenvalue of a unitary obtained by
         exponentiating a scaled Hermitian operator. Recall that the phase
-        is obtained from `phi` as :math:`2\pi\phi`. Furthermore, the Hermitian operator
-        was scaled so that `phi` is restricted to :math:`[-1/2, 1/2]`, corresponding to
+        is obtained from ``phi`` as :math:`2\pi\phi`. Furthermore, the Hermitian operator
+        was scaled so that ``phi`` is restricted to :math:`[-1/2, 1/2]`, corresponding to
         phases in :math:`[-\pi, \pi]`. But the values of `phi` read from the phase-readout
-        register are in :math:`[0, 1)`. Any value of `phi` greater than `1/2` corresponds
-        to a raw phase of minus the complement with respect to `1`. After this possible
+        register are in :math:`[0, 1)`. Any value of ``phi`` greater than :math:`1/2` corresponds
+        to a raw phase of minus the complement with respect to 1. After this possible
         shift, the phase is scaled by the inverse of the factor by which the
         Hermitian operator was scaled to recover the eigenvalue of the Hermitian
         operator.
@@ -95,12 +96,12 @@ class PhaseEstimationScale():
                      ) -> Union[Dict, List]:
         """Convert a list or dict of phases to eigenvalues.
 
-        The values in the list, or keys in the dict, are values of `phi` and
-        are converted as described in the description of `scale_phase`. In case
-        `phases` is a dict, the values of the dict are passed unchanged.
+        The values in the list, or keys in the dict, are values of ``phi` and
+        are converted as described in the description of ``scale_phase``. In case
+        ``phases`` is a dict, the values of the dict are passed unchanged.
 
         Args:
-            phases: a list or dict of values of `phi`.
+            phases: a list or dict of values of ``phi``.
             id_coefficient: All eigenvalues are shifted by this value.
 
         Returns:
@@ -117,19 +118,19 @@ class PhaseEstimationScale():
     def from_pauli_sum(cls, pauli_sum: SummedOp) -> 'PhaseEstimationScale':
         """Create a PhaseEstimationScale from a `SummedOp` representing a sum of Pauli Operators.
 
-        It is assumed that the `SummedOp` `pauli_sum` is the sum of `PauliOp`s. The bound on
+        It is assumed that the ``pauli_sum`` is the sum of ``PauliOp`` objects. The bound on
         the absolute value of the eigenvalues of the sum is obtained as the sum of the
         absolute values of the coefficients of the terms. This is the best bound available in
-        the generic case. A `PhaseEstimationScale` object is instantiated using this bound.
+        the generic case. A ``PhaseEstimationScale`` object is instantiated using this bound.
 
         Args:
-            pauli_sum: A `SummedOp` whose terms are `PauliOp`s.
+            pauli_sum: A ``SummedOp`` whose terms are ``PauliOp`` objects.
 
         Raises:
-            ValueError: if `pauli_sum` is not a sum of Pauli operators.'
+            ValueError: if ``pauli_sum`` is not a sum of Pauli operators.
 
         Returns:
-            A `PhaseEstimationScale` object
+            A ``PhaseEstimationScale`` object
         """
         if pauli_sum.primitive_strings() != {'Pauli'}:
             raise ValueError(
