@@ -35,7 +35,7 @@ class HamiltonianPhaseEstimation:
 
     .. math::
 
-        \exp(i b H) |\psi\rangle = \sum_j \exp(i b \lambda_j ) c_j |\lambda_j\rangle,
+        \exp(i b H) |\psi\rangle = \sum_j \exp(i b \lambda_j) c_j |\lambda_j\rangle,
 
     where the input state is
 
@@ -49,12 +49,12 @@ class HamiltonianPhaseEstimation:
     :math:`[0,\pi)` and negative :math:`\lambda` to :math:`[\pi,2\pi)`. Each time the circuit is
     run, one measures a phase corresponding to :math:`lambda_j` with probability :math:`|c_j|^2`.
 
-    If :math:`H` is a Pauli sum, the bound :math`b` is computed from the sum of the absolute
+    If :math:`H` is a Pauli sum, the bound :math:`b` is computed from the sum of the absolute
     values of the coefficients of the terms. There is no way to reliably recover eigenvalues
     from phases very near the endpoints of these intervals. Because of this you should be aware
     that for degenerate cases, such as :math:`H=Z`, the eigenvalues :math:`\pm 1` will be
-    mapped to the same phase, :math`\pi`, and so cannot be distinguished. In this case, you need
-    to specify a larger bound as an argument to the method `estimate`.
+    mapped to the same phase, :math:`\pi`, and so cannot be distinguished. In this case, you need
+    to specify a larger bound as an argument to the method ``estimate``.
 
     This class uses and works together with :class:`~qiskit.algorithms.PhaseEstimationScale` to
     manage scaling the Hamiltonian and the phases that are obtained by the QPE algorithm. This
@@ -123,16 +123,16 @@ class HamiltonianPhaseEstimation:
         """Run the Hamiltonian phase estimation algorithm.
 
         Args:
-            hamiltonian: a Hermitian operator.
-            state_preparation: The `StateFn` to be prepared, whose eigenphase will be
+            hamiltonian: A Hermitian operator.
+            state_preparation: The ``StateFn`` to be prepared, whose eigenphase will be
                 measured. If this parameter is omitted, no preparation circuit will be run and
                 input state will be the all-zero state in the computational basis.
-            evolution: An evolution object that generates a unitary from `hamiltonian`. If
-                `None`, then the default `PauliTrotterEvolution` is used.
+            evolution: An evolution converter that generates a unitary from ``hamiltonian``. If
+                ``None``, then the default ``PauliTrotterEvolution`` is used.
             bound: An upper bound on the absolute value of the eigenvalues of
-                `hamiltonian`. If omitted, then `hamiltonian` must be a Pauli sum, or a
-                PauliOp, in which case a bound will be computed. If `hamiltonian`
-                is a `MatrixOp`, then `bound` may not be `None`. The tighter the bound,
+                ``hamiltonian``. If omitted, then ``hamiltonian`` must be a Pauli sum, or a
+                ``PauliOp``, in which case a bound will be computed. If ``hamiltonian``
+                is a ``MatrixOp``, then ``bound`` may not be ``None``. The tighter the bound,
                 the higher the resolution of computed phases.
 
         Returns:
@@ -140,9 +140,9 @@ class HamiltonianPhaseEstimation:
             and diagnostic information.
 
         Raises:
-            ValueError: if `bound` is `None` and `hamiltonian` is not a Pauli sum (i.e. a
-                `PauliSumOp` or a `SummedOp` whose terms are `PauliOp`s.)
-            TypeError: if `evolution` is not of type `EvolutionBase`.
+            ValueError: If ``bound`` is ``None`` and ``hamiltonian`` is not a Pauli sum, i.e. a
+                ``PauliSumOp`` or a ``SummedOp`` whose terms are of type ``PauliOp``.
+            TypeError: If ``evolution`` is not of type ``EvolutionBase``.
         """
         if evolution is None:
             evolution = PauliTrotterEvolution()
