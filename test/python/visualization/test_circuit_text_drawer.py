@@ -1292,6 +1292,18 @@ class TestTextDrawerParams(QiskitTestCase):
         circuit.rx((pi - x) * (pi - y), 0)
         self.assertEqual(circuit.draw(output='text').single_string(), expected)
 
+    def test_text_utf8(self):
+        """Test that utf8 characters work in windows CI env."""
+        expected = '\n'.join(["     ┌─────────┐",
+                              "q_0: ┤ U2(φ,λ) ├",
+                              "     └─────────┘"])
+
+        phi, lam = Parameter('φ'), Parameter('λ')
+        circuit = QuantumCircuit(1)
+        circuit.u2(phi, lam, 0)
+        print(circuit)
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+
 
 class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
     """Test vertical_compression='low' """
