@@ -27,7 +27,14 @@ from qiskit.quantum_info.operators.symplectic import Clifford, Pauli
 
 
 class StabilizerState(QuantumState):
-    """Statevector class"""
+    """StabilizerState class. Based on the internal class:
+    :class:`~qiskit.quantum_info.Clifford`
+
+    References:
+        1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
+           Phys. Rev. A 70, 052328 (2004).
+           `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
+    """
 
     def __init__(self, data):
         """Initialize a StabilizerState object.
@@ -238,20 +245,17 @@ class StabilizerState(QuantumState):
     # -----------------------------------------------------------------------
     # Helper functions for calculating the measurement
     # -----------------------------------------------------------------------
-    def _measure_and_update(self, qubit, seed=None):
+    def _measure_and_update(self, qubit):
         """ Measure a single qubit and return outcome and post-measure state.
+
+        Note that this function uses the QuantumStates internal random
+        number generator for sampling the measurement outcome. The RNG
+        seed can be set using the :meth:`seed` method.
 
         Note that stabilizer state measurements only have three probabilities:
         (p0, p1) = (0.5, 0.5), (1, 0), or (0, 1)
         The random case happens if there is a row anti-commuting with Z[qubit]
         """
-
-        if seed is None:
-            rng = np.random.default_rng()
-        elif isinstance(seed, np.random.Generator):
-            rng = seed
-        else:
-            rng = np.random.default_rng(seed)
 
         num_qubits = self.data.num_qubits
 
@@ -263,7 +267,7 @@ class StabilizerState(QuantumState):
         if len(z_anticommuting) != 0:
             p_qubit = np.min(np.nonzero(self.data.stabilizer.X[:, qubit]))
             p_qubit += num_qubits
-            outcome = rng.integers(2)
+            outcome = self._rng.randint(2)
 
             # Updating the StabilizerState
             for i in range(2 * num_qubits):
