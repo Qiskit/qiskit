@@ -30,23 +30,39 @@ from .phase_estimator import PhaseEstimator
 class PhaseEstimation(PhaseEstimator):
     """Run the Quantum Phase Estimation (QPE) algorithm.
 
-    This runs a version of QPE with a multi-qubit register for reading the phase [1]. The main
-    inputs are the number of qubits in the phase-reading register, a state preparation circuit to
-    prepare an input state, and either
+    This runs QPE with a multi-qubit register for reading the phases [1]
+    of input states.
+
+    The algorithm takes as input a unitary :math:`U` and a state :math:`|\psi\rangle`,
+    which may be written
+    :math:
+
+        |\psi\rangle = \sum_j c_j |\phi_j\rangle,
+
+    where :math:`|\phi_j\rangle` are eigenstates of :math:`U`. We prepare the quantum register
+    in the state :math:`|\psi\rangle` then apply :math:`U` leaving the register in the state
+    :math:
+
+        U|\psi\rangle = \sum_j \exp(i \phi_j) c_j |\phi_j\rangle.
+
+    In the ideal case, one then measures the phase :math:`\phi_j` with probability
+    :math:`|c_j|^2`.  In practice, many (or all) of the bit strings may be measured due to
+    noise and the possibility that :math:`\phi_j` may not be representable exactly by the
+    output register. In the latter case the probability for each eigenphase will be spread
+    across bitstrings, with amplitudes that decrease with distance from the bitstring most
+    closely approximating the eigenphase.
+
+    The main inputs are the number of qubits in the phase-reading register, a state preparation
+    circuit to prepare an input state, and either
+
     1) A unitary that will act on the the input state, or
     2) A quantum-phase-estimation circuit in which the unitary is already embedded.
-    In case 1), an instance of `qiskit.circuit.PhaseEstimation`, a QPE circuit, containing the input
-    unitary will be constructed. After construction, the QPE circuit is run on a backend via the
-    `run` method, and the frequencies or counts of the phases represented by bitstrings are
-    recorded. The results are returned as an instance of
-    :class:`~qiskit.algorithms.phase_estimator_result.PhaseEstimationResult`.
 
-    If the input state is an eigenstate of the unitary, then in the ideal case, all probability is
-    concentrated on the bitstring corresponding to the eigenvalue of the input state. If the input
-    state is a superposition of eigenstates, then each bitstring is measured with a probability
-    corresponding to its weight in the superposition. In addition, if the phase is not representable
-    exactly by the phase-reading register, the probability will be spread across bitstrings, with an
-    amplitude that decreases with distance from the bitstring most closely approximating the phase.
+    In case 1), an instance of :class:`qiskit.circuit.PhaseEstimation`, a QPE circuit, containing the
+    input unitary will be constructed. After construction, the QPE circuit is run on a backend
+    via the `run` method, and the frequencies or counts of the phases represented by bitstrings
+    are recorded. The results are returned as an instance of
+    :class:`~qiskit.algorithms.phase_estimator_result.PhaseEstimationResult`.
 
     **Reference:**
 

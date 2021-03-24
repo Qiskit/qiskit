@@ -29,12 +29,38 @@ class HamiltonianPhaseEstimation:
     This class is nearly the same as :class:`~qiskit.algorithms.PhaseEstimator`, differing only
     in that the input in that class is a unitary operator, whereas here the input is a Hermitian
     operator from which a unitary will be obtained by scaling and exponentiating. The scaling is
-    performed in order to prevent the phases from wrapping around :math:`2\pi`. This class uses and
-    works together with :class:`~qiskit.algorithms.PhaseEstimationScale` to manage scaling the
-    Hamiltonian and the phases that are obtained by the QPE algorithm. This includes setting, or
-    computing, a bound on the eigenvalues of the operator, using this bound to obtain a scale
-    factor, scaling the operator, and shifting and scaling the measured phases to recover the
-    eigenvalues.
+    performed in order to prevent the phases from wrapping around :math:`2\pi`.
+    The problem of estimating eigenvalues :math:`\lambda_j` of the Hermitian operator
+    :math:`H` is solved by running a circuit representing
+
+    :math:
+
+        \exp(i b H ) |\psi\rangle = \sum_j \exp(i b \lambda_j ) c_j |\lambda_j\rangle,
+
+    where the input state is
+
+    :math:
+
+        |\psi\rangle = \sum_j c_j |\lambda_j\rangle
+
+    and :math:`\lambda_j` are the eigenvalues of :math:`H`.
+
+    Here, :math:`b` is a scaling factor sufficiently large to map positive :math:`\lambda` to
+    :math:`[0,\pi)` and negative :math:`\lambda` to :math:`[\pi,2\pi)`. Each time the circuit is
+    run, one measures a phase corresponding to :math:`lambda_j` with probability :math:`|c_j|^2`.
+
+    If :math:`H` is a Pauli sum, the bound :math`b` is computed from the sum of the absolute
+    values of the coefficients of the terms. There is no way to reliably recover eigenvalues
+    from phases very near the endpoints of these intervals. Because of this you should be aware
+    that for degenerate cases, such as :math:`H=Z`, the eigenvalues :math:`\pm 1` will be
+    mapped to the same phase, :math`\pi`, and so cannot be distinguished. In this case, you need
+    to specify a larger bound as an argument to the method `estimate`.
+
+    This class uses and works together with :class:`~qiskit.algorithms.PhaseEstimationScale` to
+    manage scaling the Hamiltonian and the phases that are obtained by the QPE algorithm. This
+    includes setting, or computing, a bound on the eigenvalues of the operator, using this
+    bound to obtain a scale factor, scaling the operator, and shifting and scaling the measured
+    phases to recover the eigenvalues.
 
     Note that, although we speak of "evolving" the state according the the Hamiltonian, in the
     present algorithm, we are not actually considering time evolution. Rather, the role of time is
@@ -48,6 +74,7 @@ class HamiltonianPhaseEstimation:
     [1]: Quantum phase estimation of multiple eigenvalues for small-scale (noisy) experiments
          T.E. O'Brien, B. Tarasinski, B.M. Terhal
          `arXiv:1809.09697 <https://arxiv.org/abs/1809.09697>`_
+
     """
 
     def __init__(self,
