@@ -776,7 +776,7 @@ class MatplotlibDrawer:
                 if (hasattr(op.op, 'params')
                         and not any(isinstance(param, np.ndarray) for param in op.op.params)
                         and len(op.op.params) > 0):
-                    param = get_param_str(op, 'mpl')
+                    param = get_param_str(op, 'mpl', ndigits=3)
                     if op.name == 'initialize':
                         param = '[%s]' % param
                     param = "${}$".format(param)
@@ -859,7 +859,7 @@ class MatplotlibDrawer:
                 # load param
                 if (op.type == 'op' and hasattr(op.op, 'params') and len(op.op.params) > 0
                         and not any(isinstance(param, np.ndarray) for param in op.op.params)):
-                    param = "{}".format(get_param_str(op, 'mpl'))
+                    param = "{}".format(get_param_str(op, 'mpl', ndigits=3))
                 else:
                     param = ''
 

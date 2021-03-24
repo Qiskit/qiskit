@@ -91,7 +91,7 @@ def get_gate_ctrl_text(op, drawer, style=None):
     return gate_text, ctrl_text
 
 
-def get_param_str(op, drawer):
+def get_param_str(op, drawer, ndigits=3):
     """Get the params as a string to add to the gate text display"""
     if (not hasattr(op.op, 'params')
             or any(isinstance(param, np.ndarray) for param in op.op.params)):
@@ -108,7 +108,7 @@ def get_param_str(op, drawer):
                 param_list.append('...')
                 break
             try:
-                param_list.append(pi_check(param, output=drawer, ndigits=3))
+                param_list.append(pi_check(param, output=drawer, ndigits=ndigits))
             except TypeError:
                 param_list.append(str(param))
 
