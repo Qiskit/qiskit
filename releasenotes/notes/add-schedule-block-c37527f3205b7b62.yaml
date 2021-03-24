@@ -33,10 +33,11 @@ features:
     by assigning a target duration value.
 deprecations:
   - |
-    :meth:`assign_parameters`, :meth:`is_parameterized`, and :meth:`parameters` are
-    being deprecated from :py:class:`~qiskit.pulse.channels.Channel`,
+    :meth:`assign_parameters` is being deprecated from :py:class:`~qiskit.pulse.channels.Channel`,
     :py:class:`~qiskit.pulse.library.Pulse`, :py:class:`~qiskit.pulse.instructions.Instruction`,
-    and their subclasses.
+    and their subclasses. :meth:`parameters` is also being deprecated from
+    :py:class:`~qiskit.pulse.channels.Channel` and
+    :py:class:`~qiskit.pulse.instructions.Instruction`.
 upgrade:
   - |
     In pulse programs, the parameter framework is replaced with the visitor pattern.
