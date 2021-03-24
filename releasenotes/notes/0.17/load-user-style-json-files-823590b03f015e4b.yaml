@@ -1,23 +1,26 @@
 ---
-fixes:
-  - |
-    The documentation for the :class:`~qiskit.circuit.QuantumCircuit` method
-    :meth:`~qiskit.circuit.QuantumCircuit.draw` and the
-    :func:`~qiskit.visualization.circuit_drawer` function were out-of-sync with
-    the state of the code. The documentation has been brought up-to-date. As
-    part of this update, 3 elements of the `mpl` drawer `style` parameter dictionary
-    have been removed since they were not implemented in the code and not needed.
-    These are `latexdrawerstyle`, `usepiformat`, and `compress`.
 features:
   - |
-    In previous versions of qiskit, there was a rudimentary functionality that
-    allowed users to load an `mpl` drawer `style` dictionary from a JSON file in
-    order to customize the colors and other display features of the `mpl` drawer.
-    This capability has now been expanded so that all `style` dictionaries are
-    loaded from JSON files, and users can copy and customize the standard style
-    JSON files included with qiskit - `default.json`, `iqx.json`, and `bw.json`.
-    Users can indicate the path to be searched for any user style JSON files by
-    setting ``circuit_mpl_style_path`` under the [Default] heading in the file
-    ``settings.conf`` in the ``~/.qiskit`` directory. Path entries should be
-    separated by `:`. For example,
-    ``circuit_mpl_style_path = ~/.qiskit:~/user_styles``
+    The matplotlib output type for the
+    :func:`~qiskit.visualization.circuit_drawer` and
+    the :meth:`~qiskit.circuit.QuantumCircuit.draw` method for the
+    :class:`~qiskit.circuit.QuantumCircuit` class now supports configuration
+    files for setting the visualization style. In previous releases, there was
+    basic functionality that allowed users to pass in a ``style`` kwarg that
+    took in a ``dict`` to customize the colors and other display features of
+    the ``mpl`` drawer. This has now been expanded so that these dictionaries
+    can be loaded from JSON files directly without needing to pass a dictionary.
+    This enables users to create new style files and use that style for
+    visualizations by passing the style filename as a string to the ``style``
+    kwarg (just like the included style JSON files:
+    `default.json <https://github.com/Qiskit/qiskit-terra/blob/master/qiskit/visualization/styles/default.json>`__,
+    `iqx.json <https://github.com/Qiskit/qiskit-terra/blob/master/qiskit/visualization/styles/iqx.json>`__,
+    and
+    `bw.json <https://github.com/Qiskit/qiskit-terra/blob/master/qiskit/visualization/styles/bw.json`__).
+
+    To leverage this feature you must set the ``circuit_mpl_style_path``
+    option in a user config file. This option should be set to the path you
+    want qiskit to search for style JSON files. If specifying multiple path
+    entries they should be separated by ``:``. For example, setting
+    ``circuit_mpl_style_path = ~/.qiskit:~/user_styles`` in a user config
+    file will look for JSON files in both ``~/.qiskit`` and ``~/user_styles``.
