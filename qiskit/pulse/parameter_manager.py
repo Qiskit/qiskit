@@ -29,7 +29,7 @@ multiple places at different layers, for example
 This complexity is due to tight coupling of program to underlying device Hamiltonian,
 i.e. variance of physical parameters of qubits and their coupling.
 If we want to define a program that can be used with arbitrary qubits,
-we should be able to parametrize every control parameters in the program
+we should be able to parametrize every control parameter in the program
 since they are basically qubit dependent, also varying from time to time.
 
 
