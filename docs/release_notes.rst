@@ -22,6 +22,43 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.24.1
+*************
+
+Terra 0.16.4
+============
+
+No change
+
+Aer 0.7.6
+=========
+
+No change
+
+Ignis 0.5.2
+===========
+
+No change
+
+Aqua 0.8.2
+==========
+
+No change
+
+IBM Q Provider 0.12.2
+=====================
+
+.. _Release Notes_IBMQ_0.12.2_New Features:
+
+Upgrade Notes
+-------------
+
+- :meth:`qiskit.providers.ibmq.IBMQBackend.defaults` now returns the pulse defaults for
+  the backend if the backend supports pulse. However, your provider may not support pulse
+  even if the backend does. The ``open_pulse`` flag in backend configuration indicates
+  whether the provider supports it.
+
+*************
 Qiskit 0.24.0
 *************
 
