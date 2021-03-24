@@ -19,8 +19,8 @@ from shutil import get_terminal_size
 import sys
 
 from qiskit.circuit import ControlledGate, Gate
-from qiskit.circuit import Reset as ResetInstruction
-from qiskit.circuit import Measure as MeasureInstruction
+from qiskit.circuit import Reset
+from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
@@ -395,7 +395,7 @@ class Ex(DirectOnQuWire):
         self.top_connect = top_connect
 
 
-class Reset(DirectOnQuWire):
+class ResetDisplay(DirectOnQuWire):
     """ Draws a reset gate"""
 
     def __init__(self, conditional=False):
@@ -909,9 +909,12 @@ class TextDrawing():
         conditional = False
         base_gate = getattr(instruction.op, 'base_gate', None)
 
-        gate_text, ctrl_text = get_gate_ctrl_text(instruction, 'text')
-        gate_text = TextDrawing.special_label(instruction.op) or gate_text
-        gate_text += get_param_str(instruction, 'text')
+        params = get_param_str(instruction, 'text')
+        if (not isinstance(instruction.op, (Measure, SwapGate, Reset)) and
+                not instruction.op._directive):
+            gate_text, ctrl_text = get_gate_ctrl_text(instruction, 'text')
+            gate_text = TextDrawing.special_label(instruction.op) or gate_text
+            gate_text = gate_text + params
 
         if instruction.condition is not None:
             # conditional
@@ -927,7 +930,7 @@ class TextDrawing():
                     layer.set_qubit(instruction.qargs[i], gate)
                     current_cons.append((actual_index, gate))
 
-        if isinstance(instruction.op, MeasureInstruction):
+        if isinstance(instruction.op, Measure):
             gate = MeasureFrom()
             layer.set_qubit(instruction.qargs[0], gate)
             if self.cregbundle:
@@ -949,13 +952,13 @@ class TextDrawing():
             gates = [Ex(conditional=conditional) for _ in range(len(instruction.qargs))]
             add_connected_gate(instruction, gates, layer, current_cons)
 
-        elif isinstance(instruction.op, ResetInstruction):
+        elif isinstance(instruction.op, Reset):
             # reset
-            layer.set_qubit(instruction.qargs[0], Reset(conditional=conditional))
+            layer.set_qubit(instruction.qargs[0], ResetDisplay(conditional=conditional))
 
         elif isinstance(instruction.op, RZZGate):
             # rzz
-            connection_label = "ZZ%s" % get_param_str(instruction, 'text')
+            connection_label = "ZZ%s" % params
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
@@ -974,8 +977,7 @@ class TextDrawing():
                 gates.append(Bullet(conditional=conditional))
             elif base_gate.name in ['u1', 'p']:
                 # cu1
-                connection_label = "%s%s" % (base_gate.name.upper(),
-                                             get_param_str(instruction, 'text'))
+                connection_label = "%s%s" % (base_gate.name.upper(), params)
                 gates.append(Bullet(conditional=conditional))
             elif base_gate.name == 'swap':
                 # cswap
@@ -983,7 +985,7 @@ class TextDrawing():
                 add_connected_gate(instruction, gates, layer, current_cons)
             elif base_gate.name == 'rzz':
                 # crzz
-                connection_label = "ZZ%s" % get_param_str(instruction, 'text')
+                connection_label = "ZZ%s" % params
                 gates += [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             elif len(rest) > 1:
                 top_connect = '┴' if controlled_top else None
@@ -995,8 +997,6 @@ class TextDrawing():
                 for index in range(min(indexes), max(indexes) + 1):
                     # Dummy element to connect the multibox with the bullets
                     current_cons.append((index, DrawElement('')))
-            elif base_gate.name == 'z':
-                gates.append(Bullet(conditional=conditional))
             else:
                 gates.append(BoxOnQuWire(gate_text, conditional=conditional))
             add_connected_gate(instruction, gates, layer, current_cons)

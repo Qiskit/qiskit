@@ -92,28 +92,29 @@ def get_gate_ctrl_text(op, drawer, style=None):
 
 
 def get_param_str(op, drawer):
-    """Get the params as a string to add to the display"""
+    """Get the params as a string to add to the gate text display"""
     if (not hasattr(op.op, 'params')
             or any(isinstance(param, np.ndarray) for param in op.op.params)):
         return ""
 
-    param_list = []
-    for count, param in enumerate(op.op.params):
-        # Latex drawer will cause an xy-pic error if param string
-        # is too long, so we limit it to 4 params.
-        if drawer == 'latex' and count > 3:
-            param_list.append('...')
-            break
-        try:
-            param_list.append(pi_check(param, output=drawer, ndigits=3))
-        except TypeError:
-            param_list.append(str(param))
+    if isinstance(op.op, Delay):
+        param_list = [f"{op.op.params[0]}[{op.op.unit}]"]
+    else:
+        param_list = []
+        for count, param in enumerate(op.op.params):
+            # Latex drawer will cause an xy-pic error if param string
+            # is too long, so we limit it to 4 params.
+            if drawer == 'latex' and count > 3:
+                param_list.append('...')
+                break
+            try:
+                param_list.append(pi_check(param, output=drawer, ndigits=3))
+            except TypeError:
+                param_list.append(str(param))
 
     param_str = ""
     if param_list:
-        if isinstance(op.op, Delay) and op.op.unit:
-            param_str = f"{param_list[0]}[{op.op.unit}]"
-        elif drawer == 'latex':
+        if drawer == 'latex':
             param_str = f"\\,(\\mathrm{{{','.join(param_list)}}})"
         elif drawer == 'mpl':
             param_str = f"{', '.join(param_list)}"
