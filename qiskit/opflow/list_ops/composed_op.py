@@ -110,6 +110,9 @@ class ComposedOp(ListOp):
     def eval(
         self, front: Optional[Union[str, dict, np.ndarray, OperatorBase, Statevector]] = None
     ) -> Union[OperatorBase, complex]:
+        if self._is_empty():
+            return 0.0
+
         # pylint: disable=cyclic-import
         from ..state_fns.state_fn import StateFn
 
@@ -145,6 +148,8 @@ class ComposedOp(ListOp):
 
     def reduce(self) -> OperatorBase:
         reduced_ops = [op.reduce() for op in self.oplist]
+        if len(reduced_ops) == 0:
+            return self.__class__([], coeff=self.coeff, abelian=self.abelian)
 
         def distribute_compose(l_arg, r):
             if isinstance(l_arg, ListOp) and l_arg.distributive:
