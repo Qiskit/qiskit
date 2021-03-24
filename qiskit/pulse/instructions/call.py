@@ -49,22 +49,16 @@ class Call(instruction.Instruction):
         from qiskit.pulse.schedule import ScheduleBlock, Schedule
 
         if not isinstance(subroutine, (ScheduleBlock, Schedule)):
-            raise PulseError(f'Subroutine {subroutine} is not acceptable data format.')
+            raise PulseError(f'Subroutine type {subroutine.__class__.__name__} cannot be called.')
+
+        value_dict = value_dict or dict()
 
         # initialize parameter template
         # TODO remove self._parameter_table
         self._arguments = dict()
-
         if subroutine.is_parameterized():
-            for param_expr in subroutine.parameters:
-                if value_dict:
-                    param_assigned = copy.copy(param_expr)
-                    for param in param_expr.parameters:
-                        if param in value_dict:
-                            param_assigned = param_assigned.assign(param, value_dict[param])
-                    self._arguments[param_expr] = param_assigned
-                else:
-                    self._arguments[param_expr] = param_expr
+            for param in subroutine.parameters:
+                self._arguments[param] = value_dict.get(param, param)
 
         # create cache data of parameter-assigned subroutine
         assigned_subroutine = subroutine.assign_parameters(
