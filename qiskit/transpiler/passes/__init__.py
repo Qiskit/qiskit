@@ -180,6 +180,7 @@ from .synthesis import UnitarySynthesis
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
 from .scheduling import TimeUnitAnalysis
+from .scheduling import RZXCalibrationBuilder
 
 # additional utility passes
 from .utils import CheckMap

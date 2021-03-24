@@ -1,17 +1,18 @@
 ---
 features:
   - |
-    The class :class:`~qiskit.extensions.quantum_initializer.initializer.Initialize`
-    now allows labels à la 
-    :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
-    This labels refer to basis states of the Pauli eigenstates Z, X, Y.
-    Notice the order of the labels is reversed with respect to the qubit index to
-    be applied to. Example label '01' initializes the qubit zero to `|1>` and the
-    qubit one to `|0>`.
-    
+    The :class:`~qiskit.extensions.Initialize` class in the
+    :mod:`qiskit.extensions` module now supports constructing directly from
+    a Pauli label (analogous to the
+    :meth:`qiskit.quantum_info.Statevector.from_label` method). The Pauli label
+    refer to basis states of the Pauli eigenstates Z, X, Y. These labels use
+    Qiskit's standard little-endian notation, for example a label of ``'01'``
+    would initialize qubit 0 to :math:`|1\rangle` and qubit 1 to
+    :math:`|0\rangle`.
+
     .. jupyter-execute::
     
-        from qiskit.extensions.quantum_initializer.initializer import Initialize
+        from qiskit.extensions import Initialize
         
         initialize = Initialize("10+-lr")
         initialize.definition.draw('mpl')
