@@ -37,7 +37,7 @@ These transformations are called to create ``Schedule``s from ``ScheduleBlock``s
 Canonicalization
 ================
 
-The canonicalization transforms convert  schedules to a form amenable for execution on
+The canonicalization transforms convert schedules to a form amenable for execution on
 Openpulse backends.
 
 .. autosummary::

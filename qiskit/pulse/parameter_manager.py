@@ -18,7 +18,7 @@ Background
 ==========
 
 In contrast to ``QuantumCircuit``, in pulse programs parameter objects can be stored in
-every places at different layers, for example
+multiple places at different layers, for example
 
 - program's variable: ``ScheduleBlock.alignment_context._context_params``
 
@@ -29,14 +29,14 @@ every places at different layers, for example
 This complexity is due to tight coupling of program to underlying device Hamiltonian,
 i.e. variance of physical parameters of qubits and their coupling.
 If we want to define a program that can be used with arbitrary qubits,
-we should be able to parametrize every control parameters in the program
-since they are basically qubit dependent, also varying from time to time.
+we should be able to parametrize every control parameter in the program
+since they are basically qubit dependent, and also vary over time.
 
 
 Implementation
 ==============
 
-Managing parameters in each object consisting a program, i.e. ``ParameterTable`` model,
+Managing parameters in each object within a program, i.e. the ``ParameterTable`` model,
 makes the framework quite complicated. In the ``ParameterManager`` class this module provides,
 the parameter assignment operation is performed by the visitor instance.
 

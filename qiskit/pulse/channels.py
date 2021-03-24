@@ -158,7 +158,7 @@ class Channel(metaclass=ABCMeta):
         return type(self) is type(other) and self._index == other._index
 
     def __hash__(self):
-        # this is used to equality check of unordered channels of schedule
+        # this is used for equality checks of unordered schedule channels
         # i.e. set(self.channels) == set(other.channels)
         return self._hash
 

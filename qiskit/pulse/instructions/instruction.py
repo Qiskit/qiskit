@@ -66,7 +66,7 @@ class Instruction(ABC):
                           DeprecationWarning)
 
         if channels is not None:
-            warnings.warn('Specifying ``operands`` in the constructor is deprecated. '
+            warnings.warn('Specifying ``channels`` in the constructor is deprecated. '
                           'All channels should be stored in ``operands``.',
                           DeprecationWarning)
 
