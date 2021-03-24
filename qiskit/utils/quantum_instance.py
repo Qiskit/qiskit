@@ -80,7 +80,8 @@ class QuantumInstance:
 
         Args:
             backend (Union['Backend', 'BaseBackend']): Instance of selected backend
-            shots: Number of repetitions of each circuit, for sampling
+            shots: Number of repetitions of each circuit, for sampling. This value is overriden by
+                the number of shot in the backend options, if they are set.
             seed_simulator: Random seed for simulators
             max_credits: Maximum credits to use
             basis_gates: List of basis gate names supported by the
@@ -123,12 +124,22 @@ class QuantumInstance:
         self._backend = backend
         self._pass_manager = pass_manager
 
-        # setup run config
+        # TODO: exchange this for a Backend instancecheck once Aer's simulators implement that
+        # interface
+        if hasattr(backend, 'options'):
+            if 'shots' in backend.options:
+                if shots != backend.options['shots']:
+                    logger.info('Overwriting the number of shots in the quantum instance with the '
+                                'settings from the backend.')
+                shots = backend.options.get('shots', 1024)
+
         if shots is not None:
+            # setup run config
             if self.is_statevector and shots != 1:
                 logger.info("statevector backend only works with shot=1, changing "
                             "shots from %s to 1.", shots)
                 shots = 1
+
             max_shots = self._backend.configuration().max_shots
             if max_shots is not None and shots > max_shots:
                 raise QiskitError('The maximum shots supported by the selected backend is {} '
