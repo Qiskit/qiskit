@@ -378,7 +378,7 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rx(params[1], q[0])
 
         op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
-        state_hess = Hessian(hess_method=method).convert(operator=op, params=params)
+        state_hess = Hessian(hess_method=method).convert(operator=op)
 
         values_dict = [{params[0]: np.pi / 4, params[1]: np.pi},
                        {params[0]: np.pi / 4, params[1]: np.pi / 4}]
@@ -514,7 +514,7 @@ class TestGradients(QiskitOpflowTestCase):
 
                 op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
                 nat_grad = NaturalGradient(grad_method=method, regularization=regularization)\
-                    .convert(operator=op, params=params)
+                    .convert(operator=op)
                 values_dict = [{params[0]: np.pi / 4, params[1]: np.pi / 2}]
                 correct_values = [[-2.36003979, 2.06503481]] \
                     if regularization == 'ridge' else [[-4.2, 0]]
@@ -763,11 +763,10 @@ class TestGradients(QiskitOpflowTestCase):
         shots = 8000
         if method == 'fin_diff':
             np.random.seed(8)
-            state_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.)).convert(
-                operator=op,
-                params=params)
+            state_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.))\
+                .convert(operator=op)
         else:
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
+            state_grad = Gradient(grad_method=method).convert(operator=op)
         values_dict = [{a: np.pi / 4, b: np.pi}, {params[0]: np.pi / 4, params[1]: np.pi / 4},
                        {params[0]: np.pi / 2, params[1]: np.pi / 4}]
         correct_values = [[-0.5 / np.sqrt(2), 1 / np.sqrt(2)], [-0.5 / np.sqrt(2) - 0.5, -1 / 2.],
@@ -979,7 +978,7 @@ class TestQFI(QiskitOpflowTestCase):
 
         # convert the circuit to a QFI object
         op = CircuitStateFn(qc)
-        qfi = QFI(qfi_method=method).convert(operator=op, params=[a, b])
+        qfi = QFI(qfi_method=method).convert(operator=op)
 
         # test for different values
         values_dict = [{a: np.pi / 4, b: 0.1},
