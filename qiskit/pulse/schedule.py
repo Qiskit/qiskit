@@ -40,7 +40,7 @@ from qiskit.utils.multiprocessing import is_main_process
 Interval = Tuple[int, int]
 """An interval type is a tuple of a start time (inclusive) and an end time (exclusive)."""
 
-TimeSlots = Dict[Channel, List[Tuple[int, int]]]
+TimeSlots = Dict[Channel, List[Interval]]
 """List of timeslots occupied by instructions for each channel."""
 
 ScheduleComponent = Union['Schedule', Instruction]

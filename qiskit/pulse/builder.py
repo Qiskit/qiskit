@@ -1899,9 +1899,6 @@ def macro(func: Callable):
         sched.draw()
 
 
-
-
-
     Args:
         func: The Python function to enable as a builder macro. There are no
             requirements on the signature of the function, any calls to pulse

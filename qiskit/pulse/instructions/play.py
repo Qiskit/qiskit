@@ -70,7 +70,7 @@ class Play(Instruction):
     @property
     def channels(self) -> Tuple[PulseChannel]:
         """Returns channels that this schedule uses."""
-        return self.channel,
+        return (self.channel, )
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:

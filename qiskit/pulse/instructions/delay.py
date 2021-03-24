@@ -58,7 +58,7 @@ class Delay(Instruction):
     @property
     def channels(self) -> Tuple[Channel]:
         """Returns channels that this schedule uses."""
-        return self.channel,
+        return (self.channel, )
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:
