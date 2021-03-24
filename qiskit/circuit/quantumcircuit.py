@@ -191,6 +191,9 @@ class QuantumCircuit:
         # Parameter table tracks instructions with variable parameters.
         self._parameter_table = ParameterTable()
 
+        # Cache to avoid re-sorting parameters
+        self._parameters = None
+
         self._layout = None
         self._global_phase = 0
         self.global_phase = global_phase
@@ -490,7 +493,7 @@ class QuantumCircuit:
             return self.repeat(power)
 
         # attempt conversion to gate
-        if len(self.parameters) > 0:
+        if self.num_parameters > 0:
             raise CircuitError('Cannot raise a parameterized circuit to a non-positive power '
                                'or matrix-power, please bind the free parameters: '
                                '{}'.format(self.parameters))
@@ -1021,6 +1024,7 @@ class QuantumCircuit:
         return instruction
 
     def _update_parameter_table(self, instruction):
+
         for param_index, param in enumerate(instruction.params):
             if isinstance(param, ParameterExpression):
                 current_parameters = self._parameter_table
@@ -1035,6 +1039,9 @@ class QuantumCircuit:
                             raise CircuitError(
                                 'Name conflict on adding parameter: {}'.format(parameter.name))
                         self._parameter_table[parameter] = [(instruction, param_index)]
+
+                        # clear cache if new parameter is added
+                        self._parameters = None
 
         return instruction
 
@@ -1824,22 +1831,25 @@ class QuantumCircuit:
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
         # parameters from gates
-        params = self._parameter_table.get_keys()
-
-        # parameters in global phase
-        if isinstance(self.global_phase, ParameterExpression):
-            params = params.union(self.global_phase.parameters)
-
-        # sort the parameters
-        sorted_by_name = sorted(list(params), key=functools.cmp_to_key(_compare_parameters))
+        if self._parameters is None:
+            unsorted = self._unsorted_parameters()
+            self._parameters = sorted(unsorted, key=functools.cmp_to_key(_compare_parameters))
 
         # return as parameter view, which implements the set and list interface
-        return ParameterView(sorted_by_name)
+        return ParameterView(self._parameters)
 
     @property
     def num_parameters(self):
         """Convenience function to get the number of parameter objects in the circuit."""
-        return len(self.parameters)
+        return len(self._unsorted_parameters())
+
+    def _unsorted_parameters(self):
+        """Efficiently get all parameters in the circuit, without any sorting overhead."""
+        parameters = set(self._parameter_table)
+        if isinstance(self.global_phase, ParameterExpression):
+            parameters.update(self.global_phase.parameters)
+
+        return parameters
 
     @deprecate_arguments({'param_dict': 'parameters'})
     def assign_parameters(self, parameters, inplace=False,
@@ -1925,7 +1935,7 @@ class QuantumCircuit:
 
             # check that all param_dict items are in the _parameter_table for this circuit
             params_not_in_circuit = [param_key for param_key in unrolled_param_dict
-                                     if param_key not in self.parameters]
+                                     if param_key not in self._unsorted_parameters()]
             if len(params_not_in_circuit) > 0:
                 raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
                     ', '.join(map(str, params_not_in_circuit))))
@@ -2018,6 +2028,9 @@ class QuantumCircuit:
         if (isinstance(self.global_phase, ParameterExpression) and
                 parameter in self.global_phase.parameters):
             self.global_phase = self.global_phase.assign(parameter, value)
+
+        # clear parameter cache
+        self._parameters = None
         self._assign_calibration_parameters(parameter, value)
 
     def _assign_calibration_parameters(self, parameter, value):
