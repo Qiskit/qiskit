@@ -207,6 +207,18 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         res = (~StateFn(op) @ StateFn(circuit)).eval()
         self.assertAlmostEqual(-1+0j, res)
 
+    def test_quantum_instance_with_backend_shots(self):
+        """Test sampling a circuit where the backend has shots attached."""
+        try:
+            from qiskit.providers.aer import QasmSimulator
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+
+        backend = QasmSimulator(shots=10)
+        sampler = CircuitSampler(backend)
+        res = sampler.convert(~Plus @ Plus).eval()
+        self.assertAlmostEqual(res, 1+0j, places=2)
+
 
 if __name__ == '__main__':
     unittest.main()
