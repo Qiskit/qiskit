@@ -25,7 +25,7 @@ features:
 
         block = ScheduleBlock(transform=AlignRight())
         block += Play(Gaussian(dur, 0.1, dur/4), DriveChannel(0))
-        block += Call(measure_sched)
+        block += Call(measure_sched)  # subroutine defined elsewhere
 
     this code defines an experiment scanning a Gaussian pulse's duration followed by
     a measurement ``measure_sched``, i.e. a Rabi experiment.
