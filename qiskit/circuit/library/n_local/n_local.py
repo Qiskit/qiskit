@@ -457,16 +457,6 @@ class NLocal(BlueprintCircuit):
         return num
 
     @property
-    def parameters(self) -> Set[Parameter]:
-        """Get the :class:`~qiskit.circuit.Parameter` objects in the circuit.
-
-        Returns:
-            A set containing the unbound circuit parameters.
-        """
-        self._build()
-        return super().parameters
-
-    @property
     def reps(self) -> int:
         """The number of times rotation and entanglement block are repeated.
 

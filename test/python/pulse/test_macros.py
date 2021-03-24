@@ -42,8 +42,8 @@ class TestMeasure(QiskitTestCase):
                                backend=self.backend)
         expected = Schedule(
             self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
-            Acquire(10, AcquireChannel(0), MemorySlot(0)),
-            Acquire(10, AcquireChannel(1), MemorySlot(1)))
+            Acquire(10, AcquireChannel(0), MemorySlot(0)))
+
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_measure_sched_with_qubit_mem_slots(self):
@@ -53,8 +53,7 @@ class TestMeasure(QiskitTestCase):
                                qubit_mem_slots={0: 1})
         expected = Schedule(
             self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
-            Acquire(10, AcquireChannel(0), MemorySlot(1)),
-            Acquire(10, AcquireChannel(1), MemorySlot(0)))
+            Acquire(10, AcquireChannel(0), MemorySlot(1)))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_measure_sched_with_meas_map(self):
@@ -67,8 +66,7 @@ class TestMeasure(QiskitTestCase):
                                                   meas_map={0: [0, 1], 1: [0, 1]})
         expected = Schedule(
             self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
-            Acquire(10, AcquireChannel(0), MemorySlot(0)),
-            Acquire(10, AcquireChannel(1), MemorySlot(1)))
+            Acquire(10, AcquireChannel(0), MemorySlot(0)))
         self.assertEqual(sched_with_meas_map_list.instructions, expected.instructions)
         self.assertEqual(sched_with_meas_map_dict.instructions, expected.instructions)
 
