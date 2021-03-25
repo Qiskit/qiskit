@@ -23,7 +23,7 @@ from qiskit import QuantumCircuit, BasicAer, execute
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import Statevector
 
-from qiskit.opflow import (StateFn, Zero, One, Plus, Minus, PrimitiveOp,
+from qiskit.opflow import (StateFn, Zero, One, Plus, Minus, PrimitiveOp, CircuitOp,
                            SummedOp, H, I, Z, X, Y, CX, CircuitStateFn, DictToCircuitSum)
 
 
@@ -207,6 +207,16 @@ class TestStateConstruction(QiskitOpflowTestCase):
         bound = op.assign_parameters(dict(zip(theta, [0.2, 0.3])))
         self.assertEqual(bound.coeff, 0.3)
         self.assertEqual(bound.primitive.coeff, 0.2)
+
+    # #6003
+    def test_flatten_statefn_composed_with_composed_op(self):
+        """Test that composing a StateFn with a ComposedOp constructs a single ComposedOp
+        """
+        circuit = QuantumCircuit(1)
+        vector = [1, 0]
+        ex = ~StateFn(I) @ (CircuitOp(circuit) @ StateFn(vector))
+        self.assertEqual(len(ex), 3)
+        self.assertEqual(ex.eval(), 1)
 
 
 if __name__ == '__main__':
