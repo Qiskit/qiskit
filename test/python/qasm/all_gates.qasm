@@ -5,6 +5,10 @@ creg c[3];
 
 // note that the order and where the gates are applied to is important!
 
+// "abstract" gates (for legacy)
+U(0.2,0.1,0.6) q[0];  // Creates u
+CX q[0], q[1];        // Creates cx
+
 // the hardware primitives
 u3(0.2,0.1,0.6) q[0];
 u2(0.1,0.6) q[0];
