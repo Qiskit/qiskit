@@ -32,7 +32,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
 from qiskit.circuit import Parameter, Gate, Qubit, Clbit
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate
+from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
 from qiskit.transpiler import Layout, CouplingMap
@@ -450,9 +450,8 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
-        expected_qc = QuantumCircuit(qr, global_phase=-1 * theta / 2.0)
-        expected_qc.append(U1Gate(theta), [qr[0]])
-
+        expected_qc = QuantumCircuit(qr)
+        expected_qc.append(RZGate(theta), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_parameterized_circuit_for_device(self):
@@ -484,8 +483,8 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
-        expected_qc = QuantumCircuit(qr, global_phase=-1 * square / 2.0)
-        expected_qc.append(U1Gate(square), [qr[0]])
+        expected_qc = QuantumCircuit(qr)
+        expected_qc.append(RZGate(square), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_parameter_expression_circuit_for_device(self):
