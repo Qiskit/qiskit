@@ -183,6 +183,25 @@ class Call(instruction.Instruction):
         """Parameters dictionary to be assigned to subroutine."""
         return self._arguments
 
+    @arguments.setter
+    def arguments(self, new_arguments: Dict[ParameterExpression, ParameterValueType]):
+        """Set new arguments.
+
+        Args:
+            new_arguments: Dictionary of new parameter value mapping to update.
+
+        Raises:
+            PulseError: When new arguments doesn't match with existing arguments.
+        """
+        # validation
+        if new_arguments.keys() != self._arguments.keys():
+            new_arg_names = ', '.join(map(repr, new_arguments.keys()))
+            old_arg_names = ', '.join(map(repr, self.arguments.keys()))
+            raise PulseError('Key mismatch between new arguments and existing arguments. '
+                             f'{new_arg_names} != {old_arg_names}')
+
+        self._arguments = new_arguments
+
     def _get_arg_hash(self):
         """A helper function to generate hash of parameters."""
         return hash(tuple(self.arguments.items()))

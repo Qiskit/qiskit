@@ -137,7 +137,7 @@ class ParameterSetter(NodeVisitor):
         """
         # accessing to protected member
         node._blocks = [self.visit(block) for block in node.instructions]
-        node._alignment_context = self.visit(node.alignment_context)
+        node._alignment_context = self.visit_AlignmentKind(node.alignment_context)
 
         self._update_parameter_manager(node)
         return node
@@ -145,7 +145,9 @@ class ParameterSetter(NodeVisitor):
     def visit_Schedule(self, node: Schedule):
         """Visit ``Schedule``. Recursively visit schedule children and overwrite."""
         # accessing to private member
+        # TODO: consider updating Schedule to handle this more gracefully
         node._Schedule__children = [(t0, self.visit(sched)) for t0, sched in node.instructions]
+        node._renew_timeslots()
 
         self._update_parameter_manager(node)
         return node
@@ -167,12 +169,13 @@ class ParameterSetter(NodeVisitor):
             and bound parameters until execution. The parameter assignment operation doesn't
             immediately override its operand data.
         """
-        new_table = copy(node.arguments)
+        if node.is_parameterized():
+            new_table = copy(node.arguments)
 
-        for parameter, value in new_table.items():
-            if isinstance(value, ParameterExpression):
-                new_table[parameter] = self._assign_parameter_expression(value)
-        node._arguments = new_table
+            for parameter, value in new_table.items():
+                if isinstance(value, ParameterExpression):
+                    new_table[parameter] = self._assign_parameter_expression(value)
+            node.arguments = new_table
 
         return node
 
@@ -182,7 +185,8 @@ class ParameterSetter(NodeVisitor):
         .. note:: All parametrized object should be stored in the operands.
             Otherwise parameter cannot be detected.
         """
-        node._operands = tuple(self.visit(op) for op in node.operands)
+        if node.is_parameterized():
+            node._operands = tuple(self.visit(op) for op in node.operands)
 
         return node
 

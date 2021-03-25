@@ -580,6 +580,12 @@ class Schedule:
         self._remove_timeslots(time, old)
         self._add_timeslots(time, new)
 
+    def _renew_timeslots(self):
+        """Regenerate timeslots based on current instructions."""
+        self._timeslots.clear()
+        for t0, inst in self.instructions:
+            self._add_timeslots(t0, inst)
+
     def replace(self,
                 old: ScheduleComponent,
                 new: ScheduleComponent,
@@ -637,23 +643,27 @@ class Schedule:
         Raises:
             PulseError: If the ``Schedule`` after replacements will has a timing overlap.
         """
+        from qiskit.pulse.parameter_manager import ParameterManager
+
         new_children = []
+        new_parameters = ParameterManager()
+
         for time, child in self._children:
             if child == old:
                 new_children.append((time, new))
-                if inplace:
-                    self._replace_timeslots(time, old, new)
+                new_parameters.update_parameter_table(new)
             else:
                 new_children.append((time, child))
+                new_parameters.update_parameter_table(child)
 
         if inplace:
             self.__children = new_children
-            self._parameter_manager._parameters.clear()
-            self._parameter_manager.update_parameter_table(self)
+            self._parameter_manager = new_parameters
+            self._renew_timeslots()
             return self
         else:
             try:
-                return Schedule(*new_children, name=self.name, metadata=self.metadata.copy())
+                return Schedule(*new_children)
             except PulseError as err:
                 raise PulseError(
                     'Replacement of {old} with {new} results in '
