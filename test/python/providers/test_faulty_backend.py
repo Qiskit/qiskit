@@ -47,7 +47,7 @@ class FaultyGate13BackendTestCase(QiskitTestCase):
         gates = self.backend.properties().faulty_gates()
         self.assertEqual(len(gates), 2)
         self.assertEqual([gate.gate for gate in gates], ['cx', 'cx'])
-        self.assertEqual([gate.qubits for gate in gates], [[1, 3], [3, 1]])
+        self.assertEqual(sorted([gate.qubits for gate in gates]), [[1, 3], [3, 1]])
 
 
 class FaultyGate01BackendTestCase(QiskitTestCase):
@@ -65,4 +65,4 @@ class FaultyGate01BackendTestCase(QiskitTestCase):
         gates = self.backend.properties().faulty_gates()
         self.assertEqual(len(gates), 2)
         self.assertEqual([gate.gate for gate in gates], ['cx', 'cx'])
-        self.assertEqual([gate.qubits for gate in gates], [[0, 1], [1, 0]])
+        self.assertEqual(sorted([gate.qubits for gate in gates]), [[0, 1], [1, 0]])
