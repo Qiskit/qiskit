@@ -580,18 +580,6 @@ class Schedule:
         self._remove_timeslots(time, old)
         self._add_timeslots(time, new)
 
-    def _renew_timeslots(self):
-        """Regenerate timeslots based on updated instructions.
-
-        .. note:: This method is only called by a visitor function associated with the
-            ``ParameterManager``, when parameters are assigned to the schedule.
-            This method regenerates timeslots based on new children,
-            because instruction channel index may be parametrized and updated.
-        """
-        self._timeslots.clear()
-        for t0, inst in self._children:
-            self._add_timeslots(t0, inst)
-
     def replace(self,
                 old: ScheduleComponent,
                 new: ScheduleComponent,
@@ -660,11 +648,8 @@ class Schedule:
 
         if inplace:
             self.__children = new_children
-            new_parameters = set()
-            for _, child in new_children:
-                for param in child.parameters:
-                    new_parameters.add(param)
-            self._parameter_manager._parameters = new_parameters
+            self._parameter_manager._parameters.clear()
+            self._parameter_manager.update_parameter_table(self)
             return self
         else:
             try:
@@ -693,11 +678,17 @@ class Schedule:
         Returns:
             Schedule with updated parameters.
         """
-        return self._parameter_manager.assign_parameters(
+        assigned_sched = self._parameter_manager.assign_parameters(
             pulse_program=self,
             value_dict=value_dict,
             inplace=inplace
         )
+        # regenerate timeslots
+        assigned_sched._timeslots.clear()
+        for t0, inst in assigned_sched.instructions:
+            assigned_sched._add_timeslots(t0, inst)
+
+        return assigned_sched
 
     def get_parameters(self,
                        parameter_name: str) -> List[Parameter]:
@@ -1410,10 +1401,10 @@ def _common_method(*classes):
     """A function decorator to attach the function to specified classes as a method.
 
     .. note:: For developer: A method attached through this decorator may hurt readability
-        of the codebase, because the method may not be detected by code editor.
+        of the codebase, because the method may not be detected by a code editor.
         Thus, this decorator should be used to a limited extent, i.e. huge helper method.
         By using this decorator wisely, we can reduce code maintenance overhead without
-        loosing readability of codebase.
+        loosing readability of the codebase.
     """
     def decorator(method):
         @functools.wraps(method)
