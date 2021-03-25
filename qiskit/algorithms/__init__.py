@@ -117,7 +117,7 @@ Algorithms that can find the minimum eigenvalue of an operator.
    VQE
 
 Phase Estimators
-++++++++++++++++++++
+++++++++++++++++
 Algorithms that estimate the phases of eigenstates of a unitary.
 
 .. autosummary::

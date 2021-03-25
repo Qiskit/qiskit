@@ -66,7 +66,7 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
                 returned keys are bit strings.
 
         Raises:
-            ValueError: if as_float` is `False` and `scaled` is `True`.
+            ValueError: if `as_float` is `False` and `scaled` is `True`.
 
         Returns:
             A dict of filtered phases.

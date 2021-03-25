@@ -27,10 +27,12 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     """Tests for obtaining eigenvalues from phase estimation"""
 
     def hamiltonian_pe(self, hamiltonian, state_preparation=None, num_evaluation_qubits=6,
-                       backend=qiskit.BasicAer.get_backend('statevector_simulator'),
+                       backend=None,
                        evolution=None,
                        bound=None):
         """Run HamiltonianPhaseEstimation and return result with all  phases."""
+        if backend is None:
+            backend = qiskit.BasicAer.get_backend('statevector_simulator')
         quantum_instance = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         phase_est = HamiltonianPhaseEstimation(
             num_evaluation_qubits=num_evaluation_qubits,
@@ -215,10 +217,12 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
             self.assertEqual(phase, 0.0)
 
     def phase_estimation(self, unitary_circuit, state_preparation=None, num_evaluation_qubits=6,
-                         backend=qiskit.BasicAer.get_backend('qasm_simulator')):
+                         backend=None):
         """Run phase estimation with operator, eigenvalue pair `unitary_circuit`,
         `state_preparation`. Return all results
         """
+        if backend is None:
+            backend = qiskit.BasicAer.get_backend('statevector_simulator'),
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         phase_est = PhaseEstimation(num_evaluation_qubits=num_evaluation_qubits,
                                     quantum_instance=qi)
