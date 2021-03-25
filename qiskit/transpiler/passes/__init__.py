@@ -83,6 +83,7 @@ Scheduling
 
    ALAPSchedule
    ASAPSchedule
+   RZXCalibrationBuilder
 
 Circuit Analysis
 ================
