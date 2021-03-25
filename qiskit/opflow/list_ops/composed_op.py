@@ -12,16 +12,17 @@
 
 """ ComposedOp Class """
 
-from typing import List, Union, cast, Optional
-from functools import reduce, partial
+from functools import partial, reduce
+from typing import List, Optional, Union, cast
+
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
-
-from ..exceptions import OpflowError
-from ..operator_base import OperatorBase
-from .list_op import ListOp
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.quantum_info import Statevector
 
 
 class ComposedOp(ListOp):
@@ -33,7 +34,7 @@ class ComposedOp(ListOp):
 
     def __init__(self,
                  oplist: List[OperatorBase],
-                 coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+                 coeff: Union[complex, ParameterExpression] = 1.0,
                  abelian: bool = False) -> None:
         """
         Args:
@@ -77,7 +78,7 @@ class ComposedOp(ListOp):
         raise OpflowError('Conversion to_circuit supported only for operators, where a single '
                           'underlying circuit can be produced.')
 
-    def adjoint(self) -> OperatorBase:
+    def adjoint(self) -> "ComposedOp":
         return ComposedOp([op.adjoint() for op in reversed(self.oplist)], coeff=self.coeff)
 
     def compose(self, other: OperatorBase,
@@ -106,9 +107,12 @@ class ComposedOp(ListOp):
 
         return ComposedOp(new_self.oplist + [other], coeff=new_self.coeff)
 
-    def eval(self,
-             front: Union[str, dict, np.ndarray,
-                          OperatorBase] = None) -> Union[OperatorBase, float, complex]:
+    def eval(
+        self, front: Optional[Union[str, dict, np.ndarray, OperatorBase, Statevector]] = None
+    ) -> Union[OperatorBase, complex]:
+        if self._is_empty():
+            return 0.0
+
         # pylint: disable=cyclic-import
         from ..state_fns.state_fn import StateFn
 
@@ -144,6 +148,8 @@ class ComposedOp(ListOp):
 
     def reduce(self) -> OperatorBase:
         reduced_ops = [op.reduce() for op in self.oplist]
+        if len(reduced_ops) == 0:
+            return self.__class__([], coeff=self.coeff, abelian=self.abelian)
 
         def distribute_compose(l_arg, r):
             if isinstance(l_arg, ListOp) and l_arg.distributive:
