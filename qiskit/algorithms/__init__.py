@@ -116,6 +116,20 @@ Algorithms that can find the minimum eigenvalue of an operator.
    QAOA
    VQE
 
+Phase Estimators
+++++++++++++++++
+Algorithms that estimate the phases of eigenstates of a unitary.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   HamiltonianPhaseEstimation
+   HamiltonianPhaseEstimationResult
+   PhaseEstimationScale
+   PhaseEstimation
+   PhaseEstimationResult
+
 Exceptions
 ==========
 
@@ -141,6 +155,8 @@ from .factorizers import Shor, ShorResult
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
                                     NumPyMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
+from .phase_estimators import (HamiltonianPhaseEstimation, HamiltonianPhaseEstimationResult,
+                               PhaseEstimationScale, PhaseEstimation, PhaseEstimationResult)
 from .exceptions import AlgorithmError
 
 __all__ = [
@@ -172,5 +188,10 @@ __all__ = [
     'NumPyMinimumEigensolver',
     'MinimumEigensolver',
     'MinimumEigensolverResult',
+    'HamiltonianPhaseEstimation',
+    'HamiltonianPhaseEstimationResult',
+    'PhaseEstimationScale',
+    'PhaseEstimation',
+    'PhaseEstimationResult',
     'AlgorithmError',
 ]
