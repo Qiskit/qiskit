@@ -66,26 +66,18 @@ class ASAPSchedule(TransformationPass):
                     idle_duration = until - qubit_time_available[q]
                     new_dag.apply_operation_back(Delay(idle_duration, unit), [q])
 
-        bit_indices = {bit: index
-                       for bits in [new_dag.qubits, new_dag.clbits]
-                       for index, bit in enumerate(bits)}
-
         for node in dag.topological_op_nodes():
             start_time = max(qubit_time_available[q] for q in node.qargs)
             pad_with_delays(node.qargs, until=start_time, unit=time_unit)
 
-            duration = self.durations.get(node.op,
-                                          [bit_indices[qarg] for qarg in node.qargs],
-                                          unit=time_unit)
+            new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
 
-            # set duration for each instruction (tricky but necessary)
-            new_op = node.op.copy()  # need different op instance to store duration
-            new_op.duration = duration
-            new_op.unit = time_unit
+            if node.op.duration is None:
+                indices = [n.index for n in node.qargs]
+                raise TranspilerError(f"Duration of {node.op.name} on qubits "
+                                      f"{indices} is not found.")
 
-            new_dag.apply_operation_back(new_op, node.qargs, node.cargs, node.condition)
-
-            stop_time = start_time + duration
+            stop_time = start_time + node.op.duration
             # update time table
             for q in node.qargs:
                 qubit_time_available[q] = stop_time

@@ -24,6 +24,9 @@ class TimeUnitConversion(TransformationPass):
     """Choose a time unit to be used in the following time-aware passes,
     and make all circuit time units consistent with that.
 
+    This pass will add a .duration metadata to each op whose duration is known,
+    which will be used by subsequent scheduling passes for scheduling.
+
     If dt (dt in seconds) is known to transpiler, the unit 'dt' is chosen. Otherwise,
     the unit to be selected depends on what units are used in delays and instruction durations:
     * 's': if they are all in SI units.
@@ -73,12 +76,19 @@ class TimeUnitConversion(TransformationPass):
                                       "and dt unit must not be mixed when dt is not supplied.")
 
         # Make units consistent
-        for delay_node in dag.op_nodes(op=Delay):
-            delay_node.op.duration = self.inst_durations.get(
-                    delay_node.op,
-                    [0],  # dummy qubit, doesn't matter
-                    unit=time_unit)
-            delay_node.op.unit = time_unit
+        bit_indices = {bit: index
+                       for bits in [dag.qubits, dag.clbits]
+                       for index, bit in enumerate(bits)}
+
+        for node in dag.op_nodes():
+            try:
+                node.op.duration = self.inst_durations.get(
+                        node.op,
+                        [bit_indices[qarg] for qarg in node.qargs],
+                        unit=time_unit)
+                node.op.unit = time_unit
+            except TranspilerError:
+                pass 
 
         self.property_set['time_unit'] = time_unit
         return dag
