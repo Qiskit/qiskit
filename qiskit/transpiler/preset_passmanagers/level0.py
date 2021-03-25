@@ -41,7 +41,7 @@ from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
-from qiskit.transpiler.passes import TimeUnitAnalysis
+from qiskit.transpiler.passes import TimeUnitConversion
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import Error
@@ -153,9 +153,10 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _direction = [GateDirection(coupling_map)]
 
-    # 7. Schedule the circuit only when scheduling_method is supplied
+    # 7. Unify all durations (either SI, or convert to dt if known)
+    # Schedule the circuit only when scheduling_method is supplied
+    _scheduling = [TimeUnitConversion(instruction_durations)]
     if scheduling_method:
-        _scheduling = [TimeUnitAnalysis(instruction_durations)]
         if scheduling_method in {'alap', 'as_late_as_possible'}:
             _scheduling += [ALAPSchedule(instruction_durations)]
         elif scheduling_method in {'asap', 'as_soon_as_possible'}:
@@ -177,6 +178,5 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm0.append(_direction_check)
         pm0.append(_direction, condition=_direction_condition)
         pm0.append(_unroll)
-    if scheduling_method:
-        pm0.append(_scheduling)
+    pm0.append(_scheduling)
     return pm0

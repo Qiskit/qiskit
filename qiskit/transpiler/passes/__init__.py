@@ -179,7 +179,7 @@ from .synthesis import UnitarySynthesis
 # circuit scheduling
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
-from .scheduling import TimeUnitAnalysis
+from .scheduling import TimeUnitConversion
 
 # additional utility passes
 from .utils import CheckMap

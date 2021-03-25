@@ -160,14 +160,6 @@ class TestScheduledCircuit(QiskitTestCase):
                               instruction_durations=[('bell', [0, 1], 1000)])
         self.assertEqual(scheduled.duration, 1500)
 
-    def test_transpile_delay_circuit_without_scheduling_method(self):
-        qc = QuantumCircuit(2)
-        qc.h(0)
-        qc.delay(500, 1)
-        qc.cx(0, 1)
-        transpiled = transpile(qc, backend=self.backend_with_dt)
-        self.assertEqual(transpiled.duration, 2132)
-
     def test_transpile_delay_circuit_without_scheduling_method_or_durs(self):
         qc = QuantumCircuit(2)
         qc.h(0)
@@ -316,7 +308,7 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(circ.duration, None)  # not scheduled
         qobj = assemble(circ, self.simulator_backend)
         self.assertEqual(qobj.experiments[0].instructions[0].name, "delay")
-        self.assertEqual(qobj.experiments[0].instructions[0].params[0], 100)
+        self.assertEqual(qobj.experiments[0].instructions[0].params[0], 1e-7)
 
     def test_transpile_and_assemble_t1_circuit_for_simulator(self):
         """Check if no scheduling is done in transpiling for simulator backends"""
@@ -328,4 +320,4 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(circ.duration, None)  # not scheduled
         qobj = assemble(circ, self.simulator_backend)
         self.assertEqual(qobj.experiments[0].instructions[1].name, "delay")
-        self.assertEqual(qobj.experiments[0].instructions[1].params[0], 0.1)
+        self.assertAlmostEqual(qobj.experiments[0].instructions[1].params[0], 1e-7)

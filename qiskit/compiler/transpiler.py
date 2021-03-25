@@ -432,10 +432,10 @@ def _parse_transpile_args(circuits, backend,
     output_name = _parse_output_name(output_name, circuits)
     callback = _parse_callback(callback, num_circuits)
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
-    scheduling_method = _parse_scheduling_method(backend, scheduling_method, dt, circuits)
-    if scheduling_method and not durations:
-        raise TranspilerError("Transpiling a circuit with a scheduling method or with delay "
-                              "instructions requires a backend or instruction_durations.")
+    scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
+    if scheduling_method and any(d is None for d in durations):
+        raise TranspilerError("Transpiling a circuit with a scheduling method"
+                              "requires a backend or instruction_durations.")
 
     list_transpile_args = []
     for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
@@ -629,24 +629,9 @@ def _parse_translation_method(translation_method, num_circuits):
     return translation_method
 
 
-def _parse_scheduling_method(backend, scheduling_method, dt, circuits):
-    """If there is a delay in any circuit, implicitly add a default scheduling method."""
-    def has_delay(circuit):
-        for inst, _, _ in circuit:
-            if isinstance(inst, Delay):
-                return True
-        return False
-
-    if scheduling_method is None:
-        backend_has_dt = backend is not None and hasattr(backend.configuration(), "dt")
-        if backend_has_dt or dt:
-            for circ in circuits:
-                if has_delay(circ):
-                    scheduling_method = 'alap'
-                    break
-
+def _parse_scheduling_method(scheduling_method, num_circuits):
     if not isinstance(scheduling_method, list):
-        scheduling_method = [scheduling_method] * len(circuits)
+        scheduling_method = [scheduling_method] * num_circuits
     return scheduling_method
 
 
