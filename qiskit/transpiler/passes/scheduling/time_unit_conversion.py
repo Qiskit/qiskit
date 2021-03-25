@@ -79,16 +79,16 @@ class TimeUnitConversion(TransformationPass):
         bit_indices = {bit: index
                        for bits in [dag.qubits, dag.clbits]
                        for index, bit in enumerate(bits)}
-
         for node in dag.op_nodes():
             try:
+                node.op = node.op.copy()
                 node.op.duration = self.inst_durations.get(
                         node.op,
-                        [bit_indices[qarg] for qarg in node.qargs],
+                        [q.index for q in node.qargs],
                         unit=time_unit)
                 node.op.unit = time_unit
             except TranspilerError:
-                pass 
+                pass
 
         self.property_set['time_unit'] = time_unit
         return dag

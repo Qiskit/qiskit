@@ -13,7 +13,7 @@
 """ALAP Scheduling."""
 from collections import defaultdict
 from typing import List
-
+from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
@@ -23,7 +23,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 class ALAPSchedule(TransformationPass):
     """ALAP Scheduling."""
 
-    def __init__(self, durations):
+    def __init__(self, durations, time_unit=None):
         """ALAPSchedule initializer.
 
         Args:
@@ -31,13 +31,15 @@ class ALAPSchedule(TransformationPass):
         """
         super().__init__()
         self.durations = durations
+        self.time_unit = time_unit
+        # ensure op node durations are attached and in consistent unit
+        self.requires.append(TimeUnitConversion(durations))
 
-    def run(self, dag, time_unit=None):  # pylint: disable=arguments-differ
+    def run(self, dag):
         """Run the ALAPSchedule pass on `dag`.
 
         Args:
             dag (DAGCircuit): DAG to schedule.
-            time_unit (str): Time unit to be used in scheduling: 'dt' or 's'.
 
         Returns:
             DAGCircuit: A scheduled DAG.
@@ -48,8 +50,8 @@ class ALAPSchedule(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('ALAP schedule runs on physical circuits only')
 
-        if not time_unit:
-            time_unit = self.property_set['time_unit']
+        if not self.time_unit:
+            self.time_unit = self.property_set['time_unit']
 
         new_dag = DAGCircuit()
         for qreg in dag.qregs.values():
@@ -68,7 +70,7 @@ class ALAPSchedule(TransformationPass):
 
         for node in reversed(list(dag.topological_op_nodes())):
             start_time = max(qubit_time_available[q] for q in node.qargs)
-            pad_with_delays(node.qargs, until=start_time, unit=time_unit)
+            pad_with_delays(node.qargs, until=start_time, unit=self.time_unit)
 
             new_dag.apply_operation_front(node.op, node.qargs, node.cargs, node.condition)
 
@@ -76,7 +78,7 @@ class ALAPSchedule(TransformationPass):
                 indices = [n.index for n in node.qargs]
                 raise TranspilerError(f"Duration of {node.op.name} on qubits "
                                       f"{indices} is not found.")
- 
+
             stop_time = start_time + node.op.duration
             # update time table
             for q in node.qargs:
@@ -84,10 +86,10 @@ class ALAPSchedule(TransformationPass):
 
         working_qubits = qubit_time_available.keys()
         circuit_duration = max(qubit_time_available[q] for q in working_qubits)
-        pad_with_delays(new_dag.qubits, until=circuit_duration, unit=time_unit)
+        pad_with_delays(new_dag.qubits, until=circuit_duration, unit=self.time_unit)
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
         new_dag.duration = circuit_duration
-        new_dag.unit = time_unit
+        new_dag.unit = self.time_unit
         return new_dag
