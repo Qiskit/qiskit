@@ -13,12 +13,12 @@
 """Call instruction that represents calling a schedule as a subroutine."""
 
 from typing import Optional, Union, Dict, Tuple, Any, Set
-import copy
+
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-from qiskit.pulse.instructions import instruction
-from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.instructions import instruction
+from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
 
 
 class Call(instruction.Instruction):
