@@ -113,9 +113,6 @@ class SabreLayout(AnalysisPass):
             logger.info('new initial layout')
             logger.info(initial_layout)
 
-        for qreg in dag.qregs.values():
-            initial_layout.add_register(qreg)
-
         self.property_set['layout'] = initial_layout
 
     def _layout_and_route_passmanager(self, initial_layout):
