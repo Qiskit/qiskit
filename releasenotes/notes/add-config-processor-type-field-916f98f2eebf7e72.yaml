@@ -4,5 +4,5 @@ features:
     Added the field ``processor_type`` to the
     :class:`qiskit.providers.models.QasmBackendConfiguration`. This contains information
     on the backend's chip with the form
-    ``{"family": <str>, "revision": <number>, segment: <str>}``. For example
-    ``{"family": "Canary", "revision": 1.0, segment: "A"}``.
+    ``{"family": <str>, "revision": <str>, segment: <str>}``. For example
+    ``{"family": "Canary", "revision": "1.0", segment: "A"}``.

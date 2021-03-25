@@ -256,11 +256,11 @@ class QasmBackendConfiguration:
             dt (float): Qubit drive channel timestep in nanoseconds.
             dtm (float): Measurement drive channel timestep in nanoseconds.
             processor_type (dict): Processor type for this backend. A dictionary of the
-                form ``{"family": <str>, "revision": <number>, segment: <str>}`` such as
-                ``{"family": "Canary", "revision": 1.0, segment: "A"}``.
+                form ``{"family": <str>, "revision": <str>, segment: <str>}`` such as
+                ``{"family": "Canary", "revision": "1.0", segment: "A"}``.
 
                 - family: Processor family of this backend.
-                - revision: Revision number of this processor.
+                - revision: Revision version of this processor.
                 - segment: Segment this processor belongs to within a larger chip.
 
             **kwargs: optional fields
@@ -677,6 +677,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                 for k, v in hamiltonian['vars'].items()
             }
             out_dict['hamiltonian'] = hamiltonian
+
+        if hasattr(self, 'channels'):
+            out_dict['channels'] = self.channels
 
         return out_dict
 
