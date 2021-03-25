@@ -678,6 +678,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             }
             out_dict['hamiltonian'] = hamiltonian
 
+        if hasattr(self, 'channels'):
+            out_dict['channels'] = self.channels
+
         return out_dict
 
     def __eq__(self, other):
