@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,9 +27,9 @@ QPY serialization (:mod:`qiskit.circuit.qpy_serialization`)
 QPY Format
 ==========
 
-The QPY serialization format is a a portable cross-platform binary
-serialization format for QuantumCircuit objects in Qiskit. The basic
-format for the file format is as follows:
+The QPY serialization format is a portable cross-platform binary
+serialization format for :class:`~qiskit.circuit.QuantumCircuit` objects in Qiskit. The basic
+file format is as follows:
 
 A QPY file (or memory object) always starts with the following 7
 byte UTF8 string: ``QISKIT`` which is immediately followed by the overall
@@ -79,7 +79,7 @@ The contents of HEADER as defined as a C struct are:
 METADATA
 --------
 
-The METADATA field is a utf8 encoded json string. After reading the HEADER
+The METADATA field is a UTF8 encoded json string. After reading the HEADER
 (which is a fixed size at the start of the QPY file you then read the
 ``metadata_size`` number of bytes and parse the JSON to get the metadata for
 the circuit.
@@ -115,7 +115,7 @@ CUSTOM_DEFINITION_HEADER contents are defined as:
         unsigned long long size;
     }
 
-If size is greater than 0 that means the circuit contains a custom instruction.
+If size is greater than 0 that means the circuit contains custom instruction(s).
 Each custom instruction is defined with a CUSTOM_INSTRUCTION block defined as:
 
 .. code-block:: c
@@ -129,7 +129,7 @@ Each custom instruction is defined with a CUSTOM_INSTRUCTION block defined as:
 
 If ``custom_definition`` is ``True`` that means that the immediately following
 ` size`` bytes contains a QPY circuit data which can be used for the custom
-definition of that gate name. If ``custom_definition`` is ``False`` than the
+definition of that gate. If ``custom_definition`` is ``False`` than the
 instruction can be considered opaque (ie no definition).
 
 INSTRUCTIONS
