@@ -130,6 +130,7 @@ class NaturalGradient(GradientBase):
         if regularization:
             # If a regularization method is chosen then use a regularized solver to
             # construct the natural gradient.
+
             nat_grad = NaturalGradient._regularized_sle_solver(
                 a, c, regularization=regularization)
         else:

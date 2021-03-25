@@ -793,16 +793,18 @@ class VarQTE(EvolutionBase):
 
             plt.figure(0)
             plt.title('Actual Error and Error Bound ')
-            plt.scatter(time, error_bounds, color='blue', marker='o', s=40,
+            plt.scatter(time, phase_agnostic_true_error, color='orange', marker='x', s=60,
+                        label='true error')
+            plt.scatter(time, error_bounds, color='royalblue', marker='o', s=20,
                         label='error bound')
 
             # plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
-            plt.scatter(time, phase_agnostic_true_error, color='orange', marker='x', s=40,
-                        label='true error')
+
             plt.legend(loc='best')
             plt.xlabel('time')
             plt.ylabel('error')
-            plt.ylim(bottom=0)
+            plt.ylim(bottom=-0.01)
+            plt.autoscale(enable=True)
             # plt.autoscale(enable=True)
                           # plt.xticks(range(counter-1))
             plt.savefig(os.path.join(data_dir, 'error_bound_actual.png'))
@@ -810,45 +812,68 @@ class VarQTE(EvolutionBase):
 
             if reverse_bound_directories is not None:
                 reverse_error_bounds = np.load(reverse_bound_directories[j])
+                reverse_fidelity_bounds = []
+                for s, er_b in enumerate(reverse_error_bounds):
+                    reverse_fidelity_bounds.append((1 - er_b ** 2 / 2) ** 2)
                 plt.figure(1)
                 plt.title('Reverse Error Bound ')
-                plt.scatter(time, error_bounds, color='blue', marker='o', s=40,
-                            label='error bound')
-
                 # plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
-                plt.scatter(time, phase_agnostic_true_error, color='orange', marker='x', s=40,
+                plt.scatter(time, phase_agnostic_true_error, color='orange', marker='x', s=60,
                             label='true error')
+                plt.scatter(time, error_bounds, color='royalblue', marker='o', s=20,
+                            label='error bound')
+                plt.scatter(time, reverse_error_bounds, color='green', marker='o', s=20,
+                            label='reverse error bound', alpha=0.7)
+
                 plt.legend(loc='best')
                 plt.xlabel('time')
                 plt.ylabel('error')
-                plt.ylim(bottom=0)
-                # plt.autoscale(enable=True)
-                plt.scatter(time, reverse_error_bounds, color='green', marker='o', s=40,
-                            label='reverse error bound')
+                plt.ylim(bottom=-0.01)
+                plt.autoscale(enable=True)
                 plt.legend(loc='best')
-                # plt.autoscale(enable=True)
+                plt.autoscale(enable=True)
                 plt.savefig(os.path.join(data_dir, 'error_bound_actual_reverse.png'))
                 plt.close()
 
-            plt.figure(2)
+                plt.figure(2)
+                plt.title('Fidelity')
+                plt.scatter(time, fid, color='orange', marker='x', s=60,
+                            label='fidelity')
+                plt.scatter(time, reverse_fidelity_bounds, color='royalblue', marker='o', s=20,
+                            label='fidelity bound')
+                plt.xlabel('time')
+                plt.ylabel('fidelity')
+                # plt.autoscale(enable=True)
+                # plt.xticks(range(counter-1))
+                plt.ylim((0, 1.03))
+                # plt.autoscale(enable=True)
+                plt.yticks(np.linspace(0, 1, 11))
+                plt.legend(loc='best')
+                plt.savefig(os.path.join(data_dir, 'reverse_fidelity.png'))
+                plt.close()
+
+            plt.figure(3)
             plt.title('Fidelity')
-            plt.scatter(time, fid, color='orange', marker='x', s=40,
+            plt.scatter(time, fid, color='orange', marker='x', s=60,
                         label='fidelity')
-            plt.scatter(time, fidelity_bounds, color='blue', marker='o', s=40,
+            plt.scatter(time, fidelity_bounds, color='royalblue', marker='o', s=20,
                         label='fidelity bound')
             plt.xlabel('time')
             plt.ylabel('fidelity')
             # plt.autoscale(enable=True)
             # plt.xticks(range(counter-1))
-            plt.ylim((0, 1))
+            plt.ylim((0, 1.03))
+            # plt.autoscale(enable=True)
+            plt.yticks(np.linspace(0, 1, 11))
+            plt.legend(loc='best')
             plt.savefig(os.path.join(data_dir, 'fidelity.png'))
             plt.close()
 
-            plt.figure(3)
+            plt.figure(4)
             plt.title('Energy')
-            plt.scatter(time, true_energy, color='orange', marker='x', s=40,
+            plt.scatter(time, true_energy, color='orange', marker='x', s=60,
                         label='target state')
-            plt.scatter(time, trained_energy, color='blue', marker='o', s=40,
+            plt.scatter(time, trained_energy, color='royalblue', marker='o', s=20,
                         label='prepared state')
             plt.errorbar(time, trained_energy, yerr=energy_error_bounds, fmt='x', ecolor='blue')
             # plt.scatter(time, energy_error_bounds, color='blue', marker='o', s=40,
