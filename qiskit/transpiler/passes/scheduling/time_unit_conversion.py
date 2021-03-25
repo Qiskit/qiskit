@@ -48,9 +48,9 @@ class TimeUnitConversion(TransformationPass):
 
         Args:
             dag (DAGCircuit): DAG to be checked.
-        
+
         Returns:
-            dag (DAGCircuit): DAG with consistent timing and op nodes annotated with duration.
+            DAGCircuit: DAG with consistent timing and op nodes annotated with duration.
 
         Raises:
             TranspilerError: if the units are not unifiable
