@@ -1,7 +1,10 @@
 ---
-features:
+upgrade:
   - |
-    The objects :class:`~qiskit.circuit.Register` and 
-    :class:`~qiskit.circuit.QuantumCircuit` now require the number of qubits
-    to be integers (or castable to unambiguous integers, e.g. 2.0). Non-integer now raise
-    errors.
+    When creating a new :class:`~qiskit.circuit.Register` or
+    :class:`~qiskit.circuit.QuantumCircuit` object with a number of bits, it
+    is now required the number of bits are integers (or castable to unambiguous
+    integers, e.g. 2.0). Non-integer values will now raise an error as the
+    intent in those cases was unclear (you can't have fractional bits). For
+    more, information on why this was changed refer to:
+    `#4855 <https://github.com/Qiskit/qiskit-terra/issues/4885>`__

@@ -13,7 +13,7 @@ features:
   - |
     New template circuits for using :class:`qiskit.circuit.library.RZXGate`
     are added to the :mod:`qiskit.circuit.library` module (eg
-    :class:`~qiskit.circuit.library.templates.rzx_yz`). This enables pairing
+    :class:`~qiskit.circuit.library.rzx_yz`). This enables pairing
     the :class:`~qiskit.transpiler.passes.TemplateOptimization` pass with the
     :py:class:`qiskit.transpiler.passes.RZXCalibrationBuilder` pass to
     automatically find and replace gate sequences, such as

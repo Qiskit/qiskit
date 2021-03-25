@@ -1,8 +1,0 @@
----
-features:
-  - |
-    The class :class:`~qiskit.library.standard_gates.x.MCXGrayCode` will now create
-    a ``C3XGate`` if ``num_ctrl_qubits`` is 3 and a ``C4XGate`` if ``num_ctrl_qubits``
-    is 4. This is in addition to the previous functionality where for any of the
-    modes of the :class:'qiskit.library.standard_gates.x.MCXGate`, if ``num_ctrl_bits``
-    is 1, a ``CXGate`` is created, and if 2, a ``CCXGate`` is created.
