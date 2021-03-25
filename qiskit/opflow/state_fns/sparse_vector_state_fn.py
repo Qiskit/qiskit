@@ -77,18 +77,18 @@ class SparseVectorStateFn(StateFn):
         # Right now doesn't make sense to add a StateFn to a Measurement
         if isinstance(other, SparseVectorStateFn) and self.is_measurement == other.is_measurement:
             # Covers Statevector and custom.
-            added = self.coeff * self.primitive + other.primitive * other.coeff
+            added = self.coeff * self.primitive + other.coeff * other.primitive
             return SparseVectorStateFn(added, is_measurement=self._is_measurement)
 
         return SummedOp([self, other])
 
-    def adjoint(self) -> "VectorStateFn":
+    def adjoint(self) -> "SparseVectorStateFn":
         return SparseVectorStateFn(self.primitive.conjugate(),
                                    coeff=self.coeff.conjugate(),
                                    is_measurement=(not self.is_measurement))
 
     def to_dict_fn(self) -> StateFn:
-        """Creates the equivalent state function of type DictStateFn.
+        """Convert this state function to a ``DictStateFn``.
 
         Returns:
             A new DictStateFn equivalent to ``self``.
@@ -112,7 +112,7 @@ class SparseVectorStateFn(StateFn):
         return self
 
     def to_circuit_op(self) -> OperatorBase:
-        """ Return ``StateFnCircuit`` corresponding to this StateFn."""
+        """Convert this state function to a ``CircuitStateFn``."""
         # pylint: disable=cyclic-import
         from .circuit_state_fn import CircuitStateFn
         csfn = CircuitStateFn.from_vector(self.primitive) * self.coeff
@@ -140,9 +140,8 @@ class SparseVectorStateFn(StateFn):
             return self
 
         if not self.is_measurement and isinstance(front, OperatorBase):
-            raise ValueError(
-                'Cannot compute overlap with StateFn or Operator if not Measurement. Try taking '
-                'sf.adjoint() first to convert to measurement.')
+            raise ValueError('Cannot compute overlap with StateFn or Operator if not Measurement. '
+                             'Try taking sf.adjoint() first to convert to measurement.')
 
         if isinstance(front, ListOp) and front.distributive:
             return front.combo_fn([self.eval(front.coeff * front_elem)

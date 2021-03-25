@@ -176,12 +176,12 @@ class DictStateFn(StateFn):
         return spvec if not self.is_measurement else spvec.transpose()
 
     def to_spmatrix_op(self) -> OperatorBase:
-        """Convert a ``SparseVectorStateFn`` corresponding to this StateFn."""
+        """Convert this state function to a ``SparseVectorStateFn``."""
         from .sparse_vector_state_fn import SparseVectorStateFn
         return SparseVectorStateFn(self.to_spmatrix(), self.coeff, self.is_measurement)
 
     def to_circuit_op(self) -> OperatorBase:
-        """Return ``StateFnCircuit`` corresponding to this StateFn."""
+        """Convert this state function to a ``CircuitStateFn``."""
         from .circuit_state_fn import CircuitStateFn
         csfn = CircuitStateFn.from_dict(self.primitive) * self.coeff
         return csfn.adjoint() if self.is_measurement else csfn
@@ -206,7 +206,6 @@ class DictStateFn(StateFn):
     ) -> Union[OperatorBase, complex]:
         if front is None:
             sparse_vector_state_fn = self.to_spmatrix_op().eval()
-            sparse_vector_state_fn = cast(OperatorBase, sparse_vector_state_fn)
             return sparse_vector_state_fn
 
         if not self.is_measurement and isinstance(front, OperatorBase):

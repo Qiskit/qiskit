@@ -241,7 +241,7 @@ class LinComb(CircuitGradient):
                 result.append(get_result(item))
             return result
 
-    @ staticmethod
+    @staticmethod
     def _hess_combo_fn(x, state_op):
         def get_result(item):
             if isinstance(item, DictStateFn):
@@ -280,7 +280,7 @@ class LinComb(CircuitGradient):
                 result.append(get_result(item))
             return result
 
-    @ staticmethod
+    @staticmethod
     def _gate_gradient_dict(gate: Gate) -> List[Tuple[List[complex], List[Instruction]]]:
         r"""Given a parameterized gate U(theta) with derivative
         dU(theta)/dtheta = sum_ia_iU(theta)V_i.
@@ -384,7 +384,7 @@ class LinComb(CircuitGradient):
 
         raise TypeError('Unrecognized parameterized gate, {}'.format(gate))
 
-    @ staticmethod
+    @staticmethod
     def apply_grad_gate(circuit, gate, param_index, grad_gate, grad_coeff, qr_superpos,
                         open_ctrl=False, trim_after_grad_gate=False):
         """Util function to apply a gradient gate for the linear combination of unitaries method.
