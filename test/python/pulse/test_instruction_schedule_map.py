@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
-
 """Test the InstructionScheduleMap."""
 import numpy as np
 
@@ -272,7 +270,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
             inst_map.pop('not_there', (0,))
 
     def test_sequenced_parameterized_schedule(self):
-        """Test parametrized schedule consists of multiple instruction. """
+        """Test parameterized schedule consists of multiple instruction. """
 
         converter = QobjToInstructionConverter([], buffer=0)
         qobjs = [PulseQobjInstruction(name='fc', ch='d0', t0=10, phase='P1'),

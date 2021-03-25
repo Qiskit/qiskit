@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring, invalid-name, unused-argument
+# pylint: disable=missing-function-docstring, unused-argument
 
 """Tests for core modules of pulse drawer."""
 

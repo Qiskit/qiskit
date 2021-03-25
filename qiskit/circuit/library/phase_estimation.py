@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """Phase estimation circuit."""
 
 from typing import Optional
@@ -86,7 +84,7 @@ class PhaseEstimation(QuantumCircuit):
         super().__init__(qr_eval, qr_state, name=name)
 
         if iqft is None:
-            iqft = QFT(num_evaluation_qubits, inverse=True, do_swaps=False)
+            iqft = QFT(num_evaluation_qubits, inverse=True, do_swaps=False).reverse_bits()
 
         self.h(qr_eval)  # hadamards on evaluation qubits
 

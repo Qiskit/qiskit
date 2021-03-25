@@ -10,18 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Test Qiskit's inverse gate operation."""
 
 import unittest
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
+from qiskit.circuit import Clbit
 from qiskit.circuit.library import RXGate, RYGate
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
-# pylint: disable=unused-import
-from qiskit.extensions.simulator import snapshot
+from qiskit.extensions.simulator import Snapshot
 
 
 class TestCircuitProperties(QiskitTestCase):
@@ -49,8 +47,8 @@ class TestCircuitProperties(QiskitTestCase):
         """Test castable to integer cargs for QuantumCircuit.
         """
         qc1 = QuantumCircuit(12, np.int64(12))
-        c_regs = qc1.cregs
-        self.assertEqual(c_regs[0], ClassicalRegister(12, 'c'))
+        self.assertEqual(len(qc1.clbits), 12)
+        self.assertTrue(all(isinstance(bit, Clbit) for bit in qc1.clbits))
         self.assertEqual(type(qc1), QuantumCircuit)
 
     def test_qarg_numpy_int_exception(self):
@@ -327,7 +325,7 @@ class TestCircuitProperties(QiskitTestCase):
         circ = QuantumCircuit(q, c)
         circ.h(0)
         circ.cx(0, 1)
-        circ.snapshot('snap')
+        circ.append(Snapshot('snap', num_qubits=4), [0, 1, 2, 3])
         circ.h(2)
         circ.cx(2, 3)
         self.assertEqual(circ.depth(), 4)
@@ -339,11 +337,11 @@ class TestCircuitProperties(QiskitTestCase):
         c = ClassicalRegister(4, 'c')
         circ = QuantumCircuit(q, c)
         circ.h(0)
-        circ.snapshot('snap0')
+        circ.append(Snapshot('snap0', num_qubits=4), [0, 1, 2, 3])
         circ.cx(0, 1)
-        circ.snapshot('snap1')
+        circ.append(Snapshot('snap1', num_qubits=4), [0, 1, 2, 3])
         circ.h(2)
-        circ.snapshot('snap2')
+        circ.append(Snapshot('snap2', num_qubits=4), [0, 1, 2, 3])
         circ.cx(2, 3)
         self.assertEqual(circ.depth(), 4)
 
@@ -355,8 +353,8 @@ class TestCircuitProperties(QiskitTestCase):
         circ = QuantumCircuit(q, c)
         circ.h(0)
         circ.cx(0, 1)
-        circ.snapshot('snap0')
-        circ.snapshot('snap1')
+        circ.append(Snapshot('snap0', num_qubits=4), [0, 1, 2, 3])
+        circ.append(Snapshot('snap1', num_qubits=4), [0, 1, 2, 3])
         circ.h(2)
         circ.cx(2, 3)
         self.assertEqual(circ.depth(), 4)
@@ -405,7 +403,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.size(), 2)
         qc.barrier(q)
         self.assertEqual(qc.size(), 2)
-        qc.snapshot('snapshot_label')
+        qc.append(Snapshot('snapshot_label', num_qubits=4), [0, 1, 2, 3])
         self.assertEqual(qc.size(), 2)
 
     def test_circuit_count_ops(self):
@@ -672,6 +670,18 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(set(circ.calibrations['h'].keys()), {((0,), ())})
         self.assertEqual(circ.calibrations['h'][((0,), ())].instructions,
                          q0_x180.instructions)
+
+    def test_metadata_copy_does_not_share_state(self):
+        """Verify mutating the metadata of a circuit copy does not impact original."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/6057
+
+        qc1 = QuantumCircuit(1)
+        qc1.metadata = {'a': 0}
+
+        qc2 = qc1.copy()
+        qc2.metadata['a'] = 1000
+
+        self.assertEqual(qc1.metadata['a'], 0)
 
 
 if __name__ == '__main__':

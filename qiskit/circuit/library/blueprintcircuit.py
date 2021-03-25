@@ -15,7 +15,7 @@
 from typing import Optional
 from abc import ABC, abstractmethod
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.parametertable import ParameterTable
+from qiskit.circuit.parametertable import ParameterTable, ParameterView
 
 
 class BlueprintCircuit(QuantumCircuit, ABC):
@@ -40,6 +40,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         self._qregs = []
         self._cregs = []
         self._qubits = []
+        self._qubit_set = set()
 
     @abstractmethod
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
@@ -71,6 +72,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         """Invalidate the current circuit build."""
         self._data = None
         self._parameter_table = ParameterTable()
+        self.global_phase = 0
 
     @property
     def qregs(self):
@@ -82,6 +84,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         """Set the quantum registers associated with the circuit."""
         self._qregs = qregs
         self._qubits = [qbit for qreg in qregs for qbit in qreg]
+        self._qubit_set = set(self._qubits)
         self._invalidate()
 
     @property
@@ -89,6 +92,18 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         if self._data is None:
             self._build()
         return super().data
+
+    @property
+    def num_parameters(self) -> int:
+        if self._data is None:
+            self._build()
+        return super().num_parameters
+
+    @property
+    def parameters(self) -> ParameterView:
+        if self._data is None:
+            self._build()
+        return super().parameters
 
     def qasm(self, formatted=False, filename=None):
         if self._data is None:

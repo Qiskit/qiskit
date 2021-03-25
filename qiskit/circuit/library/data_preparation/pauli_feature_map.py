@@ -143,7 +143,6 @@ class PauliFeatureMap(NLocal):
         self._paulis = paulis or ['Z', 'ZZ']
         self._alpha = alpha
 
-    # pylint: disable=unused-argument
     def _parameter_generator(self, rep: int, block: int, indices: List[int]
                              ) -> Optional[List[Parameter]]:
         """If certain blocks should use certain parameters this method can be overriden."""

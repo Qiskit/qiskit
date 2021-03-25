@@ -23,8 +23,6 @@ from qiskit.opflow import (CX, CircuitOp, EvolutionFactory, EvolvedOp, H, I,
                            ListOp, PauliTrotterEvolution, QDrift, SummedOp,
                            Suzuki, Trotter, X, Y, Z, Zero)
 
-# pylint: disable=invalid-name
-
 
 class TestEvolution(QiskitOpflowTestCase):
     """Evolution tests."""
@@ -100,11 +98,12 @@ class TestEvolution(QiskitOpflowTestCase):
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
         mean = evolution.convert(wf)
-        circuit_params = mean.to_circuit().parameters
-        # Check that the non-identity parameters are in the circuit
-        for p in thetas[1:]:
-            self.assertIn(p, circuit_params)
-        self.assertNotIn(thetas[0], circuit_params)
+        circuit = mean.to_circuit()
+        # Check that all parameters are in the circuit
+        for p in thetas:
+            self.assertIn(p, circuit.parameters)
+        # Check that the identity-parameters only exist as global phase
+        self.assertNotIn(thetas[0], circuit._parameter_table.get_keys())
 
     def test_bind_parameters(self):
         """ bind parameters test """
@@ -208,7 +207,6 @@ class TestEvolution(QiskitOpflowTestCase):
 
     def test_matrix_op_evolution(self):
         """ MatrixOp evolution test """
-        # pylint: disable=no-member
         op = (-1.052373245772859 * I ^ I) + \
              (0.39793742484318045 * I ^ Z) + \
              (0.18093119978423156 * X ^ X) + \
@@ -251,7 +249,6 @@ class TestEvolution(QiskitOpflowTestCase):
 
     def test_matrix_op_parameterized_evolution(self):
         """ parameterized MatrixOp evolution test """
-        # pylint: disable=no-member
         theta = Parameter('θ')
         op = (-1.052373245772859 * I ^ I) + \
              (0.39793742484318045 * I ^ Z) + \

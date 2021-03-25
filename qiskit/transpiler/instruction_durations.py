@@ -13,6 +13,8 @@
 """Durations of instructions, one of transpiler configurations."""
 from typing import Optional, List, Tuple, Union, Iterable, Set
 
+import warnings
+
 from qiskit.circuit import Barrier, Delay
 from qiskit.circuit import Instruction, Qubit
 from qiskit.providers import BaseBackend
@@ -34,7 +36,7 @@ class InstructionDurations:
                  dt: float = None):
         self.duration_by_name = {}
         self.duration_by_name_qubits = {}
-        self.dt = dt  # pylint: disable=invalid-name
+        self.dt = dt
         if instruction_durations:
             self.update(instruction_durations)
 
@@ -79,7 +81,7 @@ class InstructionDurations:
                 instruction_durations.append(('measure', [q], readout_length, 's'))
 
         try:
-            dt = backend.configuration().dt  # pylint: disable=invalid-name
+            dt = backend.configuration().dt
         except AttributeError:
             dt = None
 
@@ -160,13 +162,18 @@ class InstructionDurations:
             qubits = [qubits]
 
         if isinstance(qubits[0], Qubit):
+            warnings.warn('Querying an InstructionDurations object with a Qubit '
+                          'has been deprecated and will be removed in a future '
+                          'release. Instead, query using the integer qubit '
+                          'index.', DeprecationWarning, stacklevel=2)
             qubits = [q.index for q in qubits]
 
         try:
             return self._get(inst_name, qubits, unit)
-        except TranspilerError:
-            raise TranspilerError("Duration of {} on qubits {} is not found."
-                                  .format(inst_name, qubits))
+        except TranspilerError as ex:
+            raise TranspilerError(
+                f"Duration of {inst_name} on qubits {qubits} is not found."
+            ) from ex
 
     def _get(self, name: str, qubits: List[int], to_unit: str) -> Union[float, int]:
         """Get the duration of the instruction with the name and the qubits."""

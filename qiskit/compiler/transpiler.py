@@ -39,7 +39,7 @@ from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_2_pass_manager,
                                                    level_3_pass_manager)
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
@@ -281,7 +281,7 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
 
 def _log_transpile_time(start_time, end_time):
     log_msg = "Total Transpile Time - %.5f (ms)" % ((end_time - start_time) * 1000)
-    LOG.info(log_msg)
+    logger.info(log_msg)
 
 
 def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> QuantumCircuit:
@@ -362,8 +362,8 @@ def _remap_circuit_faulty_backend(circuit, num_qubits, backend_prop, faulty_qubi
                 new_layout[real_qubit] = disconnected_qreg[disconnected_qubit]
                 disconnected_qubit += 1
     physical_layout_dict = {}
-    for qubit in circuit.qubits:
-        physical_layout_dict[qubit] = faulty_qubits_map_reverse[qubit.index]
+    for index, qubit in enumerate(circuit.qubits):
+        physical_layout_dict[qubit] = faulty_qubits_map_reverse[index]
     for qubit in faulty_qreg[:] + disconnected_qreg[:]:
         physical_layout_dict[qubit] = new_layout[qubit]
     dag_circuit = circuit_to_dag(circuit)
@@ -460,7 +460,7 @@ def _parse_transpile_args(circuits, backend,
 
 def _create_faulty_qubits_map(backend):
     """If the backend has faulty qubits, those should be excluded. A faulty_qubit_map is a map
-       from working qubit in the backend to dumnmy qubits that are consecutive and connected."""
+       from working qubit in the backend to dummy qubits that are consecutive and connected."""
     faulty_qubits_map = None
     if backend is not None:
         if backend.properties():
@@ -547,7 +547,7 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
                     # remove gates using faulty edges or with faulty qubits (and remap the
                     # gates in terms of faulty_qubits_map)
                     faulty_qubits_map = _create_faulty_qubits_map(backend)
-                    if any([faulty_qubits_map[qubits] is not None for qubits in gate.qubits]) or \
+                    if any(faulty_qubits_map[qubits] is not None for qubits in gate.qubits) or \
                             gate.qubits in faulty_edges:
                         continue
                     gate_dict = gate.to_dict()

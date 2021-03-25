@@ -68,6 +68,8 @@ class PauliTwoDesign(TwoLocal):
 
     def __init__(self, num_qubits: Optional[int] = None, reps: int = 3,
                  seed: Optional[int] = None, insert_barriers: bool = False):
+        from qiskit.circuit.library import RYGate  # pylint: disable=cyclic-import
+
         # store a random number generator
         self._seed = seed
         self._rng = np.random.default_rng(seed)
@@ -77,6 +79,10 @@ class PauliTwoDesign(TwoLocal):
 
         super().__init__(num_qubits, reps=reps, entanglement_blocks='cz', entanglement='pairwise',
                          insert_barriers=insert_barriers)
+
+        # set the initial layer
+        self._prepended_blocks = [RYGate(np.pi / 4)]
+        self._prepended_entanglement = ['linear']
 
     def _invalidate(self):
         self._rng = np.random.default_rng(self._seed)  # reset number generator
@@ -109,10 +115,3 @@ class PauliTwoDesign(TwoLocal):
             The number of possibly distinct parameters.
         """
         return (self.reps + 1) * self.num_qubits
-
-    def _build(self):
-        super()._build()
-        initial_layer = QuantumCircuit(self.num_qubits)
-        initial_layer.ry(np.pi / 4, range(self.num_qubits))
-
-        self.compose(initial_layer, front=True, inplace=True)

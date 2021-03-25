@@ -13,7 +13,7 @@
 
 """Helper function for converting a circuit to a gate"""
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
 
 
@@ -67,20 +67,9 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
 
     gate = Gate(name=circuit.name,
                 num_qubits=sum([qreg.size for qreg in circuit.qregs]),
-                params=sorted(parameter_dict.values(), key=lambda p: p.name),
+                params=[*parameter_dict.values()],
                 label=label)
     gate.condition = None
-
-    def find_bit_position(bit):
-        """find the index of a given bit (Register, int) within
-        a flat ordered list of bits of the circuit
-        """
-        if isinstance(bit, Qubit):
-            ordered_regs = circuit.qregs
-        else:
-            ordered_regs = circuit.cregs
-        reg_index = ordered_regs.index(bit.register)
-        return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit.index
 
     target = circuit.assign_parameters(parameter_dict, inplace=False)
 
@@ -92,14 +81,13 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     if gate.num_qubits > 0:
         q = QuantumRegister(gate.num_qubits, 'q')
 
+    qubit_map = {bit: q[idx] for idx, bit in enumerate(circuit.qubits)}
+
     # The 3rd parameter in the output tuple) is hard coded to [] because
     # Gate objects do not have cregs set and we've verified that all
     # instructions are gates
-    rules = list(map(
-        lambda x: (x[0],
-                   list(map(lambda y: q[find_bit_position(y)], x[1])),
-                   []),
-        rules))
+    rules = [(inst, [qubit_map[y] for y in qargs], [])
+             for inst, qargs, _ in rules]
     qc = QuantumCircuit(q, name=gate.name, global_phase=target.global_phase)
     for instr, qargs, cargs in rules:
         qc._append(instr, qargs, cargs)

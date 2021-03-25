@@ -17,8 +17,7 @@ It contains a collection of quantum algorithms, for use with quantum computers, 
 carry out research and investigate how to solve problems in different domains on
 near-term quantum devices with short depth circuits.
 
-Algorithms configuration includes the use of :mod:`~qiskit.algorithms.optimizers`
-and :mod:`~qiskit.algorithms.variational_forms` which
+Algorithms configuration includes the use of :mod:`~qiskit.algorithms.optimizers` which
 were designed to be swappable sub-parts of an algorithm. Any component and may be exchanged for
 a different implementation of the same component type in order to potentially alter the behavior
 and outcome of the algorithm.
@@ -45,6 +44,7 @@ Amplitude Amplifiers
    :toctree: ../stubs/
    :nosignatures:
 
+   AmplificationProblem
    Grover
    GroverResult
 
@@ -127,7 +127,7 @@ Exceptions
 
 from .algorithm_result import AlgorithmResult
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
-from .amplitude_amplifiers import Grover, GroverResult
+from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
 from .amplitude_estimators import (
     AmplitudeEstimator, AmplitudeEstimatorResult,
     AmplitudeEstimation, AmplitudeEstimationResult,
@@ -147,6 +147,7 @@ __all__ = [
     'AlgorithmResult',
     'VariationalAlgorithm',
     'VariationalResult',
+    'AmplificationProblem',
     'Grover',
     'GroverResult',
     'AmplitudeEstimator',

@@ -120,7 +120,7 @@ class TestChi(ChannelTestCase):
         output = rho.evolve(chan)
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(output, target)
-        chan = chan1 @ chan2
+        chan = chan1 & chan2
         output = rho.evolve(chan)
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(output, target)
@@ -242,12 +242,6 @@ class TestChi(ChannelTestCase):
         chan3 = depol.power(3)
         targ3 = Chi(self.depol_chi(1 - p_id3))
         self.assertEqual(chan3, targ3)
-
-    def test_power_except(self):
-        """Test power method raises exceptions."""
-        chan = Chi(self.depol_chi(1))
-        # Non-integer power raises error
-        self.assertRaises(QiskitError, chan.power, 0.5)
 
     def test_add(self):
         """Test add method."""
