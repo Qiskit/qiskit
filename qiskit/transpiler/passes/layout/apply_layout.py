@@ -47,7 +47,11 @@ class ApplyLayout(TransformationPass):
             raise TranspilerError(
                 "The 'layout' must be full (with ancilla).")
 
+        for qreg in dag.qregs.values():
+            self.property_set["layout"].add_register(qreg)
+
         q = QuantumRegister(len(layout), 'q')
+        self.property_set["layout"].add_register(q)
 
         new_dag = DAGCircuit()
         new_dag.add_qreg(q)

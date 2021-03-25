@@ -309,14 +309,13 @@ class Layout():
             for idx in range(qreg.size):
                 out[qreg[idx]] = int_list[main_idx]
                 main_idx += 1
-            out.add_register(qreg)
         if main_idx != len(int_list):
             for int_item in int_list[main_idx:]:
                 out[int_item] = None
         return out
 
     @staticmethod
-    def from_qubit_list(qubit_list, *qregs):
+    def from_qubit_list(qubit_list):
         """
         Populates a Layout from a list containing virtual
         qubits, Qubit or None.
@@ -324,8 +323,6 @@ class Layout():
         Args:
             qubit_list (list):
                 e.g.: [qr[0], None, qr[2], qr[3]]
-            *qregs (QuantumRegisters): The quantum registers to apply
-                the layout to.
         Returns:
             Layout: the corresponding Layout object
         Raises:
@@ -341,6 +338,4 @@ class Layout():
                 out[virtual] = physical
             else:
                 raise LayoutError("The list should contain elements of the Bits or NoneTypes")
-        for qreg in qregs:
-            out.add_register(qreg)
         return out
