@@ -1404,7 +1404,7 @@ def _common_method(*classes):
         of the codebase, because the method may not be detected by a code editor.
         Thus, this decorator should be used to a limited extent, i.e. huge helper method.
         By using this decorator wisely, we can reduce code maintenance overhead without
-        loosing readability of the codebase.
+        losing readability of the codebase.
     """
     def decorator(method):
         @functools.wraps(method)
