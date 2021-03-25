@@ -375,11 +375,15 @@ stages:
             artifactName: 'drop_windows'
         - bash: |
             set -e
+            chcp.com 65001
             source test-job/Scripts/activate
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
           condition: succeededOrFailed()
+          env:
+            LANG: 'C.UTF-8'
+            PYTHONIOENCODING: 'utf-8:backslashreplace'
           displayName: 'Generate results'
         - task: PublishTestResults@2
           condition: succeededOrFailed()
@@ -451,11 +455,15 @@ stages:
             artifactName: 'drop_windows'
         - bash: |
             set -e
+            chcp.com 65001
             source test-job/Scripts/activate
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
           condition: succeededOrFailed()
+          env:
+            LANG: 'C.UTF-8'
+            PYTHONIOENCODING: 'utf-8:backslashreplace'
           displayName: 'Generate results'
         - task: PublishTestResults@2
           condition: succeededOrFailed()
