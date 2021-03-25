@@ -103,6 +103,7 @@ Analysis
 .. autosummary::
    :toctree: ../stubs/
 
+   hellinger_distance
    hellinger_fidelity
 
 Synthesis
@@ -143,4 +144,4 @@ from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
                         two_qubit_cnot_decompose, Quaternion,
                         decompose_clifford)
 
-from .analysis import hellinger_fidelity
+from .analysis import hellinger_distance, hellinger_fidelity
