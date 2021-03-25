@@ -12,11 +12,7 @@ features:
     can be loaded from JSON files directly without needing to pass a dictionary.
     This enables users to create new style files and use that style for
     visualizations by passing the style filename as a string to the ``style``
-    kwarg (just like the included style JSON files:
-    `default.json <https://github.com/Qiskit/qiskit-terra/blob/master/qiskit/visualization/styles/default.json>`__,
-    `iqx.json <https://github.com/Qiskit/qiskit-terra/blob/master/qiskit/visualization/styles/iqx.json>`__,
-    and
-    `bw.json <https://github.com/Qiskit/qiskit-terra/blob/master/qiskit/visualization/styles/bw.json`__).
+    kwarg.
 
     To leverage this feature you must set the ``circuit_mpl_style_path``
     option in a user config file. This option should be set to the path you

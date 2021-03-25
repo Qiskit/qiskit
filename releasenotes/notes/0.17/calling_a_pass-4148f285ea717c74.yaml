@@ -27,7 +27,7 @@ features:
     needs to be added as a parameter and it might be modified "in-place".
     For example:
 
-    .. juypter-execute::
+    .. jupyter-execute::
 
       from qiskit import QuantumCircuit
       from qiskit.transpiler.passes import Depth

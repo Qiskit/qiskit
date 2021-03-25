@@ -25,5 +25,5 @@ features:
     is now used for the ipython display of these classes, so if you change the
     default output type in a user config file then when a
     :class:`~qiskit.quantum_info.Statevector` or a
-    :class:`~qiskit.quantum_info.DensityMatrix`object are displayed in
+    :class:`~qiskit.quantum_info.DensityMatrix` object are displayed in
     a jupyter notebook that output type will be used for the object.

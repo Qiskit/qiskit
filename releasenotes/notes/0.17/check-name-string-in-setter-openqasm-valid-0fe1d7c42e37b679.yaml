@@ -4,7 +4,7 @@ fixes:
     The :meth:`~qiskit.circuit.Register.name` setter method of class
     :class:`~qiskit.circuit.Register` previously did not check the assigned
     string to be a valid register name as per the  
-    `OpenQASM specification <https://arxiv.org/pdf/1707.03429v2.pdf>`_. 
+    `OpenQASM specification <https://arxiv.org/pdf/1707.03429v2.pdf>`__. 
     This check is performed when the name is specified in the constructor.
     With this update, this check is also now performed in the setter method
 

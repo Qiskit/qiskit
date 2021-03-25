@@ -4,7 +4,7 @@ deprecations:
     The :py:class:`qiskit.pulse.schedule.ParameterizedSchedule` has been deprecated.
     User can directly parameterize pulse ``Schedule`` with circuit ``Parameter`` object.
     Now ``InstructionScheduleMap`` accepts only ``Schedule`` and python callback function
-    as schedule generator. Refer to `#5333 <https://github.com/Qiskit/qiskit-terra/issues/5333>`
+    as schedule generator. Refer to `#5333 <https://github.com/Qiskit/qiskit-terra/issues/5333>`__
     for more details.
 upgrade:
   - |
