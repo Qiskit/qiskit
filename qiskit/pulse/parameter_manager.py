@@ -251,7 +251,11 @@ class ParameterSetter(NodeVisitor):
                         new_parameters.add(new_parameter)
             else:
                 new_parameters.add(parameter)
-        node._parameter_manager._parameters = new_parameters
+
+        if hasattr(node, '_parameter_manager'):
+            node._parameter_manager._parameters = new_parameters
+        else:
+            raise PulseError(f'Node type {node.__class__.__name__} has no parameter manager.')
 
 
 class ParameterGetter(NodeVisitor):
