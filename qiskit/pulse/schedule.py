@@ -663,7 +663,7 @@ class Schedule:
             return self
         else:
             try:
-                return Schedule(*new_children)
+                return Schedule(*new_children, name=self.name, metadata=self.metadata.copy())
             except PulseError as err:
                 raise PulseError(
                     'Replacement of {old} with {new} results in '
@@ -688,17 +688,11 @@ class Schedule:
         Returns:
             Schedule with updated parameters.
         """
-        assigned_sched = self._parameter_manager.assign_parameters(
+        return self._parameter_manager.assign_parameters(
             pulse_program=self,
             value_dict=value_dict,
             inplace=inplace
         )
-        # regenerate timeslots
-        assigned_sched._timeslots.clear()
-        for t0, inst in assigned_sched.instructions:
-            assigned_sched._add_timeslots(t0, inst)
-
-        return assigned_sched
 
     def get_parameters(self,
                        parameter_name: str) -> List[Parameter]:
