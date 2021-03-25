@@ -22,7 +22,8 @@ features:
       P2 = Pauli('YZX')
       P1.dot(P2)
 
-    Pauli's can also be directly appended to ``QuantumCircuit`` objects
+    Pauli's can also be directly appended to
+    :class:`~qiskit.circuit.QuantumCircuit` objects
 
     .. jupyter-execute::
 
@@ -33,17 +34,19 @@ features:
       circ.append(Pauli('XYZ'), [0, 1, 2])
       print(circ.draw())
 
-    Additional methods allow computing when two Pauli's
-    :meth:`~qiskit.quantum_info.Pauli.commute` or
-    :meth:`~qiskit.quantum_info.Pauli.anticommute`, and computing the Pauli
-    resulting from Clifford conjugation :math:`P^\prime = C.P.C^\dagger`
+    Additional methods allow computing when two Pauli's commute (using the
+    :meth:`~qiskit.quantum_info.Pauli.commutes` method) or anticommute
+    (using the :meth:`~qiskit.quantum_info.Pauli.anticommutes` method), and
+    computing the Pauli resulting from Clifford conjugation
+    :math:`P^\prime = C.P.C^\dagger`
     using the  :meth:`~qiskit.quantum_info.Pauli.evolve` method.
 
     See the API documentation of the :class:`~qiskit.quantum_info.Pauli` class
     for additional information.
   - |
-    Adds :func:`qiskit.quantum_info.random_pauli` function for generating a
-    random element of the N-qubit Pauli group.
+    A new function, func:`~qiskit.quantum_info.random_pauli`, for generating a
+    random element of the N-qubit Pauli group has been added to the 
+    :mod:`qiskit.quantum_info_module`.
 deprecations:
   - |
     The following legacy methods of the :class:`qiskit.quantum_info.Pauli` class

@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added a new pulse builder function, :func:`pulse.macro`.
+    Added a new pulse builder function, :func:`qiskit.pulse.macro`.
     This enables normal Python functions to be decorated as macros.
     This enables pulse builder functions to be used within the decorated
     function. The builder macro can then be called from within a pulse
@@ -15,7 +15,8 @@ features:
 
         @pulse.macro
         def measure(qubit: int):
-            pulse.play(pulse.GaussianSquare(16384, 256, 15872), pulse.MeasureChannel(qubit))
+            pulse.play(pulse.GaussianSquare(16384, 256, 15872),
+                       pulse.MeasureChannel(qubit))
             mem_slot = pulse.MemorySlot(0)
             pulse.acquire(16384, pulse.AcquireChannel(0), mem_slot)
             return mem_slot

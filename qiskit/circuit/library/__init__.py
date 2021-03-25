@@ -55,6 +55,7 @@ Standard Gates
    RCCXGate
    RC3XGate
    Reset
+   RGate
    RXGate
    RXXGate
    RYGate

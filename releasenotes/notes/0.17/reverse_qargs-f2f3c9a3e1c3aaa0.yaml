@@ -5,9 +5,8 @@ features:
     :class:`qiskit.quantum_info.Statevector` and
     :class:`qiskit.quantum_info.DensityMatrix` classes. This method reverses
     the order of subsystems in the states and is equivalent to the
-    :meth:`qiskit.QuantumCircuit.reverse_bits` method for N-qubit states.
-
-    Example:
+    :meth:`qiskit.circuit.QuantumCircuit.reverse_bits` method for N-qubit
+    states. For example:
 
       .. jupyter-execute::
 
@@ -24,9 +23,8 @@ features:
     Adds a :meth:`~qiskit.quantum_info.Operator.reverse_qargs` method to the
     :class:`qiskit.quantum_info.Operator` class. This method reverses
     the order of subsystems in the operator and is equivalent to the
-    :meth:`qiskit.QuantumCircuit.reverse_bits` method for N-qubit operators.
-
-    Example:
+    :meth:`qiskit.circuit.QuantumCircuit.reverse_bits` method for N-qubit
+    operators. For example:
 
       .. jupyter-execute::
 

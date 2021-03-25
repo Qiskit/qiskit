@@ -1,10 +1,10 @@
 ---
 features:
   - |
-    Allows :func:`qiskit.quantum_info.process_fidelity` to be used with a
-    non-unitary target channel. In this case the returned value is equivalent
-    to the :func:`qiskit.quantum_info.state_fidelity` of the normalized
-    :class:`qiskit.quantum_info.Choi` matrices for the channels.
+    The :func:`qiskit.quantum_info.process_fidelity` function is now able to be
+    used with a non-unitary target channel. In this case the returned value is
+    equivalent to the :func:`qiskit.quantum_info.state_fidelity` of the
+    normalized :class:`qiskit.quantum_info.Choi` matrices for the channels.
     
     Note that the :func:`qiskit.quantum_info.average_gate_fidelity` and
     :func:`qiskit.quantum_info.gate_error` functions still require the target

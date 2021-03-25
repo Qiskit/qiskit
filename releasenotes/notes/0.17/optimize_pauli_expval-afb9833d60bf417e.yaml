@@ -1,7 +1,8 @@
 ---
 features:
   - |
-    Computation of `expectation_value` for `Statevector` and `DensityMatrix`
-    in the case the operator is either `Pauli` or `SparsePauliOp` is now
-    optimized to use a single pass on the amplitudes (in cython) without
-    applying the operator first.
+    Improved the performance of
+    :meth:`qiskit.quantum_info.Statevector.expectation_value`  and
+    :meth:`qiskit.quantum_info.DensityMatrix.expectation_value` when the
+    argument operator is a :class:`~qiskit.quantum_info.Pauli`  or
+    :class:`~qiskit.quantum_info.SparsePauliOp`  operator.
