@@ -13,7 +13,7 @@
 """ASAP Scheduling."""
 from collections import defaultdict
 from typing import List
-
+from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
@@ -29,10 +29,9 @@ class ASAPSchedule(TransformationPass):
         Args:
             durations (InstructionDurations): Durations of instructions to be used in scheduling
         """
-        from qiskit.transpiler.passes.scheduling import TimeUnitConversion
         super().__init__()
         self.durations = durations
-        self.time_unit = None
+        self.time_unit = time_unit
         # ensure op node durations are attached and in consistent unit
         self.requires.append(TimeUnitConversion(durations))
 

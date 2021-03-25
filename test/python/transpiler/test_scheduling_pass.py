@@ -42,7 +42,7 @@ class TestSchedulingPass(QiskitTestCase):
 
         new_qc = qc.reverse_ops()
         pm = PassManager(ASAPSchedule(durations))
-        new_qc = pm.run(new_qc)
+        new_qc = pm.run([new_qc])[0]
         new_qc = new_qc.reverse_ops()
         new_qc.name = new_qc.name
 

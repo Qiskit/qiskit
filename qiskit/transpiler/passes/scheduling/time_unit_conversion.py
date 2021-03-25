@@ -48,6 +48,9 @@ class TimeUnitConversion(TransformationPass):
 
         Args:
             dag (DAGCircuit): DAG to be checked.
+        
+        Returns:
+            dag (DAGCircuit): DAG with consistent timing and op nodes annotated with duration.
 
         Raises:
             TranspilerError: if the units are not unifiable
@@ -76,9 +79,6 @@ class TimeUnitConversion(TransformationPass):
                                       "and dt unit must not be mixed when dt is not supplied.")
 
         # Make units consistent
-        bit_indices = {bit: index
-                       for bits in [dag.qubits, dag.clbits]
-                       for index, bit in enumerate(bits)}
         for node in dag.op_nodes():
             try:
                 node.op = node.op.copy()

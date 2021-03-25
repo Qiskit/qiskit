@@ -17,7 +17,6 @@ from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple
 
 from qiskit import user_config
-from qiskit.circuit import Delay
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
