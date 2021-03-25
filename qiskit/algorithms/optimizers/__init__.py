@@ -98,7 +98,7 @@ The global optimizers are as follows:
    ESCH
    ISRES
    DE
-   
+
 """
 
 from .optimizer import OptimizerSupportLevel, Optimizer

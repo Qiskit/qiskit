@@ -18,6 +18,7 @@ import numpy as np
 from scipy.optimize import differential_evolution
 from .optimizer import Optimizer, OptimizerSupportLevel
 
+
 class DE(Optimizer):
     """
     Differential Evolution (DE) optimizer

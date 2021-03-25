@@ -25,6 +25,7 @@ from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.opflow import PauliSumOp
 from qiskit.algorithms.optimizers import DE
 
+
 class TestOptimizerDE(QiskitAlgorithmsTestCase):
     """ Test Differential Evolution (DE) optimizer"""
 
@@ -42,7 +43,7 @@ class TestOptimizerDE(QiskitAlgorithmsTestCase):
 
     def _optimize(self, optimizer):
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
-        bounds = [(-6, 6)]* len(x_0)
+        bounds = [(-6, 6)] * len(x_0)
         res = optimizer.optimize(len(x_0), rosen, initial_point=x_0, variable_bounds=bounds)
         np.testing.assert_array_almost_equal(res[0], [1.0] * len(x_0), decimal=2)
         return res
