@@ -238,7 +238,8 @@ class PauliSumOp(PrimitiveOp):
 
     def __str__(self) -> str:
         def format_sign(x):
-            return x.real if np.isreal(x) else x
+            threshold = 1e-10
+            return x.real if np.abs(x.imag) < threshold else x
 
         def format_number(x):
             x = format_sign(x)
