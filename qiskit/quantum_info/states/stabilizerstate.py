@@ -201,6 +201,28 @@ class StabilizerState(QuantumState):
         """
         pass
 
+    def probabilities_dict(self, qargs=None, decimals=None):
+        """Return the subsystem measurement probability dictionary.
+
+        Measurement probabilities are with respect to measurement in the
+        computation (diagonal) basis.
+
+        This dictionary representation uses a Ket-like notation where the
+        dictionary keys are qudit strings for the subsystem basis vectors.
+        If any subsystem has a dimension greater than 10 comma delimiters are
+        inserted between integers so that subsystems can be distinguished.
+
+        Args:
+            qargs (None or list): subsystems to return probabilities for,
+                if None return for all subsystems (Default: None).
+            decimals (None or int): the number of decimal places to round
+                values. If None no rounding is done (Default: None).
+
+        Returns:
+            dict: The measurement probabilities in dict (ket) form.
+        """
+        pass
+
     def reset(self, qargs=None):
         """Reset state or subsystems to the 0-state.
 
@@ -240,12 +262,45 @@ class StabilizerState(QuantumState):
                    collapsed post-measurement stabilizer state for the
                    corresponding outcome.
         """
-        pass
+        if qargs is None:
+            qargs = range(self.data.num_qubits)
+
+        outcome = ''
+        for qubit in qargs:
+            randbit = self._rng.randint(2)
+            outcome += str(self._measure_and_update(qubit, randbit))
+        return outcome, self
+
+    def sample_memory(self, shots, qargs=None):
+        """Sample a list of qubit measurement outcomes in the computational basis.
+
+        Args:
+            shots (int): number of samples to generate.
+            qargs (None or list): subsystems to sample measurements for,
+                                if None sample measurement of all
+                                subsystems (Default: None).
+
+        Returns:
+            np.array: list of sampled counts if the order sampled.
+
+        Additional Information:
+
+            This function implements the measurement :meth:`measure` method.
+
+            The seed for random number generator used for sampling can be
+            set to a fixed value by using the stats :meth:`seed` method.
+        """
+        memory = []
+        for _ in range(shots):
+            # copy the StabilizerState since measure updates it
+            stab = copy.deepcopy(self)
+            memory.append(stab.measure(qargs)[0])
+        return memory
 
     # -----------------------------------------------------------------------
     # Helper functions for calculating the measurement
     # -----------------------------------------------------------------------
-    def _measure_and_update(self, qubit):
+    def _measure_and_update(self, qubit, randbit):
         """ Measure a single qubit and return outcome and post-measure state.
 
         Note that this function uses the QuantumStates internal random
@@ -267,7 +322,7 @@ class StabilizerState(QuantumState):
         if len(z_anticommuting) != 0:
             p_qubit = np.min(np.nonzero(self.data.stabilizer.X[:, qubit]))
             p_qubit += num_qubits
-            outcome = self._rng.randint(2)
+            outcome = randbit
 
             # Updating the StabilizerState
             for i in range(2 * num_qubits):
@@ -362,3 +417,7 @@ class StabilizerState(QuantumState):
         aux_pauli = accum_pauli
         aux_pauli.phase = accum_phase
         return aux_pauli
+
+    # -----------------------------------------------------------------------
+    # Helper functions for calculating the probabilities
+    # -----------------------------------------------------------------------

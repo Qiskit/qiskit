@@ -42,6 +42,8 @@ class TestStabilizerState(QiskitTestCase):
 
     rng = np.random.default_rng(12345)
     samples = 10
+    shots = 1000
+    threshold = 0.05 * shots
 
     @combine(num_qubits=[2, 3, 4, 5])
     def test_init_clifford(self, num_qubits):
@@ -148,32 +150,53 @@ class TestStabilizerState(QiskitTestCase):
             state = stab1.evolve(stab2, qargs)
             self.assertEqual(state, target)
 
-    def test_measure_single_qubit(self):
-        """Test a measurement of a single qubit"""
+    def test_measure_qubits(self):
+        """Test a measurement of a subsystem of qubits"""
         for _ in range(self.samples):
             cliff = Clifford(XGate())
             stab = StabilizerState(cliff)
-            value = stab._measure_and_update(0)
-            self.assertEqual(value, 1)
+            value = stab.measure()[0]
+            self.assertEqual(value, '1')
 
             cliff = Clifford(IGate())
             stab = StabilizerState(cliff)
-            value = stab._measure_and_update(0)
-            self.assertEqual(value, 0)
+            value = stab.measure()[0]
+            self.assertEqual(value, '0')
+
+            cliff = Clifford(HGate())
+            stab = StabilizerState(cliff)
+            value = stab.measure()[0]
+            self.assertIn(value, ['0', '1'])
 
             num_qubits = 4
             qc = QuantumCircuit(num_qubits)
             stab = StabilizerState(qc)
-            for i in range(num_qubits):
-                value = stab._measure_and_update(i)
-                self.assertEqual(value, 0)
+            value = stab.measure()[0]
+            self.assertEqual(value, '0000')
+            value = stab.measure([0, 2])[0]
+            self.assertEqual(value, '00')
+            value = stab.measure([1])[0]
+            self.assertEqual(value, '0')
 
             for i in range(num_qubits):
                 qc.x(i)
             stab = StabilizerState(qc)
-            for i in range(num_qubits):
-                value = stab._measure_and_update(i)
-                self.assertEqual(value, 1)
+            value = stab.measure()[0]
+            self.assertEqual(value, '1111')
+            value = stab.measure([2, 0])[0]
+            self.assertEqual(value, '11')
+            value = stab.measure([1])[0]
+            self.assertEqual(value, '1')
+
+            qc = QuantumCircuit(num_qubits)
+            qc.h(0)
+            stab = StabilizerState(qc)
+            value = stab.measure()[0]
+            self.assertIn(value, ['0000', '1000'])
+            value = stab.measure([0, 1])[0]
+            self.assertIn(value, ['00', '10'])
+            value = stab.measure([2])[0]
+            self.assertEqual(value, '0')
 
             qc = QuantumCircuit(num_qubits)
             qc.h(0)
@@ -181,10 +204,61 @@ class TestStabilizerState(QiskitTestCase):
             qc.cx(0, 2)
             qc.cx(0, 3)
             stab = StabilizerState(qc)
-            value = []
-            for i in range(num_qubits):
-                value.append(stab._measure_and_update(i))
-                self.assertEqual(value[i], value[0])
+            value = stab.measure()[0]
+            self.assertIn(value, ['0000', '1111'])
+            value = stab.measure([3, 1])[0]
+            self.assertIn(value, ['00', '11'])
+            value = stab.measure([2])[0]
+            self.assertIn(value, ['0', '1'])
+
+    def test_sample_counts_memory_ghz(self):
+        """Test sample_counts and sample_memory method for GHZ state"""
+
+        num_qubits = 3
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        stab = StabilizerState(qc)
+
+        # 3-qubit qargs
+        target = {'000': self.shots / 2, '111': self.shots / 2}
+        for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
+
+            with self.subTest(msg='counts (qargs={})'.format(qargs)):
+                counts = stab.sample_counts(self.shots, qargs=qargs)
+                self.assertDictAlmostEqual(counts, target, self.threshold)
+
+            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+                memory = stab.sample_memory(self.shots, qargs=qargs)
+                self.assertEqual(len(memory), self.shots)
+                self.assertEqual(set(memory), set(target))
+
+        # 2-qubit qargs
+        target = {'00': self.shots / 2, '11': self.shots / 2}
+        for qargs in [[0, 1], [2, 1], [1, 2], [1, 0]]:
+
+            with self.subTest(msg='counts (qargs={})'.format(qargs)):
+                counts = stab.sample_counts(self.shots, qargs=qargs)
+                self.assertDictAlmostEqual(counts, target, self.threshold)
+
+            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+                memory = stab.sample_memory(self.shots, qargs=qargs)
+                self.assertEqual(len(memory), self.shots)
+                self.assertEqual(set(memory), set(target))
+
+        # 1-qubit qargs
+        target = {'0': self.shots / 2, '1': self.shots / 2}
+        for qargs in [[0], [1], [2]]:
+
+            with self.subTest(msg='counts (qargs={})'.format(qargs)):
+                counts = stab.sample_counts(self.shots, qargs=qargs)
+                self.assertDictAlmostEqual(counts, target, self.threshold)
+
+            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+                memory = stab.sample_memory(self.shots, qargs=qargs)
+                self.assertEqual(len(memory), self.shots)
+                self.assertEqual(set(memory), set(target))
 
 
 if __name__ == '__main__':
