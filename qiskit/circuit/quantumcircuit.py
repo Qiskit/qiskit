@@ -802,7 +802,6 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: The tensored circuit (returns None if inplace==True).
         """
-
         num_qubits = self.num_qubits + other.num_qubits
         num_clbits = self.num_clbits + other.num_clbits
 
