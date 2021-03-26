@@ -56,8 +56,9 @@ class UniformDistribution(QuantumCircuit):
         """
         warnings.warn('`UniformDistribution` is deprecated as of version 0.17.0 and will be '
                       ' removed no earlier than 3 months after the release date.'
-                      ' As an alternative, use `UniformDistribution` in the circuit library'
-                      ' of \'Qiskit finance\'.', DeprecationWarning, 2)
+                      ' It is moved into in the circuit library of \'Qiskit finance\',',
+                      ' qiskit_finance.circuit.library.probability_distributions',
+                      DeprecationWarning, 2)
 
         super().__init__(num_qubits, name=name)
         self.h(self.qubits)

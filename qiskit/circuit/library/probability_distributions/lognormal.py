@@ -105,8 +105,9 @@ class LogNormalDistribution(QuantumCircuit):
         """
         warnings.warn('`LogNormalDistribution` is deprecated as of version 0.17.0 and will be '
                       ' removed no earlier than 3 months after the release date.'
-                      ' As an alternative, use `LogNormalDistribution` in the circuit library'
-                      ' of \'Qiskit finance\'.', DeprecationWarning, 2)
+                      ' It is moved into in the circuit library of \'Qiskit finance\',',
+                      ' qiskit_finance.circuit.library.probability_distributions',
+                      DeprecationWarning, 2)
 
         _check_dimensions_match(num_qubits, mu, sigma, bounds)
         _check_bounds_valid(bounds)
