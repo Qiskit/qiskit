@@ -106,5 +106,5 @@ class PhaseOracle(QuantumCircuit):
         Returns:
             PhaseOracle: A quantum circuit with a phase oracle.
         """
-        expr = BooleanExpression.from_dimacs(filename)
+        expr = BooleanExpression.from_dimacs_file(filename)
         return cls(expr)
