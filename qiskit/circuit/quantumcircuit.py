@@ -767,7 +767,7 @@ class QuantumCircuit:
 
         return dest
 
-    def tensor(self, other):
+    def tensor(self, other, inplace=False):
         """Tensor ``self`` with ``other``.
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
@@ -785,6 +785,7 @@ class QuantumCircuit:
 
         Args:
             other (QuantumCircuit): The other circuit to tensor this circuit with.
+            inplace (bool): If True, modify the object. Otherwise return composed circuit.
 
         Examples:
 
@@ -801,6 +802,7 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: The tensored circuit (returns None if inplace==True).
         """
+
         num_qubits = self.num_qubits + other.num_qubits
         num_clbits = self.num_clbits + other.num_clbits
 
@@ -832,6 +834,10 @@ class QuantumCircuit:
         dest.compose(other, range(other.num_qubits), range(other.num_clbits), inplace=True)
         dest.compose(self, range(other.num_qubits, num_qubits),
                      range(other.num_clbits, num_clbits), inplace=True)
+
+        if inplace:
+            self.__dict__.update(dest.__dict__)
+            return None
         return dest
 
     @property
@@ -880,11 +886,10 @@ class QuantumCircuit:
     def __xor__(self, top):
         """Overload ^ to implement self.tensor."""
         return self.tensor(top)
-    '''
+
     def __ixor__(self, top):
         """Overload ^= to implement self.tensor in place."""
-        self = self.tensor(top)
-        return None '''
+        self.tensor(top, inplace=True)
 
     def __len__(self):
         """Return number of operations in circuit."""
