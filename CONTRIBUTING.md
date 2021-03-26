@@ -324,9 +324,7 @@ This opens a jupyter application running in the cloud that automatically runs
 the snapshot tests (note this may take some time to finish loading).
 3. If any tests fail you should see sets of 3 images for each failed test 
 (left: reference image, middle: your test result, right: differences):
-   <img width="995" alt="Screenshot_2021-03-26_at_14 13 54" src="https://user-
-   images.githubusercontent.com/23662430/112663508-d363e800-8e50-11eb-9478-6d6
-   65d0ff086.png">
+   <img width="995" alt="Screenshot_2021-03-26_at_14 13 54" src="https://user-images.githubusercontent.com/23662430/112663508-d363e800-8e50-11eb-9478-6d665d0ff086.png">
 4. Fix any broken tests. Working on code for one aspect of the visualisations 
 can sometimes result in minor changes elsewhere to spacing etc. In these cases 
 you just need to update the reference images as follows:
