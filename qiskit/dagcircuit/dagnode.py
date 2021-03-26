@@ -54,9 +54,9 @@ class DAGNode:
     @property
     def condition(self):
         """Returns the condition of the node.op"""
-        if self.type and self.type == 'op':
-            return self._op.condition
-        return None
+        if not self.type or self.type != 'op':
+            raise QiskitError("The node %s is not an op node" % (str(self)))
+        return self._op.condition
 
     @condition.setter
     def condition(self, new_condition):
@@ -140,16 +140,17 @@ class DAGNode:
         if 'barrier' == node1.name == node2.name:
             return set(node1_qargs) == set(node2_qargs)
 
-        result = False
         if node1.type == node2.type:
             if node1._op == node2._op:
                 if node1.name == node2.name:
                     if node1_qargs == node2_qargs:
                         if node1_cargs == node2_cargs:
-                            if node1.condition == node2.condition:
-                                if (
-                                        bit_indices1.get(node1._wire, None)
-                                        == bit_indices2.get(node2._wire, None)
-                                ):
-                                    result = True
-        return result
+                            if node1.type == 'op':
+                                if node1._op.condition != node2._op.condition:
+                                    return False
+                            if (
+                                bit_indices1.get(node1._wire, None)
+                                == bit_indices2.get(node2._wire, None)
+                            ):
+                                return True
+        return False
