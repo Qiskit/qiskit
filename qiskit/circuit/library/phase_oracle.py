@@ -42,10 +42,10 @@ class PhaseOracle(QuantumCircuit):
         if not isinstance(expression, ClassicalElement):
             expression = BooleanExpression(expression)
         super().__init__(expression.num_qubits - 1, name='Phase Oracle')
+        self.boolean_expression = expression
 
         from tweedledum.passes import pkrm_synth  # pylint: disable=no-name-in-module
-
-        oracle = self.boolean_expression.synth(
+        oracle = expression.synth(
             synthesizer=lambda logic_network: pkrm_synth(logic_network,
                                                          {"pkrm_synth": {"phase_esop": True}}))
 
