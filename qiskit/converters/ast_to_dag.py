@@ -197,27 +197,38 @@ class AstInterpreter:
             args = []
         bits = [self._process_bit_id(node_element)
                 for node_element in node.bitlist.children]
+
         if name in self.gates:
-            gargs = self.gates[name]["args"]
-            gbits = self.gates[name]["bits"]
-            # Loop over register arguments, if any.
-            maxidx = max(map(len, bits))
-            for idx in range(maxidx):
-                self.arg_stack.append({gargs[j]: args[j]
-                                       for j in range(len(gargs))})
-                # Only index into register arguments.
-                element = [idx * x for x in
-                           [len(bits[j]) > 1 for j in range(len(bits))]]
-                self.bit_stack.append({gbits[j]: bits[j][element[j]]
-                                       for j in range(len(gbits))})
-                self._create_dag_op(name,
-                                    [self.arg_stack[-1][s].sym() for s in gargs],
-                                    [self.bit_stack[-1][s] for s in gbits])
-                self.arg_stack.pop()
-                self.bit_stack.pop()
+            self._arguments(name, bits, args)
         else:
             raise QiskitError("internal error undefined gate:",
                               "line=%s" % node.line, "file=%s" % node.file)
+
+    def _process_u(self, node):
+        """Process a U gate node."""
+        args = self._process_node(node.arguments)
+        bits = [self._process_bit_id(node.bitlist)]
+
+        self._arguments('u', bits, args)
+
+    def _arguments(self, name, bits, args):
+        gargs = self.gates[name]["args"]
+        gbits = self.gates[name]["bits"]
+
+        maxidx = max(map(len, bits))
+        for idx in range(maxidx):
+            self.arg_stack.append({gargs[j]: args[j]
+                                   for j in range(len(gargs))})
+            # Only index into register arguments.
+            element = [idx * x for x in
+                       [len(bits[j]) > 1 for j in range(len(bits))]]
+            self.bit_stack.append({gbits[j]: bits[j][element[j]]
+                                   for j in range(len(gbits))})
+            self._create_dag_op(name,
+                                [self.arg_stack[-1][s].sym() for s in gargs],
+                                [self.bit_stack[-1][s] for s in gbits])
+            self.arg_stack.pop()
+            self.bit_stack.pop()
 
     def _process_gate(self, node, opaque=False):
         """Process a gate node.
@@ -327,12 +338,7 @@ class AstInterpreter:
             self._process_custom_unitary(node)
 
         elif node.type == "universal_unitary":
-            args = self._process_node(node.children[0])
-            qid = self._process_bit_id(node.children[1])
-            for element in qid:
-                u3_gate = U3Gate(*args, element)
-                u3_gate.condition = self.condition
-                self.dag.apply_operation_back(u3_gate)
+            self._process_u(node)
 
         elif node.type == "cnot":
             self._process_cnot(node)
