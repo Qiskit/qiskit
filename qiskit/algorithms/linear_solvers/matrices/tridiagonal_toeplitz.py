@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Hamiltonian simulation of tridiagonal Toeplitz symmetric matrices."""
-from typing import Tuple
 
+from typing import Tuple
 import numpy as np
 from scipy.sparse import diags
 
@@ -279,7 +279,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             if len(q_controls) > 1:
                 ugate = UGate(-2 * theta, 3 * np.pi / 2, np.pi / 2)
                 qc.append(MCMTVChain(ugate, len(q_controls), 1), q_controls[:] + [qr[i]] +
-                          qr_ancilla[:len(q_controls)-1])
+                          qr_ancilla[:len(q_controls) - 1])
             else:
                 qc.cu(-2 * theta, 3 * np.pi / 2, np.pi / 2, 0, q_controls[0], qr[i])
 
@@ -323,7 +323,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
                 if len(q_controls) > 1:
                     ugate = UGate(-2 * theta, 3 * np.pi / 2, np.pi / 2)
                     qc_control.append(MCMTVChain(ugate, len(q_controls), 1), q_controls[:] +
-                                      [qr[i]] + qr_ancilla[:len(q_controls)-1])
+                                      [qr[i]] + qr_ancilla[:len(q_controls) - 1])
                 else:
                     qc_control.cu(-2 * theta, 3 * np.pi / 2, np.pi / 2, 0, q_controls[0], qr[i])
 
@@ -339,8 +339,8 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         return qc
 
     def inverse(self):
-        return Tridiagonal(self.num_state_qubits, self.main_diag, self.off_diag,
-                           evolution_time=-1 * self.evolution_time)
+        return TridiagonalToeplitz(self.num_state_qubits, self.main_diag, self.off_diag,
+                                   evolution_time=-1 * self.evolution_time)
 
     def power(self, power: int, matrix_power: bool = False) -> QuantumCircuit:
         """Build powers of the circuit.

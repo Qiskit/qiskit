@@ -17,9 +17,10 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 from scipy.linalg import expm
 import numpy as np
 from ddt import ddt, idata, unpack
-from qiskit import QuantumCircuit, Aer
+from qiskit import QuantumCircuit
 from qiskit.algorithms.linear_solvers.hhl import HHL
 from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import TridiagonalToeplitz
+from qiskit.algorithms.linear_solvers.matrices.numpy_matrix import NumpyMatrix
 from qiskit.algorithms.linear_solvers.observables.absolute_average import AbsoluteAverage
 from qiskit.algorithms.linear_solvers.observables.matrix_functional import MatrixFunctional
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
@@ -35,12 +36,39 @@ class TestMatrices(QiskitAlgorithmsTestCase):
     This class tests
         * the constructed circuits
     """
+
     @idata([
-        [TridiagonalToeplitz(2, 1, -1/3)],
+        [TridiagonalToeplitz(2, 1, -1 / 3)],
         [TridiagonalToeplitz(3, 2, 1), 1.1, 3]
     ])
     @unpack
     def test_tridiagonal_toeplitz(self, matrix, time=1.0, power=1):
+        """Test the TridiagonalToeplitz class."""
+        if time is not None:
+            matrix.evolution_time = time
+
+        num_qubits = matrix.num_state_qubits
+        pow_circ = matrix.power(power).control()
+        circ_qubits = pow_circ.num_qubits
+        qc = QuantumCircuit(circ_qubits)
+        qc.append(matrix.power(power).control(), list(range(circ_qubits)))
+        # extract the parts of the circuit matrix corresponding to TridiagonalToeplitz
+        zero_op = ((I + Z) / 2)
+        one_op = ((I - Z) / 2)
+        proj = Operator((zero_op ^ pow_circ.num_ancillas) ^ (I ^ num_qubits) ^ one_op).data
+        circ_matrix = Operator(qc).data
+        approx_exp = partial_trace(np.dot(proj, circ_matrix), [0] +
+                                   list(range(num_qubits + 1, circ_qubits))).data
+
+        exact_exp = expm(1j * matrix.evolution_time * power * matrix.matrix)
+        np.testing.assert_array_almost_equal(approx_exp, exact_exp, decimal=2)
+
+    @idata([
+        [NumpyMatrix(np.array([[1 / 2, 1 / 6, 0, 0], [1 / 6, 1 / 2, 1 / 6, 0],
+                               [0, 1 / 6, 1 / 2, 1 / 6], [0, 0, 1 / 6, 1 / 2]]))]
+    ])
+    @unpack
+    def test_numpy_matrix(self, matrix, time=1.0, power=1):
         """Test the TridiagonalToeplitz class."""
         if time is not None:
             matrix.evolution_time = time
@@ -69,9 +97,10 @@ class TestObservables(QiskitAlgorithmsTestCase):
     This class tests
         * the constructed circuits
     """
+
     @idata([
         [AbsoluteAverage(), [1.0, -2.1, 3.2, -4.3]],
-        [AbsoluteAverage(), [-9/4, -0.3, 8/7, 10, -5, 11.1, 13/11, -27/12]]
+        [AbsoluteAverage(), [-9 / 4, -0.3, 8 / 7, 10, -5, 11.1, 13 / 11, -27 / 12]]
     ])
     @unpack
     def test_absolute_average(self, observable, vector):
@@ -96,8 +125,8 @@ class TestObservables(QiskitAlgorithmsTestCase):
         np.testing.assert_almost_equal(result, exact, decimal=2)
 
     @idata([
-        [MatrixFunctional(1, -1/3), [1.0, -2.1, 3.2, -4.3]],
-        [MatrixFunctional(2/3, 11/7), [-9 / 4, -0.3, 8 / 7, 10, -5, 11.1, 13 / 11, -27 / 12]]
+        [MatrixFunctional(1, -1 / 3), [1.0, -2.1, 3.2, -4.3]],
+        [MatrixFunctional(2 / 3, 11 / 7), [-9 / 4, -0.3, 8 / 7, 10, -5, 11.1, 13 / 11, -27 / 12]]
     ])
     @unpack
     def test_matrix_functional(self, observable, vector):
@@ -142,9 +171,10 @@ class TestReciprocal(QiskitAlgorithmsTestCase):
     This class tests
         * the constructed circuits
     """
+
     @idata([
         [2, 0.1],
-        [3, 1/9]
+        [3, 1 / 9]
     ])
     @unpack
     def test_exact_reciprocal(self, num_qubits, scaling):
@@ -179,16 +209,23 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
     This class tests
         * the constructed circuits
     """
+
     @idata([
-        [TridiagonalToeplitz(2, 1, 1/3, trotter_steps=2), [1.0, -2.1, 3.2, -4.3],
-         MatrixFunctional(1, 1/2)],
-        [TridiagonalToeplitz(3, 1, -1/2, trotter_steps=2), [-9/4, -0.3, 8/7, 10, -5, 11.1, 13/11, -27/12],
-         AbsoluteAverage()]
+        [TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2), [1.0, -2.1, 3.2, -4.3],
+         MatrixFunctional(1, 1 / 2)],
+        [np.array([[1 / 2, 1 / 6, 0, 0], [1 / 6, 1 / 2, 1 / 6, 0], [0, 1 / 6, 1 / 2, 1 / 6],
+                   [0, 0, 1 / 6, 1 / 2]]), [1.0, -2.1, 3.2, -4.3], MatrixFunctional(1, 1 / 2)],
+        [TridiagonalToeplitz(3, 1, -1 / 2, trotter_steps=2),
+         [-9 / 4, -0.3, 8 / 7, 10, -5, 11.1, 13 / 11, -27 / 12], AbsoluteAverage()]
     ])
     @unpack
     def test_hhl(self, matrix, right_hand_side, observable):
         """Test the HHL class."""
-        num_qubits = matrix.num_state_qubits
+        if isinstance(matrix, QuantumCircuit):
+            num_qubits = matrix.num_state_qubits
+        elif isinstance(matrix, np.ndarray):
+            num_qubits = int(np.log2(matrix.shape[0]))
+
         rhs = right_hand_side / np.linalg.norm(right_hand_side)
 
         # Initial state circuit
@@ -200,7 +237,10 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         approx_result = solution.observable
 
         # Calculate analytical value
-        exact_x = np.dot(np.linalg.inv(matrix.matrix), rhs)
+        if isinstance(matrix, QuantumCircuit):
+            exact_x = np.dot(np.linalg.inv(matrix.matrix), rhs)
+        elif isinstance(matrix, np.ndarray):
+            exact_x = np.dot(np.linalg.inv(matrix), rhs)
         exact_result = observable.evaluate_classically(exact_x)
 
         np.testing.assert_almost_equal(approx_result, exact_result, decimal=2)

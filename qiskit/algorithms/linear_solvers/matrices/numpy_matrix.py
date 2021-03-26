@@ -10,38 +10,42 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""An abstract class for matrices input to the linear systems solvers in Qiskit."""
+"""Hamiltonian simulation of matrices given as numpy arrays."""
 
-from abc import ABC, abstractmethod
 from typing import Tuple
+import numpy as np
 
-from qiskit import QuantumCircuit
-from qiskit.circuit.library import BlueprintCircuit
+from qiskit import QuantumCircuit, QuantumRegister
+
+from .linear_system_matrix import LinearSystemMatrix
 
 
-class LinearSystemMatrix(BlueprintCircuit, ABC):
-    """Base class for linear system matrices."""
+class NumpyMatrix(LinearSystemMatrix):
+    """Class of matrices given as a numpy array."""
 
-    def __init__(self, num_state_qubits: int, tolerance: float, evolution_time: float,
-                 name: str = 'ls_matrix') -> None:
+    def __init__(self, matrix: np.ndarray, tolerance: float = 1e-2, evolution_time: float = 1.0,
+                 name: str = 'np_matrix') -> None:
         """
         Args:
-            num_state_qubits: the number of qubits where the unitary acts.
-            tolerance: the accuracy desired for the approximation
-            evolution_time: the time of the Hamiltonian simulation
+            matrix: The matrix defining the linear system problem.
+            tolerance: The accuracy desired for the approximation.
+            evolution_time: The time of the Hamiltonian simulation.
             name: The name of the object.
         """
-        super().__init__(name=name)
 
         # define internal parameters
         self._num_state_qubits = None
         self._tolerance = None
         self._evolution_time = None  # makes sure the eigenvalues are contained in [0,1)
+        self._matrix = None
 
         # store parameters
-        self.num_state_qubits = num_state_qubits
+        self.num_state_qubits = int(np.log2(matrix.shape[0]))
         self.tolerance = tolerance
         self.evolution_time = evolution_time
+        self.matrix = matrix
+        super().__init__(num_state_qubits=int(np.log2(matrix.shape[0])), tolerance=tolerance,
+                         evolution_time=evolution_time, name=name)
 
     @property
     def num_state_qubits(self) -> int:
@@ -94,26 +98,74 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
         """
         self._evolution_time = evolution_time
 
-    @abstractmethod
-    def eigs_bounds(self) -> Tuple[float, float]:
-        """Return lower and upper bounds on the eigenvalues of the matrix."""
-        raise NotImplementedError
+    @property
+    def matrix(self) -> np.ndarray:
+        """Return the matrix."""
+        return self._matrix
 
-    @abstractmethod
-    def condition_bounds(self) -> Tuple[float, float]:
-        """Return lower and upper bounds on the condition number of the matrix."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def _reset_registers(self, num_state_qubits: int) -> None:
-        """Reset the registers according to the new number of state qubits.
+    @matrix.setter
+    def matrix(self, matrix: np.ndarray) -> None:
+        """Set the matrix.
 
         Args:
-            num_state_qubits: The new number of qubits.
+            matrix: The new matrix.
         """
-        raise NotImplementedError
+        self._matrix = matrix
 
-    @abstractmethod
+    def eigs_bounds(self) -> Tuple[float, float]:
+        """Return lower and upper bounds on the eigenvalues of the matrix."""
+        matrix_array = self.matrix
+        lambda_max = max(np.abs(np.linalg.eigvals(matrix_array)))
+        lambda_min = min(np.abs(np.linalg.eigvals(matrix_array)))
+        return lambda_min, lambda_max
+
+    def condition_bounds(self) -> Tuple[float, float]:
+        """Return lower and upper bounds on the condition number of the matrix."""
+        matrix_array = self.matrix
+        kappa = np.linalg.cond(matrix_array)
+        return kappa, kappa
+
+    def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        valid = True
+
+        if self.matrix.shape[0] != self.matrix.shape[1]:
+            if raise_on_failure:
+                raise AttributeError("Input matrix must be square!")
+        if np.log2(self.matrix.shape[0]) % 1 != 0:
+            if raise_on_failure:
+                raise AttributeError("Input matrix dimension must be 2^n!")
+        if not np.allclose(self.matrix, self.matrix.conj().T):
+            if raise_on_failure:
+                raise AttributeError("Input matrix must be hermitian!")
+
+        return valid
+
+    def _reset_registers(self, num_state_qubits: int) -> None:
+        """Reset the quantum registers.
+
+        Args:
+            num_state_qubits: The number of qubits to represent the matrix.
+        """
+        qr_state = QuantumRegister(num_state_qubits, 'state')
+        self.qregs = [qr_state]
+        self._qubits = qr_state[:]
+
+    def _build(self) -> None:
+        """Build the circuit"""
+        # do not build the circuit if _data is already populated
+        if self._data is not None:
+            return
+
+        self._data = []
+
+        # check whether the configuration is valid
+        self._check_configuration()
+
+        self.compose(self.power(1), inplace=True)
+
+    def inverse(self):
+        return NumpyMatrix(self.matrix, evolution_time=-1 * self.evolution_time)
+
     def power(self, power: int, matrix_power: bool = False) -> QuantumCircuit:
         """Build powers of the circuit.
 
@@ -126,4 +178,6 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
         Returns:
             The quantum circuit implementing powers of the unitary.
         """
-        raise NotImplementedError
+        qc = QuantumCircuit(self.num_state_qubits)
+        qc.hamiltonian(self.matrix, -self.evolution_time, qc.qubits)
+        return qc.power(power)

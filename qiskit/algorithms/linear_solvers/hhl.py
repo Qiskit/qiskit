@@ -22,12 +22,11 @@ from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
 from qiskit.opflow import (Z, I, StateFn, TensoredOp, ExpectationBase, CircuitSampler, ListOp,
                            ExpectationFactory)
 from qiskit.providers import Backend, BaseBackend
-from qiskit.quantum_info import Operator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils import QuantumInstance
 
 from .linear_solver import LinearSolver, LinearSolverResult
-from .matrices.linear_system_matrix import LinearSystemMatrix
+from .matrices.numpy_matrix import NumpyMatrix
 from .observables.linear_system_observable import LinearSystemObservable
 
 
@@ -68,6 +67,8 @@ class HHL(LinearSolver):
         self._epsilon_s = epsilon / 3  # state preparation
         self._epsilon_a = epsilon / 6  # hamiltonian simulation
 
+        self._scaling = None  # scaling of the solution
+
         if quantum_instance is not None:
             self._sampler = CircuitSampler(quantum_instance)
         else:
@@ -77,6 +78,8 @@ class HHL(LinearSolver):
 
         # For now the default reciprocal implementation is exact
         self._exact_reciprocal = True
+        # Set the default scaling to 1
+        self.scaling = 1
 
     @property
     def quantum_instance(self) -> Optional[QuantumInstance]:
@@ -96,6 +99,16 @@ class HHL(LinearSolver):
             quantum_instance: The quantum instance used to run this algorithm.
         """
         self._sampler.quantum_instance = quantum_instance
+
+    @property
+    def scaling(self) -> float:
+        """The scaling of the solution vector."""
+        return self._scaling
+
+    @scaling.setter
+    def scaling(self, scaling: float) -> None:
+        """Set the new scaling of the solution vector."""
+        self._scaling = scaling
 
     @property
     def expectation(self) -> ExpectationBase:
@@ -127,12 +140,11 @@ class HHL(LinearSolver):
             lamb_min_rep += int(char) / (2 ** (i + 1))
         return lamb_min_rep
 
-    def _calculate_norm(self, qc: QuantumCircuit, scaling: Optional[float] = 1) -> float:
+    def _calculate_norm(self, qc: QuantumCircuit) -> float:
         """Calculates the value of the euclidean norm of the solution.
 
         Args:
             qc: The quantum circuit preparing the solution x to the system.
-            scaling: Factor scaling the solution vector.
 
         Returns:
             The value of the euclidean norm of the solution.
@@ -150,16 +162,15 @@ class HHL(LinearSolver):
         observable = one_op ^ TensoredOp((nl + na) * [zero_op]) ^ (I ^ nb)
         norm_2 = (~StateFn(observable) @ StateFn(qc)).eval()
 
-        return np.real(np.sqrt(norm_2) / scaling)
+        return np.real(np.sqrt(norm_2) / self.scaling)
 
     def _calculate_observable(self, solution: QuantumCircuit,
                               observable: Optional[Union[LinearSystemObservable,
                                                          BaseOperator]] = None,
                               observable_circuit: Optional[QuantumCircuit] = None,
                               post_processing: Optional[Callable[[Union[float, List[float]]],
-                                                                 Union[float, List[float]]]] = None,
-                              scaling: float = 1) -> Tuple[Union[float, List[float]],
-                                                           Union[float, List[float]]]:
+                                                                 Union[float, List[float]]]] =
+                              None) -> Tuple[Union[float, List[float]], Union[float, List[float]]]:
         """Calculates the value of the observable(s) given.
 
         Args:
@@ -167,7 +178,6 @@ class HHL(LinearSolver):
             observable: Information to be extracted from the solution.
             observable_circuit: Circuit to be applied to the solution to extract information.
             post_processing: Function to compute the value of the observable.
-            scaling: Factor scaling the solution vector.
 
         Returns:
             The value of the observable(s) and the circuit results before post-processing as a
@@ -233,7 +243,7 @@ class HHL(LinearSolver):
         expectation_results = expectations.eval()
 
         # apply post_processing
-        result = post_processing(expectation_results, nb, scaling)
+        result = post_processing(expectation_results, nb, self.scaling)
 
         return result, expectation_results
 
@@ -280,31 +290,34 @@ class HHL(LinearSolver):
                                  str(vector_circuit.num_qubits) +
                                  ". Matrix dimension: " +
                                  str(matrix.shape[0]))
-            matrix_circuit = QuantumCircuit(int(np.log2(matrix.shape[0])))
-            matrix_circuit.hamiltonian(matrix, 2 * np.pi, matrix_circuit.qubits)
+            matrix_circuit = NumpyMatrix(matrix, evolution_time=2 * np.pi)
 
         # Set the tolerance for the matrix approximation
         if hasattr(matrix_circuit, "tolerance"):
             matrix_circuit.tolerance = self._epsilon_a
 
         # check if the matrix can calculate the condition number and store the upper bound
-        if hasattr(matrix, "condition_bounds") and matrix.condition_bounds() is not None:
-            kappa = matrix.condition_bounds()[1]
+        if hasattr(matrix_circuit, "condition_bounds") and matrix_circuit.condition_bounds() is not\
+                None:
+            kappa = matrix_circuit.condition_bounds()[1]
         else:
             kappa = 1
         # Update the number of qubits required to represent the eigenvalues
         nl = max(nb + 1, int(np.log2(kappa)) + 1)
 
         # check if the matrix can calculate bounds for the eigenvalues
-        if hasattr(matrix, "eigs_bounds") and matrix.eigs_bounds() is not None:
-            lambda_min, lambda_max = matrix.eigs_bounds()
+        if hasattr(matrix_circuit, "eigs_bounds") and matrix_circuit.eigs_bounds() is not None:
+            lambda_min, lambda_max = matrix_circuit.eigs_bounds()
             # Constant so that the minimum eigenvalue is represented exactly, since it contributes
             # the most to the solution of the system
             delta = self._get_delta(nl, lambda_min, lambda_max)
             # Update evolution time
             matrix_circuit.evolution_time = 2 * np.pi * delta / lambda_min
+            # Update the scaling of the solution
+            self.scaling = lambda_min
         else:
-            delta = 1
+            delta = 1 / (2 ** nl)
+            print("The solution will be calculated up to a scaling factor.")
 
         if self._exact_reciprocal:
             reciprocal_circuit = ExactReciprocal(nl, delta)
@@ -404,23 +417,13 @@ class HHL(LinearSolver):
                 raise ValueError('If observable is passed, observable_circuit and post_processing '
                                  'cannot be set.')
 
-        # Hamiltonian simulation circuit - default is Trotterization
-        if isinstance(matrix, LinearSystemMatrix):
-            matrix_array = matrix.matrix
-        elif isinstance(matrix, QuantumCircuit):
-            matrix_array = Operator(matrix).data
-        elif isinstance(matrix, np.ndarray):
-            matrix_array = matrix
-
-        lambda_min = min(np.abs(np.linalg.eigvals(matrix_array)))
-
         solution = LinearSolverResult()
         solution.state = self.construct_circuit(matrix, vector)
-        solution.euclidean_norm = self._calculate_norm(solution.state, lambda_min)
+        solution.euclidean_norm = self._calculate_norm(solution.state)
 
         if observable is not None or observable_circuit is not None:
             solution.observable, solution.circuit_results = \
                 self._calculate_observable(solution.state, observable, observable_circuit,
-                                           post_processing, lambda_min)
+                                           post_processing)
 
         return solution
