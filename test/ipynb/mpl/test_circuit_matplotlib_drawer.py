@@ -25,7 +25,7 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
-from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate
+from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate, ZGate
 from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter
@@ -233,6 +233,18 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(MCXVChain(3, dirty_ancillas=True), [qr[0], qr[1], qr[2], qr[3], qr[5]])
 
         self.circuit_drawer(circuit, filename='cnot.png')
+
+    def test_cz(self):
+        """Test Z and Controlled-Z Gates"""
+        qr = QuantumRegister(4, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.z(0)
+        circuit.cz(0, 1)
+        circuit.append(ZGate().control(3, ctrl_state='101'), [0, 1, 2, 3])
+        circuit.append(ZGate().control(2), [1, 2, 3])
+        circuit.append(ZGate().control(1, ctrl_state='0', label='CZ Gate'), [2, 3])
+
+        self.circuit_drawer(circuit, filename='cz.png')
 
     def test_pauli_clifford(self):
         """Test Pauli(green) and Clifford(blue) gates"""
