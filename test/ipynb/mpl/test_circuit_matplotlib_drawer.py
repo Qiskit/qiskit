@@ -84,16 +84,6 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit()
 
         self.circuit_drawer(circuit, filename='empty_circut.png')
-    
-    def test_snapshot(self):
-        """Test snapshot"""
-        qr = QuantumRegister(2, 'q')
-        cr = ClassicalRegister(2, 'c')
-        circuit = QuantumCircuit(qr, cr)
-
-        circuit.h(qr)
-
-        self.circuit_drawer(circuit, filename='test_snapshot.png')
 
     def test_no_ops(self):
         """Test circuit with no ops.
