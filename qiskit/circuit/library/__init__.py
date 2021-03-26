@@ -94,6 +94,7 @@ Generalized Gates
    GRX
    GRY
    GRZ
+   RVGate
 
 Boolean Logic Circuits
 ======================

@@ -18,7 +18,7 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class RVGate(Gate):
-    r"""Rotation around arbitrary rotation axis v where |v| is
+    r"""Rotation around arbitrary rotation axis :math:`v` where :math:`|v|` is
     angle of rotation in radians.
 
     **Circuit symbol:**
@@ -33,13 +33,13 @@ class RVGate(Gate):
 
     .. math::
 
-    \newcommand{\th}{|\vec{v}|}
-    \newcommand{\sinc}{\text{sinc}}
-        R(\vec{v}) = e^{-i \vec{v}\cdot\vec{\sigma}} =
-            \begin{pmatrix}
-                \cos{\th} -i v_z \sinc(\th) & -(i v_x + v_y) \sinc(\th) \\
-                -(i v_x - v_y) \sinc(\th) & \cos(\th) + i v_z \sinc(\th)
-            \end{pmatrix}
+        \newcommand{\th}{|\vec{v}|}
+        \newcommand{\sinc}{\text{sinc}}
+            R(\vec{v}) = e^{-i \vec{v}\cdot\vec{\sigma}} =
+                \begin{pmatrix}
+                    \cos{\th} -i v_z \sinc(\th) & -(i v_x + v_y) \sinc(\th) \\
+                    -(i v_x - v_y) \sinc(\th) & \cos(\th) + i v_z \sinc(\th)
+                \end{pmatrix}
     """
 
     def __init__(self, v_x, v_y, v_z, basis='U'):
