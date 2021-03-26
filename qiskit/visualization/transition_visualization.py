@@ -228,7 +228,8 @@ def visualize_transition(circuit,
     starting_pos = _normalize(np.array([0, 0, 1]))
 
     fig = plt.figure(figsize=(5, 5))
-    _ax = Axes3D(fig)
+    _ax = Axes3D(fig, auto_add_to_figure=False)
+    fig.add_axes(_ax)
     _ax.set_xlim(-10, 10)
     _ax.set_ylim(-10, 10)
     sphere = Bloch(axes=_ax)
