@@ -1,9 +1,9 @@
 ---
 upgrade:
   - |
-	The interpretation of ``meas_map`` (which
-	is an attribute of a
-	:class:`~qiskit.providers.models.PulseBackendConfiguration` object or
+    The interpretation of ``meas_map`` (which
+    is an attribute of a
+    :class:`~qiskit.providers.models.PulseBackendConfiguration` object or
     as the corresponding ``meas_map`` kwarg on the
     :func:`~qiskit.compiler.schedule`, :func:`~qiskit.compiler.assemble`,
     :func:`~qiskit.compiler.sequence`, or
