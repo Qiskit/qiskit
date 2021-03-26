@@ -1,14 +1,14 @@
 ---
 features:
   - |
-    Unbound :class:`~qiskit.circuit.Parameter` objects useed in a
-    :class:`~qiskit.circuit.QuantumCircuit` object will now preserve insertion
-    order. This will take effect for the parameters returned by the
+    Unbound :class:`~qiskit.circuit.Parameter` objects used in a
+    :class:`~qiskit.circuit.QuantumCircuit` object will now be sorted
+    by name. This will take effect for the parameters returned by the
     :attr:`~qiskit.circuit.QuantumCircuit.parameters` attribute. Additionally,
     the :meth:`qiskit.circuit.QuantumCircuit.bind_parameters` and
     :meth:`qiskit.circuit.QuantumCircuit.assign_parameters` methods can now take
     in a list of a values which will bind/assign them to the parameters in
-    insertion order. Previously these methods would only take a dictionary of
+    name-sorted order. Previously these methods would only take a dictionary of
     parameters and values. For example:
 
     .. jupyter-execute::
@@ -30,7 +30,7 @@ upgrade:
     :class`~qiskit.circuit.QuantumCircuit` class no longer is returning a
     ``set``. Instead it returns a ``ParameterView`` object which implements
     all the methods that ``set`` offers (albeit deprecated). This was done
-    to support a model that preserves insertion order for parameters. It
+    to support a model that preserves name-sorted parameters. It
     should be fully compatible with any previous usage of the ``set`` returned
     by the :attr:`~qiskit.circuit.QuantumCircuit.parameters` attribute, except
     for where explicit type checking of a set was done.
