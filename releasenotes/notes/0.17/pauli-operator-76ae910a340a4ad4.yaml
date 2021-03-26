@@ -32,7 +32,7 @@ features:
 
       circ = QuantumCircuit(3)
       circ.append(Pauli('XYZ'), [0, 1, 2])
-      print(circ.draw())
+      circ.draw(output='mpl')
 
     Additional methods allow computing when two Pauli's commute (using the
     :meth:`~qiskit.quantum_info.Pauli.commutes` method) or anticommute
