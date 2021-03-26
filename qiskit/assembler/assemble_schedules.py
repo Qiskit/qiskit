@@ -248,15 +248,8 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
     """
     sorted_inst_map = sorted(instruction_map.items(), key=lambda item: item[0])
     meas_map_sets = [set(m) for m in meas_map]
-    all_measured_qubits = [inst.channel.index for _, insts in sorted_inst_map
-                           for inst in insts]
 
-    # 1. if the qubits are not in the meas_map -- Raise Error
-    if not set(all_measured_qubits).issubset(set.union(*meas_map_sets)):
-        raise QiskitError("The measured qubits - {} is not in the measurement "
-                          "map - {}".format(all_measured_qubits, meas_map))
-    # 2. if there is time overlap:
-    #    - if the overlap is in the same meas_map -- Raise Error
+    # error if there is time overlap between qubits in the same meas_map
     for idx, inst in enumerate(sorted_inst_map[:-1]):
         inst_end_time = inst[0][0] + inst[0][1]
         next_inst = sorted_inst_map[idx+1]
