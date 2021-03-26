@@ -19,6 +19,12 @@ QPY serialization (:mod:`qiskit.circuit.qpy_serialization`)
 
 .. currentmodule:: qiskit.circuit.qpy_serialization
 
+.. warning::
+
+    QPY serialization is still an experimental feature, the API and/or
+    forward compatibility are not yet guaranteed. Future versions of Qiskit
+    may not be fully compatible.
+
 .. autosummary::
 
     load
@@ -42,7 +48,7 @@ file header. The contents of thie file header as defined as a C struct are:
         unsigned char qiskit_major_version;
         unsigned char qiskit_minor_version;
         unsigned char qiskit_patch_version;
-        unsigned long long num_circuits;
+        uint64_t num_circuits;
     }
 
 All values use network byte order [#f1]_ (big endian) for cross platform
@@ -68,12 +74,12 @@ The contents of HEADER as defined as a C struct are:
     struct {
         char name[32];
         double global_phase;
-        unsigned int num_qubits;
-        unsigned int num_clbits;
-        unsigned long long metadata_size;
-        unsigned int num_registers;
-        unsigned long long num_instructions;
-        unsigned long long num_custom_gates;
+        uint32_t num_qubits;
+        uint32_t num_clbits;
+        uint64_t metadata_size;
+        uint32_t num_registers;
+        uint64_t num_instructions;
+        uint64_t num_custom_gates;
     }
 
 METADATA
@@ -95,7 +101,7 @@ as:
 
     struct {
         char type;
-        unsigned int size;
+        uint32_t size;
         char name[10];
     }
 
@@ -112,7 +118,7 @@ CUSTOM_DEFINITION_HEADER contents are defined as:
 .. code-block:: c
 
     struct {
-        unsigned long long size;
+        uint64_t size;
     }
 
 If size is greater than 0 that means the circuit contains custom instruction(s).
@@ -124,7 +130,7 @@ Each custom instruction is defined with a CUSTOM_INSTRUCTION block defined as:
         char name[32];
         char type;
         _Bool custom_definition;
-        unsigned long long size
+        uint64_t size
     }
 
 If ``custom_definition`` is ``True`` that means that the immediately following
@@ -141,9 +147,9 @@ The contents of INSTRUCTIONS is a list of INSTRUCTION metadata objects
 
     struct {
         char name[32];
-        unsigned short num_parameters;
-        unsigned int num_qargs;
-        unsigned int num_cargs;
+        uint16_t num_parameters;
+        uint32_t num_qargs;
+        uint32_t num_cargs;
         _Bool has_conditionl
         char conditonal_reg[10];
         long long conditional_value;
@@ -178,7 +184,7 @@ The contents of each INSTRUCTION_PARAM is:
 
     struct {
         char type;
-        unsigned long long size;
+        uint64_t size;
     }
 
 After each INSTRUCTION_PARAM the next ``size`` bytes are the parameter's data.
