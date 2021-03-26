@@ -13,6 +13,7 @@
 """A test for visualizing device coupling maps"""
 import unittest
 import os
+import sys
 
 from ddt import ddt, data
 from qiskit.test.mock import FakeProvider
@@ -27,6 +28,10 @@ if HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt
 
 
+@unittest.skipIf(sys.version_info < (3, 7),
+                 'Skipping image comparison tests on python 3.6 as they '
+                 'depend on the local matlplotlib environment matching the '
+                 'environment for the reference images which is only >=3.7')
 @ddt
 class TestGateMap(QiskitVisualizationTestCase):
     """ visual tests for plot_gate_map """
