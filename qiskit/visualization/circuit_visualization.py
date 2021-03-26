@@ -160,7 +160,7 @@ def circuit_drawer(circuit,
 
     Raises:
         VisualizationError: when an invalid output method is selected
-        ImportError: when the output methods requires non-installed libraries.
+        MissingOptionalLibraryError: when the output methods requires non-installed libraries.
 
     Example:
         .. jupyter-execute::
@@ -344,7 +344,7 @@ def _latex_circuit_drawer(circuit,
         OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
                  missing.
         CalledProcessError: usually points to errors during diagram creation.
-        ImportError: if pillow is not installed
+        MissingOptionalLibraryError: if pillow is not installed
     """
     tmpfilename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -377,9 +377,10 @@ def _latex_circuit_drawer(circuit,
             raise
         else:
             if not HAS_PIL:
-                raise ImportError('The latex drawer needs pillow installed. '
-                                  'Run "pip install pillow" before using the '
-                                  'latex drawer.')
+                raise exceptions.MissingOptionalLibraryError(
+                    libname='pillow',
+                    name='latex drawer',
+                    pip_install='pip install pillow')
             try:
                 base = os.path.join(tmpdirname, tmpfilename)
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",

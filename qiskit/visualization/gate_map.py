@@ -14,7 +14,7 @@
 
 import math
 import numpy as np
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
@@ -88,7 +88,7 @@ def plot_gate_map(backend, figsize=None,
 
     Raises:
         QiskitError: if tried to pass a simulator.
-        ImportError: if matplotlib not installed.
+        MissingOptionalLibraryError: if matplotlib not installed.
 
     Example:
         .. jupyter-execute::
@@ -110,8 +110,9 @@ def plot_gate_map(backend, figsize=None,
            plot_gate_map(backend)
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, '
-                          'run "pip install matplotlib".')
+        raise MissingOptionalLibraryError(libname='Matplotlib',
+                                          name='plot_gate_map',
+                                          pip_install='pip install matplotlib')
     from matplotlib import get_backend
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
