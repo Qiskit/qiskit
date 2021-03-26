@@ -870,9 +870,18 @@ class QuantumCircuit:
         """Overload & to implement self.compose."""
         return self.compose(rhs)
 
+    def __iand__(self, rhs):
+        """Overload &= to implement self.compose in place."""
+        return self.compose(rhs, inplace=True)
+
     def __xor__(self, top):
         """Overload ^ to implement self.tensor."""
         return self.tensor(top)
+    '''
+    def __ixor__(self, top):
+        """Overload ^= to implement self.tensor in place."""
+        self = self.tensor(top)
+        return None '''
 
     def __len__(self):
         """Return number of operations in circuit."""
