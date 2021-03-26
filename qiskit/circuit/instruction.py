@@ -348,7 +348,7 @@ class Instruction:
         if val < 0:
             raise CircuitError("condition value should be non-negative")
         if isinstance(classical, Clbit):
-            self.condition = (classical, bool(val))
+            self.condition = (classical, val)
         else:
             self.condition = (classical, val)
         return self

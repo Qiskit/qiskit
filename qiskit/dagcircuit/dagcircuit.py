@@ -328,8 +328,8 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if conditioning on an invalid register
         """
-        if (condition is not None and condition[0] not in self.clbits
-           and condition[0].name not in self.cregs):
+        if (condition is not None and condition[0] not in self.clbits and
+                condition[0].name not in self.cregs):
             raise DAGCircuitError("invalid creg in condition for %s" % name)
 
     def _check_bits(self, args, amap):
