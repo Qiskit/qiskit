@@ -12,8 +12,11 @@
 
 """Phase Oracle object."""
 
+from typing import Union
+
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
+from qiskit.circuit.classicalfunction.classical_element import ClassicalElement
 
 
 class PhaseOracle(QuantumCircuit):
@@ -35,8 +38,10 @@ class PhaseOracle(QuantumCircuit):
     or more literals. See :meth:`qiskit.circuit.library.phase_oracle.PhaseOracle.from_dimacs_file`.
     """
 
-    def __init__(self, expression: str) -> None:  # pylint: disable=super-init-not-called
-        self.boolean_expression = BooleanExpression(expression)
+    def __init__(self, expression: Union[str, ClassicalElement]) -> None:
+        if not isinstance(expression, ClassicalElement):
+            expression = BooleanExpression(expression)
+        super().__init__(expression.num_qubits)
         self.compose(self._build_from_boolean_expression(), inplace=True)
 
     def _build_from_boolean_expression(self):
@@ -105,8 +110,5 @@ class PhaseOracle(QuantumCircuit):
         Returns:
             PhaseOracle: A quantum circuit with a phase oracle.
         """
-        phase_oracle = cls.__new__(cls)
-        phase_oracle.boolean_expression = BooleanExpression.from_dimacs_file(filename)
-        phase_oracle.compose(phase_oracle._build_from_boolean_expression(), inplace=True)
-
-        return phase_oracle
+        expr = BooleanExpression.from_dimacs(filename)
+        return cls(expr)
