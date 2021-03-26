@@ -29,6 +29,7 @@ from qiskit.visualization.circuit_visualization import _text_circuit_drawer
 from qiskit.extensions import UnitaryGate, HamiltonianGate
 from qiskit.circuit.library import HGate, U2Gate, XGate, CZGate, ZGate, YGate, U1Gate, \
     SwapGate, RZZGate, CU3Gate, CU1Gate, CPhaseGate
+from qiskit.transpiler.passes import ApplyLayout
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -2953,15 +2954,19 @@ class TestTextWithLayout(QiskitTestCase):
                               "                  ║ ",
                               "      cr_1: 0 ════╩═",
                               "                    "])
-        pqr = QuantumRegister(4, 'q')
         qr1 = QuantumRegister(2, 'qr1')
-        cr = ClassicalRegister(2, 'cr')
         qr2 = QuantumRegister(2, 'qr2')
-        circuit = QuantumCircuit(pqr, cr)
-        circuit._layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
-        circuit.measure(pqr[2], cr[0])
-        circuit.measure(pqr[3], cr[1])
-        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+        cr = ClassicalRegister(2, 'cr')
+
+        circuit = QuantumCircuit(qr1, qr2, cr)
+        circuit.measure(qr2[0], cr[0])
+        circuit.measure(qr2[1], cr[1])
+
+        pass_ = ApplyLayout()
+        pass_.property_set['layout'] = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
+        circuit_with_layout = pass_(circuit)
+
+        self.assertEqual(str(_text_circuit_drawer(circuit_with_layout)), expected)
 
     def test_with_layout_but_disable(self):
         """ With parameter without_layout=False """
