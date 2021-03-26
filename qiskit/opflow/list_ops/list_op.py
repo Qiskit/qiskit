@@ -72,11 +72,18 @@ class ListOp(OperatorBase):
             identity - it accepts the list of values, and returns them in a list.
         """
         super().__init__()
-        self._oplist = list(oplist)
+        self._oplist = self._check_input_types(oplist)
         self._combo_fn = combo_fn
         self._coeff = coeff
         self._abelian = abelian
         self._grad_combo_fn = grad_combo_fn
+
+    def _check_input_types(self, oplist):
+        if all(isinstance(x, OperatorBase) for x in oplist):
+            return list(oplist)
+        else:
+            badval = next(x for x in oplist if not isinstance(x, OperatorBase))
+            raise TypeError(f'ListOp expecting objects of type OperatorBase, got {badval}')
 
     def _state(self,
                coeff: Optional[Union[complex, ParameterExpression]] = None,
@@ -367,6 +374,7 @@ class ListOp(OperatorBase):
         # pylint: disable=cyclic-import
         from ..state_fns.dict_state_fn import DictStateFn
         from ..state_fns.vector_state_fn import VectorStateFn
+        from ..state_fns.sparse_vector_state_fn import SparseVectorStateFn
 
         # The below code only works for distributive ListOps, e.g. ListOp and SummedOp
         if not self.distributive:
@@ -378,7 +386,8 @@ class ListOp(OperatorBase):
         # Handle application of combo_fn for DictStateFn resp VectorStateFn operators
         if self._combo_fn != ListOp([])._combo_fn:
             if all(isinstance(op, DictStateFn) for op in evals) or \
-                    all(isinstance(op, VectorStateFn) for op in evals):
+                    all(isinstance(op, VectorStateFn) for op in evals) or \
+                    all(isinstance(op, SparseVectorStateFn) for op in evals):
                 if not all(
                     op.is_measurement == evals[0].is_measurement for op in evals  # type: ignore
                 ):
@@ -514,6 +523,9 @@ class ListOp(OperatorBase):
                                for op in self.oplist],
                               coeff=self.coeff, abelian=self.abelian
                               ).reduce()
+
+    def _is_empty(self):
+        return len(self.oplist) == 0
 
     # Array operations:
 
