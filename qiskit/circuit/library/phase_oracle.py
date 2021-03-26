@@ -41,19 +41,15 @@ class PhaseOracle(QuantumCircuit):
     def __init__(self, expression: Union[str, ClassicalElement]) -> None:
         if not isinstance(expression, ClassicalElement):
             expression = BooleanExpression(expression)
-        super().__init__(expression.num_qubits)
-        self.compose(self._build_from_boolean_expression(), inplace=True)
-
-    def _build_from_boolean_expression(self):
-        # initialize the quantumcircuit
-        qr_state = QuantumRegister(self.boolean_expression.num_qubits - 1, 'state')
-        super().__init__(qr_state, name='Phase Oracle')
+        super().__init__(expression.num_qubits - 1, name='Phase Oracle')
 
         from tweedledum.passes import pkrm_synth  # pylint: disable=no-name-in-module
 
-        return self.boolean_expression.synth(
+        oracle = self.boolean_expression.synth(
             synthesizer=lambda logic_network: pkrm_synth(logic_network,
                                                          {"pkrm_synth": {"phase_esop": True}}))
+
+        self.compose(oracle, inplace=True)
 
     def evaluate_bitstring(self, bitstring: str) -> bool:
         """Evaluate the oracle on a bitstring.
