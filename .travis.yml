@@ -28,6 +28,7 @@ install:
   - pip install -U -r requirements-dev.txt coveralls -c constraints.txt
   - pip install -c constraints.txt -e .
   - pip install "qiskit-ibmq-provider" -c constraints.txt
+  - pip install "qiskit-aer"
 script:
   # Compile the executables and run the tests.
   - python setup.py build_ext --inplace
@@ -63,5 +64,21 @@ jobs:
       script:
       - pip install -U pip
       - python setup.py build_ext --inplace
-      - pip install "qiskit-aer"
       - make test_randomized
+
+    - name: Build aarch64 wheels
+      arch: arm64
+      services:
+        - docker
+      install:
+        - echo ""
+      env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython"
+        - CIBW_SKIP="cp27-* cp34-* cp35-* pp*"
+        - TWINE_USERNAME=qiskit
+        - CIBW_TEST_COMMAND="python {project}/examples/python/stochastic_swap.py"
+      if: tag IS present
+      script:
+        - pip install -U twine importlib-metadata keyring cibuildwheel==1.9.0
+        - cibuildwheel --output-dir wheelhouse
+        - twine upload wheelhouse/*

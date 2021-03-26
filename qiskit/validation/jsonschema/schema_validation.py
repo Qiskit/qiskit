@@ -80,9 +80,8 @@ def _get_validator(name, schema=None, check_schema=True,
     if schema is None:
         try:
             schema = _SCHEMAS[name]
-        except KeyError:
-            raise SchemaValidationError("Valid schema name or schema must "
-                                        "be provided.")
+        except KeyError as ex:
+            raise SchemaValidationError("Valid schema name or schema must be provided.") from ex
 
     if name not in _VALIDATORS:
         # Resolve JSON spec from schema if needed

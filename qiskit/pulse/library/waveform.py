@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """A pulse that is described by complex-valued sample points."""
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
 import numpy as np
 
@@ -96,6 +96,11 @@ class Waveform(Pulse):
 
     def is_parameterized(self) -> bool:
         return False
+
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        """Return a dictionary containing the pulse's parameters."""
+        return dict()
 
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]

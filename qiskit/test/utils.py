@@ -71,7 +71,7 @@ class Case(dict):
 
 
 def generate_cases(docstring, dsc=None, name=None, **kwargs):
-    """Combines kwargs in cartesian product and creates Case with them"""
+    """Combines kwargs in Cartesian product and creates Case with them"""
     ret = []
     keys = kwargs.keys()
     vals = kwargs.values()

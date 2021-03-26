@@ -100,8 +100,11 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                                qubits=[chan.index for chan in sched.channels
                                        if isinstance(chan, AcquireChannel)])
 
+    qubit_indices = {bit: idx for idx, bit in enumerate(circuit.qubits)}
+    clbit_indices = {bit: idx for idx, bit in enumerate(circuit.clbits)}
+
     for inst, qubits, clbits in circuit.data:
-        inst_qubits = [qubit.index for qubit in qubits]  # We want only the indices of the qubits
+        inst_qubits = [qubit_indices[qubit] for qubit in qubits]
 
         if any(q in qubit_mem_slots for q in inst_qubits):
             # If we are operating on a qubit that was scheduled to be measured, process that first
@@ -120,7 +123,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                 raise QiskitError("Qubit '{}' or classical bit '{}' errored because the "
                                   "circuit Measure instruction only takes one of "
                                   "each.".format(inst_qubits, clbits))
-            qubit_mem_slots[inst_qubits[0]] = clbits[0].index
+            qubit_mem_slots[inst_qubits[0]] = clbit_indices[clbits[0]]
         else:
             try:
                 gate_cals = circuit.calibrations[inst.name]
@@ -137,10 +140,12 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                 circ_pulse_defs.append(
                     CircuitPulseDef(schedule=inst_map.get(inst, inst_qubits, *inst.params),
                                     qubits=inst_qubits))
-            except PulseError:
-                raise QiskitError("Operation '{}' on qubit(s) {} not supported by the backend "
-                                  "command definition. Did you remember to transpile your input "
-                                  "circuit for the same backend?".format(inst.name, inst_qubits))
+            except PulseError as ex:
+                raise QiskitError(
+                    f"Operation '{inst.name}' on qubit(s) {inst_qubits} not supported by the "
+                    "backend command definition. Did you remember to transpile your input "
+                    "circuit for the same backend?"
+                ) from ex
 
     if qubit_mem_slots:
         circ_pulse_defs.append(get_measure_schedule(qubit_mem_slots))

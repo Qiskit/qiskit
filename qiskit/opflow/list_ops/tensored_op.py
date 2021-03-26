@@ -12,15 +12,16 @@
 
 """ TensoredOp Class """
 
+from functools import partial, reduce
 from typing import List, Union, cast
-from functools import reduce, partial
+
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, ParameterExpression
-from ..exceptions import OpflowError
-from ..operator_base import OperatorBase
-from ..primitive_ops.primitive_op import PrimitiveOp
-from .list_op import ListOp
+from qiskit.circuit import ParameterExpression, QuantumCircuit
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.quantum_info import Statevector
 
 
 class TensoredOp(ListOp):
@@ -31,7 +32,7 @@ class TensoredOp(ListOp):
     conversion to QuantumCircuits, they can be reduced by tensor product. """
     def __init__(self,
                  oplist: List[OperatorBase],
-                 coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+                 coeff: Union[complex, ParameterExpression] = 1.0,
                  abelian: bool = False) -> None:
         """
         Args:
@@ -59,7 +60,7 @@ class TensoredOp(ListOp):
         Returns:
             TensoredOp expanded with identity operator.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..operator_globals import I
         return TensoredOp(self.oplist + [I ^ num_qubits], coeff=self.coeff)
 
@@ -70,15 +71,19 @@ class TensoredOp(ListOp):
 
     # TODO eval should partial trace the input into smaller StateFns each of size
     #  op.num_qubits for each op in oplist. Right now just works through matmul.
-    def eval(self,
-             front: Union[str, dict, np.ndarray,
-                          OperatorBase] = None) -> Union[OperatorBase, float, complex]:
-        return cast(Union[OperatorBase, float, complex], self.to_matrix_op().eval(front=front))
+    def eval(
+        self, front: Union[str, dict, np.ndarray, OperatorBase, Statevector] = None
+    ) -> Union[OperatorBase, complex]:
+        if self._is_empty():
+            return 0.0
+        return cast(Union[OperatorBase, complex], self.to_matrix_op().eval(front=front))
 
     # Try collapsing list or trees of tensor products.
     # TODO do this smarter
     def reduce(self) -> OperatorBase:
         reduced_ops = [op.reduce() for op in self.oplist]
+        if self._is_empty():
+            return self.__class__([], coeff=self.coeff, abelian=self.abelian)
         reduced_ops = reduce(lambda x, y: x.tensor(y), reduced_ops) * self.coeff
         if isinstance(reduced_ops, ListOp) and len(reduced_ops.oplist) == 1:
             return reduced_ops.oplist[0]
@@ -94,9 +99,10 @@ class TensoredOp(ListOp):
         Raises:
             OpflowError: for operators where a single underlying circuit can not be produced.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
-        from ..state_fns.circuit_state_fn import CircuitStateFn
         circuit_op = self.to_circuit_op()
+        # pylint: disable=cyclic-import
+        from ..state_fns.circuit_state_fn import CircuitStateFn
+        from ..primitive_ops.primitive_op import PrimitiveOp
         if isinstance(circuit_op, (PrimitiveOp, CircuitStateFn)):
             return circuit_op.to_circuit()
         raise OpflowError('Conversion to_circuit supported only for operators, where a single '
