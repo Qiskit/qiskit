@@ -1196,7 +1196,7 @@ class QuantumCircuit:
             for element2 in list2:
                 if element2.name == element1.name:
                     if element1 != element2:
-                        raise CircuitError("circuits are not compatible")
+                        raise CircuitError(f"circuits are not compatible: registers {element1} and {element2} not compatible")
 
     @staticmethod
     def _get_composite_circuit_qasm_from_instruction(instruction):
