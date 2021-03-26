@@ -14,6 +14,7 @@
 
 from os.path import basename, isfile
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from .classical_element import ClassicalElement
 from .utils import HAS_TWEEDLEDUM
 
@@ -28,12 +29,13 @@ class BooleanExpression(ClassicalElement):
             name (str): Optional. Instruction gate name. Otherwise part of
                         the expression is going to be used.
         Raises:
-            ImportError: If tweedledum is not installed. Tweedledum is required.
+            MissingOptionalLibraryError: If tweedledum is not installed. Tweedledum is required.
         """
         if not HAS_TWEEDLEDUM:
-            raise ImportError("To use the BooleanExpression compiler, tweedledum "
-                              "must be installed. To install tweedledum run "
-                              '"pip install tweedledum==1.0.0b3".')
+            raise MissingOptionalLibraryError(
+                libname='tweedledum',
+                name='BooleanExpression compiler',
+                pip_install='pip install tweedledum')
         from tweedledum import BoolFunction
         self._tweedledum_bool_expression = BoolFunction.from_expression(expression)
         self.qregs = None  # TODO: Probably from self._tweedledum_bool_expression._signature
@@ -105,9 +107,10 @@ class BooleanExpression(ClassicalElement):
             FileNotFoundError: If filename is not found.
         """
         if not HAS_TWEEDLEDUM:
-            raise ImportError("To use the BooleanExpression compiler, tweedledum "
-                              "must be installed. To install tweedledum run "
-                              '"pip install tweedledum==1.0.0b3".')
+            raise MissingOptionalLibraryError(
+                libname='tweedledum',
+                name='BooleanExpression compiler',
+                pip_install='pip install tweedledum')
         from tweedledum import BoolFunction
 
         expr_obj = cls.__new__(cls)

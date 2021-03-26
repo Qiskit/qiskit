@@ -17,6 +17,7 @@ This module is used internally by ``qiskit.transpiler.classicalfunction.Classica
 import ast
 import _ast
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from .utils import HAS_TWEEDLEDUM
 from .exceptions import ClassicalFunctionParseError, ClassicalFunctionCompilerTypeError
 
@@ -34,9 +35,10 @@ class ClassicalFunctionVisitor(ast.NodeVisitor):
 
     def __init__(self):
         if not HAS_TWEEDLEDUM:
-            raise ImportError("To use the classicalfunction compiler, tweedledum "
-                              "must be installed. To install tweedledum run "
-                              '"pip install tweedledum".')
+            raise MissingOptionalLibraryError(
+                libname='tweedledum',
+                name='classical function compiler',
+                pip_install='pip install tweedledum')
         self.scopes = []
         self.args = []
         self._network = None
@@ -55,9 +57,10 @@ class ClassicalFunctionVisitor(ast.NodeVisitor):
         if HAS_TWEEDLEDUM:
             from tweedledum.classical import LogicNetwork  # pylint: disable=no-name-in-module
         else:
-            raise ImportError("To use the classicalfunction compiler, tweedledum "
-                              "must be installed. To install tweedledum run "
-                              '"pip install tweedledum==1.0.0b3".')
+            raise MissingOptionalLibraryError(
+                libname='tweedledum',
+                name='classical function compiler',
+                pip_install='pip install tweedledum')
         if node.returns is None:
             raise ClassicalFunctionParseError("return type is needed")
         scope = {'return': (node.returns.id, None), node.returns.id: ('type', None)}

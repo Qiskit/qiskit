@@ -15,6 +15,7 @@
 import ast
 
 from qiskit.circuit import quantumregister
+from qiskit.exceptions import MissingOptionalLibraryError
 from .classical_element import ClassicalElement
 from qiskit.exceptions import QiskitError
 from .utils import HAS_TWEEDLEDUM
@@ -39,9 +40,10 @@ class ClassicalFunction(ClassicalElement):
         if not isinstance(source, str):
             raise QiskitError('ClassicalFunction needs a source code as a string.')
         if not HAS_TWEEDLEDUM:
-            raise ImportError("To use the classicalfunction compiler, tweedledum "
-                              "must be installed. To install tweedledum run "
-                              '"pip install tweedledum".')
+            raise MissingOptionalLibraryError(
+                libname='tweedledum',
+                name='classical function compiler',
+                pip_install='pip install tweedledum')
         self._ast = ast.parse(source)
         self._network = None
         self._scopes = None
