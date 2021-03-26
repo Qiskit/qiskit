@@ -899,7 +899,6 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertEqual(list_op.parameters, set(params))
 
     @data(VectorStateFn([1, 0]),
-          DictStateFn({'0': 1}),
           CircuitStateFn(QuantumCircuit(1)),
           OperatorStateFn(I),
           OperatorStateFn(MatrixOp([[1, 0], [0, 1]])),
@@ -908,6 +907,12 @@ class TestOpConstruction(QiskitOpflowTestCase):
         """Test calling eval on StateFn returns the statevector."""
         expected = Statevector([1, 0])
         self.assertEqual(op.eval().primitive, expected)
+
+    def test_sparse_eval(self):
+        """Test calling eval on a DictStateFn returns a sparse statevector."""
+        op = DictStateFn({'0': 1})
+        expected = scipy.sparse.csr_matrix([[1, 0]])
+        self.assertFalse((op.eval().primitive != expected).toarray().any())
 
     def test_to_circuit_op(self):
         """Test to_circuit_op method."""
