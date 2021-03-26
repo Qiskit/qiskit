@@ -2,7 +2,7 @@
 features:
   - |
     All transpiler passes (ie any instances of
-    :class:`~qiskit.transpiler.BasePasss`) are now directly callable.
+    :class:`~qiskit.transpiler.BasePass`) are now directly callable.
     Calling a pass provides a convenient interface for running the pass
     on a :class:`~qiskit.circuit.QuantumCircuit` object.
 
