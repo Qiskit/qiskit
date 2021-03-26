@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=bad-docstring-quotes
+
 """A test for visualizing device coupling maps"""
 import unittest
 import os
