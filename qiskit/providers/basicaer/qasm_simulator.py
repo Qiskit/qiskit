@@ -155,7 +155,7 @@ class QasmSimulatorPy(BackendV1):
     def _default_options(cls):
         return Options(shots=1024, memory=False,
                        initial_statevector=None, chop_threshold=1e-15,
-                       allow_sample_measuring=False, seed_simulator=None,
+                       allow_sample_measuring=True, seed_simulator=None,
                        parameter_binds=None)
 
     def _add_unitary(self, gate, qubits):
