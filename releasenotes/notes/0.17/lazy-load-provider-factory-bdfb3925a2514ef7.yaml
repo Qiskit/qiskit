@@ -2,7 +2,7 @@
 upgrade:
   - |
     The ``qiskit.Aer`` and ``qiskit.IBMQ`` top level attributes are now lazy
-    loaded. This means that the objects will always now exist and warnings will
+    loaded. This means that the objects will now always exist and warnings will
     no longer be raised on import if ``qiskit-aer`` or ``qiskit-ibmq-provider``
     are not installed (or can't be found by Python). If you were checking for
     the presence of ``qiskit-aer`` or ``qiskit-ibmq-provider`` using these
@@ -52,6 +52,6 @@ upgrade:
   - |
     The user config file option ``suppress_packaging_warnings`` option in the
     user config file and the ``QISKIT_SUPPRESS_PACKAGING_WARNINGS`` environment
-    variable no longer has any effect and will be silently ignored. These
-    warnings have been removed and will no longer be emitted at import time
-    from the qiskit module.
+    variable no longer has any effect and will be silently ignored. The warnings
+    this option controlled have been removed and will no longer be emitted at
+    import time from the ``qiskit`` module.

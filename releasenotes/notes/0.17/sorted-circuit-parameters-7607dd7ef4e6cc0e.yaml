@@ -27,7 +27,7 @@ features:
 upgrade:
   - |
     The :attr:`~qiskit.circuit.QuantumCircuit.parameters` attribute of the 
-    :class`~qiskit.circuit.QuantumCircuit` class no longer is returning a
+    :class:`~qiskit.circuit.QuantumCircuit` class no longer is returning a
     ``set``. Instead it returns a ``ParameterView`` object which implements
     all the methods that ``set`` offers (albeit deprecated). This was done
     to support a model that preserves name-sorted parameters. It
