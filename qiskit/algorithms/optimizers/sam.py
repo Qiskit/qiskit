@@ -131,11 +131,11 @@ class SAM(Optimizer):
 
             grad = gradient(params)  # dL_s(w)/dw
             norm_grad = np.linalg.norm(grad)  # ||dL_s(w)||
-            eps = self._rho * grad / norm_grad  # eq. 2  rho * dL_s(w)/dw / ||dL_s(w)||
+            eps = self._rho * grad / norm_grad  # eq. 2  rho * dL_s(w)/dw / ||dL_s(w)/dw||
 
             grad_sam = gradient(params + eps)  # eq. 3  dL^SAM_s(w+eps)/d(w+eps)
 
-            if self._second_order:  # considering derivation of `eps`
+            if self._second_order:  # include second order of Taylor expansion
                 hes = hess(params)
 
                 # gradient of numerator, denominator unchanged

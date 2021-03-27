@@ -211,7 +211,7 @@ class PrimitiveOp(OperatorBase):
         raise NotImplementedError
 
     @property
-    def parameters(self) -> ParameterExpression:
+    def parameters(self):
         params = set()
         if isinstance(self.primitive, (OperatorBase, QuantumCircuit)):
             params.update(self.primitive.parameters)
