@@ -17,6 +17,7 @@ from copy import deepcopy
 from functools import partial
 from typing import List, Union, Tuple, Dict
 
+import scipy
 import numpy as np
 from qiskit import transpile, QuantumCircuit
 from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
@@ -31,6 +32,7 @@ from ...list_ops.list_op import ListOp
 from ...list_ops.composed_op import ComposedOp
 from ...state_fns.dict_state_fn import DictStateFn
 from ...state_fns.vector_state_fn import VectorStateFn
+from ...state_fns.sparse_vector_state_fn import SparseVectorStateFn
 from ...exceptions import OpflowError
 from ..derivative_base import DerivativeBase
 
@@ -244,8 +246,8 @@ class ParamShift(CircuitGradient):
                 return SummedOp(shifted_ops).reduce()
 
     @staticmethod
-    def _prob_combo_fn(x: Union[DictStateFn, VectorStateFn,
-                                List[Union[DictStateFn, VectorStateFn]]],
+    def _prob_combo_fn(x: Union[DictStateFn, VectorStateFn, SparseVectorStateFn,
+                                List[Union[DictStateFn, VectorStateFn, SparseVectorStateFn]]],
                        shift_constant: float) -> Union[Dict, np.ndarray]:
         """Implement the combo_fn used to evaluate probability gradients
 
@@ -260,11 +262,11 @@ class ParamShift(CircuitGradient):
             TypeError: if ``x`` is not DictStateFn, VectorStateFn or their list.
 
         """
-
         # In the probability gradient case, the amplitudes still need to be converted
         # into sampling probabilities.
+
         def get_primitives(item):
-            if isinstance(item, DictStateFn):
+            if isinstance(item, (DictStateFn, SparseVectorStateFn)):
                 item = item.primitive
             if isinstance(item, VectorStateFn):
                 item = item.primitive.data
@@ -288,6 +290,18 @@ class ParamShift(CircuitGradient):
                     prob_dict[key] = prob_dict.get(key, 0) + \
                                      shift_constant * ((-1) ** i) * prob_counts
             return prob_dict
+        elif isinstance(items[0], scipy.sparse.spmatrix):
+            # If x was given as StateFn the state amplitudes need to be multiplied in order to
+            # evaluate the sampling probabilities which are then subtracted according to the
+            # parameter shift rule.
+            if is_statefn:
+                return shift_constant * np.subtract(items[0].multiply(np.conj(items[0])),
+                                                    items[1].multiply(np.conj(items[1])))
+            # If x was not given as a StateFn the state amplitudes were already converted into
+            # sampling probabilities which are then only subtracted according to the
+            # parameter shift rule.
+            else:
+                return shift_constant * np.subtract(items[0], items[1])
         elif isinstance(items[0], Iterable):
             # If x was given as StateFn the state amplitudes need to be multiplied in order to
             # evaluate the sampling probabilities which are then subtracted according to the
