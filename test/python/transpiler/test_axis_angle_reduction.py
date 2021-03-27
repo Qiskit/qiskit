@@ -269,7 +269,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         self.assertEqual(ccirc, expected)
 
     def test_crx_cancellation(self):
-        """test no single qubit gates in circuit"""
+        """test crx gate cancellation in presence of x-gate"""
         circ = QuantumCircuit(2)
         circ.crx(np.pi, 0, 1)
         circ.crx(np.pi, 0, 1)
@@ -313,7 +313,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         self.assertEqual(ccirc, expected)
 
     def test_crx_tgt_block(self):
-        """test do not block merge on target qubit of same axis"""
+        """test block merge on target qubit of same axis"""
         circ = QuantumCircuit(2)
         circ.crx(np.pi, 0, 1)
         circ.z(1)
@@ -329,6 +329,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         self.assertEqual(ccirc, expected)
 
     def test_dual_rx(self):
+        """test merging of two rx gates"""
         circ = QuantumCircuit(1)
         circ.rx(np.pi, 0)
         circ.rx(np.pi, 0)
@@ -338,6 +339,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         self.assertEqual(Operator(circ), Operator(ccirc))
 
     def test_dual_crx(self):
+        """test merging two crx gates"""
         circ = QuantumCircuit(2)
         circ.crx(np.pi, 0, 1)
         circ.crx(np.pi, 0, 1)
@@ -349,6 +351,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         self.assertEqual(ccirc, expected)
 
     def test_4crx(self):
+        """test complete cancellation of 4 crx gates"""
         circ = QuantumCircuit(2)
         circ.crx(np.pi, 0, 1)
         circ.crx(np.pi, 0, 1)
@@ -360,6 +363,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         self.assertEqual(ccirc, expected)
 
     def test_6crx(self):
+        """test reduction of 6 crx gates"""
         circ = QuantumCircuit(2)
         circ.crx(np.pi, 0, 1)
         circ.crx(np.pi, 0, 1)
