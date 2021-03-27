@@ -77,7 +77,7 @@ class Schedule:
         sched = Schedule()
         sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0)) << 30
 
-    - Merger of two schedules
+    - Merge two schedules
 
     .. code-block:: python
 
