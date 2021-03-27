@@ -22,7 +22,7 @@ For example::
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
 import warnings
-from abc import ABC
+from abc import ABC, abstractproperty
 from collections import defaultdict
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any
 
@@ -96,7 +96,7 @@ class Instruction(ABC):
         """Return instruction operands."""
         return self._operands
 
-    @property
+    @abstractproperty
     def channels(self) -> Tuple[Channel]:
         """Returns channels that this schedule uses."""
         raise NotImplementedError
