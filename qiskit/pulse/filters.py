@@ -26,7 +26,7 @@ def filter_instructions(sched: Schedule,
                         filters: List[Callable],
                         negate: bool = False,
                         recurse_subroutines: bool = True) -> Schedule:
-    """A filtering function that takes a schedule and return a schedule consisting of
+    """A filtering function that takes a schedule and returns a schedule consisting of
     filtered instructions.
 
     Args:
