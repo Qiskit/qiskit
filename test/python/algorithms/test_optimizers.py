@@ -44,7 +44,7 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
 
     def test_sam(self):
         """ sam test """
-        optimizer = SAM(maxiter=10000, tol=1e-06)
+        optimizer = SAM(maxiter=10000, tol=1e-06, second_order=True)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
 

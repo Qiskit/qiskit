@@ -139,12 +139,12 @@ class SAM(Optimizer):
                 hes = hess(params)
 
                 # gradient of numerator, denominator unchanged
-                d_eps1 = self._rho * hes / norm_grad  # 2D array
+                d_eps1 = self._rho * hes / norm_grad
 
                 # grad of denominator, numerator unchanged
-                d_eps2 = - (self._rho * np.matmul(grad, hes)) / (norm_grad ** 2)  # 1D array
-                d_eps = d_eps1 + d_eps2  # inconsistent dimensions of d_eps1 and d_eps2
-                grad_sam = np.matmul((1 + d_eps), grad_sam)
+                d_eps2 = self._rho * np.outer(grad, hes.dot(grad)) / (norm_grad ** 3)
+                d_eps = d_eps1 - d_eps2
+                grad_sam = grad_sam + d_eps.dot(grad)
 
             params_new = params - self._eta * grad_sam / np.linalg.norm(grad_sam)  # Algorithm 1
 
