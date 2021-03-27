@@ -62,7 +62,7 @@ def composite_filter(channels: Optional[Union[Iterable[Channel], Channel]] = Non
                      instruction_types: Optional[Union[Iterable[abc.ABCMeta], abc.ABCMeta]] = None,
                      time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                      intervals: Optional[Iterable[Interval]] = None) -> List[Callable]:
-    """A helper function to generate list of filter functions based on
+    """A helper function to generate a list of filter functions based on
     typical elements to be filtered.
 
     Args:
