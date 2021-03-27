@@ -90,8 +90,10 @@ class Schedule:
 
     The ``PulseError`` is immediately raised when the overlap constraint is violated.
 
-    In the schedule representation, we cannot parametrize the duration of waveforms.
+    In the schedule representation, we cannot parametrize the duration of instructions.
     Thus we need to create a new schedule object for every duration.
+    To parametrize instruction's duration, the :class:`~qiskit.pulse.ScheduleBlock` representation
+    can be used instead of this.
 
     References:
         [1]: https://arxiv.org/abs/2004.06755
@@ -1262,8 +1264,10 @@ class ScheduleBlock:
         """Test if two ScheduleBlocks are equal.
 
         Equality is checked by verifying there is an equal instruction at every time
-        in ``other`` for every instruction in this ``ScheduleBlock``. Also they have
-        the same transformation.
+        in ``other`` for every instruction in this ``ScheduleBlock``. This check is
+        performed by converting the instruction representation into directed acyclic graph,
+        in which execution order of every instruction is evaluated correctly across all channels.
+        Also ``self`` and ``other`` should have the same alignment context.
 
         .. warning::
 
