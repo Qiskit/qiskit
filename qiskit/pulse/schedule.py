@@ -55,7 +55,7 @@ class Schedule:
     over all input signal *channels* and supporting special syntaxes for building.
 
     In the Qiskit Pulse model [1], instructions are not allowed to overlap in time
-    on the same channel is not allowed. This overlap constraint is immediately
+    on the same channel. This overlap constraint is immediately
     evaluated when a new instruction is added to the ``Schedule`` object.
 
     This indicates that we always need to specify absolute values for the instruction start time
