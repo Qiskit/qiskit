@@ -29,7 +29,7 @@ except ImportError:
     HAS_PIL = False
 
 
-def dag_drawer(dag, scale=0.7, filename=None, style='color'):
+def dag_drawer(dag, scale=0.7, filename=None, style='color', show_id=False):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
 
@@ -48,6 +48,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
         filename (str): file path to save image to (format inferred from name)
         style (str): 'plain': B&W graph
                      'color' (default): color input/output/op nodes
+        show_id (bool): Whether to display node id of op nodes (for debugging).
 
     Returns:
         PIL.Image: if in Jupyter notebook and not saving to file,
@@ -130,7 +131,10 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
             if style == 'color':
                 n = {}
                 if node.type == 'op':
-                    n['label'] = node.name
+                    if not show_id:
+                        n['label'] = node.name
+                    else:
+                        n['label'] = f'{node.name}({node._node_id})'
                     n['color'] = 'blue'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'lightblue'

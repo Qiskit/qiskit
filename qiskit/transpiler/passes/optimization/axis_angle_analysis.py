@@ -50,33 +50,35 @@ class AxisAngleAnalysis(AnalysisPass):
         for node in dag.gate_nodes():
             # TODO: cache angle-axis evaluation
             if len(node.qargs) == 1:
-                prop1q = _get_1q_gate_props(node.op)
-                prop1q['id'] = node._node_id
-                prop1q['name'] = node.name
-                prop1q['qubit0'] = node.qargs[0]
-                prop1q['qubit1'] = None
-                props.append(prop1q)
-                if node.name not in var_gate_class and prop1q['nparams'] == 1:
-                    var_gate_class[node.name] = node.op.__class__
+                aprop = _get_1q_gate_props(node.op)
+                aprop['id'] = node._node_id
+                aprop['name'] = node.name
+                aprop['qubit0'] = node.qargs[0]
+                aprop['qubit1'] = None
             elif len(node.qargs) == 2 and isinstance(node.op, ControlledGate):
-                prop2q = _get_1q_gate_props(node.op.base_gate)
-                prop2q['id'] = node._node_id
-                prop2q['name'] = node.name
-                prop2q['qubit0'] = node.qargs[0]
-                prop2q['qubit1'] = node.qargs[1]
-                props.append(prop2q)
+                aprop = _get_1q_gate_props(node.op.base_gate, period=4*np.pi)
+                aprop['id'] = node._node_id
+                aprop['name'] = node.name
+                aprop['qubit0'] = node.qargs[0]
+                aprop['qubit1'] = node.qargs[1]
+            props.append(aprop)
+            if node.name not in var_gate_class and aprop['nparams'] == 1:
+                var_gate_class[node.name] = node.op.__class__
         if props:
             dfprop = pd.DataFrame.from_dict(props).astype({'symmetry_order': int})
         self.property_set['axis-angle'] = dfprop
         self.property_set['var_gate_class'] = var_gate_class
 
-def _get_1q_gate_props(gate):
+def _get_1q_gate_props(gate, period=None):
     """
     Get single qubit operator properties
     """
     decimals = 12
     rel_tol = 1e-9
     abs_tol = 1e-9
+    # TODO: avoid 'x' check
+    if period == None or gate.name == 'x':
+        period = 2 * np.pi
     try:
         # Operator does this too but maybe this is slightly more direct.
         mat = gate.to_matrix()
@@ -87,7 +89,7 @@ def _get_1q_gate_props(gate):
         sym_angle = 2 * np.pi - angle
     else:
         sym_angle = angle
-    quotient, remainder = divmod(2 * np.pi, sym_angle)
+    quotient, remainder = divmod(period, sym_angle)
     if math.isclose(remainder, 0, rel_tol=rel_tol, abs_tol=abs_tol):
         symmetry_order = int(quotient)
     elif math.isclose(remainder, sym_angle, rel_tol=rel_tol, abs_tol=abs_tol):

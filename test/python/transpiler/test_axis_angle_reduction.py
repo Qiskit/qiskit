@@ -225,7 +225,6 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.p(np.pi/3, 0)
         circ.p(np.pi/3, 0)
         ccirc = self.pmr.run(circ)
-        breakpoint()
         self.assertEqual(Operator(circ), Operator(ccirc))
 
     def test_global_phase_cancellation(self):
@@ -235,9 +234,9 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.rz(np.pi/2, 0)
         circ.rz(np.pi/2, 0)
         circ.rz(np.pi/2, 0)
-        breakpoint()
         ccirc = self.pmr.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(len(ccirc), 0)
 
     def test_no_1q_gates(self):
         """test no single qubit gates in circuit"""
@@ -247,14 +246,152 @@ class TestAxisAngleReduction(QiskitTestCase):
         ccirc = self.pmr.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
 
-    def test_2q_controlled_gate(self):
+    def test_cx_cancellation(self):
         """test no single qubit gates in circuit"""
         circ = QuantumCircuit(2)
         circ.cx(0, 1)
         circ.cx(0, 1)
         circ.x(1)
         ccirc = self.pmr.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(len(ccirc), 1)
+
+    def test_crx_reduction(self):
+        """test no single qubit gates in circuit"""
+        circ = QuantumCircuit(2)
+        circ.crx(np.pi/2, 0, 1)
+        circ.crx(np.pi/2, 0, 1)
+        circ.x(1)
+        ccirc = self.pmr.run(circ)
+        expected = QuantumCircuit(2)
+        expected.crx(np.pi, 0, 1)
+        expected.x(1)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(ccirc, expected)
+
+    def test_crx_cancellation(self):
+        """test no single qubit gates in circuit"""
+        circ = QuantumCircuit(2)
+        circ.crx(np.pi, 0, 1)
+        circ.crx(np.pi, 0, 1)
+        circ.x(1)
+        ccirc = self.pmr.run(circ)
+        expected = QuantumCircuit(2)
+        expected.crx(2*np.pi, 0, 1)
+        expected.x(1)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(ccirc, expected)
+
+    def test_crx_src_block(self):
+        """test block merge on source qubit"""
+        circ = QuantumCircuit(2)
+        circ.crx(np.pi, 0, 1)
+        circ.x(0)
+        circ.crx(np.pi, 0, 1)
+        circ.x(0)
+        ccirc = self.pmr.run(circ)
+        expected = QuantumCircuit(2)
+        expected.crx(np.pi, 0, 1)
+        expected.x(0)
+        print('')
+        print(circ)
+        print(ccirc)
         breakpoint()
+        self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(ccirc, expected)
+
+    def test_crx_tgt_no_block(self):
+        """test do not block merge on target qubit of same axis"""
+        circ = QuantumCircuit(2)
+        circ.crx(np.pi, 0, 1)
+        circ.x(1)
+        circ.crx(np.pi, 0, 1)
+        circ.x(1)
+        ccirc = self.pmr.run(circ)
+        expected = QuantumCircuit(2)
+        expected.crx(2*np.pi, 0, 1)
+        expected.x(1)
+        expected.x(1)  # should probably ellimate this too
+        self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(ccirc, expected)
+
+    def test_crx_tgt_block(self):
+        """test do not block merge on target qubit of same axis"""
+        circ = QuantumCircuit(2)
+        circ.crx(np.pi, 0, 1)
+        circ.z(1)
+        circ.crx(np.pi, 0, 1)
+        circ.x(1)
+        ccirc = self.pmr.run(circ)
+        expected = QuantumCircuit(2)
+        expected.crx(np.pi, 0, 1)
+        expected.z(1)
+        expected.crx(np.pi, 0, 1)        
+        expected.x(1)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(ccirc, expected)
+        
+    def test_crx_src_block_tmp(self):
+        """test no single qubit gates in circuit"""
+        from qiskit.transpiler.passes.optimization.commutative_cancellation import CommutativeCancellation        
+        circ = QuantumCircuit(2)
+        circ.cx(0, 1)
+        circ.x(1)
+        circ.cx(0, 1)
+        pm = PassManager(CommutativeCancellation())
+        ccirc = pm.run(circ)
+        expected = QuantumCircuit(2)
+        expected.crx(np.pi, 0, 1)
+        expected.x(1)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(ccirc, expected)
+
+    def test_dual_crx(self):
+        circ = QuantumCircuit(2)
+        circ.crx(np.pi, 0, 1)
+        circ.crx(np.pi, 0, 1)
+        ccirc = self.pmr.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+
+        expected = QuantumCircuit(2)
+        expected.crx(2*np.pi, 0, 1)
+        self.assertEqual(ccirc, expected)
+
+    def test_dual_rx(self):
+        circ = QuantumCircuit(1)
+        circ.rx(np.pi, 0)
+        circ.rx(np.pi, 0)
+        ccirc = self.pmr.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+
+    def test_4crx(self):
+        circ = QuantumCircuit(2)
+        circ.crx(np.pi, 0, 1)
+        circ.crx(np.pi, 0, 1)
+        circ.crx(np.pi, 0, 1)
+        circ.crx(np.pi, 0, 1)
+        ccirc = self.pmr.run(circ)
+        print(circ)
+        print(ccirc)
+        np.set_printoptions(precision=3, linewidth=250, suppress=True)
+        print(Operator(circ))
+        print(Operator(ccirc))
+        self.assertEqual(Operator(circ), Operator(ccirc))
+
+    def test_6crx(self):
+        circ = QuantumCircuit(2)
+        circ.crx(np.pi, 0, 1)
+        circ.crx(np.pi, 0, 1)
+        circ.crx(np.pi, 0, 1)
+        circ.crx(np.pi, 0, 1)
+        circ.crx(np.pi, 0, 1)
+        circ.crx(np.pi, 0, 1)
+        ccirc = self.pmr.run(circ)
+        print(circ)
+        print(ccirc)
+        np.set_printoptions(precision=3, linewidth=250, suppress=True)
+        print(Operator(circ))
+        print(Operator(ccirc))
         self.assertEqual(Operator(circ), Operator(ccirc))
         
 

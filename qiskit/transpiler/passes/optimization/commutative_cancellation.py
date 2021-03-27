@@ -115,7 +115,6 @@ class CommutativeCancellation(TransformationPass):
                         q2_key = (node.name, wire, second_qarg, com_set_idx,
                                   self.property_set['commutation_set'][(node, second_qarg)])
                         cancellation_sets[q2_key].append(node)
-
         for cancel_set_key in cancellation_sets:
             if cancel_set_key[0] == 'z_rotation' and var_z_gate is None:
                 continue

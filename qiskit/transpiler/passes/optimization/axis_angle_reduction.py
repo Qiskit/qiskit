@@ -41,7 +41,7 @@ class AxisAngleReduction(TransformationPass):
             self.basis = set(basis_gates)
         else:
             self.basis = set()
-
+        self._ctrl_axis = (1.0, 0., 0.)
         self.requires.append(AxisAngleAnalysis())
 
     def run(self, dag):
@@ -53,26 +53,32 @@ class AxisAngleReduction(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        self._commutation_analysis()
+        self._reduction_analysis()
         dfprop = self.property_set['axis-angle']
         del_list = list()
         for wire in dag.wires:
             node_it = dag.nodes_on_wire(wire)
             stack = list()  # list of (node, dfprop index)
             for node in node_it:
-                print(stack)
+                num_qargs = len(node.qargs)
+                #self._print_stack(stack)
+                
                 if node.type != 'op' or not isinstance(node.op, Gate):
+                    # stack done, evaluate
                     del_list += self._eval_stack(stack, dag)
                     stack = list()
                     continue
                 # just doing 1q and 2q for now
-                if len(node.qargs) <= 2:
+                if num_qargs > 2:
+                    # stack done, evaluate
                     del_list += self._eval_stack(stack, dag)
                     stack = list()
                     continue
                 if not stack:
+                    # start stack
                     stack.append((node, self._get_index(node._node_id)))
                     continue
+                # add to stack
                 top_node = stack[-1][0]
                 top_index = self._get_index(top_node._node_id)
                 this_node = node
@@ -80,14 +86,76 @@ class AxisAngleReduction(TransformationPass):
                 top_group = dfprop.iloc[top_index].basis_group
                 this_group = dfprop.iloc[this_index].basis_group
                 if top_group == this_group:
-                    stack.append((this_node, this_index))
+                    if num_qargs == 1:
+                        stack.append((this_node, this_index))
+                    elif num_qargs == 2:
+                        if self._check_next_2q_commuting(dag, top_node, this_node):
+                            stack.append((this_node, this_index))
                 elif len(stack) > 1:
                     del_list += self._eval_stack(stack, dag)
                     stack = [(this_node, this_index)]  # start new stack with this valid op
+                else:
+                    stack = list()
+            #self._print_stack(stack)
+            
             del_list += self._eval_stack(stack, dag)
         for node in del_list:
             dag.remove_op_node(node)
         return dag
+    
+    def _check_next_2q(self, dag, node1, node2):
+        if node1.name != node2.name or node1.qargs != node2.qargs:
+            return False
+        is_successor = all([node2._node_id == anode._node_id
+                            for anode in dag.quantum_successors(node1)])
+        # TODO: remove checking name...would be better to check whether all
+        # nodes are in domain of variable gate for this "axis".
+        return node1.name == node2.name and node1.qargs == node2.qargs and is_successor
+
+    def _check_next_2q_commuting(self, dag, node1, node2):
+        """checks that node2 is same type as node1 with only commuting
+        single qubit ops in between"""
+        dfprop = self.property_set['axis-angle'].set_index('id')
+        successors = {anode: node2._node_id == anode._node_id
+                      for anode in dag.quantum_successors(node1)}
+        breakpoint()
+        is_direct_successor = all(successors.keys())
+        if (is_direct_successor
+            and node1.name == node2.name
+            and node1.qargs == node2.qargs):
+            return True
+        # one wire is direct and one is indirect.
+        non_direct_qubit = node1.qargs[successors.index(False)]
+        axis1 = dfprop.loc[node1._node_id].axis
+        next_node = self._next_node_on_qubit2(dag, node1, node2, non_direct_qubit)
+        breakpoint()
+        while next_node is not node2:
+            if len(next_node.qargs) == 1:
+                this_axis = dfprop.loc[next_node._node_id].axis
+                if math.isclose(abs(sum([a * b for a, b in zip(axis1, this_axis)])), 1):
+                    next_node = self._next_node_on_qubit(dag, next_node, node2, non_direct_qubit)
+                else:
+                    return False
+            else:
+                return False
+        return bool(next_node)
+
+    def _next_node_on_qubit(self, dag, start_node, stop_node, qubit):
+        """Returns next node on qubit."""
+        for anode in dag.quantum_successors(start_node):
+            if anode is not stop_node:
+                if qubit in anode.qargs:
+                    return anode
+            else:
+                return stop_node
+        return None
+
+    def _next_node_on_qubit(self, dag, node,  qubit):
+        """Returns next node on qubit."""
+        anode = dag._multi_graph.find_adjacent_node_by_edge(
+            node._node_id,
+            lambda edge, target_edge=qubit: edge == target_edge)
+        return anode
 
     def _eval_stack(self, stack, dag):
         dfprop = self.property_set['axis-angle']
@@ -96,12 +164,17 @@ class AxisAngleReduction(TransformationPass):
         top_node = stack[-1][0]
         top_index = self._get_index(top_node._node_id)
         var_gate = dfprop.iloc[top_index].var_gate
-        breakpoint()
         if var_gate and not self._symmetry_complete(stack):
             del_list = self._reduce_stack(stack, var_gate, dag)
         else:
             del_list = self._symmetry_cancellation(stack, dag)
         return del_list
+
+    def _print_stack(self, stack):
+        print('-'*4)
+        for node, ind in stack:
+            qrg = ' '.join([str(qarg.index) for qarg in node.qargs])
+            print(f'{node.name} {qrg} ({hex(id(node))}) {node._node_id}')
 
     def _get_index(self, idnode):
         """return the index in dfprop where idop occurs"""
@@ -134,14 +207,15 @@ class AxisAngleReduction(TransformationPass):
             if sym_order == 1:
                 # no rotational symmetry
                 continue
-            num_cancellation_groups, _ = divmod(len(dfsym), sym_order)
+            num_cancellation_groups = len(dfsym) // sym_order
             groups_phase = dfsym.phase.iloc[0:num_cancellation_groups * sym_order].sum()
             if num_cancellation_groups == 0:
                 # not enough members to satisfy symmetry cancellation
                 continue
-            if num_cancellation_groups % 2:  # double cover (todo:improve conditionals)
+            is_1q = dfsym.qubit1.isnull().all()
+            if num_cancellation_groups % 2 and is_1q:  # double cover (todo:improve conditionals)
                 dag.global_phase += np.pi
-            if math.cos(groups_phase) == -1:
+            if math.cos(groups_phase) == -1 and is_1q:
                 dag.global_phase += np.pi
             del_ids = dfsym.iloc[0:num_cancellation_groups * sym_order].id
             this_del_list = [dag.node(delId) for delId in del_ids]
@@ -166,13 +240,18 @@ class AxisAngleReduction(TransformationPass):
         dfprop = self.property_set['axis-angle']
         _, stack_indices = zip(*stack)
         smask = list(stack_indices)
+        if not dfprop.iloc[smask].qubit1.all() and var_gate_name:
+            period = 2 * np.pi
+        else:
+            period = 4 * np.pi
+        #period = 2 * np.pi if not dfprop.iloc[smask].qubit1.all() else 4 * np.pi
         del_list = []
         dfsubset = dfprop.iloc[smask]
         dfsubset['var_gate_angle'] = dfsubset.angle * dfsubset.rotation_sense
         params = dfsubset[['var_gate_angle', 'phase']].sum()
-        if np.mod(params.var_gate_angle, (2 * np.pi)) > _CUTOFF_PRECISION:
-            var_gate = self.property_set['var_gate_class'][var_gate_name](params.var_gate_angle)
-            new_qarg = QuantumRegister(1, 'q')
+        if np.mod(params.var_gate_angle, period) > _CUTOFF_PRECISION:
+            var_gate = self.property_set['var_gate_class'][var_gate_name](params.var_gate_angle % period)
+            new_qarg = QuantumRegister(var_gate.num_qubits, 'q')
             new_dag = DAGCircuit()
             # the variable gate for the axis may not be in this stack
             df_gate = dfprop[dfprop.name == var_gate_name]
@@ -186,14 +265,20 @@ class AxisAngleReduction(TransformationPass):
                 _, _, gate_phase_factor = _su2_axis_angle(Operator(var_gate).data)
             new_dag.global_phase = params.phase - params.var_gate_angle * gate_phase_factor
             new_dag.add_qreg(new_qarg)
-            new_dag.apply_operation_back(var_gate, [new_qarg[0]])
+            new_dag.apply_operation_back(var_gate, new_qarg[:])
             dag.substitute_node_with_dag(stack[0][0], new_dag)
             del_list += [node for node, _ in stack[1:]]
         else:
             del_list += [node for node, _ in stack]
         return del_list
 
-    def _commutation_analysis(self, rel_tol=1e-9, abs_tol=0.0):
+    def _print_del_list(self, del_list):
+        print('-'*5)
+        for node in del_list:
+            print(node.name)
+        print('-'*5)
+            
+    def _reduction_analysis(self, rel_tol=1e-9, abs_tol=0.0):
         dfprop = self.property_set['axis-angle']
         if dfprop.empty:
             return
@@ -229,16 +314,18 @@ class AxisAngleReduction(TransformationPass):
         for group in grouped_common: 
             lead = group[0]  # this will be the reference direction for the group
             mask = pd.Series(False, index=range(dfprop.shape[0]))
-            for member in group:
-                mask |= dfprop.axis == buniq[member]
-                unlabeled_axes.remove(member)
-            dfprop.loc[mask, 'basis_group'] = basis_counter
-            if (dfprop[mask].nparams == 1).any():
-                group_single_param_name = dfprop[mask & mask_1p].name
-                if group_single_param_name.any():
-                    var_gate_name = dfprop[mask & mask_1p].name.iloc[0]
-                    dfprop.loc[mask, 'var_gate'] = var_gate_name
-            basis_counter += 1
+            mask_axis = dfprop.axis == buniq[member]
+            if dfprop[mask_1q & mask_axis]:
+                for member in group:
+                    mask |= dfprop.axis == buniq[member]
+                    unlabeled_axes.remove(member)
+                dfprop.loc[mask, 'basis_group'] = basis_counter
+                if (dfprop[mask].nparams == 1).any():
+                    group_single_param_name = dfprop[mask & mask_1p].name
+                    if group_single_param_name.any():
+                        var_gate_name = dfprop[mask & mask_1p].name.iloc[0]
+                        dfprop.loc[mask, 'var_gate'] = var_gate_name
+                basis_counter += 1
             # create mask for inverses to lead
             mask[:] = False
             for pair in buniq_inverses:
@@ -250,13 +337,25 @@ class AxisAngleReduction(TransformationPass):
             dfprop.loc[mask, 'rotation_sense'] = -1
         # index lone bases
         for bindex in unlabeled_axes[:]:
-            mask = dfprop.axis == buniq[bindex]
-            dfprop.loc[mask, 'basis_group'] = basis_counter
-            if (dfprop[mask].nparams == 1).any():
-                var_gate_name = dfprop.loc[mask & mask_1p].name.iloc[0]
-                dfprop.loc[mask, 'var_gate'] = var_gate_name
-            unlabeled_axes.remove(bindex)
-            basis_counter += 1
+            mask_axis = dfprop.axis == buniq[bindex]
+            mask_1q_axis = mask_axis & mask_1q
+            mask_2q_axis = mask_axis & mask_2q
+            if mask_1q_axis.any():
+                dfprop.loc[mask_1q_axis, 'basis_group'] = basis_counter
+                if (dfprop[mask_1q_axis].nparams == 1).any():
+                    var_gate_name = dfprop.loc[mask_1q_axis].name.iloc[0]
+                    dfprop.loc[mask_1q_axis, 'var_gate'] = var_gate_name
+                if bindex in unlabeled_axes:
+                    unlabeled_axes.remove(bindex)
+                basis_counter += 1
+            if mask_2q_axis.any():
+                dfprop.loc[mask_2q_axis, 'basis_group'] = basis_counter
+                if (dfprop[mask_2q_axis].nparams == 1).any():
+                    var_gate_name = dfprop.loc[mask_2q_axis].name.iloc[0]
+                    dfprop.loc[mask_2q_axis, 'var_gate'] = var_gate_name
+                if bindex in unlabeled_axes:
+                    unlabeled_axes.remove(bindex)
+                basis_counter += 1
 
     def _symmetry_complete(self, stack):
         """Determine whether complete cancellation is possible due to symmetry"""
@@ -266,6 +365,8 @@ class AxisAngleReduction(TransformationPass):
         sym_order_zero = sym_order.iloc[0]
         return (sym_order_zero == len(sym_order)) and all(sym_order_zero == sym_order)
 
+    def _cgate_phase_correct(self, gate, phase):
+        pass
 
 def join_if_intersect(lists):
     """This is from user 'agf' on stackoverflow
@@ -300,3 +401,6 @@ def join_if_intersect(lists):
             disjoint = 0
         sets = newsets
     return results
+
+def _next_node_on_qubit(edge, target_edge=None):
+    return edge == target_edge
