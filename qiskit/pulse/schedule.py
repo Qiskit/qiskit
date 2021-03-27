@@ -787,7 +787,7 @@ def _require_schedule_conversion(function: Callable) -> Callable:
 
 class ScheduleBlock:
     """A quantum program's *schedule block* with context alignment that allow lazy the scheduling
-    of instructions. This is the representation constructed by the pulse builder by default.
+    of instructions. This is the default representation constructed by the pulse builder.
 
     This program representation doesn't track an explicit notion of timing, in contrast to the
     ``Schedule`` representation. The timing of an instruction is managed by its relative position
