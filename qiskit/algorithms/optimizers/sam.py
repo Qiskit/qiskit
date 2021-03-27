@@ -97,12 +97,7 @@ class SAM(Optimizer):
             A tuple of (optimal parameters, optimal value, number of iterations).
         """
 
-        def rosen(x):
-            x = np.asarray(x)
-            r = np.sum(100.0 * (x[1:] - x[:-1] ** 2.0) ** 2.0 + (1 - x[:-1]) ** 2.0,
-                       axis=0)
-            return r
-
+        # exact gradient of the rosenbrock function
         def gradient(x):
             x = np.asarray(x)
             xm = x[1:-1]
@@ -115,6 +110,7 @@ class SAM(Optimizer):
             der[-1] = 200 * (x[-1] - x[-2] ** 2)
             return der
 
+        # exact hessian of the rosenbrock function
         def hess(x):
             x = np.atleast_1d(x)
             H = np.diag(-400 * x[:-1], 1) - np.diag(400 * x[:-1], -1)
@@ -142,8 +138,8 @@ class SAM(Optimizer):
                 d_eps1 = self._rho * hes / norm_grad
 
                 # grad of denominator, numerator unchanged
-                d_eps2 = self._rho * np.outer(grad, hes.dot(grad)) / (norm_grad ** 3)
-                d_eps = d_eps1 - d_eps2
+                d_eps2 = - self._rho * np.outer(grad, hes.dot(grad)) / (norm_grad ** 3)
+                d_eps = d_eps1 + d_eps2
                 grad_sam = grad_sam + d_eps.dot(grad_sam)
 
             params_new = params - self._eta * grad_sam / np.linalg.norm(grad_sam)  # Algorithm 1
