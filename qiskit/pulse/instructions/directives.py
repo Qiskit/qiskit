@@ -51,7 +51,7 @@ class RelativeBarrier(Directive):
 
     @property
     def channels(self) -> Tuple[chans.Channel]:
-        """Returns channels that this schedule uses."""
+        """Returns the channels this Directive applies to."""
         return self.operands
 
     def __eq__(self, other):
