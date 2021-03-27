@@ -14,8 +14,8 @@
 
 import logging
 from typing import Callable, Tuple, List, Dict, Optional
-
 import numpy as np
+
 from .optimizer import Optimizer, OptimizerSupportLevel
 from ...utils import algorithm_globals
 
@@ -144,7 +144,7 @@ class SAM(Optimizer):
                 # grad of denominator, numerator unchanged
                 d_eps2 = self._rho * np.outer(grad, hes.dot(grad)) / (norm_grad ** 3)
                 d_eps = d_eps1 - d_eps2
-                grad_sam = grad_sam + d_eps.dot(grad)
+                grad_sam = grad_sam + d_eps.dot(grad_sam)
 
             params_new = params - self._eta * grad_sam / np.linalg.norm(grad_sam)  # Algorithm 1
 
