@@ -70,7 +70,7 @@ class Schedule:
         sched = Schedule()
         sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
 
-    - Appending an instruction shifted in time by an amount
+    - Appending an instruction shifted in time by a given amount
 
     .. code-block:: python
 
