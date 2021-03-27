@@ -85,7 +85,7 @@ class Call(instruction.Instruction):
         """Return attached subroutine.
 
         Returns:
-            program (Union[Schedule, ScheduleBlock]): Attached program.
+            program (Union[Schedule, ScheduleBlock]): The program referenced by the call.
         """
         return self.operands[0]
 
