@@ -113,42 +113,33 @@ class AxisAngleReduction(TransformationPass):
         return node1.name == node2.name and node1.qargs == node2.qargs and is_successor
 
     def _check_next_2q_commuting(self, dag, node1, node2):
+        from qiskit.circuit import ControlledGate
         """checks that node2 is same type as node1 with only commuting
         single qubit ops in between"""
         dfprop = self.property_set['axis-angle'].set_index('id')
-        successors = {anode: node2._node_id == anode._node_id
-                      for anode in dag.quantum_successors(node1)}
-        breakpoint()
+        successors = {(node2 in connode):connode[2] for connode in dag.edges(node1)}
         is_direct_successor = all(successors.keys())
         if (is_direct_successor
             and node1.name == node2.name
             and node1.qargs == node2.qargs):
             return True
         # one wire is direct and one is indirect.
-        non_direct_qubit = node1.qargs[successors.index(False)]
-        axis1 = dfprop.loc[node1._node_id].axis
-        next_node = self._next_node_on_qubit2(dag, node1, node2, non_direct_qubit)
-        breakpoint()
+        non_direct_qubit = successors[False]
+        if isinstance(node1.op, ControlledGate) and node1.qargs[0] == non_direct_qubit:
+            axis1 = (0, 0, 1)
+        else:
+            axis1 = dfprop.loc[node1._node_id].axis
+        next_node = self._next_node_on_qubit(dag, node1, non_direct_qubit)
         while next_node is not node2:
             if len(next_node.qargs) == 1:
                 this_axis = dfprop.loc[next_node._node_id].axis
                 if math.isclose(abs(sum([a * b for a, b in zip(axis1, this_axis)])), 1):
-                    next_node = self._next_node_on_qubit(dag, next_node, node2, non_direct_qubit)
+                    next_node = self._next_node_on_qubit(dag, next_node, non_direct_qubit)
                 else:
                     return False
             else:
                 return False
         return bool(next_node)
-
-    def _next_node_on_qubit(self, dag, start_node, stop_node, qubit):
-        """Returns next node on qubit."""
-        for anode in dag.quantum_successors(start_node):
-            if anode is not stop_node:
-                if qubit in anode.qargs:
-                    return anode
-            else:
-                return stop_node
-        return None
 
     def _next_node_on_qubit(self, dag, node,  qubit):
         """Returns next node on qubit."""
@@ -288,16 +279,19 @@ class AxisAngleReduction(TransformationPass):
         # index pairs of buniq which are vectors in opposite directions
         buniq_inverses = list()
         buniq_parallel = list()
-        vdot = np.full((naxes, naxes), np.nan)
-        for v1_ind in range(naxes):
-            v1 = buniq[v1_ind]
-            for v2_ind in range(v1_ind + 1, naxes):
-                v2 = buniq[v2_ind]
-                vdot[v1_ind, v2_ind] = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
-        buniq_parallel = list(zip(*np.where(np.isclose(vdot, 1, rtol=rel_tol, atol=abs_tol))))
-        buniq_inverses = list(zip(*np.where(np.isclose(vdot, -1, rtol=rel_tol, atol=abs_tol))))
-        buniq_common = buniq_parallel + buniq_inverses
-        grouped_common = [list(group) for group in join_if_intersect(buniq_common)]
+        if naxes > 1:
+            vdot = np.full((naxes, naxes), np.nan)
+            for v1_ind in range(naxes):
+                v1 = buniq[v1_ind]
+                for v2_ind in range(v1_ind + 1, naxes):
+                    v2 = buniq[v2_ind]
+                    vdot[v1_ind, v2_ind] = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
+            buniq_parallel = list(zip(*np.where(np.isclose(vdot, 1, rtol=rel_tol, atol=abs_tol))))
+            buniq_inverses = list(zip(*np.where(np.isclose(vdot, -1, rtol=rel_tol, atol=abs_tol))))
+            buniq_common = buniq_parallel + buniq_inverses
+            grouped_common = [list(group) for group in join_if_intersect(buniq_common)]
+        else:
+            grouped_common = [[0]]
         dfprop['basis_group'] = None
         # "rotation sense" is used to indicate sense of rotation wrt : +1=ccw, -1=cw
         dfprop['rotation_sense'] = 1
@@ -314,8 +308,8 @@ class AxisAngleReduction(TransformationPass):
         for group in grouped_common: 
             lead = group[0]  # this will be the reference direction for the group
             mask = pd.Series(False, index=range(dfprop.shape[0]))
-            mask_axis = dfprop.axis == buniq[member]
-            if dfprop[mask_1q & mask_axis]:
+            mask_axis = dfprop.index.isin(group)
+            if not dfprop[mask_1q & mask_axis].empty:
                 for member in group:
                     mask |= dfprop.axis == buniq[member]
                     unlabeled_axes.remove(member)

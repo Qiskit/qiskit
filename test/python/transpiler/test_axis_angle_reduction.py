@@ -123,8 +123,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         passmanager = PassManager()
         passmanager.append(AxisAngleReduction())
         ccirc = passmanager.run(circ)
-        # TODO: set equal when fixing global phase
-        self.assertTrue(Operator(circ).equiv(ccirc))
+        self.assertTrue(Operator(circ) == Operator(ccirc))
 
     def test_symmetric_cancellation(self):
         """Test symmetry-based cancellation works."""
@@ -293,10 +292,8 @@ class TestAxisAngleReduction(QiskitTestCase):
         expected = QuantumCircuit(2)
         expected.crx(np.pi, 0, 1)
         expected.x(0)
-        print('')
-        print(circ)
-        print(ccirc)
-        breakpoint()
+        expected.crx(np.pi, 0, 1)
+        expected.x(0)
         self.assertEqual(Operator(circ), Operator(ccirc))
         self.assertEqual(ccirc, expected)
 
@@ -326,25 +323,19 @@ class TestAxisAngleReduction(QiskitTestCase):
         expected = QuantumCircuit(2)
         expected.crx(np.pi, 0, 1)
         expected.z(1)
-        expected.crx(np.pi, 0, 1)        
-        expected.x(1)
-        self.assertEqual(Operator(circ), Operator(ccirc))
-        self.assertEqual(ccirc, expected)
-        
-    def test_crx_src_block_tmp(self):
-        """test no single qubit gates in circuit"""
-        from qiskit.transpiler.passes.optimization.commutative_cancellation import CommutativeCancellation        
-        circ = QuantumCircuit(2)
-        circ.cx(0, 1)
-        circ.x(1)
-        circ.cx(0, 1)
-        pm = PassManager(CommutativeCancellation())
-        ccirc = pm.run(circ)
-        expected = QuantumCircuit(2)
         expected.crx(np.pi, 0, 1)
         expected.x(1)
         self.assertEqual(Operator(circ), Operator(ccirc))
         self.assertEqual(ccirc, expected)
+
+    def test_dual_rx(self):
+        circ = QuantumCircuit(1)
+        circ.rx(np.pi, 0)
+        circ.rx(np.pi, 0)
+        ccirc = self.pmr.run(circ)
+        expected = QuantumCircuit(1)
+        expected.rx(2 * np.pi, 0)
+        self.assertEqual(Operator(circ), Operator(ccirc))
 
     def test_dual_crx(self):
         circ = QuantumCircuit(2)
@@ -357,13 +348,6 @@ class TestAxisAngleReduction(QiskitTestCase):
         expected.crx(2*np.pi, 0, 1)
         self.assertEqual(ccirc, expected)
 
-    def test_dual_rx(self):
-        circ = QuantumCircuit(1)
-        circ.rx(np.pi, 0)
-        circ.rx(np.pi, 0)
-        ccirc = self.pmr.run(circ)
-        self.assertEqual(Operator(circ), Operator(ccirc))
-
     def test_4crx(self):
         circ = QuantumCircuit(2)
         circ.crx(np.pi, 0, 1)
@@ -371,12 +355,9 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.crx(np.pi, 0, 1)
         circ.crx(np.pi, 0, 1)
         ccirc = self.pmr.run(circ)
-        print(circ)
-        print(ccirc)
-        np.set_printoptions(precision=3, linewidth=250, suppress=True)
-        print(Operator(circ))
-        print(Operator(ccirc))
+        expected = QuantumCircuit(2)
         self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(ccirc, expected)
 
     def test_6crx(self):
         circ = QuantumCircuit(2)
@@ -387,13 +368,10 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.crx(np.pi, 0, 1)
         circ.crx(np.pi, 0, 1)
         ccirc = self.pmr.run(circ)
-        print(circ)
-        print(ccirc)
-        np.set_printoptions(precision=3, linewidth=250, suppress=True)
-        print(Operator(circ))
-        print(Operator(ccirc))
+        expected = QuantumCircuit(2)
+        expected.crx(2 * np.pi, 0, 1)
         self.assertEqual(Operator(circ), Operator(ccirc))
-        
+        self.assertEqual(ccirc, expected)
 
 def axis_angle_phase_equal(tup1, tup2):
     """tup is 3 component tuple of (np.array, angle, phase)"""
