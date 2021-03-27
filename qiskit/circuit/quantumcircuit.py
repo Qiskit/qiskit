@@ -834,6 +834,7 @@ class QuantumCircuit:
         dest.compose(self, range(other.num_qubits, num_qubits),
                      range(other.num_clbits, num_clbits), inplace=True)
 
+        # Replace information from tensored circuit into self when inplace = True
         if inplace:
             self.__dict__.update(dest.__dict__)
             return None
@@ -888,7 +889,7 @@ class QuantumCircuit:
 
     def __ixor__(self, top):
         """Overload ^= to implement self.tensor in place."""
-        self.tensor(top, inplace=True)
+        return self.tensor(top, inplace=True)
 
     def __len__(self):
         """Return number of operations in circuit."""
