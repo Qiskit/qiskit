@@ -789,10 +789,10 @@ class ScheduleBlock:
     """A quantum program's *schedule block* with context alignment that allow lazy the scheduling
     of instructions. This is the default representation constructed by the pulse builder.
 
-    This program representation doesn't track an explicit notion of timing, in contrast to the
-    ``Schedule`` representation. The timing of an instruction is managed by its relative position
+    ``ScheduleBlock`` s do not have an explicit notion of timing, in contrast to
+    ``Schedule`` s. The timing of an instruction is managed by its relative position
     and the stored ``context_alignment`` argument. ``ScheduleBlock`` s should be initialized
-    with one of the following alignment:
+    with one of the following alignment contexts:
 
     - :class:`~qiskit.pulse.transforms.AlignLeft`: Align instructions in the
         `as-soon-as-possible` manner. Instructions are scheduled at the earliest
