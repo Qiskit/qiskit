@@ -42,7 +42,7 @@ class TestSchedulingPass(QiskitTestCase):
 
         pm = PassManager(ASAPSchedule(durations))
         new_qc = pm.run(qc.reverse_ops())
-        new_qc = new_qc.reverse_ops()
+        new_qc = new_qc.reverse_ops()   # pylint: disable=no-member
         new_qc.name = new_qc.name
 
         self.assertEqual(alap_qc, new_qc)

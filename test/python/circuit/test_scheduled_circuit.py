@@ -160,6 +160,13 @@ class TestScheduledCircuit(QiskitTestCase):
                               instruction_durations=[('bell', [0, 1], 1000)])
         self.assertEqual(scheduled.duration, 1500)
 
+    def test_transpile_delay_circuit_with_dt_but_without_scheduling_method(self):
+        qc = QuantumCircuit(1)
+        qc.delay(100, 0, unit='ns')
+        transpiled = transpile(qc, backend=self.backend_with_dt)
+        self.assertEqual(transpiled.duration, None)  # not scheduled
+        self.assertEqual(transpiled.data[0][0].duration, 450)  # time unit is converted ns -> dt
+
     def test_transpile_delay_circuit_without_scheduling_method_or_durs(self):
         qc = QuantumCircuit(2)
         qc.h(0)

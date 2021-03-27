@@ -82,6 +82,8 @@ class TimeUnitConversion(TransformationPass):
         for node in dag.op_nodes():
             try:
                 node.op = node.op.copy()
+                print([q.index for q in node.qargs])
+                print(node.qargs)
                 node.op.duration = self.inst_durations.get(
                         node.op,
                         [q.index for q in node.qargs],

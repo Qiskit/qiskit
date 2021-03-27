@@ -23,7 +23,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 class ALAPSchedule(TransformationPass):
     """ALAP Scheduling."""
 
-    def __init__(self, durations, time_unit=None):
+    def __init__(self, durations):
         """ALAPSchedule initializer.
 
         Args:
@@ -31,7 +31,6 @@ class ALAPSchedule(TransformationPass):
         """
         super().__init__()
         self.durations = durations
-        self.time_unit = time_unit
         # ensure op node durations are attached and in consistent unit
         self.requires.append(TimeUnitConversion(durations))
 
@@ -50,9 +49,7 @@ class ALAPSchedule(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('ALAP schedule runs on physical circuits only')
 
-        if not self.time_unit:
-            self.time_unit = self.property_set['time_unit']
-
+        time_unit = self.property_set['time_unit']
         new_dag = DAGCircuit()
         for qreg in dag.qregs.values():
             new_dag.add_qreg(qreg)
@@ -70,7 +67,7 @@ class ALAPSchedule(TransformationPass):
 
         for node in reversed(list(dag.topological_op_nodes())):
             start_time = max(qubit_time_available[q] for q in node.qargs)
-            pad_with_delays(node.qargs, until=start_time, unit=self.time_unit)
+            pad_with_delays(node.qargs, until=start_time, unit=time_unit)
 
             new_dag.apply_operation_front(node.op, node.qargs, node.cargs, node.condition)
 
@@ -86,10 +83,11 @@ class ALAPSchedule(TransformationPass):
 
         working_qubits = qubit_time_available.keys()
         circuit_duration = max(qubit_time_available[q] for q in working_qubits)
-        pad_with_delays(new_dag.qubits, until=circuit_duration, unit=self.time_unit)
+        pad_with_delays(new_dag.qubits, until=circuit_duration, unit=time_unit)
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
+        # set circuit duration and unit to indicate it is scheduled
         new_dag.duration = circuit_duration
-        new_dag.unit = self.time_unit
+        new_dag.unit = time_unit
         return new_dag
