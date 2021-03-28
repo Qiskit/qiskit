@@ -12,8 +12,10 @@
 
 """The module for Quantum the Fisher Information."""
 
-from typing import List, Union
+from typing import List, Union, Optional
+import functools
 
+from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import (ParameterExpression, ParameterVector)
 from ..list_ops.list_op import ListOp
 from ..expectations.pauli_expectation import PauliExpectation
@@ -36,18 +38,28 @@ class QFI(QFIBase):
     # pylint: disable=signature-differs
     def convert(self,
                 operator: CircuitStateFn,
-                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
+                params: Optional[
+                    Union[ParameterExpression, ParameterVector, List[ParameterExpression]]] = None
                 ) -> ListOp:
         r"""
         Args:
             operator: The operator corresponding to the quantum state \|ψ(ω)〉for which we compute
                 the QFI
             params: The parameters we are computing the QFI wrt: ω
+                If not explicitly passed, they are inferred from the operator and sorted by name.
 
         Returns:
             ListOp[ListOp] where the operator at position k,l corresponds to QFI_kl
+
+        Raises:
+            ValueError: If operator is not parameterized.
         """
+        if len(operator.parameters) == 0:
+            raise ValueError("The operator we are taking the gradient of is not parameterized!")
+
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
 
+        if params is None:
+            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
         return self.qfi_method.convert(cleaned_op, params)

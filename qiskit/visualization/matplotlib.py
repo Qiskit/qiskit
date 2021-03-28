@@ -820,10 +820,10 @@ class MatplotlibDrawer:
                 else:
                     param_width = 0.0
 
-                if op.name in ['cu1', 'cp', 'rzz'] or base_name == 'rzz':
-                    if op.name == 'cu1':
+                if op.name == 'rzz' or base_name in ['u1', 'p', 'rzz']:
+                    if base_name == 'u1':
                         tname = 'U1'
-                    elif op.name == 'cp':
+                    elif base_name == 'p':
                         tname = 'P'
                     else:
                         tname = 'ZZ'
@@ -972,16 +972,6 @@ class MatplotlibDrawer:
                 #
                 # draw controlled and special gates
                 #
-                # cx gates
-                elif isinstance(op.op, ControlledGate) and base_name == 'x':
-                    num_ctrl_qubits = op.op.num_ctrl_qubits
-                    self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
-                                        q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
-                    tgt_color = self._style['dispcol']['target']
-                    tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
-                    self._x_tgt_qubit(q_xy[num_ctrl_qubits], ec=ec, ac=tgt)
-                    self._line(qreg_b, qreg_t, lc=lc)
-
                 # cz gate
                 elif op.name == 'cz':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
@@ -991,17 +981,17 @@ class MatplotlibDrawer:
                     self._line(qreg_b, qreg_t, lc=lc, zorder=PORDER_LINE + 1)
 
                 # cu1, cp, rzz, and controlled rzz gates (sidetext gates)
-                elif op.name in ['cu1', 'cp', 'rzz'] or base_name == 'rzz':
+                elif op.name == 'rzz' or base_name in ['u1', 'p', 'rzz']:
                     num_ctrl_qubits = 0 if op.name == 'rzz' else op.op.num_ctrl_qubits
                     if op.name != 'rzz':
                         self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
                                             q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._ctrl_qubit(q_xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
-                    if op.name not in ['cu1', 'cp']:
+                    if base_name not in ['u1', 'p']:
                         self._ctrl_qubit(q_xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
-                    if op.name == 'cu1':
+                    if base_name == 'u1':
                         stext = self._style['disptex']['u1']
-                    elif op.name == 'cp':
+                    elif base_name == 'p':
                         stext = 'P'
                     else:
                         stext = 'ZZ'
@@ -1031,7 +1021,11 @@ class MatplotlibDrawer:
                     self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
                                         q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._line(qreg_b, qreg_t, lc=lc)
-                    if num_qargs == 1:
+                    if num_qargs == 1 and base_name == 'x':
+                        tgt_color = self._style['dispcol']['target']
+                        tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
+                        self._x_tgt_qubit(q_xy[num_ctrl_qubits], ec=ec, ac=tgt)
+                    elif num_qargs == 1:
                         self._gate(q_xy[num_ctrl_qubits], fc=fc, ec=ec, gt=gt, sc=sc,
                                    text=gate_text, subtext='{}'.format(param))
                     else:
