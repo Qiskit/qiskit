@@ -138,7 +138,7 @@ class SAM(Optimizer):
                 d_eps1 = self._rho * hes / norm_grad
 
                 # grad of denominator, numerator unchanged
-                d_eps2 = - self._rho * np.outer(grad, hes.dot(grad)) / (norm_grad ** 3)
+                d_eps2 = - self._rho * np.outer(hes.dot(grad), grad) / (norm_grad ** 3)
                 d_eps = d_eps1 + d_eps2
                 grad_sam = grad_sam + d_eps.dot(grad_sam)
 
