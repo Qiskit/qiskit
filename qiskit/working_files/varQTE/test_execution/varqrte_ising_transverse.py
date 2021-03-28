@@ -36,16 +36,20 @@ depths = [1]
 
 ode_solvers = [ForwardEuler,  RK45]
 ode_solvers_names = ['ForwardEuler', 'RK45']
+# ode_solvers = [ForwardEuler]
+# ode_solvers_names = ['ForwardEuler']
 # ode_solvers = [ BDF]
 # ode_solvers_names = ['RK45', 'BDF']
 
 # ode_solvers = [BDF]
 # ode_solvers_names = ['BDF']
 
-# ode_solvers = [ RK23]
-# ode_solvers_names = ['RK23']
+# ode_solvers = [ RK45]
+# ode_solvers_names = ['RK45']
 regs = ['ridge', 'perturb_diag', None]
-reg_names = ['ridge', 'perturb_diag', 'None']
+reg_names = ['ridge', 'perturb_diag', 'lstsq']
+# regs = ['perturb_diag', None]
+# reg_names = ['perturb_diag', 'None']
 # for nts in num_time_steps:
 # nts = num_time_steps[1]
 for nts in num_time_steps:
@@ -58,14 +62,15 @@ for nts in num_time_steps:
                 # observable = (Y ^ Y)
                 # observable = SummedOp([(Z ^ X), 0.8 * (Y ^ Y)]).reduce()
                 observable = SummedOp([-0.25 * (I ^ X ^ I), -0.25 * (X ^ I ^ I),
-                                       -0.25 * (I ^ I ^ X), 0.1 * (Z ^ Z ^ I),
-                                       0.1 * (I ^ Z ^ Z)]).reduce()
+                                       -0.25 * (I ^ I ^ X), 0.5 * (Z ^ Z ^ I),
+                                         0.5 * (I ^ Z ^ Z)]).reduce()
                 # observable = (Y ^ I)
                 # observable = SummedOp([(Z ^ X), 3. * (Y ^ Y), (Z ^ X), (I ^ Z), (Z ^ I)]).reduce()
                 # Define Ansatz
                 # ansatz = RealAmplitudes(observable.num_qubits, reps=d)
-                ansatz = EfficientSU2(observable.num_qubits, su2_gates=['rx', 'ry', 'rz'],
-                                      entanglement='sca', reps=d)
+                ansatz = EfficientSU2(observable.num_qubits, reps=d)
+                # ansatz = EfficientSU2(observable.num_qubits, su2_gates=['rx', 'ry', 'rz'],
+                #                       entanglement='sca', reps=d)
                 parameters = ansatz.ordered_parameters
 
                 # Define a set of initial parameters
@@ -110,11 +115,11 @@ for nts in num_time_steps:
                 print('depth ', d)
                 print('---------------------------------------------------------------------')
                 varqrte_snapshot_dir = os.path.join('..',
-                                                    'output_ising_transverse_var',
+                                                    'output_ising_transverse',
                                                     'real',
                                                     str(nts),
                                                     reg_names[j],
-                                                    ode_solvers_names[k] + 'nat_grad')
+                                                    ode_solvers_names[k] + 'error')
                 t0 = time.time()
                 varqrte = VarQRTE(parameters=parameters,
                                 grad_method='lin_comb',
@@ -123,7 +128,7 @@ for nts in num_time_steps:
                                 ode_solver=ode_solver,
                                 backend=Aer.get_backend('statevector_simulator'),
                                 regularization=reg,
-                                error_based_ode=False,
+                                error_based_ode=True,
                                 snapshot_dir=varqrte_snapshot_dir
                                 # snapshot_dir=os.path.join('..', 'test')
                                 )
