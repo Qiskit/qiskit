@@ -81,14 +81,13 @@ class SAM(Optimizer):
             'initial_point': OptimizerSupportLevel.required
         }
 
-    def minimize(self, objective_function: Callable[[np.ndarray], float], initial_point: np.ndarray,
-                 gradient_function: Callable[[np.ndarray], float]) -> Tuple[np.ndarray, float, int]:
+    def minimize(self, objective_function: Callable[[np.ndarray], float],
+                 initial_point: np.ndarray) -> Tuple[np.ndarray, float, int]:
         """Run the minimization.
 
         Args:
             objective_function: A function handle to the objective function.
             initial_point: The initial iteration point.
-            gradient_function: A function handle to the gradient of the objective function.
 
         Returns:
             A tuple of (optimal parameters, optimal value, number of iterations).
