@@ -22,9 +22,6 @@ from ...utils import algorithm_globals
 logger = logging.getLogger(__name__)
 
 
-# TODO
-#  second order derivatives
-
 class SAM(Optimizer):
     """Sharpness-Aware Minimization for Efficiently Improving Generalization.
      An effective procedure for simultaneously minimizing loss value and loss sharpness.
