@@ -36,8 +36,8 @@ class QFTAdder(QuantumCircuit):
     which denotes a quantum register prepared with the value :math:`a = 2^{0}a_{0} + 2^{1}a_{1} +
     \ldots 2^{n}a_{n}` [3]. :math:`|(a+b)\ (mod\ 2^n)\rangle` is the addition result with
     :math:`(\mathrm{mod}\ 2^n)` indicating that modulo :math:`2^n` addition can be optionally
-    performed,where *n* is the number of qubits in either of the equally sized input registers.
-    In case of non-modular addition, an additional qubit as added at the end of the circuit to
+    performed, where *n* is the number of qubits in either of the equally sized input registers.
+    In case of non-modular addition, an additional qubit is added at the end of the circuit to
     store the addition result of most significant qubits.
 
     As an example, a non-modular QFT adder circuit that performs addition on two 2-qubit sized
