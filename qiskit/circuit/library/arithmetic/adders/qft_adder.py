@@ -21,6 +21,41 @@ from qiskit.circuit.library import QFT
 class QFTAdder(QuantumCircuit):
     r"""A circuit that uses QFT to perform in-place addition on two qubit registers.
 
+    Circuit to compute the sum of two qubit registers using modular QFT approach from [1]
+    or non-modular QFT approach from [2].
+    Given two equally sized input registers that store quantum states
+    :math:`|a\rangle` and :math:`|b\rangle`, performs addition of numbers that
+    can be represented by the states, storing the resulting state in-place in the second register:
+
+    .. math::
+
+        |a\rangle |b\rangle \mapsto |a\rangle |(a+b)\ (\mathrm{mod}\ 2^n)\rangle
+
+    Here :math:`|a\rangle` (and correspondingly :math:`|b\rangle`) stands for the direct product
+    :math:`|a_n\rangle \otimes |a_{n-1}\rangle \ldots |a_{1}\rangle \otimes |a_{0}\rangle`
+    which denotes a quantum register prepared with the value :math:`a = 2^{0}a_{0} + 2^{1}a_{1} +
+    \ldots 2^{n}a_{n}` [3]. :math:`|(a+b)\ (mod\ 2^n)\rangle` is the addition result with
+    :math:`(\mathrm{mod}\ 2^n)` indicating that modulo :math:`2^n` addition can be optionally
+    performed,where *n* is the number of qubits in either of the equally sized input registers.
+    In case of non-modular addition, an additional qubit as added at the end of the circuit to
+    store the addition result of most significant qubits.
+
+    As an example, a non-modular QFT adder circuit that performs addition on two 2-qubit sized
+    registers is as follows:
+
+    .. parsed-literal::
+
+        input_a_0:   ─────────■──────■────────────────────────■───────────────
+                              │      │                        │
+        input_a_1:   ─────────┼──────┼────────■──────■────────┼───────────────
+                     ┌──────┐ │P(π)  │        │      │        │       ┌──────┐
+        input_b_0:   ┤0     ├─■──────┼────────┼──────┼────────┼───────┤0     ├
+                     │      │        │P(π/2)  │P(π)  │        │       │      │
+        input_b_1:   ┤1 qft ├────────■────────■──────┼────────┼───────┤1 qft ├
+                     │      │                        │P(π/2)  │P(π/4) │      │
+        carry_out_0: ┤2     ├────────────────────────■────────■───────┤2     ├
+                     └──────┘                                         └──────┘
+
     **References:**
 
     [1] T. G. Draper, Addition on a Quantum Computer, 2000.
@@ -28,6 +63,9 @@ class QFTAdder(QuantumCircuit):
 
     [2] Ruiz-Perez et al., Quantum arithmetic with the Quantum Fourier Transform, 2017.
     `arXiv:1411.5949 <https://arxiv.org/pdf/1411.5949.pdf>`_
+
+    [3] Vedral et al., Quantum Networks for Elementary Arithmetic Operations, 1995.
+    `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_
     """
 
     def __init__(self,
