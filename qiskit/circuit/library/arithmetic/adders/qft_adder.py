@@ -32,7 +32,7 @@ class QFTAdder(QuantumCircuit):
 
     def __init__(self,
                  num_state_qubits: int,
-                 modular: bool = True,
+                 modular: bool = False,
                  name: str = 'QFTAdder'
                  ) -> None:
         r"""
@@ -74,5 +74,5 @@ class QFTAdder(QuantumCircuit):
         if not modular:
             for j in range(num_state_qubits):
                 lam = np.pi / (2 ** (j + 1))
-                self.cp(lam, qr_a[j], qr_z[0])
+                self.cp(lam, qr_a[num_state_qubits - j - 1], qr_z[0])
         self.append(QFT(num_qubits_qft, do_swaps=False, inverse=True).to_instruction(), qr_sum[:])
