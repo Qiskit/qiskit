@@ -19,14 +19,14 @@ from ddt import ddt, data, unpack
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector, partial_trace
-from qiskit.circuit.library import RippleCarryAdder
+from qiskit.circuit.library import RippleCarryAdder, QFTAdder
 
 
 @ddt
 class TestAdder(QiskitTestCase):
     """Test the adder circuits."""
 
-    def assertAdditionIsCorrect(self, num_state_qubits, adder, inplace):
+    def assertAdditionIsCorrect(self, num_state_qubits, adder, inplace, modular):
         """Assert that adder correctly implements the summation w.r.t. its set weights."""
         circuit = QuantumCircuit(*adder.qregs)
         # create equal superposition
@@ -48,7 +48,7 @@ class TestAdder(QiskitTestCase):
         for x in range(2 ** num_state_qubits):
             for y in range(2 ** num_state_qubits):
                 # compute the sum
-                addition = x + y
+                addition = (x + y) % (2 ** num_state_qubits) if modular else x + y
                 # compute correct index in statevector
                 bin_x = bin(x)[2:].zfill(num_state_qubits)
                 bin_y = bin(y)[2:].zfill(num_state_qubits)
@@ -60,17 +60,22 @@ class TestAdder(QiskitTestCase):
 
     @data(
         (3, RippleCarryAdder, True),
-        (5, RippleCarryAdder, True)
+        (5, RippleCarryAdder, True),
+        (3, QFTAdder, True),
+        (5, QFTAdder, True),
+        (3, QFTAdder, True, True),
+        (5, QFTAdder, True, True)
         # other adders to be added here
     )
     @unpack
-    def test_summation(self, num_state_qubits, adder, inplace):
+    def test_summation(self, num_state_qubits, adder, inplace, modular=False):
         """Test summation for all implemented adders."""
-        adder = adder(num_state_qubits)
-        self.assertAdditionIsCorrect(num_state_qubits, adder, inplace)
+        adder = adder(num_state_qubits, modular=True) if modular else adder(num_state_qubits)
+        self.assertAdditionIsCorrect(num_state_qubits, adder, inplace, modular)
 
     @data(
-        RippleCarryAdder
+        RippleCarryAdder,
+        QFTAdder
         # other adders to be added here
     )
     def test_raises_on_wrong_num_bits(self, adder):
