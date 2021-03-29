@@ -1362,6 +1362,9 @@ class TestStandardMethods(QiskitTestCase):
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         simulator = BasicAer.get_backend('unitary_simulator')
         for gate_class in gate_class_list:
+            if hasattr(gate_class, "__abstractmethods__"):
+                # gate_class is abstract
+                continue
             sig = signature(gate_class)
             free_params = len(set(sig.parameters) - {'label'})
             try:
@@ -1406,6 +1409,9 @@ class TestStandardMethods(QiskitTestCase):
         params = [0.1 * i for i in range(1, 11)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         for gate_class in gate_class_list:
+            if hasattr(gate_class, "__abstractmethods__"):
+                # gate_class is abstract
+                continue
             sig = signature(gate_class)
             if gate_class == MSGate:
                 # due to the signature (num_qubits, theta, *, n_qubits=Noe) the signature detects
