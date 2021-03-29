@@ -36,18 +36,27 @@ class PhaseOracle(QuantumCircuit):
     `Conjunctive Normal Form (CNF) <https://en.wikipedia.org/wiki/Conjunctive_normal_form>`__,
     which is a conjunction of one or more clauses, where a clause is a disjunction of one
     or more literals. See :meth:`qiskit.circuit.library.phase_oracle.PhaseOracle.from_dimacs_file`.
+
+    From 16 variables on, possible performance issues should be expected when using the
+    default synthesizer.
     """
 
-    def __init__(self, expression: Union[str, ClassicalElement]) -> None:
+    def __init__(self, expression: Union[str, ClassicalElement], synthesizer=None) -> None:
         if not isinstance(expression, ClassicalElement):
             expression = BooleanExpression(expression)
         super().__init__(expression.num_qubits - 1, name='Phase Oracle')
         self.boolean_expression = expression
 
-        from tweedledum.passes import pkrm_synth  # pylint: disable=no-name-in-module
-        oracle = expression.synth(
-            synthesizer=lambda boolean_expression: pkrm_synth(boolean_expression._tweedledum_bool_expression.truth_table(output_bit=0),
-                                                         {"pkrm_synth": {"phase_esop": True}}))
+        if synthesizer is None:
+            def synthesizer(boolean_expression):
+                from tweedledum.synthesis import pkrm_synth  # pylint: disable=no-name-in-module
+                from qiskit.circuit.classicalfunction.utils import tweedledum2qiskit
+                truth_table = boolean_expression._tweedledum_bool_expression.truth_table(
+                    output_bit=0)
+                tweedledum_circuit = pkrm_synth(truth_table, {"pkrm_synth": {"phase_esop": True}})
+                return tweedledum2qiskit(tweedledum_circuit)
+
+        oracle = expression.synth(synthesizer=synthesizer)
 
         self.compose(oracle, inplace=True)
 

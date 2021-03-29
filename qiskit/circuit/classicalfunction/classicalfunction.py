@@ -48,6 +48,7 @@ class ClassicalFunction(ClassicalElement):
         self._network = None
         self._scopes = None
         self._args = None
+        self._truth_table = None
         super().__init__(name or '*classicalfunction*',
                          num_qubits=sum([qreg.size for qreg in self.qregs]),
                          params=[])
@@ -116,16 +117,19 @@ class ClassicalFunction(ClassicalElement):
         Returns:
             str: a bitstring with a truth table
         """
-        from tweedledum.classical import simulate  # pylint: disable=no-name-in-module
-
-        _truth_table = simulate(self._network)
-
         result = list()
         for position in range(2 ** self._network.num_pis()):
-            sim_result = ''.join([str(int(tt[position])) for tt in _truth_table])
+            sim_result = ''.join([str(int(tt[position])) for tt in self.truth_table])
             result.append(sim_result)
 
         return ''.join(reversed(result))
+
+    @property
+    def truth_table(self):
+        if self._truth_table is None:
+            from tweedledum.classical import simulate  # pylint: disable=no-name-in-module
+            self._truth_table = simulate(self._network)
+        return self._truth_table
 
     def synth(self, registerless=True):
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
@@ -138,14 +142,16 @@ class ClassicalFunction(ClassicalElement):
             QuantumCircuit: A circuit implementing the logic network.
         """
         from .utils import tweedledum2qiskit
-        from tweedledum.passes import pkrm_synth  # pylint: disable=no-name-in-module
+        from tweedledum.synthesis import pkrm_synth  # pylint: disable=no-name-in-module
+        from tweedledum.classical import simulate  # pylint: disable=no-name-in-module
 
         if registerless:
             qregs = None
         else:
             qregs = self.qregs
 
-        return tweedledum2qiskit(pkrm_synth(self._network), name=self.name, qregs=qregs)
+        return tweedledum2qiskit(pkrm_synth(simulate(self._network)[0]),
+                                 name=self.name, qregs=qregs)
 
     def _define(self):
         """The definition of the classical function is its synthesis"""

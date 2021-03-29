@@ -69,25 +69,23 @@ class BooleanExpression(ClassicalElement):
             registerless (bool): Default ``True``. If ``False`` uses the parameter names
                 to create registers with those names. Otherwise, creates a circuit with a flat
                 quantum register.
-            synthesizer (callable): A callable that takes a Logic Network and returns a Tweedledum
+            synthesizer (callable): A callable that takes self and returns a Tweedledum
                 circuit.
         Returns:
             QuantumCircuit: A circuit implementing the logic network.
         """
-        from tweedledum.passes import pkrm_synth  # pylint: disable=no-name-in-module
-        from .utils import tweedledum2qiskit
-
         if registerless:
             qregs = None
         else:
             qregs = self.qregs
 
-        logic_network = self._tweedledum_bool_expression._logic_network
 
         if synthesizer is None:
-            synthesizer = pkrm_synth
-
-        return tweedledum2qiskit(synthesizer(logic_network), name=self.name, qregs=qregs)
+            from tweedledum.synthesis import pkrm_synth  # pylint: disable=no-name-in-module
+            from .utils import tweedledum2qiskit
+            truth_table = self._tweedledum_bool_expression.truth_table(output_bit=0)
+            return tweedledum2qiskit(pkrm_synth(truth_table), name=self.name, qregs=qregs)
+        return synthesizer(self)
 
     def _define(self):
         """The definition of the boolean expression is its synthesis"""
