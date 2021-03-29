@@ -1232,7 +1232,7 @@ class QuantumCircuit:
                     self.existing_composite_circuits.insert(0, sub_instruction)
                     self._get_composite_circuit_qasm_from_instruction(sub_instruction)
 
-            gate_qargs = ",".join(["q%i" % index 
+            gate_qargs = ",".join(["q%i" % index
                                    for index in [definition_bit_labels[qubit] for qubit in qargs]])
             composite_circuit_gates += "%s %s; " % (sub_instruction.qasm(), gate_qargs)
 
@@ -1263,16 +1263,9 @@ class QuantumCircuit:
                 ``True``.
             QasmError: If circuit has free parameters.
         """
-        from qiskit.circuit.controlledgate import ControlledGate
 
         if self.num_parameters > 0:
             raise QasmError('Cannot represent circuits with unbound parameters in OpenQASM 2.')
-
-        existing_gate_names = ['ch', 'cp', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
-                               'csx', 'cu', 'cu1', 'cu3', 'dcx', 'h', 'i', 'id', 'iden', 'iswap',
-                               'ms', 'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's',
-                               'sdg', 'swap', 'sx', 'x', 'y', 'z', 't', 'tdg', 'u', 'u1', 'u2',
-                               'u3']
 
         self.existing_composite_circuits = []
 
@@ -1290,11 +1283,11 @@ class QuantumCircuit:
 
         if set(self.qubits) != qreg_bits:
             regless_qubits = [bit for bit in self.qubits if bit not in qreg_bits]
-            string_temp += "qreg %s[%d];\n" % ('regless', len(regless_qubits))
+            self.qasm_string_temp += "qreg %s[%d];\n" % ('regless', len(regless_qubits))
 
         if set(self.clbits) != creg_bits:
             regless_clbits = [bit for bit in self.clbits if bit not in creg_bits]
-            string_temp += "creg %s[%d];\n" % ('regless', len(regless_clbits))
+            self.qasm_string_temp += "creg %s[%d];\n" % ('regless', len(regless_clbits))
 
         unitary_gates = []
 
