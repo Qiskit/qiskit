@@ -30,7 +30,7 @@ features:
     used to build quantum algorithms. For details on migrating from
     ``qiskit-aqua`` to this new module please refer to the migration guide
     "INSERT LINK HERE"
-  * |
+  - |
     This is the first release that includes precompiled binary wheels for
     the for Linux aarch64 systems. If you are running a manylinux2014
     compatible aarch64 Linux system there are now precompiled wheels available
