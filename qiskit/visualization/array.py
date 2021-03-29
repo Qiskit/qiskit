@@ -116,14 +116,14 @@ def _num_to_latex(num, precision=5):
         return f"{realstring} {operation} {imagstring}i"
 
 
-def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
+def _matrix_to_latex(matrix, precision=5, prefix="", max_size=(8, 8)):
     """Latex representation of a complex numpy array (with maximum dimension 2)
 
         Args:
             matrix (ndarray): The matrix to be converted to latex, must have dimension 2.
             precision (int): For numbers not close to integers, the number of decimal places
                              to round to.
-            pretext (str): Latex string to be prepended to the latex, intended for labels.
+            prefix (str): Latex string to be prepended to the latex, intended for labels.
             max_size (list(```int```)): Indexable containing two integers: Maximum width and maximum
                               height of output Latex matrix (including dots characters). If the
                               width and/or height of matrix exceeds the maximum, the centre values
@@ -139,7 +139,7 @@ def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
     if min(max_size) < 3:
         raise ValueError("""Smallest value in max_size must be greater than or equal to 3""")
 
-    out_string = f"\n{pretext}\n"
+    out_string = f"\n{prefix}\n"
     out_string += "\\begin{bmatrix}\n"
 
     def _elements_to_latex(elements):
@@ -193,3 +193,58 @@ def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
         out_string += _rows_to_latex(matrix, max_width)
     out_string += "\\end{bmatrix}\n"
     return out_string
+
+
+def array_to_latex(array, precision=5, prefix="", source=False, max_size=8):
+    """Latex representation of a complex numpy array (with dimension 1 or 2)
+
+        Args:
+            array (ndarray): The array to be converted to latex, must have dimension 1 or 2 and
+                             contain only numerical data.
+            precision (int): For numbers not close to integers or common terms, the number of
+                             decimal places to round to.
+            prefix (str): Latex string to be prepended to the latex, intended for labels.
+            source (bool): If ``False``, will return IPython.display.Latex object. If display is
+                           ``True``, will instead return the LaTeX source string.
+            max_size (list(int) or int): The maximum size of the output Latex array.
+                      * If list(```int```), then the 0th element of the list specifies the maximum
+                        width (including dots characters) and the 1st specifies the maximum height
+                        (also inc. dots characters).
+                      * If a single ```int``` then this value sets the maximum width _and_ maximum
+                        height.
+
+        Returns:
+            if ``source`` is ``True``:
+                ``str``: LaTeX string representation of the array.
+            else:
+                ``IPython.display.Latex``: LaTeX representation of the array.
+
+        Raises:
+            TypeError: If array can not be interpreted as a numerical numpy array.
+            ValueError: If the dimension of array is not 1 or 2.
+            ImportError: If ``source`` is ``False`` and ``IPython.display.Latex`` cannot be
+                         imported.
+    """
+    try:
+        array = np.asarray(array)
+        _ = array[0]+1  # Test first element contains numerical data
+    except TypeError as err:
+        raise TypeError("""array_to_latex can only convert numpy arrays containing numerical data,
+        or types that can be converted to such arrays""") from err
+
+    if array.ndim <= 2:
+        if isinstance(max_size, int):
+            max_size = (max_size, max_size)
+        outstr = _matrix_to_latex(array, precision=precision, prefix=prefix, max_size=max_size)
+    else:
+        raise ValueError("array_to_latex can only convert numpy ndarrays of dimension 1 or 2")
+
+    if source is False:
+        try:
+            from IPython.display import Latex
+        except ImportError as err:
+            raise ImportError(str(err) + ". Try `pip install ipython` (If you just want the LaTeX"
+                                         " source string, set `source=True`).") from err
+        return Latex(f"$${outstr}$$")
+    else:
+        return outstr

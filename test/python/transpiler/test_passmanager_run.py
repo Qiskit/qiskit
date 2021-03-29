@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
+
 """Tests PassManager.run()"""
 
 from qiskit import QuantumRegister, QuantumCircuit
@@ -61,9 +63,12 @@ class TestPassManagerRun(QiskitTestCase):
             seed_transpiler=42))
         new_circuit = pass_manager.run(circuit)
 
+        bit_indices = {bit: idx
+                       for idx, bit in enumerate(new_circuit.qregs[0])}
+
         for gate, qargs, _ in new_circuit.data:
             if isinstance(gate, CXGate):
-                self.assertIn([x.index for x in qargs], coupling_map)
+                self.assertIn([bit_indices[x] for x in qargs], coupling_map)
 
     def test_default_pass_manager_two(self):
         """Test default_pass_manager.run(circuitS).
@@ -108,6 +113,9 @@ class TestPassManagerRun(QiskitTestCase):
         new_circuits = pass_manager.run([circuit1, circuit2])
 
         for new_circuit in new_circuits:
+            bit_indices = {bit: idx
+                           for idx, bit in enumerate(new_circuit.qregs[0])}
+
             for gate, qargs, _ in new_circuit.data:
                 if isinstance(gate, CXGate):
-                    self.assertIn([x.index for x in qargs], coupling_map)
+                    self.assertIn([bit_indices[x] for x in qargs], coupling_map)

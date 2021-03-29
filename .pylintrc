@@ -46,7 +46,7 @@ confidence=
 # either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
-#enable=
+enable=use-symbolic-message-instead
 
 # Disable the message, report, category or checker with the given id(s). You
 # can either give multiple identifiers separated by comma (,) or put this
@@ -57,7 +57,8 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=no-self-use,        # disabled as it is too verbose
+disable=spelling,       # way too noisy
+    no-self-use,        # disabled as it is too verbose
     fixme,              # disabled as TODOs would show up as warnings
     protected-access,   # disabled as we don't follow the public vs private
                         # convention strictly
@@ -278,7 +279,7 @@ spelling-dict=
 spelling-ignore-words=
 
 # A path to a file that contains private dictionary; one word per line.
-spelling-private-dict-file=
+spelling-private-dict-file=.local-spellings
 
 # Tells whether to store unknown words to indicated private dictionary in
 # --spelling-private-dict-file option instead of raising a message.
