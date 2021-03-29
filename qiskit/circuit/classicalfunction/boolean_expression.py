@@ -79,7 +79,6 @@ class BooleanExpression(ClassicalElement):
         else:
             qregs = self.qregs
 
-
         if synthesizer is None:
             from tweedledum.synthesis import pkrm_synth  # pylint: disable=no-name-in-module
             from .utils import tweedledum2qiskit
