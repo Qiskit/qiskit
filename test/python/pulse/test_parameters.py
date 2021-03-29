@@ -15,7 +15,7 @@ import unittest
 from qiskit.test import QiskitTestCase
 
 from qiskit import pulse, assemble
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, ParameterVector
 from qiskit.pulse import PulseError
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, MemorySlot
 from qiskit.test.mock import FakeAlmaden
@@ -210,3 +210,12 @@ class TestPulseParameters(QiskitTestCase):
         schedule += pulse.Play(waveform, DriveChannel(0))
         with self.assertRaises(PulseError):
             waveform.assign_parameters({self.amp: 0.6})
+
+    def test_assign_parameters(self):
+        """Test that unrolling parameters can be evaluated."""
+        schedule = pulse.Schedule()
+        parameters = ParameterVector("θ", 2)
+        gate = pulse.Gaussian(640, parameters[0], parameters[1])
+        schedule += pulse.Play(gate, DriveChannel(0))
+        with self.assertRaises(PulseError):
+            schedule.assign_parameters({parameters:[0.75, 160]})

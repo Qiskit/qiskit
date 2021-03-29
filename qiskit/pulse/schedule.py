@@ -652,7 +652,7 @@ class Schedule(ScheduleComponent):
             Schedule with updated parameters (a new one if not inplace, otherwise self).
         """
         # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
-        value_dict = self._unroll_param_dict(value_dict)
+        unrolled_param_dict = self._unroll_param_dict(value_dict)
         for _, inst in self.instructions:
             inst.assign_parameters(unrolled_param_dict)
 

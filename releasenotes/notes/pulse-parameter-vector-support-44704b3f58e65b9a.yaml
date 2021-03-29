@@ -1,0 +1,15 @@
+features:
+  - |
+    Added a function  
+The :py:class:`~qiskit.pulse.Schedule` class now has :meth:`~qiskit.pulse.Schedule._unroll_param_dict(value_dict)`
+    method. similar to this function in QuantumCircuit to unroll if exist a ParameterVector object. The function is used in :meth:`~qiskit.pulse.Schedule.assign_parameters` to change the parametrized values with the values that match the value_dict keys.
+For example:
+    .. jupyter-execute::
+        import qiskit as qk
+	from qiskit.circuit import ParameterVector
+	schedule = qk.pulse.Schedule()
+	para = ParameterVector("θ", 2)
+	driveChannel = qk.pulse.DriveChannel(0)
+	xgate = qk.pulse.Gaussian(640, para[0], para[1])
+	schedule |= qk.pulse.Play(xgate, driveChannel)
+	schedule.assign_parameters({para : [0.75, 160]})
