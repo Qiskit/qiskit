@@ -17,11 +17,11 @@ from typing import Union, Optional, List, Callable
 import numpy as np
 
 from qiskit import QuantumCircuit
-from ..algorithm_result import AlgorithmResult
 from qiskit.result import Result
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .observables.linear_system_observable import LinearSystemObservable
+from ..algorithm_result import AlgorithmResult
 
 
 class LinearSolverResult(AlgorithmResult):
