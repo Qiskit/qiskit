@@ -163,7 +163,7 @@ from .amplitude_estimators import (
 )
 from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
 from .factorizers import Shor, ShorResult
-from .linear_solvers import HHL, NumPyLinearSolver
+from .linear_solvers import HHL, LinearSolver, NumPyLinearSolver
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
                                     NumPyMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
@@ -197,6 +197,7 @@ __all__ = [
     'VQE',
     'VQEResult',
     'QAOA',
+    'LinearSolver',
     'HHL',
     'NumPyLinearSolver',
     'NumPyMinimumEigensolver',

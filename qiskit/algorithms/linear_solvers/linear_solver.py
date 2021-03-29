@@ -17,7 +17,7 @@ from typing import Union, Optional, List, Callable
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms import AlgorithmResult
+from ..algorithm_result import AlgorithmResult
 from qiskit.result import Result
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 

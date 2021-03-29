@@ -14,8 +14,10 @@
 
 from .hhl import HHL
 from .numpy_linear_solver import NumPyLinearSolver
+from .linear_solver import LinearSolver
 
 __all__ = [
     'HHL',
-    'NumPyLinearSolver'
+    'NumPyLinearSolver',
+    'LinearSolver'
 ]
