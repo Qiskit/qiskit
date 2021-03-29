@@ -61,23 +61,22 @@ class AxisAngleReduction(TransformationPass):
             stack = list()  # list of (node, dfprop index)
             for node in node_it:
                 num_qargs = len(node.qargs)
-
                 if node.type != 'op' or not isinstance(node.op, Gate):
                     # stack done, evaluate
                     del_list += self._eval_stack(stack, dag)
                     stack = list()
                     continue
-                # just doing 1q and 2q for now
+                # just doing 1q and 2q
                 if num_qargs > 2:
                     # stack done, evaluate
                     del_list += self._eval_stack(stack, dag)
                     stack = list()
                     continue
                 if not stack:
-                    # start stack
+                    # add first node to stack
                     stack.append((node, self._get_index(node._node_id)))
                     continue
-                # add to stack
+                # add to stack if commuting
                 top_node = stack[-1][0]
                 top_index = self._get_index(top_node._node_id)
                 this_node = node
@@ -101,21 +100,12 @@ class AxisAngleReduction(TransformationPass):
             dag.remove_op_node(node)
         return dag
 
-    def _check_next_2q(self, dag, node1, node2):
-        if node1.name != node2.name or node1.qargs != node2.qargs:
-            return False
-        is_successor = all([node2._node_id == anode._node_id
-                            for anode in dag.quantum_successors(node1)])
-        # TODO: remove checking name...would be better to check whether all
-        # nodes are in domain of variable gate for this "axis".
-        return node1.name == node2.name and node1.qargs == node2.qargs and is_successor
-
     def _check_next_2q_commuting(self, dag, node1, node2):
         """checks that node2 is same type as node1 with only commuting
         single qubit ops in between"""
         from qiskit.circuit import ControlledGate
         dfprop = self.property_set['axis-angle'].set_index('id')
-        successors = {(node2 in connode):connode[2] for connode in dag.edges(node1)}
+        successors = {(node2 in connode): connode[2] for connode in dag.edges(node1)}
         is_direct_successor = all(successors.keys())
         if (is_direct_successor
                 and node1.name == node2.name
@@ -346,8 +336,9 @@ class AxisAngleReduction(TransformationPass):
         sym_order_zero = sym_order.iloc[0]
         return (sym_order_zero == len(sym_order)) and all(sym_order_zero == sym_order)
 
-    def _cgate_phase_correct(self, gate, phase):
+   def _cgate_phase_correct(self, gate, phase):
         pass
+
 
 def join_if_intersect(lists):
     """This is from user 'agf' on stackoverflow
@@ -382,6 +373,3 @@ def join_if_intersect(lists):
             disjoint = 0
         sets = newsets
     return results
-
-def _next_node_on_qubit(edge, target_edge=None):
-    return edge == target_edge

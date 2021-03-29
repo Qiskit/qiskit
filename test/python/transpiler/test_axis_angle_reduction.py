@@ -377,6 +377,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         self.assertEqual(Operator(circ), Operator(ccirc))
         self.assertEqual(ccirc, expected)
 
+
 def axis_angle_phase_equal(tup1, tup2):
     """tup is 3 component tuple of (np.array, angle, phase)"""
     return all((np.allclose(tup1[0], tup2[0]),

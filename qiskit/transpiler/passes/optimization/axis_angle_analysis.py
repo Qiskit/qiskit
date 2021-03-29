@@ -69,6 +69,7 @@ class AxisAngleAnalysis(AnalysisPass):
         self.property_set['axis-angle'] = dfprop
         self.property_set['var_gate_class'] = var_gate_class
 
+
 def _get_1q_gate_props(gate, period=None):
     """
     Get single qubit operator properties
@@ -77,7 +78,7 @@ def _get_1q_gate_props(gate, period=None):
     rel_tol = 1e-9
     abs_tol = 1e-9
     # TODO: avoid 'x' check
-    if period == None or gate.name == 'x':
+    if period is None or gate.name == 'x':
         period = 2 * np.pi
     try:
         # Operator does this too but maybe this is slightly more direct.
@@ -107,6 +108,7 @@ def _get_1q_gate_props(gate, period=None):
             'phase': phase,
             'symmetry_order': symmetry_order}
     return prop
+
 
 def _su2_axis_angle(mat):
     """
