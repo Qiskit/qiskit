@@ -46,7 +46,7 @@ class PhaseOracle(QuantumCircuit):
 
         from tweedledum.passes import pkrm_synth  # pylint: disable=no-name-in-module
         oracle = expression.synth(
-            synthesizer=lambda logic_network: pkrm_synth(logic_network,
+            synthesizer=lambda boolean_expression: pkrm_synth(boolean_expression._tweedledum_bool_expression.truth_table(output_bit=0),
                                                          {"pkrm_synth": {"phase_esop": True}}))
 
         self.compose(oracle, inplace=True)
