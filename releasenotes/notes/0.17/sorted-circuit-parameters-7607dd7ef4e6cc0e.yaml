@@ -38,7 +38,7 @@ deprecations:
   - |
     The use of methods inherited from the ``set`` type on the output of the
     :attr:`~qiskit.circuit.QuantumCircuit.parameters` attribute (which used to
-    be a ``set``) of the :class`~qiskit.circuit.QuantumCircuit` class are
+    be a ``set``) of the :class:`~qiskit.circuit.QuantumCircuit` class are
     deprecated and will be removed in a future release. This includes the
     methods from the ``add()``, ``difference()``, ``difference_update()``,
     ``discard()``, ``intersection()``, ``intersection_update()``,
@@ -59,9 +59,9 @@ deprecations:
   - |
     The name of the first (and only) positional argument for the
     :meth:`qiskit.circuit.QuantumCircuit.assign_parameters` method has changed
-    from ``param_dict`` to ``parameters``. The passing an argument in with the
-    name ``param_dict`` is deprecated and will be removed in future release.
-    For example, if you were previously calling
+    from ``param_dict`` to ``parameters``. Passing an argument in with the name
+    ``param_dict`` is deprecated and will be removed in future release. For
+    example, if you were previously calling
     :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters` with a call like:
     ``assign_parameters(param_dict={})`` this is deprecated and should be
     replaced by ``assign_parameters(values={})`` or even better just pass the

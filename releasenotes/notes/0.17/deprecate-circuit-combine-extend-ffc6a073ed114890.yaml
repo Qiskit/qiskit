@@ -1,13 +1,18 @@
 ---
 deprecations:
   - |
-    Two ``QuantumCircuit`` methods ``+``, ``+=``, ``combine`` and ``extend`` are deprecated,
-    in favor of ``QuantumCircuit.compose()``. The latter allows more flexibility
-    in composing two circuits that do not have matching registers. It does not,
-    however, automatically add qubits/clbits unlike the deprecated methods.
-    To add a circuit on new qubits/clbits, ``QuantumCircuit.tensor`` can be used.
-
-    .. code::
+    Two :class:`~qiskit.circuit.QuantumCircuit` methods
+    :meth:`~qiskit.circuit.QuantumCircuit.combine` and
+    :meth:`~qiskit.circuit.QuantumCircuit.extend` along with their corresponding
+    Python operators ``+`` and ``+=`` are deprecated and will be removed in a
+    future release. Instead the :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.compose` should be used instead.
+    The :meth:`~qiskit.circuit.QuantumCircuit.compose` method allows more
+    flexibility in composing two circuits that do not have matching registers.
+    It does not, however, automatically add qubits/clbits unlike the deprecated
+    methods. To add a circuit on new qubits/clbits, the
+    :meth:`qiskit.circuit.QuantumCircuit.tensor` method can be used. For
+    example::
 
         from qiskit.circuit import QuantumRegister, QuantumCircuit
 

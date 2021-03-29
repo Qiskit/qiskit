@@ -6,6 +6,12 @@ prelude: |
       * The introduction of the :mod:`qiskit.algorithms` and
         :mod:`qiskit.opflow` modules which were migrated from the
         :mod:`qiskit.aqua` project.
+      * ``Bit`` objects (ie :class:`~qiskit.circuit.Qubit` and
+        :class:`~qiskit.circuit.Clbit`) have been updated so that they are
+        no longer required to be part of ``Register`` objects (ie
+        :class:`~qiskit.circuit.QuantumRegister` and
+        :class:`~qiskit.circuit.ClassicalRegister`). It is also now possible
+        to create a circuit without any registers.
       * 
 
 features:

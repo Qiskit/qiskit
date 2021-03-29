@@ -11,15 +11,15 @@ features:
     channel to be unitary and will raise an exception if it is not.
 deprecations:
   - |
-    Using a list or Numpy array as the ``channel`` or ``target``
+    Using a ``list`` or ``numpy.ndarray`` as the ``channel`` or ``target``
     argument for the :func:`qiskit.quantum_info.process_fidelity`,
     :func:`qiskit.quantum_info.average_gate_fidelity`,
     :func:`qiskit.quantum_info.gate_error`, and 
     :func:`qiskit.quantum_info.diamond_norm` functions has been
-    deprecated. The inputs should be a :class:`~qiskit.circuit.Gate` or 
-    a ``BaseOperator`` subclass object instead (eg.
-    :class:`~qiskit.quantum_info.Operator`, :class:`~qiskit.quantum_info.Choi`,
-    etc.)
+    deprecated and will not be supported in a future release. The inputs should
+    instead be a :class:`~qiskit.circuit.Gate` or a ``BaseOperator`` subclass
+    object (eg. :class:`~qiskit.quantum_info.Operator`,
+    :class:`~qiskit.quantum_info.Choi`, etc.)
 upgrade:
   - |
     When the ``require_cp`` and/or ``require_tp`` kwargs of
