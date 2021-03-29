@@ -32,6 +32,25 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         |b a b 0|
         |0 b a b|
         |0 0 b a|.
+
+    Examples:
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+            from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import
+             TridiagonalToeplitz
+
+            matrix = TridiagonalToeplitz(2, 1, -1 / 3)
+            power = 3
+
+            # Controlled power (as within QPE)
+            num_qubits = matrix.num_state_qubits
+            pow_circ = matrix.power(power).control()
+            circ_qubits = pow_circ.num_qubits
+            qc = QuantumCircuit(circ_qubits)
+            qc.append(matrix.power(power).control(), list(range(circ_qubits)))
     """
 
     def __init__(self, num_state_qubits: int, main_diag: float, off_diag: float,

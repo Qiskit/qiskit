@@ -28,6 +28,26 @@ class NumPyLinearSolver(LinearSolver):
 
     This linear system solver computes the exact value of the given observable(s) or the full
     solution vector if no observable is specified.
+
+    Examples:
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit.algorithms.numpy_linear_solver import NumPyLinearSolver
+            from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import
+             TridiagonalToeplitz
+            from qiskit.algorithms.linear_solvers.observables.matrix_functional import
+             MatrixFunctional
+
+            matrix = TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2)
+            right_hand_side = [1.0, -2.1, 3.2, -4.3]
+            observable = MatrixFunctional(1, 1 / 2)
+            rhs = right_hand_side / np.linalg.norm(right_hand_side)
+
+            np_solver = NumPyLinearSolver()
+            solution = np_solver.solve(matrix, rhs, observable)
+            result = solution.observable
     """
 
     def solve(self, matrix: Union[np.ndarray, QuantumCircuit],
@@ -38,7 +58,7 @@ class NumPyLinearSolver(LinearSolver):
               post_processing: Optional[Callable[[Union[float, List[float]]],
                                                  Union[float, List[float]]]] = None) \
             -> LinearSolverResult:
-        """Solve the system and compute the observable(s)
+        """Solve classically the linear system and compute the observable(s)
 
         Args:
             matrix: The matrix specifying the system, i.e. A in Ax=b.

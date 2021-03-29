@@ -31,7 +31,44 @@ from .observables.linear_system_observable import LinearSystemObservable
 
 
 class HHL(LinearSolver):
-    """The HHL algorithm to solve systems of linear equations"""
+    """The HHL algorithm to solve systems of linear equations
+
+    Examples:
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+            from qiskit.algorithms.linear_solvers.hhl import HHL
+            from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import
+             TridiagonalToeplitz
+            from qiskit.algorithms.linear_solvers.observables.matrix_functional import
+             MatrixFunctional
+
+            matrix = TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2)
+            right_hand_side = [1.0, -2.1, 3.2, -4.3]
+            observable = MatrixFunctional(1, 1 / 2)
+            rhs = right_hand_side / np.linalg.norm(right_hand_side)
+
+            # Initial state circuit
+            num_qubits = int(np.log2(matrix.shape[0]))
+            qc = QuantumCircuit(num_qubits)
+            qc.isometry(rhs, list(range(num_qubits)), None)
+
+            hhl = HHL()
+            solution = hhl.solve(matrix, qc, observable)
+            approx_result = solution.observable
+
+    References:
+
+        [1]: Harrow, A. W., Hassidim, A., Lloyd, S. (2009).
+             Quantum algorithm for linear systems of equations.
+             `Phys. Rev. Lett. 103, 15 (2009), 1–15.
+              <https://doi.org/10.1103/PhysRevLett.103.150502> arXiv:0811.3171`_
+        [2]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2020).
+             Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
+             `arXiv:2009.04484 <http://arxiv.org/abs/2009.04484>`_
+    """
 
     def __init__(self,
                  epsilon: float = 1e-2,
@@ -46,18 +83,6 @@ class HHL(LinearSolver):
                 evaluation. If None then PauliExpectation is used.
             quantum_instance: Quantum Instance or Backend. If None, a Statevector calculation is
                 done.
-
-
-        References:
-
-        [1]: Harrow, A. W., Hassidim, A., Lloyd, S. (2009).
-             Quantum algorithm for linear systems of equations.
-             `Phys. Rev. Lett. 103, 15 (2009), 1–15.
-              <https://doi.org/10.1103/PhysRevLett.103.150502> arXiv:0811.3171`_
-        [2]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2020).
-             Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
-             `arXiv:2009.04484 <http://arxiv.org/abs/2009.04484>`_
-
         """
         super().__init__()
 
@@ -392,7 +417,7 @@ class HHL(LinearSolver):
               post_processing: Optional[Callable[[Union[float, List[float]]],
                                                  Union[float, List[float]]]] = None) \
             -> LinearSolverResult:
-        """Tries to solve the given linear system.
+        """Tries to solve the given linear system of equations.
 
         Args:
             matrix: The matrix specifying the system, i.e. A in Ax=b.

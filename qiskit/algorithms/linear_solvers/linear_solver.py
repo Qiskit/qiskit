@@ -29,10 +29,6 @@ class LinearSolverResult(AlgorithmResult):
 
     The linear systems algorithms return an object of the type ``LinearSystemsResult``
     with the information about the solution obtained.
-
-    Examples:
-
-    Note:
     """
 
     def __init__(self) -> None:
