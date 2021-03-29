@@ -139,6 +139,7 @@ class Parameters(set):
         self._updated = True
 
     def pop(self, index=-1):
+        """ Remove and return parameter at index (default last). """
         self._sort()
         elem = self._sorted_list.pop(index)
         super().discard(elem)
