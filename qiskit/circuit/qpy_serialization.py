@@ -540,8 +540,10 @@ def dump(file_obj, circuits):
     """Write QPY binary data to a file
 
     This function is used to save a circuit to a file for later use or transfer
-    between machines. The output QPY file is forward compatible and can be loaded
-    with future versions of Qiskit. For example:
+    between machines. The QPY format is backwards compatible and can be
+    loaded with future versions of Qiskit.
+
+    For example:
 
     .. code-block:: python
 
