@@ -16,7 +16,8 @@ Quantum information measures, metrics, and related functions for states.
 import numpy as np
 import scipy.linalg as la
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.states.densitymatrix import DensityMatrix, Statevector
+from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.quantum_info.states.utils import (partial_trace, shannon_entropy,
                                               _format_state, _funm_svd)
 
@@ -30,7 +31,7 @@ def state_fidelity(state1, state2, validate=True):
     .. math::
         F(\rho_1, \rho_2) = Tr[\sqrt{\sqrt{\rho_1}\rho_2\sqrt{\rho_1}}]^2.
 
-    If one of the states is a pure state this simplies to
+    If one of the states is a pure state this simplifies to
     :math:`F(\rho_1, \rho_2) = \langle\psi_1|\rho_2|\psi_1\rangle`, where
     :math:`\rho_1 = |\psi_1\rangle\!\langle\psi_1|`.
 

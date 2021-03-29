@@ -845,7 +845,7 @@ class QasmParser:
     # ----------------------------------------
     # barrier : BARRIER primary_list
     #
-    # Errors are covered by handling erros in primary_list
+    # Errors are covered by handling errors in primary_list
     # ----------------------------------------
     def p_barrier(self, program):
         """
