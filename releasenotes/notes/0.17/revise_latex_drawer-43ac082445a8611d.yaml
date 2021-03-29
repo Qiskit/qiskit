@@ -4,9 +4,7 @@ features:
     The ``latex`` output method for the
     :func:`qiskit.visualization.circuit_drawer` function and the
     :meth:`~qiskit.circuit.QuantumCircuit.draw` method now will use a
-    user defined label on gates in the output visualization. For example:
-
-    .. jupyter-execute::
+    user defined label on gates in the output visualization. For example::
 
       import math
 
