@@ -304,6 +304,22 @@ class TestConsolidateBlocks(QiskitTestCase):
         res = consolidate_blocks_pass.run(dag)
         self.assertEqual(res, dag)
 
+    def test_single_gate_block_outside_basis(self):
+        """Test that a single gate block outside the configured basis gets converted."""
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        consolidate_block_pass = ConsolidateBlocks(
+            basis_gates=['id', 'cx', 'rz', 'sx', 'x'])
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(consolidate_block_pass)
+        expected = QuantumCircuit(2)
+        expected.unitary(np.array([[1, 0, 0, 0],
+                                   [0, 0, 1, 0],
+                                   [0, 1, 0, 0],
+                                   [0, 0, 0, 1]]), [0, 1])
+        self.assertEqual(expected, pass_manager.run(qc))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -31,7 +31,7 @@ class Nduv:
         value: value.
     """
     def __init__(self, date, name, unit, value):
-        """Intialize a new name-date-unit-value object
+        """Initialize a new name-date-unit-value object
 
         Args:
             date (datetime): Date field
@@ -113,8 +113,8 @@ class Gate:
     def __getattr__(self, name):
         try:
             return self._data[name]
-        except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
+        except KeyError as ex:
+            raise AttributeError(f'Attribute {name} is not defined') from ex
 
     @classmethod
     def from_dict(cls, data):
@@ -160,7 +160,7 @@ class BackendProperties:
 
     This holds backend properties measured by the provider. All properties
     which are provided optionally. These properties may describe qubits, gates,
-    or other general propeties of the backend.
+    or other general properties of the backend.
     """
 
     _data = {}
@@ -214,8 +214,8 @@ class BackendProperties:
     def __getattr__(self, name):
         try:
             return self._data[name]
-        except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
+        except KeyError as ex:
+            raise AttributeError(f'Attribute {name} is not defined') from ex
 
     @classmethod
     def from_dict(cls, data):
@@ -303,8 +303,8 @@ class BackendProperties:
             elif name:
                 raise BackendPropertyError("Provide qubits to get {n} of {g}".format(n=name,
                                                                                      g=gate))
-        except KeyError:
-            raise BackendPropertyError("Could not find the desired property for {g}".format(g=gate))
+        except KeyError as ex:
+            raise BackendPropertyError(f"Could not find the desired property for {gate}") from ex
         return result
 
     def faulty_qubits(self):
@@ -392,10 +392,10 @@ class BackendProperties:
             result = self._qubits[qubit]
             if name is not None:
                 result = result[name]
-        except KeyError:
+        except KeyError as ex:
             raise BackendPropertyError("Couldn't find the propert{name} for qubit "
                                        "{qubit}.".format(name="y '" + name + "'" if name else "ies",
-                                                         qubit=qubit))
+                                                         qubit=qubit)) from ex
         return result
 
     def t1(self, qubit: int) -> float:  # pylint: disable=invalid-name
@@ -490,5 +490,5 @@ class BackendProperties:
         """
         try:
             return apply_prefix(value, unit)
-        except Exception:
-            raise BackendPropertyError("Could not understand units: {u}".format(u=unit))
+        except Exception as ex:
+            raise BackendPropertyError(f"Could not understand units: {unit}") from ex

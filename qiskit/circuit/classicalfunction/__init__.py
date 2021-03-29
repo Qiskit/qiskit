@@ -102,7 +102,7 @@ from .exceptions import (ClassicalFunctionParseError, ClassicalFunctionCompilerE
 def classical_function(func):
     """
     Parses and type checks the callable ``func`` to compile it into an ``ClassicalFunction``
-    that can be synthesised into a ``QuantumCircuit``.
+    that can be synthesized into a ``QuantumCircuit``.
 
     Args:
         func (callable): A callable (with type hints) to compile into an ``ClassicalFunction``.

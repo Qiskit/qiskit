@@ -19,7 +19,7 @@ from test.python.opflow import QiskitOpflowTestCase
 
 from ddt import data, ddt, unpack
 
-from qiskit.opflow import (AbelianGrouper, I, OpflowError, Plus, SummedOp, X,
+from qiskit.opflow import (AbelianGrouper, commutator, I, OpflowError, Plus, SummedOp, X,
                            Y, Z, Zero)
 
 
@@ -53,13 +53,9 @@ class TestAbelianGrouper(QiskitOpflowTestCase):
         for group in grouped_sum:
             for op_1, op_2 in combinations(group, 2):
                 if is_summed_op:
-                    self.assertTrue(op_1.commutes(op_2))
+                    self.assertEqual(op_1 @ op_2, op_2 @ op_1)
                 else:
-                    self.assertTrue(
-                        (op_1 @ op_2 - op_1 @ op_2).reduce().primitive.coeffs[0] == 0
-                    )
-                    # TODO: uncomment after #5537 and remove above assertion
-                    # self.assertTrue(commutator(op_1, op_2).is_zero())
+                    self.assertTrue(commutator(op_1, op_2).is_zero())
 
     def test_ablian_grouper_no_commute(self):
         """Abelian grouper test when non-PauliOp is given"""
@@ -128,13 +124,9 @@ class TestAbelianGrouper(QiskitOpflowTestCase):
             for group in grouped_sum:
                 for op_1, op_2 in combinations(group, 2):
                     if is_summed_op:
-                        self.assertTrue(op_1.commutes(op_2))
+                        self.assertEqual(op_1 @ op_2, op_2 @ op_1)
                     else:
-                        self.assertTrue(
-                            (op_1 @ op_2 - op_1 @ op_2).reduce().primitive.coeffs[0] == 0
-                        )
-                        # TODO: uncomment after #5537 and remove above assertion
-                        # self.assertTrue(commutator(op_1, op_2).is_zero())
+                        self.assertTrue(commutator(op_1, op_2).is_zero())
 
 
 if __name__ == '__main__':
