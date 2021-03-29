@@ -110,7 +110,7 @@ class PhaseOracle(QuantumCircuit):
 
 
         Args:
-            filename (str): A file in DIMACS format.
+            filename: A file in DIMACS format.
 
         Returns:
             PhaseOracle: A quantum circuit with a phase oracle.
