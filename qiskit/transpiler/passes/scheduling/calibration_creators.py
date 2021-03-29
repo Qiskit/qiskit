@@ -170,13 +170,10 @@ class RZXCalibrationBuilder(CalibrationCreator):
         if theta == 0.0:
             return rzx_theta
 
-        crs, comp_tones, shift_phases = [], [], []
+        crs, comp_tones = [], []
         control, target = None, None
 
         for time, inst in cx_sched.instructions:
-
-            if isinstance(inst, ShiftPhase) and time == 0:
-                shift_phases.append(ShiftPhase(-theta, inst.channel))
 
             # Identify the CR pulses.
             if isinstance(inst, Play) and not isinstance(inst, ShiftPhase):
@@ -198,8 +195,6 @@ class RZXCalibrationBuilder(CalibrationCreator):
         echo_x = self._inst_map.get('x', qubits=control)
 
         # Build the schedule
-        for inst in shift_phases:
-            rzx_theta = rzx_theta.insert(0, inst)
 
         # Stretch/compress the CR gates and compensation tones
         cr1 = self.rescale_cr_inst(crs[0][1], theta)
