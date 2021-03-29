@@ -1,7 +1,0 @@
----
-upgrade:
-  - |
-    The internal API of the
-    ``qiskit.quantum_info.operators.base_operator.BaseOperator`` abstract class
-    has been changed to simply making operator subclasses and to improve the
-    handling of subsystem dimensions.
