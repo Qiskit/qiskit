@@ -79,7 +79,7 @@ features:
 
   - |
     The new method
-    :meth:`qiskit.algorithms.amplitude_amplifiers.amplification_problem.AmplificationProblem.from_dimacs_file`
+    :meth:`qiskit.circuit.library.phase_oracle.PhaseOracle.from_dimacs_file`
     allows to construct a phase oracle from a file describing a formula in the DIMACS-CNF format.  
 
     .. code-block::
