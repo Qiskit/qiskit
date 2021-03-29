@@ -839,15 +839,17 @@ class VarQTE(EvolutionBase):
                 plt.title('Fidelity')
                 plt.scatter(time, fid, color='orange', marker='x', s=60,
                             label='fidelity')
-                plt.scatter(time, reverse_fidelity_bounds, color='royalblue', marker='o', s=20,
+                plt.scatter(time, fidelity_bounds, color='royalblue', marker='o', s=20,
                             label='fidelity bound')
+                plt.scatter(time, reverse_fidelity_bounds, color='green', marker='o', s=20,
+                            label='reverse fidelity bound', alpha=0.7)
                 plt.xlabel('time')
                 plt.ylabel('fidelity')
                 # plt.autoscale(enable=True)
                 # plt.xticks(range(counter-1))
                 plt.ylim((0, 1.03))
-                # plt.autoscale(enable=True)
-                plt.yticks(np.linspace(0, 1, 11))
+                plt.autoscale(enable=True)
+                # plt.yticks(np.linspace(0, 1, 11))
                 plt.legend(loc='best')
                 plt.savefig(os.path.join(data_dir, 'reverse_fidelity.png'))
                 plt.close()
@@ -863,8 +865,8 @@ class VarQTE(EvolutionBase):
             # plt.autoscale(enable=True)
             # plt.xticks(range(counter-1))
             plt.ylim((0, 1.03))
-            # plt.autoscale(enable=True)
-            plt.yticks(np.linspace(0, 1, 11))
+            plt.autoscale(enable=True)
+            # plt.yticks(np.linspace(0, 1, 11))
             plt.legend(loc='best')
             plt.savefig(os.path.join(data_dir, 'fidelity.png'))
             plt.close()
