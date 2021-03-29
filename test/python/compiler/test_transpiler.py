@@ -1096,6 +1096,7 @@ class TestTranspile(QiskitTestCase):
                             translation_method='synthesis', approximation_degree=0.9)
         self.assertLess(circ_10.depth(), circ_90.depth())
 
+    @data(0, 1, 2, 3)
     def test_synthesis_translation_method_with_single_qubit_gates(self, optimization_level):
         """Test that synthesis basis translation works for solely 1q circuit"""
         qc = QuantumCircuit(3)
