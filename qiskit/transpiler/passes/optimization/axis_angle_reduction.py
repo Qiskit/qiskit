@@ -217,7 +217,6 @@ class AxisAngleReduction(TransformationPass):
             period = 2 * np.pi
         else:
             period = 4 * np.pi
-        #period = 2 * np.pi if not dfprop.iloc[smask].qubit1.all() else 4 * np.pi
         del_list = []
         dfsubset = dfprop.iloc[smask]
         dfsubset['var_gate_angle'] = dfsubset.angle * dfsubset.rotation_sense
@@ -335,9 +334,6 @@ class AxisAngleReduction(TransformationPass):
         sym_order = dfprop.iloc[list(stack_indices)].symmetry_order
         sym_order_zero = sym_order.iloc[0]
         return (sym_order_zero == len(sym_order)) and all(sym_order_zero == sym_order)
-
-   def _cgate_phase_correct(self, gate, phase):
-        pass
 
 
 def join_if_intersect(lists):
