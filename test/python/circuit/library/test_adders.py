@@ -59,16 +59,16 @@ class TestAdder(QiskitTestCase):
         np.testing.assert_array_almost_equal(expectations, probabilities)
 
     @data(
-        (3, RippleCarryAdder, True, False),
-        (5, RippleCarryAdder, True, False),
-        (3, QFTAdder, True, False),
-        (5, QFTAdder, True, False),
+        (3, RippleCarryAdder, True),
+        (5, RippleCarryAdder, True),
+        (3, QFTAdder, True),
+        (5, QFTAdder, True),
         (3, QFTAdder, True, True),
         (5, QFTAdder, True, True)
         # other adders to be added here
     )
     @unpack
-    def test_summation(self, num_state_qubits, adder, inplace, modular):
+    def test_summation(self, num_state_qubits, adder, inplace, modular=False):
         """Test summation for all implemented adders."""
         adder = adder(num_state_qubits, modular=True) if modular else adder(num_state_qubits)
         self.assertAdditionIsCorrect(num_state_qubits, adder, inplace, modular)
