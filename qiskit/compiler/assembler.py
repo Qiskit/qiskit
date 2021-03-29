@@ -417,6 +417,7 @@ def _expand_parameters(circuits, run_config):
           - List of input circuits expanded and with parameters bound
           - RunConfig with parameter_binds removed
     """
+
     parameter_binds = run_config.parameter_binds
 
     if parameter_binds or \

@@ -83,9 +83,9 @@ class HamiltonianGate(Gate):
         # pylint: disable=unused-argument
         try:
             return scipy.linalg.expm(-1j * self.params[0] * float(self.params[1]))
-        except TypeError as ex:
+        except TypeError:
             raise TypeError("Unable to generate Unitary matrix for "
-                            "unbound t parameter {}".format(self.params[1])) from ex
+                            "unbound t parameter {}".format(self.params[1]))
 
     def inverse(self):
         """Return the adjoint of the unitary."""

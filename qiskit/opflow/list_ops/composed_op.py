@@ -12,17 +12,16 @@
 
 """ ComposedOp Class """
 
-from functools import partial, reduce
-from typing import List, Optional, Union, cast
-
+from typing import List, Union, cast, Optional
+from functools import reduce, partial
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
-from qiskit.opflow.exceptions import OpflowError
-from qiskit.opflow.list_ops.list_op import ListOp
-from qiskit.opflow.operator_base import OperatorBase
-from qiskit.quantum_info import Statevector
+
+from ..exceptions import OpflowError
+from ..operator_base import OperatorBase
+from .list_op import ListOp
 
 
 class ComposedOp(ListOp):
@@ -34,7 +33,7 @@ class ComposedOp(ListOp):
 
     def __init__(self,
                  oplist: List[OperatorBase],
-                 coeff: Union[complex, ParameterExpression] = 1.0,
+                 coeff: Union[int, float, complex, ParameterExpression] = 1.0,
                  abelian: bool = False) -> None:
         """
         Args:
@@ -69,7 +68,7 @@ class ComposedOp(ListOp):
         Raises:
             OpflowError: for operators where a single underlying circuit can not be obtained.
         """
-        # pylint: disable=cyclic-import
+        # pylint: disable=import-outside-toplevel,cyclic-import
         from ..state_fns.circuit_state_fn import CircuitStateFn
         from ..primitive_ops.primitive_op import PrimitiveOp
         circuit_op = self.to_circuit_op()
@@ -78,7 +77,7 @@ class ComposedOp(ListOp):
         raise OpflowError('Conversion to_circuit supported only for operators, where a single '
                           'underlying circuit can be produced.')
 
-    def adjoint(self) -> "ComposedOp":
+    def adjoint(self) -> OperatorBase:
         return ComposedOp([op.adjoint() for op in reversed(self.oplist)], coeff=self.coeff)
 
     def compose(self, other: OperatorBase,
@@ -107,10 +106,10 @@ class ComposedOp(ListOp):
 
         return ComposedOp(new_self.oplist + [other], coeff=new_self.coeff)
 
-    def eval(
-        self, front: Optional[Union[str, dict, np.ndarray, OperatorBase, Statevector]] = None
-    ) -> Union[OperatorBase, complex]:
-        # pylint: disable=cyclic-import
+    def eval(self,
+             front: Union[str, dict, np.ndarray,
+                          OperatorBase] = None) -> Union[OperatorBase, float, complex]:
+        # pylint: disable=import-outside-toplevel,cyclic-import
         from ..state_fns.state_fn import StateFn
 
         def tree_recursive_eval(r, l_arg):

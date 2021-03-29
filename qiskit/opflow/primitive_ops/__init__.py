@@ -43,16 +43,7 @@ Primitive Operators
    MatrixOp
    PauliOp
    PauliSumOp
-   TaperedPauliSumOp
 
-Symmetries
-===================
-
-.. autosummary::
-   :toctree: ../stubs/
-   :nosignatures:
-
-   Z2Symmetries
 """
 
 from .primitive_op import PrimitiveOp
@@ -60,13 +51,10 @@ from .pauli_op import PauliOp
 from .matrix_op import MatrixOp
 from .circuit_op import CircuitOp
 from .pauli_sum_op import PauliSumOp
-from .tapered_pauli_sum_op import TaperedPauliSumOp, Z2Symmetries
 
 __all__ = ['PrimitiveOp',
            'PauliOp',
            'MatrixOp',
            'CircuitOp',
            'PauliSumOp',
-           'TaperedPauliSumOp',
-           'Z2Symmetries'
            ]

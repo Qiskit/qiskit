@@ -12,16 +12,17 @@
 
 """ PrimitiveOp Class """
 
-from typing import Dict, List, Optional, Set, Union, cast
-
+from typing import Optional, Union, Set, List, Dict
 import numpy as np
-import scipy.linalg
 from scipy.sparse import spmatrix
+import scipy.linalg
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, ParameterExpression
-from qiskit.opflow.operator_base import OperatorBase
-from qiskit.quantum_info import Operator, Pauli, SparsePauliOp, Statevector
+from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Operator as MatrixOperator
+
+from ..operator_base import OperatorBase
 
 
 class PrimitiveOp(OperatorBase):
@@ -40,15 +41,17 @@ class PrimitiveOp(OperatorBase):
 
     """
 
-    def __init_subclass__(cls):
+    # pylint: disable=unused-argument
+    def __init_subclass__(cls, *args, **kwargs):
         cls.__new__ = lambda cls, *args, **kwargs: super().__new__(cls)
 
     @staticmethod
     # pylint: disable=unused-argument
     def __new__(cls,
-                primitive: Union[Instruction, QuantumCircuit, List,
-                                 np.ndarray, spmatrix, Operator, Pauli, SparsePauliOp],
-                coeff: Union[complex, ParameterExpression] = 1.0) -> 'PrimitiveOp':
+                primitive:
+                Optional[Union[Instruction, QuantumCircuit, List,
+                               np.ndarray, spmatrix, MatrixOperator, Pauli, SparsePauliOp]] = None,
+                coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> 'PrimitiveOp':
         """ A factory method to produce the correct type of PrimitiveOp subclass
         based on the primitive passed in. Primitive and coeff arguments are passed into
         subclass's init() as-is automatically by new().
@@ -63,40 +66,42 @@ class PrimitiveOp(OperatorBase):
         Raises:
             TypeError: Unsupported primitive type passed.
         """
-        # pylint: disable=cyclic-import
+        # pylint: disable=cyclic-import,import-outside-toplevel
         if isinstance(primitive, (Instruction, QuantumCircuit)):
             from .circuit_op import CircuitOp
-            return super().__new__(CircuitOp)
+            return CircuitOp.__new__(CircuitOp)
 
-        if isinstance(primitive, (list, np.ndarray, spmatrix, Operator)):
+        if isinstance(primitive, (list, np.ndarray, spmatrix, MatrixOperator)):
             from .matrix_op import MatrixOp
-            return super().__new__(MatrixOp)
+            return MatrixOp.__new__(MatrixOp)
 
         if isinstance(primitive, Pauli):
             from .pauli_op import PauliOp
-            return super().__new__(PauliOp)
+            return PauliOp.__new__(PauliOp)
 
         if isinstance(primitive, SparsePauliOp):
             from .pauli_sum_op import PauliSumOp
-            return super().__new__(PauliSumOp)
+            return PauliSumOp.__new__(PauliSumOp)
 
         raise TypeError('Unsupported primitive type {} passed into PrimitiveOp '
                         'factory constructor'.format(type(primitive)))
 
     def __init__(self,
-                 primitive: Union[QuantumCircuit, Operator, Pauli, SparsePauliOp, OperatorBase],
-                 coeff: Union[complex, ParameterExpression] = 1.0) -> None:
+                 primitive:
+                 Optional[Union[Instruction, QuantumCircuit, List,
+                                np.ndarray, spmatrix, MatrixOperator, Pauli, SparsePauliOp]] = None,
+                 coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> None:
         """
             Args:
                 primitive: The operator primitive being wrapped.
                 coeff: A coefficient multiplying the primitive.
         """
-        super().__init__()
         self._primitive = primitive
         self._coeff = coeff
 
     @property
-    def primitive(self) -> Union[QuantumCircuit, Operator, Pauli, SparsePauliOp, OperatorBase]:
+    def primitive(self) -> Union[Instruction, QuantumCircuit, List,
+                                 np.ndarray, spmatrix, MatrixOperator, Pauli]:
         """ The primitive defining the underlying function of the Operator.
 
         Returns:
@@ -105,7 +110,7 @@ class PrimitiveOp(OperatorBase):
         return self._primitive
 
     @property
-    def coeff(self) -> Union[complex, ParameterExpression]:
+    def coeff(self) -> Union[int, float, complex, ParameterExpression]:
         """
         The scalar coefficient multiplying the Operator.
 
@@ -130,7 +135,7 @@ class PrimitiveOp(OperatorBase):
     def equals(self, other: OperatorBase) -> bool:
         raise NotImplementedError
 
-    def mul(self, scalar: Union[complex, ParameterExpression]) -> OperatorBase:
+    def mul(self, scalar: Union[int, float, complex, ParameterExpression]) -> OperatorBase:
         if not isinstance(scalar, (int, float, complex, ParameterExpression)):
             raise ValueError('Operators can only be scalar multiplied by float or complex, not '
                              '{} of type {}.'.format(scalar, type(scalar)))
@@ -154,7 +159,7 @@ class PrimitiveOp(OperatorBase):
     def compose(self, other: OperatorBase,
                 permutation: Optional[List[int]] = None, front: bool = False) -> \
             OperatorBase:
-        # pylint: disable=cyclic-import
+        # pylint: disable=import-outside-toplevel,cyclic-import
         from ..list_ops.composed_op import ComposedOp
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
         if isinstance(other, ComposedOp):
@@ -162,7 +167,7 @@ class PrimitiveOp(OperatorBase):
             if not isinstance(comp_with_first, ComposedOp):
                 new_oplist = [comp_with_first] + other.oplist[1:]
                 return ComposedOp(new_oplist, coeff=other.coeff)
-            return ComposedOp([new_self] + other.oplist, coeff=other.coeff)
+            return ComposedOp([new_self] + other.oplist, coeff=other.coeff)  # type: ignore
 
         return ComposedOp([new_self, other])
 
@@ -182,7 +187,7 @@ class PrimitiveOp(OperatorBase):
 
     def exp_i(self) -> OperatorBase:
         """ Return Operator exponentiation, equaling e^(-i * op)"""
-        # pylint: disable=cyclic-import
+        # pylint: disable=cyclic-import,import-outside-toplevel
         from ..evolutions.evolved_op import EvolvedOp
         return EvolvedOp(self)
 
@@ -202,12 +207,9 @@ class PrimitiveOp(OperatorBase):
     def __repr__(self) -> str:
         return "{}({}, coeff={})".format(type(self).__name__, repr(self.primitive), self.coeff)
 
-    def eval(
-        self,
-        front: Optional[
-            Union[str, Dict[str, complex], np.ndarray, OperatorBase, Statevector]
-        ] = None,
-    ) -> Union[OperatorBase, complex]:
+    def eval(self,
+             front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
+             ) -> Union[OperatorBase, float, complex]:
         raise NotImplementedError
 
     @property
@@ -224,7 +226,7 @@ class PrimitiveOp(OperatorBase):
         if isinstance(self.coeff, ParameterExpression):
             unrolled_dict = self._unroll_param_dict(param_dict)
             if isinstance(unrolled_dict, list):
-                # pylint: disable=cyclic-import
+                # pylint: disable=import-outside-toplevel,cyclic-import
                 from ..list_ops.list_op import ListOp
                 return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
             if self.coeff.parameters <= set(unrolled_dict.keys()):
@@ -241,6 +243,7 @@ class PrimitiveOp(OperatorBase):
 
     def to_matrix_op(self, massive: bool = False) -> OperatorBase:
         """ Returns a ``MatrixOp`` equivalent to this Operator. """
+        # pylint: disable=import-outside-toplevel
         prim_mat = self.__class__(self.primitive).to_matrix(massive=massive)
         from .matrix_op import MatrixOp
         return MatrixOp(prim_mat, coeff=self.coeff)
@@ -252,11 +255,12 @@ class PrimitiveOp(OperatorBase):
     def to_circuit(self) -> QuantumCircuit:
         """ Returns a ``QuantumCircuit`` equivalent to this Operator. """
         qc = QuantumCircuit(self.num_qubits)
-        qc.append(self.to_instruction(), qargs=range(self.primitive.num_qubits))
+        qc.append(self.to_instruction(), qargs=range(self.primitive.num_qubits))  # type: ignore
         return qc.decompose()
 
     def to_circuit_op(self) -> OperatorBase:
         """ Returns a ``CircuitOp`` equivalent to this Operator. """
+        # pylint: disable=import-outside-toplevel
         from .circuit_op import CircuitOp
         if self.coeff == 0:
             return CircuitOp(QuantumCircuit(self.num_qubits), coeff=0)
@@ -264,20 +268,19 @@ class PrimitiveOp(OperatorBase):
 
     def to_pauli_op(self, massive: bool = False) -> OperatorBase:
         """ Returns a sum of ``PauliOp`` s equivalent to this Operator. """
-        # pylint: disable=cyclic-import
-        from .matrix_op import MatrixOp
-        mat_op = cast(MatrixOp, self.to_matrix_op(massive=massive))
-        sparse_pauli = SparsePauliOp.from_operator(mat_op.primitive)
+        # pylint: disable=import-outside-toplevel,cyclic-import
+        from ..list_ops.summed_op import SummedOp
+        mat_op = self.to_matrix_op(massive=massive)
+        sparse_pauli = SparsePauliOp.from_operator(mat_op.primitive)  # type: ignore
         if not sparse_pauli.to_list():
+            # pylint: disable=import-outside-toplevel
             from ..operator_globals import I
             return (I ^ self.num_qubits) * 0.0
-        from .pauli_op import PauliOp
         if len(sparse_pauli) == 1:
             label, coeff = sparse_pauli.to_list()[0]
             coeff = coeff.real if np.isreal(coeff) else coeff
-            return PauliOp(Pauli(label), coeff * self.coeff)
+            return PrimitiveOp(Pauli(label), coeff * self.coeff)
 
-        from ..list_ops.summed_op import SummedOp
         return SummedOp(
             [
                 PrimitiveOp(

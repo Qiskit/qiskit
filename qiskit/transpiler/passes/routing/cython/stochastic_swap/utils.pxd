@@ -31,8 +31,7 @@ cdef class NLayout:
 
 
 cpdef NLayout nlayout_from_layout(object layout,
-                                  dict qubit_indices,
-                                  unsigned int logical_qubits,
+                                  object dag, 
                                   unsigned int physical_qubits)
 
 

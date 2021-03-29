@@ -14,8 +14,8 @@
 
 from abc import abstractmethod
 
-from qiskit.opflow.evolutions.evolution_base import EvolutionBase
-from qiskit.opflow.operator_base import OperatorBase
+from ...operator_base import OperatorBase
+from ..evolution_base import EvolutionBase
 
 # TODO centralize handling of commuting groups
 

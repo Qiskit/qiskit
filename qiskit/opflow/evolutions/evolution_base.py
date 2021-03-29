@@ -12,13 +12,11 @@
 
 """ EvolutionBase Class """
 
-from abc import ABC, abstractmethod
-
-from qiskit.opflow.operator_base import OperatorBase
-from qiskit.opflow.converters.converter_base import ConverterBase
+from ..operator_base import OperatorBase
+from ..converters.converter_base import ConverterBase
 
 
-class EvolutionBase(ConverterBase, ABC):
+class EvolutionBase(ConverterBase):
     r"""
     A base for Evolution converters.
     Evolutions are converters which traverse an Operator tree, replacing any ``EvolvedOp`` `e`
@@ -29,7 +27,6 @@ class EvolutionBase(ConverterBase, ABC):
 
     """
 
-    @abstractmethod
     def convert(self, operator: OperatorBase) -> OperatorBase:
         """ Traverse the operator, replacing any ``EvolutionOps`` with their equivalent evolution
         ``CircuitOps``.

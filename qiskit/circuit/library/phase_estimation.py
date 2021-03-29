@@ -84,7 +84,7 @@ class PhaseEstimation(QuantumCircuit):
         super().__init__(qr_eval, qr_state, name=name)
 
         if iqft is None:
-            iqft = QFT(num_evaluation_qubits, inverse=True, do_swaps=False).reverse_bits()
+            iqft = QFT(num_evaluation_qubits, inverse=True, do_swaps=False)
 
         self.h(qr_eval)  # hadamards on evaluation qubits
 

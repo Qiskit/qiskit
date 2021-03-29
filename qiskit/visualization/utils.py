@@ -18,7 +18,7 @@ from collections import OrderedDict
 import numpy as np
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info.operators.symplectic import PauliTable, SparsePauliOp
+from qiskit.quantum_info.operators import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.circuit import Measure
 
@@ -48,16 +48,15 @@ def generate_latex_label(label):
     match = regex.search(label)
     if not match:
         label = label.replace(r'\$', '$')
-        final_str = utf8tolatex(label, non_ascii_only=True)
+        return utf8tolatex(label)
     else:
         mathmode_string = match.group(1).replace(r'\$', '$')
         before_match = label[:match.start()]
         before_match = before_match.replace(r'\$', '$')
         after_match = label[match.end():]
         after_match = after_match.replace(r'\$', '$')
-        final_str = (utf8tolatex(before_match, non_ascii_only=True) + mathmode_string
-                     + utf8tolatex(after_match, non_ascii_only=True))
-    return final_str.replace(' ', '\\,')   # Put in proper spaces
+        return utf8tolatex(before_match) + mathmode_string + utf8tolatex(
+            after_match)
 
 
 def _trim(image):
@@ -306,13 +305,13 @@ class _LayerSpooler(list):
 
 
 def _bloch_multivector_data(state):
-    """Return list of Bloch vectors for each qubit
+    """Return list of bloch vectors for each qubit
 
     Args:
         state (DensityMatrix or Statevector): an N-qubit state.
 
     Returns:
-        list: list of Bloch vectors (x, y, z) for each qubit.
+        list: list of bloch vectors (x, y, z) for each qubit.
 
     Raises:
         VisualizationError: if input is not an N-qubit state.
@@ -341,7 +340,7 @@ def _paulivec_data(state):
         state (DensityMatrix or Statevector): an N-qubit state.
 
     Returns:
-        tuple: (labels, values) for Pauli vector.
+        tuple: (labels, values) for Pauli vec.
 
     Raises:
         VisualizationError: if input is not an N-qubit state.

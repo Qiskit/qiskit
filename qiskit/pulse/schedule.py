@@ -30,7 +30,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-# pylint: disable=cyclic-import, unused-import
+# pylint: disable=cyclic-import
 from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
@@ -42,9 +42,6 @@ Interval = Tuple[int, int]
 
 TimeSlots = Dict[Channel, List[Tuple[int, int]]]
 """List of timeslots occupied by instructions for each channel."""
-
-ScheduleComponent = Union['Schedule', Instruction]
-"""An element that composes a pulse schedule."""
 
 
 class Schedule(abc.ABC):
@@ -58,7 +55,8 @@ class Schedule(abc.ABC):
     prefix = 'sched'
 
     def __init__(self,
-                 *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
+                 *schedules: Union[Union['Schedule', Instruction],
+                                   Tuple[int, Union['Schedule', Instruction]]],
                  name: Optional[str] = None,
                  metadata: Optional[dict] = None):
         """Create an empty schedule.
@@ -128,7 +126,7 @@ class Schedule(abc.ABC):
         return tuple(self._timeslots.keys())
 
     @property
-    def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
+    def _children(self) -> Tuple[Tuple[int, Union['Schedule', Instruction]], ...]:
         """Return the child``NamedValues``s of this ``Schedule`` in the
         order they were added to the schedule.
 
@@ -160,7 +158,7 @@ class Schedule(abc.ABC):
 
         The metadata for the schedule is a user provided ``dict`` of metadata
         for the schedule. It will not be used to influence the execution or
-        operation of the schedule, but it is expected to be passed between
+        operation of the schedule, but it is expected to be passed betweeen
         all transforms of the schedule and that providers will associate any
         schedule metadata with the results it returns from execution of that
         schedule.
@@ -283,7 +281,7 @@ class Schedule(abc.ABC):
 
     def insert(self,
                start_time: int,
-               schedule: ScheduleComponent,
+               schedule: Union['Schedule', Instruction],
                name: Optional[str] = None,
                inplace: bool = False
                ) -> 'Schedule':
@@ -302,7 +300,7 @@ class Schedule(abc.ABC):
 
     def _mutable_insert(self,
                         start_time: int,
-                        schedule: ScheduleComponent
+                        schedule: Union['Schedule', Instruction]
                         ) -> 'Schedule':
         """Mutably insert `schedule` into `self` at `start_time`.
 
@@ -317,7 +315,7 @@ class Schedule(abc.ABC):
 
     def _immutable_insert(self,
                           start_time: int,
-                          schedule: ScheduleComponent,
+                          schedule: Union['Schedule', Instruction],
                           name: Optional[str] = None,
                           ) -> 'Schedule':
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
@@ -333,7 +331,7 @@ class Schedule(abc.ABC):
         new_sched._mutable_insert(start_time, schedule)
         return new_sched
 
-    def append(self, schedule: ScheduleComponent,
+    def append(self, schedule: Union['Schedule', Instruction],
                name: Optional[str] = None,
                inplace: bool = False) -> 'Schedule':
         r"""Return a new schedule with ``schedule`` inserted at the maximum time over
@@ -355,14 +353,8 @@ class Schedule(abc.ABC):
         return self.insert(time, schedule, name=name, inplace=inplace)
 
     def flatten(self) -> 'Schedule':
-        """Deprecated."""
-        from qiskit.pulse.transforms import flatten
-
-        warnings.warn('`This method is being deprecated. Please use '
-                      '`qiskit.pulse.transforms.flatten` function with this schedule.',
-                      DeprecationWarning)
-
-        return flatten(self)
+        """Return a new schedule which is the flattened schedule contained all ``instructions``."""
+        return Schedule(*self.instructions, name=self.name)
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
@@ -430,9 +422,7 @@ class Schedule(abc.ABC):
             filter_func: Function of the form (int, Union['Schedule', Instruction]) -> bool.
             new_sched_name: Name of the returned ``Schedule``.
         """
-        from qiskit.pulse.transforms import flatten
-
-        subschedules = flatten(self)._children
+        subschedules = self.flatten()._children
         valid_subschedules = [sched for sched in subschedules if filter_func(sched)]
         return Schedule(*valid_subschedules, name=new_sched_name)
 
@@ -474,7 +464,7 @@ class Schedule(abc.ABC):
                 Args:
                     time_inst (Tuple[int, Instruction]): Time
                 """
-                return any(chan in channels for chan in time_inst[1].channels)
+                return any([chan in channels for chan in time_inst[1].channels])
             return channel_filter
 
         def only_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> Callable:
@@ -516,11 +506,11 @@ class Schedule(abc.ABC):
         if intervals is not None:
             filter_func_list.append(only_intervals(intervals))
         # return function returning true iff all filters are passed
-        return lambda x: all(filter_func(x) for filter_func in filter_func_list)
+        return lambda x: all([filter_func(x) for filter_func in filter_func_list])
 
     def _add_timeslots(self,
                        time: int,
-                       schedule: ScheduleComponent) -> None:
+                       schedule: Union['Schedule', Instruction]) -> None:
         """Update all time tracking within this schedule based on the given schedule.
 
         Args:
@@ -557,19 +547,19 @@ class Schedule(abc.ABC):
                     interval = (interval[0] + time, interval[1] + time)
                     index = _find_insertion_index(self._timeslots[channel], interval)
                     self._timeslots[channel].insert(index, interval)
-                except PulseError as ex:
+                except PulseError:
                     raise PulseError(
                         "Schedule(name='{new}') cannot be inserted into Schedule(name='{old}') at "
                         "time {time} because its instruction on channel {ch} scheduled from time "
                         "{t0} to {tf} overlaps with an existing instruction."
                         "".format(new=schedule.name or '', old=self.name or '', time=time,
-                                  ch=channel, t0=interval[0], tf=interval[1])) from ex
+                                  ch=channel, t0=interval[0], tf=interval[1]))
 
         _check_nonnegative_timeslot(self._timeslots)
 
     def _remove_timeslots(self,
                           time: int,
-                          schedule: ScheduleComponent):
+                          schedule: Union['Schedule', Instruction]):
         """Delete the timeslots if present for the respective schedule component.
 
         Args:
@@ -609,8 +599,8 @@ class Schedule(abc.ABC):
 
     def _replace_timeslots(self,
                            time: int,
-                           old: ScheduleComponent,
-                           new: ScheduleComponent):
+                           old: Union['Schedule', Instruction],
+                           new: Union['Schedule', Instruction]):
         """Replace the timeslots of ``old`` if present with the timeslots of ``new``.
 
         Args:
@@ -622,14 +612,14 @@ class Schedule(abc.ABC):
         self._add_timeslots(time, new)
 
     def replace(self,
-                old: ScheduleComponent,
-                new: ScheduleComponent,
+                old: Union['Schedule', Instruction],
+                new: Union['Schedule', Instruction],
                 inplace: bool = False,
                 ) -> 'Schedule':
         """Return a schedule with the ``old`` instruction replaced with a ``new``
         instruction.
 
-        The replacement matching is based on an instruction equality check.
+        The replacment matching is based on an instruction equality check.
 
         .. jupyter-kernel:: python3
           :id: replace
@@ -783,10 +773,7 @@ class Schedule(abc.ABC):
         Args:
             schedule:
         """
-        # TODO need to fix cyclic import
-        from qiskit.pulse.transforms import flatten
-
-        schedule = flatten(schedule)
+        schedule = schedule.flatten()
         for _, inst in schedule.instructions:
             for param in inst.parameters:
                 self._parameter_table[param].append(inst)
@@ -926,7 +913,7 @@ class Schedule(abc.ABC):
                                plotter=plotter,
                                axis=axis)
 
-    def __eq__(self, other: ScheduleComponent) -> bool:
+    def __eq__(self, other: Union['Schedule', Instruction]) -> bool:
         """Test if two ScheduleComponents are equal.
 
         Equality is checked by verifying there is an equal instruction at every time
@@ -963,11 +950,11 @@ class Schedule(abc.ABC):
 
         return True
 
-    def __add__(self, other: ScheduleComponent) -> 'Schedule':
+    def __add__(self, other: Union['Schedule', Instruction]) -> 'Schedule':
         """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
         return self.append(other)
 
-    def __or__(self, other: ScheduleComponent) -> 'Schedule':
+    def __or__(self, other: Union['Schedule', Instruction]) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other)
 
@@ -1053,7 +1040,7 @@ class ParameterizedSchedule:
             if isinstance(param_sched, type(self)):
                 predefined = param_sched.parameters
             else:
-                # assuming no other parameterized instructions
+                # assuming no other parametrized instructions
                 predefined = self.parameters
             sub_params = {k: v for k, v in named_parameters.items()
                           if k in predefined}
@@ -1166,7 +1153,7 @@ def _check_nonnegative_timeslot(timeslots: TimeSlots):
                     " starting time.".format(chan))
 
 
-def _get_timeslots(schedule: ScheduleComponent) -> TimeSlots:
+def _get_timeslots(schedule: Union[Instruction, Schedule]) -> TimeSlots:
     """Generate timeslots from given schedule component.
 
     Args:

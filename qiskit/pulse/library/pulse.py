@@ -37,12 +37,6 @@ class Pulse(ABC):
         """Unique identifier for this pulse."""
         return id(self)
 
-    @property
-    @abstractmethod
-    def parameters(self) -> Dict[str, Any]:
-        """Return a dictionary containing the pulse's parameters."""
-        pass
-
     @abstractmethod
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""

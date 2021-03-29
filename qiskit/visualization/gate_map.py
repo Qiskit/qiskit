@@ -113,7 +113,7 @@ def plot_gate_map(backend, figsize=None,
         raise ImportError('Must have Matplotlib installed. To install, '
                           'run "pip install matplotlib".')
     from matplotlib import get_backend
-    import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt  # pylint: disable=import-error
     import matplotlib.patches as mpatches
 
     if backend.configuration().simulator:
@@ -142,9 +142,9 @@ def plot_gate_map(backend, figsize=None,
                     [0, 5], [0, 6], [1, 7], [1, 6], [1, 5],
                     [1, 4], [1, 3], [1, 2], [1, 1], [1, 0]]
 
-    mpl_data[16] = [[1, 0], [1, 1], [2, 1], [3, 1], [1, 2],
-                    [3, 2], [0, 3], [1, 3], [3, 3], [4, 3],
-                    [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [1, 6]]
+    mpl_data[16] = [[1, 0], [0, 0], [0, 1], [0, 2], [0, 3],
+                    [0, 4], [0, 5], [0, 6], [0, 7], [1, 7],
+                    [1, 6], [1, 5], [1, 4], [1, 3], [1, 2], [1, 1]]
 
     mpl_data[27] = [[1, 0], [1, 1], [2, 1], [3, 1], [1, 2],
                     [3, 2], [0, 3], [1, 3], [3, 3], [4, 3],
@@ -428,15 +428,15 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     """
     try:
         import seaborn as sns
-    except ImportError as ex:
+    except ImportError:
         raise ImportError('Must have seaborn installed to use plot_error_map. '
-                          'To install, run "pip install seaborn".') from ex
+                          'To install, run "pip install seaborn".')
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, '
                           'run "pip install matplotlib".')
     import matplotlib
     from matplotlib import get_backend
-    import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt  # pylint: disable=import-error
     import matplotlib.gridspec as gridspec
     from matplotlib import ticker
 

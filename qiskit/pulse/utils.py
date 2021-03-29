@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for common pulse programming utilities."""
+"""Module for common pulse programming utilies."""
 import functools
 from typing import List, Dict, Union
 

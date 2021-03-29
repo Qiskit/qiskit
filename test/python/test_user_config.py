@@ -68,7 +68,8 @@ class TestUserConfig(QiskitTestCase):
             file.flush()
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
-            self.assertEqual({'circuit_drawer': 'latex'},
+            self.assertEqual({'circuit_drawer': 'latex',
+                              'parallel_enabled': user_config.PARALLEL_DEFAULT},
                              config.settings)
 
     def test_optimization_level_valid(self):
@@ -83,7 +84,8 @@ class TestUserConfig(QiskitTestCase):
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
             self.assertEqual(
-                {'transpile_optimization_level': 1},
+                {'transpile_optimization_level': 1,
+                 'parallel_enabled': user_config.PARALLEL_DEFAULT},
                 config.settings)
 
     def test_invalid_num_processes(self):
@@ -111,7 +113,8 @@ class TestUserConfig(QiskitTestCase):
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
             self.assertEqual(
-                {'num_processes': 31},
+                {'parallel_enabled': user_config.PARALLEL_DEFAULT,
+                 'num_processes': 31},
                 config.settings)
 
     def test_valid_parallel(self):

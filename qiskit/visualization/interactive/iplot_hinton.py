@@ -20,9 +20,9 @@ from qiskit.visualization.state_visualization import plot_state_hinton
 
 
 def iplot_state_hinton(rho, figsize=None):
-    """ Create a Hinton representation.
+    """ Create a hinton representation.
         Graphical representation of the input array using a 2D city style
-        graph (Hinton).
+        graph (hinton).
         Args:
             rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
             figsize (tuple): Figure size in pixels.

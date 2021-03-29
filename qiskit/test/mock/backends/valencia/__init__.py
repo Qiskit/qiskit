@@ -10,6 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Mock valencia backend"""
+# pylint: disable=missing-module-docstring
 
 from .fake_valencia import FakeValencia

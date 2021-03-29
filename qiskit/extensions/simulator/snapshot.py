@@ -22,8 +22,6 @@ from qiskit.extensions.exceptions import QiskitError, ExtensionError
 class Snapshot(Instruction):
     """Simulator snapshot instruction."""
 
-    _directive = True
-
     def __init__(self,
                  label,
                  snapshot_type='statevector',

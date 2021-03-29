@@ -39,8 +39,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     system is required for this to work.
 
     The current release of Graphviz can be downloaded here: <https://graphviz.gitlab.io/download/>.
-    Download the version of the software that matches your environment and follow the instructions
-    to install Graph Visualization Software (Graphviz) on your operating system.
+    Download the version of the sotware that matches your environment and follow the instructions to
+    install Graph Visualization Software (Graphviz) on your operating system.
 
     Args:
         dag (DAGCircuit): The dag to draw.
@@ -79,9 +79,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     """
     try:
         import pydot
-    except ImportError as ex:
+    except ImportError:
         raise ImportError("dag_drawer requires pydot. "
-                          "Run 'pip install pydot'.") from ex
+                          "Run 'pip install pydot'.")
     # NOTE: use type str checking to avoid potential cyclical import
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)
@@ -103,7 +103,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'green'
-                if node.op._directive:
+                if node.name == 'snapshot':
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'red'
@@ -118,10 +118,6 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
         edge_attr_func = None
 
     else:
-        bit_labels = {bit: "%s[%s]" % (reg.name, idx)
-                      for reg in list(dag.qregs.values()) + list(dag.cregs.values())
-                      for (idx, bit) in enumerate(reg)}
-
         graph_attrs = {'dpi': str(100 * scale)}
 
         def node_attr_func(node):
@@ -129,18 +125,16 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
                 return {}
             if style == 'color':
                 n = {}
+                n['label'] = node.name
                 if node.type == 'op':
-                    n['label'] = node.name
                     n['color'] = 'blue'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'lightblue'
                 if node.type == 'in':
-                    n['label'] = bit_labels[node.wire]
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'green'
                 if node.type == 'out':
-                    n['label'] = bit_labels[node.wire]
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'red'
@@ -150,7 +144,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
 
         def edge_attr_func(edge):
             e = {}
-            e['label'] = bit_labels[edge]
+            e['label'] = str(edge['name'])
             return e
 
     dot_str = dag._multi_graph.to_dot(node_attr_func, edge_attr_func,

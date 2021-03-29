@@ -12,7 +12,6 @@
 
 # pylint: disable=attribute-defined-outside-init,invalid-name,missing-type-doc
 # pylint: disable=unused-argument,broad-except,bad-staticmethod-argument
-# pylint: disable=inconsistent-return-statements
 
 """Base TestCases for the unit tests.
 

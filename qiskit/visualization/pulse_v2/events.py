@@ -207,10 +207,10 @@ class ChannelEvents:
                 phase=phase,
                 frequency=frequency)
 
-            # keep parameter expression to check either phase or frequency is parameterized
+            # keep parameter expression to check either phase or frequency is parametrized
             frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
 
-            # remove parameter expressions to find if next frame is parameterized
+            # remove parameter expressions to find if next frame is parametrized
             if isinstance(phase, circuit.ParameterExpression):
                 phase = float(phase.bind({param: 0 for param in phase.parameters}))
                 is_opaque = True

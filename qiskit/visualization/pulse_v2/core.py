@@ -73,7 +73,6 @@ from typing import Union, List, Tuple, Iterator, Optional
 
 import numpy as np
 from qiskit import pulse
-from qiskit.pulse.transforms import flatten, inline_subroutines
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import events, types, drawings, device_info
 from qiskit.visualization.pulse_v2.stylesheet import QiskitPulseStyle
@@ -206,7 +205,7 @@ class DrawerCanvas:
             VisualizationError: When input program is invalid data format.
         """
         if isinstance(program, pulse.Schedule):
-            self._schedule_loader(flatten(inline_subroutines(program)))
+            self._schedule_loader(program)
         elif isinstance(program, (pulse.Waveform, pulse.ParametricPulse)):
             self._waveform_loader(program)
         else:
@@ -547,7 +546,7 @@ class Chart:
         else:
             self.scale = 1.0
 
-        # update vertical range with scaling and limitation
+        # update vertical range with scalign and limitation
         self.vmax = max(self.scale * self.vmax,
                         self.parent.formatter['channel_scaling.pos_spacing'])
 

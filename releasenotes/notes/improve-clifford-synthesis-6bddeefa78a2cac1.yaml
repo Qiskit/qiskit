@@ -1,9 +1,0 @@
----
-features:
-  - |
-    The :meth:`~Clifford.to_circuit` method now uses a non-optimal
-    greedy compilation routine for Clifford elements synthesis, by Bravyi et. al.,
-    which typically yields better CX cost compared to the previousely
-    used Aaronson-Gottesman method (for more than two qubits).
-    This is now the default method for Clifford circuit synthesis of more
-    than three qubits, unless another method is specified.

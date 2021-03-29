@@ -12,17 +12,15 @@
 
 """ OperatorBase Class """
 
-import itertools
+from typing import Set, Union, Dict, Optional, List, cast, Tuple
+from numbers import Number
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Set, Tuple, Union, cast
-
 import numpy as np
-from scipy.sparse import csr_matrix, spmatrix
+from scipy.sparse import spmatrix, csr_matrix
 
-from qiskit.circuit import ParameterExpression, ParameterVector
-from qiskit.opflow.exceptions import OpflowError
-from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals
+from qiskit.circuit import ParameterExpression, ParameterVector
+from .exceptions import OpflowError
 
 
 class OperatorBase(ABC):
@@ -38,16 +36,6 @@ class OperatorBase(ABC):
     # Indentation used in string representation of list operators
     # Can be changed to use another indentation than two whitespaces
     INDENTATION = '  '
-
-    _count = itertools.count()
-
-    def __init__(self) -> None:
-        self._instance_id = next(self._count)
-
-    @property
-    def instance_id(self) -> int:
-        """Return the unique instance id."""
-        return self._instance_id
 
     @property
     @abstractmethod
@@ -74,12 +62,9 @@ class OperatorBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def eval(
-        self,
-        front: Optional[
-            Union[str, Dict[str, complex], np.ndarray, "OperatorBase", Statevector]
-        ] = None,
-    ) -> Union["OperatorBase", complex]:
+    def eval(self,
+             front: Optional[Union[str, Dict[str, complex], 'OperatorBase']] = None
+             ) -> Union['OperatorBase', float, complex, list]:
         r"""
         Evaluate the Operator's underlying function, either on a binary string or another Operator.
         A square binary Operator can be defined as a function taking a binary function to another
@@ -132,16 +117,6 @@ class OperatorBase(ABC):
         Returns:
               The NumPy ``ndarray`` equivalent to this Operator.
         """
-        raise NotImplementedError
-
-    @abstractmethod
-    def to_matrix_op(self, massive: bool = False) -> "OperatorBase":
-        """ Returns a ``MatrixOp`` equivalent to this Operator. """
-        raise NotImplementedError
-
-    @abstractmethod
-    def to_circuit_op(self) -> "OperatorBase":
-        """ Returns a ``CircuitOp`` equivalent to this Operator. """
         raise NotImplementedError
 
     def to_spmatrix(self) -> spmatrix:
@@ -314,7 +289,7 @@ class OperatorBase(ABC):
     # Scalar Multiplication
 
     @abstractmethod
-    def mul(self, scalar: Union[complex, ParameterExpression]) -> 'OperatorBase':
+    def mul(self, scalar: Union[Number, ParameterExpression]) -> 'OperatorBase':
         r"""
         Returns the scalar multiplication of the Operator, overloaded by ``*``, including
         support for Terra's ``Parameters``, which can be bound to values later (via
@@ -329,7 +304,7 @@ class OperatorBase(ABC):
         """
         raise NotImplementedError
 
-    def __mul__(self, other: complex) -> 'OperatorBase':
+    def __mul__(self, other: Number) -> 'OperatorBase':
         r""" Overload ``*`` for Operator scalar multiplication.
 
         Args:
@@ -341,7 +316,7 @@ class OperatorBase(ABC):
         """
         return self.mul(other)
 
-    def __rmul__(self, other: complex) -> 'OperatorBase':
+    def __rmul__(self, other: Number) -> 'OperatorBase':
         r""" Overload right ``*`` for Operator scalar multiplication.
 
         Args:
@@ -353,7 +328,7 @@ class OperatorBase(ABC):
         """
         return self.mul(other)
 
-    def __truediv__(self, other: complex) -> 'OperatorBase':
+    def __truediv__(self, other: Union[int, float, complex]) -> 'OperatorBase':
         r""" Overload ``/`` for scalar Operator division.
 
         Args:
@@ -441,9 +416,9 @@ class OperatorBase(ABC):
     @abstractmethod
     def assign_parameters(self,
                           param_dict: Dict[ParameterExpression,
-                                           Union[complex,
+                                           Union[Number,
                                                  ParameterExpression,
-                                                 List[Union[complex, ParameterExpression]]]]
+                                                 List[Union[Number, ParameterExpression]]]]
                           ) -> 'OperatorBase':
         """ Binds scalar values to any Terra ``Parameters`` in the coefficients or primitives of
         the Operator, or substitutes one ``Parameter`` for another. This method differs from
@@ -492,9 +467,9 @@ class OperatorBase(ABC):
 
     def bind_parameters(self,
                         param_dict: Dict[ParameterExpression,
-                                         Union[complex,
+                                         Union[Number,
                                                ParameterExpression,
-                                               List[Union[complex, ParameterExpression]]]]
+                                               List[Union[Number, ParameterExpression]]]]
                         ) -> 'OperatorBase':
         r"""
         Same as assign_parameters, but maintained for consistency with QuantumCircuit in
@@ -505,21 +480,21 @@ class OperatorBase(ABC):
     # Mostly copied from terra, but with list unrolling added:
     @staticmethod
     def _unroll_param_dict(value_dict: Dict[Union[ParameterExpression, ParameterVector],
-                                            Union[complex, List[complex]]]
-                           ) -> Union[Dict[ParameterExpression, complex],
-                                      List[Dict[ParameterExpression, complex]]]:
+                                            Union[Number, List[Number]]]
+                           ) -> Union[Dict[ParameterExpression, Number],
+                                      List[Dict[ParameterExpression, Number]]]:
         """ Unrolls the ParameterVectors in a param_dict into separate Parameters, and unrolls
         parameterization value lists into separate param_dicts without list nesting. """
         unrolled_value_dict = {}
         for (param, value) in value_dict.items():
             if isinstance(param, ParameterExpression):
                 unrolled_value_dict[param] = value
-            if isinstance(param, ParameterVector) and isinstance(value, (list, np.ndarray)):
-                if not len(param) == len(value):
+            if isinstance(param, ParameterVector):
+                if not len(param) == len(value):  # type: ignore
                     raise ValueError(
                         'ParameterVector {} has length {}, which differs from value list {} of '
-                        'len {}'.format(param, len(param), value, len(value)))
-                unrolled_value_dict.update(zip(param, value))
+                        'len {}'.format(param, len(param), value, len(value)))  # type: ignore
+                unrolled_value_dict.update(zip(param, value))  # type: ignore
         if isinstance(list(unrolled_value_dict.values())[0], list):
             # check that all are same length
             unrolled_value_dict_list = []
@@ -534,7 +509,7 @@ class OperatorBase(ABC):
         return unrolled_value_dict  # type: ignore
 
     @staticmethod
-    def _get_param_dict_for_index(unrolled_dict: Dict[ParameterExpression, List[complex]],
+    def _get_param_dict_for_index(unrolled_dict: Dict[ParameterExpression, List[Number]],
                                   i: int):
         """ Gets a single non-list-nested param_dict for a given list index from a nested one. """
         return {k: v[i] for (k, v) in unrolled_dict.items()}
@@ -546,7 +521,7 @@ class OperatorBase(ABC):
             other = other.permute(permutation)
         new_self = self
         if not self.num_qubits == other.num_qubits:
-            # pylint: disable=cyclic-import
+            # pylint: disable=cyclic-import,import-outside-toplevel
             from .operator_globals import Zero
             if other == Zero:
                 # Zero is special - we'll expand it to the correct qubit number.

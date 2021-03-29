@@ -19,8 +19,7 @@ from qiskit.quantum_info.operators.random import (random_unitary,
                                                   random_pauli,
                                                   random_clifford,
                                                   random_pauli_table,
-                                                  random_stabilizer_table,
-                                                  random_cnotdihedral)
+                                                  random_stabilizer_table)
 
 from qiskit.quantum_info.states.random import (random_statevector,
                                                random_density_matrix)

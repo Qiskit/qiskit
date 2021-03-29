@@ -10,24 +10,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-import
-
 """Assemble function for converting a list of circuits into a qobj."""
 import hashlib
 from collections import defaultdict
+
 from typing import Any, Dict, List, Tuple, Union
 
 from qiskit import qobj, pulse
 from qiskit.assembler.run_config import RunConfig
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import instructions, transforms, library, schedule, channels
+from qiskit.pulse import instructions, transforms, library
 from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
 
 def assemble_schedules(
-        schedules: List[Union['schedule.ScheduleComponent',
-                              Tuple[int, 'schedule.ScheduleComponent']]],
+        schedules: List[Union[pulse.ScheduleComponent, Tuple[int, pulse.ScheduleComponent]]],
         qobj_id: int,
         qobj_header: qobj.QobjHeader,
         run_config: RunConfig) -> qobj.PulseQobj:
@@ -64,8 +62,7 @@ def assemble_schedules(
 
 
 def _assemble_experiments(
-        schedules: List[Union['schedule.ScheduleComponent',
-                              Tuple[int, 'schedule.ScheduleComponent']]],
+        schedules: List[Union[pulse.ScheduleComponent, Tuple[int, pulse.ScheduleComponent]]],
         lo_converter: converters.LoConfigConverter,
         run_config: RunConfig
 ) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:
@@ -97,33 +94,27 @@ def _assemble_experiments(
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
 
-    formatted_schedules = []
-    for sched in schedules:
-        if isinstance(sched, pulse.Schedule):
-            sched = transforms.inline_subroutines(sched)
-            sched = transforms.flatten(sched)
-            formatted_schedules.append(sched)
-        else:
-            formatted_schedules.append(pulse.Schedule(sched))
-
-    compressed_schedules = transforms.compress_pulses(formatted_schedules)
+    schedules = [
+        sched if isinstance(sched, pulse.Schedule) else pulse.Schedule(sched) for sched in schedules
+    ]
+    compressed_schedules = transforms.compress_pulses(schedules)
 
     user_pulselib = {}
     experiments = []
-    for idx, sched in enumerate(compressed_schedules):
+    for idx, schedule in enumerate(compressed_schedules):
         qobj_instructions, max_memory_slot = _assemble_instructions(
-            sched,
+            schedule,
             instruction_converter,
             run_config,
             user_pulselib)
 
-        metadata = sched.metadata
+        metadata = schedule.metadata
         if metadata is None:
             metadata = {}
         # TODO: add other experimental header items (see circuit assembler)
         qobj_experiment_header = qobj.QobjExperimentHeader(
             memory_slots=max_memory_slot + 1,  # Memory slots are 0 indexed
-            name=sched.name or 'Experiment-%d' % idx,
+            name=schedule.name or 'Experiment-%d' % idx,
             metadata=metadata)
 
         experiment = qobj.PulseQobjExperiment(
@@ -158,7 +149,7 @@ def _assemble_experiments(
 
 
 def _assemble_instructions(
-        sched: pulse.Schedule,
+        schedule: pulse.Schedule,
         instruction_converter: converters.InstructionToQobjConverter,
         run_config: RunConfig,
         user_pulselib: Dict[str, List[complex]]
@@ -170,7 +161,7 @@ def _assemble_instructions(
     The dictionary is not returned to avoid redundancy.
 
     Args:
-        sched: Schedule to assemble.
+        schedule: Schedule to assemble.
         instruction_converter: A converter instance which can convert PulseInstructions to
                                PulseQobjInstructions.
         run_config: Configuration of the runtime environment.
@@ -184,7 +175,7 @@ def _assemble_instructions(
     qobj_instructions = []
 
     acquire_instruction_map = defaultdict(list)
-    for time, instruction in sched.instructions:
+    for time, instruction in schedule.instructions:
 
         if (isinstance(instruction, instructions.Play) and
                 isinstance(instruction.pulse, library.ParametricPulse)):
@@ -202,12 +193,6 @@ def _assemble_instructions(
                 channel=instruction.channel,
                 name=name)
             user_pulselib[name] = instruction.pulse.samples
-
-        # ignore explicit delay instrs on acq channels as they are invalid on IBMQ backends;
-        # timing of other instrs will still be shifted appropriately
-        if (isinstance(instruction, instructions.Delay) and
-                isinstance(instruction.channel, channels.AcquireChannel)):
-            continue
 
         if isinstance(instruction, instructions.Acquire):
             if instruction.mem_slot:

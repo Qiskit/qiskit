@@ -44,8 +44,9 @@ class BinaryOperator(Node):
         """
         try:
             return VALID_OPERATORS[self.value]
-        except KeyError as ex:
-            raise NodeException(f"internal error: undefined operator '{self.value}'") from ex
+        except KeyError:
+            raise NodeException("internal error: undefined operator '%s'" %
+                                self.value)
 
     def qasm(self, prec=None):
         """Return the QASM representation."""

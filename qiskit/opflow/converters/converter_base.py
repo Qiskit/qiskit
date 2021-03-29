@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 
-from qiskit.opflow.operator_base import OperatorBase
+from ..operator_base import OperatorBase
 
 
 class ConverterBase(ABC):

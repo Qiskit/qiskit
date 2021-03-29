@@ -14,7 +14,7 @@
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister
 
 
@@ -74,8 +74,19 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     instruction = Instruction(name=circuit.name,
                               num_qubits=sum([qreg.size for qreg in circuit.qregs]),
                               num_clbits=sum([creg.size for creg in circuit.cregs]),
-                              params=[*parameter_dict.values()])
+                              params=sorted(parameter_dict.values(), key=lambda p: p.name))
     instruction.condition = None
+
+    def find_bit_position(bit):
+        """find the index of a given bit (Register, int) within
+        a flat ordered list of bits of the circuit
+        """
+        if isinstance(bit, Qubit):
+            ordered_regs = circuit.qregs
+        else:
+            ordered_regs = circuit.cregs
+        reg_index = ordered_regs.index(bit.register)
+        return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit.index
 
     target = circuit.assign_parameters(parameter_dict, inplace=False)
 
@@ -93,13 +104,10 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         c = ClassicalRegister(instruction.num_clbits, 'c')
         regs.append(c)
 
-    qubit_map = {bit: q[idx] for idx, bit in enumerate(circuit.qubits)}
-    clbit_map = {bit: c[idx] for idx, bit in enumerate(circuit.clbits)}
-
-    definition = [(inst,
-                   [qubit_map[y] for y in qargs],
-                   [clbit_map[y] for y in cargs])
-                  for inst, qargs, cargs in definition]
+    definition = list(map(lambda x:
+                          (x[0],
+                           list(map(lambda y: q[find_bit_position(y)], x[1])),
+                           list(map(lambda y: c[find_bit_position(y)], x[2]))), definition))
 
     # fix condition
     for rule in definition:

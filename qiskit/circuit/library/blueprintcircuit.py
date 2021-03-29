@@ -40,7 +40,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         self._qregs = []
         self._cregs = []
         self._qubits = []
-        self._qubit_set = set()
 
     @abstractmethod
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
@@ -84,7 +83,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         """Set the quantum registers associated with the circuit."""
         self._qregs = qregs
         self._qubits = [qbit for qreg in qregs for qbit in qreg]
-        self._qubit_set = set(self._qubits)
         self._invalidate()
 
     @property

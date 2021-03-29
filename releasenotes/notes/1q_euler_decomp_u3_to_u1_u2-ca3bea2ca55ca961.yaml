@@ -1,9 +1,0 @@
----
-upgrade:
-  - |
-    Previously the optimization phase of the transpiler would use
-    :class:`~qiskit.transpiler.passes.optimization.Optimize1qGates` for one qubit gates if the basis
-    contained ``u1``, ``u2``, or ``u3``. In this upgrade, the transpiler will use
-    :class:`~qiskit.transpiler.passes.optimization.Optimize1qGatesDecomposition` for all bases.
-    As part of this change, ``u3`` gates will be reduced to ``u1`` or ``u2`` gates if possible in
-    :class:`~qiskit.quantum_info.synthesis.OneQubitEulerDecomposer`.

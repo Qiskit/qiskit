@@ -27,8 +27,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    SnapshotChannel, Channel)
 from qiskit.pulse import (Waveform, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
-                          Instruction, ShiftFrequency, SetPhase)
-from qiskit.pulse.schedule import ScheduleComponent
+                          Instruction, ScheduleComponent, ShiftFrequency, SetPhase)
 
 
 class EventsOutputChannels:
@@ -495,7 +494,7 @@ class ScheduleDrawer:
         """Draw event table if events exist.
 
         Args:
-            figure (matplotlib.figure.Figure): Figure object
+            figure (matpotlib.figure.Figure): Figure object
             channels: Dictionary of channel and event table
             dt: Time interval
 
@@ -630,7 +629,7 @@ class ScheduleDrawer:
     @staticmethod
     def _prev_label_at_time(prev_labels: List[Dict[int, Union[Waveform, Acquire]]],
                             time: int) -> bool:
-        """Check overlap of pulses with previous channels.
+        """Check overlap of pulses with pervious channels.
 
         Args:
             prev_labels: List of labels in previous channels.

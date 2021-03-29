@@ -67,9 +67,6 @@ def _assemble_circuit(
             clbit_labels.append([creg.name, j])
         memory_slots += creg.size
 
-    qubit_indices = {qubit: idx for idx, qubit in enumerate(circuit.qubits)}
-    clbit_indices = {clbit: idx for idx, clbit in enumerate(circuit.clbits)}
-
     # TODO: why do we need creq_sizes and qreg_sizes in header
     # TODO: we need to rethink memory_slots as they are tied to classical bit
     metadata = circuit.metadata
@@ -109,13 +106,17 @@ def _assemble_circuit(
         qargs = op_context[1]
         cargs = op_context[2]
         if qargs:
-            instruction.qubits = [qubit_indices[qubit] for qubit in qargs]
+            qubit_indices = [qubit_labels.index([qubit.register.name, qubit.index])
+                             for qubit in qargs]
+            instruction.qubits = qubit_indices
         if cargs:
-            instruction.memory = [clbit_indices[clbit] for clbit in cargs]
+            clbit_indices = [clbit_labels.index([clbit.register.name, clbit.index])
+                             for clbit in cargs]
+            instruction.memory = clbit_indices
             # If the experiment has conditional instructions, assume every
             # measurement result may be needed for a conditional gate.
             if instruction.name == "measure" and is_conditional_experiment:
-                instruction.register = [clbit_indices[clbit] for clbit in cargs]
+                instruction.register = clbit_indices
 
         # To convert to a qobj-style conditional, insert a bfunc prior
         # to the conditional instruction to map the creg ?= val condition
@@ -139,7 +140,7 @@ def _assemble_circuit(
             instruction.conditional = conditional_reg_idx
             max_conditional_idx += 1
             # Delete condition attribute now that we have replaced it with
-            # the conditional and bfunc
+            # the conditional and bfuc
             del instruction._condition
 
         instructions.append(instruction)

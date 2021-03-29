@@ -68,7 +68,6 @@ def _ctrl_state_to_int(ctrl_state, num_ctrl_qubits):
     Args:
         ctrl_state (None, str, int): ctrl_state. If None, set to 2**num_ctrl_qubits-1.
             If str, convert to int. If int, pass.
-        num_ctrl_qubits (int): The number of control qubits.
 
     Return:
         int: ctrl_state
@@ -81,11 +80,11 @@ def _ctrl_state_to_int(ctrl_state, num_ctrl_qubits):
         try:
             assert len(ctrl_state) == num_ctrl_qubits
             ctrl_state = int(ctrl_state, 2)
-        except ValueError as ex:
-            raise CircuitError('invalid control bit string: ' + ctrl_state) from ex
-        except AssertionError as ex:
+        except ValueError:
+            raise CircuitError('invalid control bit string: ' + ctrl_state)
+        except AssertionError:
             raise CircuitError('invalid control bit string: length != '
-                               'num_ctrl_qubits') from ex
+                               'num_ctrl_qubits')
     if isinstance(ctrl_state, int):
         if 0 <= ctrl_state < 2**num_ctrl_qubits:
             ctrl_state_std = ctrl_state

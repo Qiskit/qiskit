@@ -57,10 +57,9 @@ class BasicAerProvider(BaseProvider):
                     {}
                 )
                 name = resolved_name
-            except LookupError as ex:
+            except LookupError:
                 raise QiskitBackendNotFoundError(
-                    f"The '{name}' backend is not installed in your system."
-                ) from ex
+                    "The '{}' backend is not installed in your system.".format(name))
 
         return super().get_backend(name=name, **kwargs)
 
@@ -134,7 +133,8 @@ class BasicAerProvider(BaseProvider):
         try:
             backend_instance = backend_cls(provider=self)
         except Exception as err:
-            raise QiskitError(f'Backend {backend_cls} could not be instantiated: {err}') from err
+            raise QiskitError('Backend %s could not be instantiated: %s' %
+                              (backend_cls, err))
 
         return backend_instance
 

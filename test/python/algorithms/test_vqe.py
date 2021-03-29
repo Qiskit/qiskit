@@ -147,7 +147,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         # TODO benchmark this later.
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
-        self.assertAlmostEqual(result.eigenvalue.real, -1.86823, places=2)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=3)
 
     def test_qasm_aux_operators_normalized(self):
         """Test VQE with qasm_simulator returns normalized aux_operator eigenvalues."""
@@ -168,6 +168,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_with_aer_statevector(self):
         """Test VQE with Aer's statevector_simulator."""
         try:
+            # pylint: disable=import-outside-toplevel
             from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
@@ -190,6 +191,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_with_aer_qasm(self):
         """Test VQE with Aer's qasm_simulator."""
         try:
+            # pylint: disable=import-outside-toplevel
             from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
@@ -214,6 +216,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_with_aer_qasm_snapshot_mode(self):
         """Test the VQE using Aer's qasm_simulator snapshot mode."""
         try:
+            # pylint: disable=import-outside-toplevel
             from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
@@ -306,6 +309,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_vqe_expectation_select(self):
         """Test expectation selection with Aer's qasm_simulator."""
         try:
+            # pylint: disable=import-outside-toplevel
             from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))

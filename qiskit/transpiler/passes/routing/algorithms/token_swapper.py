@@ -129,7 +129,7 @@ class ApproximateTokenSwapper:
         """Try to map the tokens to their destinations and minimize the number of swaps."""
 
         def swap(node0: int, node1: int) -> None:
-            """Swap two nodes, maintaining data structures.
+            """Swap two nodes, maintaining datastructures.
 
             Args:
               node0: The first node

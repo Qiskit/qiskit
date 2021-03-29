@@ -54,10 +54,9 @@ class UCPauliRotGate(Gate):
         for angle in angle_list:
             try:
                 float(angle)
-            except TypeError as ex:
+            except TypeError:
                 raise QiskitError(
-                    'An angle cannot be converted to type float (real angles are expected).'
-                ) from ex
+                    'An angle cannot be converted to type float (real angles are expected).')
         num_contr = math.log2(len(angle_list))
         if num_contr < 0 or not num_contr.is_integer():
             raise QiskitError(

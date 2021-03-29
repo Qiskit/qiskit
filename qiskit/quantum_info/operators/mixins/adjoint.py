@@ -13,6 +13,7 @@
 """
 Mixin for gate operator interface.
 """
+# pylint: disable=abstract-method
 
 from abc import ABC, abstractmethod
 

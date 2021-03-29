@@ -50,6 +50,7 @@ class TrivialLayout(AnalysisPass):
         Raises:
             TranspilerError: if dag wider than self.coupling_map
         """
-        if dag.num_qubits() > self.coupling_map.size():
+        num_dag_qubits = sum([qreg.size for qreg in dag.qregs.values()])
+        if num_dag_qubits > self.coupling_map.size():
             raise TranspilerError('Number of qubits greater than device.')
-        self.property_set['layout'] = Layout.generate_trivial_layout(*dag.qubits)
+        self.property_set['layout'] = Layout.generate_trivial_layout(*dag.qregs.values())

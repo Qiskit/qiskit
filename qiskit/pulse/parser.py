@@ -83,8 +83,8 @@ class PulseExpression(ast.NodeTransformer):
         else:
             try:
                 self._tree = ast.parse(source, mode='eval')
-            except SyntaxError as ex:
-                raise PulseError(f'{source} is invalid expression.') from ex
+            except SyntaxError:
+                raise PulseError('%s is invalid expression.' % source)
 
         # parse parameters
         self.visit(self._tree)
@@ -220,11 +220,9 @@ class PulseExpression(ast.NodeTransformer):
                     _val = complex(_val)
                     if not _val.imag:
                         _val = _val.real
-                except ValueError as ex:
-                    raise PulseError(
-                        f'Invalid parameter value {node.id} = {self._locals_dict[node.id]} is '
-                        'specified.'
-                    ) from ex
+                except ValueError:
+                    raise PulseError('Invalid parameter value %s = %s is specified.'
+                                     % (node.id, self._locals_dict[node.id]))
             val = ast.Constant(n=_val)
             return ast.copy_location(val, node)
         self._params.add(node.id)

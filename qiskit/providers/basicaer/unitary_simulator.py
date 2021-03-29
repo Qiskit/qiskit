@@ -38,7 +38,6 @@ from qiskit.providers.basicaer.basicaerjob import BasicAerJob
 from qiskit.result import Result
 from .exceptions import BasicAerError
 from .basicaertools import single_gate_matrix
-from .basicaertools import SINGLE_QUBIT_GATES
 from .basicaertools import cx_gate_matrix
 from .basicaertools import einsum_matmul_index
 
@@ -56,7 +55,7 @@ class UnitarySimulatorPy(BaseBackend):
 
     DEFAULT_CONFIGURATION = {
         'backend_name': 'unitary_simulator',
-        'backend_version': '1.1.0',
+        'backend_version': '1.0.0',
         'n_qubits': min(24, MAX_QUBITS_MEMORY),
         'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
@@ -67,7 +66,7 @@ class UnitarySimulatorPy(BaseBackend):
         'max_shots': 65536,
         'coupling_map': None,
         'description': 'A python simulator for unitary matrix corresponding to a circuit',
-        'basis_gates': ['u1', 'u2', 'u3', 'rz', 'sx', 'x', 'cx', 'id', 'unitary'],
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
         'gates': [
             {
                 'name': 'u1',
@@ -85,28 +84,13 @@ class UnitarySimulatorPy(BaseBackend):
                 'qasm_def': 'gate u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }'
             },
             {
-                'name': 'rz',
-                'parameters': ['phi'],
-                'qasm_def': 'gate rz(phi) q { U(0,0,phi) q; }'
-            },
-            {
-                'name': 'sx',
-                'parameters': [],
-                'qasm_def': 'gate sx(phi) q { U(pi/2,7*pi/2,pi/2) q; }'
-            },
-            {
-                'name': 'x',
-                'parameters': [],
-                'qasm_def': 'gate x q { U(pi,7*pi/2,pi/2) q; }'
-            },
-            {
                 'name': 'cx',
-                'parameters': [],
+                'parameters': ['c', 't'],
                 'qasm_def': 'gate cx c,t { CX c,t; }'
             },
             {
                 'name': 'id',
-                'parameters': [],
+                'parameters': ['a'],
                 'qasm_def': 'gate id a { U(0,0,0) a; }'
             },
             {
@@ -333,7 +317,7 @@ class UnitarySimulatorPy(BaseBackend):
                 gate = operation.params[0]
                 self._add_unitary(gate, qubits)
             # Check if single  gate
-            elif operation.name in SINGLE_QUBIT_GATES:
+            elif operation.name in ('U', 'u1', 'u2', 'u3'):
                 params = getattr(operation, 'params', None)
                 qubit = operation.qubits[0]
                 gate = single_gate_matrix(operation.name, params)

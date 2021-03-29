@@ -55,11 +55,11 @@ class Real(Node):
                           'being deprecated.', DeprecationWarning, 2)
         try:
             from pylatexenc.latexencode import utf8tolatex
-        except ImportError as ex:
+        except ImportError:
             raise ImportError("To export latex from qasm "
                               "pylatexenc needs to be installed. Run "
                               "'pip install pylatexenc' before using this "
-                              "method.") from ex
+                              "method.")
         return utf8tolatex(self.value)
 
     def sym(self, nested_scope=None):

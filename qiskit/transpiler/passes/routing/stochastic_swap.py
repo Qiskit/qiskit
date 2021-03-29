@@ -67,7 +67,6 @@ class StochasticSwap(TransformationPass):
         self.qregs = None
         self.rng = None
         self.trivial_layout = None
-        self._qubit_indices = None
 
     def run(self, dag):
         """Run the StochasticSwap pass on `dag`.
@@ -91,8 +90,6 @@ class StochasticSwap(TransformationPass):
 
         canonical_register = dag.qregs['q']
         self.trivial_layout = Layout.generate_trivial_layout(canonical_register)
-        self._qubit_indices = {bit: idx
-                               for idx, bit in enumerate(dag.qubits)}
 
         self.qregs = dag.qregs
         if self.seed is None:
@@ -179,21 +176,14 @@ class StochasticSwap(TransformationPass):
         # Scaling matrix
         scale = np.zeros((num_qubits, num_qubits))
 
-        int_qubit_subset = np.fromiter((self._qubit_indices[bit]
-                                        for bit in qubit_subset),
-                                       dtype=np.int32,
-                                       count=len(qubit_subset))
-
-        int_gates = np.fromiter((self._qubit_indices[bit]
-                                 for gate in gates
-                                 for bit in gate),
-                                dtype=np.int32,
-                                count=2*len(gates))
-
-        int_layout = nlayout_from_layout(layout, self._qubit_indices, num_qubits, coupling.size())
+        int_qubit_subset = _regtuple_to_numeric(qubit_subset, qregs)
+        int_gates = _gates_to_idx(gates, qregs)
+        int_layout = nlayout_from_layout(layout, qregs, coupling.size())
 
         trial_circuit = DAGCircuit()  # SWAP circuit for slice of swaps in this trial
-        trial_circuit.add_qubits(layout.get_virtual_bits())
+        for qubit in layout.get_virtual_bits().keys():
+            if qubit.register not in trial_circuit.qregs.values():
+                trial_circuit.add_qreg(qubit.register)
 
         edges = np.asarray(coupling.get_edges(), dtype=np.int32).ravel()
         cdist = coupling._dist_matrix
@@ -257,7 +247,9 @@ class StochasticSwap(TransformationPass):
         logger.debug("layer_update: layout = %s", layout)
         logger.debug("layer_update: self.trivial_layout = %s", self.trivial_layout)
         dagcircuit_output = DAGCircuit()
-        dagcircuit_output.add_qubits(layout.get_virtual_bits())
+        for qubit in layout.get_virtual_bits().keys():
+            if qubit.register not in dagcircuit_output.qregs.values():
+                dagcircuit_output.add_qreg(qubit.register)
 
         # Output any swaps
         if best_depth > 0:
@@ -376,3 +368,45 @@ class StochasticSwap(TransformationPass):
         logger.debug("mapper: layout = %s", layout)
 
         return dagcircuit_output
+
+
+def _regtuple_to_numeric(items, qregs):
+    """Takes Qubit instances and converts them into an integer array.
+
+    Args:
+        items (list): List of Qubit instances to convert.
+        qregs (dict): List of Qubit instances.
+    Returns:
+        ndarray: Array of integers.
+    """
+    sizes = [qr.size for qr in qregs.values()]
+    reg_idx = np.cumsum([0]+sizes)
+    regint = {}
+    for ind, qreg in enumerate(qregs.values()):
+        regint[qreg] = ind
+    out = np.zeros(len(items), dtype=np.int32)
+    for idx, val in enumerate(items):
+        out[idx] = reg_idx[regint[val.register]]+val.index
+    return out
+
+
+def _gates_to_idx(gates, qregs):
+    """Converts gate tuples into a nested list of integers.
+
+    Args:
+        gates (list): List of Qubit instances representing gates.
+        qregs (dict): List of Qubit instances.
+
+    Returns:
+        list: Nested list of integers for gates.
+    """
+    sizes = [qr.size for qr in qregs.values()]
+    reg_idx = np.cumsum([0]+sizes)
+    regint = {}
+    for ind, qreg in enumerate(qregs.values()):
+        regint[qreg] = ind
+    out = np.zeros(2*len(gates), dtype=np.int32)
+    for idx, gate in enumerate(gates):
+        out[2*idx] = reg_idx[regint[gate[0].register]]+gate[0].index
+        out[2*idx+1] = reg_idx[regint[gate[1].register]]+gate[1].index
+    return out

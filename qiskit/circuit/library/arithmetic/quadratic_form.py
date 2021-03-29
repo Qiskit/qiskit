@@ -153,7 +153,7 @@ class QuadraticForm(QuantumCircuit):
                             self.mcp(scaling * 2 ** i * value, [qr_input[j], qr_input[k]], q_i)
 
         # add the inverse QFT
-        iqft = QFT(num_result_qubits, do_swaps=False).inverse().reverse_bits()
+        iqft = QFT(num_result_qubits, do_swaps=False).inverse()
         self.append(iqft, qr_result)
 
     @staticmethod

@@ -12,7 +12,7 @@
 
 """ Trotter Class """
 
-from qiskit.opflow.evolutions.trotterizations.suzuki import Suzuki
+from .suzuki import Suzuki
 
 
 class Trotter(Suzuki):

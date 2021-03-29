@@ -136,7 +136,7 @@ class DefaultStyle:
                 'cx': ('#6FA4FF', '#000000'),
                 'ccx': ('#BB8BFF', '#000000'),
                 'mcx': ('#BB8BFF', '#000000'),
-                'mcx_gray': ('#BB8BFF', '#000000'),
+                'mcx_gray': ('#BB8BFF', '#000000),
                 'cy': ('#6FA4FF', '#000000'),
                 'cz': ('#6FA4FF', '#000000'),
                 'swap': ('#6FA4FF', '#000000'),
@@ -159,8 +159,8 @@ class DefaultStyle:
                 'rxx': ('#BB8BFF', '#000000'),
                 'ryy': ('#BB8BFF', '#000000'),
                 'rzx': ('#BB8BFF', '#000000'),
-                'reset': ('#000000', '#FFFFFF'),
-                'target': ('#FFFFFF', '#FFFFFF'),
+                'reset': ('#000000', #FFFFFF'),
+                'target': ('#FFFFFF, '#FFFFFF'),
                 'measure': ('#000000', '#FFFFFF'),
             }
 
@@ -230,7 +230,7 @@ class DefaultStyle:
                 'rxx': '$\\mathrm{R}_{\\mathrm{XX}}$',
                 'ryy': '$\\mathrm{R}_{\\mathrm{YY}}$',
                 'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
-                'rzz': '$\\mathrm{ZZ}$',
+                'rzz': '$\\mathrm{R}_{\\mathrm{ZZ}}$',
                 'reset': '$\\left|0\\right\\rangle$',
                 'initialize': '$|\\psi\\rangle$'
             },

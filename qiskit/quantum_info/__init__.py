@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2017.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,7 +27,6 @@ Operators
    Clifford
    ScalarOp
    SparsePauliOp
-   CNOTDihedral
    PauliTable
    StabilizerTable
    pauli_basis
@@ -93,7 +92,6 @@ Random
    random_pauli
    random_clifford
    random_quantum_channel
-   random_cnotdihedral
    random_pauli_table
    random_stabilizer_table
 
@@ -124,7 +122,6 @@ from .operators.measures import (process_fidelity,
                                  average_gate_fidelity,
                                  gate_error,
                                  diamond_norm)
-from .operators.dihedral import CNOTDihedral
 
 from .states import Statevector, DensityMatrix
 from .states import (partial_trace, state_fidelity, purity, entropy,
@@ -135,8 +132,7 @@ from .random import (random_quantum_channel, random_unitary,
                      random_clifford, random_pauli, random_pauli_table,
                      random_stabilizer_table,
                      random_hermitian, random_statevector,
-                     random_density_matrix,
-                     random_cnotdihedral)
+                     random_density_matrix)
 
 from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
                         two_qubit_cnot_decompose, Quaternion)

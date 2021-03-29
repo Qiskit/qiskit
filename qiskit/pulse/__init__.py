@@ -43,7 +43,6 @@ Instructions (:mod:`qiskit.pulse.instructions`)
    ~qiskit.pulse.instructions
 
    Acquire
-   Call
    Delay
    Play
    SetFrequency
@@ -421,7 +420,6 @@ from qiskit.pulse.builder import (
     phase_offset,
     transpiler_settings,
     # Macros.
-    macro,
     measure,
     measure_all,
     delay_qubits,
@@ -450,7 +448,6 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import (
     Acquire,
-    Call,
     Delay,
     Instruction,
     Play,
@@ -460,6 +457,7 @@ from qiskit.pulse.instructions import (
     ShiftPhase,
     Snapshot,
 )
+from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.library import (
     Constant,
     Drag,

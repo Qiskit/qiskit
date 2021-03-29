@@ -162,27 +162,32 @@ cdef class NLayout:
         return out
     
     
-cpdef NLayout nlayout_from_layout(object layout,
-                                  dict qubit_indices,
-                                  unsigned int logical_qubits,
+cpdef NLayout nlayout_from_layout(object layout, object qregs, 
                                   unsigned int physical_qubits):
     """ Converts Qiskit Layout object to numerical NLayout.
 
     Args:
         layout (Layout): A Qiskit Layout instance.
-        qubit_indices (dict): Dict of Qubit instances to an integer index.
-        logical_qubits (int): Number of logical qubits.
+        qregs (OrderedDict): An ordered dict of Qubit instances.
         physical_qubits (int): Number of physical qubits.
     Returns:
         NLayout: The corresponding numerical layout.
     """
+    cdef size_t ind
+    cdef list sizes = [qr.size for qr in qregs.values()]
+    cdef int[::1] reg_idx = np.cumsum([0]+sizes, dtype=np.int32)
+    cdef unsigned int logical_qubits = sum(sizes)
+
+    cdef dict regint = {}
+    for ind, qreg in enumerate(qregs.values()):
+        regint[qreg] = ind
 
     cdef NLayout out = NLayout(logical_qubits, physical_qubits)
     cdef object key, val
     cdef dict merged_dict = {**layout._p2v, **layout._v2p}
     for key, val in merged_dict.items():
         if isinstance(key, Qubit):
-            out.logic_to_phys[qubit_indices[key]] = val
+            out.logic_to_phys[reg_idx[regint[key.register]]+key.index] = val
         else:
-            out.phys_to_logic[key] = qubit_indices[val]
+            out.phys_to_logic[key] = reg_idx[regint[val.register]]+val.index
     return out

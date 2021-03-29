@@ -65,17 +65,21 @@ class TestMCMT(QiskitTestCase):
 
     def test_mcmt_v_chain_ancilla_test(self):
         """Test too few and too many ancillas for the MCMT V-chain mode."""
-        with self.subTest(msg='insufficient number of auxiliary qubits on gate'):
+        with self.subTest(msg='insufficient number of ancillas on gate'):
             qc = QuantumCircuit(5)
             mcmt = MCMTVChain(ZGate(), 3, 1)
             with self.assertRaises(QiskitError):
-                qc.append(mcmt, range(5))
+                qc.append(mcmt, [0, 1, 2, 3, 4])
 
-        with self.subTest(msg='too many auxiliary qubits on gate'):
-            qc = QuantumCircuit(9)
+        with self.subTest(msg='insufficient number of ancillas on method'):
+            qc = QuantumCircuit(5)
             mcmt = MCMTVChain(ZGate(), 3, 1)
             with self.assertRaises(QiskitError):
-                qc.append(mcmt, range(9))
+                qc.append(mcmt, [0, 1, 2, 3, 4], [])
+
+        with self.subTest(msg='too many ancillas works on method'):
+            qc = QuantumCircuit(8)
+            qc.mcmt(CZGate(), [0, 1, 2], 3, [4, 5, 6, 7])
 
     @data([CZGate(), 1, 1], [CHGate(), 1, 1],
           [CZGate(), 3, 3], [CHGate(), 3, 3],

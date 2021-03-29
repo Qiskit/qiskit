@@ -17,11 +17,11 @@ Module for the primary interface to the circuit drawers.
 This module contains the end user facing API for drawing quantum circuits.
 There are 3 available drawer backends available:
 
- 0. ASCII art
+ 0. Ascii art
  1. LaTeX
  2. Matplotlib
 
-This provides a single function entry point to drawing a circuit object with
+This provides a single function entrypoint to drawing a circuit object with
 any of the backends.
 """
 
@@ -433,7 +433,7 @@ def _generate_latex_source(circuit, filename=None,
         layout = None
 
     global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
-    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, reverse_bits=reverse_bits,
+    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale,
                                  plot_barriers=plot_barriers, layout=layout,
                                  initial_state=initial_state,
                                  cregbundle=cregbundle,
