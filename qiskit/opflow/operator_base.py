@@ -14,6 +14,7 @@
 
 import itertools
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
 import numpy as np
@@ -556,6 +557,10 @@ class OperatorBase(ABC):
             elif other.num_qubits > self.num_qubits:
                 new_self = self._expand_dim(other.num_qubits - self.num_qubits)
         return new_self, other
+
+    def copy(self) -> "OperatorBase":
+        """Return a deep copy of the Operator."""
+        return deepcopy(self)
 
     # Composition
 
