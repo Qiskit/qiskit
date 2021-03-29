@@ -17,6 +17,7 @@
 from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, Parameter, EquivalenceLibrary
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
@@ -777,3 +778,23 @@ class TestBasisExamples(QiskitTestCase):
         self.assertEqual(out_dag, expected_dag)
         self.assertEqual(float(out_dag.global_phase), float(expected_dag.global_phase))
         self.assertEqual(Operator(dag_to_circuit(out_dag)), Operator(expected))
+
+    def test_condition_set_substitute_node(self):
+        """Verify condition is set in BasisTranslator on substitute_node"""
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+        circ = QuantumCircuit(qr, cr)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.measure(1, 1)
+        circ.h(0).c_if(cr, 1)
+        circ_transpiled = transpile(circ, optimization_level=3,
+                                    basis_gates=['cx', 'id', 'u1', 'u2', 'u3'])
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+        expected = QuantumCircuit(qr, cr)
+        expected.u2(0, pi, 0)
+        expected.cx(0, 1)
+        expected.measure(1, 1)
+        expected.u2(0, pi, 0).c_if(cr, 1)
+        self.assertEqual(circ_transpiled, expected)
