@@ -40,7 +40,6 @@ def dag_to_dagdependency(dag):
     for node in dag.topological_op_nodes():
         # Get arguments for classical control (if any)
         inst = node.op.copy()
-        inst.condition = node.condition
         dagdependency.add_op_node(inst, node.qargs, node.cargs)
 
     dagdependency._add_successors()

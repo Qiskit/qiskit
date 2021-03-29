@@ -107,7 +107,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'red'
-                if node.condition:
+                if node.op.condition:
                     n['label'] = str(node.node_id) + ': ' + str(node.name) + ' (conditional)'
                     n['color'] = 'black'
                     n['style'] = 'filled'

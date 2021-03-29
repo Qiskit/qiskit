@@ -95,7 +95,7 @@ def _commute(node1, node2, cache):
         if nd.op._directive or nd.name in {"measure", "reset", "delay"}:
             return False
 
-    if node1.condition or node2.condition:
+    if node1.op.condition or node2.op.condition:
         return False
 
     if node1.op.is_parameterized() or node2.op.is_parameterized():

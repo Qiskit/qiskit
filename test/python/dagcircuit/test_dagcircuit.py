@@ -115,7 +115,7 @@ def raise_if_dagcircuit_invalid(dag):
         in_wires = {data for src, dest, data in in_edges}
         out_wires = {data for src, dest, data in out_edges}
 
-        node_cond_bits = set(node.condition[0][:] if node.condition is not None else [])
+        node_cond_bits = set(node.op.condition[0][:] if node.op.condition is not None else [])
         node_qubits = set(node.qargs)
         node_clbits = set(node.cargs)
 
@@ -297,7 +297,7 @@ class TestDagApplyOperation(QiskitTestCase):
 
         self.assertEqual(h_node.qargs, [self.qubit2])
         self.assertEqual(h_node.cargs, [])
-        self.assertEqual(h_node.condition, h_gate.condition)
+        self.assertEqual(h_node.op.condition, h_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(h_node._node_id)),
@@ -339,7 +339,7 @@ class TestDagApplyOperation(QiskitTestCase):
 
         self.assertEqual(meas_node.qargs, [self.qubit0])
         self.assertEqual(meas_node.cargs, [self.clbit0])
-        self.assertEqual(meas_node.condition, meas_gate.condition)
+        self.assertEqual(meas_node.op.condition, meas_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(meas_node._node_id)),
@@ -378,7 +378,7 @@ class TestDagApplyOperation(QiskitTestCase):
 
         self.assertEqual(meas_node.qargs, [self.qubit1])
         self.assertEqual(meas_node.cargs, [self.clbit1])
-        self.assertEqual(meas_node.condition, meas_gate.condition)
+        self.assertEqual(meas_node.op.condition, meas_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(meas_node._node_id)),
@@ -1225,7 +1225,7 @@ class TestDagSubstituteNode(QiskitTestCase):
         self.assertEqual(replacement_node.name, 'cz')
         self.assertEqual(replacement_node.qargs, [qr[1], qr[0]])
         self.assertEqual(replacement_node.cargs, [])
-        self.assertEqual(replacement_node.condition, (cr, 1))
+        self.assertEqual(replacement_node.op.condition, (cr, 1))
 
         self.assertEqual(replacement_node is node_to_be_replaced, inplace)
 

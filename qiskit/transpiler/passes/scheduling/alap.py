@@ -83,7 +83,7 @@ class ALAPSchedule(TransformationPass):
             new_op.duration = duration
             new_op.unit = time_unit
 
-            new_dag.apply_operation_front(new_op, node.qargs, node.cargs, node.condition)
+            new_dag.apply_operation_front(new_op, node.qargs, node.cargs)
 
             stop_time = start_time + duration
             # update time table

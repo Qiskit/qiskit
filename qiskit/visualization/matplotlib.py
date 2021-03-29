@@ -899,14 +899,14 @@ class MatplotlibDrawer:
                     param = ''
 
                 # conditional gate
-                if op.condition:
+                if op.type == 'op' and op.op.condition:
                     c_xy = [c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset) for
                             ii in self._creg_dict]
                     mask = 0
                     for index, cbit in enumerate(self._creg):
-                        if cbit.register == op.condition[0]:
+                        if cbit.register == op.op.condition[0]:
                             mask |= (1 << index)
-                    val = op.condition[1]
+                    val = op.op.condition[1]
                     # cbit list to consider
                     fmt_c = '{{:0{}b}}'.format(len(c_xy))
                     cmask = list(fmt_c.format(mask))[::-1]
