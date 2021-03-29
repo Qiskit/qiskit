@@ -1,5 +1,9 @@
 ---
 fixes:
   - |
-    Quantum circuit Calibrations are now carried over when the operators += and +
-    are used.
+    The :attr:`~qiskit.circuit.QuantumCircuit.calibrations` attribute
+    of :class:`~qiskit.circuit.QuantumCircuit` objects are now preserved when
+    the the ``+=`` (ie the :meth:`~qiskit.circuit.QuantumCircuit.extend`
+    method) and the ``+``(ie the :meth:`~qiskit.circuit.QuantumCircuit.combine`
+    method) are used.
+    Fixed `#5910 <https://github.com/Qiskit/qiskit-terra/pull/5910>`__

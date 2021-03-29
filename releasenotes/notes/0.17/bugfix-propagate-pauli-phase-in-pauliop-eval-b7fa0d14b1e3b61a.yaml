@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    The phase of the primitive inside a `PauliOp` did not get propagated upon
-    evaluation. This caused `(Z @ X).eval('0')` and `(X @ Z).eval('0')` to be
-    indistinguishable from each other and, therefore, not match with `(1j * Y)`
-    and `(-1j * Y)`, respectively. Propagation of the phase during the `eval()`
-    method fixes this bug.

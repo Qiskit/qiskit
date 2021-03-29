@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue where an error was thrown in execute for valid circuits
-    built with delays.

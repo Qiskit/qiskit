@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Reduce the number of CX gates in the decomposition of the 3-controlled 
-    X gate, :class:`~qiskit.circuit.library.C3XGate`. Compiled and optimized
-    in the `U CX` basis, now only 14 CX and 16 U gates are used instead of 
-    20 and 22, respectively.
