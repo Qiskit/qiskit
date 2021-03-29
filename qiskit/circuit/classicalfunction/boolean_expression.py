@@ -94,7 +94,7 @@ class BooleanExpression(ClassicalElement):
     def from_dimacs_file(cls, filename: str):
         """Create a BooleanExpression from the string in the DIMACS format.
         Args:
-            filename (str): A file in DIMACS format.
+            filename: A file in DIMACS format.
 
         Returns:
             BooleanExpression: A gate for the input string

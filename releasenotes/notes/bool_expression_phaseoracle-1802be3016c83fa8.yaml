@@ -66,8 +66,7 @@ features:
 
     .. jupyter-execute::
 
-      from qiskit.algorithms.amplitude_amplifiers.amplification_problem import AmplificationProblem
-      from qiskit.algorithms.amplitude_amplifiers.grover import Grover
+      from qiskit.algorithms import AmplificationProblem, Grover
       from qiskit import BasicAer
       
       backend = BasicAer.get_backend('qasm_simulator')
@@ -94,4 +93,3 @@ features:
                  │ └───┘   └───┘ │ ┌───┐
        state_2: ─■───────────────o─┤ Z ├
                                    └───┘
-
