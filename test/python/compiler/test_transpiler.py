@@ -1050,6 +1050,41 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(len(out.qubits), FakeAlmaden().configuration().num_qubits)
         self.assertEqual(out.clbits, clbits)
 
+    @data(0, 1, 2, 3)
+    def test_synthesis_translation_method_with_single_qubit_gates(self, optimization_level):
+        """Test that synthesis basis translation works for solely 1q circuit"""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.h(2)
+        res = transpile(qc, basis_gates=['id', 'rz', 'x', 'sx', 'cx'],
+                        translation_method='synthesis', optimization_level=optimization_level)
+        expected = QuantumCircuit(3, global_phase=3*np.pi/4)
+        expected.rz(np.pi / 2, 0)
+        expected.rz(np.pi / 2, 1)
+        expected.rz(np.pi / 2, 2)
+        expected.sx(0)
+        expected.sx(1)
+        expected.sx(2)
+        expected.rz(np.pi / 2, 0)
+        expected.rz(np.pi / 2, 1)
+        expected.rz(np.pi / 2, 2)
+        self.assertEqual(res, expected)
+
+    @data(0, 1, 2, 3)
+    def test_synthesis_translation_method_with_gates_outside_basis(self, optimization_level):
+        """Test that synthesis translation works for circuits with single gates outside bassis"""
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        res = transpile(qc, basis_gates=['id', 'rz', 'x', 'sx', 'cx'],
+                        translation_method='synthesis', optimization_level=optimization_level)
+        if optimization_level != 3:
+            self.assertTrue(Operator(qc).equiv(res))
+            self.assertNotIn('swap', res.count_ops())
+        else:
+            # Optimization level 3 eliminates the pointless swap
+            self.assertEqual(res, QuantumCircuit(2))
+
 
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""

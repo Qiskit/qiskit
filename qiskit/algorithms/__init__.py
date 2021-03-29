@@ -17,8 +17,7 @@ It contains a collection of quantum algorithms, for use with quantum computers, 
 carry out research and investigate how to solve problems in different domains on
 near-term quantum devices with short depth circuits.
 
-Algorithms configuration includes the use of :mod:`~qiskit.algorithms.optimizers`
-and :mod:`~qiskit.algorithms.variational_forms` which
+Algorithms configuration includes the use of :mod:`~qiskit.algorithms.optimizers` which
 were designed to be swappable sub-parts of an algorithm. Any component and may be exchanged for
 a different implementation of the same component type in order to potentially alter the behavior
 and outcome of the algorithm.
@@ -128,6 +127,20 @@ Algorithms that can find the minimum eigenvalue of an operator.
    QAOA
    VQE
 
+Phase Estimators
+++++++++++++++++
+Algorithms that estimate the phases of eigenstates of a unitary.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   HamiltonianPhaseEstimation
+   HamiltonianPhaseEstimationResult
+   PhaseEstimationScale
+   PhaseEstimation
+   PhaseEstimationResult
+
 Exceptions
 ==========
 
@@ -154,6 +167,8 @@ from .linear_solvers import HHL, NumPyLinearSolver
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
                                     NumPyMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
+from .phase_estimators import (HamiltonianPhaseEstimation, HamiltonianPhaseEstimationResult,
+                               PhaseEstimationScale, PhaseEstimation, PhaseEstimationResult)
 from .exceptions import AlgorithmError
 
 __all__ = [
@@ -187,5 +202,10 @@ __all__ = [
     'NumPyMinimumEigensolver',
     'MinimumEigensolver',
     'MinimumEigensolverResult',
+    'HamiltonianPhaseEstimation',
+    'HamiltonianPhaseEstimationResult',
+    'PhaseEstimationScale',
+    'PhaseEstimation',
+    'PhaseEstimationResult',
     'AlgorithmError',
 ]
