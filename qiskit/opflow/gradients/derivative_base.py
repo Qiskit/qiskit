@@ -211,7 +211,9 @@ class DerivativeBase(ConverterBase):
                             # If a coefficient is a ParameterExpression make sure that the
                             # coefficients are pulled together correctly
                             if isinstance(prim_op.coeff, ParameterExpression):
-                                prim_tensored = StateFn(prim.reduce(), is_measurement=op.is_measurement, coeff=op.coeff)
+                                prim_tensored = StateFn(prim.reduce(),
+                                                        is_measurement=op.is_measurement,
+                                                        coeff=op.coeff)
                                 operator.oplist[k] = prim_tensored
                                 return operator.traverse(cls._factor_coeffs_out_of_composed_op)
                     elif isinstance(prim, ListOp):
