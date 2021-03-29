@@ -12,7 +12,7 @@
 
 """Phase Oracle object."""
 
-from typing import Union
+from typing import Union, Callable
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
@@ -41,10 +41,19 @@ class PhaseOracle(QuantumCircuit):
     default synthesizer.
     """
 
-    def __init__(self, expression: Union[str, ClassicalElement], synthesizer=None) -> None:
+    def __init__(self, expression: Union[str, ClassicalElement],
+                 synthesizer: Callable[[BooleanExpression], QuantumCircuit] = None) \
+            -> None:
+        """
+        Creates a PhaseOracle object
+        Args:
+            expression: A Python-like boolean expression.
+            synthesizer: Optional. A function to convert a BooleanExpression into a QuantumCircuit
+               If None is provided, Tweedledum's `pkrm_synth` with `phase_esop` will be used.
+        """
         if not isinstance(expression, ClassicalElement):
             expression = BooleanExpression(expression)
-        super().__init__(expression.num_qubits - 1, name='Phase Oracle')
+
         self.boolean_expression = expression
 
         if synthesizer is None:
@@ -57,6 +66,8 @@ class PhaseOracle(QuantumCircuit):
                 return tweedledum2qiskit(tweedledum_circuit)
 
         oracle = expression.synth(synthesizer=synthesizer)
+
+        super().__init__(oracle.num_qubits, name='Phase Oracle')
 
         self.compose(oracle, inplace=True)
 
