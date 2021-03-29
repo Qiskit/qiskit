@@ -44,9 +44,9 @@ features:
     See the API documentation of the :class:`~qiskit.quantum_info.Pauli` class
     for additional information.
   - |
-    A new function, func:`~qiskit.quantum_info.random_pauli`, for generating a
+    A new function, :func:`~qiskit.quantum_info.random_pauli`, for generating a
     random element of the N-qubit Pauli group has been added to the 
-    :mod:`qiskit.quantum_info_module`.
+    :mod:`qiskit.quantum_info` module.
 deprecations:
   - |
     The following legacy methods of the :class:`qiskit.quantum_info.Pauli` class

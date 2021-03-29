@@ -1,7 +1,8 @@
 ---
 features:
   - |
-    A new pulse drawer :func:`qiskit.visualization.pulse_drawer_v2` is now
+    A new pulse drawer :func:`qiskit.visualization.pulse_v2.draw`
+    (which is aliased as ``qiskit.visualization.pulse_drawer_v2``) is now
     available. This new pulse drawer supports multiple new features not
     present in the original pulse drawer
     (:func:`~qiskit.visualization.pulse_drawer`).

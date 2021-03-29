@@ -2,7 +2,7 @@
 
 features:
   - |
-    A mew :class:`~qiskit.circuit.Gate` class,
+    A new :class:`~qiskit.circuit.Gate` class,
     :class:`~qiskit.circuit.library.PauliGate`, has been added
     the :class:`qiskit.circuit.library` module and corresponding method,
     :meth:`~qiskit.circuit.QuantumCircuit.pauli`,  was added to the

@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    The previously deprecated kwarg ```callback`` on the constructor for the
+    The previously deprecated kwarg ``callback`` on the constructor for the
     :class:`~qiskit.transpiler.PassManager` class has been removed. This
     kwarg has been deprecated since the 0.13.0 release (April, 9th 2020).
     Instead you can pass the ``callback`` kwarg to the

@@ -94,6 +94,14 @@ Single Qubit State Transition Visualizations
 
    visualize_transition
 
+Array/Matrix Visualizations
+===========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   array_to_latex
+
 Exceptions
 ==========
 

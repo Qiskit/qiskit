@@ -1,23 +1,34 @@
 ---
 deprecations:
   - |
-    Following builder functions are deprecated.
+    The :mod:`~qiskit.pulse` builder functions:
 
-      - :py:func:`~qiskit.pulse.call_circuit`
-      - :py:func:`~qiskit.pulse.call_schedule`
+      - :py:func:`qiskit.pulse.call_circuit`
+      - :py:func:`qiskit.pulse.call_schedule`
 
-    These functions are unified into :py:func:`~qiskit.pulse.call`.
-    Calling :py:meth:`Schedule.flatten` method is also deprecated.
-    Please use :py:func:`~qiskit.pulse.transforms.flatten` instead.
+    are deprecated and will be removed in a future release.
+    These functions are unified into :py:func:`qiskit.pulse.call` which should
+    be used instead.
+  - |
+    The :class:`qiskit.pulse.Schedule` method
+    :py:meth:`qiskit.pulse.Schedule.flatten` method is deprecated and will
+    be removed in a future release. Instead you can use the
+    :py:func:`qiskit.pulse.transforms.flatten` function which will perform
+    the same operation.
 
 features:
   - |
-    Pulse :py:func:`~qiskit.pulse.call` function can take parameter object with
-    a parameterized subrotuine. We can assign different parameters for each subroutine call.
+    The :py:func:`qiskit.pulse.call` function can now take a
+    :class:`~qiskit.circuit.Parameter` object along with a parameterized
+    subroutine. This enables assigning different values to the
+    :class:`~qiskit.circuit.Parameter` objects for each subroutine call.
 
     For example,
 
     .. code-block:: python
+
+      from qiskit.circuit import Parameter
+      from qiskit import pulse
 
       amp = Parameter('amp')
 
