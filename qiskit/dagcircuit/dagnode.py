@@ -26,23 +26,16 @@ class DAGNode:
     be supplied to functions that take a node.
     """
 
-    __slots__ = ['type', '_op', 'name', '_qargs', 'cargs', 'condition', '_wire',
-                 'sort_key', '_node_id']
+    __slots__ = ['type', '_op', 'name', '_qargs', 'cargs', '_wire', 'sort_key', '_node_id']
 
     def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None,
-                 condition=None, wire=None, nid=-1):
+                 wire=None, nid=-1):
         """Create a node """
         self.type = type
         self._op = op
         self.name = name
         self._qargs = qargs if qargs is not None else []
         self.cargs = cargs if cargs is not None else []
-        if condition:
-            warnings.warn("Use of condition arg is deprecated, set condition in instruction.",
-                          DeprecationWarning)
-        if self._op:
-            self._op.condition = condition if self._op.condition is None else self._op.condition
-        self.condition = self._op.condition if self._op is not None else None
         self._wire = wire
         self._node_id = nid
         self.sort_key = str(self._qargs)
@@ -57,6 +50,20 @@ class DAGNode:
     @op.setter
     def op(self, data):
         self._op = data
+
+    @property
+    def condition(self):
+        """Returns the condition of the node.op"""
+        if not self.type or self.type != 'op':
+            raise QiskitError("The node %s is not an op node" % (str(self)))
+        return self._op.condition
+
+    @condition.setter
+    def condition(self, new_condition):
+        """Sets the node.condition which sets the node.op.condition."""
+        if not self.type or self.type != 'op':
+            raise QiskitError("The node %s is not an op node" % (str(self)))
+        self._op.condition = new_condition
 
     @property
     def qargs(self):
@@ -133,16 +140,17 @@ class DAGNode:
         if 'barrier' == node1.name == node2.name:
             return set(node1_qargs) == set(node2_qargs)
 
-        result = False
         if node1.type == node2.type:
             if node1._op == node2._op:
                 if node1.name == node2.name:
                     if node1_qargs == node2_qargs:
                         if node1_cargs == node2_cargs:
-                            if node1.condition == node2.condition:
-                                if (
-                                        bit_indices1.get(node1._wire, None)
-                                        == bit_indices2.get(node2._wire, None)
-                                ):
-                                    result = True
-        return result
+                            if node1.type == 'op':
+                                if node1._op.condition != node2._op.condition:
+                                    return False
+                            if (
+                                bit_indices1.get(node1._wire, None)
+                                == bit_indices2.get(node2._wire, None)
+                            ):
+                                return True
+        return False
