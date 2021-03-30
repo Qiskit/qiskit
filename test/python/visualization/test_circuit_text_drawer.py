@@ -2904,11 +2904,11 @@ class TestTextWithLayout(QiskitTestCase):
         """ With a mixed layout. """
         expected = '\n'.join(["                  ┌───┐",
                               "      v_0 -> 0 |0>┤ H ├",
-                              "                  ├───┤",
-                              "ancilla_1 -> 1 |0>┤ H ├",
-                              "                  ├───┤",
-                              "ancilla_0 -> 2 |0>┤ H ├",
-                              "                  ├───┤",
+                              "                  └───┘",
+                              "ancilla_1 -> 1 |0>─────",
+                              "                       ",
+                              "ancilla_0 -> 2 |0>─────",
+                              "                  ┌───┐",
                               "      v_1 -> 3 |0>┤ H ├",
                               "                  └───┘"])
         qr = QuantumRegister(2, 'v')
@@ -2919,7 +2919,7 @@ class TestTextWithLayout(QiskitTestCase):
         pass_ = ApplyLayout()
         pass_.property_set['layout'] = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 2, qr[1]: 3})
         circuit_with_layout = pass_(circuit)
-        print(circuit_with_layout)
+
         self.assertEqual(str(_text_circuit_drawer(circuit_with_layout)), expected)
 
     def test_partial_layout(self):
