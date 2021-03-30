@@ -12,38 +12,36 @@
 
 # pylint: disable=invalid-name
 
-""""Central management of pulse program parameters.
+""""Management of pulse program parameters.
 
 Background
 ==========
 
-In contrast to ``QuantumCircuit``, in pulse programs parameter objects can be stored in
+In contrast to ``QuantumCircuit``, in pulse programs, parameter objects can be stored in
 multiple places at different layers, for example
 
-- program's variable: ``ScheduleBlock.alignment_context._context_params``
+- program variables: ``ScheduleBlock.alignment_context._context_params``
 
-- instruction's operands: ``ShiftPhase.phase``, ...
+- instruction operands: ``ShiftPhase.phase``, ...
 
-- operand's parameters: ``pulse.parameters``, ``channel.index`` ...
+- operand parameters: ``pulse.parameters``, ``channel.index`` ...
 
-This complexity is due to tight coupling of program to underlying device Hamiltonian,
-i.e. variance of physical parameters of qubits and their coupling.
+This complexity is due to the tight coupling of the program to an underlying device Hamiltonian,
+i.e. the variance of physical parameters between qubits and their couplings.
 If we want to define a program that can be used with arbitrary qubits,
-we should be able to parametrize every control parameter in the program
-since they are basically qubit dependent, and also vary over time.
-
+we should be able to parametrize every control parameter in the program.
 
 Implementation
 ==============
 
 Managing parameters in each object within a program, i.e. the ``ParameterTable`` model,
-makes the framework quite complicated. In the ``ParameterManager`` class this module provides,
-the parameter assignment operation is performed by the visitor instance.
+makes the framework quite complicated. With the ``ParameterManager`` class within this module,
+the parameter assignment operation is performed by a visitor instance.
 
-The visitor pattern is a way of separating data processing from an object on which it operates.
+The visitor pattern is a way of separating data processing from the object on which it operates.
 This removes the overhead of parameter management from each piece of the program.
-Computational complexity of the parameter assignment operation may be increased
-from the parameter table model of ~O(1), however usually this calculation occurs
+The computational complexity of the parameter assignment operation may be increased
+from the parameter table model of ~O(1), however, usually, this calculation occurs
 only once before the program is executed. Thus this doesn't hurt user experience during
 pulse programming. On the contrary, it removes parameter table object and associated logic
 from each object, yielding smaller object creation cost and higher performance
