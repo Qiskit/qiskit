@@ -54,12 +54,13 @@ class Schedule:
     """A quantum program *schedule* with exact time constraints for its instructions, operating
     over all input signal *channels* and supporting special syntaxes for building.
 
-    In the Qiskit Pulse model [1], instructions are not allowed to overlap in time
+    Pulse program representation for the original Qiskit Pulse model [1].
+    Instructions are not allowed to overlap in time
     on the same channel. This overlap constraint is immediately
     evaluated when a new instruction is added to the ``Schedule`` object.
 
-    This indicates that we always need to specify absolute values for the instruction start time
-    and duration to calculate what timesteps are occupied by each instruction.
+    It is necessary to specify the absolute start time and duration 
+    for each instruction so as to deterministically fix its execution time.
 
     The ``Schedule`` program supports some syntax sugar for easier programming.
 
@@ -88,12 +89,12 @@ class Schedule:
         sched2 += Play(Gaussian(160, 0.1, 40), DriveChannel(1))
         sched2 = sched1 | sched2
 
-    The ``PulseError`` is immediately raised when the overlap constraint is violated.
+    A ``PulseError`` is immediately raised when the overlap constraint is violated.
 
     In the schedule representation, we cannot parametrize the duration of instructions.
-    Thus we need to create a new schedule object for every duration.
-    To parametrize instruction's duration, the :class:`~qiskit.pulse.ScheduleBlock` representation
-    can be used instead of this.
+    Thus we need to create a new schedule object for each duration.
+    To parametrize an instruction's duration, the :class:`~qiskit.pulse.ScheduleBlock` representation
+    may be used instead.
 
     References:
         [1]: https://arxiv.org/abs/2004.06755
