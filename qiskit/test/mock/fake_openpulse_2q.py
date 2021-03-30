@@ -120,7 +120,7 @@ class FakeOpenPulse2Q(FakeBackend):
             },
             processor_type={
                 "family": "Canary",
-                "revision": 1,
+                "revision": "1.0",
                 "segment": "A",
             }
         )
