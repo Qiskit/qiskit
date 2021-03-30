@@ -297,6 +297,17 @@ class TestAxisAngleReduction(QiskitTestCase):
         self.assertEqual(Operator(circ), Operator(ccirc))
         self.assertEqual(ccirc, expected)
 
+    def test_repeat_until_complete(self):
+        """repeat reduction until can't reduce anymore"""
+        circ = QuantumCircuit(1)
+        circ.x(0)
+        circ.y(0)
+        circ.y(0)
+        circ.x(0)
+        ccirc = self.pmr.run(circ)
+        expected = QuantumCircuit(1)
+        self.assertEqual(ccirc, expected)
+
     def test_crx_tgt_no_block(self):
         """test do not block merge on target qubit of same axis"""
         circ = QuantumCircuit(2)
@@ -307,8 +318,6 @@ class TestAxisAngleReduction(QiskitTestCase):
         ccirc = self.pmr.run(circ)
         expected = QuantumCircuit(2)
         expected.crx(2*np.pi, 0, 1)
-        expected.x(1)
-        expected.x(1)  # should probably ellimate this too
         self.assertEqual(Operator(circ), Operator(ccirc))
         self.assertEqual(ccirc, expected)
 

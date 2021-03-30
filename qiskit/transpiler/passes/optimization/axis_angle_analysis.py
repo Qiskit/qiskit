@@ -61,6 +61,8 @@ class AxisAngleAnalysis(AnalysisPass):
                 aprop['name'] = node.name
                 aprop['qubit0'] = node.qargs[0]
                 aprop['qubit1'] = node.qargs[1]
+            else:
+                continue
             props.append(aprop)
             if node.name not in var_gate_class and aprop['nparams'] == 1:
                 var_gate_class[node.name] = node.op.__class__
