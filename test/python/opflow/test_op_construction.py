@@ -397,6 +397,11 @@ class TestOpConstruction(QiskitOpflowTestCase):
         with self.subTest('SummedOp test 9'):
             self.assertEqual(sum_op.reduce(), sum_op)
 
+        sum_op = ((Z + I) ^ Z) + (Z ^ X)
+        with self.subTest('SummedOp test 10'):
+            expected = SummedOp([PauliOp(Pauli('ZZ')), PauliOp(Pauli('IZ')), PauliOp(Pauli('ZX'))])
+            self.assertEqual(sum_op.to_pauli_op(), expected)
+
     def test_compose_op_of_different_dim(self):
         """
         Test if smaller operator expands to correct dim when composed with bigger operator.
