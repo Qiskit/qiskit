@@ -64,15 +64,15 @@ from qiskit.pulse.utils import format_parameter_value
 
 
 class NodeVisitor:
-    """A node visitor base class that walks instruction data in a pulse program of arbitrary
-    format and calls visitor functions for every node found.
+    """A node visitor base class that walks instruction data in a pulse program and calls 
+    visitor functions for every node.
 
     Though this class implementation is based on Python AST, each node doesn't have
-    dedicated node class due to lack of abstract syntax tree for pulse programs in Qiskit.
-    Instead of parsing pulse programs, this visitor class finds the associated visitor function
-    based on class name of the instruction node, i.e. ``Play``, ``Call``, etc...
+    a dedicated node class due to the lack of an abstract syntax tree for pulse programs in 
+    Qiskit. Instead of parsing pulse programs, this visitor class finds the associated visitor 
+    function based on class name of the instruction node, i.e. ``Play``, ``Call``, etc...
     The `.visit` method recursively checks superclass of given node since some parametrized
-    components such as ``DriveChannel`` may share common superclass with other subclasses.
+    components such as ``DriveChannel`` may share a common superclass with other subclasses.
     In this example, we can just define ``visit_Channel`` method instead of defining
     the same visitor function for every subclasses.
 
@@ -82,8 +82,8 @@ class NodeVisitor:
     Because pulse programs can be nested into another pulse program,
     the visitor function should be able to recursively call proper visitor functions.
     If visitor function is not defined for a given node, ``generic_visit``
-    method is called. Usually this method is provided for operating on object
-    defined outside of the Qiskit Pulse module.
+    method is called. Usually, this method is provided for operating on object defined 
+    outside of the Qiskit Pulse module.
     """
     def visit(self, node: Any):
         """Visit a node."""
