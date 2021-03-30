@@ -374,6 +374,7 @@ class ListOp(OperatorBase):
         # pylint: disable=cyclic-import
         from ..state_fns.dict_state_fn import DictStateFn
         from ..state_fns.vector_state_fn import VectorStateFn
+        from ..state_fns.sparse_vector_state_fn import SparseVectorStateFn
 
         # The below code only works for distributive ListOps, e.g. ListOp and SummedOp
         if not self.distributive:
@@ -385,7 +386,8 @@ class ListOp(OperatorBase):
         # Handle application of combo_fn for DictStateFn resp VectorStateFn operators
         if self._combo_fn != ListOp([])._combo_fn:
             if all(isinstance(op, DictStateFn) for op in evals) or \
-                    all(isinstance(op, VectorStateFn) for op in evals):
+                    all(isinstance(op, VectorStateFn) for op in evals) or \
+                    all(isinstance(op, SparseVectorStateFn) for op in evals):
                 if not all(
                     op.is_measurement == evals[0].is_measurement for op in evals  # type: ignore
                 ):

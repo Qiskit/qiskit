@@ -811,11 +811,14 @@ class TestGradients(QiskitOpflowTestCase):
                 params=params)
         else:
             prob_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-        values_dict = [{a: [np.pi / 4], b: [0]}, {params[0]: [np.pi / 4], params[1]: [np.pi / 4]},
+        values_dict = [{a: [np.pi / 4], b: [0]},
+                       {params[0]: [np.pi / 4], params[1]: [np.pi / 4]},
                        {params[0]: [np.pi / 2], params[1]: [np.pi]}]
-        correct_values = [[[0, 0], [1 / (2 * np.sqrt(2)), - 1 / (2 * np.sqrt(2))]],
-                          [[1 / 4, -1 / 4], [1 / 4, - 1 / 4]],
-                          [[0, 0], [- 1 / 2, 1 / 2]]]
+        correct_values = [
+            [[0, 0], [1 / (2 * np.sqrt(2)), - 1 / (2 * np.sqrt(2))]],
+            [[1 / 4, -1 / 4], [1 / 4, - 1 / 4]],
+            [[0, 0], [-1 / 2, 1 / 2]]
+        ]
 
         backend = BasicAer.get_backend('qasm_simulator')
         q_instance = QuantumInstance(backend=backend, shots=shots)
@@ -823,11 +826,12 @@ class TestGradients(QiskitOpflowTestCase):
         for i, value_dict in enumerate(values_dict):
             sampler = CircuitSampler(backend=q_instance).convert(prob_grad,
                                                                  params=value_dict)
-            result = sampler.eval()
-            np.testing.assert_array_almost_equal(result[0], correct_values[i], decimal=1)
+            result = sampler.eval()[0]
+            self.assertTrue(np.allclose(result[0].toarray(), correct_values[i][0], atol=0.1))
+            self.assertTrue(np.allclose(result[1].toarray(), correct_values[i][1], atol=0.1))
 
     @idata(['statevector_simulator', 'qasm_simulator'])
-    def test_gradient_wrapper(self, backend):
+    def test_gradient_wrapper(self, backend_type):
         """Test the gradient wrapper for probability gradients
         dp0/da = cos(a)sin(b) / 2
         dp1/da = - cos(a)sin(b) / 2
@@ -848,7 +852,7 @@ class TestGradients(QiskitOpflowTestCase):
         op = CircuitStateFn(primitive=qc, coeff=1.)
 
         shots = 8000
-        backend = BasicAer.get_backend(backend)
+        backend = BasicAer.get_backend(backend_type)
         q_instance = QuantumInstance(backend=backend, shots=shots)
         if method == 'fin_diff':
             np.random.seed(8)
@@ -864,7 +868,11 @@ class TestGradients(QiskitOpflowTestCase):
                           [[0, 0], [- 1 / 2, 1 / 2]]]
         for i, value in enumerate(values):
             result = prob_grad(value)
-            np.testing.assert_array_almost_equal(result, correct_values[i], decimal=1)
+            if backend_type == 'qasm_simulator':  # sparse result
+                result = [result[0].toarray(), result[1].toarray()]
+
+            self.assertTrue(np.allclose(result[0], correct_values[i][0], atol=0.1))
+            self.assertTrue(np.allclose(result[1], correct_values[i][1], atol=0.1))
 
     @slow_test
     def test_vqe(self):

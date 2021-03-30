@@ -17,6 +17,7 @@
 from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, Parameter, EquivalenceLibrary
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
@@ -759,6 +760,26 @@ class TestBasisExamples(QiskitTestCase):
         self.assertTrue(set(out_dag.count_ops()).issubset(['iswap', 'u']))
         self.assertEqual(Operator(bell), Operator(dag_to_circuit(out_dag)))
 
+    def test_cx_bell_to_ecr(self):
+        """Verify we can translate a CX bell to ECR,U."""
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        in_dag = circuit_to_dag(bell)
+        out_dag = BasisTranslator(std_eqlib, ['ecr', 'u']).run(in_dag)
+
+        qr = QuantumRegister(2, 'q')
+        expected = QuantumCircuit(2)
+        expected.u(pi / 2, 0, pi, qr[0])
+        expected.u(0, 0, -pi / 2, qr[0])
+        expected.u(pi, 0, 0, qr[0])
+        expected.u(pi / 2, -pi / 2, pi / 2, qr[1])
+        expected.ecr(0, 1)
+        expected_dag = circuit_to_dag(expected)
+
+        self.assertEqual(out_dag, expected_dag)
+
     def test_global_phase(self):
         """Verify global phase preserved in basis translation"""
         circ = QuantumCircuit(1)
@@ -777,3 +798,23 @@ class TestBasisExamples(QiskitTestCase):
         self.assertEqual(out_dag, expected_dag)
         self.assertEqual(float(out_dag.global_phase), float(expected_dag.global_phase))
         self.assertEqual(Operator(dag_to_circuit(out_dag)), Operator(expected))
+
+    def test_condition_set_substitute_node(self):
+        """Verify condition is set in BasisTranslator on substitute_node"""
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+        circ = QuantumCircuit(qr, cr)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.measure(1, 1)
+        circ.h(0).c_if(cr, 1)
+        circ_transpiled = transpile(circ, optimization_level=3,
+                                    basis_gates=['cx', 'id', 'u1', 'u2', 'u3'])
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+        expected = QuantumCircuit(qr, cr)
+        expected.u2(0, pi, 0)
+        expected.cx(0, 1)
+        expected.measure(1, 1)
+        expected.u2(0, pi, 0).c_if(cr, 1)
+        self.assertEqual(circ_transpiled, expected)
