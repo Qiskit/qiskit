@@ -8,7 +8,7 @@ pull_request_rules:
     actions:
       merge:
         method: squash
-        strict: true
+        strict: smart
   - name: backport
     conditions:
       - label=stable backport potential
