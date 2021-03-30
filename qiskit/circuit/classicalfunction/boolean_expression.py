@@ -12,8 +12,12 @@
 
 """A quantum oracle constructed from a logical expression or a string in the DIMACS format."""
 
+from __future__ import annotations
+from typing import Callable
+
 from os.path import basename, isfile
 
+from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
 from .classical_element import ClassicalElement
 from .utils import HAS_TWEEDLEDUM
@@ -63,14 +67,15 @@ class BooleanExpression(ClassicalElement):
             bits.append(BitVec(1, bit))
         return bool(self._tweedledum_bool_expression.simulate(*bits))
 
-    def synth(self, registerless=True, synthesizer=None):
+    def synth(self, registerless: bool =True,
+              synthesizer: Callable[[BooleanExpression], QuantumCircuit] = None):
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
 
         Args:
-            registerless (bool): Default ``True``. If ``False`` uses the parameter names
+            registerless: Default ``True``. If ``False`` uses the parameter names
                 to create registers with those names. Otherwise, creates a circuit with a flat
                 quantum register.
-            synthesizer (callable): A callable that takes self and returns a Tweedledum
+            synthesizer: A callable that takes self and returns a Tweedledum
                 circuit.
         Returns:
             QuantumCircuit: A circuit implementing the logic network.
