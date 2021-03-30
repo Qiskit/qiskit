@@ -1,11 +1,12 @@
 ---
 fixes:
   - |
-    Previously when a conditional gate was entered in a circuit
-    following a measure that used the same classical register,
-    it was possible in certain circumstances for the conditional
-    gate to be displayed to the left of the measure in the drawers.
-    This affected all the circuit drawers - `text`, `mpl`, and
-    `latex`. With this release, the conditional gate will always
-    display to the right of a measure on the same register.
- 
+    Fixed an issue with the :func:`qiskit.visualization.circuit_drawer` function
+    and :meth:`qiskit.circuit.QuantumCircuit.draw` method when visualizing a
+    :class:`~qiskit.circuit.QuantumCircuit` with a
+    :class:`~qiskit.circuit.Gate` that has a classical condition was
+    after a :class:`~qiskit.circuit.Measure` that used the same
+    :class:`~qiskit.circuit.ClassicalRegister` it was possible
+    for the conditional :class:`~qiskit.circuit.Gate` to be displayed to the
+    left of the :class:`~qiskit.circuit.Measure`.
+    Fixed `#5387 <https://github.com/Qiskit/qiskit-terra/issues/5387>`__
