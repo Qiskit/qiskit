@@ -15,6 +15,7 @@ N-Qubit Sparse Pauli Operator class.
 
 from numbers import Number
 import numpy as np
+import json
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.linear_op import LinearOp
@@ -385,6 +386,16 @@ class SparsePauliOp(LinearOp):
         table = PauliTable.from_labels(labels)
         return SparsePauliOp(table, coeffs)
 
+    @staticmethod
+    def from_json(json_str):
+        """Convert to SparsePauliOp from json."""
+        def as_complex(dct):
+            if '__complex__' in dct:
+                return complex(dct['real'], dct['imag'])
+            return dct
+        sparse_pauli_list = json.loads(json_str, object_hook=as_complex)
+        return SparsePauliOp.from_list(sparse_pauli_list)
+
     def to_list(self, array=False):
         """Convert to a list Pauli string labels and coefficients.
 
@@ -409,6 +420,18 @@ class SparsePauliOp(LinearOp):
         if array:
             return labels
         return labels.tolist()
+
+    def to_json(self):
+        """Convert to json."""
+        class ComplexEncoder(json.JSONEncoder):
+            """A json encoder for qobj"""
+            def default(self, obj):
+                if isinstance(obj, complex):
+                    return {'__complex__': True,
+                            'real': obj.real,
+                            'imag': obj.imag}
+                return json.JSONEncoder.default(self, obj)
+        return json.dumps(self.to_list(), cls=ComplexEncoder)
 
     def to_matrix(self, sparse=False):
         """Convert to a dense or sparse matrix.

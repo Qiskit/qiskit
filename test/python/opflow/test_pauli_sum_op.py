@@ -285,6 +285,39 @@ class TestPauliSumOp(QiskitOpflowTestCase):
                 np.array_equal(i.toarray(), coeff * coeffs[idx] *
                                Pauli(labels[idx]).to_matrix()))
 
+    def test_json_single(self):
+        """Test json serializer for PauliSumOp"""
+        pauli_sum = PauliSumOp(SparsePauliOp(Pauli("XYZX"), coeffs=[2]), coeff=3)
+        json_string = pauli_sum.to_json()
+        decoded_pauli_sum = PauliSumOp.from_json(json_string)
+        self.assertEqual(pauli_sum, decoded_pauli_sum)
+
+    def test_json_sum(self):
+        """Test to_json serializer for PauliSumOp"""
+        pauli_sum = PauliSumOp.from_list(
+            [
+                ("II", -1.052373245772859),
+                ("IZ", 0.39793742484318045),
+                ("ZI", -0.39793742484318045),
+                ("ZZ", -0.01128010425623538),
+                ("XX", 0.18093119978423156),
+            ]
+        )
+        json_string = pauli_sum.to_json()
+        decoded_pauli_sum = PauliSumOp.from_json(json_string)
+        self.assertEqual(pauli_sum, decoded_pauli_sum)
+
+    def test_json_sum2(self):
+        """Test PauliSumOp sparse matrix_iter method."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        coeffs = np.array([1, 2, 3, 4, 5, 6])
+        coeff = 10
+        table = PauliTable.from_labels(labels)
+        pauli_sum = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
+        json_string = pauli_sum.to_json()
+        decoded_pauli_sum = PauliSumOp.from_json(json_string)
+        self.assertEqual(pauli_sum, decoded_pauli_sum)
+
 
 if __name__ == "__main__":
     unittest.main()

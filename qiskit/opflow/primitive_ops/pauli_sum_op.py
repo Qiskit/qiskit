@@ -14,6 +14,7 @@
 
 from collections import defaultdict
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
+import json
 
 import numpy as np
 from scipy.sparse import spmatrix
@@ -36,10 +37,10 @@ class PauliSumOp(PrimitiveOp):
     primitive: SparsePauliOp
 
     def __init__(
-        self,
-        primitive: SparsePauliOp,
-        coeff: Union[complex, ParameterExpression] = 1.0,
-        grouping_type: str = "None",
+            self,
+            primitive: SparsePauliOp,
+            coeff: Union[complex, ParameterExpression] = 1.0,
+            grouping_type: str = "None",
     ) -> None:
         """
         Args:
@@ -139,7 +140,7 @@ class PauliSumOp(PrimitiveOp):
             return False
 
         if isinstance(self_reduced.coeff, ParameterExpression) or isinstance(
-            other_reduced.coeff, ParameterExpression
+                other_reduced.coeff, ParameterExpression
         ):
             return (
                 self_reduced.coeff == other_reduced.coeff
@@ -192,10 +193,10 @@ class PauliSumOp(PrimitiveOp):
         return PauliSumOp(spop, self.coeff)
 
     def compose(
-        self,
-        other: OperatorBase,
-        permutation: Optional[List[int]] = None,
-        front: bool = False,
+            self,
+            other: OperatorBase,
+            permutation: Optional[List[int]] = None,
+            front: bool = False,
     ) -> OperatorBase:
 
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
@@ -258,11 +259,40 @@ class PauliSumOp(PrimitiveOp):
         main_string += "".join([f"\n{indent}{format_number(c)} * {p}" for p, c in prim_list[1:]])
         return f"{main_string}" if self.coeff == 1 else f"{self.coeff} * (\n{main_string}\n)"
 
+    @staticmethod
+    def from_json(json_string):
+        """Convert json string to PauliSumOp.
+
+        Args:
+            json_string (str): JSON formatted PauliSumOp string.
+
+        Returns:
+            PauliSumOp: PauliSumOp object.
+        """
+        record = json.loads(json_string)
+        return PauliSumOp(primitive=SparsePauliOp.from_json(record['primitive']),
+                          coeff=record['coeff'], grouping_type=record['grouping_type'])
+
+    def to_json(self):
+        """Convert PauliSumOp to json.
+
+        Returns:
+            str: PauliSumOp as JSON string.
+        """
+        if isinstance(self.coeff, ParameterExpression):
+            coeff = str(self.coeff)
+        else:
+            coeff = self.coeff
+        record = {'coeff': coeff,
+                  'primitive': self.primitive.to_json(),
+                  'grouping_type': self.grouping_type}
+        return json.dumps(record)
+
     def eval(
-        self,
-        front: Optional[
-            Union[str, Dict[str, complex], np.ndarray, OperatorBase, Statevector]
-        ] = None,
+            self,
+            front: Optional[
+                Union[str, Dict[str, complex], np.ndarray, OperatorBase, Statevector]
+            ] = None,
     ) -> Union[OperatorBase, complex]:
         if front is None:
             return self.to_matrix_op()
@@ -404,9 +434,9 @@ class PauliSumOp(PrimitiveOp):
 
     @classmethod
     def from_list(
-        cls,
-        pauli_list: List[Tuple[str, Union[complex]]],
-        coeff: Union[complex, ParameterExpression] = 1.0,
+            cls,
+            pauli_list: List[Tuple[str, Union[complex]]],
+            coeff: Union[complex, ParameterExpression] = 1.0,
     ) -> "PauliSumOp":
         """Construct from a pauli_list with the form [(pauli_str, coeffs)]
 
