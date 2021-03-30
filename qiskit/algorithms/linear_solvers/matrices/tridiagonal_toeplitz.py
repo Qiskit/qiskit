@@ -27,12 +27,15 @@ class TridiagonalToeplitz(LinearSystemMatrix):
 
     Given the main entry, :math:`a`, and the off diagonal entry, :math:`b`, the :math:`4\times 4`
     dimensional tridiagonal Toeplitz symmetric matrix is
-    
+
     .. math::
-        |a b 0 0|
-        |b a b 0|
-        |0 b a b|
-        |0 0 b a|.
+
+        \begin{pmatrix}
+            a & b & 0 & 0 \\
+            b & a & b & 0 \\
+            0 & b & a & b \\
+            0 & 0 & b & a
+        \end{pmatrix}.
 
     Examples:
 
