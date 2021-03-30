@@ -589,7 +589,7 @@ def _parse_initial_layout(initial_layout, circuits):
             if all(isinstanceint(elem) for elem in initial_layout):
                 initial_layout = Layout.from_intlist(initial_layout, *circuit.qregs)
             elif all(elem is None or isinstance(elem, Qubit) for elem in initial_layout):
-                initial_layout = Layout.from_qubit_list(initial_layout)
+                initial_layout = Layout.from_qubit_list(initial_layout, *circuit.qregs)
         elif isinstance(initial_layout, dict):
             initial_layout = Layout(initial_layout)
         else:
