@@ -127,18 +127,29 @@ class TestPauliSumOp(QiskitOpflowTestCase):
 
     def test_tensor(self):
         """ Test for tensor operation """
-        pauli_sum = ((I - Z) ^ (I - Z)) + ((X - Y) ^ (X + Y))
-        expected = (
-            (I ^ I)
-            - (I ^ Z)
-            - (Z ^ I)
-            + (Z ^ Z)
-            + (X ^ X)
-            + (X ^ Y)
-            - (Y ^ X)
-            - (Y ^ Y)
-        )
-        self.assertEqual(pauli_sum, expected)
+        with self.subTest("Test 1"):
+            pauli_sum = ((I - Z) ^ (I - Z)) + ((X - Y) ^ (X + Y))
+            expected = (
+                (I ^ I)
+                - (I ^ Z)
+                - (Z ^ I)
+                + (Z ^ Z)
+                + (X ^ X)
+                + (X ^ Y)
+                - (Y ^ X)
+                - (Y ^ Y)
+            )
+            self.assertEqual(pauli_sum, expected)
+
+        with self.subTest("Test 2"):
+            pauli_sum = ((Z + I) ^ Z)
+            expected = (Z ^ Z) + (I ^ Z)
+            self.assertEqual(pauli_sum, expected)
+
+        with self.subTest("Test 3"):
+            pauli_sum = (Z ^ (Z + I))
+            expected = (Z ^ Z) + (Z ^ I)
+            self.assertEqual(pauli_sum, expected)
 
     def test_permute(self):
         """ permute test """
