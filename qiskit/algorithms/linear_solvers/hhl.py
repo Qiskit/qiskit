@@ -26,7 +26,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils import QuantumInstance
 
 from .linear_solver import LinearSolver, LinearSolverResult
-from .matrices.numpy_matrix import NumpyMatrix
+from .matrices.numpy_matrix import NumPyMatrix
 from .observables.linear_system_observable import LinearSystemObservable
 
 
@@ -335,7 +335,7 @@ class HHL(LinearSolver):
                                  str(vector_circuit.num_qubits) +
                                  ". Matrix dimension: " +
                                  str(matrix.shape[0]))
-            matrix_circuit = NumpyMatrix(matrix, evolution_time=2 * np.pi)
+            matrix_circuit = NumPyMatrix(matrix, evolution_time=2 * np.pi)
 
         # Set the tolerance for the matrix approximation
         if hasattr(matrix_circuit, "tolerance"):

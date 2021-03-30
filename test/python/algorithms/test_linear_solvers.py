@@ -39,38 +39,14 @@ class TestMatrices(QiskitAlgorithmsTestCase):
 
     @idata([
         [TridiagonalToeplitz(2, 1, -1 / 3)],
-        [TridiagonalToeplitz(3, 2, 1), 1.1, 3]
-    ])
-    @unpack
-    def test_tridiagonal_toeplitz(self, matrix, time=1.0, power=1):
-        """Test the TridiagonalToeplitz class."""
-        matrix.evolution_time = time
-
-        num_qubits = matrix.num_state_qubits
-        pow_circ = matrix.power(power).control()
-        circ_qubits = pow_circ.num_qubits
-        qc = QuantumCircuit(circ_qubits)
-        qc.append(matrix.power(power).control(), list(range(circ_qubits)))
-        # extract the parts of the circuit matrix corresponding to TridiagonalToeplitz
-        zero_op = ((I + Z) / 2)
-        one_op = ((I - Z) / 2)
-        proj = Operator((zero_op ^ pow_circ.num_ancillas) ^ (I ^ num_qubits) ^ one_op).data
-        circ_matrix = Operator(qc).data
-        approx_exp = partial_trace(np.dot(proj, circ_matrix), [0] +
-                                   list(range(num_qubits + 1, circ_qubits))).data
-
-        exact_exp = expm(1j * matrix.evolution_time * power * matrix.matrix)
-        np.testing.assert_array_almost_equal(approx_exp, exact_exp, decimal=2)
-
-    @idata([
+        [TridiagonalToeplitz(3, 2, 1), 1.1, 3],
         [NumPyMatrix(np.array([[1 / 2, 1 / 6, 0, 0], [1 / 6, 1 / 2, 1 / 6, 0],
                                [0, 1 / 6, 1 / 2, 1 / 6], [0, 0, 1 / 6, 1 / 2]]))]
     ])
     @unpack
-    def test_numpy_matrix(self, matrix, time=1.0, power=1):
-        """Test the TridiagonalToeplitz class."""
-        if time is not None:
-            matrix.evolution_time = time
+    def test_matrices(self, matrix, time=1.0, power=1):
+        """Test the different matrix classes."""
+        matrix.evolution_time = time
 
         num_qubits = matrix.num_state_qubits
         pow_circ = matrix.power(power).control()
