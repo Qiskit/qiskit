@@ -77,7 +77,7 @@ class HHL(LinearSolver):
         r"""
         Args:
             epsilon: Error tolerance of the approximation to the solution, i.e. if x is the exact
-                solution and ::math::`\tilde{x}` the one calculated by the algorithm, then
+                solution and :math:`\tilde{x}` the one calculated by the algorithm, then
                 :math:`||x - \tilde{x}|| < epsilon`.
             expectation: The expectation converter applied to the expectation values before
                 evaluation. If None then PauliExpectation is used.
