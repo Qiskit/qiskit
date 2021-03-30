@@ -51,7 +51,7 @@ class HHL(LinearSolver):
     speed up in the size of the system, however one crucial remark to keep in mind is that the
     classical algorithm returns the full solution, while the HHL can only approximate functions of
     the solution vector.
-    
+
     Examples:
 
         .. jupyter-execute::
@@ -453,7 +453,8 @@ class HHL(LinearSolver):
                 post_processing is passed.
 
         Returns:
-            The result of the linear system.
+            The result object containing information about the solution vector of the linear
+            system.
         """
         # verify input
         if observable is not None:

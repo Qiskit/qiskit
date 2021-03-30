@@ -186,9 +186,12 @@ class TridiagonalToeplitz(LinearSystemMatrix):
 
     def eigs_bounds(self) -> Tuple[float, float]:
         """Return lower and upper bounds on the eigenvalues of the matrix."""
-        matrix_array = self.matrix
-        lambda_max = max(np.abs(np.linalg.eigvals(matrix_array)))
-        lambda_min = min(np.abs(np.linalg.eigvals(matrix_array)))
+        n_b = 2 ** self.num_state_qubits
+        # Calculate the eigenvalues according to the formula for Toeplitz matrices
+        eig_1 = self.main_diag - 2 * self.off_diag * np.cos(n_b * np.pi / (n_b + 1))
+        eig_2 = self.main_diag - 2 * self.off_diag * np.cos(np.pi / (n_b + 1))
+        lambda_min = min(eig_1, eig_2)
+        lambda_max = max(eig_1, eig_2)
         return lambda_min, lambda_max
 
     def condition_bounds(self) -> Tuple[float, float]:
