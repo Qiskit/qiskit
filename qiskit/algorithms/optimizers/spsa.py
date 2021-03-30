@@ -20,6 +20,8 @@ from time import time
 from collections import deque
 import numpy as np
 
+from qiskit.utils import algorithm_globals
+
 from .optimizer import Optimizer, OptimizerSupportLevel
 
 # parameters, loss, stepsize, number of function evaluations, accepted
@@ -77,7 +79,6 @@ class SPSA(Optimizer):
                  trust_region: bool = False,
                  learning_rate: Optional[Union[float, Callable[[], Iterator]]] = None,
                  perturbation: Optional[Union[float, Callable[[], Iterator]]] = None,
-                 tolerance: float = 1e-7,
                  last_avg: int = 1,
                  resamplings: Union[int, Dict[int, int]] = 1,
                  perturbation_dims: Optional[int] = None,
@@ -96,8 +97,6 @@ class SPSA(Optimizer):
                 :math:`a_k`. If set, also ``perturbation`` must be provided.
             perturbation: A generator yielding the perturbation magnitudes :math:`c_k`. If set,
                 also ``learning_rate`` must be provided.
-            tolerance: If the norm of the parameter update is smaller than this threshold, the
-                optimizer is converged.
             last_avg: Return the average of the ``last_avg`` parameters instead of just the
                 last parameter values.
             resamplings: The number of times the gradient is sampled using a random direction to
@@ -131,7 +130,6 @@ class SPSA(Optimizer):
         self.callback = callback
         self.last_avg = last_avg
         self.resamplings = resamplings
-        self.tolerance = tolerance
         self.perturbation_dims = perturbation_dims
 
         # runtime arguments
@@ -344,10 +342,6 @@ class SPSA(Optimizer):
                 if len(last_steps) > self.last_avg:
                     last_steps.popleft()
 
-            # check termination
-            if np.linalg.norm(update) < self.tolerance:
-                break
-
         logger.info('SPSA finished in %s', time() - start)
         logger.info('=' * 30)
 
@@ -372,11 +366,11 @@ class SPSA(Optimizer):
 def bernoulli_perturbation(dim, perturbation_dims=None):
     """Get a Bernoulli random perturbation."""
     if perturbation_dims is None:
-        return np.array([1 - 2 * np.random.binomial(1, 0.5) for _ in range(dim)])
+        return 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=dim)
 
-    pert = np.array([1 - 2 * np.random.binomial(1, 0.5)
-                     for _ in range(perturbation_dims)])
-    indices = np.random.choice(list(range(dim)), size=perturbation_dims, replace=False)
+    pert = 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=perturbation_dims)
+    indices = algorithm_globals.random.choice(list(range(dim)), size=perturbation_dims,
+                                              replace=False)
     result = np.zeros(dim)
     result[indices] = pert
 
