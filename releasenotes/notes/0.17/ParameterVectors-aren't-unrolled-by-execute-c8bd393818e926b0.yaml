@@ -10,5 +10,6 @@ fixes:
       execute(circuit, backend, parameter_binds=[{pv1: [...], pv2: [...]}])
 
     where ``pv1`` and ``pv2`` are :class:`~qiskit.circuit.ParameterVector`
-    objects. Fixed `#5467 <https://github.com/Qiskit/qiskit-terra/issues/5467>`__
+    objects.
+    Fixed `#5467 <https://github.com/Qiskit/qiskit-terra/issues/5467>`__
 

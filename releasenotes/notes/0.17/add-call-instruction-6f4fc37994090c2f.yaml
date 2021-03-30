@@ -3,8 +3,8 @@ deprecations:
   - |
     The :mod:`~qiskit.pulse` builder functions:
 
-      - :py:func:`qiskit.pulse.call_circuit`
-      - :py:func:`qiskit.pulse.call_schedule`
+    * :py:func:`qiskit.pulse.call_circuit`
+    * :py:func:`qiskit.pulse.call_schedule`
 
     are deprecated and will be removed in a future release.
     These functions are unified into :py:func:`qiskit.pulse.call` which should

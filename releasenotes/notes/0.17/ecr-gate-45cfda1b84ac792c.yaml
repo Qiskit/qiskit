@@ -14,7 +14,7 @@ features:
     to be merged into the rest of the circuit.
   - |
     A new kwarg ``approximation_degree`` has been added to the
-    :func:`~qiskit.compiler.transpile` function transpiler for enabling
+    :func:`~qiskit.compiler.transpile` function for enabling
     approximate compilation. Valid values range from 0 to 1, and higher
     means less approximation. This is a heuristic dial
     to experiment with circuit approximations. The concrete interpretation
