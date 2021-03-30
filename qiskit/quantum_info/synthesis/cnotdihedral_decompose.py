@@ -404,4 +404,4 @@ def decompose_cnotdihedral_general(elem):
         raise QiskitError("Could not recover phase polynomial.")
 
     inv_circuit = circuit.inverse()
-    return new_circuit.combine(inv_circuit)
+    return new_circuit.compose(inv_circuit)
