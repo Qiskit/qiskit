@@ -28,7 +28,8 @@ class PassManagerConfig:
                  instruction_durations=None,
                  backend_properties=None,
                  approximation_degree=None,
-                 seed_transpiler=None):
+                 seed_transpiler=None,
+                 unitary_synthesis_method=None):
         """Initialize a PassManagerConfig object
 
         Args:
@@ -53,6 +54,9 @@ class PassManagerConfig:
                 (1.0=no approximation, 0.0=maximal approximation)
             seed_transpiler (int): Sets random seed for the stochastic parts of
                 the transpiler.
+            unitary_synthesis_method (str): The string method to use for the
+                :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
+                search installed plugins for a valid method.
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -65,3 +69,4 @@ class PassManagerConfig:
         self.backend_properties = backend_properties
         self.approximation_degree = approximation_degree
         self.seed_transpiler = seed_transpiler
+        self.unitary_synthesis_method = unitary_synthesis_method

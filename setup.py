@@ -112,5 +112,10 @@ setup(
         "Source Code": "https://github.com/Qiskit/qiskit-terra",
     },
     ext_modules=cythonize(EXT_MODULES),
-    zip_safe=False
+    zip_safe=False,
+    entry_points={
+        'qiskit.unitary_synthesis': [
+            'default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis',
+        ]
+    },
 )

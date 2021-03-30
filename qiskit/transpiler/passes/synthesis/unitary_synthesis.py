@@ -18,11 +18,13 @@ from typing import List
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
 from qiskit.circuit.library.standard_gates import (iSwapGate, CXGate, CZGate,
                                                    RXXGate, ECRGate)
+from qiskit.transpiler.passes.synthesis import plugin
 
 
 def _choose_kak_gate(basis_gates):
@@ -60,7 +62,9 @@ class UnitarySynthesis(TransformationPass):
 
     def __init__(self,
                  basis_gates: List[str],
-                 approximation_degree: float = 1):
+                 approximation_degree: float = 1,
+                 coupling_map = None,
+                 method: str = None):
         """
         Synthesize unitaries over some basis gates.
 
@@ -75,6 +79,9 @@ class UnitarySynthesis(TransformationPass):
         super().__init__()
         self._basis_gates = basis_gates
         self._approximation_degree = approximation_degree
+        self.method = method
+        self._coupling_map = coupling_map
+        self.plugins = plugin.UnitarySynthesisPluginManager()
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the UnitarySynthesis pass on `dag`.
@@ -85,31 +92,62 @@ class UnitarySynthesis(TransformationPass):
         Returns:
             Output dag with UnitaryGates synthesized to target basis.
         """
-        euler_basis = _choose_euler_basis(self._basis_gates)
-        kak_gate = _choose_kak_gate(self._basis_gates)
+        for node in dag.named_nodes('unitary'):
+            synth_dag = None
+            if not self.method:
+                method = 'default'
+            else:
+                method = self.method
+            if method not in self.plugins.ext_plugins:
+                raise QiskitError(
+                        'Specified method: %s not found in plugin list' % method)
+            plugin = self.plugins.ext_plugins[method].obj
+            kwargs = {}
+            if plugin.supports_basis_gates:
+                kwargs['basis_gates'] = self._basis_gates
+            if plugin.supports_coupling_map:
+                kwargs['coupling_map'] = self._coupling_map
+            if plugin.supports_approximation_degree:
+                kwargs['approximation_degree'] = self._approximation_degree
+            unitary = node.op.to_matrix()
+            synth_dag = plugin.run(unitary, **kwargs)
+            if synth_dag:
+                dag.substitute_node_with_dag(node, synth_dag)
+        return dag
+
+
+class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
+
+    def supports_basis_gates(self):
+        return True
+
+    def supports_coupling_map(self):
+        return False
+
+    def supports_approximation_degree(self):
+        return True
+
+    def run(self, unitary, **options):
+        basis_gates = options['basis_gates']
+        approximation_degree = options['approximation_degree']
+        euler_basis = _choose_euler_basis(basis_gates)
+        kak_gate = _choose_kak_gate(basis_gates)
 
         decomposer1q, decomposer2q = None, None
         if euler_basis is not None:
             decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
         if kak_gate is not None:
             decomposer2q = TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis)
-
-        for node in dag.named_nodes('unitary'):
-
-            synth_dag = None
-            if len(node.qargs) == 1:
-                if decomposer1q is None:
-                    continue
-                synth_dag = circuit_to_dag(decomposer1q._decompose(node.op.to_matrix()))
-            elif len(node.qargs) == 2:
-                if decomposer2q is None:
-                    continue
-                synth_dag = circuit_to_dag(decomposer2q(node.op.to_matrix(),
-                                                        basis_fidelity=self._approximation_degree))
-            else:
-                synth_dag = circuit_to_dag(
-                    isometry.Isometry(node.op.to_matrix(), 0, 0).definition)
-
-            dag.substitute_node_with_dag(node, synth_dag)
-
-        return dag
+        if unitary.shape == (2, 2):
+            if decomposer1q is None:
+                return None
+            synth_dag = circuit_to_dag(decomposer1q._decompose(unitary))
+        elif unitary.shape == (4, 4):
+            if decomposer2q is None:
+                return None
+            synth_dag = circuit_to_dag(decomposer2q(unitary,
+                                                    basis_fidelity=approximation_degree))
+        else:
+            synth_dag = circuit_to_dag(
+                isometry.Isometry(unitary.op.to_matrix(), 0, 0).definition)
+        return synth_dag
