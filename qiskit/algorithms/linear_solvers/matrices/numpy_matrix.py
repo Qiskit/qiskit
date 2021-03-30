@@ -151,12 +151,15 @@ class NumpyMatrix(LinearSystemMatrix):
         if self.matrix.shape[0] != self.matrix.shape[1]:
             if raise_on_failure:
                 raise AttributeError("Input matrix must be square!")
+            return False
         if np.log2(self.matrix.shape[0]) % 1 != 0:
             if raise_on_failure:
                 raise AttributeError("Input matrix dimension must be 2^n!")
+            return False
         if not np.allclose(self.matrix, self.matrix.conj().T):
             if raise_on_failure:
                 raise AttributeError("Input matrix must be hermitian!")
+            return False
 
         return valid
 
