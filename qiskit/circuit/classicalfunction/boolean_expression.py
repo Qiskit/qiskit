@@ -65,7 +65,7 @@ class BooleanExpression(ClassicalElement):
             bits.append(BitVec(1, bit))
         return bool(self._tweedledum_bool_expression.simulate(*bits))
 
-    def synth(self, registerless: bool =True,
+    def synth(self, registerless: bool = True,
               synthesizer: Optional[Callable[["BooleanExpression"], QuantumCircuit]] = None):
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
 
