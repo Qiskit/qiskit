@@ -79,12 +79,13 @@ class TimeUnitConversion(TransformationPass):
                                       "and dt unit must not be mixed when dt is not supplied.")
 
         # Make units consistent
+        bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in dag.op_nodes():
             try:
                 node.op = node.op.copy()
                 node.op.duration = self.inst_durations.get(
                         node.op,
-                        [q.index for q in node.qargs],
+                        [bit_indices[qarg] for qarg in node.qargs],
                         unit=time_unit)
                 node.op.unit = time_unit
             except TranspilerError:
