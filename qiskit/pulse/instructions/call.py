@@ -76,7 +76,7 @@ class Call(instruction.Instruction):
 
     @property
     def channels(self) -> Tuple[Channel]:
-        """Returns channels that this schedule uses."""
+        """Returns the channels that this schedule uses."""
         return self.assigned_subroutine().channels
 
     # pylint: disable=missing-return-type-doc
