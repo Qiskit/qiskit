@@ -108,7 +108,7 @@ class Shor:
                                          angles: Union[np.ndarray, ParameterVector]
                                          ) -> QuantumCircuit:
         """Creates a circuit which implements double-controlled modular addition by a."""
-        circuit = QuantumCircuit(num_qubits, name=f"ccphi_add_mod_N")
+        circuit = QuantumCircuit(num_qubits, name="ccphi_add_mod_N")
 
         ctl_up = 0
         ctl_down = 1
