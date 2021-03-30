@@ -115,7 +115,7 @@ Additional Passes
 
    CheckMap
    CheckCXDirection
-   CXDirection
+   GateDirection
    MergeAdjacentBarriers
    BarrierBeforeFinalMeasurements
    RemoveFinalMeasurements
@@ -185,8 +185,10 @@ from .scheduling import RZXCalibrationBuilder
 
 # additional utility passes
 from .utils import CheckMap
-from .utils import CheckCXDirection
-from .utils import CXDirection
+from .utils import CheckCXDirection  # Deprecated
+from .utils import CXDirection  # Deprecated
+from .utils import CheckGateDirection
+from .utils import GateDirection
 from .utils import BarrierBeforeFinalMeasurements
 from .utils import RemoveFinalMeasurements
 from .utils import MergeAdjacentBarriers
