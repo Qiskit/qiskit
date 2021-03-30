@@ -20,7 +20,7 @@ from ddt import ddt, idata, unpack
 from qiskit import QuantumCircuit
 from qiskit.algorithms.linear_solvers.hhl import HHL
 from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import TridiagonalToeplitz
-from qiskit.algorithms.linear_solvers.matrices.numpy_matrix import NumpyMatrix
+from qiskit.algorithms.linear_solvers.matrices.numpy_matrix import NumPyMatrix
 from qiskit.algorithms.linear_solvers.observables.absolute_average import AbsoluteAverage
 from qiskit.algorithms.linear_solvers.observables.matrix_functional import MatrixFunctional
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
@@ -63,7 +63,7 @@ class TestMatrices(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(approx_exp, exact_exp, decimal=2)
 
     @idata([
-        [NumpyMatrix(np.array([[1 / 2, 1 / 6, 0, 0], [1 / 6, 1 / 2, 1 / 6, 0],
+        [NumPyMatrix(np.array([[1 / 2, 1 / 6, 0, 0], [1 / 6, 1 / 2, 1 / 6, 0],
                                [0, 1 / 6, 1 / 2, 1 / 6], [0, 0, 1 / 6, 1 / 2]]))]
     ])
     @unpack

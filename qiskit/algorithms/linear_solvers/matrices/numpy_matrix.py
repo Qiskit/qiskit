@@ -20,7 +20,7 @@ from qiskit import QuantumCircuit, QuantumRegister
 from .linear_system_matrix import LinearSystemMatrix
 
 
-class NumpyMatrix(LinearSystemMatrix):
+class NumPyMatrix(LinearSystemMatrix):
     """Class of matrices given as a numpy array.
 
     Examples:
@@ -29,9 +29,9 @@ class NumpyMatrix(LinearSystemMatrix):
 
             import numpy as np
             from qiskit import QuantumCircuit
-            from qiskit.algorithms.linear_solvers.matrices.numpy_matrix import NumpyMatrix
+            from qiskit.algorithms.linear_solvers.matrices.numpy_matrix import NumPyMatrix
 
-            matrix = NumpyMatrix(np.array([[1 / 2, 1 / 6, 0, 0], [1 / 6, 1 / 2, 1 / 6, 0],
+            matrix = NumPyMatrix(np.array([[1 / 2, 1 / 6, 0, 0], [1 / 6, 1 / 2, 1 / 6, 0],
                                [0, 1 / 6, 1 / 2, 1 / 6], [0, 0, 1 / 6, 1 / 2]]))
             power = 2
 
@@ -187,7 +187,7 @@ class NumpyMatrix(LinearSystemMatrix):
         self.compose(self.power(1), inplace=True)
 
     def inverse(self):
-        return NumpyMatrix(self.matrix, evolution_time=-1 * self.evolution_time)
+        return NumPyMatrix(self.matrix, evolution_time=-1 * self.evolution_time)
 
     def power(self, power: int, matrix_power: bool = False) -> QuantumCircuit:
         """Build powers of the circuit.

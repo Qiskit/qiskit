@@ -92,7 +92,8 @@ class HHL(LinearSolver):
     def __init__(self,
                  epsilon: float = 1e-2,
                  expectation: Optional[ExpectationBase] = None,
-                 quantum_instance: Optional[Union[Backend, QuantumInstance]] = None) -> None:
+                 quantum_instance: Optional[Union[Backend, BaseBackend, QuantumInstance]] = None)\
+            -> None:
         r"""
         Args:
             epsilon: Error tolerance of the approximation to the solution, i.e. if x is the exact

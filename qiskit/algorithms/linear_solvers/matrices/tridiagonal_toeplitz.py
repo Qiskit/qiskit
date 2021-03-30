@@ -283,10 +283,8 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             qc = QuantumCircuit(qr, name='off_diags')
             qr_ancilla = None
 
-        # Gates for H2 with t
         qc.u(-2 * theta, 3 * np.pi / 2, np.pi / 2, qr[0])
 
-        # Gates for H3
         for i in range(0, self.num_state_qubits - 1):
             q_controls = []
             qc.cx(qr[i], qr[i + 1])
@@ -326,10 +324,8 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             # Control will be qr[0]
             q_control = qr_state[0]
             qr = qr_state[1:]
-            # Gates for H2 with t
             qc_control.cu(-2 * theta, 3 * np.pi / 2, np.pi / 2, 0, q_control, qr[0])
 
-            # Gates for H3
             for i in range(0, self.num_state_qubits - 1):
                 q_controls = []
                 q_controls.append(q_control)
