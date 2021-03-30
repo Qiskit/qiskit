@@ -87,7 +87,7 @@ class NodeVisitor:
     """
     def visit(self, node: Any):
         """Visit a node."""
-        visitor = self._get_visitor(node.__class__)
+        visitor = self._get_visitor(type(node))
         return visitor(node)
 
     def _get_visitor(self, node_class):
