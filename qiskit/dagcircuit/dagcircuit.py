@@ -394,13 +394,14 @@ class DAGCircuit:
 
         return target_dag
 
-    def apply_operation_back(self, op, qargs=None, cargs=None):
+    def apply_operation_back(self, op, qargs=None, cargs=None, condition=None):
         """Apply an operation to the output of the circuit.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
+            condition (tuple or None): DEPRECATED optional condition (ClassicalRegister, int)
         Returns:
             DAGNode: the current max node
 
@@ -408,6 +409,11 @@ class DAGCircuit:
             DAGCircuitError: if a leaf node is connected to multiple outputs
 
         """
+        if condition:
+            warnings.warn("Use of condition arg is deprecated, set condition in instruction",
+                          DeprecationWarning)
+        op.condition = condition if op.condition is None else op.condition
+
         qargs = qargs or []
         cargs = cargs or []
 
@@ -430,19 +436,25 @@ class DAGCircuit:
             [self.output_map[q]._node_id for q in itertools.chain(*al)])
         return self._multi_graph[node_index]
 
-    def apply_operation_front(self, op, qargs, cargs):
+    def apply_operation_front(self, op, qargs, cargs, condition=None):
         """Apply an operation to the input of the circuit.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
+            condition (tuple or None): DEPRECATED optional condition (ClassicalRegister, int)
         Returns:
             DAGNode: the current max node
 
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
         """
+        if condition:
+            warnings.warn("Use of condition arg is deprecated, set condition in instruction",
+                          DeprecationWarning)
+
+        op.condition = condition if op.condition is None else op.condition
         all_cbits = self._bits_in_condition(op.condition)
         all_cbits.extend(cargs)
 
