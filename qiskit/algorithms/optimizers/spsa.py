@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,7 +20,7 @@ from time import time
 from collections import deque
 import numpy as np
 
-from qiskit.algorithms.optimizers import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerSupportLevel
 
 # parameters, loss, stepsize, number of function evaluations, accepted
 CALLBACK = Callable[[np.ndarray, float, float, int, bool], None]
@@ -98,6 +98,14 @@ class SPSA(Optimizer):
                 optimizer is converged.
             last_avg: Return the average of the ``last_avg`` parameters instead of just the
                 last parameter values.
+            resamplings: The number of times the gradient is sampled using a random direction to
+                construct a gradient estimate. Per default the gradient is estimated using only
+                one random direction. If an integer, all iterations use the same number of
+                resamplings. If a dictionary, this is interpreted as
+                ``{iteration: number of resamplings per iteration}``.
+            perturbation_dims: The number of perturbed dimensions. Per default, all dimensions
+                are perturbed, but a smaller, fixed number can be perturbed. If set, the perturbed
+                dimensions are chosen uniformly at random.
             callback: A callback function passed information in each iteration step. The
                 information is, in this order: the parameters, the function value, the number
                 of function evaluations, the stepsize, whether the step was accepted.
@@ -169,10 +177,9 @@ class SPSA(Optimizer):
         avg_magnitudes = 0
         for _ in range(steps):
             # compute the random directon
-            pert = np.array([1 - 2 * np.random.binomial(1, 0.5)
-                             for _ in range(dim)])
-            delta = loss(initial_point + c * pert) - \
-                loss(initial_point - c * pert)
+            pert = bernoulli_perturbation(dim)
+            delta = loss(initial_point + c * pert) - loss(initial_point - c * pert)
+
             avg_magnitudes += np.abs(delta / (2 * c))
 
         avg_magnitudes /= steps
@@ -206,8 +213,11 @@ class SPSA(Optimizer):
 
     def _point_sample(self, loss, x, eps, delta):
         """A single sample of the gradient at position ``x`` in direction ``delta``."""
-        # compute the gradient approximation and additionally return the loss function evaluations
-        plus, minus = loss(x + eps * delta), loss(x - eps * delta)
+        if self._max_evals_grouped > 1:
+            plus, minus = loss(np.concatenate((x + eps * delta, x - eps * delta)))
+        else:
+            plus, minus = loss(x + eps * delta), loss(x - eps * delta)
+
         gradient_sample = (plus - minus) / (2 * eps) * delta
         self._nfev += 2
 
@@ -347,7 +357,7 @@ class SPSA(Optimizer):
     def get_support_level(self):
         """Get the support level dictionary."""
         return {
-            'gradient': OptimizerSupportLevel.ignored,  # could be supported though
+            'gradient': OptimizerSupportLevel.ignored,
             'bounds': OptimizerSupportLevel.ignored,
             'initial_point': OptimizerSupportLevel.required
         }
