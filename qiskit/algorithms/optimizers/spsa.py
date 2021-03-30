@@ -53,9 +53,10 @@ class SPSA(Optimizer):
         simulator or a real device, SPSA would be the most recommended choice among the optimizers
         provided here.
 
-    The optimization process can includes a calibration phase if no learning rate and
-    perturbation is provided, which requires additional functional evaluations.
-    For further details, please refer to the supplementary information section IV. of [2].
+    The optimization process can includes a calibration phase if neither the ``learning_rate`` nor
+    ``perturbation`` is provided, which requires additional functional evaluations.
+    (Note that either both or none must be set.) For further details on the automatic calibration,
+    please refer to the supplementary information section IV. of [2].
 
     References:
 
@@ -92,8 +93,9 @@ class SPSA(Optimizer):
                 standard deviation of the loss function.
             trust_region: If True, restricts norm of the random direction to be :math:`\leq 1`.
             learning_rate: A generator yielding learning rates for the parameter updates,
-                :math:`a_k`.
-            perturbation: A generator yielding the perturbation magnitudes :math:`c_k`.
+                :math:`a_k`. If set, also ``perturbation`` must be provided.
+            perturbation: A generator yielding the perturbation magnitudes :math:`c_k`. If set,
+                also ``learning_rate`` must be provided.
             tolerance: If the norm of the parameter update is smaller than this threshold, the
                 optimizer is converged.
             last_avg: Return the average of the ``last_avg`` parameters instead of just the
