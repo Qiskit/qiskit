@@ -50,13 +50,8 @@ from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import ApplyLayout
-<<<<<<< HEAD
 from qiskit.transpiler.passes import CheckGateDirection
-from qiskit.transpiler.passes import TimeUnitAnalysis
-=======
-from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import TimeUnitConversion
->>>>>>> remove implicit scheduling, instead do a pass for unit conversion
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import Error
