@@ -145,14 +145,14 @@ def _sorted_nodes(dag_layer):
     return dag_instructions
 
 
-def _get_gate_span(qregs, node):
+def _get_gate_span(qubits, node):
     """Get the list of qubits drawing this gate would cover
     qiskit-terra #2802
     """
     min_index = len(qubits)
     max_index = 0
     for qreg in node.qargs:
-        index = qregs.index(qreg)
+        index = qubits.index(qreg)
 
         if index < min_index:
             min_index = index
@@ -160,9 +160,9 @@ def _get_gate_span(qregs, node):
             max_index = index
 
     if node.cargs:
-        return qregs[min_index:]
+        return qubits[min_index:]
     if node.op.condition:
-        return qregs[min_index:]
+        return qubits[min_index:]
 
     return qubits[min_index:max_index + 1]
 
