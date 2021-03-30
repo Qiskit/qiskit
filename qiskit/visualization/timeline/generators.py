@@ -90,6 +90,8 @@ Returned `ElementaryData` can be arbitrary subclasses that are implemented in
 the plotter API.
 """
 
+import warnings
+
 from typing import List, Union, Dict, Any
 
 from qiskit.circuit.exceptions import CircuitError
@@ -226,10 +228,12 @@ def gen_full_gate_name(gate: types.ScheduledGate,
     label_latex = r'{name}'.format(name=latex_name)
 
     # bit index
-    if len(gate.bits) > 1:
-        bits_str = ', '.join(map(str, [bit.index for bit in gate.bits]))
-        label_plain += '[{bits}]'.format(bits=bits_str)
-        label_latex += '[{bits}]'.format(bits=bits_str)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        if len(gate.bits) > 1:
+            bits_str = ', '.join(map(str, [bit.index for bit in gate.bits]))
+            label_plain += '[{bits}]'.format(bits=bits_str)
+            label_latex += '[{bits}]'.format(bits=bits_str)
 
     # parameter list
     params = []

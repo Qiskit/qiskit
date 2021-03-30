@@ -55,6 +55,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         qr = QuantumRegister(layout_length, 'qr')
         circuit = QuantumCircuit(qr)
         circuit._layout = Layout({qr[i]: i * 2 for i in range(layout_length)})
+        circuit._layout.add_register(qr)
         n = backend.configuration().n_qubits
         img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
         filename = str(n) + "_plot_circuit_layout_result.png"

@@ -224,7 +224,8 @@ class _LayerSpooler(list):
         """Insert node into first layer where there is no conflict going l > r"""
         measure_layer = None
         if isinstance(node.op, Measure):
-            measure_reg = node.cargs[0].register
+            measure_reg = next(reg for reg in self.measure_map
+                               if node.cargs[0] in reg)
 
         if not self:
             inserted = True
