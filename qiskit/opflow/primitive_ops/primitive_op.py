@@ -241,9 +241,12 @@ class PrimitiveOp(OperatorBase):
 
     def to_matrix_op(self, massive: bool = False) -> OperatorBase:
         """ Returns a ``MatrixOp`` equivalent to this Operator. """
-        prim_mat = self.__class__(self.primitive).to_matrix(massive=massive)
+        coeff = self.coeff
+        op = self.copy()
+        op._coeff = 1
+        prim_mat = op.to_matrix(massive=massive)
         from .matrix_op import MatrixOp
-        return MatrixOp(prim_mat, coeff=self.coeff)
+        return MatrixOp(prim_mat, coeff=coeff)
 
     def to_instruction(self) -> Instruction:
         """ Returns an ``Instruction`` equivalent to this Operator. """

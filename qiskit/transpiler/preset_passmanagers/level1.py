@@ -24,7 +24,7 @@ from qiskit.transpiler.passes import UnrollCustomDefinitions
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler.passes import CXDirection
+from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
@@ -42,7 +42,7 @@ from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import ApplyLayout
-from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
@@ -90,6 +90,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
+    approximation_degree = pass_manager_config.approximation_degree
 
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
@@ -156,18 +157,18 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates),
+            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 7. Fix any bad CX directions
-    _direction_check = [CheckCXDirection(coupling_map)]
+    _direction_check = [CheckGateDirection(coupling_map)]
 
     def _direction_condition(property_set):
         return not property_set['is_direction_mapped']
 
-    _direction = [CXDirection(coupling_map)]
+    _direction = [GateDirection(coupling_map)]
 
     # 8. Remove zero-state reset
     _reset = RemoveResetInZeroState()
@@ -204,6 +205,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if coupling_map and not coupling_map.is_symmetric:
         pm1.append(_direction_check)
         pm1.append(_direction, condition=_direction_condition)
+        pm1.append(_unroll)
     pm1.append(_reset)
     pm1.append(_depth_check + _opt, do_while=_opt_control)
     if scheduling_method:

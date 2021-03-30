@@ -1112,13 +1112,17 @@ class DAGCircuit:
                     op.num_qubits, op.num_clbits))
 
         if inplace:
+            save_condition = node.op.condition
             node.op = op
             node.name = op.name
+            node.op.condition = save_condition
             return node
 
         new_node = copy.copy(node)
+        save_condition = new_node.op.condition
         new_node.op = op
         new_node.name = op.name
+        new_node.op.condition = save_condition
         self._multi_graph[node._node_id] = new_node
         return new_node
 
