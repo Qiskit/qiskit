@@ -2331,6 +2331,11 @@ class QuantumCircuit:
         from .library.standard_gates.rzz import RZZGate
         return self.append(RZZGate(theta), [qubit1, qubit2], [])
 
+    def ecr(self, qubit1, qubit2):
+        """Apply :class:`~qiskit.circuit.library.ECRGate`."""
+        from .library.standard_gates.ecr import ECRGate
+        return self.append(ECRGate(), [qubit1, qubit2], [])
+
     def s(self, qubit):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.SGate`."""
         from .library.standard_gates.s import SGate
