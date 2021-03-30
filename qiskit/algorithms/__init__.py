@@ -107,6 +107,8 @@ Algorithms to solve linear systems of equations.
 
    HHL
    NumPyLinearSolver
+   LinearSolver
+   LinearSolverResult
 
 Minimum Eigensolvers
 ++++++++++++++++++++
