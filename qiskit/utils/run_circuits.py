@@ -24,7 +24,6 @@ import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.providers import Backend, BaseBackend, JobStatus, JobError, BaseJob
 from qiskit.providers.jobstatus import JOB_FINAL_STATES
-from qiskit.providers.basicaer import BasicAerJob
 from qiskit.result import Result
 from qiskit.qobj import QasmQobj
 from ..exceptions import QiskitError, MissingOptionalLibraryError
@@ -372,10 +371,7 @@ def run_on_backend(backend: Union[Backend, BaseBackend],
                 qobj.config.noise_model = noise_config['noise_model']
             job = backend.run(qobj, validate=False)
         elif is_basicaer_provider(backend):
-            job_id = str(uuid.uuid4())
-            backend._set_options(qobj_config=qobj.config, **backend_options)
-            job = BasicAerJob(backend, job_id, backend._run_job, qobj)
-            job._future = job._executor.submit(job._fn, job._job_id, job._qobj)
+            job = backend.run(qobj, **backend_options)
         else:
             logger.info(
                 "Can't skip qobj validation for the %s provider.",
