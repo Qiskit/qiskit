@@ -1,6 +1,11 @@
 ---
 fixes:
   - |
-    Fixes a bug in `template_substitution.py` in which templates with parameters causes a
-    crash due to unbound parameters after `_attempt_bind`. Now, after `_attempt_bind`
-    valid matches that leave unbound parameters in the template are discarded.
+    Fixed an issue in the :class:`qiskit.transpiler.passes.TemplateOptimization`
+    transpiler passes where template circuits that contained unbound
+    :class:`~qiskit.circuit.Parameter` objects would crash under some scenarios
+    if the parameters could not be bound during the template matching.
+    Now, if the :class:`~qiskit.circuit.Parameter` objects can not be bound
+    template with unbound :class:`~qiskit.circuit.Parameter` are discarded and
+    ignored by the :class:`~qiskit.transpiler.passes.TemplateOptimization` pass.
+    Fixed `#5533 <https://github.com/Qiskit/qiskit-terra/issues/5533>`__
