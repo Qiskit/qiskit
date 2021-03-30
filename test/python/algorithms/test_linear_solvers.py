@@ -44,8 +44,7 @@ class TestMatrices(QiskitAlgorithmsTestCase):
     @unpack
     def test_tridiagonal_toeplitz(self, matrix, time=1.0, power=1):
         """Test the TridiagonalToeplitz class."""
-        if time is not None:
-            matrix.evolution_time = time
+        matrix.evolution_time = time
 
         num_qubits = matrix.num_state_qubits
         pow_circ = matrix.power(power).control()
