@@ -207,7 +207,7 @@ class Call(instruction.Instruction):
         return hash(tuple(self.arguments.items()))
 
     def __eq__(self, other: 'Instruction') -> bool:
-        """Check if this Instruction is equal to the `other` instruction.
+        """Check if this instruction is equal to the `other` instruction.
 
         Equality is determined by the instruction sharing the same operands and channels.
         """
