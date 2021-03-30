@@ -1847,6 +1847,7 @@ class QuantumCircuit:
 
         # Set circ cregs and instructions to match the new DAGCircuit's
         circ.data.clear()
+        circ._parameter_table.clear()
         circ.cregs = list(new_dag.cregs.values())
 
         for node in new_dag.topological_op_nodes():
