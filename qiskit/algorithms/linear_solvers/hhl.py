@@ -281,7 +281,7 @@ class HHL(LinearSolver):
             vector: The vector specifying the right hand side of the equation in Ax=b.
 
         Returns:
-            QuantumCircuit: the QuantumCircuit object for the constructed circuit
+            The HHL circuit.
 
         Raises:
             ValueError: If the input is not in the correct format.
