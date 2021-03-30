@@ -157,7 +157,7 @@ class Schedule:
 
     @property
     def metadata(self) -> Dict[str, Any]:
-        """The user provided metadata associated with the schedule
+        """The user provided metadata associated with the schedule.
 
         User provided ``dict`` of metadata for the schedule. 
         The metadata contents do not affect the semantics of the program
@@ -902,14 +902,14 @@ class ScheduleBlock:
 
     @property
     def metadata(self) -> Dict[str, Any]:
-        """The user provided metadata associated with the schedule
+        """The user provided metadata associated with the schedule.
 
-        The metadata for the schedule is a user provided ``dict`` of metadata
-        for the schedule. It will not be used to influence the execution or
-        operation of the schedule, but it is expected to be passed between
-        all transforms of the schedule and that providers will associate any
-        schedule metadata with the results it returns from execution of that
-        schedule.
+        User provided ``dict`` of metadata for the schedule.
+        The metadata contents do not affect the semantics of the program
+        but are used to influence the execution of the schedule. It is expected
+        to be passed between all transforms of the schedule and that providers
+        will associate any schedule metadata with the results it returns from the
+        execution of that schedule.
         """
         return self._metadata
 

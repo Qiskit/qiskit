@@ -98,7 +98,7 @@ class Instruction(ABC):
 
     @abstractproperty
     def channels(self) -> Tuple[Channel]:
-        """Returns channels that this schedule uses."""
+        """Returns the channels that this schedule uses."""
         raise NotImplementedError
 
     @property

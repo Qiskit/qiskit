@@ -66,7 +66,7 @@ class ShiftPhase(Instruction):
 
     @property
     def channels(self) -> Tuple[PulseChannel]:
-        """Returns the channels this instruction applies to."""
+        """Returns the channels that this schedule uses."""
         return (self.channel, )
 
     @property
@@ -120,7 +120,7 @@ class SetPhase(Instruction):
 
     @property
     def channels(self) -> Tuple[PulseChannel]:
-        """Returns the channels this instruction applies to."""
+        """Returns the channels that this schedule uses."""
         return (self.channel, )
 
     @property

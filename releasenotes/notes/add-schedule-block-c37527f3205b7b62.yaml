@@ -2,10 +2,10 @@
 features:
   - |
     A new pulse program representation :py:class:`~qiskit.pulse.ScheduleBlock` has been added.
-    This representation is best suited for the pulse builder syntax and is based on relative instruction
-    ordering.
+    This representation is best suited for the pulse builder syntax and is based on
+    relative instruction ordering.
 
-    This representation takes ``transform`` instead of specifying starting time ``t0`` for
+    This representation takes ``alignment_context`` instead of specifying starting time ``t0`` for
     each instruction. The start time of instruction is implicitly allocated with
     the specified transformation and relative position of instructions.
 
@@ -23,7 +23,7 @@ features:
 
         dur = Parameter('rabi_duration')
 
-        block = ScheduleBlock(transform=AlignRight())
+        block = ScheduleBlock(alignment_context=AlignRight())
         block += Play(Gaussian(dur, 0.1, dur/4), DriveChannel(0))
         block += Call(measure_sched)  # subroutine defined elsewhere
 
