@@ -232,8 +232,15 @@ class _LayerSpooler(list):
         else:
             inserted = False
             curr_index = index
-            index_stop = -1 if not node.condition else self.measure_map[node.condition[0]]
             last_insertable_index = -1
+            index_stop = -1
+            if node.condition:
+                index_stop = self.measure_map[node.condition[0]]
+            elif node.cargs:
+                for carg in node.cargs:
+                    if self.measure_map[carg.register] > index_stop:
+                        index_stop = self.measure_map[carg.register]
+
             while curr_index > index_stop:
                 if self.is_found_in(node, self[curr_index]):
                     break

@@ -54,6 +54,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
               scheduling_method: Optional[str] = None,
               instruction_durations: Optional[InstructionDurationsType] = None,
               dt: Optional[float] = None,
+              approximation_degree: Optional[float] = None,
               seed_transpiler: Optional[int] = None,
               optimization_level: Optional[int] = None,
               pass_manager: Optional[PassManager] = None,
@@ -143,6 +144,8 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             If the time unit is 'dt', the duration must be an integer.
         dt: Backend sample time (resolution) in seconds.
             If ``None`` (default), ``backend.configuration().dt`` is used.
+        approximation_degree (float): heuristic dial used for circuit approximation
+            (1.0=no approximation, 0.0=maximal approximation)
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -211,6 +214,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                     initial_layout=initial_layout, layout_method=layout_method,
                                     routing_method=routing_method,
                                     translation_method=translation_method,
+                                    approximation_degree=approximation_degree,
                                     backend=backend)
 
         warnings.warn("The parameter pass_manager in transpile is being deprecated. "
@@ -233,8 +237,8 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                            backend_properties, initial_layout,
                                            layout_method, routing_method, translation_method,
                                            scheduling_method, instruction_durations, dt,
-                                           seed_transpiler, optimization_level,
-                                           callback, output_name)
+                                           approximation_degree, seed_transpiler,
+                                           optimization_level, callback, output_name)
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
 
@@ -390,7 +394,7 @@ def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, layout_method, routing_method, translation_method,
                           scheduling_method, instruction_durations, dt,
-                          seed_transpiler, optimization_level,
+                          approximation_degree, seed_transpiler, optimization_level,
                           callback, output_name) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -422,11 +426,11 @@ def _parse_transpile_args(circuits, backend,
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
+    approximation_degree = _parse_approximation_degree(approximation_degree, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
     callback = _parse_callback(callback, num_circuits)
-
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
     scheduling_method = _parse_scheduling_method(scheduling_method, circuits)
     if scheduling_method and not durations:
@@ -436,7 +440,7 @@ def _parse_transpile_args(circuits, backend,
     list_transpile_args = []
     for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
                     layout_method, routing_method, translation_method, scheduling_method,
-                    durations, seed_transpiler, optimization_level,
+                    durations, approximation_degree, seed_transpiler, optimization_level,
                     output_name, callback, backend_num_qubits, faulty_qubits_map):
         transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
                                                                    coupling_map=args[1],
@@ -447,12 +451,13 @@ def _parse_transpile_args(circuits, backend,
                                                                    translation_method=args[6],
                                                                    scheduling_method=args[7],
                                                                    instruction_durations=args[8],
-                                                                   seed_transpiler=args[9]),
-                          'optimization_level': args[10],
-                          'output_name': args[11],
-                          'callback': args[12],
-                          'backend_num_qubits': args[13],
-                          'faulty_qubits_map': args[14]}
+                                                                   approximation_degree=args[9],
+                                                                   seed_transpiler=args[10]),
+                          'optimization_level': args[11],
+                          'output_name': args[12],
+                          'callback': args[13],
+                          'backend_num_qubits': args[14],
+                          'faulty_qubits_map': args[15]}
         list_transpile_args.append(transpile_args)
 
     return list_transpile_args
@@ -674,6 +679,14 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuits):
 
         durations.append(circ_durations)
     return durations
+
+
+def _parse_approximation_degree(approximation_degree, num_circuits):
+    if not isinstance(approximation_degree, list):
+        approximation_degree = [approximation_degree] * num_circuits
+    if not all(0.0 <= d <= 1.0 for d in approximation_degree if d):
+        raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
+    return approximation_degree
 
 
 def _parse_seed_transpiler(seed_transpiler, num_circuits):

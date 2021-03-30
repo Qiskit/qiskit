@@ -98,10 +98,8 @@ class NLocal(BlueprintCircuit):
             skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
             skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
                 are entangled. If ``False``, the rotation gates act on all qubits.
-            initial_state: A `qiskit.aqua.components.initial_states.InitialState` object which can
-                be used to describe an initial state prepended to the NLocal circuit. This
-                is primarily for compatibility with algorithms in Qiskit Aqua, which leverage
-                this object to prepare input states.
+            initial_state: A `QuantumCircuit` object which can be used to describe an initial state
+                prepended to the NLocal circuit.
             name: The name of the circuit.
 
         Examples:
@@ -109,8 +107,6 @@ class NLocal(BlueprintCircuit):
 
         Raises:
             ImportError: If an ``initial_state`` is specified but Qiskit Aqua is not installed.
-            TypeError: If an ``initial_state`` is specified but not of the correct type,
-                ``qiskit.aqua.components.initial_states.InitialState``.
             ValueError: If reps parameter is less than or equal to 0.
         """
         super().__init__(name=name)
@@ -150,16 +146,6 @@ class NLocal(BlueprintCircuit):
             self.entanglement = entanglement
 
         if initial_state is not None:
-            try:
-                from qiskit.aqua.components.initial_states import InitialState
-                if not isinstance(initial_state, InitialState):
-                    raise TypeError('initial_state must be of type InitialState, but is '
-                                    '{}.'.format(type(initial_state)))
-            except ImportError as ex:
-                raise ImportError(
-                    'Could not import the qiskit.aqua.components.initial_states.'
-                    'InitialState. To use this feature Qiskit Aqua must be installed.'
-                ) from ex
             self.initial_state = initial_state
 
     @property

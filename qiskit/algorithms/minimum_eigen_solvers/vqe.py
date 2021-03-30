@@ -32,7 +32,6 @@ from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils.quantum_instance import QuantumInstance
 from ..optimizers import Optimizer, SLSQP
-from ..variational_forms import VariationalForm
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 from ..exceptions import AlgorithmError
@@ -51,11 +50,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     the minimum eigenvalue of the Hamiltonian :math:`H` of a given system.
 
     An instance of VQE requires defining two algorithmic sub-components:
-    a trial state (ansatz) from  :mod:`~qiskit.algorithms.variational_forms`, and one
-    of the classical :mod:`~qiskit.algorithms.optimizers`. The ansatz is varied, via its set
-    of parameters, by the optimizer, such that it works towards a state, as determined by the
-    parameters applied to the variational form, that will result in the minimum expectation value
-    being measured of the input operator (Hamiltonian).
+    a trial state (a.k.a. ansatz) which is a :class:`QuantumCircuit`, and one of the classical
+    :mod:`~qiskit.algorithms.optimizers`. The ansatz is varied, via its set of parameters, by the
+    optimizer, such that it works towards a state, as determined by the parameters applied to the
+    variational form, that will result in the minimum expectation value being measured of the input
+    operator (Hamiltonian).
 
     An optional array of parameter values, via the *initial_point*, may be provided as the
     starting point for the search of the minimum eigenvalue. This feature is particularly useful
@@ -87,7 +86,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     """
 
     def __init__(self,
-                 var_form: Optional[Union[QuantumCircuit, VariationalForm]] = None,
+                 var_form: Optional[QuantumCircuit] = None,
                  optimizer: Optional[Optimizer] = None,
                  initial_point: Optional[np.ndarray] = None,
                  gradient: Optional[Union[GradientBase, Callable]] = None,
@@ -495,8 +494,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         if self._ret.optimal_point is None:
             raise AlgorithmError("Cannot find optimal circuit before running the "
                                  "algorithm to find optimal params.")
-        if isinstance(self.var_form, VariationalForm):
-            return self._var_form.construct_circuit(self._ret.optimal_point)
         return self.var_form.assign_parameters(self._ret.optimal_parameters)
 
     def get_optimal_vector(self) -> Union[List[float], Dict[str, int]]:

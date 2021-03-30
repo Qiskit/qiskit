@@ -121,7 +121,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         self.assertGreater(quantum_instance.time_taken, 0.)
         quantum_instance.reset_execution_results()
-        self.assertAlmostEqual(result.eigenvalue.real, -1.86, places=2)
+        self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
 
 
 if __name__ == '__main__':

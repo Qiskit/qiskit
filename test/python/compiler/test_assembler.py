@@ -1224,24 +1224,6 @@ class TestPulseAssembler(QiskitTestCase):
         qobj = assemble(inst, self.backend)
         validate_qobj_against_schema(qobj)
 
-    def test_assemble_qubits_not_in_meas_map(self):
-        """Testing that the assembly errors when measured qubits not in meas_map."""
-        schedule = Schedule()
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0)),
-        )
-        schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
-        )
-        schedule = schedule.append(
-            Acquire(10, AcquireChannel(3), MemorySlot(3)) << 1,
-        )
-        with self.assertRaises(QiskitError):
-            assemble(schedule,
-                     qubit_lo_freq=self.default_qubit_lo_freq,
-                     meas_lo_freq=self.default_meas_lo_freq,
-                     meas_map=[[0, 1]])
-
     def test_assemble_overlapping_time(self):
         """Test that assembly errors when qubits are measured in overlapping time."""
         schedule = Schedule()

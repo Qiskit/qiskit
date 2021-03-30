@@ -23,9 +23,9 @@ from qiskit import BasicAer, QuantumCircuit
 from qiskit.circuit.library import TwoLocal, EfficientSU2
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.opflow import (PrimitiveOp, X, Z, I,
+from qiskit.opflow import (PrimitiveOp, X, Z, I, PauliSumOp,
                            AerPauliExpectation, PauliExpectation,
-                           MatrixExpectation, ExpectationBase)
+                           MatrixExpectation, ExpectationBase, TwoQubitReduction)
 from qiskit.algorithms.optimizers import L_BFGS_B, COBYLA, SPSA, SLSQP
 from qiskit.algorithms import VQE, AlgorithmError
 
@@ -232,6 +232,39 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+
+    def test_with_two_qubit_reduction(self):
+        """Test the VQE using TwoQubitReduction."""
+        qubit_op = PauliSumOp.from_list(
+            [
+                ("IIII", -0.8105479805373266),
+                ("IIIZ", 0.17218393261915552),
+                ("IIZZ", -0.22575349222402472),
+                ("IZZI", 0.1721839326191556),
+                ("ZZII", -0.22575349222402466),
+                ("IIZI", 0.1209126326177663),
+                ("IZZZ", 0.16892753870087912),
+                ("IXZX", -0.045232799946057854),
+                ("ZXIX", 0.045232799946057854),
+                ("IXIX", 0.045232799946057854),
+                ("ZXZX", -0.045232799946057854),
+                ("ZZIZ", 0.16614543256382414),
+                ("IZIZ", 0.16614543256382414),
+                ("ZZZZ", 0.17464343068300453),
+                ("ZIZI", 0.1209126326177663),
+            ]
+        )
+        tapered_qubit_op = TwoQubitReduction(num_particles=2).convert(qubit_op)
+        for simulator in [self.qasm_simulator, self.statevector_simulator]:
+            with self.subTest(f"Test for {simulator}."):
+                vqe = VQE(
+                    self.ry_wavefunction,
+                    SPSA(maxiter=300, last_avg=5),
+                    quantum_instance=simulator,
+                )
+                result = vqe.compute_minimum_eigenvalue(tapered_qubit_op)
+                energy = -1.868 if simulator == self.qasm_simulator else self.h2_energy
+                self.assertAlmostEqual(result.eigenvalue.real, energy, places=2)
 
     def test_callback(self):
         """Test the callback on VQE."""

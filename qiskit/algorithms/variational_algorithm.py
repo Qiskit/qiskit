@@ -26,14 +26,13 @@ import logging
 from abc import abstractmethod
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, ParameterVector
+from qiskit.circuit import QuantumCircuit
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils import QuantumInstance, algorithm_globals
 from .algorithm_result import AlgorithmResult
 from .optimizers import Optimizer, SLSQP
-from .variational_forms import VariationalForm
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +41,7 @@ class VariationalAlgorithm:
     """The Variational Algorithm Base Class."""
 
     def __init__(self,
-                 var_form: Union[QuantumCircuit, VariationalForm],
+                 var_form: QuantumCircuit,
                  optimizer: Optimizer,
                  cost_fn: Optional[Callable] = None,
                  gradient: Optional[Union[GradientBase, Callable]] = None,
@@ -96,19 +95,16 @@ class VariationalAlgorithm:
         self._quantum_instance = quantum_instance
 
     @property
-    def var_form(self) -> Optional[Union[QuantumCircuit, VariationalForm]]:
+    def var_form(self) -> Optional[QuantumCircuit]:
         """ Returns variational form """
         return self._var_form
 
     @var_form.setter
-    def var_form(self, var_form: Optional[Union[QuantumCircuit, VariationalForm]]):
+    def var_form(self, var_form: Optional[QuantumCircuit]):
         """ Sets variational form """
         if isinstance(var_form, QuantumCircuit):
             # store the parameters
             self._var_form_params = sorted(var_form.parameters, key=lambda p: p.name)
-            self._var_form = var_form
-        elif isinstance(var_form, VariationalForm):
-            self._var_form_params = ParameterVector('θ', length=var_form.num_parameters)
             self._var_form = var_form
         elif var_form is None:
             self._var_form_params = None
@@ -138,7 +134,7 @@ class VariationalAlgorithm:
 
     def find_minimum(self,
                      initial_point: Optional[np.ndarray] = None,
-                     var_form: Optional[Union[QuantumCircuit, VariationalForm]] = None,
+                     var_form: Optional[QuantumCircuit] = None,
                      cost_fn: Optional[Callable] = None,
                      optimizer: Optional[Optimizer] = None,
                      gradient_fn: Optional[Callable] = None) -> 'VariationalResult':
