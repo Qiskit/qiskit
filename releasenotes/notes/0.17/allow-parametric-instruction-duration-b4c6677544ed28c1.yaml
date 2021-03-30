@@ -19,7 +19,8 @@ features:
 
     Note that while we can create an instruction with a parameterized
     ``duration`` adding an instruction with unbound parameter ``duration``
-    to a schedule is not yet supported. See the known issues release notes
+    to a schedule is supported only by the newly introduced representation 
+    :class:`~qiskit.pulse.ScheduleBlock`. See the known issues release notes
     section for more details.
 
 issues:
@@ -28,12 +29,9 @@ issues:
     with a parameterized ``duration`` (ie the value of ``duration`` is
     an unbound :class:`~qiskit.circuit.Parameter` or
     :class:`~qiskit.circuit.ParameterExpression` object) to a
-    :class:`qiskit.pulse.Schedule` is not yet supported. Attempting to do
+    :class:`qiskit.pulse.Schedule` is not supported. Attempting to do
     so will result in ``UnassignedDurationError``
     :class:`~qiskit.pulse.PulseError` being raised. This is a limitation of
     how the :class:`~qiskit.pulse.Instruction` overlap constraints are
-    evaluated currently. A future release of Qiskit may implement an alternative
-    representation that allows lazy instruction scheduling with parameterized
-    durations, but for now this all parameterized ``duration`` parameters on
-    :class:`qiskit.pulse.Instruction` must be bound prior to add them to
-    a :class:`qiskit.pulse.Schedule`.
+    evaluated currently. This is supported by :class:`~qiskit.pulse.ScheduleBlock`,
+    in which the overlap constraints are evaluated just before the execution. 
