@@ -96,8 +96,15 @@ class MatrixFunctional(LinearSystemObservable):
         observables.append(I ^ num_qubits)
         for i in range(num_qubits):
             j = num_qubits - i - 1
-            observables += [(I ^ j) ^ zero_op ^ TensoredOp(i * [one_op]),
-                            (I ^ j) ^ one_op ^ TensoredOp(i * [one_op])]
+
+            # TODO this if can be removed once the bug in Opflow is fixed where
+            # TensoredOp([X, TensoredOp([])]).eval() ends up in infinite recursion
+            if i > 0:
+                observables += [(I ^ j) ^ zero_op ^ TensoredOp(i * [one_op]),
+                                (I ^ j) ^ one_op ^ TensoredOp(i * [one_op])]
+            else:
+                observables += [(I ^ j) ^ zero_op, (I ^ j) ^ one_op]
+
         return observables
 
     def observable_circuit(self, num_qubits: int) -> Union[QuantumCircuit, List[QuantumCircuit]]:
