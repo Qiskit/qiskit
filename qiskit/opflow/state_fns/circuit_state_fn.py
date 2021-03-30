@@ -19,8 +19,10 @@ import numpy as np
 
 from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, execute
 from qiskit.circuit import Instruction, ParameterExpression
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import IGate
 from qiskit.extensions import Initialize
+from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.composed_op import ComposedOp
 from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.list_ops.summed_op import SummedOp
@@ -135,7 +137,14 @@ class CircuitStateFn(StateFn):
         return SummedOp([self, other])
 
     def adjoint(self) -> "CircuitStateFn":
-        return CircuitStateFn(self.primitive.inverse(),
+        try:
+            inverse = self.primitive.inverse()
+        except CircuitError as missing_inverse:
+            raise OpflowError('Failed to take the inverse of the underlying circuit, the circuit '
+                              'is likely not unitary and can therefore not be inverted.') \
+                from missing_inverse
+
+        return CircuitStateFn(inverse,
                               coeff=self.coeff.conjugate(),
                               is_measurement=(not self.is_measurement))
 
