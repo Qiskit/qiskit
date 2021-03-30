@@ -14,6 +14,6 @@ fixes:
     :meth:`~qiskit.circuit.QuantumCircuit.qasm` by defining a composite gate
     which uses :class:`~qiskit.circuit.XGate` to implement the open controls.
     The composite gate is named like ``<original_gate_name>_o<ctrl_state>``
-    where ``o`` stands for open control and ``ctrl_state` is the integer value
+    where ``o`` stands for open control and ``ctrl_state`` is the integer value
     of the control state.
     Fixed `#5443 <https://github.com/Qiskit/qiskit-terra/issues/5443>`__
