@@ -27,7 +27,7 @@ from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
     HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
     CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
-    U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
+    U2Gate, U3Gate, CU3Gate, XGate, CXGate, ECRGate, CCXGate, YGate, CYGate,
     ZGate, CZGate, RYYGate, PhaseGate, CPhaseGate, UGate, CUGate,
     SXGate, SXdgGate, CSXGate, RVGate
 )
@@ -113,6 +113,14 @@ class TestGateDefinitions(QiskitTestCase):
         """
         circ = QuantumCircuit(2)
         circ.cx(0, 1)
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_ecr_definition(self):
+        """Test ecr gate matrix and definition.
+        """
+        circ = QuantumCircuit(2)
+        circ.ecr(0, 1)
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
@@ -263,7 +271,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
     @data(
         HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
         CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
-        U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
+        U2Gate, U3Gate, CU3Gate, XGate, CXGate, ECRGate, CCXGate, YGate, CYGate,
         ZGate, CZGate, RYYGate, PhaseGate, CPhaseGate, UGate, CUGate,
         SXGate, SXdgGate, CSXGate
     )
