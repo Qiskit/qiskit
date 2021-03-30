@@ -157,7 +157,8 @@ class SPSA(Optimizer):
             initial_point: The initial guess of the iteration.
             c: The initial perturbation magnitude.
             stability_constant: The value of `A`.
-            target_magnitude: The target magnitude for the first update step.
+            target_magnitude: The target magnitude for the first update step, defaults to
+                :math:`2\pi / 10`.
             alpha: The exponent of the learning rate powerseries.
             gamma: The exponent of the perturbation powerseries.
             modelspace: Whether the target magnitude is the difference of parameter values
