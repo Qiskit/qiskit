@@ -209,7 +209,7 @@ class Call(instruction.Instruction):
     def __eq__(self, other: 'Instruction') -> bool:
         """Check if this instruction is equal to the `other` instruction.
 
-        Equality is determined by the instruction sharing the same operands and channels.
+        Instructions are equal if they share the same type, operands, and channels.
         """
         # type check
         if not isinstance(other, self.__class__):
