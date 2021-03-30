@@ -90,7 +90,5 @@ class NumPyLinearSolver(LinearSolver):
                     solution.observable.append(obs.evaluate(solution_vector))
             else:
                 solution.observable = observable.evaluate(solution_vector)
-        else:
-            solution.observable = solution_vector
         solution.euclidean_norm = np.linalg.norm(solution_vector)
         return solution
