@@ -353,6 +353,23 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
         self.assertTrue('measure' in circuit.count_ops().keys())
 
+    def test_remove_final_measurements_copy_with_parameters(self):
+        """Test remove_final_measurements doesn't corrupt ParameterTable
+
+        See https://github.com/Qiskit/qiskit-terra/issues/6108 for more details
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, 'meas')
+        theta = Parameter('theta')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.rz(theta, qr)
+        circuit.measure(qr, cr)
+        circuit.remove_final_measurements()
+        copy = circuit.copy()
+
+        self.assertEqual(copy, circuit)
+
     def test_remove_final_measurements_multiple_measures(self):
         """Test remove_final_measurements only removes measurements at the end of the circuit
         remove_final_measurements should not remove measurements in the beginning or middle of the

@@ -155,6 +155,10 @@ class BasisTranslator(TransformationPass):
                 if (len(bound_target_dag.op_nodes()) == 1
                         and len(bound_target_dag.op_nodes()[0].qargs) == len(node.qargs)):
                     dag_op = bound_target_dag.op_nodes()[0].op
+                    # dag_op may be the same instance as other ops in the dag,
+                    # so if there is a condition, need to copy
+                    if node.op.condition:
+                        dag_op = dag_op.copy()
                     dag.substitute_node(node, dag_op, inplace=True)
 
                     if bound_target_dag.global_phase:

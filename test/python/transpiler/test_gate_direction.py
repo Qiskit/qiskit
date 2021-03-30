@@ -15,16 +15,15 @@ import unittest
 from math import pi
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import U2Gate
 from qiskit.transpiler import TranspilerError
 from qiskit.transpiler import CouplingMap
-from qiskit.transpiler.passes import CXDirection
+from qiskit.transpiler.passes import GateDirection
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
 
-class TestCXDirection(QiskitTestCase):
-    """ Tests the CXDirection pass."""
+class TestGateDirection(QiskitTestCase):
+    """ Tests the GateDirection pass."""
 
     def test_no_cnots(self):
         """ Trivial map in a circuit without entanglement
@@ -42,7 +41,7 @@ class TestCXDirection(QiskitTestCase):
         coupling = CouplingMap()
         dag = circuit_to_dag(circuit)
 
-        pass_ = CXDirection(coupling)
+        pass_ = GateDirection(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -63,7 +62,7 @@ class TestCXDirection(QiskitTestCase):
         coupling = CouplingMap([[0, 1], [0, 2]])
         dag = circuit_to_dag(circuit)
 
-        pass_ = CXDirection(coupling)
+        pass_ = GateDirection(coupling)
 
         with self.assertRaises(TranspilerError):
             pass_.run(dag)
@@ -82,7 +81,7 @@ class TestCXDirection(QiskitTestCase):
         coupling = CouplingMap([[0, 1]])
         dag = circuit_to_dag(circuit)
 
-        pass_ = CXDirection(coupling)
+        pass_ = GateDirection(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -106,13 +105,41 @@ class TestCXDirection(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.append(U2Gate(0, pi), [qr[0]])
-        expected.append(U2Gate(0, pi), [qr[1]])
+        expected.h(qr[0])
+        expected.h(qr[1])
         expected.cx(qr[0], qr[1])
-        expected.append(U2Gate(0, pi), [qr[0]])
-        expected.append(U2Gate(0, pi), [qr[1]])
+        expected.h(qr[0])
+        expected.h(qr[1])
 
-        pass_ = CXDirection(coupling)
+        pass_ = GateDirection(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_ecr_flip(self):
+        """ Flip a ECR gate.
+                 ┌──────┐
+            q_0: ┤1     ├
+                 │  ECR │
+            q_1: ┤0     ├
+                 └──────┘
+
+         CouplingMap map: [0, 1]
+        """
+        qr = QuantumRegister(2, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.ecr(qr[1], qr[0])
+        coupling = CouplingMap([[0, 1]])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr)
+        expected.ry(pi/2, qr[0])
+        expected.ry(-pi/2, qr[1])
+        expected.ecr(qr[0], qr[1])
+        expected.h(qr[0])
+        expected.h(qr[1])
+
+        pass_ = GateDirection(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
@@ -143,20 +170,20 @@ class TestCXDirection(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr, cr)
-        expected.append(U2Gate(0, pi), [qr[0]])
-        expected.append(U2Gate(0, pi), [qr[1]])
+        expected.h(qr[0])
+        expected.h(qr[1])
         expected.cx(qr[0], qr[1])
-        expected.append(U2Gate(0, pi), [qr[0]])
-        expected.append(U2Gate(0, pi), [qr[1]])
+        expected.h(qr[0])
+        expected.h(qr[1])
         expected.measure(qr[0], cr[0])
 
-        pass_ = CXDirection(coupling)
+        pass_ = GateDirection(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_preserves_conditions(self):
-        """Verify CXDirection preserves conditional on CX gates.
+        """Verify GateDirection preserves conditional on CX gates.
 
                         ┌───┐      ┌───┐
         q_0: |0>───■────┤ X ├───■──┤ X ├
@@ -184,19 +211,23 @@ class TestCXDirection(QiskitTestCase):
         expected = QuantumCircuit(qr, cr)
         expected.cx(qr[0], qr[1]).c_if(cr, 0)
 
-        # Ordering of u2 is important because DAG comparison will consider
+        # Order of H gates is important because DAG comparison will consider
         # different conditional order on a creg to be a different circuit.
         # See https://github.com/Qiskit/qiskit-terra/issues/3164
-        expected.append(U2Gate(0, pi), [[qr[1], qr[0]]]).c_if(cr, 0)
+        expected.h(qr[1]).c_if(cr, 0)
+        expected.h(qr[0]).c_if(cr, 0)
         expected.cx(qr[0], qr[1]).c_if(cr, 0)
-        expected.append(U2Gate(0, pi), [[qr[1], qr[0]]]).c_if(cr, 0)
+        expected.h(qr[1]).c_if(cr, 0)
+        expected.h(qr[0]).c_if(cr, 0)
 
         expected.cx(qr[0], qr[1])
-        expected.append(U2Gate(0, pi), [[qr[1], qr[0]]])
+        expected.h(qr[1])
+        expected.h(qr[0])
         expected.cx(qr[0], qr[1])
-        expected.append(U2Gate(0, pi), [[qr[1], qr[0]]])
+        expected.h(qr[1])
+        expected.h(qr[0])
 
-        pass_ = CXDirection(coupling)
+        pass_ = GateDirection(coupling)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)

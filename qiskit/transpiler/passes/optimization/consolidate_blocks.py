@@ -15,7 +15,7 @@
 """Replace each block of consecutive gates by a single Unitary node."""
 
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Gate
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate
@@ -111,11 +111,21 @@ class ConsolidateBlocks(TransformationPass):
         # create the dag from the updated list of blocks
         basis_gate_name = self.decomposer.gate.name
         for block in blocks:
-            if len(block) == 1 and (block[0].name != basis_gate_name
-                                    or block[0].op.is_parameterized()):
-                # an intermediate node that was added into the overall list
-                new_dag.apply_operation_back(block[0].op, block[0].qargs,
-                                             block[0].cargs)
+            if len(block) == 1 and block[0].name != basis_gate_name:
+                # pylint: disable=too-many-boolean-expressions
+                if block[0].type == 'op' \
+                        and self.basis_gates \
+                        and block[0].name not in self.basis_gates \
+                        and len(block[0].cargs) == 0 and block[0].condition is None \
+                        and isinstance(block[0].op, Gate) \
+                        and hasattr(block[0].op, '__array__') \
+                        and not block[0].op.is_parameterized():
+                    new_dag.apply_operation_back(UnitaryGate(block[0].op.to_matrix()),
+                                                 block[0].qargs, block[0].cargs)
+                else:
+                    # an intermediate node that was added into the overall list
+                    new_dag.apply_operation_back(block[0].op, block[0].qargs,
+                                                 block[0].cargs)
             else:
                 # find the qubits involved in this block
                 block_qargs = set()
@@ -151,7 +161,7 @@ class ConsolidateBlocks(TransformationPass):
                             and not set(subcirc.count_ops()).issubset(self.basis_gates))
                 ):
                     new_dag.apply_operation_back(
-                        UnitaryGate(unitary),
+                        unitary,
                         sorted(block_qargs, key=lambda x: block_index_map[x]))
                 else:
                     for nd in block:
