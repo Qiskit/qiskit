@@ -59,7 +59,7 @@ class Schedule:
     on the same channel. This overlap constraint is immediately
     evaluated when a new instruction is added to the ``Schedule`` object.
 
-    It is necessary to specify the absolute start time and duration 
+    It is necessary to specify the absolute start time and duration
     for each instruction so as to deterministically fix its execution time.
 
     The ``Schedule`` program supports some syntax sugar for easier programming.
@@ -93,8 +93,8 @@ class Schedule:
 
     In the schedule representation, we cannot parametrize the duration of instructions.
     Thus we need to create a new schedule object for each duration.
-    To parametrize an instruction's duration, the :class:`~qiskit.pulse.ScheduleBlock` representation
-    may be used instead.
+    To parametrize an instruction's duration, the :class:`~qiskit.pulse.ScheduleBlock`
+    representation may be used instead.
 
     References:
         [1]: https://arxiv.org/abs/2004.06755
@@ -159,11 +159,11 @@ class Schedule:
     def metadata(self) -> Dict[str, Any]:
         """The user provided metadata associated with the schedule.
 
-        User provided ``dict`` of metadata for the schedule. 
+        User provided ``dict`` of metadata for the schedule.
         The metadata contents do not affect the semantics of the program
-        but are used to influence the execution of the schedule. It is expected 
-        to be passed between all transforms of the schedule and that providers 
-        will associate any schedule metadata with the results it returns from the 
+        but are used to influence the execution of the schedule. It is expected
+        to be passed between all transforms of the schedule and that providers
+        will associate any schedule metadata with the results it returns from the
         execution of that schedule.
         """
         return self._metadata
