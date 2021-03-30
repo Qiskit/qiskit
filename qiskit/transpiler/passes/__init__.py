@@ -115,6 +115,8 @@ Additional Passes
 
    CheckMap
    CheckCXDirection
+   CheckGateDirection
+   CXDirection
    GateDirection
    MergeAdjacentBarriers
    BarrierBeforeFinalMeasurements
