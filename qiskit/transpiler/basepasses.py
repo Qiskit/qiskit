@@ -128,9 +128,10 @@ class BasePass(metaclass=MetaPass):
 
         if isinstance(result, DAGCircuit):
             result_circuit = dag_to_circuit(result)
-
-        if result is None and self.property_set['layout']:
+        elif result is None:
             result_circuit = circuit.copy()
+
+        if self.property_set['layout']:
             result_circuit._layout = self.property_set['layout']
 
         return result_circuit
