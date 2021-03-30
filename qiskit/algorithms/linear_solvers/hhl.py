@@ -31,8 +31,27 @@ from .observables.linear_system_observable import LinearSystemObservable
 
 
 class HHL(LinearSolver):
-    """The HHL algorithm to solve systems of linear equations
+    r"""Systems of linear equations arise naturally in many real-life applications in a wide range
+    of areas, such as in the solution of Partial Differential Equations, the calibration of
+    financial models, fluid simulation or numerical field calculation. The problem can be defined
+    as, given a matrix :math:`A\in\mathbb{C}^{N\times N}` and a vector
+    :math:`\vec{b}\in\mathbb{C}^{N}`, find :math:`\vec{x}\in\mathbb{C}^{N}` satisfying
+    :math:`A\vec{x}=\vec{b}`.
 
+    A system of linear equations is called :math:`s`-sparse if :math:`A` has at most :math:`s`
+    non-zero entries per row or column. Solving an :math:`s`-sparse system of size :math:`N` with
+    a classical computer requires :math:`\mathcal{ O }(Ns\kappa\log(1/\epsilon))` running time
+    using the conjugate gradient method. Here :math:`\kappa` denotes the condition number of the
+    system and :math:`\epsilon` the accuracy of the approximation.
+
+    The HHL is a quantum algorithm to estimate a function of the solution with running time
+    complexity of :math:`\mathcal{ O }(\log(N)s^{2}\kappa^{2}/\epsilon)` when
+    :math:`A` is a Hermitian matrix under the assumptions of efficient oracles for loading the
+    data, Hamiltonian simulation and computing a function of the solution. This is an exponential
+    speed up in the size of the system, however one crucial remark to keep in mind is that the
+    classical algorithm returns the full solution, while the HHL can only approximate functions of
+    the solution vector.
+    
     Examples:
 
         .. jupyter-execute::
