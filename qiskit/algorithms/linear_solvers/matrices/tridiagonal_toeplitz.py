@@ -204,6 +204,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             valid = False
             if raise_on_failure:
                 raise AttributeError('The number of trotter steps should be a positive integer.')
+            return False
 
         return valid
 
