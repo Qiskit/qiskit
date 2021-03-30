@@ -62,6 +62,7 @@ Standard Gates
    RZGate
    RZZGate
    RZXGate
+   ECRGate
    SGate
    SdgGate
    SwapGate
