@@ -24,6 +24,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.symplectic import Clifford, Pauli
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
 
 
 class StabilizerState(QuantumState):
@@ -236,13 +237,26 @@ class StabilizerState(QuantumState):
 
         Additional Information:
             If all subsystems are reset this will return the ground state
-            on all subsystems. If only a some subsystems are reset this
+            on all subsystems. If only some subsystems are reset this
             function will perform a measurement on those subsystems and
             evolve the subsystems so that the collapsed post-measurement
             states are rotated to the 0-state. The RNG seed for this
             sampling can be set using the :meth:`seed` method.
         """
-        pass
+        # Resetting all qubits does not require sampling or RNG
+        if qargs is None:
+            return StabilizerState(Clifford((np.eye(2 * self.data.num_qubits))))
+
+        # Apply measurement and get classical outcome
+        outcome, res = self.measure(qargs)
+
+        # Use the outcome to apply X gate to any qubits left in the
+        # |1> state after measure, then discard outcome.
+        for j in range(len(qargs)):
+            if outcome[j] == '1':
+                _append_x(self.data, qargs[j])
+
+        return self
 
     def measure(self, qargs=None):
         """Measure subsystems and return outcome and post-measure state.
