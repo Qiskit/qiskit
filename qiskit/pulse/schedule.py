@@ -869,7 +869,7 @@ class ScheduleBlock:
                 stored as free-form data in a dict in the
                 :attr:`~qiskit.pulse.ScheduleBlock.metadata` attribute. It will not be directly
                 used in the schedule.
-            alignment_context (AlignmentTransform): ``AlignmentTransform`` instance that manages
+            alignment_context (AlignmentKind): ``AlignmentKind` instance that manages
                 scheduling of instructions in this block.
         Raises:
             TypeError: if metadata is not a dict.
