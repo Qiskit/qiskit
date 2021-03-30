@@ -90,7 +90,7 @@ class Call(instruction.Instruction):
         return self.operands[0]
 
     def assigned_subroutine(self):
-        """Returns subroutine with parameters assigned.
+        """Returns this subroutine with the parameters assigned.
 
         .. note:: This function may be often called internally for class equality check
             despite its overhead of parameter assignment.
