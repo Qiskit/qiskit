@@ -13,7 +13,7 @@
 """ClassicalFunction class"""
 
 import ast
-from typing import Callable
+from typing import Callable, Optional
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.exceptions import MissingOptionalLibraryError, QiskitError
@@ -134,7 +134,8 @@ class ClassicalFunction(ClassicalElement):
         return self._truth_table
 
     def synth(self, registerless: bool = True,
-              synthesizer: Callable[[ClassicalElement], QuantumCircuit] = None) -> QuantumCircuit:
+              synthesizer: Optional[Callable[[ClassicalElement], QuantumCircuit]] = None)\
+            -> QuantumCircuit:
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
 
         Args:

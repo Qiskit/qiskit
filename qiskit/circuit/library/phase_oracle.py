@@ -12,7 +12,7 @@
 
 """Phase Oracle object."""
 
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
@@ -42,7 +42,7 @@ class PhaseOracle(QuantumCircuit):
     """
 
     def __init__(self, expression: Union[str, ClassicalElement],
-                 synthesizer: Callable[[BooleanExpression], QuantumCircuit] = None) \
+                 synthesizer: Optional[Callable[[BooleanExpression], QuantumCircuit]] = None) \
             -> None:
         """
         Creates a PhaseOracle object

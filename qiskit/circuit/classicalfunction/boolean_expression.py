@@ -13,7 +13,7 @@
 """A quantum oracle constructed from a logical expression or a string in the DIMACS format."""
 
 from __future__ import annotations
-from typing import Callable
+from typing import Callable, Optional
 
 from os.path import basename, isfile
 
@@ -68,7 +68,7 @@ class BooleanExpression(ClassicalElement):
         return bool(self._tweedledum_bool_expression.simulate(*bits))
 
     def synth(self, registerless: bool =True,
-              synthesizer: Callable[[BooleanExpression], QuantumCircuit] = None):
+              synthesizer: Optional[Callable[[BooleanExpression], QuantumCircuit]] = None):
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
 
         Args:
