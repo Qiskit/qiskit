@@ -276,7 +276,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
             for _ in range(i):
                 multi_x = np.kron(multi_x, x_mat)
             # Target counts
-            shots = 100
+            shots = 1024
             target_counts = {num_qubits * '1': shots}
             # Test circuit
             qr = QuantumRegister(num_qubits, 'qr')
