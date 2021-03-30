@@ -43,7 +43,6 @@ class BooleanExpression(ClassicalElement):
                 pip_install='pip install tweedledum')
         from tweedledum import BoolFunction
         self._tweedledum_bool_expression = BoolFunction.from_expression(expression)
-        self.qregs = None  # TODO: Probably from self._tweedledum_bool_expression._signature
 
         short_expr_for_name = (expression[:10] + '...') if len(expression) > 13 else expression
         num_qubits = (self._tweedledum_bool_expression.num_outputs() +
