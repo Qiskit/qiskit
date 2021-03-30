@@ -34,6 +34,7 @@ class ClassicalElement(Gate, metaclass=ABCMeta):
         """
         pass
 
+    @abstractmethod
     def synth(self, registerless=True, synthesizer=None):
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
 

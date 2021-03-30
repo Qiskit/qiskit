@@ -13,11 +13,11 @@
 """ClassicalFunction class"""
 
 import ast
+from typing import Callable
 
-from qiskit.circuit import quantumregister
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.exceptions import MissingOptionalLibraryError, QiskitError
 from .classical_element import ClassicalElement
-from qiskit.exceptions import QiskitError
 from .utils import HAS_TWEEDLEDUM
 from .classical_function_visitor import ClassicalFunctionVisitor
 
@@ -33,8 +33,9 @@ class ClassicalFunction(ClassicalElement):
         Args:
             source (str): Python code with type hints.
             name (str): Optional. Default: "*classicalfunction*". ClassicalFunction name.
+
         Raises:
-            ImportError: If tweedledum is not installed.
+            MissingOptionalLibraryError: If tweedledum is not installed.
             QiskitError: If source is not a string.
         """
         if not isinstance(source, str):
@@ -126,31 +127,36 @@ class ClassicalFunction(ClassicalElement):
 
     @property
     def truth_table(self):
+        """Returns (and computes) the truth table"""
         if self._truth_table is None:
             from tweedledum.classical import simulate  # pylint: disable=no-name-in-module
             self._truth_table = simulate(self._network)
         return self._truth_table
 
-    def synth(self, registerless=True):
+    def synth(self, registerless: bool = True,
+              synthesizer: Callable[[ClassicalElement], QuantumCircuit] = None) -> QuantumCircuit:
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
 
         Args:
-            registerless (bool): Default ``True``. If ``False`` uses the parameter names to create
+            registerless: Default ``True``. If ``False`` uses the parameter names to create
             registers with those names. Otherwise, creates a circuit with a flat quantum register.
+            synthesizer: Optional. If None tweedledum's pkrm_synth is used.
 
         Returns:
             QuantumCircuit: A circuit implementing the logic network.
         """
-        from .utils import tweedledum2qiskit
-        from tweedledum.synthesis import pkrm_synth  # pylint: disable=no-name-in-module
-        from tweedledum.classical import simulate  # pylint: disable=no-name-in-module
-
         if registerless:
             qregs = None
         else:
             qregs = self.qregs
 
-        return tweedledum2qiskit(pkrm_synth(simulate(self._network)[0]),
+        if synthesizer:
+            return synthesizer(self)
+
+        from .utils import tweedledum2qiskit
+        from tweedledum.synthesis import pkrm_synth  # pylint: disable=no-name-in-module
+
+        return tweedledum2qiskit(pkrm_synth(self.truth_table[0]),
                                  name=self.name, qregs=qregs)
 
     def _define(self):
@@ -160,10 +166,8 @@ class ClassicalFunction(ClassicalElement):
     @property
     def qregs(self):
         """The list of qregs used by the classicalfunction"""
-        qregs = [
-            quantumregister.QuantumRegister(
-                1, name=arg) for arg in self.args if self.types[0][arg] == 'Int1']
+        qregs = [QuantumRegister(1, name=arg) for arg in self.args if self.types[0][arg] == 'Int1']
         qregs.reverse()
         if self.types[0]['return'] == 'Int1':
-            qregs.append(quantumregister.QuantumRegister(1, name='return'))
+            qregs.append(QuantumRegister(1, name='return'))
         return qregs

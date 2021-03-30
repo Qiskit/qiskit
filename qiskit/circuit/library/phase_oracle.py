@@ -14,7 +14,7 @@
 
 from typing import Union, Callable
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 from qiskit.circuit.classicalfunction.classical_element import ClassicalElement
 
