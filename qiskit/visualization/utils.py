@@ -238,8 +238,13 @@ class _LayerSpooler(list):
                 index_stop = self.measure_map[node.condition[0]]
             elif node.cargs:
                 for carg in node.cargs:
-                    if self.measure_map[carg.register] > index_stop:
-                        index_stop = self.measure_map[carg.register]
+                    try:
+                        carg_reg = next(reg for reg in self.measure_map
+                                        if carg in reg)
+                        if self.measure_map[carg_reg] > index_stop:
+                            index_stop = self.measure_map[carg_reg]
+                    except StopIteration:
+                        pass
 
             while curr_index > index_stop:
                 if self.is_found_in(node, self[curr_index]):
