@@ -14,6 +14,7 @@
 
 from typing import Tuple
 import numpy as np
+import scipy as sp
 
 from qiskit import QuantumCircuit, QuantumRegister
 
@@ -202,5 +203,6 @@ class NumPyMatrix(LinearSystemMatrix):
             The quantum circuit implementing powers of the unitary.
         """
         qc = QuantumCircuit(self.num_state_qubits)
-        qc.hamiltonian(self.matrix, -self.evolution_time, qc.qubits)
+        evolved = sp.linalg.expm(1j * self.matrix * self.evolution_time)
+        qc.unitary(evolved, qc.qubits)
         return qc.power(power)

@@ -179,6 +179,9 @@ class HHL(LinearSolver):
         """
         formatstr = "#0" + str(n_l + 2) + "b"
         lambda_min_tilde = np.abs(lambda_min * (2 ** n_l - 1) / lambda_max)
+        # floating point precision can cause problems
+        if np.abs(lambda_min_tilde - 1) < 1e-7:
+            lambda_min_tilde = 1
         binstr = format(int(lambda_min_tilde), formatstr)[2::]
         lamb_min_rep = 0
         for i, char in enumerate(binstr):
