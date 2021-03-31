@@ -35,9 +35,9 @@ class NumPyLinearSolver(LinearSolver):
 
             import numpy as np
             from qiskit.algorithms.numpy_linear_solver import NumPyLinearSolver
-            from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import
+            from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import \
              TridiagonalToeplitz
-            from qiskit.algorithms.linear_solvers.observables.matrix_functional import
+            from qiskit.algorithms.linear_solvers.observables.matrix_functional import \
              MatrixFunctional
 
             matrix = TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2)
