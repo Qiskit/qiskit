@@ -78,7 +78,10 @@ class NumPyLinearSolver(LinearSolver):
         if isinstance(vector, QuantumCircuit):
             vector = Statevector(vector).data
         if isinstance(matrix, QuantumCircuit):
-            matrix = Operator(matrix).data
+            if hasattr(matrix, "matrix"):
+                matrix = matrix.matrix
+            else:
+                matrix = Operator(matrix).data
 
         solution_vector = np.linalg.solve(matrix, vector)
         solution = LinearSolverResult()
