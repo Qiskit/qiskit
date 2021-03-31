@@ -65,6 +65,7 @@ class ALAPSchedule(TransformationPass):
                     idle_duration = until - qubit_time_available[q]
                     new_dag.apply_operation_front(Delay(idle_duration, unit), [q], [])
 
+        bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in reversed(list(dag.topological_op_nodes())):
             start_time = max(qubit_time_available[q] for q in node.qargs)
             pad_with_delays(node.qargs, until=start_time, unit=time_unit)
@@ -72,7 +73,7 @@ class ALAPSchedule(TransformationPass):
             new_dag.apply_operation_front(node.op, node.qargs, node.cargs, node.condition)
 
             if node.op.duration is None:
-                indices = [n.index for n in node.qargs]
+                indices = [bit_indices[qarg] for qarg in node.qargs]
                 raise TranspilerError(f"Duration of {node.op.name} on qubits "
                                       f"{indices} is not found.")
 
