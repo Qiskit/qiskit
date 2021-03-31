@@ -13,6 +13,7 @@
 """A circuit that encodes a discretized normal probability distribution in qubit amplitudes."""
 
 from typing import Tuple, Union, List, Optional
+import warnings
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 
@@ -149,6 +150,11 @@ class NormalDistribution(QuantumCircuit):
                 with a diagonal for a more efficient circuit.
             name: The name of the circuit.
         """
+        warnings.warn('`NormalDistribution` is deprecated as of version 0.17.0 and will be '
+                      'removed no earlier than 3 months after the release date. '
+                      'It moved to qiskit_finance.circuit.library.NormalDistribution.',
+                      DeprecationWarning, stacklevel=2)
+
         _check_dimensions_match(num_qubits, mu, sigma, bounds)
         _check_bounds_valid(bounds)
 
