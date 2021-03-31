@@ -48,7 +48,7 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
                                      seed_transpiler=algorithm_globals.random_seed)
 
         aqgd = AQGD(momentum=0.0)
-        vqe = VQE(var_form=RealAmplitudes(),
+        vqe = VQE(ansatz=RealAmplitudes(),
                   optimizer=aqgd,
                   gradient=Gradient('fin_diff'),
                   quantum_instance=q_instance)
@@ -62,7 +62,7 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
                                      seed_transpiler=algorithm_globals.random_seed)
 
         aqgd = AQGD(maxiter=[1000, 1000, 1000], eta=[1.0, 0.5, 0.3], momentum=[0.0, 0.5, 0.75])
-        vqe = VQE(var_form=RealAmplitudes(),
+        vqe = VQE(ansatz=RealAmplitudes(),
                   optimizer=aqgd,
                   quantum_instance=q_instance)
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
@@ -80,7 +80,7 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
                                      seed_transpiler=algorithm_globals.random_seed)
 
         aqgd = AQGD(maxiter=1000, eta=1, momentum=0)
-        vqe = VQE(var_form=RealAmplitudes(),
+        vqe = VQE(ansatz=RealAmplitudes(),
                   optimizer=aqgd,
                   gradient=Gradient('lin_comb'),
                   quantum_instance=q_instance)
