@@ -2,7 +2,7 @@
 upgrade:
   - |
     The previously deprecated module ``qiskit.visualization.interactive``,
-    which was deprecated in the 0.15.0 release, have now been removed. Instead
+    which was deprecated in the 0.15.0 release, has now been removed. Instead
     you should use the matplotlib based visualizations:
 
     .. list-table::

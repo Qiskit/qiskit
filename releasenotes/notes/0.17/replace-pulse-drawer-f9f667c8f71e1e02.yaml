@@ -17,8 +17,8 @@ features:
 
     New stylesheets can take callback functions that dynamically modify the apperance of
     the output image, for example, reassembling a collection of channels,
-    showing details of instructions, updating appearrance of pulse envelopes, etc...
-    You can create custom callback functions and feed them into stylesheet instance to
+    showing details of instructions, updating appearance of pulse envelopes, etc...
+    You can create custom callback functions and feed them into a stylesheet instance to
     modify the figure appearance without modifying the drawer code.
     See pulse drawer module docstrings for details.
 

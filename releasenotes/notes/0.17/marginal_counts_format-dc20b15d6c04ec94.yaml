@@ -20,7 +20,7 @@ features:
 
 fixes:
   - |
-    An issue when calling passing the :class:`~qiskit.result.Counts` object
+    An issue when passing the :class:`~qiskit.result.Counts` object
     returned by :meth:`~qiskit.result.Result.get_counts` to
     :func:`~qiskit.result.marginal_counts` would produce an improperly
     formatted :class:`~qiskit.result.Counts` object with certain inputs has

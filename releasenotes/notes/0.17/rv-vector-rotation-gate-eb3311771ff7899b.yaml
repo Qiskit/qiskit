@@ -3,7 +3,7 @@ features:
   - |
     A new gate class, :class:`~qiskit.circuit.library.RVGate`, was added to
     the :mod:`qiskit.circuit.library` module along with the corresponding
-    :class:`~qiskit.circuit.QuantumCircuit method
+    :class:`~qiskit.circuit.QuantumCircuit` method
     :meth:`~qiskit.circuit.QuantumCircuit.rv`. The
     :class:`~qiskit.circuit.library.RVGate` is a general rotation gate, similar
     to the :class:`~qiskit.circuit.library.UGate`, but instead of specifying

@@ -5,7 +5,7 @@ fixes:
     implicitly as the default value, or via the ``backend`` kwarg), the
     transpiling process was not "embedding" the circuit. That is, even when an
     ``initial_layout`` was specified, the virtual qubits were not assigned to
-    physical  qubits. This has been fixed so that now, the
+    physical qubits. This has been fixed so that now, the
     :func:`qiskit.compiler.transpile` function honors the ``initial_layout``
     argument by embedding the circuit:
 
