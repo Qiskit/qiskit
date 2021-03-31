@@ -555,21 +555,21 @@ class TestParameters(QiskitTestCase):
 
         circ = circ.assign_parameters({alpha: freq - delta})
         cal_sched = list(circ.calibrations['custom'].values())[0]
-        self.assertEqual(cal_sched.instructions[0][1].frequency, freq - delta + beta)
+        self.assertEqual(cal_sched.instructions[0].frequency, freq - delta + beta)
 
         circ = circ.assign_parameters({beta: delta})
         cal_sched = list(circ.calibrations['custom'].values())[0]
-        self.assertEqual(float(cal_sched.instructions[0][1].frequency), freq)
-        self.assertEqual(cal_sched.instructions[1][1].frequency, gamma + delta)
+        self.assertEqual(float(cal_sched.instructions[0].frequency), freq)
+        self.assertEqual(cal_sched.instructions[1].frequency, gamma + delta)
 
         circ = circ.assign_parameters({gamma: shift - delta})
         cal_sched = list(circ.calibrations['custom'].values())[0]
-        self.assertEqual(float(cal_sched.instructions[1][1].frequency), shift)
+        self.assertEqual(float(cal_sched.instructions[1].frequency), shift)
 
-        self.assertEqual(cal_sched.instructions[2][1].phase, phi)
+        self.assertEqual(cal_sched.instructions[2].phase, phi)
         circ = circ.assign_parameters({phi: phase})
         cal_sched = list(circ.calibrations['custom'].values())[0]
-        self.assertEqual(float(cal_sched.instructions[2][1].phase), phase)
+        self.assertEqual(float(cal_sched.instructions[2].phase), phase)
 
     def test_circuit_generation(self):
         """Test creating a series of circuits parametrically"""

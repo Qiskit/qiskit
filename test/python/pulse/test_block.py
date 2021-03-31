@@ -46,7 +46,7 @@ class BaseTestBlock(QiskitTestCase):
 
     def assertScheduleEqual(self, target, reference):
         """Check if two block are equal schedule representation."""
-        self.assertEqual(transforms.block_to_schedule(target), reference)
+        self.assertEqual(transforms.base_qobj_transform(target), reference)
 
 
 class TestTransformation(BaseTestBlock):
@@ -96,11 +96,8 @@ class TestTransformation(BaseTestBlock):
 
         ref_sched = pulse.Schedule()
         ref_sched = ref_sched.insert(0, pulse.Play(self.test_waveform0, self.d0))
-        ref_sched = ref_sched.insert(100, pulse.Delay(200, self.d0))
         ref_sched = ref_sched.insert(300, pulse.Play(self.test_waveform0, self.d0))
-        ref_sched = ref_sched.insert(400, pulse.Delay(200, self.d0))
         ref_sched = ref_sched.insert(600, pulse.Play(self.test_waveform0, self.d0))
-        ref_sched = ref_sched.insert(700, pulse.Delay(200, self.d0))
         ref_sched = ref_sched.insert(900, pulse.Play(self.test_waveform0, self.d0))
 
         self.assertScheduleEqual(block, ref_sched)
@@ -112,15 +109,10 @@ class TestTransformation(BaseTestBlock):
             block = block.append(pulse.Play(self.test_waveform0, self.d0))
 
         ref_sched = pulse.Schedule()
-        ref_sched = ref_sched.insert(0, pulse.Delay(50, self.d0))
         ref_sched = ref_sched.insert(50, pulse.Play(self.test_waveform0, self.d0))
-        ref_sched = ref_sched.insert(150, pulse.Delay(50, self.d0))
         ref_sched = ref_sched.insert(200, pulse.Play(self.test_waveform0, self.d0))
-        ref_sched = ref_sched.insert(300, pulse.Delay(350, self.d0))
         ref_sched = ref_sched.insert(650, pulse.Play(self.test_waveform0, self.d0))
-        ref_sched = ref_sched.insert(750, pulse.Delay(50, self.d0))
         ref_sched = ref_sched.insert(800, pulse.Play(self.test_waveform0, self.d0))
-        ref_sched = ref_sched.insert(900, pulse.Delay(100, self.d0))
 
         self.assertScheduleEqual(block, ref_sched)
 
@@ -765,11 +757,8 @@ class TestParametrizedBlockOperation(BaseTestBlock):
 
         ref_sched = pulse.Schedule()
         ref_sched = ref_sched.insert(0, pulse.Delay(10, self.d0))
-        ref_sched = ref_sched.insert(10, pulse.Delay(20, self.d0))
         ref_sched = ref_sched.insert(30, pulse.Delay(10, self.d0))
-        ref_sched = ref_sched.insert(40, pulse.Delay(20, self.d0))
         ref_sched = ref_sched.insert(60, pulse.Delay(10, self.d0))
-        ref_sched = ref_sched.insert(70, pulse.Delay(20, self.d0))
         ref_sched = ref_sched.insert(90, pulse.Delay(10, self.d0))
 
         self.assertScheduleEqual(block, ref_sched)

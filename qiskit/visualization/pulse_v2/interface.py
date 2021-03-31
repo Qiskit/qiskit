@@ -25,7 +25,6 @@ from typing import Union, Optional, Dict, Any, Tuple, List
 
 from qiskit.providers import BaseBackend
 from qiskit.pulse import Waveform, ParametricPulse, Schedule, ScheduleBlock
-from qiskit.pulse.transforms import block_to_schedule
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
@@ -373,9 +372,6 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule, ScheduleBlock],
         ImportError: When required visualization package is not installed.
         VisualizationError: When invalid plotter API or invalid time range is specified.
     """
-    if isinstance(program, ScheduleBlock):
-        program = block_to_schedule(program)
-
     temp_style = stylesheet.QiskitPulseStyle()
     temp_style.update(style or stylesheet.IQXStandard())
 

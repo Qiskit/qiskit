@@ -229,10 +229,14 @@ from qiskit.pulse import (
     transforms,
 )
 from qiskit.pulse.instructions import directives
-from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.schedule import Schedule, ScheduleBlock
+from qiskit.pulse.transforms.alignments import AlignmentKind
 
 #: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
+
+#: contextvars.ContextVar[InlineContext]: local scope of inline context
+INLINE_CONTEXTVAR = contextvars.ContextVar("inline")
 
 T = TypeVar('T')  # pylint: disable=invalid-name
 
@@ -267,11 +271,17 @@ def _requires_backend(function: Callable[..., T]) -> Callable[..., T]:
 class _PulseBuilder():
     """Builder context class."""
 
+    __alignment_kinds__ = {
+        'left': transforms.AlignLeft(),
+        'right': transforms.AlignRight(),
+        'sequential': transforms.AlignSequential()
+    }
+
     def __init__(self,
                  backend=None,
                  schedule: Optional[Schedule] = None,
                  name: Optional[str] = None,
-                 default_alignment: Union[str, Callable] = 'left',
+                 default_alignment: Union[str, AlignmentKind] = None,
                  default_transpiler_settings: Mapping = None,
                  default_circuit_scheduler_settings: Mapping = None):
         """Initialize the builder context.
@@ -286,13 +296,10 @@ class _PulseBuilder():
         Args:
             backend (Union[Backend, BaseBackend]): Input backend to use in
                 builder. If not set certain functionality will be unavailable.
-            schedule: Initital schedule to build on. If not supplied
-                a schedule will be created.
-            name: Name of pulse program to be built. Only used if `schedule`
-                is not ``None``.
-            default_alignment: Default scheduling alignment policy for the
-                builder. One of 'left', 'right', 'sequential', or an alignment
-                contextmanager.
+            schedule: Deprecated. Initital schedule to build on.
+            name: Name of pulse program to be built.
+            default_alignment: Default scheduling alignment for builder.
+                One of ``left``, ``right``, ``sequential`` or an alignment context.
             default_transpiler_settings: Default settings for the transpiler.
             default_circuit_scheduler_settings: Default settings for the
                 circuit to pulse scheduler.
@@ -303,28 +310,36 @@ class _PulseBuilder():
         #: Union[None, ContextVar]: Token for this ``_PulseBuilder``'s ``ContextVar``.
         self._backend_ctx_token = None
 
-        #: pulse.Schedule: Active schedule of BuilderContext.
-        self._context_schedule = None
+        #: List[pulse.ScheduleBlock]: Stack of schedule block.
+        self._context_stack = []
 
         #: QuantumCircuit: Lazily constructed quantum circuit
         self._lazy_circuit = None
 
-        # ContextManager: Default alignment context.
-        self._default_alignment_context = _align(default_alignment)
+        #: Dict[str, Any]: Transpiler setting dictionary.
+        self._transpiler_settings = default_transpiler_settings or dict()
 
-        self._transpiler_settings = default_transpiler_settings or {}
+        #: Dict[str, Any]: Scheduler setting dictionary.
+        self._circuit_scheduler_settings = default_circuit_scheduler_settings or dict()
 
-        if default_circuit_scheduler_settings is None:
-            default_circuit_scheduler_settings = {}
-        self._circuit_scheduler_settings = \
-            default_circuit_scheduler_settings or {}
+        # Add root schedule block
+        alignment = _PulseBuilder.__alignment_kinds__.get(default_alignment, default_alignment)
+        if not isinstance(alignment, AlignmentKind):
+            raise exceptions.PulseError(f'Given `default_alignment` {repr(default_alignment)} is '
+                                        'not a valid transformation. Set one of '
+                                        f'{", ".join(_PulseBuilder.__alignment_kinds__.keys())}, '
+                                        'or set an instance of `AlignmentKind` subclass.')
+        self._context_stack.append(ScheduleBlock(name=name, alignment_context=alignment))
 
-        # pulse.Schedule: Root program context-schedule
-        self._schedule = schedule or Schedule(name=name)
+        # TODO remove this
+        if schedule is not None:
+            warnings.warn('Initializing the builder context with `schedule` is being deprecated. '
+                          'Use `pulse.call` with the schedule within the context.',
+                          DeprecationWarning)
+            self.context_schedule._name = schedule.name
+            self.call_subroutine(subroutine=schedule)
 
-        self.set_context_schedule(Schedule())
-
-    def __enter__(self) -> Schedule:
+    def __enter__(self) -> ScheduleBlock:
         """Enter this builder context and yield either the supplied schedule
         or the schedule created for the user.
 
@@ -332,13 +347,11 @@ class _PulseBuilder():
             The schedule that the builder will build on.
         """
         self._backend_ctx_token = BUILDER_CONTEXTVAR.set(self)
-        self._default_alignment_context.__enter__()
-        return self._schedule
+        return self.context_schedule
 
     @_compile_lazy_circuit_before
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit the builder context and compile the built pulse program."""
-        self._default_alignment_context.__exit__(exc_type, exc_val, exc_tb)
         self.compile()
         BUILDER_CONTEXTVAR.reset(self._backend_ctx_token)
 
@@ -352,9 +365,12 @@ class _PulseBuilder():
         return self._backend
 
     @property
-    def context_schedule(self) -> Schedule:
+    def context_schedule(self) -> ScheduleBlock:
         """Return the current context schedule."""
-        return self._context_schedule
+        try:
+            return INLINE_CONTEXTVAR.get()
+        except LookupError:
+            return self._context_stack[-1]
 
     @property
     @_requires_backend
@@ -385,19 +401,36 @@ class _PulseBuilder():
         self._circuit_scheduler_settings = settings
 
     @_compile_lazy_circuit_before
-    def compile(self) -> Schedule:
+    def compile(self) -> ScheduleBlock:
         """Compile and output the built pulse program."""
         # Not much happens because we currently compile as we build.
         # This should be offloaded to a true compilation module
         # once we define a more sophisticated IR.
-        program = self._schedule.append(self.context_schedule, inplace=True)
-        self.set_context_schedule(Schedule())
-        return program
+        while len(self._context_stack) > 1:
+            self.pop_context()
+        return self._context_stack[0]
 
     @_compile_lazy_circuit_before
-    def set_context_schedule(self, context_schedule: Schedule):
-        """Set the current context's schedule for the builder."""
-        self._context_schedule = context_schedule
+    def push_context(self, alignment_context: transforms.alignments.AlignmentKind):
+        """Set new alignment context to the context stack."""
+        block = ScheduleBlock(alignment_context=alignment_context)
+        self._context_stack.append(block)
+
+    @_compile_lazy_circuit_before
+    def pop_context(self):
+        """Append current context to its parent context in the context stack.
+
+        Raises:
+            PulseError: When current context is the root context.
+        """
+        if not len(self._context_stack) > 1:
+            raise exceptions.PulseError('This is the root context. '
+                                        'This code should not be reached. '
+                                        'Please report this error to the Qiskit-terra issues.')
+
+        current_context = self._context_stack.pop()
+        if len(current_context) > 0:
+            self.context_schedule.append(current_context)
 
     @_compile_lazy_circuit_before
     def append_schedule(self, context_schedule: Schedule):
@@ -406,7 +439,9 @@ class _PulseBuilder():
         Args:
             context_schedule: Schedule to append to the current context schedule.
         """
-        self.context_schedule.append(context_schedule, inplace=True)
+        # TODO remvoe this with call schedule.
+
+        self.context_schedule.append(instructions.Call(context_schedule))
 
     @_compile_lazy_circuit_before
     def append_instruction(self, instruction: instructions.Instruction):
@@ -415,7 +450,7 @@ class _PulseBuilder():
         Args:
             instruction: Instruction to append.
         """
-        self.context_schedule.append(instruction, inplace=True)
+        self.context_schedule.append(instruction)
 
     def _compile_lazy_circuit(self):
         """Call a context QuantumCircuit (lazy circuit) and append the output pulse schedule
@@ -427,7 +462,7 @@ class _PulseBuilder():
             lazy_circuit = self._lazy_circuit
             # reset lazy circuit
             self._lazy_circuit = self.new_circuit()
-            self.call_schedule(self._compile_circuit(lazy_circuit))
+            self.call_subroutine(subroutine=self._compile_circuit(lazy_circuit))
 
     def _compile_circuit(self, circ) -> Schedule:
         """Take a QuantumCircuit and output the pulse schedule associated with the circuit."""
@@ -442,15 +477,16 @@ class _PulseBuilder():
         return sched
 
     def call_schedule(self, schedule: Schedule):
-        """Call a schedule and append to the builder's context schedule.
+        """Call a schedule and append to the builder's context schedule."""
+        warnings.warn('Calling ``call_schedule`` is being deprecated. '
+                      'Use ``call_subroutine`` method instead. '
+                      'New method stores the circuit as a ``Call`` instruction ',
+                      DeprecationWarning)
 
-        The schedule is just appended to the context schedule as-is.
-        Use :meth:`~call_subroutine` method to define the schedule as a subroutine.
-        """
         self.append_schedule(schedule)
 
     def call_subroutine(self,
-                        subroutine: Union[circuit.QuantumCircuit, Schedule],
+                        subroutine: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
                         name: Optional[str] = None,
                         value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
                         **kw_params: ParameterValueType):
@@ -479,9 +515,6 @@ class _PulseBuilder():
             subroutine = self._compile_circuit(subroutine)
 
         if len(subroutine.instructions) > 0:
-            if value_dict is None:
-                value_dict = dict()
-
             param_value_map = dict()
             for param_name, assigned_value in kw_params.items():
                 param_objs = subroutine.get_parameters(param_name)
@@ -493,7 +526,9 @@ class _PulseBuilder():
                         f'Parameter {param_name} is not defined in the target subroutine. '
                         f'{", ".join(map(str, subroutine.parameters))} can be specified.')
 
-            param_value_map.update(value_dict)
+            if value_dict:
+                param_value_map.update(value_dict)
+
             call_def = instructions.Call(subroutine, param_value_map, name)
 
             self.append_instruction(call_def)
@@ -591,7 +626,7 @@ class _PulseBuilder():
 def build(backend=None,
           schedule: Optional[Schedule] = None,
           name: Optional[str] = None,
-          default_alignment: str = 'left',
+          default_alignment: Optional[Union[str, AlignmentKind]] = 'left',
           default_transpiler_settings: Optional[Dict[str, Any]] = None,
           default_circuit_scheduler_settings: Optional[Dict[str, Any]] = None
           ) -> ContextManager[Schedule]:
@@ -623,13 +658,11 @@ def build(backend=None,
     Args:
         backend (Union[Backend, BaseBackend]): A Qiskit backend. If not supplied certain
             builder functionality will be unavailable.
-        schedule: a *mutable* pulse Schedule in which your pulse program will
+        schedule: Deprecated. A *mutable* pulse Schedule in which your pulse program will
             be built.
-        name: Name of pulse program to be built. Only used if `schedule`
-            is not ``None``.
+        name: Name of pulse program to be built.
         default_alignment: Default scheduling alignment for builder.
-            One of ``left``, ``right``, ``sequential`` or an alignment
-            contextmanager.
+            One of ``left``, ``right``, ``sequential`` or an alignment context.
         default_transpiler_settings: Default settings for the transpiler.
         default_circuit_scheduler_settings: Default settings for the
             circuit to pulse scheduler.
@@ -843,8 +876,7 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:
 
 
 # Contexts
-def _transform_context(transform: Callable[[Schedule], Schedule],
-                       **transform_kwargs: Any
+def _transform_context(function: Callable[..., AlignmentKind]
                        ) -> Callable[..., ContextManager[None]]:
     """A transform context generator, decorator.
 
@@ -859,42 +891,22 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
     context Schedule. The output transformed schedule will then be
     appended to the initial builder's context schedule. This effectively builds a stack
     of builder's context schedules that is automatically collapsed upon exiting the context.
-
-    Args:
-        transform: Transform to decorate as context.
-        transform_kwargs: Additional override keyword arguments for the
-            decorated transform.
-
-    Returns:
-        A function that generates a new transformation ``ContextManager``.
     """
-    def wrap(function):
-        @functools.wraps(function)
-        @contextmanager
-        def wrapped_transform(*args, **kwargs):
-            builder = _active_builder()
-            context_schedule = builder.context_schedule
-            transform_schedule = Schedule()
-            builder.set_context_schedule(transform_schedule)
-            try:
-                yield
-            finally:
-                builder._compile_lazy_circuit()
-                transformed_schedule = transform(
-                    transform_schedule,
-                    *args,
-                    **kwargs,
-                    **transform_kwargs,
-                )
-                builder.set_context_schedule(context_schedule)
-                builder.append_schedule(transformed_schedule)
-        return wrapped_transform
-
-    return wrap
+    @functools.wraps(function)
+    @contextmanager
+    def wrapped_transform(*args: Any, **kwargs: Any) -> ContextManager[None]:
+        builder = _active_builder()
+        builder.push_context(alignment_context=function(*args, **kwargs))
+        try:
+            yield
+        finally:
+            builder._compile_lazy_circuit()
+            builder.pop_context()
+    return wrapped_transform
 
 
-@_transform_context(transforms.align_left)
-def align_left() -> ContextManager[None]:
+@_transform_context
+def align_left() -> AlignmentKind:
     """Left alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled as early as possible
@@ -917,11 +929,15 @@ def align_left() -> ContextManager[None]:
                 pulse.play(pulse.Constant(20, 1.0), d1)
 
         assert pulse_prog.ch_start_time(d0) == pulse_prog.ch_start_time(d1)
+
+    Returns:
+        Left alignment context.
     """
+    return transforms.AlignLeft()
 
 
-@_transform_context(transforms.align_right)
-def align_right() -> ContextManager[None]:
+@_transform_context
+def align_right() -> AlignmentKind:
     """Right alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled as late as possible
@@ -944,11 +960,15 @@ def align_right() -> ContextManager[None]:
                 pulse.play(pulse.Constant(20, 1.0), d1)
 
         assert pulse_prog.ch_stop_time(d0) == pulse_prog.ch_stop_time(d1)
+
+    Returns:
+        Right alignment context.
     """
+    return transforms.AlignRight()
 
 
-@_transform_context(transforms.align_sequential)
-def align_sequential() -> ContextManager[None]:
+@_transform_context
+def align_sequential() -> AlignmentKind:
     """Sequential alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled sequentially in time
@@ -971,12 +991,16 @@ def align_sequential() -> ContextManager[None]:
                 pulse.play(pulse.Constant(20, 1.0), d1)
 
         assert pulse_prog.ch_stop_time(d0) == pulse_prog.ch_start_time(d1)
+
+    Returns:
+        Sequential alignment context.
     """
+    return transforms.AlignSequential()
 
 
-# pylint: disable=unused-argument
-@_transform_context(transforms.align_equispaced)
-def align_equispaced(duration: int) -> ContextManager[None]:
+@_transform_context
+def align_equispaced(duration: Union[int, ParameterExpression]
+                     ) -> AlignmentKind:
     """Equispaced alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled with the same interval spacing such that
@@ -1009,17 +1033,21 @@ def align_equispaced(duration: int) -> ContextManager[None]:
     Args:
         duration: Duration of this context. This should be larger than the schedule duration.
 
+    Returns:
+        Equispaced alignment context.
+
     Notes:
         The scheduling is performed for sub-schedules within the context rather than
         channel-wise. If you want to apply the equispaced context for each channel,
         you should use the context independently for channels.
     """
+    return transforms.AlignEquispaced(duration=duration)
 
 
-# pylint: disable=unused-argument
-@_transform_context(transforms.align_func)
-def align_func(duration: int,
-               func: Callable[[int], float]) -> ContextManager[None]:
+@_transform_context
+def align_func(duration: Union[int, ParameterExpression],
+               func: Callable[[int], float]
+               ) -> AlignmentKind:
     """Callback defined alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled at the location specified by
@@ -1060,37 +1088,35 @@ def align_func(duration: int,
             The returned value should be defined within [0, 1].
             The pulse index starts from 1.
 
+    Returns:
+        Functional alignment context.
+
     Notes:
         The scheduling is performed for sub-schedules within the context rather than
         channel-wise. If you want to apply the numerical context for each channel,
         you need to apply the context independently to channels.
     """
+    return transforms.AlignFunc(duration=duration, func=func)
 
 
-def _align(alignment: str = 'left') -> ContextManager[None]:
-    """General alignment context. Used by the :class:`_Builder` to choose the
-    default alignment policy.
+@contextmanager
+def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]:
+    """Arbitrary alignment transformation defined by a subclass instance of
+    :class:`~qiskit.pulse.transforms.alignments.AlignmentKind`.
 
     Args:
-        alignment: Alignment scheduling policy to follow.
-            One of "left", "right" or "sequential".
-
-    Returns:
-        An alignment context that will schedule the instructions it contains
-        according to the selected alignment policy upon exiting the context.
-
-    Raises:
-        exceptions.PulseError: If an unsupported alignment context is selected.
+        alignment_context: Alignment context instance that defines schedule transformation.
     """
-    if alignment == 'left':
-        return align_left()
-    elif alignment == 'right':
-        return align_right()
-    elif alignment == 'sequential':
-        return align_sequential()
-    else:
-        raise exceptions.PulseError('Alignment "{}" is not '
-                                    'supported.'.format(alignment))
+    if not isinstance(alignment_context, AlignmentKind):
+        raise exceptions.PulseError('Input alignment context is not `AlignmentKind` subclass.')
+
+    builder = _active_builder()
+    builder.push_context(alignment_context=alignment_context)
+    try:
+        yield
+    finally:
+        builder._compile_lazy_circuit()
+        builder.pop_context()
 
 
 @contextmanager
@@ -1127,21 +1153,16 @@ def inline() -> ContextManager[None]:
         to be ignored.
     """
     builder = _active_builder()
-    context_schedule = builder.context_schedule
-    transform_schedule = Schedule()
-    builder.set_context_schedule(transform_schedule)
+    context_token = INLINE_CONTEXTVAR.set(builder.context_schedule)
     try:
         yield
     finally:
-        builder._compile_lazy_circuit()
-        builder.set_context_schedule(context_schedule)
-        for _, instruction in transform_schedule.instructions:
-            append_instruction(instruction)
+        INLINE_CONTEXTVAR.reset(context_token)
 
 
-@_transform_context(transforms.pad, inplace=True)
+@contextmanager
 def pad(*chs: chans.Channel) -> ContextManager[None]:  # pylint: disable=unused-argument
-    """Pad all available timeslots with delays upon exiting context.
+    """Deprecated. Pad all available timeslots with delays upon exiting context.
 
     Args:
         chs: Channels to pad with delays. Defaults to all channels in context
@@ -1167,6 +1188,13 @@ def pad(*chs: chans.Channel) -> ContextManager[None]:  # pylint: disable=unused-
         assert pulse_prog.ch_start_time(d0) == pulse_prog.ch_start_time(d1)
         assert pulse_prog.ch_stop_time(d0) == pulse_prog.ch_stop_time(d1)
     """
+    warnings.warn('Context-wise padding is being deprecated. This padding is just ignored. '
+                  'Set the padding process in the pulse transformation pass. ',
+                  'This transform pass feature will be supported soon.', DeprecationWarning)
+    try:
+        yield
+    finally:
+        pass
 
 
 @contextmanager
@@ -1786,9 +1814,9 @@ def call(target: Union[circuit.QuantumCircuit, Schedule],
     Raises:
         exceptions.PulseError: If the input ``target`` type is not supported.
     """
-    if not isinstance(target, (circuit.QuantumCircuit, Schedule)):
+    if not isinstance(target, (circuit.QuantumCircuit, Schedule, ScheduleBlock)):
         raise exceptions.PulseError(
-            'Target of type "{}" is not supported.'.format(type(target)))
+            f'Target of type "{target.__class__.__name__}" is not supported.')
 
     _active_builder().call_subroutine(target, name, value_dict, **kw_params)
 
@@ -1917,7 +1945,7 @@ def macro(func: Callable):
         with build(backend=_builder.backend, name=func_name) as built:
             output = func(*args, **kwargs)
 
-        _builder.call_schedule(built)
+        _builder.call_subroutine(built)
         return output
 
     return wrapper
@@ -2003,7 +2031,7 @@ def measure(qubits: Union[List[int], int],
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
-    _active_builder().call_schedule(measure_sched)
+    _active_builder().call_subroutine(measure_sched)
 
     if len(qubits) == 1:
         return registers[0]
@@ -2048,7 +2076,7 @@ def measure_all() -> List[chans.MemorySlot]:
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
-    _active_builder().call_schedule(measure_sched)
+    _active_builder().call_subroutine(measure_sched)
 
     return registers
 

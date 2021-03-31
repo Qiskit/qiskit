@@ -54,6 +54,8 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
     Raises:
         QiskitError: If circuit uses a command that isn't defined in config.inst_map.
     """
+    from qiskit.pulse.transforms.base_transforms import base_qobj_transform
+
     circ_pulse_defs = []
 
     inst_map = schedule_config.inst_map
@@ -73,6 +75,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
             for qubit in qubits:
                 try:
                     meas_q = circuit.calibrations[Measure().name][((qubit,), params)]
+                    meas_q = base_qobj_transform(meas_q)
                     acquire_q = meas_q.filter(channels=[AcquireChannel(qubit)])
                     mem_slot_index = [chan.index for chan in acquire_q.channels
                                       if isinstance(chan, MemorySlot)][0]
@@ -131,6 +134,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                     tuple(inst_qubits),
                     tuple(p if getattr(p, 'parameters', None) else float(p) for p in inst.params),
                 )]
+                schedule = base_qobj_transform(schedule)
                 circ_pulse_defs.append(CircuitPulseDef(schedule=schedule, qubits=inst_qubits))
                 continue
             except KeyError:

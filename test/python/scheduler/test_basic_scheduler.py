@@ -17,8 +17,9 @@ from qiskit.circuit import Gate, Parameter
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
-                          MeasureChannel, MemorySlot, Gaussian, Play)
-from qiskit.pulse import build, macros
+                          MeasureChannel, MemorySlot, Gaussian, Play,
+                          transforms)
+from qiskit.pulse import build, macros, play
 
 from qiskit.test.mock import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -419,8 +420,8 @@ class TestBasicSchedule(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.append(Gate('pulse_gate', 1, [x]), [0])
         with build() as expected_schedule:
-            Play(Gaussian(duration=160, amp=x, sigma=40), DriveChannel(0))
+            play(Gaussian(duration=160, amp=x, sigma=40), DriveChannel(0))
         qc.add_calibration(gate='pulse_gate', qubits=[0], schedule=expected_schedule, params=[x])
         sched = schedule(qc, self.backend)
         self.assertEqual(sched,
-                         expected_schedule)
+                         transforms.base_qobj_transform(expected_schedule))
