@@ -9,3 +9,15 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""Observables for Qiskit's linear solvers."""
+
+from .linear_system_observable import LinearSystemObservable
+from .absolute_average import AbsoluteAverage
+from .matrix_functional import MatrixFunctional
+
+__all__ = [
+    'LinearSystemObservable',
+    'AbsoluteAverage',
+    'MatrixFunctional'
+]

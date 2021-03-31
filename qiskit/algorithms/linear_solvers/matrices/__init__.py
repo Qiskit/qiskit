@@ -9,3 +9,15 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""System matrices for Qiskit's linear solvers."""
+
+from .linear_system_matrix import LinearSystemMatrix
+from .numpy_matrix import NumPyMatrix
+from .tridiagonal_toeplitz import TridiagonalToeplitz
+
+__all__ = [
+    'LinearSystemMatrix',
+    'NumPyMatrix',
+    'TridiagonalToeplitz'
+]

@@ -23,8 +23,7 @@ from .observables.linear_system_observable import LinearSystemObservable
 
 
 class NumPyLinearSolver(LinearSolver):
-    """
-    The Numpy LinearSolver algorithm (classical).
+    """The Numpy Linear Solver algorithm (classical).
 
     This linear system solver computes the exact value of the given observable(s) or the full
     solution vector if no observable is specified.
@@ -34,14 +33,13 @@ class NumPyLinearSolver(LinearSolver):
         .. jupyter-execute::
 
             import numpy as np
-            from qiskit.algorithms.numpy_linear_solver import NumPyLinearSolver
-            from qiskit.algorithms.linear_solvers.matrices import tridiagonal_toeplitz
-            from qiskit.algorithms.linear_solvers.observables import matrix_functional
+            from qiskit.algorithms import NumPyLinearSolver
+            from qiskit.algorithms.linear_solvers.matrices import TridiagonalToeplitz
+            from qiskit.algorithms.linear_solvers.observables import MatrixFunctional
 
-            matrix = tridiagonal_toeplitz.TridiagonalToeplitz(
-                2, 1, 1 / 3, trotter_steps=2)
+            matrix = TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2)
             right_hand_side = [1.0, -2.1, 3.2, -4.3]
-            observable = matrix_functional.MatrixFunctional(1, 1 / 2)
+            observable = MatrixFunctional(1, 1 / 2)
             rhs = right_hand_side / np.linalg.norm(right_hand_side)
 
             np_solver = NumPyLinearSolver()

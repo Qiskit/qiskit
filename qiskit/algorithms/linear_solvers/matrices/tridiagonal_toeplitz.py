@@ -43,8 +43,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
 
             import numpy as np
             from qiskit import QuantumCircuit
-            from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import
-             TridiagonalToeplitz
+            from qiskit.algorithms.linear_solvers.matrices import TridiagonalToeplitz
 
             matrix = TridiagonalToeplitz(2, 1, -1 / 3)
             power = 3

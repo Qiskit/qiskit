@@ -59,10 +59,8 @@ class HHL(LinearSolver):
             import numpy as np
             from qiskit import QuantumCircuit
             from qiskit.algorithms.linear_solvers.hhl import HHL
-            from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import
-             TridiagonalToeplitz
-            from qiskit.algorithms.linear_solvers.observables.matrix_functional import
-             MatrixFunctional
+            from qiskit.algorithms.linear_solvers.matrices import TridiagonalToeplitz
+            from qiskit.algorithms.linear_solvers.observables import MatrixFunctional
 
             matrix = TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2)
             right_hand_side = [1.0, -2.1, 3.2, -4.3]
@@ -70,7 +68,7 @@ class HHL(LinearSolver):
             rhs = right_hand_side / np.linalg.norm(right_hand_side)
 
             # Initial state circuit
-            num_qubits = int(np.log2(matrix.shape[0]))
+            num_qubits = matrix.num_state_qubits
             qc = QuantumCircuit(num_qubits)
             qc.isometry(rhs, list(range(num_qubits)), None)
 
