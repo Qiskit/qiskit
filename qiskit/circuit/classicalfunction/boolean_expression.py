@@ -81,7 +81,7 @@ class BooleanExpression(ClassicalElement):
         if registerless:
             qregs = None
         else:
-            qregs = self.qregs
+            qregs = None  # TODO: Probably from self._tweedledum_bool_expression._signature
 
         if synthesizer is None:
             from tweedledum.synthesis import pkrm_synth  # pylint: disable=no-name-in-module
