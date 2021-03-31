@@ -25,6 +25,7 @@ from qiskit.utils import QuantumInstance
 from qiskit.opflow import (
     StateFn, Zero, One, H, X, I, Z, Plus, Minus, CircuitSampler, ListOp
 )
+from qiskit.opflow.exceptions import OpflowError
 
 
 @ddt
@@ -183,6 +184,28 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
             self.assertEqual(len(sampler._cached_ops.keys()), 1)
         else:
             self.assertEqual(len(sampler._cached_ops.keys()), 2)
+
+    def test_adjoint_nonunitary_circuit_raises(self):
+        """Test adjoint on a non-unitary circuit raises a OpflowError instead of CircuitError."""
+        circuit = QuantumCircuit(1)
+        circuit.reset(0)
+
+        with self.assertRaises(OpflowError):
+            _ = StateFn(circuit).adjoint()
+
+    def test_evaluating_nonunitary_circuit_state(self):
+        """Test evaluating a circuit works even if it contains non-unitary instruction (resets).
+
+        TODO: allow this for (~StateFn(circuit) @ op @ StateFn(circuit)), but this requires
+        refactoring how the AerPauliExpectation works, since that currently relies on
+        composing with CircuitMeasurements
+        """
+        circuit = QuantumCircuit(1)
+        circuit.initialize([0, 1], [0])
+        op = Z
+
+        res = (~StateFn(op) @ StateFn(circuit)).eval()
+        self.assertAlmostEqual(-1+0j, res)
 
     def test_quantum_instance_with_backend_shots(self):
         """Test sampling a circuit where the backend has shots attached."""
