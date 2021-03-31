@@ -275,4 +275,6 @@ class NoiseAdaptiveLayout(AnalysisPass):
             pid = self._qarg_to_id(q)
             hwid = self.prog2hw[pid]
             layout[q] = hwid
+        for qreg in dag.qregs.values():
+            layout.add_register(qreg)
         self.property_set['layout'] = layout
