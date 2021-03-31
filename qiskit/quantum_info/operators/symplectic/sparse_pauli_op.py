@@ -419,6 +419,15 @@ class SparsePauliOp(LinearOp):
 
     def to_json(self):
         """Convert to JSON."""
+        class SparsePauliOpJSONEncoder(json.JSONEncoder):
+            """A JSON encoder for qobj"""
+            def default(self, obj):  # pylint: disable=method-hidden,arguments-differ
+                if isinstance(obj, complex):
+                    return {'__complex__': True,
+                            'real': obj.real,
+                            'imag': obj.imag}
+                return json.JSONEncoder.default(self, obj)
+
         return json.dumps(self.to_list(), cls=SparsePauliOpJSONEncoder)
 
     def to_matrix(self, sparse=False):
@@ -498,16 +507,6 @@ class SparsePauliOp(LinearOp):
                 return coeff * mat
 
         return MatrixIterator(self)
-
-
-class SparsePauliOpJSONEncoder(json.JSONEncoder):
-    """A JSON encoder for qobj"""
-    def default(self, obj):
-        if isinstance(obj, complex):
-            return {'__complex__': True,
-                    'real': obj.real,
-                    'imag': obj.imag}
-        return json.JSONEncoder.default(self, obj)
 
 
 def _as_qiskit_type(dct):

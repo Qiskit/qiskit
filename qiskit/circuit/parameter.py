@@ -85,3 +85,27 @@ class Parameter(ParameterExpression):
 
     def __hash__(self):
         return self._hash
+
+
+def sympy_to_parameter_expression(expr):
+    """
+    Convert simple sympy expressions to ParameterExpression.
+
+    Args:
+        expr (sympy.Expr): sympy expression.
+
+    Returns:
+        ParameterExpression: converted expression
+
+    Raises:
+        TypeError: if expr is not a sympy expression
+
+    """
+    # Putting this fn here instead of parameter_expression.py avoids
+    # cyclic import.
+    from sympy import Expr
+    if not isinstance(expr, Expr):
+        raise TypeError('expression of type "{0}" '
+                        'is not a sympy expression'.format(expr))
+    symbol_map = {Parameter(param.name): param for param in expr.free_symbols}
+    return ParameterExpression(symbol_map, expr)

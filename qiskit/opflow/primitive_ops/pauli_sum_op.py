@@ -279,6 +279,18 @@ class PauliSumOp(PrimitiveOp):
         Returns:
             str: PauliSumOp as JSON string.
         """
+        class PauliSumOpJSONEncoder(json.JSONEncoder):
+            """A JSON encoder for PauliSumOp"""
+            def default(self, obj):  # pylint: disable=method-hidden,arguments-differ
+                if isinstance(obj, complex):
+                    return {'__complex__': True,
+                            'real': obj.real,
+                            'imag': obj.imag}
+                elif isinstance(obj, ParameterExpression):
+                    return {'__parameter_expression__': True,
+                            'expr': str(obj)}
+                return json.JSONEncoder.default(self, obj)
+
         record = {'coeff': self.coeff,
                   'primitive': self.primitive.to_json(),
                   'grouping_type': self.grouping_type}
@@ -454,19 +466,6 @@ class PauliSumOp(PrimitiveOp):
         return op.coeff == 1 and len(op) == 1 and primitive.coeffs[0] == 0
 
 
-class PauliSumOpJSONEncoder(json.JSONEncoder):
-    """A JSON encoder for PauliSumOp"""
-    def default(self, obj):
-        if isinstance(obj, complex):
-            return {'__complex__': True,
-                    'real': obj.real,
-                    'imag': obj.imag}
-        elif isinstance(obj, ParameterExpression):
-            return {'__parameter_expression__': True,
-                    'expr': str(obj)}
-        return json.JSONEncoder.default(self, obj)
-
-
 def _as_qiskit_type(dct):
     """JSON decoder hook for PauliSumOp"""
     if '__complex__' in dct:
@@ -474,11 +473,12 @@ def _as_qiskit_type(dct):
     elif '__parameter_expression__' in dct:
         import sympy
         from sympy.parsing.sympy_parser import parse_expr
+        import qiskit.circuit.parameter as parameter
         pe_funcs = ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'exp',
                     'log', 'Symbol', 'Integer']
         pd_dict = dict()
         for fn in pe_funcs:
             pd_dict[fn] = getattr(sympy, fn)
         sexpr = parse_expr(dct['expr'], global_dict=pd_dict)
-        return ParameterExpression.from_sympy(sexpr)
+        return parameter.sympy_to_parameter_expression(sexpr)
     return dct
