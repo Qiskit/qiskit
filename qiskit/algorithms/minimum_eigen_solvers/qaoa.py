@@ -127,9 +127,9 @@ class QAOA(VQE):
         # Recreates a circuit based on operator parameter.
         if operator.num_qubits != self.ansatz.num_qubits:
             self.ansatz = QAOAAnsatz(operator,
-                                       self._reps,
-                                       initial_state=self._initial_state,
-                                       mixer_operator=self._mixer)
+                                     self._reps,
+                                     initial_state=self._initial_state,
+                                     mixer_operator=self._mixer)
         operator = super()._check_operator(operator)
         return operator
 
