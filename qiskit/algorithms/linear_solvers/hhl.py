@@ -308,6 +308,7 @@ class HHL(LinearSolver):
 
         Raises:
             ValueError: If the input is not in the correct format.
+            ValueError: If the type of the input matrix is not supported.
         """
         # State preparation circuit - default is qiskit
         if isinstance(vector, QuantumCircuit):
@@ -325,7 +326,10 @@ class HHL(LinearSolver):
         # Hamiltonian simulation circuit - default is Trotterization
         if isinstance(matrix, QuantumCircuit):
             matrix_circuit = matrix
-        elif isinstance(matrix, np.ndarray):
+        elif isinstance(matrix, (list, np.ndarray)):
+            if isinstance(matrix, list):
+                matrix = np.array(matrix)
+
             if matrix.shape[0] != matrix.shape[1]:
                 raise ValueError("Input matrix must be square!")
             if np.log2(matrix.shape[0]) % 1 != 0:
@@ -339,6 +343,8 @@ class HHL(LinearSolver):
                                  ". Matrix dimension: " +
                                  str(matrix.shape[0]))
             matrix_circuit = NumPyMatrix(matrix, evolution_time=2 * np.pi)
+        else:
+            raise ValueError(f'Invalid type for matrix: {type(matrix)}.')
 
         # Set the tolerance for the matrix approximation
         if hasattr(matrix_circuit, "tolerance"):
