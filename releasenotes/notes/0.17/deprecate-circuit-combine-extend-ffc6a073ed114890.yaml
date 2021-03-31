@@ -6,7 +6,7 @@ deprecations:
     :meth:`~qiskit.circuit.QuantumCircuit.extend` along with their corresponding
     Python operators ``+`` and ``+=`` are deprecated and will be removed in a
     future release. Instead the :class:`~qiskit.circuit.QuantumCircuit` method
-    :meth:`~qiskit.circuit.QuantumCircuit.compose` should be used instead.
+    :meth:`~qiskit.circuit.QuantumCircuit.compose` should be used.
     The :meth:`~qiskit.circuit.QuantumCircuit.compose` method allows more
     flexibility in composing two circuits that do not have matching registers.
     It does not, however, automatically add qubits/clbits unlike the deprecated

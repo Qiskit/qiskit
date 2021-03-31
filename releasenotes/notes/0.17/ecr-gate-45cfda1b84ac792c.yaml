@@ -5,7 +5,7 @@ features:
     the echo cross-resonance (ECR), has been added to the
     :mod:`qiskit.circuit.library` module along with a corresponding method,
     :meth:`~qiskit.circuit.QuantumCircuit.ecr` for the
-    :class:`~qiskit.circuit.QuantumCircuit class`. The ECR gate is two
+    :class:`~qiskit.circuit.QuantumCircuit` class. The ECR gate is two
     :math:`CR(\frac{π,4})` pulses with an
     :class:`~qiskit.circuit.library.XGate` between them for the echo. This gate
     is locally equivalent to a :class:`~qiskit.circuit.library.CXGate` (can
@@ -37,7 +37,7 @@ deprecations:
     The :class:`~qiskit.transpiler.passes.CXDirection` transpiler pass in the
     :mod:`qiskit.transpiler.passes` module has been deprecated and will be
     removed in a future release. Instead the
-    :class:`~qiskit.transpiler.GateDirection` should be used instead. It behaves
+    :class:`~qiskit.transpiler.GateDirection` should be used. It behaves
     identically to the :class:`~qiskit.transpiler.passes.CXDirection` except
     that it now also supports transforming a circuit with
     :class:`~qiskit.circuit.library.ECRGate` gates in addition to
@@ -46,7 +46,7 @@ deprecations:
     The :class:`~qiskit.transpiler.passes.CheckCXDirection` transpiler pass in
     the :mod:`qiskit.transpiler.passes` module has been deprecated and will be
     removed in a future release. Instead the
-    :class:`~qiskit.transpiler.CheckGateDirection` pass should be used instead.
+    :class:`~qiskit.transpiler.CheckGateDirection` pass should be used.
     It behaves identically to the
     :class:`~qiskit.transpiler.passes.CheckCXDirection` except
     that it now also supports checking the direction of all 2-qubit gates, not

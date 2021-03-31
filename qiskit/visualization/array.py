@@ -215,8 +215,8 @@ def array_to_latex(array, precision=5, prefix="", source=False, max_size=8):
                   height.
 
         Returns:
-            str or IPython.display.Latex: If ``source`` is ``True`` a ``str`` of the LaTeX
-                representation of the array else an ``IPython.display.Latex`` representation of
+            str or IPython.display.Latex: If ``source`` is ``True``, a ``str`` of the LaTeX
+                representation of the array, else an ``IPython.display.Latex`` representation of
                 the array.
 
         Raises:

@@ -43,7 +43,7 @@ upgrade:
     reflect the actual default behavior of the simulator, which would use
     sample measuring if the input circuit supported it (even if it was not
     enabled). If you are running a circuit that doesn't support sample
-    measurement (ie it has :class:`~qiskit.circuit.Reset` operatorions or if
+    measurement (ie it has :class:`~qiskit.circuit.Reset` operations or if
     there are operations after a measurement on a qubit) you should make sure
     to explicitly set this option to ``False`` when you call
     :meth:`~qiskit.providers.basicaer.QasmSimulatorPy.run`.

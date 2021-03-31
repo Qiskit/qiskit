@@ -19,7 +19,7 @@ issues:
     from a script running outside of a ``if __name__ == '__main__':`` block.
     This is due to how Python launches parallel processes on Windows. If a
     ``RuntimeError`` or ``AttributeError`` are raised by scripts that call
-    :func:`~qiskit.tools.parallel_map (including using functions that use
+    :func:`~qiskit.tools.parallel_map` (including using functions that use
     ``parallel_map()`` internally like :func:`~qiskit.compiler.transpile`)
     with Windows and parallelism enabled you can try embedding the script
     calls inside ``if __name__ == '__main__':`` to workaround the issue.
