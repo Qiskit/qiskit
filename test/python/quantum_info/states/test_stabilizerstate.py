@@ -21,15 +21,11 @@ from ddt import ddt
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-# from qiskit import QiskitError
-from qiskit import QuantumRegister, QuantumCircuit
-# from qiskit import transpile
+from qiskit import QuantumCircuit
 
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.states import StabilizerState
-from qiskit.circuit.library import (IGate, XGate, YGate, ZGate, HGate,
-                                    SGate, SdgGate, CXGate, CZGate,
-                                    SwapGate)
+from qiskit.circuit.library import IGate, XGate, HGate
 from qiskit.quantum_info.operators import Clifford, Operator
 
 
@@ -150,8 +146,8 @@ class TestStabilizerState(QiskitTestCase):
             state = stab1.evolve(stab2, qargs)
             self.assertEqual(state, target)
 
-    def test_measure_qubits(self):
-        """Test a measurement of a subsystem of qubits"""
+    def test_measure_single_qubit(self):
+        """Test a measurement of a single qubit"""
         for _ in range(self.samples):
             cliff = Clifford(XGate())
             stab = StabilizerState(cliff)
@@ -168,6 +164,10 @@ class TestStabilizerState(QiskitTestCase):
             value = stab.measure()[0]
             self.assertIn(value, ['0', '1'])
 
+    def test_measure_qubits(self):
+        """Test a measurement of a subsystem of qubits"""
+
+        for _ in range(self.samples):
             num_qubits = 4
             qc = QuantumCircuit(num_qubits)
             stab = StabilizerState(qc)
@@ -192,9 +192,9 @@ class TestStabilizerState(QiskitTestCase):
             qc.h(0)
             stab = StabilizerState(qc)
             value = stab.measure()[0]
-            self.assertIn(value, ['0000', '1000'])
+            self.assertIn(value, ['0000', '0001'])
             value = stab.measure([0, 1])[0]
-            self.assertIn(value, ['00', '10'])
+            self.assertIn(value, ['00', '01'])
             value = stab.measure([2])[0]
             self.assertEqual(value, '0')
 
@@ -211,8 +211,8 @@ class TestStabilizerState(QiskitTestCase):
             value = stab.measure([2])[0]
             self.assertIn(value, ['0', '1'])
 
-    def test_reset_qubits(self):
-        """Test reset method of a subsystem of qubits"""
+    def test_reset_single_qubit(self):
+        """Test reset method of a single qubit"""
 
         empty_qc = QuantumCircuit(1)
 
@@ -228,6 +228,9 @@ class TestStabilizerState(QiskitTestCase):
             value = stab.reset([0])
             target = StabilizerState(empty_qc)
             self.assertEqual(value, target)
+
+    def test_reset_qubits(self):
+        """Test reset method of a subsystem of qubits"""
 
         num_qubits = 3
         qc = QuantumCircuit(num_qubits)
@@ -252,26 +255,26 @@ class TestStabilizerState(QiskitTestCase):
             stab = StabilizerState(qc)
             res = stab.reset([0])
             value = res.measure()[0]
-            self.assertIn(value, ['000', '011'])
+            self.assertIn(value, ['000', '110'])
 
         for _ in range(self.samples):
             stab = StabilizerState(qc)
             res = stab.reset([1])
             value = res.measure()[0]
-            # self.assertIn(value, ['000', '101'])
+            self.assertIn(value, ['000', '101'])
 
         for _ in range(self.samples):
             stab = StabilizerState(qc)
             res = stab.reset([2])
             value = res.measure()[0]
-            # self.assertIn(value, ['000', '110'])
+            self.assertIn(value, ['000', '011'])
 
         for _ in range(self.samples):
             for qargs in [[0, 1], [1, 0]]:
                 stab = StabilizerState(qc)
                 res = stab.reset(qargs)
                 value = res.measure()[0]
-                self.assertIn(value, ['000', '001'])
+                self.assertIn(value, ['000', '100'])
 
         for _ in range(self.samples):
             for qargs in [[0, 2], [2, 0]]:
@@ -285,8 +288,7 @@ class TestStabilizerState(QiskitTestCase):
                 stab = StabilizerState(qc)
                 res = stab.reset(qargs)
                 value = res.measure()[0]
-                # self.assertIn(value, ['000', '100'])
-
+                self.assertIn(value, ['000', '001'])
 
     def test_sample_counts_memory_ghz(self):
         """Test sample_counts and sample_memory method for GHZ state"""
@@ -301,7 +303,6 @@ class TestStabilizerState(QiskitTestCase):
         # 3-qubit qargs
         target = {'000': self.shots / 2, '111': self.shots / 2}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-
             with self.subTest(msg='counts (qargs={})'.format(qargs)):
                 counts = stab.sample_counts(self.shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, self.threshold)
@@ -314,7 +315,6 @@ class TestStabilizerState(QiskitTestCase):
         # 2-qubit qargs
         target = {'00': self.shots / 2, '11': self.shots / 2}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 0]]:
-
             with self.subTest(msg='counts (qargs={})'.format(qargs)):
                 counts = stab.sample_counts(self.shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, self.threshold)
@@ -327,7 +327,6 @@ class TestStabilizerState(QiskitTestCase):
         # 1-qubit qargs
         target = {'0': self.shots / 2, '1': self.shots / 2}
         for qargs in [[0], [1], [2]]:
-
             with self.subTest(msg='counts (qargs={})'.format(qargs)):
                 counts = stab.sample_counts(self.shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, self.threshold)
@@ -353,7 +352,6 @@ class TestStabilizerState(QiskitTestCase):
                   '100': self.shots / 8, '101': self.shots / 8,
                   '110': self.shots / 8, '111': self.shots / 8}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-
             with self.subTest(msg='counts (qargs={})'.format(qargs)):
                 counts = stab.sample_counts(self.shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, self.threshold)
@@ -367,7 +365,6 @@ class TestStabilizerState(QiskitTestCase):
         target = {'00': self.shots / 4, '01': self.shots / 4,
                   '10': self.shots / 4, '11': self.shots / 4}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 0]]:
-
             with self.subTest(msg='counts (qargs={})'.format(qargs)):
                 counts = stab.sample_counts(self.shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, self.threshold)
@@ -380,7 +377,6 @@ class TestStabilizerState(QiskitTestCase):
         # 1-qubit qargs
         target = {'0': self.shots / 2, '1': self.shots / 2}
         for qargs in [[0], [1], [2]]:
-
             with self.subTest(msg='counts (qargs={})'.format(qargs)):
                 counts = stab.sample_counts(self.shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, self.threshold)

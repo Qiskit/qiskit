@@ -15,8 +15,6 @@ Stabilizer state class.
 """
 
 import copy
-# import re
-# from numbers import Number
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -247,14 +245,14 @@ class StabilizerState(QuantumState):
         if qargs is None:
             return StabilizerState(Clifford((np.eye(2 * self.data.num_qubits))))
 
-        # Apply measurement and get classical outcome
-        outcome, res = self.measure(qargs)
+        for qubit in qargs:
+            # Apply measurement and get classical outcome
+            outcome = self._measure_and_update(qubit, 0)
 
-        # Use the outcome to apply X gate to any qubits left in the
-        # |1> state after measure, then discard outcome.
-        for j in range(len(qargs)):
-            if outcome[j] == '1':
-                _append_x(self.data, qargs[j])
+            # Use the outcome to apply X gate to any qubits left in the
+            # |1> state after measure, then discard outcome.
+            if outcome == 1:
+                _append_x(self.data, qubit)
 
         return self
 
@@ -282,7 +280,7 @@ class StabilizerState(QuantumState):
         outcome = ''
         for qubit in qargs:
             randbit = self._rng.randint(2)
-            outcome += str(self._measure_and_update(qubit, randbit))
+            outcome = str(self._measure_and_update(qubit, randbit)) + outcome
         return outcome, self
 
     def sample_memory(self, shots, qargs=None):
