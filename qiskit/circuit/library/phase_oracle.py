@@ -44,8 +44,8 @@ class PhaseOracle(QuantumCircuit):
     def __init__(self, expression: Union[str, ClassicalElement],
                  synthesizer: Optional[Callable[[BooleanExpression], QuantumCircuit]] = None) \
             -> None:
-        """
-        Creates a PhaseOracle object
+        """Creates a PhaseOracle object
+
         Args:
             expression: A Python-like boolean expression.
             synthesizer: Optional. A function to convert a BooleanExpression into a QuantumCircuit
