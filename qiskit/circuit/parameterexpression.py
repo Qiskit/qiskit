@@ -46,6 +46,28 @@ class ParameterExpression:
         self._symbol_expr = expr
         self._names = None
 
+    @staticmethod
+    def from_sympy(expr):
+        """
+        Convert simple sympy expressions to ParameterExpression.
+
+        Args:
+            expr (sympy.Expr): sympy expression.
+
+        Returns:
+            ParameterExpression: converted expression
+
+        Raises:
+            TypeError: if expr is not a sympy expression
+        """
+        from sympy import Expr
+        import qiskit.circuit.parameter as parameter
+        if not isinstance(expr, Expr):
+            raise TypeError('expression of type "{0}" '
+                            'is not a sympy expression'.format(expr))
+        symbol_map = {parameter.Parameter(param.name): param for param in expr.free_symbols}
+        return ParameterExpression(symbol_map, expr)
+
     @property
     def parameters(self) -> Set:
         """Returns a set of the unbound Parameters in the expression."""

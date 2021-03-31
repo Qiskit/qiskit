@@ -14,8 +14,8 @@ N-Qubit Sparse Pauli Operator class.
 """
 
 from numbers import Number
-import numpy as np
 import json
+import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.linear_op import LinearOp
@@ -388,12 +388,8 @@ class SparsePauliOp(LinearOp):
 
     @staticmethod
     def from_json(json_str):
-        """Convert to SparsePauliOp from json."""
-        def as_complex(dct):
-            if '__complex__' in dct:
-                return complex(dct['real'], dct['imag'])
-            return dct
-        sparse_pauli_list = json.loads(json_str, object_hook=as_complex)
+        """Convert to SparsePauliOp from JSON."""
+        sparse_pauli_list = json.loads(json_str, object_hook=_as_qiskit_type)
         return SparsePauliOp.from_list(sparse_pauli_list)
 
     def to_list(self, array=False):
@@ -422,16 +418,8 @@ class SparsePauliOp(LinearOp):
         return labels.tolist()
 
     def to_json(self):
-        """Convert to json."""
-        class ComplexEncoder(json.JSONEncoder):
-            """A json encoder for qobj"""
-            def default(self, obj):
-                if isinstance(obj, complex):
-                    return {'__complex__': True,
-                            'real': obj.real,
-                            'imag': obj.imag}
-                return json.JSONEncoder.default(self, obj)
-        return json.dumps(self.to_list(), cls=ComplexEncoder)
+        """Convert to JSON."""
+        return json.dumps(self.to_list(), cls=SparsePauliOpJSONEncoder)
 
     def to_matrix(self, sparse=False):
         """Convert to a dense or sparse matrix.
@@ -510,6 +498,22 @@ class SparsePauliOp(LinearOp):
                 return coeff * mat
 
         return MatrixIterator(self)
+
+
+class SparsePauliOpJSONEncoder(json.JSONEncoder):
+    """A JSON encoder for qobj"""
+    def default(self, obj):
+        if isinstance(obj, complex):
+            return {'__complex__': True,
+                    'real': obj.real,
+                    'imag': obj.imag}
+        return json.JSONEncoder.default(self, obj)
+
+
+def _as_qiskit_type(dct):
+    if '__complex__' in dct:
+        return complex(dct['real'], dct['imag'])
+    return dct
 
 
 # Update docstrings for API docs

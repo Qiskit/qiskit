@@ -211,7 +211,7 @@ class PauliSumOp(PrimitiveOp):
         # Both PauliSumOps
         if isinstance(other, PauliSumOp):
             return PauliSumOp(
-                new_self.primitive * other.primitive,
+                new_self.primitive.dot(other.primitive),
                 coeff=new_self.coeff * other.coeff,
             )
         if isinstance(other, PauliOp):
@@ -261,7 +261,7 @@ class PauliSumOp(PrimitiveOp):
 
     @staticmethod
     def from_json(json_string):
-        """Convert json string to PauliSumOp.
+        """Convert JSON string to PauliSumOp.
 
         Args:
             json_string (str): JSON formatted PauliSumOp string.
@@ -269,7 +269,7 @@ class PauliSumOp(PrimitiveOp):
         Returns:
             PauliSumOp: PauliSumOp object.
         """
-        record = json.loads(json_string)
+        record = json.loads(json_string, object_hook=_as_qiskit_type)
         return PauliSumOp(primitive=SparsePauliOp.from_json(record['primitive']),
                           coeff=record['coeff'], grouping_type=record['grouping_type'])
 
@@ -279,14 +279,10 @@ class PauliSumOp(PrimitiveOp):
         Returns:
             str: PauliSumOp as JSON string.
         """
-        if isinstance(self.coeff, ParameterExpression):
-            coeff = str(self.coeff)
-        else:
-            coeff = self.coeff
-        record = {'coeff': coeff,
+        record = {'coeff': self.coeff,
                   'primitive': self.primitive.to_json(),
                   'grouping_type': self.grouping_type}
-        return json.dumps(record)
+        return json.dumps(record, cls=PauliSumOpJSONEncoder)
 
     def eval(
             self,
@@ -456,3 +452,33 @@ class PauliSumOp(PrimitiveOp):
         op = self.reduce()
         primitive: SparsePauliOp = op.primitive
         return op.coeff == 1 and len(op) == 1 and primitive.coeffs[0] == 0
+
+
+class PauliSumOpJSONEncoder(json.JSONEncoder):
+    """A JSON encoder for PauliSumOp"""
+    def default(self, obj):
+        if isinstance(obj, complex):
+            return {'__complex__': True,
+                    'real': obj.real,
+                    'imag': obj.imag}
+        elif isinstance(obj, ParameterExpression):
+            return {'__parameter_expression__': True,
+                    'expr': str(obj)}
+        return json.JSONEncoder.default(self, obj)
+
+
+def _as_qiskit_type(dct):
+    """JSON decoder hook for PauliSumOp"""
+    if '__complex__' in dct:
+        return complex(dct['real'], dct['imag'])
+    elif '__parameter_expression__' in dct:
+        import sympy
+        from sympy.parsing.sympy_parser import parse_expr
+        pe_funcs = ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'exp',
+                    'log', 'Symbol', 'Integer']
+        pd_dict = dict()
+        for fn in pe_funcs:
+            pd_dict[fn] = getattr(sympy, fn)
+        sexpr = parse_expr(dct['expr'], global_dict=pd_dict)
+        return ParameterExpression.from_sympy(sexpr)
+    return dct
