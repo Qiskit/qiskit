@@ -128,15 +128,17 @@ def gen_sched_gate(gate: types.ScheduledGate,
     except AttributeError:
         label = 'n/a'
 
-    meta = {
-        'name': gate.operand.name,
-        'label': label,
-        'bits': ', '.join([bit.register.name for bit in gate.bits]),
-        't0': gate.t0,
-        'duration': gate.duration,
-        'unitary': unitary,
-        'parameters': ', '.join(map(str, gate.operand.params))
-    }
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        meta = {
+            'name': gate.operand.name,
+            'label': label,
+            'bits': ', '.join([bit.register.name for bit in gate.bits]),
+            't0': gate.t0,
+            'duration': gate.duration,
+            'unitary': unitary,
+            'parameters': ', '.join(map(str, gate.operand.params))
+        }
 
     # find color
     color = formatter['color.gates'].get(gate.operand.name, formatter['color.default_gate'])
@@ -384,9 +386,11 @@ def gen_bit_name(bit: types.Bits,
         'ha': 'right'
     }
 
-    label_plain = '{name}'.format(name=bit.register.name)
-    label_latex = r'{{\rm {register}}}_{{{index}}}'.format(register=bit.register.prefix,
-                                                           index=bit.index)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        label_plain = '{name}'.format(name=bit.register.name)
+        label_latex = r'{{\rm {register}}}_{{{index}}}'.format(register=bit.register.prefix,
+                                                               index=bit.index)
 
     drawing = drawings.TextData(data_type=types.LabelType.BIT_NAME,
                                 xval=types.AbstractCoordinate.LEFT,
