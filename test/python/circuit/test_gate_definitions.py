@@ -236,7 +236,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         exclude = {'ControlledGate', 'DiagonalGate', 'UCGate', 'MCGupDiag',
                    'MCU1Gate', 'UnitaryGate', 'HamiltonianGate', 'MCPhaseGate',
                    'UCPauliRotGate', 'SingleQubitUnitary', 'MCXGate',
-                   'VariadicZeroParamGate', 'ClassicalFunction'}
+                   'VariadicZeroParamGate', 'ClassicalFunction', 'ClassicalElement'}
         cls._gate_classes = []
         for aclass in class_list:
             if aclass.__name__ not in exclude:
@@ -255,6 +255,8 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                     params[0] = 2
                 if gate_class.__name__ in ['PauliGate']:
                     params = ["IXYZ"]
+                if gate_class.__name__ in ['BooleanExpression']:
+                    params = ["x | y"]
                 gate = gate_class(*params)
                 equiv_lib_list = std_eqlib.get_entry(gate)
                 for ieq, equivalency in enumerate(equiv_lib_list):
