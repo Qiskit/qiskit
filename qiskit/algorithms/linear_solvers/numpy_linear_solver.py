@@ -35,14 +35,13 @@ class NumPyLinearSolver(LinearSolver):
 
             import numpy as np
             from qiskit.algorithms.numpy_linear_solver import NumPyLinearSolver
-            from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import \
-             TridiagonalToeplitz
-            from qiskit.algorithms.linear_solvers.observables.matrix_functional import \
-             MatrixFunctional
+            from qiskit.algorithms.linear_solvers.matrices import tridiagonal_toeplitz
+            from qiskit.algorithms.linear_solvers.observables import matrix_functional
 
-            matrix = TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2)
+            matrix = tridiagonal_toeplitz.TridiagonalToeplitz(
+                2, 1, 1 / 3, trotter_steps=2)
             right_hand_side = [1.0, -2.1, 3.2, -4.3]
-            observable = MatrixFunctional(1, 1 / 2)
+            observable = matrix_functional.MatrixFunctional(1, 1 / 2)
             rhs = right_hand_side / np.linalg.norm(right_hand_side)
 
             np_solver = NumPyLinearSolver()
