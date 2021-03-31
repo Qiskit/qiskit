@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Optional, Any, Tuple, Union
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.utils import deprecated_functionality
 
 
 class Pulse(ABC):
@@ -43,11 +44,11 @@ class Pulse(ABC):
         """Return a dictionary containing the pulse's parameters."""
         pass
 
-    @abstractmethod
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
         raise NotImplementedError
 
+    @deprecated_functionality
     @abstractmethod
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
