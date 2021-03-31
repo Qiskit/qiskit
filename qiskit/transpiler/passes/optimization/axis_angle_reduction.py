@@ -68,7 +68,7 @@ class AxisAngleReduction(TransformationPass):
         return dag
 
     def _run(self, dag, dfprop, total_del_list):
-        del_list = list()        
+        del_list = list()
         for wire in dag.wires:
             node_it = dag.nodes_on_wire(wire)
             stack = list()  # list of (node, dfprop index)
@@ -250,11 +250,8 @@ class AxisAngleReduction(TransformationPass):
         dfsubset['var_gate_angle'] = dfsubset.angle * dfsubset.rotation_sense
         params = dfsubset[['var_gate_angle', 'phase']].sum()
         if np.mod(params.var_gate_angle, period) > _CUTOFF_PRECISION:
-            try:
-                var_gate = self.property_set['var_gate_class'][var_gate_name](
-                    params.var_gate_angle % period)
-            except:
-                breakpoint()
+            var_gate = self.property_set['var_gate_class'][var_gate_name](
+                params.var_gate_angle % period)
             new_qarg = QuantumRegister(var_gate.num_qubits, 'q')
             new_dag = DAGCircuit()
             # the variable gate for the axis may not be in this stack
@@ -319,9 +316,9 @@ class AxisAngleReduction(TransformationPass):
             lead = group[0]  # this will be the reference direction for the group
             mask_axis = pd.Series(False, index=range(dfprop.shape[0]))
             for member in group:
-                # use 'almost_equal'?                
+                # use 'almost_equal'?
                 mask_axis |= dfprop.axis == buniq[member]
-                unlabeled_axes.remove(member)                
+                unlabeled_axes.remove(member)
             mask_1q_axis = mask_axis & mask_1q
             mask_2q_axis = mask_axis & mask_2q
             if mask_1q_axis.any():
