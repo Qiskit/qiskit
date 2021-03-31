@@ -10,28 +10,50 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Internal utils for ClassicalFunction Compiler"""
+"""Internal utils for Classical Function Compiler"""
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate, \
-    XGate, HGate, U3Gate
-from qiskit.circuit.classicalfunction.exceptions import ClassicalFunctionCompilerError
+try:
+    from tweedledum.ir import Qubit  # pylint: disable=no-name-in-module
+    from tweedledum.passes import parity_decomp  # pylint: disable=no-name-in-module
+    HAS_TWEEDLEDUM = True
+except Exception:  # pylint: disable=broad-except
+    HAS_TWEEDLEDUM = False
+
+
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library.standard_gates import (HGate, SGate, SdgGate, SwapGate, TGate, TdgGate,
+                                                   XGate, YGate, ZGate)
+
+_QISKIT_OPS = {
+    'std.h': HGate, 'std.s': SGate, 'std.sdg': SdgGate, 'std.swap': SwapGate,
+    'std.t': TGate, 'std.tdg': TdgGate, 'std.x': XGate, 'std.y': YGate,
+    'std.z': ZGate
+}
+
+
+def _convert_tweedledum_operator(op):
+    base_gate = _QISKIT_OPS.get(op.kind())
+    if base_gate is None:
+        if op.kind() == 'py_operator':
+            return op.py_op()
+        else:
+            raise RuntimeError('Unrecognized operator: %s' % op.kind())
+
+    # TODO: need to deal with cbits too!
+    if op.num_controls() > 0:
+        qubits = op.qubits()
+        ctrl_state = ''
+        for qubit in qubits[:op.num_controls()]:
+            ctrl_state += '{}'.format(int(qubit.polarity() == Qubit.Polarity.positive))
+        return base_gate().control(len(ctrl_state), ctrl_state=ctrl_state[::-1])
+    return base_gate()
 
 
 def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
     """ Converts a `Tweedledum <https://github.com/boschmitt/tweedledum>`_
-    circuit into a Qiskit circuit. A Tweedledum circuit is a
-    dictionary with the following shape:
-        {
-        "num_qubits": 2,
-        "gates": [{
-            "gate": "X",
-            "qubits": [1],
-            "control_qubits": [0],
-            "control_state": "1"
-        }]
+    circuit into a Qiskit circuit.
     Args:
-        tweedledum_circuit (dict): Tweedledum circuit.
+        tweedledum_circuit (tweedledum.ir.Circuit): Tweedledum circuit.
         name (str): Name for the resulting Qiskit circuit.
         qregs (list(QuantumRegister)): Optional. List of QuantumRegisters on which the
            circuit would operate. If not provided, it will create a flat register.
@@ -43,24 +65,13 @@ def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
         ClassicalFunctionCompilerError: If there a gate in the Tweedledum circuit has no Qiskit
         equivalent.
     """
-    gates = {'z': ZGate, 't': TGate, 's': SGate, 'tdg': TdgGate, 'sdg': SdgGate, 'u1': U1Gate,
-             'x': XGate, 'h': HGate, 'u3': U3Gate}
     if qregs:
-        circuit = QuantumCircuit(*qregs, name=name)
+        qiskit_qc = QuantumCircuit(*qregs, name=name)
     else:
-        circuit = QuantumCircuit(tweedledum_circuit['num_qubits'], name=name)
-    for gate in tweedledum_circuit['gates']:
-        basegate = gates.get(gate['gate'].lower())
-        if basegate is None:
-            raise ClassicalFunctionCompilerError('The Tweedledum gate %s has no Qiskit equivalent'
-                                                 % gate['gate'])
+        qiskit_qc = QuantumCircuit(tweedledum_circuit.num_qubits(), name=name)
 
-        ctrl_qubits = gate.get('control_qubits', [])
-        trgt_qubits = gate.get('qubits', [])
-
-        if ctrl_qubits:
-            gate = basegate().control(len(ctrl_qubits), ctrl_state=gate.get('control_state'))
-        else:
-            gate = basegate()
-        circuit.append(gate, ctrl_qubits + trgt_qubits)
-    return circuit
+    for instruction in parity_decomp(tweedledum_circuit):
+        gate = _convert_tweedledum_operator(instruction)
+        qubits = [qubit.uid() for qubit in instruction.qubits()]
+        qiskit_qc.append(gate, qubits)
+    return qiskit_qc
