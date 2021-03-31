@@ -55,10 +55,9 @@ class UniformDistribution(QuantumCircuit):
             name: The name of the circuit.
         """
         warnings.warn('`UniformDistribution` is deprecated as of version 0.17.0 and will be '
-                      ' removed no earlier than 3 months after the release date.'
-                      ' It is moved into in the circuit library of \'Qiskit finance\',',
-                      ' qiskit_finance.circuit.library.probability_distributions',
-                      DeprecationWarning, 2)
+                      'removed no earlier than 3 months after the release date. '
+                      'It moved to qiskit_finance.circuit.library.UniformDistribution.',
+                      DeprecationWarning, stacklevel=2)
 
         super().__init__(num_qubits, name=name)
         self.h(self.qubits)
