@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -359,7 +359,7 @@ def run_on_backend(backend: Union[Backend, BaseBackend],
                    skip_qobj_validation: bool = False) -> BaseJob:
     """ run on backend """
     if skip_qobj_validation:
-        if is_aer_provider(backend):
+        if is_aer_provider(backend) or is_basicaer_provider(backend):
             if backend_options is not None:
                 for option, value in backend_options.items():
                     if option == 'backend_options':
@@ -367,11 +367,11 @@ def run_on_backend(backend: Union[Backend, BaseBackend],
                             setattr(qobj.config, key, val)
                     else:
                         setattr(qobj.config, option, value)
-            if noise_config is not None and 'noise_model' in noise_config:
+            if is_aer_provider(backend) and \
+                    noise_config is not None and \
+                    'noise_model' in noise_config:
                 qobj.config.noise_model = noise_config['noise_model']
             job = backend.run(qobj, validate=False)
-        elif is_basicaer_provider(backend):
-            job = backend.run(qobj, **backend_options)
         else:
             logger.info(
                 "Can't skip qobj validation for the %s provider.",
