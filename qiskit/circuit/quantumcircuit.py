@@ -763,7 +763,7 @@ class QuantumCircuit:
 
         return dest
 
-    def tensor(self, other):
+    def tensor(self, other, inplace=False):
         """Tensor ``self`` with ``other``.
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
@@ -781,6 +781,7 @@ class QuantumCircuit:
 
         Args:
             other (QuantumCircuit): The other circuit to tensor this circuit with.
+            inplace (bool): If True, modify the object. Otherwise return composed circuit.
 
         Examples:
 
@@ -828,6 +829,11 @@ class QuantumCircuit:
         dest.compose(other, range(other.num_qubits), range(other.num_clbits), inplace=True)
         dest.compose(self, range(other.num_qubits, num_qubits),
                      range(other.num_clbits, num_clbits), inplace=True)
+
+        # Replace information from tensored circuit into self when inplace = True
+        if inplace:
+            self.__dict__.update(dest.__dict__)
+            return None
         return dest
 
     @property
@@ -864,6 +870,24 @@ class QuantumCircuit:
     def __iadd__(self, rhs):
         """Overload += to implement self.extend."""
         return self.extend(rhs)
+
+    def __and__(self, rhs):
+        """Overload & to implement self.compose."""
+        return self.compose(rhs)
+
+    def __iand__(self, rhs):
+        """Overload &= to implement self.compose in place."""
+        self.compose(rhs, inplace=True)
+        return self
+
+    def __xor__(self, top):
+        """Overload ^ to implement self.tensor."""
+        return self.tensor(top)
+
+    def __ixor__(self, top):
+        """Overload ^= to implement self.tensor in place."""
+        self.tensor(top, inplace=True)
+        return self
 
     def __len__(self):
         """Return number of operations in circuit."""
@@ -1816,6 +1840,7 @@ class QuantumCircuit:
 
         # Set circ cregs and instructions to match the new DAGCircuit's
         circ.data.clear()
+        circ._parameter_table.clear()
         circ.cregs = list(new_dag.cregs.values())
 
         for node in new_dag.topological_op_nodes():
@@ -1977,6 +2002,7 @@ class QuantumCircuit:
         if isinstance(parameters, dict):
             # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
             unrolled_param_dict = self._unroll_param_dict(parameters)
+            unsorted_parameters = self._unsorted_parameters()
 
             # check that all param_dict items are in the _parameter_table for this circuit
             params_not_in_circuit = unrolled_param_dict.keys() - self.parameters
@@ -2288,6 +2314,11 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.RZZGate`."""
         from .library.standard_gates.rzz import RZZGate
         return self.append(RZZGate(theta), [qubit1, qubit2], [])
+
+    def ecr(self, qubit1, qubit2):
+        """Apply :class:`~qiskit.circuit.library.ECRGate`."""
+        from .library.standard_gates.ecr import ECRGate
+        return self.append(ECRGate(), [qubit1, qubit2], [])
 
     def s(self, qubit):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.SGate`."""

@@ -162,7 +162,9 @@ class BasisTranslator(TransformationPass):
                     dag.substitute_node(node, dag_op, inplace=True)
 
                     if bound_target_dag.global_phase:
-                        dag.global_phase += bound_target_dag.global_phase
+                        from sympy import evaluate
+                        with evaluate(False):
+                            dag.global_phase += bound_target_dag.global_phase
                 else:
                     dag.substitute_node_with_dag(node, bound_target_dag)
             else:
