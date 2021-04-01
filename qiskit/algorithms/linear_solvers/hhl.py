@@ -79,12 +79,13 @@ class HHL(LinearSolver):
     References:
 
         [1]: Harrow, A. W., Hassidim, A., Lloyd, S. (2009).
-             Quantum algorithm for linear systems of equations.
-             `Phys. Rev. Lett. 103, 15 (2009), 1–15.
-              <https://doi.org/10.1103/PhysRevLett.103.150502>`_
+        Quantum algorithm for linear systems of equations.
+        `Phys. Rev. Lett. 103, 15 (2009), 1–15. <https://doi.org/10.1103/PhysRevLett.103.150502>`_
+
         [2]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2020).
-             Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
-             `arXiv:2009.04484 <http://arxiv.org/abs/2009.04484>`_
+        Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
+        `arXiv:2009.04484 <http://arxiv.org/abs/2009.04484>`_
+
     """
 
     def __init__(self,
@@ -94,9 +95,9 @@ class HHL(LinearSolver):
             -> None:
         r"""
         Args:
-            epsilon: Error tolerance of the approximation to the solution, i.e. if x is the exact
-                solution and :math:`\tilde{x}` the one calculated by the algorithm, then
-                :math:`||x - \tilde{x}|| < epsilon`.
+            epsilon: Error tolerance of the approximation to the solution, i.e. if :math:`x` is the
+                exact solution and :math:`\tilde{x}` the one calculated by the algorithm, then
+                :math:`||x - \tilde{x}|| \le epsilon`.
             expectation: The expectation converter applied to the expectation values before
                 evaluation. If None then PauliExpectation is used.
             quantum_instance: Quantum Instance or Backend. If None, a Statevector calculation is

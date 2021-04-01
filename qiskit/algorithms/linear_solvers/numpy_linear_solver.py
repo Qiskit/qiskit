@@ -87,8 +87,8 @@ class NumPyLinearSolver(LinearSolver):
             if isinstance(observable, list):
                 solution.observable = []
                 for obs in observable:
-                    solution.observable.append(obs.evaluate(solution_vector))
+                    solution.observable.append(obs.evaluate_classically(solution_vector))
             else:
-                solution.observable = observable.evaluate(solution_vector)
+                solution.observable = observable.evaluate_classically(solution_vector)
         solution.euclidean_norm = np.linalg.norm(solution_vector)
         return solution
