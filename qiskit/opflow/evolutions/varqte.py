@@ -417,6 +417,7 @@ class VarQTE(EvolutionBase):
                 dt_params, grad_res, metric_res = error_based_ode_fun(t, params)
             else:
                 dt_params, grad_res, metric_res = self._solve_sle(param_dict)
+            print('Gradient ', grad_res)
             if (self._snapshot_dir is not None) and (self._store_now):
                 # Get the residual for McLachlan's Variational Principle
                 # self._storage_params_tbd = (t, params, et, resid, f, true_error, true_energy,
@@ -432,8 +433,11 @@ class VarQTE(EvolutionBase):
                                                                         metric_res)[:4]
                     print('returned et', et)
                     try:
-                        if et < 0 and np.abs(et) > 1e-4:
-                            raise Warning('Non-neglectible negative et observed')
+                        if et < 0:
+                            if np.abs(et) > 1e-4:
+                                raise Warning('Non-neglectible negative et observed')
+                            else:
+                                et = 0
                         else:
                             et = np.sqrt(np.real(et))
                     except Exception:
@@ -784,7 +788,7 @@ class VarQTE(EvolutionBase):
                 trained_energy = [list(zipped_items) for zipped_items in zipped_sorted]
 
             error_bounds = np.load(error_bound_directories[j])
-
+            print('error bounds', error_bounds)
             energy_error_bounds = []
             fidelity_bounds = []
             for s, er_b in enumerate(error_bounds):
@@ -848,8 +852,8 @@ class VarQTE(EvolutionBase):
                 # plt.autoscale(enable=True)
                 # plt.xticks(range(counter-1))
                 plt.ylim((0, 1.03))
-                plt.autoscale(enable=True)
-                # plt.yticks(np.linspace(0, 1, 11))
+                # plt.autoscale(enable=True)
+                plt.yticks(np.linspace(0, 1, 11))
                 plt.legend(loc='best')
                 plt.savefig(os.path.join(data_dir, 'reverse_fidelity.png'))
                 plt.close()
@@ -865,19 +869,33 @@ class VarQTE(EvolutionBase):
             # plt.autoscale(enable=True)
             # plt.xticks(range(counter-1))
             plt.ylim((0, 1.03))
-            plt.autoscale(enable=True)
-            # plt.yticks(np.linspace(0, 1, 11))
+            # plt.autoscale(enable=True)
+            plt.yticks(np.linspace(0, 1, 11))
             plt.legend(loc='best')
             plt.savefig(os.path.join(data_dir, 'fidelity.png'))
             plt.close()
 
             plt.figure(4)
-            plt.title('Energy')
+            plt.title('Energy with error bounds')
             plt.scatter(time, true_energy, color='orange', marker='x', s=60,
                         label='target state')
             plt.scatter(time, trained_energy, color='royalblue', marker='o', s=20,
                         label='prepared state')
             plt.errorbar(time, trained_energy, yerr=energy_error_bounds, fmt='x', ecolor='blue')
+            # plt.scatter(time, energy_error_bounds, color='blue', marker='o', s=40,
+            #             label='energy error bound')
+            plt.xlabel('time')
+            plt.ylabel('energy')
+            plt.legend(loc='best')
+            # plt.autoscale(enable=True)
+            plt.savefig(os.path.join(data_dir, 'energy.png'))
+            plt.close()
+            plt.figure(5)
+            plt.title('Energy')
+            plt.scatter(time, true_energy, color='orange', marker='x', s=60,
+                        label='target state')
+            plt.scatter(time, trained_energy, color='royalblue', marker='o', s=20,
+                        label='prepared state')
             # plt.scatter(time, energy_error_bounds, color='blue', marker='o', s=40,
             #             label='energy error bound')
             plt.xlabel('time')
