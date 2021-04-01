@@ -102,7 +102,6 @@ class TestPresetPassManager(QiskitTestCase):
 
         dag = circuit_to_dag(result)
         circuit_ops = set(node.name for node in dag.topological_op_nodes())
-        print(set(basis_gates))
         self.assertEqual(circuit_ops.union(set(basis_gates)), set(basis_gates))
 
 
