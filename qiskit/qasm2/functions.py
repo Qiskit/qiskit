@@ -20,7 +20,8 @@ Based on conversation with Dr. Luciano Bello
 """
 from os import linesep
 from typing import List, BinaryIO, TextIO
-from qiskit import QuantumCircuit, QiskitError
+from qiskit.circuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.qasm2 import Qasm
 from .funhelp import qasm_load, qasm_export
 
@@ -45,7 +46,6 @@ def _load_from_string(qasm_src: str or List[str]) -> QuantumCircuit:
 
     """
 
-    circ = None
     if isinstance(qasm_src, list):
         qasm_src = ''.join(s + linesep for s in qasm_src)
     qasm = Qasm(data=qasm_src)

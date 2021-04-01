@@ -39,6 +39,7 @@ Pygments
 from numpy import pi
 from .qasm import Qasm
 from .exceptions import QasmError
+from .functions import load, export
 
 try:
     import pygments
@@ -51,3 +52,4 @@ if HAS_PYGMENTS:
         from .pygments import OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
     except Exception:  # pylint: disable=broad-except
         HAS_PYGMENTS = False
+

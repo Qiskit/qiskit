@@ -16,17 +16,13 @@ Support via qiskit.qasm for functional interface
 to Qasm2 source loading and exporting in functions.py
 @author: jax
 """
-# from importlib import import_module
-# from os import linesep
-# from typing import List
+
 import warnings
-from qiskit import QuantumCircuit  # , QiskitError
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.qasm2 import Qasm, QasmError
-from qiskit.converters import ast_to_dag
-from qiskit.converters import dag_to_circuit
 
 
 def qasm_load(qasm: Qasm) -> QuantumCircuit:
@@ -45,7 +41,7 @@ def qasm_load(qasm: Qasm) -> QuantumCircuit:
         The resulting QuantumCircuit.
 
     """
-
+    from qiskit.converters import ast_to_dag, dag_to_circuit
     ast = qasm.parse()
     dag = ast_to_dag(ast)
     return dag_to_circuit(dag)
