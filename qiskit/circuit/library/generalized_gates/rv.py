@@ -18,15 +18,14 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class RVGate(Gate):
-    r"""Rotation around arbitrary rotation axis v where |v| is
-    angle of rotation in radians.
+    r"""Single-qubit rotation around arbitrary axis v, with angle ||v||.
 
     **Circuit symbol:**
 
     .. parsed-literal::
 
              ┌─────────────────┐
-        q_0: ┤ RV(v_x,v_y,v_z) ├
+        q_0: ┤   RV(vx,vy,vz)  ├
              └─────────────────┘
 
     **Matrix Representation:**
@@ -34,28 +33,25 @@ class RVGate(Gate):
     .. math::
 
     \newcommand{\th}{|\vec{v}|}
-    \newcommand{\sinc}{\text{sinc}}
         R(\vec{v}) = e^{-i \vec{v}\cdot\vec{\sigma}} =
             \begin{pmatrix}
-                \cos{\th} -i v_z \sinc(\th) & -(i v_x + v_y) \sinc(\th) \\
-                -(i v_x - v_y) \sinc(\th) & \cos(\th) + i v_z \sinc(\th)
+                \cos{\th} -i v_z \sin(\th) & -(i v_x + v_y) \sin(\th) \\
+                -(i v_x - v_y) \sin(\th) & \cos(\th) + i v_z \sin(\th)
             \end{pmatrix}
     """
 
-    def __init__(self, v_x, v_y, v_z, basis='U'):
+    def __init__(self, vx, vy, vz):
         """Create new rv single-qubit gate.
 
         Args:
-            v_x (float): x-component
-            v_y (float): y-component
-            v_z (float): z-component
-            basis (str, optional): basis (see
-                :class:`~qiskit.quantum_info.synthesis.one_qubit_decompose.OneQubitEulerDecomposer`)
+            vx (float): x-component
+            vy (float): y-component
+            vz (float): z-component
         """
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
-        super().__init__('rv', 1, [v_x, v_y, v_z])
-        self._decomposer = OneQubitEulerDecomposer(basis=basis)
+        super().__init__('rv', 1, [vx, vy, vz])
+        self._decomposer = OneQubitEulerDecomposer(basis='U')
 
     def _define(self):
         try:
@@ -72,10 +68,11 @@ class RVGate(Gate):
     def to_matrix(self):
         """Return a numpy.array for the R(v) gate."""
         v = numpy.asarray(self.params, dtype=float)
-        angle = numpy.sqrt(v.dot(v))
+        magnitude = numpy.sqrt(v.dot(v))
+        angle = numpy.pi * magnitude
         if angle == 0:
             return numpy.array([[1, 0], [0, 1]])
-        nx, ny, nz = v / angle
+        nx, ny, nz = v / magnitude
         sin = numpy.sin(angle / 2)
         cos = numpy.cos(angle / 2)
         return numpy.array([[cos - 1j * nz * sin, (-ny - 1j * nx) * sin],
