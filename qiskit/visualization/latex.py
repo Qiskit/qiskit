@@ -111,7 +111,7 @@ class QCircuitImage:
         #################################
         self.qubit_list = qubits
         self.ordered_bits = qubits + clbits
-        self.cregs, self.cregs_bits = self._get_register_specs(clbits)
+        self.cregs = {reg: reg.size for reg in cregs}
 
         self.bit_locations = {
             bit: {'register': register, 'index': index}
@@ -121,6 +121,7 @@ class QCircuitImage:
             if bit not in self.bit_locations:
                 self.bit_locations[bit] = {'register': None, 'index': index}
 
+        self.cregs_bits = [self.bit_locations[bit]['register'] for bit in clbits]
         self.img_regs = {bit: ind for ind, bit in
                          enumerate(self.ordered_bits)}
         if cregbundle:
@@ -622,15 +623,6 @@ class QCircuitImage:
                 control = "\\control" if if_value[i] == '1' else "\\controlo"
                 self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
                 gap = 1
-
-    def _get_register_specs(self, bits):
-        """Get the number and size of unique registers from bits list."""
-        regs = {}
-        regs_bits = []
-        for bit in bits:
-            regs[bit.register] = bit.register.size
-            regs_bits.append(bit.register)
-        return regs, regs_bits
 
     def _truncate_float(self, matchobj, ndigits=4):
         """Truncate long floats."""

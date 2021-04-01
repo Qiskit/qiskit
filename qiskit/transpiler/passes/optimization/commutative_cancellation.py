@@ -43,8 +43,9 @@ class CommutativeCancellation(TransformationPass):
         CommutativeCancellation initializer.
 
         Args:
-            basis_gates (list[str]): Basis gates to consider, e.g. `['u3', 'cx']`. For the effects
-                of this pass, the basis is the set intersection between the `basis` parameter
+            basis_gates (list[str]): Basis gates to consider, e.g.
+                ``['u3', 'cx']``. For the effects of this pass, the basis is
+                the set intersection between the ``basis_gates`` parameter
                 and the gates in the dag.
         """
         super().__init__()
