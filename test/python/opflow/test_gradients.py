@@ -907,7 +907,7 @@ class TestGradients(QiskitOpflowTestCase):
         grad = Gradient(grad_method=method)
 
         # Gradient callable
-        vqe = VQE(var_form=wavefunction,
+        vqe = VQE(ansatz=wavefunction,
                   optimizer=optimizer,
                   gradient=grad,
                   quantum_instance=q_instance)

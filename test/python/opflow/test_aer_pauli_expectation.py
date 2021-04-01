@@ -145,16 +145,16 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
                                      param_qobj=True,
                                      attach_results=True)
 
-        var_form = RealAmplitudes()
-        var_form.num_qubits = 2
+        ansatz = RealAmplitudes()
+        ansatz.num_qubits = 2
 
         observable_meas = self.expect.convert(StateFn(two_qubit_h2, is_measurement=True))
-        ansatz_circuit_op = CircuitStateFn(var_form)
+        ansatz_circuit_op = CircuitStateFn(ansatz)
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
 
         def generate_parameters(num):
             param_bindings = {}
-            for param in var_form.parameters:
+            for param in ansatz.parameters:
                 values = []
                 for _ in range(num):
                     values.append(np.random.rand())
@@ -197,13 +197,13 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         q_instance = QuantumInstance(self.backend, seed_simulator=self.seed,
                                      seed_transpiler=self.seed, shots=10000)
         qubit_op = (0.1 * I ^ I) + (0.2 * I ^ Z) + (0.3 * Z ^ I) + (0.4 * Z ^ Z) + (0.5 * X ^ X)
-        var_form = RealAmplitudes(qubit_op.num_qubits)
-        ansatz_circuit_op = CircuitStateFn(var_form)
+        ansatz = RealAmplitudes(qubit_op.num_qubits)
+        ansatz_circuit_op = CircuitStateFn(ansatz)
         observable = PauliExpectation().convert(~StateFn(qubit_op))
         expect_op = observable.compose(ansatz_circuit_op).reduce()
         params1 = {}
         params2 = {}
-        for param in var_form.parameters:
+        for param in ansatz.parameters:
             params1[param] = [0]
             params2[param] = [0, 0]
 

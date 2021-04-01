@@ -44,7 +44,7 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         qe = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
                              seed_simulator=algorithm_globals.random_seed,
                              seed_transpiler=algorithm_globals.random_seed)
-        vqe = VQE(var_form=RealAmplitudes(),
+        vqe = VQE(ansatz=RealAmplitudes(),
                   optimizer=optimizer,
                   quantum_instance=qe)
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
