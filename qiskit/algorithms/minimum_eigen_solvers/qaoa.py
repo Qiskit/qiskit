@@ -33,8 +33,7 @@ class QAOA(VQE):
 
     `QAOA <https://arxiv.org/abs/1411.4028>`__ is a well-known algorithm for finding approximate
     solutions to combinatorial-optimization problems.
-    The QAOA implementation directly extends :class:`VQE` and inherits VQE's
-    general hybrid optimization structure.
+    The QAOA implementation directly extends :class:`VQE` and inherits VQE's optimization structure.
     However, unlike VQE, which can be configured with arbitrary variational forms,
     QAOA uses its own fine-tuned variational form, which comprises :math:`p` parameterized global
     :math:`x` rotations and :math:`p` different parameterizations of the problem hamiltonian.
