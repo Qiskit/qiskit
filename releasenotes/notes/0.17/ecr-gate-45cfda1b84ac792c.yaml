@@ -1,0 +1,53 @@
+---
+features:
+  - |
+    A new a new 2-qubit gate, :class:`~qiskit.circuit.library.ECRGate`,
+    the echo cross-resonance (ECR), has been added to the
+    :mod:`qiskit.circuit.library` module along with a corresponding method,
+    :meth:`~qiskit.circuit.QuantumCircuit.ecr` for the
+    :class:`~qiskit.circuit.QuantumCircuit` class. The ECR gate is two
+    :math:`CR(\frac{π,4})` pulses with an
+    :class:`~qiskit.circuit.library.XGate` between them for the echo. This gate
+    is locally equivalent to a :class:`~qiskit.circuit.library.CXGate` (can
+    convert to a CNOT with local pre- or post-rotation). It is the native gate
+    on current IBM hardware and compiling to it allows the pre-/post-rotations
+    to be merged into the rest of the circuit.
+  - |
+    A new kwarg ``approximation_degree`` has been added to the
+    :func:`~qiskit.compiler.transpile` function for enabling
+    approximate compilation. Valid values range from 0 to 1, and higher
+    means less approximation. This is a heuristic dial
+    to experiment with circuit approximations. The concrete interpretation
+    of this number is left to each pass, which may use it to perform
+    some approximate version of the pass. Specific examples include
+    unitary synthesis or translators to discrete gate sets.
+    If a pass does not support this option, it implies exact transformation.
+  - |
+    Two new transpiler passess, :class:`~qiskit.transpiler.GateDirection` and
+    class:`qiskit.transpiler.CheckGateDirection`, were added to the
+    :mod:`qiskit.transpiler.passes` module. These new passes are inteded to
+    be more general replacements for
+    :class:`~qiskit.transpiler.passes.CXDirection` and
+    :class:`~qiskit.transpiler.passes.CheckCXDirection` (which are both now
+    deprecated, see the deprecation notes for more details) that perform the
+    same function but work with other gates beside just
+    :class:`~qiskit.circuit.library.CXGate`.
+deprecations:
+  - |
+    The :class:`~qiskit.transpiler.passes.CXDirection` transpiler pass in the
+    :mod:`qiskit.transpiler.passes` module has been deprecated and will be
+    removed in a future release. Instead the
+    :class:`~qiskit.transpiler.GateDirection` should be used. It behaves
+    identically to the :class:`~qiskit.transpiler.passes.CXDirection` except
+    that it now also supports transforming a circuit with
+    :class:`~qiskit.circuit.library.ECRGate` gates in addition to
+    :class:`~qiskit.circuit.library.CXGate` gates.
+  - |
+    The :class:`~qiskit.transpiler.passes.CheckCXDirection` transpiler pass in
+    the :mod:`qiskit.transpiler.passes` module has been deprecated and will be
+    removed in a future release. Instead the
+    :class:`~qiskit.transpiler.CheckGateDirection` pass should be used.
+    It behaves identically to the
+    :class:`~qiskit.transpiler.passes.CheckCXDirection` except
+    that it now also supports checking the direction of all 2-qubit gates, not
+    just :class:`~qiskit.circuit.library.CXGate` gates.

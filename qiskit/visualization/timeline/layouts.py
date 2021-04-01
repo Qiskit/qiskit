@@ -49,6 +49,8 @@ The function signature of the layout is restricted to:
 Arbitrary layout function satisfying the above format can be accepted.
 """
 
+import warnings
+
 from typing import List, Tuple
 import numpy as np
 
@@ -79,8 +81,10 @@ def qreg_creg_ascending(bits: List[types.Bits]) -> List[types.Bits]:
         else:
             VisualizationError('Unknown bit {bit} is provided.'.format(bit=bit))
 
-    qregs = sorted(qregs, key=lambda x: x.index, reverse=False)
-    cregs = sorted(cregs, key=lambda x: x.index, reverse=False)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        qregs = sorted(qregs, key=lambda x: x.index, reverse=False)
+        cregs = sorted(cregs, key=lambda x: x.index, reverse=False)
 
     return qregs + cregs
 
