@@ -63,8 +63,7 @@ class NumPyLinearSolver(LinearSolver):
             observable: Optional information to be extracted from the solution.
                 Default is the probability of success of the algorithm.
             observable_circuit: Optional circuit to be applied to the solution to extract
-             information.
-                Default is `None`.
+                information. Default is ``None``.
             post_processing: Optional function to compute the value of the observable.
                 Default is the raw value of measuring the observable.
 
