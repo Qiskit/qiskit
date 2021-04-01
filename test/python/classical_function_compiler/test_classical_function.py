@@ -35,6 +35,6 @@ class TestOracleDecomposition(QiskitTestCase):
         quantum_circuit.append(oracle, [2, 1, 0, 3, 4])
 
         expected = QuantumCircuit(5)
-        expected.append(XGate().control(4, ctrl_state='0101'), [2, 1, 0, 3, 4])
+        expected.append(XGate().control(4, ctrl_state='1010'), [2, 1, 0, 3, 4])
 
         self.assertEqual(quantum_circuit.decompose(), expected)
