@@ -45,8 +45,8 @@ logger = logging.getLogger(__name__)
 class VQE(VariationalAlgorithm, MinimumEigensolver):
     r"""The Variational Quantum Eigensolver algorithm.
 
-    `VQE <https://arxiv.org/abs/1304.3061>`__ is a hybrid algorithm that uses a
-    variational technique and interleaves quantum and classical computations in order to find
+    `VQE <https://arxiv.org/abs/1304.3061>`__ is a quantum algorithm that uses a
+    variational technique to find
     the minimum eigenvalue of the Hamiltonian :math:`H` of a given system.
 
     An instance of VQE requires defining two algorithmic sub-components:
