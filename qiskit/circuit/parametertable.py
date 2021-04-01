@@ -103,7 +103,7 @@ class Parameters(set):
             self._sorted_list = sorted(super().__iter__(), key=cmp_to_key(self._compare_parameters))
             self._updated = False
 
-    def union(self, *s: Iterable) -> 'Parameters':
+    def union(self, *s) -> 'Parameters':
         return Parameters(super().union(*s))
 
     def update(self, *s):
@@ -118,7 +118,7 @@ class Parameters(set):
         super().difference_update(*s)
         self._updated = True
 
-    def symmetric_difference(self, *s):
+    def symmetric_difference_update(self, *s):
         super().symmetric_difference_update(*s)
         self._updated = True
 
