@@ -41,7 +41,7 @@ class VariationalAlgorithm:
     """The Variational Algorithm Base Class."""
 
     def __init__(self,
-                 var_form: QuantumCircuit,
+                 ansatz: QuantumCircuit,
                  optimizer: Optimizer,
                  cost_fn: Optional[Callable] = None,
                  gradient: Optional[Union[GradientBase, Callable]] = None,
@@ -50,7 +50,7 @@ class VariationalAlgorithm:
                      Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
         """
         Args:
-            var_form: An optional parameterized variational form (ansatz).
+            ansatz: An optional parameterized ansatz (a.k.a. variational form).
             optimizer: A classical optimizer.
             cost_fn: An optional cost function for optimizer. If not supplied here must be
                 supplied on :meth:`find_minimum`.
@@ -74,10 +74,10 @@ class VariationalAlgorithm:
         self._gradient = gradient
         self._cost_fn = cost_fn
         self._initial_point = initial_point
-        self._var_form = var_form
-        self._var_form_params = None
-        if var_form is not None:
-            self.var_form = var_form
+        self._ansatz = ansatz
+        self._ansatz_params = None
+        if ansatz is not None:
+            self.ansatz = ansatz
 
         self._parameterized_circuits = None
 
@@ -95,22 +95,22 @@ class VariationalAlgorithm:
         self._quantum_instance = quantum_instance
 
     @property
-    def var_form(self) -> Optional[QuantumCircuit]:
-        """ Returns variational form """
-        return self._var_form
+    def ansatz(self) -> Optional[QuantumCircuit]:
+        """ Returns the ansatz """
+        return self._ansatz
 
-    @var_form.setter
-    def var_form(self, var_form: Optional[QuantumCircuit]):
-        """ Sets variational form """
-        if isinstance(var_form, QuantumCircuit):
+    @ansatz.setter
+    def ansatz(self, ansatz: Optional[QuantumCircuit]):
+        """ Sets the ansatz """
+        if isinstance(ansatz, QuantumCircuit):
             # store the parameters
-            self._var_form_params = sorted(var_form.parameters, key=lambda p: p.name)
-            self._var_form = var_form
-        elif var_form is None:
-            self._var_form_params = None
-            self._var_form = var_form
+            self._ansatz_params = sorted(ansatz.parameters, key=lambda p: p.name)
+            self._ansatz = ansatz
+        elif ansatz is None:
+            self._ansatz_params = None
+            self._ansatz = ansatz
         else:
-            raise ValueError('Unsupported type "{}" of var_form'.format(type(var_form)))
+            raise ValueError('Unsupported type "{}" of ansatz'.format(type(ansatz)))
 
     @property
     def optimizer(self) -> Optional[Optimizer]:
@@ -134,7 +134,7 @@ class VariationalAlgorithm:
 
     def find_minimum(self,
                      initial_point: Optional[np.ndarray] = None,
-                     var_form: Optional[QuantumCircuit] = None,
+                     ansatz: Optional[QuantumCircuit] = None,
                      cost_fn: Optional[Callable] = None,
                      optimizer: Optional[Optimizer] = None,
                      gradient_fn: Optional[Callable] = None) -> 'VariationalResult':
@@ -144,8 +144,7 @@ class VariationalAlgorithm:
             initial_point: If not `None` will be used instead of any initial point supplied via
                 constructor. If `None` and `None` was supplied to constructor then a random
                 point will be used if the optimizer requires an initial point.
-            var_form: If not `None` will be used instead of any variational form supplied via
-                constructor.
+            ansatz: If not `None` will be used instead of any ansatz supplied via constructor.
             cost_fn: If not `None` will be used instead of any cost_fn supplied via
                 constructor.
             optimizer: If not `None` will be used instead of any optimizer supplied via
@@ -159,21 +158,21 @@ class VariationalAlgorithm:
             ValueError: invalid input
         """
         initial_point = initial_point if initial_point is not None else self.initial_point
-        var_form = var_form if var_form is not None else self.var_form
+        ansatz = ansatz if ansatz is not None else self.ansatz
         cost_fn = cost_fn if cost_fn is not None else self._cost_fn
         optimizer = optimizer if optimizer is not None else self.optimizer
 
-        if var_form is None:
-            raise ValueError('Variational form neither supplied to constructor nor find minimum.')
+        if ansatz is None:
+            raise ValueError('Ansatz neither supplied to constructor nor find minimum.')
         if cost_fn is None:
             raise ValueError('Cost function neither supplied to constructor nor find minimum.')
         if optimizer is None:
             raise ValueError('Optimizer neither supplied to constructor nor find minimum.')
 
-        nparms = var_form.num_parameters
+        nparms = ansatz.num_parameters
 
-        if hasattr(var_form, 'parameter_bounds') and var_form.parameter_bounds is not None:
-            bounds = var_form.parameter_bounds
+        if hasattr(ansatz, 'parameter_bounds') and ansatz.parameter_bounds is not None:
+            bounds = ansatz.parameter_bounds
         else:
             bounds = [(None, None)] * nparms
 
@@ -182,7 +181,7 @@ class VariationalAlgorithm:
                 'Initial point size {} and parameter size {} mismatch'.format(
                     len(initial_point), nparms))
         if len(bounds) != nparms:
-            raise ValueError('Variational form bounds size does not match parameter size')
+            raise ValueError('Ansatz bounds size does not match parameter size')
         # If *any* value is *equal* in bounds array to None then the problem does *not* have bounds
         problem_has_bounds = not np.any(np.equal(bounds, None))
         # Check capabilities of the optimizer
@@ -197,9 +196,9 @@ class VariationalAlgorithm:
                 raise ValueError('Optimizer does not support initial point')
         else:
             if optimizer.is_initial_point_required:
-                if hasattr(var_form, 'preferred_init_points'):
+                if hasattr(ansatz, 'preferred_init_points'):
                     # Note: default implementation returns None, hence check again after below
-                    initial_point = var_form.preferred_init_points
+                    initial_point = ansatz.preferred_init_points
 
                 if initial_point is None:  # If still None use a random generated point
                     low = [(l if l is not None else -2 * np.pi) for (l, u) in bounds]
@@ -226,7 +225,7 @@ class VariationalAlgorithm:
         result.optimizer_time = eval_time
         result.optimal_value = opt_val
         result.optimal_point = opt_params
-        result.optimal_parameters = dict(zip(self._var_form_params, opt_params))
+        result.optimal_parameters = dict(zip(self._ansatz_params, opt_params))
 
         return result
 

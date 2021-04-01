@@ -486,13 +486,19 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             raise QiskitError(
                 '{} instruction definition is {}; expected QuantumCircuit'.format(
                     gate.name, type(gate.definition)))
-        for instr, qregs, cregs in gate.definition:
+
+        flat_instr = gate.definition
+        bit_indices = {bit: index
+                       for bits in [flat_instr.qubits, flat_instr.clbits]
+                       for index, bit in enumerate(bits)}
+
+        for instr, qregs, cregs in flat_instr:
             if cregs:
                 raise QiskitError(
                     'Cannot apply Instruction with classical registers: {}'.format(
                         instr.name))
             # Get the integer position of the flat register
-            new_qubits = [qargs[tup.index] for tup in qregs]
+            new_qubits = [qargs[bit_indices[tup]] for tup in qregs]
             self._append_circuit(instr, new_qubits)
 
         # Since the individual gate evolution functions don't take mod
