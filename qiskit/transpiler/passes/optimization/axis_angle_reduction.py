@@ -91,7 +91,7 @@ class AxisAngleReduction(TransformationPass):
                 this_node = node
                 try:
                     this_index = self._get_index(this_node._node_id)
-                except IndexError as ierr:
+                except IndexError:
                     # This is probably a custom 2-qubit gate; stop
                     del_list += self._eval_stack(stack, dag)
                     stack = list()
@@ -119,12 +119,6 @@ class AxisAngleReduction(TransformationPass):
                     stack = [(this_node, this_index)]  # start new stack with this valid op
         return del_list
 
-    def _print_stack(self, stack):
-        print('-'*4)
-        for node, ind in stack:
-            qrg = ' '.join([str(qarg.index) for qarg in node.qargs])
-            print(f'{node.name} {qrg} ({hex(id(node))}) {node._node_id}')
-
     def _check_next_2q_commuting(self, dag, node1, node2):
         """checks that node2 is same type as node1 with only commuting
         single qubit ops in between"""
@@ -133,10 +127,7 @@ class AxisAngleReduction(TransformationPass):
         successors = {(node2 in connode): connode[2] for connode in dag.edges(node1)}
         is_direct_successor = all(successors.keys())
         if is_direct_successor:
-            if node1.name == node2.name and node1.qargs == node2.qargs:
-                return True
-            else:
-                return False
+            return bool(node1.name == node2.name and node1.qargs == node2.qargs)
         non_direct_qubit = successors[False]
         if isinstance(node1.op, ControlledGate) and node1.qargs[0] == non_direct_qubit:
             axis1 = (0, 0, 1)
@@ -147,7 +138,7 @@ class AxisAngleReduction(TransformationPass):
             if len(next_node.qargs) == 1:
                 try:
                     this_axis = dfprop.loc[next_node._node_id].axis
-                except KeyError as kerr:
+                except KeyError:
                     return False
                 if math.isclose(abs(sum([a * b for a, b in zip(axis1, this_axis)])), 1):
                     next_node = self._next_node_on_qubit(dag, next_node, non_direct_qubit)
@@ -267,10 +258,7 @@ class AxisAngleReduction(TransformationPass):
             new_dag.global_phase = params.phase - params.var_gate_angle * gate_phase_factor
             new_dag.add_qreg(new_qarg)
             new_dag.apply_operation_back(var_gate, new_qarg[:])
-            try:
-                dag.substitute_node_with_dag(stack[0][0], new_dag)
-            except Exception as err:
-                breakpoint()
+            dag.substitute_node_with_dag(stack[0][0], new_dag)
             del_list += [node for node, _ in stack[1:]]
         else:
             del_list += [node for node, _ in stack]
