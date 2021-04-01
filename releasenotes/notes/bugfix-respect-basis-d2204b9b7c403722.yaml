@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    A bug was fixed where preset passmanagers of level0 and level1 did
+    not produce circuits in the requested basis in some cases.

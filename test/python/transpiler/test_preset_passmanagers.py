@@ -87,22 +87,23 @@ class TestPresetPassManager(QiskitTestCase):
         result = transpile(circuit, basis_gates=None, optimization_level=0)
         self.assertEqual(result, circuit)
 
-    def test_level2_respects_basis(self):
-        """Test that level2 with commutative cancellation respects basis"""
+    @combine(level=[0, 1, 2, 3], name='level{level}')
+    def test_respect_basis(self, level):
+        """Test that all levels respect basis"""
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.h(1)
         qc.cp(np.pi / 8, 0, 1)
         qc.cp(np.pi / 4, 0, 2)
-        result = transpile(qc, basis_gates=['id', 'rz', 'sx', 'x', 'cx'],
-                           optimization_level=2)
+        basis_gates = ['id', 'rz', 'sx', 'x', 'cx']
+        result = transpile(qc, basis_gates=basis_gates,
+                           coupling_map=[[0, 1], [2, 1]],
+                           optimization_level=level)
 
         dag = circuit_to_dag(result)
-        op_nodes = [node.name for node in dag.topological_op_nodes()]
-        # Assert no u1 or rx gates from commutative cancellation end up in
-        # end up in the output since they're not in the target basis gates
-        self.assertNotIn('u1', op_nodes)
-        self.assertNotIn('rx', op_nodes)
+        circuit_ops = set(node.name for node in dag.topological_op_nodes())
+        print(set(basis_gates))
+        self.assertEqual(circuit_ops.union(set(basis_gates)), set(basis_gates))
 
 
 @ddt
