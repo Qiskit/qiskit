@@ -957,6 +957,7 @@ class MatplotlibDrawer:
                 #
                 # draw controlled and special gates
                 #
+<<<<<<< HEAD
                 # cx gates
                 elif isinstance(op.op, ControlledGate) and base_name == 'x':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
@@ -974,6 +975,15 @@ class MatplotlibDrawer:
                                         q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._ctrl_qubit(q_xy[1], fc=ec, ec=ec, tc=tc)
                     self._line(qreg_b, qreg_t, lc=lc, zorder=PORDER_LINE + 1)
+=======
+                # cz and mcz gates
+                elif op.name != 'z' and base_name == 'z':
+                    num_ctrl_qubits = op.op.num_ctrl_qubits
+                    self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
+                                        q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
+                    self._ctrl_qubit(q_xy[-1], fc=ec, ec=ec, tc=tc)
+                    self._line(qubit_b, qubit_t, lc=lc, zorder=PORDER_LINE + 1)
+>>>>>>> 3c83a1cfe... MCZ is now drawn correctly in matplotlib (#5981) (#6008)
 
                 # cu1, rzz, and controlled rzz gates (sidetext gates)
                 elif (op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz'):
