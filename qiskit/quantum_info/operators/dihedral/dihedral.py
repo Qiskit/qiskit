@@ -411,9 +411,10 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
     def conjugate(self):
         circ = self.to_instruction()
         new_circ = QuantumCircuit(self.num_qubits)
-        qargs = list(range(self.num_qubits))
+        bit_indices = {bit: index
+                       for index, bit in enumerate(circ.definition.qubits)}
         for instr, qregs, _ in circ.definition:
-            new_qubits = [qargs[tup.index] for tup in qregs]
+            new_qubits = [bit_indices[tup] for tup in qregs]
             if instr.name == 'p':
                 params = 2 * np.pi - instr.params[0]
                 instr.params[0] = params
