@@ -1,0 +1,23 @@
+---
+deprecations:
+  - |
+    The ``qiskit.pulse.schedule.ParameterizedSchedule`` class has been
+    deprecated and will be removed in a future release. Instead you can
+    directly parameterize pulse :class:`~qiskit.pulse.Schedule` objects with
+    a :class:`~qiskit.circuit.Parameter` object, for example::
+
+      from qiskit.circuit import Parameter
+      from qiskit.pulse import Schedule
+      from qiskit.pulse import ShiftPhase, DriveChannel
+
+      theta = Parameter('theta')
+      target_schedule = Schedule()
+      target_schedule.insert(0, ShiftPhase(theta, DriveChannel(0)), inplace=True)
+
+upgrade:
+  - |
+    The :class:`~qiskit.providers.models.PulseDefaults` returned by the fake
+    pulse backends :py:class:`qiskit.test.mock.FakeOpenPulse2Q` and
+    :py:class:`qiskit.test.mock.FakeOpenPulse3Q` have been updated to have
+    more realistic pulse sequence definitions. If you are using these fake
+    backend classes you may need to update your usage because of these changes.

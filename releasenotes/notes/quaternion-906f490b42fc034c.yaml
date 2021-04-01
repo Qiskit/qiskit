@@ -1,6 +1,0 @@
----
-upgrade:
-  - |
-    Moved the :class:`qiskit.quantum_info.Quaternion` class from the
-    ``qiskit.quantum_info.operator`` submodule to the 
-    ``qiskit.quantum_info.synthesis`` submodule.

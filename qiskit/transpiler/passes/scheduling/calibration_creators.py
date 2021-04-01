@@ -110,7 +110,8 @@ class RZXCalibrationBuilder(CalibrationCreator):
             sample_mult: All pulses must be a multiple of sample_mult.
 
         Returns:
-            Play: The play instruction with the stretched compressed GaussianSquare pulse.
+            qiskit.pulse.Play: The play instruction with the stretched compressed
+                GaussianSquare pulse.
 
         Raises:
             QiskitError: if the pulses are not GaussianSquare.
