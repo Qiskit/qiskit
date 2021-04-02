@@ -29,17 +29,17 @@ This release officially deprecates the Qiskit Aqua project. Accordingly, in a
 future release the ``qiskit-aqua`` package will be removed from the Qiskit
 metapackage, which means in that future release ``pip install qiskit`` will no
 longer include ``qiskit-aqua``. The application modules that are provided by
-qiskit-aqua has been split into several new packages:
+qiskit-aqua have been split into several new packages:
 ``qiskit-optimization``, ``qiskit-nature``, ``qiskit-machine-learning``, and
 ``qiskit-finance``. These packages can be installed by themselves (via the
-standard pip install command, ie ``pip install qiskit-nature``) or with the
-rest of the Qiskit metapackage as optional extras (ie,
+standard pip install command, e.g. ``pip install qiskit-nature``) or with the
+rest of the Qiskit metapackage as optional extras (e.g.
 ``pip install 'qiskit[finance,optimization]'`` or ``pip install 'qiskit[all]'``
-The core building blocks for algorithms and the operator flow now exist as part
-of qiskit-terra at :mod:`qiskit.algorithms` and :mod:`qiskit-opflow`. Depending
-on your existing usage of Aqua you should either use the application packages
-or the new modules in Qiskit Terra. For more details on how to migrate from
-Qiskit Aqua you can refer to the :ref:`aqua-migration`.
+The core algorithms and the operator flow now exist as part of qiskit-terra at
+:mod:`qiskit.algorithms` and :mod:`qiskit.opflow`. Depending on your existing
+usage of Aqua you should either use the application packages or the new modules
+in Qiskit Terra. For more details on how to migrate from Qiskit Aqua you can
+refer to the :ref:`aqua-migration`.
 
 .. _Release Notes_0.17.0:
 
@@ -298,7 +298,7 @@ New Features
   :meth:`~qiskit.circuit.classicalfunction.BooleanExpression.from_dimacs_file`,
   which allows loading formulas described in the
   `DIMACS-CNF <https://people.sc.fsu.edu/~jburkardt/data/cnf/cnf.html>`__
-  format. For example::
+  format. For example:
 
   .. code-block::
 
