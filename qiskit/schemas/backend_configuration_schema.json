@@ -162,7 +162,17 @@
                     "minItems": 0,
                     "description": "Instructions supported by the backend.",
                     "items": {"type": "string"}
-                    }
+                    },
+                "qubit_lo_range": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Frequency range for the qubit LO",
+                    "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
+                "meas_lo_range": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Frequency range for the measurement LO",
+                    "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}}
                 }
             },
             "openpulse_config":{

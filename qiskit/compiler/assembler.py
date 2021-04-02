@@ -46,10 +46,10 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
              shots: Optional[int] = None, memory: Optional[bool] = False,
              max_credits: Optional[int] = None,
              seed_simulator: Optional[int] = None,
-             qubit_lo_freq: Optional[List[int]] = None,
-             meas_lo_freq: Optional[List[int]] = None,
-             qubit_lo_range: Optional[List[int]] = None,
-             meas_lo_range: Optional[List[int]] = None,
+             qubit_lo_freq: Optional[List[float]] = None,
+             meas_lo_freq: Optional[List[float]] = None,
+             qubit_lo_range: Optional[List[float]] = None,
+             meas_lo_range: Optional[List[float]] = None,
              schedule_los: Optional[Union[List[Union[Dict[PulseChannel, float], LoConfig]],
                                           Union[Dict[PulseChannel, float], LoConfig]]] = None,
              meas_level: Union[int, MeasLevel] = MeasLevel.CLASSIFIED,
@@ -86,10 +86,10 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
             measurement level 2 supports this option.
         max_credits: Maximum credits to spend on job. Default: 10
         seed_simulator: Random seed to control sampling, for when backend is a simulator
-        qubit_lo_freq: List of default qubit LO frequencies in Hz. Will be overridden by
+        qubit_lo_freq: List of qubit LO frequencies in Hz. Will be overridden by ``schedule_los`` if
+            set.
+        meas_lo_freq: List of measurement LO frequencies in Hz. Will be overridden by
             ``schedule_los`` if set.
-        meas_lo_freq: List of default measurement LO frequencies in Hz. Will be overridden
-            by ``schedule_los`` if set.
         qubit_lo_range: List of drive LO ranges each of form ``[range_min, range_max]`` in Hz.
             Used to validate the supplied qubit frequencies.
         meas_lo_range: List of measurement LO ranges each of form ``[range_min, range_max]`` in Hz.
@@ -135,10 +135,22 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
     """
     start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
-    qobj_id, qobj_header, run_config_common_dict = _parse_common_args(backend, qobj_id, qobj_header,
-                                                                      shots, memory, max_credits,
-                                                                      seed_simulator, init_qubits,
-                                                                      rep_delay, **run_config)
+    qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
+        backend,
+        qobj_id,
+        qobj_header,
+        shots,
+        memory,
+        max_credits,
+        seed_simulator,
+        init_qubits,
+        rep_delay,
+        qubit_lo_freq,
+        meas_lo_freq,
+        qubit_lo_range,
+        meas_lo_range,
+        **run_config
+    )
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
@@ -155,12 +167,17 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
                                  qobj_header=qobj_header, run_config=run_config)
 
     elif all(isinstance(exp, (Schedule, Instruction)) for exp in experiments):
-        run_config = _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq,
-                                       qubit_lo_range, meas_lo_range,
-                                       schedule_los, meas_level, meas_return,
-                                       meas_map, memory_slot_size,
-                                       rep_time, parametric_pulses,
-                                       **run_config_common_dict)
+        run_config = _parse_pulse_args(
+            backend,
+            schedule_los,
+            meas_level,
+            meas_return,
+            meas_map,
+            memory_slot_size,
+            rep_time,
+            parametric_pulses,
+            **run_config_common_dict
+        )
 
         end_time = time()
         _log_assembly_time(start_time, end_time)
@@ -173,9 +190,22 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
 
 
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one
-def _parse_common_args(backend, qobj_id, qobj_header, shots,
-                       memory, max_credits, seed_simulator,
-                       init_qubits, rep_delay, **run_config):
+def _parse_common_args(
+    backend,
+    qobj_id,
+    qobj_header,
+    shots,
+    memory,
+    max_credits,
+    seed_simulator,
+    init_qubits,
+    rep_delay,
+    qubit_lo_freq,
+    meas_lo_freq,
+    qubit_lo_range,
+    meas_lo_range,
+    **run_config
+):
     """Resolve the various types of args allowed to the assemble() function through
     duck typing, overriding args, etc. Refer to the assemble() docstring for details on
     what types of inputs are allowed.
@@ -195,12 +225,17 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
     """
     # grab relevant info from backend if it exists
     backend_config = None
+    backend_defaults = None
     if backend:
         backend_config = backend.configuration()
         # check for memory flag applied to backend that does not support memory
         if memory and not backend_config.memory:
             raise QiskitError("memory not supported by backend {}"
                               .format(backend_config.backend_name))
+
+        # set defaults for pulse
+        if backend_config.open_pulse:
+            backend_defaults = backend.defaults()
 
     # an identifier for the Qobj
     qobj_id = qobj_id or str(uuid.uuid4())
@@ -243,6 +278,12 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
                 RuntimeWarning,
             )
 
+    qubit_lo_freq = qubit_lo_freq or getattr(backend_defaults, 'qubit_freq_est', None)
+    meas_lo_freq = meas_lo_freq or getattr(backend_defaults, 'meas_freq_est', None)
+    # TODO: Lo range should check the lo freq values
+    qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
+    meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
+
     # create run configuration and populate
     run_config_dict = dict(shots=shots,
                            memory=memory,
@@ -250,17 +291,26 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
                            seed_simulator=seed_simulator,
                            init_qubits=init_qubits,
                            rep_delay=rep_delay,
+                           qubit_lo_freq=qubit_lo_freq,
+                           meas_lo_freq=meas_lo_freq,
+                           qubit_lo_range=qubit_lo_range,
+                           meas_lo_range=meas_lo_range,
                            **run_config)
 
     return qobj_id, qobj_header, run_config_dict
 
 
-def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
-                      meas_lo_range, schedule_los, meas_level,
-                      meas_return, meas_map,
-                      memory_slot_size,
-                      rep_time, parametric_pulses,
-                      **run_config):
+def _parse_pulse_args(
+    backend,
+    schedule_los,
+    meas_level,
+    meas_return,
+    meas_map,
+    memory_slot_size,
+    rep_time,
+    parametric_pulses,
+    **run_config
+):
     """Build a pulse RunConfig replacing unset arguments with defaults derived from the `backend`.
     See `assemble` for more information on the required arguments.
 
@@ -272,9 +322,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     """
     # grab relevant info from backend if it exists
     backend_config = None
-    backend_default = None
     if backend:
-        backend_default = backend.defaults()
         backend_config = backend.configuration()
 
         if meas_level not in getattr(backend_config, 'meas_levels', [MeasLevel.CLASSIFIED]):
@@ -293,14 +341,6 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     schedule_los = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
                     for lo_config in schedule_los]
 
-    if not qubit_lo_freq and hasattr(backend_default, 'qubit_freq_est'):
-        qubit_lo_freq = backend_default.qubit_freq_est
-    if not meas_lo_freq and hasattr(backend_default, 'meas_freq_est'):
-        meas_lo_freq = backend_default.meas_freq_est
-
-    qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
-    meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
-
     dynamic_reprate_enabled = getattr(backend_config, 'dynamic_reprate_enabled', False)
 
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
@@ -315,11 +355,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     parametric_pulses = parametric_pulses or getattr(backend_config, 'parametric_pulses', [])
 
     # create run configuration and populate
-    run_config_dict = dict(qubit_lo_freq=qubit_lo_freq,
-                           meas_lo_freq=meas_lo_freq,
-                           qubit_lo_range=qubit_lo_range,
-                           meas_lo_range=meas_lo_range,
-                           schedule_los=schedule_los,
+    run_config_dict = dict(schedule_los=schedule_los,
                            meas_level=meas_level,
                            meas_return=meas_return,
                            meas_map=meas_map,

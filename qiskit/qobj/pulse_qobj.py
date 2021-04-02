@@ -441,12 +441,9 @@ class PulseQobjExperimentConfig(QobjDictField):
         """Instantiate a PulseQobjExperimentConfig object.
 
         Args:
-            qubit_lo_freq (list): List of frequencies (as floats) for the qubit
-                driver LO's in GHz.
-            meas_lo_freq (list): List of frequencies (as floats) for the'
-                measurement driver LO's in GHz.
-            kwargs: Additional free form key value fields to add to the
-                configuration
+            qubit_lo_freq (List[float]): List of qubit LO frequencies in GHz.
+            meas_lo_freq (List[float]): List of meas readout LO frequencies in GHz.
+            kwargs: Additional free form key value fields to add to the configuration
         """
         if qubit_lo_freq is not None:
             self.qubit_lo_freq = qubit_lo_freq

@@ -254,7 +254,16 @@ def assemble_circuits(
     """
     qobj_config = QasmQobjConfig()
     if run_config:
-        qobj_config = QasmQobjConfig(**run_config.to_dict())
+        qobj_config_dict = run_config.to_dict()
+        # convert lo frequencies to GHz, if they exist
+        if 'qubit_lo_freq' in qobj_config_dict:
+            qobj_config_dict['qubit_lo_freq'] = [freq / 1e9 for freq in qobj_config_dict['qubit_lo_freq']]
+        if 'meas_lo_freq' in qobj_config_dict:
+            qobj_config_dict['meas_lo_freq'] = [freq / 1e9 for freq in qobj_config_dict['meas_lo_freq']]
+        # remove lo ranges, not needed in qobj
+        qobj_config_dict.pop('qubit_lo_range', None)
+        qobj_config_dict.pop('meas_lo_range', None)
+        qobj_config = QasmQobjConfig(**qobj_config_dict)
     qubit_sizes = []
     memory_slot_sizes = []
     for circ in circuits:

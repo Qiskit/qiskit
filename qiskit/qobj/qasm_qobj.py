@@ -253,6 +253,8 @@ class QasmQobjConfig(SimpleNamespace):
                  pulse_library=None,
                  calibrations=None,
                  rep_delay=None,
+                 qubit_lo_freq=None,
+                 meas_lo_freq=None,
                  **kwargs):
         """Model for RunConfig.
 
@@ -310,6 +312,12 @@ class QasmQobjConfig(SimpleNamespace):
 
         if rep_delay is not None:
             self.rep_delay = rep_delay
+
+        if qubit_lo_freq is not None:
+            self.qubit_lo_freq = qubit_lo_freq
+
+        if meas_lo_freq is not None:
+            self.meas_lo_freq = meas_lo_freq
 
         if kwargs:
             self.__dict__.update(kwargs)
@@ -369,8 +377,7 @@ class QasmQobjExperimentConfig(QobjDictField):
         """
         Args:
             calibrations (QasmExperimentCalibrations): Information required for Pulse gates.
-            kwargs: Additional free form key value fields to add to the
-                configuration.
+            kwargs: Additional free form key value fields to add to the configuration
         """
         if calibrations:
             self.calibrations = calibrations

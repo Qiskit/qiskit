@@ -1133,6 +1133,24 @@
                                     }
                                 }
                             }
+                        },
+                        "qubit_lo_freq": {
+                            "description": "Qubit drive LO frequencies",
+                            "items": {
+                                "minimum": 0,
+                                "type": "number"
+                            },
+                            "minItems": 1,
+                            "type": "array"
+                        },
+                        "meas_lo_freq": {
+                            "description": "Measurement LO frequencies",
+                            "items": {
+                                "minimum": 0,
+                                "type": "number"
+                            },
+                            "minItems": 1,
+                            "type": "array"
                         }
                     },
                     "title": "Qobj-level configuration",

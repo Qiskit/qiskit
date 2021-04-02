@@ -36,11 +36,13 @@ class TestBackendConfiguration(QiskitTestCase):
         self.assertEqual(self.config.dtm, 10.5 * 1.e-9)
         self.assertEqual(self.config.basis_gates, ['u1', 'u2', 'u3', 'cx', 'id'])
 
-    def test_simple_config_qasm(self):
-        """Test the most basic getters for qasm."""
+    def test_optional_qasm_config(self):
+        """Test qasm optional config properties return when provided."""
         qasm_conf = self.provider.get_backend('fake_qasm_simulator').configuration()
         self.assertEqual(qasm_conf.dt, 1.3333 * 1.e-9)
         self.assertEqual(qasm_conf.dtm, 10.5 * 1.e-9)
+        self.assertEqual(qasm_conf.qubit_lo_range, [[4.95e9, 5.05e9] for _ in range(5)])
+        self.assertEqual(qasm_conf.meas_lo_range, [[6.65e9, 6.75e9] for _ in range(5)])
 
     def test_sample_rate(self):
         """Test that sample rate is 1/dt."""

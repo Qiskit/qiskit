@@ -301,7 +301,7 @@ def _assemble_config(lo_converter: converters.LoConfigConverter,
     if isinstance(meas_level, qobj_utils.MeasLevel):
         qobj_config['meas_level'] = meas_level.value
 
-    # convert lo frequencies to Hz
+    # convert lo frequencies to GHz
     qobj_config['qubit_lo_freq'] = [freq / 1e9 for freq in qobj_config['qubit_lo_freq']]
     qobj_config['meas_lo_freq'] = [freq / 1e9 for freq in qobj_config['meas_lo_freq']]
 

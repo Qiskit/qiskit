@@ -593,6 +593,52 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.config.calibrations.gates[0].instructions[1].to_dict(),
                          {"name": "delay", "t0": 64, "ch": "d0", "duration": 160})
 
+    def test_qubit_meas_los_no_range(self):
+        """Test that adding qubit/meas lo freq lists are assembled into the qobj.config, w/ out any
+        lo range."""
+        backend = FakeYorktown()
+        num_qubits = backend.configuration().n_qubits
+        qubit_lo_freq = [5e9 for _ in range(num_qubits)]
+        meas_lo_freq = [6.7e9 for _ in range(num_qubits)]
+        qobj = assemble(self.circ,
+                        backend=backend,
+                        qubit_lo_freq=qubit_lo_freq,
+                        meas_lo_freq=meas_lo_freq,
+                        )
+        validate_qobj_against_schema(qobj)
+
+        # convert to GHz
+        qubit_lo_freq_GHz = [freq/1e9 for freq in qubit_lo_freq]
+        meas_lo_freq_GHz = [freq/1e9 for freq in meas_lo_freq]
+        self.assertEqual(qubit_lo_freq_GHz, qobj.config.qubit_lo_freq)
+        self.assertEqual(meas_lo_freq_GHz, qobj.config.meas_lo_freq)
+
+    def test_qubit_meas_los_w_range(self):
+        """Test that adding qubit/meas lo freq lists are assembled into the qobj.config, w/ lo
+        ranges input. Verify that lo ranges do not enter into the config."""
+        backend = FakeYorktown()
+        num_qubits = backend.configuration().n_qubits
+        qubit_lo_freq = [5e9 for _ in range(num_qubits)]
+        meas_lo_freq = [6.7e9 for _ in range(num_qubits)]
+        qubit_lo_range = [[freq-5e6, freq+5e6] for freq in qubit_lo_freq]
+        meas_lo_range = [[freq-5e6, freq+5e6] for freq in meas_lo_freq]
+        qobj = assemble(self.circ,
+                        backend=backend,
+                        qubit_lo_freq=qubit_lo_freq,
+                        meas_lo_freq=meas_lo_freq,
+                        qubit_lo_range=qubit_lo_range,
+                        meas_lo_range=meas_lo_range
+                        )
+        validate_qobj_against_schema(qobj)
+
+        # convert to GHz
+        qubit_lo_freq_GHz = [freq/1e9 for freq in qubit_lo_freq]
+        meas_lo_freq_GHz = [freq/1e9 for freq in meas_lo_freq]
+        self.assertEqual(qubit_lo_freq_GHz, qobj.config.qubit_lo_freq)
+        self.assertEqual(meas_lo_freq_GHz, qobj.config.meas_lo_freq)
+        self.assertNotIn("qubit_lo_range", qobj.config.to_dict())
+        self.assertNotIn("meas_lo_range", qobj.config.to_dict())
+
 
 class TestPulseAssembler(QiskitTestCase):
     """Tests for assembling schedules to qobj."""
