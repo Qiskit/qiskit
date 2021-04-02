@@ -14,17 +14,19 @@
 
 import logging
 from typing import Union
+
 import numpy as np
 
-from .expectation_base import ExpectationBase
-from ..operator_base import OperatorBase
-from ..list_ops.list_op import ListOp
-from ..list_ops.composed_op import ComposedOp
-from ..state_fns.state_fn import StateFn
-from ..state_fns.operator_state_fn import OperatorStateFn
-from ..converters.pauli_basis_change import PauliBasisChange
-from ..converters.abelian_grouper import AbelianGrouper
-from ..primitive_ops.pauli_sum_op import PauliSumOp
+from qiskit.opflow.converters.abelian_grouper import AbelianGrouper
+from qiskit.opflow.converters.pauli_basis_change import PauliBasisChange
+from qiskit.opflow.expectations.expectation_base import ExpectationBase
+from qiskit.opflow.list_ops.composed_op import ComposedOp
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
+from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
+from qiskit.opflow.state_fns.state_fn import StateFn
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +63,11 @@ class PauliExpectation(ExpectationBase):
         """
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
             # Change to Pauli representation if necessary
-            prim_str = operator.primitive_strings()
-            if not isinstance(operator.primitive, PauliSumOp) and {'Pauli'} != prim_str:
+            if (
+                isinstance(operator.primitive, (ListOp, PrimitiveOp))
+                and not isinstance(operator.primitive, PauliSumOp)
+                and {"Pauli"} != operator.primitive_strings()
+            ):
                 logger.warning('Measured Observable is not composed of only Paulis, converting to '
                                'Pauli representation, which can be expensive.')
                 # Setting massive=False because this conversion is implicit. User can perform this

@@ -113,6 +113,9 @@ class SabreLayout(AnalysisPass):
             logger.info('new initial layout')
             logger.info(initial_layout)
 
+        for qreg in dag.qregs.values():
+            initial_layout.add_register(qreg)
+
         self.property_set['layout'] = initial_layout
 
     def _layout_and_route_passmanager(self, initial_layout):
@@ -138,8 +141,6 @@ class SabreLayout(AnalysisPass):
         initial_layout that was selected.
         """
         trivial_layout = Layout.generate_trivial_layout(*qregs)
-        pass_final_layout = Layout({trivial_layout[v.index]: p
-                                    for v, p in pass_final_layout.get_virtual_bits().items()})
         qubit_map = Layout.combine_into_edge_map(initial_layout, trivial_layout)
         final_layout = {v: pass_final_layout[qubit_map[v]]
                         for v, _ in initial_layout.get_virtual_bits().items()}

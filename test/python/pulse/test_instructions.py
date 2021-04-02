@@ -15,7 +15,8 @@
 import numpy as np
 
 from qiskit import pulse, circuit
-from qiskit.pulse import channels, configuration, instructions, library, Frame
+from qiskit.pulse import channels, configuration, instructions, library, exceptions, Frame
+from qiskit.pulse.transforms import inline_subroutines
 from qiskit.test import QiskitTestCase
 
 
@@ -203,18 +204,27 @@ class TestSnapshot(QiskitTestCase):
 class TestPlay(QiskitTestCase):
     """Play tests."""
 
+    def setUp(self):
+        """Setup play tests."""
+        super().setUp()
+        self.duration = 4
+        self.pulse_op = library.Waveform([1.0] * self.duration, name='test')
+
     def test_play(self):
         """Test basic play instruction."""
-        duration = 4
-        pulse_op = library.Waveform([1.0] * duration, name='test')
-        play = instructions.Play(pulse_op, channels.DriveChannel(1))
+        play = instructions.Play(self.pulse_op, channels.DriveChannel(1))
 
         self.assertIsInstance(play.id, int)
-        self.assertEqual(play.name, pulse_op.name)
-        self.assertEqual(play.duration, duration)
+        self.assertEqual(play.name, self.pulse_op.name)
+        self.assertEqual(play.duration, self.duration)
         self.assertEqual(repr(play),
                          "Play(Waveform(array([1.+0.j, 1.+0.j, 1.+0.j, 1.+0.j]), name='test'),"
                          " DriveChannel(1), name='test')")
+
+    def test_play_non_pulse_ch_raises(self):
+        """Test that play instruction on non-pulse channel raises a pulse error."""
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(self.pulse_op, channels.AcquireChannel(0))
 
 
 class TestDirectives(QiskitTestCase):
@@ -270,15 +280,52 @@ class TestCall(QiskitTestCase):
         self.assertTrue(call.is_parameterized())
         self.assertEqual(len(call.parameters), 2)
 
-    def test_assign_parameters(self):
-        """Test assigning parameter doesn't immediately update program."""
-        call = instructions.Call(subroutine=self.function)
-        call.assign_parameters({self.param1: 0.1, self.param2: 0.2})
+    def test_assign_parameters_to_call(self):
+        """Test create schedule by calling subroutine and assign parameters to it."""
+        init_dict = {self.param1: 0.1, self.param2: 0.5}
 
-        self.assertFalse(call.is_parameterized())
+        with pulse.build() as test_sched:
+            pulse.call(self.function)
 
-        subroutine = call.subroutine
-        self.assertTrue(subroutine.is_parameterized())
+        test_sched = test_sched.assign_parameters(value_dict=init_dict)
+        test_sched = inline_subroutines(test_sched)
 
-        arguments = call.arguments
-        self.assertDictEqual(arguments, {self.param1: 0.1, self.param2: 0.2})
+        with pulse.build() as ref_sched:
+            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+
+        self.assertEqual(test_sched, ref_sched)
+
+    def test_call_initialize_with_parameter(self):
+        """Test call instruction with parameterized subroutine with initial dict."""
+        init_dict = {self.param1: 0.1, self.param2: 0.5}
+        call = instructions.Call(subroutine=self.function, value_dict=init_dict)
+
+        with pulse.build() as ref_sched:
+            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+
+        self.assertEqual(call.assigned_subroutine(), ref_sched)
+
+    def test_call_subroutine_with_different_parameters(self):
+        """Test call subroutines with different parameters in the same schedule."""
+        init_dict1 = {self.param1: 0.1, self.param2: 0.5}
+        init_dict2 = {self.param1: 0.3, self.param2: 0.7}
+
+        with pulse.build() as test_sched:
+            pulse.call(self.function, value_dict=init_dict1)
+            pulse.call(self.function, value_dict=init_dict2)
+
+        test_sched = inline_subroutines(test_sched)
+
+        with pulse.build() as ref_sched:
+            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, 0.3, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, 0.7, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, 0.3, 40), pulse.DriveChannel(0))
+
+        self.assertEqual(test_sched, ref_sched)

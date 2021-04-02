@@ -695,6 +695,9 @@ class DAGCircuit:
             dag = copy.deepcopy(self)
         dag.global_phase += other.global_phase
 
+        for gate, cals in other.calibrations.items():
+            dag._calibrations[gate].update(cals)
+
         for nd in other.topological_nodes():
             if nd.type == "in":
                 # if in edge_map, get new name, else use existing name
@@ -984,7 +987,9 @@ class DAGCircuit:
                                             replay_node.cargs)
 
         if in_dag.global_phase:
-            self.global_phase += in_dag.global_phase
+            from sympy import evaluate
+            with evaluate(False):
+                self.global_phase += in_dag.global_phase
 
         if wires is None:
             wires = in_dag.wires
@@ -1109,13 +1114,17 @@ class DAGCircuit:
                     op.num_qubits, op.num_clbits))
 
         if inplace:
+            save_condition = node.op.condition
             node.op = op
             node.name = op.name
+            node.op.condition = save_condition
             return node
 
         new_node = copy.copy(node)
+        save_condition = new_node.op.condition
         new_node.op = op
         new_node.name = op.name
+        new_node.op.condition = save_condition
         self._multi_graph[node._node_id] = new_node
         return new_node
 

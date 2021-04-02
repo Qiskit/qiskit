@@ -15,7 +15,7 @@
 from typing import Optional
 from abc import ABC, abstractmethod
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.parametertable import ParameterTable
+from qiskit.circuit.parametertable import ParameterTable, ParameterView
 
 
 class BlueprintCircuit(QuantumCircuit, ABC):
@@ -92,6 +92,18 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         if self._data is None:
             self._build()
         return super().data
+
+    @property
+    def num_parameters(self) -> int:
+        if self._data is None:
+            self._build()
+        return super().num_parameters
+
+    @property
+    def parameters(self) -> ParameterView:
+        if self._data is None:
+            self._build()
+        return super().parameters
 
     def qasm(self, formatted=False, filename=None):
         if self._data is None:

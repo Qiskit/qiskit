@@ -151,15 +151,4 @@ def diagonal(self, diag, qubit):
     return self.append(DiagonalGate(diag), qubit)
 
 
-def diag_gate(self, diag, qubit):
-    """Deprecated version of QuantumCircuit.diagonal."""
-    import warnings
-    warnings.warn('The QuantumCircuit.diag_gate() method is deprecated as of 0.14.0, and '
-                  'will be removed no earlier than 3 months after that release date. '
-                  'You should use the QuantumCircuit.diagonal() method instead.',
-                  DeprecationWarning, stacklevel=2)
-    return diagonal(self, diag, qubit)
-
-
 QuantumCircuit.diagonal = diagonal
-QuantumCircuit.diag_gate = diag_gate  # deprecated

@@ -15,6 +15,7 @@
 
 import unittest
 import logging
+from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -24,7 +25,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.circuit.library import HGate, QFT
 
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.random import random_unitary, random_statevector
 from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
@@ -33,6 +34,7 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 logger = logging.getLogger(__name__)
 
 
+@ddt
 class TestStatevector(QiskitTestCase):
     """Tests for Statevector class."""
 
@@ -917,6 +919,23 @@ class TestStatevector(QiskitTestCase):
         target = 25.121320343559642+0.7071067811865476j
         self.assertAlmostEqual(expval, target)
 
+    @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
+          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ',
+          '-II', '-IX', '-IY', '-IZ', '-XI', '-XX', '-XY', '-XZ',
+          '-YI', '-YX', '-YY', '-YZ', '-ZI', '-ZX', '-ZY', '-ZZ',
+          'iII', 'iIX', 'iIY', 'iIZ', 'iXI', 'iXX', 'iXY', 'iXZ',
+          'iYI', 'iYX', 'iYY', 'iYZ', 'iZI', 'iZX', 'iZY', 'iZZ',
+          '-iII', '-iIX', '-iIY', '-iIZ', '-iXI', '-iXX', '-iXY', '-iXZ',
+          '-iYI', '-iYX', '-iYY', '-iYZ', '-iZI', '-iZX', '-iZY', '-iZZ')
+    def test_expval_pauli(self, pauli):
+        """Test expectation_value method for Pauli op"""
+        seed = 1020
+        op = Pauli(pauli)
+        state = random_statevector(2**op.num_qubits, seed=seed)
+        target = state.expectation_value(op.to_matrix())
+        expval = state.expectation_value(op)
+        self.assertAlmostEqual(expval, target)
+
     def test_global_phase(self):
         """Test global phase is handled correctly when evolving statevector."""
 
@@ -943,7 +962,7 @@ class TestStatevector(QiskitTestCase):
         sv = Statevector.from_instruction(qc1)
         with self.subTest(msg='str(statevector)'):
             str(sv)
-        for drawtype in ['text', 'latex', 'latex_source',
+        for drawtype in ['repr', 'text', 'latex', 'latex_source',
                          'qsphere', 'hinton', 'bloch']:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 sv.draw(drawtype)

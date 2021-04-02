@@ -149,7 +149,7 @@ class TestPassesInspection(QiskitTestCase):
         self.assertNotIn('TrivialLayout', self.passes)
         self.assertNotIn('ApplyLayout', self.passes)
         self.assertNotIn('StochasticSwap', self.passes)
-        self.assertNotIn('CheckCXDirection', self.passes)
+        self.assertNotIn('CheckGateDirection', self.passes)
 
     @data(0, 1, 2, 3)
     def test_backend(self, level):
@@ -164,7 +164,7 @@ class TestPassesInspection(QiskitTestCase):
 
         self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
-        self.assertIn('CheckCXDirection', self.passes)
+        self.assertIn('CheckGateDirection', self.passes)
 
     @data(0, 1, 2, 3)
     def test_5409(self, level):
@@ -185,7 +185,7 @@ class TestPassesInspection(QiskitTestCase):
 
     @data(0, 1, 2, 3)
     def test_symmetric_coupling_map(self, level):
-        """Symmetric coupling map does not run CheckCXDirection
+        """Symmetric coupling map does not run CheckGateDirection
         """
         qr = QuantumRegister(2, 'q')
         qc = QuantumCircuit(qr)
@@ -201,7 +201,7 @@ class TestPassesInspection(QiskitTestCase):
 
         self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
-        self.assertNotIn('CheckCXDirection', self.passes)
+        self.assertNotIn('CheckGateDirection', self.passes)
 
     @data(0, 1, 2, 3)
     def test_inital_layout_fully_connected_cm(self, level):
@@ -301,10 +301,11 @@ class TestInitialLayouts(QiskitTestCase):
 
         self.assertEqual(qc_b._layout._p2v, final_layout)
 
+        output_qr = qc_b.qregs[0]
         for gate, qubits, _ in qc_b:
             if gate.name == 'cx':
                 for qubit in qubits:
-                    self.assertIn(qubit.index, [11, 3])
+                    self.assertIn(qubit, [output_qr[11], output_qr[3]])
 
     @data(0, 1, 2, 3)
     def test_layout_2503(self, level):
@@ -340,10 +341,11 @@ class TestInitialLayouts(QiskitTestCase):
         gate_0, qubits_0, _ = qc_b[0]
         gate_1, qubits_1, _ = qc_b[1]
 
+        output_qr = qc_b.qregs[0]
         self.assertIsInstance(gate_0, U3Gate)
-        self.assertEqual(qubits_0[0].index, 6)
+        self.assertEqual(qubits_0[0], output_qr[6])
         self.assertIsInstance(gate_1, U2Gate)
-        self.assertEqual(qubits_1[0].index, 12)
+        self.assertEqual(qubits_1[0], output_qr[12])
 
 
 @ddt
@@ -405,26 +407,26 @@ class TestFinalLayouts(QiskitTestCase):
                         18: Qubit(QuantumRegister(15, 'ancilla'), 13),
                         19: Qubit(QuantumRegister(15, 'ancilla'), 14)}
 
-        csp_layout = {0: Qubit(QuantumRegister(3, 'qr1'), 1),
-                      1: Qubit(QuantumRegister(3, 'qr1'), 2),
-                      2: Qubit(QuantumRegister(2, 'qr2'), 0),
-                      5: Qubit(QuantumRegister(3, 'qr1'), 0),
-                      6: Qubit(QuantumRegister(2, 'qr2'), 1),
-                      3: Qubit(QuantumRegister(15, 'ancilla'), 0),
-                      4: Qubit(QuantumRegister(15, 'ancilla'), 1),
-                      7: Qubit(QuantumRegister(15, 'ancilla'), 2),
-                      8: Qubit(QuantumRegister(15, 'ancilla'), 3),
-                      9: Qubit(QuantumRegister(15, 'ancilla'), 4),
-                      10: Qubit(QuantumRegister(15, 'ancilla'), 5),
-                      11: Qubit(QuantumRegister(15, 'ancilla'), 6),
-                      12: Qubit(QuantumRegister(15, 'ancilla'), 7),
-                      13: Qubit(QuantumRegister(15, 'ancilla'), 8),
-                      14: Qubit(QuantumRegister(15, 'ancilla'), 9),
-                      15: Qubit(QuantumRegister(15, 'ancilla'), 10),
-                      16: Qubit(QuantumRegister(15, 'ancilla'), 11),
-                      17: Qubit(QuantumRegister(15, 'ancilla'), 12),
-                      18: Qubit(QuantumRegister(15, 'ancilla'), 13),
-                      19: Qubit(QuantumRegister(15, 'ancilla'), 14)}
+        csp_layout = {13: Qubit(QuantumRegister(3, 'qr1'), 0),
+                      19: Qubit(QuantumRegister(3, 'qr1'), 1),
+                      14: Qubit(QuantumRegister(3, 'qr1'), 2),
+                      18: Qubit(QuantumRegister(2, 'qr2'), 0),
+                      17: Qubit(QuantumRegister(2, 'qr2'), 1),
+                      0: Qubit(QuantumRegister(15, 'ancilla'), 0),
+                      1: Qubit(QuantumRegister(15, 'ancilla'), 1),
+                      2: Qubit(QuantumRegister(15, 'ancilla'), 2),
+                      3: Qubit(QuantumRegister(15, 'ancilla'), 3),
+                      4: Qubit(QuantumRegister(15, 'ancilla'), 4),
+                      5: Qubit(QuantumRegister(15, 'ancilla'), 5),
+                      6: Qubit(QuantumRegister(15, 'ancilla'), 6),
+                      7: Qubit(QuantumRegister(15, 'ancilla'), 7),
+                      8: Qubit(QuantumRegister(15, 'ancilla'), 8),
+                      9: Qubit(QuantumRegister(15, 'ancilla'), 9),
+                      10: Qubit(QuantumRegister(15, 'ancilla'), 10),
+                      11: Qubit(QuantumRegister(15, 'ancilla'), 11),
+                      12: Qubit(QuantumRegister(15, 'ancilla'), 12),
+                      15: Qubit(QuantumRegister(15, 'ancilla'), 13),
+                      16: Qubit(QuantumRegister(15, 'ancilla'), 14)}
 
         # Trivial layout
         expected_layout_level0 = trivial_layout
