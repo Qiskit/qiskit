@@ -260,12 +260,15 @@ class VarQTE(EvolutionBase):
     def error_bound(self,
                     data_dir: str,
                     imag_reverse_bound: bool = True,
+                    trunc_bound: bool = False,
                     H: Optional[Union[List, np.ndarray]] = None) -> List:
         """
         Evaluate an upper bound to the error of the VarQTE simulation
         Args:
             data_dir: Directory where the snapshots were stored
             imag_reverse_bound: Compute the additional reverse bound (ignored if notVarQITE)
+            trunc_bound: Compute truncated bound - Only useful for ground state evaluation
+                        (ignored if not VarQITE)
             H: Hamiltonian used for the reverse bound (ignored if not VarQITE)
 
         Returns: Error bounds for all accessed time points in the evolution
@@ -310,7 +313,8 @@ class VarQTE(EvolutionBase):
 
         if not np.iscomplex(self._operator.coeff):
             # VarQITE
-            e_bound = self._get_error_bound(grad_errors, time, stddevs, imag_reverse_bound, H)
+            e_bound = self._get_error_bound(grad_errors, time, stddevs, imag_reverse_bound,
+                                            trunc_bound, H)
 
         else:
             # VarQRTE
@@ -814,6 +818,42 @@ class VarQTE(EvolutionBase):
             plt.savefig(os.path.join(data_dir, 'error_bound_actual.png'))
             plt.close()
 
+            try:
+                trunc_error = np.load(os.path.join(data_dir, 'trunc_error_bound.npy'))
+                plt.figure(6)
+                print('trunc error', trunc_error)
+                plt.title('Actual Error and Error Bound ')
+                plt.scatter(time, phase_agnostic_true_error, color='orange', marker='x', s=60,
+                            label='true error')
+                plt.scatter(time, error_bounds, color='royalblue', marker='o', s=20,
+                            label='error bound')
+                plt.scatter(time[-len(trunc_error):], trunc_error, color='darkviolet', marker='o',
+                            s=20,
+                            alpha = 0.7,
+                            label='truncated error bound')
+
+                # plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
+
+                plt.legend(loc='best')
+                plt.xlabel('time')
+                plt.ylabel('error')
+                plt.ylim(bottom=-0.01)
+                plt.autoscale(enable=True)
+                # plt.autoscale(enable=True)
+                              # plt.xticks(range(counter-1))
+                # plt.show()
+                plt.savefig(os.path.join(data_dir, 'error_bound_truncated.png'))
+                plt.close()
+
+                trunc_fidelity_bounds = []
+                for s, er_b in enumerate(trunc_error):
+                    trunc_fidelity_bounds.append((1 - er_b ** 2 / 2) ** 2)
+            except Exception:
+                trunc_error = None
+                trunc_fidelity_bounds = None
+                pass
+
+
             if reverse_bound_directories is not None:
                 reverse_error_bounds = np.load(reverse_bound_directories[j])
                 reverse_fidelity_bounds = []
@@ -826,6 +866,11 @@ class VarQTE(EvolutionBase):
                             label='true error')
                 plt.scatter(time, error_bounds, color='royalblue', marker='o', s=20,
                             label='error bound')
+                if trunc_error is not None:
+                    plt.scatter(time[-len(trunc_error):], trunc_error, color='darkviolet',
+                                marker='o', s=20,
+                                alpha=0.7,
+                                label='truncated error bound')
                 plt.scatter(time, reverse_error_bounds, color='green', marker='o', s=20,
                             label='reverse error bound', alpha=0.7)
 
@@ -847,6 +892,11 @@ class VarQTE(EvolutionBase):
                             label='fidelity bound')
                 plt.scatter(time, reverse_fidelity_bounds, color='green', marker='o', s=20,
                             label='reverse fidelity bound', alpha=0.7)
+                if trunc_fidelity_bounds is not None:
+                    plt.scatter(time[-len(trunc_error):], trunc_fidelity_bounds, color='darkviolet',
+                                marker='o', s=20,
+                                alpha=0.7,
+                                label='truncated fidelity bound')
                 plt.xlabel('time')
                 plt.ylabel('fidelity')
                 # plt.autoscale(enable=True)
@@ -875,6 +925,26 @@ class VarQTE(EvolutionBase):
             plt.savefig(os.path.join(data_dir, 'fidelity.png'))
             plt.close()
 
+            if trunc_fidelity_bounds is not None:
+                plt.figure(20)
+                plt.title('Fidelity')
+                plt.scatter(time, fid, color='orange', marker='x', s=60,
+                            label='fidelity')
+                plt.scatter(time, fidelity_bounds, color='royalblue', marker='o', s=20,
+                            label='fidelity bound')
+                plt.scatter(time[-len(trunc_error):], trunc_fidelity_bounds, color='darkviolet',
+                            marker='o', s=20, alpha=0.7, label='truncated fidelity bound')
+                plt.xlabel('time')
+                plt.ylabel('fidelity')
+                # plt.autoscale(enable=True)
+                # plt.xticks(range(counter-1))
+                plt.ylim((0, 1.03))
+                # plt.autoscale(enable=True)
+                plt.yticks(np.linspace(0, 1, 11))
+                plt.legend(loc='best')
+                plt.savefig(os.path.join(data_dir, 'trunc_fidelity.png'))
+                plt.close()
+
             plt.figure(4)
             plt.title('Energy with error bounds')
             plt.scatter(time, true_energy, color='orange', marker='x', s=60,
@@ -888,7 +958,7 @@ class VarQTE(EvolutionBase):
             plt.ylabel('energy')
             plt.legend(loc='best')
             # plt.autoscale(enable=True)
-            plt.savefig(os.path.join(data_dir, 'energy.png'))
+            plt.savefig(os.path.join(data_dir, 'energy_w_error_bounds.png'))
             plt.close()
             plt.figure(5)
             plt.title('Energy')

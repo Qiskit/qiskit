@@ -33,8 +33,15 @@ ode_solvers = [ForwardEuler, RK45]
 ode_solvers_names = ['ForwardEuler', 'RK45']
 regs = ['ridge', 'perturb_diag', None]
 reg_names = ['ridge', 'perturb_diag', 'lstsq']
-output_dirs = ['h2', 'illustrative', 'illustrative_reverse', 'transverse_ising', 'MaxCut']
-output_dir = '/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output'
+# ode_solvers = [ForwardEuler]
+# ode_solvers_names = ['ForwardEuler']
+# regs = [ None]
+# reg_names = ['lstsq']
+# output_dirs = ['illustrative']
+# output_dirs = ['h2', 'illustrative', 'illustrative_reverse', 'transverse_ising', 'MaxCut']
+# output_dir = '/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output'
+output_dir = '/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output/'
+output_dirs = ['MaxCut/output_maxcut/imag/25_depth_5']
 for output in output_dirs:
     for k, ode_solver in enumerate(ode_solvers):
         for j, reg in enumerate(regs):
@@ -43,7 +50,10 @@ for output in output_dirs:
 
             print('---------------------------------------------------------------------')
             try:
-                varqite_snapshot_dir = os.path.join(output_dir, output, 'imag',
+                # varqite_snapshot_dir = os.path.join(output_dir, output, 'imag',
+                #                                     reg_names[j],
+                #                                     ode_solvers_names[k] + 'nat_grad')
+                varqite_snapshot_dir = os.path.join(output_dir, output,
                                                     reg_names[j],
                                                     ode_solvers_names[k] + 'nat_grad')
 
@@ -52,10 +62,12 @@ for output in output_dirs:
                                       [os.path.join(varqite_snapshot_dir,
                                                     'reverse_error_bounds.npy')]
                                       )
-                varqite_snapshot_dir = os.path.join(output_dir, output, 'imag',
+                # varqite_snapshot_dir = os.path.join(output_dir, output, 'imag',
+                #                                     reg_names[j],
+                #                                     ode_solvers_names[k] + 'error')
+                varqite_snapshot_dir = os.path.join(output_dir, output,
                                                     reg_names[j],
                                                     ode_solvers_names[k] + 'error')
-
                 VarQTE.plot_results([varqite_snapshot_dir], [os.path.join(varqite_snapshot_dir,
                                                             'error_bounds.npy')],
                                       [os.path.join(varqite_snapshot_dir,

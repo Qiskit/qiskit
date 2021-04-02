@@ -163,8 +163,11 @@ class VarQITE(VarQTE):
                          times: List,
                          stddevs: List,
                          imag_reverse_bound: bool = True,
+                         trunc_bound: bool = False,
                          H: Optional[Union[List, np.ndarray]] = None) -> Union[List, Tuple[List,
-                                                                                           List]]:
+                                                                                           List],
+                                                                               Tuple[List, List,
+                                                                               List]]:
         """
         Get the upper bound to a global phase agnostic l2-norm error for VarQITE simulation
         Args:
@@ -194,6 +197,28 @@ class VarQITE(VarQTE):
                 #     stddev_factor *= (1 + 2 * time[k] * stddevs[k])
 
             gradient_error_factors.append(stddev_factor)
+
+        if trunc_bound:
+            gradient_error_factors_truncated = []
+            for p in range(len(gradient_error_factors)):
+                if np.abs(gradient_error_factors[p] - gradient_error_factors[p+1]) <= np.quantile(
+                        gradient_error_factors, 0.5):
+                    gradient_error_factors_truncated.extend(gradient_error_factors[p:])
+                    trunc_gradient_errors = []
+                    trunc_gradient_errors.extend(gradient_errors[p:])
+                    trunc_times = []
+                    trunc_times.extend(times[p:])
+                    break
+
+            trunc_e_bounds = []
+            for j in range(len(trunc_times)):
+                # if use_integral_approx:
+                trunc_e_bounds.append(
+                    np.trapz(np.multiply(trunc_gradient_errors[:j + 1],
+                                         gradient_error_factors_truncated[:j + 1]),
+                             x=trunc_times[:j + 1]))
+
+
 
         e_bounds = []
         for j in range(len(times)):
@@ -243,7 +268,12 @@ class VarQITE(VarQTE):
                 #                           reverse_times[j])
 
             reverse_bounds.reverse()
-            return e_bounds, reverse_bounds
+            if trunc_bound:
+                return e_bounds, reverse_bounds, trunc_e_bounds
+            else:
+                return e_bounds, reverse_bounds
+        if trunc_bound:
+            return e_bounds, trunc_e_bounds
         return e_bounds
 
     def _exact_state(self,
