@@ -83,6 +83,7 @@ Scheduling
 
    ALAPSchedule
    ASAPSchedule
+   RZXCalibrationBuilder
 
 Circuit Analysis
 ================
@@ -114,6 +115,8 @@ Additional Passes
 
    CheckMap
    CheckCXDirection
+   CheckGateDirection
+   CXDirection
    GateDirection
    MergeAdjacentBarriers
    BarrierBeforeFinalMeasurements
@@ -179,6 +182,7 @@ from .synthesis import UnitarySynthesis
 # circuit scheduling
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
+from .scheduling import RZXCalibrationBuilder
 from .scheduling import TimeUnitConversion
 
 # additional utility passes
