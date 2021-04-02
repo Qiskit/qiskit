@@ -15,6 +15,7 @@
 """Test experiment methods."""
 
 import os
+import unittest
 from unittest import mock
 import copy
 from random import randrange
@@ -28,8 +29,8 @@ from qiskit.providers.experiment.experiment_data import ExperimentDataV1 as Expe
 from qiskit.providers.experiment.exceptions import ExperimentEntryExists
 
 
-class TestExperimentData(QiskitTestCase):
-    """Test the backend methods."""
+class TestExperimentData(unittest.TestCase):
+    """Test the ExperimentData class."""
 
     def setUp(self):
         super().setUp()
@@ -130,7 +131,7 @@ class TestExperimentData(QiskitTestCase):
                 self.assertEqual([dat['counts'] for dat in _exp_data.data()],
                                  a_job.result().get_counts())
             except AssertionError as err:
-                self.log.error(f"{type(err)}: {err}")
+                # self.log.error(f"{type(err)}: {err}")
                 raise
             nonlocal called_back
             called_back = True
@@ -239,4 +240,23 @@ class TestExperimentData(QiskitTestCase):
         pass
 
     def test_retrieved_experiment(self):
+        pass
+
+
+class TestAnalysisResult(QiskitTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.backend = FakeMelbourne()
+
+    def test_analysis_result_attributes(self):
+        pass
+
+    def test_save(self):
+        pass
+
+    def test_auto_save(self):
+        pass
+
+    def test_update_data(self):
         pass
