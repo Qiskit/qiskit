@@ -13,7 +13,6 @@
 Look-up table for variable parameters in QuantumCircuit.
 """
 from functools import cmp_to_key
-from typing import Iterable
 
 from .parameterexpression import ParameterExpression
 from .exceptions import CircuitError
