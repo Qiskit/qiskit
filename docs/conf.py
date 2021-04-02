@@ -29,6 +29,9 @@ import sys
 sys.path.insert(0, os.path.abspath('.'))
 
 import qiskit_sphinx_theme
+from custom_directives import (IncludeDirective, GalleryItemDirective,
+                               CustomGalleryItemDirective, CustomCalloutItemDirective,
+                               CustomCardItemDirective)
 
 # -- Project information -----------------------------------------------------
 from distutils import dir_util
@@ -39,7 +42,7 @@ import tempfile
 import warnings
 
 project = 'Qiskit'
-copyright = '2020, Qiskit Development Team'
+copyright = '2021, Qiskit Development Team'
 author = 'Qiskit Development Team'
 
 # The short X.Y version
@@ -188,7 +191,7 @@ html_theme_options = {
     'logo_only': False,
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
-    'style_external_links': False,
+    'style_external_links': True,
     # Toc options
     'collapse_navigation': True,
     'sticky_navigation': True,
@@ -315,6 +318,11 @@ def clean_tutorials(app, exc):
 # -- Extension configuration -------------------------------------------------
 
 def setup(app):
+    app.add_directive('includenodoc', IncludeDirective)
+    app.add_directive('galleryitem', GalleryItemDirective)
+    app.add_directive('customgalleryitem', CustomGalleryItemDirective)
+    app.add_directive('customcarditem', CustomCardItemDirective)
+    app.add_directive('customcalloutitem', CustomCalloutItemDirective)
     load_api_sources(app)
     load_tutorials(app)
     app.setup_extension('versionutils')

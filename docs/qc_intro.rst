@@ -1,3 +1,5 @@
+:orphan:
+
 .. figure:: images/qiskit_nutshell.png
    :scale: 50 %
    :align: center

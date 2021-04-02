@@ -1,30 +1,44 @@
+.. figure:: images/qiskit_circ.png
+  :align: center
+
 ##############################
 Qiskit |version| documentation
 ##############################
 
-Qiskit is an open-source framework for working with quantum computers
-at the level of circuits, pulses, and algorithms.
+Qiskit is open-source software for working with quantum computers
+at the level of circuits, pulses, and algorithms.  Additionally, several
+domain specific application API's exist on top of this core module.
 
-A central goal of Qiskit is to build a software stack
-that makes it easy for anyone to use quantum computers. However, Qiskit also aims
-to facilitate research on the most important open issues facing quantum computation today.
+The central goal of Qiskit is to build a software stack
+that makes it easy for anyone to use quantum computers, regardless of their skill level or
+area of interest; Qiskit allows one to easily design experiments and run them on classical
+simulators and/or real quantum computers.  Qiskit is already in use around the world by
+beginners, hobbyists, educators, researchers, and commercial companies.
 
-You can use Qiskit to easily design experiments and run them on simulators and real
-quantum computers.
+.. raw:: html
 
-Qiskit consists of four foundational elements:
+  <div class="tutorials-callout-container">
+     <div class="row">
 
-- :ref:`Qiskit Terra <Terra>`: Composing quantum programs at the level of circuits
-  and pulses with the code foundation.
+.. customcalloutitem::
+  :description: A quick introduction to quantum computing.
+  :header: What is quantum computing?
+  :button_link:  qc_intro.html
+  :button_text: Get cracking
 
-- :ref:`Qiskit Aer <Aer>`: Accelerating development via simulators and noise
-  models
 
-- :ref:`Qiskit Ignis <Ignis>`: Addressing noise and errors
+.. customcalloutitem::
+  :description: Find out which Qiskit Partners support execution on real quantum services.
+  :header: Access to quantum systems
+  :button_link:  https://qiskit.org/documentation/partners/
+  :button_text: Qiskit Partners
 
-- :ref:`Qiskit Aqua <Aqua>`: Building algorithms and applications
+.. raw:: html
 
-Interested in Quantum hardware design?
+  </div>
+
+
+Interested in quantum hardware design?
 ######################################
 
    .. panels::
@@ -32,9 +46,10 @@ Interested in Quantum hardware design?
     Qiskit Metal
     ^^^^^^^^^^^^^^
 
-    .. figure:: images/metal.png
+    .. image:: images/metal.png
       :scale: 35 %
       :align: center
+      :target: https://qiskit.org/documentation/metal/
 
     ++++++
     :link-badge:`https://qiskit.org/metal,"Website",cls=badge-dark text-white`
@@ -43,34 +58,20 @@ Interested in Quantum hardware design?
 
 
 .. toctree::
+  :maxdepth: 1
+  :hidden:
+
+  Documentation homepage <self>
+
+.. toctree::
+  :caption: Frontmatter
   :maxdepth: 2
   :hidden:
 
-  Quantum computing in a nutshell <qc_intro>
-  install
-  getting_started
-  the_elements
-  development_strategy
-  contributing_to_qiskit
   release_notes
+  contributing_to_qiskit
   configuration
   faq
-
-.. toctree::
-  :maxdepth: 1
-  :caption: Tutorials
-  :hidden:
-
-  Circuits <tutorials/circuits/index.rst>
-  Advanced Circuits <tutorials/circuits_advanced/index.rst>
-  High-Performance Simulators <tutorials/simulators/index.rst>
-  Quantum System Error Analysis <tutorials/noise/index.rst>
-  Algorithms <tutorials/algorithms/index.rst>
-  Operators <tutorials/operators/index.rst>
-  Optimization <tutorials/optimization/index.rst>
-  Finance <tutorials/finance/index.rst>
-  Chemistry <tutorials/chemistry/index.rst>
-  Machine Learning <tutorials/machine_learning/index.rst>
 
 .. toctree::
   :maxdepth: 1

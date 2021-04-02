@@ -1,256 +1,621 @@
-===========================
-Getting Started with Qiskit
-===========================
+:orphan:
 
-The workflow of using Qiskit consists of three high-level steps:
+###############
+Getting started
+###############
 
-- **Build**: design a quantum circuit that represents the problem you are
-  considering.
-- **Execute**: run experiments on different backends (*which include both
-  systems and simulators*).
-- **Analyze**: calculate summary statistics and visualize the results of
-  experiments.
+Quick installation
+==================
 
-Here is an example of the entire workflow, with each step explained in detail in
-subsequent sections:
+.. tabbed:: Start locally
 
-.. jupyter-execute::
+    Qiskit supports Python 3.6 or later. However, both Python and Qiskit are
+    evolving ecosystems, and sometimes when new releases occur in one or the other,
+    there can be problems with compatibility.
 
-    import numpy as np
-    from qiskit import(
-      QuantumCircuit,
-      execute,
-      Aer)
-    from qiskit.visualization import plot_histogram
+    We recommend installing `Anaconda <https://www.anaconda.com/download/>`__, a
+    cross-platform Python distribution for scientific computing. Jupyter,
+    included in Anaconda, is recommended for interacting with Qiskit.
 
-    # Use Aer's qasm_simulator
-    simulator = Aer.get_backend('qasm_simulator')
+    Qiskit is tested and supported on the following 64-bit systems:
 
-    # Create a Quantum Circuit acting on the q register
-    circuit = QuantumCircuit(2, 2)
+    *	Ubuntu 16.04 or later
+    *	macOS 10.12.6 or later
+    *	Windows 7 or later
 
-    # Add a H gate on qubit 0
-    circuit.h(0)
+    We recommend using Python virtual environments to cleanly separate Qiskit from
+    other applications and improve your experience.
 
-    # Add a CX (CNOT) gate on control qubit 0 and target qubit 1
-    circuit.cx(0, 1)
+    The simplest way to use environments is by using the ``conda`` command,
+    included with Anaconda. A Conda environment allows you to specify a specific
+    version of Python and set of libraries. Open a terminal window in the directory
+    where you want to work.
 
-    # Map the quantum measurement to the classical bits
-    circuit.measure([0,1], [0,1])
+    It is preferred that you use Anaconda prompt installed with the Anaconda.
+    All you have to do is create a virtual environment inside Anaconda and activate the environment.
+    These commands can be run in Anaconda prompt irrespective of Windows or Linux machine.
 
-    # Execute the circuit on the qasm simulator
-    job = execute(circuit, simulator, shots=1000)
+    Create a minimal environment with only Python installed in it.
 
-    # Grab results from the job
-    result = job.result()
+    .. code:: sh
 
-    # Returns counts
-    counts = result.get_counts(circuit)
-    print("\nTotal count for 00 and 11 are:",counts)
+        conda create -n ENV_NAME python=3
 
-    # Draw the circuit
-    circuit.draw()
+    Activate your new environment.
 
-.. jupyter-execute::
+    .. code:: sh
 
-    # Plot a histogram
-    plot_histogram(counts)
+        conda activate ENV_NAME
 
 
+    Next, install the Qiskit package.
 
------------------------
-Workflow Step--by--Step
------------------------
+    .. code:: sh
 
-The program above can be broken down into six steps:
+        pip install qiskit
 
-1. Import packages
-2. Initialize variables
-3. Add gates
-4. Visualize the circuit
-5. Simulate the experiment
-6. Visualize the results
+    If the packages were installed correctly, you can run ``conda list`` to see the active
+    packages in your virtual environment.
 
+    If you intend to use visualization functionality or Jupyter notebooks it is
+    recommended to install Qiskit with the extra ``visualization`` support:
 
-~~~~~~~~~~~~~~~~~~~~~~~~
-Step 1 : Import Packages
-~~~~~~~~~~~~~~~~~~~~~~~~
+    .. code:: sh
 
-The basic elements needed for your program are imported as follows:
+        pip install qiskit[visualization]
 
-.. code-block:: python
+    It is worth pointing out that if you're a zsh user (which is the default shell on newer
+    versions of macOS), you'll need to put ``qiskit[visualization]`` in quotes:
 
-  import numpy as np
-  from qiskit import(
-    QuantumCircuit,
-    execute,
-    Aer)
-  from qiskit.visualization import plot_histogram
+    .. code:: sh
 
-In more detail, the imports are
-
-- ``QuantumCircuit``: can be thought as the instructions of the quantum system.
-  It holds all your quantum operations.
-- ``execute``: runs your circuit / experiment.
-- ``Aer``: handles simulator backends.
-- ``plot_histogram``: creates histograms.
+        pip install 'qiskit[visualization]'
 
 
+.. tabbed:: Start on the cloud
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Step 2 : Initialize Variables
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    The following cloud vendors have Qiskit pre-installed in their environments:
 
-Consider the next line of code
+   .. raw:: html
 
-.. code-block:: python
+      <div id="tutorial-cards-container">
+      <hr class="tutorials-hr">
+      <div class="row">
+      <div id="tutorial-cards">
+      <div class="list">
 
-    circuit = QuantumCircuit(2, 2)
+   .. customcarditem::
+      :header: IBM Quantum Lab
+      :card_description: Build quantum applications and experiments with Qiskit in a cloud programming environment.
+      :image: _static/ibm_qlab.png
+      :link: https://quantum-computing.ibm.com/
 
-Here, you are initializing with 2 qubits in the zero state; with 2
-classical bits set to zero; and ``circuit`` is the quantum circuit.
+   .. customcarditem::
+      :header: Strangeworks
+      :card_description: A platform that enables users and organizations to easily apply quantum computing to their most pressing problems and research.
+      :image: _static/strangeworks.png
+      :link: https://strangeworks.com/
 
-Syntax:
+   .. raw:: html
 
-- ``QuantumCircuit(int, int)``
+      </div>
+      <div class="pagination d-flex justify-content-center"></div>
+      </div>
+      </div>
+
+Install from source
+===================
+
+Installing the elements from source allows you to access the most recently
+updated version of Qiskit instead of using the version in the Python Package
+Index (PyPI) repository. This will give you the ability to inspect and extend
+the latest version of the Qiskit code more efficiently.
+
+When installing the elements and components from source, by default their
+``development`` version (which corresponds to the ``master`` git branch) will
+be used, as opposed to the ``stable`` version (which contains the same codebase
+as the published ``pip`` packages). Since the ``development`` versions of an
+element or component usually include new features and changes, they generally
+require using the ``development`` version of the rest of the items as well.
+
+.. note::
+
+  The Terra and Aer packages both require a compiler to build from source before
+  you can install. Ignis, Aqua, and the IBM Quantum Provider backend
+  do not require a compiler.
+
+Installing elements from source requires the following order of installation to
+prevent installing versions of elements that may be lower than those desired if the
+``pip`` version is behind the source versions:
+
+#. :ref:`qiskit-terra <install-qiskit-terra>`
+#. :ref:`qiskit-aer <install-qiskit-aer>`
+#. :ref:`qiskit-ignis <install-qiskit-ignis>`
+#. :ref:`qiskit-aqua <install-qiskit-aqua>`
+#. :ref:`qiskit-ibmq-provider <install-qiskit-ibmq-provider>`
+   (if you want to connect to the IBM Quantum devices or online
+   simulator)
+
+To work with several components and elements simultaneously, use the following
+steps for each element.
+
+.. note::
+
+   Due to the use of namespace packaging in Python, care must be taken in how you
+   install packages. If you're planning to install any element from source, do not
+   use the ``qiskit`` meta-package. Also, follow this guide and use a separate virtual
+   environment for development. If you do choose to mix an existing installation
+   with your development, refer to
+   https://github.com/pypa/sample-namespace-packages/blob/master/table.md
+   for the set of combinations of installation methods that work together.
+
+Set up the Virtual Development Environment
+------------------------------------------
+
+.. code-block:: sh
+
+   conda create -y -n QiskitDevenv python=3
+   conda activate QiskitDevenv
+
+.. _install-qiskit-terra:
+
+Installing Terra from Source
+----------------------------
+
+Installing from source requires that you have a C++ compiler on your system that supports
+C++11.
 
 
+.. tabbed:: Compiler for Linux
 
-~~~~~~~~~~~~~~~~~~
-Step 3 : Add Gates
-~~~~~~~~~~~~~~~~~~
+   On most Linux platforms, the necessary GCC compiler is already installed.
 
-You can add gates (operations) to manipulate the registers of your circuit.
+.. tabbed:: Compiler for macOS
 
-Consider the following three lines of code:
+   If you use macOS, you can install the Clang compiler by installing XCode.
+   Check if you have XCode and Clang installed by opening a terminal window and entering the
+   following.
 
-.. code-block:: python
+   .. code:: sh
 
-    circuit.h(0)
-    circuit.cx(0, 1)
-    circuit.measure([0,1], [0,1])
+      clang --version
 
-The gates are added to the circuit one-by-one to form the Bell state
+   Install XCode and Clang by using the following command.
 
-.. math:: |\psi\rangle = \left(|00\rangle+|11\rangle\right)/\sqrt{2}.
+   .. code:: sh
 
-The code above applies the following gates:
+      xcode-select --install
 
-- ``QuantumCircuit.h(0)``: A Hadamard gate :math:`H` on qubit 0,
-  which puts it into a **superposition state**.
-- ``QuantumCircuit.cx(0, 1)``: A controlled-Not operation
-  (:math:`CNOT`) on control qubit 0 and target qubit 1, putting the qubits in
-  an **entangled state**.
-- ``QuantumCircuit.measure([0,1], [0,1])``: if you pass
-  the entire quantum and classical registers to ``measure``, the ith qubit’s
-  measurement result will be stored in the ith classical bit.
+.. tabbed:: Compiler for Windows
+
+   On Windows, it is easiest to install the Visual C++ compiler from the
+   `Build Tools for Visual Studio 2017 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017>`__.
+   You can instead install Visual Studio version 2015 or 2017, making sure to select the
+   options for installing the C++ compiler.
 
 
+Once the compilers are installed, you are ready to install Qiskit Terra.
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Step 4 : Visualize the Circuit
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1. Clone the Terra repository.
 
-You can use :meth:`qiskit.circuit.QuantumCircuit.draw` to view the circuit that you have designed
-in the various forms used in many textbooks and research articles.
+   .. code:: sh
 
-.. jupyter-execute::
+      git clone https://github.com/Qiskit/qiskit-terra.git
 
-    circuit.draw()
+2. Cloning the repository creates a local folder called ``qiskit-terra``.
 
-In this circuit, the qubits are ordered with qubit zero at the top and
-qubit one at the bottom. The circuit is read left-to-right, meaning that gates
-which are applied earlier in the circuit show up farther to the left.
+   .. code:: sh
 
-The default backend for ``QuantumCircuit.draw()`` or ``qiskit.visualization.circuit_drawer()``
-is the text backend. However, depending on your local environment you may want to change
-these defaults to something better suited for your use case. This is done with the user
-config file.  By default the user config file should be located in
-``~/.qiskit/settings.conf`` and is a ``.ini`` file.
+      cd qiskit-terra
 
-For example, a ``settings.conf`` file for setting a Matplotlib drawer is:
+3. Install the Python requirements libraries from your ``qiskit-terra`` directory.
 
-.. code-block:: text
+   .. code:: sh
 
-  [default]
-  circuit_drawer = mpl
+      pip install cython
 
-You can use any of the valid circuit drawer backends as the value for this config, this includes
-text, mpl, latex, and latex_source.
+4. If you want to run tests or linting checks, install the developer requirements.
+
+   .. code:: sh
+
+      pip install -r requirements-dev.txt
+
+5. Install ``qiskit-terra``.
+
+   .. code:: sh
+
+      pip install .
+
+If you want to install it in editable mode, meaning that code changes to the
+project don't require a reinstall to be applied, you can do this with:
+
+.. code:: sh
+
+   pip install -e .
+
+You can then run the code examples after installing Terra. You can
+run the example with the following command.
+
+.. code:: sh
+
+   python examples/python/using_qiskit_terra_level_0.py
 
 
+.. note::
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Step 5 : Simulate the Experiment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    If you do not intend to install any other components, qiskit-terra will
+    emit a ``RuntimeWarning`` warning that both qiskit-aer and
+    qiskit-ibmq-provider are not installed. This is done because
+    users commonly intend to use the additional elements,
+    but do not realize they are not installed, or that the installation
+    of either Aer or the IBM Quantum Provider failed for some reason. If you wish
+    to suppress these warnings, add::
+
+        import warnings
+        warnings.filterwarnings('ignore', category=RuntimeWarning,
+                                module='qiskit')
+
+    before any ``qiskit`` imports in your code. This will suppress the
+    warning about the missing qiskit-aer and qiskit-ibmq-provider, but
+    will continue to display any other warnings from qiskit or other packages.
+
+.. _install-qiskit-aer:
+
+Installing Aer from Source
+--------------------------
+
+1. Clone the Aer repository.
+
+   .. code:: sh
+
+      git clone https://github.com/Qiskit/qiskit-aer
+
+2. Install build requirements.
+
+   .. code:: sh
+
+      pip install cmake scikit-build cython
+
+After this, the steps to install Aer depend on which operating system you are
+using. Since Aer is a compiled C++ program with a Python interface, there are
+non-Python dependencies for building the Aer binary which can't be installed
+universally depending on operating system.
+
+
+.. dropdown:: Linux
+
+    3. Install compiler requirements.
+
+        Building Aer requires a C++ compiler and development headers.
+
+        If you're using Fedora or an equivalent Linux distribution,
+        install using:
+
+        .. code:: sh
+
+            dnf install @development-tools
+
+        For Ubuntu/Debian install it using:
+
+        .. code:: sh
+
+            apt-get install build-essential
+
+    4. Install OpenBLAS development headers.
+
+        If you're using Fedora or an equivalent Linux distribution,
+        install using:
+
+        .. code:: sh
+
+            dnf install openblas-devel
+
+        For Ubuntu/Debian install it using:
+
+        .. code:: sh
+
+            apt-get install libopenblas-dev
+
+
+.. dropdown:: macOS
+
+    3. Install dependencies.
+
+        To use the `Clang <https://clang.llvm.org/>`__ compiler on macOS, you need to install
+        an extra library for supporting `OpenMP <https://www.openmp.org/>`__.  You can use `brew <https://brew.sh/>`__
+        to install this and other dependencies.
+
+        .. code:: sh
+
+            brew install libomp
+
+    4. Then install a BLAS implementation; `OpenBLAS <https://www.openblas.net/>`__
+        is the default choice.
+
+        .. code:: sh
+
+            brew install openblas
+
+        Next, install ``Xcode Command Line Tools``.
+
+        .. code:: sh
+
+            xcode-select --install
+
+.. dropdown:: Windows
+
+    On Windows you need to use `Anaconda3 <https://www.anaconda.com/distribution/#windows>`__
+    or `Miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`__ to install all the
+    dependencies.
+
+    3. Install compiler requirements.
+
+        .. code:: sh
+
+            conda install --update-deps vs2017_win-64 vs2017_win-32 msvc_runtime
 
 Qiskit Aer is a high performance simulator framework for quantum circuits. It
 provides `several backends <apidoc/aer_provider.html#simulator-backends>`__
 to achieve different simulation goals.
 
-If you have issues installing Aer, you can alternatively use the Basic Aer
-provider by replacing `Aer` with `BasicAer`. Basic Aer is included in Qiskit
-Terra.
+        .. code:: sh
 
-.. code-block:: text
-
-    import numpy as np
-    from qiskit import(
-      QuantumCircuit,
-      execute,
-      BasicAer)
-    ...
-
-To simulate this circuit, you will use the ``qasm_simulator``. Each run of this
-circuit will yield either the bit string 00 or 11.
-
-.. jupyter-execute::
-
-    simulator = Aer.get_backend('qasm_simulator')
-    job = execute(circuit, simulator, shots=1000)
-    result = job.result()
-    counts = result.get_counts(circuit)
-    print("\nTotal count for 00 and 11 are:",counts)
-
-As expected, the output bit string is 00 approximately 50 percent of the time.
-The number of times the circuit is run can be specified via the ``shots``
-argument of the ``execute`` method. The number of shots of the simulation was
-set to be 1000 (the default is 1024).
-
-Once you have a ``result`` object, you can access the counts via the method
-``get_counts(circuit)``. This gives you the aggregate outcomes of the
-experiment you ran.
+            conda install --update-deps -c conda-forge -y openblas cmake
 
 
+5. Build and install qiskit-aer directly
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Step 6 : Visualize the Results
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   If you have pip <19.0.0 installed and your environment doesn't require a
+   custom build, run:
 
-Qiskit provides `many visualizations <apidoc/visualization.html>`__,
+   .. code:: sh
 
-including the function ``plot_histogram``, to view your results.
+      cd qiskit-aer
+      pip install .
 
-.. jupyter-execute::
+   This will both build the binaries and install Aer.
 
-  plot_histogram(counts)
+   Alternatively, if you have a newer pip installed, or have some custom requirement,
+   you can build a Python wheel manually.
 
-The observed probabilities :math:`Pr(00)` and :math:`Pr(11)` are computed by
-taking the respective counts and dividing by the total number of shots.
+   .. code:: sh
+
+      cd qiskit-aer
+      python ./setup.py bdist_wheel
+
+   If you need to set a custom option during the wheel build, refer to
+   :ref:`aer_wheel_build_options`.
+
+   After you build the Python wheel, it will be stored in the ``dist/`` dir in the
+   Aer repository. The exact version will depend
+
+   .. code:: sh
+
+      cd dist
+      pip install qiskit_aer-*.whl
+
+   The exact filename of the output wheel file depends on the current version of
+   Aer under development.
+
+.. _aer_wheel_build_options:
+
+Custom options during wheel builds
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The Aer build system uses `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`__
+to run the compilation when building it with the Python interface. It acts as an interface for
+`setuptools <https://setuptools.readthedocs.io/en/latest/>`__ to call `CMake <https://cmake.org/>`__
+and compile the binaries for your local system.
+
+Due to the complexity of compiling the binaries, you may need to pass options
+to a certain part of the build process. The way to pass variables is:
+
+.. code:: sh
+
+   python setup.py bdist_wheel [skbuild_opts] [-- [cmake_opts] [-- build_tool_opts]]
+
+where the elements within square brackets `[]` are optional, and
+``skbuild_opts``, ``cmake_opts``, ``build_tool_opts`` are to be replaced by
+flags of your choice. A list of *CMake* options is available here:
+https://cmake.org/cmake/help/v3.6/manual/cmake.1.html#options. For
+example, you could run something like:
+
+.. code:: sh
+
+   python setup.py bdist_wheel -- -- -j8
+
+This is passing the flag `-j8` to the underlying build system (which in this
+case is `Automake <https://www.gnu.org/software/automake/>`__), telling it that you want
+to build in parallel using 8 processes.
+
+For example, a common use case for these flags on linux is to specify a
+specific version of the C++ compiler to use (normally if the default is too
+old):
+
+.. code:: sh
+
+   python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7
+
+which will tell CMake to use the g++-7 command instead of the default g++ when
+compiling Aer.
+
+Another common use case for this, depending on your environment, is that you may
+need to specify your platform name and turn off static linking.
+
+.. code:: sh
+
+   python setup.py bdist_wheel --plat-name macosx-10.9-x86_64 \
+   -- -DSTATIC_LINKING=False -- -j8
+
+Here ``--plat-name`` is a flag to setuptools, to specify the platform name to
+use in the package metadata, ``-DSTATIC_LINKING`` is a flag for using CMake
+to disable static linking, and ``-j8`` is a flag for using Automake to use
+8 processes for compilation.
+
+A list of common options depending on platform are:
+
++--------+------------+----------------------+---------------------------------------------+
+|Platform| Tool       | Option               | Use Case                                    |
++========+============+======================+=============================================+
+| All    | Automake   | -j                   | Followed by a number, sets the number of    |
+|        |            |                      | processes to use for compilation.           |
++--------+------------+----------------------+---------------------------------------------+
+| Linux  | CMake      | -DCMAKE_CXX_COMPILER | Used to specify a specific C++ compiler;    |
+|        |            |                      | this is often needed if your default g++ is |
+|        |            |                      | too old.                                    |
++--------+------------+----------------------+---------------------------------------------+
+| OSX    | setuptools | --plat-name          | Used to specify the platform name in the    |
+|        |            |                      | output Python package.                      |
++--------+------------+----------------------+---------------------------------------------+
+| OSX    | CMake      | -DSTATIC_LINKING     | Used to specify whether or not              |
+|        |            |                      | static linking should be used.              |
++--------+------------+----------------------+---------------------------------------------+
 
 .. note::
+    Some of these options are not platform-specific. These particular platforms are listed
+    because they are commonly used in the environment. Refer to the
+    tool documentation for more information.
 
-  Try changing the ``shots`` keyword in the ``execute`` method to see how
-  the estimated probabilities change.
+.. _install-qiskit-ignis:
+
+Installing Ignis from Source
+----------------------------
+
+1. Clone the Ignis repository.
+
+   .. code:: sh
+
+      git clone https://github.com/Qiskit/qiskit-ignis.git
+
+2. Cloning the repository creates a local directory called ``qiskit-ignis``.
+
+   .. code:: sh
+
+      cd qiskit-ignis
+
+3. If you want to run tests or linting checks, install the developer requirements.
+   This is not required to install or use the qiskit-ignis package when installing
+   from source.
+
+   .. code:: sh
+
+      pip install -r requirements-dev.txt
+
+4. Install Ignis.
+
+   .. code:: sh
+
+      pip install .
+
+If you want to install it in editable mode, meaning that code changes to the
+project don't require a reinstall to be applied:
+
+.. code:: sh
+
+    pip install -e .
+
+.. _install-qiskit-aqua:
+
+Installing Aqua from Source
+---------------------------
+
+1. Clone the Aqua repository.
+
+   .. code:: sh
+
+      git clone https://github.com/Qiskit/qiskit-aqua.git
+
+2. Cloning the repository creates a local directory called ``qiskit-aqua``.
+
+   .. code:: sh
+
+      cd qiskit-aqua
+
+3. If you want to run tests or linting checks, install the developer requirements.
+   This is not required to install or use the qiskit-aqua package when installing
+   from source.
+
+   .. code:: sh
+
+      pip install -r requirements-dev.txt
+
+4. Install Aqua.
+
+   .. code:: sh
+
+      pip install .
+
+If you want to install it in editable mode, meaning that code changes to the
+project don't require a reinstall to be applied:
+
+.. code:: sh
+
+    pip install -e .
+
+.. _install-qiskit-ibmq-provider:
+
+Installing IBM Quantum Provider from Source
+-------------------------------------------
+
+1. Clone the qiskit-ibmq-provider repository.
+
+   .. code:: sh
+
+      git clone https://github.com/Qiskit/qiskit-ibmq-provider.git
+
+2. Cloning the repository creates a local directory called ``qiskit-ibmq-provider``.
+
+   .. code:: sh
+
+      cd qiskit-ibmq-provider
+
+3. If you want to run tests or linting checks, install the developer requirements.
+   This is not required to install or use the qiskit-ibmq-provider package when
+   installing from source.
+
+   .. code:: sh
+
+      pip install -r requirements-dev.txt
+
+4. Install qiskit-ibmq-provider.
+
+   .. code:: sh
+
+      pip install .
+
+If you want to install it in editable mode, meaning that code changes to the
+project don't require a reinstall to be applied:
+
+.. code:: sh
+
+    pip install -e .
+
+Ready to get going?...
+======================
+
+.. raw:: html
+
+   <div class="tutorials-callout-container">
+      <div class="row">
+
+.. customcalloutitem::
+   :description: Learn how to build, execute, and post-process quantum circuits with Qiskit.
+   :header: Qiskit from the ground up
+   :button_link:  intro_tutorial1.html
+   :button_text: Start learning Qiskit
 
 
-----------
-Next Steps
-----------
+.. customcalloutitem::
+   :description: Find out how to leverage Qiskit for everything from single-circuits to full quantum application development.
+   :header: Dive into the tutorials
+   :button_link:  tutorials.html
+   :button_text: Qiskit tutorials
 
-Now that you have learnt the basics, consider these learning resources:
+.. raw:: html
 
-- `About the Qiskit framework <the_elements.html>`__
-- `Qiskit tutorials <tutorials/circuits/index.rst>`__
-- `Textbook: Learn Quantum Computing using Qiskit <https://community.qiskit.org/textbook/preface>`__
-- `Video series: Coding with Qiskit <https://www.youtube.com/playlist?list=PLOFEBzvs-Vvp2xg9-POLJhQwtVktlYGbY>`__
+   </div>
+
+.. Hiding - Indices and tables
+   :ref:`genindex`
+   :ref:`modindex`
+   :ref:`search`
