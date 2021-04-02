@@ -82,6 +82,7 @@ ClassicalFunction
    :toctree: ../stubs/
 
    ClassicalFunction
+   BooleanExpression
 
 Exceptions
 ----------
@@ -97,6 +98,7 @@ Exceptions
 from .classicalfunction import ClassicalFunction
 from .exceptions import (ClassicalFunctionParseError, ClassicalFunctionCompilerError,
                          ClassicalFunctionCompilerTypeError)
+from .boolean_expression import BooleanExpression
 
 
 def classical_function(func):
