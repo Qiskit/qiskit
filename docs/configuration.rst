@@ -19,8 +19,11 @@ For example:
     [default]
     circuit_drawer = mpl
     circuit_mpl_style = default
-    package_warnings = False
+    circuit_mpl_style_path = ~:~/.qiskit
+    state_drawer = hinton
     transpile_optimization_level=3
+    parallel = False
+    num_processes = 15
 
 By default this file lives in ``~/.qiskit/settings.conf`` but the path used
 can be overriden with the ``QISKIT_SETTINGS`` environment variable. If
@@ -39,13 +42,32 @@ Available options:
    :meth:`qiskit.circuit.QuantumCircuit.draw` and
    :func:`qiskit.visualization.circuit_drawer`. It can be set to ``default``
    or ``bw``.
- * ``package_warnings``: This boolean flag when set to true will suppress the
-   ``RuntimeWarnings`` normally raised when either ``qiskit-aer`` or
-   ``qiskit-ibmq-provider`` can not be found.
+ * ``circuit_mpl_style_path``: This can be used to set the path(s) to have the
+   circuit drawer, :meth:`qiskit.circuit.QuantumCircuit.draw` or
+   :func:`qiskit.visualization.circuit_drawer`, use to look for json style
+   sheets when using the ``mpl`` output mode.
+ * ``state_drawer``: This is used to change the default backend for the
+   state visualization draw methods :meth:`qiskit.quantum_info.Statevector.draw`
+   and :meth:`qiskit.quantum_info.DensityMatrix.draw`. It can be set to
+   ``repr``, ``text``', ``latex``, ``latex_source``, ``qsphere``, ``hinton``,
+   or bloch ``bloch`` and when the ``output`` kwarg is not explicitly set on
+   the :meth:`~qiskit.quantum_info.DensityMatrix.draw` method that output
+   method will be used.
  * ``transpile_optimization_level``: This takes an integer between 0-3 and is
    used to change the default optimization level for
    :func:`~qiskit.compiler.transpile` and :func:`~qiskit.execute.execute`.
-
+ * ``parallel``: This option takes a boolean value (either ``True`` or
+   ``False``) and is used to configure whether
+   `Python multiprocessing <https://docs.python.org/3/library/multiprocessing.html>`__
+   is enabled for operations that support running in parallel (for example
+   transpilation of multiple :class:`~qiskit.circuit.QuantumCircuit` objects).
+   The default setting in the user config file can be overriden by
+   the ``QISKIT_PARALLEL`` environment variable.
+ * ``num_processes``: This option takes an integer value (> 0) that is used
+   to specify the maximum number of parallel processes to launch for parallel
+   operations if parallel execution is enabled. The default setting in the
+   user config file can be overriden by the ``QISKIT_NUM_PROCS`` environment
+   variable.
 
 Environment Variables
 ---------------------
@@ -53,13 +75,14 @@ Environment Variables
 There are also a few environment variables that can be set to alter the default
 behavior of Qiskit.
 
- * ``QISKIT_IN_PARALLEL``: if this variable is set to something other than
-   ``FALSE`` it will disable the use of multiprocessing to parallelize
-   certain operations (for exapmle transpilation over multiple circuits) in
-   Qiskit Terra.
- * ``QISKIT_SUPPRESS_PACKAGING_WARNINGS``: When set to ``Y`` the
-   ``RuntimeWarnings`` normally raised when either ``qiskit-aer`` or
-   ``qiskit-ibmq-provider`` can not be found will be supressed.
+ * ``QISKIT_PARALLEL``: if this variable is set to ``TRUE`` it will enable
+   the use of
+   `Python multiprocessing <https://docs.python.org/3/library/multiprocessing.html>`__
+   to parallelize certain operations (for example transpilation over multiple
+   circuits) in Qiskit Terra.
+ * ``QISKIT_NUM_PROCS``: Specifies the maximum number of parallel processes to
+   launch for parallel operations if parallel execution is enabled. It takes an
+   integer > 0 as the expected value.
  * ``QISKIT_IBMQ_PROVIDER_LOG_LEVEL``: Specifies the log level to use, for the
    ``qiskit-ibmq-provider`` modules. If an invalid level is set, the log level
    defaults to WARNING. The valid log levels are ``DEBUG``, ``INFO``,

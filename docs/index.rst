@@ -93,6 +93,13 @@ Interested in quantum hardware design?
 
 .. toctree::
   :maxdepth: 1
+  :caption: Qiskit Aqua Migration Guide
+  :hidden:
+
+  Qiskit Aqua Migration Guide <aqua_migration>
+
+.. toctree::
+  :maxdepth: 1
   :caption: Troubleshooting
   :hidden:
 
