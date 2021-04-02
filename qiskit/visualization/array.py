@@ -207,17 +207,17 @@ def array_to_latex(array, precision=5, prefix="", source=False, max_size=8):
             source (bool): If ``False``, will return IPython.display.Latex object. If display is
                            ``True``, will instead return the LaTeX source string.
             max_size (list(int) or int): The maximum size of the output Latex array.
-                      * If list(```int```), then the 0th element of the list specifies the maximum
-                        width (including dots characters) and the 1st specifies the maximum height
-                        (also inc. dots characters).
-                      * If a single ```int``` then this value sets the maximum width _and_ maximum
-                        height.
+
+                * If list(``int``), then the 0th element of the list specifies the maximum
+                  width (including dots characters) and the 1st specifies the maximum height
+                  (also inc. dots characters).
+                * If a single ``int`` then this value sets the maximum width _and_ maximum
+                  height.
 
         Returns:
-            if ``source`` is ``True``:
-                ``str``: LaTeX string representation of the array.
-            else:
-                ``IPython.display.Latex``: LaTeX representation of the array.
+            str or IPython.display.Latex: If ``source`` is ``True``, a ``str`` of the LaTeX
+                representation of the array, else an ``IPython.display.Latex`` representation of
+                the array.
 
         Raises:
             TypeError: If array can not be interpreted as a numerical numpy array.

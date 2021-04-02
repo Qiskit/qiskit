@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fixes a bug in `template_substitution.py` in which templates with parameters causes a
-    crash due to unbound parameters after `_attempt_bind`. Now, after `_attempt_bind`
-    valid matches that leave unbound parameters in the template are discarded.

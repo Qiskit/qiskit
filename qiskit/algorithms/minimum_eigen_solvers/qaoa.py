@@ -33,17 +33,17 @@ class QAOA(VQE):
 
     `QAOA <https://arxiv.org/abs/1411.4028>`__ is a well-known algorithm for finding approximate
     solutions to combinatorial-optimization problems.
-    The QAOA implementation directly extends :class:`VQE` and inherits VQE's
-    general hybrid optimization structure.
-    However, unlike VQE, which can be configured with arbitrary variational forms,
-    QAOA uses its own fine-tuned variational form, which comprises :math:`p` parameterized global
+
+    The QAOA implementation directly extends :class:`VQE` and inherits VQE's optimization structure.
+    However, unlike VQE, which can be configured with arbitrary ansatzes,
+    QAOA uses its own fine-tuned ansatz, which comprises :math:`p` parameterized global
     :math:`x` rotations and :math:`p` different parameterizations of the problem hamiltonian.
     QAOA is thus principally configured  by the single integer parameter, *p*,
-    which dictates the depth of the variational form, and thus affects the approximation quality.
+    which dictates the depth of the ansatz, and thus affects the approximation quality.
 
     An optional array of :math:`2p` parameter values, as the *initial_point*, may be provided as the
     starting **beta** and **gamma** parameters (as identically named in the
-    original `QAOA paper <https://arxiv.org/abs/1411.4028>`__) for the QAOA variational form.
+    original `QAOA paper <https://arxiv.org/abs/1411.4028>`__) for the QAOA ansatz.
 
     An operator or a parameterized quantum circuit may optionally also be provided as a custom
     `mixer` Hamiltonian. This allows, as discussed in
@@ -82,7 +82,7 @@ class QAOA(VQE):
             gradient: An optional gradient operator respectively a gradient function used for
                       optimization.
             expectation: The Expectation converter for taking the average value of the
-                Observable over the var_form state function. When None (the default) an
+                Observable over the ansatz state function. When None (the default) an
                 :class:`~qiskit.opflow.expectations.ExpectationFactory` is used to select
                 an appropriate expectation based on the operator and backend. When using Aer
                 qasm_simulator backend, with paulis, it is however much faster to leverage custom
@@ -104,7 +104,7 @@ class QAOA(VQE):
                 Four parameter values are passed to the callback as follows during each evaluation
                 by the optimizer for its current set of parameters as it works towards the minimum.
                 These are: the evaluation count, the optimizer parameters for the
-                variational form, the evaluated mean and the evaluated standard deviation.
+                ansatz, the evaluated mean and the evaluated standard deviation.
             quantum_instance: Quantum Instance or Backend
         """
         validate_min('reps', reps, 1)
@@ -113,7 +113,7 @@ class QAOA(VQE):
         self._mixer = mixer
         self._initial_state = initial_state
 
-        super().__init__(var_form=None,
+        super().__init__(ansatz=None,
                          optimizer=optimizer,
                          initial_point=initial_point,
                          gradient=gradient,
@@ -125,11 +125,11 @@ class QAOA(VQE):
 
     def _check_operator(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
-        if operator.num_qubits != self.var_form.num_qubits:
-            self.var_form = QAOAAnsatz(operator,
-                                       self._reps,
-                                       initial_state=self._initial_state,
-                                       mixer_operator=self._mixer)
+        if operator.num_qubits != self.ansatz.num_qubits:
+            self.ansatz = QAOAAnsatz(operator,
+                                     self._reps,
+                                     initial_state=self._initial_state,
+                                     mixer_operator=self._mixer)
         operator = super()._check_operator(operator)
         return operator
 
