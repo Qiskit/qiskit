@@ -47,7 +47,7 @@ from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
-from qiskit.transpiler.passes import TimeUnitAnalysis
+from qiskit.transpiler.passes import TimeUnitConversion
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import Error
@@ -181,9 +181,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _opt = [Optimize1qGatesDecomposition(basis_gates), CXCancellation()]
 
-    # 10. Schedule the circuit only when scheduling_method is supplied
+    # 10. Unify all durations (either SI, or convert to dt if known)
+    # Schedule the circuit only when scheduling_method is supplied
+    _scheduling = [TimeUnitConversion(instruction_durations)]
     if scheduling_method:
-        _scheduling = [TimeUnitAnalysis(instruction_durations)]
         if scheduling_method in {'alap', 'as_late_as_possible'}:
             _scheduling += [ALAPSchedule(instruction_durations)]
         elif scheduling_method in {'asap', 'as_soon_as_possible'}:
@@ -208,7 +209,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm1.append(_unroll)
     pm1.append(_reset)
     pm1.append(_depth_check + _opt, do_while=_opt_control)
-    if scheduling_method:
-        pm1.append(_scheduling)
+    pm1.append(_scheduling)
 
     return pm1

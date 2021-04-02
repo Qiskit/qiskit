@@ -151,14 +151,14 @@ class PauliOp(PrimitiveOp):
 
         # Both Paulis
         if isinstance(other, PauliOp):
-            product = new_self.primitive * other.primitive
+            product = new_self.primitive.dot(other.primitive)
             return PrimitiveOp(product, coeff=new_self.coeff * other.coeff)
 
         # pylint: disable=cyclic-import
         from .pauli_sum_op import PauliSumOp
         if isinstance(other, PauliSumOp):
             return PauliSumOp(
-                SparsePauliOp(new_self.primitive) * other.primitive,
+                SparsePauliOp(new_self.primitive).dot(other.primitive),
                 coeff=new_self.coeff * other.coeff,
             )
 

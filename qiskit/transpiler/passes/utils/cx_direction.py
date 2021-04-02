@@ -17,7 +17,7 @@ from qiskit.transpiler.passes.utils.gate_direction import GateDirection
 
 
 class CXDirection(GateDirection):
-    """Deprecated: use GateDirection pass."""
+    """Deprecated: use :class:`qiskit.transpiler.passes.GateDirection` pass instead."""
 
     def __init__(self, coupling_map):
         super().__init__(coupling_map)

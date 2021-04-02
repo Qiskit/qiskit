@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    Fixes a bug where the "channels" section of the pulse backend configuration was not being dumped by ``to_dict``.
