@@ -103,6 +103,7 @@ Analysis
 .. autosummary::
    :toctree: ../stubs/
 
+   hellinger_distance
    hellinger_fidelity
 
 Synthesis
@@ -115,6 +116,7 @@ Synthesis
    TwoQubitBasisDecomposer
    two_qubit_cnot_decompose
    Quaternion
+   decompose_clifford
 """
 
 from .operators import (Operator, ScalarOp, Pauli, Clifford, SparsePauliOp)
@@ -139,6 +141,7 @@ from .random import (random_quantum_channel, random_unitary,
                      random_cnotdihedral)
 
 from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
-                        two_qubit_cnot_decompose, Quaternion)
+                        two_qubit_cnot_decompose, Quaternion,
+                        decompose_clifford)
 
-from .analysis import hellinger_fidelity
+from .analysis import hellinger_distance, hellinger_fidelity

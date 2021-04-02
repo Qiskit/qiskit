@@ -152,11 +152,12 @@ def _partition_circuit(circuit):
     # gates from subsequent layers shifted backward.
     # The idea being that all parameterized gates should have
     # no descendants within their layer
+    bit_indices = {bit: index for index, bit in enumerate(circuit.qubits)}
     for i, (layer, ledger) in enumerate(layers):
         op_node = layer.op_nodes()[0]
         is_param = op_node.op.is_parameterized()
         qargs = op_node.qargs
-        indices = [qarg.index for qarg in qargs]
+        indices = [bit_indices[qarg] for qarg in qargs]
         if is_param:
             for index in indices:
                 ledger[index] = True
@@ -187,7 +188,7 @@ def _partition_circuit(circuit):
             for next_node in next_layer.op_nodes():
                 is_param = next_node.op.is_parameterized()
                 qargs = next_node.qargs
-                indices = [qarg.index for qarg in qargs]
+                indices = [bit_indices[qarg] for qarg in qargs]
 
                 # If the next_node can be moved back a layer without
                 # without becoming the descendant of a parameterized gate,
@@ -218,6 +219,7 @@ def _get_generators(params, circuit):
 
     generators = {}
     num_qubits = dag.num_qubits()
+    bit_indices = {bit: index for index, bit in enumerate(circuit.qubits)}
 
     for layer in layers:
         instr = layer['graph'].op_nodes()[0].op
@@ -244,7 +246,7 @@ def _get_generators(params, circuit):
 
                 # get all qubit indices in this layer where the param parameterizes
                 # an operation.
-                indices = [[q.index for q in qreg] for qreg in layer['partition']]
+                indices = [[bit_indices[q] for q in qreg] for qreg in layer['partition']]
                 indices = [item for sublist in indices for item in sublist]
 
                 if len(indices) > 1:
