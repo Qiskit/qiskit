@@ -1,7 +1,0 @@
----
-upgrade:
-  - |
-    When transpiling a circuit with :meth:`~qiskit.circuit.QuantumCircuit.delay`
-    instructions, the units will be converted to dt if the value of dt
-    (sample time) is known to the transpile (either via explicit dt arg or via
-    the backend configuration info).

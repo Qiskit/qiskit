@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    The parameter `callback` in :class:`~qiskit.transpiler.PassManager` class contruction is being removed.
-    The deprecation warning was released in 0.13 (April 2020) and now it is being fully dropped. 

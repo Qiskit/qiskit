@@ -518,11 +518,11 @@ class TestCNOTDihedral(unittest.TestCase):
                     circ = QuantumCircuit(num_qubits_1 + num_qubits_2)
                     qargs = list(range(num_qubits_1))
                     for instr, qregs, _ in circ1.definition:
-                        new_qubits = [qargs[tup.index] for tup in qregs]
+                        new_qubits = [qargs[circ1.definition.qubits.index(tup)] for tup in qregs]
                         circ.append(instr, new_qubits)
                     qargs = list(range(num_qubits_1, num_qubits_1 + num_qubits_2))
                     for instr, qregs, _ in circ2.definition:
-                        new_qubits = [qargs[tup.index] for tup in qregs]
+                        new_qubits = [qargs[circ2.definition.qubits.index(tup)] for tup in qregs]
                         circ.append(instr, new_qubits)
                     target = CNOTDihedral(circ)
 
@@ -544,11 +544,11 @@ class TestCNOTDihedral(unittest.TestCase):
                     circ = QuantumCircuit(num_qubits_1 + num_qubits_2)
                     qargs = list(range(num_qubits_1))
                     for instr, qregs, _ in circ1.definition:
-                        new_qubits = [qargs[tup.index] for tup in qregs]
+                        new_qubits = [qargs[circ1.definition.qubits.index(tup)] for tup in qregs]
                         circ.append(instr, new_qubits)
                     qargs = list(range(num_qubits_1, num_qubits_1 + num_qubits_2))
                     for instr, qregs, _ in circ2.definition:
-                        new_qubits = [qargs[tup.index] for tup in qregs]
+                        new_qubits = [qargs[circ2.definition.qubits.index(tup)] for tup in qregs]
                         circ.append(instr, new_qubits)
                     target = CNOTDihedral(circ)
 
