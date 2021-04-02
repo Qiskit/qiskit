@@ -1,5 +1,9 @@
 ---
 fixes:
   - |
-    A bug was fixed where preset passmanagers of level0 and level1 did
-    not produce circuits in the requested basis in some cases.
+    Fixed an issue with the preset pass managers
+    :class:`~qiskit.transpiler.preset_passmanagers.level_1_pass_manager` and
+    :class:`~qiskit.transpiler.preset_passmanagers.level_1_pass_manager`
+    (which corresponds to ``optimization_level`` 0 and 1 for
+    :func:`~qiskit.compiler.transpile`) where in some cases they would
+    produce circuits not in the requested basis.
