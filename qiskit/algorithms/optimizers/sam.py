@@ -38,7 +38,7 @@ class SAM(Optimizer):
 
     def __init__(self,
                  maxiter: int = 10000,
-                 eta: float = 0.01,
+                 eta: float = 0.1,
                  eps: float = 1e-10,
                  tol: float = 1e-6,
                  param_tol: float = 1e-6,
@@ -94,6 +94,16 @@ class SAM(Optimizer):
             A tuple of (optimal parameters, optimal value, number of iterations).
         """
 
+        def rast_grad(x):
+            return np.array([2 * x_i + 2 * np.pi * x_i * np.cos(2 * np.pi * x_i) for x_i in x])
+
+        def bukin_grad(x):
+            nom = np.sign(x[1] - 0.01 * x[0] * x[0]) * 100
+            den = 2 * np.sqrt(abs(x[1] - 0.01 * x[0] * x[0]))
+            y = nom / den
+            x = -0.02 * x[0] * y - 0.01 * np.sign(x[0] + 10)
+            return np.array([x, y])
+
         # exact gradient of the rosenbrock function
         def gradient(x):
             x = np.asarray(x)
@@ -122,11 +132,13 @@ class SAM(Optimizer):
         params = params_new = initial_point
         for it in range(self._maxiter):
 
-            grad = gradient(params)  # dL_s(w)/dw
+            ob = objective_function(params)
+
+            grad = bukin_grad(params)  # dL_s(w)/dw
             norm_grad = np.linalg.norm(grad)  # ||dL_s(w)||
             eps = self._rho * grad / norm_grad  # eq. 2  rho * dL_s(w)/dw / ||dL_s(w)/dw||
 
-            grad_sam = gradient(params + eps)  # eq. 3  dL^SAM_s(w+eps)/d(w+eps)
+            grad_sam = bukin_grad(params + eps)  # eq. 3  dL^SAM_s(w+eps)/d(w+eps)
 
             if self._second_order:  # include second order of Taylor expansion
                 hes = hess(params)
