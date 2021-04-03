@@ -223,15 +223,12 @@ class AstInterpreter:
     def _process_u(self, node):
         """Process a U gate node."""
         args = self._process_node(node.arguments)
-        id = self._process_bit_id(node.children[1])
+        ids = self._process_bit_id(node.children[1])
 
-        for idx in range(len(id)):
+        for idx, id_ in enumerate(ids):
             u_gate = UGate(*[float(arg.value) for arg in args])
             u_gate.condition = self.condition
-            if len(id) > 1:
-                self.dag.apply_operation_back(u_gate, [id[idx]], [])
-            else:
-                self.dag.apply_operation_back(u_gate, [id[0]], [])
+            self.dag.apply_operation_back(u_gate, [id_], [])
 
     def _process_gate(self, node, opaque=False):
         """Process a gate node.
