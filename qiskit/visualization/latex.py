@@ -39,7 +39,7 @@ class QCircuitImage:
 
     def __init__(self, qubits, clbits, ops, scale, reverse_bits=False,
                  plot_barriers=True, layout=None, initial_state=False,
-                 cregbundle=False, global_phase=None):
+                 cregbundle=False, global_phase=None, qregs=None, cregs=None):
         """QCircuitImage initializer.
 
         Args:
@@ -47,7 +47,7 @@ class QCircuitImage:
             clbits (list[Clbit]): list of clbits
             ops (list[list[DAGNode]]): list of circuit instructions, grouped by layer
             scale (float): image scaling
-            reverse_bits: when True, reverse the bit ordering of the registers
+            reverse_bits (bool): when True, reverse the bit ordering of the registers
             plot_barriers (bool): Enable/disable drawing barriers in the output
                circuit. Defaults to True.
             layout (Layout or None): If present, the layout information will be
@@ -55,6 +55,8 @@ class QCircuitImage:
             initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
             cregbundle (bool): Optional. If set True bundle classical registers. Default: `False`.
             global_phase (float): Optional, the global phase for the circuit.
+            qregs (list): List qregs present in the circuit.
+            cregs (list): List of cregs present in the circuit.
         Raises:
             ImportError: If pylatexenc is not installed
         """
@@ -70,8 +72,9 @@ class QCircuitImage:
         # Map of cregs to sizes
         self.cregs = {}
 
-        # List of qregs and cregs in order of appearance in code and image
-        self.ordered_regs = []
+        # List of qubits and cbits in order of appearance in code and image
+        # May also include ClassicalRegisters if cregbundle=True
+        self.ordered_bits = []
 
         # Map from registers to the list they appear in the image
         self.img_regs = {}
@@ -107,10 +110,20 @@ class QCircuitImage:
 
         #################################
         self.qubit_list = qubits
-        self.ordered_regs = qubits + clbits
-        self.cregs, self.cregs_bits = self._get_register_specs(clbits)
+        self.ordered_bits = qubits + clbits
+        self.cregs = {reg: reg.size for reg in cregs}
+
+        self.bit_locations = {
+            bit: {'register': register, 'index': index}
+            for register in cregs + qregs
+            for index, bit in enumerate(register)}
+        for index, bit in list(enumerate(qubits)) + list(enumerate(clbits)):
+            if bit not in self.bit_locations:
+                self.bit_locations[bit] = {'register': None, 'index': index}
+
+        self.cregs_bits = [self.bit_locations[bit]['register'] for bit in clbits]
         self.img_regs = {bit: ind for ind, bit in
-                         enumerate(self.ordered_regs)}
+                         enumerate(self.ordered_bits)}
         if cregbundle:
             self.img_width = len(qubits) + len(self.cregs)
         else:
@@ -182,38 +195,52 @@ class QCircuitImage:
         else:
             self.wire_separation = 1.0
         self._latex = [
-            ["\\cw" if isinstance(self.ordered_regs[j], Clbit)
+            ["\\cw" if isinstance(self.ordered_bits[j], Clbit)
              else "\\qw" for _ in range(self.img_depth + 1)]
             for j in range(self.img_width)]
         self._latex.append([" "] * (self.img_depth + 1))
         if self.cregbundle:
             offset = 0
         for i in range(self.img_width):
-            if isinstance(self.ordered_regs[i], Clbit):
+            if isinstance(self.ordered_bits[i], Clbit):
                 if self.cregbundle:
+                    reg = self.bit_locations[self.ordered_bits[i + offset]]['register']
                     self._latex[i][0] = \
-                        "\\lstick{" + self.ordered_regs[i + offset].register.name + ":"
-                    clbitsize = self.cregs[self.ordered_regs[i + offset].register]
+                        "\\lstick{" + reg.name + ":"
+                    clbitsize = self.cregs[reg]
                     self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
                     offset += clbitsize - 1
                 else:
-                    self._latex[i][0] = "\\lstick{" + self.ordered_regs[i].register.name + \
-                                            "_{" + str(self.ordered_regs[i].index) + "}:"
+                    self._latex[i][0] = (
+                        "\\lstick{"
+                        + self.bit_locations[self.ordered_bits[i]]['register'].name
+                        + "_{" + str(self.bit_locations[self.ordered_bits[i]]['index']) + "}:"
+                    )
                 if self.initial_state:
                     self._latex[i][0] += "0"
                 self._latex[i][0] += "}"
             else:
                 if self.layout is None:
                     label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
-                        self.ordered_regs[i].register.name, self.ordered_regs[i].index)
+                        self.bit_locations[self.ordered_bits[i]]['register'].name,
+                        self.bit_locations[self.ordered_bits[i]]['index'])
                 else:
-                    if self.layout[self.ordered_regs[i].index]:
-                        label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
-                            self.layout[self.ordered_regs[i].index].register.name,
-                            self.layout[self.ordered_regs[i].index].index,
-                            self.ordered_regs[i].index)
+                    bit_location = self.bit_locations[self.ordered_bits[i]]
+                    if bit_location and self.layout[bit_location['index']]:
+                        virt_bit = self.layout[bit_location['index']]
+                        try:
+                            virt_reg = next(reg for reg in self.layout.get_registers()
+                                            if virt_bit in reg)
+                            label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
+                                virt_reg.name,
+                                virt_reg[:].index(virt_bit),
+                                bit_location['index'])
+                        except StopIteration:
+                            label = "\\lstick{{ {{{}}} : ".format(
+                                bit_location['index'])
                     else:
-                        label = "\\lstick{{ {{{}}} : ".format(self.ordered_regs[i].index)
+                        label = "\\lstick{{ {{{}}} : ".format(
+                            bit_location['index'])
                 if self.initial_state:
                     label += "\\ket{{0}}"
                 label += " }"
@@ -279,9 +306,9 @@ class QCircuitImage:
         sum_column_widths = sum(1 + v / 3 for v in max_column_widths)
 
         max_reg_name = 3
-        for reg in self.ordered_regs:
+        for reg in self.ordered_bits:
             max_reg_name = max(max_reg_name,
-                               len(reg.register.name))
+                               len(self.bit_locations[reg]['register'].name))
         sum_column_widths += 5 + max_reg_name / 3
 
         # could be a fraction so ceil
@@ -596,15 +623,6 @@ class QCircuitImage:
                 control = "\\control" if if_value[i] == '1' else "\\controlo"
                 self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
                 gap = 1
-
-    def _get_register_specs(self, bits):
-        """Get the number and size of unique registers from bits list."""
-        regs = {}
-        regs_bits = []
-        for bit in bits:
-            regs[bit.register] = bit.register.size
-            regs_bits.append(bit.register)
-        return regs, regs_bits
 
     def _truncate_float(self, matchobj, ndigits=4):
         """Truncate long floats."""

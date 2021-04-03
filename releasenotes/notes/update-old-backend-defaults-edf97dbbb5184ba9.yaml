@@ -1,5 +1,0 @@
----
-other:
-  - |
-    Backend Default data of mock backends are refleshed to reflect recent changes.
-    All backend mocks now support parametric pulse based instruction schedule map.

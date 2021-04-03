@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    The ``latex`` output method for the
+    :func:`qiskit.visualization.circuit_drawer` function and the
+    :meth:`~qiskit.circuit.QuantumCircuit.draw` method now will use a
+    user defined label on gates in the output visualization. For example::
+
+      import math
+
+      from qiskit.circuit import QuantumCircuit
+
+      qc = QuantumCircuit(2)
+      qc.h(0)
+      qc.rx(math.pi/2, 0, label='My Special Rotation')
+    
+      qc.draw(output='latex')
+fixes:
+  - |
+    In a number of cases, the ``latex`` output method for the 
+    :func:`qiskit.visualization.circuit_drawer` function and the
+    :meth:`~qiskit.circuit.QuantumCircuit.draw` method did not display the
+    gate name correctly, and in other cases, did not include gate parameters
+    where they should be. Now the gate names will be displayed the same way
+    as they are displayed with the ``mpl`` output method, and parameters will
+    display for all the gates that have them. In addition, some of the gates
+    did not display in the correct form, and these have been fixed. Fixes
+    `#5605 <https://github.com/Qiskit/qiskit-terra/issues/5605>`__,
+    `#4938 <https://github.com/Qiskit/qiskit-terra/issues/4938>`__, and
+    `#3765 <https://github.com/Qiskit/qiskit-terra/issues/3765>`__
+
