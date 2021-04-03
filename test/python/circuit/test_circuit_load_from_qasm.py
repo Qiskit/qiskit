@@ -49,10 +49,10 @@ class LoadFromQasmTest(QiskitTestCase):
         q_circuit_2.measure(qr_b, cr_d)
         self.assertEqual(q_circuit, q_circuit_2)
 
-    def test_loading_all_qelib1_gates(self):
-        """Test setting up a circuit with all gates defined in qiskit/qasm/libs/qelib1.inc."""
+    def test_loading_all_standard_gates(self):
+        """Test setting up circuit with all gates defined in qiskit/qasm/libs/standard_gates.inc."""
         from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate, UGate
-        all_gates_qasm = self._get_resource_path('all_gates.qasm', Path.QASMS)
+        all_gates_qasm = self._get_resource_path('all_standard_gates.qasm', Path.QASMS)
         qasm_circuit = QuantumCircuit.from_qasm_file(all_gates_qasm)
 
         ref_circuit = QuantumCircuit(3, 3)
@@ -103,6 +103,47 @@ class LoadFromQasmTest(QiskitTestCase):
         ref_circuit.rxx(0.2, 0, 1)
         ref_circuit.rzz(0.2, 0, 1)
         ref_circuit.measure([0, 1, 2], [0, 1, 2])
+
+        self.assertEqual(qasm_circuit, ref_circuit)
+
+    def test_loading_all_qelib1_gates(self):
+        """Test setting up circuit with all gates defined in qiskit/qasm/libs/qelib1.inc."""
+        from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate, UGate
+        all_gates_qasm = self._get_resource_path('all_qelib1_gates.qasm', Path.QASMS)
+        qasm_circuit = QuantumCircuit.from_qasm_file(all_gates_qasm)
+
+        ref_circuit = QuantumCircuit(3, 3)
+
+        # abstract gates (legacy)
+        ref_circuit.append(UGate(0.2, 0.1, 0.6), [0])
+        ref_circuit.cx(0, 1)
+        # the hardware primitives
+        ref_circuit.append(U3Gate(0.2, 0.1, 0.6), [0])
+        ref_circuit.append(U2Gate(0.1, 0.6), [0])
+        ref_circuit.append(U1Gate(0.6), [0])
+        ref_circuit.id(0)
+        ref_circuit.cx(0, 1)
+        # the standard single qubit gates)
+        ref_circuit.x(0)
+        ref_circuit.y(0)
+        ref_circuit.z(0)
+        ref_circuit.h(0)
+        ref_circuit.s(0)
+        ref_circuit.sdg(0)
+        ref_circuit.t(0)
+        ref_circuit.tdg(0)
+        # the standard rotations
+        ref_circuit.rx(0.1, 0)
+        ref_circuit.ry(0.1, 0)
+        ref_circuit.rz(0.1, 0)
+        # the standard user-defined gates
+        ref_circuit.cz(0, 1)
+        ref_circuit.cy(0, 1)
+        ref_circuit.ch(0, 1)
+        ref_circuit.ccx(0, 1, 2)
+        ref_circuit.crz(0.6, 0, 1)
+        ref_circuit.append(CU1Gate(0.1), [0, 1])
+        ref_circuit.append(CU3Gate(0.1, 0.2, 0.3), [0, 1])
 
         self.assertEqual(qasm_circuit, ref_circuit)
 
@@ -339,7 +380,7 @@ class LoadFromQasmTest(QiskitTestCase):
         """
         qasm_string = """OPENQASM 2.0;
                          include "qelib1.inc";
-                         gate my_gate(phi,lambda) q {u(1.5707963267948966,phi,lambda) q;}
+                         gate my_gate(phi,lambda) q {u3(1.5707963267948966,phi,lambda) q;}
                          qreg qr[1];
                          my_gate(pi, pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
@@ -363,7 +404,7 @@ class LoadFromQasmTest(QiskitTestCase):
         """
         qasm_string = """OPENQASM 2.0;
                          include "qelib1.inc";
-                         gate my_gate(phi,lambda) q {u(pi/2,phi,lambda) q;} // biop with pi
+                         gate my_gate(phi,lambda) q {u3(pi/2,phi,lambda) q;} // biop with pi
                          qreg qr[1];
                          my_gate(pi, pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
@@ -414,7 +455,7 @@ class LoadFromQasmTest(QiskitTestCase):
         qasm_string = """OPENQASM 2.0;
                          include "qelib1.inc";
                          gate my_gate(phi,lambda) q
-                            {u(asin(cos(phi)/2), phi+pi, lambda/2) q;}  // build func
+                            {u3(asin(cos(phi)/2), phi+pi, lambda/2) q;}  // build func
                          qreg qr[1];
                          my_gate(pi, pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
@@ -431,7 +472,7 @@ class LoadFromQasmTest(QiskitTestCase):
         qasm_string = """OPENQASM 2.0;
                          include "qelib1.inc";
                          gate my_other_gate(phi,lambda) q
-                           {u(asin(cos(phi)/2), phi+pi, lambda/2) q;}
+                           {u3(asin(cos(phi)/2), phi+pi, lambda/2) q;}
                          gate my_gate(phi) r
                            {my_other_gate(phi, phi+pi) r;}
                          qreg qr[1];
