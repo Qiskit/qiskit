@@ -199,7 +199,23 @@ class AstInterpreter:
                 for node_element in node.bitlist.children]
 
         if name in self.gates:
-            self._arguments(name, bits, args)
+            gargs = self.gates[name]["args"]
+            gbits = self.gates[name]["bits"]
+
+            maxidx = max(map(len, bits))
+            for idx in range(maxidx):
+                self.arg_stack.append({gargs[j]: args[j]
+                                       for j in range(len(gargs))})
+                # Only index into register arguments.
+                element = [idx * x for x in
+                           [len(bits[j]) > 1 for j in range(len(bits))]]
+                self.bit_stack.append({gbits[j]: bits[j][element[j]]
+                                       for j in range(len(gbits))})
+                self._create_dag_op(name,
+                                    [self.arg_stack[-1][s].sym() for s in gargs],
+                                    [self.bit_stack[-1][s] for s in gbits])
+                self.arg_stack.pop()
+                self.bit_stack.pop()
         else:
             raise QiskitError("internal error undefined gate:",
                               "line=%s" % node.line, "file=%s" % node.file)
@@ -216,25 +232,6 @@ class AstInterpreter:
                 self.dag.apply_operation_back(u_gate, [id[idx]], [])
             else:
                 self.dag.apply_operation_back(u_gate, [id[0]], [])
-
-    def _arguments(self, name, bits, args):
-        gargs = self.gates[name]["args"]
-        gbits = self.gates[name]["bits"]
-
-        maxidx = max(map(len, bits))
-        for idx in range(maxidx):
-            self.arg_stack.append({gargs[j]: args[j]
-                                   for j in range(len(gargs))})
-            # Only index into register arguments.
-            element = [idx * x for x in
-                       [len(bits[j]) > 1 for j in range(len(bits))]]
-            self.bit_stack.append({gbits[j]: bits[j][element[j]]
-                                   for j in range(len(gbits))})
-            self._create_dag_op(name,
-                                [self.arg_stack[-1][s].sym() for s in gargs],
-                                [self.bit_stack[-1][s] for s in gbits])
-            self.arg_stack.pop()
-            self.bit_stack.pop()
 
     def _process_gate(self, node, opaque=False):
         """Process a gate node.
