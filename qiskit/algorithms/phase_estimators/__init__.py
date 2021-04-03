@@ -18,7 +18,7 @@ from .phase_estimation_result import PhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
 from .hamiltonian_phase_estimation import HamiltonianPhaseEstimation
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
-from .iphase_estimation import IPhaseEstimation
+from .ipe import IterativePhaseEstimation
 
 __all__ = [
     'PhaseEstimator',
@@ -27,5 +27,5 @@ __all__ = [
     'PhaseEstimationScale',
     'HamiltonianPhaseEstimation',
     'HamiltonianPhaseEstimationResult',
-    'IPhaseEstimation'
+    'IterativePhaseEstimation'
 ]

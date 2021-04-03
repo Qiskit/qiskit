@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,12 +14,12 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit.algorithms.phase_estimators import IPhaseEstimation
+from qiskit.algorithms.phase_estimators import IterativePhaseEstimation
 import qiskit
 from qiskit.opflow import (H, X, Z)
 
 
-class TestIPhaseEstimation(QiskitAlgorithmsTestCase):
+class TestIterativePhaseEstimation(QiskitAlgorithmsTestCase):
     """Evolution tests."""
 
     # pylint: disable=invalid-name
@@ -29,9 +29,8 @@ class TestIPhaseEstimation(QiskitAlgorithmsTestCase):
         `state_preparation`. Return the estimated phase as a value in :math:`[0,1)`.
         """
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
-        p_est = IPhaseEstimation(quantum_instance=qi)
-        result = p_est.estimate(num_iterations=n_eval_qubits,
-                                unitary=unitary_circuit, state_preparation=state_preparation)
+        p_est = IterativePhaseEstimation(num_iterations=n_eval_qubits, quantum_instance=qi)
+        result = p_est.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
         phase = result.phase
         return phase
 
@@ -65,9 +64,8 @@ class TestIPhaseEstimation(QiskitAlgorithmsTestCase):
         state_preparation = X.to_circuit()  # prepare |1>
         backend = qiskit.BasicAer.get_backend('statevector_simulator')
         num_iterations = 6
-        pe = IPhaseEstimation(quantum_instance=backend)
-        result = pe.estimate(unitary=unitary_circuit, state_preparation=state_preparation,
-                             num_iterations=num_iterations)
+        pe = IterativePhaseEstimation(num_iterations=num_iterations, quantum_instance=backend)
+        result = pe.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
         phase = result.phase
         self.assertEqual(phase, 0.5)
 

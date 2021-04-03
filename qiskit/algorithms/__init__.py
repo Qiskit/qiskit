@@ -142,7 +142,7 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    PhaseEstimationScale
    PhaseEstimation
    PhaseEstimationResult
-   IPhaseEstimation
+   IterativePhaseEstimation
 
 Exceptions
 ==========
@@ -172,7 +172,7 @@ from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
                                     MinimumEigensolver, MinimumEigensolverResult)
 from .phase_estimators import (HamiltonianPhaseEstimation, HamiltonianPhaseEstimationResult,
                                PhaseEstimationScale, PhaseEstimation, PhaseEstimationResult,
-                               IPhaseEstimation)
+                               IterativePhaseEstimation)
 from .exceptions import AlgorithmError
 
 __all__ = [
@@ -213,6 +213,6 @@ __all__ = [
     'PhaseEstimationScale',
     'PhaseEstimation',
     'PhaseEstimationResult',
-    'IPhaseEstimation',
+    'IterativePhaseEstimation',
     'AlgorithmError',
 ]

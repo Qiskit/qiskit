@@ -24,7 +24,7 @@ from qiskit.utils import QuantumInstance
 from qiskit.algorithms.algorithm_result import AlgorithmResult
 
 
-class IPhaseEstimation:
+class IterativePhaseEstimation:
     """Run the Iterative quantum phase estimation (QPE) algorithm.
 
     Given a unitary circuit and a circuit preparing an eigenstate, return the phase of the
@@ -35,17 +35,21 @@ class IPhaseEstimation:
     """
 
     def __init__(self,
+                 num_iterations: int,
                  quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
 
         """Args:
+            num_iterations: The number of iterations (rounds) of the phase estimation to run.
             quantum_instance: The quantum instance on which the circuit will be run.
         """
         if isinstance(quantum_instance, (Backend, BaseBackend)):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
+        self._num_iterations = num_iterations
 
     def construct_circuit(self,
-                          problem: dict,
+                          unitary,
+                          state_preparation,
                           k: int,
                           omega: float = 0,
                           measurement: bool = False) -> QuantumCircuit:
@@ -54,8 +58,12 @@ class IPhaseEstimation:
         For details of parameters, see Fig. 2 in https://arxiv.org/pdf/quant-ph/0610214.pdf.
 
         Args:
-            problem: dictionary specifying the problem, with keys 'unitary', 'state_preparation',
-                'num_iterations'.
+            unitary: The circuit representing the unitary operator whose eigenvalue (via phase)
+                     will be measured.
+            state_preparation: The circuit that prepares the state whose eigenphase will be
+                     measured.  If this parameter is omitted, no preparation circuit
+                     will be run and input state will be the all-zero state in the
+                     computational basis.
             k: the iteration idx.
             omega: the feedback angle.
             measurement: Boolean flag to indicate if measurement should
@@ -64,27 +72,27 @@ class IPhaseEstimation:
         Returns:
             QuantumCircuit: the quantum circuit per iteration
         """
-        if problem['unitary'] is None:
+        if unitary is None:
             return None
 
-        k = problem['num_iterations'] if k is None else k
+        k = self._num_iterations if k is None else k
         # The auxiliary (phase measurement) qubit
         phase_register = QuantumRegister(1, name='a')
-        eigenstate_register = QuantumRegister(problem['unitary'].num_qubits, name='q')
+        eigenstate_register = QuantumRegister(unitary.num_qubits, name='q')
         qc = QuantumCircuit(eigenstate_register)
         qc.add_register(phase_register)
-        if isinstance(problem['state_preparation'], QuantumCircuit):
-            qc.append(problem['state_preparation'], eigenstate_register)
-        elif problem['state_preparation'] is not None:
-            qc += problem['state_preparation'].construct_circuit('circuit', eigenstate_register)
+        if isinstance(state_preparation, QuantumCircuit):
+            qc.append(state_preparation, eigenstate_register)
+        elif state_preparation is not None:
+            qc += state_preparation.construct_circuit('circuit', eigenstate_register)
         # hadamard on phase_register[0]
         qc.h(phase_register[0])
         # controlled-U
         # TODO: We may want to allow flexibility in how the power is computed
         # For example, it may be desirable to compute the power via Trotterization, if
         # we are doing Trotterization anyway.
-        unitary_power = problem['unitary'].power(2 ** (k - 1)).control()
-        qc.append(unitary_power, list(range(1, problem['unitary'].num_qubits + 1)) + [0])
+        unitary_power = unitary.power(2 ** (k - 1)).control()
+        qc.append(unitary_power, list(range(1, unitary.num_qubits + 1)) + [0])
         qc.p(omega, phase_register[0])
         # hadamard on phase_register[0]
         qc.h(phase_register[0])
@@ -94,37 +102,34 @@ class IPhaseEstimation:
             qc.measure(phase_register, c)
         return qc
 
-    def _estimate_phase_iteratively(self, problem):
+    def _estimate_phase_iteratively(self, unitary, state_preparation):
         """
         Main loop of iterative phase estimation.
         """
         omega_coef = 0
         # k runs from the number of iterations back to 1
-        for k in range(problem['num_iterations'], 0, -1):
+        for k in range(self._num_iterations, 0, -1):
             omega_coef /= 2
             if self._quantum_instance.is_statevector:
-                qc = self.construct_circuit(problem, k, -2 * numpy.pi * omega_coef,
-                                            measurement=False)
+                qc = self.construct_circuit(unitary, state_preparation, k,
+                                            -2 * numpy.pi * omega_coef, measurement=False)
                 result = self._quantum_instance.execute(qc)
                 complete_state_vec = result.get_statevector(qc)
                 ancilla_density_mat = qiskit.quantum_info.partial_trace(
                     complete_state_vec,
-                    range(problem['unitary'].num_qubits)
+                    range(unitary.num_qubits)
                 )
                 ancilla_density_mat_diag = numpy.diag(ancilla_density_mat)
                 max_amplitude = max(ancilla_density_mat_diag.min(),
                                     ancilla_density_mat_diag.max(), key=abs)
                 x = numpy.where(ancilla_density_mat_diag == max_amplitude)[0][0]
             else:
-                qc = self.construct_circuit(problem, k, -2 * numpy.pi * omega_coef,
-                                            measurement=True)
+                qc = self.construct_circuit(unitary, state_preparation, k,
+                                            -2 * numpy.pi * omega_coef, measurement=True)
                 measurements = self._quantum_instance.execute(qc).get_counts(qc)
 
                 if '0' not in measurements:
-                    if '1' in measurements:
-                        x = 1
-                    else:
-                        raise RuntimeError('Unexpected measurement {}.'.format(measurements))
+                    x = 1
                 else:
                     if '1' not in measurements:
                         x = 0
@@ -134,15 +139,13 @@ class IPhaseEstimation:
         return omega_coef
 
     def estimate(self,
-                 num_iterations: int,
                  unitary: QuantumCircuit,
                  state_preparation: QuantumCircuit
-                 ) -> 'IPhaseEstimationResult':
+                 ) -> 'IterativePhaseEstimationResult':
         """
         Estimate the eigenphase of the input unitary and initial-state pair.
 
         Args:
-            num_iterations: The number of iterations (rounds) of the phase estimation to run.
             unitary: The circuit representing the unitary operator whose eigenvalue (via phase)
                      will be measured.
             state_preparation: The circuit that prepares the state whose eigenphase will be
@@ -151,18 +154,15 @@ class IPhaseEstimation:
                      computational basis.
 
         Returns:
-            Estimated phase in an IPhaseEstimationResult object.
+            Estimated phase in an IterativePhaseEstimationResult object.
         """
 
-        problem = {'num_iterations': num_iterations,
-                   'unitary': unitary,
-                   'state_preparation': state_preparation}
-        phase = self._estimate_phase_iteratively(problem)
+        phase = self._estimate_phase_iteratively(unitary, state_preparation)
 
-        return IPhaseEstimationResult(num_iterations, phase)
+        return IterativePhaseEstimationResult(self._num_iterations, phase)
 
 
-class IPhaseEstimationResult(AlgorithmResult):
+class IterativePhaseEstimationResult(AlgorithmResult):
     """Phase Estimation Result."""
 
     def __init__(self,
