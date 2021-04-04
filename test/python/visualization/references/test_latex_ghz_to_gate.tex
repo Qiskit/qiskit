@@ -17,9 +17,9 @@
 \begin{equation*}
     \Qcircuit @C=1.0em @R=0.2em @!R {
 	 	\lstick{ {q}_{0} :  } & \ctrl{1} & \qw & \qw\\
-	 	\lstick{ {q}_{1} :  } & \multigate{2}{\mathrm{Ctrl\mbox{-}GHZ\,Circuit}} & \qw & \qw\\
-	 	\lstick{ {q}_{2} :  } & \ghost{\mathrm{Ctrl\mbox{-}GHZ\,Circuit}} & \qw & \qw\\
-	 	\lstick{ {q}_{3} :  } & \ghost{\mathrm{Ctrl\mbox{-}GHZ\,Circuit}} & \qw & \qw\\
+	 	\lstick{ {q}_{1} :  } & \multigate{2}{\mathrm{Ctrl\mbox{-}GHZ\,Circuit}}_<<<{0} & \qw & \qw\\
+	 	\lstick{ {q}_{2} :  } & \ghost{\mathrm{Ctrl\mbox{-}GHZ\,Circuit}}_<<<{2} & \qw & \qw\\
+	 	\lstick{ {q}_{3} :  } & \ghost{\mathrm{Ctrl\mbox{-}GHZ\,Circuit}}_<<<{1} & \qw & \qw\\
 	 	\lstick{ {q}_{4} :  } & \ctrlo{-1} & \qw & \qw\\
 	 }
 \end{equation*}
