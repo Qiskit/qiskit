@@ -225,7 +225,7 @@ class AstInterpreter:
         args = self._process_node(node.arguments)
         ids = self._process_bit_id(node.children[1])
 
-        for idx, id_ in enumerate(ids):
+        for id_ in ids:
             u_gate = UGate(*[float(arg.value) for arg in args])
             u_gate.condition = self.condition
             self.dag.apply_operation_back(u_gate, [id_], [])
