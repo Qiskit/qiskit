@@ -187,7 +187,7 @@ New Features
 
 - The :class:`~qiskit.quantum_info.Statevector` and
   :class:`~qiskit.quantum_info.DensityMatrix` classes now have
-  :meth:`~qiskit.quantum_info.StateVector.draw` methods which allow objects
+  :meth:`~qiskit.quantum_info.Statevector.draw` methods which allow objects
   to be drawn as either text matrices, IPython Latex objects, Latex source,
   Q-spheres, Bloch spheres and Hinton plots. By default the output type
   is the equivalent output from ``__repr__`` but this default can be changed
@@ -488,7 +488,7 @@ New Features
 - Adds a ``&`` (``__and__``) binary operator to ``BaseOperator`` subclasses
   (eg :class:`qiskit.quantum_info.Operator`) in the
   :mod:`qiskit.quantum_info` module. This is shorthand to call the
-  classes :meth:`~qiskit.quantum_info.compose` method
+  classes :meth:`~qiskit.quantum_info.Operator.compose` method
   (ie ``A & B == A.compose(B)``).
 
   For example:
@@ -518,7 +518,7 @@ New Features
   :mod:`qiskit.circuit.library` module along with a corresponding method,
   :meth:`~qiskit.circuit.QuantumCircuit.ecr` for the
   :class:`~qiskit.circuit.QuantumCircuit` class. The ECR gate is two
-  :math:`CR(\frac{π,4})` pulses with an
+  :math:`CR(\frac{π}{4})` pulses with an
   :class:`~qiskit.circuit.library.XGate` between them for the echo. This gate
   is locally equivalent to a :class:`~qiskit.circuit.library.CXGate` (can
   convert to a CNOT with local pre- or post-rotation). It is the native gate
@@ -532,11 +532,12 @@ New Features
   to experiment with circuit approximations. The concrete interpretation
   of this number is left to each pass, which may use it to perform
   some approximate version of the pass. Specific examples include
-  unitary synthesis or translators to discrete gate sets.
-  If a pass does not support this option, it implies exact transformation.
+  the :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass or the
+  or translators to discrete gate sets. If a pass does not support this
+  option, it implies exact transformation.
 
-- Two new transpiler passess, :class:`~qiskit.transpiler.GateDirection` and
-  class:`qiskit.transpiler.CheckGateDirection`, were added to the
+- Two new transpiler passess, :class:`~qiskit.transpiler.passes.GateDirection`
+  and :class:`qiskit.transpiler.passes.CheckGateDirection`, were added to the
   :mod:`qiskit.transpiler.passes` module. These new passes are inteded to
   be more general replacements for
   :class:`~qiskit.transpiler.passes.CXDirection` and
@@ -562,7 +563,7 @@ New Features
   been added to the :mod:`qiskit.quantum_info` module.
 
 - The :func:`~qiskit.quantum_info.decompose_clifford` function in the
-  :mod:`~qiskit.quantum_info` module (which gets used internally by the
+  :mod:`qiskit.quantum_info` module (which gets used internally by the
   :meth:`qiskit.quantum_info.Clifford.to_circuit` method) has a new kwarg
   ``method`` which enables selecting the synthesis method used by either
   setting it to ``'AG'`` or ``'greedy'``. By default for more than three
@@ -815,7 +816,7 @@ New Features
   provided by the :mod:`qiskit.aqua.algorithms` module (which is now
   deprecated) and provides the building blocks for constructing quantum
   algorithms. For details on migrating from ``qiskit-aqua`` to this new
-  module please refer to the migration guide "INSERT LINK HERE"
+  module please refer to the migration guide :ref:`aqua-migration`
 
 - A new module :mod:`qiskit.opflow` has been introduced. This module
   contains functionality equivalent to what has previously been
@@ -1026,7 +1027,7 @@ New Features
     statevector = Statevector(qc)
     statevector.draw(output='latex')
 
-- New fake backend classes are available under ``qiskit.test.mock`. These
+- New fake backend classes are available under ``qiskit.test.mock``. These
   included mocked versions of ``ibmq_casablanca``, ``ibmq_sydney``,
   ``ibmq_mumbai``, ``ibmq_lima``, ``ibmq_belem``, ``ibmq_quito``. As
   with the other fake backends, these include snapshots of calibration data
@@ -1347,7 +1348,7 @@ Upgrade Notes
   integers(e.g. ``2.0``). Non-integer values will now raise an error as the
   intent in those cases was unclear (you can't have fractional bits). For
   more information on why this was changed refer to:
-  `#4855 <https://github.com/Qiskit/qiskit-terra/issues/4885>`__
+  `#4855 <https://github.com/Qiskit/qiskit-terra/issues/4855>`__
 
 - `networkx <https://networkx.org/>`__ is no longer a requirement for
   qiskit-terra. All the networkx usage inside qiskit-terra has been removed
@@ -2221,8 +2222,8 @@ Other Notes
 
 - The snapshots of all the fake/mock backends in ``qiskit.test.mock`` have
   been updated to reflect recent device changes. This includes a change in
-  the :attr:`qiskit.providers.models.QasmBackendConfiguration.basis_gates`
-  attribute for the the :class:`~qiskit.providers.models.BackendConfiguration`
+  the :attr:`~qiskit.providers.models.QasmBackendConfiguration.basis_gates`
+  attribute for the :class:`~qiskit.providers.models.BackendConfiguration`
   to ``['cx', 'rz', 'sx', 'x', 'id']``, the addition of a ``readout_length``
   property to the qubit properties in the
   :class:`~qiskit.providers.models.BackendProperties`, and updating the
@@ -2242,9 +2243,9 @@ Prelude
 
 The 0.8 release includes several new features and bug fixes. The
 highlights for this release are: the introduction of a unified
-:class:`~qiskit.provider.aer.AerSimulator` backend for running circuit
+:class:`~qiskit.providers.aer.AerSimulator` backend for running circuit
 simulations using any of the supported simulation methods; a simulator
-instruction library (:mod:`~qiskit.providers.aer.library`)
+instruction library (:mod:`qiskit.providers.aer.library`)
 which includes custom instructions for saving various kinds of simulator
 data; MPI support for running large simulations on a distributed
 computing environment.
@@ -2287,11 +2288,12 @@ New Features
   missing build dependencies.
 
 - Adds support for optimized N-qubit Pauli gate (
-  :class:`qiskit.circuit.library.generalized_gates.PauliGate`) to the
+  :class:`qiskit.circuit.library.PauliGate`) to the
   :class:`~qiskit.providers.aer.StatevectorSimulator`,
   :class:`~qiskit.providers.aer.UnitarySimulator`, and the
   statevector and density matrix methods of the
-  :class:`~qiskit.providers.aer.QasmSimulator`.
+  :class:`~qiskit.providers.aer.QasmSimulator` and
+  :class:`~qiskit.providers.aer.AerSimulator`.
 
 - The :meth:`~qiskit.providers.aer.AerSimulator.run` method for the
   :class:`~qiskit.providers.aer.AerSimulator`,
@@ -2329,13 +2331,13 @@ New Features
 - Adds the new :class:`~qiskit.provider.aer.AerSimulator` simulator backend
   supporting the following simulation methods
 
-    * `automatic`
-    * `statevector`
-    * `stabilizer`
-    * `density_matrix`
-    * `matrix_product_state`
-    * `unitary`
-    * `superop`
+    * ``automatic``
+    * ``statevector``
+    * ``stabilizer``
+    * ``density_matrix``
+    * ``matrix_product_state``
+    * ``unitary``
+    * ``superop``
 
   The default `automatic` method will automatically choose a simulation
   method separately for each run circuit based on the circuit instructions
@@ -2350,7 +2352,7 @@ New Features
     backend = AerSimulator(method='matrix_product_state')
 
   GPU simulation for the statevector, density matrix and unitary methods
-  can be enabled by setting the `device='GPU'` backend option.
+  can be enabled by setting the ``device='GPU'`` backend option.
 
   .. code::python
 
@@ -2359,46 +2361,44 @@ New Features
     # Create a GPU statevector backend
     backend = AerSimulator(method='statevector', device='GPU')
 
-  Note that the `unitary` and `superop` methods do not support measurement
-  as they simulate the unitary matrix or superopator matrix of the run
-  circuit so one of the new :func:`~qiskit.provider.aer.library.save_unitary`,
-  :func:`~qiskit.provider.aer.library.save_superop`, or
-  :func:`~qiskit.provider.aer.library.save_state` instructions must
+  Note that the ``unitary`` and ``superop`` methods do not support measurement
+  as they simulate the unitary matrix or superoperator matrix of the run
+  circuit so one of the new :func:`~qiskit.providers.aer.library.save_unitary`,
+  :func:`~qiskit.providers.aer.library.save_superop`, or
+  :func:`~qiskit.providers.aer.library.save_state` instructions must
   be used to save the simulator state to the returned results. Similarly
   state of the other simulations methods can be saved using the
-  appropriate instructions. See the :mod:`qiskit.provider.aer.library`
+  appropriate instructions. See the :mod:`qiskit.providers.aer.library`
   API documents for more details.
 
-  Note that the :class:`~qiskit.provider.aer.AerSimulator` simulator
-  superceds the :class:`~qiskit.provider.aer.QasmSimulator`,
-  :class:`~qiskit.provider.aer.StatevectorSimulator`, and
-  :class:`~qiskit.provider.aer.UnitarySimulator` backends which will
+  Note that the :class:`~qiskit.providers.aer.AerSimulator` simulator
+  superceds the :class:`~qiskit.providers.aer.QasmSimulator`,
+  :class:`~qiskit.providers.aer.StatevectorSimulator`, and
+  :class:`~qiskit.providers.aer.UnitarySimulator` backends which will
   be deprecated in a future release.
 
 - Updates the :class:`~qiskit.providers.aer.AerProvider` class to include
-  multiple :class:`~qiskit.provider.aer.AerSimulator` backends preconfigured
+  multiple :class:`~qiskit.providers.aer.AerSimulator` backends preconfigured
   for all available simulation methods and simulation devices. The new
   backends can be accessed through the provider interface using the names
 
-    * `"aer_simulator"`
-    * `"aer_simulator_statevector"`
-    * `"aer_simulator_stabilizer"`
-    * `"aer_simulator_density_matrix"`
-    * `"aer_simulator_matrix_product_state"`
-    * `"aer_simulator_extended_stabilizer"`
-    * `"aer_simulator_unitary"`
-    * `"aer_simulator_superop"`
+    * ``"aer_simulator"``
+    * ``"aer_simulator_statevector"``
+    * ``"aer_simulator_stabilizer"``
+    * ``"aer_simulator_density_matrix"``
+    * ``"aer_simulator_matrix_product_state"``
+    * ``"aer_simulator_extended_stabilizer"``
+    * ``"aer_simulator_unitary"``
+    * ``"aer_simulator_superop"``
 
   Additional if Aer was installed with GPU support on a compatible system
   the following GPU backends will also be available
 
-    * `"aer_simulator_statevector_gpu"`
-    * `"aer_simulator_density_matrix_gpu"`
-    * `"aer_simulator_unitary_gpu"`
+    * ``"aer_simulator_statevector_gpu"``
+    * ``"aer_simulator_density_matrix_gpu"``
+    * ``"aer_simulator_unitary_gpu"``
 
-  Example
-
-  .. code::python
+  For example::
 
     from qiskit import Aer
 
@@ -2406,19 +2406,19 @@ New Features
     backend = Aer.get_backend('aer_simulator_statevector_gpu')
 
 - Added a new ``norm estimation`` method for performing measurements when using
-  the `"extended_stabilizer"` simulation method. This norm estimation method
+  the ``"extended_stabilizer"`` simulation method. This norm estimation method
   can be used by passing the following options to the
   :class:`~qiskit.providers.aer.AerSimulator` and
   :class:`~qiskit.providers.aer.QasmSimulator` backends
 
-  .. code::python
+  .. code-block:: python
 
     simulator = QasmSimulator(
         method='extended_stabilizer',
         extended_stabilizer_sampling_method='norm_estimation')
 
-  The norm estimation method is slower than the alternative `metropolis`
-  or `resampled_metropolis` options, but gives better performance on circuits
+  The norm estimation method is slower than the alternative ``metropolis``
+  or ``resampled_metropolis`` options, but gives better performance on circuits
   with sparse output distributions. See the documentation of the
   :class:`~qiskit.providers.aer.QasmSimulator` for more information.
 
@@ -2486,7 +2486,7 @@ New Features
   or select probabilities (amplitudes squared) for supported simulation
   methods. These instructions can be appended to a quantum circuit by using the
   :class:`~qiskit.providers.aer.library.save_amplitudes` and
-  :class:`~qiskit.providers.aer.library.save_amplitudes_squared`circuit
+  :class:`~qiskit.providers.aer.library.save_amplitudes_squared` circuit
   methods which is added to ``QuantumCircuit`` when importing Aer.
 
 - Adds instructions for setting the state of the simulators. These
@@ -2509,11 +2509,11 @@ New Features
   See the :mod:`qiskit.providers.aer.library` API documentation
   for details on method compatibility for each instruction.
 
-- Added support for diagonal gates to the `"matrix_product_state"` simulation
+- Added support for diagonal gates to the ``"matrix_product_state"`` simulation
   method.
 
 - Added support for the ``initialize`` instruction to the
-  `"matrix_product_state"` simulation method.
+  ``"matrix_product_state"`` simulation method.
 
 
 .. _Aer_Release Notes_0.8.0_Known Issues:
@@ -2522,7 +2522,7 @@ Known Issues
 ------------
 
 - There is a known issue where the simulation of certain circuits with a Kraus
-  noise model using the `"matrix_product_state"` simulation method can cause
+  noise model using the ``"matrix_product_state"`` simulation method can cause
   the simulator to crash. Refer to
   `#306 <https://github.com/Qiskit/qiskit-aer/issues/1184>`__ for more
   information.
@@ -2548,7 +2548,7 @@ Upgrade Notes
   in qiskit-aer 0.7. This decomposition is now done by using regular
   noise model basis gates and the qiskit transpiler.
 
-- The following options for the `"extended_stabilizer"` simulation method
+- The following options for the ``"extended_stabilizer"`` simulation method
   have changed.
 
     + ``extended_stabilizer_measure_sampling``: This option has been replaced
@@ -2557,7 +2557,7 @@ Upgrade Notes
 
     + ``extended_stabilizer_mixing_time``: This option has been renamed as
       ``extended_stabilizer_metropolis_mixing_time`` to clarify it only applies
-      to the `metropolis` and `resampled_metropolis` sampling methods.
+      to the ``metropolis`` and ``resampled_metropolis`` sampling methods.
 
     + ``extended_stabilizer_norm_estimation_samples``: This option has been renamed
       to ``extended_stabilizer_norm_estimation_default_samples``.
@@ -2603,23 +2603,23 @@ Bug Fixes
   gates. If the intersection of the noise model basis gates and
   simulator basis gates is empty a warning will be logged.
 
-- Fix bug where the `"sx"`` gate :class:`~qiskit.circuit.library.SXGate` was
-  not listed as a supported gate in the C++ code, in `StateOpSet` of
-  `matrix_product_state.hp`.
+- Fix bug where the ``"sx"``` gate :class:`~qiskit.circuit.library.SXGate` was
+  not listed as a supported gate in the C++ code, in ``StateOpSet`` of
+  ``matrix_product_state.hp``.
 
 - Fix bug where ``"csx"``, ``"cu2"``, ``"cu3"`` were incorrectly listed as
   supported basis gates for the ``"density_matrix"`` method of the
   :class:`~qiskit.providers.aer.QasmSimulator`.
 
 - Fix bug where parameters were passed incorrectly between functions in
-  `matrix_product_state_internal.cpp`, causing wrong simulation, as well
+  ``matrix_product_state_internal.cpp``, causing wrong simulation, as well
   as reaching invalid states, which in turn caused an infinite loop.
 
-- Fixes a bug that resulted in `c_if` not working when the
+- Fixes a bug that resulted in ``c_if`` not working when the
   width of the conditional register was greater than 64. See
   `#1077 <https://github.com/Qiskit/qiskit-aer/issues/1077>`__.
 
-- Fixes a bug `#1153 <https://github.com/Qiskit/qiskit-aer/issues/1153>``)
+- Fixes a bug `#1153 <https://github.com/Qiskit/qiskit-aer/issues/1153>`__)
   where noise on conditional gates was always being applied regardless of
   whether the conditional gate was actually applied based on the classical
   register value. Now noise on a conditional gate will only be applied in
@@ -2630,8 +2630,9 @@ Bug Fixes
 
 - Fixes a bug when applying truncation in the matrix product state method of the QasmSimulator.
 
-- Fixed issue #1126: bug in reporting measurement of a single qubit. The bug
-  occured when copying the measured value to the output data structure.
+- Fixed issue `#1126 <https://github.com/Qiskit/qiskit-aer/issues/1126>`__:
+  bug in reporting measurement of a single qubit. The bug occured when copying
+  the measured value to the output data structure.
 
 - In MPS, apply_kraus was operating directly on the input bits in the
   parameter qubits, instead of on the internal qubits. In the MPS algorithm,
@@ -2745,7 +2746,7 @@ ie ``pip install qiskit-nature``) or with the rest of the Qiskit metapackage as
 optional extras (ie, ``pip install 'qiskit[finance,optimization]'`` or
 ``pip install 'qiskit[all]'``. The core building blocks for algorithms and the
 operator flow now exist as part of qiskit-terra at :mod:`qiskit.algorithms` and
-:mod:`qiskit-opflow`. Depending on your existing usage of Aqua you should either
+:mod:`qiskit.opflow`. Depending on your existing usage of Aqua you should either
 use the application packages or the new modules in Qiskit Terra.
 
 For more details on how to migrate from using Qiskit Aqua you can refer to the
@@ -4546,7 +4547,7 @@ New Features
 
 - Adds support for the :math:`\sqrt(X)` gate
   :class:`qiskit.circuit.library.SXGate` to the
-  class:`~qiskit.providers.aer.StatevectorSimulator`,
+  :class:`~qiskit.providers.aer.StatevectorSimulator`,
   :class:`~qiskit.providers.aer.UnitarySimulator`, and
   :class:`~qiskit.providers.aer.QasmSimulator`.
 
