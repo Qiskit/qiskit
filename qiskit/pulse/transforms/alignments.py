@@ -70,7 +70,20 @@ class AlignLeft(AlignmentKind):
     """
     is_sequential = False
 
-    def align(self, schedule: Schedule, ignore_frames: bool = False) -> Schedule:
+    def __init__(self, ignore_frames: bool = False):
+        """
+        Left-alignment context.
+
+        Args:
+            ignore_frames: If true then frame instructions will be ignore. This
+                should be set to true if the played Signals in this context
+                do not share any frames.
+        """
+        super().__init__()
+
+        self._ignore_frames = ignore_frames
+
+    def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
 
         Only top-level sub-schedules are aligned. If sub-schedules are nested,
@@ -78,21 +91,16 @@ class AlignLeft(AlignmentKind):
 
         Args:
             schedule: Schedule to align.
-            ignore_frames: If true then frame instructions will be ignore. This
-                should be set to true if the played Signals in this context
-                do not share any frames.
 
         Returns:
             Schedule with reallocated instructions.
         """
         aligned = Schedule()
         for _, child in schedule._children:
-            self._push_left_append(aligned, child, ignore_frames)
+            self._push_left_append(aligned, child)
         return aligned
 
-    @staticmethod
-    def _push_left_append(this: Schedule, other: ScheduleComponent,
-                          ignore_frames: bool) -> Schedule:
+    def _push_left_append(self, this: Schedule, other: ScheduleComponent) -> Schedule:
         """Return ``this`` with ``other`` inserted at the maximum time over
         all channels shared between ```this`` and ``other``.
 
@@ -111,7 +119,7 @@ class AlignLeft(AlignmentKind):
         shared_channels = list(this_channels & other_channels)
 
         # Conservatively assume that a Frame instruction could impact all channels
-        if not ignore_frames:
+        if not self._ignore_frames:
             for ch in this_channels | other_channels:
                 if isinstance(ch, Frame):
                     shared_channels = list(this_channels | other_channels)
@@ -141,7 +149,20 @@ class AlignRight(AlignmentKind):
     """
     is_sequential = False
 
-    def align(self, schedule: Schedule, ignore_frames: bool = False) -> Schedule:
+    def __init__(self, ignore_frames: bool = False):
+        """
+        Right-alignment context.
+
+        Args:
+            ignore_frames: If true then frame instructions will be ignore. This
+                should be set to true if the played Signals in this context
+                do not share any frames.
+        """
+        super().__init__()
+
+        self._ignore_frames = ignore_frames
+
+    def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
 
         Only top-level sub-schedules are aligned. If sub-schedules are nested,
@@ -149,22 +170,16 @@ class AlignRight(AlignmentKind):
 
         Args:
             schedule: Schedule to align.
-            ignore_frames: If true then frame instructions will be ignore. This
-                should be set to true if the played Signals in this context
-                do not share any frames.
 
         Returns:
             Schedule with reallocated instructions.
         """
         aligned = Schedule()
         for _, child in reversed(schedule._children):
-            aligned = self._push_right_prepend(aligned, child, ignore_frames)
+            aligned = self._push_right_prepend(aligned, child)
         return aligned
 
-    @staticmethod
-    def _push_right_prepend(this: ScheduleComponent,
-                            other: ScheduleComponent,
-                            ignore_frames: bool) -> Schedule:
+    def _push_right_prepend(self, this: ScheduleComponent, other: ScheduleComponent) -> Schedule:
         """Return ``this`` with ``other`` inserted at the latest possible time
         such that ``other`` ends before it overlaps with any of ``this``.
 
@@ -183,7 +198,7 @@ class AlignRight(AlignmentKind):
         shared_channels = list(this_channels & other_channels)
 
         # Conservatively assume that a Frame instruction could impact all channels
-        if not ignore_frames:
+        if not self._ignore_frames:
             for ch in this_channels | other_channels:
                 if isinstance(ch, Frame):
                     shared_channels = list(this_channels | other_channels)
@@ -438,8 +453,8 @@ def align_left(schedule: Schedule, ignore_frames: bool = False) -> Schedule:
         New schedule with input `schedule`` child schedules and instructions
         left aligned.
     """
-    context = AlignLeft()
-    return context.align(schedule, ignore_frames)
+    context = AlignLeft(ignore_frames)
+    return context.align(schedule)
 
 
 def align_right(schedule: Schedule, ignore_frames: bool = False) -> Schedule:
@@ -455,8 +470,8 @@ def align_right(schedule: Schedule, ignore_frames: bool = False) -> Schedule:
         New schedule with input `schedule`` child schedules and instructions
         right aligned.
     """
-    context = AlignRight()
-    return context.align(schedule, ignore_frames)
+    context = AlignRight(ignore_frames)
+    return context.align(schedule)
 
 
 def align_sequential(schedule: Schedule) -> Schedule:
