@@ -14,42 +14,40 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from ddt import ddt, data, unpack
 from qiskit.algorithms.phase_estimators import IterativePhaseEstimation
 import qiskit
 from qiskit.opflow import (H, X, Z)
 
 
+@ddt
 class TestIterativePhaseEstimation(QiskitAlgorithmsTestCase):
     """Evolution tests."""
 
     # pylint: disable=invalid-name
     def one_phase(self, unitary_circuit, state_preparation=None, num_iterations=6,
-                  backend=qiskit.BasicAer.get_backend('qasm_simulator')):
+                  backend_type=None):
         """Run phase estimation with operator, eigenvalue pair `unitary_circuit`,
         `state_preparation`. Return the estimated phase as a value in :math:`[0,1)`.
         """
+        if backend_type is None:
+            backend_type='qasm_simulator'
+        backend = qiskit.BasicAer.get_backend(backend_type)
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         p_est = IterativePhaseEstimation(num_iterations=num_iterations, quantum_instance=qi)
         result = p_est.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
         phase = result.phase
         return phase
 
-    def test_qpe_Z0(self):
+    @data((X.to_circuit(), 0.5, 'statevector_simulator'),
+          (X.to_circuit(), 0.5, 'qasm_simulator'),
+          (None, 0.0, 'qasm_simulator'))
+    @unpack
+    def test_qpe_Z0(self, state_preparation, expected_phase, backend_type):
         """eigenproblem Z, |0>"""
-
         unitary_circuit = Z.to_circuit()
-        state_preparation = None  # prepare |0>
-        phase = self.one_phase(unitary_circuit, state_preparation)
-        self.assertEqual(phase, 0.0)
-
-    def test_qpe_Z0_statevector(self):
-        """eigenproblem Z, |0>, statevector simulator"""
-
-        unitary_circuit = Z.to_circuit()
-        state_preparation = None  # prepare |0>
-        phase = self.one_phase(unitary_circuit, state_preparation,
-                               backend=qiskit.BasicAer.get_backend('statevector_simulator'))
-        self.assertEqual(phase, 0.0)
+        phase = self.one_phase(unitary_circuit, state_preparation, backend_type=backend_type)
+        self.assertEqual(phase, expected_phase)
 
     def test_qpe_Z1(self):
         """eigenproblem Z, |1>"""
@@ -58,31 +56,14 @@ class TestIterativePhaseEstimation(QiskitAlgorithmsTestCase):
         phase = self.one_phase(unitary_circuit, state_preparation)
         self.assertEqual(phase, 0.5)
 
-    def test_qpe_Z1_estimate(self):
-        """eigenproblem Z, |1>, estimate interface"""
-        unitary_circuit = Z.to_circuit()
-        state_preparation = X.to_circuit()  # prepare |1>
-        backend = qiskit.BasicAer.get_backend('statevector_simulator')
-        num_iterations = 6
-        pe = IterativePhaseEstimation(num_iterations=num_iterations, quantum_instance=backend)
-        result = pe.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
-        phase = result.phase
-        self.assertEqual(phase, 0.5)
-
-    def test_qpe_Xplus(self):
-        """eigenproblem X, |+>"""
+    @data((H, 0.0), (X, 0.5))
+    @unpack
+    def test_qpe_X_plus_minus(self, state_in, expected_phase):
+        """eigenproblem X, (|+>, |->)"""
         unitary_circuit = X.to_circuit()
-        state_preparation = H.to_circuit()  # prepare |+>
+        state_preparation = state_in.to_circuit()  # prepare |+> or |->
         phase = self.one_phase(unitary_circuit, state_preparation)
-        self.assertEqual(phase, 0.0)
-
-    def test_qpe_Xminus(self):
-        """eigenproblem X, |->"""
-        unitary_circuit = X.to_circuit()
-        state_preparation = X.to_circuit()
-        state_preparation.append(H.to_circuit(), [0])  # prepare |->
-        phase = self.one_phase(unitary_circuit, state_preparation)
-        self.assertEqual(phase, 0.5)
+        self.assertEqual(phase, expected_phase)
 
     def test_check_num_iterations(self):
         """test check for num_iterations greater than zero"""
