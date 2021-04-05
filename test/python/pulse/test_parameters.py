@@ -20,6 +20,8 @@ from qiskit import pulse, assemble
 from qiskit.circuit import Parameter
 from qiskit.pulse import PulseError
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, MemorySlot
+from qiskit.pulse.library import Signal
+from qiskit.pulse.frame import Frame
 from qiskit.pulse.transforms import inline_subroutines
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeAlmaden
@@ -404,3 +406,27 @@ class TestParameterDuration(QiskitTestCase):
         sched = pulse.Schedule()
         with self.assertRaises(pulse.exceptions.UnassignedDurationError):
             sched.insert(0, test_play)
+
+
+class TestParameterFrames(QiskitTestCase):
+    """Test that parameters and frames work."""
+
+    def test_frames(self):
+        """Test that we can create a parameterized schedule with Frames."""
+        ch_param = Parameter('dx')
+        f_param = Parameter('fx')
+        dur = Parameter('duration')
+        phase = Parameter('phase')
+
+        signal = Signal(pulse.Gaussian(dur, 0.1, 40), Frame(f_param))
+        sched = pulse.ScheduleBlock()
+        sched.append(pulse.Play(signal, DriveChannel(ch_param)))
+        sched.append(pulse.ShiftPhase(phase, Frame(f_param)))
+        sched.append(pulse.Play(signal, DriveChannel(ch_param)))
+
+        for param in [ch_param, f_param, dur, phase]:
+            self.assertTrue(param in sched.parameters)
+
+        sched.assign_parameters({f_param: 3, ch_param: 2, dur: 160, phase: 1.57})
+
+        self.assertEqual(sched.parameters, set())

@@ -57,7 +57,8 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse import instructions, channels
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.library import ParametricPulse, Waveform
+from qiskit.pulse.library import ParametricPulse, Waveform, Signal
+from qiskit.pulse.frame import Frame
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
 from qiskit.pulse.utils import format_parameter_value
@@ -205,6 +206,27 @@ class ParameterSetter(NodeVisitor):
 
         return node
 
+    def visit_Frame(self, node: Frame):
+        """Assign parameters to ``Frame`` object."""
+        if node.is_parameterized():
+            new_index = self._assign_parameter_expression(node.index)
+            if not isinstance(new_index, int) and new_index < 0:
+                raise PulseError('Frame index must be a nonnegative integer')
+
+            return node.__class__(index=new_index)
+
+        return node
+
+    def visit_Signal(self, node: Signal):
+        """Assign parameters to ``Signal`` object."""
+        if node.is_parameterized():
+            frame = self.visit(node.frame)
+            pulse = self.visit(node.pulse)
+
+            return node.__class__(pulse, frame, node.name)
+
+        return node
+
     def visit_ParametricPulse(self, node: ParametricPulse):
         """Assign parameters to ``ParametricPulse`` object."""
         if node.is_parameterized():
@@ -313,6 +335,16 @@ class ParameterGetter(NodeVisitor):
 
     def visit_Channel(self, node: channels.Channel):
         """Get parameters from ``Channel`` object."""
+        if isinstance(node.index, ParameterExpression):
+            self._add_parameters(node.index)
+
+    def visit_Signal(self, node: Signal):
+        """Get parameters from ``Signal`` object."""
+        self.visit(node.frame)
+        self.visit(node.pulse)
+
+    def visit_Frame(self, node: Frame):
+        """Get parameters from ``Frame`` object."""
         if isinstance(node.index, ParameterExpression):
             self._add_parameters(node.index)
 

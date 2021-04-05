@@ -14,7 +14,7 @@
 
 from typing import Any, Dict, Optional, Union
 
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.frame import Frame
 from qiskit.pulse.exceptions import PulseError
@@ -76,26 +76,6 @@ class Signal:
             parameters['index'] = self._frame.index
 
         return parameters
-
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]) -> 'Signal':
-        """
-        Return a new Signal with parameters assigned.
-
-        Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
-
-        Returns:
-            Signal: a new signal with updated parameters.
-        """
-        pulse = self._pulse.assign_parameters(value_dict)
-        frame = self._frame
-        for param, value in value_dict.items():
-            if param in self._frame.parameters:
-                frame = self._frame.assign(param, value)
-
-        return type(self)(pulse, frame)
 
     def __eq__(self, other: 'Signal') -> bool:
         return self._pulse == other._pulse and self.frame == other.frame

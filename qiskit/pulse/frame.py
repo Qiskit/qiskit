@@ -16,7 +16,7 @@ from typing import Any, Set, Union
 import numpy as np
 
 from qiskit.circuit import Parameter
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 
 
@@ -38,7 +38,7 @@ class Frame:
             self._parameters.update(index.parameters)
 
     @property
-    def index(self) -> int:
+    def index(self) -> Union[int, ParameterExpression]:
         """Return the index of this frame. The index is a label for a frame."""
         return self._index
 
@@ -75,30 +75,6 @@ class Frame:
     def is_parameterized(self) -> bool:
         """Return True iff the frame is parameterized."""
         return bool(self.parameters)
-
-    def assign(self, parameter: Parameter, value: ParameterValueType) -> 'Frame':
-        """Return a new frame with the input Parameter assigned to value.
-
-        Args:
-            parameter: A parameter in this expression whose value will be updated.
-            value: The new value to bind to.
-
-        Returns:
-            Frame: A new frame with updated parameters.
-
-        Raises:
-            PulseError: If the parameter is not present in the frame.
-        """
-        if parameter not in self.parameters:
-            raise PulseError('Cannot bind parameters ({}) not present in the frame.'
-                             ''.format(parameter))
-
-        new_index = self.index.assign(parameter, value)
-        if not new_index.parameters:
-            self._validate_index(new_index)
-            new_index = int(new_index)
-
-        return type(self)(new_index)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self._index})'
