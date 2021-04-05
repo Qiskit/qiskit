@@ -252,9 +252,9 @@ New Features
     backend = BasicAer.get_backend('qasm_simulator')
 
     circuit = QuantumCircuit(2)
-    qc.h(0)
-    qc.cx(0, 1)
-    qc.measure_all()
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.measure_all()
 
     tqc = transpile(circuit, backend)
     result = backend.run(tqc, shots=4096).result()
