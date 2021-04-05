@@ -149,7 +149,8 @@ class ResolvedFrame(Tracker):
         self._channels = channels
 
         for ch in self._channels:
-            self._parameters.update(ch.parameters)
+            if isinstance(ch.index, ParameterExpression):
+                self._parameters.update((ch.index, ))
 
     @property
     def channels(self) -> List[Channel]:
