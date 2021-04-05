@@ -67,6 +67,7 @@ class Signal:
         """Determine if there are any parameters in the Signal."""
         return self._pulse.is_parameterized() or self._frame.is_parameterized()
 
+    @property
     def parameters(self) -> Dict[str, Any]:
         """Return a list of parameters in the Signal."""
         parameters = self._pulse.parameters
