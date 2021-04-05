@@ -805,85 +805,83 @@ using. Since Aer is a compiled C++ program with a Python interface, there are
 non-Python dependencies for building the Aer binary which can't be installed
 universally depending on operating system.
 
-.. tabs::
+.. tabbed:: Linux
 
-   .. tab:: Linux
+   3. Install compiler requirements.
 
-      3. Install compiler requirements.
+      Building Aer requires a C++ compiler and development headers.
 
-         Building Aer requires a C++ compiler and development headers.
+      If you're using Fedora or an equivalent Linux distribution,
+      install using:
 
-         If you're using Fedora or an equivalent Linux distribution,
-         install using:
+      .. code:: sh
 
-         .. code:: sh
+         dnf install @development-tools
 
-            dnf install @development-tools
+      For Ubuntu/Debian install it using:
 
-         For Ubuntu/Debian install it using:
+      .. code:: sh
 
-         .. code:: sh
+         apt-get install build-essential
 
-            apt-get install build-essential
+   4. Install OpenBLAS development headers.
 
-      4. Install OpenBLAS development headers.
+      If you're using Fedora or an equivalent Linux distribution,
+      install using:
 
-         If you're using Fedora or an equivalent Linux distribution,
-         install using:
+      .. code:: sh
 
-         .. code:: sh
+         dnf install openblas-devel
 
-            dnf install openblas-devel
+      For Ubuntu/Debian install it using:
 
-         For Ubuntu/Debian install it using:
+      .. code:: sh
 
-         .. code:: sh
-
-            apt-get install libopenblas-dev
+         apt-get install libopenblas-dev
 
 
-   .. tab:: macOS
+.. tabbed:: macOS
 
-      3. Install dependencies.
+   3. Install dependencies.
 
-         To use the `Clang <https://clang.llvm.org/>`__ compiler on macOS, you need to install
-         an extra library for supporting `OpenMP <https://www.openmp.org/>`__.  You can use `brew <https://brew.sh/>`__
-         to install this and other dependencies.
+      To use the `Clang <https://clang.llvm.org/>`__ compiler on macOS, you need to install
+      an extra library for supporting `OpenMP <https://www.openmp.org/>`__.  You can use `brew <https://brew.sh/>`__
+      to install this and other dependencies.
 
-         .. code:: sh
+      .. code:: sh
 
-            brew install libomp
+         brew install libomp
 
-      4. Then install a BLAS implementation; `OpenBLAS <https://www.openblas.net/>`__
-         is the default choice.
+   4. Then install a BLAS implementation; `OpenBLAS <https://www.openblas.net/>`__
+      is the default choice.
 
-         .. code:: sh
+      .. code:: sh
 
-            brew install openblas
+         brew install openblas
 
-         Next, install ``Xcode Command Line Tools``.
+      Next, install ``Xcode Command Line Tools``.
 
-         .. code:: sh
+      .. code:: sh
 
-            xcode-select --install
+         xcode-select --install
 
-   .. tab:: Windows
+.. tabbed:: Windows
 
-      On Windows you need to use `Anaconda3 <https://www.anaconda.com/distribution/#windows>`__
-      or `Miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`__ to install all the
-      dependencies.
+   On Windows you need to use `Anaconda3 <https://www.anaconda.com/distribution/#windows>`__
+   or `Miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`__ to install all the
+   dependencies.
 
-      3. Install compiler requirements.
+   3. Install compiler requirements.
 
-         .. code:: sh
+      .. code:: sh
 
-            conda install --update-deps vs2017_win-64 vs2017_win-32 msvc_runtime
+         conda install --update-deps vs2017_win-64 vs2017_win-32 msvc_runtime
 
-      4. Install binary and build dependencies.
+   4. Install binary and build dependencies.
 
-         .. code:: sh
+      .. code:: sh
 
-            conda install --update-deps -c conda-forge -y openblas cmake
+         conda install --update-deps -c conda-forge -y openblas cmake
 
 
 5. Build and install qiskit-aer directly

@@ -149,8 +149,9 @@ Installation
       https://github.com/pypa/sample-namespace-packages/blob/master/table.md
       for the set of combinations of installation methods that work together.
 
-   Set up the Virtual Development Environment
-   ------------------------------------------
+   .. raw:: html
+
+      <h3>Set up the Virtual Development Environment</h3>
 
    .. code-block:: sh
 
@@ -159,8 +160,9 @@ Installation
 
    .. _install-qiskit-terra:
 
-   Installing Terra from Source
-   ----------------------------
+   .. raw:: html
+
+      <h2>Installing Terra from Source</h2>
 
    Installing from source requires that you have a C++ compiler on your system that supports
    C++11.
@@ -261,8 +263,9 @@ Installation
 
    .. _install-qiskit-aer:
 
-   Installing Aer from Source
-   --------------------------
+   .. raw:: html
+
+      <h2>Installing Aer from Source</h2>
 
    1. Clone the Aer repository.
 
@@ -399,8 +402,9 @@ Installation
 
    .. _aer_wheel_build_options:
 
-   Custom options during wheel builds
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   .. raw:: html
+
+      <h4>Custom options</h4>
 
    The Aer build system uses `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`__
    to run the compilation when building it with the Python interface. It acts as an interface for
@@ -478,8 +482,9 @@ Installation
 
    .. _install-qiskit-ignis:
 
-   Installing Ignis from Source
-   ----------------------------
+   .. raw:: html
+
+      <h2>Installing Ignis from Source</h2>
 
    1. Clone the Ignis repository.
 
@@ -516,8 +521,9 @@ Installation
 
    .. _install-qiskit-aqua:
 
-   Installing Aqua from Source
-   ---------------------------
+   .. raw:: html
+
+      <h2>Installing Aqua from Source</h2>
 
    1. Clone the Aqua repository.
 
@@ -554,8 +560,9 @@ Installation
 
    .. _install-qiskit-ibmq-provider:
 
-   Installing IBM Quantum Provider from Source
-   -------------------------------------------
+   .. raw:: html
+
+      <h2>Installing IBM Quantum Provider from Source</h2>
 
    1. Clone the qiskit-ibmq-provider repository.
 
