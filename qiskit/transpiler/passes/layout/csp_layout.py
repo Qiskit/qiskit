@@ -144,5 +144,7 @@ class CSPLayout(AnalysisPass):
         else:
             stop_reason = 'solution found'
             self.property_set['layout'] = Layout({v: qubits[k] for k, v in solution.items()})
+            for reg in dag.qregs.values():
+                self.property_set['layout'].add_register(reg)
 
         self.property_set['CSPLayout_stop_reason'] = stop_reason

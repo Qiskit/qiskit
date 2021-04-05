@@ -121,7 +121,7 @@ class UnitaryGate(Gate):
             self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        r"""Return controlled version of gate
+        """Return controlled version of gate
 
         Args:
             num_ctrl_qubits (int): number of controls to add to gate (default=1)

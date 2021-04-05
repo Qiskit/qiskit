@@ -230,7 +230,7 @@ class DefaultStyle:
                 'rxx': '$\\mathrm{R}_{\\mathrm{XX}}$',
                 'ryy': '$\\mathrm{R}_{\\mathrm{YY}}$',
                 'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
-                'rzz': '$\\mathrm{R}_{\\mathrm{ZZ}}$',
+                'rzz': '$\\mathrm{ZZ}$',
                 'reset': '$\\left|0\\right\\rangle$',
                 'initialize': '$|\\psi\\rangle$'
             },

@@ -173,7 +173,7 @@ class TestBackendConfiguration(QiskitTestCase):
         """Test the "processor_type" field in the backend configuration."""
         reference_processor_type = {
             "family": "Canary",
-            "revision": 1,
+            "revision": "1.0",
             "segment": "A",
         }
         self.assertEqual(self.config.processor_type, reference_processor_type)
