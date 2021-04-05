@@ -113,11 +113,34 @@ class QiskitVersion(Mapping):
             self._version_dict['qiskit-ibmq-provider'] = ibmq.__version__
         except Exception:
             self._version_dict['qiskit-ibmq-provider'] = None
+        # TODO: Remove aqua after deprecation is complete and it is removed from
+        # the metapackage
         try:
             from qiskit import aqua
             self._version_dict['qiskit-aqua'] = aqua.__version__
         except Exception:
             self._version_dict['qiskit-aqua'] = None
+        try:
+            import qiskit_nature
+            self._version_dict['qiskit-nature'] = qiskit_nature.__version__
+        except Exception:
+            self._version_dict['qiskit-nature'] = None
+        try:
+            import qiskit_finance
+            self._version_dict['qiskit-finance'] = qiskit_finance.__version__
+        except Exception:
+            self._version_dict['qiskit-finance'] = None
+        try:
+            import qiskit_optimization
+            self._version_dict['qiskit-optimization'] = qiskit_optimization.__version__
+        except Exception:
+            self._version_dict['qiskit-optimization'] = None
+        try:
+            import qiskit_finance
+            self._version_dict['qiskit-machine-learning'] = qiskit_machine_learning.__version__
+        except Exception:
+            self._version_dict['qiskit-machine-learning'] = None
+
         try:
             self._version_dict['qiskit'] = pkg_resources.get_distribution('qiskit').version
         except Exception:
