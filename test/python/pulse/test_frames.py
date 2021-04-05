@@ -20,6 +20,7 @@ import qiskit.pulse as pulse
 from qiskit.test import QiskitTestCase
 from qiskit.pulse.transforms import resolve_frames
 from qiskit.pulse.resolved_frame import ResolvedFrame
+from qiskit.pulse.parameter_manager import ParameterManager
 
 
 class TestFrame(QiskitTestCase):
@@ -34,10 +35,16 @@ class TestFrame(QiskitTestCase):
 
     def test_parameter(self):
         """Test parameter assignment."""
+        parameter_manager = ParameterManager()
         param = Parameter('a')
         frame = pulse.Frame(param)
         self.assertTrue(frame.is_parameterized())
-        self.assertEqual(frame.assign(param, 123), pulse.Frame(123))
+
+        parameter_manager.update_parameter_table(frame)
+        new_frame = parameter_manager.assign_parameters(frame, {param: 123})
+
+        self.assertEqual(new_frame, pulse.Frame(123))
+        self.assertEqual(frame, pulse.Frame(param))
 
 
 class TestResolvedFrames(QiskitTestCase):
