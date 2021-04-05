@@ -13,13 +13,14 @@
 """Basic rescheduling functions which take schedule or instructions and return new schedules."""
 
 
-from typing import Dict, List, Optional, Iterable, Union
+from typing import Dict
 
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.resolved_frame import ResolvedFrame, ChannelTracker
 from qiskit.pulse.library import Signal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse import channels as chans, instructions
+from qiskit.pulse.frame import Frame
 
 
 
@@ -70,9 +71,9 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[int, Dict]) -> Schedu
     sched = Schedule(name=schedule.name, metadata=schedule.metadata)
 
     for time, inst in schedule.instructions:
-        chan = inst.channel
-
         if isinstance(inst, instructions.Play):
+            chan = inst.channel
+
             if isinstance(inst.operands[0], Signal):
                 frame_idx = inst.operands[0].frame.index
 
@@ -115,10 +116,14 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[int, Dict]) -> Schedu
 
         # Insert phase and frequency commands that are not applied to frames.
         elif isinstance(inst, (instructions.SetFrequency, instructions.ShiftFrequency)):
+            chan = inst.channel
+
             if issubclass(type(chan), chans.PulseChannel):
                 sched.insert(time, type(inst)(inst.frequency, chan), inplace=True)
 
         elif isinstance(inst, (instructions.SetPhase, instructions.ShiftPhase)):
+            chan = inst.channel
+            
             if issubclass(type(chan), chans.PulseChannel):
                 sched.insert(time, type(inst)(inst.phase, chan), inplace=True)
 
