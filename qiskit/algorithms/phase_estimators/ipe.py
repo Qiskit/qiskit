@@ -41,15 +41,20 @@ class IterativePhaseEstimation:
         """Args:
             num_iterations: The number of iterations (rounds) of the phase estimation to run.
             quantum_instance: The quantum instance on which the circuit will be run.
+
+          Raises:
+            ValueError: if num_iterations is not greater than zero.
         """
         if isinstance(quantum_instance, (Backend, BaseBackend)):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
+        if num_iterations <= 0:
+            raise ValueError('`num_iterations` must be greater than zero.')
         self._num_iterations = num_iterations
 
     def construct_circuit(self,
-                          unitary,
-                          state_preparation,
+                          unitary: QuantumCircuit,
+                          state_preparation: QuantumCircuit,
                           k: int,
                           omega: float = 0,
                           measurement: bool = False) -> QuantumCircuit:

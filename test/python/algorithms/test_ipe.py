@@ -23,13 +23,13 @@ class TestIterativePhaseEstimation(QiskitAlgorithmsTestCase):
     """Evolution tests."""
 
     # pylint: disable=invalid-name
-    def one_phase(self, unitary_circuit, state_preparation=None, n_eval_qubits=6,
+    def one_phase(self, unitary_circuit, state_preparation=None, num_iterations=6,
                   backend=qiskit.BasicAer.get_backend('qasm_simulator')):
         """Run phase estimation with operator, eigenvalue pair `unitary_circuit`,
         `state_preparation`. Return the estimated phase as a value in :math:`[0,1)`.
         """
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
-        p_est = IterativePhaseEstimation(num_iterations=n_eval_qubits, quantum_instance=qi)
+        p_est = IterativePhaseEstimation(num_iterations=num_iterations, quantum_instance=qi)
         result = p_est.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
         phase = result.phase
         return phase
@@ -83,6 +83,13 @@ class TestIterativePhaseEstimation(QiskitAlgorithmsTestCase):
         state_preparation.append(H.to_circuit(), [0])  # prepare |->
         phase = self.one_phase(unitary_circuit, state_preparation)
         self.assertEqual(phase, 0.5)
+
+    def test_check_num_iterations(self):
+        """test check for num_iterations greater than zero"""
+        unitary_circuit = X.to_circuit()
+        state_preparation = None
+        with self.assertRaises(ValueError):
+            self.one_phase(unitary_circuit, state_preparation, num_iterations=-1)
 
 
 if __name__ == '__main__':
