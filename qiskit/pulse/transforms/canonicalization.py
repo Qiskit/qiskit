@@ -36,8 +36,9 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
 
     Raises:
         UnassignedDurationError: When any instruction duration is not assigned.
+        PulseError: When the alignment context duration is shorter than the schedule duration.
 
-    .. note:: This transform inserts barriers in between contexts.
+    .. note:: This transform may insert barriers in between contexts.
     """
     if not block.is_schedulable():
         raise UnassignedDurationError(
@@ -55,7 +56,7 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
                 if post_buffer < 0:
                     raise PulseError(f'ScheduleBlock {op_data.name} has longer duration than '
                                      'the specified context duration '
-                                     f'{context_schedule.duration}.> {op_data.duration}.')
+                                     f'{context_schedule.duration} > {op_data.duration}.')
             else:
                 post_buffer = 0
             schedule.append(context_schedule, inplace=True)

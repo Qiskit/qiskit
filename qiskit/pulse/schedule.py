@@ -31,7 +31,7 @@ import numpy as np
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
-from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
+from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.utils import instruction_duration_validation, deprecated_functionality
 from qiskit.utils.multiprocessing import is_main_process
@@ -780,11 +780,7 @@ def _require_schedule_conversion(function: Callable) -> Callable:
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         from qiskit.pulse.transforms import block_to_schedule
-        if self.is_schedulable():
-            return function(block_to_schedule(self), *args, **kwargs)
-        raise UnassignedDurationError('This method requires all durations to be assigned with '
-                                      'some integer value. Please check `.parameters` to find '
-                                      'unassigned parameter objects.')
+        return function(block_to_schedule(self), *args, **kwargs)
     return wrapper
 
 

@@ -11,15 +11,13 @@
 # that they have been altered from the originals.
 """A collection of set of transforms."""
 
-# TODO: replace this with proper pulse transformation passes
+# TODO: replace this with proper pulse transformation passes. Qiskit-terra/#6121
 
 from typing import Union, Iterable, Tuple
 
-from qiskit.pulse import transforms
-from qiskit.pulse.schedule import ScheduleBlock, Schedule
 from qiskit.pulse.instructions import Instruction
-from qiskit.pulse.exceptions import PulseError
-
+from qiskit.pulse.schedule import ScheduleBlock, Schedule
+from qiskit.pulse.transforms import canonicalization
 
 InstructionSched = Union[Tuple[int, Instruction], Instruction]
 
@@ -37,29 +35,23 @@ def base_qobj_transform(sched: Union[ScheduleBlock,
 
     Returns:
         Transformed program for execution.
-
-    Raises:
-        PulseError: When input program cannot be converted into ``Schedule``.
     """
     if not isinstance(sched, Schedule):
         # convert into schedule representation
         if isinstance(sched, ScheduleBlock):
-            sched = transforms.block_to_schedule(sched)
+            sched = canonicalization.block_to_schedule(sched)
         else:
-            try:
-                sched = Schedule(*_format_schedule_component(sched))
-            except PulseError:
-                raise PulseError('Input schedule is not valid data format.')
+            sched = Schedule(*_format_schedule_component(sched))
 
     # remove subroutines, i.e. Call instructions
-    sched = transforms.inline_subroutines(sched)
+    sched = canonicalization.inline_subroutines(sched)
 
     # inline nested schedules
-    sched = transforms.flatten(sched)
+    sched = canonicalization.flatten(sched)
 
     # remove directives, e.g. barriers
     if remove_directives:
-        sched = transforms.remove_directives(sched)
+        sched = canonicalization.remove_directives(sched)
 
     return sched
 
@@ -74,6 +66,6 @@ def _format_schedule_component(sched: Union[InstructionSched, Iterable[Instructi
             # (t0, inst) tuple
             return [sched]
         else:
-            return sched
+            return list(sched)
     else:
         return [sched]
