@@ -21,6 +21,7 @@ from qiskit.pulse import channels as chans, instructions
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
 from qiskit.pulse.utils import instruction_duration_validation
+from qiskit.pulse.frame import Frame
 
 
 class AlignmentKind(abc.ABC):
@@ -69,7 +70,7 @@ class AlignLeft(AlignmentKind):
     """
     is_sequential = False
 
-    def align(self, schedule: Schedule) -> Schedule:
+    def align(self, schedule: Schedule, ignore_frames: bool = False) -> Schedule:
         """Reallocate instructions according to the policy.
 
         Only top-level sub-schedules are aligned. If sub-schedules are nested,
@@ -77,23 +78,30 @@ class AlignLeft(AlignmentKind):
 
         Args:
             schedule: Schedule to align.
+            ignore_frames: If true then frame instructions will be ignore. This
+                should be set to true if the played Signals in this context
+                do not share any frames.
 
         Returns:
             Schedule with reallocated instructions.
         """
         aligned = Schedule()
         for _, child in schedule._children:
-            self._push_left_append(aligned, child)
+            self._push_left_append(aligned, child, ignore_frames)
         return aligned
 
     @staticmethod
-    def _push_left_append(this: Schedule, other: ScheduleComponent) -> Schedule:
+    def _push_left_append(this: Schedule, other: ScheduleComponent,
+                          ignore_frames: bool) -> Schedule:
         """Return ``this`` with ``other`` inserted at the maximum time over
         all channels shared between ```this`` and ``other``.
 
         Args:
             this: Input schedule to which ``other`` will be inserted.
             other: Other schedule to insert.
+            ignore_frames: If true then frame instructions will be ignore. This
+                should be set to true if the played Signals in this context
+                do not share any frames.
 
         Returns:
             Push left appended schedule.
@@ -101,6 +109,14 @@ class AlignLeft(AlignmentKind):
         this_channels = set(this.channels)
         other_channels = set(other.channels)
         shared_channels = list(this_channels & other_channels)
+
+        # Conservatively assume that a Frame instruction could impact all channels
+        if not ignore_frames:
+            for ch in this_channels | other_channels:
+                if isinstance(ch, Frame):
+                    shared_channels = list(this_channels | other_channels)
+                    break
+
         ch_slacks = [this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
                      for channel in shared_channels]
 
@@ -125,7 +141,7 @@ class AlignRight(AlignmentKind):
     """
     is_sequential = False
 
-    def align(self, schedule: Schedule) -> Schedule:
+    def align(self, schedule: Schedule, ignore_frames: bool = False) -> Schedule:
         """Reallocate instructions according to the policy.
 
         Only top-level sub-schedules are aligned. If sub-schedules are nested,
@@ -133,17 +149,22 @@ class AlignRight(AlignmentKind):
 
         Args:
             schedule: Schedule to align.
+            ignore_frames: If true then frame instructions will be ignore. This
+                should be set to true if the played Signals in this context
+                do not share any frames.
 
         Returns:
             Schedule with reallocated instructions.
         """
         aligned = Schedule()
         for _, child in reversed(schedule._children):
-            aligned = self._push_right_prepend(aligned, child)
+            aligned = self._push_right_prepend(aligned, child, ignore_frames)
         return aligned
 
     @staticmethod
-    def _push_right_prepend(this: ScheduleComponent, other: ScheduleComponent) -> Schedule:
+    def _push_right_prepend(this: ScheduleComponent,
+                            other: ScheduleComponent,
+                            ignore_frames: bool) -> Schedule:
         """Return ``this`` with ``other`` inserted at the latest possible time
         such that ``other`` ends before it overlaps with any of ``this``.
 
@@ -160,6 +181,14 @@ class AlignRight(AlignmentKind):
         this_channels = set(this.channels)
         other_channels = set(other.channels)
         shared_channels = list(this_channels & other_channels)
+
+        # Conservatively assume that a Frame instruction could impact all channels
+        if not ignore_frames:
+            for ch in this_channels | other_channels:
+                if isinstance(ch, Frame):
+                    shared_channels = list(this_channels | other_channels)
+                    break
+
         ch_slacks = [this.ch_start_time(channel) - other.ch_stop_time(channel)
                      for channel in shared_channels]
 
@@ -396,32 +425,38 @@ def pad(schedule: Schedule,
     return schedule
 
 
-def align_left(schedule: Schedule) -> Schedule:
+def align_left(schedule: Schedule, ignore_frames: bool = False) -> Schedule:
     """Align a list of pulse instructions on the left.
 
     Args:
         schedule: Input schedule of which top-level sub-schedules will be rescheduled.
+        ignore_frames: If true then frame instructions will be ignore. This
+            should be set to true if the played Signals in this context
+            do not share any frames.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
         left aligned.
     """
     context = AlignLeft()
-    return context.align(schedule)
+    return context.align(schedule, ignore_frames)
 
 
-def align_right(schedule: Schedule) -> Schedule:
+def align_right(schedule: Schedule, ignore_frames: bool = False) -> Schedule:
     """Align a list of pulse instructions on the right.
 
     Args:
         schedule: Input schedule of which top-level sub-schedules will be rescheduled.
+        ignore_frames: If true then frame instructions will be ignore. This
+            should be set to true if the played Signals in this context
+            do not share any frames.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
         right aligned.
     """
     context = AlignRight()
-    return context.align(schedule)
+    return context.align(schedule, ignore_frames)
 
 
 def align_sequential(schedule: Schedule) -> Schedule:

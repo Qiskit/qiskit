@@ -123,7 +123,7 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[int, Dict]) -> Schedu
 
         elif isinstance(inst, (instructions.SetPhase, instructions.ShiftPhase)):
             chan = inst.channel
-            
+
             if issubclass(type(chan), chans.PulseChannel):
                 sched.insert(time, type(inst)(inst.phase, chan), inplace=True)
 
