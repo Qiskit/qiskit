@@ -87,9 +87,9 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
         max_credits: Maximum credits to spend on job. Default: 10
         seed_simulator: Random seed to control sampling, for when backend is a simulator
         qubit_lo_freq: List of qubit LO frequencies in Hz. Will be overridden by ``schedule_los`` if
-            set.
+            set on pulse jobs.
         meas_lo_freq: List of measurement LO frequencies in Hz. Will be overridden by
-            ``schedule_los`` if set.
+            ``schedule_los`` if set on pulse jobs.
         qubit_lo_range: List of drive LO ranges each of form ``[range_min, range_max]`` in Hz.
             Used to validate the supplied qubit frequencies.
         meas_lo_range: List of measurement LO ranges each of form ``[range_min, range_max]`` in Hz.

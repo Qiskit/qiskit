@@ -43,7 +43,7 @@ def execute(experiments, backend,
             seed_transpiler=None, optimization_level=None, pass_manager=None,
             qobj_id=None, qobj_header=None, shots=None,  # common run options
             memory=False, max_credits=None, seed_simulator=None,
-            default_qubit_los=None, default_meas_los=None,  # schedule run options
+            qubit_lo_freq=None, meas_lo_freq=None,  # schedule run options
             schedule_los=None, meas_level=None,
             meas_return=None,
             memory_slots=None, memory_slot_size=None, rep_time=None, rep_delay=None,
@@ -149,9 +149,11 @@ def execute(experiments, backend,
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
-        default_qubit_los (list): List of default qubit LO frequencies in Hz
+        qubit_lo_freq (Optional[List[float]]): List of qubit LO frequencies in Hz. Will be
+            overridden by ``schedule_los`` if set on pulse jobs.
 
-        default_meas_los (list): List of default meas LO frequencies in Hz
+        meas_lo_freq (Optional[List[float]]): List of meas LO frequencies in Hz. Will be
+            overridden by ``schedule_los`` if set on pulse jobs.
 
         schedule_los (None or list or dict or LoConfig): Experiment LO
             configurations, if specified the list is in the format::
@@ -285,8 +287,8 @@ def execute(experiments, backend,
                         memory=memory,
                         max_credits=max_credits,
                         seed_simulator=seed_simulator,
-                        default_qubit_los=default_qubit_los,
-                        default_meas_los=default_meas_los,
+                        qubit_lo_freq=qubit_lo_freq,
+                        meas_lo_freq=meas_lo_freq,
                         schedule_los=schedule_los,
                         meas_level=meas_level,
                         meas_return=meas_return,
@@ -310,8 +312,8 @@ def execute(experiments, backend,
             'shots': shots,
             'memory': memory,
             'seed_simulator': seed_simulator,
-            'default_qubit_los': default_qubit_los,
-            'default_meas_los': default_meas_los,
+            'qubit_lo_freq': qubit_lo_freq,
+            'meas_lo_freq': meas_lo_freq,
             'schedule_los': schedule_los,
             'meas_level': meas_level,
             'meas_return': meas_return,
