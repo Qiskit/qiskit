@@ -92,14 +92,14 @@ for nts in num_time_steps:
                 print('depth ', d)
                 print('---------------------------------------------------------------------')
                 t0 = time.time()
-                # varqite_snapshot_dir = os.path.join('..', 'output_maxcut', 'imag',
-                #                                     str(nts)+' depth '+str(d),
-                #                                     reg_names[j],
-                #                                     ode_solvers_names[k] + 'nat_grad')
-                varqite_snapshot_dir = os.path.join('/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output/MaxCut', 'output_maxcut', 'imag',
-                                                    str(nts)+'_depth_'+str(d),
+                varqite_snapshot_dir = os.path.join('..', 'output_maxcut', 'imag',
+                                                    str(nts)+' depth '+str(d),
                                                     reg_names[j],
-                                                    ode_solvers_names[k] + 'error')
+                                                    ode_solvers_names[k] + 'nat_grad')
+                # varqite_snapshot_dir = os.path.join('/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output/MaxCut', 'output_maxcut', 'imag',
+                #                                     str(nts)+'_depth_'+str(d),
+                #                                     reg_names[j],
+                #                                     ode_solvers_names[k] + 'error')
                 varqite = VarQITE(parameters=parameters, grad_method='lin_comb',
                                   init_parameter_values=init_param_values,
                                   num_time_steps=nts,
@@ -110,16 +110,16 @@ for nts in num_time_steps:
                                   snapshot_dir=varqite_snapshot_dir)
                 # approx_time_evolved_state_imag = varqite.convert(op)
                 varqite._operator = op / op.coeff
-                varqite_error_bounds, varqite_reverse_error_bounds, trunc_bounds = \
+                varqite_error_bounds, varqite_reverse_error_bounds = \
                     varqite.error_bound(
-                    varqite_snapshot_dir, imag_reverse_bound=True, trunc_bound=True,
+                    varqite_snapshot_dir, imag_reverse_bound=True,
                     H=observable.to_matrix(massive=True))
                 np.save(os.path.join(varqite_snapshot_dir, 'error_bounds.npy'),
                         varqite_error_bounds)
                 np.save(os.path.join(varqite_snapshot_dir, 'reverse_error_bounds.npy'),
                         varqite_reverse_error_bounds)
-                np.save(os.path.join(varqite_snapshot_dir, 'trunc_error_bound.npy'),
-                        trunc_bounds)
+                # np.save(os.path.join(varqite_snapshot_dir, 'trunc_error_bound.npy'),
+                #         trunc_bounds)
                 # dir_fast = '../output/imag/10/ridge/RK45error'
                 # varqite.print_results([dir_fast], [os.path.join(dir_fast,
                 #                                                'error_bounds.npy')])

@@ -202,7 +202,7 @@ class VarQITE(VarQTE):
             gradient_error_factors_truncated = []
             for p in range(len(gradient_error_factors)):
                 if np.abs(gradient_error_factors[p] - gradient_error_factors[p+1]) <= np.quantile(
-                        gradient_error_factors, 0.5):
+                        gradient_error_factors, 0.05):
                     gradient_error_factors_truncated.extend(gradient_error_factors[p:])
                     trunc_gradient_errors = []
                     trunc_gradient_errors.extend(gradient_errors[p:])
