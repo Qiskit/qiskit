@@ -39,29 +39,36 @@ def _log_assembly_time(start_time, end_time):
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
-def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, List[Schedule]],
-             backend: Optional[Union[Backend, BaseBackend]] = None,
-             qobj_id: Optional[str] = None,
-             qobj_header: Optional[Union[QobjHeader, Dict]] = None,
-             shots: Optional[int] = None, memory: Optional[bool] = False,
-             max_credits: Optional[int] = None,
-             seed_simulator: Optional[int] = None,
-             qubit_lo_freq: Optional[List[float]] = None,
-             meas_lo_freq: Optional[List[float]] = None,
-             qubit_lo_range: Optional[List[float]] = None,
-             meas_lo_range: Optional[List[float]] = None,
-             schedule_los: Optional[Union[List[Union[Dict[PulseChannel, float], LoConfig]],
-                                          Union[Dict[PulseChannel, float], LoConfig]]] = None,
-             meas_level: Union[int, MeasLevel] = MeasLevel.CLASSIFIED,
-             meas_return: Union[str, MeasReturnType] = MeasReturnType.AVERAGE,
-             meas_map: Optional[List[List[Qubit]]] = None,
-             memory_slot_size: int = 100,
-             rep_time: Optional[int] = None,
-             rep_delay: Optional[float] = None,
-             parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
-             parametric_pulses: Optional[List[str]] = None,
-             init_qubits: bool = True,
-             **run_config: Dict) -> Qobj:
+def assemble(
+    experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, List[Schedule]],
+    backend: Optional[Union[Backend, BaseBackend]] = None,
+    qobj_id: Optional[str] = None,
+    qobj_header: Optional[Union[QobjHeader, Dict]] = None,
+    shots: Optional[int] = None,
+    memory: Optional[bool] = False,
+    max_credits: Optional[int] = None,
+    seed_simulator: Optional[int] = None,
+    qubit_lo_freq: Optional[List[float]] = None,
+    meas_lo_freq: Optional[List[float]] = None,
+    qubit_lo_range: Optional[List[List[float]]] = None,
+    meas_lo_range: Optional[List[List[float]]] = None,
+    schedule_los: Optional[
+        Union[
+            List[Union[Dict[PulseChannel, float], LoConfig]],
+            Union[Dict[PulseChannel, float], LoConfig],
+        ]
+    ] = None,
+    meas_level: Union[int, MeasLevel] = MeasLevel.CLASSIFIED,
+    meas_return: Union[str, MeasReturnType] = MeasReturnType.AVERAGE,
+    meas_map: Optional[List[List[Qubit]]] = None,
+    memory_slot_size: int = 100,
+    rep_time: Optional[int] = None,
+    rep_delay: Optional[float] = None,
+    parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
+    parametric_pulses: Optional[List[str]] = None,
+    init_qubits: bool = True,
+    **run_config: Dict
+) -> Qobj:
     """Assemble a list of circuits or pulse schedules into a ``Qobj``.
 
     This function serializes the payloads, which could be either circuits or schedules,
@@ -86,14 +93,14 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
             measurement level 2 supports this option.
         max_credits: Maximum credits to spend on job. Default: 10
         seed_simulator: Random seed to control sampling, for when backend is a simulator
-        qubit_lo_freq: List of qubit LO frequencies in Hz. Will be overridden by ``schedule_los`` if
-            set on pulse jobs.
+        qubit_lo_freq: List of qubit drive LO frequencies in Hz. Will be overridden by
+        ``schedule_los`` if set on pulse jobs. Must have length ``n_qubits.``
         meas_lo_freq: List of measurement LO frequencies in Hz. Will be overridden by
-            ``schedule_los`` if set on pulse jobs.
+            ``schedule_los`` if set on pulse jobs. Must have length ``n_qubits.``
         qubit_lo_range: List of drive LO ranges each of form ``[range_min, range_max]`` in Hz.
-            Used to validate the supplied qubit frequencies.
+            Used to validate the supplied qubit drive frequencies. Must have length ``n_qubits.``
         meas_lo_range: List of measurement LO ranges each of form ``[range_min, range_max]`` in Hz.
-            Used to validate the supplied qubit frequencies.
+            Used to validate the supplied measurement frequencies. Must have length ``n_qubits.``
         schedule_los: Experiment LO configurations, frequencies are given in Hz.
         meas_level: Set the appropriate level of the measurement output for pulse experiments.
         meas_return: Level of measurement data for the backend to return.
@@ -219,15 +226,21 @@ def _parse_common_args(
             and determines the runtime environment.
 
     Raises:
-        QiskitError: if the memory arg is True and the backend does not support
-            memory. Also if shots exceeds max_shots for the configured backend. Also if
-            the type of shots is not int.
+        QiskitError:
+            - If the memory arg is True and the backend does not support memory.
+            - If ``shots`` exceeds ``max_shots`` for the configured backend.
+            - If ``shots`` are not int type.
+            - If any of qubit or meas lo's, or associated ranges do not have length equal to
+            ``n_qubits``.
+            - If qubit or meas lo's do not fit into perscribed ranges.
     """
     # grab relevant info from backend if it exists
     backend_config = None
     backend_defaults = None
+    n_qubits = None
     if backend:
         backend_config = backend.configuration()
+        n_qubits = backend_config.n_qubits
         # check for memory flag applied to backend that does not support memory
         if memory and not backend_config.memory:
             raise QiskitError("memory not supported by backend {}"
@@ -280,9 +293,12 @@ def _parse_common_args(
 
     qubit_lo_freq = qubit_lo_freq or getattr(backend_defaults, 'qubit_freq_est', None)
     meas_lo_freq = meas_lo_freq or getattr(backend_defaults, 'meas_freq_est', None)
-    # TODO: Lo range should check the lo freq values
+
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
+
+    # check lo frequencies
+    _check_lo_freqs(qubit_lo_freq, meas_lo_freq, qubit_lo_range, meas_lo_range, n_qubits)
 
     # create run configuration and populate
     run_config_dict = dict(shots=shots,
@@ -298,6 +314,72 @@ def _parse_common_args(
                            **run_config)
 
     return qobj_id, qobj_header, run_config_dict
+
+
+def _check_lo_freqs(
+    qubit_lo_freq: Union[None, List[float]],
+    meas_lo_freq: Union[None, List[float]],
+    qubit_lo_range: Union[None, List[List[float]]],
+    meas_lo_range: Union[None, List[List[float]]],
+    n_qubits: Union[None, int],
+):
+    """Check lo frequency arrays are the correct size and in range.
+
+    Args:
+        qubit_lo_freq:
+        meas_lo_freq:
+        qubit_lo_range:
+
+    """
+    # only check if is a valid number of qubits in system
+    if not n_qubits:
+        return
+
+    # verify length of lo freqs if used
+    if qubit_lo_freq and len(qubit_lo_freq) != n_qubits:
+        raise QiskitError(
+            "Length of qubit_lo_freq is %s. It must be equal to %s, the number of qubits on "
+            "this backend." % (len(qubit_lo_freq), n_qubits)
+        )
+    if meas_lo_freq and len(meas_lo_freq) != n_qubits:
+        raise QiskitError(
+            "Length of meas_lo_freq is %s. It must be equal to %s, the number of qubits on "
+            "this backend." % (len(meas_lo_freq), n_qubits)
+        )
+
+    # verify length of lo ranges if used
+    if qubit_lo_range and len(qubit_lo_range) != n_qubits:
+        raise QiskitError(
+            "Length of qubit_lo_range is %s. It must be equal to %s, the number of qubits on "
+            "this backend." % (len(qubit_lo_range), n_qubits)
+        )
+    if meas_lo_range and len(meas_lo_range) != n_qubits:
+        raise QiskitError(
+            "Length of meas_lo_range is %s. It must be equal to %s, the number of qubits on "
+            "this backend." % (len(meas_lo_range), n_qubits)
+        )
+
+    # verify qubit lo's in range
+    if qubit_lo_freq and qubit_lo_range:
+        for i in range(n_qubits):
+            qub_lo = qubit_lo_freq[i]
+            qub_range = qubit_lo_range[i]
+            if not (isinstance(qub_range, list) and len(qub_range) == 2):
+                raise QiskitError("Each element of qubit_lo_range must be a 2d list.")
+            if qub_lo < qub_range[0] or qub_lo > qub_range[1]:
+                raise QiskitError("Qubit %s drive lo freq is %s. The range is [%s, %s]."\
+                                  % (i, qub_lo, qub_range[0], qub_range[1]))
+
+    # verify meas lo's in range
+    if meas_lo_freq and meas_lo_range:
+        for i in range(n_qubits):
+            meas_lo = meas_lo_freq[i]
+            meas_range = meas_lo_range[i]
+            if not (isinstance(meas_range, list) and len(meas_range) == 2):
+                raise QiskitError("Each element of meas_lo_range must be a 2d list.")
+            if meas_lo < meas_range[0] or meas_lo > meas_range[1]:
+                raise QiskitError("Qubit %s measurement lo freq is %s. The range is [%s, %s]."
+                                  % (i, meas_lo, meas_range[0], meas_range[1]))
 
 
 def _parse_pulse_args(

@@ -320,6 +320,7 @@ class QasmBackendConfiguration:
         if processor_type is not None:
             self.processor_type = processor_type
 
+        # convert lo range from GHz to Hz
         if 'qubit_lo_range' in kwargs.keys():
             kwargs['qubit_lo_range'] = [[min_range * 1e9, max_range * 1e9] for
                                         (min_range, max_range) in kwargs['qubit_lo_range']]
@@ -400,15 +401,16 @@ class QasmBackendConfiguration:
         if 'dtm' in out_dict:
             out_dict['dtm'] *= 1e9
 
+        # Use GHz in dict
         if 'qubit_lo_range' in out_dict:
             out_dict['qubit_lo_range'] = [
-                [min_range * 1e9, max_range * 1e9] for
+                [min_range * 1e-9, max_range * 1e-9] for
                 (min_range, max_range) in out_dict['qubit_lo_range']
             ]
 
         if 'meas_lo_range' in out_dict:
             out_dict['meas_lo_range'] = [
-                [min_range * 1e9, max_range * 1e9] for
+                [min_range * 1e-9, max_range * 1e-9] for
                 (min_range, max_range) in out_dict['meas_lo_range']
             ]
 
@@ -544,9 +546,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         self.u_channel_lo = u_channel_lo
         self.meas_levels = meas_levels
         self.qubit_lo_range = [[min_range * 1e9, max_range * 1e9] for
-                               (min_range, max_range) in qubit_lo_range]
+                               (min_range, max_range) in qubit_lo_range]  # convert from GHz to Hz
         self.meas_lo_range = [[min_range * 1e9, max_range * 1e9] for
-                              (min_range, max_range) in meas_lo_range]
+                              (min_range, max_range) in meas_lo_range]   # convert from GHz to Hz
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
@@ -649,6 +651,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             out_dict.pop('_channel_qubit_map')
             out_dict.pop('_control_channels')
 
+        # Use GHz in dict
         if self.qubit_lo_range:
             out_dict['qubit_lo_range'] = [
                 [min_range * 1e-9, max_range * 1e-9] for

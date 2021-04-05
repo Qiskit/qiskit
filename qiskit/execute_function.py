@@ -44,6 +44,7 @@ def execute(experiments, backend,
             qobj_id=None, qobj_header=None, shots=None,  # common run options
             memory=False, max_credits=None, seed_simulator=None,
             qubit_lo_freq=None, meas_lo_freq=None,  # schedule run options
+            qubit_lo_range=None, meas_lo_range=None,
             schedule_los=None, meas_level=None,
             meas_return=None,
             memory_slots=None, memory_slot_size=None, rep_time=None, rep_delay=None,
@@ -149,11 +150,19 @@ def execute(experiments, backend,
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
-        qubit_lo_freq (Optional[List[float]]): List of qubit LO frequencies in Hz. Will be
-            overridden by ``schedule_los`` if set on pulse jobs.
+        qubit_lo_freq (Optional[List[float]]): List of qubit drive LO frequencies in Hz. Will be
+            overridden by ``schedule_los`` if set on pulse jobs. Must have length ``n_qubits.``
 
-        meas_lo_freq (Optional[List[float]]): List of meas LO frequencies in Hz. Will be
-            overridden by ``schedule_los`` if set on pulse jobs.
+        meas_lo_freq (Optional[List[float]]): List of measurement LO frequencies in Hz. Will be
+            overridden by ``schedule_los`` if set on pulse jobs. Must have length ``n_qubits.``
+
+        qubit_lo_range (Optional[List[List[float]]]): List of drive LO ranges each of form
+            ``[range_min, range_max]`` in Hz. Used to validate the supplied qubit drive frequencies.
+            Must have length ``n_qubits.``
+
+        meas_lo_range (Optional[List[List[float]]]): List of measurement LO ranges each of form
+            ``[range_min, range_max]`` in Hz. Used to validate the supplied measurement frequencies.
+            Must have length ``n_qubits.``
 
         schedule_los (None or list or dict or LoConfig): Experiment LO
             configurations, if specified the list is in the format::
@@ -289,6 +298,8 @@ def execute(experiments, backend,
                         seed_simulator=seed_simulator,
                         qubit_lo_freq=qubit_lo_freq,
                         meas_lo_freq=meas_lo_freq,
+                        qubit_lo_range=qubit_lo_range,
+                        meas_lo_range=meas_lo_range,
                         schedule_los=schedule_los,
                         meas_level=meas_level,
                         meas_return=meas_return,
@@ -314,6 +325,8 @@ def execute(experiments, backend,
             'seed_simulator': seed_simulator,
             'qubit_lo_freq': qubit_lo_freq,
             'meas_lo_freq': meas_lo_freq,
+            'qubit_lo_range': qubit_lo_range,
+            'meas_lo_range': meas_lo_range,
             'schedule_los': schedule_los,
             'meas_level': meas_level,
             'meas_return': meas_return,

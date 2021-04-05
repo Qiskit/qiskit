@@ -1,0 +1,29 @@
+---
+features:
+  - |
+    The ability to pass qubit and measurement LO frequencies has now been added to circuit jobs. You
+    can use the fields ``qubit_lo_freq`` and ``meas_lo_freq`` as arguments to either ``execute`` or
+    ``assemble`` with circuit and pulse jobs. The fields are lists of floats representing
+    frequencies in Hz and are indexed by qubit number (entry 0 is qubit 0, entry 1 is qubit 1,
+    etc...). The length of the list must be equal to the number of qubits in the system. For
+    example, consider running circuit ``circ`` on some ``backend`` with 3 qubits. You want to use
+    qubit frequencies ``[5e9Hz, 4.9e9Hz, 5.1e9Hz]`` and measurement frequencies
+    ``[5.5e9Hz, 6.5e9Hz, 7.1e9Hz]``. This can be achieved by::
+
+      job = execute(circ, backend, qubit_lo_freq=[5e9, 4.9e9, 5.1e9], meas_lo_freq=[5.5e9, 6.5e9, 7.1e9])
+
+    or::
+
+      qobj = assemble(circ, backend, qubit_lo_freq=[5e9, 4.9e9, 5.1e9], meas_lo_freq=[5.5e9, 6.5e9, 7.1e9])
+
+    Support has also been added for returning ``qubit_lo_range`` and ``meas_lo_range`` from
+    qasm-only backends. This will allow users to determine reasonable values for ``qubit_lo_freq``
+    and ``meas_lo_freq``. These fields can be accessed by::
+
+      qubit_lo_range = backend.configuration().qubit_lo_range
+      meas_lo_range = backend.configuration().meas_lo_range
+
+fixes:
+  - |
+    Bug where ``qubit_lo_range`` and ``meas_lo_range`` were not being used to check
+    ``qubit_lo_freq`` and ``meas_lo_freq`` values.

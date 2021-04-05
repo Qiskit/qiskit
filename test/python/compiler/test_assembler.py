@@ -613,6 +613,110 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qubit_lo_freq_GHz, qobj.config.qubit_lo_freq)
         self.assertEqual(meas_lo_freq_GHz, qobj.config.meas_lo_freq)
 
+    def test_lo_errors(self):
+        """Test that lo's are checked against the lo ranges and that errors are thrown if either
+        quantity has an incorrect length or type."""
+        backend = FakeYorktown()
+        num_qubits = backend.configuration().n_qubits
+        qubit_lo_freq = [5e9 for _ in range(num_qubits)]
+        meas_lo_freq = [6.7e9 for _ in range(num_qubits)]
+        qubit_lo_range = [[freq - 5e6, freq + 5e6] for freq in qubit_lo_freq]
+        meas_lo_range = [[freq - 5e6, freq + 5e6] for freq in meas_lo_freq]
+
+        # invalid qubit lo list length
+        with self.assertRaises(QiskitError):
+            assemble(
+                self.circ,
+                backend=backend,
+                qubit_lo_freq=[4.9],
+                meas_lo_freq=meas_lo_freq,
+            )
+        # invalid meas lo list length
+        with self.assertRaises(QiskitError):
+            assemble(
+                self.circ,
+                backend=backend,
+                qubit_lo_freq=qubit_lo_freq,
+                meas_lo_freq=[6.7e9],
+            )
+
+        # invalid qubit lo range list length
+        with self.assertRaises(QiskitError):
+            assemble(
+                self.circ,
+                backend=backend,
+                qubit_lo_freq=qubit_lo_freq,
+                meas_lo_freq=meas_lo_freq,
+                qubit_lo_range=[[4.995e9, 5.005e9]],
+                meas_lo_range=meas_lo_range,
+            )
+
+        # invalid meas lo range list length
+        with self.assertRaises(QiskitError):
+            assemble(
+                self.circ,
+                backend=backend,
+                qubit_lo_freq=qubit_lo_freq,
+                meas_lo_freq=meas_lo_freq,
+                qubit_lo_range=[],
+                meas_lo_range=[[6.695e9, 6.705e9]],
+            )
+
+        # lo range not a nested list
+        with self.assertRaises(QiskitError):
+            assemble(
+                self.circ,
+                backend=backend,
+                qubit_lo_freq=qubit_lo_freq,
+                meas_lo_freq=meas_lo_freq,
+                qubit_lo_range=[4.995e9 for i in range(num_qubits)],
+                meas_lo_range=meas_lo_range,
+            )
+
+        # lo range inner list not 2d
+        with self.assertRaises(QiskitError):
+            assemble(
+                self.circ,
+                backend=backend,
+                qubit_lo_freq=qubit_lo_freq,
+                meas_lo_freq=meas_lo_freq,
+                qubit_lo_range=qubit_lo_range,
+                meas_lo_range=[[6.695e9] for i in range(num_qubits)],
+            )
+
+        # lo range inner list not 2d
+        with self.assertRaises(QiskitError):
+            assemble(
+                self.circ,
+                backend=backend,
+                qubit_lo_freq=qubit_lo_freq,
+                meas_lo_freq=meas_lo_freq,
+                qubit_lo_range=qubit_lo_range,
+                meas_lo_range=[[6.695e9] for i in range(num_qubits)],
+            )
+
+        # qubit lo out of range
+        with self.assertRaises(QiskitError):
+            assemble(
+                self.circ,
+                backend=backend,
+                qubit_lo_freq=qubit_lo_freq,
+                meas_lo_freq=meas_lo_freq,
+                qubit_lo_range=[[5.005e9, 5.010e9] for i in range(num_qubits)],
+                meas_lo_range=meas_lo_range,
+            )
+
+        # meas lo out of range
+        with self.assertRaises(QiskitError):
+            assemble(
+                self.circ,
+                backend=backend,
+                qubit_lo_freq=qubit_lo_freq,
+                meas_lo_freq=meas_lo_freq,
+                qubit_lo_range=qubit_lo_range,
+                meas_lo_range=[[6.705e9, 6.710e9] for i in range(num_qubits)],
+            )
+
     def test_qubit_meas_los_w_range(self):
         """Test that adding qubit/meas lo freq lists are assembled into the qobj.config, w/ lo
         ranges input. Verify that lo ranges do not enter into the config."""
