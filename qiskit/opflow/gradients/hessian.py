@@ -12,9 +12,11 @@
 
 """The module to compute Hessians."""
 
-from typing import Union, List, Tuple
-
+from typing import Union, List, Tuple, Optional
+import functools
 import numpy as np
+
+from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterVector, ParameterExpression
 from ..operator_globals import Zero, One
@@ -44,9 +46,9 @@ class Hessian(HessianBase):
     # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Union[Tuple[ParameterExpression, ParameterExpression],
-                              List[Tuple[ParameterExpression, ParameterExpression]],
-                              List[ParameterExpression], ParameterVector]
+                params: Optional[Union[Tuple[ParameterExpression, ParameterExpression],
+                                       List[Tuple[ParameterExpression, ParameterExpression]],
+                                       List[ParameterExpression], ParameterVector]] = None
                 ) -> OperatorBase:
         """
         Args:
@@ -54,7 +56,9 @@ class Hessian(HessianBase):
             params: The parameters we are computing the Hessian with respect to
                     Either give directly the tuples/list of tuples for which the second order
                     derivative is to be computed or give a list of parameters to build the
-                    full Hessian for those parameters.
+                    full Hessian for those parameters. If not explicitly passed, the full Hessian is
+                    constructed. The parameters are then inferred from the operator and sorted by
+                    name.
 
         Returns:
             OperatorBase: An operator whose evaluation yields the Hessian
@@ -67,20 +71,24 @@ class Hessian(HessianBase):
     # pylint: disable=too-many-return-statements
     def get_hessian(self,
                     operator: OperatorBase,
-                    params: Union[Tuple[ParameterExpression, ParameterExpression],
-                                  List[Tuple[ParameterExpression, ParameterExpression]]]
+                    params: Optional[Union[Tuple[ParameterExpression, ParameterExpression],
+                                     List[Tuple[ParameterExpression, ParameterExpression]],
+                                     List[ParameterExpression], ParameterVector]] = None
                     ) -> OperatorBase:
         """Get the Hessian for the given operator w.r.t. the given parameters
 
         Args:
             operator: Operator w.r.t. which we take the Hessian.
-            params: Parameters w.r.t. which we compute the Hessian.
+            params: Parameters w.r.t. which we compute the Hessian. If not explicitly passed,
+                the full Hessian is constructed. The parameters are then inferred from the operator
+                and sorted by name.
 
         Returns:
             Operator which represents the gradient w.r.t. the given params.
 
         Raises:
             ValueError: If ``params`` contains a parameter not present in ``operator``.
+            ValueError: If ``operator`` is not parameterized.
             OpflowError: If the coefficient of the operator could not be reduced to 1.
             OpflowError: If the differentiation of a combo_fn
                          requires JAX but the package is not installed.
@@ -89,6 +97,10 @@ class Hessian(HessianBase):
             Exception: Unintended code is reached
             MissingOptionalLibraryError: jax not installed
         """
+        if len(operator.parameters) == 0:
+            raise ValueError("The operator we are taking the gradient of is not parameterized!")
+        if params is None:
+            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
         # if input is a tuple instead of a list, wrap it into a list
         if isinstance(params, (ParameterVector, list)):
             # Case: a list of parameters were given, compute the Hessian for all param pairs

@@ -19,6 +19,10 @@ import warnings
 import numpy as np
 from scipy.optimize import least_squares
 
+import functools
+import numpy as np
+
+from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.exceptions import MissingOptionalLibraryError
 
@@ -77,12 +81,14 @@ class NaturalGradient(GradientBase):
     # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Union[ParameterVector, ParameterExpression, List[ParameterExpression]]
+                params: Optional[
+                    Union[ParameterVector, ParameterExpression, List[ParameterExpression]]] = None
                 ) -> OperatorBase:
         r"""
         Args:
             operator: The operator we are taking the gradient of.
-            params: The parameters we are taking the gradient with respect to.
+            params: The parameters we are taking the gradient with respect to. If not explicitly
+                passed, they are inferred from the operator and sorted by name.
 
         Returns:
             An operator whose evaluation yields the NaturalGradient.
@@ -91,6 +97,7 @@ class NaturalGradient(GradientBase):
             TypeError: If ``operator`` does not represent an expectation value or the quantum
                 state is not ``CircuitStateFn``.
             ValueError: If ``params`` contains a parameter not present in ``operator``.
+            ValueError: If ``operator`` is not parameterized.
         """
         if not isinstance(operator, ComposedOp):
             if not (isinstance(operator, ListOp) and len(operator.oplist) == 1):
@@ -102,6 +109,10 @@ class NaturalGradient(GradientBase):
                             'Quantum Fisher Information represents an expectation value or a '
                             'loss function and that the quantum state is given as '
                             'CircuitStateFn.')
+        if len(operator.parameters) == 0:
+            raise ValueError("The operator we are taking the gradient of is not parameterized!")
+        if params is None:
+            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
         if not isinstance(params, Iterable):
             params = [params]
         # Instantiate the gradient

@@ -1,0 +1,35 @@
+---
+upgrade:
+  - |
+    The previously deprecated ``mirror()`` method for
+    :class:`qiskit.circuit.QuantumCircuit` has been removed. It was deprecated
+    in the 0.15.0 release. The :meth:`qiskit.circuit.QuantumCircuit.reverse_ops`
+    method should be used instead since mirroring could be confused with
+    swapping the output qubits of the circuit. The ``reverse_ops()`` method
+    only reverses the order of gates that are applied instead of mirroring.
+  - |
+    The previously deprecated support passing a float (for the ``scale`` kwarg
+    as the first positional argument to the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` has been removed. It was
+    deprecated in the 0.12.0 release. The first positional argument to the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method is now the ``output``
+    kwarg which does not accept a float. Instead you should be using ``scale``
+    as a named kwarg instead of using it positionally.
+
+    For example, if you were previously calling ``draw`` with::
+
+      from qiskit import QuantumCircuit
+
+      qc = QuantumCircuit(2)
+      qc.draw(0.75, output='mpl')
+
+    this would now need to be::
+
+      from qiskit import QuantumCircuit
+
+      qc = QuantumCircuit(2)
+      qc.draw(output='mpl', scale=0.75)
+
+    or::
+
+      qc.draw('mpl', scale=0.75)

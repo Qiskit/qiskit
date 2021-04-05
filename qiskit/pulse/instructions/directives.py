@@ -13,7 +13,7 @@
 """Directives are hints to the pulse compiler for how to process its input programs."""
 
 from abc import ABC
-from typing import Optional
+from typing import Optional, Tuple
 
 from qiskit.pulse import channels as chans
 from qiskit.pulse.instructions import instruction
@@ -47,7 +47,12 @@ class RelativeBarrier(Directive):
             channels: The channel that the barrier applies to.
             name: Name of the directive for display purposes.
         """
-        super().__init__(tuple(channels), None, tuple(channels), name=name)
+        super().__init__(operands=tuple(channels), name=name)
+
+    @property
+    def channels(self) -> Tuple[chans.Channel]:
+        """Returns the channels that this schedule uses."""
+        return self.operands
 
     def __eq__(self, other):
         """Verify two barriers are equivalent."""

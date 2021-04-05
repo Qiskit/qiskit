@@ -12,9 +12,11 @@
 
 """The base interface for Opflow's gradient."""
 
-from typing import Union, List
-
+from typing import Union, List, Optional
+import functools
 import numpy as np
+
+from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterExpression, ParameterVector
 from ..expectations.pauli_expectation import PauliExpectation
@@ -41,20 +43,26 @@ class Gradient(GradientBase):
     # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Union[ParameterVector, ParameterExpression, List[ParameterExpression]]
+                params: Optional[
+                    Union[ParameterVector, ParameterExpression, List[ParameterExpression]]] = None
                 ) -> OperatorBase:
         r"""
         Args:
             operator: The operator we are taking the gradient of.
-            params: params: The parameters we are taking the gradient with respect to.
+            params: The parameters we are taking the gradient with respect to. If not
+                explicitly passed, they are inferred from the operator and sorted by name.
 
         Returns:
             An operator whose evaluation yields the Gradient.
 
         Raises:
             ValueError: If ``params`` contains a parameter not present in ``operator``.
+            ValueError: If ``operator`` is not parameterized.
         """
-
+        if len(operator.parameters) == 0:
+            raise ValueError("The operator we are taking the gradient of is not parameterized!")
+        if params is None:
+            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
         if isinstance(params, (ParameterVector, list)):
             param_grads = [self.convert(operator, param) for param in params]
             absent_params = [params[i]
