@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,broad-except,cyclic-import
+# pylint: disable=no-name-in-module,broad-except,cyclic-import,import-error
 
 """Contains the terra version."""
 
@@ -140,7 +140,6 @@ class QiskitVersion(Mapping):
             self._version_dict['qiskit-machine-learning'] = qiskit_machine_learning.__version__
         except Exception:
             self._version_dict['qiskit-machine-learning'] = None
-
         try:
             self._version_dict['qiskit'] = pkg_resources.get_distribution('qiskit').version
         except Exception:
