@@ -163,9 +163,9 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt .
+            python setup.py sdist
+            pip install -U -c constraints.txt dist/qiskit-terra*.tar.gz
             pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
-            python setup.py build_ext --inplace
             sudo apt install -y graphviz
             pip check
           displayName: 'Install dependencies'
