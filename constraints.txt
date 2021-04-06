@@ -1,3 +1,4 @@
 docplex==2.15.194
 appnope==0.1.0
 numpy>=1.20.0 ; python_version>'3.6'
+decorator==4.4.2

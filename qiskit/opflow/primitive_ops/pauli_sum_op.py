@@ -162,6 +162,11 @@ class PauliSumOp(PrimitiveOp):
                 self.primitive.tensor(other.primitive),
                 coeff=self.coeff * other.coeff,
             )
+        if isinstance(other, PauliOp):
+            return PauliSumOp(
+                self.primitive.tensor(other.primitive),
+                coeff=self.coeff * other.coeff,
+            )
 
         return TensoredOp([self, other])
 
@@ -210,13 +215,13 @@ class PauliSumOp(PrimitiveOp):
         # Both PauliSumOps
         if isinstance(other, PauliSumOp):
             return PauliSumOp(
-                new_self.primitive * other.primitive,
+                new_self.primitive.dot(other.primitive),
                 coeff=new_self.coeff * other.coeff,
             )
         if isinstance(other, PauliOp):
             other_primitive = SparsePauliOp(other.primitive)
             return PauliSumOp(
-                new_self.primitive * other_primitive,
+                new_self.primitive.dot(other_primitive),
                 coeff=new_self.coeff * other.coeff,
             )
 
