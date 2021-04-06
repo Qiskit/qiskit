@@ -70,9 +70,7 @@ class Unroller(TransformationPass):
 
             # TODO: allow choosing other possible decompositions
             try:
-                phase = 0
-                if node.op.definition and node.op.definition.global_phase:
-                    phase += node.op.definition.global_phase
+                phase = node.op.definition.global_phase
                 rule = node.op.definition.data
             except TypeError as err:
                 raise QiskitError(f'Error decomposing node {node.name}: {err}') from err
