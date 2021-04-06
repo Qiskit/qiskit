@@ -14,8 +14,8 @@
 
 import numpy as np
 
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit.library import QFT
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.library.basis_change import QFT
 
 from .adder import Adder
 

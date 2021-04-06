@@ -22,5 +22,3 @@ from .weighted_adder import WeightedAdder
 from .quadratic_form import QuadraticForm
 from .linear_amplitude_function import LinearAmplitudeFunction
 from .adders import ClassicalAdder, RippleCarryAdder, QFTAdder
-
-
