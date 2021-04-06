@@ -39,36 +39,29 @@ def _log_assembly_time(start_time, end_time):
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
-def assemble(
-    experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, List[Schedule]],
-    backend: Optional[Union[Backend, BaseBackend]] = None,
-    qobj_id: Optional[str] = None,
-    qobj_header: Optional[Union[QobjHeader, Dict]] = None,
-    shots: Optional[int] = None,
-    memory: Optional[bool] = False,
-    max_credits: Optional[int] = None,
-    seed_simulator: Optional[int] = None,
-    qubit_lo_freq: Optional[List[float]] = None,
-    meas_lo_freq: Optional[List[float]] = None,
-    qubit_lo_range: Optional[List[List[float]]] = None,
-    meas_lo_range: Optional[List[List[float]]] = None,
-    schedule_los: Optional[
-        Union[
-            List[Union[Dict[PulseChannel, float], LoConfig]],
-            Union[Dict[PulseChannel, float], LoConfig],
-        ]
-    ] = None,
-    meas_level: Union[int, MeasLevel] = MeasLevel.CLASSIFIED,
-    meas_return: Union[str, MeasReturnType] = MeasReturnType.AVERAGE,
-    meas_map: Optional[List[List[Qubit]]] = None,
-    memory_slot_size: int = 100,
-    rep_time: Optional[int] = None,
-    rep_delay: Optional[float] = None,
-    parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
-    parametric_pulses: Optional[List[str]] = None,
-    init_qubits: bool = True,
-    **run_config: Dict
-) -> Qobj:
+def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, List[Schedule]],
+             backend: Optional[Union[Backend, BaseBackend]] = None,
+             qobj_id: Optional[str] = None,
+             qobj_header: Optional[Union[QobjHeader, Dict]] = None,
+             shots: Optional[int] = None, memory: Optional[bool] = False,
+             max_credits: Optional[int] = None,
+             seed_simulator: Optional[int] = None,
+             qubit_lo_freq: Optional[List[float]] = None,
+             meas_lo_freq: Optional[List[float]] = None,
+             qubit_lo_range: Optional[List[float]] = None,
+             meas_lo_range: Optional[List[float]] = None,
+             schedule_los: Optional[Union[List[Union[Dict[PulseChannel, float], LoConfig]],
+                                          Union[Dict[PulseChannel, float], LoConfig]]] = None,
+             meas_level: Union[int, MeasLevel] = MeasLevel.CLASSIFIED,
+             meas_return: Union[str, MeasReturnType] = MeasReturnType.AVERAGE,
+             meas_map: Optional[List[List[Qubit]]] = None,
+             memory_slot_size: int = 100,
+             rep_time: Optional[int] = None,
+             rep_delay: Optional[float] = None,
+             parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
+             parametric_pulses: Optional[List[str]] = None,
+             init_qubits: bool = True,
+             **run_config: Dict) -> Qobj:
     """Assemble a list of circuits or pulse schedules into a ``Qobj``.
 
     This function serializes the payloads, which could be either circuits or schedules,
