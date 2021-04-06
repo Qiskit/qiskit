@@ -35,7 +35,7 @@ class ClassicalAdder(QuantumCircuit):
     registers is as follows:
 
     .. parsed-literal::
-        
+
                    ┌────────┐                                                   ┌────────┐┌──────┐
         input_a_0: ┤1       ├───────────────────────────────────────────────────┤1       ├┤1     ├
                    │        │┌────────┐                       ┌────────┐┌──────┐│        ││      │
@@ -56,9 +56,9 @@ class ClassicalAdder(QuantumCircuit):
             cin_1: ┤3       ├┤0       ├┤        ├─────┤      ├┤0       ├┤0     ├┤3       ├────────
                    └────────┘│        ││        │     │      ││        │└──────┘└────────┘
             cin_2: ──────────┤3       ├┤0       ├─────┤0     ├┤3       ├──────────────────────────
-                             └────────┘└────────┘     └──────┘└────────┘  
-      
-    
+                             └────────┘└────────┘     └──────┘└────────┘
+
+
     Here *Carry* and *Sum* gates correspond to the gates introduced in [1]. Note that
     in this implementation the input register qubits are ordered as all qubits from
     the first input register, followed by all qubits from the second input register.
@@ -74,8 +74,8 @@ class ClassicalAdder(QuantumCircuit):
     `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_
     """
 
-    def __init__(self, 
-                 num_state_qubits: int, 
+    def __init__(self,
+                 num_state_qubits: int,
                  name: str = 'ClassicalAdder'
                  ) -> None:
         """
@@ -96,14 +96,14 @@ class ClassicalAdder(QuantumCircuit):
         # initialize the circuit
         super().__init__(qr_a, qr_b, qr_cout, qr_cin, name=name)
 
-        #corresponds to Carry gate in [1]
+        # corresponds to Carry gate in [1]
         qc_carry = QuantumCircuit(4, name='Carry')
         qc_carry.ccx(1, 2, 3)
         qc_carry.cx(1, 2)
         qc_carry.ccx(0, 2, 3)
         qc_instruction_carry = qc_carry.to_instruction()
 
-        #corresponds to Sum gate in [1]
+        # corresponds to Sum gate in [1]
         qc_sum = QuantumCircuit(3, name='Sum')
         qc_sum.cx(1, 2)
         qc_sum.cx(0, 2)
@@ -125,4 +125,3 @@ class ClassicalAdder(QuantumCircuit):
         for j in reversed(range(num_state_qubits - 1)):
             self.append(qc_instruction_carry, [qr_cin[j], qr_a[j], qr_b[j], qr_cin[j+1]])
             self.append(qc_instruction_sum, [qr_cin[j], qr_a[j], qr_b[j]])
-
