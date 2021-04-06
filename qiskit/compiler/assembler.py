@@ -326,60 +326,77 @@ def _check_lo_freqs(
     """Check lo frequency arrays are the correct size and in range.
 
     Args:
-        qubit_lo_freq:
-        meas_lo_freq:
-        qubit_lo_range:
+        qubit_lo_freq: List of qubit lo frequencies.
+        meas_lo_freq: List of meas lo frequencies.
+        qubit_lo_range: List of allowed qubit lo frequencies. Each element is 2d list of form
+            ``[min_qubit_lo_freq, max_qubit_lo_freq]``.
+        meas_lo_range: List of allowed meas lo frequencies. Each element is 2d list of form
+            ``[min_meas_lo_freq, max_meas_lo_freq]``.
 
     """
     # only check if is a valid number of qubits in system
     if not n_qubits:
         return
 
-    # verify length of lo freqs if used
-    if qubit_lo_freq and len(qubit_lo_freq) != n_qubits:
+    _check_lo_range(qubit_lo_freq, qubit_lo_range, "qubit", n_qubits)
+    _check_lo_range(meas_lo_freq, meas_lo_range, "meas", n_qubits)
+
+
+def _check_lo_length(lo_list: Union[List[float], None], list_type: str, n_qubits: int):
+    """Check that lo lists have length equal to the number of qubits in the system.
+
+    Args:
+        lo_list: List involving lo frequencies--either the freqs themselves or the range of allowed
+            freqs.
+        list_type: Type of lo list--"qubit_lo_freq", "meas_lo_freq", "qubit_lo_range",
+            "meas_lo_range".
+        n_qubits: Number of qubits in the system.
+    """
+    if lo_list and len(lo_list) != n_qubits:
         raise QiskitError(
-            "Length of qubit_lo_freq is %s. It must be equal to %s, the number of qubits on "
-            "this backend." % (len(qubit_lo_freq), n_qubits)
-        )
-    if meas_lo_freq and len(meas_lo_freq) != n_qubits:
-        raise QiskitError(
-            "Length of meas_lo_freq is %s. It must be equal to %s, the number of qubits on "
-            "this backend." % (len(meas_lo_freq), n_qubits)
+            "Length of %s is %s. It must be equal to %s, the number of qubits on "
+            "this backend." % (list_type, len(lo_list), n_qubits)
         )
 
-    # verify length of lo ranges if used
-    if qubit_lo_range and len(qubit_lo_range) != n_qubits:
-        raise QiskitError(
-            "Length of qubit_lo_range is %s. It must be equal to %s, the number of qubits on "
-            "this backend." % (len(qubit_lo_range), n_qubits)
-        )
-    if meas_lo_range and len(meas_lo_range) != n_qubits:
-        raise QiskitError(
-            "Length of meas_lo_range is %s. It must be equal to %s, the number of qubits on "
-            "this backend." % (len(meas_lo_range), n_qubits)
-        )
 
-    # verify qubit lo's in range
-    if qubit_lo_freq and qubit_lo_range:
+def _check_lo_range(
+    lo_freq: Union[List[float], None],
+    lo_range: Union[List[float], None],
+    lo_type: str,
+    n_qubits: int,
+):
+    """Check that lo freqs are within the perscribed lo range. Also checks length of both lo lists.
+
+    Args:
+        lo_freq: List of lo frequencies.
+        lo_range: Nested list of lo freq range. Inner list is of the form ``[lo_min, lo_max]``.
+        lo_type: The type of lo value--"qubit" or "meas".
+        n_qubits: The number of qubits on this backend.
+    """
+    if lo_type == "qubit":
+        # check lo lengths equal to n_qubits
+        _check_lo_length(lo_freq, "qubit_lo_freq", n_qubits)
+        _check_lo_length(lo_range, "qubit_lo_range", n_qubits)
+    else:
+        # check lo lengths equal to n_qubits
+        _check_lo_length(lo_freq, "meas_lo_freq", n_qubits)
+        _check_lo_length(lo_range, "meas_lo_range", n_qubits)
+
+    # verify lo freqs in range
+    if lo_freq and lo_range:
         for i in range(n_qubits):
-            qub_lo = qubit_lo_freq[i]
-            qub_range = qubit_lo_range[i]
-            if not (isinstance(qub_range, list) and len(qub_range) == 2):
-                raise QiskitError("Each element of qubit_lo_range must be a 2d list.")
-            if qub_lo < qub_range[0] or qub_lo > qub_range[1]:
-                raise QiskitError("Qubit %s drive lo freq is %s. The range is [%s, %s]."\
-                                  % (i, qub_lo, qub_range[0], qub_range[1]))
+            freq = lo_freq[i]
+            freq_range = lo_range[i]
+            if not (isinstance(freq_range, list) and len(freq_range) == 2):
+                raise QiskitError(
+                    "Each element of %s lo range must be a 2d list." % lo_type
+                )
+            if freq < freq_range[0] or freq > freq_range[1]:
+                raise QiskitError(
+                    "Qubit %s %s lo freq is %s. The range is [%s, %s]."
+                    % (i, lo_type, freq, freq_range[0], freq_range[1])
+                )
 
-    # verify meas lo's in range
-    if meas_lo_freq and meas_lo_range:
-        for i in range(n_qubits):
-            meas_lo = meas_lo_freq[i]
-            meas_range = meas_lo_range[i]
-            if not (isinstance(meas_range, list) and len(meas_range) == 2):
-                raise QiskitError("Each element of meas_lo_range must be a 2d list.")
-            if meas_lo < meas_range[0] or meas_lo > meas_range[1]:
-                raise QiskitError("Qubit %s measurement lo freq is %s. The range is [%s, %s]."
-                                  % (i, meas_lo, meas_range[0], meas_range[1]))
 
 
 def _parse_pulse_args(
