@@ -1325,6 +1325,12 @@ def frequency_offset(frequency: float,
         yield
     finally:
         if compensate_phase:
+            # In some alignments such as sequential and functional, the absolute position of
+            # a pulse depends on the number of pulses added after this context.
+            # Thus this logic is not always correct. Use Frame instead for this.
+            warnings.warn('Phase compensation with `compensate_phase=True` is being deprecated. '
+                          'Use Frame instead. See Qiskit-terra/#5977.', DeprecationWarning)
+
             duration = builder.context_schedule.duration - t0
             dt = active_backend().configuration().dt
             accumulated_phase = 2 * np.pi * ((duration * dt * frequency) % 1)
