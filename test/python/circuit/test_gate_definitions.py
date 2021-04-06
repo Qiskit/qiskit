@@ -27,7 +27,7 @@ from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
     HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
     CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
-    U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
+    U2Gate, U3Gate, CU3Gate, XGate, CXGate, ECRGate, CCXGate, YGate, CYGate,
     ZGate, CZGate, RYYGate, PhaseGate, CPhaseGate, UGate, CUGate,
     SXGate, SXdgGate, CSXGate, RVGate
 )
@@ -113,6 +113,14 @@ class TestGateDefinitions(QiskitTestCase):
         """
         circ = QuantumCircuit(2)
         circ.cx(0, 1)
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_ecr_definition(self):
+        """Test ecr gate matrix and definition.
+        """
+        circ = QuantumCircuit(2)
+        circ.ecr(0, 1)
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
@@ -228,7 +236,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         exclude = {'ControlledGate', 'DiagonalGate', 'UCGate', 'MCGupDiag',
                    'MCU1Gate', 'UnitaryGate', 'HamiltonianGate', 'MCPhaseGate',
                    'UCPauliRotGate', 'SingleQubitUnitary', 'MCXGate',
-                   'VariadicZeroParamGate', 'ClassicalFunction'}
+                   'VariadicZeroParamGate', 'ClassicalFunction', 'ClassicalElement'}
         cls._gate_classes = []
         for aclass in class_list:
             if aclass.__name__ not in exclude:
@@ -247,6 +255,8 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                     params[0] = 2
                 if gate_class.__name__ in ['PauliGate']:
                     params = ["IXYZ"]
+                if gate_class.__name__ in ['BooleanExpression']:
+                    params = ["x | y"]
                 gate = gate_class(*params)
                 equiv_lib_list = std_eqlib.get_entry(gate)
                 for ieq, equivalency in enumerate(equiv_lib_list):
@@ -263,7 +273,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
     @data(
         HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
         CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
-        U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
+        U2Gate, U3Gate, CU3Gate, XGate, CXGate, ECRGate, CCXGate, YGate, CYGate,
         ZGate, CZGate, RYYGate, PhaseGate, CPhaseGate, UGate, CUGate,
         SXGate, SXdgGate, CSXGate
     )

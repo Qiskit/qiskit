@@ -12,92 +12,15 @@
 
 """Rearrange the direction of the cx nodes to match the directed coupling map."""
 
-from math import pi
-
-from qiskit.transpiler.layout import Layout
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.exceptions import TranspilerError
-
-from qiskit.circuit import QuantumRegister
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates import U2Gate, CXGate
+import warnings
+from qiskit.transpiler.passes.utils.gate_direction import GateDirection
 
 
-class CXDirection(TransformationPass):
-    """Rearrange the direction of the cx nodes to match the directed coupling map.
-
-    Flip the cx nodes to match the directed coupling map. This pass makes use
-    of the following equivalence::
-
-        ---(+)---      --[H]---.---[H]--
-            |      =           |
-        ----.----      --[H]--(+)--[H]--
-    """
+class CXDirection(GateDirection):
+    """Deprecated: use :class:`qiskit.transpiler.passes.GateDirection` pass instead."""
 
     def __init__(self, coupling_map):
-        """CXDirection initializer.
-
-        Args:
-            coupling_map (CouplingMap): Directed graph represented a coupling map.
-        """
-        super().__init__()
-        self.coupling_map = coupling_map
-
-    def run(self, dag):
-        """Run the CXDirection pass on `dag`.
-
-        Flips the cx nodes to match the directed coupling map. Modifies the
-        input dag.
-
-        Args:
-            dag (DAGCircuit): DAG to map.
-
-        Returns:
-            DAGCircuit: The rearranged dag for the coupling map
-
-        Raises:
-            TranspilerError: If the circuit cannot be mapped just by flipping the
-                cx nodes.
-        """
-        cmap_edges = set(self.coupling_map.get_edges())
-
-        if len(dag.qregs) > 1:
-            raise TranspilerError('CXDirection expects a single qreg input DAG,'
-                                  'but input DAG had qregs: {}.'.format(
-                                      dag.qregs))
-
-        trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
-
-        for cnot_node in dag.named_nodes('cx', 'CX'):
-            control = cnot_node.qargs[0]
-            target = cnot_node.qargs[1]
-
-            physical_q0 = trivial_layout[control]
-            physical_q1 = trivial_layout[target]
-
-            if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                raise TranspilerError('The circuit requires a connection between physical '
-                                      'qubits %s and %s' % (physical_q0, physical_q1))
-
-            if (physical_q0, physical_q1) not in cmap_edges:
-                # A flip needs to be done
-
-                # Create the replacement dag and associated register.
-                sub_dag = DAGCircuit()
-                sub_qr = QuantumRegister(2)
-                sub_dag.add_qreg(sub_qr)
-
-                # Add H gates before
-                sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[0]], [])
-                sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[1]], [])
-
-                # Flips the cx
-                sub_dag.apply_operation_back(CXGate(), [sub_qr[1], sub_qr[0]], [])
-
-                # Add H gates after
-                sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[0]], [])
-                sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[1]], [])
-
-                dag.substitute_node_with_dag(cnot_node, sub_dag)
-
-        return dag
+        super().__init__(coupling_map)
+        warnings.warn("The CXDirection pass has been deprecated "
+                      "and replaced by a more generic GateDirection pass.",
+                      DeprecationWarning, stacklevel=2)

@@ -191,7 +191,6 @@ class TestBasicSchedule(QiskitTestCase):
             (2, self.inst_map.get('cx', [0, 1])),
             (24, self.inst_map.get('measure', [0, 1])),
             (34, self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(1)])),
-            (34, Acquire(10, AcquireChannel(0), MemorySlot(0))),
             (34, Acquire(10, AcquireChannel(1), MemorySlot(1))))
         self.assertEqual(sched.instructions, expected.instructions)
 

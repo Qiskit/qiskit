@@ -111,17 +111,17 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             - 0.01128010425623538 * (Z ^ Z) \
             + 0.18093119978423156 * (X ^ X)
         optimizer = SPSA(maxiter=200)
-        var_form = EfficientSU2(2, reps=1)
+        ansatz = EfficientSU2(2, reps=1)
 
         vqe = VQE(
-            var_form=var_form,
+            ansatz=ansatz,
             optimizer=optimizer,
             quantum_instance=quantum_instance
         )
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         self.assertGreater(quantum_instance.time_taken, 0.)
         quantum_instance.reset_execution_results()
-        self.assertAlmostEqual(result.eigenvalue.real, -1.86, places=2)
+        self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
 
 
 if __name__ == '__main__':

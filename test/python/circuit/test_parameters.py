@@ -597,7 +597,7 @@ class TestParameters(QiskitTestCase):
         theta = Parameter('θ')
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
-        qc1 = QuantumCircuit(qr)
+        qc1 = QuantumCircuit(qr, cr)
         qc1.rx(theta, qr)
 
         phi = Parameter('phi')
@@ -751,7 +751,7 @@ class TestParameters(QiskitTestCase):
                                num_processes=num_processes)
 
         for qc in results:
-            circuit += qc
+            circuit.compose(qc, inplace=True)
 
         parameter_values = [{x: 1 for x in parameters}]
 

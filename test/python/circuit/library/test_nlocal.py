@@ -463,11 +463,11 @@ class TestTwoLocal(QiskitTestCase):
         with self.subTest(msg='num_parameters_settable remained constant'):
             self.assertEqual(two.num_parameters_settable, len(ordered_params))
 
-    def test_iadd_to_circuit(self):
+    def test_compose_inplace_to_circuit(self):
         """Test adding a two-local to an existing circuit."""
         two = TwoLocal(3, ['ry', 'rz'], 'cz', 'full', reps=1, insert_barriers=True)
         circuit = QuantumCircuit(3)
-        circuit += two
+        circuit.compose(two, inplace=True)
 
         reference = QuantumCircuit(3)
         param_iter = iter(two.ordered_parameters)
@@ -487,11 +487,11 @@ class TestTwoLocal(QiskitTestCase):
 
         self.assertCircuitEqual(circuit, reference)
 
-    def test_adding_two(self):
+    def test_composing_two(self):
         """Test adding two two-local circuits."""
         entangler_map = [[0, 3], [0, 2]]
         two = TwoLocal(4, [], 'cry', entangler_map, reps=1)
-        circuit = two + two
+        circuit = two.compose(two)
 
         reference = QuantumCircuit(4)
         params = two.ordered_parameters

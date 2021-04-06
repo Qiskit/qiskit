@@ -38,7 +38,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
 
     **Representation**
 
-    An *N*-qubit CNOY-Dihedral operator is stored as an affine function and a
+    An *N*-qubit CNOT-Dihedral operator is stored as an affine function and a
     phase polynomial, based on the convention in references [1, 2].
 
     The affine function consists of an NxN invertible binary matrix,
@@ -66,7 +66,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
    **Circuit Conversion**
 
     CNOTDihedral operators can be initialized from circuits containing *only* the
-    following Clifford gates: :class:`~qiskit.circuit.library.IGate`,
+    following gates: :class:`~qiskit.circuit.library.IGate`,
     :class:`~qiskit.circuit.library.XGate`, :class:`~qiskit.circuit.library.YGate`,
     :class:`~qiskit.circuit.library.ZGate`,
     :class:`~qiskit.circuit.library.TGate`, :class:`~qiskit.circuit.library.TdgGate`
@@ -411,9 +411,10 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
     def conjugate(self):
         circ = self.to_instruction()
         new_circ = QuantumCircuit(self.num_qubits)
-        qargs = list(range(self.num_qubits))
+        bit_indices = {bit: index
+                       for index, bit in enumerate(circ.definition.qubits)}
         for instr, qregs, _ in circ.definition:
-            new_qubits = [qargs[tup.index] for tup in qregs]
+            new_qubits = [bit_indices[tup] for tup in qregs]
             if instr.name == 'p':
                 params = 2 * np.pi - instr.params[0]
                 instr.params[0] = params
