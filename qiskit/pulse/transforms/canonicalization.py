@@ -255,11 +255,10 @@ def align_measures(schedules: Iterable[ScheduleComponent],
         from qiskit import pulse
         from qiskit.pulse import transforms
 
-        with pulse.build() as sched:
-            with pulse.align_sequential():
-                pulse.play(pulse.Constant(10, 0.5), pulse.DriveChannel(0))
-                pulse.play(pulse.Constant(10, 1.), pulse.MeasureChannel(0))
-                pulse.acquire(20, pulse.AcquireChannel(0), pulse.MemorySlot(0))
+        sched = pulse.Schedule()
+        sched += pulse.Play(pulse.Constant(10, 0.5), pulse.DriveChannel(0))
+        sched += pulse.Play(pulse.Constant(10, 1.), pulse.MeasureChannel(0)) << sched.duration
+        sched += pulse.Acquire(20, pulse.AcquireChannel(0), pulse.MemorySlot(0)) << sched.duration
 
         sched_shifted = sched << 20
 
