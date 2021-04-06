@@ -14,8 +14,10 @@
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 
+from .adder import Adder
 
-class ClassicalAdder(QuantumCircuit):
+
+class ClassicalAdder(Adder):
     r"""A circuit that uses Classical Addition to perform in-place addition on two qubit registers.
 
      Circuit to compute the sum of two qubit registers using the Classical Addition Part from [1].
@@ -36,27 +38,27 @@ class ClassicalAdder(QuantumCircuit):
 
     .. parsed-literal::
 
-                   ┌────────┐                                                   ┌────────┐┌──────┐
-        input_a_0: ┤1       ├───────────────────────────────────────────────────┤1       ├┤1     ├
-                   │        │┌────────┐                       ┌────────┐┌──────┐│        ││      │
-        input_a_1: ┤        ├┤1       ├───────────────────────┤1       ├┤1     ├┤        ├┤      ├
-                   │        ││        │┌────────┐     ┌──────┐│        ││      ││        ││      │
-        input_a_2: ┤        ├┤        ├┤1       ├──■──┤1     ├┤        ├┤      ├┤        ├┤      ├
-                   │        ││        ││        │  │  │      ││        ││      ││        ││      │
-        input_b_0: ┤2       ├┤        ├┤        ├──┼──┤      ├┤        ├┤      ├┤2       ├┤2     ├
-                   │        ││        ││        │  │  │      ││        ││      ││        ││  Sum │
-        input_b_1: ┤  Carry ├┤2       ├┤        ├──┼──┤      ├┤2       ├┤2     ├┤  Carry ├┤      ├
-                   │        ││        ││        │┌─┴─┐│      ││        ││  Sum ││        ││      │
-        input_b_2: ┤        ├┤  Carry ├┤2       ├┤ X ├┤2     ├┤  Carry ├┤      ├┤        ├┤      ├
-                   │        ││        ││  Carry │└───┘│  Sum ││        ││      ││        ││      │
-           cout_0: ┤        ├┤        ├┤3       ├─────┤      ├┤        ├┤      ├┤        ├┤      ├
-                   │        ││        ││        │     │      ││        ││      ││        ││      │
-            cin_0: ┤0       ├┤        ├┤        ├─────┤      ├┤        ├┤      ├┤0       ├┤0     ├
-                   │        ││        ││        │     │      ││        ││      ││        │└──────┘
-            cin_1: ┤3       ├┤0       ├┤        ├─────┤      ├┤0       ├┤0     ├┤3       ├────────
-                   └────────┘│        ││        │     │      ││        │└──────┘└────────┘
-            cin_2: ──────────┤3       ├┤0       ├─────┤0     ├┤3       ├──────────────────────────
-                             └────────┘└────────┘     └──────┘└────────┘
+                ┌────────┐                                                   ┌────────┐┌──────┐
+           a_0: ┤1       ├───────────────────────────────────────────────────┤1       ├┤1     ├
+                │        │┌────────┐                       ┌────────┐┌──────┐│        ││      │
+           a_1: ┤        ├┤1       ├───────────────────────┤1       ├┤1     ├┤        ├┤      ├
+                │        ││        │┌────────┐     ┌──────┐│        ││      ││        ││      │
+           a_2: ┤        ├┤        ├┤1       ├──■──┤1     ├┤        ├┤      ├┤        ├┤      ├
+                │        ││        ││        │  │  │      ││        ││      ││        ││      │
+           b_0: ┤2       ├┤        ├┤        ├──┼──┤      ├┤        ├┤      ├┤2       ├┤2     ├
+                │        ││        ││        │  │  │      ││        ││      ││        ││  Sum │
+           b_1: ┤  Carry ├┤2       ├┤        ├──┼──┤      ├┤2       ├┤2     ├┤  Carry ├┤      ├
+                │        ││        ││        │┌─┴─┐│      ││        ││  Sum ││        ││      │
+           b_2: ┤        ├┤  Carry ├┤2       ├┤ X ├┤2     ├┤  Carry ├┤      ├┤        ├┤      ├
+                │        ││        ││  Carry │└───┘│  Sum ││        ││      ││        ││      │
+        cout_0: ┤        ├┤        ├┤3       ├─────┤      ├┤        ├┤      ├┤        ├┤      ├
+                │        ││        ││        │     │      ││        ││      ││        ││      │
+         cin_0: ┤0       ├┤        ├┤        ├─────┤      ├┤        ├┤      ├┤0       ├┤0     ├
+                │        ││        ││        │     │      ││        ││      ││        │└──────┘
+         cin_1: ┤3       ├┤0       ├┤        ├─────┤      ├┤0       ├┤0     ├┤3       ├────────
+                └────────┘│        ││        │     │      ││        │└──────┘└────────┘
+         cin_2: ──────────┤3       ├┤0       ├─────┤0     ├┤3       ├──────────────────────────
+                          └────────┘└────────┘     └──────┘└────────┘
 
 
     Here *Carry* and *Sum* gates correspond to the gates introduced in [1]. Note that
@@ -65,13 +67,14 @@ class ClassicalAdder(QuantumCircuit):
     This is different ordering as compared to Figure 2 in [1], which leads to a different
     drawing of the circuit.
 
-    **References**
+    **References:**
 
     [1] Thomas G.Draper, 2000. "Addition on a Quantum Computer"
     `Journal https://arxiv.org/pdf/quant-ph/0008033.pdf`_
 
     [2] Vedral et al., Quantum Networks for Elementary Arithmetic Operations, 1995.
     `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_
+
     """
 
     def __init__(self,
@@ -82,19 +85,23 @@ class ClassicalAdder(QuantumCircuit):
         Args:
             num_state_qubits: The size of the register.
             name: The name of the circuit.
+
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
         """
         if num_state_qubits < 1:
             raise ValueError('The number of qubits must be at least 1.')
+
+        super().__init__(num_state_qubits, name=name)
+
         # define the registers
-        qr_a = QuantumRegister(num_state_qubits, name='input_a')
-        qr_b = QuantumRegister(num_state_qubits, name='input_b')
+        qr_a = QuantumRegister(num_state_qubits, name='a')
+        qr_b = QuantumRegister(num_state_qubits, name='b')
         qr_cin = AncillaRegister(num_state_qubits, name='cin')
         qr_cout = QuantumRegister(1, name='cout')
 
-        # initialize the circuit
-        super().__init__(qr_a, qr_b, qr_cout, qr_cin, name=name)
+        # initialize the registers
+        self.add_register(qr_a, qr_b, qr_cout, qr_cin)
 
         # corresponds to Carry gate in [1]
         qc_carry = QuantumCircuit(4, name='Carry')

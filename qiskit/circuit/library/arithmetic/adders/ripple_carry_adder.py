@@ -14,8 +14,10 @@
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 
+from .adder import Adder
 
-class RippleCarryAdder(QuantumCircuit):
+
+class RippleCarryAdder(Adder):
     r"""A ripple-carry circuit to perform in-place addition on two qubit registers.
 
     Circuit to compute the sum of two qubit registers using the approach from [1].
@@ -37,23 +39,23 @@ class RippleCarryAdder(QuantumCircuit):
 
     .. parsed-literal::
 
-                     ┌──────┐┌──────┐                     ┌──────┐┌──────┐
-          input_a_0: ┤0     ├┤2     ├─────────────────────┤2     ├┤0     ├
-                     │      ││      │┌──────┐     ┌──────┐│      ││      │
-          input_a_1: ┤      ├┤0     ├┤2     ├─────┤2     ├┤0     ├┤      ├
-                     │      ││      ││      │     │      ││      ││      │
-          input_a_2: ┤      ├┤  MAJ ├┤0     ├──■──┤0     ├┤  UMA ├┤      ├
-                     │      ││      ││      │  │  │      ││      ││      │
-          input_b_0: ┤1 MAJ ├┤      ├┤  MAJ ├──┼──┤  UMA ├┤      ├┤1 UMA ├
-                     │      ││      ││      │  │  │      ││      ││      │
-          input_b_1: ┤      ├┤1     ├┤      ├──┼──┤      ├┤1     ├┤      ├
-                     │      │└──────┘│      │  │  │      │└──────┘│      │
-          input_b_2: ┤      ├────────┤1     ├──┼──┤1     ├────────┤      ├
-                     │      │        └──────┘  │  └──────┘        │      │
-         carry_in_0: ┤2     ├──────────────────┼──────────────────┤2     ├
-                     └──────┘                ┌─┴─┐                └──────┘
-        carry_out_0: ────────────────────────┤ X ├────────────────────────
-                                             └───┘
+                ┌──────┐┌──────┐                     ┌──────┐┌──────┐
+           a_0: ┤0     ├┤2     ├─────────────────────┤2     ├┤0     ├
+                │      ││      │┌──────┐     ┌──────┐│      ││      │
+           a_1: ┤      ├┤0     ├┤2     ├─────┤2     ├┤0     ├┤      ├
+                │      ││      ││      │     │      ││      ││      │
+           a_2: ┤      ├┤  MAJ ├┤0     ├──■──┤0     ├┤  UMA ├┤      ├
+                │      ││      ││      │  │  │      ││      ││      │
+           b_0: ┤1 MAJ ├┤      ├┤  MAJ ├──┼──┤  UMA ├┤      ├┤1 UMA ├
+                │      ││      ││      │  │  │      ││      ││      │
+           b_1: ┤      ├┤1     ├┤      ├──┼──┤      ├┤1     ├┤      ├
+                │      │└──────┘│      │  │  │      │└──────┘│      │
+           b_2: ┤      ├────────┤1     ├──┼──┤1     ├────────┤      ├
+                │      │        └──────┘  │  └──────┘        │      │
+         cin_0: ┤2     ├──────────────────┼──────────────────┤2     ├
+                └──────┘                ┌─┴─┐                └──────┘
+        cout_0: ────────────────────────┤ X ├────────────────────────
+                                        └───┘
 
     Here *MAJ* and *UMA* gates correspond to the gates introduced in [1]. Note that
     in this implementation the input register qubits are ordered as all qubits from
@@ -68,6 +70,7 @@ class RippleCarryAdder(QuantumCircuit):
 
     [2] Vedral et al., Quantum Networks for Elementary Arithmetic Operations, 1995.
     `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_
+
     """
 
     def __init__(self,
@@ -86,13 +89,15 @@ class RippleCarryAdder(QuantumCircuit):
         if num_state_qubits < 1:
             raise ValueError('The number of qubits must be at least 1.')
 
-        qr_a = QuantumRegister(num_state_qubits, name='input_a')
-        qr_b = QuantumRegister(num_state_qubits, name='input_b')
-        qr_z = QuantumRegister(1, name='carry_out')
-        qr_c = AncillaRegister(1, name='carry_in')
+        super().__init__(num_state_qubits, name=name)
+
+        qr_a = QuantumRegister(num_state_qubits, name='a')
+        qr_b = QuantumRegister(num_state_qubits, name='b')
+        qr_z = QuantumRegister(1, name='cout')
+        qr_c = AncillaRegister(1, name='cin')
 
         # initialize quantum circuit with register list
-        super().__init__(qr_a, qr_b, qr_z, qr_c, name=name)
+        self.add_register(qr_a, qr_b, qr_z, qr_c)
 
         # build carry circuit for majority of 3 bits in-place
         # corresponds to MAJ gate in [1]
@@ -112,9 +117,13 @@ class RippleCarryAdder(QuantumCircuit):
 
         # build ripple-carry adder circuit
         self.append(qc_instruction_mac, [qr_a[0], qr_b[0], qr_c[0]])
+
         for i in range(num_state_qubits-1):
             self.append(qc_instruction_mac, [qr_a[i+1], qr_b[i+1], qr_a[i]])
+
         self.cx(qr_a[-1], qr_z[0])
+
         for i in reversed(range(num_state_qubits-1)):
             self.append(qc_instruction_uma, [qr_a[i+1], qr_b[i+1], qr_a[i]])
+
         self.append(qc_instruction_uma, [qr_a[0], qr_b[0], qr_c[0]])
