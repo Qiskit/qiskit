@@ -398,7 +398,6 @@ def _check_lo_range(
                 )
 
 
-
 def _parse_pulse_args(
     backend,
     schedule_los,
