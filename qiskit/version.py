@@ -136,7 +136,7 @@ class QiskitVersion(Mapping):
         except Exception:
             self._version_dict['qiskit-optimization'] = None
         try:
-            import qiskit_finance
+            import qiskit_machine_learning
             self._version_dict['qiskit-machine-learning'] = qiskit_machine_learning.__version__
         except Exception:
             self._version_dict['qiskit-machine-learning'] = None
