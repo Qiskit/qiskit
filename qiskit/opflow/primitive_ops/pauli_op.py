@@ -99,11 +99,14 @@ class PauliOp(PrimitiveOp):
     def tensor(self, other: OperatorBase) -> OperatorBase:
         # Both Paulis
         if isinstance(other, PauliOp):
-            # Copying here because Terra's Pauli kron is in-place.
-            op_copy = Pauli((other.primitive.z, other.primitive.x))
-            return PauliOp(self.primitive.tensor(op_copy), coeff=self.coeff * other.coeff)
+            return PauliOp(self.primitive.tensor(other.primitive), coeff=self.coeff * other.coeff)
 
         # pylint: disable=cyclic-import
+        from .pauli_sum_op import PauliSumOp
+        if isinstance(other, PauliSumOp):
+            new_primitive = SparsePauliOp(self.primitive).tensor(other.primitive)
+            return PauliSumOp(new_primitive, coeff=self.coeff * other.coeff)
+
         from .circuit_op import CircuitOp
         if isinstance(other, CircuitOp):
             return self.to_circuit_op().tensor(other)
@@ -148,14 +151,14 @@ class PauliOp(PrimitiveOp):
 
         # Both Paulis
         if isinstance(other, PauliOp):
-            product = new_self.primitive * other.primitive
+            product = new_self.primitive.dot(other.primitive)
             return PrimitiveOp(product, coeff=new_self.coeff * other.coeff)
 
         # pylint: disable=cyclic-import
         from .pauli_sum_op import PauliSumOp
         if isinstance(other, PauliSumOp):
             return PauliSumOp(
-                SparsePauliOp(new_self.primitive) * other.primitive,
+                SparsePauliOp(new_self.primitive).dot(other.primitive),
                 coeff=new_self.coeff * other.coeff,
             )
 

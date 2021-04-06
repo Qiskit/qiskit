@@ -70,9 +70,14 @@ def _append_circuit(elem, circuit, qargs=None):
         raise QiskitError('{} instruction definition is {}; expected QuantumCircuit'.format(
             gate.name, type(gate.definition)))
 
+    flat_instr = gate.definition
+    bit_indices = {bit: index
+                   for bits in [flat_instr.qubits, flat_instr.clbits]
+                   for index, bit in enumerate(bits)}
+
     for instr, qregs, _ in gate.definition:
         # Get the integer position of the flat register
-        new_qubits = [qargs[tup.index] for tup in qregs]
+        new_qubits = [qargs[bit_indices[tup]] for tup in qregs]
 
         if (instr.name == 'x' or gate.name == 'x'):
             if len(new_qubits) != 1:
