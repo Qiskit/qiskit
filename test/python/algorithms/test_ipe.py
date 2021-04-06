@@ -31,7 +31,7 @@ class TestIterativePhaseEstimation(QiskitAlgorithmsTestCase):
         `state_preparation`. Return the estimated phase as a value in :math:`[0,1)`.
         """
         if backend_type is None:
-            backend_type='qasm_simulator'
+            backend_type = 'qasm_simulator'
         backend = qiskit.BasicAer.get_backend(backend_type)
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         p_est = IterativePhaseEstimation(num_iterations=num_iterations, quantum_instance=qi)
