@@ -23,7 +23,7 @@ from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import UnrollCustomDefinitions
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler.passes import CXDirection
+from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
@@ -37,11 +37,11 @@ from qiskit.transpiler.passes import SabreSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
-from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
-from qiskit.transpiler.passes import TimeUnitAnalysis
+from qiskit.transpiler.passes import TimeUnitConversion
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import Error
@@ -82,6 +82,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
+    approximation_degree = pass_manager_config.approximation_degree
 
     # 1. Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
@@ -139,22 +140,23 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates),
+            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 6. Fix any bad CX directions
-    _direction_check = [CheckCXDirection(coupling_map)]
+    _direction_check = [CheckGateDirection(coupling_map)]
 
     def _direction_condition(property_set):
         return not property_set['is_direction_mapped']
 
-    _direction = [CXDirection(coupling_map)]
+    _direction = [GateDirection(coupling_map)]
 
-    # 7. Schedule the circuit only when scheduling_method is supplied
+    # 7. Unify all durations (either SI, or convert to dt if known)
+    # Schedule the circuit only when scheduling_method is supplied
+    _scheduling = [TimeUnitConversion(instruction_durations)]
     if scheduling_method:
-        _scheduling = [TimeUnitAnalysis(instruction_durations)]
         if scheduling_method in {'alap', 'as_late_as_possible'}:
             _scheduling += [ALAPSchedule(instruction_durations)]
         elif scheduling_method in {'asap', 'as_soon_as_possible'}:
@@ -175,6 +177,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if coupling_map and not coupling_map.is_symmetric:
         pm0.append(_direction_check)
         pm0.append(_direction, condition=_direction_condition)
-    if scheduling_method:
-        pm0.append(_scheduling)
+        pm0.append(_unroll)
+    pm0.append(_scheduling)
     return pm0
