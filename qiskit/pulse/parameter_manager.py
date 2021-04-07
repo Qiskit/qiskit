@@ -208,7 +208,7 @@ class ParameterSetter(NodeVisitor):
 
     def visit_Frame(self, node: Frame):
         """Assign parameters to ``Frame`` object."""
-        if node.is_parameterized():
+        if isinstance(node.index, ParameterExpression):
             new_index = self._assign_parameter_expression(node.index)
             if not isinstance(new_index, int) and new_index < 0:
                 raise PulseError('Frame index must be a nonnegative integer')

@@ -12,7 +12,7 @@
 
 """Implements a Frame."""
 
-from typing import Any, Set, Union
+from typing import Any, Union
 import numpy as np
 
 from qiskit.circuit import Parameter
@@ -32,10 +32,6 @@ class Frame:
         self._validate_index(index)
         self._index = index
         self._hash = None
-
-        self._parameters = set()
-        if isinstance(index, ParameterExpression):
-            self._parameters.update(index.parameters)
 
     @property
     def index(self) -> Union[int, ParameterExpression]:
@@ -66,15 +62,6 @@ class Frame:
     def name(self) -> str:
         """Return the shorthand alias for this frame, which is based on its type and index."""
         return '{}{}'.format(self.__class__.prefix, self._index)
-
-    @property
-    def parameters(self) -> Set:
-        """Parameters which determine the frame index."""
-        return self._parameters
-
-    def is_parameterized(self) -> bool:
-        """Return True iff the frame is parameterized."""
-        return bool(self.parameters)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self._index})'

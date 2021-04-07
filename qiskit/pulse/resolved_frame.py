@@ -141,7 +141,7 @@ class ResolvedFrame(Tracker):
         Raises:
             PulseError: If there are still parameters in the given frame.
         """
-        if frame.is_parameterized():
+        if isinstance(frame.index, ParameterExpression):
             raise PulseError('A parameterized frame cannot be given to ResolvedFrame.')
 
         super().__init__(frame.index, sample_duration)

@@ -38,7 +38,7 @@ class TestFrame(QiskitTestCase):
         parameter_manager = ParameterManager()
         param = Parameter('a')
         frame = pulse.Frame(param)
-        self.assertTrue(frame.is_parameterized())
+        self.assertTrue(isinstance(frame.index, Parameter))
 
         parameter_manager.update_parameter_table(frame)
         new_frame = parameter_manager.assign_parameters(frame, {param: 123})
