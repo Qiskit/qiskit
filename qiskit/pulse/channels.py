@@ -111,7 +111,7 @@ class Channel(metaclass=ABCMeta):
 
         new_index = self.index.assign(parameter, value)
         if not new_index.parameters:
-            self._validate_index(new_index)
+            validate_index(new_index)
             new_index = int(new_index)
 
         return type(self)(new_index)

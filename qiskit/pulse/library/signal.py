@@ -44,11 +44,6 @@ class Signal:
         self.name = name or f"{pulse.name}_{frame.name}"
 
     @property
-    def id(self) -> int:  # pylint: disable=invalid-name
-        """Unique identifier for this signal."""
-        return id(self)
-
-    @property
     def pulse(self) -> Pulse:
         """Return the envelope."""
         return self._pulse
