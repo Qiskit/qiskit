@@ -297,8 +297,9 @@ class ParameterGetter(NodeVisitor):
         .. note:: ``Call`` instruction has a special parameter handling logic.
             This instruction separately keeps parameters and program.
         """
-        for parameter in node.parameters:
-            self.parameters.add(parameter)
+        for parameter in node.arguments.values():
+            if isinstance(parameter, ParameterExpression):
+                self._add_parameters(parameter)
 
     def visit_Instruction(self, node: instructions.Instruction):
         """Get parameters from general pulse instruction.

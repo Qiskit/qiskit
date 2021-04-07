@@ -48,30 +48,6 @@ class TestPulseParameters(QiskitTestCase):
 
         self.backend = FakeAlmaden()
 
-    def test_parameter_attribute_channel(self):
-        """Test the ``parameter`` attributes."""
-        chan = DriveChannel(self.qubit*self.alpha)
-        self.assertTrue(chan.is_parameterized())
-        self.assertEqual(chan.parameters, {self.qubit, self.alpha})
-        chan = chan.assign(self.qubit, self.alpha)
-        self.assertEqual(chan.parameters, {self.alpha})
-        chan = chan.assign(self.alpha, self.beta)
-        self.assertEqual(chan.parameters, {self.beta})
-        chan = chan.assign(self.beta, 1)
-        self.assertFalse(chan.is_parameterized())
-
-    def test_parameter_attribute_instruction(self):
-        """Test the ``parameter`` attributes."""
-        inst = pulse.ShiftFrequency(self.alpha*self.qubit,
-                                    DriveChannel(self.qubit))
-        self.assertTrue(inst.is_parameterized())
-        self.assertEqual(inst.parameters, {self.alpha, self.qubit})
-        inst.assign_parameters({self.alpha: self.qubit})
-        self.assertEqual(inst.parameters, {self.qubit})
-        inst.assign_parameters({self.qubit: 1})
-        self.assertFalse(inst.is_parameterized())
-        self.assertEqual(inst.parameters, set())
-
     def test_parameter_attribute_schedule(self):
         """Test the ``parameter`` attributes."""
         schedule = pulse.Schedule()
@@ -239,34 +215,6 @@ class TestPulseParameters(QiskitTestCase):
         self.assertEqual(insts[0][1].pulse.amp, 0.2)
         self.assertEqual(insts[0][1].pulse.sigma, 4.)
 
-    def test_parametric_pulses_parameter_assignment(self):
-        """Test Parametric Pulses with parameters determined by ParameterExpressions."""
-        waveform = pulse.library.GaussianSquare(duration=1280, sigma=self.sigma,
-                                                amp=self.amp, width=1000)
-        waveform = waveform.assign_parameters({self.amp: 0.3, self.sigma: 12})
-        self.assertEqual(waveform.amp, 0.3)
-        self.assertEqual(waveform.sigma, 12)
-
-        waveform = pulse.library.Drag(duration=1280, sigma=self.sigma, amp=self.amp, beta=2)
-        waveform = waveform.assign_parameters({self.sigma: 12.7})
-        self.assertEqual(waveform.amp, self.amp)
-        self.assertEqual(waveform.sigma, 12.7)
-
-    @unittest.skip("Not yet supported by ParameterExpression")
-    def test_complex_value_assignment(self):
-        """Test that complex values can be assigned to Parameters."""
-        waveform = pulse.library.Constant(duration=1280, amp=self.amp)
-        waveform.assign_parameters({self.amp: 0.2j})
-        self.assertEqual(waveform.amp, 0.2j)
-
-    def test_invalid_parametric_pulses(self):
-        """Test that invalid parameters are still checked upon assignment."""
-        schedule = pulse.Schedule()
-        waveform = pulse.library.Constant(duration=1280, amp=2*self.amp)
-        schedule += pulse.Play(waveform, DriveChannel(0))
-        with self.assertRaises(PulseError):
-            waveform.assign_parameters({self.amp: 0.6})
-
     def test_get_parameter(self):
         """Test that get parameter by name."""
         param1 = Parameter('amp')
@@ -344,46 +292,6 @@ class TestPulseParameters(QiskitTestCase):
 
 class TestParameterDuration(QiskitTestCase):
     """Tests parametrization of instruction duration."""
-
-    def test_pulse_duration(self):
-        """Test parametrization of pulse duration."""
-        dur = Parameter('dur')
-
-        test_pulse = pulse.Gaussian(dur, 0.1, dur/4)
-        ref_pulse = pulse.Gaussian(160, 0.1, 40)
-
-        self.assertEqual(test_pulse.assign_parameters({dur: 160}), ref_pulse)
-
-    def test_play_duration(self):
-        """Test parametrization of play instruction duration."""
-        dur = Parameter('dur')
-        ch = pulse.DriveChannel(0)
-
-        test_play = pulse.Play(pulse.Gaussian(dur, 0.1, dur/4), ch)
-        test_play.assign_parameters({dur: 160})
-
-        self.assertEqual(test_play.duration, 160)
-
-    def test_delay_duration(self):
-        """Test parametrization of delay duration."""
-        dur = Parameter('dur')
-        ch = pulse.DriveChannel(0)
-
-        test_delay = pulse.Delay(dur, ch)
-        test_delay.assign_parameters({dur: 300})
-
-        self.assertEqual(test_delay.duration, 300)
-
-    def test_acquire_duration(self):
-        """Test parametrization of acquire duration."""
-        dur = Parameter('dur')
-        ch = pulse.AcquireChannel(0)
-        mem_slot = pulse.MemorySlot(0)
-
-        test_acquire = pulse.Acquire(dur, ch, mem_slot=mem_slot)
-        test_acquire.assign_parameters({dur: 300})
-
-        self.assertEqual(test_acquire.duration, 300)
 
     def test_is_parameterized(self):
         """Test is parameterized method for parameter duration."""

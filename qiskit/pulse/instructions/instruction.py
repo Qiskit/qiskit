@@ -23,13 +23,10 @@ For example::
 """
 import warnings
 from abc import ABC, abstractproperty
-from collections import defaultdict
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any
+from typing import Callable, Iterable, List, Optional, Tuple
 
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
 
 
 # pylint: disable=missing-return-doc
@@ -73,9 +70,6 @@ class Instruction(ABC):
         self._operands = operands
         self._name = name
         self._hash = None
-
-        self._parameter_table = defaultdict(list)
-        self._initialize_parameter_table(operands)
 
         for channel in self.channels:
             if not isinstance(channel, Channel):
@@ -229,69 +223,9 @@ class Instruction(ABC):
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name)
 
-    @property
-    @deprecated_functionality
-    def parameters(self) -> Set:
-        """Parameters which determine the instruction behavior."""
-        return set(self._parameter_table.keys())
-
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
         return any(chan.is_parameterized() for chan in self.channels)
-
-    def _initialize_parameter_table(self,
-                                    operands: Tuple[Any]):
-        """A helper method to initialize parameter table.
-
-        Args:
-            operands: List of operands associated with this instruction.
-        """
-        for idx, op in enumerate(operands):
-            if isinstance(op, ParameterExpression):
-                for param in op.parameters:
-                    self._parameter_table[param].append(idx)
-            elif isinstance(op, Channel) and isinstance(op.index, ParameterExpression):
-                for param in op.index.parameters:
-                    self._parameter_table[param].append(idx)
-
-    @deprecated_functionality
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]
-                          ) -> 'Instruction':
-        """Modify and return self with parameters assigned according to the input.
-
-        Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
-
-        Returns:
-            Self with updated parameters.
-        """
-        new_operands = list(self.operands)
-
-        for parameter in self.parameters:
-            if parameter not in value_dict:
-                continue
-
-            value = value_dict[parameter]
-            op_indices = self._parameter_table[parameter]
-            for op_idx in op_indices:
-                param_expr = new_operands[op_idx]
-                new_operands[op_idx] = format_parameter_value(param_expr.assign(parameter, value))
-
-            # Update parameter table
-            entry = self._parameter_table.pop(parameter)
-            if isinstance(value, ParameterExpression):
-                for new_parameter in value.parameters:
-                    if new_parameter in self._parameter_table:
-                        new_entry = set(entry + self._parameter_table[new_parameter])
-                        self._parameter_table[new_parameter] = list(new_entry)
-                    else:
-                        self._parameter_table[new_parameter] = entry
-
-        self._operands = tuple(new_operands)
-
-        return self
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,

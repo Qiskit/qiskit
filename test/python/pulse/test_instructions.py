@@ -266,7 +266,7 @@ class TestCall(QiskitTestCase):
         call = instructions.Call(subroutine=self.function)
 
         self.assertTrue(call.is_parameterized())
-        self.assertEqual(len(call.parameters), 2)
+        self.assertEqual(len(call.arguments), 2)
 
     def test_assign_parameters_to_call(self):
         """Test create schedule by calling subroutine and assign parameters to it."""
