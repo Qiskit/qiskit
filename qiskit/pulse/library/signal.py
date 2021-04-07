@@ -41,7 +41,7 @@ class Signal:
 
         self._pulse = pulse
         self._frame = frame
-        self.name = name
+        self.name = name or f"{pulse.name}_{frame.name}"
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name
