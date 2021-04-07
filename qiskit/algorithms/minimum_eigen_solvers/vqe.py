@@ -45,8 +45,8 @@ logger = logging.getLogger(__name__)
 class VQE(VariationalAlgorithm, MinimumEigensolver):
     r"""The Variational Quantum Eigensolver algorithm.
 
-    `VQE <https://arxiv.org/abs/1304.3061>`__ is a hybrid algorithm that uses a
-    variational technique and interleaves quantum and classical computations in order to find
+    `VQE <https://arxiv.org/abs/1304.3061>`__ is a quantum algorithm that uses a
+    variational technique to find
     the minimum eigenvalue of the Hamiltonian :math:`H` of a given system.
 
     An instance of VQE requires defining two algorithmic sub-components:
@@ -439,19 +439,19 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def _energy_evaluation(self,
                            parameters: Union[List[float], np.ndarray]
                            ) -> Union[float, List[float]]:
-        """Evaluate energy at given parameters for the ansats.
+        """Evaluate energy at given parameters for the ansatz.
 
         This is the objective function to be passed to the optimizer that is used for evaluation.
 
         Args:
-            parameters: The parameters for the ansats.
+            parameters: The parameters for the ansatz.
 
         Returns:
             Energy of the hamiltonian of each parameter.
 
 
         Raises:
-            RuntimeError: If the ansats has no parameters.
+            RuntimeError: If the ansatz has no parameters.
         """
         num_parameters = self.ansatz.num_parameters
         if self._ansatz.num_parameters == 0:
@@ -522,7 +522,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     @property
     def optimal_params(self) -> List[float]:
-        """The optimal parameters for the ansats."""
+        """The optimal parameters for the ansatz."""
         if self._ret.optimal_point is None:
             raise AlgorithmError("Cannot find optimal params before running the algorithm.")
         return self._ret.optimal_point
