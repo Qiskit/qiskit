@@ -13,6 +13,7 @@
 "The Qiskit Terra setup file."
 
 import os
+import re
 import sys
 from setuptools import setup, find_packages, Extension
 try:
@@ -65,7 +66,9 @@ for src, module in CYTHON_EXTS.items():
 README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                            'README.md')
 with open(README_PATH) as readme_file:
-    README = readme_file.read()
+    README = re.sub(
+        '<!--- long-description-skip-begin -->.*<!--- long-description-skip-end -->', '',
+        readme_file.read(), flags=re.S | re.M)
 
 setup(
     name="qiskit-terra",
