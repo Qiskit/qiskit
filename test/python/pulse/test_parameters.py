@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Test cases for parameters used in Schedules."""
-import unittest
 from copy import deepcopy
 
 import numpy as np
