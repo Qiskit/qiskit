@@ -73,7 +73,15 @@ extensions = [
     'jupyter_sphinx',
     'nbsphinx',
     'sphinx_panels',
+    'sphinx_reredirects'
 ]
+
+# -----------------------------------------------------------------------------
+# Redirects
+# ----------------------------------------------------------------------------- 
+redirects = {
+    "install": "getting_started.html",
+}
 
 nbsphinx_timeout = 300
 nbsphinx_execute = os.getenv('QISKIT_DOCS_BUILD_TUTORIALS', 'never')
