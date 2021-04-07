@@ -30,7 +30,7 @@ class Signal:
         """
         Args:
             pulse: The envelope of the signal.
-            frame: A reference to a frame onto which the envelope is multiplied.
+            frame: A reference to a frame in which the pulse will be played.
             name: Name of the signal.
 
         Raises:
