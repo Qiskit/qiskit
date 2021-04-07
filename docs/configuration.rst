@@ -21,7 +21,7 @@ For example:
     circuit_mpl_style = default
     circuit_mpl_style_path = ~:~/.qiskit
     state_drawer = hinton
-    transpile_optimization_level=3
+    transpile_optimization_level = 3
     parallel = False
     num_processes = 15
 
