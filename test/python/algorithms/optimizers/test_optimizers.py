@@ -23,6 +23,15 @@ from qiskit.algorithms.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, P_BFGS, NE
                                           POWELL, SLSQP, SPSA, TNC, GSLS, SAM)
 
 
+def rastrigin(x):
+    x = np.asarray(x)
+    return 10 * len(x) + np.sum(x ** 2 - 10 * np.cos(2 * np.pi * x), axis=0)
+
+
+def bukin(x):
+    return 100 * np.sqrt(abs(x[1] - 0.01 * x[0] * x[0])) + 0.01 * abs(x[0] + 10)
+
+
 class TestOptimizers(QiskitAlgorithmsTestCase):
     """ Test Optimizers """
 
