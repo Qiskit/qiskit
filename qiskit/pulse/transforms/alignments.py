@@ -75,7 +75,7 @@ class AlignLeft(AlignmentKind):
         Left-alignment context.
 
         Args:
-            ignore_frames: If true then frame instructions will be ignore. This
+            ignore_frames: If true then frame instructions will be ignored. This
                 should be set to true if the played Signals in this context
                 do not share any frames.
         """
