@@ -75,8 +75,8 @@ class TestBasicAerIntegration(QiskitTestCase):
         qc = QuantumCircuit(50, 1)
         qc.x(0)
         qc.measure(0, 0)
-        job = execute(qc, self.backend)
-        self.assertRaises(BasicAerError, job.result)
+        with self.assertRaises(BasicAerError):
+            execute(qc, self.backend)
 
 
 if __name__ == '__main__':

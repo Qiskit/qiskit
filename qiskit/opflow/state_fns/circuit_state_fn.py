@@ -17,10 +17,12 @@ from typing import Dict, List, Optional, Set, Union, cast
 
 import numpy as np
 
-from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, execute
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.circuit import Instruction, ParameterExpression
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import IGate
 from qiskit.extensions import Initialize
+from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.composed_op import ComposedOp
 from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.list_ops.summed_op import SummedOp
@@ -135,7 +137,14 @@ class CircuitStateFn(StateFn):
         return SummedOp([self, other])
 
     def adjoint(self) -> "CircuitStateFn":
-        return CircuitStateFn(self.primitive.inverse(),
+        try:
+            inverse = self.primitive.inverse()
+        except CircuitError as missing_inverse:
+            raise OpflowError('Failed to take the inverse of the underlying circuit, the circuit '
+                              'is likely not unitary and can therefore not be inverted.') \
+                from missing_inverse
+
+        return CircuitStateFn(inverse,
                               coeff=self.coeff.conjugate(),
                               is_measurement=(not self.is_measurement))
 
@@ -220,9 +229,8 @@ class CircuitStateFn(StateFn):
             return np.conj(self.adjoint().to_matrix(massive=massive))
         qc = self.to_circuit(meas=False)
         statevector_backend = BasicAer.get_backend('statevector_simulator')
-        statevector = execute(qc,
-                              statevector_backend,
-                              optimization_level=0).result().get_statevector()
+        transpiled = transpile(qc, statevector_backend, optimization_level=0)
+        statevector = statevector_backend.run(transpiled).result().get_statevector()
         from ..operator_globals import EVAL_SIG_DIGITS
         return np.round(statevector * self.coeff, decimals=EVAL_SIG_DIGITS)
 
@@ -315,7 +323,8 @@ class CircuitStateFn(StateFn):
         OperatorBase._check_massive('sample', False, self.num_qubits, massive)
         qc = self.to_circuit(meas=True)
         qasm_backend = BasicAer.get_backend('qasm_simulator')
-        counts = execute(qc, qasm_backend, optimization_level=0, shots=shots).result().get_counts()
+        transpiled = transpile(qc, qasm_backend, optimization_level=0)
+        counts = qasm_backend.run(transpiled, shots=shots).result().get_counts()
         if reverse_endianness:
             scaled_dict = {bstr[::-1]: (prob / shots) for (bstr, prob) in counts.items()}
         else:

@@ -10,51 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Check if the CNOTs follow the right direction with respect to the coupling map."""
+"""Check if the CNOTs follow the right direction with respect to the coupling map.."""
 
-from qiskit.transpiler.layout import Layout
-from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.circuit.library.standard_gates.x import CXGate
+import warnings
+from qiskit.transpiler.passes.utils.check_gate_direction import CheckGateDirection
 
 
-class CheckCXDirection(AnalysisPass):
-    """Check if the CNOTs follow the right direction with respect to the coupling map.
-
-    This pass checks if the CNOTs (or any other 2Q) in the DAG follow the right
-    direction with respect to the coupling map.
-    """
+class CheckCXDirection(CheckGateDirection):
+    """Deprecated: use :class:`qiskit.transpiler.passes.CheckGateDirection` pass instead."""
 
     def __init__(self, coupling_map):
-        """CheckCXDirection initializer.
-
-        Checks if the CNOTs in DAGCircuit are in the allowed direction with
-        respect to `coupling_map`.
-
-        Args:
-            coupling_map (CouplingMap): Directed graph representing a coupling map.
-        """
-        super().__init__()
-        self.coupling_map = coupling_map
-
-    def run(self, dag):
-        """Run the CheckCXDirection pass on `dag`.
-
-        If `dag` is mapped and the direction is correct the property
-        `is_direction_mapped` is set to True (or to False otherwise).
-
-        Args:
-            dag (DAGCircuit): DAG to check.
-        """
-        self.property_set['is_direction_mapped'] = True
-        edges = self.coupling_map.get_edges()
-
-        trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
-
-        for gate in dag.two_qubit_ops():
-            physical_q0 = trivial_layout[gate.qargs[0]]
-            physical_q1 = trivial_layout[gate.qargs[1]]
-
-            if isinstance(gate.op, CXGate) and (
-                    physical_q0, physical_q1) not in edges:
-                self.property_set['is_direction_mapped'] = False
-                return
+        super().__init__(coupling_map)
+        warnings.warn("The CheckCXDirection pass has been deprecated "
+                      "and replaced by a more generic CheckGateDirection pass.",
+                      DeprecationWarning, stacklevel=2)

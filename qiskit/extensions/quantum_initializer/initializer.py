@@ -365,7 +365,7 @@ class Initialize(Instruction):
 def initialize(self, params, qubits=None):
     r"""Initialize qubits in a specific state.
 
-    Qubit initializalition is done by first resetting the qubits to :math:`|0\rangle`
+    Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
     followed by an state preparing unitary. Both these steps are included in the
     `Initialize` instruction.
 
