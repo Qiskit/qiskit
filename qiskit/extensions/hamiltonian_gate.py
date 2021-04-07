@@ -126,7 +126,7 @@ class HamiltonianGate(Gate):
 
 
 def hamiltonian(self, operator, time, qubits, label=None):
-    """Apply hamiltonian evolution to to qubits."""
+    """Apply hamiltonian evolution to qubits."""
     if not isinstance(qubits, list):
         qubits = [qubits]
 

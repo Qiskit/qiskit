@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    The constructors for the :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` classes can now take a
+    :class:`~qiskit.circuit.QuantumCircuit` object in to build a
+    :class:`~qiskit.quantum_info.Statevector` and
+    :class:`~qiskit.quantum_info.DensityMatrix` object from that circuit,
+    assuming that the qubits are initialized in :math:`|0\rangle`. For example:
+
+    .. jupyter-execute::
+
+      from qiskit import QuantumCircuit
+      from qiskit.quantum_info import Statevector
+
+      qc = QuantumCircuit(2)
+      qc.h(0)
+      qc.cx(0, 1)
+
+      statevector = Statevector(qc)
+      statevector.draw(output='latex')

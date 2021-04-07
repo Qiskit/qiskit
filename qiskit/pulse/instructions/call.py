@@ -15,10 +15,10 @@
 from typing import Optional, Union, Dict, Tuple, Any, Set
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.channels import Channel
+from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import instruction
-from qiskit.pulse.utils import format_parameter_value
-
-# TODO This instruction should support ScheduleBlock when it's ready.
+from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
 
 
 class Call(instruction.Instruction):
@@ -38,24 +38,46 @@ class Call(instruction.Instruction):
         .. note:: Inline subroutine is mutable. This requires special care for modification.
 
         Args:
-            subroutine (Schedule): A program subroutine to be referred to.
+            subroutine (Union[Schedule, ScheduleBlock]): A program subroutine to be referred to.
             value_dict: Mapping of parameter object to assigned value.
             name: Unique ID of this subroutine. If not provided, this is generated based on
                 the subroutine name.
-        """
-        if name is None:
-            name = f"{self.prefix}_{subroutine.name}"
 
-        super().__init__((subroutine,), None,
-                         channels=tuple(subroutine.channels),
-                         name=name)
-        if value_dict:
-            self.assign_parameters(value_dict)
+        Raises:
+            PulseError: If subroutine is not valid data format.
+        """
+        from qiskit.pulse.schedule import ScheduleBlock, Schedule
+
+        if not isinstance(subroutine, (ScheduleBlock, Schedule)):
+            raise PulseError(f'Subroutine type {subroutine.__class__.__name__} cannot be called.')
+
+        value_dict = value_dict or dict()
+
+        # initialize parameter template
+        # TODO remove self._parameter_table
+        self._arguments = dict()
+        if subroutine.is_parameterized():
+            for param in subroutine.parameters:
+                self._arguments[param] = value_dict.get(param, param)
+
+        # create cache data of parameter-assigned subroutine
+        assigned_subroutine = subroutine.assign_parameters(
+            value_dict=self.arguments,
+            inplace=False
+        )
+        self._assigned_cache = tuple((self._get_arg_hash(), assigned_subroutine))
+
+        super().__init__(operands=(subroutine, ), name=name or f"{self.prefix}_{subroutine.name}")
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
         return self.subroutine.duration
+
+    @property
+    def channels(self) -> Tuple[Channel]:
+        """Returns the channels that this schedule uses."""
+        return self.assigned_subroutine().channels
 
     # pylint: disable=missing-return-type-doc
     @property
@@ -63,9 +85,33 @@ class Call(instruction.Instruction):
         """Return attached subroutine.
 
         Returns:
-            schedule (Schedule): Attached schedule.
+            program (Union[Schedule, ScheduleBlock]): The program referenced by the call.
         """
         return self.operands[0]
+
+    def assigned_subroutine(self):
+        """Returns this subroutine with the parameters assigned.
+
+        .. note:: This function may be often called internally for class equality check
+            despite its overhead of parameter assignment.
+            The subroutine with parameter assigned is cached based on ``.argument`` hash.
+            Once this argument is updated, new assigned instance will be returned.
+            Note that this update is not mutable operation.
+
+        Returns:
+            program (Union[Schedule, ScheduleBlock]): Attached program.
+        """
+        if self._get_arg_hash() != self._assigned_cache[0]:
+            subroutine = self.subroutine.assign_parameters(
+                value_dict=self.arguments,
+                inplace=False
+            )
+            # update cache data
+            self._assigned_cache = tuple((self._get_arg_hash(), subroutine))
+        else:
+            subroutine = self._assigned_cache[1]
+
+        return subroutine
 
     def _initialize_parameter_table(self,
                                     operands: Tuple[Any]):
@@ -89,6 +135,7 @@ class Call(instruction.Instruction):
             for value in operands[0].parameters:
                 self._parameter_table[value] = value
 
+    @deprecated_functionality
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Call':
@@ -123,9 +170,9 @@ class Call(instruction.Instruction):
 
     @property
     def parameters(self) -> Set:
-        """Parameters which determine the instruction behavior."""
+        """Unassigned parameters which determine the instruction behavior."""
         params = set()
-        for value in self._parameter_table.values():
+        for value in self._arguments.values():
             if isinstance(value, ParameterExpression):
                 for param in value.parameters:
                     params.add(param)
@@ -133,5 +180,43 @@ class Call(instruction.Instruction):
 
     @property
     def arguments(self) -> Dict[ParameterExpression, ParameterValueType]:
-        """Parameters dictionary which determine the subroutine behavior."""
-        return self._parameter_table
+        """Parameters dictionary to be assigned to subroutine."""
+        return self._arguments
+
+    @arguments.setter
+    def arguments(self, new_arguments: Dict[ParameterExpression, ParameterValueType]):
+        """Set new arguments.
+
+        Args:
+            new_arguments: Dictionary of new parameter value mapping to update.
+
+        Raises:
+            PulseError: When new arguments doesn't match with existing arguments.
+        """
+        # validation
+        if new_arguments.keys() != self._arguments.keys():
+            new_arg_names = ', '.join(map(repr, new_arguments.keys()))
+            old_arg_names = ', '.join(map(repr, self.arguments.keys()))
+            raise PulseError('Key mismatch between new arguments and existing arguments. '
+                             f'{new_arg_names} != {old_arg_names}')
+
+        self._arguments = new_arguments
+
+    def _get_arg_hash(self):
+        """A helper function to generate hash of parameters."""
+        return hash(tuple(self.arguments.items()))
+
+    def __eq__(self, other: 'Instruction') -> bool:
+        """Check if this instruction is equal to the `other` instruction.
+
+        Instructions are equal if they share the same type, operands, and channels.
+        """
+        # type check
+        if not isinstance(other, self.__class__):
+            return False
+
+        # compare subroutine. assign parameter values before comparison
+        if self.assigned_subroutine() != other.assigned_subroutine():
+            return False
+
+        return True

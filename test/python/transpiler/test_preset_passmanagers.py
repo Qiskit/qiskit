@@ -149,7 +149,7 @@ class TestPassesInspection(QiskitTestCase):
         self.assertNotIn('TrivialLayout', self.passes)
         self.assertNotIn('ApplyLayout', self.passes)
         self.assertNotIn('StochasticSwap', self.passes)
-        self.assertNotIn('CheckCXDirection', self.passes)
+        self.assertNotIn('CheckGateDirection', self.passes)
 
     @data(0, 1, 2, 3)
     def test_backend(self, level):
@@ -164,7 +164,7 @@ class TestPassesInspection(QiskitTestCase):
 
         self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
-        self.assertIn('CheckCXDirection', self.passes)
+        self.assertIn('CheckGateDirection', self.passes)
 
     @data(0, 1, 2, 3)
     def test_5409(self, level):
@@ -185,7 +185,7 @@ class TestPassesInspection(QiskitTestCase):
 
     @data(0, 1, 2, 3)
     def test_symmetric_coupling_map(self, level):
-        """Symmetric coupling map does not run CheckCXDirection
+        """Symmetric coupling map does not run CheckGateDirection
         """
         qr = QuantumRegister(2, 'q')
         qc = QuantumCircuit(qr)
@@ -201,10 +201,10 @@ class TestPassesInspection(QiskitTestCase):
 
         self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
-        self.assertNotIn('CheckCXDirection', self.passes)
+        self.assertNotIn('CheckGateDirection', self.passes)
 
     @data(0, 1, 2, 3)
-    def test_inital_layout_fully_connected_cm(self, level):
+    def test_initial_layout_fully_connected_cm(self, level):
         """Honor initial_layout when coupling_map=None
         See: https://github.com/Qiskit/qiskit-terra/issues/5345
         """

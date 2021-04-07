@@ -184,6 +184,8 @@ class SummedOp(ListOp):
             coeff=self.coeff,
             abelian=self.abelian,
         ).reduce()
+        if isinstance(pauli_sum, SummedOp):
+            return pauli_sum
         return pauli_sum.to_pauli_op()  # type: ignore
 
     def equals(self, other: OperatorBase) -> bool:
