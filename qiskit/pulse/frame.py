@@ -31,7 +31,7 @@ class Frame:
         """
         self._validate_index(index)
         self._index = index
-        self._hash = None
+        self._hash = hash((type(self), self._index))
 
     @property
     def index(self) -> Union[int, ParameterExpression]:
@@ -79,6 +79,4 @@ class Frame:
         return type(self) is type(other) and self.index == other.index
 
     def __hash__(self):
-        if self._hash is None:
-            self._hash = hash((type(self), self._index))
         return self._hash
