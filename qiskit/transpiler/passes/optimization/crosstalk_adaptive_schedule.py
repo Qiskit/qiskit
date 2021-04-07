@@ -624,7 +624,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
 
     def create_updated_dag(self, layers, barriers):
         """
-        Given a set of layers and barries, construct a new dag
+        Given a set of layers and barriers, construct a new dag
         """
         new_dag = DAGCircuit()
         for qreg in self.dag.qregs.values():

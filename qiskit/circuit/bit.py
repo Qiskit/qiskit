@@ -13,6 +13,8 @@
 """
 Quantum bit and Classical bit objects.
 """
+import warnings
+
 from qiskit.circuit.exceptions import CircuitError
 
 
@@ -58,6 +60,11 @@ class Bit:
         if (self._register, self._index) == (None, None):
             raise CircuitError('Attmped to query register of a new-style Bit.')
 
+        warnings.warn('Back-references to from Bit instances to their containing '
+                      'Registers have been deprecated. Instead, inspect Registers '
+                      'to find their contained Bits.',
+                      DeprecationWarning, stacklevel=2)
+
         return self._register
 
     @property
@@ -65,6 +72,11 @@ class Bit:
         """Get bit's index."""
         if (self._register, self._index) == (None, None):
             raise CircuitError('Attmped to query index of a new-style Bit.')
+
+        warnings.warn('Back-references to from Bit instances to their containing '
+                      'Registers have been deprecated. Instead, inspect Registers '
+                      'to find their contained Bits.',
+                      DeprecationWarning, stacklevel=2)
 
         return self._index
 

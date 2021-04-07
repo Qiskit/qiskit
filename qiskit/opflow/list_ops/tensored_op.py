@@ -74,12 +74,16 @@ class TensoredOp(ListOp):
     def eval(
         self, front: Union[str, dict, np.ndarray, OperatorBase, Statevector] = None
     ) -> Union[OperatorBase, complex]:
+        if self._is_empty():
+            return 0.0
         return cast(Union[OperatorBase, complex], self.to_matrix_op().eval(front=front))
 
     # Try collapsing list or trees of tensor products.
     # TODO do this smarter
     def reduce(self) -> OperatorBase:
         reduced_ops = [op.reduce() for op in self.oplist]
+        if self._is_empty():
+            return self.__class__([], coeff=self.coeff, abelian=self.abelian)
         reduced_ops = reduce(lambda x, y: x.tensor(y), reduced_ops) * self.coeff
         if isinstance(reduced_ops, ListOp) and len(reduced_ops.oplist) == 1:
             return reduced_ops.oplist[0]

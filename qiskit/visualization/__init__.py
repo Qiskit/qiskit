@@ -94,6 +94,14 @@ Single Qubit State Transition Visualizations
 
    visualize_transition
 
+Array/Matrix Visualizations
+===========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   array_to_latex
+
 Exceptions
 ==========
 
@@ -127,12 +135,3 @@ from .pulse.qcstyle import PulseStyle, SchedStyle
 from .pulse_visualization import pulse_drawer
 from .pulse_v2 import draw as pulse_drawer_v2
 from .timeline import draw as timeline_drawer
-
-if (('ipykernel' in sys.modules) and ('spyder' not in sys.modules)) \
-        or os.getenv('QISKIT_DOCS') == 'TRUE':
-    from qiskit.visualization.interactive import (iplot_bloch_multivector,
-                                                  iplot_state_city,
-                                                  iplot_state_qsphere,
-                                                  iplot_state_hinton,
-                                                  iplot_histogram,
-                                                  iplot_state_paulivec)

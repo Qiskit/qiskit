@@ -17,11 +17,12 @@ import math
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, idata, unpack
 
-from qiskit import BasicAer
+from qiskit import Aer
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms import Shor
 
 
+@unittest.skipUnless(Aer, "qiskit-aer is required for these tests")
 @ddt
 class TestShor(QiskitAlgorithmsTestCase):
     """test Shor's algorithm"""
@@ -32,7 +33,7 @@ class TestShor(QiskitAlgorithmsTestCase):
     @unpack
     def test_shor_factoring(self, n_v, backend, factors):
         """ shor factoring test """
-        shor = Shor(quantum_instance=QuantumInstance(BasicAer.get_backend(backend), shots=1000))
+        shor = Shor(quantum_instance=QuantumInstance(Aer.get_backend(backend), shots=1000))
         result = shor.factor(N=n_v)
         self.assertListEqual(result.factors[0], factors)
         self.assertTrue(result.total_counts >= result.successful_counts)
@@ -40,7 +41,7 @@ class TestShor(QiskitAlgorithmsTestCase):
     @data(5, 7)
     def test_shor_no_factors(self, n_v):
         """ shor no factors test """
-        backend = BasicAer.get_backend('qasm_simulator')
+        backend = Aer.get_backend('qasm_simulator')
         shor = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
         result = shor.factor(N=n_v)
         self.assertTrue(result.factors == [])
@@ -54,7 +55,7 @@ class TestShor(QiskitAlgorithmsTestCase):
     def test_shor_power(self, base, power):
         """ shor power test """
         n_v = int(math.pow(base, power))
-        backend = BasicAer.get_backend('qasm_simulator')
+        backend = Aer.get_backend('qasm_simulator')
         shor = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
         result = shor.factor(N=n_v)
         self.assertTrue(result.factors == [base])
