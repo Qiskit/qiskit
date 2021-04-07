@@ -12,6 +12,7 @@
 
 """Compiler Test."""
 
+import os
 import unittest
 
 from qiskit import BasicAer
@@ -351,8 +352,11 @@ class TestCompiler(QiskitTestCase):
 
     def test_random_parameter_circuit(self):
         """Run a circuit with randomly generated parameters."""
+        qasm_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'qasm')
         circ = QuantumCircuit.from_qasm_file(
-            self._get_resource_path('random_n5_d5.qasm', Path.QASMS))
+            os.path.join(qasm_dir,'random_n5_d5.qasm'))
         coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         shots = 1024
         qobj = execute(circ, backend=self.backend,

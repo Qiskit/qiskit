@@ -69,6 +69,7 @@ For example::
 # pylint: disable=attribute-defined-outside-init
 
 import unittest
+import os
 import sys
 
 from qiskit import execute
@@ -131,7 +132,10 @@ class CommonUtilitiesMixin:
     def assertResult(self, result, circuit):
         """Fetches the QASM in circuit.name file and compares it with result."""
         qasm_name = '%s_%s.qasm' % (type(self).__name__, circuit.name)
-        filename = QiskitTestCase._get_resource_path(qasm_name, Path.QASMS)
+        qasm_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'qasm')
+        filename = os.path.join(qasm_dir, qasm_name)
 
         if self.regenerate_expected:
             # Run result in backend to test that is valid.
