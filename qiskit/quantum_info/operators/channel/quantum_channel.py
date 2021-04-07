@@ -93,7 +93,7 @@ class QuantumChannel(LinearOp):
         r"""Return the transpose quantum channel.
 
         .. note::
-            This is equivalent to the matrix tranpsose in the
+            This is equivalent to the matrix transpose in the
             :class:`~qiskit.quantum_info.SuperOp` representation,
             ie. for a channel :math:`\mathcal{E}`, the SuperOp of
             the transpose channel :math:`\mathcal{{E}}^T` is
