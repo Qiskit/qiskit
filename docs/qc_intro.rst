@@ -13,12 +13,13 @@ Quantum computing in a nutshell
 Quantum computing represents a new paradigm in computation that utilizes the fundamental
 principles of quantum mechanics to perform calculations.  If you are reading this then you
 have undoubtedly heard that the promise of quantum computation lies in the possibility of
-efficiently performing a handful of tasks such as prime factorization, quantum simulation, and
-optimization; computations that at size are beyond the capabilities of even the largest of
+efficiently performing a handful of tasks such as prime factorization, quantum simulation, search,
+optimization, and algebraic programs such as machine learning; computations that at size are
+beyond the capabilities of even the largest of
 classical computers.
 
 The power of quantum computing rests on two cornerstones of quantum mechanics, namely
-:ref:`superposition <qc-intro-superposition>` and
+:ref:`interference <qc-intro-interference>` and
 :ref:`entanglement <qc-intro-entanglement>` that highlight the wave- and particle-like aspects
 of quantum computation, respectively.  Qiskit is an SDK for performing quantum computations
 that utilize these quantum mechanical principles using the language of
@@ -33,20 +34,19 @@ of quantum computing, and how Qiskit is used at each step.  Interested readers a
 directed to additional in-depth materials for further insights.
 
 
-.. _qc-intro-superposition:
+.. _qc-intro-interference:
 
-Superposition
-=============
+Interference
+============
 
 Like a classical computer, a quantum computer operates on bits.  However, while classical bits can
 only be found in the states 0 and 1, a quantum bit, or qubit, can represent the values 0 and 1,
-or linear combinations of both.  These linear combinations are known as **superpositions**
-(or superposition states) and allow for representing, and processing, exponentially many
-logical states simultaneously.
+or linear combinations of both.  These linear combinations are known as superpositions
+(or superposition states).
 
 To see how this resource is utilized in quantum computation we first turn to a classical
 analog: noise cancellation.  Noise cancellation, as done in noise cancelling headphones
-for example, is performed by employing the principle of superposition along with interference
+for example, is performed by employing superposition and the principle of **interference**
 to reduce the amplitude of unwanted noise by generating a tone of approximately the same
 frequency and amplitude, but out of phase by a value of :math:`\pi` (or any other odd
 integer of :math:`\pi`).
@@ -118,7 +118,7 @@ by boxes.
 
 Quantum circuits enable a quantum computer to take in classical information and output a
 classical solution, leveraging quantum principles such as
-:ref:`superposition <qc-intro-superposition>` and
+:ref:`interference <qc-intro-interference>` and
 :ref:`entanglement <qc-intro-entanglement>` to perform the computation.
 
 A typical quantum algorithm workflow consists of:
@@ -134,13 +134,13 @@ These "unitary" transformations represent the quantum mechanical core of a quant
 circuit.  Some gates such as :math:`X` (also written as :math:`\oplus`) and :math:`CX`
 have classical analogs such as bit-flip and :math:`XOR` operations, respectively,
 while others do not.  The Hadamand (:math:`H`) gate, along with the parameterized rotates
-:math:`rX(\theta)` and :math:`rY(\theta)`, generate non-classical superposition states,
+:math:`rX(\theta)` and :math:`rY(\theta)`, generate superposition states,
 while gates such as :math:`Z`, :math:`rZ(\theta)`, :math:`S`, and :math:`T` impart phases that
 can be used for interference.  Two-qubit gates like the :math:`CX` gate are used
 to generate entanglement between pairs of qubits, or to "kick" the phase from
 one qubit ot another.   In contrast to gates, operations like "measurement", represented by
-the meter symbol in a box with a line connecting to a "target" wire, extract enough
-information about a qubit's state, including the phase, to be able to represent it as
+the meter symbol in a box with a line connecting to a "target" wire, extract partial
+information about a qubit's state, often losing the phase, to be able to represent it as
 a classical bit and write that classical bit onto the target wire (often a fully classical
 wire in some readout device). This is the typical way to take information from the
 quantum data into a classical device.  Note that with only :math:`H`, :math:`rZ(\theta)`,
@@ -198,8 +198,7 @@ Quantum computers
 
    A view inside the IBM Quantum System One.
 
-Quantum computers that are programmed using quantum circuits are called
-**gate-based quantum computers**. Such systems can be constructed out of any
+Quantum computers which are programmed using quantum circuits can be constructed out of any
 quantum technology that allows for defining qubit elements, and can implement
 single- and multi-qubit gate operations with high-fidelity. At present, architectures
 based on superconducting circuits, trapped-ions, semiconducting quantum-dots, photons, and
