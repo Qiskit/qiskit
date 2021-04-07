@@ -14,11 +14,13 @@
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import QFT
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.library.basis_change import QFT
+
+from .adder import Adder
 
 
-class QFTAdder(QuantumCircuit):
+class QFTAdder(Adder):
     r"""A circuit that uses QFT to perform in-place addition on two qubit registers.
 
     Circuit to compute the sum of two qubit registers using modular QFT approach from [1]
@@ -45,16 +47,16 @@ class QFTAdder(QuantumCircuit):
 
     .. parsed-literal::
 
-        input_a_0:   ─────────■──────■────────────────────────■───────────────
-                              │      │                        │
-        input_a_1:   ─────────┼──────┼────────■──────■────────┼───────────────
-                     ┌──────┐ │P(π)  │        │      │        │       ┌──────┐
-        input_b_0:   ┤0     ├─■──────┼────────┼──────┼────────┼───────┤0     ├
-                     │      │        │P(π/2)  │P(π)  │        │       │      │
-        input_b_1:   ┤1 qft ├────────■────────■──────┼────────┼───────┤1 qft ├
-                     │      │                        │P(π/2)  │P(π/4) │      │
-        carry_out_0: ┤2     ├────────────────────────■────────■───────┤2     ├
-                     └──────┘                                         └──────┘
+         a_0:   ─────────■──────■────────────────────────■────────────────
+                         │      │                        │
+         a_1:   ─────────┼──────┼────────■──────■────────┼────────────────
+                ┌──────┐ │P(π)  │        │      │        │       ┌───────┐
+         b_0:   ┤0     ├─■──────┼────────┼──────┼────────┼───────┤0      ├
+                │      │        │P(π/2)  │P(π)  │        │       │       │
+         b_1:   ┤1 qft ├────────■────────■──────┼────────┼───────┤1 iqft ├
+                │      │                        │P(π/2)  │P(π/4) │       │
+        cout_0: ┤2     ├────────────────────────■────────■───────┤2      ├
+                └──────┘                                         └───────┘
 
     **References:**
 
@@ -66,6 +68,7 @@ class QFTAdder(QuantumCircuit):
 
     [3] Vedral et al., Quantum Networks for Elementary Arithmetic Operations, 1995.
     `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_
+
     """
 
     def __init__(self,
@@ -88,16 +91,18 @@ class QFTAdder(QuantumCircuit):
         if num_state_qubits < 1:
             raise ValueError('The number of qubits must be at least 1.')
 
-        qr_a = QuantumRegister(num_state_qubits, name='input_a')
-        qr_b = QuantumRegister(num_state_qubits, name='input_b')
+        super().__init__(num_state_qubits, name=name)
+
+        qr_a = QuantumRegister(num_state_qubits, name='a')
+        qr_b = QuantumRegister(num_state_qubits, name='b')
         qr_list = [qr_a, qr_b]
 
         if not modular:
-            qr_z = QuantumRegister(1, name='carry_out')
+            qr_z = QuantumRegister(1, name='cout')
             qr_list.append(qr_z)
 
-        # initialize quantum circuit with register list
-        super().__init__(*qr_list, name=name)
+        # add registers
+        self.add_register(*qr_list)
 
         # define register containing the sum and number of qubits for QFT circuit
         qr_sum = qr_b[:] if modular else qr_b[:] + qr_z[:]
@@ -105,12 +110,15 @@ class QFTAdder(QuantumCircuit):
 
         # build QFT adder circuit
         self.append(QFT(num_qubits_qft, do_swaps=False).to_instruction(), qr_sum[:])
+
         for j in range(num_state_qubits):
             for k in range(num_state_qubits - j):
                 lam = np.pi / (2 ** k)
                 self.cp(lam, qr_a[j], qr_b[j + k])
+
         if not modular:
             for j in range(num_state_qubits):
                 lam = np.pi / (2 ** (j + 1))
                 self.cp(lam, qr_a[num_state_qubits - j - 1], qr_z[0])
-        self.append(QFT(num_qubits_qft, do_swaps=False, inverse=True).to_instruction(), qr_sum[:])
+
+        self.append(QFT(num_qubits_qft, do_swaps=False).inverse().to_instruction(), qr_sum[:])

@@ -22,14 +22,14 @@ For example::
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
 import warnings
-from abc import ABC
+from abc import ABC, abstractproperty
 from collections import defaultdict
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.utils import format_parameter_value
+from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
 
 
 # pylint: disable=missing-return-doc
@@ -42,15 +42,15 @@ class Instruction(ABC):
 
     def __init__(self,
                  operands: Tuple,
-                 duration: int,
-                 channels: Tuple[Channel],
+                 duration: int = None,
+                 channels: Tuple[Channel] = None,
                  name: Optional[str] = None):
         """Instruction initializer.
 
         Args:
             operands: The argument list.
             duration: Deprecated.
-            channels: Tuple of pulse channels that this instruction operates on.
+            channels: Deprecated.
             name: Optional display name for this instruction.
 
         Raises:
@@ -58,10 +58,6 @@ class Instruction(ABC):
             PulseError: If the input ``channels`` are not all of
                 type :class:`Channel`.
         """
-        for channel in channels:
-            if not isinstance(channel, Channel):
-                raise PulseError("Expected a channel, got {} instead.".format(channel))
-
         if duration is not None:
             warnings.warn('Specifying duration in the constructor is deprecated. '
                           'Now duration is an abstract property rather than class variable. '
@@ -69,13 +65,21 @@ class Instruction(ABC):
                           'See Qiskit-Terra #5679 for more information.',
                           DeprecationWarning)
 
-        self._channels = channels
+        if channels is not None:
+            warnings.warn('Specifying ``channels`` in the constructor is deprecated. '
+                          'All channels should be stored in ``operands``.',
+                          DeprecationWarning)
+
         self._operands = operands
         self._name = name
         self._hash = None
 
         self._parameter_table = defaultdict(list)
         self._initialize_parameter_table(operands)
+
+        for channel in self.channels:
+            if not isinstance(channel, Channel):
+                raise PulseError("Expected a channel, got {} instead.".format(channel))
 
     @property
     def name(self) -> str:
@@ -92,10 +96,10 @@ class Instruction(ABC):
         """Return instruction operands."""
         return self._operands
 
-    @property
+    @abstractproperty
     def channels(self) -> Tuple[Channel]:
-        """Returns channels that this schedule uses."""
-        return self._channels
+        """Returns the channels that this schedule uses."""
+        raise NotImplementedError
 
     @property
     def start_time(self) -> int:
@@ -226,13 +230,14 @@ class Instruction(ABC):
         return self.insert(time, schedule, name=name)
 
     @property
+    @deprecated_functionality
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
         return set(self._parameter_table.keys())
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return bool(self.parameters)
+        return any(chan.is_parameterized() for chan in self.channels)
 
     def _initialize_parameter_table(self,
                                     operands: Tuple[Any]):
@@ -245,10 +250,11 @@ class Instruction(ABC):
             if isinstance(op, ParameterExpression):
                 for param in op.parameters:
                     self._parameter_table[param].append(idx)
-            elif isinstance(op, Channel) and op.is_parameterized():
-                for param in op.parameters:
+            elif isinstance(op, Channel) and isinstance(op.index, ParameterExpression):
+                for param in op.index.parameters:
                     self._parameter_table[param].append(idx)
 
+    @deprecated_functionality
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Instruction':
@@ -284,6 +290,7 @@ class Instruction(ABC):
                         self._parameter_table[new_parameter] = entry
 
         self._operands = tuple(new_operands)
+
         return self
 
     def draw(self, dt: float = 1, style=None,

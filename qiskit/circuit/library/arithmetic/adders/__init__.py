@@ -14,3 +14,4 @@
 
 from .ripple_carry_adder import RippleCarryAdder
 from .qft_adder import QFTAdder
+from .classical_adder import ClassicalAdder

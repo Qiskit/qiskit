@@ -19,15 +19,30 @@ from ddt import ddt, data, unpack
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector, partial_trace
-from qiskit.circuit.library import RippleCarryAdder, QFTAdder
+from qiskit.circuit.library import RippleCarryAdder, QFTAdder, ClassicalAdder
 
 
 @ddt
 class TestAdder(QiskitTestCase):
     """Test the adder circuits."""
 
-    def assertAdditionIsCorrect(self, num_state_qubits, adder, inplace, modular):
-        """Assert that adder correctly implements the summation w.r.t. its set weights."""
+    def assertAdditionIsCorrect(self,
+                                num_state_qubits: int,
+                                adder: QuantumCircuit,
+                                inplace: bool,
+                                modular: bool):
+        """Assert that adder correctly implements the summation.
+
+        Args:
+            num_state_qubits: The number of bits in the numbers that are added.
+            adder: The circuit performing the addition of two numbers with ``num_state_qubits``
+                bits.
+            inplace: If True, compare against an inplace addition where the result is written into
+                the second register plus carry qubit. If False, assume that the result is written
+                into a third register of appropriate size.
+            modular: If True, omit the carry qubit to obtain an addition modulo
+                ``2^num_state_qubits``.
+        """
         circuit = QuantumCircuit(*adder.qregs)
         # create equal superposition
         circuit.h(range(2 * num_state_qubits))
@@ -64,8 +79,9 @@ class TestAdder(QiskitTestCase):
         (3, QFTAdder, True),
         (5, QFTAdder, True),
         (3, QFTAdder, True, True),
-        (5, QFTAdder, True, True)
-        # other adders to be added here
+        (5, QFTAdder, True, True),
+        (3, ClassicalAdder, True),
+        (5, ClassicalAdder, True),
     )
     @unpack
     def test_summation(self, num_state_qubits, adder, inplace, modular=False):
@@ -75,8 +91,8 @@ class TestAdder(QiskitTestCase):
 
     @data(
         RippleCarryAdder,
-        QFTAdder
-        # other adders to be added here
+        QFTAdder,
+        ClassicalAdder
     )
     def test_raises_on_wrong_num_bits(self, adder):
         """Test an error is raised for a bad number of qubits."""
