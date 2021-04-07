@@ -21,14 +21,12 @@ channel types can be created. Then, they must be supported in the PulseQobj sche
 assembler.
 """
 from abc import ABCMeta
-from typing import Any, Set, Union
-
-import numpy as np
+from typing import Set, Union
 
 from qiskit.circuit import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.utils import deprecated_functionality
+from qiskit.pulse.utils import deprecated_functionality, validate_index
 
 
 class Channel(metaclass=ABCMeta):
@@ -67,7 +65,7 @@ class Channel(metaclass=ABCMeta):
         Args:
             index: Index of channel.
         """
-        self._validate_index(index)
+        validate_index(index)
         self._index = index
         self._hash = hash((self.__class__.__name__, self._index))
 
@@ -82,24 +80,6 @@ class Channel(metaclass=ABCMeta):
         the signal line driving the qubit labeled with index 0.
         """
         return self._index
-
-    def _validate_index(self, index: Any) -> None:
-        """Raise a PulseError if the channel index is invalid, namely, if it's not a positive
-        integer.
-
-        Raises:
-            PulseError: If ``index`` is not a nonnegative integer.
-        """
-        if isinstance(index, ParameterExpression) and index.parameters:
-            # Parameters are unbound
-            return
-        elif isinstance(index, ParameterExpression):
-            index = float(index)
-            if index.is_integer():
-                index = int(index)
-
-        if not isinstance(index, (int, np.integer)) and index < 0:
-            raise PulseError('Channel index must be a nonnegative integer')
 
     @property
     @deprecated_functionality
