@@ -1,8 +1,6 @@
-:orphan:
-
-===========================
-Getting Started with Qiskit
-===========================
+======================
+Introduction to Qiskit
+======================
 
 When using Qiskit an user workflow nominally consists of
 following four high-level steps:

@@ -68,6 +68,8 @@ Interested in quantum hardware design?
   :maxdepth: 2
   :hidden:
 
+  qc_intro
+  intro_tutorial1
   release_notes
   contributing_to_qiskit
   configuration
