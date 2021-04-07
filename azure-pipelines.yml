@@ -196,11 +196,13 @@ stages:
         - bash: |
             set -e
             source test-job/bin/activate
+            cp tools/subunit_to_junit.py /tmp/terra-tests/.
             pip install -U junitxml
             pushd /tmp/terra-tests
             mkdir -p junit
-            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+            stestr last --subunit | subunit_to_junit.py -o junit/test-results.xml
             popd
+            cp -r /tmp/terra-tests/junit .
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
