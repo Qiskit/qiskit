@@ -285,7 +285,19 @@ def set_style(current_style, new_style):
     valid_fieds = {'name', 'textcolor', 'gatetextcolor', 'subtextcolor', 'linecolor',
                    'creglinecolor', 'gatefacecolor', 'barrierfacecolor', 'backgroundcolor',
                    'edgecolor', 'fontsize', 'subfontsize', 'showindex', 'figwidth', 'dpi',
-                   'margin', 'creglinestyle', 'displaytext'}
+                   'margin', 'creglinestyle', 'displaytext', 'displaycolor'}
+
+    dtex = new_style.get('displaytext', current_style['disptex'])
+    dtex_ = {}
+    for tex in dtex.keys():
+        if tex in current_style['disptex'].keys():
+            dtex_[tex] = dtex[tex]
+    dcol = new_style.get('displaycolor', current_style['dispcol'])
+    dcol_ = {}
+    for col in dcol.keys():
+        if col in current_style['dispcol'].keys():
+            dcol_[col] = dcol[col]
+
     current_style = {**current_style, **new_style}
     current_style['tc'] = current_style.get('textcolor', current_style['tc'])
     current_style['gt'] = current_style.get('gatetextcolor', current_style['gt'])
@@ -299,18 +311,9 @@ def set_style(current_style, new_style):
     current_style['fs'] = current_style.get('fontsize', current_style['fs'])
     current_style['sfs'] = current_style.get('subfontsize', current_style['sfs'])
     current_style['index'] = current_style.get('showindex', current_style['index'])
-    current_style['figwidth'] = current_style.get('figwidth', current_style['figwidth'])
-    current_style['dpi'] = current_style.get('dpi', current_style['dpi'])
-    current_style['margin'] = current_style.get('margin', current_style['margin'])
     current_style['cline'] = current_style.get('creglinestyle', current_style['cline'])
-    dtex = current_style.get('displaytext', current_style['disptex'])
-    for tex in dtex.keys():
-        if tex in current_style['disptex'].keys():
-            current_style['disptex'][tex] = dtex[tex]
-    dcol = current_style.get('displaycolor', current_style['dispcol'])
-    for col in dcol.keys():
-        if col in current_style['dispcol'].keys():
-            current_style['dispcol'][col] = dcol[col]
+    current_style['disptex'] = dtex_
+    current_style['dispcol'] = dcol_
 
     unsupported_keys = set(new_style) - valid_fieds
     if unsupported_keys:
