@@ -196,10 +196,8 @@ class ParameterSetter(NodeVisitor):
         if node.is_parameterized():
             new_index = self._assign_parameter_expression(node.index)
 
-            # validate
             if not isinstance(new_index, ParameterExpression):
-                if not isinstance(new_index, int) or new_index < 0:
-                    raise PulseError('Channel index must be a nonnegative integer')
+                validate_index(new_index)
 
             # return new instance to prevent accidentally override timeslots without evaluation
             return node.__class__(index=new_index)
@@ -210,7 +208,9 @@ class ParameterSetter(NodeVisitor):
         """Assign parameters to ``Frame`` object."""
         if isinstance(node.index, ParameterExpression):
             new_index = self._assign_parameter_expression(node.index)
-            validate_index(new_index)
+
+            if not isinstance(new_index, ParameterExpression):
+                validate_index(new_index)
 
             return node.__class__(index=new_index)
 
