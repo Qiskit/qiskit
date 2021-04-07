@@ -112,7 +112,7 @@ class MatplotlibDrawer:
 
     _mathmode_regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
 
-    def __init__(self, qubits, clbits, ops,scale=None, style=None,
+    def __init__(self, qubits, clbits, ops, scale=None, style=None,
                  reverse_bits=False, plot_barriers=True,
                  layout=None, fold=25, ax=None, initial_state=False,
                  cregbundle=True, global_phase=None, qregs=None, cregs=None):
