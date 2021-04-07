@@ -61,7 +61,7 @@ from qiskit.pulse.library import ParametricPulse, Waveform, Signal
 from qiskit.pulse.frame import Frame
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
-from qiskit.pulse.utils import format_parameter_value
+from qiskit.pulse.utils import format_parameter_value, validate_index
 
 
 class NodeVisitor:
@@ -210,8 +210,7 @@ class ParameterSetter(NodeVisitor):
         """Assign parameters to ``Frame`` object."""
         if isinstance(node.index, ParameterExpression):
             new_index = self._assign_parameter_expression(node.index)
-            if not isinstance(new_index, int) and new_index < 0:
-                raise PulseError('Frame index must be a nonnegative integer')
+            validate_index(new_index)
 
             return node.__class__(index=new_index)
 
