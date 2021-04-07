@@ -920,7 +920,7 @@ def align_left(ignore_frames: bool = False) -> ContextManager[None]:
         assert pulse_prog.ch_start_time(d0) == pulse_prog.ch_start_time(d1)
 
     Args:
-        ignore_frames: If true then frame instructions will be ignore. This
+        ignore_frames: If true then frame instructions will be ignored. This
             should be set to true if the played Signals in this context
             do not share any frames.
     """
