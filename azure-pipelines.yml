@@ -200,7 +200,7 @@ stages:
             pip install -U junitxml
             pushd /tmp/terra-tests
             mkdir -p junit
-            stestr last --subunit | subunit_to_junit.py -o junit/test-results.xml
+            stestr last --subunit | ./subunit_to_junit.py -o junit/test-results.xml
             popd
             cp -r /tmp/terra-tests/junit .
           condition: succeededOrFailed()
