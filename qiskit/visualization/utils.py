@@ -163,8 +163,8 @@ def _get_gate_span(qubits, instruction, reverse_bits):
         if reverse_bits:
             return qubits[:max_index + 1]
         else:
-            return qubits[min_index:len(qregs)]
-    return qregs[min_index:max_index + 1]
+            return qubits[min_index:len(qubits)]
+    return qubits[min_index:max_index + 1]
 
 
 def _any_crossover(qubits, node, nodes, reverse_bits):

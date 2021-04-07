@@ -515,8 +515,9 @@ def _matplotlib_circuit_drawer(circuit,
 
     global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
     qcd = _matplotlib.MatplotlibDrawer(qubits, clbits, ops, scale=scale, style=style,
-                                       plot_barriers=plot_barriers, layout=layout,
-                                       fold=fold, ax=ax, initial_state=initial_state,
+                                       reverse_bits=reverse_bits, plot_barriers=plot_barriers,
+                                       layout=layout, fold=fold, ax=ax,
+                                       initial_state=initial_state,
                                        cregbundle=cregbundle, global_phase=global_phase,
                                        qregs=circuit.qregs, cregs=circuit.cregs)
     return qcd.draw(filename)
