@@ -276,10 +276,10 @@ class MatplotlibDrawer:
                 sum_text *= self._subfont_factor
             return sum_text
 
-    def _get_colors(self, op):
+    def _get_colors(self, op, gate_text):
         base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-        if op.name in self._style['dispcol']:
-            color = self._style['dispcol'][op.name]
+        if gate_text in self._style['dispcol']:
+            color = self._style['dispcol'][gate_text]
             # Backward compatibility for style dict using 'displaycolor' with
             # gate color and no text color, so test for str first
             if isinstance(color, str):
@@ -722,7 +722,7 @@ class MatplotlibDrawer:
                     continue
 
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                gate_text, ctrl_text = get_gate_ctrl_text(op, 'mpl', style=self._style)
+                gate_text, ctrl_text, _ = get_gate_ctrl_text(op, 'mpl', style=self._style)
 
                 # if a standard_gate, no params, and no labels, layer_width is 1
                 if (not hasattr(op.op, 'params') and
@@ -774,8 +774,9 @@ class MatplotlibDrawer:
             #
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                gate_text, ctrl_text = get_gate_ctrl_text(op, 'mpl', style=self._style)
-                fc, ec, gt, tc, sc, lc = self._get_colors(op)
+                gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(op, 'mpl',
+                                                                         style=self._style)
+                fc, ec, gt, tc, sc, lc = self._get_colors(op, raw_gate_text)
 
                 # get qubit index
                 q_idxs = []

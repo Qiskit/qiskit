@@ -61,6 +61,8 @@ def get_gate_ctrl_text(op, drawer, style=None):
     else:
         gate_text = op.name
 
+    raw_gate_text = op.name if gate_text == base_name else gate_text
+
     # For mpl and latex drawers, check style['disptex'] in qcstyle.py
     if drawer != 'text' and gate_text in style['disptex']:
         # First check if this entry is in the old style disptex that
@@ -88,7 +90,7 @@ def get_gate_ctrl_text(op, drawer, style=None):
         gate_text = gate_text.replace('-', '\\mbox{-}')
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
-    return gate_text, ctrl_text
+    return gate_text, ctrl_text, raw_gate_text
 
 
 def get_param_str(op, drawer, ndigits=3):

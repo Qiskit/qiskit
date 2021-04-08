@@ -941,7 +941,7 @@ class TextDrawing():
         params = get_param_str(instruction, 'text', ndigits=5)
         if (not isinstance(instruction.op, (Measure, SwapGate, Reset)) and
                 not instruction.op._directive):
-            gate_text, ctrl_text = get_gate_ctrl_text(instruction, 'text')
+            gate_text, ctrl_text, _ = get_gate_ctrl_text(instruction, 'text')
             gate_text = TextDrawing.special_label(instruction.op) or gate_text
             gate_text = gate_text + params
 

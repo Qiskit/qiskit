@@ -366,7 +366,7 @@ class QCircuitImage:
                     self._build_barrier(op, column)
 
                 else:
-                    gate_text, _ = get_gate_ctrl_text(op, 'latex', style=self._style)
+                    gate_text, _, _ = get_gate_ctrl_text(op, 'latex', style=self._style)
                     gate_text += get_param_str(op, 'latex', ndigits=4)
                     gate_text = generate_latex_label(gate_text)
                     wire_list = [self.img_regs[qarg] for qarg in op.qargs]
