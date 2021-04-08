@@ -283,12 +283,10 @@ def set_style(current_style, new_style):
     current_style['cline'] = new_style.pop('creglinestyle', current_style['cline'])
     dtex = new_style.pop('displaytext', current_style['disptex'])
     for tex in dtex.keys():
-        if tex in current_style['disptex'].keys():
-            current_style['disptex'][tex] = dtex[tex]
+        current_style['disptex'][tex] = dtex[tex]
     dcol = new_style.pop('displaycolor', current_style['dispcol'])
     for col in dcol.keys():
-        if col in current_style['dispcol'].keys():
-            current_style['dispcol'][col] = dcol[col]
+        current_style['dispcol'][col] = dcol[col]
 
     if new_style:
         warn('style option/s ({}) is/are not supported'.format(', '.join(new_style.keys())),
