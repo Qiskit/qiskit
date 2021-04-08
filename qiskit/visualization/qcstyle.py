@@ -269,6 +269,8 @@ class DefaultStyle:
 
 
 def load_style(style):
+    """Utility function to load style from json files and call set_style.
+    """
     current_style = DefaultStyle().style
     style_name = 'default'
     def_font_ratio = current_style['fs'] / current_style['sfs']
@@ -310,9 +312,9 @@ def load_style(style):
                         json_style = json.load(infile)
                     set_style(current_style, json_style)
                     break
-                except json.JSONDecodeError as e:
+                except json.JSONDecodeError as err:
                     warn("Could not decode JSON in file '{}': {}. ".format(
-                        path, str(e)) + "Will use default style.", UserWarning, 2)
+                        path, str(err)) + "Will use default style.", UserWarning, 2)
                     break
                 except (OSError, FileNotFoundError):
                     warn("Error loading JSON file '{}'. Will use default style.".format(

@@ -17,7 +17,6 @@
 import collections
 import itertools
 import re
-from warnings import warn
 
 import numpy as np
 
@@ -30,9 +29,8 @@ except ImportError:
     HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate, Gate
-from qiskit.visualization.qcstyle import DefaultStyle, load_style
+from qiskit.visualization.qcstyle import load_style
 from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
-from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
 
 # Default gate width and height
