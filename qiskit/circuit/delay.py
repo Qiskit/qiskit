@@ -16,6 +16,7 @@ Delay instruction (for circuit module).
 import numpy as np
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.parameterexpression import ParameterExpression
 
 
 class Delay(Instruction):
@@ -23,12 +24,6 @@ class Delay(Instruction):
 
     def __init__(self, duration, unit='dt'):
         """Create new delay instruction."""
-        if not isinstance(duration, (float, int)):
-            raise CircuitError('Unsupported duration type.')
-
-        if unit == 'dt' and not isinstance(duration, int):
-            raise CircuitError("Integer duration is required for 'dt' unit.")
-
         if unit not in {'s', 'ms', 'us', 'ns', 'ps', 'dt'}:
             raise CircuitError('Unknown unit %s is specified.' % unit)
 
@@ -72,3 +67,24 @@ class Delay(Instruction):
         """Return the official string representing the delay."""
         return "%s(duration=%s[unit=%s])" % \
                (self.__class__.__name__, self.params[0], self.unit)
+
+    def validate_parameter(self, parameter):
+        """Delay parameter (i.e. duration) must be int, float or ParameterExpression."""
+        if isinstance(parameter, int):
+            return parameter
+        elif isinstance(parameter, float):
+            if self.unit == 'dt':
+                raise CircuitError("Integer duration is expected for 'dt' unit.")
+            return parameter
+        elif isinstance(parameter, ParameterExpression):
+            if len(parameter.parameters) > 0:
+                return parameter  # expression has free parameters, we cannot validate it
+            if self.unit == 'dt' and not parameter._symbol_expr.is_integer:
+                raise CircuitError("Integer duration parameter is required for 'dt' unit.")
+            if not parameter._symbol_expr.is_real:
+                raise CircuitError("Bound parameter expression is complex in delay {}".format(
+                    self.name))
+            return parameter  # per default assume parameters must be real when bound
+        else:
+            raise CircuitError("Invalid param type {0} for delay {1}.".format(type(parameter),
+                                                                              self.name))
