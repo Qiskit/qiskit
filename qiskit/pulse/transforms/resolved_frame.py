@@ -13,10 +13,9 @@
 """Implements a Frame."""
 
 from abc import ABC
-from typing import List, Union
+from typing import List
 import numpy as np
 
-from qiskit.circuit import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import Channel, PulseChannel
 from qiskit.pulse.frame import Frame
@@ -32,7 +31,7 @@ class Tracker(ABC):
     or a pulse channel in a given schedule.
     """
 
-    def __init__(self, index: Union[int, Parameter], sample_duration: float):
+    def __init__(self, index: int, sample_duration: float):
         """
         Args:
             index: The index of the Tracker. Corresponds to the index of a
@@ -43,10 +42,6 @@ class Tracker(ABC):
         self._frequencies_phases = []  # Tuple of (time, frequency, phase)
         self._instructions = {}
         self._sample_duration = sample_duration
-
-        self._parameters = set()
-        if isinstance(index, ParameterExpression):
-            self._parameters.update(index.parameters)
 
     @property
     def index(self) -> int:
@@ -150,7 +145,7 @@ class ResolvedFrame(Tracker):
 
         for ch in self._channels:
             if isinstance(ch.index, ParameterExpression):
-                self._parameters.update((ch.index, ))
+                raise PulseError('ResolvedFrame does not allow parameterized channels.')
 
     @property
     def channels(self) -> List[Channel]:
