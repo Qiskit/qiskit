@@ -100,6 +100,8 @@ class Tracker(ABC):
         for idx, time_freq in enumerate(self._frequencies_phases):
             if time_freq[0] < time:
                 insert_idx = idx
+            else:
+                break
 
         phase = self.phase(time)
 
@@ -111,6 +113,8 @@ class Tracker(ABC):
         for idx, time_freq in enumerate(self._frequencies_phases):
             if time_freq[0] < time:
                 insert_idx = idx
+            else:
+                break
 
         frequency = self.frequency(time)
 
