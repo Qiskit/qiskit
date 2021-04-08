@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Basic rescheduling functions which take schedule or instructions and return new schedules."""
-
+"""Replace a schedule with frames by one with instructions on PulseChannels only."""
 
 from typing import Dict
 
@@ -48,9 +47,11 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[Frame, Dict]) -> Sche
     resolved_frames = {}
     sample_duration = None
     for frame, settings in frames_config.items():
-        frame = ResolvedFrame(frame, **settings)
-        frame.set_frame_instructions(schedule)
-        resolved_frames[frame.index] = frame
+        resolved_frame = ResolvedFrame(frame, **settings)
+
+        # Extract shift and set frame operations from the schedule.
+        resolved_frame.set_frame_instructions(schedule)
+        resolved_frames[frame] = resolved_frame
         sample_duration = settings['sample_duration']
 
     if sample_duration is None:
@@ -63,8 +64,8 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[Frame, Dict]) -> Sche
             channel_trackers[ch] = ChannelTracker(ch, sample_duration)
 
     # Add the channels that the frames broadcast on.
-    for frame in resolved_frames.values():
-        for ch in frame.channels:
+    for resolved_frame in resolved_frames.values():
+        for ch in resolved_frame.channels:
             if ch not in channel_trackers:
                 channel_trackers[ch] = ChannelTracker(ch, sample_duration)
 
@@ -75,16 +76,16 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[Frame, Dict]) -> Sche
             chan = inst.channel
 
             if isinstance(inst.operands[0], Signal):
-                frame_idx = inst.operands[0].frame.index
+                frame = inst.operands[0].frame
 
-                if frame_idx not in resolved_frames:
-                    raise PulseError(f'{Frame(frame.index)} is not configured and cannot '
+                if frame not in resolved_frames:
+                    raise PulseError(f'{frame} is not configured and cannot '
                                      f'be resolved.')
 
-                frame = resolved_frames[frame_idx]
+                resolved_frame = resolved_frames[frame]
 
-                frame_freq = frame.frequency(time)
-                frame_phase = frame.phase(time)
+                frame_freq = resolved_frame.frequency(time)
+                frame_phase = resolved_frame.phase(time)
 
                 # If the frequency and phase of the channel has already been set once in
                 # The past we compute shifts.
