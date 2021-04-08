@@ -61,7 +61,7 @@ class Tracker(ABC):
             time: The maximum time for which to get the frequency.
 
         Returns:
-            frequency: The frequency of the frame up until time.
+            frequency: The frequency of the frame right before time.
         """
         frequency = self._frequencies_phases[0][1]
         for time_freq in self._frequencies_phases:
