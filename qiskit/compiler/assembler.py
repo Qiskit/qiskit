@@ -487,7 +487,7 @@ def frames_configuration(frame_channels: List[List[PulseChannel]],
         frame_channels: A List of lists. Sublist i is a list of channel names
             that frame i will broadcast on.
         frame_frequencies: A list of starting frequencies for each frame.
-        dt: time of a sample.
+        dt: duration of a sample in the waveforms.
         frame_indices: The indices of the frames. If None is given these will be
             in ascending order starting from 0.
 
