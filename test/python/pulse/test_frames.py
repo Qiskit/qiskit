@@ -85,13 +85,13 @@ class TestResolvedFrames(QiskitTestCase):
         # Check that the proper phase instructions are added to the frame resolved schedules.
         resolved = resolve_frames(sched, frames_config).instructions
 
-        params = [(0, self.freq0, 1), (160, self.freq1, 4),
-                  (320, self.freq0, 7), (480, self.freq1, 10)]
+        params = [(0, 0, self.freq0, 1), (160, 160, self.freq1 - self.freq0, 4),
+                  (320, 160, self.freq0 - self.freq1, 7), (480, 160, self.freq1 - self.freq0, 10)]
 
-        for time, frame_frequency, index in params:
-            phase = np.angle(np.exp(2.0j * np.pi * frame_frequency * time * self.dt_)) % (2 * np.pi)
+        for time, delta, frame_frequency, index in params:
+            phase = np.angle(np.exp(2.0j * np.pi * frame_frequency * delta * self.dt_)) % (2 * np.pi)
             self.assertEqual(resolved[index][0], time)
-            self.assertAlmostEqual(resolved[index][1].phase, phase, places=8)
+            self.assertAlmostEqual(resolved[index][1].phase % (2*np.pi), phase, places=8)
 
     def test_phase_advance_with_instructions(self):
         """Test that the phase advances are properly computed with frame instructions."""
@@ -151,6 +151,44 @@ class TestResolvedFrames(QiskitTestCase):
 
         phase = (np.angle(np.exp(2.0j * np.pi * self.freq0 * 160 * self.dt_)) + 1.23) % (2 * np.pi)
 
-        self.assertAlmostEqual(resolved[1][1].phase, 0.0, places=8)
-        self.assertAlmostEqual(resolved[4][1].phase, phase, places=8)
-        self.assertAlmostEqual(resolved[6][1].phase, phase, places=8)
+        # Check that the frame resolved schedule has the correct phase and frequency instructions
+        # at the right place.
+        # First, ensure that resolved starts with a SetFrequency and SetPhase.
+        self.assertEquals(resolved[0][0], 0)
+        set_freq = resolved[0][1]
+        if isinstance(set_freq, pulse.SetFrequency):
+            self.assertAlmostEqual(set_freq.frequency, self.freq0, places=8)
+        else:
+            self.fail()
+
+        self.assertEquals(resolved[1][0], 0)
+        set_phase = resolved[1][1]
+        if isinstance(set_phase, pulse.SetPhase):
+            self.assertAlmostEqual(set_phase.phase, 0.0, places=8)
+        else:
+            self.fail()
+
+        # Next, check that we do phase shifts on the DriveChannel after the first Gaussian.
+        self.assertEquals(resolved[3][0], 160)
+        shift_phase = resolved[3][1]
+        if isinstance(shift_phase, pulse.ShiftPhase):
+            self.assertAlmostEqual(shift_phase.phase, 1.23, places=8)
+        else:
+            self.fail()
+
+        # Up to now, no pulse has been applied on the ControlChannel so we should
+        # encounter a Set instructions at time 160 which is when the first pulse
+        # is played on ControlChannel(0)
+        self.assertEquals(resolved[4][0], 160)
+        set_freq = resolved[4][1]
+        if isinstance(set_freq, pulse.SetFrequency):
+            self.assertAlmostEqual(set_freq.frequency, self.freq0, places=8)
+        else:
+            self.fail()
+
+        self.assertEquals(resolved[5][0], 160)
+        set_phase = resolved[5][1]
+        if isinstance(set_phase, pulse.SetPhase):
+            self.assertAlmostEqual(set_phase.phase, phase, places=8)
+        else:
+            self.fail()
