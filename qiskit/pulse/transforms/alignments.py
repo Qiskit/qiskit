@@ -107,9 +107,6 @@ class AlignLeft(AlignmentKind):
         Args:
             this: Input schedule to which ``other`` will be inserted.
             other: Other schedule to insert.
-            ignore_frames: If true then frame instructions will be ignore. This
-                should be set to true if the played Signals in this context
-                do not share any frames.
 
         Returns:
             Push left appended schedule.
