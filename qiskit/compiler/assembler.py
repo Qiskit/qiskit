@@ -317,10 +317,10 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     if frames_config is None:
         frames_config = frames_config_
     else:
-        for index, config in frames_config_.items():
+        for frame, settings in frames_config_.items():
             # Do not override the frames provided by the user.
-            if index not in frames_config:
-                frames_config[index] = config
+            if frame not in frames_config:
+                frames_config[frame] = settings
 
     dynamic_reprate_enabled = getattr(backend_config, 'dynamic_reprate_enabled', False)
 
@@ -510,8 +510,7 @@ def frames_configuration(frame_channels: List[List[PulseChannel]],
         else:
             index = idx
 
-        frames_config[index] = {
-            'frame': Frame(index),
+        frames_config[Frame(index)] = {
             'phase': 0.0,
             'frequency': frame_frequencies[idx],
             'channels': channels,

@@ -324,8 +324,11 @@ def _assemble_config(lo_converter: converters.LoConfigConverter,
     # frames config
     frames_config = qobj_config.get('frames_config', None)
     if frames_config:
-        for frame_config in frames_config.values():
-            frame_config['channels'] = [ch.name for ch in frame_config['channels']]
-            frame_config['frame'] = frame_config['frame'].name
+        frames_config_ = {}
+        for frame, settings in frames_config.items():
+            frames_config_[frame.name] = settings
+            frames_config_[frame.name]['channels'] = [ch.name for ch in settings['channels']]
+
+        qobj_config['frames_config'] = frames_config_
 
     return qobj.PulseQobjConfig(**qobj_config)

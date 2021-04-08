@@ -24,7 +24,7 @@ from qiskit.pulse.frame import Frame
 
 
 
-def resolve_frames(schedule: Schedule, frames_config: Dict[int, Dict]) -> Schedule:
+def resolve_frames(schedule: Schedule, frames_config: Dict[Frame, Dict]) -> Schedule:
     """
     Parse the schedule and replace instructions on Frames by instructions on the
     appropriate channels.
@@ -47,11 +47,11 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[int, Dict]) -> Schedu
 
     resolved_frames = {}
     sample_duration = None
-    for frame_settings in frames_config.values():
-        frame = ResolvedFrame(**frame_settings)
+    for frame, settings in frames_config.items():
+        frame = ResolvedFrame(frame, **settings)
         frame.set_frame_instructions(schedule)
         resolved_frames[frame.index] = frame
-        sample_duration = frame_settings['sample_duration']
+        sample_duration = settings['sample_duration']
 
     if sample_duration is None:
         raise PulseError('Frame configuration does not have a sample duration.')
