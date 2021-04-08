@@ -75,8 +75,8 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[Frame, Dict]) -> Sche
         if isinstance(inst, instructions.Play):
             chan = inst.channel
 
-            if isinstance(inst.operands[0], Signal):
-                frame = inst.operands[0].frame
+            if isinstance(inst.pulse, Signal):
+                frame = inst.pulse.frame
 
                 if frame not in resolved_frames:
                     raise PulseError(f'{frame} is not configured and cannot '
