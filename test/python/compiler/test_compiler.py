@@ -21,7 +21,7 @@ from qiskit.transpiler import PassManager
 from qiskit import execute
 from qiskit.circuit.library import U1Gate, U2Gate
 from qiskit.compiler import transpile, assemble
-from qiskit.test import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
 from qiskit.qobj import QasmQobj
 
@@ -356,7 +356,7 @@ class TestCompiler(QiskitTestCase):
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             'qasm')
         circ = QuantumCircuit.from_qasm_file(
-            os.path.join(qasm_dir,'random_n5_d5.qasm'))
+            os.path.join(qasm_dir, 'random_n5_d5.qasm'))
         coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         shots = 1024
         qobj = execute(circ, backend=self.backend,

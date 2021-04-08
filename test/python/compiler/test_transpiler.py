@@ -34,7 +34,7 @@ from qiskit.circuit import Parameter, Gate, Qubit, Clbit
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate
-from qiskit.test import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager

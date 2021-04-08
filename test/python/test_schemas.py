@@ -21,7 +21,7 @@ from qiskit.providers.models import (QasmBackendConfiguration, PulseBackendConfi
                                      BackendProperties, BackendStatus, JobStatus, PulseDefaults)
 import qiskit
 from qiskit.result import Result
-from qiskit.test import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase
 
 SCHEMAS_PATH = os.path.join(os.path.dirname(os.path.abspath(qiskit.__file__)),
                             'schemas')
