@@ -16,7 +16,7 @@
 from typing import Dict
 
 from qiskit.pulse.schedule import Schedule
-from qiskit.pulse.resolved_frame import ResolvedFrame, ChannelTracker
+from qiskit.pulse.transforms.resolved_frame import ResolvedFrame, ChannelTracker
 from qiskit.pulse.library import Signal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse import channels as chans, instructions

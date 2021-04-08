@@ -19,7 +19,7 @@ from qiskit.compiler.assembler import frames_configuration
 import qiskit.pulse as pulse
 from qiskit.test import QiskitTestCase
 from qiskit.pulse.transforms import resolve_frames
-from qiskit.pulse.resolved_frame import ResolvedFrame
+from qiskit.pulse.transforms.resolved_frame import ResolvedFrame
 from qiskit.pulse.parameter_manager import ParameterManager
 
 
