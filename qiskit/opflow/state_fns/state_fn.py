@@ -275,6 +275,9 @@ class StateFn(OperatorBase):
                            coeff=self.coeff * other.coeff)
 
         from ..list_ops.composed_op import ComposedOp
+        if isinstance(other, ComposedOp):
+            return ComposedOp([new_self] + other.oplist, coeff=new_self.coeff * other.coeff)
+
         return ComposedOp([new_self, other])
 
     def power(self, exponent: int) -> OperatorBase:

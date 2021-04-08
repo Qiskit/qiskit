@@ -13,7 +13,7 @@
 """A simulator instruction to capture output within a simulation. The types of snapshot
 instructions available are determined by the simulator being used.
 """
-from typing import Optional
+from typing import Optional, Tuple
 
 from qiskit.pulse.channels import SnapshotChannel
 from qiskit.pulse.exceptions import PulseError
@@ -41,7 +41,7 @@ class Snapshot(Instruction):
         self._channel = SnapshotChannel()
         if name is None:
             name = label
-        super().__init__((label, snapshot_type), None, (self.channel,), name=name)
+        super().__init__(operands=(label, snapshot_type), name=name)
 
     @property
     def label(self) -> str:
@@ -61,6 +61,15 @@ class Snapshot(Instruction):
         return self._channel
 
     @property
+    def channels(self) -> Tuple[SnapshotChannel]:
+        """Returns the channels that this schedule uses."""
+        return (self.channel, )
+
+    @property
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return False

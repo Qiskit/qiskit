@@ -1354,19 +1354,25 @@ class TestStandardMethods(QiskitTestCase):
     """Standard Extension Test."""
 
     def test_to_matrix(self):
-        """test gates implementing to_matrix generate matrix which matches
-        definition."""
+        """test gates implementing to_matrix generate matrix which matches definition."""
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
+        from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
+
         params = [0.1 * (i + 1) for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         simulator = BasicAer.get_backend('unitary_simulator')
         for gate_class in gate_class_list:
+            if hasattr(gate_class, "__abstractmethods__"):
+                # gate_class is abstract
+                continue
             sig = signature(gate_class)
             free_params = len(set(sig.parameters) - {'label'})
             try:
                 if gate_class == PauliGate:
                     # special case due to PauliGate using string parameters
                     gate = gate_class("IXYZ")
+                elif gate_class == BooleanExpression:
+                    gate = gate_class("x")
                 else:
                     gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
@@ -1398,10 +1404,14 @@ class TestStandardMethods(QiskitTestCase):
         from qiskit.quantum_info import Operator
         from qiskit.circuit.library.standard_gates.ms import MSGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
+        from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
         params = [0.1 * i for i in range(1, 11)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         for gate_class in gate_class_list:
+            if hasattr(gate_class, "__abstractmethods__"):
+                # gate_class is abstract
+                continue
             sig = signature(gate_class)
             if gate_class == MSGate:
                 # due to the signature (num_qubits, theta, *, n_qubits=Noe) the signature detects
@@ -1414,6 +1424,8 @@ class TestStandardMethods(QiskitTestCase):
                 if gate_class == PauliGate:
                     # special case due to PauliGate using string parameters
                     gate = gate_class("IXYZ")
+                elif gate_class == BooleanExpression:
+                    gate = gate_class("x")
                 else:
                     gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
