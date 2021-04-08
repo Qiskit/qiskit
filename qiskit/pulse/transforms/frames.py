@@ -127,9 +127,12 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[int, Dict]) -> Schedu
             if issubclass(type(chan), chans.PulseChannel):
                 sched.insert(time, type(inst)(inst.phase, chan), inplace=True)
 
-        if isinstance(inst, (instructions.Delay,
-                             instructions.Snapshot, instructions.Acquire,
-                             instructions.Directive)):
+        elif isinstance(inst, (instructions.Delay,
+                               instructions.Snapshot, instructions.Acquire,
+                               instructions.Directive)):
             sched.insert(time, inst, inplace=True)
+
+        else:
+            raise PulseError(f"Unsupported {inst.__class__.__name__} in frame resolution.")
 
     return sched
