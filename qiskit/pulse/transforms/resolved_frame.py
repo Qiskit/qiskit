@@ -79,9 +79,9 @@ class Tracker(ABC):
         """
         if len(self._frequencies_phases) == 0:
             return 0.0
-        else:
-            phase = self._frequencies_phases[0][1]
-            last_time = self._frequencies_phases[0][0]
+
+        phase = self._frequencies_phases[0][1]
+        last_time = self._frequencies_phases[0][0]
 
         for time_freq in self._frequencies_phases:
             if time_freq[0] <= time:
@@ -195,9 +195,7 @@ class ChannelTracker(Tracker):
         """
         super().__init__(channel.index, sample_duration)
         self._channel = channel
-        self._frequencies = []
-        self._phases = []
 
     def is_initialized(self) -> bool:
         """Return true if the channel has been initialized."""
-        return len(self._frequencies) > 0
+        return len(self._frequencies_phases) > 0
