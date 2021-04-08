@@ -12,7 +12,7 @@
 
 """The module to compute Hessians."""
 
-from typing import Optional, Union, List, Tuple
+from typing import Union, List, Tuple
 
 import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -29,6 +29,7 @@ from ..operator_base import OperatorBase
 from .gradient import Gradient
 from .hessian_base import HessianBase
 from ..exceptions import OpflowError
+from ...utils.arithmetic import triu_to_dense
 
 try:
     from jax import grad, jit
@@ -40,11 +41,12 @@ except ImportError:
 class Hessian(HessianBase):
     """Compute the Hessian of an expected value."""
 
+    # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Optional[Union[Tuple[ParameterExpression, ParameterExpression],
-                                       List[Tuple[ParameterExpression, ParameterExpression]],
-                                       List[ParameterExpression], ParameterVector]] = None
+                params: Union[Tuple[ParameterExpression, ParameterExpression],
+                              List[Tuple[ParameterExpression, ParameterExpression]],
+                              List[ParameterExpression], ParameterVector]
                 ) -> OperatorBase:
         """
         Args:
@@ -56,23 +58,7 @@ class Hessian(HessianBase):
 
         Returns:
             OperatorBase: An operator whose evaluation yields the Hessian
-
-        Raises:
-            ValueError: If `params` is not set.
         """
-        # if input is a tuple instead of a list, wrap it into a list
-        if params is None:
-            raise ValueError("No parameters were provided to differentiate")
-
-        if isinstance(params, (ParameterVector, list)):
-            # Case: a list of parameters were given, compute the Hessian for all param pairs
-            if all(isinstance(param, ParameterExpression) for param in params):
-                return ListOp(
-                    [ListOp([self.convert(operator, (p0, p1)) for p1 in params]) for p0 in params])
-            # Case: a list was given containing tuples of parameter pairs.
-            # Compute the Hessian entries corresponding to these pairs of parameters.
-            elif all(isinstance(param, tuple) for param in params):
-                return ListOp([self.convert(operator, param_pair) for param_pair in params])
 
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
@@ -81,9 +67,8 @@ class Hessian(HessianBase):
     # pylint: disable=too-many-return-statements
     def get_hessian(self,
                     operator: OperatorBase,
-                    params: Optional[Union[Tuple[ParameterExpression, ParameterExpression],
-                                           List[Tuple[ParameterExpression, ParameterExpression]]]]
-                    = None
+                    params: Union[Tuple[ParameterExpression, ParameterExpression],
+                                  List[Tuple[ParameterExpression, ParameterExpression]]]
                     ) -> OperatorBase:
         """Get the Hessian for the given operator w.r.t. the given parameters
 
@@ -104,24 +89,25 @@ class Hessian(HessianBase):
             Exception: Unintended code is reached
             MissingOptionalLibraryError: jax not installed
         """
+        # if input is a tuple instead of a list, wrap it into a list
+        if isinstance(params, (ParameterVector, list)):
+            # Case: a list of parameters were given, compute the Hessian for all param pairs
+            if all(isinstance(param, ParameterExpression) for param in params):
+                return ListOp([ListOp([
+                    self.get_hessian(operator, (p_i, p_j))
+                    for i, p_i in enumerate(params[j:], j)])
+                               for j, p_j in enumerate(params)],
+                              combo_fn=triu_to_dense)
+            # Case: a list was given containing tuples of parameter pairs.
+            elif all(isinstance(param, tuple) for param in params):
+                # Compute the Hessian entries corresponding to these pairs of parameters.
+                return ListOp([self.get_hessian(operator, param_pair) for param_pair in params])
 
         def is_coeff_c(coeff, c):
             if isinstance(coeff, ParameterExpression):
                 expr = coeff._symbol_expr
                 return expr == c
             return coeff == c
-
-        if isinstance(params, (ParameterVector, list)):
-            # Case: a list of parameters were given, compute the Hessian for all param pairs
-            if all(isinstance(param, ParameterExpression) for param in params):
-                return ListOp(
-                    [ListOp([self.get_hessian(operator, (p0, p1)) for p1 in params])
-                     for p0 in params])
-            # Case: a list was given containing tuples of parameter pairs.
-            # Compute the Hessian entries corresponding to these pairs of parameters.
-            elif all(isinstance(param, tuple) for param in params):
-                return ListOp(
-                    [self.get_hessian(operator, param_pair) for param_pair in params])
 
         # If a gradient is requested w.r.t a single parameter, then call the
         # Gradient().get_gradient method.

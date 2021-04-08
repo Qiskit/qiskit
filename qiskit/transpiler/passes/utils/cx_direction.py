@@ -14,6 +14,7 @@
 
 from math import pi
 
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -65,12 +66,14 @@ class CXDirection(TransformationPass):
                                   'but input DAG had qregs: {}.'.format(
                                       dag.qregs))
 
+        trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+
         for cnot_node in dag.named_nodes('cx', 'CX'):
             control = cnot_node.qargs[0]
             target = cnot_node.qargs[1]
 
-            physical_q0 = control.index
-            physical_q1 = target.index
+            physical_q0 = trivial_layout[control]
+            physical_q1 = trivial_layout[target]
 
             if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                 raise TranspilerError('The circuit requires a connection between physical '

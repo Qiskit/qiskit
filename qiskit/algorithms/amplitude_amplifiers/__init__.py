@@ -12,6 +12,14 @@
 
 """ Amplitude Amplifiers Package """
 
+from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
+from .amplification_problem import AmplificationProblem
 from .grover import Grover, GroverResult
 
-__all__ = ['Grover', 'GroverResult']
+__all__ = [
+    'AmplitudeAmplifier',
+    'AmplitudeAmplifierResult',
+    'AmplificationProblem',
+    'Grover',
+    'GroverResult'
+]

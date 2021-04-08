@@ -16,15 +16,15 @@ import logging
 from typing import Union
 
 from qiskit.exceptions import MissingOptionalLibraryError
-from ..operator_base import OperatorBase
-from .expectation_base import ExpectationBase
-from ..list_ops.list_op import ListOp
-from ..list_ops.composed_op import ComposedOp
-from ..list_ops.summed_op import SummedOp
-from ..primitive_ops.pauli_op import PauliOp
-from ..primitive_ops.pauli_sum_op import PauliSumOp
-from ..state_fns.circuit_state_fn import CircuitStateFn
-from ..state_fns.operator_state_fn import OperatorStateFn
+from qiskit.opflow.expectations.expectation_base import ExpectationBase
+from qiskit.opflow.list_ops.composed_op import ComposedOp
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
+from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
+from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 
 logger = logging.getLogger(__name__)
 
@@ -45,14 +45,6 @@ class AerPauliExpectation(ExpectationBase):
         Returns:
             The converted operator.
         """
-        # TODO: implement direct way
-        if (
-                isinstance(operator, OperatorStateFn)
-                and isinstance(operator.primitive, PauliSumOp)
-                and operator.is_measurement
-        ):
-            operator = ~OperatorStateFn(operator.primitive.to_pauli_op(), coeff=operator.coeff)
-
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
             return self._replace_pauli_sums(operator.primitive) * operator.coeff
         elif isinstance(operator, ListOp):
@@ -60,7 +52,7 @@ class AerPauliExpectation(ExpectationBase):
         else:
             return operator
 
-    # pylint: disable=inconsistent-return-statements,import-outside-toplevel
+    # pylint: disable=inconsistent-return-statements
     @classmethod
     def _replace_pauli_sums(cls, operator):
         try:
@@ -75,9 +67,10 @@ class AerPauliExpectation(ExpectationBase):
         # measurement, and not simply a
         # circuit to replace with a DictStateFn
 
-        # TODO: implement direct way
         if isinstance(operator, PauliSumOp):
-            operator = operator.to_pauli_op()
+            paulis = [(meas[1], meas[0]) for meas in operator.primitive.to_list()]
+            snapshot_instruction = SnapshotExpectationValue('expval_measurement', paulis)
+            return CircuitStateFn(snapshot_instruction, coeff=operator.coeff, is_measurement=True)
 
         # Change to Pauli representation if necessary
         if not {'Pauli'} == operator.primitive_strings():

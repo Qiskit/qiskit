@@ -15,6 +15,7 @@
 """
 import warnings
 from collections import defaultdict
+from copy import deepcopy
 from typing import Callable
 from typing import List, Optional, Iterable, Union
 
@@ -24,7 +25,7 @@ from qiskit.pulse import channels as chans, exceptions, instructions
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
-from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.schedule import Schedule, ScheduleComponent
 
 
 def align_measures(schedules: Iterable[Union['Schedule', instructions.Instruction]],
@@ -70,7 +71,7 @@ def align_measures(schedules: Iterable[Union['Schedule', instructions.Instructio
 
         assert aligned_sched == aligned_sched_shifted
 
-    If it is desired to only shift acqusition and measurement stimulus instructions
+    If it is desired to only shift acquisition and measurement stimulus instructions
     set the flag ``align_all=False``:
 
     .. jupyter-execute::
@@ -90,8 +91,8 @@ def align_measures(schedules: Iterable[Union['Schedule', instructions.Instructio
         max_calibration_duration: If provided, inst_map and cal_gate will be ignored
         align_time: If provided, this will be used as final align time.
         align_all: Shift all instructions in the schedule such that they maintain
-            their relative alignment with the shifted acqusition instruction.
-            If ``False`` only the acqusition and measurement pulse instructions
+            their relative alignment with the shifted acquisition instruction.
+            If ``False`` only the acquisition and measurement pulse instructions
             will be shifted.
     Returns:
         The input list of schedules transformed to have their measurements aligned.
@@ -355,7 +356,7 @@ def align_left(schedule: Schedule) -> Schedule:
 
     Args:
         schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
+            rescheduled.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
@@ -408,7 +409,7 @@ def align_right(schedule: Schedule) -> Schedule:
 
     Args:
         schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
+            rescheduled.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
@@ -425,7 +426,7 @@ def align_sequential(schedule: Schedule) -> Schedule:
 
     Args:
         schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
+            rescheduled.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
@@ -443,7 +444,7 @@ def align_equispaced(schedule: Schedule,
 
     Args:
         schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
+            rescheduled.
         duration: Duration of context. This should be larger than the schedule duration.
 
     Returns:
@@ -489,7 +490,7 @@ def align_func(schedule: Schedule,
 
     Args:
         schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
+            rescheduled.
         duration: Duration of context. This should be larger than the schedule duration.
         func: A function that takes an index of sub-schedule and returns the
             fractional coordinate of of that sub-schedule.
@@ -517,9 +518,43 @@ def align_func(schedule: Schedule,
     return pad(aligned, aligned.channels, until=duration, inplace=True)
 
 
-def flatten(schedule: Schedule) -> Schedule:
-    """Flatten any called nodes into a Schedule tree with no nested children."""
-    return schedule.flatten()
+def flatten(program: ScheduleComponent) -> ScheduleComponent:
+    """Flatten (inline) any called nodes into a Schedule tree with no nested children."""
+    if isinstance(program, instructions.Instruction):
+        return program
+    else:
+        return Schedule(*program.instructions,
+                        name=program.name,
+                        metadata=program.metadata)
+
+
+def inline_subroutines(program: Schedule) -> Schedule:
+    """Recursively remove call instructions and inline the respective subroutine instructions.
+
+    Assigned parameter values, which are stored in the parameter table, are also applied.
+    The subroutine is copied before the parameter assignment to avoid mutation problem.
+
+    Args:
+        program: A program which may contain the subroutine, i.e. ``Call`` instruction.
+
+    Returns:
+        A schedule without subroutine.
+    """
+    schedule = Schedule(name=program.name, metadata=program.metadata)
+    for t0, inst in program.instructions:
+        if isinstance(inst, instructions.Call):
+            # bind parameter
+            if bool(inst.arguments):
+                subroutine = deepcopy(inst.subroutine)
+                subroutine.assign_parameters(value_dict=inst.arguments)
+            else:
+                subroutine = inst.subroutine
+            # recursively inline the program
+            inline_schedule = inline_subroutines(subroutine)
+            schedule.insert(t0, inline_schedule, inplace=True)
+        else:
+            schedule.insert(t0, inst, inplace=True)
+    return schedule
 
 
 def remove_directives(schedule: Schedule) -> Schedule:

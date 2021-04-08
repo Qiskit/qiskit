@@ -12,6 +12,9 @@
 
 """ Factorizers Package """
 
-from .shor import Shor
+from .shor import Shor, ShorResult
 
-__all__ = ['Shor']
+__all__ = [
+    'Shor',
+    'ShorResult',
+]

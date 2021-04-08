@@ -45,7 +45,7 @@ class ForwardMatch:
             clbits (list): list of considered clbits in the circuit.
         """
 
-        # The dag depdendency representation of the circuit
+        # The dag dependency representation of the circuit
         self.circuit_dag_dep = circuit_dag_dep.copy()
 
         # The dag dependency representation of the template

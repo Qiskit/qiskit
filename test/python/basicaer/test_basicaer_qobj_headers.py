@@ -37,7 +37,9 @@ class TestBasicAerQobj(QiskitTestCase):
     def setUp(self):
         super().setUp()
         logger = getLogger()
+        self.addCleanup(logger.setLevel, logger.level)
         logger.setLevel('DEBUG')
+
         self.output = io.StringIO()
         logger.addHandler(StreamHandlerRaiseException(self.output))
 

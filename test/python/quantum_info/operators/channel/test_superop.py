@@ -541,12 +541,6 @@ class TestSuperOp(ChannelTestCase):
         targ3 = SuperOp(self.depol_sop(1 - p_id3))
         self.assertEqual(chan3, targ3)
 
-    def test_power_except(self):
-        """Test power method raises exceptions."""
-        chan = SuperOp(self.depol_sop(1))
-        # Non-integer power raises error
-        self.assertRaises(QiskitError, chan.power, 0.5)
-
     def test_add(self):
         """Test add method."""
         mat1 = 0.5 * self.sopI

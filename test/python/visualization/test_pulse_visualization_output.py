@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
+# pylint: disable=missing-function-docstring
 
 """Tests for comparing the outputs of circuit drawer with expected ones."""
 
@@ -157,7 +157,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
                                         MemorySlot(1),
                                         RegisterSlot(1)))
         # Check ValueError is not thrown
-        sched.draw(plot_range=(0, 15))
+        pulse_drawer(sched, plot_range=(0, 15))
 
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.

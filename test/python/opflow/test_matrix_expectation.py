@@ -24,8 +24,6 @@ from qiskit.opflow import (X, Y, Z, I, CX, H, S,
 from qiskit import BasicAer
 
 
-# pylint: disable=invalid-name
-
 class TestMatrixExpectation(QiskitOpflowTestCase):
     """Pauli Change of Basis Expectation tests."""
 

@@ -135,7 +135,7 @@ def visualize_transition(circuit,
         saveas (str): User can choose to save the animation as a video to their filesystem.
             This argument is a string of path with filename and extension (e.g. "movie.mp4" to
             save the video in current working directory).
-        fpg (int): Frames per gate. Finer control over animation smoothness and computiational
+        fpg (int): Frames per gate. Finer control over animation smoothness and computational
             needs to render the animation. Works well for tkinter GUI as it is, for jupyter GUI
             it might be preferable to choose fpg between 5-30.
         spg (int): Seconds per gate. How many seconds should animation of individual gate

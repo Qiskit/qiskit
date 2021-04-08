@@ -44,7 +44,7 @@ class LayoutTransformation(TransformationPass):
                 If the type is str, look up `property_set` when this pass runs.
 
             to_layout (Union[Layout, str]):
-                The final layout of qubits on phyiscal qubits.
+                The final layout of qubits on physical qubits.
                 If the type is str, look up `property_set` when this pass runs.
 
             seed (Union[int, np.random.default_rng]):
@@ -88,15 +88,15 @@ class LayoutTransformation(TransformationPass):
         if isinstance(from_layout, str):
             try:
                 from_layout = self.property_set[from_layout]
-            except Exception:
-                raise TranspilerError('No {} (from_layout) in property_set.'.format(from_layout))
+            except Exception as ex:
+                raise TranspilerError(f'No {from_layout} (from_layout) in property_set.') from ex
 
         to_layout = self.to_layout
         if isinstance(to_layout, str):
             try:
                 to_layout = self.property_set[to_layout]
-            except Exception:
-                raise TranspilerError('No {} (to_layout) in property_set.'.format(to_layout))
+            except Exception as ex:
+                raise TranspilerError(f'No {to_layout} (to_layout) in property_set.') from ex
 
         # Find the permutation between the initial physical qubits and final physical qubits.
         permutation = {pqubit: to_layout.get_virtual_bits()[vqubit]

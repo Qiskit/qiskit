@@ -14,6 +14,7 @@
 """Test Qiskit's QuantumCircuit class."""
 
 from ddt import ddt, data
+import numpy as np
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
@@ -21,6 +22,7 @@ from qiskit.circuit import Gate, Instruction, Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.standard_gates import SGate
+from qiskit.quantum_info import Operator
 
 
 @ddt
@@ -361,6 +363,20 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(expected, circuit)
 
+    def test_remove_final_measurements_5802(self):
+        """Test remove_final_measurements removes classical bits
+        https://github.com/Qiskit/qiskit-terra/issues/5802.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr, cr)
+        circuit.remove_final_measurements()
+
+        self.assertEqual(circuit.cregs, [])
+        self.assertEqual(circuit.clbits, [])
+
     def test_reverse(self):
         """Test reverse method reverses but does not invert."""
         qc = QuantumCircuit(2, 2)
@@ -402,6 +418,38 @@ class TestCircuitOperations(QiskitTestCase):
                 ref.append(inst, ref.qubits, ref.clbits)
             rep = qc.repeat(3)
             self.assertEqual(rep, ref)
+
+    @data(0, 1, 4)
+    def test_repeat_global_phase(self, num):
+        """Test the global phase is properly handled upon repeat."""
+        phase = 0.123
+        qc = QuantumCircuit(1, global_phase=phase)
+        expected = np.exp(1j * phase * num) * np.identity(2)
+        np.testing.assert_array_almost_equal(Operator(qc.repeat(num)).data, expected)
+
+    def test_bind_global_phase(self):
+        """Test binding global phase."""
+        x = Parameter('x')
+        circuit = QuantumCircuit(1, global_phase=x)
+        self.assertEqual(circuit.parameters, {x})
+
+        bound = circuit.bind_parameters({x: 2})
+        self.assertEqual(bound.global_phase, 2)
+        self.assertEqual(bound.parameters, set())
+
+    def test_bind_parameter_in_phase_and_gate(self):
+        """Test binding a parameter present in the global phase and the gates."""
+        x = Parameter('x')
+        circuit = QuantumCircuit(1, global_phase=x)
+        circuit.rx(x, 0)
+        self.assertEqual(circuit.parameters, {x})
+
+        ref = QuantumCircuit(1, global_phase=2)
+        ref.rx(2, 0)
+
+        bound = circuit.bind_parameters({x: 2})
+        self.assertEqual(bound, ref)
+        self.assertEqual(bound.parameters, set())
 
     def test_power(self):
         """Test taking the circuit to a power works."""
@@ -523,7 +571,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(qc.reverse_bits(), expected)
 
     def test_reverse_bits_boxed(self):
-        """Test reversing order of bits in a hierarchiecal circuit."""
+        """Test reversing order of bits in a hierarchical circuit."""
         wide_cx = QuantumCircuit(3)
         wide_cx.cx(0, 1)
         wide_cx.cx(1, 2)

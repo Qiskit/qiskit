@@ -49,7 +49,7 @@ class CustomSolver(RecursiveBacktrackingSolver):
                 return True
         return False
 
-    def getSolution(self,  # pylint: disable=invalid-name
+    def getSolution(self,
                     domains, constraints, vconstraints):
         """Wrap RecursiveBacktrackingSolver.getSolution to add the limits."""
         if self.call_limit is not None:
@@ -121,7 +121,23 @@ class CSPLayout(AnalysisPass):
         else:
             solver = CustomSolver(call_limit=self.call_limit, time_limit=self.time_limit)
 
+<<<<<<< HEAD
         problem = self._get_csp_problem(solver, dag)
+=======
+        problem = Problem(solver)
+        problem.addVariables(list(range(len(qubits))), self.coupling_map.physical_qubits)
+        problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qubit
+
+        if self.strict_direction:
+            def constraint(control, target):
+                return (control, target) in edges
+        else:
+            def constraint(control, target):
+                return (control, target) in edges or (target, control) in edges
+
+        for pair in cxs:
+            problem.addConstraint(constraint, [pair[0], pair[1]])
+>>>>>>> master
 
         random.seed(self.seed)
         if self.limit_solutions:

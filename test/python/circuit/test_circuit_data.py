@@ -150,7 +150,6 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
 
-        # pylint: disable=invalid-name
         g1 = qc.h(0)
         g2 = qc.cx(0, 1)
         g3 = qc.h(1)
@@ -167,7 +166,6 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
 
-        # pylint: disable=invalid-name
         g1 = qc.h(0)
         g2 = qc.cx(0, 1)
         g3 = qc.h(1)

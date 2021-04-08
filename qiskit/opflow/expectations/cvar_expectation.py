@@ -12,17 +12,14 @@
 
 """The CVaR (Conditional Value at Risk) expectation class."""
 
-import logging
-from typing import Union, Optional
+from typing import Optional, Union
 
-from ..operator_base import OperatorBase
-from ..list_ops import ListOp, ComposedOp
-from ..state_fns import CVaRMeasurement, OperatorStateFn
-from .expectation_base import ExpectationBase
-from .pauli_expectation import PauliExpectation
-from .aer_pauli_expectation import AerPauliExpectation
-
-logger = logging.getLogger(__name__)
+from qiskit.opflow.expectations.aer_pauli_expectation import AerPauliExpectation
+from qiskit.opflow.expectations.expectation_base import ExpectationBase
+from qiskit.opflow.expectations.pauli_expectation import PauliExpectation
+from qiskit.opflow.list_ops import ComposedOp, ListOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.state_fns import CVaRMeasurement, OperatorStateFn
 
 
 class CVaRExpectation(ExpectationBase):

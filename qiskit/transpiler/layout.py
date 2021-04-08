@@ -18,7 +18,7 @@ Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[
 Physical (qu)bits are integers.
 """
 
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit.quantumregister import Qubit, QuantumRegister
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
 
@@ -258,16 +258,19 @@ class Layout():
 
     @staticmethod
     def generate_trivial_layout(*regs):
-        """Creates a trivial ("one-to-one") Layout with the registers in `regs`.
+        """Creates a trivial ("one-to-one") Layout with the registers and qubits in `regs`.
 
         Args:
-            *regs (Registers): registers to include in the layout.
+            *regs (Registers, Qubits): registers and qubits to include in the layout.
         Returns:
             Layout: A layout with all the `regs` in the given order.
         """
         layout = Layout()
         for reg in regs:
-            layout.add_register(reg)
+            if isinstance(reg, QuantumRegister):
+                layout.add_register(reg)
+            else:
+                layout.add(reg)
         return layout
 
     @staticmethod

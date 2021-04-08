@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    :class:`Statevector` and :class:`DensityMatrix` classes now have :meth:`__ipython_dispay__`
+    methods for viewing in Jupyter Notebooks and other environments that support
+    it.
+
+    .. jupyter-execute::
+
+            from qiskit.quantum_info import Statevector
+            Statevector.from_label('+r')
+
+  - |
+    :class:`Statevector` and :class:`DensityMatrix` classes now have ``.draw()`` methods
+    allowing them to be drawn as text matrices, IPython Latex objects, Latex source,
+    Q-spheres, Bloch spheres and Hinton plots.
+
+    .. jupyter-execute::
+
+            from qiskit.quantum_info import Statevector
+            sv = Statevector.from_label('+r')
+            sv.draw('qsphere')

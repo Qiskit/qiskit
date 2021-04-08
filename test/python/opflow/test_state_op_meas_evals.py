@@ -10,10 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-name-in-module,import-error
+
+
 """ Test Operator construction, including OpPrimitives and singletons. """
 
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
+from ddt import ddt, data
 import numpy
 
 from qiskit.circuit import QuantumCircuit, Parameter
@@ -23,7 +27,7 @@ from qiskit.opflow import (
 )
 
 
-# pylint: disable=invalid-name
+@ddt
 class TestStateOpMeasEvals(QiskitOpflowTestCase):
     """Tests of evals of Meas-Operator-StateFn combos."""
 
@@ -62,8 +66,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_coefficients_correctly_propagated(self):
         """Test that the coefficients in SummedOp and states are correctly used."""
         try:
-            # pylint: disable=import-outside-toplevel
-            from qiskit import Aer
+            from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
@@ -88,8 +91,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_is_measurement_correctly_propagated(self):
         """Test if is_measurement property of StateFn is propagated to converted StateFn."""
         try:
-            # pylint: disable=import-outside-toplevel
-            from qiskit import Aer
+            from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
@@ -102,8 +104,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_parameter_binding_on_listop(self):
         """Test passing a ListOp with differing parameters works with the circuit sampler."""
         try:
-            # pylint: disable=import-outside-toplevel
-            from qiskit import Aer
+            from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
@@ -123,6 +124,65 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         sampled = sampler.convert(listop, params=bindings)
 
         self.assertTrue(all(len(op.parameters) == 0 for op in sampled.oplist))
+
+    def test_list_op_eval_coeff_with_nonlinear_combofn(self):
+        """Test evaluating a ListOp with non-linear combo function works with coefficients."""
+        state = One
+        op = ListOp(5 * [I], coeff=2, combo_fn=numpy.prod)
+        expr1 = ~StateFn(op) @ state
+
+        expr2 = ListOp(5 * [~state @ I @ state], coeff=2, combo_fn=numpy.prod)
+
+        self.assertEqual(expr1.eval(), 2)  # if the coeff is propagated too far the result is 4
+        self.assertEqual(expr2.eval(), 2)
+
+    def test_single_parameter_binds(self):
+        """Test passing parameter binds as a dictionary to the circuit sampler."""
+        try:
+            from qiskit.providers.aer import Aer
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            return
+
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.ry(x, 0)
+        expr = ~StateFn(H) @ StateFn(circuit)
+
+        sampler = CircuitSampler(Aer.get_backend('statevector_simulator'))
+
+        res = sampler.convert(expr, params={x: 0}).eval()
+
+        self.assertIsInstance(res, complex)
+
+    @data('all', 'last')
+    def test_circuit_sampler_caching(self, caching):
+        """Test caching all operators works."""
+        try:
+            from qiskit.providers.aer import Aer
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            return
+
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.ry(x, 0)
+        expr1 = ~StateFn(H) @ StateFn(circuit)
+        expr2 = ~StateFn(X) @ StateFn(circuit)
+
+        sampler = CircuitSampler(Aer.get_backend('statevector_simulator'), caching=caching)
+
+        res1 = sampler.convert(expr1, params={x: 0}).eval()
+        res2 = sampler.convert(expr2, params={x: 0}).eval()
+        res3 = sampler.convert(expr1, params={x: 0}).eval()
+        res4 = sampler.convert(expr2, params={x: 0}).eval()
+
+        self.assertEqual(res1, res3)
+        self.assertEqual(res2, res4)
+        if caching == 'last':
+            self.assertEqual(len(sampler._cached_ops.keys()), 1)
+        else:
+            self.assertEqual(len(sampler._cached_ops.keys()), 2)
 
 
 if __name__ == '__main__':

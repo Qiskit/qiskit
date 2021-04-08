@@ -19,12 +19,11 @@ import numpy as np
 from qiskit import circuit, compiler, pulse
 from qiskit.pulse import builder, exceptions, macros, transforms
 from qiskit.pulse.instructions import directives
+from qiskit.pulse.transforms import inline_subroutines
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test.mock.utils import ConfigurableFakeBackend as ConfigurableBackend
 from qiskit.pulse import library, instructions
-
-# pylint: disable=invalid-name
 
 
 class TestBuilder(QiskitTestCase):
@@ -210,12 +209,12 @@ class TestContexts(TestBuilder):
 
         with pulse.build(self.backend) as schedule:
             with pulse.transpiler_settings(optimization_level=0):
-                builder.call_circuit(twice_cx_qc)
+                builder.call(twice_cx_qc)
         self.assertNotEqual(len(schedule.instructions), 0)
 
         with pulse.build(self.backend) as schedule:
             with pulse.transpiler_settings(optimization_level=3):
-                builder.call_circuit(twice_cx_qc)
+                builder.call(twice_cx_qc)
         self.assertEqual(len(schedule.instructions), 0)
 
     def test_scheduler_settings(self):
@@ -226,15 +225,18 @@ class TestContexts(TestBuilder):
         test_x_sched += instructions.Delay(10, d0)
         inst_map.add('x', (0,), test_x_sched)
 
+        ref_sched = pulse.Schedule()
+        ref_sched += pulse.instructions.Call(test_x_sched)
+
         x_qc = circuit.QuantumCircuit(2)
         x_qc.x(0)
 
         with pulse.build(backend=self.backend) as schedule:
             with pulse.transpiler_settings(basis_gates=['x']):
                 with pulse.circuit_scheduler_settings(inst_map=inst_map):
-                    builder.call_circuit(x_qc)
+                    builder.call(x_qc)
 
-        self.assertEqual(schedule, test_x_sched)
+        self.assertEqual(schedule, ref_sched)
 
     def test_phase_offset(self):
         """Test the phase offset context."""
@@ -260,9 +262,9 @@ class TestContexts(TestBuilder):
                 pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(1e9, d0)
         reference += instructions.Delay(10, d0)
-        reference += instructions.ShiftFrequency(-1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(-1e9, d0)
 
         self.assertEqual(schedule, reference)
 
@@ -276,11 +278,11 @@ class TestContexts(TestBuilder):
                 pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(1e9, d0)
         reference += instructions.Delay(10, d0)
         reference += instructions.ShiftPhase(
             -2 * np.pi * ((1e9 * 10 * self.configuration.dt) % 1), d0)
-        reference += instructions.ShiftFrequency(-1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(-1e9, d0)
 
         self.assertEqual(schedule, reference)
 
@@ -365,6 +367,16 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
+    def test_play_name_argument(self):
+        """Test name argument for play instruction."""
+        d0 = pulse.DriveChannel(0)
+        test_pulse = library.Constant(10, 1.0)
+
+        with pulse.build() as schedule:
+            pulse.play(test_pulse, channel=d0, name='new_name')
+
+        self.assertEqual(schedule.instructions[0][1].name, 'new_name')
+
     def test_acquire_memory_slot(self):
         """Test acquire instruction into memory slot."""
         acquire0 = pulse.AcquireChannel(0)
@@ -404,6 +416,16 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
+    def test_instruction_name_argument(self):
+        """Test setting the name of an instruction."""
+        d0 = pulse.DriveChannel(0)
+
+        for instruction_method in [pulse.delay, pulse.set_frequency, pulse.set_phase,
+                                   pulse.shift_frequency, pulse.shift_phase]:
+            with pulse.build() as schedule:
+                instruction_method(0, d0, name='instruction_name')
+            self.assertEqual(schedule.instructions[0][1].name, 'instruction_name')
+
     def test_set_frequency(self):
         """Test set frequency instruction."""
         d0 = pulse.DriveChannel(0)
@@ -416,7 +438,7 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
-    def test_shift_frequency(self):  # pylint: disable=no-member
+    def test_shift_frequency(self):
         """Test shift frequency instruction."""
         d0 = pulse.DriveChannel(0)
 
@@ -424,11 +446,11 @@ class TestInstructions(TestBuilder):
             pulse.shift_frequency(0.1e9, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(0.1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(0.1e9, d0)
 
         self.assertEqual(schedule, reference)
 
-    def test_set_phase(self):  # pylint: disable=no-member
+    def test_set_phase(self):
         """Test set phase instruction."""
         d0 = pulse.DriveChannel(0)
 
@@ -436,7 +458,7 @@ class TestInstructions(TestBuilder):
             pulse.set_phase(3.14, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.SetPhase(3.14, d0)  # pylint: disable=no-member
+        reference += instructions.SetPhase(3.14, d0)
 
         self.assertEqual(schedule, reference)
 
@@ -459,46 +481,6 @@ class TestInstructions(TestBuilder):
 
         reference = pulse.Schedule()
         reference += instructions.Snapshot('test', 'state')
-
-        self.assertEqual(schedule, reference)
-
-    def test_call_schedule(self):
-        """Test calling schedule instruction."""
-        schedule = pulse.Schedule()
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(1)
-
-        reference = pulse.Schedule()
-        reference = reference.insert(10, instructions.Delay(10, d0))
-        reference += instructions.Delay(20, d1)
-
-        with pulse.build() as schedule:
-            with pulse.align_right():
-                builder.call_schedule(reference)
-
-        self.assertEqual(schedule, reference)
-
-        with pulse.build() as schedule:
-            with pulse.align_right():
-                pulse.call(reference)
-
-        self.assertEqual(schedule, reference)
-
-    def test_call_circuit(self):
-        """Test calling circuit instruction."""
-        inst_map = self.inst_map
-        reference = inst_map.get('u1', (0,), 0.0)
-
-        u1_qc = circuit.QuantumCircuit(2)
-        u1_qc.append(circuit.library.U1Gate(0.0), [0])
-
-        transpiler_settings = {'optimization_level': 0}
-
-        with pulse.build(self.backend,
-                         default_transpiler_settings=transpiler_settings
-                         ) as schedule:
-            with pulse.align_right():
-                builder.call_circuit(u1_qc)
 
         self.assertEqual(schedule, reference)
 
@@ -671,6 +653,29 @@ class TestUtilities(TestBuilder):
 
 class TestMacros(TestBuilder):
     """Test builder macros."""
+
+    def test_macro(self):
+        """Test builder macro decorator."""
+        @pulse.macro
+        def nested(a):
+            pulse.play(pulse.Gaussian(100, a, 20), pulse.drive_channel(0))
+            return a*2
+
+        @pulse.macro
+        def test():
+            pulse.play(pulse.Constant(100, 1.0), pulse.drive_channel(0))
+            output = nested(0.5)
+            return output
+
+        with pulse.build(self.backend) as schedule:
+            output = test()
+            self.assertEqual(output, 0.5*2)
+
+        reference = pulse.Schedule()
+        reference += pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(0))
+        reference += pulse.Play(pulse.Gaussian(100, 0.5, 20), pulse.DriveChannel(0))
+
+        self.assertEqual(schedule, reference)
 
     def test_measure(self):
         """Test utility function - measure."""
@@ -858,22 +863,6 @@ class TestGates(TestBuilder):
             with pulse.build():
                 pulse.x(0)
 
-    def test_call_circuit_with_cregs(self):
-        """Test calling of circuit wiht classical registers."""
-
-        qc = circuit.QuantumCircuit(2, 2)
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.measure([0, 1], [0, 1])
-
-        with pulse.build(self.backend) as schedule:
-            pulse.call(qc)
-
-        reference_qc = compiler.transpile(qc, self.backend)
-        reference = compiler.schedule(reference_qc, self.backend)
-
-        self.assertEqual(schedule, reference)
-
 
 class TestBuilderComposition(TestBuilder):
     """Test more sophisticated composite builder examples."""
@@ -951,4 +940,260 @@ class TestBuilderComposition(TestBuilder):
                          align_left_reference,
                          inplace=True)
         reference += measure_reference
+
         self.assertEqual(schedule, reference)
+
+
+class TestSubroutineCall(TestBuilder):
+    """Test for calling subroutine."""
+
+    def test_call(self):
+        """Test calling schedule instruction."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        reference = pulse.Schedule()
+        reference = reference.insert(10, instructions.Delay(10, d0))
+        reference += instructions.Delay(20, d1)
+
+        ref_sched = pulse.Schedule()
+        ref_sched += pulse.instructions.Call(reference)
+
+        with pulse.build() as schedule:
+            with pulse.align_right():
+                builder.call(reference)
+
+        self.assertEqual(schedule, ref_sched)
+
+        with pulse.build() as schedule:
+            with pulse.align_right():
+                pulse.call(reference)
+
+        self.assertEqual(schedule, ref_sched)
+
+    def test_call_circuit(self):
+        """Test calling circuit instruction."""
+        inst_map = self.inst_map
+        reference = inst_map.get('u1', (0,), 0.0)
+
+        ref_sched = pulse.Schedule()
+        ref_sched += pulse.instructions.Call(reference)
+
+        u1_qc = circuit.QuantumCircuit(2)
+        u1_qc.append(circuit.library.U1Gate(0.0), [0])
+
+        transpiler_settings = {'optimization_level': 0}
+
+        with pulse.build(self.backend,
+                         default_transpiler_settings=transpiler_settings
+                         ) as schedule:
+            with pulse.align_right():
+                builder.call(u1_qc)
+
+        self.assertEqual(schedule, ref_sched)
+
+    def test_call_circuit_with_cregs(self):
+        """Test calling of circuit wiht classical registers."""
+
+        qc = circuit.QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+
+        with pulse.build(self.backend) as schedule:
+            pulse.call(qc)
+
+        reference_qc = compiler.transpile(qc, self.backend)
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        ref_sched = pulse.Schedule()
+        ref_sched += pulse.instructions.Call(reference)
+
+        self.assertEqual(schedule, ref_sched)
+
+    def test_call_gate_and_circuit(self):
+        """Test calling circuit with gates."""
+        h_control = circuit.QuantumCircuit(2)
+        h_control.h(0)
+
+        with pulse.build(self.backend) as schedule:
+            with pulse.align_sequential():
+                # this is circuit, a subroutine stored as Call instruction
+                pulse.call(h_control)
+                # this is instruction, not subroutine
+                pulse.cx(0, 1)
+                # this is macro, not subroutine
+                pulse.measure([0, 1])
+
+        # subroutine
+        h_reference = compiler.schedule(compiler.transpile(h_control, self.backend), self.backend)
+
+        # gate
+        cx_circ = circuit.QuantumCircuit(2)
+        cx_circ.cx(0, 1)
+        cx_reference = compiler.schedule(compiler.transpile(cx_circ, self.backend), self.backend)
+
+        # measurement
+        measure_reference = macros.measure(qubits=[0, 1],
+                                           inst_map=self.inst_map,
+                                           meas_map=self.configuration.meas_map)
+
+        reference = pulse.Schedule()
+        reference += pulse.instructions.Call(h_reference)
+        reference += cx_reference
+        reference += measure_reference << reference.duration
+
+        self.assertEqual(schedule, reference)
+
+    def test_subroutine_not_transpiled(self):
+        """Test called circuit is frozen as a subroutine."""
+        subprogram = circuit.QuantumCircuit(1)
+        subprogram.x(0)
+
+        transpiler_settings = {'optimization_level': 2}
+
+        with pulse.build(self.backend,
+                         default_transpiler_settings=transpiler_settings
+                         ) as schedule:
+            pulse.call(subprogram)
+            pulse.call(subprogram)
+
+        self.assertNotEqual(len(inline_subroutines(schedule).instructions), 0)
+
+    def test_subroutine_not_transformed(self):
+        """Test called schedule is not transformed."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        subprogram = pulse.Schedule()
+        subprogram.insert(0, pulse.Delay(30, d0), inplace=True)
+        subprogram.insert(10, pulse.Delay(10, d1), inplace=True)
+
+        with pulse.build() as schedule:
+            with pulse.align_right():
+                pulse.delay(10, d1)
+                pulse.call(subprogram)
+
+        reference = pulse.Schedule()
+        reference.insert(0, pulse.Delay(10, d1), inplace=True)
+        reference.insert(10, pulse.Delay(30, d0), inplace=True)
+        reference.insert(20, pulse.Delay(10, d1), inplace=True)
+
+        target = inline_subroutines(schedule)
+
+        self.assertEqual(target, reference)
+
+    def test_deepcopying_subroutine(self):
+        """Test if deepcopying the schedule can copy inline subroutine."""
+        from copy import deepcopy
+
+        with pulse.build() as subroutine:
+            pulse.delay(10, pulse.DriveChannel(0))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine)
+
+        copied_prog = deepcopy(main_prog)
+
+        main_call = main_prog.instructions[0][1]
+        copy_call = copied_prog.instructions[0][1]
+
+        self.assertNotEqual(id(main_call), id(copy_call))
+
+    def test_call_with_parameters(self):
+        """Test call subroutine with parameters."""
+        amp = circuit.Parameter('amp')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine, amp=0.1)
+            pulse.call(subroutine, amp=0.3)
+
+        self.assertEqual(main_prog.is_parameterized(), False)
+
+        assigned_sched = inline_subroutines(main_prog)
+
+        play_0 = assigned_sched.instructions[0][1]
+        play_1 = assigned_sched.instructions[1][1]
+
+        self.assertEqual(play_0.pulse.amp, 0.1)
+        self.assertEqual(play_1.pulse.amp, 0.3)
+
+    def test_call_partly_with_parameters(self):
+        """Test multiple calls partly with parameters then assign."""
+        amp = circuit.Parameter('amp')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine, amp=0.1)
+            pulse.call(subroutine)
+
+        self.assertEqual(main_prog.is_parameterized(), True)
+
+        main_prog.assign_parameters({amp: 0.5})
+        self.assertEqual(main_prog.is_parameterized(), False)
+
+        assigned_sched = inline_subroutines(main_prog)
+
+        play_0 = assigned_sched.instructions[0][1]
+        play_1 = assigned_sched.instructions[1][1]
+
+        self.assertEqual(play_0.pulse.amp, 0.1)
+        self.assertEqual(play_1.pulse.amp, 0.5)
+
+    def test_call_with_not_existing_parameter(self):
+        """Test call subroutine with parameter not defined."""
+        amp = circuit.Parameter('amp1')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
+
+        with self.assertRaises(exceptions.PulseError):
+            with pulse.build():
+                pulse.call(subroutine, amp=0.1)
+
+    def test_call_with_common_parameter(self):
+        """Test call subroutine with parameter that is defined multiple times."""
+        amp = circuit.Parameter('amp')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(320, amp, 80), pulse.DriveChannel(0))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine, amp=0.1)
+
+        assigned_sched = inline_subroutines(main_prog)
+
+        play_0 = assigned_sched.instructions[0][1]
+        play_1 = assigned_sched.instructions[1][1]
+
+        self.assertEqual(play_0.pulse.amp, 0.1)
+        self.assertEqual(play_1.pulse.amp, 0.1)
+
+    def test_call_with_parameter_name_collision(self):
+        """Test call subroutine with duplicated parameter names."""
+        amp1 = circuit.Parameter('amp')
+        amp2 = circuit.Parameter('amp')
+        sigma = circuit.Parameter('sigma')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp1, sigma), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, amp2, sigma), pulse.DriveChannel(0))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.2}, sigma=40)
+
+        assigned_sched = inline_subroutines(main_prog)
+
+        play_0 = assigned_sched.instructions[0][1]
+        play_1 = assigned_sched.instructions[1][1]
+
+        self.assertEqual(play_0.pulse.amp, 0.1)
+        self.assertEqual(play_0.pulse.sigma, 40)
+        self.assertEqual(play_1.pulse.amp, 0.2)
+        self.assertEqual(play_1.pulse.sigma, 40)

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,37 +12,32 @@
 
 """The module for Quantum the Fisher Information."""
 
-from copy import deepcopy
-from typing import List, Union, Optional, Tuple
+from typing import List, Union
 
 import numpy as np
-from qiskit.circuit import Gate, Qubit
-from qiskit.circuit import (QuantumCircuit, QuantumRegister, ParameterVector,
-                            ParameterExpression)
-from qiskit.circuit.library import RZGate, RXGate, HGate, XGate, SdgGate, SGate, ZGate, UGate
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterVector, ParameterExpression
+from qiskit.utils.arithmetic import triu_to_dense
 
 from ...list_ops.list_op import ListOp
-from ...operator_globals import I, Z, Y, X
+from ...list_ops.summed_op import SummedOp
+from ...operator_globals import I, Z, Y
 from ...state_fns.state_fn import StateFn
 from ...state_fns.circuit_state_fn import CircuitStateFn
 from ..circuit_gradients.lin_comb import LinComb
-from ..derivative_base import DerivativeBase
-from ...exceptions import OpflowError
 from .circuit_qfi import CircuitQFI
 
 
 class LinCombFull(CircuitQFI):
     r"""Compute the full Quantum Fisher Information (QFI).
 
-    Given a pure, parametrized quantum state this class uses the linear combination of unitaries
+    Given a pure, parameterized quantum state this class uses the linear combination of unitaries
     approach, requiring one additional working qubit.
     See also :class:`~qiskit.opflow.QFI`.
     """
 
     def convert(self,
                 operator: CircuitStateFn,
-                params: Optional[Union[ParameterExpression, ParameterVector,
-                                       List[ParameterExpression]]] = None,
+                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
                 ) -> ListOp:
         r"""
         Args:
@@ -55,309 +50,107 @@ class LinCombFull(CircuitQFI):
             element :math:`k, l` of the QFI.
 
         Raises:
-            OpflowError: If one of the circuits could not be constructed.
             TypeError: If ``operator`` is an unsupported type.
         """
-
         # QFI & phase fix observable
         qfi_observable = ~StateFn(4 * Z ^ (I ^ operator.num_qubits))
-        phase_fix_observable = ~StateFn((X + 1j * Y) ^ (I ^ operator.num_qubits))
+        phase_fix_observable = ~StateFn((Z - 1j * Y) ^ (I ^ operator.num_qubits))
         # see https://arxiv.org/pdf/quant-ph/0108146.pdf
 
         # Check if the given operator corresponds to a quantum state given as a circuit.
         if not isinstance(operator, CircuitStateFn):
-            raise TypeError(
-                'LinCombFull is only compatible with states that are given as CircuitStateFn')
+            raise TypeError('LinCombFull is only compatible with states that are given as '
+                            f'CircuitStateFn, not {type(operator)}')
 
         # If a single parameter is given wrap it into a list.
-        if not isinstance(params, (list, np.ndarray)):
+        if isinstance(params, ParameterExpression):
             params = [params]
-        state_qc = operator.primitive
+        elif isinstance(params, ParameterVector):
+            params = params[:]  # unroll to list
 
         # First, the operators are computed which can compensate for a potential phase-mismatch
         # between target and trained state, i.e.〈ψ|∂lψ〉
-        phase_fix_states = None
-        # Add working qubit
-        qr_work = QuantumRegister(1, 'work_qubit')
-        work_q = qr_work[0]
-        additional_qubits: Tuple[List[Qubit], List[Qubit]] = ([work_q], [])
-        for param in params:
-            # Get the gates of the given quantum state which are parameterized by param
-            param_gates = state_qc._parameter_table[param]
-            # Loop through the occurrences of param in the quantum state
-            for m, param_occurence in enumerate(param_gates):
-                # Get the coefficients and gates for the linear combination gradient for each
-                # occurrence, see e.g. https://arxiv.org/abs/2006.06004
-                coeffs_i, gates_i = LinComb._gate_gradient_dict(param_occurence[0])[
-                    param_occurence[1]]
-                # Construct the quantum states which are then evaluated for the respective QFI
-                # element.
-                for k, gate_to_insert_i in enumerate(gates_i):
-                    grad_state = state_qc.copy()
-                    grad_state.add_register(qr_work)
-
-                    # apply Hadamard on work_q
-                    LinComb.insert_gate(grad_state, param_occurence[0], HGate(),
-                                        qubits=[work_q])
-                    # Fix work_q phase such that the gradient is correct.
-                    coeff_i = coeffs_i[k]
-                    sign = np.sign(coeff_i)
-                    is_complex = np.iscomplex(coeff_i)
-                    if sign == -1:
-                        if is_complex:
-                            LinComb.insert_gate(grad_state,
-                                                param_occurence[0],
-                                                SdgGate(),
-                                                qubits=[work_q])
-                        else:
-                            LinComb.insert_gate(grad_state,
-                                                param_occurence[0],
-                                                ZGate(),
-                                                qubits=[work_q])
-                    else:
-                        if is_complex:
-                            LinComb.insert_gate(grad_state,
-                                                param_occurence[0],
-                                                SGate(),
-                                                qubits=[work_q])
-
-                    # Insert controlled, intercepting gate - controlled by |0>
-
-                    if isinstance(param_occurence[0], UGate):
-                        if param_occurence[1] == 0:
-                            LinComb.insert_gate(grad_state, param_occurence[0],
-                                                RZGate(param_occurence[0].params[2]))
-                            LinComb.insert_gate(grad_state, param_occurence[0],
-                                                RXGate(np.pi / 2))
-                            LinComb.insert_gate(grad_state, param_occurence[0],
-                                                gate_to_insert_i,
-                                                additional_qubits=additional_qubits)
-                            LinComb.insert_gate(grad_state, param_occurence[0],
-                                                RXGate(-np.pi / 2))
-                            LinComb.insert_gate(grad_state, param_occurence[0],
-                                                RZGate(-param_occurence[0].params[2]))
-
-                        elif param_occurence[1] == 1:
-                            LinComb.insert_gate(grad_state, param_occurence[0],
-                                                gate_to_insert_i, after=True,
-                                                additional_qubits=additional_qubits)
-                        else:
-                            LinComb.insert_gate(grad_state, param_occurence[0],
-                                                gate_to_insert_i,
-                                                additional_qubits=additional_qubits)
-                    else:
-                        LinComb.insert_gate(grad_state, param_occurence[0],
-                                            gate_to_insert_i,
-                                            additional_qubits=additional_qubits)
-
-                    # Remove unnecessary gates.
-                    grad_state = self.trim_circuit(grad_state, param_occurence[0])
-                    # Apply the final Hadamard on the working qubit.
-                    grad_state.h(work_q)
-                    # Add the coefficient needed for the gradient as well as the original
-                    # coefficient of the given quantum state.
-                    state = np.sqrt(np.abs(coeff_i)) * operator.coeff * CircuitStateFn(grad_state)
-
-                    # Check if the gate parameter corresponding to param is a parameter expression
-                    gate_param = param_occurence[0].params[param_occurence[1]]
-                    if gate_param == param:
-                        state = phase_fix_observable @ state
-                    else:
-                        # If the gate parameter is a parameter expressions the chain rule needs
-                        # to be taken into account.
-                        if isinstance(gate_param, ParameterExpression):
-                            expr_grad = DerivativeBase.parameter_expression_grad(gate_param, param)
-                            state = (expr_grad * phase_fix_observable) @ state
-                        else:
-                            state *= 0
-
-                    if m == 0 and k == 0:
-                        phase_fix_state = state
-                    else:
-                        # Take the product rule into account
-                        phase_fix_state += state
-            # Create a list for the phase fix states
-            if not phase_fix_states:
-                phase_fix_states = [phase_fix_state]
-            else:
-                phase_fix_states += [phase_fix_state]
+        gradient_states = LinComb()._gradient_states(
+            operator, meas_op=phase_fix_observable, target_params=params, open_ctrl=False,
+            trim_after_grad_gate=True
+        )
+        # if type(gradient_states) in [ListOp, SummedOp]:  # pylint: disable=unidiomatic-typecheck
+        if type(gradient_states) == ListOp:
+            phase_fix_states = gradient_states.oplist
+        else:
+            phase_fix_states = [gradient_states]
 
         # Get  4 * Re[〈∂kψ|∂lψ]
         qfi_operators = []
         # Add a working qubit
-        qr_work_qubit = QuantumRegister(1, 'work_qubit')
-        work_qubit = qr_work_qubit[0]
-        additional_qubits = ([work_qubit], [])
-        # create a copy of the original circuit with an additional work_qubit register
-        circuit = state_qc.copy()
-        circuit.add_register(qr_work_qubit)
-        # Apply a Hadamard on the working qubit
-        LinComb.insert_gate(circuit, state_qc._parameter_table[params[0]][0][0], HGate(),
-                            qubits=[work_qubit])
+        qr_work = QuantumRegister(1, 'work_qubit')
+        state_qc = QuantumCircuit(*operator.primitive.qregs, qr_work)
+        state_qc.h(qr_work)
+        state_qc.compose(operator.primitive, inplace=True)
 
         # Get the circuits needed to compute〈∂iψ|∂jψ〉
         for i, param_i in enumerate(params):  # loop over parameters
-            qfi_ops = None
-            for j, param_j in enumerate(params):
+            qfi_ops = []
+            for j, param_j in enumerate(params[i:], i):
                 # Get the gates of the quantum state which are parameterized by param_i
+                qfi_op = []
                 param_gates_i = state_qc._parameter_table[param_i]
-                for m_i, param_occurence_i in enumerate(param_gates_i):
-                    coeffs_i, gates_i = LinComb._gate_gradient_dict(param_occurence_i[0])[
-                        param_occurence_i[1]]
+                for gate_i, idx_i in param_gates_i:
+                    grad_coeffs_i, grad_gates_i = LinComb._gate_gradient_dict(gate_i)[idx_i]
 
-                    for k_i, gate_to_insert_i in enumerate(gates_i):
-                        coeff_i = coeffs_i[k_i]
+                    # get the location of gate_i, used for trimming
+                    location_i = None
+                    for idx, (op, _, _) in enumerate(state_qc._data):
+                        if op is gate_i:
+                            location_i = idx
+                            break
+
+                    for grad_coeff_i, grad_gate_i in zip(grad_coeffs_i, grad_gates_i):
+
                         # Get the gates of the quantum state which are parameterized by param_j
                         param_gates_j = state_qc._parameter_table[param_j]
-                        for m_j, param_occurence_j in enumerate(param_gates_j):
-                            coeffs_j, gates_j = \
-                                LinComb._gate_gradient_dict(param_occurence_j[0])[
-                                    param_occurence_j[1]]
-                            for k_j, gate_to_insert_j in enumerate(gates_j):
-                                coeff_j = coeffs_j[k_j]
+                        for gate_j, idx_j in param_gates_j:
+                            grad_coeffs_j, grad_gates_j = LinComb._gate_gradient_dict(gate_j)[idx_j]
+
+                            # get the location of gate_j, used for trimming
+                            location_j = None
+                            for idx, (op, _, _) in enumerate(state_qc._data):
+                                if op is gate_j:
+                                    location_j = idx
+                                    break
+
+                            for grad_coeff_j, grad_gate_j in zip(grad_coeffs_j, grad_gates_j):
+
+                                grad_coeff_ij = np.conj(grad_coeff_i) * grad_coeff_j
+                                qfi_circuit = LinComb.apply_grad_gate(
+                                    state_qc, gate_i, idx_i, grad_gate_i, grad_coeff_ij, qr_work,
+                                    open_ctrl=True, trim_after_grad_gate=(location_j < location_i)
+                                )
 
                                 # create a copy of the original circuit with the same registers
-                                qfi_circuit = QuantumCircuit(*circuit.qregs)
-                                qfi_circuit.data = circuit.data
+                                qfi_circuit = LinComb.apply_grad_gate(
+                                    qfi_circuit, gate_j, idx_j, grad_gate_j, 1, qr_work,
+                                    open_ctrl=False, trim_after_grad_gate=(location_j >= location_i)
+                                )
 
-                                # Correct the phase of the working qubit according to coefficient i
-                                # and coefficient j
-                                sign = np.sign(np.conj(coeff_i) * coeff_j)
-                                is_complex = np.iscomplex(np.conj(coeff_i) * coeff_j)
-                                if sign == -1:
-                                    if is_complex:
-                                        LinComb.insert_gate(qfi_circuit,
-                                                            param_occurence_i[0],
-                                                            SdgGate(),
-                                                            qubits=[work_qubit])
-                                    else:
-                                        LinComb.insert_gate(qfi_circuit,
-                                                            param_occurence_i[0],
-                                                            ZGate(),
-                                                            qubits=[work_qubit])
-                                else:
-                                    if is_complex:
-                                        LinComb.insert_gate(qfi_circuit,
-                                                            param_occurence_i[0],
-                                                            SGate(),
-                                                            qubits=[work_qubit])
-
-                                LinComb.insert_gate(qfi_circuit,
-                                                    param_occurence_i[0],
-                                                    XGate(),
-                                                    qubits=[work_qubit])
-
-                                # Insert controlled, intercepting gate i - controlled by |1>
-                                if isinstance(param_occurence_i[0], UGate):
-                                    if param_occurence_i[1] == 0:
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_i[0],
-                                            RZGate(param_occurence_i[0].params[2]))
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_i[0],
-                                            RXGate(np.pi / 2))
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_i[0], gate_to_insert_i,
-                                            additional_qubits=additional_qubits)
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_i[0],
-                                            RXGate(-np.pi / 2))
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_i[0],
-                                            RZGate(-param_occurence_i[0].params[2]))
-
-                                    elif param_occurence_i[1] == 1:
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_i[0],
-                                            gate_to_insert_i, after=True,
-                                            additional_qubits=additional_qubits)
-                                    else:
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_i[0],
-                                            gate_to_insert_i, additional_qubits=additional_qubits)
-                                else:
-                                    LinComb.insert_gate(
-                                        qfi_circuit, param_occurence_i[0],
-                                        gate_to_insert_i, additional_qubits=additional_qubits)
-
-                                LinComb.insert_gate(
-                                    qfi_circuit, gate_to_insert_i,
-                                    XGate(), qubits=[work_qubit], after=True)
-
-                                # Insert controlled, intercepting gate j - controlled by |0>
-                                if isinstance(param_occurence_j[0], UGate):
-                                    if param_occurence_j[1] == 0:
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_j[0],
-                                            RZGate(param_occurence_j[0].params[2]))
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_j[0],
-                                            RXGate(np.pi / 2))
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_j[0],
-                                            gate_to_insert_j, additional_qubits=additional_qubits)
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_j[0],
-                                            RXGate(-np.pi / 2))
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_j[0],
-                                            RZGate(-param_occurence_j[0].params[2]))
-
-                                    elif param_occurence_j[1] == 1:
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_j[0],
-                                            gate_to_insert_j, after=True,
-                                            additional_qubits=additional_qubits)
-                                    else:
-                                        LinComb.insert_gate(
-                                            qfi_circuit, param_occurence_j[0],
-                                            gate_to_insert_j, additional_qubits=additional_qubits)
-                                else:
-                                    LinComb.insert_gate(
-                                        qfi_circuit, param_occurence_j[0],
-                                        gate_to_insert_j, additional_qubits=additional_qubits)
-
-                                # Remove redundant gates
-
-                                if j <= i:
-                                    qfi_circuit = self.trim_circuit(
-                                        qfi_circuit, param_occurence_i[0]
-                                    )
-                                else:
-                                    qfi_circuit = self.trim_circuit(
-                                        qfi_circuit, param_occurence_j[0]
-                                    )
-                                # Apply final Hadamard gate
-                                qfi_circuit.h(work_qubit)
+                                qfi_circuit.h(qr_work)
                                 # Convert the quantum circuit into a CircuitStateFn and add the
                                 # coefficients i, j and the original operator coefficient
-                                term = np.sqrt(np.abs(coeff_i) * np.abs(coeff_j)) * operator.coeff
-                                term = term * CircuitStateFn(qfi_circuit)
+                                coeff = operator.coeff
+                                coeff *= np.sqrt(np.abs(grad_coeff_i) * np.abs(grad_coeff_j))
+                                state = CircuitStateFn(qfi_circuit, coeff=coeff)
 
-                                # Check if the gate parameters i and j are parameter expressions
-                                gate_param_i = param_occurence_i[0].params[param_occurence_i[1]]
-                                gate_param_j = param_occurence_j[0].params[param_occurence_j[1]]
+                                param_grad = 1
+                                for gate, idx, param in zip(
+                                        [gate_i, gate_j], [idx_i, idx_j], [param_i, param_j]
+                                ):
+                                    param_expression = gate.params[idx]
+                                    param_grad *= param_expression.gradient(param)
+                                meas = param_grad * qfi_observable
 
-                                meas = deepcopy(qfi_observable)
-                                # If the gate parameter i is a parameter expression use the chain
-                                # rule.
-                                if isinstance(gate_param_i, ParameterExpression):
-                                    expr_grad = DerivativeBase.parameter_expression_grad(
-                                        gate_param_i, param_i)
-                                    meas *= expr_grad
-                                # If the gate parameter j is a parameter expression use the chain
-                                # rule.
-                                if isinstance(gate_param_j, ParameterExpression):
-                                    expr_grad = DerivativeBase.parameter_expression_grad(
-                                        gate_param_j, param_j)
-                                    meas *= expr_grad
-                                term = meas @ term
+                                term = meas @ state
 
-                                if m_i == 0 and k_i == 0 and m_j == 0 and k_j == 0:
-                                    qfi_op = term
-                                else:
-                                    # Product Rule
-                                    qfi_op += term
+                                qfi_op.append(term)
 
                 # Compute −4 * Re(〈∂kψ|ψ〉〈ψ|∂lψ〉)
                 def phase_fix_combo_fn(x):
@@ -367,38 +160,8 @@ class LinCombFull(CircuitQFI):
                                    combo_fn=phase_fix_combo_fn)
                 # Add the phase fix quantities to the entries of the QFI
                 # Get 4 * Re[〈∂kψ|∂lψ〉−〈∂kψ|ψ〉〈ψ|∂lψ〉]
-                if not qfi_ops:
-                    qfi_ops = [qfi_op + phase_fix]
-                else:
-                    qfi_ops += [qfi_op + phase_fix]
+                qfi_ops += [SummedOp(qfi_op) + phase_fix]
+
             qfi_operators.append(ListOp(qfi_ops))
         # Return the full QFI
-        return ListOp(qfi_operators)
-
-    @staticmethod
-    def trim_circuit(circuit: QuantumCircuit,
-                     reference_gate: Gate) -> QuantumCircuit:
-        """Trim the given quantum circuit before the reference gate.
-
-        Args:
-            circuit: The circuit to be trimmed.
-            reference_gate: The gate where the circuit is supposed to be trimmed.
-
-        Returns:
-            The trimmed circuit.
-
-        Raises:
-            OpflowError: If the reference gate is not part of the given circuit.
-        """
-        parameterized_gates = []
-        for _, elements in circuit._parameter_table.items():
-            for element in elements:
-                parameterized_gates.append(element[0])
-
-        for i, op in enumerate(circuit.data):
-            if op[0] == reference_gate:
-                trimmed_circuit = QuantumCircuit(*circuit.qregs)
-                trimmed_circuit.data = circuit.data[:i]
-                return trimmed_circuit
-
-        raise OpflowError('The reference gate is not in the given quantum circuit.')
+        return ListOp(qfi_operators, combo_fn=triu_to_dense)

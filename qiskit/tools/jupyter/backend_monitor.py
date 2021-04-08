@@ -9,23 +9,21 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
 
 """A module for monitoring backends."""
 
 import types
 import math
 import datetime
-from IPython.display import display                     # pylint: disable=import-error
-import matplotlib.pyplot as plt                         # pylint: disable=import-error
-from matplotlib.patches import Circle                   # pylint: disable=import-error
-import ipywidgets as widgets                            # pylint: disable=import-error
+from IPython.display import display
+import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
+import ipywidgets as widgets
 from qiskit.exceptions import QiskitError
 from qiskit.visualization.gate_map import plot_gate_map, plot_error_map
 from qiskit.test.mock import FakeBackend
 
 try:
-    # pylint: disable=import-error
     from qiskit.providers.ibmq import IBMQBackend
 except ImportError:
     pass
@@ -107,9 +105,8 @@ def _backend_monitor(backend):
         tabs.set_title(i, tab_contents[i])
 
     # Make backend accessible to tabs widget
-    tabs._backend = backend  # pylint: disable=attribute-defined-outside-init
+    tabs._backend = backend
     tabs._did_jobs = False
-    # pylint: disable=attribute-defined-outside-init
     tabs._update = types.MethodType(_load_jobs_data, tabs)
 
     tabs.observe(tabs._update, names='selected_index')
@@ -245,11 +242,13 @@ def qubits_tab(backend):
     Returns:
         VBox: A VBox widget.
     """
-    props = backend.properties().to_dict()
+    props = backend.properties()
 
     header_html = "<div><font style='font-weight:bold'>{key}</font>: {value}</div>"
+    update_date = props.last_update_date.strftime("%a %d %B %Y at %H:%M %Z")
     header_html = header_html.format(key='last_update_date',
-                                     value=props['last_update_date'])
+                                     value=update_date)
+
     update_date_widget = widgets.HTML(value=header_html)
 
     qubit_html = "<table>"
@@ -268,43 +267,42 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 </style>"""
 
     qubit_html += "<tr><th></th><th>Frequency</th><th>T1</th><th>T2</th>"
-    qubit_html += "<th>U1 gate error</th><th>U2 gate error</th><th>U3 gate error</th>"
-    qubit_html += "<th>Readout error</th></tr>"
     qubit_footer = "</table>"
 
-    for qub in range(len(props['qubits'])):
-        name = 'Q%s' % qub
-        qubit_data = props['qubits'][qub]
-        gate_data = [g for g in props['gates'] if g['qubits'] == [qub]]
-        t1_info = qubit_data[0]
-        t2_info = qubit_data[1]
-        freq_info = qubit_data[2]
-        readout_info = qubit_data[3]
+    gate_error_title = ""
 
-        freq = str(round(freq_info['value'], 5))+' '+freq_info['unit']
-        T1 = str(round(t1_info['value'],
-                       5))+' ' + t1_info['unit']
-        T2 = str(round(t2_info['value'],
-                       5))+' ' + t2_info['unit']
+    for index, qubit_data in enumerate(props.qubits):
+        name = 'Q%s' % index
+        gate_data = [gate for gate in props.gates if gate.qubits == [index]]
 
+        cal_data = dict.fromkeys(['T1', 'T2', 'frequency', 'readout_error'], 'Unknown')
+        for nduv in qubit_data:
+            if nduv.name in cal_data.keys():
+                cal_data[nduv.name] = str(round(nduv.value, 5)) + ' ' + nduv.unit
+
+        gate_names = []
+        gate_error = []
         for gd in gate_data:
-            if gd['gate'] == 'u1':
-                U1 = str(round(gd['parameters'][0]['value'], 5))
-                break
+            if gd.gate in ['id']:
+                continue
+            try:
+                gate_error.append(str(round(props.gate_error(gd.gate, index), 5)))
+                gate_names.append(gd.gate.upper())
+            except QiskitError:
+                pass
 
-        for gd in gate_data:
-            if gd['gate'] == 'u2':
-                U2 = str(round(gd['parameters'][0]['value'], 5))
-                break
-        for gd in gate_data:
-            if gd['gate'] == 'u3':
-                U3 = str(round(gd['parameters'][0]['value'], 5))
-                break
+        if not gate_error_title:
+            for gname in gate_names:
+                gate_error_title += f"<th>{gname}</th>"
+            qubit_html += gate_error_title + "<th>Readout error</th></tr>"
 
-        readout_error = round(readout_info['value'], 5)
-        qubit_html += "<tr><td><font style='font-weight:bold'>%s</font></td><td>%s</td>"
-        qubit_html += "<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"
-        qubit_html = qubit_html % (name, freq, T1, T2, U1, U2, U3, readout_error)
+        qubit_html += f"<tr><td><font style='font-weight:bold'>{name}</font></td>"
+        qubit_html += f"<td>{cal_data['frequency']}</td>" \
+                      f"<td>{cal_data['T1']}</td><td>{cal_data['T2']}</td>"
+        for gerror in gate_error:
+            qubit_html += f"<td>{gerror}</td>"
+        qubit_html += f"<td>{cal_data['readout_error']}</td>"
+
     qubit_html += qubit_footer
 
     qubit_widget = widgets.HTML(value=qubit_html)
@@ -324,13 +322,13 @@ def gates_tab(backend):
     Returns:
         VBox: A VBox widget.
     """
-    props = backend.properties().to_dict()
+    props = backend.properties()
 
-    multi_qubit_gates = [g for g in props['gates'] if len(g['qubits']) > 1]
+    multi_qubit_gates = [g for g in props.gates if len(g.qubits) > 1]
 
     header_html = "<div><font style='font-weight:bold'>{key}</font>: {value}</div>"
     header_html = header_html.format(key='last_update_date',
-                                     value=props['last_update_date'])
+                                     value=props.last_update_date)
 
     update_date_widget = widgets.HTML(value=header_html,
                                       layout=widgets.Layout(grid_area='top'))
@@ -361,9 +359,9 @@ tr:nth-child(even) {background-color: #f6f6f6;};
 
     for qub in range(left_num):
         gate = multi_qubit_gates[qub]
-        qubits = gate['qubits']
-        ttype = gate['gate']
-        error = round(gate['parameters'][0]['value'], 5)
+        qubits = gate.qubits
+        ttype = gate.gate
+        error = round(props.gate_error(gate.gate, qubits), 5)
 
         left_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         left_table += "</td><td>%s</td><td>%s</td></tr>"
@@ -375,9 +373,9 @@ tr:nth-child(even) {background-color: #f6f6f6;};
 
     for qub in range(left_num, left_num+mid_num):
         gate = multi_qubit_gates[qub]
-        qubits = gate['qubits']
-        ttype = gate['gate']
-        error = round(gate['parameters'][0]['value'], 5)
+        qubits = gate.qubits
+        ttype = gate.gate
+        error = round(props.gate_error(gate.gate, qubits), 5)
 
         middle_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         middle_table += "</td><td>%s</td><td>%s</td></tr>"
@@ -389,9 +387,9 @@ tr:nth-child(even) {background-color: #f6f6f6;};
 
     for qub in range(left_num+mid_num, len(multi_qubit_gates)):
         gate = multi_qubit_gates[qub]
-        qubits = gate['qubits']
-        ttype = gate['gate']
-        error = round(gate['parameters'][0]['value'], 5)
+        qubits = gate.qubits
+        ttype = gate.gate
+        error = round(props.gate_error(gate.gate, qubits), 5)
 
         right_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         right_table += "</td><td>%s</td><td>%s</td></tr>"
@@ -566,7 +564,7 @@ def plot_job_history(jobs, interval='year'):
         labels = ['{}-{}'.format(str(bins[b].year)[2:], MONTH_NAMES[bins[b].month]) for b in nz_idx]
     else:
         labels = ['{}-{}'.format(MONTH_NAMES[bins[b].month], bins[b].day) for b in nz_idx]
-    fig, ax = plt.subplots(1, 1, figsize=(5.5, 5.5))  # pylint: disable=invalid-name
+    fig, ax = plt.subplots(1, 1, figsize=(5.5, 5.5))
     ax.pie(nz_bins[::-1], labels=labels, colors=colors, textprops={'fontsize': 14},
            rotatelabels=True, counterclock=False, radius=1)
     ax.add_artist(Circle((0, 0), 0.7, color='white', zorder=1))

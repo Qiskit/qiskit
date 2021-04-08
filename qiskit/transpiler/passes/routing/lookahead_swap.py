@@ -302,7 +302,7 @@ def _transform_gate_for_layout(gate, layout):
 
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
     mapped_qargs = [device_qreg[layout[a]] for a in mapped_op_node.qargs]
-    mapped_op_node.qargs = mapped_op_node.op.qargs = mapped_qargs
+    mapped_op_node.qargs = mapped_qargs
 
     return mapped_op_node
 

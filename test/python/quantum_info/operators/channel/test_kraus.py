@@ -318,12 +318,6 @@ class TestKraus(ChannelTestCase):
         targ3b = rho @ Kraus(self.depol_kraus(1 - p_id3))
         self.assertEqual(rho @ chan3, targ3b)
 
-    def test_power_except(self):
-        """Test power method raises exceptions."""
-        chan = Kraus(self.depol_kraus(0.9))
-        # Non-integer power raises error
-        self.assertRaises(QiskitError, chan.power, 0.5)
-
     def test_add(self):
         """Test add method."""
         # Random input test state

@@ -42,22 +42,24 @@ def partial_trace(state, qargs):
     """
     state = _format_state(state, validate=False)
 
+    # Compute traced shape
+    traced_shape = state._op_shape.remove(qargs=qargs)
+    # Convert vector shape to matrix shape
+    traced_shape._dims_r = traced_shape._dims_l
+    traced_shape._num_qargs_r = traced_shape._num_qargs_l
+
     # If we are tracing over all subsystems we return the trace
-    if sorted(qargs) == list(range(len(state.dims()))):
-        # Should this raise an exception instead?
-        # Or return a 1x1 density matrix?
+    if traced_shape.size == 0:
         return state.trace()
 
     # Statevector case
     if isinstance(state, Statevector):
-        trace_systems = len(state._dims) - 1 - np.array(qargs)
-        new_dims = tuple(np.delete(np.array(state._dims), qargs))
-        new_dim = np.product(new_dims)
-        arr = state._data.reshape(state._shape)
+        trace_systems = len(state._op_shape.dims_l()) - 1 - np.array(qargs)
+        arr = state._data.reshape(state._op_shape.tensor_shape)
         rho = np.tensordot(arr, arr.conj(),
                            axes=(trace_systems, trace_systems))
-        rho = np.reshape(rho, (new_dim, new_dim))
-        return DensityMatrix(rho, dims=new_dims)
+        rho = np.reshape(rho, traced_shape.shape)
+        return DensityMatrix(rho, dims=traced_shape._dims_l)
 
     # Density matrix case
     # Trace first subsystem to avoid coping whole density matrix
@@ -71,7 +73,7 @@ def partial_trace(state, qargs):
                         input_dims=[dim], output_dims=[1])
         ret = ret.evolve(tr_op, [qarg])
     # Remove traced over subsystems which are listed as dimension 1
-    ret._reshape(tuple(np.delete(np.array(ret._dims), qargs)))
+    ret._op_shape = traced_shape
     return ret
 
 

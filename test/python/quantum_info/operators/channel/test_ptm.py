@@ -236,12 +236,6 @@ class TestPTM(ChannelTestCase):
         targ3 = PTM(self.depol_ptm(1 - p_id3))
         self.assertEqual(chan3, targ3)
 
-    def test_power_except(self):
-        """Test power method raises exceptions."""
-        chan = PTM(self.depol_ptm(1))
-        # Non-integer power raises error
-        self.assertRaises(QiskitError, chan.power, 0.5)
-
     def test_add(self):
         """Test add method."""
         mat1 = 0.5 * self.ptmI

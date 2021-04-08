@@ -135,7 +135,6 @@ class LogNormalDistribution(QuantumCircuit):
         from scipy.stats import multivariate_normal
 
         for x_i in x:
-            # pylint: disable=line-too-long
             # map probabilities from normal to log-normal reference:
             # https://stats.stackexchange.com/questions/214997/multivariate-log-normal-probabiltiy-density-function-pdf
             if np.min(x_i) > 0:

@@ -28,7 +28,7 @@ from qiskit.circuit.library import (IGate, XGate, YGate, ZGate, HGate,
 from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_circuit
 from qiskit.quantum_info.synthesis.clifford_decompose import (
-    decompose_clifford_ag, decompose_clifford_bm)
+    decompose_clifford_ag, decompose_clifford_bm, decompose_clifford_greedy)
 
 
 class VGate(Gate):
@@ -110,33 +110,33 @@ class TestCliffordGates(QiskitTestCase):
         """Tests for append of 1-qubit gates"""
 
         target_table = {
-            "i": np.array([[[True, False], [False, True]]], dtype=np.bool),
-            "id": np.array([[[True, False], [False, True]]], dtype=np.bool),
-            "iden": np.array([[[True, False], [False, True]]], dtype=np.bool),
-            "x": np.array([[[True, False], [False, True]]], dtype=np.bool),
-            "y": np.array([[[True, False], [False, True]]], dtype=np.bool),
-            "z": np.array([[[True, False], [False, True]]], dtype=np.bool),
-            "h": np.array([[[False, True], [True, False]]], dtype=np.bool),
-            "s": np.array([[[True, True], [False, True]]], dtype=np.bool),
-            "sdg": np.array([[[True, True], [False, True]]], dtype=np.bool),
-            "sinv": np.array([[[True, True], [False, True]]], dtype=np.bool),
-            "v": np.array([[[True, True], [True, False]]], dtype=np.bool),
-            "w": np.array([[[False, True], [True, True]]], dtype=np.bool),
+            "i": np.array([[[True, False], [False, True]]], dtype=bool),
+            "id": np.array([[[True, False], [False, True]]], dtype=bool),
+            "iden": np.array([[[True, False], [False, True]]], dtype=bool),
+            "x": np.array([[[True, False], [False, True]]], dtype=bool),
+            "y": np.array([[[True, False], [False, True]]], dtype=bool),
+            "z": np.array([[[True, False], [False, True]]], dtype=bool),
+            "h": np.array([[[False, True], [True, False]]], dtype=bool),
+            "s": np.array([[[True, True], [False, True]]], dtype=bool),
+            "sdg": np.array([[[True, True], [False, True]]], dtype=bool),
+            "sinv": np.array([[[True, True], [False, True]]], dtype=bool),
+            "v": np.array([[[True, True], [True, False]]], dtype=bool),
+            "w": np.array([[[False, True], [True, True]]], dtype=bool),
         }
 
         target_phase = {
-            "i": np.array([[False, False]], dtype=np.bool),
-            "id": np.array([[False, False]], dtype=np.bool),
-            "iden": np.array([[False, False]], dtype=np.bool),
-            "x": np.array([[False, True]], dtype=np.bool),
-            "y": np.array([[True, True]], dtype=np.bool),
-            "z": np.array([[True, False]], dtype=np.bool),
-            "h": np.array([[False, False]], dtype=np.bool),
-            "s": np.array([[False, False]], dtype=np.bool),
-            "sdg": np.array([[True, False]], dtype=np.bool),
-            "sinv": np.array([[True, False]], dtype=np.bool),
-            "v": np.array([[False, False]], dtype=np.bool),
-            "w": np.array([[False, False]], dtype=np.bool)
+            "i": np.array([[False, False]], dtype=bool),
+            "id": np.array([[False, False]], dtype=bool),
+            "iden": np.array([[False, False]], dtype=bool),
+            "x": np.array([[False, True]], dtype=bool),
+            "y": np.array([[True, True]], dtype=bool),
+            "z": np.array([[True, False]], dtype=bool),
+            "h": np.array([[False, False]], dtype=bool),
+            "s": np.array([[False, False]], dtype=bool),
+            "sdg": np.array([[True, False]], dtype=bool),
+            "sinv": np.array([[True, False]], dtype=bool),
+            "v": np.array([[False, False]], dtype=bool),
+            "w": np.array([[False, False]], dtype=bool)
         }
 
         target_stabilizer = {
@@ -411,6 +411,17 @@ class TestCliffordSynthesis(QiskitTestCase):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
             target = Clifford(circ)
             value = Clifford(decompose_clifford_ag(target))
+            self.assertEqual(value, target)
+
+    @combine(num_qubits=[1, 2, 3, 4, 5])
+    def test_decompose_2q_greedy(self, num_qubits):
+        """Test greedy synthesis for set of {num_qubits}-qubit Cliffords"""
+        rng = np.random.default_rng(1234)
+        samples = 50
+        for _ in range(samples):
+            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
+            target = Clifford(circ)
+            value = Clifford(decompose_clifford_greedy(target))
             self.assertEqual(value, target)
 
 

@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=anomalous-backslash-in-string
-
 """Common visualization utilities."""
 
 import re
@@ -20,7 +18,7 @@ from collections import OrderedDict
 import numpy as np
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info.operators import PauliTable, SparsePauliOp
+from qiskit.quantum_info.operators.symplectic import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.circuit import Measure
 
@@ -82,7 +80,7 @@ def _get_layered_instructions(circuit, reverse_bits=False,
     Given a circuit, return a tuple (qregs, cregs, ops) where
     qregs and cregs are the quantum and classical registers
     in order (based on reverse_bits) and ops is a list
-    of DAG nodes which type is "operation".
+    of DAG nodes whose type is "operation".
 
     Args:
         circuit (QuantumCircuit): From where the information is extracted.
@@ -121,12 +119,17 @@ def _get_layered_instructions(circuit, reverse_bits=False,
         qregs.reverse()
         cregs.reverse()
 
+    # Optionally remove all idle wires and instructions that are on them and
+    # on them only.
     if not idle_wires:
-        for wire in dag.idle_wires(ignore=['barrier']):
+        for wire in dag.idle_wires(ignore=['barrier', 'delay']):
             if wire in qregs:
                 qregs.remove(wire)
             if wire in cregs:
                 cregs.remove(wire)
+
+    ops = [[op for op in layer if any(q in qregs for q in op.qargs)]
+           for layer in ops]
 
     return qregs, cregs, ops
 
@@ -302,13 +305,13 @@ class _LayerSpooler(list):
 
 
 def _bloch_multivector_data(state):
-    """Return list of bloch vectors for each qubit
+    """Return list of Bloch vectors for each qubit
 
     Args:
         state (DensityMatrix or Statevector): an N-qubit state.
 
     Returns:
-        list: list of bloch vectors (x, y, z) for each qubit.
+        list: list of Bloch vectors (x, y, z) for each qubit.
 
     Raises:
         VisualizationError: if input is not an N-qubit state.
@@ -321,7 +324,7 @@ def _bloch_multivector_data(state):
     bloch_data = []
     for i in range(num):
         if num > 1:
-            paulis = PauliTable(np.zeros((3, 2 * (num-1)), dtype=np.bool)).insert(
+            paulis = PauliTable(np.zeros((3, 2 * (num-1)), dtype=bool)).insert(
                 i, pauli_singles, qubit=True)
         else:
             paulis = pauli_singles
@@ -337,7 +340,7 @@ def _paulivec_data(state):
         state (DensityMatrix or Statevector): an N-qubit state.
 
     Returns:
-        tuple: (labels, values) for Pauli vec.
+        tuple: (labels, values) for Pauli vector.
 
     Raises:
         VisualizationError: if input is not an N-qubit state.

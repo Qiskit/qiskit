@@ -86,8 +86,8 @@ class MplPlotter(BasePlotter):
         """Output drawings stored in canvas object."""
 
         for _, data in self.canvas.collections:
-            xvals = data.xvals
-            yvals = data.yvals
+            xvals = np.asarray(data.xvals, dtype=float)
+            yvals = np.asarray(data.yvals, dtype=float)
             offsets = [self.canvas.assigned_coordinates[bit] for bit in data.bits]
 
             if isinstance(data, drawings.BoxData):

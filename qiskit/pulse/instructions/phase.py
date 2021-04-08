@@ -50,7 +50,7 @@ class ShiftPhase(Instruction):
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
         """
-        super().__init__((phase, channel), 0, (channel,), name=name)
+        super().__init__((phase, channel), None, (channel,), name=name)
 
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
@@ -63,6 +63,11 @@ class ShiftPhase(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def duration(self) -> int:
+        """Duration of this instruction."""
+        return 0
 
 
 class SetPhase(Instruction):
@@ -90,7 +95,7 @@ class SetPhase(Instruction):
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
         """
-        super().__init__((phase, channel), 0, (channel,), name=name)
+        super().__init__((phase, channel), None, (channel,), name=name)
 
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
@@ -103,3 +108,8 @@ class SetPhase(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def duration(self) -> int:
+        """Duration of this instruction."""
+        return 0

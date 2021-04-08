@@ -36,7 +36,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
             DAGCircuit: the optimized DAG.
         """
         swaps = dag.op_nodes(SwapGate)
-        for swap in swaps:
+        for swap in swaps[::-1]:
             final_successor = []
             for successor in dag.successors(swap):
                 final_successor.append(successor.type == 'out' or (successor.type == 'op' and

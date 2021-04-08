@@ -49,6 +49,10 @@ _CUTOFF_PRECISION = 1E-10
 class Instruction:
     """Generic quantum instruction."""
 
+    # Class attribute to treat like barrier for transpiler, unroller, drawer
+    # NOTE: Using this attribute may change in the future (See issue # 5811)
+    _directive = False
+
     def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit='dt'):
         """Create a new instruction.
 
@@ -329,7 +333,8 @@ class Instruction:
                                 num_qubits=self.num_qubits,
                                 params=self.params.copy())
 
-        inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs)
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs,
+                                                 global_phase=-self.definition.global_phase)
         inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
                                          for inst, qargs, cargs in reversed(self._definition)]
 

@@ -10,6 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unexpected-keyword-arg
+
+
 """ Test Operator construction, including OpPrimitives and singletons. """
 
 import unittest
@@ -23,8 +26,6 @@ from qiskit.quantum_info import Statevector
 from qiskit.opflow import (StateFn, Zero, One, Plus, Minus, PrimitiveOp,
                            SummedOp, H, I, Z, X, Y, CX, CircuitStateFn, DictToCircuitSum)
 
-
-# pylint: disable=invalid-name
 
 class TestStateConstruction(QiskitOpflowTestCase):
     """State Construction tests."""

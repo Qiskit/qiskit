@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 """
 Decompose a single-qubit unitary via Euler angles.
 """
@@ -20,13 +19,27 @@ import numpy as np
 import scipy.linalg as la
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import (PhaseGate, U3Gate,
-                                                   U1Gate, RXGate, RYGate,
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.library.standard_gates import (UGate, PhaseGate, U3Gate,
+                                                   U2Gate, U1Gate, RXGate, RYGate,
                                                    RZGate, RGate, SXGate)
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
 DEFAULT_ATOL = 1e-12
+
+ONE_QUBIT_EULER_BASIS_GATES = {
+    'U3': ['u3'],
+    'U321': ['u3', 'u2', 'u1'],
+    'U': ['u'],
+    'PSX': ['p', 'sx'],
+    'U1X': ['u1', 'rx'],
+    'RR': ['r'],
+    'ZYZ': ['rz', 'ry'],
+    'ZXZ': ['rz', 'rx'],
+    'XYX': ['rx', 'ry'],
+    'ZSX': ['rz', 'sx'],
+}
 
 
 class OneQubitEulerDecomposer:
@@ -37,7 +50,7 @@ class OneQubitEulerDecomposer:
     :math:`\gamma`. The value of the parameters for an input unitary depends
     on the decomposition basis. Allowed bases and the resulting circuits are
     shown in the following table. Note that for the non-Euler bases (U3, U1X,
-    RR), the ZYZ euler parameters are used.
+    RR), the ZYZ Euler parameters are used.
 
     .. list-table:: Supported circuit bases
         :widths: auto
@@ -56,6 +69,9 @@ class OneQubitEulerDecomposer:
           - :math:`X(\phi) Y(\theta) X(\lambda)`
           - :math:`e^{i\gamma} R_X(\phi).R_Y(\theta).R_X(\lambda)`
         * - 'U3'
+          - :math:`Z(\phi) Y(\theta) Z(\lambda)`
+          - :math:`e^{i\gamma} U_3(\theta,\phi,\lambda)`
+        * - 'U321'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
           - :math:`e^{i\gamma} U_3(\theta,\phi,\lambda)`
         * - 'U'
@@ -82,7 +98,7 @@ class OneQubitEulerDecomposer:
     def __init__(self, basis='U3'):
         """Initialize decomposer
 
-        Supported bases are: 'U', 'PSX', 'ZSX', 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ', 'XYX'.
+        Supported bases are: 'U', 'PSX', 'ZSX', 'U321', 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ', 'XYX'.
 
         Args:
             basis (str): the decomposition basis [Default: 'U3']
@@ -101,9 +117,8 @@ class OneQubitEulerDecomposer:
         Args:
             unitary (Operator or Gate or array): 1-qubit unitary matrix
             simplify (bool): reduce gate count in decomposition [Default: True].
-            atol (bool): absolute tolerance for checking angles when simplifing
+            atol (float): absolute tolerance for checking angles when simplifing
                          returnd circuit [Default: 1e-12].
-
         Returns:
             QuantumCircuit: the decomposed single-qubit gate circuit
 
@@ -129,6 +144,9 @@ class OneQubitEulerDecomposer:
         if not is_unitary_matrix(unitary):
             raise QiskitError("OneQubitEulerDecomposer: "
                               "input matrix is not unitary.")
+        return self._decompose(unitary, simplify=simplify, atol=atol)
+
+    def _decompose(self, unitary, simplify=True, atol=DEFAULT_ATOL):
         theta, phi, lam, phase = self._params(unitary)
         circuit = self._circuit(theta, phi, lam, phase,
                                 simplify=simplify,
@@ -144,6 +162,7 @@ class OneQubitEulerDecomposer:
     def basis(self, basis):
         """Set the decomposition basis."""
         basis_methods = {
+            'U321': (self._params_u3, self._circuit_u321),
             'U3': (self._params_u3, self._circuit_u3),
             'U': (self._params_u3, self._circuit_u),
             'PSX': (self._params_u1x, self._circuit_psx),
@@ -184,7 +203,7 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _params_zyz(mat):
-        """Return the euler angles and phase for the ZYZ basis."""
+        """Return the Euler angles and phase for the ZYZ basis."""
         # We rescale the input matrix to be special unitary (det(U) = 1)
         # This ensures that the quaternion representation is real
         coeff = la.det(mat)**(-0.5)
@@ -204,13 +223,13 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _params_zxz(mat):
-        """Return the euler angles and phase for the ZXZ basis."""
+        """Return the Euler angles and phase for the ZXZ basis."""
         theta, phi, lam, phase = OneQubitEulerDecomposer._params_zyz(mat)
         return theta, phi + np.pi / 2, lam - np.pi / 2, phase
 
     @staticmethod
     def _params_xyx(mat):
-        """Return the euler angles and phase for the XYX basis."""
+        """Return the Euler angles and phase for the XYX basis."""
         # We use the fact that
         # Rx(a).Ry(b).Rx(c) = H.Rz(a).Ry(-b).Rz(c).H
         mat_zyz = 0.5 * np.array(
@@ -228,7 +247,7 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _params_u3(mat):
-        """Return the euler angles and phase for the U3 basis."""
+        """Return the Euler angles and phase for the U3 basis."""
         # The determinant of U3 gate depends on its params
         # via det(u3(theta, phi, lam)) = exp(1j*(phi+lam))
         # Since the phase is wrt to a SU matrix we must rescale
@@ -238,7 +257,7 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _params_u1x(mat):
-        """Return the euler angles and phase for the U1X basis."""
+        """Return the Euler angles and phase for the U1X basis."""
         # The determinant of this decomposition depends on its params
         # Since the phase is wrt to a SU matrix we must rescale
         # phase to correct this
@@ -252,16 +271,17 @@ class OneQubitEulerDecomposer:
                      phase,
                      simplify=True,
                      atol=DEFAULT_ATOL):
-        circuit = QuantumCircuit(1, global_phase=phase)
-        if simplify and np.isclose(theta, 0.0, atol=atol):
-            circuit.append(RZGate(phi + lam), [0])
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr, global_phase=phase)
+        if simplify and math.isclose(theta, 0.0, abs_tol=atol):
+            circuit._append(RZGate(phi + lam), [qr[0]], [])
             return circuit
-        if not simplify or not np.isclose(lam, 0.0, atol=atol):
-            circuit.append(RZGate(lam), [0])
-        if not simplify or not np.isclose(theta, 0.0, atol=atol):
-            circuit.append(RYGate(theta), [0])
-        if not simplify or not np.isclose(phi, 0.0, atol=atol):
-            circuit.append(RZGate(phi), [0])
+        if not simplify or not math.isclose(lam, 0.0, abs_tol=atol):
+            circuit._append(RZGate(lam), [qr[0]], [])
+        if not simplify or not math.isclose(theta, 0.0, abs_tol=atol):
+            circuit._append(RYGate(theta), [qr[0]], [])
+        if not simplify or not math.isclose(phi, 0.0, abs_tol=atol):
+            circuit._append(RZGate(phi), [qr[0]], [])
         return circuit
 
     @staticmethod
@@ -269,19 +289,19 @@ class OneQubitEulerDecomposer:
                      phi,
                      lam,
                      phase,
-                     simplify=False,
+                     simplify=True,
                      atol=DEFAULT_ATOL):
-        if simplify and np.isclose(theta, 0.0, atol=atol):
-            circuit = QuantumCircuit(1, global_phase=phase)
-            circuit.append(RZGate(phi + lam), [0])
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr, global_phase=phase)
+        if simplify and math.isclose(theta, 0.0, abs_tol=atol):
+            circuit._append(RZGate(phi + lam), [qr[0]], [])
             return circuit
-        circuit = QuantumCircuit(1, global_phase=phase)
-        if not simplify or not np.isclose(lam, 0.0, atol=atol):
-            circuit.append(RZGate(lam), [0])
-        if not simplify or not np.isclose(theta, 0.0, atol=atol):
-            circuit.append(RXGate(theta), [0])
-        if not simplify or not np.isclose(phi, 0.0, atol=atol):
-            circuit.append(RZGate(phi), [0])
+        if not simplify or not math.isclose(lam, 0.0, abs_tol=atol):
+            circuit._append(RZGate(lam), [qr[0]], [])
+        if not simplify or not math.isclose(theta, 0.0, abs_tol=atol):
+            circuit._append(RXGate(theta), [qr[0]], [])
+        if not simplify or not math.isclose(phi, 0.0, abs_tol=atol):
+            circuit._append(RZGate(phi), [qr[0]], [])
         return circuit
 
     @staticmethod
@@ -291,16 +311,17 @@ class OneQubitEulerDecomposer:
                      phase,
                      simplify=True,
                      atol=DEFAULT_ATOL):
-        circuit = QuantumCircuit(1, global_phase=phase)
-        if simplify and np.isclose(theta, 0.0, atol=atol):
-            circuit.append(RXGate(phi + lam), [0])
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr, global_phase=phase)
+        if simplify and math.isclose(theta, 0.0, abs_tol=atol):
+            circuit._append(RXGate(phi + lam), [qr[0]], [])
             return circuit
-        if not simplify or not np.isclose(lam, 0.0, atol=atol):
-            circuit.append(RXGate(lam), [0])
-        if not simplify or not np.isclose(theta, 0.0, atol=atol):
-            circuit.append(RYGate(theta), [0])
-        if not simplify or not np.isclose(phi, 0.0, atol=atol):
-            circuit.append(RXGate(phi), [0])
+        if not simplify or not math.isclose(lam, 0.0, abs_tol=atol):
+            circuit._append(RXGate(lam), [qr[0]], [])
+        if not simplify or not math.isclose(theta, 0.0, abs_tol=atol):
+            circuit._append(RYGate(theta), [qr[0]], [])
+        if not simplify or not math.isclose(phi, 0.0, abs_tol=atol):
+            circuit._append(RXGate(phi), [qr[0]], [])
         return circuit
 
     @staticmethod
@@ -311,8 +332,30 @@ class OneQubitEulerDecomposer:
                     simplify=True,
                     atol=DEFAULT_ATOL):
         # pylint: disable=unused-argument
-        circuit = QuantumCircuit(1, global_phase=phase)
-        circuit.append(U3Gate(theta, phi, lam), [0])
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr, global_phase=phase)
+        circuit._append(U3Gate(theta, phi, lam), [qr[0]], [])
+        return circuit
+
+    @staticmethod
+    def _circuit_u321(theta,
+                      phi,
+                      lam,
+                      phase,
+                      simplify=True,
+                      atol=DEFAULT_ATOL):
+        rtol = 1e-9  # default is 1e-5, too far from atol=1e-12
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr, global_phase=phase)
+        if simplify and (math.isclose(theta, 0.0, abs_tol=atol, rel_tol=rtol)):
+            phi_lam = phi + lam
+            if not (math.isclose(phi_lam, 0.0, abs_tol=atol, rel_tol=rtol) or
+                    math.isclose(phi_lam, 2*np.pi, abs_tol=atol, rel_tol=rtol)):
+                circuit._append(U1Gate(_mod2pi(phi+lam)), [qr[0]], [])
+        elif simplify and math.isclose(theta, np.pi/2, abs_tol=atol, rel_tol=rtol):
+            circuit._append(U2Gate(phi, lam), [qr[0]], [])
+        else:
+            circuit._append(U3Gate(theta, phi, lam), [qr[0]], [])
         return circuit
 
     @staticmethod
@@ -323,8 +366,9 @@ class OneQubitEulerDecomposer:
                    simplify=True,
                    atol=DEFAULT_ATOL):
         # pylint: disable=unused-argument
-        circuit = QuantumCircuit(1, global_phase=phase)
-        circuit.u(theta, phi, lam, 0)
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr, global_phase=phase)
+        circuit._append(UGate(theta, phi, lam), [qr[0]], [])
         return circuit
 
     @staticmethod
@@ -338,30 +382,47 @@ class OneQubitEulerDecomposer:
         # Phase(phi+pi).SX.Phase(theta+pi).SX.Phase(lam)
         theta = _mod2pi(theta + np.pi)
         phi = _mod2pi(phi + np.pi)
-        circuit = QuantumCircuit(1, global_phase=phase)
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr, global_phase=phase - np.pi / 2)
         # Check for decomposition into minimimal number required SX gates
-        if simplify and np.isclose(abs(theta), np.pi, atol=atol):
-            if not np.isclose(_mod2pi(abs(lam + phi + theta)),
-                              [0., 2*np.pi], atol=atol).any():
-                circuit.append(PhaseGate(_mod2pi(lam + phi + theta)), [0])
-        elif simplify and np.isclose(abs(theta),
-                                     [np.pi/2, 3*np.pi/2], atol=atol).any():
-            if not np.isclose(_mod2pi(abs(lam + theta)),
-                              [0., 2*np.pi], atol=atol).any():
-                circuit.append(PhaseGate(_mod2pi(lam + theta)), [0])
-            circuit.append(SXGate(), [0])
-            if not np.isclose(_mod2pi(abs(phi + theta)),
-                              [0., 2*np.pi], atol=atol).any():
-                circuit.append(PhaseGate(_mod2pi(phi + theta)), [0])
+        abs_theta = abs(theta)
+        if simplify and math.isclose(abs_theta, np.pi, abs_tol=atol):
+            lam_phi_theta = _mod2pi(lam + phi + theta)
+            abs_lam_phi_theta = _mod2pi(abs(lam + phi + theta))
+            if not (math.isclose(abs_lam_phi_theta, 0., abs_tol=atol) or
+                    math.isclose(abs_lam_phi_theta, 2*np.pi, abs_tol=atol)):
+                circuit._append(PhaseGate(lam_phi_theta), [qr[0]], [])
+            circuit.global_phase += np.pi / 2
+        elif simplify and (math.isclose(abs_theta, np.pi/2, abs_tol=atol) or
+                           math.isclose(abs_theta, 3*np.pi/2, abs_tol=atol)):
+            lam_theta = _mod2pi(lam + theta)
+            abs_lam_theta = _mod2pi(abs(lam + theta))
+            if not (math.isclose(abs_lam_theta, 0, abs_tol=atol) or
+                    math.isclose(abs_lam_theta, 2*np.pi, abs_tol=atol)):
+                circuit._append(PhaseGate(lam_theta), [qr[0]], [])
+            circuit._append(SXGate(), [qr[0]], [])
+            phi_theta = _mod2pi(phi + theta)
+            abs_phi_theta = _mod2pi(abs(phi_theta))
+            if not (math.isclose(abs_phi_theta, 0, abs_tol=atol) or
+                    math.isclose(abs_phi_theta, 2*np.pi, abs_tol=atol)):
+                circuit._append(PhaseGate(_mod2pi(phi + theta)), [qr[0]], [])
+            if (math.isclose(theta, -np.pi / 2, abs_tol=atol) or math.isclose(
+                    theta, 3 * np.pi / 2, abs_tol=atol)):
+                circuit.global_phase += np.pi / 2
         else:
-            if not np.isclose(abs(lam), [0., 2*np.pi], atol=atol).any():
-                circuit.append(PhaseGate(lam), [0])
-            circuit.append(SXGate(), [0])
-            if not np.isclose(abs(theta), [0., 2*np.pi], atol=atol).any():
-                circuit.append(PhaseGate(theta), [0])
-            circuit.append(SXGate(), [0])
-            if not np.isclose(abs(phi), [0., 2*np.pi], atol=atol).any():
-                circuit.append(PhaseGate(phi), [0])
+            abs_lam = abs(lam)
+            if not (math.isclose(abs_lam, 0., abs_tol=atol) or
+                    math.isclose(abs_lam, 2*np.pi, abs_tol=atol)):
+                circuit._append(PhaseGate(lam), [qr[0]], [])
+            circuit._append(SXGate(), [qr[0]], [])
+            if not (math.isclose(abs_theta, 0., abs_tol=atol) or
+                    math.isclose(abs_theta, 2*np.pi, abs_tol=atol)):
+                circuit._append(PhaseGate(theta), [qr[0]], [])
+            circuit._append(SXGate(), [qr[0]], [])
+            abs_phi = abs(phi)
+            if not (math.isclose(abs_phi, 0., abs_tol=atol) or
+                    math.isclose(abs_phi, 2*np.pi, abs_tol=atol)):
+                circuit._append(PhaseGate(phi), [qr[0]], [])
         return circuit
 
     @staticmethod
@@ -375,30 +436,53 @@ class OneQubitEulerDecomposer:
         # RZ(phi+pi).SX.RZ(theta+pi).SX.RZ(lam)
         theta = _mod2pi(theta + np.pi)
         phi = _mod2pi(phi + np.pi)
-        circuit = QuantumCircuit(1, global_phase=phase)
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr, global_phase=phase - np.pi / 2)
         # Check for decomposition into minimimal number required SX gates
-        if simplify and np.isclose(abs(theta), np.pi, atol=atol):
-            if not np.isclose(_mod2pi(abs(lam + phi + theta)),
-                              [0., 2*np.pi], atol=atol).any():
-                circuit.append(RZGate(_mod2pi(lam + phi + theta)), [0])
-        elif simplify and np.isclose(abs(theta),
-                                     [np.pi/2, 3*np.pi/2], atol=atol).any():
-            if not np.isclose(_mod2pi(abs(lam + theta)),
-                              [0., 2*np.pi], atol=atol).any():
-                circuit.append(RZGate(_mod2pi(lam + theta)), [0])
-            circuit.append(SXGate(), [0])
-            if not np.isclose(_mod2pi(abs(phi + theta)),
-                              [0., 2*np.pi], atol=atol).any():
-                circuit.append(RZGate(_mod2pi(phi + theta)), [0])
+        abs_theta = abs(theta)
+        if simplify and math.isclose(abs_theta, np.pi, abs_tol=atol):
+            lam_phi_theta = _mod2pi(lam + phi + theta)
+            abs_lam_phi_theta = _mod2pi(abs(lam + phi + theta))
+            if not (math.isclose(abs_lam_phi_theta, 0., abs_tol=atol) or
+                    math.isclose(abs_lam_phi_theta, 2*np.pi, abs_tol=atol)):
+                circuit._append(RZGate(lam_phi_theta), [qr[0]], [])
+                circuit.global_phase += 0.5 * lam_phi_theta
+            circuit.global_phase += np.pi / 2
+        elif simplify and (math.isclose(abs_theta, np.pi/2, abs_tol=atol) or
+                           math.isclose(abs_theta, 3*np.pi/2, abs_tol=atol)):
+            lam_theta = _mod2pi(lam + theta)
+            abs_lam_theta = _mod2pi(abs(lam + theta))
+            if not (math.isclose(abs_lam_theta, 0, abs_tol=atol) or
+                    math.isclose(abs_lam_theta, 2*np.pi, abs_tol=atol)):
+                circuit._append(RZGate(lam_theta), [qr[0]], [])
+                circuit.global_phase += 0.5 * lam_theta
+            circuit._append(SXGate(), [qr[0]], [])
+            phi_theta = _mod2pi(phi + theta)
+            abs_phi_theta = _mod2pi(abs(phi_theta))
+            if not (math.isclose(abs_phi_theta, 0, abs_tol=atol) or
+                    math.isclose(abs_phi_theta, 2*np.pi, abs_tol=atol)):
+                circuit._append(RZGate(phi_theta), [qr[0]], [])
+                circuit.global_phase += 0.5 * phi_theta
+            if (math.isclose(theta, -np.pi / 2, abs_tol=atol) or
+                    math.isclose(theta, 3 * np.pi / 2, abs_tol=atol)):
+                circuit.global_phase += np.pi / 2
         else:
-            if not np.isclose(abs(lam), [0., 2*np.pi], atol=atol).any():
-                circuit.append(RZGate(lam), [0])
-            circuit.append(SXGate(), [0])
-            if not np.isclose(abs(theta), [0., 2*np.pi], atol=atol).any():
-                circuit.append(RZGate(theta), [0])
-            circuit.append(SXGate(), [0])
-            if not np.isclose(abs(phi), [0., 2*np.pi], atol=atol).any():
-                circuit.append(RZGate(phi), [0])
+            abs_lam = abs(lam)
+            if not (math.isclose(abs_lam, 0., abs_tol=atol) or
+                    math.isclose(abs_lam, 2*np.pi, abs_tol=atol)):
+                circuit._append(RZGate(lam), [qr[0]], [])
+                circuit.global_phase += 0.5 * lam
+            circuit._append(SXGate(), [qr[0]], [])
+            if not (math.isclose(abs_theta, 0., abs_tol=atol) or
+                    math.isclose(abs_theta, 2*np.pi, abs_tol=atol)):
+                circuit._append(RZGate(theta), [qr[0]], [])
+                circuit.global_phase += 0.5 * theta
+            circuit._append(SXGate(), [qr[0]], [])
+            abs_phi = abs(phi)
+            if not (math.isclose(abs_phi, 0., abs_tol=atol) or
+                    math.isclose(abs_phi, 2*np.pi, abs_tol=atol)):
+                circuit._append(RZGate(phi), [qr[0]], [])
+                circuit.global_phase += 0.5 * phi
         return circuit
 
     @staticmethod
@@ -413,25 +497,28 @@ class OneQubitEulerDecomposer:
         theta += np.pi
         phi += np.pi
         # Check for decomposition into minimimal number required X90 pulses
-        if simplify and np.isclose(abs(theta), np.pi, atol=atol):
+        if simplify and math.isclose(abs(theta), np.pi, abs_tol=atol):
             # Zero X90 gate decomposition
-            circuit = QuantumCircuit(1, global_phase=phase)
-            circuit.append(U1Gate(lam + phi + theta), [0])
+            qr = QuantumRegister(1, 'qr')
+            circuit = QuantumCircuit(qr, global_phase=phase)
+            circuit._append(U1Gate(lam + phi + theta), [qr[0]], [])
             return circuit
-        if simplify and np.isclose(abs(theta), np.pi/2, atol=atol):
+        if simplify and math.isclose(abs(theta), np.pi/2, abs_tol=atol):
             # Single X90 gate decomposition
-            circuit = QuantumCircuit(1, global_phase=phase)
-            circuit.append(U1Gate(lam + theta), [0])
-            circuit.append(RXGate(np.pi / 2), [0])
-            circuit.append(U1Gate(phi + theta), [0])
+            qr = QuantumRegister(1, 'qr')
+            circuit = QuantumCircuit(qr, global_phase=phase)
+            circuit._append(U1Gate(lam + theta), [qr[0]], [])
+            circuit._append(RXGate(np.pi / 2), [qr[0]], [])
+            circuit._append(U1Gate(phi + theta), [qr[0]], [])
             return circuit
         # General two-X90 gate decomposition
-        circuit = QuantumCircuit(1, global_phase=phase)
-        circuit.append(U1Gate(lam), [0])
-        circuit.append(RXGate(np.pi / 2), [0])
-        circuit.append(U1Gate(theta), [0])
-        circuit.append(RXGate(np.pi / 2), [0])
-        circuit.append(U1Gate(phi), [0])
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr, global_phase=phase)
+        circuit._append(U1Gate(lam), [qr[0]], [])
+        circuit._append(RXGate(np.pi / 2), [qr[0]], [])
+        circuit._append(U1Gate(theta), [qr[0]], [])
+        circuit._append(RXGate(np.pi / 2), [qr[0]], [])
+        circuit._append(U1Gate(phi), [qr[0]], [])
         return circuit
 
     @staticmethod
@@ -441,15 +528,16 @@ class OneQubitEulerDecomposer:
                     phase,
                     simplify=True,
                     atol=DEFAULT_ATOL):
-        circuit = QuantumCircuit(1, global_phase=phase)
-        if not simplify or not np.isclose(theta, -np.pi, atol=atol):
-            circuit.append(RGate(theta + np.pi, np.pi / 2 - lam), [0])
-        circuit.append(RGate(-np.pi, 0.5 * (phi - lam + np.pi)), [0])
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr, global_phase=phase)
+        if not simplify or not math.isclose(theta, -np.pi, abs_tol=atol):
+            circuit._append(RGate(theta + np.pi, np.pi / 2 - lam), [qr[0]], [])
+        circuit._append(RGate(-np.pi, 0.5 * (phi - lam + np.pi)), [qr[0]], [])
         return circuit
 
 
 def _mod2pi(angle):
     if angle >= 0:
-        return np.mod(angle, 2*np.pi)
+        return math.fmod(angle, 2*np.pi)
     else:
-        return np.mod(angle, -2*np.pi)
+        return math.fmod(angle, -2*np.pi)

@@ -335,12 +335,6 @@ class TestChoi(ChannelTestCase):
         targ3 = Choi(self.depol_choi(1 - p_id3))
         self.assertEqual(chan3, targ3)
 
-    def test_power_except(self):
-        """Test power method raises exceptions."""
-        chan = Choi(self.depol_choi(1))
-        # Non-integer power raises error
-        self.assertRaises(QiskitError, chan.power, 0.5)
-
     def test_add(self):
         """Test add method."""
         mat1 = 0.5 * self.choiI

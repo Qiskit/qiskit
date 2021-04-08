@@ -52,6 +52,7 @@ class ApplyLayout(TransformationPass):
         new_dag = DAGCircuit()
         new_dag.add_qreg(q)
         new_dag.metadata = dag.metadata
+        new_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
         for node in dag.topological_op_nodes():

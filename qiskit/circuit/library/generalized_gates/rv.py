@@ -60,9 +60,9 @@ class RVGate(Gate):
     def _define(self):
         try:
             self.definition = self._decomposer(self.to_matrix())
-        except TypeError:
-            raise CircuitError('The {} gate cannot be decomposed '
-                               'with unbound parameters'.format(self.name))
+        except TypeError as ex:
+            raise CircuitError(f'The {self.name} gate cannot be decomposed '
+                               'with unbound parameters') from ex
 
     def inverse(self):
         """Invert this gate."""

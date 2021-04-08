@@ -330,7 +330,7 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqualUnroll(['cx', 'h', 'tdg', 't'], circuit, expected)
 
     def test_from_qasm_str_custom_gate4(self):
-        """ Test load custom gates (parametrized)
+        """ Test load custom gates (parameterized)
         See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-551307250
         """
         qasm_string = """OPENQASM 2.0;
@@ -354,7 +354,7 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqualUnroll('u', circuit, expected)
 
     def test_from_qasm_str_custom_gate5(self):
-        """ Test load custom gates (parametrized, with biop and constant)
+        """ Test load custom gates (parameterized, with biop and constant)
         See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-551307250
         """
         qasm_string = """OPENQASM 2.0;
