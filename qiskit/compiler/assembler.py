@@ -504,15 +504,15 @@ def frames_configuration(frame_channels: List[List[PulseChannel]],
                           f'the number of frame initial frequencies {len(frame_frequencies)}.')
 
     frames_config = {}
-    for idx, channels in enumerate(frame_channels):
+    for index, channels in enumerate(frame_channels):
         if frame_indices:
-            index = frame_indices[idx]
+            frame_index = frame_indices[index]
         else:
-            index = idx
+            frame_index = index
 
-        frames_config[Frame(index)] = {
+        frames_config[Frame(frame_index)] = {
             'phase': 0.0,
-            'frequency': frame_frequencies[idx],
+            'frequency': frame_frequencies[index],
             'channels': channels,
             'sample_duration': dt
         }
