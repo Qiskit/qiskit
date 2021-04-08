@@ -12,7 +12,13 @@
 
 """mpl circuit visualization style."""
 
+import json
+import os
+import copy
 from warnings import warn
+
+
+from qiskit import user_config
 
 
 class DefaultStyle:
@@ -21,8 +27,8 @@ class DefaultStyle:
     **Style Dict Details**
 
     The style dict contains numerous options that define the style of the
-    output circuit visualization. The style dict is only used by the `mpl`
-    output. The options available in the style dict are defined below:
+    output circuit visualization. The style dict is used by the `mpl` or
+    `latex` output. The options available in the style dict are defined below:
 
     name (str): the name of the style. The name can be set to ``iqx``,
         ``bw``, ``default``, or the name of a user-created json file. This
@@ -80,7 +86,8 @@ class DefaultStyle:
     displaytext (dict): a dictionary of the text to use for certain element
         types in the output visualization. These items allow the use of
         LaTeX formatting for gate names. The 'displaytext' dict can contain
-        any number of elements from one to the entire dict above.The default
+        any number of elements. User created names and labels may be used as
+        keys, which allow these to have Latex formatting. The default
         values are (`default.json`)::
 
             {
@@ -110,7 +117,8 @@ class DefaultStyle:
         the form (gate_color, text_color). Colors can also be entered without
         the text color, such as 'u1': '#FA74A6', in which case the text color
         will always be `gatetextcolor`. The `displaycolor` dict can contain
-        any number of elements from one to the entire dict above. The default
+        any number of elements. User names and labels may be used as keys,
+        which allows for custom colors for user-created gates. The default
         values are (`default.json`)::
 
             {
@@ -258,6 +266,67 @@ class DefaultStyle:
                 'measure': (colors['black'], colors['white'])
             }
         }
+
+
+def load_style(style):
+    current_style = DefaultStyle().style
+    style_name = 'default'
+    def_font_ratio = current_style['fs'] / current_style['sfs']
+
+    config = user_config.get_config()
+    if style is not None:
+        if style is False:
+            style_name = 'bw'
+        elif isinstance(style, dict) and 'name' in style:
+            style_name = style['name']
+        elif isinstance(style, str):
+            style_name = style
+        elif config:
+            style_name = config.get('circuit_mpl_style', 'default')
+        elif not isinstance(style, (str, dict)):
+            warn("style parameter '{}' must be a str or a dictionary."
+                 " Will use default style.".format(style), UserWarning, 2)
+    if style_name.endswith('.json'):
+        style_name = style_name[:-5]
+
+    # Search for file in 'styles' dir, then config_path, and finally 'cwd'
+    style_path = []
+    if style_name != 'default':
+        style_name = style_name + '.json'
+        spath = os.path.dirname(os.path.abspath(__file__))
+        style_path.append(os.path.join(spath, 'styles', style_name))
+        if config:
+            config_path = config.get('circuit_mpl_style_path', '')
+            if config_path:
+                for path in config_path:
+                    style_path.append(os.path.normpath(os.path.join(path, style_name)))
+        style_path.append(os.path.normpath(os.path.join('', style_name)))
+
+        for path in style_path:
+            exp_user = os.path.expanduser(path)
+            if os.path.isfile(exp_user):
+                try:
+                    with open(exp_user) as infile:
+                        json_style = json.load(infile)
+                    set_style(current_style, json_style)
+                    break
+                except json.JSONDecodeError as e:
+                    warn("Could not decode JSON in file '{}': {}. ".format(
+                        path, str(e)) + "Will use default style.", UserWarning, 2)
+                    break
+                except (OSError, FileNotFoundError):
+                    warn("Error loading JSON file '{}'. Will use default style.".format(
+                        path), UserWarning, 2)
+                    break
+        else:
+            warn("Style JSON file '{}' not found in any of these locations: {}. Will use"
+                 " default style.".format(style_name, ', '.join(style_path)), UserWarning, 2)
+
+    if isinstance(style, dict):
+        new_style = copy.copy(style)
+        set_style(current_style, new_style)
+
+    return current_style, def_font_ratio
 
 
 def set_style(current_style, new_style):

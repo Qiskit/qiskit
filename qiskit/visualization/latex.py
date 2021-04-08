@@ -22,7 +22,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import (SwapGate, XGate, ZGate, RZZGate,
                                                    U1Gate, PhaseGate)
 from qiskit.circuit.measure import Measure
-from qiskit.visualization.qcstyle import DefaultStyle
+from qiskit.visualization.qcstyle import DefaultStyle, load_style
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
 from .utils import get_gate_ctrl_text, get_param_str, generate_latex_label
@@ -37,7 +37,7 @@ class QCircuitImage:
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
-    def __init__(self, qubits, clbits, ops, scale, reverse_bits=False,
+    def __init__(self, qubits, clbits, ops, scale, style=None, reverse_bits=False,
                  plot_barriers=True, layout=None, initial_state=False,
                  cregbundle=False, global_phase=None, qregs=None, cregs=None):
         """QCircuitImage initializer.
@@ -131,7 +131,7 @@ class QCircuitImage:
         self.cregbundle = cregbundle
         self.global_phase = global_phase
 
-        self._style = DefaultStyle().style
+        self._style, _ = load_style(style)
 
     def latex(self):
         """Return LaTeX string representation of circuit."""

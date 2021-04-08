@@ -16,9 +16,7 @@
 
 import collections
 import itertools
-import json
 import re
-import os
 from warnings import warn
 
 import numpy as np
@@ -32,7 +30,7 @@ except ImportError:
     HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate, Gate
-from qiskit.visualization.qcstyle import DefaultStyle, set_style
+from qiskit.visualization.qcstyle import DefaultStyle, load_style
 from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
@@ -142,7 +140,12 @@ class MatplotlibDrawer:
         self._clbit_dict = collections.OrderedDict()
         self._ops = ops
         self._scale = 1.0 if scale is None else scale
-        self._style = self._load_style(style)
+        self._style, def_font_ratio = load_style(style)
+
+        # If font/subfont ratio changes from default, have to scale width calculations for
+        # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
+        self._subfont_factor = self._style['sfs'] * def_font_ratio / self._style['fs']
+
         self._plot_barriers = plot_barriers
         self._layout = layout
         self._fold = fold
@@ -232,69 +235,6 @@ class MatplotlibDrawer:
     def ast(self):
         """AST getter"""
         return self._ast
-
-    def _load_style(self, style):
-        current_style = DefaultStyle().style
-        style_name = 'default'
-        def_font_ratio = current_style['fs'] / current_style['sfs']
-
-        config = user_config.get_config()
-        if style is not None:
-            if style is False:
-                style_name = 'bw'
-            elif isinstance(style, dict) and 'name' in style:
-                style_name = style['name']
-            elif isinstance(style, str):
-                style_name = style
-            elif config:
-                style_name = config.get('circuit_mpl_style', 'default')
-            elif not isinstance(style, (str, dict)):
-                warn("style parameter '{}' must be a str or a dictionary."
-                     " Will use default style.".format(style), UserWarning, 2)
-        if style_name.endswith('.json'):
-            style_name = style_name[:-5]
-
-        # Search for file in 'styles' dir, then config_path, and finally 'cwd'
-        style_path = []
-        if style_name != 'default':
-            style_name = style_name + '.json'
-            spath = os.path.dirname(os.path.abspath(__file__))
-            style_path.append(os.path.join(spath, 'styles', style_name))
-            if config:
-                config_path = config.get('circuit_mpl_style_path', '')
-                if config_path:
-                    for path in config_path:
-                        style_path.append(os.path.normpath(os.path.join(path, style_name)))
-            style_path.append(os.path.normpath(os.path.join('', style_name)))
-
-            for path in style_path:
-                exp_user = os.path.expanduser(path)
-                if os.path.isfile(exp_user):
-                    try:
-                        with open(exp_user) as infile:
-                            json_style = json.load(infile)
-                        set_style(current_style, json_style)
-                        break
-                    except json.JSONDecodeError as e:
-                        warn("Could not decode JSON in file '{}': {}. ".format(
-                            path, str(e)) + "Will use default style.", UserWarning, 2)
-                        break
-                    except (OSError, FileNotFoundError):
-                        warn("Error loading JSON file '{}'. Will use default style.".format(
-                            path), UserWarning, 2)
-                        break
-            else:
-                warn("Style JSON file '{}' not found in any of these locations: {}. Will use"
-                     " default style.".format(style_name, ', '.join(style_path)), UserWarning, 2)
-
-        if isinstance(style, dict):
-            set_style(current_style, style)
-
-        # If font/subfont ratio changes from default, have to scale width calculations for
-        # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
-        self._subfont_factor = current_style['sfs'] * def_font_ratio / current_style['fs']
-
-        return current_style
 
     # This computes the width of a string in the default font
     def _get_text_width(self, text, fontsize, param=False):

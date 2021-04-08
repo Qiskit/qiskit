@@ -79,7 +79,7 @@ def circuit_drawer(circuit,
             the `mpl`, `latex` and `latex_source` outputs. Defaults to 1.0.
         filename (str): file path to save image to. Defaults to None.
         style (dict or str): dictionary of style or file name of style json file.
-            This option is only used by the `mpl` output type.
+            This option is only used by the `mpl` or `latex` output type.
             If `style` is a str, it is used as the path to a json file
             which contains a style dict. The file will be opened, parsed, and
             then any style elements in the dict will replace the default values
@@ -200,8 +200,8 @@ def circuit_drawer(circuit,
                                     initial_state=initial_state,
                                     cregbundle=cregbundle)
     elif output == 'latex':
-        image = _latex_circuit_drawer(circuit,
-                                      filename=filename, scale=scale,
+        image = _latex_circuit_drawer(circuit, filename=filename,
+                                      scale=scale, style=style,
                                       plot_barriers=plot_barriers,
                                       reverse_bits=reverse_bits,
                                       justify=justify,
@@ -210,8 +210,8 @@ def circuit_drawer(circuit,
                                       initial_state=initial_state,
                                       cregbundle=cregbundle)
     elif output == 'latex_source':
-        return _generate_latex_source(circuit,
-                                      filename=filename, scale=scale,
+        return _generate_latex_source(circuit, filename=filename,
+                                      scale=scale, style=style,
                                       plot_barriers=plot_barriers,
                                       reverse_bits=reverse_bits,
                                       justify=justify,
@@ -309,6 +309,7 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
 
 def _latex_circuit_drawer(circuit,
                           scale=0.7,
+                          style=None,
                           filename=None,
                           plot_barriers=True,
                           reverse_bits=False,
@@ -324,6 +325,7 @@ def _latex_circuit_drawer(circuit,
     Args:
         circuit (QuantumCircuit): a quantum circuit
         scale (float): scaling factor
+        style (dict or str): dictionary of style or file name of style file
         filename (str): file path to save image to
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
@@ -352,7 +354,7 @@ def _latex_circuit_drawer(circuit,
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmppath = os.path.join(tmpdirname, tmpfilename + '.tex')
         _generate_latex_source(circuit, filename=tmppath, scale=scale,
-                               plot_barriers=plot_barriers,
+                               style=style, plot_barriers=plot_barriers,
                                reverse_bits=reverse_bits, justify=justify,
                                idle_wires=idle_wires, with_layout=with_layout,
                                initial_state=initial_state,
@@ -400,7 +402,7 @@ def _latex_circuit_drawer(circuit,
 
 
 def _generate_latex_source(circuit, filename=None,
-                           scale=0.7, reverse_bits=False,
+                           scale=0.7, style=None, reverse_bits=False,
                            plot_barriers=True, justify=None, idle_wires=True,
                            with_layout=True, initial_state=False, cregbundle=False):
     """Convert QuantumCircuit to LaTeX string.
@@ -408,6 +410,7 @@ def _generate_latex_source(circuit, filename=None,
     Args:
         circuit (QuantumCircuit): a quantum circuit
         scale (float): scaling factor
+        style (dict or str): dictionary of style or file name of style file
         filename (str): optional filename to write latex
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
@@ -435,7 +438,8 @@ def _generate_latex_source(circuit, filename=None,
         layout = None
 
     global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
-    qcimg = _latex.QCircuitImage(qubits, clbits, ops, scale, reverse_bits=reverse_bits,
+    qcimg = _latex.QCircuitImage(qubits, clbits, ops, scale, style=style,
+                                 reverse_bits=reverse_bits,
                                  plot_barriers=plot_barriers, layout=layout,
                                  initial_state=initial_state,
                                  cregbundle=cregbundle,
