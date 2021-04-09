@@ -11,16 +11,15 @@
 # that they have been altered from the originals.
 
 """Durations of instructions, one of transpiler configurations."""
+import warnings
 from typing import Optional, List, Tuple, Union, Iterable, Set
 
-import warnings
-
 from qiskit.circuit import Barrier, Delay
-from qiskit.circuit import Instruction, Qubit
+from qiskit.circuit import Instruction, Qubit, ParameterExpression
+from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import BaseBackend
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils.units import apply_prefix
-from qiskit.circuit.duration import duration_in_dt
 
 
 class InstructionDurations:
@@ -151,6 +150,8 @@ class InstructionDurations:
         if isinstance(inst, Barrier):
             return 0
         elif isinstance(inst, Delay):
+            if isinstance(inst.duration, ParameterExpression):
+                raise TranspilerError(f"Parameterised duration in a delay is not bounded.")
             return self._convert_unit(inst.duration, inst.unit, unit)
 
         if isinstance(inst, Instruction):

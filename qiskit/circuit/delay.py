@@ -79,12 +79,13 @@ class Delay(Instruction):
         elif isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:
                 return parameter  # expression has free parameters, we cannot validate it
-            if self.unit == 'dt' and not parameter._symbol_expr.is_integer:
-                raise CircuitError("Integer duration parameter is required for 'dt' unit.")
+            if self.unit == 'dt':
+                if parameter._symbol_expr.is_integer:
+                    return int(parameter)
+                else:
+                    raise CircuitError("Integer parameter is required for duration in 'dt' unit.")
             if not parameter._symbol_expr.is_real:
-                raise CircuitError("Bound parameter expression is complex in delay {}".format(
-                    self.name))
-            return parameter  # per default assume parameters must be real when bound
+                raise CircuitError(f"Bound parameter expression is complex in delay {self.name}")
+            return float(parameter)  # per default assume parameters must be real when bound
         else:
-            raise CircuitError("Invalid param type {0} for delay {1}.".format(type(parameter),
-                                                                              self.name))
+            raise CircuitError(f"Invalid param type {type(parameter)} for delay {self.name}.")
