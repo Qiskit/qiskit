@@ -156,39 +156,29 @@ class TestResolvedFrames(QiskitTestCase):
         # First, ensure that resolved starts with a SetFrequency and SetPhase.
         self.assertEquals(resolved[0][0], 0)
         set_freq = resolved[0][1]
-        if isinstance(set_freq, pulse.SetFrequency):
-            self.assertAlmostEqual(set_freq.frequency, self.freq0, places=8)
-        else:
-            self.fail()
-
+        self.assertTrue(isinstance(set_freq, pulse.SetFrequency))
+        self.assertAlmostEqual(set_freq.frequency, self.freq0, places=8)
+        
         self.assertEquals(resolved[1][0], 0)
         set_phase = resolved[1][1]
-        if isinstance(set_phase, pulse.SetPhase):
-            self.assertAlmostEqual(set_phase.phase, 0.0, places=8)
-        else:
-            self.fail()
+        self.assertTrue(isinstance(set_phase, pulse.SetPhase))
+        self.assertAlmostEqual(set_phase.phase, 0.0, places=8)
 
         # Next, check that we do phase shifts on the DriveChannel after the first Gaussian.
         self.assertEquals(resolved[3][0], 160)
         shift_phase = resolved[3][1]
-        if isinstance(shift_phase, pulse.ShiftPhase):
-            self.assertAlmostEqual(shift_phase.phase, 1.23, places=8)
-        else:
-            self.fail()
+        self.assertTrue(isinstance(shift_phase, pulse.ShiftPhase))
+        self.assertAlmostEqual(shift_phase.phase, 1.23, places=8)
 
         # Up to now, no pulse has been applied on the ControlChannel so we should
         # encounter a Set instructions at time 160 which is when the first pulse
         # is played on ControlChannel(0)
         self.assertEquals(resolved[4][0], 160)
         set_freq = resolved[4][1]
-        if isinstance(set_freq, pulse.SetFrequency):
-            self.assertAlmostEqual(set_freq.frequency, self.freq0, places=8)
-        else:
-            self.fail()
+        self.assertTrue(isinstance(set_freq, pulse.SetFrequency))
+        self.assertAlmostEqual(set_freq.frequency, self.freq0, places=8)
 
         self.assertEquals(resolved[5][0], 160)
         set_phase = resolved[5][1]
-        if isinstance(set_phase, pulse.SetPhase):
-            self.assertAlmostEqual(set_phase.phase, phase, places=8)
-        else:
-            self.fail()
+        self.assertTrue(isinstance(set_phase, pulse.SetPhase))
+        self.assertAlmostEqual(set_phase.phase, phase, places=8)
