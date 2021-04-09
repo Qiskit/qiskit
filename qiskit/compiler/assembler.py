@@ -268,8 +268,9 @@ def _parse_common_args(
             "Argument 'shots' should be of type 'int'")
     elif max_shots and max_shots < shots:
         raise QiskitError(
-            'Number of shots specified: %s exceeds max_shots property of the '
-            'backend: %s.' % (shots, max_shots))
+            'Number of shots specified: {} exceeds max_shots property of the '
+            'backend: {}.'.format(shots, max_shots)
+        )
 
     dynamic_reprate_enabled = getattr(backend_config, 'dynamic_reprate_enabled', False)
     if dynamic_reprate_enabled:
@@ -347,8 +348,8 @@ def _check_lo_length(lo_list: Union[List[float], None], list_type: str, n_qubits
     """
     if lo_list and len(lo_list) != n_qubits:
         raise QiskitError(
-            "Length of %s is %s. It must be equal to %s, the number of qubits on "
-            "this backend." % (list_type, len(lo_list), n_qubits)
+            "Length of {} is {}. It must be equal to {}, the number of qubits on "
+            "this backend.".format(list_type, len(lo_list), n_qubits)
         )
 
 
@@ -382,12 +383,13 @@ def _check_lo_range(
             freq_range = lo_range[i]
             if not (isinstance(freq_range, list) and len(freq_range) == 2):
                 raise QiskitError(
-                    "Each element of %s lo range must be a 2d list." % lo_type
+                    "Each element of {} lo range must be a 2d list.".format(lo_type)
                 )
             if freq < freq_range[0] or freq > freq_range[1]:
                 raise QiskitError(
-                    "Qubit %s %s lo freq is %s. The range is [%s, %s]."
-                    % (i, lo_type, freq, freq_range[0], freq_range[1])
+                    "Qubit {} {} lo freq is {}. The range is [{}, {}].".format(
+                        i, lo_type, freq, freq_range[0], freq_range[1]
+                    )
                 )
 
 
