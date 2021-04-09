@@ -81,7 +81,7 @@ class DictStateFn(StateFn):
 
     @property
     def num_qubits(self) -> int:
-        return len(list(self.primitive.keys())[0])
+        return len(next(iter(self.primitive)))
 
     def add(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:
