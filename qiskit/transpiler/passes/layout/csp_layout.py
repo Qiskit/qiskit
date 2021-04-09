@@ -165,7 +165,9 @@ class CSPLayout(AnalysisPass):
             ):
             csp_solver = RecursiveBacktrackingSolver()
         else:
-            csp_solver = CustomSolver(call_limit=self.call_limit, time_limit=self.time_limit)
+            csp_solver = CustomSolver(call_limit=self.call_limit, 
+                                      time_limit=self.time_limit,
+                                      solution_limit=self.solution_limit)
 
         problem = self._get_csp_problem(csp_solver, dag)
 

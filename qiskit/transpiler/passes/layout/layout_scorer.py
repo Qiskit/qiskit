@@ -82,6 +82,7 @@ class LayoutScorer(AnalysisPass):
         """Calculate the 2q fidelity
         Depending on the distance of the qubits, there are different options
         for introducing the additional swaps. Therefore the average over all paths is used.
+        See also Arxiv 2103.15695 on page 5 as a reference.
 
         As an example the fidelity for a cx-gate between qb1 and qb4 in a chain is given as:
         f_14 = 1/3 * f_12 f_23 f_34 (f_12^5 f_23^5 + f_23^5 f_34^5 f_12^5 f_34^5)

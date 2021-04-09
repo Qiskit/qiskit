@@ -124,8 +124,8 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
-        self.assertEqual(layout[qr[0]], 4)
-        self.assertEqual(layout[qr[1]], 3)
+        self.assertEqual(layout[qr[0]], 3)
+        self.assertEqual(layout[qr[1]], 4)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_3q_circuit_5q_coupling_noise(self):
