@@ -62,13 +62,13 @@ class SPSA(Optimizer):
 
     References:
 
-        [1]: J. C. Spall (1998). An Overview of the Simultaneous Perturbation Methodfor Efficient
+        [1]: J. C. Spall (1998). An Overview of the Simultaneous Perturbation Method for Efficient
         Optimization, Johns Hopkins APL Technical Digest, 19(4), 482–492.
         `Online. <https://www.jhuapl.edu/SPSA/PDF-SPSA/Spall_An_Overview.PDF>`_
 
         [2]: A. Kandala et al. (2017). Hardware-efficient Variational Quantum Eigensolver for
         Small Molecules and Quantum Magnets. Nature 549, pages242–246(2017).
-        `Online. https://arxiv.org/pdf/1704.05018v2.pdf#section*.11`_
+        `arXiv:1704.05018v2 <https://arxiv.org/pdf/1704.05018v2.pdf#section*.11>`_
 
     """
 
