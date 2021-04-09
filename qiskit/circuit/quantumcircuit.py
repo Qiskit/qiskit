@@ -1220,7 +1220,8 @@ class QuantumCircuit:
             for element2 in list2:
                 if element2.name == element1.name:
                     if element1 != element2:
-                        raise CircuitError("circuits are not compatible")
+                        raise CircuitError("circuits are not compatible:"
+                                           f" registers {element1} and {element2} not compatible")
 
     @staticmethod
     def _get_composite_circuit_qasm_from_instruction(instruction):
@@ -2529,7 +2530,7 @@ class QuantumCircuit:
 
         The multi-cX gate can be implemented using different techniques, which use different numbers
         of ancilla qubits and have varying circuit depth. These modes are:
-        - 'no-ancilla': Requires 0 ancilla qubits.
+        - 'noancilla': Requires 0 ancilla qubits.
         - 'recursion': Requires 1 ancilla qubit if more than 4 controls are used, otherwise 0.
         - 'v-chain': Requires 2 less ancillas than the number of control qubits.
         - 'v-chain-dirty': Same as for the clean ancillas (but the circuit will be longer).

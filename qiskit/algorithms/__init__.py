@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -128,6 +128,15 @@ Algorithms that can find the minimum eigenvalue of an operator.
    NumPyMinimumEigensolver
    QAOA
    VQE
+
+Optimizers
+++++++++++
+Classical optimizers for use by quantum variational algorithms.
+
+.. autosummary::
+   :toctree:
+
+   optimizers
 
 Phase Estimators
 ++++++++++++++++
