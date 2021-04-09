@@ -478,7 +478,6 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_subfont_change(self):
         """Tests changing the subfont size"""
-
         circuit = QuantumCircuit(3)
         circuit.h(0)
         circuit.x(0)
@@ -489,7 +488,6 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_meas_condition(self):
         """Tests measure with a condition"""
-
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(2, 'cr')
         circuit = QuantumCircuit(qr, cr)
@@ -497,6 +495,29 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.measure(qr[0], cr[0])
         circuit.h(qr[1]).c_if(cr, 1)
         self.circuit_drawer(circuit, filename='meas_condition.png')
+
+    def test_style_custom_gates(self):
+        """Tests style for custom gates"""
+        def cnotnot(gate_label):
+            gate_circuit = QuantumCircuit(3, name=gate_label)
+            gate_circuit.cnot(0, 1)
+            gate_circuit.cnot(0, 2)
+            gate = gate_circuit.to_gate()
+            return gate
+
+        q = QuantumRegister(3, name='q')
+
+        circuit = QuantumCircuit(q)
+
+        circuit.append(cnotnot('CNOTNOT'), [q[0], q[1], q[2]])
+        circuit.append(cnotnot('CNOTNOT_PRIME'), [q[0], q[1], q[2]])
+        circuit.h(q[0])
+
+        circuit.draw('mpl', style={
+            'displaycolor': {'CNOTNOT': ('#000000', '#FFFFFF'), 'h': ('#A1A1A1', '#043812')},
+            'displaytext': {'CNOTNOT_PRIME': "$\\mathrm{CNOTNOT}'$"}})
+
+        self.circuit_drawer(circuit, filename='style_custom_gates.png')
 
 
 if __name__ == '__main__':
