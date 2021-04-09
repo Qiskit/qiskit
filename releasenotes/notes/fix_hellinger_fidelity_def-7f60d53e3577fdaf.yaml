@@ -1,9 +1,0 @@
----
-features:
-  - |
-    Adds the Hellinger distance metric as its own routine.
-fixes:
-  - |
-    Updates the definition of the Hellinger fidelity from
-    `1-H(P,Q)` to `[1-H(P,Q)**2]**2` so that it is equal to the quantum state fidelity of P, Q as diagonal density matrices.
-    quantum fidelity definition.

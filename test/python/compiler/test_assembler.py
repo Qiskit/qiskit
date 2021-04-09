@@ -789,11 +789,11 @@ class TestPulseAssembler(QiskitTestCase):
                         meas_map=[[0], [1]])
         validate_qobj_against_schema(qobj)
 
-        with self.assertRaises(QiskitError):
-            assemble(schedule,
-                     qubit_lo_freq=self.default_qubit_lo_freq,
-                     meas_lo_freq=self.default_meas_lo_freq,
-                     meas_map=[[0, 1, 2]])
+        assemble(schedule,
+                 qubit_lo_freq=self.default_qubit_lo_freq,
+                 meas_lo_freq=self.default_meas_lo_freq,
+                 meas_map=[[0, 1, 2]])
+        validate_qobj_against_schema(qobj)
 
     def test_assemble_memory_slots(self):
         """Test assembling a schedule and inferring number of memoryslots."""
@@ -1224,6 +1224,86 @@ class TestPulseAssembler(QiskitTestCase):
         qobj = assemble(inst, self.backend)
         validate_qobj_against_schema(qobj)
 
+    def test_assemble_overlapping_time(self):
+        """Test that assembly errors when qubits are measured in overlapping time."""
+        schedule = Schedule()
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(0), MemorySlot(0)),
+        )
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
+        )
+        with self.assertRaises(QiskitError):
+            assemble(schedule,
+                     qubit_lo_freq=self.default_qubit_lo_freq,
+                     meas_lo_freq=self.default_meas_lo_freq,
+                     meas_map=[[0, 1]])
+
+    def test_assemble_meas_map_vs_insts(self):
+        """Test that assembly errors when the qubits are measured in overlapping time
+        and qubits are not in the first meas_map list."""
+        schedule = Schedule()
+        schedule += Acquire(5, AcquireChannel(0), MemorySlot(0))
+        schedule += Acquire(5, AcquireChannel(1), MemorySlot(1))
+        schedule += Acquire(5, AcquireChannel(2), MemorySlot(2)) << 2
+        schedule += Acquire(5, AcquireChannel(3), MemorySlot(3)) << 2
+
+        with self.assertRaises(QiskitError):
+            assemble(schedule,
+                     qubit_lo_freq=self.default_qubit_lo_freq,
+                     meas_lo_freq=self.default_meas_lo_freq,
+                     meas_map=[[0], [1, 2], [3]])
+
+    def test_assemble_non_overlapping_time_single_meas_map(self):
+        """Test that assembly works when qubits are measured in non-overlapping
+        time within the same measurement map list."""
+        schedule = Schedule()
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(0), MemorySlot(0)),
+        )
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(1), MemorySlot(1)) << 5,
+        )
+        qobj = assemble(schedule,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        meas_map=[[0, 1]])
+        validate_qobj_against_schema(qobj)
+
+    def test_assemble_disjoint_time(self):
+        """Test that assembly works when qubits are in disjoint meas map sets."""
+        schedule = Schedule()
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(0), MemorySlot(0)),
+        )
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
+        )
+        qobj = assemble(schedule,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        meas_map=[[0, 2], [1, 3]])
+        validate_qobj_against_schema(qobj)
+
+    def test_assemble_valid_qubits(self):
+        """Test that assembly works when qubits that are in the measurement map
+        is measured."""
+        schedule = Schedule()
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(1), MemorySlot(1)),
+        )
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(2), MemorySlot(2)),
+        )
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(3), MemorySlot(3)),
+        )
+        qobj = assemble(schedule,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        meas_map=[[0, 1, 2], [3]])
+        validate_qobj_against_schema(qobj)
+
 
 class TestPulseAssemblerMissingKwargs(QiskitTestCase):
     """Verify that errors are raised in case backend is not provided and kwargs are missing."""
@@ -1373,11 +1453,11 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         backend = FakeOpenPulse2Q()
         new_style_schedule = Schedule()
         acq_dur = 1200
-        for i in range(5):
+        for i in range(2):
             new_style_schedule += Acquire(acq_dur, AcquireChannel(i), MemorySlot(i))
 
         deprecated_style_schedule = Schedule()
-        for i in range(5):
+        for i in range(2):
             deprecated_style_schedule += Acquire(1200, AcquireChannel(i), MemorySlot(i))
 
         # The Qobj IDs will be different
@@ -1390,8 +1470,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         self.assertEqual(n_qobj, d_qobj)
 
         assembled_acquire = n_qobj.experiments[0].instructions[0]
-        self.assertEqual(assembled_acquire.qubits, [0, 1, 2, 3, 4])
-        self.assertEqual(assembled_acquire.memory_slot, [0, 1, 2, 3, 4])
+        self.assertEqual(assembled_acquire.qubits, [0, 1])
+        self.assertEqual(assembled_acquire.memory_slot, [0, 1])
 
 
 class StreamHandlerRaiseException(StreamHandler):

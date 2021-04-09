@@ -8,11 +8,11 @@ pull_request_rules:
     actions:
       merge:
         method: squash
-        strict: true
+        strict: smart+fasttrack
   - name: backport
     conditions:
       - label=stable backport potential
     actions:
       backport:
         branches:
-          - stable/0.16
+          - stable/0.17

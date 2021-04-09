@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    When the option `layout_method` was provided to :func:`~qiskit.compiler.transpile` and the pass :class:`qiskit.transpiler.passes.CSPLayout`
-    finds a possible layout solution, the method specified in `layout_method` was not executed. In this fix, when `layout_method` is provided,
-    it will always be honored.
