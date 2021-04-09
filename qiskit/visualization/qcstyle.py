@@ -287,18 +287,7 @@ def set_style(current_style, new_style):
                    'edgecolor', 'fontsize', 'subfontsize', 'showindex', 'figwidth', 'dpi',
                    'margin', 'creglinestyle', 'displaytext', 'displaycolor'}
 
-    dtex = new_style.get('displaytext', current_style['disptex'])
-    dtex_ = {}
-    for tex in dtex.keys():
-        if tex in current_style['disptex'].keys():
-            dtex_[tex] = dtex[tex]
-    dcol = new_style.get('displaycolor', current_style['dispcol'])
-    dcol_ = {}
-    for col in dcol.keys():
-        if col in current_style['dispcol'].keys():
-            dcol_[col] = dcol[col]
-
-    current_style = {**current_style, **new_style}
+    current_style.update(new_style)
     current_style['tc'] = current_style.get('textcolor', current_style['tc'])
     current_style['gt'] = current_style.get('gatetextcolor', current_style['gt'])
     current_style['sc'] = current_style.get('subtextcolor', current_style['sc'])
@@ -312,12 +301,10 @@ def set_style(current_style, new_style):
     current_style['sfs'] = current_style.get('subfontsize', current_style['sfs'])
     current_style['index'] = current_style.get('showindex', current_style['index'])
     current_style['cline'] = current_style.get('creglinestyle', current_style['cline'])
-    current_style['disptex'] = dtex_
-    current_style['dispcol'] = dcol_
+    current_style['disptex'] = {**current_style['disptex'], **new_style.get('displaytext', {})}
+    current_style['dispcol'] = {**current_style['dispcol'], **new_style.get('displaycolor', {})}
 
     unsupported_keys = set(new_style) - valid_fieds
     if unsupported_keys:
         warn('style option/s ({}) is/are not supported'.format(', '.join(unsupported_keys)),
              DeprecationWarning, 2)
-
-    return current_style
