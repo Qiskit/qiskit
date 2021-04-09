@@ -365,8 +365,8 @@ class TestScheduledCircuit(QiskitTestCase):
         # not assign parameter
         circ = transpile(qc, self.backend_with_dt)
         self.assertEqual(circ.duration, None)  # not scheduled
-        self.assertEqual(circ.data[1][0].unit, 'us')  # not converted in dt TODO: OK?
-        self.assertEqual(circ.data[1][0].duration, idle_dur)
+        self.assertEqual(circ.data[1][0].unit, 'dt')  # converted in dt
+        self.assertEqual(circ.data[1][0].duration, idle_dur * 1e-6 / self.dt)  # still parameterized
 
     def test_fail_to_assemble_circuits_with_unbounded_parameters(self):
         idle_dur = Parameter('t')
@@ -378,19 +378,19 @@ class TestScheduledCircuit(QiskitTestCase):
         with self.assertRaises(QiskitError):
             assemble(qc, self.backend_with_dt)
 
-    # @data('asap', 'alap')
-    def test_can_schedule_circuits_with_bounded_parameters(self):
+    @data('asap', 'alap')
+    def test_can_schedule_circuits_with_bounded_parameters(self, scheduling_method):
         idle_dur = Parameter('t')
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.delay(idle_dur, 0, 'us')
         qc.measure(0, 0)
         qc = qc.assign_parameters({idle_dur: 0.1})
-        circ = transpile(qc, self.backend_with_dt, scheduling_method="alap")
+        circ = transpile(qc, self.backend_with_dt, scheduling_method=scheduling_method)
         self.assertIsNotNone(circ.duration)  # scheduled
 
-    # @data('asap', 'alap')
-    def test_fail_to_schedule_circuits_with_unbounded_parameters(self):
+    @data('asap', 'alap')
+    def test_fail_to_schedule_circuits_with_unbounded_parameters(self, scheduling_method):
         idle_dur = Parameter('t')
         qc = QuantumCircuit(1, 1)
         qc.x(0)
@@ -398,4 +398,4 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.measure(0, 0)
         # not assign parameter
         with self.assertRaises(TranspilerError):
-            transpile(qc, self.backend_with_dt, scheduling_method="alap")
+            transpile(qc, self.backend_with_dt, scheduling_method=scheduling_method)

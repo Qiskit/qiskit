@@ -150,8 +150,6 @@ class InstructionDurations:
         if isinstance(inst, Barrier):
             return 0
         elif isinstance(inst, Delay):
-            if isinstance(inst.duration, ParameterExpression):
-                raise TranspilerError(f"Parameterised duration in a delay is not bounded.")
             return self._convert_unit(inst.duration, inst.unit, unit)
 
         if isinstance(inst, Instruction):
@@ -204,6 +202,8 @@ class InstructionDurations:
             raise TranspilerError("dt is necessary to convert durations from '{}' to '{}'"
                                   .format(from_unit, to_unit))
         if from_unit == 's' and to_unit == 'dt':
+            if isinstance(duration, ParameterExpression):
+                return duration / self.dt
             return duration_in_dt(duration, self.dt)
         elif from_unit == 'dt' and to_unit == 's':
             return duration * self.dt
