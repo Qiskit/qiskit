@@ -57,6 +57,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
     @staticmethod
     def save_data_wrap(func, testname):
         """A wrapper to save the data from a test"""
+
         def wrapper(*args, **kwargs):
             image_filename = kwargs['filename']
             with cwd(RESULTDIR):
@@ -408,15 +409,15 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.sdg(4)
         circuit.t(4)
         circuit.tdg(4)
-        circuit.p(pi/2, 4)
-        circuit.u1(pi/2, 4)
+        circuit.p(pi / 2, 4)
+        circuit.u1(pi / 2, 4)
         circuit.cz(5, 6)
-        circuit.cu1(pi/2, 5, 6)
-        circuit.cp(pi/2, 5, 6)
+        circuit.cu1(pi / 2, 5, 6)
+        circuit.cp(pi / 2, 5, 6)
         circuit.y(5)
-        circuit.rx(pi/3, 5)
-        circuit.rzx(pi/2, 5, 6)
-        circuit.u2(pi/2, pi/2, 5)
+        circuit.rx(pi / 3, 5)
+        circuit.rzx(pi / 2, 5, 6)
+        circuit.u2(pi / 2, pi / 2, 5)
         circuit.barrier(5, 6)
         circuit.reset(5)
 
@@ -462,15 +463,15 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.sdg(4)
         circuit.t(4)
         circuit.tdg(4)
-        circuit.p(pi/2, 4)
-        circuit.u1(pi/2, 4)
+        circuit.p(pi / 2, 4)
+        circuit.u1(pi / 2, 4)
         circuit.cz(5, 6)
-        circuit.cu1(pi/2, 5, 6)
-        circuit.cp(pi/2, 5, 6)
+        circuit.cu1(pi / 2, 5, 6)
+        circuit.cp(pi / 2, 5, 6)
         circuit.y(5)
-        circuit.rx(pi/3, 5)
-        circuit.rzx(pi/2, 5, 6)
-        circuit.u2(pi/2, pi/2, 5)
+        circuit.rx(pi / 3, 5)
+        circuit.rzx(pi / 2, 5, 6)
+        circuit.u2(pi / 2, pi / 2, 5)
         circuit.barrier(5, 6)
         circuit.reset(5)
 
@@ -481,8 +482,8 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(3)
         circuit.h(0)
         circuit.x(0)
-        circuit.u(pi/2, pi/2, pi/2, 1)
-        circuit.p(pi/2, 2)
+        circuit.u(pi / 2, pi / 2, pi / 2, 1)
+        circuit.p(pi / 2, 2)
         self.circuit_drawer(circuit, style={'name': 'iqx', 'subfontsize': 11},
                             filename='subfont.png')
 
@@ -498,6 +499,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_style_custom_gates(self):
         """Tests style for custom gates"""
+
         def cnotnot(gate_label):
             gate_circuit = QuantumCircuit(3, name=gate_label)
             gate_circuit.cnot(0, 1)
@@ -513,11 +515,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(cnotnot('CNOTNOT_PRIME'), [q[0], q[1], q[2]])
         circuit.h(q[0])
 
-        circuit.draw('mpl', style={
+        self.circuit_drawer(circuit, style={
             'displaycolor': {'CNOTNOT': ('#000000', '#FFFFFF'), 'h': ('#A1A1A1', '#043812')},
-            'displaytext': {'CNOTNOT_PRIME': "$\\mathrm{CNOTNOT}'$"}})
-
-        self.circuit_drawer(circuit, filename='style_custom_gates.png')
+            'displaytext': {'CNOTNOT_PRIME': "$\\mathrm{CNOTNOT}'$"}},
+                            filename='style_custom_gates.png')
 
 
 if __name__ == '__main__':
