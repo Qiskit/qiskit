@@ -39,7 +39,7 @@ class Tracker(ABC):
             sample_duration: Duration of a sample.
         """
         self._index = index
-        self._frequencies_phases = []  # List of (time, frequency, phase)
+        self._frequencies_phases = []  # List of (time, frequency, phase) tuples
         self._instructions = {}
         self._sample_duration = sample_duration
 
