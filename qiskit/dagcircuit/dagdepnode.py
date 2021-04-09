@@ -138,7 +138,7 @@ class DAGDepNode:
         """
         Function to copy a DAGDepNode object.
         Returns:
-            DAGDepNode: a copy of a DAGDepNode objectto.
+            DAGDepNode: a copy of a DAGDepNode object.
         """
 
         dagdepnode = DAGDepNode()

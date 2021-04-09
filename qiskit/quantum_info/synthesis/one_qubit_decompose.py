@@ -117,8 +117,8 @@ class OneQubitEulerDecomposer:
         Args:
             unitary (Operator or Gate or array): 1-qubit unitary matrix
             simplify (bool): reduce gate count in decomposition [Default: True].
-            atol (float): absolute tolerance for checking angles when simplifing
-                         returnd circuit [Default: 1e-12].
+            atol (float): absolute tolerance for checking angles when simplifying
+                         returned circuit [Default: 1e-12].
         Returns:
             QuantumCircuit: the decomposed single-qubit gate circuit
 
@@ -134,7 +134,7 @@ class OneQubitEulerDecomposer:
             # If input is Gate subclass or some other class object that has
             # a to_matrix method this will call that method.
             unitary = unitary.to_matrix()
-        # Convert to numpy array incase not already an array
+        # Convert to numpy array in case not already an array
         unitary = np.asarray(unitary, dtype=complex)
 
         # Check input is a 2-qubit unitary

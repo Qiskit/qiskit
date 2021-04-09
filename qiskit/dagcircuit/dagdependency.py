@@ -272,7 +272,7 @@ class DAGDependency:
 
     def get_all_edges(self):
         """
-        Enumaration of all edges.
+        Enumeration of all edges.
 
         Returns:
             List: corresponding to the label.
