@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fix a bug where using :class:`~qiskit.algorithms.optimizers.SPSA` with automatic
+    calibration of the learning rate and perturbation (i.e. ``learning_rate`` and
+    ``perturbation`` are ``None`` in the initializer), stores the calibration for all
+    future optimizations. Instead, the calibration should be done for each new objective
+    function.
