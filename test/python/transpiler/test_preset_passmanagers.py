@@ -204,7 +204,7 @@ class TestPassesInspection(QiskitTestCase):
         self.assertNotIn('CheckGateDirection', self.passes)
 
     @data(0, 1, 2, 3)
-    def test_inital_layout_fully_connected_cm(self, level):
+    def test_initial_layout_fully_connected_cm(self, level):
         """Honor initial_layout when coupling_map=None
         See: https://github.com/Qiskit/qiskit-terra/issues/5345
         """

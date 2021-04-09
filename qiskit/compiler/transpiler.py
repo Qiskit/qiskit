@@ -127,7 +127,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')
         scheduling_method: Name of scheduling pass.
             * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible
-            on a qubit resource. alias: ``'asap'``)
+            on a qubit resource. (alias: ``'asap'``)
             * ``'as_late_as_possible'``: Schedule instructions late, i.e. keeping qubits
             in the ground state when possible. (alias: ``'alap'``)
             If ``None``, no scheduling will be done.
