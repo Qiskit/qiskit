@@ -16,7 +16,7 @@
 import unittest
 
 from numpy.testing import assert_allclose
-from qiskit.execute import execute
+from qiskit.execute_function import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.test import QiskitTestCase
 from qiskit.providers.basicaer import UnitarySimulatorPy

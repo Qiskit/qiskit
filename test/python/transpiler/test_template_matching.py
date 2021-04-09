@@ -10,6 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
+
+
 """Test the TemplateOptimization pass."""
 
 import unittest
@@ -20,6 +23,7 @@ from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library.templates import template_nct_2a_2, template_nct_5a_3
 from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.test import QiskitTestCase
@@ -205,6 +209,21 @@ class TestTemplateMatching(QiskitTestCase):
         pass_ = TemplateOptimization(template_list)
 
         self.assertRaises(TranspilerError, pass_.run, dag_in)
+
+    def test_accept_dagdependency(self):
+        """
+        Check that users can supply DAGDependency in the template list.
+        """
+        circuit_in = QuantumCircuit(2)
+        circuit_in.cnot(0, 1)
+        circuit_in.cnot(0, 1)
+
+        templates = [circuit_to_dagdependency(circuit_in)]
+
+        pass_ = TemplateOptimization(template_list=templates)
+        circuit_out = PassManager(pass_).run(circuit_in)
+
+        self.assertEqual(circuit_out.count_ops().get('cx', 0), 0)
 
     def test_parametric_template(self):
         """

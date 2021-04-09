@@ -12,15 +12,13 @@
 
 """ ExpectationBase Class """
 
-import logging
-from typing import Union
 from abc import abstractmethod
+from typing import Union
+
 import numpy as np
 
-from ..operator_base import OperatorBase
-from ..converters import ConverterBase
-
-logger = logging.getLogger(__name__)
+from qiskit.opflow.converters import ConverterBase
+from qiskit.opflow.operator_base import OperatorBase
 
 
 class ExpectationBase(ConverterBase):
@@ -53,7 +51,7 @@ class ExpectationBase(ConverterBase):
         raise NotImplementedError
 
     @abstractmethod
-    def compute_variance(self, exp_op: OperatorBase) -> Union[list, float, complex, np.ndarray]:
+    def compute_variance(self, exp_op: OperatorBase) -> Union[list, complex, np.ndarray]:
         """ Compute the variance of the expectation estimator.
 
         Args:

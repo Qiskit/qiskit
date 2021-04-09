@@ -110,7 +110,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
     def test_statevector(self, prob, qae, expect):
         """ statevector test """
         qae.quantum_instance = self._statevector
-        problem = EstimationProblem(BernoulliStateIn(prob), [0], BernoulliGrover(prob))
+        problem = EstimationProblem(BernoulliStateIn(prob), 0, BernoulliGrover(prob))
 
         result = qae.estimate(problem)
         self.assertGreaterEqual(self._statevector.time_taken, 0.)
@@ -181,7 +181,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                                     inplace=True)
 
             # fourier transform
-            iqft = QFT(m, do_swaps=False).inverse()
+            iqft = QFT(m, do_swaps=False).inverse().reverse_bits()
             circuit.append(iqft.to_instruction(), qr_eval)
 
             actual_circuit = qae.construct_circuit(problem, measurement=False)

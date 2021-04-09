@@ -206,19 +206,37 @@ gate rc3x a,b,c,d
 // 3-controlled X gate
 gate c3x a,b,c,d
 {
-    h d; cu1(-pi/4) a,d; h d;
-    cx a,b;
-    h d; cu1(pi/4) b,d; h d;
-    cx a,b;
-    h d; cu1(-pi/4) b,d; h d;
-    cx b,c;
-    h d; cu1(pi/4) c,d; h d;
-    cx a,c;
-    h d; cu1(-pi/4) c,d; h d;
-    cx b,c;
-    h d; cu1(pi/4) c,d; h d;
-    cx a,c;
-    h d; cu1(-pi/4) c,d; h d;
+    h d;
+    p(pi/8) a;
+    p(pi/8) b;
+    p(pi/8) c;
+    p(pi/8) d;
+    cx a, b;
+    p(-pi/8) b;
+    cx a, b;
+    cx b, c;
+    p(-pi/8) c;
+    cx a, c;
+    p(pi/8) c;
+    cx b, c;
+    p(-pi/8) c;
+    cx a, c;
+    cx c, d;
+    p(-pi/8) d;
+    cx b, d;
+    p(pi/8) d;
+    cx c, d;
+    p(-pi/8) d;
+    cx a, d;
+    p(pi/8) d;
+    cx c, d;
+    p(-pi/8) d;
+    cx b, d;
+    p(pi/8) d;
+    cx c, d;
+    p(-pi/8) d;
+    cx a, d;
+    h d;
 }
 // 3-controlled sqrt(X) gate, this equals the C3X gate where the CU1 rotations are -pi/8 not -pi/4
 gate c3sqrtx a,b,c,d

@@ -260,7 +260,7 @@ class PulseQobjConfig(QobjDictField):
             meas_level (int): The measurement level to use.
             meas_return (int): The level of measurement information to return.
             pulse_library (list): A list of :class:`PulseLibraryItem` objects
-                which define the set of primative pulses
+                which define the set of primitive pulses
             qubit_lo_freq (list): List of frequencies (as floats) for the qubit
                 driver LO's in GHz.
             meas_lo_freq (list): List of frequencies (as floats) for the'
@@ -513,7 +513,7 @@ class PulseQobj:
 
     def __init__(self, qobj_id, config, experiments,
                  header=None):
-        """Instatiate a new Pulse Qobj Object.
+        """Instantiate a new Pulse Qobj Object.
 
         Each Pulse Qobj object is used to represent a single payload that will
         be passed to a Qiskit provider. It mirrors the Qobj the published

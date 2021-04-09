@@ -25,7 +25,8 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
-from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate
+from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate, ZGate
+from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import IQP
@@ -222,15 +223,28 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_cnot(self):
         """Test different cnot gates (ccnot, mcx, etc)"""
-        qr = QuantumRegister(5, 'q')
+        qr = QuantumRegister(6, 'q')
         circuit = QuantumCircuit(qr)
         circuit.x(0)
         circuit.cx(0, 1)
         circuit.ccx(0, 1, 2)
         circuit.append(XGate().control(3, ctrl_state='010'), [qr[2], qr[3], qr[0], qr[1]])
         circuit.append(MCXGate(num_ctrl_qubits=3, ctrl_state='101'), [qr[0], qr[1], qr[2], qr[4]])
+        circuit.append(MCXVChain(3, dirty_ancillas=True), [qr[0], qr[1], qr[2], qr[3], qr[5]])
 
         self.circuit_drawer(circuit, filename='cnot.png')
+
+    def test_cz(self):
+        """Test Z and Controlled-Z Gates"""
+        qr = QuantumRegister(4, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.z(0)
+        circuit.cz(0, 1)
+        circuit.append(ZGate().control(3, ctrl_state='101'), [0, 1, 2, 3])
+        circuit.append(ZGate().control(2), [1, 2, 3])
+        circuit.append(ZGate().control(1, ctrl_state='0', label='CZ Gate'), [2, 3])
+
+        self.circuit_drawer(circuit, filename='cz.png')
 
     def test_pauli_clifford(self):
         """Test Pauli(green) and Clifford(blue) gates"""
@@ -299,10 +313,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test control labels"""
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.cy(1, 0, label='Bottom Y Label')
-        circuit.cy(2, 3, label='Top Y Label')
-        circuit.ch(0, 1, label='Top H Label')
-        circuit.append(HGate(label='H Gate Label').control(3, label='H Control Label',
+        circuit.cy(1, 0, label='Bottom Y label')
+        circuit.cy(2, 3, label='Top Y label')
+        circuit.ch(0, 1, label='Top H label')
+        circuit.append(HGate(label='H gate label').control(3, label='H control label',
                                                            ctrl_state='010'),
                        [qr[1], qr[2], qr[3], qr[0]])
 
@@ -321,7 +335,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test controlled GHZ to_gate circuit"""
         qr = QuantumRegister(5, 'q')
         circuit = QuantumCircuit(qr)
-        ghz_circuit = QuantumCircuit(3, name='This is a WWWWWWWWWWWide name Ctrl-GHZ Circuit')
+        ghz_circuit = QuantumCircuit(3, name='this is a WWWWWWWWWWWide name Ctrl-GHZ Circuit')
         ghz_circuit.h(0)
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
@@ -398,6 +412,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.u1(pi/2, 4)
         circuit.cz(5, 6)
         circuit.cu1(pi/2, 5, 6)
+        circuit.cp(pi/2, 5, 6)
         circuit.y(5)
         circuit.rx(pi/3, 5)
         circuit.rzx(pi/2, 5, 6)
@@ -451,6 +466,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.u1(pi/2, 4)
         circuit.cz(5, 6)
         circuit.cu1(pi/2, 5, 6)
+        circuit.cp(pi/2, 5, 6)
         circuit.y(5)
         circuit.rx(pi/3, 5)
         circuit.rzx(pi/2, 5, 6)

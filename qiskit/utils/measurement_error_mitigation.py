@@ -13,12 +13,9 @@
 """ Measurement error mitigation """
 
 import copy
-import logging
 
 from qiskit import compiler
 from ..exceptions import QiskitError, MissingOptionalLibraryError
-
-logger = logging.getLogger(__name__)
 
 
 def get_measured_qubits(transpiled_circuits):

@@ -196,6 +196,7 @@ import collections
 import contextvars
 import functools
 import itertools
+import warnings
 from contextlib import contextmanager
 from typing import (
     Any,
@@ -217,6 +218,7 @@ import numpy as np
 
 from qiskit import circuit
 from qiskit.circuit.library import standard_gates as gates
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse import (
     channels as chans,
     configuration,
@@ -275,7 +277,7 @@ class _PulseBuilder():
         """Initialize the builder context.
 
         .. note::
-            At some point we may consider incorpating the builder into
+            At some point we may consider incorporating the builder into
             the :class:`~qiskit.pulse.Schedule` class. However, the risk of
             this is tying the user interface to the intermediate
             representation. For now we avoid this at the cost of some code
@@ -416,25 +418,85 @@ class _PulseBuilder():
         self.context_schedule.append(instruction, inplace=True)
 
     def _compile_lazy_circuit(self):
-        """Call a QuantumCircuit and append the output pulse schedule
-        to the builder's context schedule."""
-        if self._lazy_circuit:
-            import qiskit.compiler as compiler  # pylint: disable=cyclic-import
+        """Call a context QuantumCircuit (lazy circuit) and append the output pulse schedule
+        to the builder's context schedule.
 
+        Note that the lazy circuit is not stored as a call instruction.
+        """
+        if self._lazy_circuit:
             lazy_circuit = self._lazy_circuit
             # reset lazy circuit
             self._lazy_circuit = self.new_circuit()
-            transpiled_circuit = compiler.transpile(lazy_circuit,
-                                                    self.backend,
-                                                    **self.transpiler_settings)
-            sched = compiler.schedule(transpiled_circuit,
-                                      self.backend,
-                                      **self.circuit_scheduler_settings)
-            self.call_schedule(sched)
+            self.call_schedule(self._compile_circuit(lazy_circuit))
+
+    def _compile_circuit(self, circ) -> Schedule:
+        """Take a QuantumCircuit and output the pulse schedule associated with the circuit."""
+        import qiskit.compiler as compiler  # pylint: disable=cyclic-import
+
+        transpiled_circuit = compiler.transpile(circ,
+                                                self.backend,
+                                                **self.transpiler_settings)
+        sched = compiler.schedule(transpiled_circuit,
+                                  self.backend,
+                                  **self.circuit_scheduler_settings)
+        return sched
 
     def call_schedule(self, schedule: Schedule):
-        """Call a schedule and append to the builder's context schedule."""
+        """Call a schedule and append to the builder's context schedule.
+
+        The schedule is just appended to the context schedule as-is.
+        Use :meth:`~call_subroutine` method to define the schedule as a subroutine.
+        """
         self.append_schedule(schedule)
+
+    def call_subroutine(self,
+                        subroutine: Union[circuit.QuantumCircuit, Schedule],
+                        name: Optional[str] = None,
+                        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
+                        **kw_params: ParameterValueType):
+        """Call a schedule or circuit defined outside of the current scope.
+
+        The ``subroutine`` is appended to the context schedule as a call instruction.
+        This logic just generates a convenient program representation in the compiler.
+        Thus this doesn't affect execution of inline subroutines.
+        See :class:`~pulse.instructions.Call` for more details.
+
+        Args:
+            subroutine: Target schedule or circuit to append to the current context.
+            name: Name of subroutine if defined.
+            value_dict: Parameter object and assigned value mapping. This is more precise way to
+                identify a parameter since mapping is managed with unique object id rather than
+                name. Especially there is any name collision in a parameter table.
+            kw_params: Parameter values to bind to the target subroutine
+                with string parameter names. If there are parameter name overlapping,
+                these parameters are updated with the same assigned value.
+
+        Raises:
+            PulseError: If specified parameter is not contained in the subroutine.
+        """
+        if isinstance(subroutine, circuit.QuantumCircuit):
+            self._compile_lazy_circuit()
+            subroutine = self._compile_circuit(subroutine)
+
+        if len(subroutine.instructions) > 0:
+            if value_dict is None:
+                value_dict = dict()
+
+            param_value_map = dict()
+            for param_name, assigned_value in kw_params.items():
+                param_objs = subroutine.get_parameters(param_name)
+                if len(param_objs) > 0:
+                    for param_obj in param_objs:
+                        param_value_map[param_obj] = assigned_value
+                else:
+                    raise exceptions.PulseError(
+                        f'Parameter {param_name} is not defined in the target subroutine. '
+                        f'{", ".join(map(str, subroutine.parameters))} can be specified.')
+
+            param_value_map.update(value_dict)
+            call_def = instructions.Call(subroutine, param_value_map, name)
+
+            self.append_instruction(call_def)
 
     def new_circuit(self):
         """Create a new circuit for lazy circuit scheduling."""
@@ -443,9 +505,10 @@ class _PulseBuilder():
     @_requires_backend
     def call_circuit(self,
                      circ: circuit.QuantumCircuit,
-                     lazy: bool = True):
-        """Call a circuit in the pulse program.
+                     lazy: bool = False):
+        """Deprecated.
 
+        Call a circuit in the pulse program.
         The circuit is assumed to be defined on physical qubits.
 
         If ``lazy == True`` this circuit will extend a lazily constructed
@@ -460,6 +523,11 @@ class _PulseBuilder():
                 immediately. Otherwise, it will extend the active lazy circuit
                 as defined above.
         """
+        warnings.warn('Calling ``call_circuit`` is being deprecated. '
+                      'Use ``call_subroutine`` method instead. '
+                      'New method stores the circuit as a ``Call`` instruction '
+                      'after scheduling.', DeprecationWarning)
+
         if lazy:
             self._call_circuit(circ)
         else:
@@ -468,6 +536,7 @@ class _PulseBuilder():
             self._compile_lazy_circuit()
 
     def _call_circuit(self, circ):
+        # TODO deprecate this with call circuits
         if self._lazy_circuit is None:
             self._lazy_circuit = self.new_circuit()
 
@@ -505,9 +574,18 @@ class _PulseBuilder():
         except TypeError:
             qubits = (qubits,)
 
-        qc = circuit.QuantumCircuit(self.num_qubits)
-        qc.append(gate, qargs=qubits)
-        self.call_circuit(qc, lazy=lazy)
+        if lazy:
+            self._call_gate(gate, qubits)
+        else:
+            self._compile_lazy_circuit()
+            self._call_gate(gate, qubits)
+            self._compile_lazy_circuit()
+
+    def _call_gate(self, gate, qargs):
+        if self._lazy_circuit is None:
+            self._lazy_circuit = self.new_circuit()
+
+        self._lazy_circuit.append(gate, qargs=qargs)
 
 
 def build(backend=None,
@@ -557,7 +635,7 @@ def build(backend=None,
             circuit to pulse scheduler.
 
     Returns:
-        A new builder context which has the active builder inititalized.
+        A new builder context which has the active builder initialized.
     """
     return _PulseBuilder(
         backend=backend,
@@ -581,11 +659,11 @@ def _active_builder() -> _PulseBuilder:
     """
     try:
         return BUILDER_CONTEXTVAR.get()
-    except LookupError:
+    except LookupError as ex:
         raise exceptions.NoActiveBuilder(
             'A Pulse builder function was called outside of '
             'a builder context. Try calling within a builder '
-            'context, eg., "with pulse.build() as schedule: ...".')
+            'context, eg., "with pulse.build() as schedule: ...".') from ex
 
 
 def active_backend():
@@ -768,7 +846,7 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:
 def _transform_context(transform: Callable[[Schedule], Schedule],
                        **transform_kwargs: Any
                        ) -> Callable[..., ContextManager[None]]:
-    """A tranform context generator, decorator.
+    """A transform context generator, decorator.
 
     Decorator accepts a transformation function, and then decorates a new
     ContextManager function.
@@ -790,7 +868,7 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
     Returns:
         A function that generates a new transformation ``ContextManager``.
     """
-    def wrap(function):  # pylint: disable=unused-argument
+    def wrap(function):
         @functools.wraps(function)
         @contextmanager
         def wrapped_transform(*args, **kwargs):
@@ -946,7 +1024,7 @@ def align_func(duration: int,
 
     Pulse instructions within this context are scheduled at the location specified by
     arbitrary callback function `position` that takes integer index and returns
-    the associated fractional location witin [0, 1].
+    the associated fractional location within [0, 1].
     Delay instruction is automatically inserted in between pulses.
 
     This context may be convenient to write a schedule of arbitrary dynamical decoupling
@@ -1063,7 +1141,7 @@ def inline() -> ContextManager[None]:
 
 @_transform_context(transforms.pad, inplace=True)
 def pad(*chs: chans.Channel) -> ContextManager[None]:  # pylint: disable=unused-argument
-    """Pad all availale timeslots with delays upon exiting context.
+    """Pad all available timeslots with delays upon exiting context.
 
     Args:
         chs: Channels to pad with delays. Defaults to all channels in context
@@ -1210,7 +1288,7 @@ def frequency_offset(frequency: float,
 
         with pulse.build(backend) as pulse_prog:
             # Shift frequency by 1GHz.
-            # Undo accumulated phase in the shifted freqeuncy frame
+            # Undo accumulated phase in the shifted frequency frame
             # when exiting the context.
             with pulse.frequency_offset(1e9, d0, compensate_phase=True):
                 pulse.play(pulse.Constant(10, 1.0), d0)
@@ -1219,9 +1297,9 @@ def frequency_offset(frequency: float,
 
     Args:
         frequency: Amount of frequency offset in Hz.
-        channels: Channels to offset phase of.
-        compensate_phase: Compensate for accumulated phase in accumulated with
-            respect to the channels frame at its initial frequency.
+        channels: Channels to offset frequency of.
+        compensate_phase: Compensate for accumulated phase accumulated with
+            respect to the channels' frame at its initial frequency.
 
     Yields:
         None
@@ -1338,7 +1416,7 @@ def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
 
 # Base Instructions
 def delay(duration: int,
-          channel: chans.Channel):
+          channel: chans.Channel, name: Optional[str] = None):
     """Delay on a ``channel`` for a ``duration``.
 
     Examples:
@@ -1355,12 +1433,13 @@ def delay(duration: int,
     Args:
         duration: Number of cycles to delay for on ``channel``.
         channel: Channel to delay on.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.Delay(duration, channel))
+    append_instruction(instructions.Delay(duration, channel, name=name))
 
 
 def play(pulse: Union[library.Pulse, np.ndarray],
-         channel: chans.PulseChannel):
+         channel: chans.PulseChannel, name: Optional[str] = None):
     """Play a ``pulse`` on a ``channel``.
 
     Examples:
@@ -1377,11 +1456,12 @@ def play(pulse: Union[library.Pulse, np.ndarray],
     Args:
         pulse: Pulse to play.
         channel: Channel to play pulse on.
+        name: Name of the pulse.
     """
     if not isinstance(pulse, library.Pulse):
         pulse = library.Waveform(pulse)
 
-    append_instruction(instructions.Play(pulse, channel))
+    append_instruction(instructions.Play(pulse, channel, name=name))
 
 
 def acquire(duration: int,
@@ -1437,7 +1517,7 @@ def acquire(duration: int,
 
 
 def set_frequency(frequency: float,
-                  channel: chans.PulseChannel):
+                  channel: chans.PulseChannel, name: Optional[str] = None):
     """Set the ``frequency`` of a pulse ``channel``.
 
     Examples:
@@ -1454,12 +1534,13 @@ def set_frequency(frequency: float,
     Args:
         frequency: Frequency in Hz to set channel to.
         channel: Channel to set frequency of.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.SetFrequency(frequency, channel))
+    append_instruction(instructions.SetFrequency(frequency, channel, name=name))
 
 
 def shift_frequency(frequency: float,
-                    channel: chans.PulseChannel):
+                    channel: chans.PulseChannel, name: Optional[str] = None):
     """Shift the ``frequency`` of a pulse ``channel``.
 
     Examples:
@@ -1477,12 +1558,13 @@ def shift_frequency(frequency: float,
     Args:
         frequency: Frequency in Hz to shift channel frequency by.
         channel: Channel to shift frequency of.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.ShiftFrequency(frequency, channel))
+    append_instruction(instructions.ShiftFrequency(frequency, channel, name=name))
 
 
 def set_phase(phase: float,
-              channel: chans.PulseChannel):
+              channel: chans.PulseChannel, name: Optional[str] = None):
     """Set the ``phase`` of a pulse ``channel``.
 
     Examples:
@@ -1502,12 +1584,13 @@ def set_phase(phase: float,
     Args:
         phase: Phase in radians to set channel carrier signal to.
         channel: Channel to set phase of.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.SetPhase(phase, channel))
+    append_instruction(instructions.SetPhase(phase, channel, name=name))
 
 
 def shift_phase(phase: float,
-                channel: chans.PulseChannel):
+                channel: chans.PulseChannel, name: Optional[str] = None):
     """Shift the ``phase`` of a pulse ``channel``.
 
     Examples:
@@ -1526,8 +1609,9 @@ def shift_phase(phase: float,
     Args:
         phase: Phase in radians to shift channel carrier signal by.
         channel: Channel to shift phase of.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.ShiftPhase(phase, channel))
+    append_instruction(instructions.ShiftPhase(phase, channel, name))
 
 
 def snapshot(label: str,
@@ -1574,7 +1658,10 @@ def call_schedule(schedule: Schedule):
     Args:
         Schedule to call.
     """
-    _active_builder().call_schedule(schedule)
+    warnings.warn('``call_schedule`` is being deprecated. '
+                  '``call`` function can take both a schedule and a circuit.', DeprecationWarning)
+
+    call(schedule)
 
 
 def call_circuit(circ: circuit.QuantumCircuit):
@@ -1582,7 +1669,7 @@ def call_circuit(circ: circuit.QuantumCircuit):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -1617,15 +1704,27 @@ def call_circuit(circ: circuit.QuantumCircuit):
     Args:
         Circuit to call.
     """
-    _active_builder().call_circuit(circ, lazy=True)
+    warnings.warn('``call_circuit`` is being deprecated. '
+                  '``call`` function can take both a schedule and a circuit.', DeprecationWarning)
+
+    call(circ)
 
 
-def call(target: Union[circuit.QuantumCircuit, Schedule]):
-    """Call the ``target`` within the currently active builder context.
+def call(target: Union[circuit.QuantumCircuit, Schedule],
+         name: Optional[str] = None,
+         value_dict: Optional[Dict[ParameterValueType, ParameterValueType]] = None,
+         **kw_params: ParameterValueType):
+    """Call the ``target`` within the currently active builder context with arbitrary
+    parameters which will be assigned to the target program.
+
+    .. note::
+        The ``target`` program is inserted as a ``Call`` instruction.
+        This instruction defines a subroutine. See :class:`~qiskit.pulse.instructions.Call`
+        for more details.
 
     Examples:
 
-    .. jupyter-execute::
+    .. code-block:: python
 
         from qiskit import circuit, pulse, schedule, transpile
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1641,23 +1740,61 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
                 pulse.call(sched)
                 pulse.call(qc)
 
+    This function can optionally take parameter dictionary with the parameterized target program.
+
+    .. code-block:: python
+
+        from qiskit import circuit, pulse
+
+        amp = circuit.Parameter('amp')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine, amp=0.1)
+            pulse.call(subroutine, amp=0.3)
+
+    If there is any parameter name collision, you can distinguish them by specifying
+    each parameter object as a python dictionary. Otherwise ``amp1`` and ``amp2`` will be
+    updated with the same value.
+
+    .. code-block:: python
+
+        from qiskit import circuit, pulse
+
+        amp1 = circuit.Parameter('amp')
+        amp2 = circuit.Parameter('amp')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp1, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, amp2, 40), pulse.DriveChannel(1))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.2})
+
     Args:
         target: Target circuit or pulse schedule to call.
+        name: Name of subroutine if defined.
+        value_dict: Parameter object and assigned value mapping. This is more precise way to
+            identify a parameter since mapping is managed with unique object id rather than
+            name. Especially there is any name collision in a parameter table.
+        kw_params: Parameter values to bind to the target subroutine
+            with string parameter names. If there are parameter name overlapping,
+            these parameters are updated with the same assigned value.
 
     Raises:
         exceptions.PulseError: If the input ``target`` type is not supported.
     """
-    if isinstance(target, circuit.QuantumCircuit):
-        call_circuit(target)
-    elif isinstance(target, Schedule):
-        call_schedule(target)
-    else:
+    if not isinstance(target, (circuit.QuantumCircuit, Schedule)):
         raise exceptions.PulseError(
             'Target of type "{}" is not supported.'.format(type(target)))
 
+    _active_builder().call_subroutine(target, name, value_dict, **kw_params)
+
 
 # Directives
-def barrier(*channels_or_qubits: Union[chans.Channel, int]):
+def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] = None):
     """Barrier directive for a set of channels and qubits.
 
     This directive prevents the compiler from moving instructions across
@@ -1697,7 +1834,7 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int]):
         assert barrier_pulse_prog == aligned_pulse_prog
 
     The barrier allows the pulse compiler to take care of more advanced
-    scheduling aligment operations across channels. For example
+    scheduling alignment operations across channels. For example
     in the case where we are calling an outside circuit or schedule and
     want to align a pulse at the end of one call:
 
@@ -1723,13 +1860,69 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int]):
 
     Args:
         channels_or_qubits: Channels or qubits to barrier.
+        name: Name for the barrier
     """
     channels = _qubits_to_channels(*channels_or_qubits)
     if len(channels) > 1:
-        append_instruction(directives.RelativeBarrier(*channels))
+        append_instruction(directives.RelativeBarrier(*channels, name=name))
 
 
 # Macros
+def macro(func: Callable):
+    """Wrap a Python function and activate the parent builder context at calling time.
+
+    This enables embedding Python functions as builder macros. This generates a new
+    :class:`pulse.Schedule` that is embedded in the parent builder context with
+    every call of the decorated macro function. The decorated macro function will
+    behave as if the function code was embedded inline in the parent builder context
+    after parameter substitution.
+
+
+    Examples:
+
+    .. jupyter-execute::
+
+        from qiskit import pulse
+
+        @pulse.macro
+        def measure(qubit: int):
+            pulse.play(pulse.GaussianSquare(16384, 256, 15872), pulse.measure_channel(qubit))
+            mem_slot = pulse.MemorySlot(qubit)
+            pulse.acquire(16384, pulse.acquire_channel(qubit), mem_slot)
+
+            return mem_slot
+
+        with pulse.build(backend=backend) as sched:
+            mem_slot = measure(0)
+            print(f"Qubit measured into {mem_slot}")
+
+        sched.draw()
+
+
+    Args:
+        func: The Python function to enable as a builder macro. There are no
+            requirements on the signature of the function, any calls to pulse
+            builder methods will be added to builder context the wrapped function
+            is called from.
+
+    Returns:
+        Callable: The wrapped ``func``.
+    """
+    func_name = getattr(func, '__name__', repr(func))
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        _builder = _active_builder()
+        # activate the pulse builder before calling the function
+        with build(backend=_builder.backend, name=func_name) as built:
+            output = func(*args, **kwargs)
+
+        _builder.call_schedule(built)
+        return output
+
+    return wrapper
+
+
 def measure(qubits: Union[List[int], int],
             registers: Union[List[StorageLocation], StorageLocation] = None,
             ) -> Union[List[StorageLocation], StorageLocation]:
@@ -1782,7 +1975,7 @@ def measure(qubits: Union[List[int], int],
     Args:
         qubits: Physical qubit to measure.
         registers: Register to store result in. If not selected the current
-            behaviour is to return the :class:`MemorySlot` with the same
+            behavior is to return the :class:`MemorySlot` with the same
             index as ``qubit``. This register will be returned.
     Returns:
         The ``register`` the qubit measurement result will be stored in.
@@ -1807,7 +2000,10 @@ def measure(qubits: Union[List[int], int],
         inst_map=backend.defaults().instruction_schedule_map,
         meas_map=backend.configuration().meas_map,
         qubit_mem_slots={qubit: register.index for qubit, register in zip(qubits, registers)})
-    call_schedule(measure_sched)
+
+    # note this is not a subroutine.
+    # just a macro to automate combination of stimulus and acquisition.
+    _active_builder().call_schedule(measure_sched)
 
     if len(qubits) == 1:
         return registers[0]
@@ -1849,7 +2045,10 @@ def measure_all() -> List[chans.MemorySlot]:
         inst_map=backend.defaults().instruction_schedule_map,
         meas_map=backend.configuration().meas_map,
         qubit_mem_slots={qubit: qubit for qubit in qubits})
-    call_schedule(measure_sched)
+
+    # note this is not a subroutine.
+    # just a macro to automate combination of stimulus and acquisition.
+    _active_builder().call_schedule(measure_sched)
 
     return registers
 
@@ -1893,7 +2092,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     .. jupyter-kernel:: python3
@@ -1949,7 +2148,7 @@ def cx(control: int, target: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -1974,7 +2173,7 @@ def u1(theta: float, qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -2001,7 +2200,7 @@ def u2(phi: float, lam: float, qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -2028,7 +2227,7 @@ def u3(theta: float, phi: float, lam: float, qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -2055,7 +2254,7 @@ def x(qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:

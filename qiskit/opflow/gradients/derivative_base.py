@@ -12,7 +12,6 @@
 
 """ DerivativeBase Class """
 
-import logging
 from abc import abstractmethod
 from collections.abc import Iterable as IterableAbc
 from typing import Callable, Iterable, List, Optional, Tuple, Union
@@ -25,13 +24,12 @@ from qiskit.providers import BaseBackend
 from ..converters.converter_base import ConverterBase
 from ..list_ops.composed_op import ComposedOp
 from ..list_ops.list_op import ListOp
+from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
 from ..primitive_ops.primitive_op import PrimitiveOp
 from ..state_fns import StateFn, OperatorStateFn
 
 OperatorType = Union[StateFn, PrimitiveOp, ListOp]
-
-logger = logging.getLogger(__name__)
 
 
 class DerivativeBase(ConverterBase):
@@ -100,15 +98,16 @@ class DerivativeBase(ConverterBase):
         if not grad_params:
             grad_params = bind_params
 
+        grad = self.convert(operator, grad_params)
+
         def gradient_fn(p_values):
             p_values_dict = dict(zip(bind_params, p_values))
             if not backend:
-                converter = self.convert(operator, grad_params).assign_parameters(p_values_dict)
+                converter = grad.assign_parameters(p_values_dict)
                 return np.real(converter.eval())
             else:
                 p_values_dict = {k: [v] for k, v in p_values_dict.items()}
-                converter = CircuitSampler(backend=backend).convert(
-                    self.convert(operator, grad_params), p_values_dict)
+                converter = CircuitSampler(backend=backend).convert(grad, p_values_dict)
                 return np.real(converter.eval()[0])
 
         return gradient_fn
@@ -198,14 +197,26 @@ class DerivativeBase(ConverterBase):
         if isinstance(operator, ComposedOp):
             total_coeff = operator.coeff
             take_norm_of_coeffs = False
-            for op in operator.oplist:
+            for k, op in enumerate(operator.oplist):
                 if take_norm_of_coeffs:
                     total_coeff *= (op.coeff * np.conj(op.coeff))  # type: ignore
                 else:
                     total_coeff *= op.coeff  # type: ignore
                 if hasattr(op, 'primitive'):
                     prim = op.primitive  # type: ignore
-                    if isinstance(prim, ListOp):
+                    if isinstance(op, StateFn) and isinstance(prim, TensoredOp):
+                        # Check if any of the coefficients in the TensoredOp is a
+                        # ParameterExpression
+                        for prim_op in prim.oplist:
+                            # If a coefficient is a ParameterExpression make sure that the
+                            # coefficients are pulled together correctly
+                            if isinstance(prim_op.coeff, ParameterExpression):
+                                prim_tensored = StateFn(prim.reduce(),
+                                                        is_measurement=op.is_measurement,
+                                                        coeff=op.coeff)
+                                operator.oplist[k] = prim_tensored
+                                return operator.traverse(cls._factor_coeffs_out_of_composed_op)
+                    elif isinstance(prim, ListOp):
                         raise ValueError("This operator was not properly decomposed. "
                                          "By this point, all operator measurements should "
                                          "contain single operators, otherwise the coefficient "

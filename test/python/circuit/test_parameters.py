@@ -26,9 +26,10 @@ import qiskit.circuit.library as circlib
 from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import (Gate, Instruction, Parameter, ParameterExpression,
                             ParameterVector)
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
-from qiskit.execute import execute
+from qiskit.execute_function import execute
 from qiskit import pulse
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
@@ -84,7 +85,7 @@ def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
                                              parameter))
 
     # Assert circuit has no other parameter locations other than those in table.
-    for instr, qargs, cargs in circuit._data:
+    for instr, _, _ in circuit._data:
         for param_index, param in enumerate(instr.params):
             if isinstance(param, ParameterExpression):
                 parameters = param.parameters
@@ -138,6 +139,129 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(len(vparams), 1)
         self.assertIs(theta, next(iter(vparams)))
         self.assertEqual(rxg, vparams[theta][0][0])
+
+    def test_get_parameters_by_index(self):
+        """Test getting parameters by index"""
+        x = Parameter('x')
+        y = Parameter('y')
+        z = Parameter('z')
+        v = ParameterVector('v', 3)
+        qc = QuantumCircuit(1)
+        qc.rx(x, 0)
+        qc.rz(z, 0)
+        qc.ry(y, 0)
+        qc.u(*v, 0)
+        self.assertEqual(x, qc.parameters[3])
+        self.assertEqual(y, qc.parameters[4])
+        self.assertEqual(z, qc.parameters[5])
+        for i, vi in enumerate(v):
+            self.assertEqual(vi, qc.parameters[i])
+
+    def test_bind_parameters_anonymously(self):
+        """Test setting parameters by insertion order anonymously"""
+        phase = Parameter('phase')
+        x = Parameter('x')
+        y = Parameter('y')
+        z = Parameter('z')
+        v = ParameterVector('v', 3)
+        qc = QuantumCircuit(1, global_phase=phase)
+        qc.rx(x, 0)
+        qc.rz(z, 0)
+        qc.ry(y, 0)
+        qc.u(*v, 0)
+        params = [0.1 * i for i in range(len(qc.parameters))]
+
+        order = [phase] + v[:] + [x, y, z]
+        param_dict = dict(zip(order, params))
+        for assign_fun in ['bind_parameters', 'assign_parameters']:
+            with self.subTest(assign_fun=assign_fun):
+                bqc_anonymous = getattr(qc, assign_fun)(params)
+                bqc_list = getattr(qc, assign_fun)(param_dict)
+                self.assertEqual(bqc_anonymous, bqc_list)
+
+    def test_parameter_order(self):
+        """Test the parameters are sorted by name but parameter vector order takes precedence.
+
+        This means that the following set of parameters
+
+            {a, z, x[0], x[1], x[2], x[3], x[10], x[11]}
+
+        will be sorted as
+
+            [a, x[0], x[1], x[2], x[3], x[10], x[11], z]
+
+        """
+        a, b, some_name, z = [Parameter(name) for name in ['a', 'b', 'some_name', 'z']]
+        x = ParameterVector('x', 12)
+        a_vector = ParameterVector('a_vector', 15)
+
+        qc = QuantumCircuit(2)
+        qc.p(z, 0)
+        for i, x_i in enumerate(reversed(x)):
+            qc.rx(x_i, i % 2)
+        qc.cry(a, 0, 1)
+        qc.crz(some_name, 1, 0)
+        for v_i in a_vector[::2]:
+            qc.p(v_i, 0)
+        for v_i in a_vector[1::2]:
+            qc.p(v_i, 1)
+        qc.p(b, 0)
+
+        expected_order = [a] + a_vector[:] + [b, some_name] + x[:] + [z]
+        actual_order = qc.parameters
+
+        self.assertListEqual(expected_order, list(actual_order))
+
+    @data(True, False)
+    def test_parameter_order_compose(self, front):
+        """Test the parameter order is correctly maintained upon composing circuits."""
+        x = Parameter('x')
+        y = Parameter('y')
+        qc1 = QuantumCircuit(1)
+        qc1.p(x, 0)
+        qc2 = QuantumCircuit(1)
+        qc2.rz(y, 0)
+
+        order = [x, y]
+
+        composed = qc1.compose(qc2, front=front)
+
+        self.assertListEqual(list(composed.parameters), order)
+
+    def test_parameter_order_append(self):
+        """Test the parameter order is correctly maintained upon appending circuits."""
+        x = Parameter('x')
+        y = Parameter('y')
+        qc1 = QuantumCircuit(1)
+        qc1.p(x, 0)
+        qc2 = QuantumCircuit(1)
+        qc2.rz(y, 0)
+
+        qc1.append(qc2, [0])
+
+        self.assertListEqual(list(qc1.parameters), [x, y])
+
+    def test_parameter_order_composing_nested_circuit(self):
+        """Test the parameter order after nesting circuits and instructions."""
+        x = ParameterVector('x', 5)
+        inner = QuantumCircuit(1)
+        inner.rx(x[0], [0])
+
+        mid = QuantumCircuit(2)
+        mid.p(x[1], 1)
+        mid.append(inner, [0])
+        mid.p(x[2], 0)
+        mid.append(inner, [0])
+
+        outer = QuantumCircuit(2)
+        outer.compose(mid, inplace=True)
+        outer.ryy(x[3], 0, 1)
+        outer.compose(inner, inplace=True)
+        outer.rz(x[4], 0)
+
+        order = [x[0], x[1], x[2], x[3], x[4]]
+
+        self.assertListEqual(list(outer.parameters), order)
 
     def test_is_parameterized(self):
         """Test checking if a gate is parameterized (bound/unbound)"""
@@ -300,6 +424,7 @@ class TestParameters(QiskitTestCase):
         """Verify binding parameters which are not present in the circuit raises an error."""
         x = Parameter('x')
         y = Parameter('y')
+        z = ParameterVector('z', 3)
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
 
@@ -309,9 +434,12 @@ class TestParameters(QiskitTestCase):
             with self.subTest(assign_fun=assign_fun):
                 qc.p(0.1, qr[0])
                 self.assertRaises(CircuitError, getattr(qc, assign_fun), {x: 1})
-
                 qc.p(x, qr[0])
                 self.assertRaises(CircuitError, getattr(qc, assign_fun), {x: 1, y: 2})
+                qc.p(z[1], qr[0])
+                self.assertRaises(CircuitError, getattr(qc, assign_fun), {z: [3, 4, 5]})
+                self.assertRaises(CircuitError, getattr(qc, assign_fun), {'a_str': 6})
+                self.assertRaises(CircuitError, getattr(qc, assign_fun), {None: 7})
 
     def test_gate_multiplicity_binding(self):
         """Test binding when circuit contains multiple references to same gate"""
@@ -469,7 +597,7 @@ class TestParameters(QiskitTestCase):
         theta = Parameter('θ')
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
-        qc1 = QuantumCircuit(qr)
+        qc1 = QuantumCircuit(qr, cr)
         qc1.rx(theta, qr)
 
         phi = Parameter('phi')
@@ -584,21 +712,25 @@ class TestParameters(QiskitTestCase):
             for param in vec:
                 self.assertIn(param, qc_aer.parameters)
 
-    def test_parameter_equality_through_serialization(self):
+    @data('single', 'vector')
+    def test_parameter_equality_through_serialization(self, ptype):
         """Verify parameters maintain their equality after serialization."""
 
-        # pylint: disable=invalid-name
-        x = Parameter('x')
-        x1 = Parameter('x')
+        if ptype == 'single':
+            x1 = Parameter('x')
+            x2 = Parameter('x')
+        else:
+            x1 = ParameterVector('x', 2)[0]
+            x2 = ParameterVector('x', 2)[0]
 
-        x_p = pickle.loads(pickle.dumps(x))
         x1_p = pickle.loads(pickle.dumps(x1))
+        x2_p = pickle.loads(pickle.dumps(x2))
 
-        self.assertEqual(x, x_p)
         self.assertEqual(x1, x1_p)
+        self.assertEqual(x2, x2_p)
 
-        self.assertNotEqual(x, x1_p)
-        self.assertNotEqual(x1, x_p)
+        self.assertNotEqual(x1, x2_p)
+        self.assertNotEqual(x2, x1_p)
 
     def test_binding_parameterized_circuits_built_in_multiproc(self):
         """Verify subcircuits built in a subprocess can still be bound."""
@@ -619,7 +751,7 @@ class TestParameters(QiskitTestCase):
                                num_processes=num_processes)
 
         for qc in results:
-            circuit += qc
+            circuit.compose(qc, inplace=True)
 
         parameter_values = [{x: 1 for x in parameters}]
 
@@ -865,6 +997,20 @@ class TestParameters(QiskitTestCase):
             qc.x(0)
             self.assertEqual(qc.num_parameters, 0)
 
+    def test_execute_result_names(self):
+        """Test unique names for list of parameter binds."""
+        theta = Parameter('θ')
+        reps = 5
+        qc = QuantumCircuit(1, 1)
+        qc.rx(theta, 0)
+        qc.measure(0, 0)
+
+        plist = [{theta: i} for i in range(reps)]
+        simulator = BasicAer.get_backend('qasm_simulator')
+        result = execute(qc, backend=simulator, parameter_binds=plist).result()
+        result_names = {res.name for res in result.results}
+        self.assertEqual(reps, len(result_names))
+
     def test_to_instruction_after_inverse(self):
         """Verify converting an inverse generates a valid ParameterTable"""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/4235
@@ -952,11 +1098,35 @@ class TestParameters(QiskitTestCase):
         qc_aer = transpile(qc, backend)
         self.assertIn(phi, qc_aer.parameters)
 
+    def test_parametervector_resize(self):
+        """Test the resize method of the parameter vector."""
+
+        vec = ParameterVector('x', 2)
+        element = vec[1]  # store an entry for instancecheck later on
+
+        with self.subTest('shorten'):
+            vec.resize(1)
+            self.assertEqual(len(vec), 1)
+            self.assertListEqual([param.name for param in vec], _paramvec_names('x', 1))
+
+        with self.subTest('enlargen'):
+            vec.resize(3)
+            self.assertEqual(len(vec), 3)
+            # ensure we still have the same instance not a copy with the same name
+            # this is crucial for adding parameters to circuits since we cannot use the same
+            # name if the instance is not the same
+            self.assertIs(element, vec[1])
+            self.assertListEqual([param.name for param in vec], _paramvec_names('x', 3))
+
 
 def _construct_circuit(param, qr):
     qc = QuantumCircuit(qr)
     qc.ry(param, qr[0])
     return qc
+
+
+def _paramvec_names(prefix, length):
+    return [f'{prefix}[{i}]' for i in range(length)]
 
 
 @ddt
@@ -1332,7 +1502,7 @@ class TestParameterExpressions(QiskitTestCase):
         elif target_type == 'instruction':
             gate = qc1.to_instruction(parameter_map={theta: theta_p, phi: phi_p})
 
-        self.assertEqual(gate.params, [phi_p, theta_p])
+        self.assertListEqual(gate.params, [theta_p, phi_p])
 
         delta = Parameter('delta')
         qr2 = QuantumRegister(3, name='qr2')
@@ -1340,7 +1510,7 @@ class TestParameterExpressions(QiskitTestCase):
         qc2.ry(delta, qr2[0])
         qc2.append(gate, qargs=[qr2[1]])
 
-        self.assertEqual(qc2.parameters, {delta, theta_p, phi_p})
+        self.assertListEqual(list(qc2.parameters), [delta, phi_p, theta_p])
 
         binds = {delta: 1, theta_p: 2, phi_p: 3}
         expected_qc = QuantumCircuit(qr2)
@@ -1522,6 +1692,14 @@ class TestParameterEquality(QiskitTestCase):
 
         self.assertEqual(expr1, expr2)
 
+    def test_parameter_expression_equal_floats_to_ints(self):
+        """Verify an expression with float and int is identical."""
+        theta = Parameter('theta')
+        expr1 = 2.0 * theta
+        expr2 = 2 * theta
+
+        self.assertEqual(expr1, expr2)
+
     def test_parameter_expression_not_equal_if_params_differ(self):
         """Verify expressions not equal if parameters are different."""
         theta1 = Parameter('theta')
@@ -1547,6 +1725,62 @@ class TestParameterEquality(QiskitTestCase):
         phi = Parameter('phi')
         cos_phi = numpy.cos(phi)
         self.assertEqual(phi._parameter_symbols, cos_phi._parameter_symbols)
+
+
+class TestParameterView(QiskitTestCase):
+    """Test the ParameterView object."""
+
+    def setUp(self):
+        super().setUp()
+        x, y, z = Parameter('x'), Parameter('y'), Parameter('z')
+        self.params = [x, y, z]
+        self.view1 = ParameterView([x, y])
+        self.view2 = ParameterView([y, z])
+        self.view3 = ParameterView([x])
+
+    def test_and(self):
+        """Test __and__."""
+        self.assertEqual(self.view1 & self.view2, {self.params[1]})
+
+    def test_or(self):
+        """Test __or__."""
+        self.assertEqual(self.view1 | self.view2, set(self.params))
+
+    def test_xor(self):
+        """Test __xor__."""
+        self.assertEqual(self.view1 ^ self.view2, {self.params[0], self.params[2]})
+
+    def test_len(self):
+        """Test __len__."""
+        self.assertEqual(len(self.view1), 2)
+
+    def test_le(self):
+        """Test __le__."""
+        self.assertTrue(self.view1 <= self.view1)
+        self.assertFalse(self.view1 <= self.view3)
+
+    def test_lt(self):
+        """Test __lt__."""
+        self.assertTrue(self.view3 < self.view1)
+
+    def test_ge(self):
+        """Test __ge__."""
+        self.assertTrue(self.view1 >= self.view1)
+        self.assertFalse(self.view3 >= self.view1)
+
+    def test_gt(self):
+        """Test __lt__."""
+        self.assertTrue(self.view1 > self.view3)
+
+    def test_eq(self):
+        """Test __eq__."""
+        self.assertTrue(self.view1 == self.view1)
+        self.assertFalse(self.view3 == self.view1)
+
+    def test_ne(self):
+        """Test __eq__."""
+        self.assertTrue(self.view1 != self.view2)
+        self.assertFalse(self.view3 != self.view3)
 
 
 if __name__ == '__main__':

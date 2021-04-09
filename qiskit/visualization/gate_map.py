@@ -18,14 +18,6 @@ from qiskit.exceptions import QiskitError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
-if HAS_MATPLOTLIB:
-    import matplotlib
-    from matplotlib import get_backend
-    import matplotlib.pyplot as plt  # pylint: disable=import-error
-    import matplotlib.patches as mpatches
-    import matplotlib.gridspec as gridspec
-    from matplotlib import ticker
-
 
 class _GraphDist():
     """Transform the circles properly for non-square axes.
@@ -40,9 +32,9 @@ class _GraphDist():
     def dist_real(self):
         """Compute distance.
         """
-        x0, y0 = self.ax.transAxes.transform(  # pylint: disable=invalid-name
+        x0, y0 = self.ax.transAxes.transform(
             (0, 0))
-        x1, y1 = self.ax.transAxes.transform(  # pylint: disable=invalid-name
+        x1, y1 = self.ax.transAxes.transform(
             (1, 1))
         value = x1 - x0 if self.x else y1 - y0
         return value
@@ -120,6 +112,9 @@ def plot_gate_map(backend, figsize=None,
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, '
                           'run "pip install matplotlib".')
+    from matplotlib import get_backend
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
 
     if backend.configuration().simulator:
         raise QiskitError('Requires a device backend, not simulator.')
@@ -147,9 +142,9 @@ def plot_gate_map(backend, figsize=None,
                     [0, 5], [0, 6], [1, 7], [1, 6], [1, 5],
                     [1, 4], [1, 3], [1, 2], [1, 1], [1, 0]]
 
-    mpl_data[16] = [[1, 0], [0, 0], [0, 1], [0, 2], [0, 3],
-                    [0, 4], [0, 5], [0, 6], [0, 7], [1, 7],
-                    [1, 6], [1, 5], [1, 4], [1, 3], [1, 2], [1, 1]]
+    mpl_data[16] = [[1, 0], [1, 1], [2, 1], [3, 1], [1, 2],
+                    [3, 2], [0, 3], [1, 3], [3, 3], [4, 3],
+                    [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [1, 6]]
 
     mpl_data[27] = [[1, 0], [1, 1], [2, 1], [3, 1], [1, 2],
                     [3, 2], [0, 3], [1, 3], [3, 3], [4, 3],
@@ -212,7 +207,7 @@ def plot_gate_map(backend, figsize=None,
         grid_data = mpl_data[num_qubits]
     else:
         if not input_axes:
-            fig, ax = plt.subplots(figsize=(5, 5))  # pylint: disable=invalid-name
+            fig, ax = plt.subplots(figsize=(5, 5))
             ax.axis('off')
             return fig
 
@@ -227,7 +222,7 @@ def plot_gate_map(backend, figsize=None,
             figsize = (9, 3)
 
     if ax is None:
-        fig, ax = plt.subplots(figsize=figsize)  # pylint: disable=invalid-name
+        fig, ax = plt.subplots(figsize=figsize)
         ax.axis('off')
 
     # set coloring
@@ -261,8 +256,8 @@ def plot_gate_map(backend, figsize=None,
                                      color=line_color[ind], linewidth=line_width,
                                      zorder=0))
             if plot_directed:
-                dx = x_end - x_start  # pylint: disable=invalid-name
-                dy = y_end - y_start  # pylint: disable=invalid-name
+                dx = x_end - x_start
+                dy = y_end - y_start
                 if is_symmetric:
                     x_arrow = x_start + dx * 0.95
                     y_arrow = -y_start - dy * 0.95
@@ -363,15 +358,24 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
     qubits = []
     qubit_labels = [None] * num_qubits
 
+    bit_locations = {bit: {'register': register, 'index': index}
+                     for register in circuit._layout.get_registers()
+                     for index, bit in enumerate(register)}
+    for index, qubit in enumerate(circuit._layout.get_virtual_bits()):
+        if qubit not in bit_locations:
+            bit_locations[qubit] = {'register': None, 'index': index}
+
     if view == 'virtual':
         for key, val in circuit._layout.get_virtual_bits().items():
-            if key.register.name != 'ancilla':
+            bit_register = bit_locations[key]['register']
+            if bit_register is None or bit_register.name != 'ancilla':
                 qubits.append(val)
-                qubit_labels[val] = key.index
+                qubit_labels[val] = bit_locations[key]['index']
 
     elif view == 'physical':
         for key, val in circuit._layout.get_physical_bits().items():
-            if val.register.name != 'ancilla':
+            bit_register = bit_locations[val]['register']
+            if bit_register is None or bit_register.name != 'ancilla':
                 qubits.append(key)
                 qubit_labels[key] = key
 
@@ -433,9 +437,17 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     """
     try:
         import seaborn as sns
-    except ImportError:
+    except ImportError as ex:
         raise ImportError('Must have seaborn installed to use plot_error_map. '
-                          'To install, run "pip install seaborn".')
+                          'To install, run "pip install seaborn".') from ex
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed. To install, '
+                          'run "pip install matplotlib".')
+    import matplotlib
+    from matplotlib import get_backend
+    import matplotlib.pyplot as plt
+    import matplotlib.gridspec as gridspec
+    from matplotlib import ticker
 
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 

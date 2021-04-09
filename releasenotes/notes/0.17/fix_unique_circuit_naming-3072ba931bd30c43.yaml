@@ -1,0 +1,20 @@
+---
+fixes:
+  - |
+    Fixed an issue where binding :class:`~qiskit.circuit.Parameter` objects
+    in a :class:`~qiskit.circuit.QuantumCircuit` with the ``parameter_binds``
+    in the :class:`~qiskit.execute_function.execute` function would cause all
+    the bound :class:`~qiskit.circuit.QuantumCircuit` objects would have the
+    same :attr:`~qiskit.circuit.QuantumCircuit.name`, which meant the
+    result names were also not unique. This fix causes
+    the :meth:`~qiskit.circuit.QuantumCircuit.bind_parameters` and
+    :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters` to assign a unique
+    circuit name when ``inplace=False`` as::
+
+       <base name>-<class instance no.>[-<pid name>]
+
+    where ``<base name>`` is the name supplied by the "name" kwarg,
+    otherwise it defaults to "circuit". The class instance number gets
+    incremented every time an instance of the class is generated. ``<pid name>``
+    is appended if called outside the main process.
+    Fixed `#5185 <https://github.com/Qiskit/qiskit-terra/issues/5185>`__

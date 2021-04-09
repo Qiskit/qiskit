@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,7 +18,7 @@ import itertools
 import numpy as np
 
 from qiskit.utils import QuantumInstance
-from qiskit.utils import aqua_globals
+from qiskit.utils import algorithm_globals
 from qiskit.opflow import (X, Y, Z, I, CX, H, S,
                            ListOp, Zero, One, Plus, Minus, StateFn,
                            PauliExpectation, CircuitSampler)
@@ -154,16 +154,16 @@ class TestPauliExpectation(QiskitOpflowTestCase):
 
         # now set global variable or argument
         try:
-            aqua_globals.massive = True
+            algorithm_globals.massive = True
             with self.assertRaises(MemoryError):
                 states_op.to_matrix()
                 paulis_op.to_matrix()
-            aqua_globals.massive = False
+            algorithm_globals.massive = False
             with self.assertRaises(MemoryError):
                 states_op.to_matrix(massive=True)
                 paulis_op.to_matrix(massive=True)
         finally:
-            aqua_globals.massive = False
+            algorithm_globals.massive = False
 
     def test_not_to_matrix_called(self):
         """ 45 qubit calculation - literally will not work if to_matrix is

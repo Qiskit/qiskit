@@ -13,7 +13,7 @@
 
 """A module for the job watcher"""
 
-from IPython.core.magic import (line_magic,             # pylint: disable=import-error
+from IPython.core.magic import (line_magic,
                                 Magics, magics_class)
 from qiskit.tools.events.pubsub import Subscriber
 try:

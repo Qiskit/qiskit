@@ -10,27 +10,28 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Tests for DensityMatrix quantum state class."""
 
 import unittest
 import logging
+from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_allclose
 
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import HGate
+from qiskit.circuit.library import HGate, QFT
 
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.random import random_unitary, random_density_matrix
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 
 logger = logging.getLogger(__name__)
 
 
+@ddt
 class TestDensityMatrix(QiskitTestCase):
     """Tests for DensityMatrix class."""
 
@@ -892,9 +893,84 @@ class TestDensityMatrix(QiskitTestCase):
                 ('II', 1), ('XX', 1), ('YY', -1), ('ZZ', 1),
                 ('IX', 0), ('YZ', 0), ('ZX', 0), ('YI', 0)]:
             with self.subTest(msg="<{}>".format(label)):
-                op = Operator.from_label(label)
+                op = Pauli(label)
                 expval = rho.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
+
+        psi = Statevector([np.sqrt(2), 0, 0, 0, 0, 0, 0, 1 + 1j]) / 2
+        rho = DensityMatrix(psi)
+        for label, target in [
+                ('XXX', np.sqrt(2) / 2), ('YYY', -np.sqrt(2) / 2), ('ZZZ', 0),
+                ('XYZ', 0), ('YIY', 0)]:
+            with self.subTest(msg="<{}>".format(label)):
+                op = Pauli(label)
+                expval = rho.expectation_value(op)
+                self.assertAlmostEqual(expval, target)
+
+        labels = ['XXX', 'IXI', 'YYY', 'III']
+        coeffs = [3.0, 5.5, -1j, 23]
+        spp_op = SparsePauliOp.from_list(list(zip(labels, coeffs)))
+        expval = rho.expectation_value(spp_op)
+        target = 25.121320343559642 + 0.7071067811865476j
+        self.assertAlmostEqual(expval, target)
+
+    @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
+          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ',
+          '-II', '-IX', '-IY', '-IZ', '-XI', '-XX', '-XY', '-XZ',
+          '-YI', '-YX', '-YY', '-YZ', '-ZI', '-ZX', '-ZY', '-ZZ',
+          'iII', 'iIX', 'iIY', 'iIZ', 'iXI', 'iXX', 'iXY', 'iXZ',
+          'iYI', 'iYX', 'iYY', 'iYZ', 'iZI', 'iZX', 'iZY', 'iZZ',
+          '-iII', '-iIX', '-iIY', '-iIZ', '-iXI', '-iXX', '-iXY', '-iXZ',
+          '-iYI', '-iYX', '-iYY', '-iYZ', '-iZI', '-iZX', '-iZY', '-iZZ')
+    def test_expval_pauli_f_contiguous(self, pauli):
+        """Test expectation_value method for Pauli op"""
+        seed = 1020
+        op = Pauli(pauli)
+        rho = random_density_matrix(2**op.num_qubits, seed=seed)
+        rho._data = np.reshape(rho.data.flatten(order='F'),
+                               rho.data.shape, order='F')
+        target = rho.expectation_value(op.to_matrix())
+        expval = rho.expectation_value(op)
+        self.assertAlmostEqual(expval, target)
+
+    @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
+          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ',
+          '-II', '-IX', '-IY', '-IZ', '-XI', '-XX', '-XY', '-XZ',
+          '-YI', '-YX', '-YY', '-YZ', '-ZI', '-ZX', '-ZY', '-ZZ',
+          'iII', 'iIX', 'iIY', 'iIZ', 'iXI', 'iXX', 'iXY', 'iXZ',
+          'iYI', 'iYX', 'iYY', 'iYZ', 'iZI', 'iZX', 'iZY', 'iZZ',
+          '-iII', '-iIX', '-iIY', '-iIZ', '-iXI', '-iXX', '-iXY', '-iXZ',
+          '-iYI', '-iYX', '-iYY', '-iYZ', '-iZI', '-iZX', '-iZY', '-iZZ')
+    def test_expval_pauli_c_contiguous(self, pauli):
+        """Test expectation_value method for Pauli op"""
+        seed = 1020
+        op = Pauli(pauli)
+        rho = random_density_matrix(2**op.num_qubits, seed=seed)
+        rho._data = np.reshape(rho.data.flatten(order='C'),
+                               rho.data.shape, order='C')
+        target = rho.expectation_value(op.to_matrix())
+        expval = rho.expectation_value(op)
+        self.assertAlmostEqual(expval, target)
+
+    def test_reverse_qargs(self):
+        """Test reverse_qargs method"""
+        circ1 = QFT(5)
+        circ2 = circ1.reverse_bits()
+
+        state1 = DensityMatrix.from_instruction(circ1)
+        state2 = DensityMatrix.from_instruction(circ2)
+        self.assertEqual(state1.reverse_qargs(), state2)
+
+    def test_drawings(self):
+        """Test draw method"""
+        qc1 = QFT(5)
+        dm = DensityMatrix.from_instruction(qc1)
+        with self.subTest(msg='str(density_matrix)'):
+            str(dm)
+        for drawtype in ['repr', 'text', 'latex', 'latex_source',
+                         'qsphere', 'hinton', 'bloch']:
+            with self.subTest(msg=f"draw('{drawtype}')"):
+                dm.draw(drawtype)
 
 
 if __name__ == '__main__':

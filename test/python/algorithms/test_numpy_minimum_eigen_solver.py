@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,39 +14,38 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+
 import numpy as np
+from ddt import ddt, data
 
 from qiskit.algorithms import NumPyMinimumEigensolver
-from qiskit.opflow import WeightedPauliOperator
+from qiskit.opflow import PauliSumOp, X, Y, Z
 
 
+@ddt
 class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
     """ Test NumPy Minimum Eigensolver """
 
     def setUp(self):
         super().setUp()
-        pauli_dict = {
-            'paulis': [{"coeff": {"imag": 0.0, "real": -1.052373245772859}, "label": "II"},
-                       {"coeff": {"imag": 0.0, "real": 0.39793742484318045}, "label": "ZI"},
-                       {"coeff": {"imag": 0.0, "real": -0.39793742484318045}, "label": "IZ"},
-                       {"coeff": {"imag": 0.0, "real": -0.01128010425623538}, "label": "ZZ"},
-                       {"coeff": {"imag": 0.0, "real": 0.18093119978423156}, "label": "XX"}
-                       ]
-        }
-        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict).to_opflow()
+        self.qubit_op = PauliSumOp.from_list([
+            ("II", -1.052373245772859),
+            ("ZI", 0.39793742484318045),
+            ("IZ", -0.39793742484318045),
+            ("ZZ", -0.01128010425623538),
+            ("XX", 0.18093119978423156),
+        ])
 
-        aux_dict_1 = {
-            'paulis': [{'coeff': {'imag': 0.0, 'real': 2.0}, 'label': 'II'}]
-        }
-        aux_dict_2 = {
-            'paulis': [{'coeff': {'imag': 0.0, 'real': 0.5}, 'label': 'II'},
-                       {'coeff': {'imag': 0.0, 'real': 0.5}, 'label': 'ZZ'},
-                       {'coeff': {'imag': 0.0, 'real': 0.5}, 'label': 'YY'},
-                       {'coeff': {'imag': 0.0, 'real': -0.5}, 'label': 'XX'}
-                       ]
-        }
-        self.aux_ops = [WeightedPauliOperator.from_dict(aux_dict_1).to_opflow(),
-                        WeightedPauliOperator.from_dict(aux_dict_2).to_opflow()]
+        aux_op1 = PauliSumOp.from_list([
+            ("II", 2.0)
+        ])
+        aux_op2 = PauliSumOp.from_list([
+            ("II", 0.5),
+            ("ZZ", 0.5),
+            ("YY", 0.5),
+            ("XX", -0.5)
+        ])
+        self.aux_ops = [aux_op1, aux_op2]
 
     def test_cme(self):
         """ Basic test """
@@ -124,6 +123,13 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
         self.assertEqual(result.eigenvalue, None)
         self.assertEqual(result.eigenstate, None)
         self.assertEqual(result.aux_operator_eigenvalues, None)
+
+    @data(X, Y, Z)
+    def test_cme_1q(self, op):
+        """ Test for 1 qubit operator """
+        algo = NumPyMinimumEigensolver()
+        result = algo.compute_minimum_eigenvalue(operator=op)
+        self.assertAlmostEqual(result.eigenvalue, -1)
 
 
 if __name__ == '__main__':

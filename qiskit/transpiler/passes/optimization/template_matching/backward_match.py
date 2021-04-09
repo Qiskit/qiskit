@@ -648,8 +648,8 @@ class BackwardMatch:
                                                           counter_scenario + 1)
                     self.matching_list.append_scenario(matching_scenario)
 
-                    # Third option, all succesors are blocked (circuit gate is
-                    # moved to the rigth).
+                    # Third option, all successors are blocked (circuit gate is
+                    # moved to the right).
 
                     broken_matches = []
 

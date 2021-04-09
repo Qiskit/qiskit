@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,15 +12,18 @@
 
 """ OperatorBase Class """
 
-from typing import Set, Union, Dict, Optional, List, cast, Tuple
-from numbers import Number
+import itertools
 from abc import ABC, abstractmethod
-import numpy as np
+from copy import deepcopy
+from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
-from qiskit.utils import aqua_globals
+import numpy as np
+from scipy.sparse import csr_matrix, spmatrix
+
 from qiskit.circuit import ParameterExpression, ParameterVector
-from .legacy.base_operator import LegacyBaseOperator
-from .exceptions import OpflowError
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.quantum_info import Statevector
+from qiskit.utils import algorithm_globals
 
 
 class OperatorBase(ABC):
@@ -36,6 +39,16 @@ class OperatorBase(ABC):
     # Indentation used in string representation of list operators
     # Can be changed to use another indentation than two whitespaces
     INDENTATION = '  '
+
+    _count = itertools.count()
+
+    def __init__(self) -> None:
+        self._instance_id = next(self._count)
+
+    @property
+    def instance_id(self) -> int:
+        """Return the unique instance id."""
+        return self._instance_id
 
     @property
     @abstractmethod
@@ -62,9 +75,12 @@ class OperatorBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def eval(self,
-             front: Optional[Union[str, Dict[str, complex], 'OperatorBase']] = None
-             ) -> Union['OperatorBase', float, complex, list]:
+    def eval(
+        self,
+        front: Optional[
+            Union[str, Dict[str, complex], np.ndarray, "OperatorBase", Statevector]
+        ] = None,
+    ) -> Union["OperatorBase", complex]:
         r"""
         Evaluate the Operator's underlying function, either on a binary string or another Operator.
         A square binary Operator can be defined as a function taking a binary function to another
@@ -120,27 +136,23 @@ class OperatorBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def to_legacy_op(self, massive: bool = False) -> LegacyBaseOperator:
-        r""" Attempt to return the Legacy Operator representation of the Operator. If self is a
-        ``SummedOp`` of ``PauliOps``, will attempt to convert to ``WeightedPauliOperator``,
-        and otherwise will simply convert to ``MatrixOp`` and then to ``MatrixOperator``. The
-        Legacy Operators cannot represent ``StateFns`` or proper ``ListOps`` (meaning not one of
-        the ``ListOp`` subclasses), so an error will be thrown if this method is called on such
-        an Operator. Also, Legacy Operators cannot represent unbound Parameter coeffs, so an error
-        will be thrown if any are present in self.
+    def to_matrix_op(self, massive: bool = False) -> "OperatorBase":
+        """ Returns a ``MatrixOp`` equivalent to this Operator. """
+        raise NotImplementedError
 
-        Warn if more than 16 qubits to force having to set ``massive=True`` if such a
-        large vector is desired.
+    @abstractmethod
+    def to_circuit_op(self) -> "OperatorBase":
+        """ Returns a ``CircuitOp`` equivalent to this Operator. """
+        raise NotImplementedError
+
+    def to_spmatrix(self) -> spmatrix:
+        r""" Return SciPy sparse matrix representation of the Operator. Represents the evaluation of
+        the Operator's underlying function on every combination of basis binary strings.
 
         Returns:
-            The ``LegacyBaseOperator`` representing this Operator.
-
-        Raises:
-            TypeError: self is an Operator which cannot be represented by a ``LegacyBaseOperator``,
-                such as ``StateFn``, proper (non-subclass) ``ListOp``, or an Operator with an
-                unbound coeff Parameter.
+              The SciPy ``spmatrix`` equivalent to this Operator.
         """
-        raise NotImplementedError
+        return csr_matrix(self.to_matrix())
 
     @staticmethod
     def _indent(lines: str, indentation: str = INDENTATION) -> str:
@@ -303,7 +315,7 @@ class OperatorBase(ABC):
     # Scalar Multiplication
 
     @abstractmethod
-    def mul(self, scalar: Union[Number, ParameterExpression]) -> 'OperatorBase':
+    def mul(self, scalar: Union[complex, ParameterExpression]) -> 'OperatorBase':
         r"""
         Returns the scalar multiplication of the Operator, overloaded by ``*``, including
         support for Terra's ``Parameters``, which can be bound to values later (via
@@ -318,7 +330,7 @@ class OperatorBase(ABC):
         """
         raise NotImplementedError
 
-    def __mul__(self, other: Number) -> 'OperatorBase':
+    def __mul__(self, other: complex) -> 'OperatorBase':
         r""" Overload ``*`` for Operator scalar multiplication.
 
         Args:
@@ -330,7 +342,7 @@ class OperatorBase(ABC):
         """
         return self.mul(other)
 
-    def __rmul__(self, other: Number) -> 'OperatorBase':
+    def __rmul__(self, other: complex) -> 'OperatorBase':
         r""" Overload right ``*`` for Operator scalar multiplication.
 
         Args:
@@ -342,7 +354,7 @@ class OperatorBase(ABC):
         """
         return self.mul(other)
 
-    def __truediv__(self, other: Union[int, float, complex]) -> 'OperatorBase':
+    def __truediv__(self, other: complex) -> 'OperatorBase':
         r""" Overload ``/`` for scalar Operator division.
 
         Args:
@@ -430,9 +442,9 @@ class OperatorBase(ABC):
     @abstractmethod
     def assign_parameters(self,
                           param_dict: Dict[ParameterExpression,
-                                           Union[Number,
+                                           Union[complex,
                                                  ParameterExpression,
-                                                 List[Union[Number, ParameterExpression]]]]
+                                                 List[Union[complex, ParameterExpression]]]]
                           ) -> 'OperatorBase':
         """ Binds scalar values to any Terra ``Parameters`` in the coefficients or primitives of
         the Operator, or substitutes one ``Parameter`` for another. This method differs from
@@ -481,9 +493,9 @@ class OperatorBase(ABC):
 
     def bind_parameters(self,
                         param_dict: Dict[ParameterExpression,
-                                         Union[Number,
+                                         Union[complex,
                                                ParameterExpression,
-                                               List[Union[Number, ParameterExpression]]]]
+                                               List[Union[complex, ParameterExpression]]]]
                         ) -> 'OperatorBase':
         r"""
         Same as assign_parameters, but maintained for consistency with QuantumCircuit in
@@ -494,21 +506,21 @@ class OperatorBase(ABC):
     # Mostly copied from terra, but with list unrolling added:
     @staticmethod
     def _unroll_param_dict(value_dict: Dict[Union[ParameterExpression, ParameterVector],
-                                            Union[Number, List[Number]]]
-                           ) -> Union[Dict[ParameterExpression, Number],
-                                      List[Dict[ParameterExpression, Number]]]:
+                                            Union[complex, List[complex]]]
+                           ) -> Union[Dict[ParameterExpression, complex],
+                                      List[Dict[ParameterExpression, complex]]]:
         """ Unrolls the ParameterVectors in a param_dict into separate Parameters, and unrolls
         parameterization value lists into separate param_dicts without list nesting. """
         unrolled_value_dict = {}
         for (param, value) in value_dict.items():
             if isinstance(param, ParameterExpression):
                 unrolled_value_dict[param] = value
-            if isinstance(param, ParameterVector):
-                if not len(param) == len(value):  # type: ignore
+            if isinstance(param, ParameterVector) and isinstance(value, (list, np.ndarray)):
+                if not len(param) == len(value):
                     raise ValueError(
                         'ParameterVector {} has length {}, which differs from value list {} of '
-                        'len {}'.format(param, len(param), value, len(value)))  # type: ignore
-                unrolled_value_dict.update(zip(param, value))  # type: ignore
+                        'len {}'.format(param, len(param), value, len(value)))
+                unrolled_value_dict.update(zip(param, value))
         if isinstance(list(unrolled_value_dict.values())[0], list):
             # check that all are same length
             unrolled_value_dict_list = []
@@ -523,7 +535,7 @@ class OperatorBase(ABC):
         return unrolled_value_dict  # type: ignore
 
     @staticmethod
-    def _get_param_dict_for_index(unrolled_dict: Dict[ParameterExpression, List[Number]],
+    def _get_param_dict_for_index(unrolled_dict: Dict[ParameterExpression, List[complex]],
                                   i: int):
         """ Gets a single non-list-nested param_dict for a given list index from a nested one. """
         return {k: v[i] for (k, v) in unrolled_dict.items()}
@@ -535,7 +547,7 @@ class OperatorBase(ABC):
             other = other.permute(permutation)
         new_self = self
         if not self.num_qubits == other.num_qubits:
-            # pylint: disable=cyclic-import,import-outside-toplevel
+            # pylint: disable=cyclic-import
             from .operator_globals import Zero
             if other == Zero:
                 # Zero is special - we'll expand it to the correct qubit number.
@@ -545,6 +557,10 @@ class OperatorBase(ABC):
             elif other.num_qubits > self.num_qubits:
                 new_self = self._expand_dim(other.num_qubits - self.num_qubits)
         return new_self, other
+
+    def copy(self) -> "OperatorBase":
+        """Return a deep copy of the Operator."""
+        return deepcopy(self)
 
     # Composition
 
@@ -623,7 +639,7 @@ class OperatorBase(ABC):
         Raises:
             ValueError: Massive is False and number of qubits is greater than 16
         """
-        if num_qubits > 16 and not massive and not aqua_globals.massive:
+        if num_qubits > 16 and not massive and not algorithm_globals.massive:
             dim = 2 ** num_qubits
             if matrix:
                 obj_type = 'matrix'
@@ -634,7 +650,7 @@ class OperatorBase(ABC):
             raise ValueError(
                 f"'{method}' will return an exponentially large {obj_type}, "
                 f"in this case '{dimensions}' elements. "
-                "Set aqua_globals.massive=True or the method argument massive=True "
+                "Set algorithm_globals.massive=True or the method argument massive=True "
                 "if you want to proceed.")
 
     # Printing

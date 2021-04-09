@@ -22,7 +22,7 @@ from qiskit.assembler.disassemble import disassemble
 from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Instruction
-from qiskit.compiler.assemble import assemble
+from qiskit.compiler.assembler import assemble
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 import qiskit.quantum_info as qi

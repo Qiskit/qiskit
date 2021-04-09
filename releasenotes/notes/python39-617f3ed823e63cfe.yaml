@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Python 3.9 support has been added in this release. You can now run Qiskit
-    Terra using Python 3.9. 

@@ -15,17 +15,17 @@
 import time
 import threading
 from IPython import get_ipython
-from IPython.display import display                              # pylint: disable=import-error
-from IPython.core import magic_arguments                         # pylint: disable=import-error
-from IPython.core.magic import (cell_magic, line_magic,          # pylint: disable=import-error
+from IPython.display import display
+from IPython.core import magic_arguments
+from IPython.core.magic import (cell_magic, line_magic,
                                 Magics, magics_class,
                                 register_line_magic)
 
 try:
-    import ipywidgets as widgets                                 # pylint: disable=import-error
-except ImportError:
+    import ipywidgets as widgets
+except ImportError as ex:
     raise ImportError('These functions  need ipywidgets. '
-                      'Run "pip install ipywidgets" before.')
+                      'Run "pip install ipywidgets" before.') from ex
 import qiskit
 from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.tools.events.progressbar import TextProgressBar
@@ -41,7 +41,7 @@ def _html_checker(job_var, interval, status, header,
     Args:
         job_var (BaseJob): The job to keep track of.
         interval (int): The status check interval
-        status (widget): HTML ipywidget for output ot screen
+        status (widget): HTML ipywidget for output to screen
         header (str): String representing HTML code for status.
         _interval_set (bool): Was interval set by user?
     """

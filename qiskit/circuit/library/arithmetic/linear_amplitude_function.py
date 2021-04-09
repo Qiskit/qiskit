@@ -39,7 +39,7 @@ class LinearAmplitudeFunction(QuantumCircuit):
 
     In general, the function of interest :math:`f` is defined from some interval :math:`[a,b]`,
     the ``domain`` to :math:`[c,d]`, the ``image``, instead of :math`\{1, ..., N}` to
-    :math:`[0, 1]`. Usng an affine transformation we can rescale :math:`f` to :math:`\hat{f}`:
+    :math:`[0, 1]`. Using an affine transformation we can rescale :math:`f` to :math:`\hat{f}`:
 
     .. math::
 

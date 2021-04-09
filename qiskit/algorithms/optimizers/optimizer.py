@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class OptimizerSupportLevel(IntEnum):
     """ Support Level enum for features such as bounds, gradient and initial point """
+    # pylint: disable=invalid-name
     not_supported = 0  # Does not support the corresponding parameter in optimize()
     ignored = 1  # Feature can be passed as non None but will be ignored
     supported = 2  # Feature is supported

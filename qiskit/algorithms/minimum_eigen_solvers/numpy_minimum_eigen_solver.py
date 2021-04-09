@@ -23,8 +23,6 @@ from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=invalid-name
-
 class NumPyMinimumEigensolver(MinimumEigensolver):
     """
     The Numpy Minimum Eigensolver algorithm.
@@ -70,7 +68,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         super().compute_minimum_eigenvalue(operator, aux_operators)
         result_ces = self._ces.compute_eigenvalues(operator, aux_operators)
         self._ret = MinimumEigensolverResult()
-        if result_ces.eigenvalues:
+        if result_ces.eigenvalues is not None and len(result_ces.eigenvalues) > 0:
             self._ret.eigenvalue = result_ces.eigenvalues[0]
             self._ret.eigenstate = result_ces.eigenstates[0]
             if result_ces.aux_operator_eigenvalues:

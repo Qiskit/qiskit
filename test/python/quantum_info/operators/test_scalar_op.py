@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Tests for ScalarOp class."""
 
 import unittest
@@ -364,7 +362,7 @@ class TestScalarOpCompose(ScalarOpTestCase):
         dims = (3, 2)
         op1 = ScalarOp(dims, coeff=coeff1)
         op2 = ScalarOp(dims, coeff=coeff2)
-        val = op1 @ op2
+        val = op1 & op2
         target = coeff1 * coeff2
         self.assertScalarOp(val, dims, target)
 
@@ -374,7 +372,7 @@ class TestScalarOpCompose(ScalarOpTestCase):
         dims = (3, 2)
         op1 = ScalarOp(dims, coeff=coeff1)
         op2 = ScalarOp(dims, coeff=coeff2)
-        val = op1 * op2
+        val = op1.dot(op2)
         target = coeff1 * coeff2
         self.assertScalarOp(val, dims, target)
 
@@ -412,16 +410,16 @@ class TestScalarOpCompose(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), dims)
             self.assertAlmostEqual(val.coeff, target)
 
-        with self.subTest(msg='{} @ {}([0])'.format(op1, op2)):
-            val = op1 @ op2([0])
+        with self.subTest(msg='{} & {}([0])'.format(op1, op2)):
+            val = op1 & op2([0])
             target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
             self.assertEqual(val.input_dims(), dims)
             self.assertEqual(val.output_dims(), dims)
             self.assertAlmostEqual(val.coeff, target)
 
-        with self.subTest(msg='{} @ {}([1])'.format(op1, op3)):
-            val = op1 @ op3([1])
+        with self.subTest(msg='{} & {}([1])'.format(op1, op3)):
+            val = op1 & op3([1])
             target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
             self.assertEqual(val.input_dims(), dims)
@@ -429,7 +427,7 @@ class TestScalarOpCompose(ScalarOpTestCase):
             self.assertAlmostEqual(val.coeff, target)
 
         with self.subTest(msg='{} * {}([0])'.format(op1, op2)):
-            val = op1 * op2([0])
+            val = op1.dot(op2([0]))
             target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
             self.assertEqual(val.input_dims(), dims)
@@ -437,7 +435,7 @@ class TestScalarOpCompose(ScalarOpTestCase):
             self.assertAlmostEqual(val.coeff, target)
 
         with self.subTest(msg='{} * {}([1])'.format(op1, op3)):
-            val = op1 * op3([1])
+            val = op1.dot(op3([1]))
             target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
             self.assertEqual(val.input_dims(), dims)
@@ -488,16 +486,16 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='{} @ Operator({})'.format(iden, label)):
-            val = iden @ op
+        with self.subTest(msg='{} & Operator({})'.format(iden, label)):
+            val = iden & op
             target = iden.to_operator().compose(op)
             self.assertTrue(isinstance(val, Operator))
             self.assertEqual(val.input_dims(), (2, 2))
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='Operator({}) @ {}'.format(label, iden)):
-            val = op @ iden
+        with self.subTest(msg='Operator({}) & {}'.format(label, iden)):
+            val = op & iden
             target = op.compose(iden.to_operator())
             self.assertTrue(isinstance(val, Operator))
             self.assertEqual(val.input_dims(), (2, 2))
@@ -558,16 +556,16 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='{} @ Operator({})([0])'.format(iden, label)):
-            val = iden @ op([0])
+        with self.subTest(msg='{} & Operator({})([0])'.format(iden, label)):
+            val = iden & op([0])
             target = iden.to_operator().compose(op, qargs=[0])
             self.assertTrue(isinstance(val, Operator))
             self.assertEqual(val.input_dims(), (2, 2))
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='{} @ Operator({})([1])'.format(iden, label)):
-            val = iden @ op([1])
+        with self.subTest(msg='{} & Operator({})([1])'.format(iden, label)):
+            val = iden & op([1])
             target = iden.to_operator().compose(op, qargs=[1])
             self.assertTrue(isinstance(val, Operator))
             self.assertEqual(val.input_dims(), (2, 2))

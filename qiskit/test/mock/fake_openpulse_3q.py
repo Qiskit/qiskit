@@ -420,5 +420,5 @@ class FakeOpenPulse3Q(FakeBackend):
         })
         super().__init__(configuration)
 
-    def defaults(self):  # pylint: disable=missing-docstring
+    def defaults(self):  # pylint: disable=missing-function-docstring
         return self._defaults

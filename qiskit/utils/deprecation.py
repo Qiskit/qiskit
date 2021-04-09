@@ -47,7 +47,7 @@ _filter_deprecation_warnings()
 
 
 def deprecate_arguments(kwarg_map):
-    """Decorator to automatically alias deprecated agrument names and warn upon use."""
+    """Decorator to automatically alias deprecated argument names and warn upon use."""
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):

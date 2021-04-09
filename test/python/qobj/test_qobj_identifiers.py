@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
+# pylint: disable=missing-function-docstring
 
 """Non-string identifiers for circuit and record identifiers test"""
 

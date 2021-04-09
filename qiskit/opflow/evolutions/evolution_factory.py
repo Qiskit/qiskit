@@ -12,14 +12,10 @@
 
 """ EvolutionFactory Class """
 
-import logging
-
-from ..operator_base import OperatorBase
-from .evolution_base import EvolutionBase
-from .pauli_trotter_evolution import PauliTrotterEvolution
-from .matrix_evolution import MatrixEvolution
-
-logger = logging.getLogger(__name__)
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.evolutions.evolution_base import EvolutionBase
+from qiskit.opflow.evolutions.pauli_trotter_evolution import PauliTrotterEvolution
+from qiskit.opflow.evolutions.matrix_evolution import MatrixEvolution
 
 
 class EvolutionFactory:

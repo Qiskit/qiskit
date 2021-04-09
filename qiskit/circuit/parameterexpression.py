@@ -383,10 +383,9 @@ class ParameterExpression:
         Returns:
             bool: result of the comparison
         """
-        from sympy import srepr
         if isinstance(other, ParameterExpression):
             return (self.parameters == other.parameters
-                    and srepr(self._symbol_expr) == srepr(other._symbol_expr))
+                    and self._symbol_expr.equals(other._symbol_expr))
         elif isinstance(other, numbers.Number):
             return (len(self.parameters) == 0
                     and complex(self._symbol_expr) == other)

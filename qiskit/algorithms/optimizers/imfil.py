@@ -12,11 +12,8 @@
 
 """IMplicit FILtering (IMFIL) optimizer."""
 
-import logging
 from qiskit.exceptions import MissingOptionalLibraryError
 from .optimizer import Optimizer, OptimizerSupportLevel
-
-logger = logging.getLogger(__name__)
 
 try:
     import skquant.opt as skq
@@ -38,7 +35,6 @@ class IMFIL(Optimizer):
     https://github.com/scikit-quant/scikit-quant and https://qat4chem.lbl.gov/software.
     """
 
-    # pylint: disable=unused-argument
     def __init__(self,
                  maxiter: int = 1000,
                  ) -> None:

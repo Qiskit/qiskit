@@ -23,7 +23,9 @@ Exact and practical pattern matching for quantum circuit optimization.
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.dagcircuit import DAGDependency
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
+from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
 from qiskit.converters.dag_to_dagdependency import dag_to_dagdependency
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
@@ -42,7 +44,8 @@ class TemplateOptimization(TransformationPass):
 
     def __init__(self, template_list=None,
                  heuristics_qubits_param=None,
-                 heuristics_backward_param=None):
+                 heuristics_backward_param=None,
+                 user_cost_dict=None):
         """
         Args:
             template_list (list[QuantumCircuit()]): list of the different template circuit to apply.
@@ -50,7 +53,7 @@ class TemplateOptimization(TransformationPass):
                 applying heuristics on the backward part of the algorithm. This part of the
                 algorithm creates a tree of matching scenario. This tree grows exponentially. The
                 heuristics evaluates which scenarios have the longest match and keep only those.
-                The length is the interval in the tree for cutting it and surviror is the number
+                The length is the interval in the tree for cutting it and survivor is the number
                 of scenarios that are kept. We advice to use l=3 and s=1 to have serious time
                 advantage. We remind that the heuristics implies losing a part of the maximal
                 matches. Check reference for more details.
@@ -60,6 +63,9 @@ class TemplateOptimization(TransformationPass):
                 predecessors that will be explored in the dag dependency of the circuit, each
                 qubits of the nodes are added to the set of authorized qubits. We advice to use
                 length=1. Check reference for more details.
+            user_cost_dict (Dict[str, int]): quantum cost dictionary passed to TemplateSubstitution
+                to configure its behavior. This will override any default values if None
+                is not given. The key is the name of the gate and the value its quantum cost.
         """
         super().__init__()
         # If no template is given; the template are set as x-x, cx-cx, ccx-ccx.
@@ -70,6 +76,8 @@ class TemplateOptimization(TransformationPass):
             if heuristics_qubits_param is not None else []
         self.heuristics_backward_param = heuristics_backward_param \
             if heuristics_backward_param is not None else []
+
+        self.user_cost_dict = user_cost_dict
 
     def run(self, dag):
         """
@@ -85,15 +93,20 @@ class TemplateOptimization(TransformationPass):
         circuit_dag_dep = dag_to_dagdependency(circuit_dag)
 
         for template in self.template_list:
-            if not isinstance(template, QuantumCircuit):
-                raise TranspilerError('A template is a Quantumciruit().')
+            if not isinstance(template, (QuantumCircuit, DAGDependency)):
+                raise TranspilerError('A template is a Quantumciruit or a DAGDependency.')
 
-            if template.num_qubits > len(circuit_dag_dep.qubits):
+            if len(template.qubits) > len(circuit_dag_dep.qubits):
                 continue
 
-            identity = np.identity(2 ** template.num_qubits, dtype=complex)
+            identity = np.identity(2 ** len(template.qubits), dtype=complex)
             try:
-                comparison = np.allclose(Operator(template).data, identity)
+                if isinstance(template, DAGDependency):
+                    data = Operator(dagdependency_to_circuit(template)).data
+                else:
+                    data = Operator(template).data
+
+                comparison = np.allclose(data, identity)
 
                 if not comparison:
                     raise TranspilerError('A template is a Quantumciruit() that '
@@ -101,7 +114,10 @@ class TemplateOptimization(TransformationPass):
             except TypeError:
                 pass
 
-            template_dag_dep = circuit_to_dagdependency(template)
+            if isinstance(template, QuantumCircuit):
+                template_dag_dep = circuit_to_dagdependency(template)
+            else:
+                template_dag_dep = template
 
             template_m = TemplateMatching(circuit_dag_dep,
                                           template_dag_dep,
@@ -119,7 +135,8 @@ class TemplateOptimization(TransformationPass):
 
                 substitution = TemplateSubstitution(max_matches,
                                                     template_m.circuit_dag_dep,
-                                                    template_m.template_dag_dep)
+                                                    template_m.template_dag_dep,
+                                                    self.user_cost_dict)
                 substitution.run_dag_opt()
 
                 circuit_dag_dep = substitution.dag_dep_optimized

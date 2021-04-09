@@ -14,14 +14,11 @@
 to the device.
 """
 import warnings
-
-from typing import Dict, Optional, Any, Tuple
 from abc import ABC, abstractmethod
-
-import numpy as np
+from typing import Dict, Optional, Any, Tuple, Union
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.utils import deprecated_functionality
 
 
 class Pulse(ABC):
@@ -30,10 +27,10 @@ class Pulse(ABC):
     """
 
     @abstractmethod
-    def __init__(self, duration: int, name: Optional[str] = None):
-        if not isinstance(duration, (int, np.integer)):
-            raise PulseError('Pulse duration should be integer.')
-        self.duration = int(duration)
+    def __init__(self,
+                 duration: Union[int, ParameterExpression],
+                 name: Optional[str] = None):
+        self.duration = duration
         self.name = name
 
     @property
@@ -41,11 +38,17 @@ class Pulse(ABC):
         """Unique identifier for this pulse."""
         return id(self)
 
+    @property
     @abstractmethod
+    def parameters(self) -> Dict[str, Any]:
+        """Return a dictionary containing the pulse's parameters."""
+        pass
+
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
         raise NotImplementedError
 
+    @deprecated_functionality
     @abstractmethod
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
@@ -116,7 +119,7 @@ class Pulse(ABC):
             The returned data type depends on the ``plotter``.
             If matplotlib family is specified, this will be a ``matplotlib.pyplot.Figure`` data.
         """
-        # pylint: disable=invalid-name, cyclic-import, missing-return-type-doc
+        # pylint: disable=cyclic-import, missing-return-type-doc
         from qiskit.visualization import pulse_drawer_v2, PulseStyle
 
         legacy_args = {'dt': dt,
