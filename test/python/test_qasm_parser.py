@@ -36,7 +36,7 @@ class TestParser(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.qasm_dir = self.qasm_dir = os.path.join(
+        self.qasm_dir = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             'qasm')
         self.qasm_file_path = os.path.join(self.qasm_dir, 'example.qasm')
