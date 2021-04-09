@@ -325,7 +325,7 @@ def load_style(style):
                  " default style.".format(style_name, ', '.join(style_path)), UserWarning, 2)
 
     if isinstance(style, dict):
-        new_style = copy.copy(style)
+        new_style = copy.deepcopy(style)
         set_style(current_style, new_style)
 
     return current_style, def_font_ratio

@@ -61,6 +61,8 @@ def get_gate_ctrl_text(op, drawer, style=None):
     else:
         gate_text = op.name
 
+    # raw_gate_text is used in color selection in mpl instead of op.name, since
+    # if it's a controlled gate, the color will likely not be the base_name color
     raw_gate_text = op.name if gate_text == base_name else gate_text
 
     # For mpl and latex drawers, check style['disptex'] in qcstyle.py
