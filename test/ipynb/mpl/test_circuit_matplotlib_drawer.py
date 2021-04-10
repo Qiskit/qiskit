@@ -520,6 +520,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
             'displaytext': {'CNOTNOT_PRIME': "$\\mathrm{CNOTNOT}'$"}},
                             filename='style_custom_gates.png')
 
+    def test_6095(self):
+        """Tests controlled-phase gate style
+        See https://github.com/Qiskit/qiskit-terra/issues/6095"""
+        circuit = QuantumCircuit(2)
+        circuit.cp(1.0, 0, 1)
+        circuit.h(1)
+
+        self.circuit_drawer(circuit, style={'displaycolor': {'cp': ('#A27486', '#000000'),
+                                                             'h': ('#A27486', '#000000')}},
+                            filename='6095.png')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=1)
