@@ -225,7 +225,8 @@ class SabreSwap(TransformationPass):
             best_swaps = [k for k, v in swap_scores.items() if v == min_score]
             best_swaps.sort(key=lambda x: (self._bit_indices[x[0]], self._bit_indices[x[1]]))
             best_swap = rng.choice(best_swaps)
-            swap_node = DAGNode(op=SwapGate(), qargs=best_swap, type='op')
+            op = SwapGate()
+            swap_node = DAGNode(op=op, name=op.name, qargs=best_swap, type='op')
             swap_node = _transform_gate_for_layout(swap_node, current_layout, canonical_register)
             mapped_dag.apply_operation_back(swap_node.op, swap_node.qargs)
             current_layout.swap(*best_swap)

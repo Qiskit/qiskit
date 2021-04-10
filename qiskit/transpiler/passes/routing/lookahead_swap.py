@@ -311,8 +311,9 @@ def _swap_ops_from_edge(edge, layout):
     """Generate list of ops to implement a SWAP gate along a coupling edge."""
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
     qreg_edge = [device_qreg[i] for i in edge]
+    op = SwapGate()
 
     # TODO shouldn't be making other nodes not by the DAG!!
     return [
-        DAGNode(op=SwapGate(), qargs=qreg_edge, cargs=[], type='op')
+        DAGNode(op=op, name=op.name, qargs=qreg_edge, cargs=[], type='op')
     ]
