@@ -1789,7 +1789,6 @@ class QuantumCircuit:
         for node in new_dag.topological_op_nodes():
             # Get arguments for classical condition (if any)
             inst = node.op.copy()
-            inst.condition = node.condition
             circ.append(inst, node.qargs, node.cargs)
 
         circ.clbits.clear()

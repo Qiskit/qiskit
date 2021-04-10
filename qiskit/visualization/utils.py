@@ -145,13 +145,13 @@ def _sorted_nodes(dag_layer):
     return dag_instructions
 
 
-def _get_gate_span(qubits, instruction):
+def _get_gate_span(qubits, node):
     """Get the list of qubits drawing this gate would cover
     qiskit-terra #2802
     """
     min_index = len(qubits)
     max_index = 0
-    for qreg in instruction.qargs:
+    for qreg in node.qargs:
         index = qubits.index(qreg)
 
         if index < min_index:
@@ -159,9 +159,9 @@ def _get_gate_span(qubits, instruction):
         if index > max_index:
             max_index = index
 
-    if instruction.cargs:
+    if node.cargs:
         return qubits[min_index:]
-    if instruction.condition:
+    if node.op.condition:
         return qubits[min_index:]
 
     return qubits[min_index:max_index + 1]
@@ -235,8 +235,8 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            if node.condition:
-                index_stop = self.measure_map[node.condition[0]]
+            if node.op.condition:
+                index_stop = self.measure_map[node.op.condition[0]]
             elif node.cargs:
                 for carg in node.cargs:
                     try:
