@@ -132,7 +132,7 @@ class CommutativeCancellation(TransformationPass):
                 total_angle = 0.0  # lambda
                 total_phase = 0.0
                 for current_node in run:
-                    if (current_node.condition is not None
+                    if (current_node.op.condition is not None
                             or len(current_node.qargs) != 1
                             or current_node.qargs[0] != run_qarg):
                         raise TranspilerError("internal error")
