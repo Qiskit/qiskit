@@ -397,8 +397,8 @@ class DAGDependency:
             cindices_list = []
 
         new_node = DAGDepNode(type="op", op=operation, name=operation.name, qargs=qargs,
-                              cargs=cargs, condition=operation.condition, successors=[],
-                              predecessors=[], qindices=qindices_list, cindices=cindices_list)
+                              cargs=cargs, successors=[], predecessors=[],
+                              qindices=qindices_list, cindices=cindices_list)
         self._add_multi_graph_node(new_node)
         self._update_edges()
 
@@ -570,9 +570,10 @@ def _does_commute(node1, node2):
     # if and only if the qubits are different.
     # TODO: qubits can be the same if conditions are identical and
     # the non-conditional gates commute.
-    if node1.condition or node2.condition:
-        intersection = set(qarg1).intersection(set(qarg2))
-        return not intersection
+    if node1.type == 'op' and node2.type == 'op':
+        if node1.op.condition or node2.op.condition:
+            intersection = set(qarg1).intersection(set(qarg2))
+            return not intersection
 
     # Commutation for non-unitary or parameterized or opaque ops
     # (e.g. measure, reset, directives or pulse gates)
