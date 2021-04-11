@@ -239,83 +239,104 @@ class TestStabilizerState(QiskitTestCase):
         qc.cx(0, 2)
 
         for _ in range(self.samples):
-            stab = StabilizerState(qc)
-            res = stab.reset()
-            value = res.measure()[0]
-            self.assertEqual(value, '000')
-
-        for _ in range(self.samples):
-            for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
+            with self.subTest(msg='reset (None)'):
                 stab = StabilizerState(qc)
-                res = stab.reset(qargs)
+                res = stab.reset()
                 value = res.measure()[0]
                 self.assertEqual(value, '000')
 
         for _ in range(self.samples):
-            stab = StabilizerState(qc)
-            res = stab.reset([0])
-            value = res.measure()[0]
-            self.assertIn(value, ['000', '110'])
+            for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
+                with self.subTest(msg='reset (qargs={})'.format(qargs)):
+                    stab = StabilizerState(qc)
+                    res = stab.reset(qargs)
+                    value = res.measure()[0]
+                    self.assertEqual(value, '000')
 
         for _ in range(self.samples):
-            stab = StabilizerState(qc)
-            res = stab.reset([1])
-            value = res.measure()[0]
-            self.assertIn(value, ['000', '101'])
+            with self.subTest(msg='reset ([0])'):
+                stab = StabilizerState(qc)
+                res = stab.reset([0])
+                value = res.measure()[0]
+                self.assertIn(value, ['000', '110'])
 
         for _ in range(self.samples):
-            stab = StabilizerState(qc)
-            res = stab.reset([2])
-            value = res.measure()[0]
-            self.assertIn(value, ['000', '011'])
+            with self.subTest(msg='reset ([1])'):
+                stab = StabilizerState(qc)
+                res = stab.reset([1])
+                value = res.measure()[0]
+                self.assertIn(value, ['000', '101'])
+
+        for _ in range(self.samples):
+            with self.subTest(msg='reset ([2])'):
+                stab = StabilizerState(qc)
+                res = stab.reset([2])
+                value = res.measure()[0]
+                self.assertIn(value, ['000', '011'])
 
         for _ in range(self.samples):
             for qargs in [[0, 1], [1, 0]]:
-                stab = StabilizerState(qc)
-                res = stab.reset(qargs)
-                value = res.measure()[0]
-                self.assertIn(value, ['000', '100'])
+                with self.subTest(msg='reset (qargs={})'.format(qargs)):
+                    stab = StabilizerState(qc)
+                    res = stab.reset(qargs)
+                    value = res.measure()[0]
+                    self.assertIn(value, ['000', '100'])
 
         for _ in range(self.samples):
             for qargs in [[0, 2], [2, 0]]:
-                stab = StabilizerState(qc)
-                res = stab.reset(qargs)
-                value = res.measure()[0]
-                self.assertIn(value, ['000', '010'])
+                with self.subTest(msg='reset (qargs={})'.format(qargs)):
+                    stab = StabilizerState(qc)
+                    res = stab.reset(qargs)
+                    value = res.measure()[0]
+                    self.assertIn(value, ['000', '010'])
 
         for _ in range(self.samples):
             for qargs in [[1, 2], [2, 1]]:
-                stab = StabilizerState(qc)
-                res = stab.reset(qargs)
-                value = res.measure()[0]
-                self.assertIn(value, ['000', '001'])
+                with self.subTest(msg='reset (qargs={})'.format(qargs)):
+                    stab = StabilizerState(qc)
+                    res = stab.reset(qargs)
+                    value = res.measure()[0]
+                    self.assertIn(value, ['000', '001'])
 
     def test_probablities_dict(self):
-        """Test probabilities_dict method of a subsystem of qubits"""
+        """Test probabilities and probabilities_dict methods of a subsystem of qubits"""
 
         num_qubits = 1
         qc = QuantumCircuit(num_qubits)
 
         for _ in range(self.samples):
-            stab = StabilizerState(qc)
-            value = stab.probabilities_dict()
-            target = {'0': 1}
-            self.assertEqual(value, target)
+            with self.subTest(msg='P(id(0))'):
+                stab = StabilizerState(qc)
+                value = stab.probabilities_dict()
+                target = {'0': 1}
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([1, 0])
+                self.assertTrue(np.allclose(probs, target))
 
         qc.x(0)
         for _ in range(self.samples):
-            stab = StabilizerState(qc)
-            value = stab.probabilities_dict()
-            target = {'1': 1}
-            self.assertEqual(value, target)
+            with self.subTest(msg='P(x(0))'):
+                stab = StabilizerState(qc)
+                value = stab.probabilities_dict()
+                target = {'1': 1}
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([0, 1])
+                self.assertTrue(np.allclose(probs, target))
 
         qc = QuantumCircuit(num_qubits)
         qc.h(0)
         for _ in range(self.samples):
-            stab = StabilizerState(qc)
-            value = stab.probabilities_dict()
-            target = {'0': 0.5, '1': 0.5}
-            self.assertEqual(value, target)
+            with self.subTest(msg='P(h(0))'):
+                stab = StabilizerState(qc)
+                value = stab.probabilities_dict()
+                target = {'0': 0.5, '1': 0.5}
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([0.5, 0.5])
+                self.assertTrue(np.allclose(probs, target))
+
 
         num_qubits = 2
         qc = QuantumCircuit(num_qubits)
@@ -323,29 +344,50 @@ class TestStabilizerState(QiskitTestCase):
         stab = StabilizerState(qc)
 
         for _ in range(self.samples):
-            value = stab.probabilities_dict()
-            target = {'00': 0.5, '01': 0.5}
-            self.assertEqual(value, target)
+            with self.subTest(msg='P(None)'):
+                value = stab.probabilities_dict()
+                target = {'00': 0.5, '01': 0.5}
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([0.5, 0.5, 0, 0])
+                self.assertTrue(np.allclose(probs, target))
 
         for _ in range(self.samples):
-            value = stab.probabilities_dict([0, 1])
-            target = {'00': 0.5, '01': 0.5}
-            self.assertEqual(value, target)
+            with self.subTest(msg='P([0, 1])'):
+                value = stab.probabilities_dict([0, 1])
+                target = {'00': 0.5, '01': 0.5}
+                self.assertEqual(value, target)
+                probs = stab.probabilities([0, 1])
+                target = np.array([0.5, 0.5, 0, 0])
+                self.assertTrue(np.allclose(probs, target))
 
         for _ in range(self.samples):
-            value = stab.probabilities_dict([1, 0])
-            target = {'00': 0.5, '10': 0.5}
-            self.assertEqual(value, target)
+            with self.subTest(msg='P([1, 0])'):
+                value = stab.probabilities_dict([1, 0])
+                target = {'00': 0.5, '10': 0.5}
+                self.assertEqual(value, target)
+                probs = stab.probabilities([1, 0])
+                target = np.array([0.5, 0, 0.5, 0])
+                self.assertTrue(np.allclose(probs, target))
 
         for _ in range(self.samples):
-            value = stab.probabilities_dict([0])
-            target = {'0': 0.5, '1': 0.5}
-            self.assertEqual(value, target)
+            with self.subTest(msg='P[0]'):
+                value = stab.probabilities_dict([0])
+                target = {'0': 0.5, '1': 0.5}
+                self.assertEqual(value, target)
+                probs = stab.probabilities([0])
+                target = np.array([0.5, 0.5])
+                self.assertTrue(np.allclose(probs, target))
 
         for _ in range(self.samples):
-            value = stab.probabilities_dict([1])
-            target = {'0': 1.0}
-            self.assertEqual(value, target)
+            with self.subTest(msg='P([1])'):
+                value = stab.probabilities_dict([1])
+                target = {'0': 1.0}
+                self.assertEqual(value, target)
+                probs = stab.probabilities([1])
+                target = np.array([1, 0])
+                self.assertTrue(np.allclose(probs, target))
+
 
         num_qubits = 3
         qc = QuantumCircuit(num_qubits)
@@ -353,26 +395,42 @@ class TestStabilizerState(QiskitTestCase):
         qc.h(1)
         qc.h(2)
         stab = StabilizerState(qc)
-        for _ in range(self.samples):
-            value = stab.probabilities_dict(decimals=1)
-            target = {'000': 0.1, '001': 0.1, '010': 0.1, '011': 0.1,
-                      '100': 0.1, '101': 0.1, '110': 0.1, '111': 0.1}
-            self.assertEqual(value, target)
 
         for _ in range(self.samples):
-            value = stab.probabilities_dict(decimals=2)
-            target = {'000': 0.12, '001': 0.12, '010': 0.12, '011': 0.12,
-                      '100': 0.12, '101': 0.12, '110': 0.12, '111': 0.12}
-            self.assertEqual(value, target)
+            with self.subTest(msg='P(None), decimals=1'):
+                value = stab.probabilities_dict(decimals=1)
+                target = {'000': 0.1, '001': 0.1, '010': 0.1, '011': 0.1,
+                          '100': 0.1, '101': 0.1, '110': 0.1, '111': 0.1}
+                self.assertEqual(value, target)
+                probs = stab.probabilities(decimals=1)
+                target = np.array([0.1, 0.1, 0.1, 0.1,
+                                   0.1, 0.1, 0.1, 0.1])
+                self.assertTrue(np.allclose(probs, target))
 
         for _ in range(self.samples):
-            value = stab.probabilities_dict(decimals=3)
-            target = {'000': 0.125, '001': 0.125, '010': 0.125, '011': 0.125,
-                      '100': 0.125, '101': 0.125, '110': 0.125, '111': 0.125}
-            self.assertEqual(value, target)
+            with self.subTest(msg='P(None), decimals=2'):
+                value = stab.probabilities_dict(decimals=2)
+                target = {'000': 0.12, '001': 0.12, '010': 0.12, '011': 0.12,
+                          '100': 0.12, '101': 0.12, '110': 0.12, '111': 0.12}
+                self.assertEqual(value, target)
+                probs = stab.probabilities(decimals=2)
+                target = np.array([0.12, 0.12, 0.12, 0.12,
+                                   0.12, 0.12, 0.12, 0.12])
+                self.assertTrue(np.allclose(probs, target))
+
+        for _ in range(self.samples):
+            with self.subTest(msg='P(None), decimals=3'):
+                value = stab.probabilities_dict(decimals=3)
+                target = {'000': 0.125, '001': 0.125, '010': 0.125, '011': 0.125,
+                          '100': 0.125, '101': 0.125, '110': 0.125, '111': 0.125}
+                self.assertEqual(value, target)
+                probs = stab.probabilities(decimals=3)
+                target = np.array([0.125, 0.125, 0.125, 0.125,
+                                   0.125, 0.125, 0.125, 0.125])
+                self.assertTrue(np.allclose(probs, target))
 
     def test_probablities_dict_ghz(self):
-        """Test probabilities_dict method of a subsystem of qubits"""
+        """Test probabilities and probabilities_dict method of a subsystem of qubits"""
 
         num_qubits = 3
         qc = QuantumCircuit(num_qubits)
@@ -380,31 +438,46 @@ class TestStabilizerState(QiskitTestCase):
         qc.cx(0, 1)
         qc.cx(0, 2)
 
-        stab = StabilizerState(qc)
-        value = stab.probabilities_dict()
-        target = {'000': 0.5, '111': 0.5}
-        self.assertEqual(value, target)
+        with self.subTest(msg='P(None)'):
+            stab = StabilizerState(qc)
+            value = stab.probabilities_dict()
+            target = {'000': 0.5, '111': 0.5}
+            self.assertEqual(value, target)
+            probs = stab.probabilities()
+            target = np.array([0.5, 0, 0, 0,
+                               0, 0, 0, 0.5])
+            self.assertTrue(np.allclose(probs, target))
 
         # 3-qubit qargs
-        target = {'000': 0.5, '111': 0.5}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
             with self.subTest(msg='P({})'.format(qargs)):
                 probs = stab.probabilities_dict(qargs)
+                target = {'000': 0.5, '111': 0.5}
                 self.assertDictAlmostEqual(probs, target)
+                probs = stab.probabilities(qargs)
+                target = np.array([0.5, 0, 0, 0,
+                                   0, 0, 0, 0.5])
+                self.assertTrue(np.allclose(probs, target))
 
         # 2-qubit qargs
-        target = {'00': 0.5, '11': 0.5}
         for qargs in [[0, 1], [2, 1], [1, 0], [1, 2]]:
             with self.subTest(msg='P({})'.format(qargs)):
                 probs = stab.probabilities_dict(qargs)
+                target = {'00': 0.5, '11': 0.5}
                 self.assertDictAlmostEqual(probs, target)
+                probs = stab.probabilities(qargs)
+                target = np.array([0.5, 0, 0, 0.5])
+                self.assertTrue(np.allclose(probs, target))
 
         # 1-qubit qargs
-        target = {'0': 0.5, '1': 0.5}
         for qargs in [[0], [1], [2]]:
             with self.subTest(msg='P({})'.format(qargs)):
                 probs = stab.probabilities_dict(qargs)
+                target = {'0': 0.5, '1': 0.5}
                 self.assertDictAlmostEqual(probs, target)
+                probs = stab.probabilities(qargs)
+                target = np.array([0.5, 0.5])
+                self.assertTrue(np.allclose(probs, target))
 
     def test_sample_counts_memory_ghz(self):
         """Test sample_counts and sample_memory method for GHZ state"""

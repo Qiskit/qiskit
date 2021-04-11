@@ -198,7 +198,16 @@ class StabilizerState(QuantumState):
         Returns:
             np.array: The Numpy vector array of probabilities.
         """
-        pass
+        probs_dict = self.probabilities_dict(qargs, decimals)
+        if qargs is None:
+            qargs = range(self.data.num_qubits)
+        probs = np.zeros(2 ** len(qargs))
+
+        for key, value in probs_dict.items():
+            place = int(key, 2)
+            probs[place] = value
+
+        return probs
 
     def probabilities_dict(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability dictionary.
