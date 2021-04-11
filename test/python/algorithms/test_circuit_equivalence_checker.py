@@ -139,6 +139,11 @@ class TestEquivalenceChecker(QiskitTestCase):
         circ = QuantumCircuit(40)
         self.verify_result(methods, names, options, circ, circ, False, None)
 
+    def test_automatic_simulator(self):
+        circ = QuantumCircuit(1)
+        res = equivalence_checker(circ, circ, 'unitary', simulator='automatic', phase='equal')
+        self.assertEqual(res.simulator, 'aer')
+
 
 if __name__ == '__main__':
     unittest.main()

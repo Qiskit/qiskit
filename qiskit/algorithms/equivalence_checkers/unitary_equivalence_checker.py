@@ -30,7 +30,8 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
         """
         Args:
             simulator (str): The type of simulator to compute the unitary.
-                Options are: 'quantum_info', 'aer', or 'external'.
+                Options are: 'quantum_info', 'aer', 'external', or 'automatic'.
+                'automatic' will choose 'aer' if Aer is installed, otherwise it will choose 'quantum_info'
             phase (str): Options are 'global' - ignoring global phase;
                 or 'equal' - not ignoring global phase.
             name (str): The checker's name.
@@ -41,7 +42,7 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
         Raises:
             QiskitError:
                 If `simulator` is 'aer' but Aer is not installed.
-                If `simulator` ia different from 'quantum_info', 'aer', 'external'.
+                If `simulator` ia different from 'quantum_info', 'aer', 'external', 'automatic'.
                 If `phase` is not one of 'equal', 'global'.
         """
 
@@ -56,19 +57,27 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
         else:
             raise QiskitError('Unrecognized phase criterion: ' + str(phase))
 
+        if simulator not in ['quantum_info', 'aer', 'external', 'automatic']:
+            raise QiskitError('Unrecognized simulator option: ' + str(self.simulator))
+
         if simulator == 'external':
             self.backend = external_backend
-        elif simulator == 'aer':
+            
+        if simulator == 'aer' or simulator == 'automatic':
             try:
                 from qiskit.providers.aer import UnitarySimulator
                 self.backend = UnitarySimulator()
                 self.backend.set_options(**backend_options)
+                if simulator == 'automatic':
+                    self.simulator = 'aer'
             except ImportError:
-                raise QiskitError('Could not import the Aer simulator')
-        elif simulator == 'quantum_info':
+                if simulator == 'aer':
+                    raise QiskitError('Could not import the Aer simulator')
+                else:
+                    self.simualtor = 'quantum_info'
+                    
+        if self.simulator == 'quantum_info':
             self.backend = None
-        else:
-            raise QiskitError('Unrecognized simulator option: ' + str(self.simulator))
 
     # pylint: disable=arguments-differ
     def _run_checker(self, circ1, circ2):
@@ -124,4 +133,6 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
             error_msg = str(exc)
             success = False
 
-        return EquivalenceCheckerResult(success, equivalent, error_msg)
+        res = EquivalenceCheckerResult(success, equivalent, error_msg)
+        res.simulator = self.simulator
+        return res
