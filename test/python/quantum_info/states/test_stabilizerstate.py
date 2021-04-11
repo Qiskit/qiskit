@@ -290,6 +290,101 @@ class TestStabilizerState(QiskitTestCase):
                 value = res.measure()[0]
                 self.assertIn(value, ['000', '001'])
 
+
+    def test_probablities_dict(self):
+        """Test probabilities_dict method of a subsystem of qubits"""
+
+        num_qubits = 1
+        qc = QuantumCircuit(num_qubits)
+
+        for _ in range(self.samples):
+            stab = StabilizerState(qc)
+            value = stab.probabilities_dict()
+            target = {'0': 1}
+            self.assertEqual(value, target)
+
+        qc.x(0)
+        for _ in range(self.samples):
+            stab = StabilizerState(qc)
+            value = stab.probabilities_dict()
+            target = {'1': 1}
+            self.assertEqual(value, target)
+
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        for _ in range(self.samples):
+            stab = StabilizerState(qc)
+            value = stab.probabilities_dict()
+            target = {'0': 0.5, '1': 0.5}
+            self.assertEqual(value, target)
+
+        num_qubits = 2
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        stab = StabilizerState(qc)
+
+        for _ in range(self.samples):
+            value = stab.probabilities_dict()
+            target = {'00': 0.5, '01': 0.5}
+            self.assertEqual(value, target)
+
+        for _ in range(self.samples):
+            value = stab.probabilities_dict([0, 1])
+            target = {'00': 0.5, '01': 0.5}
+            self.assertEqual(value, target)
+
+        for _ in range(self.samples):
+            value = stab.probabilities_dict([1, 0])
+            target = {'00': 0.5, '10': 0.5}
+            self.assertEqual(value, target)
+
+        for _ in range(self.samples):
+            value = stab.probabilities_dict([0])
+            target = {'0': 0.5, '1': 0.5}
+            self.assertEqual(value, target)
+
+        for _ in range(self.samples):
+            value = stab.probabilities_dict([1])
+            target = {'0': 1.0}
+            self.assertEqual(value, target)
+
+
+    def test_probablities_dict_ghz(self):
+        """Test probabilities_dict method of a subsystem of qubits"""
+
+        num_qubits = 3
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+
+        stab = StabilizerState(qc)
+        value = stab.probabilities_dict(decimals=1)
+        target = {'000': 0.5, '111': 0.5}
+        self.assertEqual(value, target)
+
+        # 3-qubit qargs
+        target = {'000': 0.5, '111': 0.5}
+        for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = stab.probabilities_dict(qargs)
+                self.assertDictAlmostEqual(probs, target)
+
+        # 2-qubit qargs
+        target = {'00': 0.5, '11': 0.5}
+        for qargs in [[0, 1], [2, 1], [1, 0], [1, 2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = stab.probabilities_dict(qargs)
+                self.assertDictAlmostEqual(probs, target)
+
+        # 1-qubit qargs
+        target = {'0': 0.5, '1': 0.5}
+        for qargs in [[0], [1], [2]]:
+            with self.subTest(msg='P({})'.format(qargs)):
+                probs = stab.probabilities_dict(qargs)
+                self.assertDictAlmostEqual(probs, target)
+
+
     def test_sample_counts_memory_ghz(self):
         """Test sample_counts and sample_memory method for GHZ state"""
 
@@ -335,6 +430,7 @@ class TestStabilizerState(QiskitTestCase):
                 memory = stab.sample_memory(self.shots, qargs=qargs)
                 self.assertEqual(len(memory), self.shots)
                 self.assertEqual(set(memory), set(target))
+
 
     def test_sample_counts_memory_superposition(self):
         """Test sample_counts and sample_memory method of a 3-qubit superposition"""

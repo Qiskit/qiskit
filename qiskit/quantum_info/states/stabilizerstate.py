@@ -220,7 +220,17 @@ class StabilizerState(QuantumState):
         Returns:
             dict: The measurement probabilities in dict (ket) form.
         """
-        pass
+        if qargs is None:
+            qubits = range(self.data.num_qubits)
+        else:
+            qubits = qargs
+
+        outcome = ['X'] * len(qubits)
+        outcome_prob = 1.0
+        probs = {}  # probabilities dictionary
+
+        self._get_probablities(qubits, outcome, outcome_prob, probs)
+        return probs
 
     def reset(self, qargs=None):
         """Reset state or subsystems to the 0-state.
@@ -434,3 +444,37 @@ class StabilizerState(QuantumState):
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
     # -----------------------------------------------------------------------
+    def _get_probablities(self, qubits, outcome, outcome_prob, probs):
+        """Recursive helper function for calculating the probabilities"""
+
+        qubit_for_branching = -1
+
+        for i in range(len(qubits)):
+            qubit = qubits[len(qubits) - i - 1]
+            if outcome[i] == 'X':
+                is_deterministic = not any(self.data.stabilizer.X[:, qubit])
+                if is_deterministic:
+                    single_qubit_outcome = self._measure_and_update(qubit, 0)
+                    if single_qubit_outcome:
+                        outcome[i] = '1'
+                    else:
+                        outcome[i] = '0'
+                else:
+                    qubit_for_branching = i
+
+        if qubit_for_branching == -1:
+            str_outcome = ''.join(outcome)
+            probs[str_outcome] = outcome_prob
+            return
+
+        for single_qubit_outcome in range(0, 2):
+            new_outcome = outcome.copy()
+            if single_qubit_outcome:
+                new_outcome[qubit_for_branching] = '1'
+            else:
+                new_outcome[qubit_for_branching] = '0'
+
+            stab_cpy = self.copy()
+            stab_cpy._measure_and_update(
+                qubits[len(qubits) - qubit_for_branching - 1], single_qubit_outcome)
+            stab_cpy._get_probablities(qubits, new_outcome, 0.5 * outcome_prob, probs)
