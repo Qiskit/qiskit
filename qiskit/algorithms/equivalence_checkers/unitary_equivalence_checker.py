@@ -91,7 +91,7 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
         error_msg = None
 
         try:
-            circ = circ1 + circ2.inverse()
+            circ = circ1.compose(circ2.inverse())
             # Optimize the circuit before creating the unitary
             circ = transpile(circ, self.backend)
 
