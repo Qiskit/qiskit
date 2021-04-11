@@ -433,6 +433,20 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(_qobj_inst_params(7, 0), [1, 0, 0])
         self.assertEqual(_qobj_inst_params(8, 0), [2, 1, 0])
 
+
+    def test_6200(self):
+        """Test single parameter_binds should preserve the circuit name.
+        See https://github.com/Qiskit/qiskit-terra/issues/6200"""
+        x = Parameter('x')
+
+        circuit = QuantumCircuit(1, name='a_particular_name')
+        circuit.rx(x, 0)
+
+        qobj = assemble(circuit, parameter_binds=[{x: 1}])
+
+        self.assertEqual(len(qobj.experiments), 1)
+        self.assertEqual(qobj.experiments[0].header.name, 'a_particular_name')
+
     def test_init_qubits_default(self):
         """Check that the init_qubits=None assemble option is passed on to the qobj."""
         qobj = assemble(self.circ)

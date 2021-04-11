@@ -455,5 +455,6 @@ def _expand_parameters(circuits, run_config):
         # All parameters have been expanded and bound, so remove from run_config
         run_config = copy.deepcopy(run_config)
         run_config.parameter_binds = []
+        circuits = bound_circuits
 
-    return bound_circuits, run_config
+    return circuits, run_config
