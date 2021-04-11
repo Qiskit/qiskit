@@ -433,7 +433,6 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(_qobj_inst_params(7, 0), [1, 0, 0])
         self.assertEqual(_qobj_inst_params(8, 0), [2, 1, 0])
 
-
     def test_6200(self):
         """Test single parameter_binds should preserve the circuit name.
         See https://github.com/Qiskit/qiskit-terra/issues/6200"""
