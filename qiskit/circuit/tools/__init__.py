@@ -14,4 +14,4 @@
 Helpful routines
 """
 from .pi_check import pi_check
-from .equivalence_checker import BaseEquivalenceChecker, UnitaryEquivalenceChecker
+

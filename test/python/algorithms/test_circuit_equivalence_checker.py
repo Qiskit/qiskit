@@ -18,7 +18,7 @@ import unittest
 from qiskit.test import QiskitTestCase
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.tools import UnitaryEquivalenceChecker
+from qiskit.algorithms import UnitaryEquivalenceChecker
 
 
 class TestEquivalenceChecker(QiskitTestCase):

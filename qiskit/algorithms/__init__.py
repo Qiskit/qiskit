@@ -116,6 +116,18 @@ Algorithms that can find the minimum eigenvalue of an operator.
    QAOA
    VQE
 
+Equivalence Checkers
+++++++++++++++++++++
+Algorithms that determine whether circuits are equivalent.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   BaseEquivalenceChecker
+   UnitaryEquivalenceChecker
+   EquivalenceCheckerResult
+
 Exceptions
 ==========
 
@@ -141,6 +153,7 @@ from .factorizers import Shor, ShorResult
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
                                     NumPyMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
+from .equivalence_checkers import BaseEquivalenceChecker, UnitaryEquivalenceChecker, EquivalenceCheckerResult
 from .exceptions import AlgorithmError
 
 __all__ = [
@@ -172,5 +185,8 @@ __all__ = [
     'NumPyMinimumEigensolver',
     'MinimumEigensolver',
     'MinimumEigensolverResult',
+    'BaseEquivalenceChecker',
+    'UnitaryEquivalenceChecker',
+    'EquivalenceCheckerResult',
     'AlgorithmError',
 ]
