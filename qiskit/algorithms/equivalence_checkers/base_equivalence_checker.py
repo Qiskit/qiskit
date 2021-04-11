@@ -43,18 +43,19 @@ class BaseEquivalenceChecker(ABC):
     def __init__(self, name):
         self.name = name
 
-    def run(self, circ1, circ2, **kwargs):
+    def run(self, circ1, circ2):
         """
         Check if the circuits are equivalent.
 
         Args:
-            circ1, circ2 (QuantumCircuit): Circuits to check.
+            circ1 (QuantumCircuit): First circuit to check.
+            circ2 (QuantumCircuit): Second circuit to check.
 
         Returns:
             EquivalenceCheckerResult: result of the equivalence check.
         """
         start = time()
-        res = self._run_checker(circ1, circ2, **kwargs)
+        res = self._run_checker(circ1, circ2)
         time_taken = time() - start
         res.time_taken = time_taken
 

@@ -26,11 +26,13 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
     The comparison can either ignore or not ignore global phase.
     """
 
-    def __init__(self, simulator, name='unitary', external_backend=None, **backend_options):
+    def __init__(self, simulator, phase, name='unitary', external_backend=None, **backend_options):
         """
         Args:
             simulator (str): The type of simulator to compute the unitary.
                 Options are: 'quantum_info', 'aer', or 'external'.
+            phase (str): Options are 'global' - ignoring global phase;
+                or 'equal' - not ignoring global phase.
             name (str): The checker's name.
             external_backend (BaseBackend): The backend to run,  when `simulator` is 'external'.
             backend_options: Options to pass to the backend, when `simulator` is 'aer'
@@ -40,11 +42,19 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
             QiskitError:
                 If `simulator` is 'aer' but Aer is not installed.
                 If `simulator` ia different from 'quantum_info', 'aer', 'external'.
+                If `phase` is not one of 'equal', 'global'.
         """
 
         super().__init__(name)
         self.simulator = simulator
         self.backend_options = backend_options
+
+        if phase == 'equal':
+            self.ignore_phase = False
+        elif phase == 'up_to_global':
+            self.ignore_phase = True
+        else:
+            raise QiskitError('Unrecognized phase criterion: ' + str(phase))
 
         if simulator == 'external':
             self.backend = external_backend
@@ -61,15 +71,13 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
             raise QiskitError('Unrecognized simulator option: ' + str(self.simulator))
 
     # pylint: disable=arguments-differ
-    def _run_checker(self, circ1, circ2, phase):
+    def _run_checker(self, circ1, circ2):
         """
         Check if circuits are equivalent.
 
         Args:
             circ1 (QuantumCircuit): First circuit to check.
             circ2 (QuantumCircuit): Second circuit to check.
-            phase (str): Options are 'global' - ignoring global phase;
-                or 'equal' - not ignoring global phase.
 
         Returns:
             EquivalenceCheckerResult: result of the equivalence check.
@@ -78,7 +86,6 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
             QiskitError:
                 If unitary creation fails (e.g., one of the circuit contains measurements,
                     or circuits are too large).
-                If `phase` is not one of 'equal', 'global'.
         """
 
         # importing here to avoid circular imports
@@ -105,16 +112,9 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
                 else:
                     raise QiskitError(backend_res.results[0].status)
 
-            if phase == 'equal':
-                ignore_phase = False
-            elif phase == 'up_to_global':
-                ignore_phase = True
-            else:
-                raise QiskitError('Unrecognized phase criterion: ' + str(phase))
-
             # TODO: This can be made more efficient, because when checking whether
             # a unitary matrix is the identity, it suffices to check only the diagonal
-            equivalent = is_identity_matrix(op, ignore_phase)
+            equivalent = is_identity_matrix(op, self.ignore_phase)
 
         # The broad class of Exception is required,
         # for example when the circuit is large,
