@@ -116,7 +116,7 @@ class ConsolidateBlocks(TransformationPass):
                 if block[0].type == 'op' \
                         and self.basis_gates \
                         and block[0].name not in self.basis_gates \
-                        and len(block[0].cargs) == 0 and block[0].condition is None \
+                        and len(block[0].cargs) == 0 and block[0].op.condition is None \
                         and isinstance(block[0].op, Gate) \
                         and hasattr(block[0].op, '__array__') \
                         and not block[0].op.is_parameterized():
@@ -132,8 +132,8 @@ class ConsolidateBlocks(TransformationPass):
                 block_cargs = set()
                 for nd in block:
                     block_qargs |= set(nd.qargs)
-                    if nd.condition:
-                        block_cargs |= set(nd.condition[0])
+                    if nd.type == 'op' and nd.op.condition:
+                        block_cargs |= set(nd.op.condition[0])
                 # convert block to a sub-circuit, then simulate unitary and add
                 q = QuantumRegister(len(block_qargs))
                 # if condition in node, add clbits to circuit

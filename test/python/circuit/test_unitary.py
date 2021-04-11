@@ -287,9 +287,16 @@ class TestUnitaryCircuit(QiskitTestCase):
     def test_unitary_decomposition_via_definition(self):
         """Test decomposition for 1Q unitary via definition."""
         mat = numpy.array([[0, 1], [1, 0]])
-        numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat)
+        self.assertTrue(numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat))
 
     def test_unitary_decomposition_via_definition_2q(self):
         """Test decomposition for 2Q unitary via definition."""
         mat = numpy.array([[0, 0, 1, 0], [0, 0, 0, -1], [1, 0, 0, 0], [0, -1, 0, 0]])
-        numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat)
+        self.assertTrue(numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat))
+
+    def test_unitary_control(self):
+        """Test parameters of controlled - unitary."""
+        mat = numpy.array([[0, 1], [1, 0]])
+        gate = UnitaryGate(mat).control()
+        self.assertTrue(numpy.allclose(gate.params, mat))
+        self.assertTrue(numpy.allclose(gate.base_gate.params, mat))

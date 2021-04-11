@@ -37,7 +37,7 @@ Version Changes
 ----------------
 
 Each minor version release of qiskit-terra **may** increment the version of any
-providers interface a single version number. It will be an aggreagate of all
+providers interface a single version number. It will be an aggregate of all
 the interface changes for that release on that interface.
 
 Version Support Policy
@@ -278,7 +278,7 @@ set. For example::
 
 The key thing to ensure is that for any custom gates in your Backend's basis set
 your custom gate's name attribute (the first param on
-``super().__init__()`` in the ``__init__`` defintion above) does not conflict
+``super().__init__()`` in the ``__init__`` definition above) does not conflict
 with the name of any other gates. The name attribute is what is used to
 identify the gate in the basis set for the transpiler. If there is a conflict
 the transpiler will not know which gate to use.
