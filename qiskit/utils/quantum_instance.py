@@ -50,7 +50,7 @@ class QuantumInstance:
     def __init__(self,
                  backend,
                  # run config
-                 shots: int = 1024,
+                 shots: Optional[int] = None,
                  seed_simulator: Optional[int] = None,
                  max_credits: int = 10,
                  # backend properties
@@ -80,8 +80,8 @@ class QuantumInstance:
 
         Args:
             backend (Union['Backend', 'BaseBackend']): Instance of selected backend
-            shots: Number of repetitions of each circuit, for sampling. This value is overriden by
-                the number of shot in the backend options, if they are set.
+            shots: Number of repetitions of each circuit, for sampling. If None, the shots are
+                extracted from the backend. If the backend has none set, the default is 1024.
             seed_simulator: Random seed for simulators
             max_credits: Maximum credits to use
             basis_gates: List of basis gate names supported by the
@@ -124,26 +124,21 @@ class QuantumInstance:
         self._backend = backend
         self._pass_manager = pass_manager
 
-        # TODO: exchange this for a Backend instancecheck once Aer's simulators implement that
-        # interface
-        if hasattr(backend, 'options'):
-            if 'shots' in backend.options:
-                if shots != backend.options['shots']:
-                    logger.info('Overwriting the number of shots in the quantum instance with the '
-                                'settings from the backend.')
-                shots = backend.options.get('shots', 1024)
+        # if the shots are none, try to get them from the backend
+        if shots is None:
+            from qiskit.providers.basebackend import BaseBackend  # pylint: disable=cyclic-import
+            from qiskit.providers.backend import BackendV1  # pylint: disable=cyclic-import
+            if isinstance(backend, (BaseBackend, BackendV1)):
+                if hasattr(backend, 'options'):  # should always be true for V1
+                    backend_shots = backend.options.get('shots', 1024)
+                    if shots != backend_shots:
+                        logger.info('Overwriting the number of shots in the quantum instance with '
+                                    'the settings from the backend.')
+                    shots = backend_shots
 
-        if shots is not None:
-            # setup run config
-            if self.is_statevector and shots != 1:
-                logger.info("statevector backend only works with shot=1, changing "
-                            "shots from %s to 1.", shots)
-                shots = 1
-
-            max_shots = self._backend.configuration().max_shots
-            if max_shots is not None and shots > max_shots:
-                raise QiskitError('The maximum shots supported by the selected backend is {} '
-                                  'but you specified {}'.format(max_shots, shots))
+        # safeguard if shots are still not set
+        if shots is None:
+            shots = 1024
 
         # pylint: disable=cyclic-import
         from qiskit.assembler.run_config import RunConfig

@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    Accessing references from :class:`~qiskit.circuit.Qubit` and
+    :class:`~qiskit.circuit.Clbit` instances to their containing registers
+    via the :attr:`~qiskit.circuit.Qubit.register` or
+    :attr:`~qiskit.circuit.Qubit.index` properties has been deprecated and will
+    be removed in a future release. Instead, :class:`~qiskit.circuit.Register`
+    objects can be queried to find the :class:`~qiskit.circuit.Bit` objects
+    they contain.

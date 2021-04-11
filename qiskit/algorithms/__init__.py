@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -97,6 +97,19 @@ Algorithms to find factors of a number.
    Shor
    ShorResult
 
+Linear Solvers
+++++++++++++++
+Algorithms to solve linear systems of equations.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   HHL
+   NumPyLinearSolver
+   LinearSolver
+   LinearSolverResult
+
 Minimum Eigensolvers
 ++++++++++++++++++++
 Algorithms that can find the minimum eigenvalue of an operator.
@@ -115,6 +128,29 @@ Algorithms that can find the minimum eigenvalue of an operator.
    NumPyMinimumEigensolver
    QAOA
    VQE
+
+Optimizers
+++++++++++
+Classical optimizers for use by quantum variational algorithms.
+
+.. autosummary::
+   :toctree:
+
+   optimizers
+
+Phase Estimators
+++++++++++++++++
+Algorithms that estimate the phases of eigenstates of a unitary.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   HamiltonianPhaseEstimation
+   HamiltonianPhaseEstimationResult
+   PhaseEstimationScale
+   PhaseEstimation
+   PhaseEstimationResult
 
 Equivalence Checkers
 ++++++++++++++++++++
@@ -150,9 +186,12 @@ from .amplitude_estimators import (
 )
 from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
 from .factorizers import Shor, ShorResult
+from .linear_solvers import HHL, LinearSolver, NumPyLinearSolver, LinearSolverResult
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
                                     NumPyMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
+from .phase_estimators import (HamiltonianPhaseEstimation, HamiltonianPhaseEstimationResult,
+                               PhaseEstimationScale, PhaseEstimation, PhaseEstimationResult)
 from .equivalence_checkers import BaseEquivalenceChecker, UnitaryEquivalenceChecker, EquivalenceCheckerResult
 from .exceptions import AlgorithmError
 
@@ -175,6 +214,7 @@ __all__ = [
     'MaximumLikelihoodAmplitudeEstimationResult',
     'EstimationProblem',
     'NumPyEigensolver',
+    'LinearSolverResult',
     'Eigensolver',
     'EigensolverResult',
     'Shor',
@@ -182,9 +222,17 @@ __all__ = [
     'VQE',
     'VQEResult',
     'QAOA',
+    'LinearSolver',
+    'HHL',
+    'NumPyLinearSolver',
     'NumPyMinimumEigensolver',
     'MinimumEigensolver',
     'MinimumEigensolverResult',
+    'HamiltonianPhaseEstimation',
+    'HamiltonianPhaseEstimationResult',
+    'PhaseEstimationScale',
+    'PhaseEstimation',
+    'PhaseEstimationResult',
     'BaseEquivalenceChecker',
     'UnitaryEquivalenceChecker',
     'EquivalenceCheckerResult',

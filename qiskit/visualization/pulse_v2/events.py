@@ -19,9 +19,10 @@ the arrangement of channels easier in the core drawer function.
 The `ChannelEvents` class is expected to be called by other programs (not by end-users).
 
 The `ChannelEvents` class instance is created with the class method ``load_program``:
-    ```python
+
+.. code-block:: python
+
     event = ChannelEvents.load_program(sched, DriveChannel(0))
-    ```
 
 The `ChannelEvents` is created for a specific pulse channel and loosely assorts pulse
 instructions within the channel with different visualization purposes.
@@ -31,13 +32,14 @@ The instantaneous value of those operands are combined and provided as ``PhaseFr
 Instructions that have finite duration are grouped as waveforms.
 
 The grouped instructions are returned as an iterator by the corresponding method call:
-    ```python
+
+.. code-block:: python
+
     for t0, frame, instruction in event.get_waveforms():
         ...
 
     for t0, frame_change, instructions in event.get_frame_changes():
         ...
-    ```
 
 The class method ``get_waveforms`` returns the iterator of waveform type instructions with
 the ``PhaseFreqTuple`` (frame) at the time when instruction is issued.
@@ -56,7 +58,9 @@ combined. In Qiskit Pulse we have set and shift type instructions for the frame 
 the set type instruction will be converted into the relevant shift amount for visualization.
 Note that these instructions are not interchangeable and the order should be kept.
 For example:
-    ```python
+
+.. code-block:: python
+
     sched1 = Schedule()
     sched1 = sched1.insert(0, ShiftPhase(-1.57, DriveChannel(0))
     sched1 = sched1.insert(0, SetPhase(3.14, DriveChannel(0))
@@ -64,7 +68,7 @@ For example:
     sched2 = Schedule()
     sched2 = sched2.insert(0, SetPhase(3.14, DriveChannel(0))
     sched2 = sched2.insert(0, ShiftPhase(-1.57, DriveChannel(0))
-    ```
+
 In this example, ``sched1`` and ``sched2`` will have different frames.
 On the drawer canvas, the total frame change amount of +3.14 should be shown for ``sched1``,
 while ``sched2`` is +1.57. Since the `SetPhase` and the `ShiftPhase` instruction behave
@@ -185,7 +189,7 @@ class ChannelEvents:
 
             # Check if pulse has unbound parameters
             if isinstance(inst, pulse.Play):
-                is_opaque = inst.is_parameterized()
+                is_opaque = inst.pulse.is_parameterized()
 
             yield PulseInstruction(t0, self._dt, frame, inst, is_opaque)
 

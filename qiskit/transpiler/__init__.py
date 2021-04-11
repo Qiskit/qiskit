@@ -395,6 +395,15 @@ Fenced Objects
    FencedDAGCircuit
    FencedPropertySet
 
+Abstract Passes
+---------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   TransformationPass
+   AnalysisPass
+
 Exceptions
 ----------
 

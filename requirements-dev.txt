@@ -1,8 +1,10 @@
 coverage>=4.4.0
 hypothesis>=4.24.3
+ipython<7.22.0
+ipykernel<5.5.2
 ipywidgets>=7.3.0
 jupyter
-matplotlib>=2.1
+matplotlib>=2.1,<3.4
 pillow>=4.2.1
 pycodestyle
 pydot
@@ -22,7 +24,7 @@ sphinx-autodoc-typehints
 jupyter-sphinx
 sphinx-panels
 pygments>=2.4
-tweedledum==0.1b0
+tweedledum>=1.0,<2.0
 networkx>=2.2
 scikit-learn>=0.20.0
 scikit-quant<=0.7;platform_system != 'Windows'
