@@ -10,8 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=arguments-differ
+
 """Tests for visualization of circuit with Latex drawer."""
 
+import os
 import unittest
 import math
 import numpy as np
@@ -31,6 +34,10 @@ pi = np.pi
 
 class TestLatexSourceGenerator(QiskitVisualizationTestCase):
     """Qiskit latex source generator tests."""
+
+    def _get_resource_path(self, filename):
+        reference_dir = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(reference_dir, filename)
 
     def test_empty_circuit(self):
         """Test draw an empty circuit"""

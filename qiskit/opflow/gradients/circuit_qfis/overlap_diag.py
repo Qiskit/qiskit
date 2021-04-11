@@ -166,11 +166,10 @@ def _partition_circuit(circuit):
         op = copy.copy(node.op)
         qargs = copy.copy(node.qargs)
         cargs = copy.copy(node.cargs)
-        condition = copy.copy(node.condition)
         if back:
-            dag.apply_operation_back(op, qargs, cargs, condition)
+            dag.apply_operation_back(op, qargs, cargs)
         else:
-            dag.apply_operation_front(op, qargs, cargs, condition)
+            dag.apply_operation_front(op, qargs, cargs)
 
     converged = False
 
