@@ -14,6 +14,7 @@
 """Test Qiskit's Circuit Equivalence Checker"""
 
 import unittest
+from ddt import ddt, data, unpack
 
 from qiskit.test import QiskitTestCase
 
@@ -21,6 +22,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.algorithms import equivalence_checker
 
 
+@ddt
 class TestEquivalenceChecker(QiskitTestCase):
     """Test equivalence checker"""
 
@@ -32,31 +34,28 @@ class TestEquivalenceChecker(QiskitTestCase):
         except ImportError:
             self.aer_installed = False
 
-    def verify_result(self, methods, names, options,
+    def verify_result(self, method, options,
                       circ1, circ2,
                       success, equivalent):
         """
-        Run the checkers, and verify that their outputs
-        match the expected result
+        Run the checker, and verify that its output
+        matches the expected result
         """
 
-        for method, name, option in zip(methods, names, options):
-            res = equivalence_checker(circ1, circ2, method=method, **option)
-            checker_msg = "Checker '" + name + "' failed"
-            self.assertEqual(success, res.success, checker_msg)
-            self.assertEqual(equivalent, res.equivalent, checker_msg)
+        res = equivalence_checker(circ1, circ2, method=method, **options)
+        self.assertEqual(success, res.success)
+        self.assertEqual(equivalent, res.equivalent,)
 
-    def test_equivalence_checkers_equal_phase(self):
-        """Test equivalence chekcers for valid circuits, requiring equal phase"""
-        methods = ['unitary']
-        names = ['unitary_qi']
-        options = [{'simulator': 'quantum_info', 'phase': 'equal'}]
+    @data(('unitary', {'simulator': 'quantum_info'}),
+          ('unitary', {'simulator': 'aer'}))
+    @unpack
+    def test_equivalence_checkers_equal_phase(self, method, options):
+        """Test equivalence checkers for valid circuits, requiring equal phase"""
 
-        if self.aer_installed:
-            methods.append('unitary')
-            names.append('unitary_aer')
-            options.append({'simulator': 'aer', 'phase': 'equal'})
-
+        options['phase'] = 'equal'
+        if not self.aer_installed and options['simulator'] == 'aer':
+            return
+        
         circ1 = QuantumCircuit(2)
         circ1.cx(0, 1)
         circ1.cx(1, 0)
@@ -67,22 +66,20 @@ class TestEquivalenceChecker(QiskitTestCase):
         circ2.cx(0, 1)
         circ2.cx(1, 0)
 
-        self.verify_result(methods, names, options, circ1, circ2, True, True)
+        self.verify_result(method, options, circ1, circ2, True, True)
 
         circ1.x(0)
-        self.verify_result(methods, names, options, circ1, circ2, True, False)
+        self.verify_result(method, options, circ1, circ2, True, False)
 
-    def test_equivalence_checkers_up_to_global_phase(self):
+    @data(('unitary', {'simulator': 'quantum_info'}),
+          ('unitary', {'simulator': 'aer'}))
+    @unpack    
+    def test_equivalence_checkers_up_to_global_phase(self, method, options):
         """Test equivalence chekcers for valid circuits, requiring up-to-global phase"""
-        
-        methods = ['unitary']
-        names = ['unitary_qi']
-        options = [{'simulator': 'quantum_info', 'phase': 'equal'}]
 
-        if self.aer_installed:
-            methods.append('unitary')
-            names.append('unitary_aer')
-            options.append({'simulator': 'aer', 'phase': 'equal'})
+        options['phase'] = 'equal'
+        if not self.aer_installed and option['simulator'] == 'aer':
+            return
         
         circ1 = QuantumCircuit(1)
         circ1.x(0)
@@ -91,53 +88,48 @@ class TestEquivalenceChecker(QiskitTestCase):
         circ2 = QuantumCircuit(1)
         circ2.y(0)
 
-        self.verify_result(methods, names, options, circ1, circ2, True, False)
+        self.verify_result(method, options, circ1, circ2, True, False)
 
-        for option in options:
-            option['phase'] = 'up_to_global'
-        self.verify_result(methods, names, options, circ1, circ2, True, True)
+        options['phase'] = 'up_to_global'
+        self.verify_result(method, options, circ1, circ2, True, True)
 
         circ1.x(0)
-        self.verify_result(methods, names, options, circ1, circ2, True, False)
+        self.verify_result(method, options, circ1, circ2, True, False)
 
-    def test_error_in_unitary_checker(self):
+    @data(('unitary', {'simulator': 'quantum_info'}),
+          ('unitary', {'simulator': 'aer'}))
+    @unpack  
+    def test_error_in_unitary_checker(self, method, options):
         """Test error messages for invalid circuits"""
 
-        methods = ['unitary']
-        names = ['unitary_qi']
-        options = [{'simulator': 'quantum_info', 'phase': 'equal'}]
-
-        if self.aer_installed:
-            methods.append('unitary')
-            names.append('unitary_aer')
-            options.append({'simulator': 'aer', 'phase': 'equal'})
+        options['phase'] = 'equal'
+        if not self.aer_installed and option['simulator'] == 'aer':
+            return
             
         circ1 = QuantumCircuit(1, 1)
         circ1.measure(0, 0)
 
         circ2 = QuantumCircuit(1, 1)
 
-        self.verify_result(methods, names, options, circ1, circ2, False, None)
-        self.verify_result(methods, names, options, circ2, circ1, False, None)
+        self.verify_result(method, options, circ1, circ2, False, None)
+        self.verify_result(method, options, circ2, circ1, False, None)
 
         circ2.measure(0, 0)
 
-        self.verify_result(methods, names, options, circ1, circ2, False, None)
+        self.verify_result(method, options, circ1, circ2, False, None)
 
-    def test_error_in_large_circuits(self):
+    @data(('unitary', {'simulator': 'quantum_info'}),
+          ('unitary', {'simulator': 'aer'}))
+    @unpack
+    def test_error_in_large_circuits(self, method, options):
         """Test error messages for large circuits"""
 
-        methods = ['unitary']
-        names = ['unitary_qi']
-        options = [{'simulator': 'quantum_info', 'phase': 'equal'}]
-
-        if self.aer_installed:
-            methods.append('unitary')
-            names.append('unitary_aer')
-            options.append({'simulator': 'aer', 'phase': 'equal'})
+        options['phase'] = 'equal'
+        if not self.aer_installed and option['simulator'] == 'aer':
+            return
         
         circ = QuantumCircuit(40)
-        self.verify_result(methods, names, options, circ, circ, False, None)
+        self.verify_result(method, options, circ, circ, False, None)
 
     def test_automatic_simulator(self):
         circ = QuantumCircuit(1)
