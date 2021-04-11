@@ -114,10 +114,16 @@ for nts in num_time_steps:
                 print('number time steps', nts)
                 print('depth ', d)
                 print('---------------------------------------------------------------------')
-                varqrte_snapshot_dir = os.path.join('..',
-                                                    'output_ising_transverse',
+                # varqrte_snapshot_dir = os.path.join('..',
+                #                                     'output_ising_transverse',
+                #                                     'real',
+                #                                     str(nts),
+                #                                     reg_names[j],
+                #                                     ode_solvers_names[k] + 'error')
+                ising_dir = '/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output' \
+                            '/transverse_ising'
+                varqrte_snapshot_dir = os.path.join(ising_dir,
                                                     'real',
-                                                    str(nts),
                                                     reg_names[j],
                                                     ode_solvers_names[k] + 'error')
                 t0 = time.time()
@@ -132,7 +138,8 @@ for nts in num_time_steps:
                                 snapshot_dir=varqrte_snapshot_dir
                                 # snapshot_dir=os.path.join('..', 'test')
                                 )
-                approx_time_evolved_state_real = varqrte.convert(op)
+                varqrte._operator = 1j * op
+                # approx_time_evolved_state_real = varqrte.convert(op)
                 varqrte_error_bounds = varqrte.error_bound(varqrte_snapshot_dir)
                 np.save(os.path.join(varqrte_snapshot_dir, 'error_bounds.npy'),
                         varqrte_error_bounds)

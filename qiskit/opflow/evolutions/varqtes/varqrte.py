@@ -193,7 +193,8 @@ class VarQRTE(VarQTE):
 
     def _get_error_bound(self,
                          gradient_errors: List,
-                         times: List) -> float:
+                         times: List,
+                         energies: List) -> float:
         """
         Get the upper bound to a global phase agnostic l2-norm error for VarQRTE simulation
         Args:
@@ -208,9 +209,11 @@ class VarQRTE(VarQTE):
         if not len(gradient_errors) == len(times):
             raise Warning('The number of the gradient errors is incompatible with the number of '
                           'the time steps.')
+        errors = [gradient_errors[j] + energies[j]-energies[0] for j in range(len(energies))]
         e_bound = []
         for j, dt in enumerate(times):
-            e_bound.append(np.trapz(gradient_errors[:j+1], x=times[:j+1]))
+            # e_bound.append(np.trapz(gradient_errors[:j+1], x=times[:j+1]))
+            e_bound.append(np.trapz(errors[:j + 1], x=times[:j + 1]))
             # e_bound.append(e_bound[j] + gradient_errors[j] * dt)
         return e_bound
 

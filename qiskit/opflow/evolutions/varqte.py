@@ -242,12 +242,14 @@ class VarQTE(EvolutionBase):
     @abstractmethod
     def _get_error_bound(self,
                          gradient_errors: List,
-                         time: List) -> Union[List, Tuple[List, List]]:
+                         time: List,
+                         *args) -> Union[List, Tuple[List, List]]:
         """
         Get the upper bound to a global phase agnostic l2-norm error for VarQTE simulation
         Args:
             gradient_errors: Error of the state propagation gradient for each t in times
             time: List of all points in time considered throughout the simulation
+            args: Optional parameters for the error bound
 
         Returns:
             List of the error upper bound for all times
@@ -286,6 +288,7 @@ class VarQTE(EvolutionBase):
             reader = csv.DictReader(csv_file, fieldnames=fieldnames)
             first = True
             grad_errors = []
+            energies = []
             time = []
             time_steps = []
             stddevs = []
@@ -298,6 +301,7 @@ class VarQTE(EvolutionBase):
                     continue
                 time.append(t_line)
                 grad_errors.append(float(line['error_grad']))
+                energies.append(float(line['trained_energy']))
                 stddevs.append(np.sqrt(float(line['variance'])))
 
         zipped_lists = zip(time, grad_errors, stddevs)
@@ -318,7 +322,7 @@ class VarQTE(EvolutionBase):
 
         else:
             # VarQRTE
-            e_bound = self._get_error_bound(grad_errors, time)
+            e_bound = self._get_error_bound(grad_errors, time, energies)
         return e_bound
 
     def _init_grad_objects(self):
