@@ -230,6 +230,11 @@ class StabilizerState(QuantumState):
         probs = {}  # probabilities dictionary
 
         self._get_probablities(qubits, outcome, outcome_prob, probs)
+
+        if decimals is not None:
+            for key, value in probs.items():
+                probs[key] = round(value, decimals)
+
         return probs
 
     def reset(self, qargs=None):
