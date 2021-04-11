@@ -337,7 +337,6 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.5, 0.5])
                 self.assertTrue(np.allclose(probs, target))
 
-
         num_qubits = 2
         qc = QuantumCircuit(num_qubits)
         qc.h(0)
@@ -387,7 +386,6 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities([1])
                 target = np.array([1, 0])
                 self.assertTrue(np.allclose(probs, target))
-
 
         num_qubits = 3
         qc = QuantumCircuit(num_qubits)
