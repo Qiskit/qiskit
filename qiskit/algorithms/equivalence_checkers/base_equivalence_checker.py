@@ -14,9 +14,10 @@
 
 from abc import ABC, abstractmethod
 from time import time
+from ..algorithm_result import AlgorithmResult
 
 
-class EquivalenceCheckerResult:
+class EquivalenceCheckerResult(AlgorithmResult):
     """Model for Equivalence Checker Results.
 
     Attributes:
