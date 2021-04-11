@@ -443,12 +443,17 @@ def _expand_parameters(circuits, run_config):
                  'Parameter binds: {} ' +
                  'Circuit parameters: {}').format(all_bind_parameters, all_circuit_parameters))
 
-        circuits = [circuit.bind_parameters(binds)
-                    for circuit in circuits
-                    for binds in parameter_binds]
+        bound_circuits = []
+        for circuit in circuits:
+            if len(parameter_binds) == 1:
+                bound_circuit = circuit.bind_parameters(parameter_binds[0])
+                bound_circuit.name = circuit.name
+                bound_circuits.append(bound_circuit)
+            else:
+                bound_circuits += [circuit.bind_parameters(binds) for binds in parameter_binds]
 
         # All parameters have been expanded and bound, so remove from run_config
         run_config = copy.deepcopy(run_config)
         run_config.parameter_binds = []
 
-    return circuits, run_config
+    return bound_circuits, run_config
