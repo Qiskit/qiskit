@@ -1310,6 +1310,11 @@ class QuantumCircuit:
                 # decompose gate using definitions if they are not defined in OpenQASM2
                 if instruction.name not in self.qelib1_gate_names:
                     if instruction not in self.existing_composite_circuits:
+                        custom_instr_names = [instruction.name for instruction
+                                                    in self. existing_composite_circuits]
+                        if instruction.name in custom_instr_names:
+                            # append instruction id to name to make it unique
+                            instruction.name += f'_{id(instruction)}'
                         self.existing_composite_circuits.append(instruction)
 
                 # Insert qasm representation of the original instruction
