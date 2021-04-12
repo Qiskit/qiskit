@@ -438,10 +438,16 @@ class QCircuitImage:
         else:
             wire_min = min(wire_list)
             wire_max = max(wire_list)
-            self._latex[wire_min][col] = "\\multigate{%s}{%s}" % \
-                (wire_max - wire_min, gate_text)
+            wire_ind = wire_list.index(wire_min)
+            self._latex[wire_min][col] = "\\multigate{%s}{%s}_" % \
+                (wire_max - wire_min, gate_text) + "<"*(len(str(wire_ind))+2) + "{%s}" % wire_ind
             for wire in range(wire_min + 1, wire_max + 1):
-                self._latex[wire][col] = "\\ghost{%s}" % gate_text
+                if wire in wire_list:
+                    wire_ind = wire_list.index(wire)
+                    self._latex[wire][col] = "\\ghost{%s}_" % gate_text +\
+                        "<"*(len(str(wire_ind))+2) + "{%s}" % wire_ind
+                else:
+                    self._latex[wire][col] = "\\ghost{%s}" % gate_text
         return num_cols_op
 
     def _build_ctrl_gate(self, op, gate_text, wire_list, col):
