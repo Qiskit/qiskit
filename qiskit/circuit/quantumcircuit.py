@@ -148,6 +148,8 @@ class QuantumCircuit:
     header = "OPENQASM 2.0;"
     extension_lib = "include \"qelib1.inc\";"
 
+    _COMPOSE_WARNING = True  # warn once upon deprecated usage of the compose method
+
     def __init__(self, *regs, name=None, global_phase=0, metadata=None):
         if any(not isinstance(reg, (list, QuantumRegister, ClassicalRegister)) for reg in regs):
             # check if inputs are integers, but also allow e.g. 2.0
@@ -643,7 +645,7 @@ class QuantumCircuit:
 
         return self
 
-    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
+    def compose(self, other, qubits=None, clbits=None, box=None, front=False, inplace=False):
         """Compose circuit with ``other`` circuit or instruction, optionally permuting wires.
 
         ``other`` can be narrower or of equal width to ``self``.
@@ -653,7 +655,9 @@ class QuantumCircuit:
                 (sub)circuit to compose onto self.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
-            front (bool): If True, front composition will be performed (not implemented yet).
+            box (bool): If ``other`` is a circuit, this allows to wrap ``other`` in a instruction
+                (with ``box=True``), otherwise append the circuit operations directly.
+            front (bool): If True, front composition will be performed.
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
 
         Returns:
@@ -685,51 +689,66 @@ class QuantumCircuit:
                 lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
+        if box is None and QuantumCircuit._COMPOSE_WARNING:
+            QuantumCircuit._COMPOSE_WARNING = False  # warn once only
+            warnings.warn("The default behavior of compose changes with the next release of Qiskit "
+                          "(but no sooner than 3 months) from not boxing ``other`` to wrapping it "
+                          "in an instruction. To keep the old behavior set ``box=False``.",
+                          DeprecationWarning, stacklevel=2)
+            box = False
 
+        # check the sizes are compatible
+        if other.num_qubits > self.num_qubits or other.num_clbits > self.num_clbits:
+            raise CircuitError("Trying to compose with another object "
+                               "which has more 'in' edges.")
+
+        # if ``other`` is not a circuit (but e.g. an instruction), always box it
+        if not isinstance(other, QuantumCircuit):
+            box = True
+
+        # per default append to the top qubits and clbits
+        if qubits is None:
+            qubits = list(range(other.num_qubits))
+        else:
+            if len(qubits) != other.num_qubits:
+                raise CircuitError(f"Mismatching number of qubits of ``other`` ({other.num_qubits})"
+                                   f" and specified qubits ({len(qubits)}).")
+
+        if clbits is None:
+            clbits = list(range(other.num_clbits))
+        else:
+            if len(clbits) != other.num_clbits:
+                raise CircuitError(f"Mismatching number of clbits of ``other`` ({other.num_clbits})"
+                                   f" and specified qubits ({len(clbits)}).")
+
+        # wrap in box
         if inplace:
             dest = self
         else:
             dest = self.copy()
 
-        if not isinstance(other, QuantumCircuit):
-            if front:
-                dest.data.insert(0, (other, qubits, clbits))
-            else:
-                dest.append(other, qargs=qubits, cargs=clbits)
+        # compose case where we directly compose, without wrapping in a box
+        if box:
+            dest.append(other, qubits, clbits, front)
+        else:
+            dest._direct_compose(other, qubits, clbits, front)
 
-            if inplace:
-                return None
-            return dest
+        if inplace:
+            return None
 
+        return dest
+
+    def _direct_compose(self, other, qubits=None, clbits=None, front=False):
+        """Compose without boxing instructions."""
         instrs = other.data
 
-        if other.num_qubits > self.num_qubits or \
-           other.num_clbits > self.num_clbits:
-            raise CircuitError("Trying to compose with another QuantumCircuit "
-                               "which has more 'in' edges.")
-
         # number of qubits and clbits must match number in circuit or None
-        identity_qubit_map = dict(zip(other.qubits, self.qubits))
-        identity_clbit_map = dict(zip(other.clbits, self.clbits))
+        qubit_map = {other.qubits[i]: (self.qubits[q] if isinstance(q, int) else q)
+                     for i, q in enumerate(qubits)}
+        clbit_map = {other.clbits[i]: (self.clbits[c] if isinstance(c, int) else c)
+                     for i, c in enumerate(clbits)}
 
-        if qubits is None:
-            qubit_map = identity_qubit_map
-        elif len(qubits) != len(other.qubits):
-            raise CircuitError("Number of items in qubits parameter does not"
-                               " match number of qubits in the circuit.")
-        else:
-            qubit_map = {other.qubits[i]: (self.qubits[q] if isinstance(q, int) else q)
-                         for i, q in enumerate(qubits)}
-        if clbits is None:
-            clbit_map = identity_clbit_map
-        elif len(clbits) != len(other.clbits):
-            raise CircuitError("Number of items in clbits parameter does not"
-                               " match number of clbits in the circuit.")
-        else:
-            clbit_map = {other.clbits[i]: (self.clbits[c] if isinstance(c, int) else c)
-                         for i, c in enumerate(clbits)}
-
-        edge_map = {**qubit_map, **clbit_map} or {**identity_qubit_map, **identity_clbit_map}
+        edge_map = {**qubit_map, **clbit_map}
 
         mapped_instrs = []
         for instr, qargs, cargs in instrs:
@@ -744,28 +763,25 @@ class QuantumCircuit:
             mapped_instrs.append((n_instr, n_qargs, n_cargs))
 
         if front:
-            dest._data = mapped_instrs + dest._data
+            self._data = mapped_instrs + self._data
         else:
-            dest._data += mapped_instrs
+            self._data += mapped_instrs
 
         if front:
-            dest._parameter_table.clear()
-            for instr, _, _ in dest._data:
-                dest._update_parameter_table(instr)
+            self._parameter_table.clear()
+            for instr, _, _ in self._data:
+                self._update_parameter_table(instr)
         else:
             # just append new parameters
             for instr, _, _ in mapped_instrs:
-                dest._update_parameter_table(instr)
+                self._update_parameter_table(instr)
 
         for gate, cals in other.calibrations.items():
-            dest._calibrations[gate].update(cals)
+            self._calibrations[gate].update(cals)
 
-        dest.global_phase += other.global_phase
+        self.global_phase += other.global_phase
 
-        if inplace:
-            return None
-
-        return dest
+        return self
 
     def tensor(self, other, inplace=False):
         """Tensor ``self`` with ``other``.
@@ -972,7 +988,7 @@ class QuantumCircuit:
         """
         return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
 
-    def append(self, instruction, qargs=None, cargs=None):
+    def append(self, instruction, qargs=None, cargs=None, front=False):
         """Append one or more instructions to the end of the circuit, modifying
         the circuit in place. Expands qargs and cargs.
 
@@ -980,6 +996,7 @@ class QuantumCircuit:
             instruction (qiskit.circuit.Instruction): Instruction instance to append
             qargs (list(argument)): qubits to attach instruction to
             cargs (list(argument)): clbits to attach instruction to
+            front (bool): Whether to append at the front.
 
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
@@ -1010,10 +1027,10 @@ class QuantumCircuit:
 
         instructions = InstructionSet()
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
-            instructions.add(self._append(instruction, qarg, carg), qarg, carg)
+            instructions.add(self._append(instruction, qarg, carg, front=front), qarg, carg)
         return instructions
 
-    def _append(self, instruction, qargs, cargs):
+    def _append(self, instruction, qargs, cargs, front=False):
         """Append an instruction to the end of the circuit, modifying
         the circuit in place.
 
@@ -1021,6 +1038,7 @@ class QuantumCircuit:
             instruction (Instruction or Operator): Instruction instance to append
             qargs (list(tuple)): qubits to attach instruction to
             cargs (list(tuple)): clbits to attach instruction to
+            front (bool): Whether to append at the front.
 
         Returns:
             Instruction: a handle to the instruction that was just added
@@ -1039,7 +1057,11 @@ class QuantumCircuit:
 
         # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs
-        self._data.append(instruction_context)
+
+        if front:
+            self._data.insert(0, instruction_context)
+        else:
+            self._data.append(instruction_context)
 
         self._update_parameter_table(instruction)
 
