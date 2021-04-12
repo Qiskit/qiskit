@@ -23,6 +23,7 @@ import multiprocessing as mp
 from collections import OrderedDict, defaultdict
 from typing import Union
 import numpy as np
+import qiskit as qk
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
@@ -1362,7 +1363,10 @@ class QuantumCircuit:
 
         # Generate gate definition string
         for instruction in self.existing_composite_circuits:
-            qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
+            if isinstance(instruction, qk.extensions.unitary.UnitaryGate):
+                qasm_string = instruction._qasm_definition
+            else:
+                qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
             gate_definition_string += '\n' + qasm_string
 
         self.qasm_string_temp = self.qasm_string_temp.replace(self.extension_lib,
