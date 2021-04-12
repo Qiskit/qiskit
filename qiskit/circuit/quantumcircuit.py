@@ -208,13 +208,12 @@ class QuantumCircuit:
         self._metadata = metadata
 
         self.qelib1_gate_names = ['barrier', 'measure', 'reset',
-                                 'u3', 'u2', 'u1', 'cx', 'id', 'u0',
-                                 'u', 'p', 'x', 'y', 'z', 'h', 's', 'sdg', 't', 'tdg',
-                                 'rx', 'ry', 'rz',
-                                 'sx', 'sxdg', 'cz', 'cy', 'swap', 'ch', 'ccx', 'cswap',
-                                 'crx', 'cry', 'crz', 'cu1', 'cp', 'cu3', 'csx', 'cu',
-                                 'rxx', 'rzz', 'rccx', 'rc3x', 'c3x', 'c3sqrtx', 'c4x',
-                                 ]
+                                  'u3', 'u2', 'u1', 'cx', 'id', 'u0',
+                                  'u', 'p', 'x', 'y', 'z', 'h', 's', 'sdg', 't', 'tdg',
+                                  'rx', 'ry', 'rz',
+                                  'sx', 'sxdg', 'cz', 'cy', 'swap', 'ch', 'ccx', 'cswap',
+                                  'crx', 'cry', 'crz', 'cu1', 'cp', 'cu3', 'csx', 'cu',
+                                  'rxx', 'rzz', 'rccx', 'rc3x', 'c3x', 'c3sqrtx', 'c4x']
         self.existing_composite_circuits = []
         self.qasm_string = ""
         self.qasm_string_temp = ""
@@ -1303,14 +1302,14 @@ class QuantumCircuit:
                 qubit = qargs[0]
                 clbit = cargs[0]
                 self.qasm_string_temp += "%s %s -> %s;\n" % (instruction.qasm(),
-                                                   bit_labels[qubit],
-                                                   bit_labels[clbit])
+                                                             bit_labels[qubit],
+                                                             bit_labels[clbit])
             else:
                 # decompose gate using definitions if they are not defined in OpenQASM2
                 if instruction.name not in self.qelib1_gate_names:
                     if instruction not in self.existing_composite_circuits:
                         custom_instr_names = [instruction.name for instruction
-                                                    in self. existing_composite_circuits]
+                                              in self. existing_composite_circuits]
                         if instruction.name in custom_instr_names:
                             # append instruction id to name to make it unique
                             instruction.name += f'_{id(instruction)}'
@@ -1318,8 +1317,8 @@ class QuantumCircuit:
 
                 # Insert qasm representation of the original instruction
                 self.qasm_string_temp += "%s %s;\n" % (instruction.qasm(),
-                                             ",".join([bit_labels[j]
-                                                       for j in qargs + cargs]))
+                                                       ",".join([bit_labels[j]
+                                                                 for j in qargs + cargs]))
 
         # insert gate definitions
         self._insert_composite_gate_definition_qasm()
@@ -1361,8 +1360,8 @@ class QuantumCircuit:
             gate_definition_string += '\n' + qasm_string
 
         self.qasm_string_temp = self.qasm_string_temp.replace(self.extension_lib,
-                                                      "%s%s" % (self.extension_lib,
-                                                                  gate_definition_string))
+                                                              "%s%s" % (self.extension_lib,
+                                                                        gate_definition_string))
 
 
     def draw(self, output=None, scale=None, filename=None, style=None,
