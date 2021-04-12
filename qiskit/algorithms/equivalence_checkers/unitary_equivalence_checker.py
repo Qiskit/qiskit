@@ -26,7 +26,7 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
     The comparison can either ignore or not ignore global phase.
     """
 
-    def __init__(self, simulator, phase, external_backend=None, **backend_options):
+    def __init__(self, simulator, phase, external_backend=None, transpiler_options={}, backend_options={}):
         """
         Args:
             simulator (str): The type of simulator to compute the unitary.
@@ -35,7 +35,8 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
             phase (str): Options are 'global' - ignoring global phase;
                 or 'equal' - not ignoring global phase.
             external_backend (BaseBackend): The backend to run,  when `simulator` is 'external'.
-            backend_options: Options to pass to the backend, when `simulator` is 'aer'
+            transpiler_options (dit): Options to pass to the transpiler
+            backend_options (dict): Options to pass to the backend, when `simulator` is 'aer'
                 or 'external'.
 
         Raises:
@@ -46,6 +47,7 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
         """
 
         self.simulator = simulator
+        self.transpiler_options = transpiler_options
         self.backend_options = backend_options
 
         if phase == 'equal':
@@ -107,7 +109,7 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
         try:
             circ = circ1.compose(circ2.inverse())
             # Optimize the circuit before creating the unitary
-            circ = transpile(circ, self.backend)
+            circ = transpile(circ, self.backend, **self.transpiler_options)
 
             if self.simulator == 'quantum_info':
                 op = Operator(circ)
