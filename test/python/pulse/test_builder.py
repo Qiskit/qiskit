@@ -381,7 +381,7 @@ class TestInstructions(TestBuilder):
         with pulse.build() as schedule:
             pulse.play(test_pulse, channel=d0, name='new_name')
 
-        self.assertEqual(schedule.instructions[0].name, 'new_name')
+        self.assertEqual(schedule.instructions[0][1].name, 'new_name')
 
     def test_acquire_memory_slot(self):
         """Test acquire instruction into memory slot."""
@@ -430,7 +430,7 @@ class TestInstructions(TestBuilder):
                                    pulse.shift_frequency, pulse.shift_phase]:
             with pulse.build() as schedule:
                 instruction_method(0, d0, name='instruction_name')
-            self.assertEqual(schedule.instructions[0].name, 'instruction_name')
+            self.assertEqual(schedule.instructions[0][1].name, 'instruction_name')
 
     def test_set_frequency(self):
         """Test set frequency instruction."""

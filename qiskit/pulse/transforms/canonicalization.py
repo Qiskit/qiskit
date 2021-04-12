@@ -47,7 +47,7 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
 
     schedule = Schedule(name=block.name, metadata=block.metadata)
 
-    for op_data in block.instructions:
+    for op_data in block.blocks:
         if isinstance(op_data, ScheduleBlock):
             context_schedule = block_to_schedule(op_data)
             if hasattr(op_data.alignment_context, 'duration'):
@@ -180,7 +180,7 @@ def _inline_block(block: ScheduleBlock) -> ScheduleBlock:
     ret_block = ScheduleBlock(alignment_context=block.alignment_context,
                               name=block.name,
                               metadata=block.metadata)
-    for inst in block.instructions:
+    for inst in block.blocks:
         if isinstance(inst, instructions.Call):
             # bind parameter
             subroutine = inst.assigned_subroutine()

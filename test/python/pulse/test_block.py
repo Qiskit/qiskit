@@ -161,21 +161,21 @@ class TestBlockOperation(BaseTestBlock):
         block = pulse.ScheduleBlock()
         block = block.append(pulse.Play(self.test_waveform0, self.d0))
 
-        self.assertEqual(block.instructions[0], pulse.Play(self.test_waveform0, self.d0))
+        self.assertEqual(block.blocks[0], pulse.Play(self.test_waveform0, self.d0))
 
     def test_append_an_instruction_to_empty_block_sugar(self):
         """Test append instructions to an empty block with syntax sugar."""
         block = pulse.ScheduleBlock()
         block += pulse.Play(self.test_waveform0, self.d0)
 
-        self.assertEqual(block.instructions[0], pulse.Play(self.test_waveform0, self.d0))
+        self.assertEqual(block.blocks[0], pulse.Play(self.test_waveform0, self.d0))
 
     def test_append_an_instruction_to_empty_block_inplace(self):
         """Test append instructions to an empty block with inplace."""
         block = pulse.ScheduleBlock()
         block.append(pulse.Play(self.test_waveform0, self.d0), inplace=True)
 
-        self.assertEqual(block.instructions[0], pulse.Play(self.test_waveform0, self.d0))
+        self.assertEqual(block.blocks[0], pulse.Play(self.test_waveform0, self.d0))
 
     def test_append_a_block_to_empty_block(self):
         """Test append another ScheduleBlock to empty block."""
@@ -185,7 +185,7 @@ class TestBlockOperation(BaseTestBlock):
         block_main = pulse.ScheduleBlock()
         block_main = block_main.append(block)
 
-        self.assertEqual(block_main.instructions[0], block)
+        self.assertEqual(block_main.blocks[0], block)
 
     def test_append_an_instruction_to_block(self):
         """Test append instructions to a non-empty block."""
@@ -194,7 +194,7 @@ class TestBlockOperation(BaseTestBlock):
 
         block = block.append(pulse.Delay(100, self.d0))
 
-        self.assertEqual(len(block.instructions), 2)
+        self.assertEqual(len(block.blocks), 2)
 
     def test_append_an_instruction_to_block_inplace(self):
         """Test append instructions to a non-empty block with inplace."""
@@ -203,7 +203,7 @@ class TestBlockOperation(BaseTestBlock):
 
         block.append(pulse.Delay(100, self.d0), inplace=True)
 
-        self.assertEqual(len(block.instructions), 2)
+        self.assertEqual(len(block.blocks), 2)
 
     def test_duration(self):
         """Test if correct duration is returned with implicit scheduling."""
@@ -256,7 +256,7 @@ class TestBlockOperation(BaseTestBlock):
         for inst in self.test_blocks:
             block.append(inst)
 
-        self.assertEqual(block.instructions, tuple(self.test_blocks))
+        self.assertEqual(block.blocks, tuple(self.test_blocks))
 
     def test_channel_duraction(self):
         """Test if correct durations is calculated for each channel."""
@@ -323,7 +323,7 @@ class TestBlockOperation(BaseTestBlock):
         block_replaced = block.replace(target, replaced, inplace=False)
 
         # original schedule is not destroyed
-        self.assertListEqual(list(block.instructions), self.test_blocks)
+        self.assertListEqual(list(block.blocks), self.test_blocks)
 
         ref_sched = pulse.Schedule()
         ref_sched = ref_sched.insert(0, pulse.Play(self.test_waveform0, self.d0))
@@ -379,7 +379,7 @@ class TestBlockOperation(BaseTestBlock):
             pulse.Play(self.test_waveform0, self.d1)
         ]
 
-        self.assertListEqual(list(replaced.instructions), ref_blocks)
+        self.assertListEqual(list(replaced.blocks), ref_blocks)
 
     def test_replace_instruction_by_block(self):
         """Test replacing instruction with block."""
@@ -408,7 +408,7 @@ class TestBlockOperation(BaseTestBlock):
             pulse.Play(self.test_waveform0, self.d1)
         ]
 
-        self.assertListEqual(list(replaced.instructions), ref_blocks)
+        self.assertListEqual(list(replaced.blocks), ref_blocks)
 
     def test_len(self):
         """Test __len__ method"""

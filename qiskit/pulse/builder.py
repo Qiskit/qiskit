@@ -327,12 +327,19 @@ class _PulseBuilder():
         #: str: Name of the output program
         self._name = name
 
+        # Add root block if provided. Schedule will be built on top of this.
         if block is not None:
-            if not isinstance(block, ScheduleBlock):
-                raise exceptions.PulseError(f'Input program {repr(block)} is not `ScheduleBlock`. '
-                                            'This cannot be a root context.')
-            self._context_stack.append(block)
+            if isinstance(block, ScheduleBlock):
+                root_block = block
+            elif isinstance(block, Schedule):
+                root_block = ScheduleBlock()
+                root_block.append(instructions.Call(subroutine=block))
+            else:
+                raise exceptions.QiskitError(f'Input `block` type {block.__class__.__name__} is '
+                                             'not a valid format. Specify a pulse program.')
+            self._context_stack.append(root_block)
 
+        # Set default alignment context
         alignment = _PulseBuilder.__alignment_kinds__.get(default_alignment, default_alignment)
         if not isinstance(alignment, AlignmentKind):
             raise exceptions.PulseError(f'Given `default_alignment` {repr(default_alignment)} is '
@@ -377,15 +384,12 @@ class _PulseBuilder():
         self._context_stack.append(ScheduleBlock(alignment_context=alignment))
 
     @_compile_lazy_circuit_before
-    def pop_context(self):
-        """Pop the last context from the stack and append it to the parent."""
+    def pop_context(self) -> ScheduleBlock:
+        """Pop the last context from the stack."""
         if len(self._context_stack) == 1:
             raise exceptions.PulseError('The root context cannot be popped out.')
 
-        current_context = self._context_stack.pop()
-        if len(current_context) > 0:
-            # ignore empty context
-            self._context_stack[-1].append(current_context, inplace=True)
+        return self._context_stack.pop()
 
     @property
     @_requires_backend
@@ -425,7 +429,8 @@ class _PulseBuilder():
         # once we define a more sophisticated IR.
 
         while len(self._context_stack) > 1:
-            self.pop_context()
+            current = self.pop_context()
+            self.append_block(current)
 
         return self._context_stack[0]
 
@@ -475,7 +480,9 @@ class _PulseBuilder():
         Args:
             context_block: ScheduleBlock to append to the current context block.
         """
-        self._context_stack[-1].append(context_block)
+        # ignore empty context
+        if len(context_block) > 0:
+            self._context_stack[-1].append(context_block)
 
     # Calling externally defined subroutines
 
@@ -603,8 +610,7 @@ def build(backend=None,
     Args:
         backend (Union[Backend, BaseBackend]): A Qiskit backend. If not supplied certain
             builder functionality will be unavailable.
-        schedule: A *mutable* pulse ``ScheduleBlock`` in which your pulse program will
-            be built.
+        schedule: A pulse ``ScheduleBlock`` in which your pulse program will be built.
         name: Name of pulse program to be built.
         default_alignment: Default scheduling alignment for builder.
             One of ``left``, ``right``, ``sequential`` or an alignment context.
@@ -615,17 +621,9 @@ def build(backend=None,
     Returns:
         A new builder context which has the active builder initialized.
     """
-    if isinstance(schedule, Schedule):
-        warnings.warn('Starting the builder with `Schedule` is being deprecated. '
-                      'Input `ScheduleBlock` instead.', DeprecationWarning)
-        block = ScheduleBlock()
-        block.append(instructions.Call(schedule))
-    else:
-        block = schedule
-
     return _PulseBuilder(
         backend=backend,
-        block=block,
+        block=schedule,
         name=name,
         default_alignment=default_alignment,
         default_transpiler_settings=default_transpiler_settings,
@@ -877,7 +875,8 @@ def align_left() -> ContextManager[None]:
     try:
         yield
     finally:
-        builder.pop_context()
+        current = builder.pop_context()
+        builder.append_block(current)
 
 
 @contextmanager
@@ -913,7 +912,8 @@ def align_right() -> AlignmentKind:
     try:
         yield
     finally:
-        builder.pop_context()
+        current = builder.pop_context()
+        builder.append_block(current)
 
 
 @contextmanager
@@ -949,7 +949,8 @@ def align_sequential() -> AlignmentKind:
     try:
         yield
     finally:
-        builder.pop_context()
+        current = builder.pop_context()
+        builder.append_block(current)
 
 
 @contextmanager
@@ -1000,7 +1001,8 @@ def align_equispaced(duration: Union[int, ParameterExpression]
     try:
         yield
     finally:
-        builder.pop_context()
+        current = builder.pop_context()
+        builder.append_block(current)
 
 
 @contextmanager
@@ -1060,7 +1062,8 @@ def align_func(duration: Union[int, ParameterExpression],
     try:
         yield
     finally:
-        builder.pop_context()
+        current = builder.pop_context()
+        builder.append_block(current)
 
 
 @contextmanager
@@ -1085,7 +1088,8 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
     try:
         yield
     finally:
-        builder.pop_context()
+        current = builder.pop_context()
+        builder.append_block(current)
 
 
 @utils.deprecated_functionality
@@ -1123,7 +1127,7 @@ def inline() -> ContextManager[None]:
         to be ignored.
     """
     def _flatten(block):
-        for inst in block.instructions:
+        for inst in block.blocks:
             if isinstance(inst, ScheduleBlock):
                 yield from _flatten(inst)
             else:
@@ -1136,7 +1140,7 @@ def inline() -> ContextManager[None]:
     try:
         yield
     finally:
-        placeholder = builder._context_stack.pop()
+        placeholder = builder.pop_context()
         for inst in _flatten(placeholder):
             builder.append_instruction(inst)
 
