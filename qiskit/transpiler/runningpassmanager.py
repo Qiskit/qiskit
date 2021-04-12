@@ -174,7 +174,10 @@ class RunningPassManager:
                 self.count += 1
             self._log_pass(start_time, end_time, pass_.name())
             if isinstance(new_dag, DAGCircuit):
-                new_dag.calibrations = dag.calibrations
+                # Update calibrations if they were discarded by the pass.
+                for cal in dag.calibrations:
+                    if cal not in new_dag.calibrations:
+                        new_dag.calibrations[cal] = dag.calibrations[cal]
             else:
                 raise TranspilerError("Transformation passes should return a transformed dag."
                                       "The pass %s is returning a %s" % (type(pass_).__name__,
