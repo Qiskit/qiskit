@@ -183,7 +183,7 @@ class UnitaryGate(Gate):
         # name of gate + params + {definition}
         overall = "gate " + self._qasm_name + \
                   " " + ",".join(reg_to_qasm.values()) + \
-                  " {\n" + gates_def + "}\n"
+                  " {\n" + gates_def + "}"
 
         self._qasm_definition = overall
 

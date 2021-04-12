@@ -164,9 +164,9 @@ measure qr[1] -> cr[1];\n"""
 
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
-gate my_gate_{0} q0 {{ x q0; }}
-gate my_gate_{1} q0 {{ x q0; }}
 gate my_gate q0 {{ h q0; }}
+gate my_gate_{1} q0 {{ x q0; }}
+gate my_gate_{0} q0 {{ x q0; }}
 qreg qr[1];
 my_gate qr[0];
 my_gate_{1} qr[0];
