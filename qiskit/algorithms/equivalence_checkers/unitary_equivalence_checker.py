@@ -26,7 +26,7 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
     The comparison can either ignore or not ignore global phase.
     """
 
-    def __init__(self, simulator, phase, name='unitary', external_backend=None, **backend_options):
+    def __init__(self, simulator, phase, external_backend=None, **backend_options):
         """
         Args:
             simulator (str): The type of simulator to compute the unitary.
@@ -34,7 +34,6 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
                 'automatic' will choose 'aer' if Aer is installed, otherwise it will choose 'quantum_info'
             phase (str): Options are 'global' - ignoring global phase;
                 or 'equal' - not ignoring global phase.
-            name (str): The checker's name.
             external_backend (BaseBackend): The backend to run,  when `simulator` is 'external'.
             backend_options: Options to pass to the backend, when `simulator` is 'aer'
                 or 'external'.
@@ -46,7 +45,6 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
                 If `phase` is not one of 'equal', 'global'.
         """
 
-        super().__init__(name)
         self.simulator = simulator
         self.backend_options = backend_options
 

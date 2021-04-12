@@ -27,7 +27,6 @@ class EquivalenceCheckerResult(AlgorithmResult):
             otherwise. Equals to None if `success` is False.
         error_msg (str): An error message, when failing to perform the
             check. Equals to None if `success` is True.
-        time_taken (float): run time of the equivalence checker.
         Additional attributes can be added by the individual checkers.
     """
 
@@ -39,9 +38,6 @@ class EquivalenceCheckerResult(AlgorithmResult):
 
 class BaseEquivalenceChecker(ABC):
     """Abstract circuit equivalence checker base class."""
-
-    def __init__(self, name):
-        self.name = name
 
     def run(self, circ1, circ2):
         """

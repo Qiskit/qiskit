@@ -44,7 +44,7 @@ class TestEquivalenceChecker(QiskitTestCase):
 
         res = equivalence_checker(circ1, circ2, method=method, **options)
         self.assertEqual(success, res.success)
-        self.assertEqual(equivalent, res.equivalent,)
+        self.assertEqual(equivalent, res.equivalent)
 
     @data(('unitary', {'simulator': 'quantum_info'}),
           ('unitary', {'simulator': 'aer'}))
