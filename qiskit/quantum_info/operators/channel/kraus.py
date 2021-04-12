@@ -33,9 +33,6 @@ from qiskit.quantum_info.operators.mixins import generate_apidocs
 class Kraus(QuantumChannel):
     r"""Kraus representation of a quantum channel.
 
-    The Kraus representation for a quantum channel :math:`\mathcal{E}` is a
-    set of matrices :math:`[A_0,...,A_{K-1}]` such that
-
     For a quantum channel :math:`\mathcal{E}`, the Kraus representation is
     given by a set of matrices :math:`[A_0,...,A_{K-1}]` such that the
     evolution of a :class:`~qiskit.quantum_info.DensityMatrix`
