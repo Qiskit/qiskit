@@ -336,7 +336,7 @@ class _PulseBuilder():
                 root_block.append(instructions.Call(subroutine=block))
             else:
                 raise exceptions.PulseError(f'Input `block` type {block.__class__.__name__} is '
-                                             'not a valid format. Specify a pulse program.')
+                                            'not a valid format. Specify a pulse program.')
             self._context_stack.append(root_block)
 
         # Set default alignment context
