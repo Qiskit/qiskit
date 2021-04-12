@@ -1323,15 +1323,8 @@ class QuantumCircuit:
                                              ",".join([bit_labels[j]
                                                        for j in qargs + cargs]))
 
-            if instruction.name == 'unitary':
-                unitary_gates.append(instruction)
-
         # insert gate definitions
         self._insert_composite_gate_definition_qasm()
-
-        # this resets them, so if another call to qasm() is made the gate def is added again
-        for gate in unitary_gates:
-            gate._qasm_def_written = False
 
         if filename:
             with open(filename, 'w+') as file:
