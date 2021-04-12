@@ -1290,8 +1290,6 @@ class QuantumCircuit:
             regless_clbits = [bit for bit in self.clbits if bit not in creg_bits]
             self.qasm_string_temp += "creg %s[%d];\n" % ('regless', len(regless_clbits))
 
-        unitary_gates = []
-
         bit_labels = {bit: "%s[%d]" % (reg.name, idx)
                       for reg in self.qregs + self.cregs
                       for (idx, bit) in enumerate(reg)}
