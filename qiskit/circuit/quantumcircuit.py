@@ -398,7 +398,7 @@ class QuantumCircuit:
                  └───┘
         """
         circ = QuantumCircuit(*reversed(self.qregs), *reversed(self.cregs),
-                              name=self.name)
+                              name=self.name, global_phase=self.global_phase)
         num_qubits = self.num_qubits
         num_clbits = self.num_clbits
         old_qubits = self.qubits
