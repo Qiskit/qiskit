@@ -217,26 +217,31 @@ class PiecewiseChebyshev(BlueprintCircuit):
         # note this must be the private attribute since we handle missing breakpoints at
         # 0 and 2 ^ num_qubits here (e.g. if the function we approximate is not defined at 0
         # and the user takes that into account we just add an identity)
-        num_intervals = len(self._breakpoints)
+        breakpoints = self._breakpoints
+        # Need to take into account the case in which no breakpoints were provided in first place
+        if breakpoints == [0]:
+            breakpoints = [0, 2 ** self.num_state_qubits]
+
+        num_intervals = len(breakpoints)
 
         # Calculate the polynomials
         polynomials = []
         for i in range(0, num_intervals - 1):
             # Calculate the polynomial approximating the function on the current interval
-            poly = Chebyshev.interpolate(self._f_x, self._degree,
-                                         domain=[self._breakpoints[i],
-                                                 self._breakpoints[i + 1]])
+            poly = Chebyshev.interpolate(self.f_x, self.degree,
+                                         domain=[breakpoints[i],
+                                                 breakpoints[i + 1]])
             # Convert polynomial to the standard basis and rescale it for the rotation gates
             poly = 2 * poly.convert(kind=np.polynomial.Polynomial).coef
             # Convert to list and append
             polynomials.append(poly.tolist())
 
         # If the last breakpoint is < 2 ** num_qubits, add the identity polynomial
-        if self._breakpoints[-1] < 2 ** self.num_state_qubits:
+        if breakpoints[-1] < 2 ** self.num_state_qubits:
             polynomials = polynomials + [[2 * np.arcsin(1)]]
 
         # If the first breakpoint is > 0, add the identity polynomial
-        if self._breakpoints[0] > 0:
+        if breakpoints[0] > 0:
             polynomials = [[2 * np.arcsin(1)]] + polynomials
 
         return polynomials
