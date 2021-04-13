@@ -16,6 +16,7 @@ A wrapper function to different equivalence checkers
 
 from .unitary_equivalence_checker import UnitaryEquivalenceChecker
 
+
 def equivalence_checker(circ1, circ2, method, **options):
     """
     A wrapper function to different equivalence checkers
