@@ -21,6 +21,17 @@ please ensure that:
 2. The documentation has been updated accordingly. In particular, if a
    function or class has been modified during the PR, please update the
    *docstring* accordingly.
+
+   If your pull request is adding a new class, function, or module also ensure
+   that you've also added those to a documentation `autosummary` index to
+   ensure that it is included in the api documentation. For more details you
+   can refer to:
+
+   https://qiskit.org/documentation/contributing_to_qiskit.html#documentation-structure
+
+   which documents how the documentation is structured and how you can add
+   new classes, functions, or modules to it.
+
 3. If it makes sense for your change that you have added new tests that
    cover the changes.
 4. Ensure that if your change has an end user facing impact (new feature,
