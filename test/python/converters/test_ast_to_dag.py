@@ -12,6 +12,7 @@
 
 """Tests for the converters."""
 
+import os
 import unittest
 
 from qiskit.converters import ast_to_dag, circuit_to_dag
@@ -34,8 +35,10 @@ class TestAstToDag(QiskitTestCase):
 
     def test_from_ast_to_dag(self):
         """Test Unroller.execute()"""
-        ast = qasm2.Qasm(filename=self._get_resource_path('example.qasm',
-                                                         Path.QASMS)).parse()
+        qasm_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'qasm2')
+        ast = qasm2.Qasm(os.path.join(qasm_dir, 'example.qasm')).parse()
         dag_circuit = ast_to_dag(ast)
         expected_result = """\
 OPENQASM 2.0;
