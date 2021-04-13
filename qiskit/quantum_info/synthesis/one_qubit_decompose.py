@@ -86,13 +86,13 @@ class OneQubitEulerDecomposer:
             :math:`U_1(\theta+\pi).R_X\left(\frac{\pi}{2}\right).U_1(\lambda)`
         * - 'ZSX'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
-          - :math:`e^{i\gamma} RZ(\phi+\pi).S_X.`
-            :math:`R_Z(\theta+\pi).S_X.RZ(\lambda)`
+          - :math:`e^{i\gamma} R_Z(\phi+\pi).\sqrt{X}.`
+            :math:`R_Z(\theta+\pi).\sqrt{X}.R_Z(\lambda)`
         * - 'ZSXX'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
-          - :math:`e^{i\gamma} RZ(\phi+\pi).S_X.R_Z(\theta+\pi).S_X.RZ(\lambda)`
+          - :math:`e^{i\gamma} R_Z(\phi+\pi).\sqrt{X}.R_Z(\theta+\pi).\sqrt{X}.R_Z(\lambda)`
             or
-            :math:`e^{i\gamma} RZ(\phi+\pi).X.RZ(\lambda)`
+            :math:`e^{i\gamma} R_Z(\phi+\pi).X.R_Z(\lambda)`
         * - 'U1X'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
           - :math:`e^{i\gamma} U_1(\phi+\pi).R_X\left(\frac{\pi}{2}\right).`
@@ -424,8 +424,10 @@ class OneQubitEulerDecomposer:
         circuit = QuantumCircuit(qr, global_phase=phase)
         if not simplify:
             atol = -1.0
+        phi = _mod_2pi(phi, atol)
+        lam = _mod_2pi(lam, atol)
         if abs(theta) > atol or abs(phi) > atol or abs(lam) > atol:
-            circuit._append(UGate(theta, _mod_2pi(phi, atol), _mod_2pi(lam, atol)), [qr[0]], [])
+            circuit._append(UGate(theta, phi, lam), [qr[0]], [])
         return circuit
 
     @staticmethod

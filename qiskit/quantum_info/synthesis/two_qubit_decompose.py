@@ -130,7 +130,7 @@ class TwoQubitWeylDecomposition():
     def __init_subclass__(cls, **kwargs):
         """Subclasses should be concrete, not factories.
 
-        Have explicitly-instantiated subclass __new__  call base __new__ with fidelity=None"""
+        Make explicitly-instantiated subclass __new__  call base __new__ with fidelity=None"""
         super().__init_subclass__(**kwargs)
         cls.__new__ = (lambda cls, *a, fidelity=None, **k:
                        TwoQubitWeylDecomposition.__new__(cls, *a, fidelity=None, **k))
@@ -344,7 +344,7 @@ class TwoQubitWeylDecomposition():
                 simplify=False, atol=DEFAULT_ATOL) -> QuantumCircuit:
         """Returns Weyl decomposition in circuit form.
 
-        Extra arguments are passed to OneQubitEulerDecomposer"""
+        simplify, atol arguments are passed to OneQubitEulerDecomposer"""
         if euler_basis is None:
             euler_basis = self._default_1q_basis
         oneq_decompose = OneQubitEulerDecomposer(euler_basis)
