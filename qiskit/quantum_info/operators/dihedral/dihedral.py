@@ -41,7 +41,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
     An :math:`N`-qubit CNOT-Dihedral operator is stored as an affine function and a
     phase polynomial, based on the convention in references [1, 2].
 
-    The affine function consists of an :math:`N \times N` invertible binary matrix,
+    The affine function consists of an :math:`N \\times N` invertible binary matrix,
     and an :math:`N` binary vector.
 
     The phase polynomial is a polynomial of degree at most 3,
