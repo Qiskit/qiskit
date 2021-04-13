@@ -186,6 +186,10 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
         output_name: A list with strings to identify the output circuits. The length of
             the list should be exactly the length of the ``circuits`` parameter.
+        unitary_synthesis_method (str): The name of the unitary synthesis
+            method to use. By default 'default' is used, which is the only
+            method included with qiskit. If you have installed any unitary
+            synthesis plugins you can use the name exported by the plugin.
 
     Returns:
         The transpiled circuit(s).
@@ -448,18 +452,19 @@ def _parse_transpile_args(circuits, backend,
                     durations, approximation_degree, seed_transpiler, unitary_synthesis_method,
                     optimization_level, output_name, callback, backend_num_qubits,
                     faulty_qubits_map):
-        transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
-                                                                   coupling_map=args[1],
-                                                                   backend_properties=args[2],
-                                                                   initial_layout=args[3],
-                                                                   layout_method=args[4],
-                                                                   routing_method=args[5],
-                                                                   translation_method=args[6],
-                                                                   scheduling_method=args[7],
-                                                                   instruction_durations=args[8],
-                                                                   approximation_degree=args[9],
-                                                                   seed_transpiler=args[10],
-                                                                   unitary_synthesis_method=args[11]),
+        transpile_args = {'pass_manager_config': PassManagerConfig(
+            basis_gates=args[0],
+            coupling_map=args[1],
+            backend_properties=args[2],
+            initial_layout=args[3],
+            layout_method=args[4],
+            routing_method=args[5],
+            translation_method=args[6],
+            scheduling_method=args[7],
+            instruction_durations=args[8],
+            approximation_degree=args[9],
+            seed_transpiler=args[10],
+            unitary_synthesis_method=args[11]),
                           'optimization_level': args[12],
                           'output_name': args[13],
                           'callback': args[14],

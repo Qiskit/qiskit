@@ -63,7 +63,7 @@ class UnitarySynthesis(TransformationPass):
     def __init__(self,
                  basis_gates: List[str],
                  approximation_degree: float = 1,
-                 coupling_map = None,
+                 coupling_map=None,
                  method: str = None):
         """
         Synthesize unitaries over some basis gates.
@@ -111,7 +111,7 @@ class UnitarySynthesis(TransformationPass):
                 layout = self.property_set.get('layout')
                 if layout:
                     qubit_map = layout.get_virtual_bits()
-                    kwargs['qubits'] = [qubit_map[x] for x in node.op.qargs]
+                    kwargs['qubits'] = [qubit_map[x] for x in node.qargs]
             if plugin.supports_approximation_degree:
                 kwargs['approximation_degree'] = self._approximation_degree
             unitary = node.op.to_matrix()
