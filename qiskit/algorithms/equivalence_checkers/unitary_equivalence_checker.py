@@ -75,7 +75,7 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
             except ImportError as no_aer:
                 if simulator == 'aer':
                     raise QiskitError('Could not import the Aer simulator') from no_aer
-                self.simualtor = 'quantum_info'
+                self.simulator = 'quantum_info'
 
         if self.simulator == 'quantum_info':
             self.backend = None

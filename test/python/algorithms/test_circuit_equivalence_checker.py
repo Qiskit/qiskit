@@ -29,7 +29,8 @@ class TestEquivalenceChecker(QiskitTestCase):
     def setUp(self) -> None:
         super().setUp()
         try:
-            from qiskit import Aer   # pylint: disable=unused-import
+            from qiskit import Aer
+            Aer.get_backend('qasm_simulator')
             self.aer_installed = True
         except ImportError:
             self.aer_installed = False
