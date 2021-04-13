@@ -26,12 +26,14 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
     The comparison can either ignore or not ignore global phase.
     """
 
-    def __init__(self, simulator, phase, external_backend=None, transpiler_options={}, backend_options={}):
+    def __init__(self, simulator, phase, external_backend=None,
+                 transpiler_options=None, backend_options=None):
         """
         Args:
             simulator (str): The type of simulator to compute the unitary.
                 Options are: 'quantum_info', 'aer', 'external', or 'automatic'.
-                'automatic' will choose 'aer' if Aer is installed, otherwise it will choose 'quantum_info'
+                'automatic' will choose 'aer' if Aer is installed,
+                otherwise it will choose 'quantum_info'
             phase (str): Options are 'global' - ignoring global phase;
                 or 'equal' - not ignoring global phase.
             external_backend (BaseBackend): The backend to run,  when `simulator` is 'external'.
@@ -47,8 +49,8 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
         """
 
         self.simulator = simulator
-        self.transpiler_options = transpiler_options
-        self.backend_options = backend_options
+        self.transpiler_options = transpiler_options if transpiler_options is not None else {}
+        self.backend_options = backend_options if backend_options is not None else {}
 
         if phase == 'equal':
             self.ignore_phase = False
@@ -62,20 +64,19 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
 
         if simulator == 'external':
             self.backend = external_backend
-            
-        if simulator == 'aer' or simulator == 'automatic':
+
+        if simulator in ['aer', 'automatic']:
             try:
                 from qiskit.providers.aer import UnitarySimulator
                 self.backend = UnitarySimulator()
-                self.backend.set_options(**backend_options)
+                self.backend.set_options(**self.backend_options)
                 if simulator == 'automatic':
                     self.simulator = 'aer'
-            except ImportError:
+            except ImportError as no_aer:
                 if simulator == 'aer':
-                    raise QiskitError('Could not import the Aer simulator')
-                else:
-                    self.simualtor = 'quantum_info'
-                    
+                    raise QiskitError('Could not import the Aer simulator') from no_aer
+                self.simualtor = 'quantum_info'
+
         if self.simulator == 'quantum_info':
             self.backend = None
 

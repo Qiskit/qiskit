@@ -10,6 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""
+A wrapper function to different equivalence checkers
+"""
+
 from .unitary_equivalence_checker import UnitaryEquivalenceChecker
 
 def equivalence_checker(circ1, circ2, method, **options):
@@ -28,9 +32,9 @@ def equivalence_checker(circ1, circ2, method, **options):
     Raises:
         ValueError: if `method` is not one of a set of recognized methods
     """
-    
+
     if method == 'unitary':
-      checker = UnitaryEquivalenceChecker(**options)  
-      return checker.run(circ1, circ2)
+        checker = UnitaryEquivalenceChecker(**options)
+        return checker.run(circ1, circ2)
     else:
-      raise ValueError('Unknown checker method: ' + method)
+        raise ValueError('Unknown checker method: ' + method)

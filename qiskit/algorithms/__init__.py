@@ -192,7 +192,8 @@ from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
                                     MinimumEigensolver, MinimumEigensolverResult)
 from .phase_estimators import (HamiltonianPhaseEstimation, HamiltonianPhaseEstimationResult,
                                PhaseEstimationScale, PhaseEstimation, PhaseEstimationResult)
-from .equivalence_checkers import BaseEquivalenceChecker, UnitaryEquivalenceChecker, EquivalenceCheckerResult, equivalence_checker
+from .equivalence_checkers import (BaseEquivalenceChecker, UnitaryEquivalenceChecker,
+                                   EquivalenceCheckerResult, equivalence_checker)
 from .exceptions import AlgorithmError
 
 __all__ = [

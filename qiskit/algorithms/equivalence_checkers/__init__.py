@@ -17,4 +17,3 @@ Circuit Equivalence Checker
 from .base_equivalence_checker import BaseEquivalenceChecker, EquivalenceCheckerResult
 from .unitary_equivalence_checker import UnitaryEquivalenceChecker
 from .equivalence_checker import equivalence_checker
-
