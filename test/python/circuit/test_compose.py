@@ -95,7 +95,7 @@ class TestCircuitCompose(QiskitTestCase):
         circuit_expected.y(self.left_qubit2)
         circuit_expected.z(self.left_qubit4)
 
-        circuit_composed = self.circuit_left.compose(circuit_right, inplace=False)
+        circuit_composed = self.circuit_left.compose(circuit_right, box=False, inplace=False)
         self.assertEqual(circuit_composed, circuit_expected)
 
     def test_compose_inorder_inplace(self):
@@ -148,7 +148,7 @@ class TestCircuitCompose(QiskitTestCase):
 
         # inplace
         circuit_left = self.circuit_left.copy()
-        circuit_left.compose(circuit_right, inplace=True)
+        circuit_left.compose(circuit_right, box=False, inplace=True)
         self.assertEqual(circuit_left, circuit_expected)
 
     def test_compose_inorder_smaller(self):
@@ -195,7 +195,7 @@ class TestCircuitCompose(QiskitTestCase):
         circuit_expected.cx(self.left_qubit0, self.left_qubit1)
         circuit_expected.tdg(self.left_qubit0)
 
-        circuit_composed = self.circuit_left.compose(circuit_right)
+        circuit_composed = self.circuit_left.compose(circuit_right, box=False)
         self.assertEqual(circuit_composed, circuit_expected)
 
     def test_compose_permuted(self):
@@ -251,7 +251,8 @@ class TestCircuitCompose(QiskitTestCase):
                                                              self.left_qubit2,
                                                              self.left_qubit4,
                                                              self.left_qubit0],
-                                                     inplace=False)
+                                                     inplace=False,
+                                                     box=False)
         self.assertEqual(circuit_composed, circuit_expected)
 
     def test_compose_permuted_smaller(self):
@@ -294,7 +295,7 @@ class TestCircuitCompose(QiskitTestCase):
         circuit_right.tdg(qreg[0])
 
         # permuted wiring of subset
-        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[3, 2])
+        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[3, 2], box=False)
 
         circuit_expected = self.circuit_left.copy()
         circuit_expected.cx(self.left_qubit3, self.left_qubit2)
@@ -344,7 +345,8 @@ class TestCircuitCompose(QiskitTestCase):
         circuit_right.measure(qreg, creg)
 
         # permuted subset of qubits and clbits
-        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[1, 4], clbits=[1, 0])
+        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[1, 4], clbits=[1, 0],
+                                                     box=False)
 
         circuit_expected = self.circuit_left.copy()
         circuit_expected.cx(self.left_qubit1, self.left_qubit4)
@@ -398,7 +400,8 @@ class TestCircuitCompose(QiskitTestCase):
         circuit_right.measure(qreg, creg)
 
         # permuted subset of qubits and clbits
-        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[1, 4], clbits=[1, 0])
+        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[1, 4], clbits=[1, 0],
+                                                     box=False)
 
         circuit_expected = self.circuit_left.copy()
         circuit_expected.x(self.left_qubit4).c_if(*self.condition)
@@ -469,7 +472,14 @@ class TestCircuitCompose(QiskitTestCase):
         rz = RZGate(0.1)
         cx = CXGate()
         ccx = CCXGate()
-        circ = circ.compose(h, [0]).compose(cx, [0, 2]).compose(ccx, [2, 1, 0]).compose(rz, [1])
+        circ = circ.compose(
+                h, [0], box=False
+            ).compose(
+                cx, [0, 2], box=False
+            ).compose(
+                ccx, [2, 1, 0], box=False
+            ).compose(
+                rz, [1], box=False)
 
         expected = QuantumCircuit(3)
         expected.h(0)
@@ -482,12 +492,15 @@ class TestCircuitCompose(QiskitTestCase):
     def test_compose_global_phase(self):
         """Composing with global phase."""
         circ1 = QuantumCircuit(1, global_phase=1)
-        circ1.rz(0.5, 0)
+        circ1.z(0)
         circ2 = QuantumCircuit(1, global_phase=2)
         circ3 = QuantumCircuit(1, global_phase=3)
         circ4 = circ1.compose(circ2).compose(circ3)
-        self.assertEqual(circ4.global_phase,
-                         circ1.global_phase + circ2.global_phase + circ3.global_phase)
+        with self.subTest('with boxing the phase is in the instruction:'):
+            self.assertEqual(circ4.global_phase, 1)
+        with self.subTest('if decomposed, the phases add up'):
+            self.assertEqual(circ4.decompose().global_phase,
+                             circ1.global_phase + circ2.global_phase + circ3.global_phase)
 
     def test_compose_front_circuit(self):
         """Test composing a circuit at the front of a circuit.
@@ -501,7 +514,7 @@ class TestCircuitCompose(QiskitTestCase):
         other.cz(1, 0)
         other.z(1)
 
-        output = qc.compose(other, front=True)
+        output = qc.compose(other, front=True, box=False)
 
         expected = QuantumCircuit(2)
         expected.cz(1, 0)
@@ -519,7 +532,7 @@ class TestCircuitCompose(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
 
-        output = qc.compose(CXGate(), [1, 0], front=True)
+        output = qc.compose(CXGate(), [1, 0], front=True, box=False)
 
         expected = QuantumCircuit(2)
         expected.cx(1, 0)

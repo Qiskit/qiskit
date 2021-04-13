@@ -20,8 +20,8 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Operator
 
 
-class TestCircuitCompose(QiskitTestCase):
-    """Test composition of two circuits."""
+class TestCircuitTensor(QiskitTestCase):
+    """Test tensor product of two circuits."""
 
     def test_unnamed_tensor(self):
         """Test composing on unnamed circuits."""
@@ -40,7 +40,7 @@ class TestCircuitCompose(QiskitTestCase):
         expect.measure(0, 0)
 
         with self.subTest('bottom.tensor(top)'):
-            self.assertEqual(bottom.tensor(top), expect)
+            self.assertEqual(bottom.tensor(top, box=False), expect)
 
         expect = QuantumCircuit(3, 1)
         expect.y(0)
@@ -49,7 +49,7 @@ class TestCircuitCompose(QiskitTestCase):
         expect.measure(2, 0)
 
         with self.subTest('top.tensor(bottom)'):
-            self.assertEqual(top.tensor(bottom), expect)
+            self.assertEqual(top.tensor(bottom, box=False), expect)
 
     def test_mixed(self):
         """Test composing on named and unnamed registers."""
@@ -69,7 +69,7 @@ class TestCircuitCompose(QiskitTestCase):
         expect.z(2)
         expect.measure(0, 0)
 
-        self.assertEqual(bottom.tensor(top), expect)
+        self.assertEqual(bottom.tensor(top, box=False), expect)
 
     def test_named(self):
         """Test composing on named and unnamed registers."""
@@ -86,7 +86,7 @@ class TestCircuitCompose(QiskitTestCase):
 
         with self.subTest('same name raises'):
             with self.assertRaises(CircuitError):
-                _ = bottom.tensor(top)
+                _ = bottom.tensor(top, box=False)
 
         qr1 = QuantumRegister(2, 'other_qr')
         bottom = QuantumCircuit(qr1)
@@ -100,7 +100,7 @@ class TestCircuitCompose(QiskitTestCase):
         expect.measure(0, 0)
 
         with self.subTest('assert circuit is correct'):
-            self.assertEqual(bottom.tensor(top), expect)
+            self.assertEqual(bottom.tensor(top, box=False), expect)
 
     def test_measure_all(self):
         """Test ``tensor`` works if ``measure_all`` is called on both circuits."""
@@ -124,7 +124,7 @@ class TestCircuitCompose(QiskitTestCase):
         expect.barrier([1, 2])
         expect.measure([0, 1, 2], [0, 1, 2])
 
-        self.assertEqual(bottom.tensor(top), expect)
+        self.assertEqual(bottom.tensor(top, box=False), expect)
 
     def test_multiple_registers(self):
         """Test tensoring circuits with multiple registers."""
@@ -159,7 +159,7 @@ class TestCircuitCompose(QiskitTestCase):
         expect.cx(4, 5)
         expect.measure(5, 1)
 
-        self.assertEqual(bottom.tensor(top), expect)
+        self.assertEqual(bottom.tensor(top, box=False), expect)
 
     def test_consistent_with_quantum_info(self):
         """Test that the ordering is consistent with quantum_info's Operator."""

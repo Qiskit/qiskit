@@ -645,7 +645,7 @@ class QuantumCircuit:
 
         return self
 
-    def compose(self, other, qubits=None, clbits=None, box=None, front=False, inplace=False):
+    def compose(self, other, qubits=None, clbits=None, box=True, front=False, inplace=False):
         """Compose circuit with ``other`` circuit or instruction, optionally permuting wires.
 
         ``other`` can be narrower or of equal width to ``self``.
@@ -702,10 +702,6 @@ class QuantumCircuit:
             raise CircuitError("Trying to compose with another object "
                                "which has more 'in' edges.")
 
-        # if ``other`` is not a circuit (but e.g. an instruction), always box it
-        if not isinstance(other, QuantumCircuit):
-            box = True
-
         # per default append to the top qubits and clbits
         if qubits is None:
             qubits = list(range(other.num_qubits))
@@ -726,6 +722,13 @@ class QuantumCircuit:
             dest = self
         else:
             dest = self.copy()
+
+        if isinstance(other, QuantumCircuit):
+            for gate, cals in other.calibrations.items():
+                dest._calibrations[gate].update(cals)
+        # if ``other`` is not a circuit (but e.g. an instruction), always box it
+        else:
+            box = True
 
         # compose case where we directly compose, without wrapping in a box
         if box:
@@ -776,14 +779,11 @@ class QuantumCircuit:
             for instr, _, _ in mapped_instrs:
                 self._update_parameter_table(instr)
 
-        for gate, cals in other.calibrations.items():
-            self._calibrations[gate].update(cals)
-
         self.global_phase += other.global_phase
 
         return self
 
-    def tensor(self, other, inplace=False):
+    def tensor(self, other, box=True, inplace=False):
         """Tensor ``self`` with ``other``.
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
@@ -846,9 +846,9 @@ class QuantumCircuit:
                                   *other.qregs, *self.qregs, *other.cregs, *self.cregs)
 
         # compose self onto the output, and then other
-        dest.compose(other, range(other.num_qubits), range(other.num_clbits), inplace=True)
+        dest.compose(other, range(other.num_qubits), range(other.num_clbits), box=box, inplace=True)
         dest.compose(self, range(other.num_qubits, num_qubits),
-                     range(other.num_clbits, num_clbits), inplace=True)
+                     range(other.num_clbits, num_clbits), box=box, inplace=True)
 
         # Replace information from tensored circuit into self when inplace = True
         if inplace:
