@@ -23,7 +23,7 @@ please ensure that:
    *docstring* accordingly.
 
    If your pull request is adding a new class, function, or module that is
-   intended to be user facing also ensure that you've also added those to a
+   intended to be user facing ensure that you've also added those to a
    documentation `autosummary` index to include it in the api documentation.
    For more details you can refer to:
 
