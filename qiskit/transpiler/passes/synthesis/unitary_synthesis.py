@@ -92,26 +92,25 @@ class UnitarySynthesis(TransformationPass):
         Returns:
             Output dag with UnitaryGates synthesized to target basis.
         """
+        if not self.method:
+            method = 'default'
+        else:
+            method = self.method
+        if method not in self.plugins.ext_plugins:
+            raise QiskitError(
+                    'Specified method: %s not found in plugin list' % method)
+        plugin = self.plugins.ext_plugins[method].obj
+        if plugin.supports_coupling_map:
+            dag_bit_indices = {bit: idx
+                               for idx, bit in enumerate(dag.qubits)}
         for node in dag.named_nodes('unitary'):
             synth_dag = None
-            if not self.method:
-                method = 'default'
-            else:
-                method = self.method
-            if method not in self.plugins.ext_plugins:
-                raise QiskitError(
-                        'Specified method: %s not found in plugin list' % method)
-            plugin = self.plugins.ext_plugins[method].obj
             kwargs = {}
             if plugin.supports_basis_gates:
                 kwargs['basis_gates'] = self._basis_gates
             if plugin.supports_coupling_map:
                 kwargs['coupling_map'] = self._coupling_map
-                kwargs['qubits'] = None
-                layout = self.property_set.get('layout')
-                if layout:
-                    qubit_map = layout.get_virtual_bits()
-                    kwargs['qubits'] = [qubit_map[x] for x in node.qargs]
+                kwargs['qubits'] = [dag_bit_indices[x] for x in node.qargs]
             if plugin.supports_approximation_degree:
                 kwargs['approximation_degree'] = self._approximation_degree
             unitary = node.op.to_matrix()
