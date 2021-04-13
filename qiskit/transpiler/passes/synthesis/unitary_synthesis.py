@@ -107,6 +107,11 @@ class UnitarySynthesis(TransformationPass):
                 kwargs['basis_gates'] = self._basis_gates
             if plugin.supports_coupling_map:
                 kwargs['coupling_map'] = self._coupling_map
+                kwargs['qubits'] = None
+                layout = self.property_set.get('layout')
+                if layout:
+                    qubit_map = layout.get_virtual_bits()
+                    kwargs['qubits'] = [qubit_map[x] for x in node.op.qargs]
             if plugin.supports_approximation_degree:
                 kwargs['approximation_degree'] = self._approximation_degree
             unitary = node.op.to_matrix()
