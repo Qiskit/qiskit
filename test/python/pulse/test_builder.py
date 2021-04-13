@@ -641,6 +641,16 @@ class TestUtilities(TestBuilder):
             self.assertTrue(isinstance(time, float))
             self.assertEqual(pulse.samples_to_seconds(100), 10)
 
+    def test_samples_to_seconds_array(self):
+        """Test samples to time (array format)."""
+        config = self.backend.configuration()
+        config.dt = 0.1
+        with pulse.build(self.backend):
+            samples = np.array([100, 200, 300])
+            times = pulse.samples_to_seconds(samples)
+            self.assertTrue(np.issubdtype(times.dtype, np.floating))
+            np.testing.assert_allclose(times, np.array([10, 20, 30]))
+
     def test_seconds_to_samples(self):
         """Test time to samples"""
         config = self.backend.configuration()
