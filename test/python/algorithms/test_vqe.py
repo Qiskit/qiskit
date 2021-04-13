@@ -21,6 +21,7 @@ import numpy as np
 from ddt import data, ddt, unpack
 
 from qiskit import BasicAer, QuantumCircuit
+from qiskit.test import slow_test
 from qiskit.algorithms import VQE, AlgorithmError
 from qiskit.algorithms.optimizers import (
     CG,
@@ -210,6 +211,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(sum([v ** 2 for v in optimal_vector.values()]), 1.0, places=4)
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    @slow_test
     def test_with_aer_statevector(self):
         """Test VQE with Aer's statevector_simulator."""
         backend = Aer.get_backend("aer_simulator_statevector")
@@ -256,6 +258,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.eigenvalue.real, -1.86305, places=2)
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    @slow_test
     def test_with_aer_qasm_snapshot_mode(self):
         """Test the VQE using Aer's qasm_simulator snapshot mode."""
 
@@ -305,6 +308,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         )
         vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
+    @slow_test
     def test_with_two_qubit_reduction(self):
         """Test the VQE using TwoQubitReduction."""
         qubit_op = PauliSumOp.from_list(
