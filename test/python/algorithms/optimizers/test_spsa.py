@@ -52,3 +52,14 @@ class TestSPSA(QiskitAlgorithmsTestCase):
 
         self.assertLess(result[1], -0.95)  # final loss
         self.assertEqual(result[2], 301)  # function evaluations
+
+    def test_recalibrate_at_optimize(self):
+        """Test SPSA calibrates anew upon each optimization run, if no autocalibration is set."""
+        def objective(x):
+            return -(x ** 2)
+
+        spsa = SPSA(maxiter=1)
+        _ = spsa.optimize(1, objective, initial_point=np.array([0.5]))
+
+        self.assertIsNone(spsa.learning_rate)
+        self.assertIsNone(spsa.perturbation)
