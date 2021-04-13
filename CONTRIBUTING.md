@@ -22,10 +22,10 @@ please ensure that:
    function or class has been modified during the PR, please update the
    *docstring* accordingly.
 
-   If your pull request is adding a new class, function, or module also ensure
-   that you've also added those to a documentation `autosummary` index to
-   ensure that it is included in the api documentation. For more details you
-   can refer to:
+   If your pull request is adding a new class, function, or module that is
+   intended to be user facing also ensure that you've also added those to a
+   documentation `autosummary` index to include it in the api documentation.
+   For more details you can refer to:
 
    https://qiskit.org/documentation/contributing_to_qiskit.html#documentation-structure
 
