@@ -241,9 +241,9 @@ class Shor:
         # Apply the multiplication gates as showed in
         # the report in order to create the exponentiation
         for i, ctl_up in enumerate(self._up_qreg):  # type: ignore
-            a = int(pow(a, pow(2, i)))
+            a_aux = int(pow(a, pow(2, i)))
             controlled_multiple_mod_N = self._controlled_multiple_mod_N(
-                len(self._down_qreg) + len(self._aux_qreg) + 1, N, a,
+                len(self._down_qreg) + len(self._aux_qreg) + 1, N, a_aux,
             )
             circuit.append(
                 controlled_multiple_mod_N, [ctl_up, *self._down_qreg, *self._aux_qreg]
