@@ -1457,9 +1457,9 @@ def draw(self,
 
     Args:
         style: Stylesheet options. This can be dictionary or preset stylesheet classes. See
-            :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,
-            :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
-            :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXDebugging` for details of
+            :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,
+            :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
+            :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXDebugging` for details of
             preset stylesheets.
         backend (Optional[BaseBackend]): Backend object to play the input pulse program.
             If provided, the plotter may use to make the visualization hardware aware.
