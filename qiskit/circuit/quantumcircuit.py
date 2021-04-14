@@ -1926,12 +1926,10 @@ class QuantumCircuit:
         if isinstance(angle, ParameterExpression) and angle.parameters:
             self._global_phase = angle
         else:
-            # Set the phase to the [-2 * pi, 2 * pi] interval
+            # Set the phase to the [0, 2π) interval
             angle = float(angle)
             if not angle:
                 self._global_phase = 0
-            elif angle < 0:
-                self._global_phase = angle % (-2 * np.pi)
             else:
                 self._global_phase = angle % (2 * np.pi)
 
