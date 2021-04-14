@@ -76,9 +76,7 @@ class TestUCGate(QiskitTestCase):
         simulator = BasicAer.get_backend('statevector_simulator')
         state = execute(qc, simulator).result().get_statevector()
 
-        self.assertTrue(np.allclose(state[0], gates[0][0,0]))
-
-
+        self.assertTrue(np.allclose(state[0], gates[0][0, 0]))
 
 
 def _get_ucg_matrix(squs):
