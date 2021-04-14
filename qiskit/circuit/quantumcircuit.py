@@ -662,8 +662,9 @@ class QuantumCircuit:
             QuantumCircuit: the composed circuit (returns None if inplace==True).
 
         Raises:
-            CircuitError: if composing on the front.
-            QiskitError: if ``other`` is wider or there are duplicate edge mappings.
+            CircuitError: If the number of qubits/clbits in ``other`` doesn't match the provided
+                ``qubits`` or ``clbits`` arguments (if they are provided.)
+            CircuitError: If ``other`` is wider than self.
 
         Examples::
 
@@ -791,6 +792,7 @@ class QuantumCircuit:
 
         Args:
             other (QuantumCircuit): The other circuit to tensor this circuit with.
+            wrap (bool): If True, wrap the other circuit into an instruction.
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
 
         Examples:
@@ -802,7 +804,7 @@ class QuantumCircuit:
                 top.x(0);
                 bottom = QuantumCircuit(2)
                 bottom.cry(0.2, 0, 1);
-                tensored = bottom.tensor(top)
+                tensored = bottom.tensor(top, wrap=False)
                 print(tensored.draw())
 
         Returns:
