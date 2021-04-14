@@ -33,7 +33,7 @@ class TestMCMT(QiskitTestCase):
         """Test that the MCMT can act as normal control gate."""
         qc = QuantumCircuit(2)
         mcmt = mcmt_class(gate=CHGate(), num_ctrl_qubits=1, num_target_qubits=1)
-        qc = qc.compose(mcmt, [0, 1], box=False)
+        qc = qc.compose(mcmt, [0, 1], wrap=False)
 
         ref = QuantumCircuit(2)
         ref.ch(0, 1)
@@ -109,7 +109,7 @@ class TestMCMT(QiskitTestCase):
                 qc.x(controls[i])
 
             mcmt = MCMTVChain(cgate, num_controls, num_targets)
-            qc.compose(mcmt, qubits, box=False, inplace=True)
+            qc.compose(mcmt, qubits, wrap=False, inplace=True)
 
             for i in subset:
                 qc.x(controls[i])

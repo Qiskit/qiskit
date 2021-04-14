@@ -459,11 +459,11 @@ class TwoQubitBasisDecomposer():
         if best_nbasis == 2:
             return_circuit.global_phase += np.pi
         for i in range(best_nbasis):
-            return_circuit.compose(decomposition_euler[2*i], [q[0]], box=False, inplace=True)
-            return_circuit.compose(decomposition_euler[2*i+1], [q[1]], box=False, inplace=True)
+            return_circuit.compose(decomposition_euler[2*i], [q[0]], wrap=False, inplace=True)
+            return_circuit.compose(decomposition_euler[2*i+1], [q[1]], wrap=False, inplace=True)
             return_circuit.append(self.gate, [q[0], q[1]])
-        return_circuit.compose(decomposition_euler[2*best_nbasis], [q[0]], box=False, inplace=True)
-        return_circuit.compose(decomposition_euler[2*best_nbasis+1], [q[1]], box=False,
+        return_circuit.compose(decomposition_euler[2*best_nbasis], [q[0]], wrap=False, inplace=True)
+        return_circuit.compose(decomposition_euler[2*best_nbasis+1], [q[1]], wrap=False,
                                inplace=True)
 
         return return_circuit

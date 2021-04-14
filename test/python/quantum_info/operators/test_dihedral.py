@@ -485,7 +485,7 @@ class TestCNOTDihedral(unittest.TestCase):
                 elem1 = CNOTDihedral(circ1)
                 elem2 = CNOTDihedral(circ2)
                 value = elem1.compose(elem2)
-                target = CNOTDihedral(circ1.compose(circ2, box=False))
+                target = CNOTDihedral(circ1.compose(circ2, wrap=False))
                 self.assertEqual(target, value,
                                  'Error: composed circuit is not the same')
 
@@ -500,7 +500,7 @@ class TestCNOTDihedral(unittest.TestCase):
                 elem1 = CNOTDihedral(circ1)
                 elem2 = CNOTDihedral(circ2)
                 value = elem1.dot(elem2)
-                target = CNOTDihedral(circ2.compose(circ1, box=False))
+                target = CNOTDihedral(circ2.compose(circ1, wrap=False))
                 self.assertEqual(target, value,
                                  'Error: composed circuit is not the same')
 

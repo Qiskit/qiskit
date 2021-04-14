@@ -439,7 +439,7 @@ class TestDagCompose(QiskitTestCase):
         circuit_right.h(0).c_if(wide_creg, 2)
 
         with self.assertRaisesRegex(DAGCircuitError, 'more than one creg'):
-            circuit_left.compose(circuit_right)
+            circuit_left.compose(circuit_right, wrap=False)
 
     def test_compose_calibrations(self):
         """Test that compose carries over the calibrations."""

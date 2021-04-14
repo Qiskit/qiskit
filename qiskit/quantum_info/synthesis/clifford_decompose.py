@@ -490,7 +490,7 @@ def decompose_clifford_greedy(clifford):
         # Compute the decoupling operator of cliff_ox and cliff_oz
         decouple_circ, decouple_cliff = _calc_decoupling(cliff_ox, cliff_oz, qubit_list,
                                                          min_qubit, num_qubits)
-        circ = circ.compose(decouple_circ, box=False)
+        circ = circ.compose(decouple_circ, wrap=False)
 
         # Now the clifford acts trivially on min_qubit
         clifford_cpy = decouple_cliff.adjoint().compose(clifford_cpy)

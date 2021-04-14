@@ -115,7 +115,7 @@ class QAOAAnsatz(BlueprintCircuit):
         circuit = self._construct_circuit(param_vector)
 
         # append(replace) the circuit to this
-        self.compose(circuit, box=False, inplace=True)
+        self.compose(circuit, wrap=False, inplace=True)
 
     def _reset_registers(self, num_qubits):
         """Set the registers and qubits to the new size."""

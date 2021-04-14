@@ -1122,8 +1122,8 @@ class TestQFI(QiskitOpflowTestCase):
         for i, (circuit_set, list_op) in enumerate(zip(circuit_sets, list_ops)):
             for j, (reference, composed_op) in enumerate(zip(circuit_set, list_op)):
                 with self.subTest(f'set {i} circuit {j}'):
-                    self.assertEqual(base.compose(composed_op[1].primitive, box=False),
-                                     base.compose(reference, box=False))
+                    self.assertEqual(base.compose(composed_op[1].primitive, wrap=False),
+                                     base.compose(reference, wrap=False))
 
     def test_overlap_qfi_bound_parameters(self):
         """Test the overlap QFI works on a circuit with multi-parameter bound gates."""

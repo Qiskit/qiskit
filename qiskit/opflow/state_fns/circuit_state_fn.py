@@ -362,5 +362,5 @@ class CircuitStateFn(StateFn):
             A new CircuitStateFn containing the permuted circuit.
         """
         new_qc = QuantumCircuit(max(permutation) + 1).compose(self.primitive, qubits=permutation,
-                                                              box=False)
+                                                              wrap=False)
         return CircuitStateFn(new_qc, coeff=self.coeff, is_measurement=self.is_measurement)

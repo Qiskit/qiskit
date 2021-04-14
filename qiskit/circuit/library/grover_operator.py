@@ -242,24 +242,24 @@ class GroverOperator(QuantumCircuit):
         if num_ancillas > 0:
             self.add_register(AncillaRegister(num_ancillas, name='ancilla'))
 
-        self.compose(self.oracle, list(range(self.oracle.num_qubits)), box=False, inplace=True)
+        self.compose(self.oracle, list(range(self.oracle.num_qubits)), wrap=False, inplace=True)
         if self._insert_barriers:
             self.barrier()
         self.compose(self.state_preparation.inverse(),
                      list(range(self.state_preparation.num_qubits)),
-                     box=False,
+                     wrap=False,
                      inplace=True)
         if self._insert_barriers:
             self.barrier()
         self.compose(self.zero_reflection,
                      list(range(self.zero_reflection.num_qubits)),
-                     box=False,
+                     wrap=False,
                      inplace=True)
         if self._insert_barriers:
             self.barrier()
         self.compose(self.state_preparation,
                      list(range(self.state_preparation.num_qubits)),
-                     box=False,
+                     wrap=False,
                      inplace=True)
 
         # minus sign

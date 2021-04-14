@@ -226,7 +226,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit_drawer(circuit, filename=filename1, output='latex_source',
                        plot_barriers=True)
 
-        print(circuit)
         self.assertEqualToReference(filename1)
         circuit_drawer(circuit, filename=filename2, output='latex_source',
                        plot_barriers=False)

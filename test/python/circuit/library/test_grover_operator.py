@@ -108,9 +108,9 @@ class TestGroverOperator(QiskitTestCase):
 
         with self.subTest('circuits match'):
             expected = QuantumCircuit(*grover_op.qregs, global_phase=np.pi)
-            expected.compose(oracle, box=False, inplace=True)
+            expected.compose(oracle, wrap=False, inplace=True)
             expected.h(0)  # state_in is H
-            expected.compose(zero_reflection, box=False, inplace=True)
+            expected.compose(zero_reflection, wrap=False, inplace=True)
             expected.h(0)
             self.assertEqual(expected, grover_op)
 

@@ -645,7 +645,7 @@ class QuantumCircuit:
 
         return self
 
-    def compose(self, other, qubits=None, clbits=None, box=True, front=False, inplace=False):
+    def compose(self, other, qubits=None, clbits=None, wrap=True, front=False, inplace=False):
         """Compose circuit with ``other`` circuit or instruction, optionally permuting wires.
 
         ``other`` can be narrower or of equal width to ``self``.
@@ -655,8 +655,8 @@ class QuantumCircuit:
                 (sub)circuit to compose onto self.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
-            box (bool): If ``other`` is a circuit, this allows to wrap ``other`` in a instruction
-                (with ``box=True``), otherwise append the circuit operations directly.
+            wrap (bool): If ``other`` is a circuit, this allows to wrap ``other`` in a instruction
+                 (with ``wrap=True``), otherwise append the circuit operations directly.
             front (bool): If True, front composition will be performed.
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
 
@@ -689,13 +689,13 @@ class QuantumCircuit:
                 lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
-        if box is None and QuantumCircuit._COMPOSE_WARNING:
+        if wrap is None and QuantumCircuit._COMPOSE_WARNING:
             QuantumCircuit._COMPOSE_WARNING = False  # warn once only
             warnings.warn("The default behavior of compose changes with the next release of Qiskit "
                           "(but no sooner than 3 months) from not boxing ``other`` to wrapping it "
-                          "in an instruction. To keep the old behavior set ``box=False``.",
+                          "in an instruction. To keep the old behavior set ``wrap=False``.",
                           DeprecationWarning, stacklevel=2)
-            box = False
+            wrap = False
 
         # check the sizes are compatible
         if other.num_qubits > self.num_qubits or other.num_clbits > self.num_clbits:
@@ -728,10 +728,10 @@ class QuantumCircuit:
                 dest._calibrations[gate].update(cals)
         # if ``other`` is not a circuit (but e.g. an instruction), always box it
         else:
-            box = True
+            wrap = True
 
         # compose case where we directly compose, without wrapping in a box
-        if box:
+        if wrap:
             dest.append(other, qubits, clbits, front)
         else:
             dest._direct_compose(other, qubits, clbits, front)
@@ -783,7 +783,7 @@ class QuantumCircuit:
 
         return self
 
-    def tensor(self, other, box=True, inplace=False):
+    def tensor(self, other, wrap=True, inplace=False):
         """Tensor ``self`` with ``other``.
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
@@ -846,9 +846,10 @@ class QuantumCircuit:
                                   *other.qregs, *self.qregs, *other.cregs, *self.cregs)
 
         # compose self onto the output, and then other
-        dest.compose(other, range(other.num_qubits), range(other.num_clbits), box=box, inplace=True)
+        dest.compose(other, range(other.num_qubits), range(other.num_clbits), wrap=wrap,
+                     inplace=True)
         dest.compose(self, range(other.num_qubits, num_qubits),
-                     range(other.num_clbits, num_clbits), box=box, inplace=True)
+                     range(other.num_clbits, num_clbits), wrap=wrap, inplace=True)
 
         # Replace information from tensored circuit into self when inplace = True
         if inplace:
