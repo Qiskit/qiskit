@@ -233,5 +233,6 @@ class CircuitOp(PrimitiveOp):
         Returns:
             A new CircuitOp containing the permuted circuit.
         """
-        new_qc = QuantumCircuit(max(permutation) + 1).compose(self.primitive, qubits=permutation)
+        new_qc = QuantumCircuit(max(permutation) + 1).compose(self.primitive, qubits=permutation,
+                                                              box=False)
         return CircuitOp(new_qc, coeff=self.coeff)

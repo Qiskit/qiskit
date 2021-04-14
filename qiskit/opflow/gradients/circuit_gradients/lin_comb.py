@@ -532,7 +532,7 @@ class LinComb(CircuitGradient):
         qr_superpos = QuantumRegister(1)
         state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
         state_qc.h(qr_superpos)
-        state_qc.compose(state_op.primitive, inplace=True)
+        state_qc.compose(state_op.primitive, box=False, inplace=True)
 
         # Define the working qubit to realize the linear combination of unitaries
         if not isinstance(target_params, (list, np.ndarray)):
@@ -621,7 +621,7 @@ class LinComb(CircuitGradient):
         state_qc.h(qr_add1)
 
         # compose with the original circuit
-        state_qc.compose(state_op.primitive, inplace=True)
+        state_qc.compose(state_op.primitive, box=False, inplace=True)
 
         # create a copy of the original circuit with an additional working qubit register
         oplist = []

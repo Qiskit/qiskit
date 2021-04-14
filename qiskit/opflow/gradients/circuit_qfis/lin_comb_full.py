@@ -86,7 +86,7 @@ class LinCombFull(CircuitQFI):
         qr_work = QuantumRegister(1, 'work_qubit')
         state_qc = QuantumCircuit(*operator.primitive.qregs, qr_work)
         state_qc.h(qr_work)
-        state_qc.compose(operator.primitive, inplace=True)
+        state_qc.compose(operator.primitive, box=False, inplace=True)
 
         # Get the circuits needed to compute〈∂iψ|∂jψ〉
         for i, param_i in enumerate(params):  # loop over parameters
