@@ -875,10 +875,18 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertFalse(qc1 == qc2)
 
+    def test_append_front(self):
+        """Test appending a circuit to the front of another circuit."""
+        qc1 = QuantumCircuit(2)
+        qc1.h([0, 1])
 
-class TestCircuitBuilding(QiskitTestCase):
-    """QuantumCircuit tests."""
+        qc2 = QuantumCircuit(2)
+        qc2.x([0, 1])
 
-    def test_append_dimension_mismatch(self):
-        """Test appending to incompatible wires.
-        """
+        qc1.append(qc2, [0, 1], front=True)
+
+        ref = QuantumCircuit(2)
+        ref.append(qc2, [0, 1])
+        ref.h([0, 1])
+
+        self.assertEqual(qc1, ref)
