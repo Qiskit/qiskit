@@ -307,4 +307,4 @@ def set_style(current_style, new_style):
     unsupported_keys = set(new_style) - valid_fieds
     if unsupported_keys:
         warn('style option/s ({}) is/are not supported'.format(', '.join(unsupported_keys)),
-             DeprecationWarning, 2)
+             UserWarning, 2)

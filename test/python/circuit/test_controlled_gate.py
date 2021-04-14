@@ -1190,11 +1190,11 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         self.log.info('\n%s', str(uqc))
         # these limits could be changed
         if gate.name == 'ry':
-            self.assertLessEqual(uqc.size(), 32)
+            self.assertLessEqual(uqc.size(), 32, f"\n{uqc}")
         elif gate.name == 'rz':
-            self.assertLessEqual(uqc.size(), 42)
+            self.assertLessEqual(uqc.size(), 43, f"\n{uqc}")
         else:
-            self.assertLessEqual(uqc.size(), 20)
+            self.assertLessEqual(uqc.size(), 20, f"\n{uqc}")
 
     def test_composite(self):
         """Test composite gate count."""
@@ -1209,7 +1209,7 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         unroller = Unroller(['u', 'cx'])
         uqc = dag_to_circuit(unroller.run(dag))
         self.log.info('%s gate count: %d', uqc.name, uqc.size())
-        self.assertLessEqual(uqc.size(), 95)  # this limit could be changed
+        self.assertLessEqual(uqc.size(), 96, f"\n{uqc}")  # this limit could be changed
 
 
 @ddt
