@@ -120,6 +120,13 @@ Additional Passes
    RemoveFinalMeasurements
    DAGFixedPoint
    FixedPoint
+
+
+Transpiler Pass Plugins
+=======================
+
+.. automodule:: qiskit.transpiler.passes.synthesis.plugin
+
 """
 
 # layout selection (placement)
