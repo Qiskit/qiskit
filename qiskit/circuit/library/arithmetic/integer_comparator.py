@@ -182,6 +182,7 @@ class IntegerComparator(BlueprintCircuit):
         qr_state = self.qubits[:self.num_state_qubits]
         q_compare = self.qubits[self.num_state_qubits]
         qr_ancilla = self.qubits[self.num_state_qubits + 1:]
+        or_gate = OR(2).to_gate()
 
         if self.value <= 0:  # condition always satisfied for non-positive values
             if self._geq:  # otherwise the condition is never satisfied
@@ -197,7 +198,7 @@ class IntegerComparator(BlueprintCircuit):
                             self.cx(qr_state[i], qr_ancilla[i])
                     elif i < self.num_state_qubits - 1:
                         if twos[i] == 1:
-                            self.compose(OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]],
+                            self.compose(or_gate, [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]],
                                          inplace=True)
                         else:
                             self.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
@@ -205,7 +206,7 @@ class IntegerComparator(BlueprintCircuit):
                         if twos[i] == 1:
                             # OR needs the result argument as qubit not register, thus
                             # access the index [0]
-                            self.compose(OR(2), [qr_state[i], qr_ancilla[i - 1], q_compare],
+                            self.compose(or_gate, [qr_state[i], qr_ancilla[i - 1], q_compare],
                                          inplace=True)
                         else:
                             self.ccx(qr_state[i], qr_ancilla[i - 1], q_compare)
@@ -221,7 +222,7 @@ class IntegerComparator(BlueprintCircuit):
                             self.cx(qr_state[i], qr_ancilla[i])
                     else:
                         if twos[i] == 1:
-                            self.compose(OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]],
+                            self.compose(or_gate, [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]],
                                          inplace=True)
                         else:
                             self.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])

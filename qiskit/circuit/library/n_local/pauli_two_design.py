@@ -105,7 +105,7 @@ class PauliTwoDesign(TwoLocal):
             getattr(layer, self._gates[i][j])(next(param_iter), j)
 
         # add the layer to the circuit
-        self.compose(layer, inplace=True)
+        self.compose(layer, box=False, inplace=True)
 
     @property
     def num_parameters_settable(self) -> int:

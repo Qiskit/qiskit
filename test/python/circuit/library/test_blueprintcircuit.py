@@ -110,7 +110,7 @@ class TestBlueprintCircuit(QiskitTestCase):
         qc = QuantumCircuit(3)
         qc.x([0, 1, 2])
         circuit = MockBlueprint(3)
-        circuit.compose(qc, inplace=True)
+        circuit.compose(qc, box=False, inplace=True)
 
         reference = QuantumCircuit(3)
         reference.rx(list(circuit.parameters)[0], 0)

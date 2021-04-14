@@ -704,9 +704,9 @@ class NLocal(BlueprintCircuit):
             for i in entangler_map:
                 params = self.ordered_parameters[-len(get_parameters(block)):]
                 parameterized_block = self._parameterize_block(block, params=params)
-                layer.compose(parameterized_block, i)
+                layer.compose(parameterized_block, i, box=False)
 
-            self.compose(layer, inplace=True)
+            self.compose(layer, box=False, inplace=True)
         else:
             # cannot prepend a block currently, just rebuild
             self._invalidate()
@@ -805,10 +805,10 @@ class NLocal(BlueprintCircuit):
             # apply the operations in the layer
             for indices in block_indices:
                 parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
-                layer.compose(parameterized_block, indices, inplace=True)
+                layer.compose(parameterized_block, indices, box=False, inplace=True)
 
             # add the layer to the circuit
-            self.compose(layer, inplace=True)
+            self.compose(layer, box=False, inplace=True)
 
     def _build_entanglement_layer(self, param_iter, i):
         """Build an entanglement layer."""
@@ -821,10 +821,10 @@ class NLocal(BlueprintCircuit):
             # apply the operations in the layer
             for indices in entangler_map:
                 parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
-                layer.compose(parameterized_block, indices, inplace=True)
+                layer.compose(parameterized_block, indices, box=False, inplace=True)
 
             # add the layer to the circuit
-            self.compose(layer, inplace=True)
+            self.compose(layer, box=False, inplace=True)
 
     def _build_additional_layers(self, which):
         if which == 'appended':
@@ -841,9 +841,9 @@ class NLocal(BlueprintCircuit):
             if isinstance(ent, str):
                 ent = get_entangler_map(block.num_qubits, self.num_qubits, ent)
             for indices in ent:
-                layer.compose(block, indices, inplace=True)
+                layer.compose(block, indices, box=False, inplace=True)
 
-            self.compose(layer, inplace=True)
+            self.compose(layer, box=False, inplace=True)
 
     def _build(self) -> None:
         """Build the circuit."""
@@ -860,7 +860,7 @@ class NLocal(BlueprintCircuit):
         # use the initial state circuit if it is not None
         if self._initial_state:
             circuit = self._initial_state.construct_circuit('circuit', register=self.qregs[0])
-            self.compose(circuit, inplace=True)
+            self.compose(circuit, box=False, inplace=True)
 
         param_iter = iter(self.ordered_parameters)
 
