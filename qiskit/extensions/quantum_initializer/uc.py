@@ -46,7 +46,6 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
