@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    New parameter global_phase in QuantumCircuit.uc.
+
+    circuit.uc(self, gate_list, q_controls, q_target, up_to_diagonal=False, global_phase=False)
+
+    If global_phase is set to True the uc gate will preserve the global phase.

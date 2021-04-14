@@ -297,6 +297,7 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False, global_phase
             to a diagonal gate, i.e. a unitary u' is implemented such that there exists a
             diagonal gate d with u = d.dot(u'), where the unitary u describes the uniformly
             controlled gate
+        global_phase (bool): If set to True, global phase will be preserved.
 
     Returns:
         QuantumCircuit: the uniformly controlled gate is attached to the circuit.
