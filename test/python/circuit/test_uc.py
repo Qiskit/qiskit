@@ -66,6 +66,20 @@ class TestUCGate(QiskitTestCase):
                 unitary_desired = _get_ucg_matrix(squs)
                 self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
 
+    def test_global_phase_ucg(self):
+        """"Test global phase of uniformly controlled gates"""
+        gates = squs_list[5]
+        num_con = int(np.log2(len(gates)))
+        q = QuantumRegister(num_con + 1)
+        qc = QuantumCircuit(q)
+        qc.uc(gates, q[1:], q[0], up_to_diagonal=False, global_phase=True)
+        simulator = BasicAer.get_backend('statevector_simulator')
+        state = execute(qc, simulator).result().get_statevector()
+
+        self.assertTrue(np.allclose(state[0], gates[0][0,0]))
+
+
+
 
 def _get_ucg_matrix(squs):
     return block_diag(*squs)
