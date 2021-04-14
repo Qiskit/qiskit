@@ -71,8 +71,9 @@ class Unroller(TransformationPass):
             # TODO: allow choosing other possible decompositions
             try:
                 rule = node.op.definition.data
-            except TypeError as err:
-                raise QiskitError(f'Error decomposing node {node.name}: {err}') from err
+            except (TypeError, AttributeError) as err:
+                raise QiskitError(f'Error decomposing node \'{node.name}\': {err}.'
+                                  f' Unable to define \'{node.name}\' in the given basis.') from err
 
             # Isometry gates definitions can have widths smaller than that of the
             # original gate, in which case substitute_node will raise. Fall back
@@ -87,7 +88,9 @@ class Unroller(TransformationPass):
                 try:
                     rule = rule[0][0].definition.data
                 except (TypeError, AttributeError) as err:
-                    raise QiskitError(f'Error decomposing node {node.name}: {err}') from err
+                    raise QiskitError(f'Error decomposing node \'{node.name}\': {err}.'
+                                      f' Unable to define \'{rule[0][0].name}\' in the' +
+                                      ' given basis.') from err
 
             else:
                 if not rule:
