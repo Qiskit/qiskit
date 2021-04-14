@@ -73,9 +73,9 @@ class Unroller(TransformationPass):
                 phase = node.op.definition.global_phase
                 rule = node.op.definition.data
             except (TypeError, AttributeError) as err:
-                raise QiskitError(f'Error decomposing node \'{node.name}\': {err}.'
-                                  f' Unable to define \'{node.name}\' in the given basis.') from err
-
+                raise QiskitError(f'Error decomposing node of instruction \'{node.name}\': '
+                                  f'{err}. Unable to define instruction \'{node.name}\' in the'
+                                  f' given basis.') from err
             # Isometry gates definitions can have widths smaller than that of the
             # original gate, in which case substitute_node will raise. Fall back
             # to substitute_node_with_dag if an the width of the definition is
@@ -89,9 +89,9 @@ class Unroller(TransformationPass):
                     phase += rule[0][0].definition.global_phase
                     rule = rule[0][0].definition.data
                 except (TypeError, AttributeError) as err:
-                    raise QiskitError(f'Error decomposing node \'{node.name}\': {err}.'
-                                      f' Unable to define \'{rule[0][0].name}\' in the' +
-                                      ' given basis.') from err
+                    raise QiskitError(f'Error decomposing node of instruction \'{node.name}\': '
+                                      f'{err}. Unable to define instruction \'{rule[0][0].name}\''
+                                      f' in the given basis.') from err
 
             else:
                 if not rule:
