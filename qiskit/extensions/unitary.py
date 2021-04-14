@@ -121,7 +121,7 @@ class UnitaryGate(Gate):
             self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        r"""Return controlled version of gate
+        """Return controlled version of gate
 
         Args:
             num_ctrl_qubits (int): number of controls to add to gate (default=1)
@@ -136,10 +136,11 @@ class UnitaryGate(Gate):
             QiskitError: Invalid ctrl_state.
             ExtensionError: Non-unitary controlled unitary.
         """
-        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits, ctrl_state=None)
+        mat = self.to_matrix()
+        cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
         iso = isometry.Isometry(cmat, 0, 0)
         cunitary = ControlledGate('c-unitary', num_qubits=self.num_qubits+num_ctrl_qubits,
-                                  params=[cmat], label=label, num_ctrl_qubits=num_ctrl_qubits,
+                                  params=[mat], label=label, num_ctrl_qubits=num_ctrl_qubits,
                                   definition=iso.definition, ctrl_state=ctrl_state,
                                   base_gate=self.copy())
         from qiskit.quantum_info import Operator

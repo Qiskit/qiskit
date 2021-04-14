@@ -48,7 +48,7 @@ from qiskit.pulse.library import continuous
 from qiskit.pulse.library.discrete import gaussian, gaussian_square, drag, constant
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
-from qiskit.pulse.utils import format_parameter_value
+from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
 
 
 class ParametricPulse(Pulse):
@@ -85,8 +85,10 @@ class ParametricPulse(Pulse):
         raise NotImplementedError
 
     def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
         return any(_is_parameterized(val) for val in self.parameters.values())
 
+    @deprecated_functionality
     def assign(self, parameter: ParameterExpression,
                value: ParameterValueType) -> 'ParametricPulse':
         """Assign one parameter to a value, which can either be numeric or another parameter
@@ -94,6 +96,7 @@ class ParametricPulse(Pulse):
         """
         return self.assign_parameters({parameter: value})
 
+    @deprecated_functionality
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'ParametricPulse':
@@ -115,7 +118,7 @@ class ParametricPulse(Pulse):
                 if _is_parameterized(op_value) and parameter in op_value.parameters:
                     op_value = format_parameter_value(op_value.assign(parameter, value))
                 new_parameters[op] = op_value
-        return type(self)(**new_parameters)
+        return type(self)(**new_parameters, name=self.name)
 
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.parameters == other.parameters

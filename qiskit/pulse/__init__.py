@@ -102,6 +102,7 @@ Schedules are Pulse programs. They describe instruction sequences for the contro
    :toctree: ../stubs/
 
    Schedule
+   ScheduleBlock
    Instruction
 
 
@@ -117,7 +118,7 @@ Configuration
 Schedule Transforms
 ===================
 
-These functions take :class:`Schedule` s as input and return modified
+Schedule transforms take :class:`Schedule` s as input and return modified
 :class:`Schedule` s.
 
 .. autosummary::
@@ -126,7 +127,6 @@ These functions take :class:`Schedule` s as input and return modified
    transforms.align_measures
    transforms.add_implicit_acquires
    transforms.pad
-
 
 Exceptions
 ==========
@@ -469,4 +469,4 @@ from qiskit.pulse.library import (
     Waveform,
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse
-from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.schedule import Schedule, ScheduleBlock
