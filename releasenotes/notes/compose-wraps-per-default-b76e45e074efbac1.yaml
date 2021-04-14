@@ -1,0 +1,36 @@
+---
+features:
+  - |
+    The :meth:`QuantumCircuit.append` method has now a ``front`` keyword that
+    allows to append objects to the front rather than the back of a circuit.
+    For instance
+
+      from qiskit import QuantumCircuit
+      circuit = QuantumCircuit(2)
+      circuit.h([0, 1])
+      pre = QuantumCircuit(2, name='pre')
+      pre.x([0, 1])
+      circuit.append(pre, [0, 1], front=True)
+      print(circuit.draw())
+
+  - |
+    The :meth:`QuantumCircuit.compose` method includes now a ``wrap`` keyword
+    that allows to choose whether composed circuits should be wrapped into
+    an instruction of not. The default is to wrap circuits.
+    For instance
+
+      from qiskit import QuantumCircuit
+      circuit = QuantumCircuit(2)
+      circuit.h([0, 1])
+      other = QuantumCircuit(2)
+      other.x([0, 1])
+      print(circuit.compose(other, wrap=True))  # wrapped
+      print(circuit.compose(other, wrap=False))  # not wrapped
+
+upgrade:
+  - |
+    The :meth:`QuantumCircuit.compose` method now wraps the composed circuit
+    in an instruction per default. To keep the old behavior of not wrapping you
+    can set the keyword argument ``wrap=False``, i.e.
+
+      circuit.compose(other, wrap=False)
