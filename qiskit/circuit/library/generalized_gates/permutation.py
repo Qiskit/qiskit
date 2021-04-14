@@ -70,14 +70,9 @@ class Permutation(QuantumCircuit):
 
         name = "permutation_" + np.array_str(pattern).replace(' ', ',')
 
-        inner = QuantumCircuit(num_qubits, name=name)
-
         super().__init__(num_qubits, name=name)
         for i, j in _get_ordered_swap(pattern):
-            inner.swap(i, j)
-
-        all_qubits = self.qubits
-        self.append(inner, all_qubits)
+            self.swap(i, j)
 
 
 def _get_ordered_swap(permutation_in):
