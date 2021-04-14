@@ -186,8 +186,7 @@ class SabreSwap(TransformationPass):
                     new_node = _transform_gate_for_layout(node, current_layout, canonical_register)
                     mapped_dag.apply_operation_back(new_node.op,
                                                     new_node.qargs,
-                                                    new_node.cargs,
-                                                    new_node.condition)
+                                                    new_node.cargs)
                     front_layer.remove(node)
                     self.applied_gates.add(node)
                     for successor in dag.quantum_successors(node):
