@@ -45,11 +45,13 @@ class CalibrationCreator(TransformationPass):
         Returns:
             DAGCircuit: A DAG with calibrations added to it.
         """
+        bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+
         for node in dag.nodes():
             if node.type == 'op':
                 if self.supported(node.op):
                     params = node.op.params
-                    qubits = [_.index for _ in node.qargs]
+                    qubits = [bit_indices[qarg] for qarg in node.qargs]
 
                     schedule = self.get_calibration(params, qubits)
 
