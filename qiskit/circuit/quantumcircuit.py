@@ -667,7 +667,7 @@ class QuantumCircuit:
 
         Examples::
 
-            lhs.compose(rhs, qubits=[3, 2], inplace=True)
+            lhs.compose(rhs, qubits=[3, 2], wrap=False, inplace=True)
 
             .. parsed-literal::
 
