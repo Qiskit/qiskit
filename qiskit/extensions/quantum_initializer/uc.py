@@ -55,7 +55,7 @@ class UCGate(Gate):
     The decomposition is based on: https://arxiv.org/pdf/quant-ph/0410066.pdf.
     """
 
-    def __init__(self, gate_list, up_to_diagonal=False, global_phase=False):
+    def __init__(self, gate_list, up_to_diagonal=False):
         """UCGate Gate initializer.
 
         Args:
@@ -93,7 +93,6 @@ class UCGate(Gate):
         # Create new gate.
         super().__init__("multiplexer", int(num_contr) + 1, gate_list)
         self.up_to_diagonal = up_to_diagonal
-        self.uc_global_phase = global_phase
 
     def inverse(self):
         """Return the inverse.
@@ -161,8 +160,7 @@ class UCGate(Gate):
             # Add C-NOT gate
             if not i == len(single_qubit_gates) - 1:
                 circuit.cx(q_controls[q_contr_index], q_target)
-                if self.uc_global_phase:
-                    circuit.global_phase -= (0.25 * np.pi)
+                circuit.global_phase -= (0.25 * np.pi)
         if not self.up_to_diagonal:
             # Important: the diagonal gate is given in the computational basis of the qubits
             # q[k-1],...,q[0],q_target (ordered with decreasing significance),
@@ -276,7 +274,7 @@ class UCGate(Gate):
                                "{1}".format(type(parameter), self.name))
 
 
-def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False, global_phase=False):
+def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
     """Attach a uniformly controlled gates (also called multiplexed gates) to a circuit.
 
     The decomposition was introduced by Bergholm et al. in
@@ -296,7 +294,6 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False, global_phase
             to a diagonal gate, i.e. a unitary u' is implemented such that there exists a
             diagonal gate d with u = d.dot(u'), where the unitary u describes the uniformly
             controlled gate
-        global_phase (bool): If set to True, global phase will be preserved.
 
     Returns:
         QuantumCircuit: the uniformly controlled gate is attached to the circuit.
@@ -331,7 +328,7 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False, global_phase
     if num_contr != len(q_controls):
         raise QiskitError("Number of controlled gates does not correspond to the number of"
                           " control qubits.")
-    return self.append(UCGate(gate_list, up_to_diagonal, global_phase), [q_target] + q_controls)
+    return self.append(UCGate(gate_list, up_to_diagonal), [q_target] + q_controls)
 
 
 QuantumCircuit.uc = uc

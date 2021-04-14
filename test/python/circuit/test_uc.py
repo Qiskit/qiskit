@@ -72,7 +72,7 @@ class TestUCGate(QiskitTestCase):
         num_con = int(np.log2(len(gates)))
         q = QuantumRegister(num_con + 1)
         qc = QuantumCircuit(q)
-        qc.uc(gates, q[1:], q[0], up_to_diagonal=False, global_phase=True)
+        qc.uc(gates, q[1:], q[0], up_to_diagonal=False)
         simulator = BasicAer.get_backend('statevector_simulator')
         state = execute(qc, simulator).result().get_statevector()
 

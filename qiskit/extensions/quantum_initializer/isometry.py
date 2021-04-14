@@ -24,7 +24,7 @@ import itertools
 import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
@@ -35,7 +35,7 @@ from qiskit.extensions.quantum_initializer.mcg_up_to_diagonal import MCGupDiag
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Isometry(Instruction):
+class Isometry(Gate):
     """
     Decomposition of arbitrary isometries from m to n qubits. In particular, this allows to
     decompose unitaries (m=n) and to do state preparation (m=0).
@@ -93,17 +93,19 @@ class Isometry(Instruction):
 
         num_qubits = int(n) + num_ancillas_zero + num_ancillas_dirty
 
-        super().__init__("isometry", num_qubits, 0, [isometry])
+        super().__init__("isometry", num_qubits, [isometry])
 
     def _define(self):
         # TODO The inverse().inverse() is because there is code to uncompute (_gates_to_uncompute)
         #  an isometry, but not for generating its decomposition. It would be cheaper to do the
         #  later here instead.
-        gate = self.inverse().inverse()
+        gate = self.iso_inverse()
+        gate = gate.inverse()
         q = QuantumRegister(self.num_qubits)
         iso_circuit = QuantumCircuit(q)
         iso_circuit.append(gate, q[:])
         self.definition = iso_circuit
+        # self.params = []
 
     def _gates_to_uncompute(self):
         """
@@ -264,14 +266,14 @@ class Isometry(Instruction):
             raise CircuitError("invalid param type {0} for gate  "
                                "{1}".format(type(parameter), self.name))
 
-    def inverse(self):
+    def iso_inverse(self):
         """Return the adjoint of the unitary."""
         if self._inverse is None:
             # call to generate the circuit that takes the isometry to the first 2^m columns
             # of the 2^n identity matrix
             iso_circuit = self._gates_to_uncompute()
             # invert the circuit to create the circuit implementing the isometry
-            self._inverse = iso_circuit.to_instruction()
+            self._inverse = iso_circuit.to_gate()
         return self._inverse
 
 

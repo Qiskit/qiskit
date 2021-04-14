@@ -1373,6 +1373,8 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class("IXYZ")
                 elif gate_class == BooleanExpression:
                     gate = gate_class("x")
+                elif gate_class.__name__ == 'Isometry':
+                    gate = gate_class([[1, 0], [0, 1]], 0, 0)
                 else:
                     gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
@@ -1426,6 +1428,8 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class("IXYZ")
                 elif gate_class == BooleanExpression:
                     gate = gate_class("x")
+                elif gate_class.__name__ == 'Isometry':
+                    gate = gate_class([[1, 0], [0, 1]], 0, 0)
                 else:
                     gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
