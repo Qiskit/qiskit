@@ -5,6 +5,8 @@ features:
     allows to append objects to the front rather than the back of a circuit.
     For instance
 
+    .. jupyter-execute::
+
       from qiskit import QuantumCircuit
       circuit = QuantumCircuit(2)
       circuit.h([0, 1])
@@ -18,6 +20,8 @@ features:
     that allows to choose whether composed circuits should be wrapped into
     an instruction of not. The default is to wrap circuits.
     For instance
+
+    .. jupyter-execute::
 
       from qiskit import QuantumCircuit
       circuit = QuantumCircuit(2)
