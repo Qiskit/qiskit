@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,6 @@ This module implements the abstract base class for algorithm results.
 
 from abc import ABC
 import inspect
-from collections import OrderedDict
 import pprint
 
 
@@ -24,7 +23,7 @@ class AlgorithmResult(ABC):
     """ Abstract Base Class for algorithm results."""
 
     def __str__(self) -> str:
-        result = OrderedDict()
+        result = {}
         for name, value in inspect.getmembers(self):
             if not name.startswith('_') and \
                     not inspect.ismethod(value) and not inspect.isfunction(value) and \
@@ -53,4 +52,8 @@ class AlgorithmResult(ABC):
             if not name.startswith('_') and \
                     not inspect.ismethod(value) and not inspect.isfunction(value) and \
                     hasattr(self, name):
-                setattr(self, name, value)
+                try:
+                    setattr(self, name, value)
+                except AttributeError:
+                    # some attributes may be read only
+                    pass
