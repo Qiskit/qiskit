@@ -206,7 +206,7 @@ stages:
             cp -r /tmp/terra-tests/junit .
             pushd .stestr
             ls | grep -P "^\d" | xargs -d "\n" rm -f
-            popd .stestr
+            popd
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -484,7 +484,7 @@ stages:
             stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
             pushd .stestr
             ls | grep -P "^\d" | xargs -d "\n" rm -f
-            popd .stestr
+            popd
           condition: succeededOrFailed()
           env:
             LANG: 'C.UTF-8'
@@ -571,7 +571,7 @@ stages:
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
             pushd .stestr
             ls | grep -P "^\d" | xargs -d "\n" rm -f
-            popd .stestr
+            popd
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -653,7 +653,7 @@ stages:
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
             pushd .stestr
             ls | grep -P "^\d" | xargs -d "\n" rm -f
-            popd .stestr
+            popd
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
