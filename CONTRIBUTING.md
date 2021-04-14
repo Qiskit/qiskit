@@ -29,8 +29,6 @@ please ensure that:
 
    https://qiskit.org/documentation/contributing_to_qiskit.html#documentation-structure
 
-   which documents how the documentation is structured and how you can add
-   new classes, functions, or modules to it.
 
 3. If it makes sense for your change that you have added new tests that
    cover the changes.
