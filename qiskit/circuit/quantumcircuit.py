@@ -148,8 +148,6 @@ class QuantumCircuit:
     header = "OPENQASM 2.0;"
     extension_lib = "include \"qelib1.inc\";"
 
-    _COMPOSE_WARNING = True  # warn once upon deprecated usage of the compose method
-
     def __init__(self, *regs, name=None, global_phase=0, metadata=None):
         if any(not isinstance(reg, (list, QuantumRegister, ClassicalRegister)) for reg in regs):
             # check if inputs are integers, but also allow e.g. 2.0
@@ -689,14 +687,6 @@ class QuantumCircuit:
                 lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
-        if wrap is None and QuantumCircuit._COMPOSE_WARNING:
-            QuantumCircuit._COMPOSE_WARNING = False  # warn once only
-            warnings.warn("The default behavior of compose changes with the next release of Qiskit "
-                          "(but no sooner than 3 months) from not boxing ``other`` to wrapping it "
-                          "in an instruction. To keep the old behavior set ``wrap=False``.",
-                          DeprecationWarning, stacklevel=2)
-            wrap = False
-
         # check the sizes are compatible
         if other.num_qubits > self.num_qubits or other.num_clbits > self.num_clbits:
             raise CircuitError("Trying to compose with another object "
