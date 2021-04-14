@@ -325,7 +325,7 @@ stages:
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
             pushd .stestr
-            ls | grep -P "^\d" | xargs -n1 rm -f
+            ls | grep -e '^[[:digit:]]' | xargs -n1 rm -f
             popd
           condition: succeededOrFailed()
           displayName: 'Generate results'
@@ -652,7 +652,7 @@ stages:
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
             pushd .stestr
-            ls | grep -P "^\d" | xargs -n1 rm -f
+            ls | grep -e '^[[:digit:]]' | xargs -n1 rm -f
             popd
           condition: succeededOrFailed()
           displayName: 'Generate results'
