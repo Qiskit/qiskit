@@ -384,9 +384,7 @@ class TestInitialize(QiskitTestCase):
                     initializer.initialize(target, qr)
                     uninit = initializer.data[0][0].definition
                     self._remove_resets(uninit)
-                    disentangler = Operator(uninit.data[0][0])
-                    zero = Statevector.from_int(0, dim)
-                    evolve = zero @ disentangler
+                    evolve = Statevector(uninit)
                     self.assertEqual(target, evolve)
 
     def test_global_phase_1q(self):
