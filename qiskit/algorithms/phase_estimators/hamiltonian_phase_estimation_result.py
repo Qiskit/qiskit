@@ -14,6 +14,7 @@
 
 
 from typing import Dict, Union, cast
+from qiskit.utils.deprecation import deprecate_function
 from qiskit.algorithms.algorithm_result import AlgorithmResult
 from .phase_estimation_result import PhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
@@ -80,6 +81,17 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
                                                                         self._id_coefficient))
         else:
             return cast(Dict, phases)
+
+    @property
+    @deprecate_function('The HamiltonianPhaseEstimationResult.most_likely_phase attribute '
+                        'is deprecated. Use the phase attribute.')
+    def most_likely_phase(self) -> float:
+        """DEPRECATED - The most likely phase of the unitary corresponding to the Hamiltonian.
+
+        Returns:
+            The most likely phase.
+        """
+        return self.phase
 
     @property
     def phase(self) -> float:
