@@ -22,6 +22,108 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.25.1
+*************
+
+.. _Release Notes_0.17.1:
+
+Terra 0.17.1
+============
+
+.. _Release Notes_0.17.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixed an issue where the transpiler pass
+  :class:`~qiskit.transpiler.passes.Unroller` didn't
+  preserve global phase in case of nested instructions with one rule in
+  their definition.
+  Fixed `#6134 <https://github.com/Qiskit/qiskit-terra/issues/6134>`__
+
+- Fixed an issue where the :attr:`~qiskit.circuit.ControlledGate.parameter`
+  attribute of a :class:`~qiskit.circuit.ControlledGate` object built from
+  a :class:`~qiskit.extensions.UnitaryGate` was not being set to the
+  unitary matrix of the :class:`~qiskit.extensions.UnitaryGate` object.
+  Previously, :meth:`~qiskit.extensions.UnitaryGate.control` was building a
+  :class:`~qiskit.circuit.ControlledGate` with the ``parameter`` attribute
+  set to the controlled version of
+  :class:`~qiskit.extensions.UnitaryGate` matrix.
+  This would lead to a modification of the ``parameter`` of the base
+  :class:`~qiskit.extensions.UnitaryGate` object and subsequent calls to
+  :meth:`~qiskit.circuit.ControlledGate.inverse` was creating
+  the inverse of a double-controlled :class:`~qiskit.extensions.UnitaryGate`.
+  Fixed `#5750 <https://github.com/Qiskit/qiskit-terra/issues/5750>`__
+
+- Fixed an issue with the preset pass managers
+  :class:`~qiskit.transpiler.preset_passmanagers.level_0_pass_manager` and
+  :class:`~qiskit.transpiler.preset_passmanagers.level_1_pass_manager`
+  (which corresponds to ``optimization_level`` 0 and 1 for
+  :func:`~qiskit.compiler.transpile`) where in some cases they would
+  produce circuits not in the requested basis.
+
+- Fix a bug where using :class:`~qiskit.algorithms.optimizers.SPSA` with automatic
+  calibration of the learning rate and perturbation (i.e. ``learning_rate`` and
+  ``perturbation`` are ``None`` in the initializer), stores the calibration for all
+  future optimizations. Instead, the calibration should be done for each new objective
+  function.
+
+.. _Aer_Release Notes_0.8.1:
+
+Aer 0.8.1
+=========
+
+.. _Aer_Release Notes_0.8.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixed an issue with use of the ``matrix_product_state`` method of the
+  :class:`~qiskit.providers.aer.AerSimulator` and
+  :class:`~qiskit.providers.aer.QasmSimulator` simulators when running a
+  noisy simulation with Kraus errors. Previously, the matrix product state
+  simulation method would not propogate changes to neighboring qubits after
+  applying the Kraus matrix. This has been fixed so the output from the
+  simulation is correct.
+  Fixed `#1184 <https://github.com/Qiskit/qiskit-aer/issues/1184>`__ and
+  `#1205 <https://github.com/Qiskit/qiskit-aer/issues/1205>`__
+
+- Fixed an issue where the :class:`qiskit.extensions.Initialize` instruction
+  would disable measurement sampling optimization for the ``statevector`` and
+  ``matrix_product_state`` simulation methods of the
+  :class:`~qiskit.providers.aer.AerSimulator` and
+  :class:`~qiskit.providers.aer.QasmSimulator` simulators, even when it was
+  the first circuit instruction or applied to all qubits and hence
+  deterministic.
+  Fixed `#1210 <https://github.com/Qiskit/qiskit-aer/issues/1210>`__
+
+- Fix an issue with the :class:`~qiskit.providers.aer.library.SaveStatevector`
+  and :class:`~qiskit.providers.aer.extensions.SnapshotStatevector`
+  instructions when used with the ``extended_stabilizer`` simulation method
+  of the :class:`~qiskit.providers.aer.AerSimulator` and
+  :class:`~qiskit.providers.aer.QasmSimulator` simulators where it would
+  return an unnormalized statevector.
+  Fixed `#1196 <https://github.com/Qiskit/qiskit-aer/issues/1210>`__
+
+- The ``matrix_product_state`` simulation method now has support for it's
+  previously missing set state instruction,
+  :class:`qiskit.providers.aer.library.SetMatrixProductState`, which enables
+  setting the state of a simulation in a circuit.
+
+Ignis 0.6.0
+===========
+
+No change
+
+Aqua 0.9.1
+==========
+
+IBM Q Provider 0.12.2
+=====================
+
+No change
+
+*************
 Qiskit 0.25.0
 *************
 
