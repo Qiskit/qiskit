@@ -137,5 +137,5 @@ class PhaseEstimationScale():
                 '`pauli_sum` must be a sum of Pauli operators. Got primitives {}.'.format(
                     pauli_sum.primitive_strings()))
 
-        bound = sum([abs(pauli_sum.coeff * pauli.coeff) for pauli in pauli_sum])
+        bound = abs(pauli_sum.coeff) * sum(abs(pauli.coeff) for pauli in pauli_sum)
         return PhaseEstimationScale(bound)
