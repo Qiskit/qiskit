@@ -159,7 +159,7 @@ def _get_gate_span(qubits, node, reverse_bits):
         if index > max_index:
             max_index = index
 
-    if node.cargs or node.condition:
+    if node.cargs or node.op.condition:
         if reverse_bits:
             return qubits[:max_index + 1]
         else:
