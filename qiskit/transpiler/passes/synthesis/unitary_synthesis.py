@@ -21,8 +21,11 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.transpiler import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.basis.basis_translator import BasisTranslator
+from qiskit.transpiler.passes.basis.unroll_custom_definitions import UnrollCustomDefinitions
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import iSwapGate, CXGate, CZGate, RXXGate
+from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
@@ -109,6 +112,8 @@ class UnitarySynthesis(TransformationPass):
                                                   basis_gates=self._basis_gates,
                                                   coupling_graph=cg)
                 synth_dag = circuit_to_dag(QuantumCircuit.from_qasm_str(synth_out))
+                UnrollCustomDefinitions(sel, self._basis_gates).run(synth_dag)
+                BasisTranslator(sel, self._basis_gates).run(synth_dag)
             else:
                 synth_dag = circuit_to_dag(
                     isometry.Isometry(node.op.to_matrix(), 0, 0).definition)
