@@ -257,19 +257,19 @@ class SPSA(Optimizer):
         return gradient
 
     def _minimize(self, loss, initial_point):
-        # ensure learning rate and perturbation are set
+        # ensure learning rate and perturbation are correctly set: either none or both
         # this happens only here because for the calibration the loss function is required
         if self.learning_rate is None and self.perturbation is None:
             get_learning_rate, get_perturbation = self.calibrate(loss, initial_point)
-            self.learning_rate = get_learning_rate
-            self.perturbation = get_perturbation
-
-        if self.learning_rate is None or self.perturbation is None:
+            # get iterator
+            eta = get_learning_rate()
+            eps = get_perturbation()
+        elif self.learning_rate is None or self.perturbation is None:
             raise ValueError('If one of learning rate or perturbation is set, both must be set.')
-
-        # get iterator
-        eta = self.learning_rate()
-        eps = self.perturbation()
+        else:
+            # get iterator
+            eta = self.learning_rate()
+            eps = self.perturbation()
 
         # prepare some initials
         x = np.asarray(initial_point)

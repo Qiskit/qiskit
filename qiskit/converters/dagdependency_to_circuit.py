@@ -35,7 +35,6 @@ def dagdependency_to_circuit(dagdependency):
     for node in dagdependency.get_nodes():
         # Get arguments for classical control (if any)
         inst = node.op.copy()
-        inst.condition = node.condition
         circuit._append(inst, node.qargs, node.cargs)
 
     return circuit
