@@ -82,13 +82,13 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
             return cast(Dict, phases)
 
     @property
-    def most_likely_phase(self) -> float:
+    def phase(self) -> float:
         """The most likely phase of the unitary corresponding to the Hamiltonian.
 
         Returns:
             The most likely phase.
         """
-        return self._phase_estimation_result.most_likely_phase
+        return self._phase_estimation_result.phase
 
     @property
     def most_likely_eigenvalue(self) -> float:
@@ -100,5 +100,5 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
         Returns:
             The most likely eigenvalue of the Hamiltonian.
         """
-        phase = self._phase_estimation_result.most_likely_phase
+        phase = self.phase
         return self._phase_estimation_scale.scale_phase(phase, self._id_coefficient)
