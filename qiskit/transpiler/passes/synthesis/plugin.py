@@ -10,14 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-import abc
-
-import stevedore
-
 """
-#################
-Synthesis Plugins
-#################
+====================================================================
+Synthesis Plugins (:mod:`qiskit.transpiler.passes.synthesis.plugin`)
+====================================================================
+
+.. currentmodule:: qiskit.transpiler.passes.synthesis.plugin
 
 This module defines the plugin interfaces for the synthesis transpiler passes
 in Qiskit. These provide a hook point for external python packages to implement
@@ -114,7 +112,7 @@ any installed plugins which can't be loaded/imported this will be logged to
 Python logging.
 
 To get the installed list of installed unitary synthesis plugins you can use the
-:func:`qiskit.transpiler.passes.synthesis.plugin.get_unitary_synthesis_plugin_names`
+:func:`qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
 function.
 
 Plugin API
@@ -128,9 +126,13 @@ Unitary Synthesis Plugins
 
    UnitarySynthesisPlugin
    UnitarySynthesisPluginManager
-   get_unitary_synthesis_plugin_names
+   unitary_synthesis_plugin_names
 
 """
+
+import abc
+
+import stevedore
 
 
 class UnitarySynthesisPlugin(abc.ABC):
@@ -184,6 +186,11 @@ class UnitarySynthesisPlugin(abc.ABC):
 
 
 class UnitarySynthesisPluginManager:
+    """Unitary Synthesis plugin manager class
+
+    This class tracks the installed plugins, it has a single property,
+    ext_plugins which contains a list of stevedore plugin objects.
+    """
 
     def __init__(self):
         self.ext_plugins = stevedore.ExtensionManager(
@@ -191,7 +198,7 @@ class UnitarySynthesisPluginManager:
             propagate_map_exceptions=True)
 
 
-def get_unitary_synthesis_plugin_names():
+def unitary_synthesis_plugin_names():
     """Return a list of installed unitary synthesis plugin names
 
     Returns:

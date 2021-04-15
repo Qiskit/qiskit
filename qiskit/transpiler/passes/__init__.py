@@ -182,7 +182,7 @@ from .analysis import DAGLongestPath
 
 # synthesis
 from .synthesis import UnitarySynthesis
-from .synthesis import get_unitary_synthesis_plugin_names
+from .synthesis import unitary_synthesis_plugin_names
 
 # circuit scheduling
 from .scheduling import ALAPSchedule

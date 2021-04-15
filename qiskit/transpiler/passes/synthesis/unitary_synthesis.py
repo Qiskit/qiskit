@@ -91,6 +91,11 @@ class UnitarySynthesis(TransformationPass):
 
         Returns:
             Output dag with UnitaryGates synthesized to target basis.
+        Raises:
+            QiskitError: if a 'method' was specified for the class and is not
+                found in the installed plugins list. The list of installed
+                plugins can be queried with
+                :func:`~qiskit.transpiler.passes.synthesis.plugins.unitary_synthesis_plugin_names`
         """
         if not self.method:
             method = 'default'
@@ -99,35 +104,39 @@ class UnitarySynthesis(TransformationPass):
         if method not in self.plugins.ext_plugins:
             raise QiskitError(
                     'Specified method: %s not found in plugin list' % method)
-        plugin = self.plugins.ext_plugins[method].obj
-        if plugin.supports_coupling_map:
+        plugin_method = self.plugins.ext_plugins[method].obj
+        if plugin_method.supports_coupling_map:
             dag_bit_indices = {bit: idx
                                for idx, bit in enumerate(dag.qubits)}
         for node in dag.named_nodes('unitary'):
             synth_dag = None
             kwargs = {}
-            if plugin.supports_basis_gates:
+            if plugin_method.supports_basis_gates:
                 kwargs['basis_gates'] = self._basis_gates
-            if plugin.supports_coupling_map:
+            if plugin_method.supports_coupling_map:
                 kwargs['coupling_map'] = self._coupling_map
                 kwargs['qubits'] = [dag_bit_indices[x] for x in node.qargs]
-            if plugin.supports_approximation_degree:
+            if plugin_method.supports_approximation_degree:
                 kwargs['approximation_degree'] = self._approximation_degree
             unitary = node.op.to_matrix()
-            synth_dag = plugin.run(unitary, **kwargs)
+            synth_dag = plugin_method.run(unitary, **kwargs)
             if synth_dag:
                 dag.substitute_node_with_dag(node, synth_dag)
         return dag
 
 
 class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
+    """The default unitary synthesis plugin."""
 
+    @property
     def supports_basis_gates(self):
         return True
 
+    @property
     def supports_coupling_map(self):
         return False
 
+    @property
     def supports_approximation_degree(self):
         return True
 
