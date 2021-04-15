@@ -125,7 +125,10 @@ Additional Passes
 Transpiler Pass Plugins
 =======================
 
-.. automodule:: qiskit.transpiler.passes.synthesis.plugin
+.. autosummary::
+   :toctree: ../stubs/
+
+   qiskit.transpiler.passes.synthesis.plugin
 
 """
 
