@@ -484,8 +484,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
         circuit.u(pi / 2, pi / 2, pi / 2, 1)
         circuit.p(pi / 2, 2)
-        self.circuit_drawer(circuit, style={'name': 'iqx', 'subfontsize': 11},
-                            filename='subfont.png')
+        style = {'name': 'iqx', 'subfontsize': 11}
+
+        self.circuit_drawer(circuit, style=style, filename='subfont.png')
+        self.assertEqual(style, {'name': 'iqx', 'subfontsize': 11})  # check does not change style
 
     def test_meas_condition(self):
         """Tests measure with a condition"""
