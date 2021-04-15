@@ -923,14 +923,14 @@ class MatplotlibDrawer:
                     param = ''
 
                 # conditional gate
-                if op.condition:
+                if op.type == 'op' and op.op.condition:
                     c_xy = [c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset) for
                             ii in self._clbit_dict]
                     mask = 0
                     for index, cbit in enumerate(self._clbit):
-                        if self._bit_locations[cbit]['register'] == op.condition[0]:
+                        if self._bit_locations[cbit]['register'] == op.op.condition[0]:
                             mask |= (1 << index)
-                    val = op.condition[1]
+                    val = op.op.condition[1]
                     # cbit list to consider
                     fmt_c = '{{:0{}b}}'.format(len(c_xy))
                     cmask = list(fmt_c.format(mask))[::-1]
@@ -996,12 +996,12 @@ class MatplotlibDrawer:
                 #
                 # draw controlled and special gates
                 #
-                # cz gate
-                elif op.name == 'cz':
+                # cz and mcz gates
+                elif op.name != 'z' and base_name == 'z':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
                                         q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
-                    self._ctrl_qubit(q_xy[1], fc=ec, ec=ec, tc=tc)
+                    self._ctrl_qubit(q_xy[-1], fc=ec, ec=ec, tc=tc)
                     self._line(qubit_b, qubit_t, lc=lc, zorder=PORDER_LINE + 1)
 
                 # cu1, cp, rzz, and controlled rzz gates (sidetext gates)

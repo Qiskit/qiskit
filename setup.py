@@ -13,6 +13,7 @@
 "The Qiskit Terra setup file."
 
 import os
+import re
 import sys
 from setuptools import setup, find_packages, Extension
 try:
@@ -65,11 +66,13 @@ for src, module in CYTHON_EXTS.items():
 README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                            'README.md')
 with open(README_PATH) as readme_file:
-    README = readme_file.read()
+    README = re.sub(
+        '<!--- long-description-skip-begin -->.*<!--- long-description-skip-end -->', '',
+        readme_file.read(), flags=re.S | re.M)
 
 setup(
     name="qiskit-terra",
-    version="0.17.0",
+    version="0.18.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type='text/markdown',
@@ -102,7 +105,7 @@ setup(
         'visualization': ['matplotlib>=2.1', 'ipywidgets>=7.3.0',
                           'pydot', "pillow>=4.2.1", "pylatexenc>=1.4",
                           "seaborn>=0.9.0", "pygments>=2.4"],
-        'classical-function-compiler': ['tweedledum==0.1b0'],
+        'classical-function-compiler': ['tweedledum>=1.0,<2.0'],
         'full-featured-simulators': ['qiskit-aer>=0.1'],
         'crosstalk-pass': ['z3-solver>=4.7'],
     },

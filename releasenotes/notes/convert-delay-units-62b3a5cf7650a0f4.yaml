@@ -1,8 +1,0 @@
----
-upgrade:
-  - |
-    When transpiling a circuit with :meth:`~qiskit.circuit.QuantumCircuit.delay`
-    instructions, the circuit will be converted to a scheduled circuit. This
-    requires that the user supply either a backend with default gate duration
-    information, or explicitly supply ``instruction_durations`` as an argument
-    to the transpiler.

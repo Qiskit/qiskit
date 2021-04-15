@@ -19,8 +19,12 @@ from qiskit.validation.jsonschema.schema_validation import (
     validate_json_against_schema, _get_validator)
 from qiskit.providers.models import (QasmBackendConfiguration, PulseBackendConfiguration,
                                      BackendProperties, BackendStatus, JobStatus, PulseDefaults)
+import qiskit
 from qiskit.result import Result
-from qiskit.test import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase
+
+SCHEMAS_PATH = os.path.join(os.path.dirname(os.path.abspath(qiskit.__file__)),
+                            'schemas')
 
 
 class TestSchemaExamples(QiskitTestCase):
@@ -57,8 +61,7 @@ class TestSchemaExamples(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.examples_base_path = self._get_resource_path('examples',
-                                                          Path.SCHEMAS)
+        self.examples_base_path = os.path.join(SCHEMAS_PATH, 'examples')
 
     def test_examples_are_valid(self):
         """Validate example json files against respective schemas"""
