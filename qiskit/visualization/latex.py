@@ -428,7 +428,7 @@ class QCircuitImage:
                     if op.op.condition:
                         self._add_condition(op, wire_list, column)
 
-                    if len(wire_list) == 1:
+                    if len(wire_list) == 1 and not op.cargs:
                         self._latex[wire_list[0]][column] = "\\gate{%s}" % gate_text
 
                     elif isinstance(op.op, ControlledGate):
