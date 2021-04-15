@@ -3,7 +3,7 @@ fixes:
   - |
     Fixed an issue where the :attr:`~qiskit.circuit.ControlledGate.parameter`
     attribute of a :class:`~qiskit.circuit.ControlledGate` object built from
-    a :class:`~qiskit.extensions.UnitaryGate` was not being set to the the
+    a :class:`~qiskit.extensions.UnitaryGate` was not being set to the
     unitary matrix of the :class:`~qiskit.extensions.UnitaryGate` object.
     Previously, :meth:`~qiskit.extensions.UnitaryGate.control` was building a
     :class:`~qiskit.circuit.ControlledGate` with the ``parameter`` attribute
