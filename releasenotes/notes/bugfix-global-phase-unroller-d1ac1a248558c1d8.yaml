@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue where :class:`~qiskit.transpiler.passes.Unroller` didn't
+    preserve global phase in case of nested instructions with one rule in
+    their definition.
