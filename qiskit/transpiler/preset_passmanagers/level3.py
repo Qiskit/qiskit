@@ -50,6 +50,7 @@ from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import ApplyLayout
+from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import TimeUnitConversion
 from qiskit.transpiler.passes import ALAPSchedule
@@ -105,10 +106,41 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
+        # layout hasn't been set yet
         return not property_set['layout']
 
+    def _csp_not_found_match(property_set):
+        # If a layout hasn't been set by the time we run csp we need to run layout
+        if property_set['layout'] is None:
+            return True
+        # if CSP layout stopped for any reason other than solution found we need
+        # to run layout since CSP didn't converge.
+        if property_set['CSPLayout_stop_reason'] is not None \
+                and property_set['CSPLayout_stop_reason'] != "solution found":
+            return True
+        return False
+
+    # 2a. If layout method is not set, first try a trivial layout
+    _choose_layout_0 = [] if pass_manager_config.layout_method \
+        else [TrivialLayout(coupling_map),
+              Layout2qDistance(coupling_map,
+                               property_name='trivial_layout_score')]
+    # 2b. If trivial layout wasn't perfect (ie no swaps are needed) then try
+    # using CSP layout to find a perfect layout
     _choose_layout_1 = [] if pass_manager_config.layout_method \
         else CSPLayout(coupling_map, call_limit=10000, time_limit=60, seed=seed_transpiler)
+
+    def _trivial_not_perfect(property_set):
+        # Verify that a trivial layout  is perfect. If trivial_layout_score > 0
+        # the layout is not perfect. The layout property set is unconditionally
+        # set by trivial layout so we clear that before running CSP
+        if property_set['trivial_layout_score'] is not None:
+            if property_set['trivial_layout_score'] != 0:
+                property_set['layout']._wrapped = None
+                return True
+        return False
+
+    # 2c. if CSP didn't converge on a solution use layout_method (dense).
     if layout_method == 'trivial':
         _choose_layout_2 = TrivialLayout(coupling_map)
     elif layout_method == 'dense':
@@ -205,8 +237,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm3.append(_reset + _meas)
     if coupling_map or initial_layout:
         pm3.append(_given_layout)
-        pm3.append(_choose_layout_1, condition=_choose_layout_condition)
-        pm3.append(_choose_layout_2, condition=_choose_layout_condition)
+        pm3.append(_choose_layout_0, condition=_choose_layout_condition)
+        pm3.append(_choose_layout_1, condition=_trivial_not_perfect)
+        pm3.append(_choose_layout_2, condition=_csp_not_found_match)
         pm3.append(_embed)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
