@@ -284,6 +284,24 @@ class TestUnroller(QiskitTestCase):
 
         self.assertEqual(Operator(qc), Operator(qcd))
 
+    def test_unrolling_global_phase_nested_gates(self):
+        """Test unrolling a nested gate preseveres global phase."""
+        qc = QuantumCircuit(1, global_phase=pi)
+        qc.x(0)
+        gate = qc.to_gate()
+
+        qc = QuantumCircuit(1)
+        qc.append(gate, [0])
+        gate = qc.to_gate()
+
+        qc = QuantumCircuit(1)
+        qc.append(gate, [0])
+        dag = circuit_to_dag(qc)
+        out_dag = Unroller(['x', 'u']).run(dag)
+        qcd = dag_to_circuit(out_dag)
+
+        self.assertEqual(Operator(qc), Operator(qcd))
+
 
 class TestUnrollAllInstructions(QiskitTestCase):
     """Test unrolling a circuit containing all standard instructions."""
