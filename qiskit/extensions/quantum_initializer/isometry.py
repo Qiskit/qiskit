@@ -99,13 +99,12 @@ class Isometry(Gate):
         # TODO The inverse().inverse() is because there is code to uncompute (_gates_to_uncompute)
         #  an isometry, but not for generating its decomposition. It would be cheaper to do the
         #  later here instead.
-        gate = self.iso_inverse()
+        gate = self.inv_gate()
         gate = gate.inverse()
         q = QuantumRegister(self.num_qubits)
         iso_circuit = QuantumCircuit(q)
         iso_circuit.append(gate, q[:])
         self.definition = iso_circuit
-        # self.params = []
 
     def _gates_to_uncompute(self):
         """
@@ -266,7 +265,7 @@ class Isometry(Gate):
             raise CircuitError("invalid param type {0} for gate  "
                                "{1}".format(type(parameter), self.name))
 
-    def iso_inverse(self):
+    def inv_gate(self):
         """Return the adjoint of the unitary."""
         if self._inverse is None:
             # call to generate the circuit that takes the isometry to the first 2^m columns
