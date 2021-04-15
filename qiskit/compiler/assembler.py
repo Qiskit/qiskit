@@ -86,15 +86,19 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
             measurement level 2 supports this option.
         max_credits: Maximum credits to spend on job. Default: 10
         seed_simulator: Random seed to control sampling, for when backend is a simulator
-        qubit_lo_freq: List of qubit drive LO frequencies in Hz. Will be overridden by
-        ``schedule_los`` if set on pulse jobs. Must have length ``n_qubits.``
-        meas_lo_freq: List of measurement LO frequencies in Hz. Will be overridden by
-            ``schedule_los`` if set on pulse jobs. Must have length ``n_qubits.``
-        qubit_lo_range: List of drive LO ranges each of form ``[range_min, range_max]`` in Hz.
-            Used to validate the supplied qubit drive frequencies. Must have length ``n_qubits.``
-        meas_lo_range: List of measurement LO ranges each of form ``[range_min, range_max]`` in Hz.
-            Used to validate the supplied measurement frequencies. Must have length ``n_qubits.``
-        schedule_los: Experiment LO configurations, frequencies are given in Hz.
+        qubit_lo_freq: List of job level qubit drive LO frequencies in Hz. Overridden by
+            ``schedule_los`` if specified. Must have length ``n_qubits.``
+        meas_lo_freq: List of measurement LO frequencies in Hz. Overridden by ``schedule_los`` if
+            specified. Must have length ``n_qubits.``
+        qubit_lo_range: List of job level drive LO ranges each of form ``[range_min, range_max]``
+            in Hz. Used to validate ``qubit_lo_freq``. Must have length ``n_qubits.``
+        meas_lo_range: List of job level measurement LO ranges each of form
+            ``[range_min, range_max]`` in Hz. Used to validate ``meas_lo_freq``. Must have length
+            ``n_qubits.``
+        schedule_los: Experiment level (ie circuit or schedule) LO freq configurations for qubit
+            drive and measurement channels. These values override the job level values from
+            ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for qasm
+            and pulse jobs.
         meas_level: Set the appropriate level of the measurement output for pulse experiments.
         meas_return: Level of measurement data for the backend to return.
 
@@ -149,6 +153,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
         meas_lo_freq,
         qubit_lo_range,
         meas_lo_range,
+        schedule_los,
         **run_config
     )
 
@@ -169,7 +174,6 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
     elif all(isinstance(exp, (Schedule, Instruction)) for exp in experiments):
         run_config = _parse_pulse_args(
             backend,
-            schedule_los,
             meas_level,
             meas_return,
             meas_map,
@@ -204,6 +208,7 @@ def _parse_common_args(
     meas_lo_freq,
     qubit_lo_range,
     meas_lo_range,
+    schedule_los,
     **run_config
 ):
     """Resolve the various types of args allowed to the assemble() function through
@@ -291,8 +296,17 @@ def _parse_common_args(
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
 
-    # check lo frequencies
+    # check job level lo frequencies
     _check_lo_freqs(qubit_lo_freq, meas_lo_freq, qubit_lo_range, meas_lo_range, n_qubits)
+
+    # configure experiment level lo frequencies
+    schedule_los = schedule_los or []
+    if isinstance(schedule_los, (LoConfig, dict)):
+        schedule_los = [schedule_los]
+
+    # Convert to LoConfig if LO configuration supplied as dictionary
+    schedule_los = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
+                    for lo_config in schedule_los]
 
     # create run configuration and populate
     run_config_dict = dict(shots=shots,
@@ -305,6 +319,8 @@ def _parse_common_args(
                            meas_lo_freq=meas_lo_freq,
                            qubit_lo_range=qubit_lo_range,
                            meas_lo_range=meas_lo_range,
+                           schedule_los=schedule_los,
+                           n_qubits=n_qubits,
                            **run_config)
 
     return qobj_id, qobj_header, run_config_dict
@@ -395,7 +411,6 @@ def _check_lo_range(
 
 def _parse_pulse_args(
     backend,
-    schedule_los,
     meas_level,
     meas_return,
     meas_map,
@@ -425,15 +440,6 @@ def _parse_pulse_args(
             )
 
     meas_map = meas_map or getattr(backend_config, 'meas_map', None)
-
-    schedule_los = schedule_los or []
-    if isinstance(schedule_los, (LoConfig, dict)):
-        schedule_los = [schedule_los]
-
-    # Convert to LoConfig if LO configuration supplied as dictionary
-    schedule_los = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
-                    for lo_config in schedule_los]
-
     dynamic_reprate_enabled = getattr(backend_config, 'dynamic_reprate_enabled', False)
 
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
@@ -448,8 +454,7 @@ def _parse_pulse_args(
     parametric_pulses = parametric_pulses or getattr(backend_config, 'parametric_pulses', [])
 
     # create run configuration and populate
-    run_config_dict = dict(schedule_los=schedule_los,
-                           meas_level=meas_level,
+    run_config_dict = dict(meas_level=meas_level,
                            meas_return=meas_return,
                            meas_map=meas_map,
                            memory_slot_size=memory_slot_size,

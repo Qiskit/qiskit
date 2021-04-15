@@ -86,10 +86,9 @@ def _assemble_experiments(
     freq_configs = [lo_converter(lo_dict) for lo_dict in getattr(run_config, 'schedule_los', [])]
 
     if len(schedules) > 1 and len(freq_configs) not in [0, 1, len(schedules)]:
-        raise QiskitError('Invalid frequency setting is specified. If the frequency is specified, '
-                          'it should be configured the same for all schedules, configured for each '
-                          'schedule, or a list of frequencies should be provided for a single '
-                          'frequency sweep schedule.')
+        raise QiskitError("Invalid 'schedule_los' setting specified. If specified, it should be "
+                          "either have a single entry to apply the same LOs for each schedule or "
+                          "have length equal to the number of schedules.")
 
     instruction_converter = getattr(run_config,
                                     'instruction_converter',
@@ -305,7 +304,7 @@ def _assemble_config(lo_converter: converters.LoConfigConverter,
     qobj_config['qubit_lo_freq'] = [freq / 1e9 for freq in qobj_config['qubit_lo_freq']]
     qobj_config['meas_lo_freq'] = [freq / 1e9 for freq in qobj_config['meas_lo_freq']]
 
-    # frequency sweep config
+    # override defaults if single entry for ``schedule_los``
     schedule_los = qobj_config.pop('schedule_los', [])
     if len(schedule_los) == 1:
         lo_dict = schedule_los[0]

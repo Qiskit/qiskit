@@ -373,12 +373,18 @@ class QasmQobjExperimentHeader(QobjDictField):
 class QasmQobjExperimentConfig(QobjDictField):
     """Configuration for a single QASM experiment in the qobj."""
 
-    def __init__(self, calibrations=None, **kwargs):
+    def __init__(self, qubit_lo_freq=None, meas_lo_freq=None, calibrations=None, **kwargs):
         """
         Args:
+            qubit_lo_freq (List[float]): List of qubit LO frequencies in GHz.
+            meas_lo_freq (List[float]): List of meas readout LO frequencies in GHz.
             calibrations (QasmExperimentCalibrations): Information required for Pulse gates.
             kwargs: Additional free form key value fields to add to the configuration
         """
+        if qubit_lo_freq is not None:
+            self.qubit_lo_freq = qubit_lo_freq
+        if meas_lo_freq is not None:
+            self.meas_lo_freq = meas_lo_freq
         if calibrations:
             self.calibrations = calibrations
         super().__init__(**kwargs)

@@ -59,6 +59,17 @@ class TestCircuitAssembler(QiskitTestCase):
         self.circ.cx(qr[0], qr[1])
         self.circ.measure(qr, cr)
 
+        self.backend = FakeYorktown()
+        self.backend_config = self.backend.configuration()
+        self.num_qubits = self.backend_config.n_qubits
+
+        # lo test values
+        self.default_qubit_lo_freq = [5e9 for _ in range(self.num_qubits)]
+        self.default_meas_lo_freq = [6.7e9 for _ in range(self.num_qubits)]
+        self.user_lo_config_dict = {pulse.DriveChannel(0): 5.55e9, pulse.MeasureChannel(0): 6.64e9,
+                                    pulse.DriveChannel(3): 4.91e9, pulse.MeasureChannel(4): 6.1e9}
+        self.user_lo_config = pulse.LoConfig(self.user_lo_config_dict)
+
     def test_assemble_single_circuit(self):
         """Test assembling a single circuit.
         """
@@ -110,20 +121,17 @@ class TestCircuitAssembler(QiskitTestCase):
 
     def test_shots_greater_than_max_shots(self):
         """Test assembling with shots greater than max shots"""
-        backend = FakeYorktown()
-        self.assertRaises(QiskitError, assemble, backend, shots=1024000)
+        self.assertRaises(QiskitError, assemble, self.backend, shots=1024000)
 
     def test_shots_not_of_type_int(self):
         """Test assembling with shots having type other than int"""
-        backend = FakeYorktown()
-        self.assertRaises(QiskitError, assemble, backend, shots="1024")
+        self.assertRaises(QiskitError, assemble, self.backend, shots="1024")
 
     def test_default_shots_greater_than_max_shots(self):
         """Test assembling with default shots greater than max shots"""
-        backend = FakeYorktown()
-        backend._configuration.max_shots = 5
+        self.backend_config.max_shots = 5
 
-        qobj = assemble(self.circ, backend)
+        qobj = assemble(self.circ, self.backend)
 
         validate_qobj_against_schema(qobj)
 
@@ -166,50 +174,46 @@ class TestCircuitAssembler(QiskitTestCase):
 
     def test_assemble_backend_rep_delays(self):
         """Check that rep_delay is properly set from backend values."""
-        backend = FakeYorktown()
-        backend_config = backend.configuration()
         rep_delay_range = [2.5e-3, 4.5e-3]  # sec
         default_rep_delay = 3.0e-3
-        setattr(backend_config, 'rep_delay_range', rep_delay_range)
-        setattr(backend_config, 'default_rep_delay', default_rep_delay)
+        setattr(self.backend_config, 'rep_delay_range', rep_delay_range)
+        setattr(self.backend_config, 'default_rep_delay', default_rep_delay)
 
         # dynamic rep rates off
-        setattr(backend_config, 'dynamic_reprate_enabled', False)
-        qobj = assemble(self.circ, backend)
+        setattr(self.backend_config, 'dynamic_reprate_enabled', False)
+        qobj = assemble(self.circ, self.backend)
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
         # dynamic rep rates on
-        setattr(backend_config, 'dynamic_reprate_enabled', True)
-        qobj = assemble(self.circ, backend)
+        setattr(self.backend_config, 'dynamic_reprate_enabled', True)
+        qobj = assemble(self.circ, self.backend)
         self.assertEqual(qobj.config.rep_delay, default_rep_delay*1e6)
 
     def test_assemble_user_rep_time_delay(self):
         """Check that user runtime config rep_delay works."""
-        backend = FakeYorktown()
-        backend_config = backend.configuration()
         # set custom rep_delay in runtime config
         rep_delay = 2.2e-6
         rep_delay_range = [0, 3e-6]  # sec
-        setattr(backend_config, 'rep_delay_range', rep_delay_range)
+        setattr(self.backend_config, 'rep_delay_range', rep_delay_range)
 
         # dynamic rep rates off (no default so shouldn't be in qobj config)
-        setattr(backend_config, 'dynamic_reprate_enabled', False)
-        qobj = assemble(self.circ, backend, rep_delay=rep_delay)
+        setattr(self.backend_config, 'dynamic_reprate_enabled', False)
+        qobj = assemble(self.circ, self.backend, rep_delay=rep_delay)
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
         # turn on dynamic rep rates, rep_delay should be set
-        setattr(backend_config, 'dynamic_reprate_enabled', True)
-        qobj = assemble(self.circ, backend, rep_delay=rep_delay)
+        setattr(self.backend_config, 'dynamic_reprate_enabled', True)
+        qobj = assemble(self.circ, self.backend, rep_delay=rep_delay)
         self.assertEqual(qobj.config.rep_delay, 2.2)
 
         # test ``rep_delay=0``
-        qobj = assemble(self.circ, backend, rep_delay=0)
+        qobj = assemble(self.circ, self.backend, rep_delay=0)
         self.assertEqual(qobj.config.rep_delay, 0)
 
         # use ``rep_delay`` outside of ``rep_delay_range```
         rep_delay_large = 5.0e-6
         with self.assertRaises(SchemaValidationError):
-            assemble(self.circ, backend, rep_delay=rep_delay_large)
+            assemble(self.circ, self.backend, rep_delay=rep_delay_large)
 
     def test_assemble_opaque_inst(self):
         """Test opaque instruction is assembled as-is"""
@@ -596,47 +600,39 @@ class TestCircuitAssembler(QiskitTestCase):
     def test_qubit_meas_los_no_range(self):
         """Test that adding qubit/meas lo freq lists are assembled into the qobj.config, w/ out any
         lo range."""
-        backend = FakeYorktown()
-        num_qubits = backend.configuration().n_qubits
-        qubit_lo_freq = [5e9 for _ in range(num_qubits)]
-        meas_lo_freq = [6.7e9 for _ in range(num_qubits)]
         qobj = assemble(self.circ,
-                        backend=backend,
-                        qubit_lo_freq=qubit_lo_freq,
-                        meas_lo_freq=meas_lo_freq,
+                        backend=self.backend,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
                         )
         validate_qobj_against_schema(qobj)
 
         # convert to GHz
-        qubit_lo_freq_GHz = [freq/1e9 for freq in qubit_lo_freq]
-        meas_lo_freq_GHz = [freq/1e9 for freq in meas_lo_freq]
-        self.assertEqual(qubit_lo_freq_GHz, qobj.config.qubit_lo_freq)
-        self.assertEqual(meas_lo_freq_GHz, qobj.config.meas_lo_freq)
+        qubit_lo_freq_GHz = [freq/1e9 for freq in self.default_qubit_lo_freq]
+        meas_lo_freq_GHz = [freq/1e9 for freq in self.default_meas_lo_freq]
+        self.assertEqual(qobj.config.qubit_lo_freq, qubit_lo_freq_GHz)
+        self.assertEqual(qobj.config.meas_lo_freq, meas_lo_freq_GHz)
 
     def test_lo_errors(self):
         """Test that lo's are checked against the lo ranges and that errors are thrown if either
         quantity has an incorrect length or type."""
-        backend = FakeYorktown()
-        num_qubits = backend.configuration().n_qubits
-        qubit_lo_freq = [5e9 for _ in range(num_qubits)]
-        meas_lo_freq = [6.7e9 for _ in range(num_qubits)]
-        qubit_lo_range = [[freq - 5e6, freq + 5e6] for freq in qubit_lo_freq]
-        meas_lo_range = [[freq - 5e6, freq + 5e6] for freq in meas_lo_freq]
+        qubit_lo_range = [[freq - 5e6, freq + 5e6] for freq in self.default_qubit_lo_freq]
+        meas_lo_range = [[freq - 5e6, freq + 5e6] for freq in self.default_meas_lo_freq]
 
         # invalid qubit lo list length
         with self.assertRaises(QiskitError):
             assemble(
                 self.circ,
-                backend=backend,
+                backend=self.backend,
                 qubit_lo_freq=[4.9],
-                meas_lo_freq=meas_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
             )
         # invalid meas lo list length
         with self.assertRaises(QiskitError):
             assemble(
                 self.circ,
-                backend=backend,
-                qubit_lo_freq=qubit_lo_freq,
+                backend=self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
                 meas_lo_freq=[6.7e9],
             )
 
@@ -644,9 +640,9 @@ class TestCircuitAssembler(QiskitTestCase):
         with self.assertRaises(QiskitError):
             assemble(
                 self.circ,
-                backend=backend,
-                qubit_lo_freq=qubit_lo_freq,
-                meas_lo_freq=meas_lo_freq,
+                backend=self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
                 qubit_lo_range=[[4.995e9, 5.005e9]],
                 meas_lo_range=meas_lo_range,
             )
@@ -655,9 +651,9 @@ class TestCircuitAssembler(QiskitTestCase):
         with self.assertRaises(QiskitError):
             assemble(
                 self.circ,
-                backend=backend,
-                qubit_lo_freq=qubit_lo_freq,
-                meas_lo_freq=meas_lo_freq,
+                backend=self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
                 qubit_lo_range=[],
                 meas_lo_range=[[6.695e9, 6.705e9]],
             )
@@ -666,10 +662,10 @@ class TestCircuitAssembler(QiskitTestCase):
         with self.assertRaises(QiskitError):
             assemble(
                 self.circ,
-                backend=backend,
-                qubit_lo_freq=qubit_lo_freq,
-                meas_lo_freq=meas_lo_freq,
-                qubit_lo_range=[4.995e9 for i in range(num_qubits)],
+                backend=self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                qubit_lo_range=[4.995e9 for i in range(self.num_qubits)],
                 meas_lo_range=meas_lo_range,
             )
 
@@ -677,32 +673,32 @@ class TestCircuitAssembler(QiskitTestCase):
         with self.assertRaises(QiskitError):
             assemble(
                 self.circ,
-                backend=backend,
-                qubit_lo_freq=qubit_lo_freq,
-                meas_lo_freq=meas_lo_freq,
+                backend=self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
                 qubit_lo_range=qubit_lo_range,
-                meas_lo_range=[[6.695e9] for i in range(num_qubits)],
+                meas_lo_range=[[6.695e9] for i in range(self.num_qubits)],
             )
 
         # lo range inner list not 2d
         with self.assertRaises(QiskitError):
             assemble(
                 self.circ,
-                backend=backend,
-                qubit_lo_freq=qubit_lo_freq,
-                meas_lo_freq=meas_lo_freq,
+                backend=self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
                 qubit_lo_range=qubit_lo_range,
-                meas_lo_range=[[6.695e9] for i in range(num_qubits)],
+                meas_lo_range=[[6.695e9] for i in range(self.num_qubits)],
             )
 
         # qubit lo out of range
         with self.assertRaises(QiskitError):
             assemble(
                 self.circ,
-                backend=backend,
-                qubit_lo_freq=qubit_lo_freq,
-                meas_lo_freq=meas_lo_freq,
-                qubit_lo_range=[[5.005e9, 5.010e9] for i in range(num_qubits)],
+                backend=self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                qubit_lo_range=[[5.005e9, 5.010e9] for i in range(self.num_qubits)],
                 meas_lo_range=meas_lo_range,
             )
 
@@ -710,38 +706,162 @@ class TestCircuitAssembler(QiskitTestCase):
         with self.assertRaises(QiskitError):
             assemble(
                 self.circ,
-                backend=backend,
-                qubit_lo_freq=qubit_lo_freq,
-                meas_lo_freq=meas_lo_freq,
+                backend=self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
                 qubit_lo_range=qubit_lo_range,
-                meas_lo_range=[[6.705e9, 6.710e9] for i in range(num_qubits)],
+                meas_lo_range=[[6.705e9, 6.710e9] for i in range(self.num_qubits)],
             )
 
     def test_qubit_meas_los_w_range(self):
         """Test that adding qubit/meas lo freq lists are assembled into the qobj.config, w/ lo
         ranges input. Verify that lo ranges do not enter into the config."""
-        backend = FakeYorktown()
-        num_qubits = backend.configuration().n_qubits
-        qubit_lo_freq = [5e9 for _ in range(num_qubits)]
-        meas_lo_freq = [6.7e9 for _ in range(num_qubits)]
-        qubit_lo_range = [[freq-5e6, freq+5e6] for freq in qubit_lo_freq]
-        meas_lo_range = [[freq-5e6, freq+5e6] for freq in meas_lo_freq]
+        qubit_lo_range = [[freq-5e6, freq+5e6] for freq in self.default_qubit_lo_freq]
+        meas_lo_range = [[freq-5e6, freq+5e6] for freq in self.default_meas_lo_freq]
         qobj = assemble(self.circ,
-                        backend=backend,
-                        qubit_lo_freq=qubit_lo_freq,
-                        meas_lo_freq=meas_lo_freq,
+                        backend=self.backend,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
                         qubit_lo_range=qubit_lo_range,
                         meas_lo_range=meas_lo_range
                         )
         validate_qobj_against_schema(qobj)
 
         # convert to GHz
-        qubit_lo_freq_GHz = [freq/1e9 for freq in qubit_lo_freq]
-        meas_lo_freq_GHz = [freq/1e9 for freq in meas_lo_freq]
-        self.assertEqual(qubit_lo_freq_GHz, qobj.config.qubit_lo_freq)
-        self.assertEqual(meas_lo_freq_GHz, qobj.config.meas_lo_freq)
+        qubit_lo_freq_GHz = [freq/1e9 for freq in self.default_qubit_lo_freq]
+        meas_lo_freq_GHz = [freq/1e9 for freq in self.default_meas_lo_freq]
+        self.assertEqual(qobj.config.qubit_lo_freq, qubit_lo_freq_GHz)
+        self.assertEqual(qobj.config.meas_lo_freq, meas_lo_freq_GHz)
         self.assertNotIn("qubit_lo_range", qobj.config.to_dict())
         self.assertNotIn("meas_lo_range", qobj.config.to_dict())
+
+    def test_assemble_single_circ_single_lo_config(self):
+        """Test assembling a single circuit, with a single lo config."""
+        qobj = assemble(self.circ,
+                        self.backend,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        schedule_los=self.user_lo_config)
+        validate_qobj_against_schema(qobj)
+
+        self.assertListEqual(qobj.config.qubit_lo_freq, [5.55, 5, 5, 4.91, 5])
+        self.assertListEqual(qobj.config.meas_lo_freq, [6.64, 6.7, 6.7, 6.7, 6.1])
+        self.assertEqual(len(qobj.experiments), 1)
+
+    def test_assemble_single_circ_single_lo_config_dict(self):
+        """Test assembling a single circuit, with a single lo config supplied as dictionary."""
+        qobj = assemble(self.circ,
+                        self.backend,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        schedule_los=self.user_lo_config_dict)
+        validate_qobj_against_schema(qobj)
+
+        self.assertListEqual(qobj.config.qubit_lo_freq, [5.55, 5, 5, 4.91, 5])
+        self.assertListEqual(qobj.config.meas_lo_freq, [6.64, 6.7, 6.7, 6.7, 6.1])
+        self.assertEqual(len(qobj.experiments), 1)
+
+    def test_assemble_single_circ_multi_lo_config(self):
+        """Test assembling a single circuit, with multiple lo configs (frequency sweep)."""
+        user_lo_config_dict2 = {pulse.DriveChannel(1): 5.55e9, pulse.MeasureChannel(1): 6.64e9,
+                                pulse.DriveChannel(4): 4.91e9, pulse.MeasureChannel(3): 6.1e9}
+        user_lo_config2 = pulse.LoConfig(user_lo_config_dict2)
+        qobj = assemble(self.circ,
+                        self.backend,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        schedule_los=[self.user_lo_config, user_lo_config2])
+        validate_qobj_against_schema(qobj)
+
+        qubit_lo_freq_GHz = [freq/1e9 for freq in self.default_qubit_lo_freq]
+        meas_lo_freq_GHz = [freq/1e9 for freq in self.default_meas_lo_freq]
+        self.assertListEqual(qobj.config.qubit_lo_freq, qubit_lo_freq_GHz)
+        self.assertListEqual(qobj.config.meas_lo_freq, meas_lo_freq_GHz)
+        self.assertEqual(len(qobj.experiments), 2)
+
+        # expt 0 los
+        self.assertEqual(qobj.experiments[0].config.qubit_lo_freq, [5.55, 5, 5, 4.91, 5])
+        self.assertEqual(qobj.experiments[0].config.meas_lo_freq, [6.64, 6.7, 6.7, 6.7, 6.1])
+        # expt 1 los
+        self.assertEqual(qobj.experiments[1].config.qubit_lo_freq, [5, 5.55, 5, 5, 4.91])
+        self.assertEqual(qobj.experiments[1].config.meas_lo_freq, [6.7, 6.64, 6.7, 6.1, 6.7])
+
+    def test_assemble_multi_circ_multi_lo_config(self):
+        """Test assembling circuits, with the same number of lo configs (n:n setup)."""
+        user_lo_config_dict2 = {pulse.DriveChannel(1): 5.55e9, pulse.MeasureChannel(1): 6.64e9,
+                                pulse.DriveChannel(4): 4.91e9, pulse.MeasureChannel(3): 6.1e9}
+        user_lo_config2 = pulse.LoConfig(user_lo_config_dict2)
+        qobj = assemble([self.circ, self.circ],
+                        self.backend,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        schedule_los=[self.user_lo_config, user_lo_config2])
+        validate_qobj_against_schema(qobj)
+
+        qubit_lo_freq_GHz = [freq/1e9 for freq in self.default_qubit_lo_freq]
+        meas_lo_freq_GHz = [freq/1e9 for freq in self.default_meas_lo_freq]
+        self.assertListEqual(qobj.config.qubit_lo_freq, qubit_lo_freq_GHz)
+        self.assertListEqual(qobj.config.meas_lo_freq, meas_lo_freq_GHz)
+        self.assertEqual(len(qobj.experiments), 2)
+
+        # expt 0 los
+        self.assertEqual(qobj.experiments[0].config.qubit_lo_freq, [5.55, 5, 5, 4.91, 5])
+        self.assertEqual(qobj.experiments[0].config.meas_lo_freq, [6.64, 6.7, 6.7, 6.7, 6.1])
+        # expt 1 los
+        self.assertEqual(qobj.experiments[1].config.qubit_lo_freq, [5, 5.55, 5, 5, 4.91])
+        self.assertEqual(qobj.experiments[1].config.meas_lo_freq, [6.7, 6.64, 6.7, 6.1, 6.7])
+
+    def test_assemble_multi_circ_single_lo_config(self):
+        """Test assembling multiple circuits, with a single lo config (should override job level).
+        """
+        qobj = assemble([self.circ, self.circ],
+                        self.backend,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        schedule_los=self.user_lo_config)
+        validate_qobj_against_schema(qobj)
+
+        self.assertListEqual(qobj.config.qubit_lo_freq, [5.55, 5, 5, 4.91, 5])
+        self.assertListEqual(qobj.config.meas_lo_freq, [6.64, 6.7, 6.7, 6.7, 6.1])
+        self.assertEqual(len(qobj.experiments), 2)
+
+    def test_assemble_multi_circ_wrong_number_of_multi_lo_configs(self):
+        """Test assembling circuits, with a different number of lo configs (n:m setup)."""
+        with self.assertRaises(QiskitError):
+            assemble([self.circ, self.circ, self.circ],
+                     self.backend,
+                     qubit_lo_freq=self.default_qubit_lo_freq,
+                     meas_lo_freq=self.default_meas_lo_freq,
+                     schedule_los=[self.user_lo_config, self.user_lo_config])
+
+    def test_assemble_single_circ_single_lo_config_no_defaults(self):
+        """Test that when no defaults are provided assembly only passes if los are provided for each
+        qubit."""
+        # don't have los for each qubit and no job level defaults
+        with self.assertRaises(QiskitError):
+            qobj = assemble(self.circ,
+                            self.backend,
+                            schedule_los=self.user_lo_config)
+
+        full_lo_config_dict = {pulse.DriveChannel(0): 4.85e9,
+                               pulse.DriveChannel(1): 4.9e9,
+                               pulse.DriveChannel(2): 4.95e9,
+                               pulse.DriveChannel(3): 5e9,
+                               pulse.DriveChannel(4): 5.05e9,
+                               pulse.MeasureChannel(0): 6.8e9,
+                               pulse.MeasureChannel(1): 6.85e9,
+                               pulse.MeasureChannel(2): 6.9e9,
+                               pulse.MeasureChannel(3): 6.95e9,
+                               pulse.MeasureChannel(4): 7e9}
+
+        qobj = assemble(self.circ,
+                        self.backend,
+                        schedule_los=full_lo_config_dict)
+        validate_qobj_against_schema(qobj)
+
+        self.assertListEqual(qobj.config.qubit_lo_freq, [4.85, 4.9, 4.95, 5, 5.05])
+        self.assertListEqual(qobj.config.meas_lo_freq, [6.8, 6.85, 6.9, 6.95, 7])
+        self.assertEqual(len(qobj.experiments), 1)
 
 
 class TestPulseAssembler(QiskitTestCase):
@@ -885,7 +1005,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
 
     def test_assemble_single_schedule_with_multi_lo_configs(self):
-        """Test assembling a single schedule, with lo configs (frequency sweep)."""
+        """Test assembling a single schedule, with multiple lo configs (frequency sweep)."""
         qobj = assemble(self.schedule,
                         qobj_header=self.header,
                         qubit_lo_freq=self.default_qubit_lo_freq,
