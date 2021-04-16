@@ -14,7 +14,6 @@
 
 import json
 import os
-import copy
 from warnings import warn
 
 
