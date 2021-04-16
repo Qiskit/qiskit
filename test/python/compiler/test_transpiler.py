@@ -15,6 +15,7 @@
 """Tests basic functionality of the transpile function"""
 
 import io
+import os
 import sys
 import math
 
@@ -33,7 +34,7 @@ from qiskit.circuit import Parameter, Gate, Qubit, Clbit
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate
-from qiskit.test import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager
@@ -507,8 +508,11 @@ class TestTranspile(QiskitTestCase):
 
     def test_final_measurement_barrier_for_devices(self):
         """Verify BarrierBeforeFinalMeasurements pass is called in default pipeline for devices."""
-
-        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
+        qasm_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'qasm')
+        circ = QuantumCircuit.from_qasm_file(
+            os.path.join(qasm_dir, 'example.qasm'))
         layout = Layout.generate_trivial_layout(*circ.qregs)
         orig_pass = BarrierBeforeFinalMeasurements()
         with patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=orig_pass.run) as mock_pass:
@@ -518,8 +522,11 @@ class TestTranspile(QiskitTestCase):
 
     def test_do_not_run_gatedirection_with_symmetric_cm(self):
         """When the coupling map is symmetric, do not run GateDirection."""
-
-        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
+        qasm_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'qasm')
+        circ = QuantumCircuit.from_qasm_file(
+            os.path.join(qasm_dir, 'example.qasm'))
         layout = Layout.generate_trivial_layout(*circ.qregs)
         coupling_map = []
         for node1, node2 in FakeRueschlikon().configuration().coupling_map:
@@ -550,7 +557,8 @@ class TestTranspile(QiskitTestCase):
                           basis_gates=['u3', 'u2', 'u1', 'cx'])
 
         expected = QuantumCircuit(QuantumRegister(2, 'q'), global_phase=-np.pi/2)
-        self.assertEqual(after, expected)
+        msg = f"after:\n{after}\nexpected:\n{expected}"
+        self.assertEqual(after, expected, msg=msg)
 
     def test_pass_manager_empty(self):
         """Test passing an empty PassManager() to the transpiler.
@@ -578,8 +586,11 @@ class TestTranspile(QiskitTestCase):
         """
         backend = FakeRueschlikon()
         cmap = backend.configuration().coupling_map
+        qasm_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'qasm')
         circ = QuantumCircuit.from_qasm_file(
-            self._get_resource_path('move_measurements.qasm', Path.QASMS))
+            os.path.join(qasm_dir, 'move_measurements.qasm'))
 
         lay = [0, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6]
         out = transpile(circ, initial_layout=lay, coupling_map=cmap)
@@ -598,12 +609,12 @@ class TestTranspile(QiskitTestCase):
         qc.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
 
         expected = QuantumCircuit(qr)
-        expected.append(U3Gate(1.5708, 0, 0), [qr[0]])
+        expected.append(U3Gate(np.pi/2, 0, 0), [qr[0]])
         expected.reset(qr[0])
-        expected.append(U3Gate(1.5708, 3.1416, 0), [qr[0]])
+        expected.append(U3Gate(np.pi/2, -np.pi, 0), [qr[0]])
 
         after = transpile(qc, basis_gates=['reset', 'u3'], optimization_level=1)
-        self.assertEqual(after, expected)
+        self.assertEqual(after, expected, msg=f"after:\n{after}\nexpected:\n{expected}")
 
     def test_initialize_FakeMelbourne(self):
         """Test that the zero-state resets are remove in a device not supporting them.
@@ -1004,12 +1015,12 @@ class TestTranspile(QiskitTestCase):
         # for the second and third RZ gates in the U3 decomposition.
         expected = QuantumCircuit(1, global_phase=-np.pi/2 - 0.5 * (0.2 + np.pi) - 0.5 * 3 * np.pi)
         expected.sx(0)
-        expected.p(np.pi + 0.2, 0)
+        expected.p(-np.pi + 0.2, 0)
         expected.sx(0)
-        expected.p(np.pi, 0)
+        expected.p(-np.pi, 0)
 
-        error_message = "\nOutput circuit:\n%s\nExpected circuit:\n%s" % (
-            str(out), str(expected))
+        error_message = (f"\nOutput circuit:\n{out!s}\n{Operator(out).data}\n"
+                         f"Expected circuit:\n{expected!s}\n{Operator(expected).data}")
         self.assertEqual(out, expected, error_message)
 
     @data(0, 1, 2, 3)
