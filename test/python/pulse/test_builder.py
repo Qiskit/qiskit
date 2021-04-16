@@ -641,14 +641,35 @@ class TestUtilities(TestBuilder):
             self.assertTrue(isinstance(time, float))
             self.assertEqual(pulse.samples_to_seconds(100), 10)
 
+    def test_samples_to_seconds_array(self):
+        """Test samples to time (array format)."""
+        config = self.backend.configuration()
+        config.dt = 0.1
+        with pulse.build(self.backend):
+            samples = np.array([100, 200, 300])
+            times = pulse.samples_to_seconds(samples)
+            self.assertTrue(np.issubdtype(times.dtype, np.floating))
+            np.testing.assert_allclose(times, np.array([10, 20, 30]))
+
     def test_seconds_to_samples(self):
-        """Test samples to time"""
+        """Test time to samples"""
         config = self.backend.configuration()
         config.dt = 0.1
         with pulse.build(self.backend):
             samples = pulse.seconds_to_samples(10)
             self.assertTrue(isinstance(samples, int))
             self.assertEqual(pulse.seconds_to_samples(10), 100)
+
+    def test_seconds_to_samples_array(self):
+        """Test time to samples (array format)."""
+        config = self.backend.configuration()
+        config.dt = 0.1
+        with pulse.build(self.backend):
+            times = np.array([10, 20, 30])
+            samples = pulse.seconds_to_samples(times)
+            self.assertTrue(np.issubdtype(samples.dtype, np.integer))
+            np.testing.assert_allclose(pulse.seconds_to_samples(times),
+                                       np.array([100, 200, 300]))
 
 
 class TestMacros(TestBuilder):

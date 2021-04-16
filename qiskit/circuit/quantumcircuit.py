@@ -398,7 +398,7 @@ class QuantumCircuit:
                  └───┘
         """
         circ = QuantumCircuit(*reversed(self.qregs), *reversed(self.cregs),
-                              name=self.name)
+                              name=self.name, global_phase=self.global_phase)
         num_qubits = self.num_qubits
         num_clbits = self.num_clbits
         old_qubits = self.qubits
@@ -1878,7 +1878,6 @@ class QuantumCircuit:
         for node in new_dag.topological_op_nodes():
             # Get arguments for classical condition (if any)
             inst = node.op.copy()
-            inst.condition = node.condition
             circ.append(inst, node.qargs, node.cargs)
 
         circ.clbits.clear()
@@ -1927,12 +1926,10 @@ class QuantumCircuit:
         if isinstance(angle, ParameterExpression) and angle.parameters:
             self._global_phase = angle
         else:
-            # Set the phase to the [-2 * pi, 2 * pi] interval
+            # Set the phase to the [0, 2π) interval
             angle = float(angle)
             if not angle:
                 self._global_phase = 0
-            elif angle < 0:
-                self._global_phase = angle % (-2 * np.pi)
             else:
                 self._global_phase = angle % (2 * np.pi)
 
