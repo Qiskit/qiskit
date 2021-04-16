@@ -285,7 +285,7 @@ class QCircuitImage:
         # wires in the beginning and end
         columns = 2
         if self.cregbundle and (self.ops and self.ops[0] and
-                                (self.ops[0][0].name == "measure" or self.ops[0][0].condition)):
+                                (self.ops[0][0].name == "measure" or self.ops[0][0].op.condition)):
             columns += 1
 
         # all gates take up 1 column except from those with side labels (ie cu1, cp, rzz)
@@ -395,7 +395,7 @@ class QCircuitImage:
         column = 1
         # Leave a column to display number of classical registers if needed
         if self.cregbundle and (self.ops and self.ops[0] and
-                                (self.ops[0][0].name == "measure" or self.ops[0][0].condition)):
+                                (self.ops[0][0].name == "measure" or self.ops[0][0].op.condition)):
             column += 1
 
         for layer in self.ops:
@@ -415,7 +415,7 @@ class QCircuitImage:
                     gate_text = generate_latex_label(gate_text)
                     wire_list = [self.img_regs[qarg] for qarg in op.qargs]
 
-                    if op.condition:
+                    if op.op.condition:
                         self._add_condition(op, wire_list, column)
 
                     if len(wire_list) == 1:
@@ -438,10 +438,16 @@ class QCircuitImage:
         else:
             wire_min = min(wire_list)
             wire_max = max(wire_list)
-            self._latex[wire_min][col] = "\\multigate{%s}{%s}" % \
-                (wire_max - wire_min, gate_text)
+            wire_ind = wire_list.index(wire_min)
+            self._latex[wire_min][col] = "\\multigate{%s}{%s}_" % \
+                (wire_max - wire_min, gate_text) + "<"*(len(str(wire_ind))+2) + "{%s}" % wire_ind
             for wire in range(wire_min + 1, wire_max + 1):
-                self._latex[wire][col] = "\\ghost{%s}" % gate_text
+                if wire in wire_list:
+                    wire_ind = wire_list.index(wire)
+                    self._latex[wire][col] = "\\ghost{%s}_" % gate_text +\
+                        "<"*(len(str(wire_ind))+2) + "{%s}" % wire_ind
+                else:
+                    self._latex[wire][col] = "\\ghost{%s}" % gate_text
         return num_cols_op
 
     def _build_ctrl_gate(self, op, gate_text, wire_list, col):
@@ -513,7 +519,7 @@ class QCircuitImage:
 
     def _build_measure(self, op, col):
         """Build a meter and the lines to the creg"""
-        if op.condition:
+        if op.op.condition:
             raise exceptions.VisualizationError(
                 "If controlled measures currently not supported.")
 
@@ -600,15 +606,15 @@ class QCircuitImage:
         #         or if cregbundle, wire number of the condition register itself
         # gap - the number of wires from cwire to the bottom gate qubit
 
-        creg_size = self.cregs[op.condition[0]]
-        if_value = format(op.condition[1], 'b').zfill(creg_size)
+        creg_size = self.cregs[op.op.condition[0]]
+        if_value = format(op.op.condition[1], 'b').zfill(creg_size)
         if not self.reverse_bits:
             if_value = if_value[::-1]
 
         cwire = len(self.qubit_list)
         iter_cregs = iter(list(self.cregs)) if self.cregbundle else iter(self.cregs_bits)
         for creg in iter_cregs:
-            if creg == op.condition[0]:
+            if creg == op.op.condition[0]:
                 break
             cwire += 1
 
@@ -616,7 +622,7 @@ class QCircuitImage:
         if self.cregbundle:
             # Print the condition value at the bottom
             self._latex[cwire][col] = \
-                "\\dstick{_{_{=%s}}} \\cw \\cwx[-%s]" % (str(op.condition[1]), str(gap))
+                "\\dstick{_{_{=%s}}} \\cw \\cwx[-%s]" % (str(op.op.condition[1]), str(gap))
         else:
             # Add the open and closed buttons to indicate the condition value
             for i in range(creg_size):

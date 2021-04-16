@@ -301,10 +301,11 @@ class ForwardMatch:
         Returns:
             bool: True if possible, False otherwise.
         """
-        if node_circuit.condition and node_template.conditon:
+        if (node_circuit.type == 'op' and node_circuit.op.condition
+                and node_template.type == 'op' and node_template.op.conditon):
             if set(self.carg_indices) != set(node_template.cindices):
                 return False
-            if node_circuit.condition[1] != node_template.conditon[1]:
+            if node_circuit.op.condition[1] != node_template.op.conditon[1]:
                 return False
         return True
 
