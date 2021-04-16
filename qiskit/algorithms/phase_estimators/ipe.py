@@ -132,13 +132,7 @@ class IterativePhaseEstimation:
                 qc = self.construct_circuit(unitary, state_preparation, k,
                                             -2 * numpy.pi * omega_coef, measurement=True)
                 measurements = self._quantum_instance.execute(qc).get_counts(qc)
-                if '0' not in measurements:
-                    x = 1
-                else:
-                    if '1' not in measurements:
-                        x = 0
-                    else:
-                        x = 1 if measurements['1'] > measurements['0'] else 0
+                x = 1 if measurements.get('1', 0) > measurements.get('0', 0) else 0
             omega_coef = omega_coef + x / 2
         return omega_coef
 
