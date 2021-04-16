@@ -120,8 +120,7 @@ class IterativePhaseEstimation:
                                             -2 * numpy.pi * omega_coef, measurement=False)
                 result = self._quantum_instance.execute(qc)
                 complete_state_vec = result.get_statevector(qc)
-#                ancilla_density_mat = qiskit.quantum_info.partial_trace(
-                ancilla_density_mat = get_subsystem_density_matrix(
+                ancilla_density_mat = qiskit.quantum_info.partial_trace(
                     complete_state_vec,
                     range(unitary.num_qubits)
                 )
@@ -196,19 +195,3 @@ class IterativePhaseEstimationResult(AlgorithmResult):
     def num_iterations(self) -> int:
         r"""Return the number of iterations used in the estimation algorithm."""
         return self._num_iterations
-
-
-def get_subsystem_density_matrix(statevector, trace_systems):
-    """
-    Compute the reduced density matrix of a quantum subsystem.
-
-    Args:
-        statevector (list|array): The state vector of the complete system
-        trace_systems (list|range): The indices of the qubits to be traced out.
-
-    Returns:
-        numpy.ndarray: The reduced density matrix for the desired subsystem
-    """
-    rho = numpy.outer(statevector, numpy.conj(statevector))
-    rho_sub = qiskit.quantum_info.partial_trace(rho, trace_systems).data
-    return rho_sub
