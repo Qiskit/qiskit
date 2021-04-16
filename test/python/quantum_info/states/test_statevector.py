@@ -944,7 +944,7 @@ class TestStatevector(QiskitTestCase):
         qc2 = transpile(qc, basis_gates=['p'])
         sv = Statevector.from_instruction(qc2)
         expected = np.array([0.96891242-0.24740396j, 0])
-        self.assertEqual(float(qc2.global_phase), -1/4)
+        self.assertEqual(float(qc2.global_phase), 2*np.pi - 0.25)
         self.assertEqual(sv, Statevector(expected))
 
     def test_reverse_qargs(self):

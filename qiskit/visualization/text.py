@@ -799,7 +799,7 @@ class TextDrawing():
     @staticmethod
     def label_for_conditional(instruction):
         """ Creates the label for a conditional instruction."""
-        return "= %s" % instruction.condition[1]
+        return "= %s" % instruction.op.condition[1]
 
     @staticmethod
     def params_for_label(instruction):
@@ -978,7 +978,7 @@ class TextDrawing():
         return gates
 
     def _instruction_to_gate(self, instruction, layer):
-        """ Convert an instruction into its corresponding Gate object, and establish
+        """ Convert a dag op node into its corresponding Gate object, and establish
         any connections it introduces between qubits"""
 
         current_cons = []
@@ -990,10 +990,10 @@ class TextDrawing():
         label_multibox = False
         base_gate = getattr(instruction.op, 'base_gate', None)
 
-        if instruction.condition is not None:
+        if instruction.op.condition is not None:
             # conditional
             cllabel = TextDrawing.label_for_conditional(instruction)
-            layer.set_cl_multibox(instruction.condition[0], cllabel, top_connect='╨')
+            layer.set_cl_multibox(instruction.op.condition[0], cllabel, top_connect='╨')
             conditional = True
 
         # add in a gate that operates over multiple qubits
