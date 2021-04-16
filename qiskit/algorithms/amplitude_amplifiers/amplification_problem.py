@@ -58,7 +58,7 @@ class AmplificationProblem:
         self._is_good_state = is_good_state
 
     @property
-    def oracle(self) -> QuantumCircuit:
+    def oracle(self) -> Union[QuantumCircuit, Statevector]:
         """Return the oracle.
 
         Returns:
@@ -67,7 +67,7 @@ class AmplificationProblem:
         return self._oracle
 
     @oracle.setter
-    def oracle(self, oracle: QuantumCircuit) -> None:
+    def oracle(self, oracle: Union[QuantumCircuit, Statevector]) -> None:
         """Set the oracle.
 
         Args:
