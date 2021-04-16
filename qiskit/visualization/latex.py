@@ -606,29 +606,50 @@ class QCircuitImage:
         #         or if cregbundle, wire number of the condition register itself
         # gap - the number of wires from cwire to the bottom gate qubit
 
-        creg_size = self.cregs[op.op.condition[0]]
-        if_value = format(op.op.condition[1], 'b').zfill(creg_size)
-        if not self.reverse_bits:
-            if_value = if_value[::-1]
+        if isinstance(op.op.condition[0], Clbit):
+            cond_reg = self.bit_locations[op.op.condition[0]]['register']
+        else:
+            cond_reg = op.op.condition[0]
+        cond_is_bit = isinstance(op.op.condition[0], Clbit)
+        creg_size = self.cregs[cond_reg]
+        if cond_is_bit:
+            if_value = int(op.op.condition[1])
+        else:
+            if_value = format(op.op.condition[1], 'b').zfill(creg_size)
+        if not cond_is_bit:
+            if not self.reverse_bits:
+                if_value = if_value[::-1]
 
         cwire = len(self.qubit_list)
         iter_cregs = iter(list(self.cregs)) if self.cregbundle else iter(self.cregs_bits)
         for creg in iter_cregs:
-            if creg == op.op.condition[0]:
+            if creg == cond_reg:
                 break
             cwire += 1
 
         gap = cwire - max(wire_list)
         if self.cregbundle:
             # Print the condition value at the bottom
-            self._latex[cwire][col] = \
-                "\\dstick{_{_{=%s}}} \\cw \\cwx[-%s]" % (str(op.op.condition[1]), str(gap))
+            if cond_is_bit:
+                ctrl_bit = str(cond_reg.name) + "_" + str(
+                    self.bit_locations[op.op.condition[0]]['index'])
+                self._latex[cwire][col] = \
+                    "\\dstick{_{_{%s=%s}}} \\cw \\cwx[-%s]" % (ctrl_bit, str(if_value), str(gap))
+            else:
+                self._latex[cwire][col] = \
+                    "\\dstick{_{_{=%s}}} \\cw \\cwx[-%s]" % (str(op.op.condition[1]), str(gap))
         else:
             # Add the open and closed buttons to indicate the condition value
-            for i in range(creg_size):
-                control = "\\control" if if_value[i] == '1' else "\\controlo"
-                self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
-                gap = 1
+            if cond_is_bit:
+                extra_gap = list(cond_reg).index(op.op.condition[0])
+                gap += extra_gap
+                control = "\\control" if if_value == '1' else "\\control"
+                self._latex[cwire + extra_gap][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
+            else:
+                for i in range(creg_size):
+                    control = "\\control" if if_value[i] == '1' else "\\controlo"
+                    self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
+                    gap = 1
 
     def _truncate_float(self, matchobj, ndigits=4):
         """Truncate long floats."""

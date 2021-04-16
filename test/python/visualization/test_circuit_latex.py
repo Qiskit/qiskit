@@ -522,6 +522,19 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    def test_cif_single_bit(self):
+        """Tests conditioning gates on single classical bit"""
+
+        filename = self._get_resource_path('test_cif_single_bit.tex')
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0]).c_if(cr[1], 0)
+        circuit.x(qr[1]).c_if(cr[0], 1)
+        circuit_drawer(circuit, filename=filename, output='latex_source')
+
+        self.assertEqualToReference(filename)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
