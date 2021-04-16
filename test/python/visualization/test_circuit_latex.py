@@ -531,7 +531,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr[0]).c_if(cr[1], 0)
         circuit.x(qr[1]).c_if(cr[0], 1)
-        circuit_drawer(circuit, filename=filename, output='latex_source')
+        circuit_drawer(circuit, cregbundle=False, filename=filename, output='latex_source')
 
         self.assertEqualToReference(filename)
 

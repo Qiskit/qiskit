@@ -613,7 +613,7 @@ class QCircuitImage:
         cond_is_bit = isinstance(op.op.condition[0], Clbit)
         creg_size = self.cregs[cond_reg]
         if cond_is_bit:
-            if_value = int(op.op.condition[1])
+            if_value = str(op.op.condition[1])
         else:
             if_value = format(op.op.condition[1], 'b').zfill(creg_size)
         if not cond_is_bit:
@@ -643,7 +643,7 @@ class QCircuitImage:
             if cond_is_bit:
                 extra_gap = list(cond_reg).index(op.op.condition[0])
                 gap += extra_gap
-                control = "\\control" if if_value == '1' else "\\control"
+                control = "\\control" if if_value == '1' else "\\controlo"
                 self._latex[cwire + extra_gap][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
             else:
                 for i in range(creg_size):
