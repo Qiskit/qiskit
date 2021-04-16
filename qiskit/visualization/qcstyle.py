@@ -335,9 +335,9 @@ def set_style(current_style, new_style):
     write them into current_style.
     """
     valid_fields = {'name', 'textcolor', 'gatetextcolor', 'subtextcolor', 'linecolor',
-                   'creglinecolor', 'gatefacecolor', 'barrierfacecolor', 'backgroundcolor',
-                   'edgecolor', 'fontsize', 'subfontsize', 'showindex', 'figwidth', 'dpi',
-                   'margin', 'creglinestyle', 'displaytext', 'displaycolor'}
+                    'creglinecolor', 'gatefacecolor', 'barrierfacecolor', 'backgroundcolor',
+                    'edgecolor', 'fontsize', 'subfontsize', 'showindex', 'figwidth', 'dpi',
+                    'margin', 'creglinestyle', 'displaytext', 'displaycolor'}
 
     current_style.update(new_style)
     current_style['tc'] = current_style.get('textcolor', current_style['tc'])

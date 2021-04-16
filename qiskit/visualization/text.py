@@ -938,7 +938,6 @@ class TextDrawing():
         conditional = False
         base_gate = getattr(instruction.op, 'base_gate', None)
 
-
         params = get_param_str(instruction, 'text', ndigits=5)
         if (not isinstance(instruction.op, (Measure, SwapGate, Reset)) and
                 not instruction.op._directive):
