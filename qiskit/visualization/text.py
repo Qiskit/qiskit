@@ -1211,8 +1211,6 @@ class Layer:
     def _set_multibox(self, label, qubits=None, clbits=None, top_connect=None,
                       bot_connect=None, conditional=False, controlled_edge=None):
         if qubits is not None and clbits is not None:
-            # qubits = list(qubits)
-            # clbits = list(clbits)
             cbit_index = sorted([i for i, x in enumerate(self.clbits) if x in clbits])
             qbit_index = sorted([i for i, x in enumerate(self.qubits) if x in qubits])
 
@@ -1225,8 +1223,8 @@ class Layer:
             cargs = [str(clbits.index(cbit)).ljust(wire_label_len, ' ')
                      for cbit in self.clbits if cbit in clbits]
 
-            qubits = [qbit for qbit in self.qubits if qbit in qubits]
-            clbits = [cbit for cbit in self.clbits if cbit in clbits]
+            qubits = sorted(qubits, key=self.qubits.index)
+            clbits = sorted(clbits, key=self.clbits.index)
 
             box_height = len(self.qubits) - min(qbit_index) + max(cbit_index) + 1
 
