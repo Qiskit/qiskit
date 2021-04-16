@@ -72,7 +72,7 @@ class Unroller(TransformationPass):
             try:
                 phase = node.op.definition.global_phase
                 rule = node.op.definition.data
-            except TypeError as err:
+            except (TypeError, AttributeError) as err:
                 raise QiskitError(f'Error decomposing node of instruction \'{node.name}\': '
                                   f'{err}. Unable to define instruction \'{node.name}\' in the'
                                   f' given basis.') from err
