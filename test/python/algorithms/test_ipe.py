@@ -12,12 +12,14 @@
 
 """Test iterative phase estimation"""
 
+import math
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 from qiskit.algorithms.phase_estimators import IterativePhaseEstimation
 import qiskit
-from qiskit.opflow import (H, X, Z)
+from qiskit import QuantumCircuit
+from qiskit.opflow import (H, X, Z, I)
 
 
 @ddt
@@ -56,12 +58,21 @@ class TestIterativePhaseEstimation(QiskitAlgorithmsTestCase):
         phase = self.one_phase(unitary_circuit, state_preparation)
         self.assertEqual(phase, 0.5)
 
-    @data((H, 0.0), (X, 0.5))
+    @data((H.to_circuit(), 0.0), ((H @ X).to_circuit(), 0.5))
     @unpack
-    def test_qpe_X_plus_minus(self, state_in, expected_phase):
+    def test_qpe_X_plus_minus(self, state_preparation, expected_phase):
         """eigenproblem X, (|+>, |->)"""
         unitary_circuit = X.to_circuit()
-        state_preparation = state_in.to_circuit()  # prepare |+> or |->
+        phase = self.one_phase(unitary_circuit, state_preparation)
+        self.assertEqual(phase, expected_phase)
+
+    @data((X.to_circuit(), 0.125), (I.to_circuit(), 0.875))
+    @unpack
+    def test_qpe_RZ(self, state_preparation, expected_phase):
+        """eigenproblem RZ, (|0>, |1>)"""
+        alpha = math.pi / 2
+        unitary_circuit = QuantumCircuit(1)
+        unitary_circuit.rz(alpha, 0)
         phase = self.one_phase(unitary_circuit, state_preparation)
         self.assertEqual(phase, expected_phase)
 
