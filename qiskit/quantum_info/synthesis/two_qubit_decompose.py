@@ -351,11 +351,11 @@ class TwoQubitWeylDecomposition():
         c1l, c1r, c2l, c2r = (oneq_decompose(k, simplify=simplify, atol=atol)
                               for k in (self.K1l, self.K1r, self.K2l, self.K2r))
         circ = QuantumCircuit(2, global_phase=self.global_phase)
-        circ.compose(c2r, [0], inplace=True)
-        circ.compose(c2l, [1], inplace=True)
+        circ.compose(c2r, [0], wrap=False, inplace=True)
+        circ.compose(c2l, [1], wrap=False, inplace=True)
         self._weyl_gate(simplify, circ, atol)
-        circ.compose(c1r, [0], inplace=True)
-        circ.compose(c1l, [1], inplace=True)
+        circ.compose(c1r, [0], wrap=False, inplace=True)
+        circ.compose(c1l, [1], wrap=False, inplace=True)
         return circ
 
     def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
@@ -432,6 +432,7 @@ class TwoQubitWeylSWAPEquiv(TwoQubitWeylDecomposition):
         K2l = Id ,
         K2r = Id .
     """
+
     def specialize(self):
         if self.c > 0:
             self.K1l = self.K1l @ self.K2r
@@ -468,6 +469,7 @@ class TwoQubitWeylPartialSWAPEquiv(TwoQubitWeylDecomposition):
     This gate binds 3 parameters, we make it canonical by setting:
         K2l = Id .
     """
+
     def specialize(self):
         self.a = self.b = self.c = _closest_partial_swap(self.a, self.b, self.c)
         self.K1l = self.K1l @ self.K2l
@@ -526,6 +528,7 @@ class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
         K2l = Ry(θl).Rz(λl) ,
         K2r = Ry(θr).Rz(λr) .
     """
+
     def specialize(self):
         self.a = self.b = np.pi/4
         k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_zyz.angles_and_phase(self.K2l)
@@ -549,6 +552,7 @@ class TwoQubitWeylfSimaabEquiv(TwoQubitWeylDecomposition):
     This gate binds 5 parameters, we make it canonical by setting:
         K2l = Ry(θl).Rz(λl) .
     """
+
     def specialize(self):
         self.a = self.b = (self.a + self.b)/2
         k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_zyz.angles_and_phase(self.K2l)
@@ -603,6 +607,7 @@ class TwoQubitWeylGeneral(TwoQubitWeylDecomposition):
     This gate binds all 6 possible parameters, so there is no need to make the single-qubit
     pre-/post-gates canonical.
     """
+
     def specialize(self):
         pass  # Nothing to do
 
