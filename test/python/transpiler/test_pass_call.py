@@ -93,7 +93,7 @@ class TestPassCall(QiskitTestCase):
         circuit = ZGate().control(2).definition
         basis = ['u1', 'u2', 'u3', 'cx']
         unroller = Unroller(basis)
-        with self.assertRaises(Exception) as cm:
+        with self.assertRaises(QiskitError) as cm:
             unroller(circuit)
         exp_msg = repr('Error decomposing node of instruction \'p\': \'NoneType\' object has no' +
                        ' attribute \'global_phase\'. Unable to define instruction \'u\' in the' +
