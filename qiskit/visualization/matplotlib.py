@@ -165,7 +165,6 @@ class MatplotlibDrawer:
         self._cregbundle = cregbundle
         self._global_phase = global_phase
 
-        self._ast = None
         self._n_lines = 0
         self._xmax = 0
         self._ymax = 0
@@ -227,11 +226,6 @@ class MatplotlibDrawer:
         self._qubit = []
         for r in qubit:
             self._qubit.append(r)
-
-    @property
-    def ast(self):
-        """AST getter"""
-        return self._ast
 
     def _load_style(self, style):
         current_style = DefaultStyle().style
@@ -790,11 +784,8 @@ class MatplotlibDrawer:
         _standard_1q_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry',
                               'rz', 'rxx', 'ryy', 'rzx', 'u1', 'u2', 'u3', 'u', 'swap', 'reset',
                               'sx', 'sxdg', 'p']
-        _barriers = {'coord': [], 'group': []}
 
-        #
         # generate coordinate manager
-        #
         q_anchors = {}
         for key, qubit in self._qubit_dict.items():
             q_anchors[key] = Anchor(reg_num=self._n_lines,
