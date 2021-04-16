@@ -342,7 +342,7 @@ class Instruction:
 
     def c_if(self, classical, val):
         """Add classical condition on register or cbit classical and value val."""
-        if not isinstance(classical, ClassicalRegister) and not isinstance(classical, Clbit):
+        if not isinstance(classical, (ClassicalRegister, Clbit, int)):
             raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
             raise CircuitError("condition value should be non-negative")
