@@ -343,14 +343,10 @@ class Instruction:
     def c_if(self, classical, val):
         """Add classical condition on register or cbit classical and value val."""
         if not isinstance(classical, ClassicalRegister) and not isinstance(classical, Clbit):
-            # raise CircuitError("c_if must be used with a classical register or classical bit")
             raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
             raise CircuitError("condition value should be non-negative")
-        if isinstance(classical, Clbit):
-            self.condition = (classical, val)
-        else:
-            self.condition = (classical, val)
+        self.condition = (classical, val)
         return self
 
     def copy(self, name=None):
