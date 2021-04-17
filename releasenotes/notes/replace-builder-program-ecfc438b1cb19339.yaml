@@ -30,5 +30,5 @@ deprecations:
     you can just remove alignment contexts within the inline context.
 
     Builder syntax :func:`pulse.pad` is deprecated. Because :class:`ScheduleBlock` doesn't
-    support `.insert` method (and there is not insert syntax in the builder),
+    support `.insert` method (and there is no insert syntax in the builder),
     such timeslot placeholder to block insertion of other instructions is no longer necessary.
