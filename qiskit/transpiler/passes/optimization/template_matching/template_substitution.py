@@ -365,7 +365,6 @@ class TemplateSubstitution:
                 for elem in pred:
                     node = self.circuit_dag_dep.get_node(elem)
                     inst = node.op.copy()
-                    inst.condition = node.condition
                     dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
                     already_sub.append(elem)
 
@@ -388,7 +387,6 @@ class TemplateSubstitution:
                         cargs = []
                     node = group.template_dag_dep.get_node(index)
                     inst = node.op.copy()
-                    inst.condition = node.condition
 
                     dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
 
@@ -396,7 +394,6 @@ class TemplateSubstitution:
             for node_id in self.unmatched_list:
                 node = self.circuit_dag_dep.get_node(node_id)
                 inst = node.op.copy()
-                inst.condition = node.condition
                 dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
 
             dag_dep_opt._add_successors()
