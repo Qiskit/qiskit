@@ -85,7 +85,7 @@ class GroupMixin(ABC):
 
         Returns:
             CLASS: the tensor product :math:`a \otimes b`, where :math:`a`
-                   is the current CLASS, and :math:`b` is the other CLASS.
+                is the current CLASS, and :math:`b` is the other CLASS.
 
         .. note::
             The tensor product can be obtained using the ``^`` binary operator.
@@ -105,7 +105,7 @@ class GroupMixin(ABC):
 
         Returns:
             CLASS: the tensor product :math:`b \otimes a`, where :math:`a`
-                   is the current CLASS, and :math:`b` is the other CLASS.
+                is the current CLASS, and :math:`b` is the other CLASS.
 
         .. note:
             Expand is the opposite operator ordering to :meth:`tensor`.

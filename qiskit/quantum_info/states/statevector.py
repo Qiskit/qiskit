@@ -132,11 +132,15 @@ class Statevector(QuantumState, TolerancesMixin):
 
         **bloch**: Matplotlib figure, rendering of statevector using `plot_bloch_multivector()`.
 
+        **city**: Matplotlib figure, rendering of statevector using `plot_state_city()`.
+
+        **paulivec**: Matplotlib figure, rendering of statevector using `plot_state_paulivec()`.
+
         Args:
             output (str): Select the output method to use for drawing the
                 state. Valid choices are `repr`, `text`, `latex`, `latex_source`,
-                `qsphere`, `hinton`, or `bloch`. Default is `repr`. Default can
-                be changed by adding the line ``state_drawer = <default>`` to
+                `qsphere`, `hinton`, `bloch`, `city`, or `paulivec`. Default is `repr`.
+                Default can be changed by adding the line ``state_drawer = <default>`` to
                 ``~/.qiskit/settings.conf`` under ``[default]``.
             drawer_args: Arguments to be passed directly to the relevant drawing
                 function or constructor (`TextMatrix()`, `array_to_latex()`,
@@ -690,7 +694,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 psi = Statevector(vec, dims=(3, 3))
                 print(psi.to_dict())
 
-            For large subsystem dimensions delimeters are required. The
+            For large subsystem dimensions delimiters are required. The
             following example is for a 20-dimensional system consisting of
             a qubit and 10-dimensional qudit.
 
