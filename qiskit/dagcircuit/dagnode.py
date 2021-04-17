@@ -56,6 +56,11 @@ class DAGNode:
         """Returns the condition of the node.op"""
         if not self.type or self.type != 'op':
             raise QiskitError("The node %s is not an op node" % (str(self)))
+        warnings.warn(
+            "The DAGNode 'condition' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "You can use 'DAGNode.op.condition' if the DAGNode is of type 'op'.",
+            DeprecationWarning, 2)
         return self._op.condition
 
     @condition.setter
@@ -63,6 +68,11 @@ class DAGNode:
         """Sets the node.condition which sets the node.op.condition."""
         if not self.type or self.type != 'op':
             raise QiskitError("The node %s is not an op node" % (str(self)))
+        warnings.warn(
+            "The DAGNode 'condition' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "You can use 'DAGNode.op.condition' if the DAGNode is of type 'op'.",
+            DeprecationWarning, 2)
         self._op.condition = new_condition
 
     @property
