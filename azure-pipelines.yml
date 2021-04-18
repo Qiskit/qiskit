@@ -20,11 +20,11 @@ pr:
 
 stages:
   - stage: 'Wheel_Builds'
-    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+#    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
     jobs:
     - job: 'linux'
       pool: {vmImage: 'Ubuntu-16.04'}
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+#      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
@@ -42,32 +42,32 @@ stages:
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
-        - bash: |
-            twine upload wheelhouse/*
-          env:
-            TWINE_PASSWORD: $(TWINE_PASSWORD)
-    - job: 'sdist'
-      pool: {vmImage: 'Ubuntu-16.04'}
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      variables:
-        TWINE_USERNAME: qiskit
-        python.version: '3.7'
-      steps:
-        - task: UsePythonVersion@0
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip
-            pip install -U twine
-            python setup.py sdist
-        - task: PublishBuildArtifacts@1
-          inputs: {pathtoPublish: 'dist'}
-          condition: succeededOrFailed()
-        - bash: |
-            twine upload dist/*
-          env:
-            TWINE_PASSWORD: $(TWINE_PASSWORD)
+#        - bash: |
+#            twine upload wheelhouse/*
+#          env:
+#            TWINE_PASSWORD: $(TWINE_PASSWORD)
+#    - job: 'sdist'
+#      pool: {vmImage: 'Ubuntu-16.04'}
+#      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+#      variables:
+#        TWINE_USERNAME: qiskit
+#        python.version: '3.7'
+#      steps:
+#        - task: UsePythonVersion@0
+#        - bash: |
+#            set -e
+#            python -m pip install --upgrade pip
+#            pip install -U twine
+#            python setup.py sdist
+#        - task: PublishBuildArtifacts@1
+#          inputs: {pathtoPublish: 'dist'}
+#          condition: succeededOrFailed()
+#        - bash: |
+#            twine upload dist/*
+#          env:
+#            TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos'
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+#      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       pool: {vmImage: 'macOS-latest'}
       variables:
         python.version: '3.7'
@@ -86,12 +86,12 @@ stages:
       - task: PublishBuildArtifacts@1
         inputs: {pathtoPublish: 'wheelhouse'}
         condition: succeededOrFailed()
-      - bash: |
-          twine upload wheelhouse/*
-        env:
-          TWINE_PASSWORD: $(TWINE_PASSWORD)
+#      - bash: |
+#          twine upload wheelhouse/*
+#        env:
+#          TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos-arm'
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+#      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       pool: {vmImage: 'macOS-latest'}
       variables:
         python.version: '3.7'
@@ -111,13 +111,13 @@ stages:
       - task: PublishBuildArtifacts@1
         inputs: {pathtoPublish: 'wheelhouse'}
         condition: succeededOrFailed()
-      - bash: |
-          twine upload wheelhouse/*
-        env:
-          TWINE_PASSWORD: $(TWINE_PASSWORD)
+#      - bash: |
+#          twine upload wheelhouse/*
+#        env:
+#          TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'Windows'
       pool: {vmImage: 'vs2017-win2016'}
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+#      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         CIBW_BEFORE_BUILD: pip install -U Cython
         CIBW_SKIP: cp27-* cp34-* cp35-* pp*
@@ -143,10 +143,10 @@ stages:
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
-        - script: |
-            twine upload wheelhouse\*
-          env:
-            TWINE_PASSWORD: $(TWINE_PASSWORD)
+#        - script: |
+#            twine upload wheelhouse\*
+#          env:
+#            TWINE_PASSWORD: $(TWINE_PASSWORD)
   - stage: 'Lint_and_Tests'
     dependsOn: []
     jobs:
