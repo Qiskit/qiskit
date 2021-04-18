@@ -77,6 +77,7 @@ def decompose_clifford_bm(clifford):
         return _decompose_clifford_1q(
             clifford.table.array, clifford.table.phase)
 
+    ret_circ = QuantumCircuit(num_qubits, name=str(clifford))
     # Inverse of final decomposed circuit
     inv_circuit = QuantumCircuit(num_qubits, name='inv_circ')
 
@@ -88,7 +89,7 @@ def decompose_clifford_bm(clifford):
         clifford, inv_circuit, cost = _reduce_cost(clifford, inv_circuit, cost)
 
     # Decompose the remaining product of 1-qubit cliffords
-    ret_circ = QuantumCircuit(num_qubits, name=str(clifford))
+
     for qubit in range(num_qubits):
         pos = [qubit, qubit + num_qubits]
         table = clifford.table.array[pos][:, pos]
