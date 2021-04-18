@@ -105,7 +105,7 @@ class RippleCarryAdder(Adder):
         qc_maj.cx(0, 1)
         qc_maj.cx(0, 2)
         qc_maj.ccx(2, 1, 0)
-        qc_instruction_mac = qc_maj.to_instruction()
+        qc_gate_mac = qc_maj.to_gate()
 
         # build circuit for reversing carry operation
         # corresponds to UMA gate in [1]
@@ -113,17 +113,17 @@ class RippleCarryAdder(Adder):
         qc_uma.ccx(2, 1, 0)
         qc_uma.cx(0, 2)
         qc_uma.cx(2, 1)
-        qc_instruction_uma = qc_uma.to_instruction()
+        qc_gate_uma = qc_uma.to_gate()
 
         # build ripple-carry adder circuit
-        self.append(qc_instruction_mac, [qr_a[0], qr_b[0], qr_c[0]])
+        self.append(qc_gate_mac, [qr_a[0], qr_b[0], qr_c[0]])
 
         for i in range(num_state_qubits-1):
-            self.append(qc_instruction_mac, [qr_a[i+1], qr_b[i+1], qr_a[i]])
+            self.append(qc_gate_mac, [qr_a[i+1], qr_b[i+1], qr_a[i]])
 
         self.cx(qr_a[-1], qr_z[0])
 
         for i in reversed(range(num_state_qubits-1)):
-            self.append(qc_instruction_uma, [qr_a[i+1], qr_b[i+1], qr_a[i]])
+            self.append(qc_gate_uma, [qr_a[i+1], qr_b[i+1], qr_a[i]])
 
-        self.append(qc_instruction_uma, [qr_a[0], qr_b[0], qr_c[0]])
+        self.append(qc_gate_uma, [qr_a[0], qr_b[0], qr_c[0]])

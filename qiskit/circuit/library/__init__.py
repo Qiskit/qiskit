@@ -151,6 +151,14 @@ Adders
    RippleCarryAdder
    WeightedAdder
 
+Multipliers
++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ClassicalMultiplier
+
 Comparators
 +++++++++++
 
@@ -361,6 +369,7 @@ from .arithmetic import (
     RippleCarryAdder,
     QFTAdder,
     PiecewiseChebyshev,
+    ClassicalMultiplier,
 )
 
 from .n_local import (
