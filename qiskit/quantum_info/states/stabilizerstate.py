@@ -22,7 +22,8 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.symplectic import Clifford, Pauli
-from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x, _append_h, \
+    _append_s, _append_sdg, _append_z
 
 
 class StabilizerState(QuantumState):
@@ -181,7 +182,34 @@ class StabilizerState(QuantumState):
         Returns:
             complex: the expectation value.
         """
-        pass
+        if qargs is None:
+            qubits = range(self.data.num_qubits)
+        else:
+            qubits = qargs
+
+        stab_cpy = copy.deepcopy(self)
+        measured_qubits = []
+
+        for pos in qubits:
+            qubit = qubits[pos]
+            pauli = (oper.to_label())[len(oper) - 1 - pos]
+            # print (pos, qubit, pauli)
+            if pauli == 'I':
+                pass
+            elif pauli == 'X':
+                _append_h(stab_cpy.data, qubit)
+                measured_qubits.append(qubit)
+            elif pauli == 'Y':
+                _append_sdg(stab_cpy.data, qubit)
+                _append_h(stab_cpy.data, qubit)
+                measured_qubits.append(qubit)
+            elif pauli == 'Z':
+                measured_qubits.append(qubit)
+            else:
+                raise QiskitError("Invalid Pauli string {}".format(pauli))
+        # print (measured_qubits)
+
+        return stab_cpy._expval_z_basis(measured_qubits)
 
     def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.
@@ -454,6 +482,43 @@ class StabilizerState(QuantumState):
         aux_pauli = accum_pauli
         aux_pauli.phase = accum_phase
         return aux_pauli
+
+    # -----------------------------------------------------------------------
+    # Helper functions for calculating the expectation values
+    # -----------------------------------------------------------------------
+    def _expval_z_basis(self, qubits):
+        """Calculate the Z expectation value"""
+
+        num_qubits = self.data.num_qubits
+
+        # Check if there is a row that anti-commutes with an odd number of qubits
+        # If so the expectation value is 0
+        for p in range(num_qubits):
+            num_of_x = 0
+            for qubit in qubits:
+                num_of_x += self.data.stabilizer.X[p][qubit]
+            # print (p, num_of_x)
+            if num_of_x % 2 == 1:
+                return 0
+
+        # Otherwise the expectation value is +1 or -1
+        # according to the deterministic measurement
+        sum_of_outcomes = 0
+        for qubit in qubits:
+            aux_pauli = Pauli(num_qubits * 'I')
+            # print (qubit, aux_pauli, aux_pauli.phase)
+            for i in range(num_qubits):
+                if self.data.table.X[i][qubit]:
+                    aux_pauli = self._rowsum_deterministic(aux_pauli, i + num_qubits)
+                    # print (qubit, aux_pauli, aux_pauli.phase)
+
+            sum_of_outcomes += aux_pauli.phase
+            # print (qubit, "sum", sum_of_outcomes)
+        sum_of_outcomes = sum_of_outcomes % 2
+
+        if not sum_of_outcomes:
+            return 1
+        return -1
 
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
