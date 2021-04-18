@@ -10,44 +10,50 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test adder circuits."""
+"""Test arithmetic circuits."""
 
 import unittest
+import operator
 import numpy as np
 from ddt import ddt, data, unpack
+from typing import Callable
 
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector, partial_trace
-from qiskit.circuit.library import RippleCarryAdder, QFTAdder, ClassicalAdder
+from qiskit.circuit.library import RippleCarryAdder, QFTAdder, ClassicalAdder, ClassicalMultiplier
 
 
 @ddt
-class TestAdder(QiskitTestCase):
-    """Test the adder circuits."""
+class TestArithmetic(QiskitTestCase):
+    """Test the arithmetic circuits."""
 
-    def assertAdditionIsCorrect(self,
+    def assertArithmeticIsCorrect(self,
                                 num_state_qubits: int,
-                                adder: QuantumCircuit,
+                                arithmetic_circuit: QuantumCircuit,
+                                operator: Callable[[int, int], int],
+                                num_res_qubits: int,
                                 inplace: bool,
-                                modular: bool):
-        """Assert that adder correctly implements the summation.
+                                modular: bool = False):
+        """Assert that arithmetic circuit correctly implements the operation.
 
         Args:
-            num_state_qubits: The number of bits in the numbers that are added.
-            adder: The circuit performing the addition of two numbers with ``num_state_qubits``
-                bits.
-            inplace: If True, compare against an inplace addition where the result is written into
-                the second register plus carry qubit. If False, assume that the result is written
+            num_state_qubits: The number of bits in the numbers that are used for arithmethic
+                operation.
+            arithmetic_circuit: The circuit performing the arithmetic operation
+                of two numbers with ``num_state_qubits`` bits.
+            operator: The arithmetic operator to be tested.
+            num_res_qubits: The number of qubits required to store arithmetic result.
+            inplace: If True, compare against an inplace operation where the result is written into
+                the second register plus auxiliary qubits. If False, assume that the result is written
                 into a third register of appropriate size.
-            modular: If True, omit the carry qubit to obtain an addition modulo
-                ``2^num_state_qubits``.
+            modular: If True, omit the carry qubit to obtain a modulo ``2^num_state_qubits`` operation.
         """
-        circuit = QuantumCircuit(*adder.qregs)
+        circuit = QuantumCircuit(*arithmetic_circuit.qregs)
         # create equal superposition
         circuit.h(range(2 * num_state_qubits))
-        # apply adder circuit
-        circuit.compose(adder, inplace=True)
+        # apply arithmetic circuit
+        circuit.compose(arithmetic_circuit, inplace=True)
         # obtain the statevector
         statevector = Statevector(circuit)
         # trace out the ancillas if necessary
@@ -58,16 +64,15 @@ class TestAdder(QiskitTestCase):
             probabilities = np.abs(statevector) ** 2
         # compute the expected results
         expectations = np.zeros_like(probabilities)
-        num_bits_sum = num_state_qubits + 1
         # iterate over all possible inputs
         for x in range(2 ** num_state_qubits):
             for y in range(2 ** num_state_qubits):
-                # compute the sum
-                addition = (x + y) % (2 ** num_state_qubits) if modular else x + y
+                # compute the arithmetic result
+                arithmetic_res = operator(x, y) % (2 ** num_state_qubits) if modular else operator(x, y)
                 # compute correct index in statevector
                 bin_x = bin(x)[2:].zfill(num_state_qubits)
                 bin_y = bin(y)[2:].zfill(num_state_qubits)
-                bin_res = bin(addition)[2:].zfill(num_bits_sum)
+                bin_res = bin(arithmetic_res)[2:].zfill(num_res_qubits)
                 bin_index = bin_res + bin_x if inplace else bin_res + bin_y + bin_x
                 index = int(bin_index, 2)
                 expectations[index] += 1 / 2 ** (2 * num_state_qubits)
@@ -86,13 +91,25 @@ class TestAdder(QiskitTestCase):
     @unpack
     def test_summation(self, num_state_qubits, adder, inplace, modular=False):
         """Test summation for all implemented adders."""
+        num_res_qubits = num_state_qubits + 1
         adder = adder(num_state_qubits, modular=True) if modular else adder(num_state_qubits)
-        self.assertAdditionIsCorrect(num_state_qubits, adder, inplace, modular)
+        self.assertArithmeticIsCorrect(num_state_qubits, adder, operator.add, num_res_qubits, inplace, modular)
+
+    @data(
+        (3, ClassicalMultiplier, False)
+    )
+    @unpack
+    def test_multiplication(self, num_state_qubits, multiplier, inplace):
+        """Test multiplication for all implemented multipliers."""
+        num_res_qubits = 2 * num_state_qubits
+        multiplier = multiplier(num_state_qubits)
+        self.assertArithmeticIsCorrect(num_state_qubits, multiplier, operator.mul, num_res_qubits, inplace)
 
     @data(
         RippleCarryAdder,
         QFTAdder,
-        ClassicalAdder
+        ClassicalAdder,
+        ClassicalMultiplier
     )
     def test_raises_on_wrong_num_bits(self, adder):
         """Test an error is raised for a bad number of qubits."""
