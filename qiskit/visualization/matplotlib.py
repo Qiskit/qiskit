@@ -175,17 +175,6 @@ class MatplotlibDrawer:
         self._lwidth15 = 1.5 * self._scale
         self._lwidth2 = 2.0 * self._scale
 
-        # default is to use character table for text width,
-        # but get_renderer will work with some mpl backends
-        """fig = plt.figure()
-        if hasattr(fig.canvas, 'get_renderer'):
-            self._renderer = fig.canvas.get_renderer()
-        else:
-            self._renderer = None"""
-        self._renderer = None
-
-        # these char arrays are for finding text_width when not
-        # using get_renderer method for the matplotlib backend
         self._char_list = {' ': (0.0958, 0.0583), '!': (0.1208, 0.0729), '"': (0.1396, 0.0875),
                            '#': (0.2521, 0.1562), '$': (0.1917, 0.1167), '%': (0.2854, 0.1771),
                            '&': (0.2333, 0.1458), "'": (0.0833, 0.0521), '(': (0.1167, 0.0729),
@@ -295,42 +284,38 @@ class MatplotlibDrawer:
         if not text:
             return 0.0
 
-        if self._renderer:
-            t = self.plt_mod.text(0.5, 0.5, text, fontsize=fontsize)
-            return t.get_window_extent(renderer=self._renderer).width / 60.0
-        else:
-            math_mode_match = self._mathmode_regex.search(text)
-            num_underscores = 0
-            num_carets = 0
-            if math_mode_match:
-                math_mode_text = math_mode_match.group(1)
-                num_underscores = math_mode_text.count('_')
-                num_carets = math_mode_text.count('^')
-            text = LatexNodes2Text().latex_to_text(text.replace('$$', ''))
+        math_mode_match = self._mathmode_regex.search(text)
+        num_underscores = 0
+        num_carets = 0
+        if math_mode_match:
+            math_mode_text = math_mode_match.group(1)
+            num_underscores = math_mode_text.count('_')
+            num_carets = math_mode_text.count('^')
+        text = LatexNodes2Text().latex_to_text(text.replace('$$', ''))
 
-            # If there are subscripts or superscripts in mathtext string
-            # we need to account for that spacing by manually removing
-            # from text string for text length
-            if num_underscores:
-                text = text.replace('_', '', num_underscores)
-            if num_carets:
-                text = text.replace('^', '', num_carets)
+        # If there are subscripts or superscripts in mathtext string
+        # we need to account for that spacing by manually removing
+        # from text string for text length
+        if num_underscores:
+            text = text.replace('_', '', num_underscores)
+        if num_carets:
+            text = text.replace('^', '', num_carets)
 
-            # This changes hyphen to + to match width of math mode minus sign.
-            if param:
-                text = text.replace('-', '+')
+        # This changes hyphen to + to match width of math mode minus sign.
+        if param:
+            text = text.replace('-', '+')
 
-            f = 0 if fontsize == self._style['fs'] else 1
-            sum_text = 0.0
-            for c in text:
-                try:
-                    sum_text += self._char_list[c][f]
-                except KeyError:
-                    # if non-ASCII char, use width of 'c', an average size
-                    sum_text += self._char_list['c'][f]
-            if f == 1:
-                sum_text *= self._subfont_factor
-            return sum_text
+        f = 0 if fontsize == self._style['fs'] else 1
+        sum_text = 0.0
+        for c in text:
+            try:
+                sum_text += self._char_list[c][f]
+            except KeyError:
+                # if non-ASCII char, use width of 'c', an average size
+                sum_text += self._char_list['c'][f]
+        if f == 1:
+            sum_text *= self._subfont_factor
+        return sum_text
 
     def _param_parse(self, v):
         param_parts = [None] * len(v)
