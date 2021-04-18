@@ -90,7 +90,7 @@ stages:
 #          twine upload wheelhouse/*
 #        env:
 #          TWINE_PASSWORD: $(TWINE_PASSWORD)
-    - job: 'macos-arm'
+    - job: 'macos_arm'
 #      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       pool: {vmImage: 'macOS-latest'}
       variables:
