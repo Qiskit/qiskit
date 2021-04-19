@@ -31,6 +31,7 @@ from qiskit.quantum_info.synthesis.clifford_decompose import (
     decompose_clifford_ag, decompose_clifford_bm, decompose_clifford_greedy)
 from qiskit.quantum_info import random_clifford
 
+
 class VGate(Gate):
     """V Gate used in Clifford synthesis."""
     def __init__(self):
