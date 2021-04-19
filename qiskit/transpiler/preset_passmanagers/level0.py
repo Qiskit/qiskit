@@ -106,7 +106,10 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
     # 3. Decompose so only 1-qubit and 2-qubit gates remain
-    _unroll3q = Unroll3qOrMore()
+    _unroll3q = [UnitarySynthesis(basis_gates, approximation_degree=approximation_degree,
+                                  coupling_map=coupling_map,
+                                  method=unitary_synthesis_method),
+                 Unroll3qOrMore()]
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -142,6 +145,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
             UnitarySynthesis(basis_gates, approximation_degree=approximation_degree,
+                             coupling_map=coupling_map,
                              method=unitary_synthesis_method),
         ]
     else:

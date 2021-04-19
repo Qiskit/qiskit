@@ -101,7 +101,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
 
     # 1. Unroll to 1q or 2q gates
-    _unroll3q = Unroll3qOrMore()
+    _unroll3q = [UnitarySynthesis(basis_gates, approximation_degree=approximation_degree,
+                                  coupling_map=coupling_map,
+                                  method=unitary_synthesis_method),
+                 Unroll3qOrMore()]
 
     # 2. Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)
