@@ -230,7 +230,7 @@ nG0(pi,pi/2) q[0],r[0];\n"""
         self.assertEqual(Operator(qc), Operator(QuantumCircuit.from_qasm_str(qasm_str)))
 
     def test_circuit_qasm_with_mcx_gate(self):
-        """Test circuit qasm() method when MCXGate and the variants are in the circuit"""
+        """Test circuit qasm() method with MCXGate"""
         import qiskit.circuit.library as cl
         qc = QuantumCircuit(6)
         qc.append(cl.MCXGate(3), range(3+1)) # c3x, existing definition in qelib1.inc
@@ -248,5 +248,29 @@ qreg q[6];
 c3x q[0],q[1],q[2],q[3];
 c4x q[0],q[1],q[2],q[3],q[4];
 c5x q[0],q[1],q[2],q[3],q[4],q[5];\n"""
+
+        self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_qasm_with_mcx_gate_variants(self):
+        """Test circuit qasm() method with MCXGrayCode, MCXRecursive, MCXVChain"""
+        import qiskit.circuit.library as cl
+        n = 5
+        qc = QuantumCircuit(2*n-1)
+        qc.append(cl.MCXGrayCode(n), range(n+1))
+        qc.append(cl.MCXRecursive(n), range(n+2))
+        qc.append(cl.MCXVChain(n), range(2*n-1))
+
+        # qasm output doesn't support parameterized gate yet.
+        # param0 for "gate mcuq(param0) is not used inside the definition
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+gate mcu1(param0) q0,q1,q2,q3,q4,q5 { cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; }
+gate c5x_gray q0,q1,q2,q3,q4,q5 { h q5; mcu1(pi) q0,q1,q2,q3,q4,q5; h q5; }
+gate c5x_recursive q0,q1,q2,q3,q4,q5,q6 { c3x q0,q1,q2,q6; c3x q3,q4,q6,q5; c3x q0,q1,q2,q6; c3x q3,q4,q6,q5; }
+gate c5x_vchain q0,q1,q2,q3,q4,q5,q6,q7,q8 { rccx q0,q1,q6; rccx q2,q6,q7; rccx q3,q7,q8; ccx q4,q8,q5; rccx q3,q7,q8; rccx q2,q6,q7; rccx q0,q1,q6; }
+qreg q[9];
+c5x_gray q[0],q[1],q[2],q[3],q[4],q[5];
+c5x_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
+c5x_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];\n"""
 
         self.assertEqual(qc.qasm(), expected_qasm)
