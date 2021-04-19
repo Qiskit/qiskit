@@ -228,3 +228,25 @@ nG0(pi,pi/2) q[0],r[0];\n"""
         qc.ch(0, 1, ctrl_state=0)
         qasm_str = qc.qasm()
         self.assertEqual(Operator(qc), Operator(QuantumCircuit.from_qasm_str(qasm_str)))
+
+    def test_circuit_qasm_with_mcx_gate(self):
+        """Test circuit qasm() method when MCXGate and the variants are in the circuit"""
+        import qiskit.circuit.library as cl
+        qc = QuantumCircuit(6)
+        qc.append(cl.MCXGate(3), range(3+1)) # c3x, existing definition in qelib1.inc
+        qc.append(cl.MCXGate(4), range(4+1)) # c4x, existing definition in qelib1.inc
+        qc.append(cl.MCXGate(5), range(5+1)) # c5x, not in qelib1.inc, implement as gray code
+
+        # qasm output doesn't support parameterized gate yet.
+        # param0 for "gate mcuq(param0) is not used inside the definition
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+gate mcu1(param0) q0,q1,q2,q3,q4,q5 { cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; }
+gate c5x_gray q0,q1,q2,q3,q4,q5 { h q5; mcu1(pi) q0,q1,q2,q3,q4,q5; h q5; }
+gate c5x q0,q1,q2,q3,q4,q5 { c5x_gray q0,q1,q2,q3,q4,q5; }
+qreg q[6];
+c3x q[0],q[1],q[2],q[3];
+c4x q[0],q[1],q[2],q[3],q[4];
+c5x q[0],q[1],q[2],q[3],q[4],q[5];\n"""
+
+        self.assertEqual(qc.qasm(), expected_qasm)
