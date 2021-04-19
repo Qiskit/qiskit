@@ -22,9 +22,11 @@ from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import BaseBackend, Backend
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms.algorithm_result import AlgorithmResult
+from .phase_estimator import PhaseEstimator
+from .phase_estimator import PhaseEstimatorResult
 
 
-class IterativePhaseEstimation:
+class IterativePhaseEstimation(PhaseEstimator):
     """Run the Iterative quantum phase estimation (QPE) algorithm.
 
     Given a unitary circuit and a circuit preparing an eigenstate, return the phase of the
@@ -160,7 +162,7 @@ class IterativePhaseEstimation:
         return IterativePhaseEstimationResult(self._num_iterations, phase)
 
 
-class IterativePhaseEstimationResult(AlgorithmResult):
+class IterativePhaseEstimationResult(PhaseEstimatorResult):
     """Phase Estimation Result."""
 
     def __init__(self,
