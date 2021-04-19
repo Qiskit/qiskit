@@ -813,6 +813,12 @@ class TestCliffordOperators(QiskitTestCase):
         target = CI.tensor(CX).tensor(CY).tensor(CZ).tensor(CH).tensor(CS)
         self.assertEqual(Clifford.from_label(label), target)
 
+    def test_instruction_name(self):
+        """Test to verify the correct clifford name is maintained
+        after converting to instruction"""
+        clifford = random_clifford(2, seed=777)
+        self.assertEqual(clifford.to_instruction().name, str(clifford))
+
 
 if __name__ == '__main__':
     unittest.main()
