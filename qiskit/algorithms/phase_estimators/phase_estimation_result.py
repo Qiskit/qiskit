@@ -14,6 +14,8 @@
 
 from typing import Dict, Union
 import numpy
+
+from qiskit.utils.deprecation import deprecate_function
 from qiskit.result import Result
 from .phase_estimator import PhaseEstimatorResult
 
@@ -21,10 +23,13 @@ from .phase_estimator import PhaseEstimatorResult
 class PhaseEstimationResult(PhaseEstimatorResult):
     """Store and manipulate results from running `PhaseEstimation`.
 
-    This class is instantiated by the `PhaseEstimation` class, not via user code.
-    The `PhaseEstimation` class generates a list of phases and corresponding weights. Upon
+    This class is instantiated by the ``PhaseEstimation`` class, not via user code.
+    The ``PhaseEstimation`` class generates a list of phases and corresponding weights. Upon
     completion it returns the results as an instance of this class. The main method for
     accessing the results is `filter_phases`.
+
+    The canonical phase satisfying the ``PhaseEstimator`` interface, returned by the
+    attribute `phase`, is the most likely phase.
     """
 
     def __init__(self, num_evaluation_qubits: int,
@@ -60,12 +65,23 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         return self._circuit_result
 
     @property
+    @deprecate_function("""The 'PhaseEstimationResult.most_likely_phase' attribute
+                        is deprecated as of 0.18.0 and will be removed no earlier than 3 months
+                        after the release date. It has been renamed as the 'phase' attribute.""")
     def most_likely_phase(self) -> float:
-        r"""Return the estimated phase as a number in :math:`[0.0, 1.0)`.
+        r"""DEPRECATED - Return the most likely phase as a number in :math:`[0.0, 1.0)`.
 
-        1.0 corresponds to a phase of :math:`2\pi`. It is assumed that the input vector is an
-        eigenvector of the unitary so that the peak of the probability density occurs at the bit
-        string that most closely approximates the true phase.
+        1.0 corresponds to a phase of :math:`2\pi`. This selects the phase corresponding
+        to the bit string with the highesest probability. This is the most likely phase.
+        """
+        return self.phase
+
+    @property
+    def phase(self) -> float:
+        r"""Return the most likely phase as a number in :math:`[0.0, 1.0)`.
+
+        1.0 corresponds to a phase of :math:`2\pi`. This selects the phase corresponding
+        to the bit string with the highesest probability. This is the most likely phase.
         """
         if isinstance(self.phases, dict):
             binary_phase_string = max(self.phases, key=self.phases.get)
