@@ -173,6 +173,34 @@ my_gate_{1} qr[0];
 my_gate_{0} qr[0];\n""".format(my_gate_inst3_id, my_gate_inst2_id)
         self.assertEqual(circuit.qasm(), expected_qasm)
 
+    def test_circuit_qasm_with_composite_circuit_with_children_composite_circuit(self):
+        """Test circuit qasm() method when composite circuits with children composite circuits in the definitions are added to the circuit"""
+
+        child_circ = QuantumCircuit(2, name="child_circ")
+        child_circ.h(0)
+        child_circ.cx(0, 1)
+
+        parent_circ = QuantumCircuit(3, name="parant_circ")
+        parent_circ.append(child_circ, range(2))
+        parent_circ.h(2)
+
+        grandparent_circ = QuantumCircuit(4, name="grandparent_circ")
+        grandparent_circ.append(parent_circ, range(3))
+        grandparent_circ.x(3)
+
+        qc = QuantumCircuit(4)
+        qc.append(grandparent_circ, range(4))
+
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+gate child_circ q0,q1 { h q0; cx q0,q1; }
+gate parant_circ q0,q1,q2 { child_circ q0,q1; h q2; }
+gate grandparent_circ q0,q1,q2,q3 { parant_circ q0,q1,q2; x q3; }
+qreg q[4];
+grandparent_circ q[0],q[1],q[2],q[3];\n"""
+
+        self.assertEqual(qc.qasm(), expected_qasm)
+
     def test_circuit_qasm_pi(self):
         """Test circuit qasm() method with pi params.
         """
