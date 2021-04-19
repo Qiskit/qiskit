@@ -24,8 +24,8 @@ from qiskit.utils import algorithm_globals
 
 from .optimizer import Optimizer, OptimizerSupportLevel
 
-# parameters, loss, stepsize, number of function evaluations, accepted
-CALLBACK = Callable[[np.ndarray, float, float, int, bool], None]
+# number of function evaluations, parameters, loss, stepsize, accepted
+CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
 
 logger = logging.getLogger(__name__)
 
@@ -108,8 +108,8 @@ class SPSA(Optimizer):
                 are perturbed, but a smaller, fixed number can be perturbed. If set, the perturbed
                 dimensions are chosen uniformly at random.
             callback: A callback function passed information in each iteration step. The
-                information is, in this order: the parameters, the function value, the number
-                of function evaluations, the stepsize, whether the step was accepted.
+                information is, in this order: the number of function evaluations, the parameters,
+                the function value, the stepsize, whether the step was accepted.
         """
         super().__init__()
 
@@ -305,12 +305,12 @@ class SPSA(Optimizer):
             # compute next parameter value
             update = update * next(eta)
             x_next = x - update
+            fx_next = loss(x_next)
+            self._nfev += 1
 
             # blocking
             if self.blocking:
-                fx_next = loss(x_next)
 
-                self._nfev += 1
                 if fx + self.allowed_increase <= fx_next:  # accept only if loss improved
                     if self.callback is not None:
                         self.callback(self._nfev,  # number of function evals
