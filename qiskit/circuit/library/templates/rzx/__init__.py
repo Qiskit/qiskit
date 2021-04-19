@@ -23,3 +23,4 @@ from .rzx_cy import rzx_cy
 from .rzx_zz1 import rzx_zz1
 from .rzx_zz2 import rzx_zz2
 from .rzx_zz3 import rzx_zz3
+from .rzx_zz4 import rzx_zz4
