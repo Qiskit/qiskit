@@ -83,9 +83,9 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
             return cast(Dict, phases)
 
     @property
-    @deprecate_function("The 'HamiltonianPhaseEstimationResult.most_likely_phase' attribute "
-                        "is deprecated as of 0.18.0 and will be removed no earlier than 3 months "
-                        "after the release date. It has been renamed as the 'phase' attribute.")
+    @deprecate_function("""The 'HamiltonianPhaseEstimationResult.most_likely_phase' attribute
+                        is deprecated as of 0.18.0 and will be removed no earlier than 3 months
+                        after the release date. It has been renamed as the 'phase' attribute.""")
     def most_likely_phase(self) -> float:
         """DEPRECATED - The most likely phase of the unitary corresponding to the Hamiltonian.
 
