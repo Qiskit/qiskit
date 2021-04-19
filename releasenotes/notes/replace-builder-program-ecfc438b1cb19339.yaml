@@ -3,7 +3,7 @@ upgrade:
   - |
     The output program representation of the pulse builder is replaced with
     :class:`~qiskit.pulse.ScheduleBlock`. This new representation disables some timing
-    related operation such as shift and insert. However, this enables to parametrize
+    related operations such as shift and insert. However, this enables parameterized
     instruction duration within the builder context. For example:
 
     .. code-block:: python
