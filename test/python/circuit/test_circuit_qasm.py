@@ -174,7 +174,8 @@ my_gate_{0} qr[0];\n""".format(my_gate_inst3_id, my_gate_inst2_id)
         self.assertEqual(circuit.qasm(), expected_qasm)
 
     def test_circuit_qasm_with_composite_circuit_with_children_composite_circuit(self):
-        """Test circuit qasm() method when composite circuits with children composite circuits in the definitions are added to the circuit"""
+        """Test circuit qasm() method when composite circuits with children
+        composite circuits in the definitions are added to the circuit"""
 
         child_circ = QuantumCircuit(2, name="child_circ")
         child_circ.h(0)

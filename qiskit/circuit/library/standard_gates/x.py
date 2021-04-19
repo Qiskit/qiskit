@@ -437,7 +437,7 @@ class C3SXGate(ControlledGate):
             angle (float): DEPRECATED. The angle used in the controlled-U1 gates. An angle of π/8
                 yields the sqrt(X) gates, an angle of π/4 the 3-qubit controlled X gate.
         """
-        super().__init__('c3sqrtx', 4, [], num_ctrl_qubits=3, label=label,
+        super().__init__('c3sx', 4, [], num_ctrl_qubits=3, label=label,
                          ctrl_state=ctrl_state, base_gate=SXGate())
 
         if angle is not None:
@@ -452,7 +452,7 @@ class C3SXGate(ControlledGate):
 
     def _define(self):
         """
-        gate c3sqrtx a,b,c,d
+        gate c3sx a,b,c,d
         {
             h d; cu1(-pi/8) a,d; h d;
             cx a,b;
@@ -750,7 +750,7 @@ class C4XGate(ControlledGate):
     # seems like open controls not hapening?
     def _define(self):
         """
-        gate c3sqrtx a,b,c,d
+        gate c3sx a,b,c,d
         {
             h d; cu1(-pi/8) a,d; h d;
             cx a,b;
@@ -772,7 +772,7 @@ class C4XGate(ControlledGate):
             rc3x a,b,c,d;
             h e; cu1(pi/4) d,e; h e;
             rc3x a,b,c,d;
-            c3sqrtx a,b,c,e;
+            c3sx a,b,c,e;
         }
         """
         # pylint: disable=cyclic-import

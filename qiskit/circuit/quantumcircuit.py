@@ -213,7 +213,7 @@ class QuantumCircuit:
                                   'rx', 'ry', 'rz',
                                   'sx', 'sxdg', 'cz', 'cy', 'swap', 'ch', 'ccx', 'cswap',
                                   'crx', 'cry', 'crz', 'cu1', 'cp', 'cu3', 'csx', 'cu',
-                                  'rxx', 'rzz', 'rccx', 'rc3x', 'c3x', 'c3sqrtx', 'c4x']
+                                  'rxx', 'rzz', 'rccx', 'rc3x', 'c3x', 'c3sx', 'c4x']
         self.existing_composite_circuits = []
         self.qasm_string = ""
         self.qasm_string_temp = ""
