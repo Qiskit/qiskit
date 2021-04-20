@@ -17,7 +17,8 @@ found, no ``property_set['layout']`` is set.
 """
 import random
 from time import time
-from constraint import Problem, RecursiveBacktrackingSolver, AllDifferentConstraint
+from constraint import Problem, RecursiveBacktrackingSolver, AllDifferentConstraint, Constraint, \
+    Unassigned
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -63,6 +64,27 @@ class CustomSolver(RecursiveBacktrackingSolver):
             return None
         return super().recursiveBacktracking(solutions, domains, vconstraints, assignments,
                                              single)
+
+
+class CustomConstraint(Constraint):
+    """Based on constraint.FunctionConstraint, reduces all the generality to check if a
+    2-sized-tuple (control, target) is in a set (edges).
+    """
+
+    def __init__(self, edges, assigned=True):
+        self._edges = edges
+        self._assigned = assigned
+
+    def __call__(self, variables, domains, assignments, forwardcheck=False):
+        parms = (assignments.get(variables[0], Unassigned),
+                 assignments.get(variables[1], Unassigned))
+        if Unassigned in parms:
+            return (self._assigned or parms in self._edges) and (
+                    not forwardcheck or
+                    parms is (Unassigned, Unassigned) or
+                    self.forwardCheck(variables, domains, assignments)
+            )
+        return parms in self._edges
 
 
 class CSPLayout(AnalysisPass):
@@ -130,7 +152,7 @@ class CSPLayout(AnalysisPass):
             return (control, target) in edges
 
         for pair in cxs:
-            problem.addConstraint(constraint, [pair[0], pair[1]])
+            problem.addConstraint(CustomConstraint(edges), (pair[0], pair[1]))
 
         solution = problem.getSolution()
 
