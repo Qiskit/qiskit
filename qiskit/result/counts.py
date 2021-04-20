@@ -13,7 +13,9 @@
 """A container class for counts from a circuit execution."""
 
 import re
-
+import copy
+from math import sqrt
+import numpy as np
 from qiskit.result import postprocess
 from qiskit import exceptions
 
@@ -184,3 +186,143 @@ class Counts(dict):
     def _remove_space_underscore(bitstring):
         """Removes all spaces and underscores from bitstring"""
         return int(bitstring.replace(" ", "").replace("_", ""), 2)
+
+    def __add__(self, other):
+        """Add two count objects together"""
+        ret = copy.copy(self)
+        ret += other
+        return ret
+
+    def __iadd__(self, other):
+        """Accumlate with another counts"""
+        for key, val in other.items():
+            if key in self:
+                self[key] += val
+            else:
+                self[key] = val
+        return self
+
+    def marginal_counts(self, clbits=None):
+        """Marginalize counts from an experiment over some indices of interest.
+
+        Args:
+            clbits (list(int) or None): The clbit positions of interest
+                to marginalize over. If ``None`` (default), do not
+                marginalize at all.
+
+        Returns:
+            Counts: the marginalized counts object.
+
+        Raises:
+            QiskitError: in case of invalid indices to marginalize over.
+        """
+        if clbits is None:
+            memory_slots = self.memory_slots
+            mask = 1 << self.memory_slots - 1
+        else:
+            if len(set(clbits)) != len(clbits):
+                raise exceptions.QiskitError(
+                    f"clbits contains duplicates ({clbits})")
+            memory_slots = len(clbits)
+            mask = 0
+            for i in clbits:
+                if i >= self.memory_slots:
+                    raise exceptions.QiskitError(
+                        f"Invalid clbit {i} for counts with"
+                        f" {self.memory_slots} memory slots.")
+                mask += 1 << i
+        marginal = {}
+        for key, val in self.int_outcomes().items():
+            marg_key = mask & key
+            if marg_key in marginal:
+                marginal[marg_key] += val
+            else:
+                marginal[marg_key] = val
+        return Counts(marginal, memory_slots=memory_slots)
+
+    def probabilities_dict(self):
+        r"""Convert counts to a dict of sample probability estimates.
+
+        Returns:
+            Counts: A dictionary containing pairs of sample mean and standard
+                    error of the mean for non-zero probability estimates.
+
+        .. note:
+
+            The sample mean :math:`\hat{p}_i` and standard error of the sample
+            mean :math:`\hat{\sigma}_i` are given by
+
+            .. math::
+
+                \hat{p}_i = \frac{f_i}{n}, \quad
+                \hat{\sigma}_i = \sqrt{\frac{\hat{p}_i(1 - \hat{p}_i)}{n}}
+
+            where :math:`f_i` is the number of observed  counts for outcome
+            :math:`i`, and :math:`n=\sum_i f_i` is the total number of shots.
+        """
+        shots = sum(self.values())
+        ret = {}
+        for key, freq in self.items():
+            prob = freq / shots
+            if prob > 0:
+                std_err = sqrt(prob * (1 - prob) / shots)
+                ret[key] = [prob, std_err]
+
+        # Use Counts object (which works for any data type) to handle register
+        # size and key conversions between bin/int/hex
+        return Counts(ret, memory_slots=self.memory_slots,
+                      creg_sizes=self.creg_sizes)
+
+    def expectation_value(self, diagonal):
+        """Calculate the expectation value of a diagonal Hermitian operator.
+
+        Args:
+            diagonal (str or array): the diagonal operator. This may either
+                be specified as a string containing I,Z,0,1 characters, or as a
+                real valued 1D array_like object.
+
+        Returns:
+            List: The the mean and standard deviation of operator expectation
+                  value calculated from the current counts.
+
+        Raises:
+            QiskitError: if the diagonal does not match the number of
+                         count clbits.
+        """
+        if isinstance(diagonal, str):
+            diag = self._str2diag(diagonal)
+        else:
+            diag = np.asarray(diagonal, dtype=float)
+
+        if diag.ndim != 1:
+            raise exceptions.QiskitError("Input diagonal is not a 1D array")
+        if diag.size != 2 ** self.memory_slots:
+            raise exceptions.QiskitError(
+                "Diagonal is not the correct length for the number of memory"
+                f" slots ({diag.size} != {2 ** self.memory_slots})")
+
+        shots = sum(self.values())
+        mean = 0.0
+        sq_mean = 0.0
+        for i, freq in self.int_outcomes().items():
+            prob = freq / shots
+            mean += float(diag[i] * prob)
+            sq_mean += float(diag[i] ** 2 * prob)
+        std_err = sqrt((sq_mean - mean ** 2) / shots)
+        return [mean, std_err]
+
+    @staticmethod
+    def _str2diag(string):
+        chars = {
+            'I': np.array([1, 1], dtype=float),
+            'Z': np.array([1, -1], dtype=float),
+            '0': np.array([1, 0], dtype=float),
+            '1': np.array([0, 1], dtype=float),
+        }
+        ret = np.array([1], dtype=float)
+        for i in string:
+            if i not in chars:
+                raise exceptions.QiskitError(
+                    f"Invalid diagonal string character {i}")
+            ret = np.kron(chars[i], ret)
+        return ret
