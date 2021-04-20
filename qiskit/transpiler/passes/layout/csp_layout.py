@@ -81,7 +81,7 @@ class CustomConstraint(Constraint):
         if Unassigned in parms:
             return (self._assigned or parms in self._edges) and (
                     not forwardcheck or
-                    parms is (Unassigned, Unassigned) or
+                    parms == (Unassigned, Unassigned) or
                     self.forwardCheck(variables, domains, assignments)
             )
         return parms in self._edges
@@ -147,9 +147,6 @@ class CSPLayout(AnalysisPass):
         problem = Problem(solver)
         problem.addVariables(variables, variable_domains)
         problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qubit
-
-        def constraint(control, target):
-            return (control, target) in edges
 
         for pair in cxs:
             problem.addConstraint(CustomConstraint(edges), (pair[0], pair[1]))
