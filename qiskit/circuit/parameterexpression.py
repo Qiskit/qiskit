@@ -53,7 +53,11 @@ class ParameterExpression:
 
     def conjugate(self) -> 'ParameterExpression':
         """Return the conjugate."""
-        conjugated = ParameterExpression(self._parameter_symbols, self._symbol_expr.conjugate())
+        try:
+            from symengine import conjugate
+            conjugated = ParameterExpression(self._parameter_symbols, conjugate(self._symbol_expr))
+        except ImportError:
+            conjugated = ParameterExpression(self._parameter_symbols, self._symbol_expr.conjugate())
         return conjugated
 
     def assign(self, parameter, value: ParameterValueType) -> 'ParameterExpression':
@@ -107,7 +111,7 @@ class ParameterExpression:
         free_parameter_symbols = {p: s for p, s in self._parameter_symbols.items()
                                   if p in free_parameters}
 
-        if bound_symbol_expr.is_infinite:
+        if hasattr(bound_symbol_expr, 'is_infinite') and bound_symbol_expr.is_infinite:
             raise ZeroDivisionError('Binding provided for expression '
                                     'results in division by zero '
                                     '(Expression: {}, Bindings: {}).'.format(
@@ -139,8 +143,10 @@ class ParameterExpression:
 
         self._raise_if_passed_unknown_parameters(parameter_map.keys())
         self._raise_if_parameter_names_conflict(inbound_parameters, parameter_map.keys())
-
-        from sympy import Symbol
+        try:
+            from symengine import Symbol
+        except ImportError:
+            from sympy import Symbol
         new_parameter_symbols = {p: Symbol(p.name)
                                  for p in inbound_parameters}
 
@@ -248,10 +254,17 @@ class ParameterExpression:
             return 0.0
 
         # Compute the gradient of the parameter expression w.r.t. param
-        import sympy as sy
+#        try:
+#            from symengine import Derivative
+#            symengine = True
+#        except ImportError:
+        from sympy import Derivative
+#            symengine = False
         key = self._parameter_symbols[param]
         # TODO enable nth derivative
-        expr_grad = sy.Derivative(self._symbol_expr, key).doit()
+        expr_grad = Derivative(self._symbol_expr, key).doit()
+#       if not symengine:
+#            expr_grad.doit()
 
         # generate the new dictionary of symbols
         # this needs to be done since in the derivative some symbols might disappear (e.g.
@@ -303,42 +316,66 @@ class ParameterExpression:
 
     def sin(self):
         """Sine of a ParameterExpression"""
-        from sympy import sin as _sin
+        try:
+            from symengine import sin as _sin
+        except ImportError:
+            from sympy import sin as _sin
         return self._call(_sin)
 
     def cos(self):
         """Cosine of a ParameterExpression"""
-        from sympy import cos as _cos
+        try:
+            from symengine import cos as _cos
+        except ImportError:
+            from sympy import cos as _cos
         return self._call(_cos)
 
     def tan(self):
         """Tangent of a ParameterExpression"""
-        from sympy import tan as _tan
+        try:
+            from symengine import tan as _tan
+        except ImportError:
+            from sympy import tan as _tan
         return self._call(_tan)
 
     def arcsin(self):
         """Arcsin of a ParameterExpression"""
-        from sympy import asin as _asin
+        try:
+            from symengine import asin as _asin
+        except ImportError:
+            from sympy import asin as _asin
         return self._call(_asin)
 
     def arccos(self):
         """Arccos of a ParameterExpression"""
-        from sympy import acos as _acos
+        try:
+            from symengine import acos as _acos
+        except ImportError:
+            from sympy import acos as _acos
         return self._call(_acos)
 
     def arctan(self):
         """Arctan of a ParameterExpression"""
-        from sympy import atan as _atan
+        try:
+            from symengine import atan as _atan
+        except ImportError:
+            from sympy import atan as _atan
         return self._call(_atan)
 
     def exp(self):
         """Exponential of a ParameterExpression"""
-        from sympy import exp as _exp
+        try:
+            from symengine import exp as _exp
+        except ImportError:
+            from sympy import exp as _exp
         return self._call(_exp)
 
     def log(self):
         """Logarithm of a ParameterExpression"""
-        from sympy import log as _log
+        try:
+            from symengine import log as _log
+        except ImportError:
+            from sympy import log as _log
         return self._call(_log)
 
     def __repr__(self):
@@ -384,8 +421,13 @@ class ParameterExpression:
             bool: result of the comparison
         """
         if isinstance(other, ParameterExpression):
-            return (self.parameters == other.parameters
-                    and self._symbol_expr.equals(other._symbol_expr))
+            if self.parameters != other.parameters:
+                return False
+            try:
+                import symengine
+                return self._symbol_expr == other._symbol_expr
+            except ImportError:
+                return self._symbol_expr.equals(other._symbol_expr)
         elif isinstance(other, numbers.Number):
             return (len(self.parameters) == 0
                     and complex(self._symbol_expr) == other)

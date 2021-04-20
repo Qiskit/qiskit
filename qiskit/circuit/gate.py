@@ -240,7 +240,7 @@ class Gate(Instruction):
         if isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:
                 return parameter  # expression has free parameters, we cannot validate it
-            if not parameter._symbol_expr.is_real:
+            if not parameter._symbol_expr.is_real and not parameter._symbol_expr.is_real is None:
                 raise CircuitError("Bound parameter expression is complex in gate {}".format(
                     self.name))
             return parameter  # per default assume parameters must be real when bound
