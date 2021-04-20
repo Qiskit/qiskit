@@ -23,24 +23,9 @@ from .adder import Adder
 class QFTAdder(Adder):
     r"""A circuit that uses QFT to perform in-place addition on two qubit registers.
 
-    Circuit to compute the sum of two qubit registers using modular QFT approach from [1]
-    or non-modular QFT approach from [2].
-    Given two equally sized input registers that store quantum states
-    :math:`|a\rangle` and :math:`|b\rangle`, performs addition of numbers that
-    can be represented by the states, storing the resulting state in-place in the second register:
-
-    .. math::
-
-        |a\rangle |b\rangle \mapsto |a\rangle |(a+b)\ (\text{mod } 2^n)\rangle
-
-    Here :math:`|a\rangle` (and correspondingly :math:`|b\rangle`) stands for the direct product
-    :math:`|a_n\rangle \otimes |a_{n-1}\rangle \ldots |a_{1}\rangle \otimes |a_{0}\rangle`
-    which denotes a quantum register prepared with the value :math:`a = 2^{0}a_{0} + 2^{1}a_{1} +
-    \ldots 2^{n}a_{n}` [3]. :math:`|(a+b)\ (\text{mod } 2^n)\rangle` is the addition result with
-    :math:`(\text{mod } 2^n)` indicating that modulo :math:`2^n` addition can be optionally
-    performed, where *n* is the number of qubits in either of the equally sized input registers.
-    In case of non-modular addition, an additional qubit is added at the end of the circuit to
-    store the addition result of most significant qubits.
+    For registers with :math:`n` qubits, the QFT adder can perform addition modulo
+    :math:`2^n` (with `modular=True`) or ordinary addition by adding a carry qubits (with
+    `modular=False`).
 
     As an example, a non-modular QFT adder circuit that performs addition on two 2-qubit sized
     registers is as follows:
