@@ -109,6 +109,10 @@ class CSPLayout(AnalysisPass):
                      qubits.index(gate.qargs[1])))
         edges = set(self.coupling_map.get_edges())
 
+        if not self.strict_direction:
+            cxs = {tuple(sorted(cx)) for cx in cxs}
+            edges = {tuple(sorted(edge)) for edge in edges}
+
         if self.time_limit is None and self.call_limit is None:
             solver = RecursiveBacktrackingSolver()
         else:
@@ -122,12 +126,8 @@ class CSPLayout(AnalysisPass):
         problem.addVariables(variables, variable_domains)
         problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qubit
 
-        if self.strict_direction:
-            def constraint(control, target):
-                return (control, target) in edges
-        else:
-            def constraint(control, target):
-                return (control, target) in edges or (target, control) in edges
+        def constraint(control, target):
+            return (control, target) in edges
 
         for pair in cxs:
             problem.addConstraint(constraint, [pair[0], pair[1]])
