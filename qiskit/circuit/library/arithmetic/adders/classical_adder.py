@@ -20,8 +20,8 @@ from .adder import Adder
 class ClassicalAdder(Adder):
     r"""A circuit that uses Classical Addition to perform in-place addition on two qubit registers.
 
-     Circuit to compute the sum of two qubit registers using the Classical Addition Part from [1].
-     Given two equally sized input registers that store quantum states
+    Circuit to compute the sum of two qubit registers using the Classical Addition Part from [1].
+    Given two equally sized input registers that store quantum states
     :math:`|a\rangle` and :math:`|b\rangle`, performs addition of numbers that
     can be represented by the states, storing the resulting state in-place in the second register:
 
