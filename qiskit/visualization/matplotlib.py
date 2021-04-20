@@ -31,7 +31,7 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
-from qiskit.circuit import ControlledGate, Gate, Instruction
+from qiskit.circuit import ControlledGate, Gate, Instruction, Clbit
 from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay
 from qiskit import user_config
@@ -924,12 +924,19 @@ class MatplotlibDrawer:
 
                 # conditional gate
                 if op.type == 'op' and op.op.condition:
+                    cond_is_bit = bool(isinstance(op.op.condition[0], Clbit))
                     c_xy = [c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset) for
                             ii in self._clbit_dict]
                     mask = 0
-                    for index, cbit in enumerate(self._clbit):
-                        if self._bit_locations[cbit]['register'] == op.op.condition[0]:
-                            mask |= (1 << index)
+                    if cond_is_bit:
+                        for index, cbit in enumerate(self._clbit):
+                            if cbit == op.op.condition[0]:
+                                mask = (1 << index)
+                                break
+                    else:
+                        for index, cbit in enumerate(self._clbit):
+                            if cbit in op.op.condition[0]:
+                                mask |= (1 << index)
                     val = op.op.condition[1]
                     # cbit list to consider
                     fmt_c = '{{:0{}b}}'.format(len(c_xy))
@@ -951,7 +958,13 @@ class MatplotlibDrawer:
                             v_ind += 1
                     clbit_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
                     xpos, ypos = clbit_b
-                    self._ax.text(xpos, ypos - 0.3 * HIG, hex(val), ha='center', va='top',
+                    if cond_is_bit:
+                        cond_reg = self._bit_locations[op.op.condition[0]]['register']
+                        ctrl_bit = self._bit_locations[op.op.condition[0]]['index']
+                        label = '%s_%s=%s' % (cond_reg.name, ctrl_bit, hex(val))
+                    else:
+                        label = hex(val)
+                    self._ax.text(xpos, ypos - 0.3 * HIG, label, ha='center', va='top',
                                   fontsize=sfs, color=self._style['tc'],
                                   clip_on=True, zorder=PORDER_TEXT)
                     self._line(qubit_t, clbit_b, lc=self._style['cc'],
