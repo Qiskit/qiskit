@@ -38,7 +38,8 @@ class IterativePhaseEstimation(PhaseEstimator):
 
     def __init__(self,
                  num_iterations: int,
-                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
+                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None
+                 ) -> None:
 
         """Args:
             num_iterations: The number of iterations (rounds) of the phase estimation to run.
@@ -79,9 +80,6 @@ class IterativePhaseEstimation(PhaseEstimator):
         Returns:
             QuantumCircuit: the quantum circuit per iteration
         """
-        if unitary is None:
-            return None
-
         k = self._num_iterations if k is None else k
         # The auxiliary (phase measurement) qubit
         phase_register = QuantumRegister(1, name='a')

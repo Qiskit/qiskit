@@ -45,18 +45,11 @@ class TestIterativePhaseEstimation(QiskitAlgorithmsTestCase):
           (X.to_circuit(), 0.5, 'qasm_simulator'),
           (None, 0.0, 'qasm_simulator'))
     @unpack
-    def test_qpe_Z0(self, state_preparation, expected_phase, backend_type):
-        """eigenproblem Z, |0>"""
+    def test_qpe_Z(self, state_preparation, expected_phase, backend_type):
+        """eigenproblem Z, |0> and |1>"""
         unitary_circuit = Z.to_circuit()
         phase = self.one_phase(unitary_circuit, state_preparation, backend_type=backend_type)
         self.assertEqual(phase, expected_phase)
-
-    def test_qpe_Z1(self):
-        """eigenproblem Z, |1>"""
-        unitary_circuit = Z.to_circuit()
-        state_preparation = X.to_circuit()  # prepare |1>
-        phase = self.one_phase(unitary_circuit, state_preparation)
-        self.assertEqual(phase, 0.5)
 
     @data((H.to_circuit(), 0.0), ((H @ X).to_circuit(), 0.5))
     @unpack
