@@ -20,7 +20,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import CSPLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeTokyo, FakeManhattan
+from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeTokyo
 
 
 class TestCSPLayout(QiskitTestCase):
@@ -240,7 +240,7 @@ class TestCSPLayout(QiskitTestCase):
         """Hard to solve situations hit the time limit"""
         dag = TestCSPLayout.create_hard_dag()
         coupling_map = CouplingMap(FakeTokyo().configuration().coupling_map)
-        pass_ = CSPLayout(coupling_map, call_limit=None, time_limit=0)
+        pass_ = CSPLayout(coupling_map, call_limit=None, time_limit=0.0001)
 
         start = process_time()
         pass_.run(dag)
