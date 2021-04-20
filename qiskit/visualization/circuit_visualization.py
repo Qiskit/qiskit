@@ -358,7 +358,6 @@ def _latex_circuit_drawer(circuit,
                                initial_state=initial_state,
                                cregbundle=cregbundle)
         try:
-
             subprocess.run(["pdflatex", "-halt-on-error",
                             "-output-directory={}".format(tmpdirname),
                             "{}".format(tmpfilename + '.tex')],

@@ -369,6 +369,9 @@ class QCircuitImage:
         else:
             gate_text = op.name
 
+        gate_text = self._escape_latex_chars(gate_text)
+        ctrl_text = self._escape_latex_chars(ctrl_text)
+
         if gate_text in self._style['disptex']:
             gate_text = self._style['disptex'][gate_text]
             # Only add mathmode formatting if not already mathmode in disptex
@@ -381,13 +384,28 @@ class QCircuitImage:
             gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
         else:
             gate_text = f"$\\mathrm{{{gate_text}}}$"
-            # Remove mathmode _, ^, and - formatting from user names and labels
-            gate_text = gate_text.replace('_', '\\_')
-            gate_text = gate_text.replace('^', '\\string^')
-            gate_text = gate_text.replace('-', '\\mbox{-}')
 
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
         return gate_text, ctrl_text
+
+    def _escape_latex_chars(self, string):
+        if string is None:
+            return string
+        chars = {
+            '\\': r'\letterbackslash{}',
+            '&': '\&',
+            '%': '\%',
+            '$': '\$',
+            '#': '\#',
+            '_': r'\letterunderscore{}',
+            '{': r'\letteropenbrace{}',
+            '}': r'\letterclosebrace{}',
+            '~': r'\sim{}',
+            '^': r'\letterhat{}'
+        }
+        for old, new in chars.items():
+            string = string.replace(old, new)
+        return string
 
     def _build_latex_array(self):
         """Returns an array of strings containing \\LaTeX for this circuit."""
