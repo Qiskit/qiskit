@@ -85,7 +85,7 @@ def _is_ci_fork_pull_request():
 
     Returns:
         bool: True if the tests are executed inside a CI tool, and the changes
-            are not against the "master" branch.
+            are not against the "main" branch.
     """
     if os.getenv('TRAVIS'):
         # Using Travis CI.
