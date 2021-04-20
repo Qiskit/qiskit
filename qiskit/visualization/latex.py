@@ -17,7 +17,7 @@ import math
 import re
 
 import numpy as np
-from qiskit.circuit import Gate, Instruction, Clbit
+from qiskit.circuit import Gate, Instruction, Clbit, BooleanExpression
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import (SwapGate, XGate, ZGate, RZZGate,
                                                    U1Gate, PhaseGate)
@@ -369,43 +369,29 @@ class QCircuitImage:
         else:
             gate_text = op.name
 
-        gate_text = self._escape_latex_chars(gate_text)
-        ctrl_text = self._escape_latex_chars(ctrl_text)
-
         if gate_text in self._style['disptex']:
             gate_text = self._style['disptex'][gate_text]
             # Only add mathmode formatting if not already mathmode in disptex
             if gate_text[0] != '$' and gate_text[-1] != '$':
                 gate_text = f"$\\mathrm{{{gate_text}}}$"
-
+        elif ((gate_text == op.name and op_type is BooleanExpression)
+              or (gate_text == base_name and base_type is BooleanExpression)):
+            # \ghost{ \texttt{$\neg$x \& (y | z) }
+            gate_text = gate_text.replace('~', '$\\neg$').replace('&', '\\&')
+            gate_text = f"$\\texttt{{{gate_text}}}$"
         # Only captitalize internally-created gate or instruction names
         elif ((gate_text == op.name and op_type not in (Gate, Instruction))
               or (gate_text == base_name and base_type not in (Gate, Instruction))):
             gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
         else:
             gate_text = f"$\\mathrm{{{gate_text}}}$"
+            # Remove mathmode _, ^, and - formatting from user names and labels
+            gate_text = gate_text.replace('_', '\\_')
+            gate_text = gate_text.replace('^', '\\string^')
+            gate_text = gate_text.replace('-', '\\mbox{-}')
 
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
         return gate_text, ctrl_text
-
-    def _escape_latex_chars(self, string):
-        if string is None:
-            return string
-        chars = {
-            '\\': r'\letterbackslash{}',
-            '&': '\&',
-            '%': '\%',
-            '$': '\$',
-            '#': '\#',
-            '_': r'\letterunderscore{}',
-            '{': r'\letteropenbrace{}',
-            '}': r'\letterclosebrace{}',
-            '~': r'\sim{}',
-            '^': r'\letterhat{}'
-        }
-        for old, new in chars.items():
-            string = string.replace(old, new)
-        return string
 
     def _build_latex_array(self):
         """Returns an array of strings containing \\LaTeX for this circuit."""
