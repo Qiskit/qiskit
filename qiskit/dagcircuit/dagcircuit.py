@@ -141,8 +141,7 @@ class DAGCircuit:
                     raise DAGCircuitError('unknown node wire type: {}'.format(
                         node.wire))
             elif node.type == 'op':
-                dag.apply_operation_back(node.op.copy(), node.qargs,
-                                         node.cargs, node.condition)
+                dag.apply_operation_back(node.op.copy(), node.qargs, node.cargs)
         return dag
 
     @property
@@ -172,12 +171,10 @@ class DAGCircuit:
         if isinstance(angle, ParameterExpression):
             self._global_phase = angle
         else:
-            # Set the phase to the [-2 * pi, 2 * pi] interval
+            # Set the phase to the [0, 2π) interval
             angle = float(angle)
             if not angle:
                 self._global_phase = 0
-            elif angle < 0:
-                self._global_phase = angle % (-2 * math.pi)
             else:
                 self._global_phase = angle % (2 * math.pi)
 
@@ -402,7 +399,7 @@ class DAGCircuit:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
-            condition (tuple or None): DEPRACTED optional condition (ClassicalRegister, int)
+            condition (tuple or None): DEPRECATED optional condition (ClassicalRegister, int)
         Returns:
             DAGNode: the current max node
 
@@ -444,7 +441,7 @@ class DAGCircuit:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
-            condition (tuple or None): DEPRACTED optional condition (ClassicalRegister, int)
+            condition (tuple or None): DEPRECATED optional condition (ClassicalRegister, int)
         Returns:
             DAGNode: the current max node
 
@@ -713,7 +710,7 @@ class DAGCircuit:
                 # ignore output nodes
                 pass
             elif nd.type == "op":
-                condition = dag._map_condition(edge_map, nd.condition, dag.cregs.values())
+                condition = dag._map_condition(edge_map, nd.op.condition, dag.cregs.values())
                 dag._check_condition(nd.name, condition)
                 m_qargs = list(map(lambda x: edge_map.get(x, x), nd.qargs))
                 m_cargs = list(map(lambda x: edge_map.get(x, x), nd.cargs))
@@ -821,8 +818,8 @@ class DAGCircuit:
             raise DAGCircuitError("duplicate wires")
 
         wire_tot = len(node.qargs) + len(node.cargs)
-        if node.condition is not None:
-            wire_tot += node.condition[0].size
+        if node.op.condition is not None:
+            wire_tot += node.op.condition[0].size
 
         if len(wires) != wire_tot:
             raise DAGCircuitError("expected %d wires, got %d"
@@ -889,10 +886,11 @@ class DAGCircuit:
         # Try to convert to float, but in case of unbound ParameterExpressions
         # a TypeError will be raise, fallback to normal equality in those
         # cases
+
         try:
             self_phase = float(self.global_phase)
             other_phase = float(other.global_phase)
-            if not np.isclose(self_phase, other_phase):
+            if abs((self_phase - other_phase + np.pi) % (2*np.pi) - np.pi) > 1.E-10:  # TODO: atol?
                 return False
         except TypeError:
             if self.global_phase != other.global_phase:
@@ -916,7 +914,6 @@ class DAGCircuit:
                               for regname, reg in other.qregs.items()]
         other_creg_indices = [(regname, [other_bit_indices[bit] for bit in reg])
                               for regname, reg in other.cregs.items()]
-
         if (
                 self_qreg_indices != other_qreg_indices
                 or self_creg_indices != other_creg_indices
@@ -968,7 +965,8 @@ class DAGCircuit:
             DAGCircuitError: if met with unexpected predecessor/successors
         """
         in_dag = input_dag
-        condition = node.condition
+        condition = None if node.type != 'op' else node.op.condition
+
         # the dag must be amended if used in a
         # conditional context. delete the op nodes and replay
         # them with the condition.
@@ -1014,7 +1012,7 @@ class DAGCircuit:
             raise DAGCircuitError("expected node type \"op\", got %s"
                                   % node.type)
 
-        condition_bit_list = self._bits_in_condition(node.condition)
+        condition_bit_list = self._bits_in_condition(condition)
 
         wire_map = dict(zip(wires, list(node.qargs) + list(node.cargs) + list(condition_bit_list)))
         self._check_wiremap_validity(wire_map, wires, self.input_map)
@@ -1042,7 +1040,7 @@ class DAGCircuit:
         for sorted_node in in_dag.topological_op_nodes():
             # Insert a new node
             condition = self._map_condition(wire_map,
-                                            sorted_node.condition,
+                                            sorted_node.op.condition,
                                             self.cregs.values())
             m_qargs = list(map(lambda x: wire_map.get(x, x),
                                sorted_node.qargs))
@@ -1433,7 +1431,7 @@ class DAGCircuit:
             op = copy.copy(next_node.op)
             qa = copy.copy(next_node.qargs)
             ca = copy.copy(next_node.cargs)
-            co = copy.copy(next_node.condition)
+            co = copy.copy(next_node.op.condition)
             _ = self._bits_in_condition(co)
 
             # Add node to new_layer
@@ -1463,7 +1461,7 @@ class DAGCircuit:
         """
 
         def filter_fn(node):
-            return node.type == "op" and node.name in namelist and node.condition is None
+            return node.type == "op" and node.name in namelist and node.op.condition is None
 
         group_list = rx.collect_runs(self._multi_graph, filter_fn)
         return set(tuple(x) for x in group_list)
@@ -1473,7 +1471,7 @@ class DAGCircuit:
 
         def filter_fn(node):
             return node.type == 'op' and len(node.qargs) == 1 \
-                and len(node.cargs) == 0 and node.condition is None \
+                and len(node.cargs) == 0 and node.op.condition is None \
                 and not node.op.is_parameterized() \
                 and isinstance(node.op, Gate) \
                 and hasattr(node.op, '__array__')
