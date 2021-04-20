@@ -376,7 +376,6 @@ class QCircuitImage:
                 gate_text = f"$\\mathrm{{{gate_text}}}$"
         elif ((gate_text == op.name and op_type is BooleanExpression)
               or (gate_text == base_name and base_type is BooleanExpression)):
-            # \ghost{ \texttt{$\neg$x \& (y | z) }
             gate_text = gate_text.replace('~', '$\\neg$').replace('&', '\\&')
             gate_text = f"$\\texttt{{{gate_text}}}$"
         # Only captitalize internally-created gate or instruction names
