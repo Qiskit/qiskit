@@ -28,7 +28,8 @@ from qiskit.circuit.library import (IGate, XGate, YGate, ZGate, HGate,
 from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_circuit
 from qiskit.quantum_info.synthesis.clifford_decompose import (
-    decompose_clifford_ag, decompose_clifford_bm)
+    decompose_clifford_ag, decompose_clifford_bm, decompose_clifford_greedy)
+from qiskit.quantum_info import random_clifford
 
 
 class VGate(Gate):
@@ -411,6 +412,17 @@ class TestCliffordSynthesis(QiskitTestCase):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
             target = Clifford(circ)
             value = Clifford(decompose_clifford_ag(target))
+            self.assertEqual(value, target)
+
+    @combine(num_qubits=[1, 2, 3, 4, 5])
+    def test_decompose_2q_greedy(self, num_qubits):
+        """Test greedy synthesis for set of {num_qubits}-qubit Cliffords"""
+        rng = np.random.default_rng(1234)
+        samples = 50
+        for _ in range(samples):
+            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
+            target = Clifford(circ)
+            value = Clifford(decompose_clifford_greedy(target))
             self.assertEqual(value, target)
 
 
@@ -801,6 +813,12 @@ class TestCliffordOperators(QiskitTestCase):
         CS = Clifford(SGate())
         target = CI.tensor(CX).tensor(CY).tensor(CZ).tensor(CH).tensor(CS)
         self.assertEqual(Clifford.from_label(label), target)
+
+    def test_instruction_name(self):
+        """Test to verify the correct clifford name is maintained
+        after converting to instruction"""
+        clifford = random_clifford(2, seed=777)
+        self.assertEqual(clifford.to_instruction().name, str(clifford))
 
 
 if __name__ == '__main__':

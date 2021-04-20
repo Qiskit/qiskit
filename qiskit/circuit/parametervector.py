@@ -12,7 +12,43 @@
 
 """Parameter Vector Class to simplify management of parameter lists."""
 
+from uuid import uuid4
+
 from .parameter import Parameter
+
+
+class ParameterVectorElement(Parameter):
+    """An element of a ParameterVector."""
+
+    def __new__(cls, vector, index, uuid=None):  # pylint:disable=unused-argument
+        obj = object.__new__(cls)
+
+        if uuid is None:
+            obj._uuid = uuid4()
+        else:
+            obj._uuid = uuid
+
+        obj._hash = hash(obj._uuid)
+        return obj
+
+    def __getnewargs__(self):
+        return (self.vector, self.index, self._uuid)
+
+    def __init__(self, vector, index):
+        name = f'{vector.name}[{index}]'
+        super().__init__(name)
+        self._vector = vector
+        self._index = index
+
+    @property
+    def index(self):
+        """Get the index of this element in the parent vector."""
+        return self._index
+
+    @property
+    def vector(self):
+        """Get the parent vector instance."""
+        return self._vector
 
 
 class ParameterVector:
@@ -23,7 +59,7 @@ class ParameterVector:
         self._params = []
         self._size = length
         for i in range(length):
-            self._params += [Parameter('{}[{}]'.format(self._name, i))]
+            self._params += [ParameterVectorElement(self, i)]
 
     @property
     def name(self):
@@ -69,5 +105,5 @@ class ParameterVector:
         """
         if length > len(self._params):
             for i in range(len(self._params), length):
-                self._params += [Parameter('{}[{}]'.format(self._name, i))]
+                self._params += [ParameterVectorElement(self, i)]
         self._size = length

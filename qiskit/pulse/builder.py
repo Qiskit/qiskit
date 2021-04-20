@@ -635,7 +635,7 @@ def build(backend=None,
             circuit to pulse scheduler.
 
     Returns:
-        A new builder context which has the active builder inititalized.
+        A new builder context which has the active builder initialized.
     """
     return _PulseBuilder(
         backend=backend,
@@ -740,6 +740,8 @@ def seconds_to_samples(seconds: Union[float, np.ndarray]) -> Union[int, np.ndarr
     Returns:
         The number of samples for the time to elapse
     """
+    if isinstance(seconds, np.ndarray):
+        return (seconds / active_backend().configuration().dt).astype(int)
     return int(seconds / active_backend().configuration().dt)
 
 
@@ -1416,7 +1418,7 @@ def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
 
 # Base Instructions
 def delay(duration: int,
-          channel: chans.Channel):
+          channel: chans.Channel, name: Optional[str] = None):
     """Delay on a ``channel`` for a ``duration``.
 
     Examples:
@@ -1433,12 +1435,13 @@ def delay(duration: int,
     Args:
         duration: Number of cycles to delay for on ``channel``.
         channel: Channel to delay on.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.Delay(duration, channel))
+    append_instruction(instructions.Delay(duration, channel, name=name))
 
 
 def play(pulse: Union[library.Pulse, np.ndarray],
-         channel: chans.PulseChannel):
+         channel: chans.PulseChannel, name: Optional[str] = None):
     """Play a ``pulse`` on a ``channel``.
 
     Examples:
@@ -1455,11 +1458,12 @@ def play(pulse: Union[library.Pulse, np.ndarray],
     Args:
         pulse: Pulse to play.
         channel: Channel to play pulse on.
+        name: Name of the pulse.
     """
     if not isinstance(pulse, library.Pulse):
         pulse = library.Waveform(pulse)
 
-    append_instruction(instructions.Play(pulse, channel))
+    append_instruction(instructions.Play(pulse, channel, name=name))
 
 
 def acquire(duration: int,
@@ -1515,7 +1519,7 @@ def acquire(duration: int,
 
 
 def set_frequency(frequency: float,
-                  channel: chans.PulseChannel):
+                  channel: chans.PulseChannel, name: Optional[str] = None):
     """Set the ``frequency`` of a pulse ``channel``.
 
     Examples:
@@ -1532,12 +1536,13 @@ def set_frequency(frequency: float,
     Args:
         frequency: Frequency in Hz to set channel to.
         channel: Channel to set frequency of.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.SetFrequency(frequency, channel))
+    append_instruction(instructions.SetFrequency(frequency, channel, name=name))
 
 
 def shift_frequency(frequency: float,
-                    channel: chans.PulseChannel):
+                    channel: chans.PulseChannel, name: Optional[str] = None):
     """Shift the ``frequency`` of a pulse ``channel``.
 
     Examples:
@@ -1555,12 +1560,13 @@ def shift_frequency(frequency: float,
     Args:
         frequency: Frequency in Hz to shift channel frequency by.
         channel: Channel to shift frequency of.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.ShiftFrequency(frequency, channel))
+    append_instruction(instructions.ShiftFrequency(frequency, channel, name=name))
 
 
 def set_phase(phase: float,
-              channel: chans.PulseChannel):
+              channel: chans.PulseChannel, name: Optional[str] = None):
     """Set the ``phase`` of a pulse ``channel``.
 
     Examples:
@@ -1580,12 +1586,13 @@ def set_phase(phase: float,
     Args:
         phase: Phase in radians to set channel carrier signal to.
         channel: Channel to set phase of.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.SetPhase(phase, channel))
+    append_instruction(instructions.SetPhase(phase, channel, name=name))
 
 
 def shift_phase(phase: float,
-                channel: chans.PulseChannel):
+                channel: chans.PulseChannel, name: Optional[str] = None):
     """Shift the ``phase`` of a pulse ``channel``.
 
     Examples:
@@ -1604,8 +1611,9 @@ def shift_phase(phase: float,
     Args:
         phase: Phase in radians to shift channel carrier signal by.
         channel: Channel to shift phase of.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.ShiftPhase(phase, channel))
+    append_instruction(instructions.ShiftPhase(phase, channel, name))
 
 
 def snapshot(label: str,
@@ -1788,7 +1796,7 @@ def call(target: Union[circuit.QuantumCircuit, Schedule],
 
 
 # Directives
-def barrier(*channels_or_qubits: Union[chans.Channel, int]):
+def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] = None):
     """Barrier directive for a set of channels and qubits.
 
     This directive prevents the compiler from moving instructions across
@@ -1854,13 +1862,69 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int]):
 
     Args:
         channels_or_qubits: Channels or qubits to barrier.
+        name: Name for the barrier
     """
     channels = _qubits_to_channels(*channels_or_qubits)
     if len(channels) > 1:
-        append_instruction(directives.RelativeBarrier(*channels))
+        append_instruction(directives.RelativeBarrier(*channels, name=name))
 
 
 # Macros
+def macro(func: Callable):
+    """Wrap a Python function and activate the parent builder context at calling time.
+
+    This enables embedding Python functions as builder macros. This generates a new
+    :class:`pulse.Schedule` that is embedded in the parent builder context with
+    every call of the decorated macro function. The decorated macro function will
+    behave as if the function code was embedded inline in the parent builder context
+    after parameter substitution.
+
+
+    Examples:
+
+    .. jupyter-execute::
+
+        from qiskit import pulse
+
+        @pulse.macro
+        def measure(qubit: int):
+            pulse.play(pulse.GaussianSquare(16384, 256, 15872), pulse.measure_channel(qubit))
+            mem_slot = pulse.MemorySlot(qubit)
+            pulse.acquire(16384, pulse.acquire_channel(qubit), mem_slot)
+
+            return mem_slot
+
+        with pulse.build(backend=backend) as sched:
+            mem_slot = measure(0)
+            print(f"Qubit measured into {mem_slot}")
+
+        sched.draw()
+
+
+    Args:
+        func: The Python function to enable as a builder macro. There are no
+            requirements on the signature of the function, any calls to pulse
+            builder methods will be added to builder context the wrapped function
+            is called from.
+
+    Returns:
+        Callable: The wrapped ``func``.
+    """
+    func_name = getattr(func, '__name__', repr(func))
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        _builder = _active_builder()
+        # activate the pulse builder before calling the function
+        with build(backend=_builder.backend, name=func_name) as built:
+            output = func(*args, **kwargs)
+
+        _builder.call_schedule(built)
+        return output
+
+    return wrapper
+
+
 def measure(qubits: Union[List[int], int],
             registers: Union[List[StorageLocation], StorageLocation] = None,
             ) -> Union[List[StorageLocation], StorageLocation]:

@@ -13,6 +13,8 @@
 """Durations of instructions, one of transpiler configurations."""
 from typing import Optional, List, Tuple, Union, Iterable, Set
 
+import warnings
+
 from qiskit.circuit import Barrier, Delay
 from qiskit.circuit import Instruction, Qubit
 from qiskit.providers import BaseBackend
@@ -160,6 +162,10 @@ class InstructionDurations:
             qubits = [qubits]
 
         if isinstance(qubits[0], Qubit):
+            warnings.warn('Querying an InstructionDurations object with a Qubit '
+                          'has been deprecated and will be removed in a future '
+                          'release. Instead, query using the integer qubit '
+                          'index.', DeprecationWarning, stacklevel=2)
             qubits = [q.index for q in qubits]
 
         try:

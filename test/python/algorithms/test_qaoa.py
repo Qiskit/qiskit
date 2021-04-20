@@ -16,8 +16,8 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import math
-import networkx as nx
 import numpy as np
+import retworkx as rx
 from ddt import ddt, idata, unpack
 
 from qiskit.algorithms import QAOA
@@ -282,13 +282,13 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
     def test_qaoa_random_initial_point(self):
         """ QAOA random initial point """
-        w = nx.adjacency_matrix(
-            nx.fast_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)).toarray()
+        w = rx.adjacency_matrix(
+            rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed))
         qubit_op, _ = self._get_operator(w)
         qaoa = QAOA(optimizer=NELDER_MEAD(disp=True), reps=1, quantum_instance=self.qasm_simulator)
         _ = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
 
-        np.testing.assert_almost_equal([-0.879, 0.395], qaoa.optimal_params, decimal=3)
+        np.testing.assert_almost_equal([-0.560, 0.315], qaoa.optimal_params, decimal=3)
 
     def _get_operator(self, weight_matrix):
         """Generate Hamiltonian for the max-cut problem of a graph.

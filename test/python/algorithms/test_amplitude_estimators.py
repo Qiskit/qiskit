@@ -181,7 +181,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                                     inplace=True)
 
             # fourier transform
-            iqft = QFT(m, do_swaps=False).inverse()
+            iqft = QFT(m, do_swaps=False).inverse().reverse_bits()
             circuit.append(iqft.to_instruction(), qr_eval)
 
             actual_circuit = qae.construct_circuit(problem, measurement=False)
@@ -266,6 +266,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                     grover_op.global_phase = np.pi
                     for _ in range(2**power):
                         circuit.compose(grover_op, inplace=True)
+                circuits += [circuit]
 
             actual_circuits = qae.construct_circuits(problem, measurement=False)
 

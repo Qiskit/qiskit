@@ -172,11 +172,11 @@ class TestChoi(ChannelTestCase):
         # X-gate second does nothing
         targ = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
         self.assertEqual(chan1.compose(chan2), targ)
-        self.assertEqual(chan1 @ chan2, targ)
+        self.assertEqual(chan1 & chan2, targ)
         # X-gate first swaps Z states
         targ = Choi(np.kron(Zm, Xp) + np.kron(Zp, Xm))
         self.assertEqual(chan2.compose(chan1), targ)
-        self.assertEqual(chan2 @ chan1, targ)
+        self.assertEqual(chan2 & chan1, targ)
 
         # Compose different dimensions
         chan1 = Choi(np.eye(8) / 4, input_dims=2, output_dims=4)

@@ -25,11 +25,15 @@ from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
+
+# pylint: disable=no-name-in-module
+from .cython.exp_value import density_expval_pauli_no_x, density_expval_pauli_with_x
 
 
 class DensityMatrix(QuantumState, TolerancesMixin):
@@ -113,11 +117,17 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             self._data, other._data, rtol=self.rtol, atol=self.atol)
 
     def __repr__(self):
-        text = self.draw('text', prefix="DensityMatrix(")
-        return str(text) + ')'
+        prefix = 'DensityMatrix('
+        pad = len(prefix) * ' '
+        return '{}{},\n{}dims={})'.format(
+            prefix, np.array2string(
+                self._data, separator=', ', prefix=prefix),
+            pad, self._op_shape.dims_l())
 
-    def draw(self, output=None, max_size=(16, 16), dims=None, prefix='', **drawer_args):
-        """Returns a visualization of the DensityMatrix.
+    def draw(self, output=None, **drawer_args):
+        """Return a visualization of the Statevector.
+
+        **repr**: ASCII TextMatrix of the state's ``__repr__``.
 
         **text**: ASCII TextMatrix that can be printed in the console.
 
@@ -133,38 +143,35 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         Args:
             output (str): Select the output method to use for drawing the
-                circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
-                ``qsphere``, ``hinton``, or ``bloch``. Default is ``auto``.
-            max_size (int): Maximum number of elements before array is
-                summarized instead of fully represented. For ``latex``
-                and ``latex_source`` drawers, this is also the maximum number
-                of elements that will be drawn in the output array, including
-                elipses elements. For ``text`` drawer, this is the ``threshold``
-                parameter in ``numpy.array2string()``.
-            dims (bool): For `text` and `latex`. Whether to display the
-                dimensions.
-            prefix (str): For `text` and `latex`. String to be displayed
-                before the data representation.
-            drawer_args: Arguments to be passed directly to the relevant drawer
-                function (`plot_state_qsphere()`, `plot_state_hinton()` or
-                `plot_bloch_multivector()`). See the relevant function under
-                `qiskit.visualization` for that function's documentation.
+                state. Valid choices are `repr`, `text`, `latex`, `latex_source`,
+                `qsphere`, `hinton`, or `bloch`. Default is `repr`. Default can
+                be changed by adding the line ``state_drawer = <default>`` to
+                ``~/.qiskit/settings.conf`` under ``[default]``.
+            drawer_args: Arguments to be passed directly to the relevant drawing
+                function or constructor (`TextMatrix()`, `array_to_latex()`,
+                `plot_state_qsphere()`, `plot_state_hinton()` or `plot_bloch_multivector()`).
+                See the relevant function under `qiskit.visualization` for that function's
+                documentation.
 
         Returns:
-            :class:`matplotlib.figure` or :class:`str` or
-            :class:`TextMatrix`: or :class:`IPython.display.Latex`
+            :class:`matplotlib.Figure` or :class:`str` or
+            :class:`TextMatrix` or :class:`IPython.display.Latex`:
+            Drawing of the Statevector.
 
         Raises:
             ValueError: when an invalid output method is selected.
         """
         # pylint: disable=cyclic-import
         from qiskit.visualization.state_visualization import state_drawer
-        return state_drawer(self, output=output, max_size=max_size, dims=dims,
-                            prefix=prefix, **drawer_args)
+        return state_drawer(self, output=output, **drawer_args)
 
     def _ipython_display_(self):
-        from IPython.display import display
-        display(self.draw())
+        out = self.draw()
+        if isinstance(out, str):
+            print(out)
+        else:
+            from IPython.display import display
+            display(out)
 
     @property
     def data(self):
@@ -338,6 +345,33 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         ret._op_shape = self._op_shape.reverse()
         return ret
 
+    def _expectation_value_pauli(self, pauli):
+        """Compute the expectation value of a Pauli.
+
+            Args:
+                pauli (Pauli): a Pauli operator to evaluate expval of.
+
+            Returns:
+                complex: the expectation value.
+            """
+        n_pauli = len(pauli)
+        qubits = np.arange(n_pauli)
+        x_mask = np.dot(1 << qubits, pauli.x)
+        z_mask = np.dot(1 << qubits, pauli.z)
+        pauli_phase = (-1j) ** pauli.phase if pauli.phase else 1
+
+        if x_mask + z_mask == 0:
+            return pauli_phase * self.trace()
+
+        data = np.ravel(self.data, order='F')
+        if x_mask == 0:
+            return pauli_phase * density_expval_pauli_no_x(data, self.num_qubits, z_mask)
+
+        x_max = qubits[pauli.x][-1]
+        y_phase = (-1j) ** np.sum(pauli.x & pauli.z)
+        return pauli_phase * density_expval_pauli_with_x(
+            data, self.num_qubits, z_mask, x_mask, y_phase, x_max)
+
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
 
@@ -348,9 +382,16 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         Returns:
             complex: the expectation value.
         """
+        if isinstance(oper, Pauli):
+            return self._expectation_value_pauli(oper)
+
+        if isinstance(oper, SparsePauliOp):
+            return sum([coeff * self._expectation_value_pauli(Pauli((z, x)))
+                        for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)])
+
         if not isinstance(oper, Operator):
             oper = Operator(oper)
-        return np.trace(Operator(self).dot(oper.adjoint(), qargs=qargs).data)
+        return np.trace(Operator(self).dot(oper, qargs=qargs).data)
 
     def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.
@@ -583,7 +624,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix(mat, dims=(3, 3))
                 print(rho.to_dict())
 
-            For large subsystem dimensions delimeters are required. The
+            For large subsystem dimensions delimiters are required. The
             following example is for a 20-dimensional system consisting of
             a qubit and 10-dimensional qudit.
 
@@ -669,6 +710,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         if not isinstance(other.definition, QuantumCircuit):
             raise QiskitError('{} instruction definition is {}; expected QuantumCircuit'.format(
                 other.name, type(other.definition)))
+        qubit_indices = {bit: idx for idx, bit in enumerate(other.definition.qubits)}
         for instr, qregs, cregs in other.definition:
             if cregs:
                 raise QiskitError(
@@ -676,9 +718,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                     format(instr.name))
             # Get the integer position of the flat register
             if qargs is None:
-                new_qargs = [tup.index for tup in qregs]
+                new_qargs = [qubit_indices[tup] for tup in qregs]
             else:
-                new_qargs = [qargs[tup.index] for tup in qregs]
+                new_qargs = [qargs[qubit_indices[tup]] for tup in qregs]
             self._append_instruction(instr, qargs=new_qargs)
 
     def _evolve_instruction(self, obj, qargs=None):

@@ -19,8 +19,8 @@ from collections import OrderedDict, defaultdict
 import numpy as np
 import retworkx as rx
 
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
 from qiskit.quantum_info.operators import Operator
@@ -107,12 +107,10 @@ class DAGDependency:
         if isinstance(angle, ParameterExpression):
             self._global_phase = angle
         else:
-            # Set the phase to the [-2 * pi, 2 * pi] interval
+            # Set the phase to the [0, 2π) interval
             angle = float(angle)
             if not angle:
                 self._global_phase = 0
-            elif angle < 0:
-                self._global_phase = angle % (-2 * math.pi)
             else:
                 self._global_phase = angle % (2 * math.pi)
 
@@ -170,6 +168,28 @@ class DAGDependency:
         depth = rx.dag_longest_path_length(self._multi_graph)
         return depth if depth >= 0 else 0
 
+    def add_qubits(self, qubits):
+        """Add individual qubit wires."""
+        if any(not isinstance(qubit, Qubit) for qubit in qubits):
+            raise DAGDependencyError("not a Qubit instance.")
+
+        duplicate_qubits = set(self.qubits).intersection(qubits)
+        if duplicate_qubits:
+            raise DAGDependencyError("duplicate qubits %s" % duplicate_qubits)
+
+        self.qubits.extend(qubits)
+
+    def add_clbits(self, clbits):
+        """Add individual clbit wires."""
+        if any(not isinstance(clbit, Clbit) for clbit in clbits):
+            raise DAGDependencyError("not a Clbit instance.")
+
+        duplicate_clbits = set(self.clbits).intersection(clbits)
+        if duplicate_clbits:
+            raise DAGDependencyError("duplicate clbits %s" % duplicate_clbits)
+
+        self.clbits.extend(clbits)
+
     def add_qreg(self, qreg):
         """Add qubits in a quantum register."""
         if not isinstance(qreg, QuantumRegister):
@@ -177,8 +197,10 @@ class DAGDependency:
         if qreg.name in self.qregs:
             raise DAGDependencyError("duplicate register %s" % qreg.name)
         self.qregs[qreg.name] = qreg
+        existing_qubits = set(self.qubits)
         for j in range(qreg.size):
-            self.qubits.append(qreg[j])
+            if qreg[j] not in existing_qubits:
+                self.qubits.append(qreg[j])
 
     def add_creg(self, creg):
         """Add clbits in a classical register."""
@@ -187,8 +209,10 @@ class DAGDependency:
         if creg.name in self.cregs:
             raise DAGDependencyError("duplicate register %s" % creg.name)
         self.cregs[creg.name] = creg
+        existing_clbits = set(self.clbits)
         for j in range(creg.size):
-            self.clbits.append(creg[j])
+            if creg[j] not in existing_clbits:
+                self.clbits.append(creg[j])
 
     def _add_multi_graph_node(self, node):
         """
@@ -246,7 +270,7 @@ class DAGDependency:
 
     def get_all_edges(self):
         """
-        Enumaration of all edges.
+        Enumeration of all edges.
 
         Returns:
             List: corresponding to the label.
@@ -371,8 +395,8 @@ class DAGDependency:
             cindices_list = []
 
         new_node = DAGDepNode(type="op", op=operation, name=operation.name, qargs=qargs,
-                              cargs=cargs, condition=operation.condition, successors=[],
-                              predecessors=[], qindices=qindices_list, cindices=cindices_list)
+                              cargs=cargs, successors=[], predecessors=[],
+                              qindices=qindices_list, cindices=cindices_list)
         self._add_multi_graph_node(new_node)
         self._update_edges()
 
@@ -544,9 +568,10 @@ def _does_commute(node1, node2):
     # if and only if the qubits are different.
     # TODO: qubits can be the same if conditions are identical and
     # the non-conditional gates commute.
-    if node1.condition or node2.condition:
-        intersection = set(qarg1).intersection(set(qarg2))
-        return not intersection
+    if node1.type == 'op' and node2.type == 'op':
+        if node1.op.condition or node2.op.condition:
+            intersection = set(qarg1).intersection(set(qarg2))
+            return not intersection
 
     # Commutation for non-unitary or parameterized or opaque ops
     # (e.g. measure, reset, directives or pulse gates)

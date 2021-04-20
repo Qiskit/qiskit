@@ -250,11 +250,11 @@ class QFT(BlueprintCircuit):
         """Construct the circuit representing the desired state vector."""
         super()._build()
 
-        for j in range(self.num_qubits):
+        for j in reversed(range(self.num_qubits)):
             self.h(j)
-            num_entanglements = max(0, self.num_qubits - max(self.approximation_degree, j))
-            for k in range(j + 1, j + num_entanglements):
-                lam = np.pi / (2 ** (k - j))
+            num_entanglements = max(0, j-max(0, self.approximation_degree - (self.num_qubits-j-1)))
+            for k in reversed(range(j - num_entanglements, j)):
+                lam = np.pi / (2 ** (j - k))
                 self.cp(lam, j, k)
 
             if self.insert_barriers:

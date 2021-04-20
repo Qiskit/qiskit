@@ -19,7 +19,6 @@ from qiskit.circuit import Clbit
 from qiskit.circuit.library import RXGate, RYGate
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
-# pylint: disable=unused-import
 from qiskit.extensions.simulator import Snapshot
 
 
@@ -671,6 +670,18 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(set(circ.calibrations['h'].keys()), {((0,), ())})
         self.assertEqual(circ.calibrations['h'][((0,), ())].instructions,
                          q0_x180.instructions)
+
+    def test_metadata_copy_does_not_share_state(self):
+        """Verify mutating the metadata of a circuit copy does not impact original."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/6057
+
+        qc1 = QuantumCircuit(1)
+        qc1.metadata = {'a': 0}
+
+        qc2 = qc1.copy()
+        qc2.metadata['a'] = 1000
+
+        self.assertEqual(qc1.metadata['a'], 0)
 
 
 if __name__ == '__main__':

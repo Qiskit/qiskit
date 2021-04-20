@@ -1,8 +1,10 @@
 coverage>=4.4.0
 hypothesis>=4.24.3
+ipython<7.22.0
+ipykernel<5.5.2
 ipywidgets>=7.3.0
 jupyter
-matplotlib>=2.1
+matplotlib>=2.1,<3.4
 pillow>=4.2.1
 pycodestyle
 pydot
@@ -16,15 +18,15 @@ pylatexenc>=1.4
 ddt>=1.2.0,!=1.4.0
 seaborn>=0.9.0
 reno>=3.2.0
-Sphinx>=1.8.3,<3.1.0
+Sphinx>=3.0.0
 qiskit-sphinx-theme>=1.6
 sphinx-autodoc-typehints
 jupyter-sphinx
 sphinx-panels
 pygments>=2.4
-tweedledum==0.1b0
+tweedledum>=1.0,<2.0
 networkx>=2.2
 scikit-learn>=0.20.0
-scikit-quant;platform_system != 'Windows'
+scikit-quant<=0.7;platform_system != 'Windows'
 jax;platform_system != 'Windows'
 jaxlib;platform_system != 'Windows'
