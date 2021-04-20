@@ -29,6 +29,7 @@ from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_circuit
 from qiskit.quantum_info.synthesis.clifford_decompose import (
     decompose_clifford_ag, decompose_clifford_bm, decompose_clifford_greedy)
+from qiskit.quantum_info import random_clifford
 
 
 class VGate(Gate):
@@ -812,6 +813,12 @@ class TestCliffordOperators(QiskitTestCase):
         CS = Clifford(SGate())
         target = CI.tensor(CX).tensor(CY).tensor(CZ).tensor(CH).tensor(CS)
         self.assertEqual(Clifford.from_label(label), target)
+
+    def test_instruction_name(self):
+        """Test to verify the correct clifford name is maintained
+        after converting to instruction"""
+        clifford = random_clifford(2, seed=777)
+        self.assertEqual(clifford.to_instruction().name, str(clifford))
 
 
 if __name__ == '__main__':
