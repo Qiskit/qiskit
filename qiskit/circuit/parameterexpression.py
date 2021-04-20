@@ -432,3 +432,27 @@ class ParameterExpression:
             return (len(self.parameters) == 0
                     and complex(self._symbol_expr) == other)
         return False
+
+    def __getstate__(self):
+        try:
+            import symengine
+            from sympy import sympify
+            symbols = {k: sympify(v) for k, v in self._parameter_symbols.items()}
+            expr = sympify(self._symbol_expr)
+            return {'type': 'symengine', 'symbols': symbols, 'expr': expr,
+                    'names': self._names}
+        except ImportError:
+            return {'type': 'sympy', 'symbols': self._parameter_symbols,
+                    'expr': self._symbol_expr, 'names': self._names}
+
+    def __setstate__(self, state):
+        if state['type'] == 'symengine':
+            from symengine import sympify
+            self._symbol_expr = sympify(state['expr'])
+            self._parameter_symbols = {k: sympify(v) for k, v in state['symbols']}
+            self._parameters = set(self._parameter_symbols)
+        else:
+            self._symbol_expr = state['expr']
+            self._parameter_symbols = state['symbols']
+            self._parameters = set(self._parameter_symbols)
+        self._names = state['names']
