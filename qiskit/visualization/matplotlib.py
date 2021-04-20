@@ -958,12 +958,14 @@ class MatplotlibDrawer:
                             v_ind += 1
                     clbit_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
                     xpos, ypos = clbit_b
-                    if cond_is_bit:
+                    if cond_is_bit and self._cregbundle:
                         cond_reg = self._bit_locations[op.op.condition[0]]['register']
                         ctrl_bit = self._bit_locations[op.op.condition[0]]['index']
                         label = '%s_%s=%s' % (cond_reg.name, ctrl_bit, hex(val))
-                    else:
+                    elif self._cregbundle:
                         label = hex(val)
+                    else:
+                        label = None
                     self._ax.text(xpos, ypos - 0.3 * HIG, label, ha='center', va='top',
                                   fontsize=sfs, color=self._style['tc'],
                                   clip_on=True, zorder=PORDER_TEXT)
