@@ -1,16 +1,20 @@
 ---
 features:
   - |
-    The ability to pass qubit and measurement LO frequencies has now been added to circuit jobs. You
-    can use the fields ``qubit_lo_freq`` and ``meas_lo_freq`` as arguments to either ``execute`` or
-    ``assemble`` with circuit and pulse jobs. The fields are lists of floats representing
-    frequencies in Hz and are indexed by qubit number (entry 0 is qubit 0, entry 1 is qubit 1,
-    etc...). The length of the list must be equal to the number of qubits in the system. For
-    example, consider running circuit ``circ`` on some ``backend`` with 3 qubits. You want to use
-    qubit frequencies ``[5e9, 4.9e9, 5.1e9]`` (Hz) and measurement frequencies
-    ``[5.5e9, 6.5e9, 7.1e9]``. This can be achieved by::
+    The ability to pass qubit and measurement LO frequencies has now been added to circuit jobs at
+    both the job and experiment (individual circuit) level.
 
-      job = execute(circ, backend, qubit_lo_freq=[5e9, 4.9e9, 5.1e9], meas_lo_freq=[5.5e9, 6.5e9, 7.1e9])
+    At the job level, the fields ``default_qubit_los`` and ``default_meas_los`` may be used as
+    arguents to ``execute`` for both circuit and pulse jobs. The fields are lists of floats
+    representing qubit drive and measure lo frequencies (in Hz) and are indexed by qubit number
+    (entry 0 is qubit 0, entry 1 is qqubit 1, etc...). The length of the list must be equal to the
+    number of qubits in the system. The same functionality is provided by passing the arguments
+    ``qubit_lo_freq`` and ``meas_lo_freq`` to assemble. For example, consider running circuit
+    ``circ`` on some ``backend`` with 3 qubits. You want to use qubit frequencies
+    ``[5e9, 4.9e9, 5.1e9]`` (Hz) and measurement frequencies ``[5.5e9, 6.5e9, 7.1e9]``. This can be
+    achieved by::
+
+      job = execute(circ, backend, default_qubit_los=[5e9, 4.9e9, 5.1e9], default_meas_los=[5.5e9, 6.5e9, 7.1e9])
 
     or::
 

@@ -598,9 +598,9 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.config.calibrations.gates[0].instructions[1].to_dict(),
                          {"name": "delay", "t0": 64, "ch": "d0", "duration": 160})
 
-    def test_qubit_meas_los_no_range(self):
-        """Test that adding qubit/meas lo freq lists are assembled into the qobj.config, w/ out any
-        lo range."""
+    def test_job_qubit_meas_los_no_range(self):
+        """Test that adding job qubit/meas lo freq lists are assembled into the qobj.config, w/ out
+        any lo range."""
         qobj = assemble(
             self.circ,
             backend=self.backend,
@@ -615,8 +615,8 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.config.qubit_lo_freq, qubit_lo_freq_GHz)
         self.assertEqual(qobj.config.meas_lo_freq, meas_lo_freq_GHz)
 
-    def test_lo_errors(self):
-        """Test that lo's are checked against the lo ranges and that errors are thrown if either
+    def test_job_lo_errors(self):
+        """Test that job lo's are checked against the lo ranges and that errors are thrown if either
         quantity has an incorrect length or type."""
         qubit_lo_range = [[freq - 5e6, freq + 5e6] for freq in self.default_qubit_lo_freq]
         meas_lo_range = [[freq - 5e6, freq + 5e6] for freq in self.default_meas_lo_freq]
@@ -715,8 +715,8 @@ class TestCircuitAssembler(QiskitTestCase):
                 meas_lo_range=[[6.705e9, 6.710e9] for i in range(self.num_qubits)],
             )
 
-    def test_qubit_meas_los_w_range(self):
-        """Test that adding qubit/meas lo freq lists are assembled into the qobj.config, w/ lo
+    def test_job_qubit_meas_los_w_range(self):
+        """Test that adding job qubit/meas lo freq lists are assembled into the qobj.config, w/ lo
         ranges input. Verify that lo ranges do not enter into the config."""
         qubit_lo_range = [[freq - 5e6, freq + 5e6] for freq in self.default_qubit_lo_freq]
         meas_lo_range = [[freq - 5e6, freq + 5e6] for freq in self.default_meas_lo_freq]
@@ -739,7 +739,7 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertNotIn("meas_lo_range", qobj.config.to_dict())
 
     def test_assemble_single_circ_single_lo_config(self):
-        """Test assembling a single circuit, with a single lo config."""
+        """Test assembling a single circuit, with a single expt level lo config."""
         qobj = assemble(
             self.circ,
             self.backend,
@@ -754,7 +754,8 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(len(qobj.experiments), 1)
 
     def test_assemble_single_circ_single_lo_config_dict(self):
-        """Test assembling a single circuit, with a single lo config supplied as dictionary."""
+        """Test assembling a single circuit, with a single expt level lo config supplied as
+        dictionary."""
         qobj = assemble(
             self.circ,
             self.backend,
@@ -769,7 +770,8 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(len(qobj.experiments), 1)
 
     def test_assemble_single_circ_multi_lo_config(self):
-        """Test assembling a single circuit, with multiple lo configs (frequency sweep)."""
+        """Test assembling a single circuit, with multiple expt level lo configs (frequency sweep).
+        """
         user_lo_config_dict2 = {
             pulse.DriveChannel(1): 5.55e9,
             pulse.MeasureChannel(1): 6.64e9,
@@ -804,7 +806,7 @@ class TestCircuitAssembler(QiskitTestCase):
         )
 
     def test_assemble_multi_circ_multi_lo_config(self):
-        """Test assembling circuits, with the same number of lo configs (n:n setup)."""
+        """Test assembling circuits, with the same number of expt level lo configs (n:n setup)."""
         user_lo_config_dict2 = {
             pulse.DriveChannel(1): 5.55e9,
             pulse.MeasureChannel(1): 6.64e9,
@@ -839,7 +841,8 @@ class TestCircuitAssembler(QiskitTestCase):
         )
 
     def test_assemble_multi_circ_single_lo_config(self):
-        """Test assembling multiple circuits, with a single lo config (should override job level)."""
+        """Test assembling multiple circuits, with a single expt level lo config (should override
+        job level)."""
         qobj = assemble(
             [self.circ, self.circ],
             self.backend,
@@ -854,7 +857,8 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(len(qobj.experiments), 2)
 
     def test_assemble_multi_circ_wrong_number_of_multi_lo_configs(self):
-        """Test assembling circuits, with a different number of lo configs (n:m setup)."""
+        """Test assembling circuits, with a different number of expt level lo configs (n:m setup).
+        """
         with self.assertRaises(QiskitError):
             assemble(
                 [self.circ, self.circ, self.circ],
@@ -866,7 +870,8 @@ class TestCircuitAssembler(QiskitTestCase):
 
     def test_assemble_circ_lo_config_errors(self):
         """Test that lo config errors are raised properly if expt level los are provided and some
-        are missing or if default values are not provided."""
+        are missing or if default values are not provided. Also check that expt level lo range
+        is validated."""
         # no defaults, but have drive/meas expt level los for each qubit (no error)
         full_lo_config_dict = {
             pulse.DriveChannel(0): 4.85e9,
@@ -902,6 +907,32 @@ class TestCircuitAssembler(QiskitTestCase):
         with self.assertRaises(QiskitError):
             qobj = assemble(
                 self.circ, self.backend, schedule_los=missing_meas_lo_config_dict
+            )
+
+        # verify lo ranges are checked at expt level
+        lo_values = list(full_lo_config_dict.values())
+        qubit_lo_range = [[freq - 5e6, freq + 5e6] for freq in lo_values[:5]]
+        meas_lo_range = [[freq - 5e6, freq + 5e6] for freq in lo_values[5:]]
+
+        # out of range drive lo
+        full_lo_config_dict[pulse.DriveChannel(0)] -= 5.5e6
+        with self.assertRaises(QiskitError):
+            qobj = assemble(
+                self.circ,
+                self.backend,
+                qubit_lo_range=qubit_lo_range,
+                schedule_los=full_lo_config_dict
+            )
+        full_lo_config_dict[pulse.DriveChannel(0)] += 5.5e6  # reset drive value
+
+        # out of range meas lo
+        full_lo_config_dict[pulse.MeasureChannel(0)] += 5.5e6
+        with self.assertRaises(QiskitError):
+            qobj = assemble(
+                self.circ,
+                self.backend,
+                meas_lo_range=meas_lo_range,
+                schedule_los=full_lo_config_dict
             )
 
 
