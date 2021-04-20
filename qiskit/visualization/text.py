@@ -19,6 +19,7 @@ from shutil import get_terminal_size
 import sys
 from numpy import ndarray
 
+from qiskit.circuit import Clbit
 from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.circuit import Reset as ResetInstruction
 from qiskit.circuit import Measure as MeasureInstruction
@@ -1311,11 +1312,23 @@ class Layer:
             top_connect (char): The char to connect the box on the top.
         """
         if self.cregbundle:
-            self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
+            if isinstance(creg, Clbit):
+                bit_reg = self._clbit_locations[creg]['register']
+                bit_index = self._clbit_locations[creg]['index']
+                label_bool = '= T' if label == '= 1' else '= F'
+                label = "%s_%s %s" % (bit_reg.name, bit_index, label_bool)
+                self.set_clbit(creg, BoxOnClWire(label=label, top_connect=top_connect))
+            else:
+                self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
         else:
-            clbit = [bit for bit in self.clbits
-                     if self._clbit_locations[bit]['register'] == creg]
-            self._set_multibox(label, clbits=clbit, top_connect=top_connect)
+            if isinstance(creg, Clbit):
+                clbit = [creg]
+                label_bool = '= T' if label == '= 1' else '= F'
+                self._set_multibox(label_bool, clbits=clbit, top_connect=top_connect)
+            else:
+                clbit = [bit for bit in self.clbits
+                         if self._clbit_locations[bit]['register'] == creg]
+                self._set_multibox(label, clbits=clbit, top_connect=top_connect)
 
     def set_qu_multibox(self, bits, label, top_connect=None, bot_connect=None,
                         conditional=False, controlled_edge=None):

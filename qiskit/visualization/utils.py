@@ -20,7 +20,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators.symplectic import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.circuit import Measure
+from qiskit.circuit import Measure, Clbit
 
 try:
     import PIL
@@ -187,6 +187,7 @@ class _LayerSpooler(list):
         self.qubits = dag.qubits
         self.justification = justification
         self.measure_map = measure_map
+        self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
 
         if self.justification == 'left':
             for dag_layer in dag.layers():
@@ -236,7 +237,11 @@ class _LayerSpooler(list):
             last_insertable_index = -1
             index_stop = -1
             if node.op.condition:
-                index_stop = self.measure_map[node.op.condition[0]]
+                if isinstance(node.op.condition[0], Clbit):
+                    cond_reg = [creg for creg in self.cregs if node.op.condition[0] in creg]
+                    index_stop = self.measure_map[cond_reg[0]]
+                else:
+                    index_stop = self.measure_map[node.op.condition[0]]
             elif node.cargs:
                 for carg in node.cargs:
                     try:
