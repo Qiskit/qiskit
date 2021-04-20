@@ -6,7 +6,7 @@
 trigger:
   branches:
     include:
-      - master
+      - main
       - stable/*
   tags:
     include:
