@@ -171,12 +171,10 @@ class DAGCircuit:
         if isinstance(angle, ParameterExpression):
             self._global_phase = angle
         else:
-            # Set the phase to the [-2 * pi, 2 * pi] interval
+            # Set the phase to the [0, 2π) interval
             angle = float(angle)
             if not angle:
                 self._global_phase = 0
-            elif angle < 0:
-                self._global_phase = angle % (-2 * math.pi)
             else:
                 self._global_phase = angle % (2 * math.pi)
 
@@ -888,10 +886,11 @@ class DAGCircuit:
         # Try to convert to float, but in case of unbound ParameterExpressions
         # a TypeError will be raise, fallback to normal equality in those
         # cases
+
         try:
             self_phase = float(self.global_phase)
             other_phase = float(other.global_phase)
-            if not np.isclose(self_phase, other_phase):
+            if abs((self_phase - other_phase + np.pi) % (2*np.pi) - np.pi) > 1.E-10:  # TODO: atol?
                 return False
         except TypeError:
             if self.global_phase != other.global_phase:
@@ -915,7 +914,6 @@ class DAGCircuit:
                               for regname, reg in other.qregs.items()]
         other_creg_indices = [(regname, [other_bit_indices[bit] for bit in reg])
                               for regname, reg in other.cregs.items()]
-
         if (
                 self_qreg_indices != other_qreg_indices
                 or self_creg_indices != other_creg_indices
