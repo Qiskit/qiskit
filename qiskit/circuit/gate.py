@@ -17,7 +17,7 @@ from typing import List, Optional, Union, Tuple
 import numpy as np
 from scipy.linalg import schur
 
-from qiskit.circuit.parameter import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression, HAS_SYMENGINE
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
 
@@ -246,8 +246,7 @@ class Gate(Instruction):
                 # but the parameter will evaluate as real. Check that if the
                 # expression's is_real attribute returns false that we have a
                 # non-zero imaginary
-                if parameter._symbol_expr.imag != 0.0:
-                    print(parameter._symbol_expr.imag)
+                if HAS_SYMENGINE and parameter._symbol_expr.imag != 0.0:
                     raise CircuitError("Bound parameter expression is complex in gate {}".format(
                         self.name))
             return parameter  # per default assume parameters must be real when bound
