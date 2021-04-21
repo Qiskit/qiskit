@@ -3,6 +3,7 @@ import scipy as sp
 import os
 import time
 import os
+
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 os.environ['QISKIT_IN_PARALLEL'] = 'True'
 
@@ -15,9 +16,11 @@ from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolv
 from qiskit.quantum_info import partial_trace
 
 
-from qiskit import Aer, QuantumCircuit
+from qiskit import Aer, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
 from qiskit.circuit import ParameterVector
+from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.library import RYGate
 
 from qiskit.opflow.evolutions.varqtes.varqrte import VarQRTE
 from qiskit.opflow.evolutions.varqtes.varqite import VarQITE
@@ -28,7 +31,7 @@ from qiskit.opflow import Z, I, Y, X
 np.random.seed = 11
 
 # Evolution time
-t = 1
+t = 1/2
 
 num_time_steps = 10
 depths = [1]
@@ -47,8 +50,8 @@ ode_solvers_names = ['RK45']
 # ode_solvers_names = ['ForwardEuler']
 # regs = ['ridge', 'perturb_diag', None]
 # reg_names = ['ridge', 'perturb_diag', 'None']
-regs = ['perturb_diag']
-reg_names = ['perturb_diag']
+regs = [None]
+reg_names = ['lstsq']
 observable = MatrixOp([[-3, 0, 0, 0, 0, 0, 0, 0],
                        [0, 3, 0, 0, 0, 0, 0, 0],
                        [0, 0, 3, 0, 0, 0, 0, 0],
@@ -61,55 +64,114 @@ observable = observable.reduce()
 target = sp.linalg.expm(-observable.to_matrix(massive=True))/np.trace(sp.linalg.expm(
     -observable.to_matrix(massive=True)))
 print('Target ', np.diag(target))
-# params1 = ParameterVector('p1', 3)
-# ansatz1 = QuantumCircuit(3)
-# ansatz1.h(0)
-# ansatz1.h(1)
-# ansatz1.h(2)
-# ansatz1.cry(params1[0], 0, 1)
-# ansatz1.cry(params1[1], 1, 2)
-# ansatz1.cry(params1[2], 2, 0)
+
+
+# class CCRY(ControlledGate):
+#     def __init__(self, theta, label=None, ctrl_state=None):
+#         """Create new CCRY gate."""
+#         super().__init__('ccry', 3, [theta], num_ctrl_qubits=2,
+#                          label=label, ctrl_state=ctrl_state,
+#                          base_gate=RYGate(theta))
+#
+# ccry = lambda param: RYGate(param).control(2)
+
+
+# params1 = ParameterVector('p1', 9)
+# qr = QuantumRegister(3)
+# ansatz1 = QuantumCircuit(qr)
+# ansatz1.h(qr[0])
+# ansatz1.h(qr[1])
+# ansatz1.h(qr[2])
+# ansatz1.ry(params1[0], qr[0])
+# ansatz1.ry(params1[1], qr[1])
+# ansatz1.ry(params1[2], qr[2])
+# ansatz1.mcry(params1[3], [qr[0], qr[1]], qr[2])
+# ansatz1.mcry(params1[4], [qr[1], qr[2]], qr[0])
+# ansatz1.mcry(params1[5], [qr[0], qr[2]], qr[1])
+# ansatz1.ry(params1[6], qr[0])
+# ansatz1.ry(params1[7], qr[1])
+# ansatz1.ry(params1[8], qr[2])
 #
 #
-# params2 = ParameterVector('p2', 6)
+# params2 = ParameterVector('p2', 12)
 # ansatz2 = QuantumCircuit(3)
 # ansatz2.h(0)
 # ansatz2.h(1)
 # ansatz2.h(2)
-# ansatz2.cry(params2[0], 0, 1)
-# ansatz2.cry(params2[1], 1, 0)
-# ansatz2.cry(params2[2], 1, 2)
-# ansatz2.cry(params2[3], 2, 1)
-# ansatz2.cry(params2[4], 2, 0)
-# ansatz2.cry(params2[5], 0, 2)
+# ansatz2.ry(params2[0], 0)
+# ansatz2.ry(params2[1], 1)
+# ansatz2.ry(params2[2], 2)
+# ansatz2.cry(params2[3], 0, 1)
+# ansatz2.cry(params2[4], 1, 0)
+# ansatz2.cry(params2[5], 1, 2)
+# ansatz2.cry(params2[6], 2, 1)
+# ansatz2.cry(params2[7], 2, 0)
+# ansatz2.cry(params2[8], 0, 2)
+# ansatz2.ry(params2[9], 0)
+# ansatz2.ry(params2[10], 1)
+# ansatz2.ry(params2[11], 2)
 
 
-params3 = ParameterVector('p3', 9)
+params3 = ParameterVector('p3', 12)
 ansatz3 = QuantumCircuit(3)
+ansatz3.h(0)
+ansatz3.h(1)
+ansatz3.h(2)
 ansatz3.ry(params3[0], 0)
 ansatz3.ry(params3[1], 1)
 ansatz3.ry(params3[2], 2)
-ansatz3.cry(params3[3], 0, 1)
-ansatz3.cry(params3[4], 1, 2)
-ansatz3.cry(params3[5], 2, 0)
+ansatz3.cx(0, 1)
+ansatz3.cx(0, 2)
+ansatz3.ry(params3[3], 0)
+ansatz3.ry(params3[4], 1)
+ansatz3.ry(params3[5], 2)
+ansatz3.cx(1, 2)
+ansatz3.cx(1, 0)
 ansatz3.ry(params3[6], 0)
 ansatz3.ry(params3[7], 1)
 ansatz3.ry(params3[8], 2)
+ansatz3.cx(2, 0)
+ansatz3.cx(2, 1)
+# ansatz3.cry(params3[3], 0, 1)
+# ansatz3.cry(params3[4], 1, 2)
+# ansatz3.cry(params3[5], 2, 0)
+ansatz3.ry(params3[9], 0)
+ansatz3.ry(params3[10], 1)
+ansatz3.ry(params3[11], 2)
 
 params4 = ParameterVector('p4', 12)
 ansatz4 = QuantumCircuit(3)
+ansatz4.h(0)
+ansatz4.h(1)
+ansatz4.h(2)
 ansatz4.ry(params4[0], 0)
 ansatz4.ry(params4[1], 1)
 ansatz4.ry(params4[2], 2)
-ansatz4.cry(params4[3], 0, 1)
-ansatz4.cry(params4[4], 1, 0)
-ansatz4.cry(params4[5], 1, 2)
-ansatz4.cry(params4[6], 2, 1)
-ansatz4.cry(params4[7], 2, 0)
-ansatz4.cry(params4[8], 0, 2)
+ansatz4.cx(0, 1)
+ansatz4.ry(params4[3], 0)
+ansatz4.ry(params4[4], 1)
+ansatz4.cx(1, 0)
+ansatz4.cx(1, 2)
+ansatz4.ry(params4[5], 1)
+ansatz4.ry(params4[6], 2)
+ansatz4.cx(2, 1)
+ansatz4.cx(2, 0)
+ansatz4.ry(params4[7], 0)
+ansatz4.ry(params4[8], 2)
+ansatz4.cx(0, 2)
 ansatz4.ry(params4[9], 0)
 ansatz4.ry(params4[10], 1)
 ansatz4.ry(params4[11], 2)
+
+
+# ansatz4.cry(params4[3], 0, 1)
+# ansatz4.cry(params4[4], 1, 0)
+# ansatz4.cry(params4[5], 1, 2)
+# ansatz4.cry(params4[6], 2, 1)
+# ansatz4.cry(params4[7], 2, 0)
+# ansatz4.cry(params4[8], 0, 2)
+
+
 
 
 # ansaetze = [ansatz1, ansatz2, ansatz3, ansatz4]
@@ -128,16 +190,13 @@ for l, ansatz in enumerate(ansaetze):
                 parameters = params[l]
 
                 init_param_values = np.zeros(len(parameters))
-                init_param_values[-1] = np.pi/2
-                init_param_values[-2] = np.pi / 2
-                init_param_values[-3] = np.pi / 2
                 # Now we stack the observable and the quantum state together.
                 # The evolution time needs to be added as a coefficient to the operator
                 op = ~StateFn(observable) @ StateFn(ansatz)
                 op = t * op
 
-                print('number time steps', num_time_steps)
                 print('---------------------------------------------------------------------')
+                print(ansatz)
                 t0 = time.time()
                 varqite_snapshot_dir = os.path.join('..', 'xor_withoutwork', 'imag',
                                                     'ansatz'+str(l),

@@ -23,7 +23,7 @@ from scipy.integrate import OdeSolver, ode
 from qiskit.quantum_info import state_fidelity
 
 from qiskit.opflow.evolutions.varqte import VarQTE
-from qiskit.opflow import StateFn, CircuitStateFn, ComposedOp, OperatorBase
+from qiskit.opflow import StateFn, CircuitStateFn, ComposedOp, PauliExpectation
 
 from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
 
@@ -62,7 +62,7 @@ class VarQRTE(VarQTE):
 
         # For VarQRTE we need to add a -i factor to the operator coefficient.
         self._operator = 1j * operator / operator.coeff
-        self._operator_eval = operator / operator.coeff
+        self._operator_eval = PauliExpectation().convert(operator / operator.coeff)
 
         self._init_grad_objects()
         # Step size

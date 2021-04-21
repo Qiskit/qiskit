@@ -34,7 +34,7 @@ from qiskit.utils import QuantumInstance
 from qiskit.circuit import ParameterExpression, ParameterVector
 
 from qiskit.opflow.evolutions.evolution_base import EvolutionBase
-from qiskit.opflow import StateFn, ListOp, CircuitSampler, ComposedOp
+from qiskit.opflow import StateFn, ListOp, CircuitSampler, ComposedOp, PauliExpectation
 from qiskit.opflow.gradients import CircuitQFI, CircuitGradient, Gradient, QFI, \
     NaturalGradient
 
@@ -345,6 +345,7 @@ class VarQTE(EvolutionBase):
         self._h_matrix = self._h.to_matrix(massive=True)
         h_squared = self._h ** 2
         self._h_squared = ComposedOp([~StateFn(h_squared.reduce()), self._state])
+        self._h_squared = PauliExpectation().convert(self._h_squared)
 
         if not self._faster:
             # VarQRTE
@@ -360,9 +361,13 @@ class VarQTE(EvolutionBase):
                                                  regularization=self._regularization
                                                  ).convert(self._operator * -0.5, self._parameters)
 
+            self._nat_grad = PauliExpectation().convert(self._nat_grad)
+
         self._grad = Gradient(self._grad_method).convert(self._operator, self._parameters)
+        self._grad = PauliExpectation().convert(self._grad)
 
         self._metric = QFI(self._qfi_method).convert(self._operator.oplist[-1], self._parameters)
+        self._metric = PauliExpectation().convert(self._metric)
 
     def _init_ode_solver(self,
                          t: float,
@@ -616,7 +621,7 @@ class VarQTE(EvolutionBase):
                                                                 params=param_dict).eval())
             # Get the QFI/4
             metric_res = np.array(self._metric_circ_sampler.convert(self._metric,
-                                                           params=param_dict).eval()) * 0.25
+                                  params=param_dict).eval()) * 0.25
         else:
             grad_res = np.array(self._grad.assign_parameters(param_dict).eval())
             # Get the QFI/4

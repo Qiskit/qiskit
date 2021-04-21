@@ -11,6 +11,7 @@ from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolv
 
 
 from qiskit import Aer, QuantumCircuit
+from qiskit.utils import QuantumInstance
 from qiskit.circuit import Parameter
 
 from qiskit.opflow.evolutions.varqtes.varqrte import VarQRTE
@@ -68,7 +69,9 @@ for nts in num_time_steps:
                                 init_parameter_values=init_param_values,
                                 num_time_steps=nts,
                                 ode_solver=ode_solver,
-                                backend=Aer.get_backend('qasm_simulator'),
+                                backend = Aer.get_backend('statevector_simulator'),
+                                # backend=QuantumInstance(Aer.get_backend('qasm_simulator'),
+                                #                         shots = 10000),
                                 regularization=reg,
                                 error_based_ode=False,
                                 snapshot_dir=varqrte_snapshot_dir

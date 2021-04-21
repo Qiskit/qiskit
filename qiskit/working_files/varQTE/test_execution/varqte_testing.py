@@ -21,7 +21,7 @@ from qiskit.opflow.evolutions.varqtes.varqrte import VarQRTE
 from qiskit.opflow.evolutions.varqtes.varqite import VarQITE
 from qiskit.opflow.evolutions.varqte import ForwardEuler
 
-from qiskit.opflow import StateFn, SummedOp
+from qiskit.opflow import StateFn, SummedOp, PauliExpectation
 from qiskit.opflow import Z, I, Y, X
 np.random.seed = 11
 

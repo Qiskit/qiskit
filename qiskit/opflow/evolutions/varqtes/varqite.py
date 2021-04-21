@@ -23,7 +23,7 @@ from scipy.integrate import ode, OdeSolver, solve_ivp
 from qiskit.quantum_info import state_fidelity
 
 from qiskit.opflow.evolutions.varqte import VarQTE
-from qiskit.opflow import StateFn, CircuitStateFn, ListOp, ComposedOp, OperatorBase
+from qiskit.opflow import StateFn, CircuitStateFn, ListOp, ComposedOp, PauliExpectation
 
 from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
 
@@ -65,7 +65,7 @@ class VarQITE(VarQTE):
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
         self._operator = operator / operator.coeff # Remove the time from the operator
-        self._operator_eval = operator / operator.coeff
+        self._operator_eval = PauliExpectation().convert(operator / operator.coeff)
 
         # Step size
         dt = np.abs(operator.coeff)*np.sign(operator.coeff) / self._num_time_steps
