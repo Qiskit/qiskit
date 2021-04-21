@@ -45,12 +45,11 @@ class AerPauliExpectation(ExpectationBase):
         Returns:
             The converted operator.
         """
+        if isinstance(operator, ListOp):
+            return operator.traverse(self.convert)
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
             return self._replace_pauli_sums(operator.primitive) * operator.coeff
-        elif isinstance(operator, ListOp):
-            return operator.traverse(self.convert)
-        else:
-            return operator
+        return operator
 
     # pylint: disable=inconsistent-return-statements
     @classmethod
@@ -66,16 +65,18 @@ class AerPauliExpectation(ExpectationBase):
         # CircuitSampler will look for it to know that the circuit is a Expectation
         # measurement, and not simply a
         # circuit to replace with a DictStateFn
+        if operator.__class__ == ListOp:
+            return operator.traverse(cls._replace_pauli_sums)
 
         if isinstance(operator, PauliSumOp):
             paulis = [(meas[1], meas[0]) for meas in operator.primitive.to_list()]
-            snapshot_instruction = SnapshotExpectationValue('expval_measurement', paulis)
+            snapshot_instruction = SnapshotExpectationValue("expval_measurement", paulis)
             return CircuitStateFn(snapshot_instruction, coeff=operator.coeff, is_measurement=True)
 
         # Change to Pauli representation if necessary
-        if not {'Pauli'} == operator.primitive_strings():
-            logger.warning('Measured Observable is not composed of only Paulis, converting to '
-                           'Pauli representation, which can be expensive.')
+        if {"Pauli"} != operator.primitive_strings():
+            logger.warning("Measured Observable is not composed of only Paulis, converting to "
+                           "Pauli representation, which can be expensive.")
             # Setting massive=False because this conversion is implicit. User can perform this
             # action on the Observable with massive=True explicitly if they so choose.
             operator = operator.to_pauli_op(massive=False)
@@ -90,8 +91,6 @@ class AerPauliExpectation(ExpectationBase):
             snapshot_instruction = SnapshotExpectationValue('expval_measurement', paulis)
             snapshot_op = CircuitStateFn(snapshot_instruction, is_measurement=True)
             return snapshot_op
-        if isinstance(operator, ListOp):
-            return operator.traverse(cls._replace_pauli_sums)
 
     def compute_variance(self, exp_op: OperatorBase) -> Union[list, float]:
         r"""
