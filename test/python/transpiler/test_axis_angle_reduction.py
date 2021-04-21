@@ -91,7 +91,6 @@ class TestAxisAngleReduction(QiskitTestCase):
     def test_2q_noninteracting(self):
         """test two qubit set of non-interacting operations (except 1 cx)"""
         altp = QuantumCircuit(1, global_phase=np.pi, name='altp')
-        #altp = QuantumCircuit(1, global_phase=0, name='altp')
         altp.rz(np.pi/2, 0)
         altpgate = altp.to_gate()
         circ = QuantumCircuit(2)
@@ -277,7 +276,6 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.x(1)
         ccirc = self.pmr.run(circ)
         expected = QuantumCircuit(2)
-        #expected.crx(2*np.pi, 0, 1)
         expected.p(np.pi, 0)
         expected.x(1)
         self.assertEqual(Operator(circ), Operator(ccirc))

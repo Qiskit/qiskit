@@ -286,7 +286,7 @@ class AxisAngleReduction(TransformationPass):
             new_dag.apply_operation_back(var_gate, new_qarg[:])
             dag.substitute_node_with_dag(stack[0][0], new_dag)
             del_list += [node for node, _ in stack[1:]]
-        elif int(quot) & 1 and (dfprop.iloc[smask].num_qubits==2).all():
+        elif int(quot) & 1 and (dfprop.iloc[smask].num_qubits == 2).all():
             pcirc = QuantumCircuit(stack[0][0].qargs)
             pcirc.p(np.pi, 0)  # TODO: check this is in basis
             pdag = circuit_to_dag(pcirc)
