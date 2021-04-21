@@ -237,8 +237,6 @@ def _parse_common_args(
     backend_defaults = None
     n_qubits = None
     if backend:
-        if backend.name() == "fake_santiago":
-            import pdb; pdb.set_trace()
         backend_config = backend.configuration()
         n_qubits = backend_config.n_qubits
         # check for memory flag applied to backend that does not support memory
