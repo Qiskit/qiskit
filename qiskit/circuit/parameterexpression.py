@@ -118,7 +118,8 @@ class ParameterExpression:
         free_parameter_symbols = {p: s for p, s in self._parameter_symbols.items()
                                   if p in free_parameters}
 
-        if hasattr(bound_symbol_expr, 'is_infinite') and bound_symbol_expr.is_infinite:
+        if (hasattr(bound_symbol_expr, 'is_infinite') and bound_symbol_expr.is_infinite) or \
+                bound_symbol_expr == float('inf'):
             raise ZeroDivisionError('Binding provided for expression '
                                     'results in division by zero '
                                     '(Expression: {}, Bindings: {}).'.format(
