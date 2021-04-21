@@ -51,13 +51,15 @@ class ParameterVectorElement(Parameter):
         return self._vector
 
     def __getstate__(self):
-        return {'vector': self._vector, 'index': self._index}
+        return {'name': self._name, 'uuid': self._uuid,
+                'vector': self._vector, 'index': self._index}
 
     def __setstate__(self, state):
+        self._name = state['name']
+        self._uuid = state['uuid']
         self._vector = state['vector']
         self._index = state['index']
-        name = f'{self._vector.name}[{self._index}]'
-        super().__init__(name)
+        super().__init__(self._name)
 
 
 class ParameterVector:
