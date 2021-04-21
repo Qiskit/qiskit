@@ -241,14 +241,17 @@ class Gate(Instruction):
             if len(parameter.parameters) > 0:
                 return parameter  # expression has free parameters, we cannot validate it
             if not parameter._symbol_expr.is_real and parameter._symbol_expr.is_real is not None:
+                msg = "Bound parameter expression is complex in gate {}".format(self.name)
                 # Symengine returns false for is_real on the expression if
                 # there is a imaginary component (even if that component is 0),
                 # but the parameter will evaluate as real. Check that if the
                 # expression's is_real attribute returns false that we have a
                 # non-zero imaginary
-                if HAS_SYMENGINE and parameter._symbol_expr.imag != 0.0:
-                    raise CircuitError("Bound parameter expression is complex in gate {}".format(
-                        self.name))
+                if HAS_SYMENGINE:
+                    if parameter._symbol_expr.imag != 0.0:
+                        raise CircuitError(msg)
+                else:
+                    raise CircuitError(msg)
             return parameter  # per default assume parameters must be real when bound
         if isinstance(parameter, (int, float)):
             return parameter
