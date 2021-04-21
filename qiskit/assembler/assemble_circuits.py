@@ -313,26 +313,30 @@ def assemble_circuits(
         qobj_config_dict = run_config.to_dict()
 
         # remove lo ranges, not needed in qobj
-        qobj_config_dict.pop('qubit_lo_range', None)
-        qobj_config_dict.pop('meas_lo_range', None)
+        qobj_config_dict.pop("qubit_lo_range", None)
+        qobj_config_dict.pop("meas_lo_range", None)
 
         # convert lo frequencies to GHz, if they exist
-        if 'qubit_lo_freq' in qobj_config_dict:
-            qobj_config_dict['qubit_lo_freq'] = [freq / 1e9 for freq in qobj_config_dict['qubit_lo_freq']]
-        if 'meas_lo_freq' in qobj_config_dict:
-            qobj_config_dict['meas_lo_freq'] = [freq / 1e9 for freq in qobj_config_dict['meas_lo_freq']]
+        if "qubit_lo_freq" in qobj_config_dict:
+            qobj_config_dict["qubit_lo_freq"] = [
+                freq / 1e9 for freq in qobj_config_dict["qubit_lo_freq"]
+            ]
+        if "meas_lo_freq" in qobj_config_dict:
+            qobj_config_dict["meas_lo_freq"] = [
+                freq / 1e9 for freq in qobj_config_dict["meas_lo_freq"]
+            ]
 
         # override default los if single ``schedule_los`` entry set
-        schedule_los = qobj_config_dict.pop('schedule_los', [])
+        schedule_los = qobj_config_dict.pop("schedule_los", [])
         if len(schedule_los) == 1:
             lo_dict = schedule_los[0]
             q_los = lo_converter.get_qubit_los(lo_dict)
             # Hz -> GHz
             if q_los:
-                qobj_config_dict['qubit_lo_freq'] = [freq / 1e9 for freq in q_los]
+                qobj_config_dict["qubit_lo_freq"] = [freq / 1e9 for freq in q_los]
             m_los = lo_converter.get_meas_los(lo_dict)
             if m_los:
-                qobj_config_dict['meas_lo_freq'] = [freq / 1e9 for freq in m_los]
+                qobj_config_dict["meas_lo_freq"] = [freq / 1e9 for freq in m_los]
 
         qobj_config = QasmQobjConfig(**qobj_config_dict)
 
