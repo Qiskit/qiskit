@@ -38,7 +38,6 @@ except ImportError:
     HAS_SYMENGINE = False
 
 
-
 class DerivativeBase(ConverterBase):
     r"""Base class for differentiating opflow objects.
 
