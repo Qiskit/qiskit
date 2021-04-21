@@ -78,7 +78,7 @@ class DerivativeBase(ConverterBase):
                                                            ParameterExpression],
                                                      List[Tuple[ParameterExpression,
                                                                 ParameterExpression]]]] = None,
-                         backend: Optional[Union[BaseBackend, Backend, QuantumInstance,]] = None,
+                         backend: Optional[Union[BaseBackend, Backend, QuantumInstance]] = None,
                          expectation: Optional[ExpectationBase] = None) \
             -> Callable[[Iterable], np.ndarray]:
         """Get a callable function which provides the respective gradient, Hessian or QFI for given
@@ -95,8 +95,8 @@ class DerivativeBase(ConverterBase):
                 `PauliExpectation()` is used.
 
         Returns:
-             Function to compute a gradient, Hessian or QFI. The function
-             takes an iterable as argument which holds the parameter values.
+            Function to compute a gradient, Hessian or QFI. The function
+            takes an iterable as argument which holds the parameter values.
         """
         from ..converters import CircuitSampler
         if not grad_params:

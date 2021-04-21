@@ -913,9 +913,9 @@ class TestGradients(QiskitOpflowTestCase):
 
                 q_instance = QuantumInstance(backend=backend, shots=shots)
 
-                grad = NaturalGradient(grad_method=method).gradient_wrapper(operator=op,
-                                                                     bind_params=params,
-                                                                     backend=q_instance)
+                grad = NaturalGradient(grad_method=method).gradient_wrapper(
+                    operator=op, bind_params=params, backend=q_instance
+                )
                 result = grad(value)
                 results.append(result)
             self.assertTrue(np.allclose(results[0], results[1], atol=0.1))
