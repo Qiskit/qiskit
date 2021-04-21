@@ -1,4 +1,4 @@
 ---
 fixes:
   - |
-    Fix global phase of :class:`~qiskit.extensions.quantum_initializer.initializer.Initialize` instruction.
+    Fix global phase of :class:`qiskit.extensions.quantum_initializer.initializer.Initialize` instruction.
