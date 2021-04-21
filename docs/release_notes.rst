@@ -21,6 +21,45 @@ This table tracks the meta-package versions and the version of each Qiskit eleme
 Notable Changes
 ###############
 
+###############
+Notable Changes
+###############
+
+*************
+Qiskit 0.25.2
+*************
+
+Terra 0.17.1
+============
+
+No change
+
+Aer 0.8.1
+=========
+
+No change
+
+Ignis 0.6.0
+===========
+
+No change
+
+Aqua 0.9.1
+==========
+
+No change
+
+IBM Q Provider 0.12.3
+=====================
+
+.. _Release Notes_IBMQ_0.12.3_Other Notes:
+
+Other Notes
+-----------
+
+- The :class:`qiskit.providers.ibmq.experiment.analysis_result.AnalysisResult` ``fit``
+  attribute is now optional.
+
 *************
 Qiskit 0.25.1
 *************
