@@ -876,6 +876,48 @@ class TestGradients(QiskitOpflowTestCase):
             self.assertTrue(np.allclose(result[0], correct_values[i][0], atol=0.1))
             self.assertTrue(np.allclose(result[1], correct_values[i][1], atol=0.1))
 
+    def test_gradient_wrapper2(self):
+        """Test the gradient wrapper for gradients checking that statevector and qasm gives the
+           same results
+
+        dp0/da = cos(a)sin(b) / 2
+        dp1/da = - cos(a)sin(b) / 2
+        dp0/db = sin(a)cos(b) / 2
+        dp1/db = - sin(a)cos(b) / 2
+        """
+        method = 'param_shift'
+        a = Parameter('a')
+        b = Parameter('b')
+        params = [a, b]
+        backends = ['statevector_simulator', 'qasm_simulator']
+
+        q = QuantumRegister(1)
+        qc = QuantumCircuit(q)
+        qc.h(q)
+        qc.rz(params[0], q[0])
+        qc.rx(params[1], q[0])
+
+        obs = Z - 1j * Y
+        op = ~StateFn(obs) @ CircuitStateFn(primitive=qc, coeff=1.)
+
+        shots = 8000
+
+        values = [[np.pi / 4, 0], [np.pi / 4, np.pi / 4], [np.pi / 2, np.pi]]
+        for i, value in enumerate(values):
+            results = []
+            for backend_type in backends:
+                backend = BasicAer.get_backend(backend_type)
+
+                q_instance = QuantumInstance(backend=backend, shots=shots)
+
+                grad = Gradient(grad_method=method).gradient_wrapper(operator=op,
+                                                                     bind_params=params,
+                                                                     backend=q_instance)
+                result = grad(value)
+                results.append(result)
+
+            self.assertTrue(np.allclose(results[0], results[1], atol=0.01))
+
     @slow_test
     def test_vqe(self):
         """Test VQE with gradients"""
