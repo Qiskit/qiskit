@@ -265,14 +265,12 @@ class ParameterExpression:
         # Compute the gradient of the parameter expression w.r.t. param
         key = self._parameter_symbols[param]
         if HAS_SYMENGINE:
-            from sympy import sympify
-            expr = sympify(self._symbol_expr)
-            key = sympify(key)
+            expr_grad = symengine.Derivative(
+                self._symbol_expr, key)
         else:
-            expr = self._symbol_expr
-        # TODO enable nth derivative
-        from sympy import Derivative
-        expr_grad = Derivative(expr, key).doit()
+            # TODO enable nth derivative
+            from sympy import Derivative
+            expr_grad = Derivative(self._symbol_expr, key).doit()
 
         # generate the new dictionary of symbols
         # this needs to be done since in the derivative some symbols might disappear (e.g.
