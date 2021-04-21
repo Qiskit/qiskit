@@ -449,7 +449,7 @@ class ParameterExpression:
         if state['type'] == 'symengine':
             from symengine import sympify
             self._symbol_expr = sympify(state['expr'])
-            self._parameter_symbols = {k: sympify(v) for k, v in state['symbols']}
+            self._parameter_symbols = {k: sympify(v) for k, v in state['symbols'].items()}
             self._parameters = set(self._parameter_symbols)
         else:
             self._symbol_expr = state['expr']

@@ -88,3 +88,15 @@ class Parameter(ParameterExpression):
 
     def __hash__(self):
         return self._hash
+
+    def __getstate__(self):
+        return {'name': self._name}
+
+    def __setstate__(self, state):
+        self._name = state['name']
+        try:
+            from symengine import Symbol
+        except ImportError:
+            from sympy import Symbol
+        symbol = Symbol(self._name)
+        super().__init__(symbol_map={self: symbol}, expr=symbol)
