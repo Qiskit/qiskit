@@ -382,7 +382,8 @@ class ParameterExpression:
         return '{}({})'.format(self.__class__.__name__, str(self))
 
     def __str__(self):
-        return str(self._symbol_expr)
+        from sympy import sympify
+        return str(sympify(self._symbol_expr))
 
     def __float__(self):
         if self.parameters:
@@ -425,7 +426,8 @@ class ParameterExpression:
                 return False
             try:
                 import symengine
-                return self._symbol_expr == other._symbol_expr
+                from sympy import sympify
+                return sympify(self._symbol_expr).equals(sympify(other._symbol_expr))
             except ImportError:
                 return self._symbol_expr.equals(other._symbol_expr)
         elif isinstance(other, numbers.Number):

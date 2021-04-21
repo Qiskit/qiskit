@@ -46,10 +46,12 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     """
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
-        if hasattr(inpt._symbol_expr, 'expr_free_symbols'):
-            syms = inpt._symbol_expr.expr_free_symbols
+        if not hasattr(inpt._symbol_expr, 'expr_free_symbols'):
+            from sympy import sympify
+            expr = sympify(inpt._symbol_expr)
         else:
-            syms = inpt._symbol_expr.free_symbols
+            expr = inpt._symbol_expr
+        syms = expr.expr_free_symbols
         for sym in syms:
             if not sym.is_number:
                 continue
