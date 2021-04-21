@@ -18,7 +18,13 @@ from test.python.opflow import QiskitOpflowTestCase
 from itertools import product
 import numpy as np
 from ddt import ddt, data, idata, unpack
-from sympy import Symbol, cos
+
+try:
+    import symengine
+    HAS_SYMENGINE = True
+except ImportError:
+    from sympy import Symbol, cos
+    HAS_SYMENGINE = False
 
 try:
     import jax.numpy as jnp
@@ -280,8 +286,12 @@ class TestGradients(QiskitOpflowTestCase):
         a = Parameter('a')
         # b = Parameter('b')
         params = a
-        x = Symbol('x')
-        expr = cos(x) + 1
+        if HAS_SYMENGINE:
+            x = symengine.Symbol('X')
+            expr = symengine.cos(x) + 1
+        else:
+            x = Symbol('x')
+            expr = cos(x) + 1
         c = ParameterExpression({a: x}, expr)
 
         q = QuantumRegister(1)
