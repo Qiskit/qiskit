@@ -305,11 +305,11 @@ class SPSA(Optimizer):
             # compute next parameter value
             update = update * next(eta)
             x_next = x - update
-            fx_next = loss(x_next)
-            self._nfev += 1
-
+            
             # blocking
             if self.blocking:
+                self._nfev += 1
+                fx_next = loss(x_next)
 
                 if fx + self.allowed_increase <= fx_next:  # accept only if loss improved
                     if self.callback is not None:
@@ -328,6 +328,9 @@ class SPSA(Optimizer):
                         k, self.maxiter + 1, time() - iteration_start)
 
             if self.callback is not None:
+                self._nfev += 1
+                fx_next = loss(x_next)
+
                 self.callback(self._nfev,  # number of function evals
                               x_next,  # next parameters
                               fx_next,  # loss at next parameters
