@@ -17,6 +17,12 @@ from uuid import uuid4
 
 from .parameterexpression import ParameterExpression
 
+try:
+    import symengine
+    HAS_SYMENGINE = True
+except ImportError:
+    HAS_SYMENGINE = False
+
 
 class Parameter(ParameterExpression):
     """Parameter Class for variable parameters."""
@@ -49,12 +55,11 @@ class Parameter(ParameterExpression):
                 be any unicode string, e.g. "ϕ".
         """
         self._name = name
-
-        try:
-            from symengine import Symbol
-        except ImportError:
+        if not HAS_SYMENGINE:
             from sympy import Symbol
-        symbol = Symbol(name)
+            symbol = Symbol(name)
+        else:
+            symbol = symengine.Symbol(name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)
 
     def subs(self, parameter_map: dict):
@@ -94,9 +99,9 @@ class Parameter(ParameterExpression):
 
     def __setstate__(self, state):
         self._name = state['name']
-        try:
-            from symengine import Symbol
-        except ImportError:
+        if not HAS_SYMENGINE:
             from sympy import Symbol
-        symbol = Symbol(self._name)
+            symbol = Symbol(self._name)
+        else:
+            symbol = symengine.Symbol(self._name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)

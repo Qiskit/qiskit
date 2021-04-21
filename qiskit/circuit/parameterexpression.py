@@ -21,6 +21,13 @@ import numpy
 
 from qiskit.circuit.exceptions import CircuitError
 
+try:
+    import symengine
+    HAS_SYMENGINE = True
+except ImportError:
+    HAS_SYMENGINE = False
+
+
 ParameterValueType = Union['ParameterExpression', float, int]
 
 
@@ -53,10 +60,10 @@ class ParameterExpression:
 
     def conjugate(self) -> 'ParameterExpression':
         """Return the conjugate."""
-        try:
-            from symengine import conjugate
-            conjugated = ParameterExpression(self._parameter_symbols, conjugate(self._symbol_expr))
-        except ImportError:
+        if HAS_SYMENGINE:
+            conjugated = ParameterExpression(self._parameter_symbols,
+                                             symengine.conjugate(self._symbol_expr))
+        else:
             conjugated = ParameterExpression(self._parameter_symbols, self._symbol_expr.conjugate())
         return conjugated
 
@@ -143,12 +150,13 @@ class ParameterExpression:
 
         self._raise_if_passed_unknown_parameters(parameter_map.keys())
         self._raise_if_parameter_names_conflict(inbound_parameters, parameter_map.keys())
-        try:
-            from symengine import Symbol
-        except ImportError:
+        if HAS_SYMENGINE:
+            new_parameter_symbols = {p: symengine.Symbol(p.name)
+                                     for p in inbound_parameters}
+        else:
             from sympy import Symbol
-        new_parameter_symbols = {p: Symbol(p.name)
-                                 for p in inbound_parameters}
+            new_parameter_symbols = {p: Symbol(p.name)
+                                     for p in inbound_parameters}
 
         # Include existing parameters in self not set to be replaced.
         new_parameter_symbols.update({p: s
@@ -254,17 +262,16 @@ class ParameterExpression:
             return 0.0
 
         # Compute the gradient of the parameter expression w.r.t. param
-#        try:
-#            from symengine import Derivative
-#            symengine = True
-#        except ImportError:
-        from sympy import Derivative
-#            symengine = False
         key = self._parameter_symbols[param]
+        if HAS_SYMENGINE:
+            from sympy import sympify
+            expr = sympify(self._symbol_expr)
+            key = sympify(key)
+        else:
+            expr = self._symbol_expr
         # TODO enable nth derivative
-        expr_grad = Derivative(self._symbol_expr, key).doit()
-#       if not symengine:
-#            expr_grad.doit()
+        from sympy import Derivative
+        expr_grad = Derivative(expr, key).doit()
 
         # generate the new dictionary of symbols
         # this needs to be done since in the derivative some symbols might disappear (e.g.
@@ -316,67 +323,67 @@ class ParameterExpression:
 
     def sin(self):
         """Sine of a ParameterExpression"""
-        try:
-            from symengine import sin as _sin
-        except ImportError:
+        if HAS_SYMENGINE:
+            return self._call(symengine.sin)
+        else:
             from sympy import sin as _sin
-        return self._call(_sin)
+            return self._call(_sin)
 
     def cos(self):
         """Cosine of a ParameterExpression"""
-        try:
-            from symengine import cos as _cos
-        except ImportError:
+        if HAS_SYMENGINE:
+            return self._call(symengine.cos)
+        else:
             from sympy import cos as _cos
-        return self._call(_cos)
+            return self._call(_cos)
 
     def tan(self):
         """Tangent of a ParameterExpression"""
-        try:
-            from symengine import tan as _tan
-        except ImportError:
+        if HAS_SYMENGINE:
+            return self._call(symengine.tan)
+        else:
             from sympy import tan as _tan
-        return self._call(_tan)
+            return self._call(_tan)
 
     def arcsin(self):
         """Arcsin of a ParameterExpression"""
-        try:
-            from symengine import asin as _asin
-        except ImportError:
+        if HAS_SYMENGINE:
+            return self._call(symengine.asin)
+        else:
             from sympy import asin as _asin
-        return self._call(_asin)
+            return self._call(_asin)
 
     def arccos(self):
         """Arccos of a ParameterExpression"""
-        try:
-            from symengine import acos as _acos
-        except ImportError:
+        if HAS_SYMENGINE:
+            return self._call(symengine.acos)
+        else:
             from sympy import acos as _acos
-        return self._call(_acos)
+            return self._call(_acos)
 
     def arctan(self):
         """Arctan of a ParameterExpression"""
-        try:
-            from symengine import atan as _atan
-        except ImportError:
+        if HAS_SYMENGINE:
+            return self._call(symengine.atan)
+        else:
             from sympy import atan as _atan
-        return self._call(_atan)
+            return self._call(_atan)
 
     def exp(self):
         """Exponential of a ParameterExpression"""
-        try:
-            from symengine import exp as _exp
-        except ImportError:
+        if HAS_SYMENGINE:
+            return self._call(symengine.exp)
+        else:
             from sympy import exp as _exp
-        return self._call(_exp)
+            return self._call(_exp)
 
     def log(self):
         """Logarithm of a ParameterExpression"""
-        try:
-            from symengine import log as _log
-        except ImportError:
+        if HAS_SYMENGINE:
+            return self._call(symengine.log)
+        else:
             from sympy import log as _log
-        return self._call(_log)
+            return self._call(_log)
 
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, str(self))
@@ -424,11 +431,10 @@ class ParameterExpression:
         if isinstance(other, ParameterExpression):
             if self.parameters != other.parameters:
                 return False
-            try:
-                import symengine
+            if HAS_SYMENGINE:
                 from sympy import sympify
                 return sympify(self._symbol_expr).equals(sympify(other._symbol_expr))
-            except ImportError:
+            else:
                 return self._symbol_expr.equals(other._symbol_expr)
         elif isinstance(other, numbers.Number):
             return (len(self.parameters) == 0
@@ -436,22 +442,20 @@ class ParameterExpression:
         return False
 
     def __getstate__(self):
-        try:
-            import symengine
+        if HAS_SYMENGINE:
             from sympy import sympify
             symbols = {k: sympify(v) for k, v in self._parameter_symbols.items()}
             expr = sympify(self._symbol_expr)
             return {'type': 'symengine', 'symbols': symbols, 'expr': expr,
                     'names': self._names}
-        except ImportError:
+        else:
             return {'type': 'sympy', 'symbols': self._parameter_symbols,
                     'expr': self._symbol_expr, 'names': self._names}
 
     def __setstate__(self, state):
         if state['type'] == 'symengine':
-            from symengine import sympify
-            self._symbol_expr = sympify(state['expr'])
-            self._parameter_symbols = {k: sympify(v) for k, v in state['symbols'].items()}
+            self._symbol_expr = symengine.sympify(state['expr'])
+            self._parameter_symbols = {k: symengine.sympify(v) for k, v in state['symbols'].items()}
             self._parameters = set(self._parameter_symbols)
         else:
             self._symbol_expr = state['expr']
