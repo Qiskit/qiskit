@@ -58,11 +58,11 @@ class PhaseEstimation(PhaseEstimator):
     The main input to the constructor is the number of qubits in the phase-reading register.
     For phase estimation, there are two methods:
 
-    1) `estimate`, which takes a state preparation circuit to prepare an input state, and
+    1. `estimate`, which takes a state preparation circuit to prepare an input state, and
       a unitary that will act on the the input state. In this case, an instance of
       :class:`qiskit.circuit.PhaseEstimation`, a QPE circuit, containing
       the state preparation and input unitary will be constructed.
-    2) `estimate_from_pe_circuit`, which takes a quantum-phase-estimation circuit in which
+    2. `estimate_from_pe_circuit`, which takes a quantum-phase-estimation circuit in which
       the unitary and state preparation are already embedded.
 
     In both estimation methods, the QPE circuit is run on a backend
