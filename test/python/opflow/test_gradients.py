@@ -885,24 +885,27 @@ class TestGradients(QiskitOpflowTestCase):
         dp0/db = sin(a)cos(b) / 2
         dp1/db = - sin(a)cos(b) / 2
         """
-        method = 'param_shift'
+        method = 'lin_comb'
         a = Parameter('a')
         b = Parameter('b')
         params = [a, b]
         backends = ['statevector_simulator', 'qasm_simulator']
 
-        q = QuantumRegister(1)
-        qc = QuantumCircuit(q)
-        qc.h(q)
-        qc.rz(params[0], q[0])
-        qc.rx(params[1], q[0])
+        qc = QuantumCircuit(2)
+        qc.h(1)
+        qc.h(0)
+        qc.sdg(1)
+        qc.cz(0, 1)
+        qc.ry(params[0], 0)
+        qc.rz(params[1], 0)
+        qc.h(1)
 
-        obs = Z - 1j * Y
+        obs = (Z ^ I) - 1j * (Y ^ I)
         op = ~StateFn(obs) @ CircuitStateFn(primitive=qc, coeff=1.)
 
         shots = 8000
 
-        values = [[np.pi / 4, 0], [np.pi / 4, np.pi / 4], [np.pi / 2, np.pi]]
+        values = [[0, np.pi / 2], [np.pi / 4, np.pi / 4], [np.pi / 3, np.pi / 9]]
         for i, value in enumerate(values):
             results = []
             for backend_type in backends:
@@ -910,7 +913,7 @@ class TestGradients(QiskitOpflowTestCase):
 
                 q_instance = QuantumInstance(backend=backend, shots=shots)
 
-                grad = Gradient(grad_method=method).gradient_wrapper(operator=op,
+                grad = NaturalGradient(grad_method=method).gradient_wrapper(operator=op,
                                                                      bind_params=params,
                                                                      backend=q_instance)
                 result = grad(value)
