@@ -12,6 +12,8 @@
 
 """Test circuits with variable parameters."""
 import unittest
+import cmath
+import math
 
 import copy
 import pickle
@@ -589,8 +591,8 @@ class TestParameters(QiskitTestCase):
                     circs.append(getattr(qc_aer, assign_fun)({theta: theta_i}))
                 qobj = assemble(circs)
                 for index, theta_i in enumerate(theta_list):
-                    self.assertEqual(float(qobj.experiments[index].instructions[0].params[0]),
-                                     theta_i)
+                    res = float(qobj.experiments[index].instructions[0].params[0])
+                    self.assertTrue(math.isclose(res, theta_i), "%s != %s" % (res, theta_i))
 
     def test_circuit_composition(self):
         """Test preservation of parameters when combining circuits."""
@@ -1233,8 +1235,10 @@ class TestParameterExpressions(QiskitTestCase):
                 expr = op(x, const)
                 bound_expr = expr.bind({x: 2.3})
 
-                self.assertEqual(complex(bound_expr),
-                                 op(2.3, const))
+                res = complex(bound_expr)
+                expected = op(2.3, const)
+                self.assertTrue(cmath.isclose(res, expected),
+                                "%s != %s" % (res, expected))
 
     def test_complex_parameter_bound_to_real(self):
         """Test a complex parameter expression can be real if bound correctly."""
