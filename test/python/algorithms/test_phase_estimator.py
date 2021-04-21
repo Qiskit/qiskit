@@ -234,7 +234,7 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
             self.one_phase(unitary_circuit, state_preparation, num_iterations=-1)
 
     def phase_estimation(self, unitary_circuit, state_preparation=None, num_evaluation_qubits=6,
-                         backend=None):
+                         backend=None, construct_circuit=False):
         """Run phase estimation with operator, eigenvalue pair `unitary_circuit`,
         `state_preparation`. Return all results
         """
@@ -243,17 +243,23 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         phase_est = PhaseEstimation(num_evaluation_qubits=num_evaluation_qubits,
                                     quantum_instance=qi)
-        result = phase_est.estimate(unitary=unitary_circuit,
-                                    state_preparation=state_preparation)
+        if construct_circuit:
+            pe_circuit = phase_est.construct_circuit(unitary_circuit, state_preparation)
+            result = phase_est.estimate_from_pe_circuit(pe_circuit, unitary_circuit.num_qubits)
+        else:
+            result = phase_est.estimate(unitary=unitary_circuit,
+                                        state_preparation=state_preparation)
         return result
 
-    def test_qpe_Zplus(self):
+    @data(True, False)
+    def test_qpe_Zplus(self, construct_circuit):
         """superposition eigenproblem Z, |+>"""
         unitary_circuit = Z.to_circuit()
         state_preparation = H.to_circuit()  # prepare |+>
         result = self.phase_estimation(
             unitary_circuit, state_preparation,
-            backend=qiskit.BasicAer.get_backend('statevector_simulator'))
+            backend=qiskit.BasicAer.get_backend('statevector_simulator'),
+            construct_circuit=construct_circuit)
 
         phases = result.filter_phases(1e-15, as_float=True)
         with self.subTest('test phases has correct values'):

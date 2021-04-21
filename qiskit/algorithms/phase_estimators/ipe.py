@@ -21,7 +21,6 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import BaseBackend, Backend
 from qiskit.utils import QuantumInstance
-from qiskit.algorithms.algorithm_result import AlgorithmResult
 from .phase_estimator import PhaseEstimator
 from .phase_estimator import PhaseEstimatorResult
 
@@ -136,6 +135,7 @@ class IterativePhaseEstimation(PhaseEstimator):
             omega_coef = omega_coef + x / 2
         return omega_coef
 
+    # pylint: disable=arguments-differ
     def estimate(self,
                  unitary: QuantumCircuit,
                  state_preparation: QuantumCircuit
