@@ -915,8 +915,7 @@ class TestGradients(QiskitOpflowTestCase):
                                                                      backend=q_instance)
                 result = grad(value)
                 results.append(result)
-
-            self.assertTrue(np.allclose(results[0], results[1], atol=0.01))
+            self.assertTrue(np.allclose(results[0], results[1], atol=0.1))
 
     @slow_test
     def test_vqe(self):
