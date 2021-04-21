@@ -916,6 +916,7 @@ class TestGradients(QiskitOpflowTestCase):
             result = grad(value)
             self.assertTrue(np.allclose(result, correct_values[i], atol=0.1))
 
+
     @slow_test
     def test_vqe(self):
         """Test VQE with gradients"""
