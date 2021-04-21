@@ -51,18 +51,17 @@ class AxisAngleAnalysis(AnalysisPass):
             # TODO: cache angle-axis evaluation
             if len(node.qargs) == 1:
                 aprop = _get_1q_gate_props(node.op)
-                aprop['id'] = node._node_id
-                aprop['name'] = node.name
                 aprop['qubit0'] = node.qargs[0]
                 aprop['qubit1'] = None
             elif len(node.qargs) == 2 and isinstance(node.op, ControlledGate):
                 aprop = _get_1q_gate_props(node.op.base_gate, period=4*np.pi)
-                aprop['id'] = node._node_id
-                aprop['name'] = node.name
                 aprop['qubit0'] = node.qargs[0]
                 aprop['qubit1'] = node.qargs[1]
             else:
                 continue
+            aprop['id'] = node._node_id
+            aprop['name'] = node.name
+            aprop['num_qubits'] = len(node.qargs)
             props.append(aprop)
             if node.name not in var_gate_class and aprop['nparams'] == 1:
                 var_gate_class[node.name] = node.op.__class__

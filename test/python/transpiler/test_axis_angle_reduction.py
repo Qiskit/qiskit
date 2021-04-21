@@ -91,6 +91,7 @@ class TestAxisAngleReduction(QiskitTestCase):
     def test_2q_noninteracting(self):
         """test two qubit set of non-interacting operations (except 1 cx)"""
         altp = QuantumCircuit(1, global_phase=np.pi, name='altp')
+        #altp = QuantumCircuit(1, global_phase=0, name='altp')
         altp.rz(np.pi/2, 0)
         altpgate = altp.to_gate()
         circ = QuantumCircuit(2)
@@ -123,7 +124,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         passmanager = PassManager()
         passmanager.append(AxisAngleReduction())
         ccirc = passmanager.run(circ)
-        self.assertTrue(Operator(circ) == Operator(ccirc))
+        self.assertEqual(Operator(circ), Operator(ccirc))
 
     def test_symmetric_cancellation(self):
         """Test symmetry-based cancellation works."""
@@ -276,7 +277,8 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.x(1)
         ccirc = self.pmr.run(circ)
         expected = QuantumCircuit(2)
-        expected.crx(2*np.pi, 0, 1)
+        #expected.crx(2*np.pi, 0, 1)
+        expected.p(np.pi, 0)
         expected.x(1)
         self.assertEqual(Operator(circ), Operator(ccirc))
         self.assertEqual(ccirc, expected)
@@ -317,7 +319,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.x(1)
         ccirc = self.pmr.run(circ)
         expected = QuantumCircuit(2)
-        expected.crx(2*np.pi, 0, 1)
+        expected.p(np.pi, 0)
         self.assertEqual(Operator(circ), Operator(ccirc))
         self.assertEqual(ccirc, expected)
 
@@ -352,12 +354,10 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ = QuantumCircuit(2)
         circ.crx(np.pi, 0, 1)
         circ.crx(np.pi, 0, 1)
+        expected = QuantumCircuit(2)
+        expected.p(np.pi, 0)
         ccirc = self.pmr.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
-
-        expected = QuantumCircuit(2)
-        expected.crx(2*np.pi, 0, 1)
-        self.assertEqual(ccirc, expected)
 
     def test_4crx(self):
         """test complete cancellation of 4 crx gates"""
@@ -382,7 +382,74 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.crx(np.pi, 0, 1)
         ccirc = self.pmr.run(circ)
         expected = QuantumCircuit(2)
-        expected.crx(2 * np.pi, 0, 1)
+        expected.p(np.pi, 0)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(ccirc, expected)
+
+    def test_zero_angle_sandwich(self):
+        """test zero angle common axis"""
+        circ = QuantumCircuit(1)
+        circ.rz(np.pi/4, 0)
+        circ.rz(0, 0)
+        circ.rz(np.pi/4, 0)
+        ccirc = self.pmr.run(circ)
+        expected = QuantumCircuit(1)
+        expected.rz(np.pi/2, 0)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(ccirc, expected)
+
+    def test_zero_angle_end(self):
+        """test zero angle common axis"""
+        circ = QuantumCircuit(1)
+        circ.rz(np.pi/4, 0)
+        circ.rz(0, 0)
+        ccirc = self.pmr.run(circ)
+        expected = QuantumCircuit(1)
+        expected.rz(np.pi/4, 0)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(ccirc, expected)
+
+    def test_cx_common_target(self):
+        """test cx commutation with common target"""
+        circ = QuantumCircuit(3)
+        circ.cx(0, 1)
+        circ.cx(2, 1)
+        circ.cx(0, 1)
+        ccirc = self.pmr.run(circ)
+        expected = QuantumCircuit(3)
+        expected.cx(2, 1)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(ccirc, expected)
+
+    def test_cx_common_target_blocking_source(self):
+        """test cx commutation with block on source qubit."""
+        circ = QuantumCircuit(3)
+        circ.cx(0, 1)
+        circ.x(0)
+        circ.cx(2, 1)
+        circ.cx(0, 1)
+        ccirc = self.pmr.run(circ)
+        expected = QuantumCircuit(3)
+        expected.cx(0, 1)
+        expected.x(0)
+        expected.cx(2, 1)
+        expected.cx(0, 1)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(ccirc, expected)
+
+    def test_cx_common_target_blocking(self):
+        """test cx commutation with block on target qubit"""
+        circ = QuantumCircuit(3)
+        circ.cx(0, 1)
+        circ.h(0)
+        circ.h(1)
+        circ.cx(0, 1)
+        ccirc = self.pmr.run(circ)
+        expected = QuantumCircuit(3)
+        expected.cx(0, 1)
+        expected.h(0)
+        expected.h(1)
+        expected.cx(0, 1)
         self.assertEqual(Operator(circ), Operator(ccirc))
         self.assertEqual(ccirc, expected)
 
