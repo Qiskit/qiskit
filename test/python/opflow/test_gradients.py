@@ -33,7 +33,7 @@ from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import algorithm_globals
 from qiskit.algorithms import VQE
 from qiskit.algorithms.optimizers import CG
-from qiskit.opflow import I, X, Y, Z, StateFn, CircuitStateFn, ListOp, CircuitSampler
+from qiskit.opflow import I, X, Y, Z, StateFn, CircuitStateFn, ListOp, CircuitSampler, TensoredOp
 from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
 from qiskit.opflow.gradients.qfi import QFI
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
@@ -126,7 +126,7 @@ class TestGradients(QiskitOpflowTestCase):
     def test_gradient_rxx(self, method):
         """Test the state gradient for XX rotation
         """
-        ham = Z ^ X
+        ham = TensoredOp([Z, X])
         a = Parameter('a')
 
         q = QuantumRegister(2)
@@ -147,7 +147,8 @@ class TestGradients(QiskitOpflowTestCase):
     def test_gradient_ryy(self, method):
         """Test the state gradient for YY rotation
         """
-        ham = Y ^ Y
+        alpha = Parameter('alpha')
+        ham = TensoredOp([Y, alpha*Y])
         a = Parameter('a')
 
         q = QuantumRegister(2)
@@ -159,6 +160,7 @@ class TestGradients(QiskitOpflowTestCase):
         values_dict = [{a: np.pi / 8}, {a: np.pi}]
         correct_values = [[0], [0]]
         for i, value_dict in enumerate(values_dict):
+            value_dict[alpha] = 1.
             np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
                                                  correct_values[i], decimal=1)
 
@@ -907,7 +909,7 @@ class TestGradients(QiskitOpflowTestCase):
         grad = Gradient(grad_method=method)
 
         # Gradient callable
-        vqe = VQE(var_form=wavefunction,
+        vqe = VQE(ansatz=wavefunction,
                   optimizer=optimizer,
                   gradient=grad,
                   quantum_instance=q_instance)

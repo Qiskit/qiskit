@@ -111,10 +111,10 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             - 0.01128010425623538 * (Z ^ Z) \
             + 0.18093119978423156 * (X ^ X)
         optimizer = SPSA(maxiter=200)
-        var_form = EfficientSU2(2, reps=1)
+        ansatz = EfficientSU2(2, reps=1)
 
         vqe = VQE(
-            var_form=var_form,
+            ansatz=ansatz,
             optimizer=optimizer,
             quantum_instance=quantum_instance
         )

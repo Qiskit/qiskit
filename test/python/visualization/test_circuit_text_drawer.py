@@ -29,6 +29,7 @@ from qiskit.visualization.circuit_visualization import _text_circuit_drawer
 from qiskit.extensions import UnitaryGate, HamiltonianGate
 from qiskit.circuit.library import HGate, U2Gate, XGate, CZGate, ZGate, YGate, U1Gate, \
     SwapGate, RZZGate, CU3Gate, CU1Gate, CPhaseGate
+from qiskit.transpiler.passes import ApplyLayout
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -2903,20 +2904,23 @@ class TestTextWithLayout(QiskitTestCase):
         """ With a mixed layout. """
         expected = '\n'.join(["                  ┌───┐",
                               "      v_0 -> 0 |0>┤ H ├",
-                              "                  ├───┤",
-                              "ancilla_1 -> 1 |0>┤ H ├",
-                              "                  ├───┤",
-                              "ancilla_0 -> 2 |0>┤ H ├",
-                              "                  ├───┤",
+                              "                  └───┘",
+                              "ancilla_1 -> 1 |0>─────",
+                              "                       ",
+                              "ancilla_0 -> 2 |0>─────",
+                              "                  ┌───┐",
                               "      v_1 -> 3 |0>┤ H ├",
                               "                  └───┘"])
-        pqr = QuantumRegister(4, 'v')
         qr = QuantumRegister(2, 'v')
         ancilla = QuantumRegister(2, 'ancilla')
-        circuit = QuantumCircuit(pqr)
-        circuit._layout = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 2, qr[1]: 3})
-        circuit.h(pqr)
-        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+        circuit = QuantumCircuit(qr, ancilla)
+        circuit.h(qr)
+
+        pass_ = ApplyLayout()
+        pass_.property_set['layout'] = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 2, qr[1]: 3})
+        circuit_with_layout = pass_(circuit)
+
+        self.assertEqual(str(_text_circuit_drawer(circuit_with_layout)), expected)
 
     def test_partial_layout(self):
         """ With a partial layout.
@@ -2936,6 +2940,8 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.h(0)
         circuit.h(3)
         circuit._layout = Layout({0: qr[0], 1: None, 2: None, 3: qr[1]})
+        circuit._layout.add_register(qr)
+
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_with_classical_regs(self):
@@ -2953,15 +2959,19 @@ class TestTextWithLayout(QiskitTestCase):
                               "                  ║ ",
                               "      cr_1: 0 ════╩═",
                               "                    "])
-        pqr = QuantumRegister(4, 'q')
         qr1 = QuantumRegister(2, 'qr1')
-        cr = ClassicalRegister(2, 'cr')
         qr2 = QuantumRegister(2, 'qr2')
-        circuit = QuantumCircuit(pqr, cr)
-        circuit._layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
-        circuit.measure(pqr[2], cr[0])
-        circuit.measure(pqr[3], cr[1])
-        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+        cr = ClassicalRegister(2, 'cr')
+
+        circuit = QuantumCircuit(qr1, qr2, cr)
+        circuit.measure(qr2[0], cr[0])
+        circuit.measure(qr2[1], cr[1])
+
+        pass_ = ApplyLayout()
+        pass_.property_set['layout'] = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
+        circuit_with_layout = pass_(circuit)
+
+        self.assertEqual(str(_text_circuit_drawer(circuit_with_layout)), expected)
 
     def test_with_layout_but_disable(self):
         """ With parameter without_layout=False """
