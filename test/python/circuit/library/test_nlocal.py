@@ -33,13 +33,13 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 class TestNLocal(QiskitTestCase):
     """Test the n-local circuit class."""
 
-    def test_if_reps_is_zero(self):
-        """Test to check if error is raised for 0 or negative value of reps"""
+    def test_if_reps_is_negative(self):
+        """Test to check if error is raised for negative value of reps"""
         with self.assertRaises(ValueError):
             _ = NLocal(reps=-1)
 
     def test_reps_setter_when_negative(self):
-        """Test to check if setter raises error for reps <=0"""
+        """Test to check if setter raises error for reps < 0"""
         nlocal = NLocal(reps=1)
         with self.assertRaises(ValueError):
             nlocal.reps = -1
@@ -382,6 +382,7 @@ class TestTwoLocal(QiskitTestCase):
 
     @data((5, 'rx', 'cx', 'full', 2, 15),
           (3, 'x', 'z', 'linear', 1, 0),
+          (3, 'rx', 'cz', 'linear', 0, 3),
           (3, ['rx', 'ry'], ['cry', 'cx'], 'circular', 2, 24),
           )
     @unpack
@@ -417,7 +418,7 @@ class TestTwoLocal(QiskitTestCase):
             rot = QuantumCircuit(1)
             rot.rx(Parameter('angle'), 0)
 
-        two = TwoLocal(3, rot, 'cz', reps=1)
+        two = TwoLocal(3, rot, reps=0)
         self.assertEqual(len(two.rotation_blocks), 1)
         rotation = two.rotation_blocks[0]
 
