@@ -76,11 +76,11 @@ class QAOAAnsatz(BlueprintCircuit):
             if raise_on_failure:
                 raise AttributeError("The operator representing the cost of "
                                      "the optimization problem is not set")
-        if self._reps is None or self._reps < 1:
+        if self._reps is None or self._reps < 0:
             valid = False
             if raise_on_failure:
                 raise AttributeError("The integer parameter reps, which determines the depth "
-                                     "of the circuit, needs to be >= 1 but has value {}"
+                                     "of the circuit, needs to be >= 0 but has value {}"
                                      .format(self._reps))
 
         if self.initial_state is not None and self.initial_state.num_qubits != self.num_qubits:
