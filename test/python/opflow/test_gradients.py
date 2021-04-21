@@ -911,11 +911,10 @@ class TestGradients(QiskitOpflowTestCase):
             backend = BasicAer.get_backend(backend_type)
             q_instance = QuantumInstance(backend=backend, shots=shots)
             grad = NaturalGradient(grad_method=method).gradient_wrapper(operator=op,
-                                                                 bind_params=params,
-                                                                 backend=q_instance)
+                                                                        bind_params=params,
+                                                                        backend=q_instance)
             result = grad(value)
             self.assertTrue(np.allclose(result, correct_values[i], atol=0.1))
-
 
     @slow_test
     def test_vqe(self):
