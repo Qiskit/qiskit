@@ -305,7 +305,7 @@ class SPSA(Optimizer):
             # compute next parameter value
             update = update * next(eta)
             x_next = x - update
-            
+
             # blocking
             if self.blocking:
                 self._nfev += 1
