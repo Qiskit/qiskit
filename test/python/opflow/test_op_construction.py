@@ -31,7 +31,7 @@ from qiskit.circuit.library import CZGate, ZGate
 from qiskit.opflow import (
     X, Y, Z, I, CX, T, H, Minus, PrimitiveOp, PauliOp, CircuitOp, MatrixOp, EvolvedOp, StateFn,
     CircuitStateFn, VectorStateFn, DictStateFn, OperatorStateFn, ListOp, ComposedOp, TensoredOp,
-    SummedOp, OperatorBase, Zero, OpflowError
+    SummedOp, OperatorBase, Zero, OpflowError, SparseVectorStateFn
 )
 
 
@@ -918,6 +918,19 @@ class TestOpConstruction(QiskitOpflowTestCase):
         op = DictStateFn({'0': 1})
         expected = scipy.sparse.csr_matrix([[1, 0]])
         self.assertFalse((op.eval().primitive != expected).toarray().any())
+
+    def test_sparse_to_dict(self):
+        """Test converting a sparse vector state function to a dict state function."""
+        isqrt2 = 1 / np.sqrt(2)
+        sparse = scipy.sparse.csr_matrix([[0, isqrt2, 0, isqrt2]])
+        sparse_fn = SparseVectorStateFn(sparse)
+        dict_fn = DictStateFn({'01': isqrt2, '11': isqrt2})
+
+        with self.subTest('sparse to dict'):
+            self.assertEqual(dict_fn, sparse_fn.to_dict_fn())
+
+        with self.subTest('dict to sparse'):
+            self.assertEqual(dict_fn.to_spmatrix_op(), sparse_fn)
 
     def test_to_circuit_op(self):
         """Test to_circuit_op method."""
