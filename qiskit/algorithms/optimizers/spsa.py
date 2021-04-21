@@ -328,8 +328,10 @@ class SPSA(Optimizer):
                         k, self.maxiter + 1, time() - iteration_start)
 
             if self.callback is not None:
-                self._nfev += 1
-                fx_next = loss(x_next)
+                # if we didn't evaluate the function yet, do it now
+                if not self.blocking:
+                    self._nfev += 1
+                    fx_next = loss(x_next)
 
                 self.callback(self._nfev,  # number of function evals
                               x_next,  # next parameters
