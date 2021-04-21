@@ -1,0 +1,3 @@
+---
+fixes:
+  - Include an expectation converter in the `gradient_wrapper` to fix gradient results computed with `qasm` 
