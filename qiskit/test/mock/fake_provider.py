@@ -16,7 +16,7 @@
 Fake provider class that provides access to fake backends.
 """
 
-from qiskit.providers.baseprovider import BaseProvider
+from qiskit.providers.provider import ProviderV1
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 
 from .backends import *
@@ -25,7 +25,7 @@ from .fake_openpulse_2q import FakeOpenPulse2Q
 from .fake_openpulse_3q import FakeOpenPulse3Q
 
 
-class FakeProvider(BaseProvider):
+class FakeProvider(ProviderV1):
     """Dummy provider just for testing purposes.
 
     Only filtering backends by name is implemented.

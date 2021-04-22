@@ -18,16 +18,18 @@ Base class for dummy backends.
 
 import warnings
 
+from qiskit import circuit
 from qiskit.providers.models import BackendProperties
-from qiskit.providers import BaseBackend
+from qiskit.providers import BackendV1
+from qiskit import pulse
 from qiskit.exceptions import QiskitError
 
 try:
-    from qiskit.providers.aer import Aer
+    from qiskit.providers import aer
     HAS_AER = True
 except ImportError:
     HAS_AER = False
-    from qiskit.providers.basicaer import BasicAer
+    from qiskit.providers import basicaer
 
 
 class _Credentials():
@@ -39,7 +41,7 @@ class _Credentials():
         self.project = 'project'
 
 
-class FakeBackend(BaseBackend):
+class FakeBackend(BackendV1):
     """This is a dummy backend just for testing purposes."""
 
     def __init__(self, configuration, time_alive=10):
@@ -117,30 +119,52 @@ class FakeBackend(BaseBackend):
 
         return BackendProperties.from_dict(properties)
 
-    def run(self, qobj):
-        """Main job in simulator"""
+    @classmethod
+    def _default_options(cls):
         if HAS_AER:
-            if qobj.type == 'PULSE':
+            return aer.QasmSimulator._default_options()
+        else:
+            return basicaer.QasmSimulatorPy._default_options()
+
+    def run(self, circuits, **kwargs):
+        """Main job in simulator"""
+        pulse_job = None
+        if isinstance(circuits, pulse.Schedule):
+            pulse_job = True
+        elif isinstance(circuits, circuit.QuantumCircuit):
+            pulse_job = False
+        elif isinstance(circuits, list):
+            if circuits:
+                if all(isinstance(x, pulse.Schedule) for x in circuits):
+                    pulse_job = True
+                elif all(isinstance(x, circuit.QuantumCircuit) for x in circuits):
+                    pulse_job = False
+        if pulse_job is None:
+            raise QiskitError("Invalid input object %s, must be either a "
+                              "QuantumCircuit, Schedule, or a list of "
+                              "either" % circuits)
+        if HAS_AER:
+            if pulse_job:
                 from qiskit.providers.aer.pulse import PulseSystemModel
                 system_model = PulseSystemModel.from_backend(self)
-                sim = Aer.get_backend('pulse_simulator')
-                job = sim.run(qobj, system_model)
+                sim = aer.Aer.get_backend('pulse_simulator')
+                job = sim.run(circuits, system_model, **kwargs)
             else:
-                sim = Aer.get_backend('qasm_simulator')
+                sim = aer.Aer.get_backend('qasm_simulator')
                 if self.properties():
                     from qiskit.providers.aer.noise import NoiseModel
                     noise_model = NoiseModel.from_backend(self, warnings=False)
-                    job = sim.run(qobj, noise_model=noise_model)
+                    job = sim.run(circuits, noise_model=noise_model)
                 else:
-                    job = sim.run(qobj)
+                    job = sim.run(circuits, **kwargs)
         else:
-            if qobj.type == 'PULSE':
+            if pulse_job:
                 raise QiskitError("Unable to run pulse schedules without "
                                   "qiskit-aer installed")
             warnings.warn("Aer not found using BasicAer and no noise",
                           RuntimeWarning)
-            sim = BasicAer.get_backend('qasm_simulator')
-            job = sim.run(qobj)
+            sim = basicaer.BasicAer.get_backend('qasm_simulator')
+            job = sim.run(circuits, **kwargs)
         return job
 
     def jobs(self, **kwargs):  # pylint: disable=unused-argument

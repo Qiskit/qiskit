@@ -17,11 +17,11 @@ Base class for dummy jobs.
 
 from concurrent import futures
 
-from qiskit.providers import BaseJob
+from qiskit.providers import JobV1
 from qiskit.providers.jobstatus import JobStatus
 
 
-class FakeJob(BaseJob):
+class FakeJob(JobV1):
     """Fake simulator job"""
     _executor = futures.ProcessPoolExecutor()
 
