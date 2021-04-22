@@ -11,7 +11,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test of differential evolution optimizer."""
+"""Test of differential evolution optimizer."""
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
