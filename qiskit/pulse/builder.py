@@ -1136,7 +1136,7 @@ def pad(*chs: chans.Channel) -> ContextManager[None]:  # pylint: disable=unused-
     Yields:
         None
     """
-    warnings.warn('Context-wise padding is being deprecated. This padding is just ignored. '
+    warnings.warn('Context-wise padding is being deprecated. Requested padding is being ignored. '
                   'Set the padding process in the pulse transformation pass. '
                   'This transform pass feature will be supported soon.', DeprecationWarning)
     try:
