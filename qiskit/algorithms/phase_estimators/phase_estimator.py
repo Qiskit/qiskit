@@ -21,9 +21,12 @@ from qiskit.algorithms.algorithm_result import AlgorithmResult
 class PhaseEstimator(ABC):
     """The Phase Estimator interface.
 
-    Algorithms that can compute a phase for a unitary operator and
-    initial state may implement this interface to allow different
-    algorithms to be used interchangeably.
+    Algorithms that can compute a phase for a unitary operator and initial state may implement this
+    interface to allow different algorithms to be used interchangeably.
+
+    The phase returned is a canonical phase determined by the specific algorithm, such as the most
+    likely phase. In addition, the algorithm may provide an interface to retrieve phases by other
+    criteria.
     """
 
     @abstractmethod
@@ -40,11 +43,11 @@ class PhaseEstimatorResult(AlgorithmResult):
     """Phase Estimator Result."""
 
     @abstractproperty
-    def most_likely_phase(self) -> float:
+    def phase(self) -> float:
         r"""Return the estimated phase as a number in :math:`[0.0, 1.0)`.
 
-        1.0 corresponds to a phase of :math:`2\pi`. It is assumed that the input vector is an
-        eigenvector of the unitary so that the peak of the probability density occurs at the bit
-        string that most closely approximates the true phase.
+        1.0 corresponds to a phase of :math:`2\pi`. In case the phase estimation algorithm
+        computes more than one phase, this attribute returns a canonical single phase; for
+        example, the most likely phase.
         """
         raise NotImplementedError
