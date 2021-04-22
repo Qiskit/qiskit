@@ -282,34 +282,29 @@ def set_style(current_style, new_style):
     """Utility function to take elements in new_style and
     write them into current_style.
     """
-    current_style['name'] = new_style.pop('name', current_style['name'])
-    current_style['tc'] = new_style.pop('textcolor', current_style['tc'])
-    current_style['gt'] = new_style.pop('gatetextcolor', current_style['gt'])
-    current_style['sc'] = new_style.pop('subtextcolor', current_style['sc'])
-    current_style['lc'] = new_style.pop('linecolor', current_style['lc'])
-    current_style['cc'] = new_style.pop('creglinecolor', current_style['cc'])
-    current_style['gc'] = new_style.pop('gatefacecolor', current_style['gc'])
-    current_style['bc'] = new_style.pop('barrierfacecolor', current_style['bc'])
-    current_style['bg'] = new_style.pop('backgroundcolor', current_style['bg'])
-    current_style['ec'] = new_style.pop('edgecolor', current_style['ec'])
-    current_style['fs'] = new_style.pop('fontsize', current_style['fs'])
-    current_style['sfs'] = new_style.pop('subfontsize', current_style['sfs'])
-    current_style['index'] = new_style.pop('showindex', current_style['index'])
-    current_style['figwidth'] = new_style.pop('figwidth', current_style['figwidth'])
-    current_style['dpi'] = new_style.pop('dpi', current_style['dpi'])
-    current_style['margin'] = new_style.pop('margin', current_style['margin'])
-    current_style['cline'] = new_style.pop('creglinestyle', current_style['cline'])
-    dtex = new_style.pop('displaytext', current_style['disptex'])
-    for tex in dtex.keys():
-        if tex in current_style['disptex'].keys():
-            current_style['disptex'][tex] = dtex[tex]
-    dcol = new_style.pop('displaycolor', current_style['dispcol'])
-    for col in dcol.keys():
-        if col in current_style['dispcol'].keys():
-            current_style['dispcol'][col] = dcol[col]
+    valid_fieds = {'name', 'textcolor', 'gatetextcolor', 'subtextcolor', 'linecolor',
+                   'creglinecolor', 'gatefacecolor', 'barrierfacecolor', 'backgroundcolor',
+                   'edgecolor', 'fontsize', 'subfontsize', 'showindex', 'figwidth', 'dpi',
+                   'margin', 'creglinestyle', 'displaytext', 'displaycolor'}
 
-    if new_style:
-        warn('style option/s ({}) is/are not supported'.format(', '.join(new_style.keys())),
-             DeprecationWarning, 2)
+    current_style.update(new_style)
+    current_style['tc'] = current_style.get('textcolor', current_style['tc'])
+    current_style['gt'] = current_style.get('gatetextcolor', current_style['gt'])
+    current_style['sc'] = current_style.get('subtextcolor', current_style['sc'])
+    current_style['lc'] = current_style.get('linecolor', current_style['lc'])
+    current_style['cc'] = current_style.get('creglinecolor', current_style['cc'])
+    current_style['gc'] = current_style.get('gatefacecolor', current_style['gc'])
+    current_style['bc'] = current_style.get('barrierfacecolor', current_style['bc'])
+    current_style['bg'] = current_style.get('backgroundcolor', current_style['bg'])
+    current_style['ec'] = current_style.get('edgecolor', current_style['ec'])
+    current_style['fs'] = current_style.get('fontsize', current_style['fs'])
+    current_style['sfs'] = current_style.get('subfontsize', current_style['sfs'])
+    current_style['index'] = current_style.get('showindex', current_style['index'])
+    current_style['cline'] = current_style.get('creglinestyle', current_style['cline'])
+    current_style['disptex'] = {**current_style['disptex'], **new_style.get('displaytext', {})}
+    current_style['dispcol'] = {**current_style['dispcol'], **new_style.get('displaycolor', {})}
 
-    return current_style
+    unsupported_keys = set(new_style) - valid_fieds
+    if unsupported_keys:
+        warn('style option/s ({}) is/are not supported'.format(', '.join(unsupported_keys)),
+             UserWarning, 2)

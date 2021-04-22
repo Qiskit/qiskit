@@ -740,6 +740,8 @@ def seconds_to_samples(seconds: Union[float, np.ndarray]) -> Union[int, np.ndarr
     Returns:
         The number of samples for the time to elapse
     """
+    if isinstance(seconds, np.ndarray):
+        return (seconds / active_backend().configuration().dt).astype(int)
     return int(seconds / active_backend().configuration().dt)
 
 
