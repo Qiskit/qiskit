@@ -22,8 +22,8 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.symplectic import Clifford, Pauli
-from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x, _append_h, \
-    _append_s, _append_sdg, _append_z
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x, \
+    _append_h, _append_sdg
 
 
 class StabilizerState(QuantumState):
@@ -180,7 +180,7 @@ class StabilizerState(QuantumState):
             qargs (None or list): subsystems to apply the operator on.
 
         Returns:
-            complex: the expectation value.
+            complex: the expectation value (only 0 or 1 or -1)
         """
         if qargs is None:
             qubits = range(self.data.num_qubits)
@@ -193,7 +193,6 @@ class StabilizerState(QuantumState):
         for pos in qubits:
             qubit = qubits[pos]
             pauli = (oper.to_label())[len(oper) - 1 - pos]
-            # print (pos, qubit, pauli)
             if pauli == 'I':
                 pass
             elif pauli == 'X':
@@ -207,7 +206,6 @@ class StabilizerState(QuantumState):
                 measured_qubits.append(qubit)
             else:
                 raise QiskitError("Invalid Pauli string {}".format(pauli))
-        # print (measured_qubits)
 
         return stab_cpy._expval_z_basis(measured_qubits)
 
@@ -440,8 +438,8 @@ class StabilizerState(QuantumState):
                 'Invalid rowsum in measurement calculation.')
 
         accum_phase = int((newr == 2))
-        accum_pauli.x += row_pauli.x
-        accum_pauli.z += row_pauli.z
+        accum_pauli.x ^= row_pauli.x
+        accum_pauli.z ^= row_pauli.z
         return accum_pauli, accum_phase
 
     def _rowsum_nondeterministic(self, accum, row):
@@ -497,28 +495,25 @@ class StabilizerState(QuantumState):
             num_of_x = 0
             for qubit in qubits:
                 num_of_x += self.data.stabilizer.X[p][qubit]
-            # print (p, num_of_x)
             if num_of_x % 2 == 1:
                 return 0
 
         # Otherwise the expectation value is +1 or -1
-        # according to the deterministic measurement
-        sum_of_outcomes = 0
-        for qubit in qubits:
-            aux_pauli = Pauli(num_qubits * 'I')
-            # print (qubit, aux_pauli, aux_pauli.phase)
-            for i in range(num_qubits):
-                if self.data.table.X[i][qubit]:
-                    aux_pauli = self._rowsum_deterministic(aux_pauli, i + num_qubits)
-                    # print (qubit, aux_pauli, aux_pauli.phase)
+        # according to the measurement probabilities
+        probs = self.probabilities_dict(qubits)
+        expval = 0
+        for key, value in probs.items():
+            num_of_ones = key.count("1") % 2
+            if not num_of_ones:
+                expval += value
+            else:
+                expval -= value
 
-            sum_of_outcomes += aux_pauli.phase
-            # print (qubit, "sum", sum_of_outcomes)
-        sum_of_outcomes = sum_of_outcomes % 2
+        if (not np.isclose(expval, 1.0)) and (not np.isclose(expval, -1.0)):
+            raise QiskitError(
+                'Invalid Expectation Value. Should be 1.0 or -1.0')
 
-        if not sum_of_outcomes:
-            return 1
-        return -1
+        return expval
 
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities

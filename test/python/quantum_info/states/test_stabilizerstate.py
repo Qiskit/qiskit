@@ -24,7 +24,7 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
 
 from qiskit.quantum_info.random import random_clifford, random_pauli
-from qiskit.quantum_info.states import StabilizerState
+from qiskit.quantum_info.states import StabilizerState, Statevector
 from qiskit.circuit.library import IGate, XGate, HGate
 from qiskit.quantum_info.operators import Clifford, Pauli, Operator
 
@@ -504,12 +504,12 @@ class TestStabilizerState(QiskitTestCase):
         qc = QuantumCircuit(num_qubits)
         qc.h(0)
         stab = StabilizerState(qc)
-        pairs = [('Z', 0), ('X', -1), ('Y', 0), ('I', 1)]
+        pairs = [('Z', 0), ('X', 1), ('Y', 0), ('I', 1)]
         for label, target in pairs:
             with self.subTest(msg="<{}>".format(label)):
                 op = Pauli(label)
                 expval = stab.expectation_value(op)
-                # self.assertEqual(expval, target)
+                self.assertEqual(expval, target)
 
     def test_expval_two_qubits(self):
         """Test expectation_value method of two qubits"""
@@ -577,8 +577,51 @@ class TestStabilizerState(QiskitTestCase):
             with self.subTest(msg="<{}>".format(label)):
                 op = Pauli(label)
                 expval = stab.expectation_value(op)
-                # print (op, expval, target)
-                # self.assertEqual(expval, target)
+                self.assertEqual(expval, target)
+
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        qc.x(1)
+        qc.cx(0, 1)
+        stab = StabilizerState(qc)
+        pairs = [('II', 1), ('XX', 1), ('YY', 1), ('ZZ', -1),
+                 ('IX', 0), ('IY', 0), ('IZ', 0), ('XY', 0),
+                 ('XZ', 0), ('YZ', 0)]
+        for label, target in pairs:
+            with self.subTest(msg="<{}>".format(label)):
+                op = Pauli(label)
+                expval = stab.expectation_value(op)
+                self.assertEqual(expval, target)
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.sdg(0)
+        qc.sdg(1)
+        qc.h(0)
+        qc.h(1)
+        stab = StabilizerState(qc)
+        pairs = [('II', 1), ('XX', 1), ('YY', 1), ('ZZ', -1),
+                 ('IX', 0), ('IY', 0), ('IZ', 0), ('XY', 0),
+                 ('XZ', 0), ('YZ', 0)]
+        for label, target in pairs:
+            with self.subTest(msg="<{}>".format(label)):
+                op = Pauli(label)
+                expval = stab.expectation_value(op)
+                self.assertEqual(expval, target)
+
+    @combine(num_qubits=[2, 3, 4, 5])
+    def test_expval_random(self, num_qubits):
+        """Test expectation_value method of random Cliffords"""
+
+        for _ in range(self.samples):
+            cliff = random_clifford(num_qubits, seed=self.rng)
+            op = random_pauli(num_qubits, seed=self.rng)
+            qc = cliff.to_circuit()
+            stab = StabilizerState(cliff)
+            exp_val = stab.expectation_value(op)
+            target = Statevector(qc).expectation_value(op)
+            self.assertAlmostEqual(exp_val, target)
 
     def test_sample_counts_memory_ghz(self):
         """Test sample_counts and sample_memory method for GHZ state"""
