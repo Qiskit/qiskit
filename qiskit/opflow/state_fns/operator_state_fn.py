@@ -22,6 +22,7 @@ from qiskit.opflow.list_ops.summed_op import SummedOp
 from qiskit.opflow.list_ops.tensored_op import TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.matrix_op import MatrixOp
+from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.quantum_info import Statevector
@@ -204,6 +205,15 @@ class OperatorStateFn(StateFn):
                 multiplied = self.primitive.coeff * self.coeff * np.array(result)
                 return multiplied.tolist()
             return result * self.coeff * self.primitive.coeff
+
+        # pylint: disable=cyclic-import
+        from .vector_state_fn import VectorStateFn
+        if isinstance(self.primitive, PauliSumOp) and isinstance(front, VectorStateFn):
+            return (
+                front.primitive.expectation_value(self.primitive.primitive)
+                * self.coeff
+                * front.coeff
+            )
 
         # Need an ListOp-specific carve-out here to make sure measurement over a ListOp doesn't
         # produce two-dimensional ListOp from composing from both sides of primitive.
