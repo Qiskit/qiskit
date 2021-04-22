@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Differential Evolution (DE) optimizer"""
+"""Differential Evolution optimizer"""
 
 from typing import Callable, Tuple, List, Dict, Union
 
@@ -23,8 +23,8 @@ class DifferentialEvolution(Optimizer):
     """
     Differential Evolution optimizer
 
-    The Differential Evolution Optimizer is a global and derivative-free 
-    optimizer that seeks to find the optimal value of an objective function 
+    The Differential Evolution Optimizer is a global and derivative-free
+    optimizer that seeks to find the optimal value of an objective function
     through stochastically searching the optimization space of possible solutions.
     It belongs to the family of evolutionary optimization techniques
     such as genetic and particle swarm algorithms. It is best suited
