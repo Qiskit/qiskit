@@ -73,7 +73,7 @@ A sequence of transformations to generate a target code.
 .. autosummary::
    :toctree: ../stubs/
 
-   base_qobj_transform
+   target_qobj_transform
 
 """
 
