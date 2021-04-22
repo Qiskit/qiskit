@@ -17,7 +17,7 @@ from typing import List, Optional, Union, Tuple
 import numpy as np
 from scipy.linalg import schur
 
-from qiskit.circuit.parameterexpression import ParameterExpression, HAS_SYMENGINE
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
 
@@ -240,18 +240,9 @@ class Gate(Instruction):
         if isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:
                 return parameter  # expression has free parameters, we cannot validate it
-            if not parameter._symbol_expr.is_real and parameter._symbol_expr.is_real is not None:
+            if not parameter.is_real():
                 msg = "Bound parameter expression is complex in gate {}".format(self.name)
-                # Symengine returns false for is_real on the expression if
-                # there is a imaginary component (even if that component is 0),
-                # but the parameter will evaluate as real. Check that if the
-                # expression's is_real attribute returns false that we have a
-                # non-zero imaginary
-                if HAS_SYMENGINE:
-                    if parameter._symbol_expr.imag != 0.0:
-                        raise CircuitError(msg)
-                else:
-                    raise CircuitError(msg)
+                raise CircuitError(msg)
             return parameter  # per default assume parameters must be real when bound
         if isinstance(parameter, (int, float)):
             return parameter

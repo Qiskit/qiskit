@@ -461,3 +461,19 @@ class ParameterExpression:
             self._parameter_symbols = state['symbols']
             self._parameters = set(self._parameter_symbols)
         self._names = state['names']
+
+    def is_real(self):
+        """Return whether the expression is real"""
+
+        if not self._symbol_expr.is_real and self._symbol_expr.is_real is not None:
+            # Symengine returns false for is_real on the expression if
+            # there is a imaginary component (even if that component is 0),
+            # but the parameter will evaluate as real. Check that if the
+            # expression's is_real attribute returns false that we have a
+            # non-zero imaginary
+            if HAS_SYMENGINE:
+                if self._symbol_expr.imag != 0.0:
+                    return False
+            else:
+                return False
+        return True
