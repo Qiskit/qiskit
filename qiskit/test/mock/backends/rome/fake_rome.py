@@ -15,14 +15,13 @@ Fake Rome device (5 qubit).
 """
 
 import os
-from qiskit.test.mock.fake_pulse_backend import FakePulseBackend
+from qiskit.test.mock.fake_qasm_backend import FakeQasmBackend
 
 
-class FakeRome(FakePulseBackend):
+class FakeRome(FakeQasmBackend):
     """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_rome.json"
     props_filename = "props_rome.json"
-    defs_filename = "defs_rome.json"
     backend_name = "fake_rome"

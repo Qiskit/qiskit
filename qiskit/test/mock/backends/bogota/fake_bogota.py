@@ -17,7 +17,7 @@ Fake Rome device (5 qubit).
 import os
 import json
 
-from qiskit.providers.models import QasmBackendConfiguration, BackendProperties, PulseDefaults
+from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
@@ -45,12 +45,3 @@ class FakeBogota(FakeBackend):
                 props = json.load(f_prop)
             self._properties = BackendProperties.from_dict(props)
         return self._properties
-
-    def defaults(self):
-        if not self._defaults:
-            dirname = os.path.dirname(__file__)
-            filename = "defs_bogota.json"
-            with open(os.path.join(dirname, filename)) as f_def:
-                defs = json.load(f_def)
-            self._defaults = PulseDefaults.from_dict(defs)
-        return self._defaults

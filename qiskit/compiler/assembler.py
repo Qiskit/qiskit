@@ -244,9 +244,12 @@ def _parse_common_args(
             raise QiskitError("memory not supported by backend {}"
                               .format(backend_config.backend_name))
 
-        # set defaults for pulse
+        # try to set defaults for pulse, other leave as None
         if backend_config.open_pulse:
-            backend_defaults = backend.defaults()
+            try:
+                backend_defaults = backend.defaults()
+            except AttributeError:
+                pass
 
     # an identifier for the Qobj
     qobj_id = qobj_id or str(uuid.uuid4())

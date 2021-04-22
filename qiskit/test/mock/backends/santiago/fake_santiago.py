@@ -15,14 +15,13 @@ Fake Santiago device (5 qubit).
 """
 
 import os
-from qiskit.test.mock.fake_pulse_backend import FakePulseBackend
+from qiskit.test.mock.fake_qasm_backend import FakeQasmBackend
 
 
-class FakeSantiago(FakePulseBackend):
+class FakeSantiago(FakeQasmBackend):
     """A fake Santiago backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_santiago.json"
     props_filename = "props_santiago.json"
-    defs_filename = "defs_santiago.json"
     backend_name = "fake_santiago"
