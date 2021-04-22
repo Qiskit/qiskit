@@ -684,7 +684,7 @@ def append_schedule(schedule: Union[Schedule, ScheduleBlock]):
         _active_builder().append_block(schedule)
     else:
         raise exceptions.PulseError(f'Input program {schedule.__class__.__name__} is not '
-                                    'acceptable program format. Input `Schedule` or '
+                                    'acceptable program type. Input a `Schedule` or '
                                     '`ScheduleBlock`.')
 
 
