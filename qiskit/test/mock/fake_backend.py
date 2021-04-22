@@ -126,8 +126,9 @@ class FakeBackend(BackendV1):
         else:
             return basicaer.QasmSimulatorPy._default_options()
 
-    def run(self, circuits, **kwargs):
+    def run(self, run_input, **kwargs):
         """Main job in simulator"""
+        circuits = run_input
         pulse_job = None
         if isinstance(circuits, pulse.Schedule):
             pulse_job = True
