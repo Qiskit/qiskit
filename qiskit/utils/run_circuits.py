@@ -26,6 +26,8 @@ from qiskit.providers import Backend, BaseBackend, JobStatus, JobError, BaseJob
 from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.result import Result
 from qiskit.qobj import QasmQobj
+from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.assembler.run_config import RunConfig
 from ..exceptions import QiskitError, MissingOptionalLibraryError
 from .backend_utils import (is_aer_provider,
                             is_basicaer_provider,
@@ -381,3 +383,153 @@ def run_on_backend(backend: Union[Backend, BaseBackend],
     else:
         job = backend.run(qobj, **backend_options, **noise_config)
         return job
+
+
+def run_circuits(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+                 backend: Backend,
+                 backend_options: Dict,
+                 qjob_config: Dict,
+                 run_config: RunConfig,
+                 job_callback: Optional[Callable] = None) -> Result:
+    """
+    An execution wrapper with Qiskit-Terra, with job auto recover capability.
+
+    The auto-recovery feature is only applied for non-simulator backend.
+    This wrapper will try to get the result no matter how long it takes.
+
+    Args:
+        circuits: circuits to execute
+        backend: backend instance
+        backend_options: backend options
+        qjob_config: configuration for quantum job object
+        run_config: configuration for run
+        job_callback: callback used in querying info of the submitted job, and
+                                           providing the following arguments:
+                                            job_id, job_status, queue_position, job
+
+    Returns:
+        Result object
+
+    Raises:
+        QiskitError: Any error except for JobError raised by Qiskit Terra
+    """
+    with_autorecover = not is_simulator_backend(backend)
+    run_config = run_config.to_dict()
+    job = _execute_circuits(circuits,
+                            backend,
+                            shots=run_config.get('shots'),
+                            memory=backend_options.get('memory', False),
+                            max_credits=run_config.get('max_credits'),
+                            seed_simulator=run_config.get('seed_simulator'))
+    job_id = job.job_id()
+
+    result = None
+    if with_autorecover:
+        logger.info("Backend status: %s", backend.status())
+        logger.info("There is one jobs are submitted: id: %s", job_id)
+        while True:
+            logger.info("Running job id: %s", job_id)
+            # try to get result if possible
+            while True:
+                job_status = _safe_get_job_status(job, job_id)
+                queue_position = 0
+                if job_status in JOB_FINAL_STATES:
+                    # do callback again after the job is in the final states
+                    if job_callback is not None:
+                        job_callback(job_id, job_status, queue_position, job)
+                    break
+                if job_status == JobStatus.QUEUED:
+                    queue_position = job.queue_position()
+                    logger.info("Job id: %s is queued at position %s", job_id, queue_position)
+                else:
+                    logger.info("Job id: %s, status: %s", job_id, job_status)
+                if job_callback is not None:
+                    job_callback(job_id, job_status, queue_position, job)
+                time.sleep(qjob_config['wait'])
+
+            # get result after the status is DONE
+            if job_status == JobStatus.DONE:
+                while True:
+                    result = job.result(**qjob_config)
+                    if result.success:
+                        logger.info("COMPLETED: job id: %s", job_id)
+                        break
+
+                    logger.warning("FAILURE: Job id: %s", job_id)
+                    logger.warning("Job (%s) is completed anyway, retrieve result "
+                                   "from backend again.", job_id)
+                    job = backend.retrieve_job(job_id)
+                break
+            # for other cases, resubmit the circuit until the result is available.
+            # since if there is no result returned, there is no way algorithm can do any process
+            if job_status == JobStatus.CANCELLED:
+                logger.warning("FAILURE: Job id: %s is cancelled. Re-submit the circuits.",
+                               job_id)
+            elif job_status == JobStatus.ERROR:
+                logger.warning("FAILURE: Job id: %s encounters the error. "
+                               "Error is : %s. Re-submit the circuits.",
+                               job_id, job.error_message())
+            else:
+                logging.warning("FAILURE: Job id: %s. Unknown status: %s. "
+                                "Re-submit the circuits.", job_id, job_status)
+
+            job = _execute_circuits(circuits,
+                                    backend,
+                                    shots=run_config.get('shots'),
+                                    memory=backend_options.get('memory', False),
+                                    max_credits=run_config.get('max_credits'),
+                                    seed_simulator=run_config.get('seed_simulator'))
+            job_id = job.job_id()
+    else:
+        result = job.result(**qjob_config)
+
+    # If result was not successful then raise an exception with either the status msg or
+    # extra information if this was an Aer partial result return
+    if not result.success:
+        msg = result.status
+        if result.status == 'PARTIAL COMPLETED':
+            # Aer can return partial results which Aqua algorithms cannot process and signals
+            # using partial completed status where each returned result has a success and status.
+            # We use the status from the first result that was not successful
+            for res in result.results:
+                if not res.success:
+                    msg += ', ' + res.status
+                    break
+        raise QiskitError('Circuit execution failed: {}'.format(msg))
+
+    if not hasattr(result, 'time_taken'):
+        setattr(result, 'time_taken', 0.)
+
+    return result
+
+
+def _execute_circuits(experiments,
+                      backend,
+                      shots,
+                      memory,
+                      max_credits,
+                      seed_simulator):
+    run_kwargs = {
+        'shots': shots,
+        'memory': memory,
+        'max_credits': max_credits,
+        'seed_simulator': seed_simulator,
+    }
+    for key in list(run_kwargs.keys()):
+        if not hasattr(backend.options, key):
+            if run_kwargs[key] is not None:
+                logger.info("%s backend doesn't support option %s so not "
+                            "passing that kwarg to run()", backend.name, key)
+            del run_kwargs[key]
+        elif key == 'shots' and run_kwargs[key] is None:
+            run_kwargs[key] = 1024
+        elif key == 'max_credits' and run_kwargs[key] is None:
+            run_kwargs[key] = 10
+        elif key == 'meas_level' and run_kwargs[key] is None:
+            run_kwargs[key] = MeasLevel.CLASSIFIED
+        elif key == 'meas_return' and run_kwargs[key] is None:
+            run_kwargs[key] = MeasReturnType.AVERAGE
+        elif key == 'memory_slot_size' and run_kwargs[key] is None:
+            run_kwargs[key] = 100
+
+    return backend.run(experiments, **run_kwargs)

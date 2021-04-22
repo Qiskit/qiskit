@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,6 +22,7 @@ from qiskit.qobj import Qobj
 from qiskit.utils import circuit_utils
 from qiskit.exceptions import QiskitError
 from .backend_utils import (is_ibmq_provider,
+                            is_aer_provider,
                             is_statevector_backend,
                             is_simulator_backend,
                             is_local_backend,
@@ -295,7 +296,7 @@ class QuantumInstance:
         TODO: Maybe we can combine the circuits for the main ones and calibration circuits before
               assembling to the qobj.
         """
-        from qiskit.utils.run_circuits import run_qobj
+        from qiskit.utils.run_circuits import run_qobj, run_circuits
 
         from qiskit.utils.measurement_error_mitigation import \
             (get_measured_qubits_from_qobj, build_measurement_error_mitigation_qobj)
@@ -303,6 +304,23 @@ class QuantumInstance:
         # maybe compile
         if not had_transpiled:
             circuits = self.transpile(circuits)
+
+        # fix for providers that don't support QasmQobj until a bigger refactor happens
+        from qiskit.providers import BackendV1
+        if isinstance(self._backend, BackendV1) and \
+                not is_aer_provider(self._backend) and \
+                not is_basicaer_provider(self._backend) and \
+                not is_ibmq_provider(self._backend):
+            result = run_circuits(circuits,
+                                  self._backend,
+                                  self.backend_options,
+                                  self.qjob_config,
+                                  self.run_config,
+                                  self._job_callback)
+            self._time_taken += result.time_taken
+            if self._circuit_summary:
+                self._circuit_summary = False
+            return result
 
         # assemble
         qobj = self.assemble(circuits)
