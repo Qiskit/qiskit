@@ -105,23 +105,30 @@ class SPSA(Optimizer):
                  ) -> None:
         r"""
         Args:
-            maxiter: The maximum number of iterations.
-            blocking: If True, only accepts updates that improve the loss (minus some allowed
+            maxiter: The maximum number of iterations. Note that this is not the maximal number
+                of function evaluations.
+            blocking: If True, only accepts updates that improve the loss (up to some allowed
                 increase, see next argument).
-            allowed_increase: If blocking is True, this sets by how much the loss can increase
-                and still be accepted. If None, calibrated automatically to be twice the
-                standard deviation of the loss function.
-            trust_region: If True, restricts norm of the random direction to be :math:`\leq 1`.
-            learning_rate: A generator yielding learning rates for the parameter updates,
-                :math:`a_k`. If set, also ``perturbation`` must be provided.
-            perturbation: A generator yielding the perturbation magnitudes :math:`c_k`. If set,
-                also ``learning_rate`` must be provided.
+            allowed_increase: If ``blocking`` is ``True``, this argument determines by how much
+                the loss can increase with the proposed parameters and still be accepted.
+                If ``None``, the allowed increases is calibrated automatically to be twice the
+                approximated standard deviation of the loss function.
+            trust_region: If ``True``, restricts the norm of the update step to be :math:`\leq 1`.
+            learning_rate: The update step is the learning rate is multiplied with the gradient.
+                If the learning rate is a float, it remains constant over the course of the
+                optimization. It can also be a callable returning an iterator which yields the
+                learning rates for each optimization step.
+                If ``learning_rate`` is set ``perturbation`` must also be provided.
+            perturbation: Specifies the magnitude of the perturbation for the finite difference
+                approximation of the gradients. Can be either a float or a generator yielding
+                the perturbation magnitudes per step.
+                If ``perturbation`` is set ``learning_rate`` must also be provided.
             last_avg: Return the average of the ``last_avg`` parameters instead of just the
                 last parameter values.
-            resamplings: The number of times the gradient is sampled using a random direction to
-                construct a gradient estimate. Per default the gradient is estimated using only
-                one random direction. If an integer, all iterations use the same number of
-                resamplings. If a dictionary, this is interpreted as
+            resamplings: The number of times the gradient (and Hessian) is sampled using a random
+                direction to construct a gradient estimate. Per default the gradient is estimated
+                using only one random direction. If an integer, all iterations use the same number
+                of resamplings. If a dictionary, this is interpreted as
                 ``{iteration: number of resamplings per iteration}``.
             perturbation_dims: The number of perturbed dimensions. Per default, all dimensions
                 are perturbed, but a smaller, fixed number can be perturbed. If set, the perturbed
@@ -132,10 +139,11 @@ class SPSA(Optimizer):
             regularization: To ensure the preconditioner is symmetric and positive definite, the
                 identity times a small coefficient is added to it. This generator yields that
                 coefficient.
-            hessian_delay: Start preconditioning only after a certain number of iterations.
-                Can be useful to first get a stable average over the last iterations before using
-                the preconditioner.
-            lse_solver: The method to solve for the inverse of the preconditioner. Per default an
+            hessian_delay: Start multiplying the gradient with the inverse Hessian only after a
+                certain number of iterations. The Hessian is still evaluated and therefore this
+                argument can be useful to first get a stable average over the last iterations before
+                using it as preconditioner.
+            lse_solver: The method to solve for the inverse of the Hessian. Per default an
                 exact LSE solver is used, but can e.g. be overwritten by a minimization routine.
             initial_hessian: The initial guess for the Hessian. By default the identity matrix
                 is used.
@@ -357,7 +365,10 @@ class SPSA(Optimizer):
 
         # prepare some initials
         x = np.asarray(initial_point)
-        self._smoothed_hessian = np.identity(x.size)
+        if self.initial_hessian is None:
+            self._smoothed_hessian = np.identity(x.size)
+        else:
+            self._smoothed_hessian = self.initial_hessian
 
         self._nfev = 0
 
@@ -482,7 +493,9 @@ def constant(eta=0.01):
 def _batch_evaluate(function, points, max_evals_grouped):
     # if the function cannot handle lists of points as input, cover this case immediately
     if max_evals_grouped == 1:
-        return [function(point) for point in points]
+        # support functions with multiple arguments where the points are given in a tuple
+        return [function(*point) if isinstance(point, tuple) else function(point)
+                for point in points]
 
     num_points = len(points)
 

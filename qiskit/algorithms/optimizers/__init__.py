@@ -56,6 +56,7 @@ Local Optimizers
    POWELL
    SLSQP
    SPSA
+   QNSPSA
    TNC
 
 Qiskit also provides the following optimizers, which are built-out using the optimizers from
@@ -108,6 +109,7 @@ from .p_bfgs import P_BFGS
 from .powell import POWELL
 from .slsqp import SLSQP
 from .spsa import SPSA
+from .qnspsa import QNSPSA
 from .tnc import TNC
 from .aqgd import AQGD
 from .nft import NFT
@@ -134,6 +136,7 @@ __all__ = ['Optimizer',
            'POWELL',
            'SLSQP',
            'SPSA',
+           'QNSPSA',
            'TNC',
            'CRS', 'DIRECT_L', 'DIRECT_L_RAND', 'ESCH', 'ISRES',
            'SNOBFIT', 'BOBYQA', 'IMFIL']
