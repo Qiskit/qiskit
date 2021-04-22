@@ -27,7 +27,7 @@ from qiskit.algorithms.optimizers import DE
 
 
 class TestOptimizerDE(QiskitAlgorithmsTestCase):
-    """ Test Differential Evolution (DE) optimizer"""
+    """Test Differential Evolution (DE) optimizer."""
 
     def setUp(self):
         super().setUp()
