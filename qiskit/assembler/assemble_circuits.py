@@ -236,12 +236,12 @@ def _extract_common_calibrations(
     return experiments, QasmExperimentCalibrations(gates=common_calibrations)
 
 
-def _configure_exp_los(
+def _configure_experiment_los(
     experiments: List[QasmQobjExperiment],
     lo_converter: converters.LoConfigConverter,
     run_config: RunConfig,
 ):
-    # get per expt los
+    # get per experiment los
     freq_configs = [
         lo_converter(lo_dict) for lo_dict in getattr(run_config, "schedule_los", [])
     ]
@@ -306,17 +306,17 @@ def assemble_circuits(
     # configure LO freqs per circuit
     lo_converter = converters.LoConfigConverter(QasmQobjExperimentConfig,
                                                 **run_config.to_dict())
-    experiments = _configure_exp_los(experiments, lo_converter, run_config)
+    experiments = _configure_experiment_los(experiments, lo_converter, run_config)
 
     qobj_config = QasmQobjConfig()
     if run_config:
         qobj_config_dict = run_config.to_dict()
 
-        # remove lo ranges, not needed in qobj
+        # remove LO ranges, not needed in qobj
         qobj_config_dict.pop("qubit_lo_range", None)
         qobj_config_dict.pop("meas_lo_range", None)
 
-        # convert lo frequencies to GHz, if they exist
+        # convert LO frequencies to GHz, if they exist
         if "qubit_lo_freq" in qobj_config_dict:
             qobj_config_dict["qubit_lo_freq"] = [
                 freq / 1e9 for freq in qobj_config_dict["qubit_lo_freq"]

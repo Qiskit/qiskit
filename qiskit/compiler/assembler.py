@@ -95,8 +95,8 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
         meas_lo_range: List of job level measurement LO ranges each of form
             ``[range_min, range_max]`` in Hz. Used to validate ``meas_lo_freq``. Must have length
             ``n_qubits.``
-        schedule_los: Experiment level (ie circuit or schedule) LO freq configurations for qubit
-            drive and measurement channels. These values override the job level values from
+        schedule_los: Experiment level (ie circuit or schedule) LO frequency configurations for
+            qubit drive and measurement channels. These values override the job level values from
             ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for qasm
             and pulse jobs.
         meas_level: Set the appropriate level of the measurement output for pulse experiments.
@@ -296,10 +296,12 @@ def _parse_common_args(
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
 
-    # check job level lo frequencies
-    _check_lo_freqs(qubit_lo_freq, meas_lo_freq, qubit_lo_range, meas_lo_range, n_qubits)
+    # check job level LO frequencies are in the proper range
+    if n_qubits:
+        _check_lo_freqs(qubit_lo_freq, qubit_lo_range, "qubit", n_qubits)
+        _check_lo_freqs(meas_lo_freq, meas_lo_range, "meas", n_qubits)
 
-    # configure experiment level lo frequencies
+    # configure experiment level LO frequencies
     schedule_los = schedule_los or []
     if isinstance(schedule_los, (LoConfig, dict)):
         schedule_los = [schedule_los]
@@ -327,83 +329,45 @@ def _parse_common_args(
 
 
 def _check_lo_freqs(
-    qubit_lo_freq: Union[None, List[float]],
-    meas_lo_freq: Union[None, List[float]],
-    qubit_lo_range: Union[None, List[List[float]]],
-    meas_lo_range: Union[None, List[List[float]]],
-    n_qubits: Union[None, int],
-):
-    """Check lo frequency arrays are the correct size and in range.
-
-    Args:
-        qubit_lo_freq: List of qubit lo frequencies.
-        meas_lo_freq: List of meas lo frequencies.
-        qubit_lo_range: List of allowed qubit lo frequencies. Each element is 2d list of form
-            ``[min_qubit_lo_freq, max_qubit_lo_freq]``.
-        meas_lo_range: List of allowed meas lo frequencies. Each element is 2d list of form
-            ``[min_meas_lo_freq, max_meas_lo_freq]``.
-
-    """
-    # only check if is a valid number of qubits in system
-    if not n_qubits:
-        return
-
-    _check_lo_range(qubit_lo_freq, qubit_lo_range, "qubit", n_qubits)
-    _check_lo_range(meas_lo_freq, meas_lo_range, "meas", n_qubits)
-
-
-def _check_lo_length(lo_list: Union[List[float], None], list_type: str, n_qubits: int):
-    """Check that lo lists have length equal to the number of qubits in the system.
-
-    Args:
-        lo_list: List involving lo frequencies--either the freqs themselves or the range of allowed
-            freqs.
-        list_type: Type of lo list--"qubit_lo_freq", "meas_lo_freq", "qubit_lo_range",
-            "meas_lo_range".
-        n_qubits: Number of qubits in the system.
-    """
-    if lo_list and len(lo_list) != n_qubits:
-        raise QiskitError(
-            "Length of {} is {}. It must be equal to {}, the number of qubits on "
-            "this backend.".format(list_type, len(lo_list), n_qubits)
-        )
-
-
-def _check_lo_range(
     lo_freq: Union[List[float], None],
     lo_range: Union[List[float], None],
     lo_type: str,
     n_qubits: int,
 ):
-    """Check that lo freqs are within the perscribed lo range. Also checks length of both lo lists.
+    """Check that LO frequencies are within the perscribed LO range. Also checks length of both LO
+    lists.
 
     Args:
-        lo_freq: List of lo frequencies.
-        lo_range: Nested list of lo freq range. Inner list is of the form ``[lo_min, lo_max]``.
-        lo_type: The type of lo value--"qubit" or "meas".
+        lo_freq: List of LO frequencies.
+        lo_range: Nested list of LO frequency ranges. Inner list is of the form ``[lo_min, lo_max]``.
+        lo_type: The type of LO value--"qubit" or "meas".
         n_qubits: The number of qubits on this backend.
     """
-    if lo_type == "qubit":
-        # check lo lengths equal to n_qubits
-        _check_lo_length(lo_freq, "qubit_lo_freq", n_qubits)
-        _check_lo_length(lo_range, "qubit_lo_range", n_qubits)
-    else:
-        # check lo lengths equal to n_qubits
-        _check_lo_length(lo_freq, "meas_lo_freq", n_qubits)
-        _check_lo_length(lo_range, "meas_lo_range", n_qubits)
+    # check LO frequencies length
+    if lo_freq and len(lo_freq) != n_qubits:
+        raise QiskitError(
+            "Length of {}_lo_freq is {}. It must be equal to {}, the number of qubits on "
+            "this backend.".format(lo_type, len(lo_freq), n_qubits)
+        )
+    # check LO ranges length
+    if lo_range and len(lo_range) != n_qubits:
+        raise QiskitError(
+            "Length of {}_lo_range is {}. It must be equal to {}, the number of qubits on "
+            "this backend.".format(lo_type, len(lo_freq), n_qubits)
+        )
 
-    # verify lo freqs in range
+    # verify LO frequencies are in range
     if lo_freq and lo_range:
         for i in range(n_qubits):
             freq = lo_freq[i]
             freq_range = lo_range[i]
             if not (isinstance(freq_range, list) and len(freq_range) == 2):
                 raise QiskitError(
-                    "Each element of {} lo range must be a 2d list.".format(lo_type)
+                    "Each element of {} LO range must be a 2d list.".format(lo_type)
                 )
             if freq < freq_range[0] or freq > freq_range[1]:
                 raise QiskitError(
-                    "Qubit {} {} lo freq is {}. The range is [{}, {}].".format(
+                    "Qubit {} {} LO frequency is {}. The range is [{}, {}].".format(
                         i, lo_type, freq, freq_range[0], freq_range[1]
                     )
                 )
