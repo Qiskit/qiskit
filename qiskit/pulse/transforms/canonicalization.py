@@ -62,7 +62,7 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
             schedule.append(context_schedule, inplace=True)
 
             # prevent interruption by following instructions.
-            # padding with delay instructions is longer necessary, thanks to alignment context.
+            # padding with delay instructions is no longer necessary, thanks to alignment context.
             if post_buffer > 0:
                 context_boundary = instructions.RelativeBarrier(*op_data.channels)
                 schedule.append(context_boundary.shift(post_buffer), inplace=True)

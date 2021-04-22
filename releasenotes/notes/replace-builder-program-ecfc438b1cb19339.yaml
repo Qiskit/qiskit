@@ -1,10 +1,10 @@
 ---
 upgrade:
   - |
-    The output program representaiton of the pulse builder is replaced with
+    The output program representation of the pulse builder is replaced with
     :class:`~qiskit.pulse.ScheduleBlock`. This new representation disables some timing
-    related operation such as shift and insert. However, this enables to parametrize
-    instruction duration within the builder context. For example:
+    related operations such as shift and insert. However, this enables parameterized
+    instruction durations within the builder context. For example:
 
     .. code-block:: python
 
@@ -23,12 +23,11 @@ upgrade:
 
     You can directly pass the duration-assigned schedules to the assembler (or backend),
     or you can attach them to your quantum circuit as pulse gates.
-    Pulse transforms are implicitly called and your program is converted into executable format.
 deprecations:
   - |
     Builder syntax :func:`pulse.inline` is deprecated. Instead of using this context,
     you can just remove alignment contexts within the inline context.
 
     Builder syntax :func:`pulse.pad` is deprecated. Because :class:`ScheduleBlock` doesn't
-    support `.insert` method (and there is no insert syntax in the builder),
-    such timeslot placeholder to block insertion of other instructions is no longer necessary.
+    support the `.insert` method (and there is no insert syntax in the builder),
+    timeslot placeholders to block the insertion of other instructions is no longer necessary.
