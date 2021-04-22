@@ -13,7 +13,7 @@
 
 """A module for the job watcher"""
 
-from IPython.core.magic import (line_magic,             # pylint: disable=import-error
+from IPython.core.magic import (line_magic,
                                 Magics, magics_class)
 from qiskit.tools.events.pubsub import Subscriber
 try:
@@ -176,5 +176,6 @@ class JobWatcherMagic(Magics):
         _JOB_WATCHER.stop_viewer()
 
 
-# The Jupyter job watcher instance
-_JOB_WATCHER = JobWatcher()
+if HAS_IBMQ:
+    # The Jupyter job watcher instance
+    _JOB_WATCHER = JobWatcher()

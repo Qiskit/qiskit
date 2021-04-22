@@ -12,16 +12,18 @@
 """
 Symplectic Stabilizer Table Class
 """
-# pylint: disable=invalid-name, abstract-method
+
+# pylint: disable=abstract-method
 
 import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
+from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 
 
-class StabilizerTable(PauliTable):
+class StabilizerTable(PauliTable, AdjointMixin):
     r"""Symplectic representation of a list Stabilizer matrices.
 
     **Symplectic Representation**
@@ -196,11 +198,11 @@ class StabilizerTable(PauliTable):
 
         # Initialize the phase vector
         if phase is None or phase is False:
-            self._phase = np.zeros(self.size, dtype=np.bool)
+            self._phase = np.zeros(self.size, dtype=bool)
         elif phase is True:
-            self._phase = np.ones(self.size, dtype=np.bool)
+            self._phase = np.ones(self.size, dtype=bool)
         else:
-            self._phase = np.asarray(phase, dtype=np.bool)
+            self._phase = np.asarray(phase, dtype=bool)
             if self._phase.shape != (self.size, ):
                 raise QiskitError("Phase vector is incorrect shape.")
 
@@ -253,7 +255,7 @@ class StabilizerTable(PauliTable):
 
     def __getitem__(self, key):
         """Return a view of StabilizerTable"""
-        if isinstance(key, int):
+        if isinstance(key, (int, np.integer)):
             key = [key]
         return StabilizerTable(self._array[key], self._phase[key])
 
@@ -290,7 +292,7 @@ class StabilizerTable(PauliTable):
             table = super().delete(ind, True)
             return StabilizerTable(table, self._phase)
 
-        if isinstance(ind, int):
+        if isinstance(ind, (int, np.integer)):
             ind = [ind]
         if max(ind) >= self.size:
             raise QiskitError("Indices {} are not all less than the size"
@@ -318,7 +320,7 @@ class StabilizerTable(PauliTable):
         Raises:
             QiskitError: if the insertion index is invalid.
         """
-        if not isinstance(ind, int):
+        if not isinstance(ind, (int, np.integer)):
             raise QiskitError("Insert index must be an integer.")
         if not isinstance(value, StabilizerTable):
             value = StabilizerTable(value)
@@ -488,11 +490,7 @@ class StabilizerTable(PauliTable):
         """
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
-        pauli = super().tensor(other)
-        phase1, phase2 = self._block_stack(self.phase, other.phase)
-
-        phase = np.logical_xor(phase1, phase2)
-        return StabilizerTable(pauli, phase)
+        return self._tensor(self, other)
 
     def expand(self, other):
         """Return the expand output product of two tables.
@@ -524,10 +522,7 @@ class StabilizerTable(PauliTable):
         """
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
-        pauli = super().expand(other)
-        phase1, phase2 = self._block_stack(self.phase, other.phase)
-        phase = np.logical_xor(phase1, phase2)
-        return StabilizerTable(pauli, phase)
+        return self._tensor(other, self)
 
     def compose(self, other, qargs=None, front=False):
         """Return the compose output product of two tables.
@@ -576,6 +571,8 @@ class StabilizerTable(PauliTable):
         Raises:
             QiskitError: if other cannot be converted to a StabilizerTable.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
         if qargs is None and other.num_qubits != self.num_qubits:
@@ -604,7 +601,7 @@ class StabilizerTable(PauliTable):
             minus = (x1 & z2 & (x2 | z1)) | (~x1 & x2 & z1 & ~z2)
         else:
             minus = (x2 & z1 & (x1 | z2)) | (~x2 & x1 & z2 & ~z1)
-        phase_shift = np.array(np.sum(minus, axis=1) % 2, dtype=np.bool)
+        phase_shift = np.array(np.sum(minus, axis=1) % 2, dtype=bool)
         phase = phase_shift ^ phase1 ^ phase2
         return StabilizerTable(pauli, phase)
 
@@ -650,7 +647,14 @@ class StabilizerTable(PauliTable):
         Raises:
             QiskitError: if other cannot be converted to a StabilizerTable.
         """
-        return super().dot(other, qargs=qargs)
+        return self.compose(other, qargs=qargs, front=True)
+
+    @classmethod
+    def _tensor(cls, a, b):
+        pauli = super()._tensor(a, b)
+        phase1, phase2 = a._block_stack(a.phase, b.phase)
+        phase = np.logical_xor(phase1, phase2)
+        return StabilizerTable(pauli, phase)
 
     def _add(self, other, qargs=None):
         """Append with another StabilizerTable.
@@ -664,7 +668,7 @@ class StabilizerTable(PauliTable):
                                   (Default: None)
 
         Returns:
-            StabilizerTable: the concatinated table self + other.
+            StabilizerTable: the concatenated table self + other.
         """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
@@ -672,7 +676,7 @@ class StabilizerTable(PauliTable):
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
 
-        self._validate_add_dims(other, qargs)
+        self._op_shape._validate_add(other._op_shape, qargs)
 
         if qargs is None or (sorted(qargs) == qargs
                              and len(qargs) == self.num_qubits):
@@ -681,7 +685,7 @@ class StabilizerTable(PauliTable):
 
         # Pad other with identity and then add
         padded = StabilizerTable(
-            np.zeros((1, 2 * self.num_qubits), dtype=np.bool))
+            np.zeros((1, 2 * self.num_qubits), dtype=bool))
         padded = padded.compose(other, qargs=qargs)
 
         return StabilizerTable(
@@ -705,13 +709,13 @@ class StabilizerTable(PauliTable):
             QiskitError: if other is not in (False, True, 1, -1).
         """
         # Numeric (integer) value case
-        if not isinstance(other, (bool, np.bool)) and other not in [1, -1]:
+        if not isinstance(other, bool) and other not in [1, -1]:
             raise QiskitError(
                 "Can only multiply a Stabilizer value by +1 or -1 phase.")
 
         # We have to be careful we don't cast True <-> +1 when
         # we store -1 phase as boolen True value
-        if (isinstance(other, (bool, np.bool)) and other) or other == -1:
+        if (isinstance(other, bool) and other) or other == -1:
             ret = self.copy()
             ret._phase ^= True
             return ret
@@ -795,8 +799,8 @@ class StabilizerTable(PauliTable):
             raise QiskitError("Input Pauli list is empty.")
         # Get size from first Pauli
         pauli, phase = cls._from_label(labels[0])
-        table = np.zeros((n_paulis, len(pauli)), dtype=np.bool)
-        phases = np.zeros(n_paulis, dtype=np.bool)
+        table = np.zeros((n_paulis, len(pauli)), dtype=bool)
+        phases = np.zeros(n_paulis, dtype=bool)
         table[0], phases[0] = pauli, phase
         for i in range(1, n_paulis):
             table[i], phases[i] = cls._from_label(labels[i])
@@ -865,7 +869,7 @@ class StabilizerTable(PauliTable):
         Returns:
             list or array: The rows of the StabilizerTable in label form.
         """
-        ret = np.zeros(self.size, dtype='<U{}'.format(1 + self._num_qubits))
+        ret = np.zeros(self.size, dtype='<U{}'.format(1 + self.num_qubits))
         for i in range(self.size):
             ret[i] = self._to_label(self._array[i], self._phase[i])
         if array:
@@ -1043,3 +1047,7 @@ class StabilizerTable(PauliTable):
                                            self.obj.phase[key],
                                            sparse=sparse)
         return MatrixIterator(self)
+
+
+# Update docstrings for API docs
+generate_apidocs(StabilizerTable)

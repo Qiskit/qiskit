@@ -49,6 +49,10 @@ _CUTOFF_PRECISION = 1E-10
 class Instruction:
     """Generic quantum instruction."""
 
+    # Class attribute to treat like barrier for transpiler, unroller, drawer
+    # NOTE: Using this attribute may change in the future (See issue # 5811)
+    _directive = False
+
     def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit='dt'):
         """Create a new instruction.
 
@@ -113,17 +117,56 @@ class Instruction:
             try:
                 if numpy.shape(self_param) == numpy.shape(other_param) \
                         and numpy.allclose(self_param, other_param,
-                                           atol=_CUTOFF_PRECISION):
+                                           atol=_CUTOFF_PRECISION, rtol=0):
                     continue
             except TypeError:
                 pass
 
             try:
                 if numpy.isclose(float(self_param), float(other_param),
-                                 atol=_CUTOFF_PRECISION):
+                                 atol=_CUTOFF_PRECISION, rtol=0):
                     continue
             except TypeError:
                 pass
+
+            return False
+
+        return True
+
+    def soft_compare(self, other: 'Instruction') -> bool:
+        """
+        Soft comparison between gates. Their names, number of qubits, and classical
+        bit numbers must match. The number of parameters must match. Each parameter
+        is compared. If one is a ParameterExpression then it is not taken into
+        account.
+
+        Args:
+            other (instruction): other instruction.
+
+        Returns:
+            bool: are self and other equal up to parameter expressions.
+        """
+        if self.name != other.name or \
+                other.num_qubits != other.num_qubits or \
+                other.num_clbits != other.num_clbits or \
+                len(self.params) != len(other.params):
+            return False
+
+        for self_param, other_param in zip_longest(self.params, other.params):
+            if isinstance(self_param, ParameterExpression) or \
+                    isinstance(other_param, ParameterExpression):
+                continue
+            if isinstance(self_param, numpy.ndarray) and \
+                    isinstance(other_param, numpy.ndarray):
+                if numpy.shape(self_param) == numpy.shape(other_param) \
+                        and numpy.allclose(self_param, other_param, atol=_CUTOFF_PRECISION):
+                    continue
+            else:
+                try:
+                    if numpy.isclose(self_param, other_param, atol=_CUTOFF_PRECISION):
+                        continue
+                except TypeError:
+                    pass
 
             return False
 
@@ -290,7 +333,8 @@ class Instruction:
                                 num_qubits=self.num_qubits,
                                 params=self.params.copy())
 
-        inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs)
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs,
+                                                 global_phase=-self.definition.global_phase)
         inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
                                          for inst, qargs, cargs in reversed(self._definition)]
 
@@ -366,7 +410,8 @@ class Instruction:
         """
         if len(qargs) != self.num_qubits:
             raise CircuitError(
-                'The amount of qubit arguments does not match the instruction expectation.')
+                f'The amount of qubit arguments {len(qargs)} does not match'
+                f' the instruction expectation ({self.num_qubits}).')
 
         #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]

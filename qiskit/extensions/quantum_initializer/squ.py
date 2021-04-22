@@ -26,7 +26,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.exceptions import QiskitError
-from qiskit.util import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arguments
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -42,8 +42,8 @@ class SingleQubitUnitary(Gate):
                      gate d with u = d.dot(u').
     """
 
-    # pylint: disable=unused-argument, invalid-name
-    @deprecate_arguments({'u': 'unitary'})
+    # pylint: disable=unused-argument
+    @deprecate_arguments({'u': 'unitary_matrix'})
     def __init__(self, unitary_matrix, mode='ZYZ', up_to_diagonal=False, u=None):
         """Create a new single qubit gate based on the unitary ``u``."""
         if mode not in ['ZYZ']:

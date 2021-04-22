@@ -224,3 +224,23 @@ class PassM_AP_NR_NP(DummyAP):
         super().run(dag)
         self.argument1 *= 2
         logging.getLogger(logger).info('self.argument1 = %s', self.argument1)
+
+
+class PassN_AP_NR_NP(DummyAP):
+    """ A dummy analysis pass that deletes and nones properties.
+    AP: Analysis Pass
+    NR: No Requires
+    NP: No Preserves
+    """
+
+    def __init__(self, to_delete, to_none):
+        super().__init__()
+        self.to_delete = to_delete
+        self.to_none = to_none
+
+    def run(self, dag):
+        super().run(dag)
+        del self.property_set[self.to_delete]
+        logging.getLogger(logger).info('property %s deleted', self.to_delete)
+        self.property_set[self.to_none] = None
+        logging.getLogger(logger).info('property %s noned', self.to_none)

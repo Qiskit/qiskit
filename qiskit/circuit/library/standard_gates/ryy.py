@@ -18,7 +18,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RYYGate(Gate):
-    r"""A parameteric 2-qubit :math:`Y \otimes Y` interaction (rotation about YY).
+    r"""A parametric 2-qubit :math:`Y \otimes Y` interaction (rotation about YY).
 
     This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
 
@@ -100,7 +100,7 @@ class RYYGate(Gate):
         """Return inverse RYY gate (i.e. with the negative rotation angle)."""
         return RYYGate(-self.params[0])
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the RYY gate."""
         theta = float(self.params[0])
         cos = np.cos(theta / 2)
@@ -110,4 +110,4 @@ class RYYGate(Gate):
             [0, cos, -isin, 0],
             [0, -isin, cos, 0],
             [isin, 0, 0, cos]
-        ], dtype=complex)
+        ], dtype=dtype)

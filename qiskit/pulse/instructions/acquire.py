@@ -13,10 +13,9 @@
 """The Acquire instruction is used to trigger the qubit measurement unit and provide
 some metadata for the acquisition process, for example, where to store classified readout data.
 """
-import warnings
+from typing import Optional, Union, Tuple
 
-from typing import List, Optional
-
+from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.exceptions import PulseError
@@ -41,7 +40,7 @@ class Acquire(Instruction):
     """
 
     def __init__(self,
-                 duration: int,
+                 duration: Union[int, ParameterExpression],
                  channel: AcquireChannel,
                  mem_slot: Optional[MemorySlot] = None,
                  reg_slot: Optional[RegisterSlot] = None,
@@ -75,9 +74,7 @@ class Acquire(Instruction):
         self._kernel = kernel
         self._discriminator = discriminator
 
-        all_channels = [chan for chan in [channel, mem_slot, reg_slot] if chan is not None]
-        super().__init__((duration, channel, mem_slot, reg_slot),
-                         duration, all_channels, name=name)
+        super().__init__(operands=(duration, channel, mem_slot, reg_slot), name=name)
 
     @property
     def channel(self) -> AcquireChannel:
@@ -85,6 +82,16 @@ class Acquire(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def channels(self) -> Tuple[Union[AcquireChannel, MemorySlot, RegisterSlot]]:
+        """Returns the channels that this schedule uses."""
+        return tuple(self.operands[ind] for ind in (1, 2, 3) if self.operands[ind] is not None)
+
+    @property
+    def duration(self) -> Union[int, ParameterExpression]:
+        """Duration of this instruction."""
+        return self.operands[0]
 
     @property
     def kernel(self) -> Kernel:
@@ -115,26 +122,9 @@ class Acquire(Instruction):
         """
         return self.operands[3]
 
-    @property
-    def acquires(self) -> List[AcquireChannel]:
-        """Acquire channels to be acquired on."""
-        warnings.warn("Acquire.acquires is deprecated. Use the channel attribute instead.",
-                      DeprecationWarning)
-        return [self.channel]
-
-    @property
-    def mem_slots(self) -> List[MemorySlot]:
-        """MemorySlots."""
-        warnings.warn("Acquire.mem_slots is deprecated. Use the mem_slot attribute instead.",
-                      DeprecationWarning)
-        return [self.mem_slot]
-
-    @property
-    def reg_slots(self) -> List[RegisterSlot]:
-        """RegisterSlots."""
-        warnings.warn("Acquire.reg_slots is deprecated. Use the reg_slot attribute instead.",
-                      DeprecationWarning)
-        return [self.reg_slot]
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return isinstance(self.duration, ParameterExpression) or super().is_parameterized()
 
     def __repr__(self) -> str:
         return "{}({}{}{}{}{}{})".format(

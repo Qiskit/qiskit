@@ -64,10 +64,26 @@ class TestOperatorMeasures(QiskitTestCase):
         # Depolarizing channel
         prob = 0.5
         op = Operator.from_label('Y')
-        chan = (prob * depol + (1 - prob) * iden) @ op
+        chan = (prob * depol + (1 - prob) * iden).compose(op)
         f_pro = process_fidelity(chan, op, require_cp=True, require_tp=True)
         target = prob * 0.25 + (1 - prob)
         self.assertAlmostEqual(f_pro, target, places=7)
+
+    def test_noncp_process_fidelity(self):
+        """Test process_fidelity for non-CP channel"""
+        u1 = Operator.from_label('X')
+        u2 = Operator.from_label('Z')
+        chan = 1.01 * Choi(u1) - 0.01 * Choi(u2)
+        fid = process_fidelity(chan)
+        self.assertLogs('qiskit.quantum_info.operators.measures', level='WARNING')
+        self.assertAlmostEqual(fid, 0, places=15)
+
+    def test_nontp_process_fidelity(self):
+        """Test process_fidelity for non-TP channel"""
+        chan = 0.99 * Choi(Operator.from_label('X'))
+        fid = process_fidelity(chan)
+        self.assertLogs('qiskit.quantum_info.operators.measures', level='WARNING')
+        self.assertAlmostEqual(fid, 0, places=15)
 
     def test_operator_average_gate_fidelity(self):
         """Test the average_gate_fidelity function for operator inputs"""
@@ -108,7 +124,7 @@ class TestOperatorMeasures(QiskitTestCase):
         # Depolarizing channel
         prob = 0.5
         op = Operator.from_label('Y')
-        chan = (prob * depol + (1 - prob) * iden) @ op
+        chan = (prob * depol + (1 - prob) * iden).compose(op)
         f_ave = average_gate_fidelity(chan,
                                       op,
                                       require_cp=True,
@@ -144,7 +160,7 @@ class TestOperatorMeasures(QiskitTestCase):
         # Depolarizing channel
         prob = 0.5
         op = Operator.from_label('Y')
-        chan = (prob * depol + (1 - prob) * iden) @ op
+        chan = (prob * depol + (1 - prob) * iden).compose(op)
         err = gate_error(chan, op, require_cp=True, require_tp=True)
         target = 1 - average_gate_fidelity(chan, op)
         self.assertAlmostEqual(err, target, places=7)
@@ -152,7 +168,6 @@ class TestOperatorMeasures(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3])
     def test_diamond_norm(self, num_qubits):
         """Test the diamond_norm for {num_qubits}-qubit pauli channel."""
-        # pylint: disable=import-outside-toplevel
         try:
             import cvxpy
         except ImportError:

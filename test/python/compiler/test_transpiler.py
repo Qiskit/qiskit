@@ -10,9 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
+
 """Tests basic functionality of the transpile function"""
 
 import io
+import os
 import sys
 import math
 
@@ -27,18 +30,17 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
-from qiskit.circuit import Parameter, Gate
+from qiskit.circuit import Parameter, Gate, Qubit, Clbit
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
-from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate
-from qiskit.test import QiskitTestCase, Path
+from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate
+from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, CXDirection
-from qiskit.quantum_info import Operator
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection
+from qiskit.quantum_info import Operator, random_unitary
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
 
@@ -125,9 +127,11 @@ class TestTranspile(QiskitTestCase):
                                 coupling_map=coupling_map,
                                 initial_layout=initial_layout)
 
+        qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
+
         for gate, qargs, _ in new_circuit.data:
             if isinstance(gate, CXGate):
-                self.assertIn([x.index for x in qargs], coupling_map)
+                self.assertIn([qubit_indices[x] for x in qargs], coupling_map)
 
     def test_transpile_qft_grid(self):
         """Transpile pipeline can handle 8-qubit QFT on 14-qubit grid.
@@ -145,9 +149,11 @@ class TestTranspile(QiskitTestCase):
                                 basis_gates=basis_gates,
                                 coupling_map=coupling_map)
 
+        qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
+
         for gate, qargs, _ in new_circuit.data:
             if isinstance(gate, CXGate):
-                self.assertIn([x.index for x in qargs], coupling_map)
+                self.assertIn([qubit_indices[x] for x in qargs], coupling_map)
 
     def test_already_mapped_1(self):
         """Circuit not remapped if matches topology.
@@ -173,8 +179,10 @@ class TestTranspile(QiskitTestCase):
 
         new_qc = transpile(qc, coupling_map=coupling_map, basis_gates=basis_gates,
                            initial_layout=Layout.generate_trivial_layout(qr))
+        qubit_indices = {bit: idx for idx, bit in enumerate(new_qc.qubits)}
         cx_qubits = [qargs for (gate, qargs, _) in new_qc.data if gate.name == "cx"]
-        cx_qubits_physical = [[ctrl.index, tgt.index] for [ctrl, tgt] in cx_qubits]
+        cx_qubits_physical = [[qubit_indices[ctrl], qubit_indices[tgt]]
+                              for [ctrl, tgt] in cx_qubits]
         self.assertEqual(sorted(cx_qubits_physical),
                          [[3, 4], [3, 14], [5, 4], [9, 8], [12, 11], [13, 4]])
 
@@ -213,9 +221,11 @@ class TestTranspile(QiskitTestCase):
 
         new_qc = transpile(qc, coupling_map=coupling_map,
                            basis_gates=basis_gates, initial_layout=initial_layout)
+        qubit_indices = {bit: idx for idx, bit in enumerate(new_qc.qubits)}
         cx_qubits = [qargs for (gate, qargs, _) in new_qc.data
                      if gate.name == "cx"]
-        cx_qubits_physical = [[ctrl.index, tgt.index] for [ctrl, tgt] in cx_qubits]
+        cx_qubits_physical = [[qubit_indices[ctrl], qubit_indices[tgt]]
+                              for [ctrl, tgt] in cx_qubits]
         self.assertEqual(sorted(cx_qubits_physical),
                          [[9, 4], [9, 4]])
 
@@ -256,6 +266,22 @@ class TestTranspile(QiskitTestCase):
         circuits = transpile([qc, qc_extra], backend)
         self.assertIsInstance(circuits[0], QuantumCircuit)
         self.assertIsInstance(circuits[1], QuantumCircuit)
+
+    def test_transpile_singleton(self):
+        """Test transpile a single-element list with a circuit.
+        See https://github.com/Qiskit/qiskit-terra/issues/5260"""
+        backend = BasicAer.get_backend('qasm_simulator')
+
+        qubit_reg = QuantumRegister(2)
+        clbit_reg = ClassicalRegister(2)
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qc.h(qubit_reg[0])
+        qc.cx(qubit_reg[0], qubit_reg[1])
+        qc.measure(qubit_reg, clbit_reg)
+
+        circuits = transpile([qc], backend)
+        self.assertEqual(len(circuits), 1)
+        self.assertIsInstance(circuits[0], QuantumCircuit)
 
     def test_mapping_correction(self):
         """Test mapping works in previous failed case.
@@ -350,9 +376,11 @@ class TestTranspile(QiskitTestCase):
                              coupling_map=cmap,
                              basis_gates=['u2'],
                              initial_layout=layout)
+        qubit_indices = {bit: idx for idx, bit in enumerate(new_circ.qubits)}
         mapped_qubits = []
+
         for _, qargs, _ in new_circ.data:
-            mapped_qubits.append(qargs[0].index)
+            mapped_qubits.append(qubit_indices[qargs[0]])
 
         self.assertEqual(mapped_qubits, [4, 6, 10])
 
@@ -407,8 +435,11 @@ class TestTranspile(QiskitTestCase):
                               QuantumRegister(3, 'q')[1],
                               QuantumRegister(3, 'q')[2]]
 
-        self.assertRaises(DAGCircuitError, transpile,
-                          qc, backend, initial_layout=bad_initial_layout)
+        with self.assertRaises(TranspilerError) as cm:
+            transpile(qc, backend, initial_layout=bad_initial_layout)
+
+        self.assertEqual("FullAncillaAllocation: The layout refers to a qubit that does "
+                         "not exist in circuit.", cm.exception.message)
 
     def test_parameterized_circuit_for_simulator(self):
         """Verify that a parameterized circuit can be transpiled for a simulator backend."""
@@ -421,8 +452,7 @@ class TestTranspile(QiskitTestCase):
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
         expected_qc = QuantumCircuit(qr)
-        expected_qc.append(U1Gate(theta), [qr[0]])
-
+        expected_qc.append(RZGate(theta), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_parameterized_circuit_for_device(self):
@@ -437,7 +467,7 @@ class TestTranspile(QiskitTestCase):
                                   initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * theta / 2.0)
         expected_qc.append(U1Gate(theta), [qr[0]])
 
         self.assertEqual(expected_qc, transpiled_qc)
@@ -455,7 +485,7 @@ class TestTranspile(QiskitTestCase):
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
         expected_qc = QuantumCircuit(qr)
-        expected_qc.append(U1Gate(square), [qr[0]])
+        expected_qc.append(RZGate(square), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_parameter_expression_circuit_for_device(self):
@@ -472,14 +502,17 @@ class TestTranspile(QiskitTestCase):
                                   initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * square / 2.0)
         expected_qc.append(U1Gate(square), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_final_measurement_barrier_for_devices(self):
         """Verify BarrierBeforeFinalMeasurements pass is called in default pipeline for devices."""
-
-        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
+        qasm_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'qasm')
+        circ = QuantumCircuit.from_qasm_file(
+            os.path.join(qasm_dir, 'example.qasm'))
         layout = Layout.generate_trivial_layout(*circ.qregs)
         orig_pass = BarrierBeforeFinalMeasurements()
         with patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=orig_pass.run) as mock_pass:
@@ -487,18 +520,21 @@ class TestTranspile(QiskitTestCase):
                       initial_layout=layout)
             self.assertTrue(mock_pass.called)
 
-    def test_do_not_run_cxdirection_with_symmetric_cm(self):
-        """When the coupling map is symmetric, do not run CXDirection."""
-
-        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
+    def test_do_not_run_gatedirection_with_symmetric_cm(self):
+        """When the coupling map is symmetric, do not run GateDirection."""
+        qasm_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'qasm')
+        circ = QuantumCircuit.from_qasm_file(
+            os.path.join(qasm_dir, 'example.qasm'))
         layout = Layout.generate_trivial_layout(*circ.qregs)
         coupling_map = []
         for node1, node2 in FakeRueschlikon().configuration().coupling_map:
             coupling_map.append([node1, node2])
             coupling_map.append([node2, node1])
 
-        orig_pass = CXDirection(CouplingMap(coupling_map))
-        with patch.object(CXDirection, 'run', wraps=orig_pass.run) as mock_pass:
+        orig_pass = GateDirection(CouplingMap(coupling_map))
+        with patch.object(GateDirection, 'run', wraps=orig_pass.run) as mock_pass:
             transpile(circ, coupling_map=coupling_map, initial_layout=layout)
             self.assertFalse(mock_pass.called)
 
@@ -518,10 +554,11 @@ class TestTranspile(QiskitTestCase):
         circ.cx(qr[0], qr[1])
 
         after = transpile(circ, coupling_map=[[0, 1], [1, 0]],
-                          basis_gates=['u3', 'cx'])
+                          basis_gates=['u3', 'u2', 'u1', 'cx'])
 
-        expected = QuantumCircuit(QuantumRegister(2, 'q'))
-        self.assertEqual(after, expected)
+        expected = QuantumCircuit(QuantumRegister(2, 'q'), global_phase=-np.pi/2)
+        msg = f"after:\n{after}\nexpected:\n{expected}"
+        self.assertEqual(after, expected, msg=msg)
 
     def test_pass_manager_empty(self):
         """Test passing an empty PassManager() to the transpiler.
@@ -549,16 +586,19 @@ class TestTranspile(QiskitTestCase):
         """
         backend = FakeRueschlikon()
         cmap = backend.configuration().coupling_map
+        qasm_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'qasm')
         circ = QuantumCircuit.from_qasm_file(
-            self._get_resource_path('move_measurements.qasm', Path.QASMS))
+            os.path.join(qasm_dir, 'move_measurements.qasm'))
 
         lay = [0, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6]
         out = transpile(circ, initial_layout=lay, coupling_map=cmap)
         out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes('measure')
         for meas_node in meas_nodes:
-            is_last_measure = all([after_measure.type == 'out'
-                                   for after_measure in out_dag.quantum_successors(meas_node)])
+            is_last_measure = all(after_measure.type == 'out'
+                                  for after_measure in out_dag.quantum_successors(meas_node))
             self.assertTrue(is_last_measure)
 
     def test_initialize_reset_should_be_removed(self):
@@ -569,12 +609,12 @@ class TestTranspile(QiskitTestCase):
         qc.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
 
         expected = QuantumCircuit(qr)
-        expected.append(U3Gate(1.5708, 0, 0), [qr[0]])
+        expected.append(U3Gate(np.pi/2, 0, 0), [qr[0]])
         expected.reset(qr[0])
-        expected.append(U3Gate(1.5708, 3.1416, 0), [qr[0]])
+        expected.append(U3Gate(np.pi/2, -np.pi, 0), [qr[0]])
 
         after = transpile(qc, basis_gates=['reset', 'u3'], optimization_level=1)
-        self.assertEqual(after, expected)
+        self.assertEqual(after, expected, msg=f"after:\n{after}\nexpected:\n{expected}")
 
     def test_initialize_FakeMelbourne(self):
         """Test that the zero-state resets are remove in a device not supporting them.
@@ -612,6 +652,19 @@ class TestTranspile(QiskitTestCase):
         resources_after = dag_circuit.count_ops()
         self.assertEqual({'h': 3}, resources_after)
 
+    def test_hadamard_to_rot_gates(self):
+        """Test a transpilation from H to Rx, Ry gates"""
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        qc.h(0)
+
+        expected = QuantumCircuit(qr, global_phase=np.pi/2)
+        expected.append(RYGate(theta=np.pi/2), [0])
+        expected.append(RXGate(theta=np.pi), [0])
+
+        circuit = transpile(qc, basis_gates=['rx', 'ry'], optimization_level=0)
+        self.assertEqual(circuit, expected)
+
     def test_basis_subset(self):
         """Test a transpilation with a basis subset of the standard basis"""
         qr = QuantumRegister(1, 'q1')
@@ -644,6 +697,32 @@ class TestTranspile(QiskitTestCase):
 
         with self.assertRaises(TranspilerError):
             transpile(qc, coupling_map=cmap)
+
+    @data(0, 1, 2, 3)
+    def test_ccx_routing_method_none(self, optimization_level):
+        """CCX without routing method."""
+
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        out = transpile(qc, routing_method='none',
+                        basis_gates=['u', 'cx'], initial_layout=[0, 1, 2], seed_transpiler=0,
+                        coupling_map=[[0, 1], [1, 2]], optimization_level=optimization_level)
+
+        self.assertTrue(Operator(qc).equiv(out))
+
+    @data(0, 1, 2, 3)
+    def test_ccx_routing_method_none_failed(self, optimization_level):
+        """CCX without routing method cannot be routed."""
+
+        qc = QuantumCircuit(3)
+        qc.ccx(0, 1, 2)
+
+        with self.assertRaises(TranspilerError):
+            transpile(qc, routing_method='none',
+                      basis_gates=['u', 'cx'], initial_layout=[0, 1, 2], seed_transpiler=0,
+                      coupling_map=[[0, 1], [1, 2]], optimization_level=optimization_level)
 
     @data(0, 1, 2, 3)
     def test_ms_unrolls_to_cx(self, optimization_level):
@@ -879,6 +958,20 @@ class TestTranspile(QiskitTestCase):
         transpiled_circ = transpile(circ, FakeAlmaden())
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {'rxt'})
 
+    def test_inst_durations_from_calibrations(self):
+        """Test that circuit calibrations can be used instead of explicitly
+        supplying inst_durations.
+        """
+        qc = QuantumCircuit(2)
+        qc.append(Gate('custom', 1, []), [0])
+
+        with pulse.build() as cal:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        qc.add_calibration('custom', [0], cal)
+
+        out = transpile(qc, scheduling_method='alap')
+        self.assertEqual(out.duration, cal.duration)
+
     @data(0, 1, 2, 3)
     def test_circuit_with_delay(self, optimization_level):
         """Verify a circuit with delay can transpile to a scheduled circuit."""
@@ -894,23 +987,160 @@ class TestTranspile(QiskitTestCase):
 
         self.assertEqual(out.duration, 1200)
 
+    def test_delay_converts_to_dt(self):
+        """Test that a delay instruction is converted to units of dt given a backend."""
+        qc = QuantumCircuit(2)
+        qc.delay(1000, [0], unit='us')
+
+        backend = FakeRueschlikon()
+        backend.configuration().dt = 0.5e-6
+        out = transpile([qc, qc], backend)
+        self.assertEqual(out[0].data[0][0].unit, 'dt')
+        self.assertEqual(out[1].data[0][0].unit, 'dt')
+
+        out = transpile(qc, dt=1e-9)
+        self.assertEqual(out.data[0][0].unit, 'dt')
+
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
         """Verify circuit cost always descends and optimization does not flip flop indefinitely."""
-
         qc = QuantumCircuit(1)
         qc.ry(0.2, 0)
 
         out = transpile(qc, basis_gates=['id', 'p', 'sx', 'cx'],
                         optimization_level=optimization_level)
 
-        expected = QuantumCircuit(1)
+        # Expect a -pi/2 global phase for the U3 to RZ/SX conversion, and
+        # a -0.5 * theta phase for RZ to P twice, once at theta, and once at 3 pi
+        # for the second and third RZ gates in the U3 decomposition.
+        expected = QuantumCircuit(1, global_phase=-np.pi/2 - 0.5 * (0.2 + np.pi) - 0.5 * 3 * np.pi)
         expected.sx(0)
-        expected.p(np.pi + 0.2, 0)
+        expected.p(-np.pi + 0.2, 0)
         expected.sx(0)
-        expected.p(np.pi, 0)
+        expected.p(-np.pi, 0)
 
-        self.assertEqual(out, expected)
+        error_message = (f"\nOutput circuit:\n{out!s}\n{Operator(out).data}\n"
+                         f"Expected circuit:\n{expected!s}\n{Operator(expected).data}")
+        self.assertEqual(out, expected, error_message)
+
+    @data(0, 1, 2, 3)
+    def test_transpile_preserves_circuit_metadata(self, optimization_level):
+        """Verify that transpile preserves circuit metadata in the output."""
+        circuit = QuantumCircuit(2, metadata=dict(experiment_id='1234', execution_number=4))
+        circuit.h(0)
+        circuit.cx(0, 1)
+
+        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10],
+                [5, 4], [5, 6], [5, 9], [6, 8], [7, 8],
+                [9, 8], [9, 10], [11, 3], [11, 10],
+                [11, 12], [12, 2], [13, 1], [13, 12]]
+
+        res = transpile(circuit, basis_gates=['id', 'p', 'sx', 'cx'],
+                        coupling_map=cmap,
+                        optimization_level=optimization_level)
+        self.assertEqual(circuit.metadata, res.metadata)
+
+    @data(0, 1, 2, 3)
+    def test_transpile_optional_registers(self, optimization_level):
+        """Verify transpile accepts circuits without registers end-to-end."""
+
+        qubits = [Qubit() for _ in range(3)]
+        clbits = [Clbit() for _ in range(3)]
+
+        qc = QuantumCircuit(qubits, clbits)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        qc.measure(qubits, clbits)
+
+        out = transpile(qc,
+                        FakeAlmaden(),
+                        optimization_level=optimization_level)
+
+        self.assertEqual(len(out.qubits), FakeAlmaden().configuration().num_qubits)
+        self.assertEqual(out.clbits, clbits)
+
+    @data(0, 1, 2, 3)
+    def test_translate_ecr_basis(self, optimization_level):
+        """Verify that rewriting in ECR basis is efficient."""
+        circuit = QuantumCircuit(2)
+        circuit.append(random_unitary(4, seed=1), [0, 1])
+        circuit.barrier()
+        circuit.cx(0, 1)
+        circuit.barrier()
+        circuit.swap(0, 1)
+        circuit.barrier()
+        circuit.iswap(0, 1)
+
+        res = transpile(circuit, basis_gates=['u', 'ecr'],
+                        optimization_level=optimization_level)
+        self.assertEqual(res.count_ops()['ecr'], 9)
+        self.assertTrue(Operator(res).equiv(circuit))
+
+    def test_optimize_ecr_basis(self):
+        """Test highest optimization level can optimize over ECR."""
+        circuit = QuantumCircuit(2)
+        circuit.swap(1, 0)
+        circuit.iswap(0, 1)
+
+        res = transpile(circuit, basis_gates=['u', 'ecr'],
+                        optimization_level=3)
+        self.assertEqual(res.count_ops()['ecr'], 1)
+        self.assertTrue(Operator(res).equiv(circuit))
+
+    def test_approximation_degree_invalid(self):
+        """Test invalid approximation degree raises."""
+        circuit = QuantumCircuit(2)
+        circuit.swap(0, 1)
+        with self.assertRaises(QiskitError):
+            transpile(circuit, basis_gates=['u', 'cz'], approximation_degree=1.1)
+
+    def test_approximation_degree(self):
+        """Test more approximation gives lower-cost circuit."""
+        circuit = QuantumCircuit(2)
+        circuit.swap(0, 1)
+        circuit.h(0)
+        circ_10 = transpile(circuit, basis_gates=['u', 'cx'],
+                            translation_method='synthesis', approximation_degree=0.1)
+        circ_90 = transpile(circuit, basis_gates=['u', 'cx'],
+                            translation_method='synthesis', approximation_degree=0.9)
+        self.assertLess(circ_10.depth(), circ_90.depth())
+
+    @data(0, 1, 2, 3)
+    def test_synthesis_translation_method_with_single_qubit_gates(self, optimization_level):
+        """Test that synthesis basis translation works for solely 1q circuit"""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.h(2)
+        res = transpile(qc, basis_gates=['id', 'rz', 'x', 'sx', 'cx'],
+                        translation_method='synthesis', optimization_level=optimization_level)
+        expected = QuantumCircuit(3, global_phase=3*np.pi/4)
+        expected.rz(np.pi / 2, 0)
+        expected.rz(np.pi / 2, 1)
+        expected.rz(np.pi / 2, 2)
+        expected.sx(0)
+        expected.sx(1)
+        expected.sx(2)
+        expected.rz(np.pi / 2, 0)
+        expected.rz(np.pi / 2, 1)
+        expected.rz(np.pi / 2, 2)
+        self.assertEqual(res, expected)
+
+    @data(0, 1, 2, 3)
+    def test_synthesis_translation_method_with_gates_outside_basis(self, optimization_level):
+        """Test that synthesis translation works for circuits with single gates outside bassis"""
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        res = transpile(qc, basis_gates=['id', 'rz', 'x', 'sx', 'cx'],
+                        translation_method='synthesis', optimization_level=optimization_level)
+        if optimization_level != 3:
+            self.assertTrue(Operator(qc).equiv(res))
+            self.assertNotIn('swap', res.count_ops())
+        else:
+            # Optimization level 3 eliminates the pointless swap
+            self.assertEqual(res, QuantumCircuit(2))
 
 
 class StreamHandlerRaiseException(StreamHandler):
@@ -926,6 +1156,7 @@ class TestLogTranspile(QiskitTestCase):
     def setUp(self):
         super().setUp()
         logger = getLogger()
+        self.addCleanup(logger.setLevel, logger.level)
         logger.setLevel('DEBUG')
         self.output = io.StringIO()
         logger.addHandler(StreamHandlerRaiseException(self.output))

@@ -14,11 +14,11 @@
 
 """
 A collection of functions that decide the layout of an output image.
+See :py:mod:`~qiskit.visualization.pulse_v2.types` for more info on the required data.
 
-Currently this module provides two types of functions:
+There are 3 types of layout functions in this module.
 
-1. Arrange the order of channels
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1. layout.chart_channel_map
 
 An end-user can write arbitrary functions that output the custom channel ordering
 associated with group name. Layout function in this module are called with the
@@ -40,27 +40,18 @@ The layout function is restricted to:
             yield key, channels
     ```
 
-The user-defined layout function can be assigned to the layout field of the stylesheet:
-
-    ```python
-    my_custom_style = {
-        'layout.chart_channel_map' : my_channel_layout
-    }
-    ```
-
-2. Change horizontal axis format
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2. layout.time_axis_map
 
 An end-user can write arbitrary functions that output the `HorizontalAxis` data set that
 will be later consumed by the plotter API to update the horizontal axis appearance.
-Layout function in this module are called with the `formatter` and `device` kwargs.
-These data provides stylesheet configuration and backend system configuration.
+Layout function in this module are called with the `time_window`, `axis_breaks`, and `dt` kwargs.
+These data provides horizontal axis limit, axis break position, and time resolution, respectively.
 
 See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required
 data.
 
     ```python
-    def my_horizontal_axis(time_windos: Tuple[int, int],
+    def my_horizontal_axis(time_window: Tuple[int, int],
                            axis_breaks: List[Tuple[int, int]],
                            dt: Optional[float] = None) -> HorizontalAxis:
         # write horizontal axis configuration
@@ -68,19 +59,25 @@ data.
         return horizontal_axis
     ```
 
-The user-defined layout function can be assigned to the layout field of of the stylesheet:
+3. layout.figure_title
+
+An end-user can write arbitrary functions that output the string data that
+will be later consumed by the plotter API to output the figure title.
+Layout functions in this module are called with the `program` and `device` kwargs.
+This data provides input program and backend system configurations.
 
     ```python
-    my_custom_style = {
-        'layout.time_axis_map' : my_horizontal_axis
-    }
+    def my_figure_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
+                        device: DrawerBackendInfo) -> str:
+
+        return 'title'
     ```
 
-The user can set the custom stylesheet to the drawer interface.
+An arbitrary layout function satisfying the above format can be accepted.
 """
 
 from collections import defaultdict
-from typing import List, Dict, Any, Tuple, Iterator, Optional
+from typing import List, Dict, Any, Tuple, Iterator, Optional, Union
 
 import numpy as np
 from qiskit import pulse
@@ -131,8 +128,9 @@ def channel_type_grouped_sort(channels: List[pulse.channels.Channel],
     ordered_channels.extend(sorted(m_chans, key=lambda x: x.index))
 
     # acquire channels
-    a_chans = chan_type_dict.get(pulse.AcquireChannel, [])
-    ordered_channels.extend(sorted(a_chans, key=lambda x: x.index))
+    if formatter['control.show_acquire_channel']:
+        a_chans = chan_type_dict.get(pulse.AcquireChannel, [])
+        ordered_channels.extend(sorted(a_chans, key=lambda x: x.index))
 
     for chan in ordered_channels:
         yield chan.name.upper(), [chan]
@@ -193,8 +191,9 @@ def channel_index_grouped_sort(channels: List[pulse.channels.Channel],
         if len(m_chans) > 0 and m_chans[-1].index == ind:
             ordered_channels.append(m_chans.pop())
         # acquire channel
-        if len(a_chans) > 0 and a_chans[-1].index == ind:
-            ordered_channels.append(a_chans.pop())
+        if formatter['control.show_acquire_channel']:
+            if len(a_chans) > 0 and a_chans[-1].index == ind:
+                ordered_channels.append(a_chans.pop())
 
     for chan in ordered_channels:
         yield chan.name.upper(), [chan]
@@ -253,8 +252,9 @@ def channel_index_grouped_sort_u(channels: List[pulse.channels.Channel],
         if len(m_chans) > 0 and m_chans[-1].index == ind:
             ordered_channels.append(m_chans.pop())
         # acquire channel
-        if len(a_chans) > 0 and a_chans[-1].index == ind:
-            ordered_channels.append(a_chans.pop())
+        if formatter['control.show_acquire_channel']:
+            if len(a_chans) > 0 and a_chans[-1].index == ind:
+                ordered_channels.append(a_chans.pop())
 
     # control channels
     ordered_channels.extend(u_chans)
@@ -323,6 +323,8 @@ def time_map_in_ns(time_window: Tuple[int, int],
     """
     # shift time axis
     t0, t1 = time_window
+    t0_shift = t0
+    t1_shift = t1
 
     axis_break_pos = []
     offset_accumulation = 0
@@ -330,20 +332,19 @@ def time_map_in_ns(time_window: Tuple[int, int],
         if t1b < t0 or t0b > t1:
             continue
         if t0 > t1b:
-            t0 -= t1b - t0b
+            t0_shift -= t1b - t0b
         if t1 > t1b:
-            t1 -= t1b - t0b
+            t1_shift -= t1b - t0b
         axis_break_pos.append(t0b - offset_accumulation)
-        offset_accumulation += t0b - t1b
+        offset_accumulation += t1b - t0b
 
     # axis label
-    axis_loc = np.linspace(max(t0, 0), t1, 6)
+    axis_loc = np.linspace(max(t0_shift, 0), t1_shift, 6)
     axis_label = axis_loc.copy()
 
-    offset_accumulation = 0
     for t0b, t1b in axis_breaks:
-        offset_accumulation += t1b - t0b
-        axis_label = np.where(axis_label > t0b, axis_label + offset_accumulation, axis_label)
+        offset = t1b - t0b
+        axis_label = np.where(axis_label > t0b, axis_label + offset, axis_label)
 
     # consider time resolution
     if dt:
@@ -355,8 +356,39 @@ def time_map_in_ns(time_window: Tuple[int, int],
     formatted_label = ['{val:.0f}'.format(val=val) for val in axis_label]
 
     return types.HorizontalAxis(
-        window=(t0, t1),
+        window=(t0_shift, t1_shift),
         axis_map=dict(zip(axis_loc, formatted_label)),
         axis_break_pos=axis_break_pos,
         label=label
     )
+
+
+def detail_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
+                 device: DrawerBackendInfo) -> str:
+    """Layout function for generating figure title.
+
+    This layout writes program name, program duration, and backend name in the title.
+    """
+    title_str = list()
+
+    # add program name
+    title_str.append('Name: {name}'.format(name=program.name))
+
+    # add program duration
+    dt = device.dt * 1e9 if device.dt else 1.
+    title_str.append('Duration: {dur:.1f} {unit}'.format(
+        dur=program.duration * dt,
+        unit='ns' if device.dt else 'dt'
+    ))
+
+    # add device name
+    if device.backend_name != 'no-backend':
+        title_str.append('Backend: {backend_name}'.format(backend_name=device.backend_name))
+
+    return ', '.join(title_str)
+
+
+def empty_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
+                device: DrawerBackendInfo) -> str:
+    """Layout function for generating an empty figure title."""
+    return ''

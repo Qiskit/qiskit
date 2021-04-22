@@ -15,33 +15,13 @@ Fake Rome device (5 qubit).
 """
 
 import os
-import json
-
-from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
-from qiskit.test.mock.fake_backend import FakeBackend
+from qiskit.test.mock.fake_qasm_backend import FakeQasmBackend
 
 
-class FakeRome(FakeBackend):
+class FakeRome(FakeQasmBackend):
     """A fake 5 qubit backend."""
 
-    def __init__(self):
-        dirname = os.path.dirname(__file__)
-        filename = "conf_rome.json"
-        with open(os.path.join(dirname, filename)) as f_conf:
-            conf = json.load(f_conf)
-
-        configuration = QasmBackendConfiguration.from_dict(conf)
-        configuration.backend_name = 'fake_rome'
-        self._defaults = None
-        self._properties = None
-        super().__init__(configuration)
-
-    def properties(self):
-        """Returns a snapshot of device properties"""
-        if not self._properties:
-            dirname = os.path.dirname(__file__)
-            filename = "props_rome.json"
-            with open(os.path.join(dirname, filename)) as f_prop:
-                props = json.load(f_prop)
-            self._properties = BackendProperties.from_dict(props)
-        return self._properties
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_rome.json"
+    props_filename = "props_rome.json"
+    backend_name = "fake_rome"

@@ -58,16 +58,16 @@ class PauliGate(Gate):
         r"""Return inverted pauli gate (itself)."""
         return PauliGate(self.params[0])  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a Numpy.array for the pauli gate.
         i.e. tensor product of the paulis"""
         # pylint: disable=cyclic-import
-        from qiskit.quantum_info import Pauli
-        return Pauli(label=self.params[0]).to_matrix()
+        from qiskit.quantum_info.operators import Pauli
+        return Pauli(self.params[0]).__array__(dtype=dtype)
 
     def validate_parameter(self, parameter):
         if isinstance(parameter, str):
-            if all([c in ["I", "X", "Y", "Z"] for c in parameter]):
+            if all(c in ["I", "X", "Y", "Z"] for c in parameter):
                 return parameter
             else:
                 raise CircuitError("Parameter string {0} should contain only "

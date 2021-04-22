@@ -23,7 +23,7 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.test import ReferenceCircuits
 from qiskit.test import providers
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info import process_fidelity
+from qiskit.quantum_info import process_fidelity, Operator
 
 
 class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
@@ -101,19 +101,19 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
         # Test 1 to max_qubits for random n-qubit unitary gate
         for i in range(max_qubits):
             num_qubits = i + 1
-            unitary_init = np.eye(2 ** num_qubits)
+            unitary_init = Operator(np.eye(2 ** num_qubits))
             qr = QuantumRegister(num_qubits, 'qr')
             for _ in range(num_trials):
                 # Create random unitary
                 unitary = random_unitary(2 ** num_qubits)
                 # Compute expected output state
-                unitary_target = unitary.data.dot(unitary_init)
+                unitary_target = unitary.dot(unitary_init)
                 # Simulate output on circuit
                 circuit = QuantumCircuit(qr)
                 circuit.unitary(unitary, qr)
                 job = execute(circuit, self.backend)
                 result = job.result()
-                unitary_out = result.get_unitary(0)
+                unitary_out = Operator(result.get_unitary(0))
                 fidelity = process_fidelity(unitary_target, unitary_out)
                 self.assertGreater(fidelity, 0.999)
 

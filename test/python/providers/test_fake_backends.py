@@ -19,7 +19,7 @@ from test import combine
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.execute import execute
+from qiskit.execute_function import execute
 from qiskit.test.base import QiskitTestCase
 from qiskit.test.mock import FakeProvider
 from qiskit.test.mock.fake_backend import HAS_AER

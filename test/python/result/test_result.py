@@ -57,6 +57,19 @@ class TestResultOperations(QiskitTestCase):
 
         self.assertEqual(result.get_counts(0), processed_counts)
 
+    def test_counts_by_name(self):
+        """Test that counts are extracted properly by name."""
+        raw_counts = {'0x0': 4, '0x2': 10}
+        processed_counts = {'0 0 00': 4, '0 0 10': 10}
+        data = models.ExperimentResultData(counts=dict(**raw_counts))
+        exp_result_header = QobjExperimentHeader(
+            creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4, name='a_name')
+        exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2,
+                                             data=data, header=exp_result_header)
+        result = Result(results=[exp_result], **self.base_result_args)
+
+        self.assertEqual(result.get_counts('a_name'), processed_counts)
+
     def test_counts_duplicate_name(self):
         """Test results containing multiple entries of a single name will warn."""
         data = models.ExperimentResultData(counts=dict())
@@ -77,7 +90,7 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2,
                                              data=data, header=exp_result_header)
         result = Result(results=[exp_result], **self.base_result_args)
-        expected = ("Result(backend_name='1.0.0', backend_version='1.0.0', "
+        expected = ("Result(backend_name='test_backend', backend_version='1.0.0', "
                     "qobj_id='id-123', job_id='job-123', success=True, "
                     "results=[ExperimentResult(shots=14, success=True, "
                     "meas_level=2, data=ExperimentResultData(counts={'0x0': 4,"
@@ -160,6 +173,45 @@ class TestResultOperations(QiskitTestCase):
                          expected_marginal_counts_1)
         self.assertEqual(marginal_counts(result, [0]).get_counts(1),
                          expected_marginal_counts_2)
+
+    def test_marginal_counts_result_creg_sizes(self):
+        """Test that marginal_counts with Result input properly changes creg_sizes."""
+        raw_counts = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0xE': 8}
+        data = models.ExperimentResultData(counts=dict(**raw_counts))
+        exp_result_header = QobjExperimentHeader(creg_sizes=[['c0', 1], ['c1', 3]],
+                                                 memory_slots=4)
+        exp_result = models.ExperimentResult(shots=54, success=True, data=data,
+                                             header=exp_result_header)
+
+        result = Result(results=[exp_result], **self.base_result_args)
+
+        expected_marginal_counts = {'0 0': 14, '0 1': 18, '1 0': 13, '1 1': 9}
+        expected_creg_sizes = [['c0', 1], ['c1', 1]]
+        expected_memory_slots = 2
+        marginal_counts_result = marginal_counts(result, [0, 2])
+        self.assertEqual(marginal_counts_result.results[0].header.creg_sizes,
+                         expected_creg_sizes)
+        self.assertEqual(marginal_counts_result.results[0].header.memory_slots,
+                         expected_memory_slots)
+        self.assertEqual(marginal_counts_result.get_counts(0),
+                         expected_marginal_counts)
+
+    def test_marginal_counts_result_format(self):
+        """Test that marginal_counts with format_marginal true properly formats output."""
+        raw_counts_1 = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0x12': 8}
+        data_1 = models.ExperimentResultData(counts=dict(**raw_counts_1))
+        exp_result_header_1 = QobjExperimentHeader(creg_sizes=[['c0', 2], ['c1', 3]],
+                                                   memory_slots=5)
+        exp_result_1 = models.ExperimentResult(shots=54, success=True, data=data_1,
+                                               header=exp_result_header_1)
+
+        result = Result(results=[exp_result_1], **self.base_result_args)
+
+        expected_marginal_counts_1 = {'0_0 _0': 14, '0_0 _1': 18,
+                                      '0_1 _0': 5, '0_1 _1': 9, '1_0 _0': 8}
+        marginal_counts_result = marginal_counts(result.get_counts(), [0, 2, 4],
+                                                 format_marginal=True)
+        self.assertEqual(marginal_counts_result, expected_marginal_counts_1)
 
     def test_marginal_counts_inplace_true(self):
         """Test marginal_counts(Result, inplace = True)
@@ -256,7 +308,7 @@ class TestResultOperations(QiskitTestCase):
         """Test measurement level 1 average result."""
         # 3 qubits
         raw_memory = [[0., 1.], [1., 0.], [0.5, 0.5]]
-        processed_memory = np.array([1.j, 1., 0.5+0.5j], dtype=np.complex_)
+        processed_memory = np.array([1.j, 1., 0.5 + 0.5j], dtype=np.complex_)
         data = models.ExperimentResultData(memory=raw_memory)
         exp_result = models.ExperimentResult(shots=2, success=True, meas_level=1,
                                              meas_return='avg', data=data)
@@ -272,8 +324,8 @@ class TestResultOperations(QiskitTestCase):
         # 3 qubits
         raw_memory = [[[0., 1.], [1., 0.], [0.5, 0.5]],
                       [[0.5, 0.5], [1., 0.], [0., 1.]]]
-        processed_memory = np.array([[1.j, 1., 0.5+0.5j],
-                                     [0.5+0.5j, 1., 1.j]], dtype=np.complex_)
+        processed_memory = np.array([[1.j, 1., 0.5 + 0.5j],
+                                     [0.5 + 0.5j, 1., 1.j]], dtype=np.complex_)
         data = models.ExperimentResultData(memory=raw_memory)
         exp_result = models.ExperimentResult(shots=2, success=True, meas_level=1,
                                              meas_return='single', data=data)
@@ -321,3 +373,131 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(memory.shape, (2, 2, 3))
         self.assertEqual(memory.dtype, np.complex_)
         np.testing.assert_almost_equal(memory, processed_memory)
+
+    def test_circuit_statevector_repr_without_decimal(self):
+        """Test postprocessing of statevector without giving any decimals arg."""
+        raw_statevector = np.array(
+            [0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j,
+             0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j],
+            dtype=np.complex_)
+        processed_sv = np.array(
+            [0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j,
+             0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j],
+            dtype=np.complex_)
+        data = models.ExperimentResultData(statevector=raw_statevector)
+        exp_result = models.ExperimentResult(shots=1, success=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+        statevector = result.get_statevector()
+        self.assertEqual(statevector.shape, (8,))
+        self.assertEqual(statevector.dtype, np.complex_)
+        np.testing.assert_almost_equal(statevector, processed_sv)
+
+    def test_circuit_statevector_repr_decimal(self):
+        """Test postprocessing of statevector giving decimals arg."""
+        raw_statevector = np.array(
+            [0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j,
+             0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j],
+            dtype=np.complex_)
+        processed_sv = np.array(
+            [0.354 + 0.j, 0.354 + 0.j, 0.354 + 0.j, 0.354 + 0.j, 0.354 + 0.j, 0.354 + 0.j,
+             0.354 + 0.j, 0.354 + 0.j], dtype=np.complex_)
+        data = models.ExperimentResultData(statevector=raw_statevector)
+        exp_result = models.ExperimentResult(shots=1, success=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+        statevector = result.get_statevector(decimals=3)
+        self.assertEqual(statevector.shape, (8,))
+        self.assertEqual(statevector.dtype, np.complex_)
+        np.testing.assert_almost_equal(statevector, processed_sv)
+
+    def test_circuit_unitary_repr_without_decimal(self):
+        """Test postprocessing of unitary without giving any decimals arg."""
+        raw_unitary = np.array([[0.70710678 + 0.00000000e+00j, 0.70710678 - 8.65956056e-17j],
+                                [0.70710678 + 0.00000000e+00j, -0.70710678 + 8.65956056e-17j]],
+                               dtype=np.complex_)
+        processed_unitary = np.array([[0.70710678 + 0.00000000e+00j, 0.70710678 - 8.65956056e-17j],
+                                      [0.70710678 + 0.00000000e+00j,
+                                       -0.70710678 + 8.65956056e-17j]],
+                                     dtype=np.complex_)
+        data = models.ExperimentResultData(unitary=raw_unitary)
+        exp_result = models.ExperimentResult(shots=1, success=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+        unitary = result.get_unitary()
+        self.assertEqual(unitary.shape, (2, 2))
+        self.assertEqual(unitary.dtype, np.complex_)
+        np.testing.assert_almost_equal(unitary, processed_unitary)
+
+    def test_circuit_unitary_repr_decimal(self):
+        """Test postprocessing of unitary giving decimals arg."""
+        raw_unitary = np.array([[0.70710678 + 0.00000000e+00j, 0.70710678 - 8.65956056e-17j],
+                                [0.70710678 + 0.00000000e+00j, -0.70710678 + 8.65956056e-17j]],
+                               dtype=np.complex_)
+        processed_unitary = np.array([[0.707 + 0.j, 0.707 - 0.j],
+                                      [0.707 + 0.j, -0.707 + 0.j]], dtype=np.complex_)
+        data = models.ExperimentResultData(unitary=raw_unitary)
+        exp_result = models.ExperimentResult(shots=1, success=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+        unitary = result.get_unitary(decimals=3)
+        self.assertEqual(unitary.shape, (2, 2))
+        self.assertEqual(unitary.dtype, np.complex_)
+        np.testing.assert_almost_equal(unitary, processed_unitary)
+
+    def test_additional_result_data(self):
+        """Test construction of ExperimentResult with additional data"""
+        target_probs = {"0x0": 0.5, "0x1": 0.5}
+        data = models.ExperimentResultData(probabilities=target_probs)
+        exp_result = models.ExperimentResult(shots=1, success=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+        result_probs = result.data(0)['probabilities']
+        self.assertEqual(result_probs, target_probs)
+
+
+class TestResultOperationsFailed(QiskitTestCase):
+    """Result operations methods."""
+
+    def setUp(self):
+        self.base_result_args = dict(backend_name='test_backend',
+                                     backend_version='1.0.0',
+                                     qobj_id='id-123',
+                                     job_id='job-123',
+                                     success=True)
+        super().setUp()
+
+    def test_counts_int_out(self):
+        """Test that fails when get_count is called with a nonexistent int."""
+        raw_counts = {'0x0': 4, '0x2': 10}
+        data = models.ExperimentResultData(counts=dict(**raw_counts))
+        exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+
+        with self.assertRaises(Exception) as context:
+            result.get_counts(99)
+        self.assertEqual('Result for experiment "99" could not be found.',
+                         context.exception.message)
+
+    def test_counts_name_out(self):
+        """Test that fails when get_count is called with a nonexistent name."""
+        raw_counts = {'0x0': 4, '0x2': 10}
+        data = models.ExperimentResultData(counts=dict(**raw_counts))
+        exp_result_header = QobjExperimentHeader(
+            creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4, name='a_name')
+        exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2,
+                                             data=data, header=exp_result_header)
+        result = Result(results=[exp_result], **self.base_result_args)
+
+        with self.assertRaises(Exception) as context:
+            result.get_counts('another_name')
+        self.assertEqual('Data for experiment "another_name" could not be found.',
+                         context.exception.message)
+
+    def test_memory_int_out(self):
+        """Test that memory bitstrings are extracted properly without header."""
+        raw_memory = ['0x0', '0x0', '0x2', '0x2', '0x2', '0x2', '0x2']
+        data = models.ExperimentResultData(memory=raw_memory)
+        exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2,
+                                             memory=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+
+        with self.assertRaises(Exception) as context:
+            result.get_memory(99)
+        self.assertEqual('Result for experiment "99" could not be found.',
+                         context.exception.message)

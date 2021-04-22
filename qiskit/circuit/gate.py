@@ -39,13 +39,22 @@ class Gate(Instruction):
         self.definition = None
         super().__init__(name, num_qubits, 0, params)
 
+    # Set higher priority than Numpy array and matrix classes
+    __array_priority__ = 20
+
     def to_matrix(self) -> np.ndarray:
         """Return a Numpy.array for the gate unitary matrix.
+
+        Returns:
+            np.ndarray: if the Gate subclass has a matrix definition.
 
         Raises:
             CircuitError: If a Gate subclass does not implement this method an
                 exception will be raised when this base class method is called.
         """
+        if hasattr(self, '__array__'):
+            # pylint: disable=no-member
+            return self.__array__(dtype=complex)
         raise CircuitError("to_matrix not defined for this {}".format(type(self)))
 
     def power(self, exponent: float):
@@ -211,9 +220,10 @@ class Gate(Instruction):
         """
         if len(qargs) != self.num_qubits or cargs:
             raise CircuitError(
-                'The amount of qubit/clbit arguments does not match the gate expectation.')
+                f'The amount of qubit({len(qargs)})/clbit({len(cargs)}) arguments does'
+                f' not match the gate expectation ({self.num_qubits}).')
 
-        if any([not qarg for qarg in qargs]):
+        if any(not qarg for qarg in qargs):
             raise CircuitError('One or more of the arguments are empty')
 
         if len(qargs) == 1:
@@ -227,7 +237,14 @@ class Gate(Instruction):
 
     def validate_parameter(self, parameter):
         """Gate parameters should be int, float, or ParameterExpression"""
-        if isinstance(parameter, (int, float, ParameterExpression)):
+        if isinstance(parameter, ParameterExpression):
+            if len(parameter.parameters) > 0:
+                return parameter  # expression has free parameters, we cannot validate it
+            if not parameter._symbol_expr.is_real:
+                raise CircuitError("Bound parameter expression is complex in gate {}".format(
+                    self.name))
+            return parameter  # per default assume parameters must be real when bound
+        if isinstance(parameter, (int, float)):
             return parameter
         elif isinstance(parameter, (np.integer, np.floating)):
             return parameter.item()

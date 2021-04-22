@@ -27,6 +27,8 @@ from qiskit import exceptions
 class Counts(dict):
     """A class to store a counts result from a circuit execution."""
 
+    bitstring_regex = re.compile(r'^[01\s]+$')
+
     def __init__(self, data, time_taken=None, creg_sizes=None,
                  memory_slots=None):
         """Build a counts object
@@ -37,7 +39,7 @@ class Counts(dict):
                 integer the number of shots with that result.
                 The keys can be one of several formats:
 
-                     * A hexademical string of the form ``"0x4a"``
+                     * A hexadecimal string of the form ``"0x4a"``
                      * A bit string prefixed with ``0b`` for example ``'0b1011'``
                      * A bit string formatted across register and memory slots.
                        For example, ``'00 10'``.
@@ -87,16 +89,15 @@ class Counts(dict):
                         self.int_raw = None
                         bin_data = data
                     else:
-                        bitstring_regex = re.compile(r'^[01\s]+$')
                         hex_dict = {}
                         int_dict = {}
                         for bitstring, value in data.items():
-                            if not bitstring_regex.search(bitstring):
+                            if not self.bitstring_regex.search(bitstring):
                                 raise exceptions.QiskitError(
                                     'Counts objects with dit strings do not '
                                     'currently support dit string formatting parameters '
                                     'creg_sizes or memory_slots')
-                            int_key = int(bitstring.replace(" ", ""), 2)
+                            int_key = self._remove_space_underscore(bitstring)
                             int_dict[int_key] = value
                             hex_dict[hex(int_key)] = value
                         self.hex_raw = hex_dict
@@ -137,7 +138,7 @@ class Counts(dict):
         return max_values_counts[0]
 
     def hex_outcomes(self):
-        """Return a counts dictionary with hexademical string keys
+        """Return a counts dictionary with hexadecimal string keys
 
         Returns:
             dict: A dictionary with the keys as hexadecimal strings instead of
@@ -148,14 +149,13 @@ class Counts(dict):
         if self.hex_raw:
             return {key.lower(): value for key, value in self.hex_raw.items()}
         else:
-            bitstring_regex = re.compile(r'^[01\s]+$')
             out_dict = {}
             for bitstring, value in self.items():
-                if not bitstring_regex.search(bitstring):
+                if not self.bitstring_regex.search(bitstring):
                     raise exceptions.QiskitError(
                         'Counts objects with dit strings do not '
                         'currently support conversion to hexadecimal')
-                int_key = int(bitstring.replace(" ", ""), 2)
+                int_key = self._remove_space_underscore(bitstring)
                 out_dict[hex(int_key)] = value
             return out_dict
 
@@ -170,13 +170,17 @@ class Counts(dict):
         if self.int_raw:
             return self.int_raw
         else:
-            bitstring_regex = re.compile(r'^[01\s]+$')
             out_dict = {}
             for bitstring, value in self.items():
-                if not bitstring_regex.search(bitstring):
+                if not self.bitstring_regex.search(bitstring):
                     raise exceptions.QiskitError(
                         'Counts objects with dit strings do not '
                         'currently support conversion to integer')
-                int_key = int(bitstring.replace(" ", ""), 2)
+                int_key = self._remove_space_underscore(bitstring)
                 out_dict[int_key] = value
             return out_dict
+
+    @staticmethod
+    def _remove_space_underscore(bitstring):
+        """Removes all spaces and underscores from bitstring"""
+        return int(bitstring.replace(" ", "").replace("_", ""), 2)

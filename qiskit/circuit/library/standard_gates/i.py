@@ -47,7 +47,7 @@ class IGate(Gate):
         """Invert this gate."""
         return IGate()  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the identity gate."""
         return numpy.array([[1, 0],
-                            [0, 1]], dtype=complex)
+                            [0, 1]], dtype=dtype)

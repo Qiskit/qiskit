@@ -81,7 +81,7 @@ class U2Gate(Gate):
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a Numpy.array for the U2 gate."""
         isqrt2 = 1 / numpy.sqrt(2)
         phi, lam = self.params
@@ -95,4 +95,4 @@ class U2Gate(Gate):
                 numpy.exp(1j * phi) * isqrt2,
                 numpy.exp(1j * (phi + lam)) * isqrt2
             ]
-        ], dtype=complex)
+        ], dtype=dtype)

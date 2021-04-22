@@ -13,14 +13,11 @@
 Multiple-Controlled U3 gate. Not using ancillary qubits.
 """
 
-import logging
 from math import pi
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.library.standard_gates.x import MCXGate
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
 from qiskit.exceptions import QiskitError
-
-logger = logging.getLogger(__name__)
 
 
 def _apply_cu(circuit, theta, phi, lam, control, target, use_basis_gates=True):
@@ -122,7 +119,7 @@ def mcrx(self, theta, q_controls, q_target, use_basis_gates=False):
                             target_qubit, use_basis_gates=use_basis_gates)
 
 
-def mcry(self, theta, q_controls, q_target, q_ancillae, mode=None,
+def mcry(self, theta, q_controls, q_target, q_ancillae=None, mode=None,
          use_basis_gates=False):
     """
     Apply Multiple-Controlled Y rotation gate

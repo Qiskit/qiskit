@@ -27,7 +27,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         creg0 = ClassicalRegister(2, 'c0')
         qreg1 = QuantumRegister(2, 'q1')
         creg1 = ClassicalRegister(2, 'c1')
-        circ = QuantumCircuit(qreg0, qreg1)
+        circ = QuantumCircuit(qreg0, qreg1, creg0, creg1)
         circ.x(qreg0[1])
         circ.x(qreg1[0])
 
@@ -35,7 +35,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         meas.measure(qreg0, creg0)
         meas.measure(qreg1, creg1)
 
-        qc = circ + meas
+        qc = circ.compose(meas)
 
         backend_sim = BasicAer.get_backend('qasm_simulator')
 
@@ -50,7 +50,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         backend_sim = BasicAer.get_backend('unitary_simulator')
         result = execute(circ, backend_sim, seed_transpiler=3438).result()
-        unitary = result.get_unitary(circ)
+        unitary = Operator(result.get_unitary(circ))
 
         self.assertEqual(counts, target)
         self.assertAlmostEqual(state_fidelity(Statevector.from_label('0110'), state), 1.0, places=7)

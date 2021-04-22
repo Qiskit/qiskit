@@ -22,7 +22,7 @@ class Collect2qBlocks(AnalysisPass):
     """Collect sequences of uninterrupted gates acting on 2 qubits.
 
     Traverse the DAG and find blocks of gates that act consecutively on
-    pairs of qubits. Write the blocks to propert_set as a dictionary
+    pairs of qubits. Write the blocks to property_set as a dictionary
     of the form::
 
         {(q0, q1): [[g0, g1, g2], [g5]],
@@ -61,7 +61,7 @@ class Collect2qBlocks(AnalysisPass):
                     and isinstance(nd.op, Gate)
                     and len(nd.qargs) == 2
                     and not nodes_seen[nd]
-                    and nd.condition is None
+                    and nd.op.condition is None
                     and not nd.op.is_parameterized()
             ):
                 these_qubits = set(nd.qargs)
@@ -77,7 +77,7 @@ class Collect2qBlocks(AnalysisPass):
                                 pnd.type == 'op'
                                 and isinstance(pnd.op, Gate)
                                 and len(pnd.qargs) <= 2
-                                and pnd.condition is None
+                                and pnd.op.condition is None
                                 and not pnd.op.is_parameterized()
                         ):
                             if (len(pnd.qargs) == 2 and set(pnd.qargs) == these_qubits) \
@@ -112,7 +112,7 @@ class Collect2qBlocks(AnalysisPass):
                                     pnd.type != 'op'
                                     or not isinstance(pnd.op, Gate)
                                     or len(pnd.qargs) > 2
-                                    or pnd.condition is not None
+                                    or pnd.op.condition is not None
                                     or pnd.op.is_parameterized()
                             ):
                                 # remove any qubits that are interrupted by a gate
@@ -131,7 +131,7 @@ class Collect2qBlocks(AnalysisPass):
                                 pred_qubits = set(pnd.qargs)
                                 if (
                                         pred_qubits == these_qubits
-                                        and pnd.condition is None
+                                        and pnd.op.condition is None
                                         and not pnd.op.is_parameterized()
                                 ):
                                     # add if on same qubits
@@ -166,7 +166,7 @@ class Collect2qBlocks(AnalysisPass):
                                 snd.type == 'op'
                                 and isinstance(snd.op, Gate)
                                 and len(snd.qargs) <= 2
-                                and snd.condition is None
+                                and snd.op.condition is None
                                 and not snd.op.is_parameterized()
                         ):
                             if (len(snd.qargs) == 2 and set(snd.qargs) == these_qubits) or \
@@ -203,7 +203,7 @@ class Collect2qBlocks(AnalysisPass):
                                     snd.type != 'op'
                                     or not isinstance(snd.op, Gate)
                                     or len(snd.qargs) > 2
-                                    or snd.condition is not None
+                                    or snd.op.condition is not None
                                     or snd.op.is_parameterized()
                             ):
                                 # remove qubits from consideration if interrupted
@@ -225,7 +225,7 @@ class Collect2qBlocks(AnalysisPass):
                                 succ_qubits = set(snd.qargs)
                                 if (
                                         succ_qubits == these_qubits
-                                        and snd.condition is None
+                                        and snd.op.condition is None
                                         and not snd.op.is_parameterized()
                                 ):
                                     # add if on same qubits

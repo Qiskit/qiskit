@@ -24,7 +24,7 @@ from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import UnrollCustomDefinitions
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler.passes import CXDirection
+from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import CSPLayout
 from qiskit.transpiler.passes import TrivialLayout
@@ -41,17 +41,18 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
-from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import ApplyLayout
-from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import Layout2qDistance
+from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
-from qiskit.transpiler.passes import TimeUnitAnalysis
+from qiskit.transpiler.passes import TimeUnitConversion
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
 
@@ -63,7 +64,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     This pass manager applies the user-given initial layout. If none is given, a search
     for a perfect layout (i.e. one that satisfies all 2-qubit interactions) is conducted.
     If no such layout is found, qubits are laid out on the most densely connected subset
-    which also exhibits the best gate fidelitites.
+    which also exhibits the best gate fidelities.
 
     The pass manager then transforms the circuit to match the coupling constraints.
     It is then unrolled to the basis, and any flipped cx directions are fixed.
@@ -93,14 +94,47 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
+    approximation_degree = pass_manager_config.approximation_degree
 
     # 1. Search for a perfect layout, or choose a dense layout, if no layout given
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
+        # layout hasn't been set yet
         return not property_set['layout']
 
-    _choose_layout_1 = CSPLayout(coupling_map, call_limit=1000, time_limit=10)
+    # 1a. If layout_method is not set, first try a trivial layout
+    _choose_layout_0 = [] if pass_manager_config.layout_method \
+        else [TrivialLayout(coupling_map),
+              Layout2qDistance(coupling_map,
+                               property_name='trivial_layout_score')]
+    # 1b. If a trivial layout wasn't perfect (ie no swaps are needed) then try using
+    # CSP layout to find a perfect layout
+    _choose_layout_1 = [] if pass_manager_config.layout_method \
+        else CSPLayout(coupling_map, call_limit=1000, time_limit=10, seed=seed_transpiler)
+
+    def _trivial_not_perfect(property_set):
+        # Verify that a trivial layout  is perfect. If trivial_layout_score > 0
+        # the layout is not perfect. The layout is unconditionally set by trivial
+        # layout so we need to clear it before contuing.
+        if property_set['trivial_layout_score'] is not None:
+            if property_set['trivial_layout_score'] != 0:
+                property_set['layout']._wrapped = None
+                return True
+        return False
+
+    def _csp_not_found_match(property_set):
+        # If a layout hasn't been set by the time we run csp we need to run layout
+        if property_set['layout'] is None:
+            return True
+        # if CSP layout stopped for any reason other than solution found we need
+        # to run layout since CSP didn't converge.
+        if property_set['CSPLayout_stop_reason'] is not None \
+                and property_set['CSPLayout_stop_reason'] != "solution found":
+            return True
+        return False
+
+    # 1c. if CSP layout doesn't converge on a solution use layout_method (dense) to get a layout
     if layout_method == 'trivial':
         _choose_layout_2 = TrivialLayout(coupling_map)
     elif layout_method == 'dense':
@@ -133,6 +167,9 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [LookaheadSwap(coupling_map, search_depth=5, search_width=5)]
     elif routing_method == 'sabre':
         _swap += [SabreSwap(coupling_map, heuristic='decay', seed=seed_transpiler)]
+    elif routing_method == 'none':
+        _swap += [Error(msg='No routing method selected, but circuit is not routed to device. '
+                            'CheckMap Error: {check_map_msg}', action='raise')]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
@@ -148,18 +185,18 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates),
+            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 6. Fix any bad CX directions
-    _direction_check = [CheckCXDirection(coupling_map)]
+    _direction_check = [CheckGateDirection(coupling_map)]
 
     def _direction_condition(property_set):
         return not property_set['is_direction_mapped']
 
-    _direction = [CXDirection(coupling_map)]
+    _direction = [GateDirection(coupling_map)]
 
     # 7. Remove zero-state reset
     _reset = RemoveResetInZeroState()
@@ -170,15 +207,13 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    if basis_gates and ('u1' in basis_gates or 'u2' in basis_gates or
-                        'u3' in basis_gates):
-        _opt = [Optimize1qGates(basis_gates), CommutativeCancellation()]
-    else:
-        _opt = [Optimize1qGatesDecomposition(basis_gates), CommutativeCancellation()]
+    _opt = [Optimize1qGatesDecomposition(basis_gates),
+            CommutativeCancellation(basis_gates=basis_gates)]
 
-    # 9. Schedule the circuit only when scheduling_method is supplied
+    # 9. Unify all durations (either SI, or convert to dt if known)
+    # Schedule the circuit only when scheduling_method is supplied
+    _scheduling = [TimeUnitConversion(instruction_durations)]
     if scheduling_method:
-        _scheduling = [TimeUnitAnalysis(instruction_durations)]
         if scheduling_method in {'alap', 'as_late_as_possible'}:
             _scheduling += [ALAPSchedule(instruction_durations)]
         elif scheduling_method in {'asap', 'as_soon_as_possible'}:
@@ -188,10 +223,11 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Build pass manager
     pm2 = PassManager()
-    if coupling_map:
+    if coupling_map or initial_layout:
         pm2.append(_given_layout)
-        pm2.append(_choose_layout_1, condition=_choose_layout_condition)
-        pm2.append(_choose_layout_2, condition=_choose_layout_condition)
+        pm2.append(_choose_layout_0, condition=_choose_layout_condition)
+        pm2.append(_choose_layout_1, condition=_trivial_not_perfect)
+        pm2.append(_choose_layout_2, condition=_csp_not_found_match)
         pm2.append(_embed)
         pm2.append(_unroll3q)
         pm2.append(_swap_check)
@@ -201,8 +237,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm2.append(_direction_check)
         pm2.append(_direction, condition=_direction_condition)
     pm2.append(_reset)
-    pm2.append(_depth_check + _opt, do_while=_opt_control)
-    if scheduling_method:
-        pm2.append(_scheduling)
+    pm2.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+    pm2.append(_scheduling)
 
     return pm2

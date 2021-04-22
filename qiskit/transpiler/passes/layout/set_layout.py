@@ -41,5 +41,5 @@ class SetLayout(AnalysisPass):
         Returns:
             DAGCircuit: the original DAG.
         """
-        self.property_set['layout'] = self.layout
+        self.property_set['layout'] = None if self.layout is None else self.layout.copy()
         return dag

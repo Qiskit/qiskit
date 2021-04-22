@@ -82,7 +82,7 @@ class YGate(Gate):
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-Y gate.
+        """Return a (multi-)controlled-Y gate.
 
         One control returns a CY gate.
 
@@ -105,10 +105,10 @@ class YGate(Gate):
         r"""Return inverted Y gate (:math:`Y{\dagger} = Y`)"""
         return YGate()  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the Y gate."""
         return numpy.array([[0, -1j],
-                            [1j, 0]], dtype=complex)
+                            [1j, 0]], dtype=dtype)
 
 
 class CYGate(ControlledGate):
@@ -167,11 +167,11 @@ class CYGate(ControlledGate):
     _matrix1 = numpy.array([[1, 0, 0, 0],
                             [0, 0, 0, -1j],
                             [0, 0, 1, 0],
-                            [0, 1j, 0, 0]], dtype=complex)
+                            [0, 1j, 0, 0]])
     _matrix0 = numpy.array([[0, 0, -1j, 0],
                             [0, 1, 0, 0],
                             [1j, 0, 0, 0],
-                            [0, 0, 0, 1]], dtype=complex)
+                            [0, 0, 0, 1]])
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CY gate."""
@@ -202,9 +202,9 @@ class CYGate(ControlledGate):
         """Return inverted CY gate (itself)."""
         return CYGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CY gate."""
-        if self.ctrl_state:
-            return self._matrix1
-        else:
-            return self._matrix0
+        mat = self._matrix1 if self.ctrl_state else self._matrix0
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat

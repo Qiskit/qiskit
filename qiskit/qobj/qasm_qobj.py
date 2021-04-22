@@ -18,6 +18,7 @@ import copy
 import pprint
 import json
 from types import SimpleNamespace
+import warnings
 
 import numpy
 
@@ -32,7 +33,7 @@ class QasmQobjInstruction:
     def __init__(self, name, params=None, qubits=None, register=None,
                  memory=None, condition=None, conditional=None, label=None,
                  mask=None, relation=None, val=None, snapshot_type=None):
-        """Instatiate a new QasmQobjInstruction object.
+        """Instantiate a new QasmQobjInstruction object.
 
         Args:
             name (str): The name of the instruction
@@ -165,7 +166,7 @@ class QasmQobjExperiment:
     """
 
     def __init__(self, config=None, header=None, instructions=None):
-        """Instatiate a QasmQobjExperiment.
+        """Instantiate a QasmQobjExperiment.
 
         Args:
             config (QasmQobjExperimentConfig): A config object for the experiment
@@ -239,9 +240,20 @@ class QasmQobjExperiment:
 class QasmQobjConfig(SimpleNamespace):
     """A configuration for a QASM Qobj."""
 
-    def __init__(self, shots=None, max_credits=None, seed_simulator=None,
-                 memory=None, parameter_binds=None, memory_slots=None,
-                 n_qubits=None, pulse_library=None, calibrations=None, rep_delay=None, **kwargs):
+    def __init__(self,
+                 shots=None,
+                 max_credits=None,
+                 seed_simulator=None,
+                 memory=None,
+                 parameter_binds=None,
+                 meas_level=None,
+                 meas_return=None,
+                 memory_slots=None,
+                 n_qubits=None,
+                 pulse_library=None,
+                 calibrations=None,
+                 rep_delay=None,
+                 **kwargs):
         """Model for RunConfig.
 
         Args:
@@ -250,6 +262,8 @@ class QasmQobjConfig(SimpleNamespace):
             seed_simulator (int): the seed to use in the simulator
             memory (bool): whether to request memory from backend (per-shot readouts)
             parameter_binds (list[dict]): List of parameter bindings
+            meas_level (int): Measurement level 0, 1, or 2
+            meas_return (str): For measurement level < 2, whether single or avg shots are returned
             memory_slots (int): The number of memory slots on the device
             n_qubits (int): The number of qubits on the device
             pulse_library (list): List of :class:`PulseLibraryItem`.
@@ -275,6 +289,12 @@ class QasmQobjConfig(SimpleNamespace):
 
         if parameter_binds is not None:
             self.parameter_binds = parameter_binds
+
+        if meas_level is not None:
+            self.meas_level = meas_level
+
+        if meas_return is not None:
+            self.meas_return = meas_return
 
         if memory_slots is not None:
             self.memory_slots = memory_slots
@@ -466,7 +486,7 @@ class QasmQobj:
 
     def __init__(self, qobj_id=None, config=None, experiments=None,
                  header=None):
-        """Instatiate a new QASM Qobj Object.
+        """Instantiate a new QASM Qobj Object.
 
         Each QASM Qobj object is used to represent a single payload that will
         be passed to a Qiskit provider. It mirrors the Qobj the published
@@ -560,6 +580,13 @@ class QasmQobj:
             'experiments': [x.to_dict() for x in self.experiments]
         }
         if validate:
+            warnings.warn(
+                "The jsonschema validation included in qiskit-terra is "
+                "deprecated and will be removed in a future release. "
+                "If you're relying on this schema validation you should "
+                "pull the schemas from the Qiskit/ibmq-schemas and directly "
+                "validate your payloads with that", DeprecationWarning,
+                stacklevel=2)
             self._validate_json_schema(out_dict)
         return out_dict
 

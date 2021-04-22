@@ -14,9 +14,28 @@
 
 import unittest
 
-from qiskit.pulse.channels import (AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel,
-                                   DriveChannel, ControlChannel, MeasureChannel)
+from qiskit.pulse.channels import (AcquireChannel, Channel, DriveChannel,
+                                   ControlChannel, MeasureChannel, MemorySlot,
+                                   PulseChannel, RegisterSlot, SnapshotChannel)
 from qiskit.test import QiskitTestCase
+
+
+class TestChannel(QiskitTestCase):
+    """Test base channel."""
+
+    def test_cannot_be_instantiated(self):
+        """Test base channel cannot be instantiated."""
+        with self.assertRaises(NotImplementedError):
+            Channel(0)
+
+
+class TestPulseChannel(QiskitTestCase):
+    """Test base pulse channel."""
+
+    def test_cannot_be_instantiated(self):
+        """Test base pulse channel cannot be instantiated."""
+        with self.assertRaises(NotImplementedError):
+            PulseChannel(0)
 
 
 class TestAcquireChannel(QiskitTestCase):

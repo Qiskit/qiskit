@@ -21,6 +21,15 @@ please ensure that:
 2. The documentation has been updated accordingly. In particular, if a
    function or class has been modified during the PR, please update the
    *docstring* accordingly.
+
+   If your pull request is adding a new class, function, or module that is
+   intended to be user facing ensure that you've also added those to a
+   documentation `autosummary` index to include it in the api documentation.
+   For more details you can refer to:
+
+   https://qiskit.org/documentation/contributing_to_qiskit.html#documentation-structure
+
+
 3. If it makes sense for your change that you have added new tests that
    cover the changes.
 4. Ensure that if your change has an end user facing impact (new feature,
@@ -282,13 +291,20 @@ C:\..\> python -m unittest test/python/circuit/test_circuit_operations.py
 
 ##### STDOUT/STDERR and logging capture
 
-When running tests in parallel either via tox, the makefile, or in CI we set
-the env variable `QISKIT_TEST_CAPTURE_STREAMS` which will capture any text
-written to stdout, stderr, and log messages and add them as attachments to
-the tests run so output can be associated with the test case it originated
-from. However, if you run tests outside of these mechanisms by default the
-streams are not captured. To enable stream capture just set the
-`QISKIT_TEST_CAPTURE_STREAMS` env variable to `1`.
+When running tests in parallel using `stestr` either via tox, the Makefile
+(`make test_ci`), or in CI we set the env variable
+`QISKIT_TEST_CAPTURE_STREAMS` which will capture any text written to stdout,
+stderr, and log messages and add them as attachments to the tests run so
+output can be associated with the test case it originated from. However, if
+you run tests with `stestr` outside of these mechanisms by default the streams
+are not captured. To enable stream capture just set the
+`QISKIT_TEST_CAPTURE_STREAMS` env variable to `1`. If this environment
+variable is set outside of running with `stestr` the streams (STDOUT, STDERR,
+and logging) will still be captured but **not** displayed in the test runners
+output. If you are using the stdlib unittest runner a similar result can be
+accomplished by using the
+[`--buffer`](https://docs.python.org/3/library/unittest.html#command-line-options)
+option (e.g. `python -m unittest discover --buffer ./test/python`).
 
 ##### Test Skip Options
 
@@ -316,11 +332,11 @@ previous version in the release notes.
 
 ### Branches
 
-* `master`:
+* `main`:
 
-The master branch is used for development of the next version of qiskit-terra.
+The main branch is used for development of the next version of qiskit-terra.
 It will be updated frequently and should not be considered stable. The API
-can and will change on master as we introduce and refine new features.
+can and will change on main as we introduce and refine new features.
 
 * `stable/*` branches:
 Branches under `stable/*` are used to maintain released versions of qiskit-terra.
@@ -334,13 +350,13 @@ merged to it are bugfixes.
 When it is time to release a new minor version of qiskit-terra we will:
 
 1.  Create a new tag with the version number and push it to github
-2.  Change the `master` version to the next release version.
+2.  Change the `main` version to the next release version.
 
 The release automation processes will be triggered by the new tag and perform
 the following steps:
 
 1.  Create a stable branch for the new minor version from the release tag
-    on the `master` branch
+    on the `main` branch
 2.  Build and upload binary wheels to pypi
 3.  Create a github release page with a generated changelog
 4.  Generate a PR on the meta-repository to bump the terra version and

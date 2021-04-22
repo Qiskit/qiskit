@@ -16,11 +16,11 @@
 from qiskit.quantum_info.operators.random import (random_unitary,
                                                   random_quantum_channel,
                                                   random_hermitian,
+                                                  random_pauli,
                                                   random_clifford,
                                                   random_pauli_table,
-                                                  random_stabilizer_table)
+                                                  random_stabilizer_table,
+                                                  random_cnotdihedral)
 
 from qiskit.quantum_info.states.random import (random_statevector,
                                                random_density_matrix)
-
-from qiskit.quantum_info.states.random import random_state  # DEPRECATED in 0.13

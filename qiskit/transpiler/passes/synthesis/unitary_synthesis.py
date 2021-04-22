@@ -18,10 +18,11 @@ from typing import List
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates import iSwapGate, CXGate, CZGate, RXXGate
 from qiskit.extensions.quantum_initializer import isometry
-from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
+from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
+from qiskit.circuit.library.standard_gates import (iSwapGate, CXGate, CZGate,
+                                                   RXXGate, ECRGate)
 
 
 def _choose_kak_gate(basis_gates):
@@ -32,6 +33,7 @@ def _choose_kak_gate(basis_gates):
         'cz': CZGate(),
         'iswap': iSwapGate(),
         'rxx': RXXGate(pi / 2),
+        'ecr': ECRGate()
     }
 
     kak_gate = None
@@ -44,21 +46,9 @@ def _choose_kak_gate(basis_gates):
 
 def _choose_euler_basis(basis_gates):
     """"Choose the first available 1q basis to use in the Euler decomposition."""
-
-    euler_basis_names = {
-        'U3': ['u3'],
-        'U': ['u'],
-        'PSX': ['p', 'sx'],
-        'U1X': ['u1', 'rx'],
-        'RR': ['r'],
-        'ZYZ': ['rz', 'ry'],
-        'ZXZ': ['rz', 'rx'],
-        'XYX': ['rx', 'ry'],
-    }
-
     basis_set = set(basis_gates or [])
 
-    for basis, gates in euler_basis_names.items():
+    for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
         if set(gates).issubset(basis_set):
             return basis
 
@@ -68,14 +58,23 @@ def _choose_euler_basis(basis_gates):
 class UnitarySynthesis(TransformationPass):
     """Synthesize gates according to their basis gates."""
 
-    def __init__(self, basis_gates: List[str]):
-        """SynthesizeUnitaries initializer.
+    def __init__(self,
+                 basis_gates: List[str],
+                 approximation_degree: float = 1):
+        """
+        Synthesize unitaries over some basis gates.
+
+        This pass can approximate 2-qubit unitaries given some approximation
+        closeness measure (expressed as approximation_degree). Other unitaries
+        are synthesized exactly.
 
         Args:
             basis_gates: List of gate names to target.
+            approximation_degree: closeness of approximation (0: lowest, 1: highest).
         """
         super().__init__()
         self._basis_gates = basis_gates
+        self._approximation_degree = approximation_degree
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the UnitarySynthesis pass on `dag`.
@@ -91,7 +90,7 @@ class UnitarySynthesis(TransformationPass):
 
         decomposer1q, decomposer2q = None, None
         if euler_basis is not None:
-            decomposer1q = OneQubitEulerDecomposer(euler_basis)
+            decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
         if kak_gate is not None:
             decomposer2q = TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis)
 
@@ -101,11 +100,12 @@ class UnitarySynthesis(TransformationPass):
             if len(node.qargs) == 1:
                 if decomposer1q is None:
                     continue
-                synth_dag = circuit_to_dag(decomposer1q(node.op.to_matrix()))
+                synth_dag = circuit_to_dag(decomposer1q._decompose(node.op.to_matrix()))
             elif len(node.qargs) == 2:
                 if decomposer2q is None:
                     continue
-                synth_dag = circuit_to_dag(decomposer2q(node.op.to_matrix()))
+                synth_dag = circuit_to_dag(decomposer2q(node.op.to_matrix(),
+                                                        basis_fidelity=self._approximation_degree))
             else:
                 synth_dag = circuit_to_dag(
                     isometry.Isometry(node.op.to_matrix(), 0, 0).definition)

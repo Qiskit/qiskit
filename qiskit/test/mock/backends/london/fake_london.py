@@ -15,40 +15,20 @@ Fake London device (5 qubit).
 """
 
 import os
-import json
-
-from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
-from qiskit.test.mock.fake_backend import FakeBackend
+from qiskit.test.mock.fake_qasm_backend import FakeQasmBackend
 
 
-class FakeLondon(FakeBackend):
-    """A fake 5 qubit backend."""
+class FakeLondon(FakeQasmBackend):
+    """A fake 5 qubit backend.
 
-    def __init__(self):
-        """
-         0 ↔ 1 ↔ 2
-             ↕
-             3
-             ↕
-             4
-        """
-        dirname = os.path.dirname(__file__)
-        filename = "conf_london.json"
-        with open(os.path.join(dirname, filename)) as f_conf:
-            conf = json.load(f_conf)
+     0 ↔ 1 ↔ 2
+         ↕
+         3
+         ↕
+         4
+    """
 
-        configuration = QasmBackendConfiguration.from_dict(conf)
-        configuration.backend_name = 'fake_london'
-        self._defaults = None
-        self._properties = None
-        super().__init__(configuration)
-
-    def properties(self):
-        """Returns a snapshot of device properties"""
-        if not self._properties:
-            dirname = os.path.dirname(__file__)
-            filename = "props_london.json"
-            with open(os.path.join(dirname, filename)) as f_prop:
-                props = json.load(f_prop)
-            self._properties = BackendProperties.from_dict(props)
-        return self._properties
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_london.json"
+    props_filename = "props_london.json"
+    backend_name = "fake_london"

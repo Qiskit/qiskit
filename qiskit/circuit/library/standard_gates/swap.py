@@ -97,12 +97,12 @@ class SwapGate(Gate):
         """Return inverse Swap gate (itself)."""
         return SwapGate()  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the SWAP gate."""
         return numpy.array([[1, 0, 0, 0],
                             [0, 0, 1, 0],
                             [0, 1, 0, 0],
-                            [0, 0, 0, 1]], dtype=complex)
+                            [0, 0, 0, 1]], dtype=dtype)
 
 
 class CSwapGate(ControlledGate):
@@ -185,7 +185,7 @@ class CSwapGate(ControlledGate):
                             [0, 0, 0, 0, 1, 0, 0, 0],
                             [0, 0, 0, 1, 0, 0, 0, 0],
                             [0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 1]], dtype=complex)
+                            [0, 0, 0, 0, 0, 0, 0, 1]])
     _matrix0 = numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
                             [0, 1, 0, 0, 0, 0, 0, 0],
                             [0, 0, 0, 0, 1, 0, 0, 0],
@@ -193,7 +193,7 @@ class CSwapGate(ControlledGate):
                             [0, 0, 1, 0, 0, 0, 0, 0],
                             [0, 0, 0, 0, 0, 1, 0, 0],
                             [0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 1]], dtype=complex)
+                            [0, 0, 0, 0, 0, 0, 0, 1]])
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CSWAP gate."""
@@ -227,9 +227,9 @@ class CSwapGate(ControlledGate):
         """Return inverse CSwap gate (itself)."""
         return CSwapGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the Fredkin (CSWAP) gate."""
-        if self.ctrl_state:
-            return self._matrix1
-        else:
-            return self._matrix0
+        mat = self._matrix1 if self.ctrl_state else self._matrix0
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat

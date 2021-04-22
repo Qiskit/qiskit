@@ -71,10 +71,10 @@ class TGate(Gate):
         """Return inverse T gate (i.e. Tdg)."""
         return TdgGate()
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the T gate."""
         return numpy.array([[1, 0],
-                            [0, (1 + 1j) / numpy.sqrt(2)]], dtype=complex)
+                            [0, (1 + 1j) / numpy.sqrt(2)]], dtype=dtype)
 
 
 class TdgGate(Gate):
@@ -129,7 +129,7 @@ class TdgGate(Gate):
         """Return inverse Tdg gate (i.e. T)."""
         return TGate()
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the inverse T gate."""
         return numpy.array([[1, 0],
-                            [0, (1 - 1j) / numpy.sqrt(2)]], dtype=complex)
+                            [0, (1 - 1j) / numpy.sqrt(2)]], dtype=dtype)

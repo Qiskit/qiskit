@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
+# pylint: disable=missing-function-docstring
 
 """Tests for comparing the outputs of circuit drawer with expected ones."""
 
@@ -83,7 +83,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_parametric_pulse_schedule(self):
         """Test that parametric instructions/schedules can be drawn."""
-        filename = self._get_resource_path('current_parametric_matplotlib_ref.png')
+        filename = 'current_parametric_matplotlib_ref.png'
         schedule = Schedule(name='test_parametric')
         schedule += Play(library.Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0))
         pulse_drawer(schedule, filename=filename)
@@ -96,7 +96,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         """Test that Play instructions can be drawn. The output should be the same as the
         parametric_pulse_schedule test.
         """
-        filename = self._get_resource_path('current_play_matplotlib_ref.png')
+        filename = 'current_play_matplotlib_ref.png'
         schedule = Schedule(name='test_parametric')
         schedule += Play(library.Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0))
         pulse_drawer(schedule, filename=filename)
@@ -108,7 +108,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_pulse_matplotlib_drawer(self):
-        filename = self._get_resource_path('current_pulse_matplotlib_ref.png')
+        filename = 'current_pulse_matplotlib_ref.png'
         pulse = self.sample_pulse()
         pulse_drawer(pulse, filename=filename)
         self.assertImagesAreEqual(filename, self.pulse_matplotlib_reference)
@@ -119,7 +119,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_instruction_matplotlib_drawer(self):
-        filename = self._get_resource_path('current_instruction_matplotlib_ref.png')
+        filename = 'current_instruction_matplotlib_ref.png'
         pulse_instruction = self.sample_instruction()
         pulse_drawer(pulse_instruction, filename=filename)
         self.assertImagesAreEqual(filename, self.instr_matplotlib_reference)
@@ -130,7 +130,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_schedule_matplotlib_drawer(self):
-        filename = self._get_resource_path('current_schedule_matplotlib_ref.png')
+        filename = 'current_schedule_matplotlib_ref.png'
         schedule = self.sample_schedule()
         pulse_drawer(schedule, filename=filename)
         self.assertImagesAreEqual(filename, self.schedule_matplotlib_reference)
@@ -141,7 +141,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_truncated_schedule_matplotlib_drawer(self):
-        filename = self._get_resource_path('current_truncated_schedule_matplotlib_ref.png')
+        filename = 'current_truncated_schedule_matplotlib_ref.png'
         schedule = self.sample_schedule()
         pulse_drawer(schedule, plot_range=(150, 300), filename=filename)
         self.assertImagesAreEqual(filename, self.trunc_sched_mpl_reference)
@@ -157,14 +157,14 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
                                         MemorySlot(1),
                                         RegisterSlot(1)))
         # Check ValueError is not thrown
-        sched.draw(plot_range=(0, 15))
+        pulse_drawer(sched, plot_range=(0, 15))
 
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_schedule_drawer_show_framechange(self):
-        filename = self._get_resource_path('current_show_framechange_ref.png')
+        filename = 'current_show_framechange_ref.png'
         gp0 = library.gaussian(duration=20, amp=1.0, sigma=1.0)
         sched = Schedule(name='test_schedule')
         sched = sched.append(Play(gp0, DriveChannel(0)))

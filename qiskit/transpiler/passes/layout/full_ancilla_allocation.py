@@ -65,10 +65,18 @@ class FullAncillaAllocation(AnalysisPass):
         if layout is None:
             raise TranspilerError('FullAncillaAllocation pass requires property_set["layout"].')
 
-        layout_physical_qubits = layout.get_physical_bits().keys()
-        coupling_physical_qubits = self.coupling_map.physical_qubits
-        idle_physical_qubits = [q for q in coupling_physical_qubits
-                                if q not in layout_physical_qubits]
+        if layout:
+            FullAncillaAllocation.validate_layout(layout.get_virtual_bits(), set(dag.qubits))
+            layout_physical_qubits = list(range(max(layout.get_physical_bits()) + 1))
+        else:
+            layout_physical_qubits = []
+
+        idle_physical_qubits = [q for q in layout_physical_qubits
+                                if q not in layout.get_physical_bits()]
+
+        if self.coupling_map:
+            idle_physical_qubits = [q for q in self.coupling_map.physical_qubits
+                                    if q not in layout.get_physical_bits()]
 
         if idle_physical_qubits:
             if self.ancilla_name in dag.qregs:
@@ -79,7 +87,17 @@ class FullAncillaAllocation(AnalysisPass):
             else:
                 qreg = QuantumRegister(len(idle_physical_qubits), name=self.ancilla_name)
 
-        for idx, idle_q in enumerate(idle_physical_qubits):
-            self.property_set['layout'][idle_q] = qreg[idx]
-
+            for idx, idle_q in enumerate(idle_physical_qubits):
+                self.property_set['layout'][idle_q] = qreg[idx]
+            self.property_set['layout'].add_register(qreg)
         return dag
+
+    @staticmethod
+    def validate_layout(layout_qubits, dag_qubits):
+        """
+        Checks if all the qregs in layout_qregs already exist in dag_qregs. Otherwise, raise.
+        """
+        for qreg in layout_qubits:
+            if qreg not in dag_qubits:
+                raise TranspilerError('FullAncillaAllocation: The layout refers to a qubit '
+                                      'that does not exist in circuit.')

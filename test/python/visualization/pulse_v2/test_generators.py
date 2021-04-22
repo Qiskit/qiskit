@@ -10,15 +10,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring, invalid-name
+# pylint: disable=invalid-name
 
 """Tests for drawing object generation."""
 
 import numpy as np
 
-from qiskit import pulse
+from qiskit import pulse, circuit
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.pulse_v2 import drawing_objects, types, stylesheet, device_info
+from qiskit.visualization.pulse_v2 import drawings, types, stylesheet, device_info
 from qiskit.visualization.pulse_v2.generators import (barrier,
                                                       chart,
                                                       frame,
@@ -26,10 +26,10 @@ from qiskit.visualization.pulse_v2.generators import (barrier,
                                                       waveform)
 
 
-def create_instruction(inst, phase, freq, t0, dt):
+def create_instruction(inst, phase, freq, t0, dt, is_opaque=False):
     """A helper function to create InstructionTuple."""
     frame_info = types.PhaseFreqTuple(phase=phase, freq=freq)
-    return types.PulseInstruction(t0=t0, dt=dt, frame=frame_info, inst=inst)
+    return types.PulseInstruction(t0=t0, dt=dt, frame=frame_info, inst=inst, is_opaque=is_opaque)
 
 
 class TestWaveformGenerators(QiskitTestCase):
@@ -123,8 +123,8 @@ class TestWaveformGenerators(QiskitTestCase):
         self.assertEqual(len(objs), 2)
 
         # type check
-        self.assertEqual(type(objs[0]), drawing_objects.LineData)
-        self.assertEqual(type(objs[1]), drawing_objects.LineData)
+        self.assertEqual(type(objs[0]), drawings.LineData)
+        self.assertEqual(type(objs[1]), drawings.LineData)
 
         y_ref = np.array([0, 0, -0.5, -0.5, 0, 0])
 
@@ -150,7 +150,7 @@ class TestWaveformGenerators(QiskitTestCase):
                      'zorder': self.formatter['layer.fill_waveform'],
                      'linewidth': self.formatter['line_width.fill_waveform'],
                      'linestyle': self.formatter['line_style.fill_waveform'],
-                     'color': self.formatter['color.fill_waveform_d'][0]}
+                     'color': self.formatter['color.waveforms']['D'][0]}
         self.assertDictEqual(objs[0].styles, ref_style)
 
     def test_gen_filled_waveform_stepwise_acquire(self):
@@ -170,7 +170,7 @@ class TestWaveformGenerators(QiskitTestCase):
         self.assertEqual(len(objs), 1)
 
         # type check
-        self.assertEqual(type(objs[0]), drawing_objects.LineData)
+        self.assertEqual(type(objs[0]), drawings.LineData)
 
         y_ref = np.array([1, 1])
 
@@ -201,7 +201,7 @@ class TestWaveformGenerators(QiskitTestCase):
                      'zorder': self.formatter['layer.fill_waveform'],
                      'linewidth': self.formatter['line_width.fill_waveform'],
                      'linestyle': self.formatter['line_style.fill_waveform'],
-                     'color': self.formatter['color.fill_waveform_a'][0]}
+                     'color': self.formatter['color.waveforms']['A'][0]}
         self.assertDictEqual(objs[0].styles, ref_style)
 
     def test_gen_iqx_latex_waveform_name_x90(self):
@@ -215,18 +215,18 @@ class TestWaveformGenerators(QiskitTestCase):
                                                     device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
         self.assertEqual(obj.text, 'X90p_d0_1234567')
-        self.assertEqual(obj.latex, r'{\rm X}(\frac{\pi}{2})')
+        self.assertEqual(obj.latex, r'{\rm X}(\pi/2)')
 
         # style check
         ref_style = {'zorder': self.formatter['layer.annotate'],
                      'color': self.formatter['color.annotate'],
                      'size': self.formatter['text_size.annotate'],
-                     'va': 'top',
+                     'va': 'center',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -241,7 +241,7 @@ class TestWaveformGenerators(QiskitTestCase):
                                                     device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -259,12 +259,12 @@ class TestWaveformGenerators(QiskitTestCase):
                                                     device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.ControlChannel(0)])
         self.assertEqual(obj.text, 'CR90p_u0_1234567')
-        self.assertEqual(obj.latex, r'{\rm CR}(\frac{\pi}{4})')
+        self.assertEqual(obj.latex, r'{\rm CR}(\pi/4)')
 
     def test_gen_iqx_latex_waveform_name_compensation_tone(self):
         """Test gen_iqx_latex_waveform_name with CR compensation waveform."""
@@ -277,12 +277,12 @@ class TestWaveformGenerators(QiskitTestCase):
                                                     device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
         self.assertEqual(obj.text, 'CR90p_d0_u0_1234567')
-        self.assertEqual(obj.latex, r'\overline{\rm CR}(\frac{\pi}{4})')
+        self.assertEqual(obj.latex, r'\overline{\rm CR}(\pi/4)')
 
     def test_gen_waveform_max_value(self):
         """Test gen_waveform_max_value."""
@@ -295,8 +295,8 @@ class TestWaveformGenerators(QiskitTestCase):
                                                device=self.device)
 
         # type check
-        self.assertEqual(type(objs[0]), drawing_objects.TextData)
-        self.assertEqual(type(objs[1]), drawing_objects.TextData)
+        self.assertEqual(type(objs[0]), drawings.TextData)
+        self.assertEqual(type(objs[1]), drawings.TextData)
 
         # data check, real part, positive max
         self.assertListEqual(objs[0].channels, [pulse.DriveChannel(0)])
@@ -312,7 +312,7 @@ class TestWaveformGenerators(QiskitTestCase):
 
         # data check, imaginary part, negative max
         self.assertListEqual(objs[1].channels, [pulse.DriveChannel(0)])
-        self.assertEqual(objs[1].text, u'-0.20\n\u25B4')
+        self.assertEqual(objs[1].text, u'\u25B4\n-0.20')
 
         # style check
         ref_style = {'zorder': self.formatter['layer.annotate'],
@@ -321,6 +321,57 @@ class TestWaveformGenerators(QiskitTestCase):
                      'va': 'top',
                      'ha': 'center'}
         self.assertDictEqual(objs[1].styles, ref_style)
+
+    def test_gen_filled_waveform_stepwise_opaque(self):
+        """Test generating waveform with unbound parameter."""
+        amp = circuit.Parameter('amp')
+        my_pulse = pulse.Gaussian(10, amp, 3, name='my_pulse')
+        play = pulse.Play(my_pulse, pulse.DriveChannel(0))
+        inst_data = create_instruction(play, np.pi/2, 5e9, 5, 0.1, True)
+
+        objs = waveform.gen_filled_waveform_stepwise(inst_data,
+                                                     formatter=self.formatter,
+                                                     device=self.device)
+
+        self.assertEqual(len(objs), 2)
+
+        # type check
+        self.assertEqual(type(objs[0]), drawings.BoxData)
+        self.assertEqual(type(objs[1]), drawings.TextData)
+
+        x_ref = np.array([5, 15])
+        y_ref = np.array([-0.5 * self.formatter['box_height.opaque_shape'],
+                          0.5 * self.formatter['box_height.opaque_shape']])
+
+        # data check
+        np.testing.assert_array_equal(objs[0].xvals, x_ref)
+        np.testing.assert_array_equal(objs[0].yvals, y_ref)
+
+        # meta data check
+        ref_meta = {'duration (cycle time)': 10,
+                    'duration (sec)': 1.0,
+                    't0 (cycle time)': 5,
+                    't0 (sec)': 0.5,
+                    'waveform shape': 'Gaussian',
+                    'amp': 'amp',
+                    'sigma': 3,
+                    'phase': np.pi/2,
+                    'frequency': 5e9,
+                    'qubit': 0,
+                    'name': 'my_pulse'}
+        self.assertDictEqual(objs[0].meta, ref_meta)
+
+        # style check
+        ref_style = {'alpha': self.formatter['alpha.opaque_shape'],
+                     'zorder': self.formatter['layer.fill_waveform'],
+                     'linewidth': self.formatter['line_width.opaque_shape'],
+                     'linestyle': self.formatter['line_style.opaque_shape'],
+                     'facecolor': self.formatter['color.opaque_shape'][0],
+                     'edgecolor': self.formatter['color.opaque_shape'][1]}
+        self.assertDictEqual(objs[0].styles, ref_style)
+
+        # test label
+        self.assertEqual(objs[1].text, 'Gaussian(amp)')
 
 
 class TestChartGenerators(QiskitTestCase):
@@ -361,7 +412,7 @@ class TestChartGenerators(QiskitTestCase):
                                  device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.LineData)
+        self.assertEqual(type(obj), drawings.LineData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -389,7 +440,7 @@ class TestChartGenerators(QiskitTestCase):
                                    device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -412,7 +463,7 @@ class TestChartGenerators(QiskitTestCase):
                                     device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -422,7 +473,7 @@ class TestChartGenerators(QiskitTestCase):
         ref_style = {'zorder': self.formatter['layer.axis_label'],
                      'color': self.formatter['color.axis_label'],
                      'size': self.formatter['text_size.annotate'],
-                     'va': 'top',
+                     'va': 'center',
                      'ha': 'right'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -435,7 +486,7 @@ class TestChartGenerators(QiskitTestCase):
                                       device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -445,7 +496,7 @@ class TestChartGenerators(QiskitTestCase):
         ref_style = {'zorder': self.formatter['layer.axis_label'],
                      'color': self.formatter['color.axis_label'],
                      'size': self.formatter['text_size.annotate'],
-                     'va': 'top',
+                     'va': 'center',
                      'ha': 'right'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -481,21 +532,21 @@ class TestFrameGenerators(QiskitTestCase):
 
     def test_phase_to_text(self):
         """Test helper function to convert phase to text."""
-        plain, latex = frame._phase_to_text(np.pi, max_denom=10, flip=True)
+        plain, latex = frame._phase_to_text(self.formatter, np.pi, max_denom=10, flip=True)
         self.assertEqual(plain, '-pi')
         self.assertEqual(latex, r'-\pi')
 
-        plain, latex = frame._phase_to_text(np.pi/2, max_denom=10, flip=True)
+        plain, latex = frame._phase_to_text(self.formatter, np.pi/2, max_denom=10, flip=True)
         self.assertEqual(plain, '-pi/2')
-        self.assertEqual(latex, r'-\frac{\pi}{2}')
+        self.assertEqual(latex, r'-\pi/2')
 
-        plain, latex = frame._phase_to_text(np.pi*3/4, max_denom=10, flip=True)
+        plain, latex = frame._phase_to_text(self.formatter, np.pi*3/4, max_denom=10, flip=True)
         self.assertEqual(plain, '-3/4 pi')
-        self.assertEqual(latex, r'-\frac{3}{4}\pi')
+        self.assertEqual(latex, r'-3/4 \pi')
 
     def test_frequency_to_text(self):
         """Test helper function to convert frequency to text."""
-        plain, latex = frame._freq_to_text(1e6, unit='MHz')
+        plain, latex = frame._freq_to_text(self.formatter, 1e6, unit='MHz')
         self.assertEqual(plain, '1.00 MHz')
         self.assertEqual(latex, r'1.00~{\rm MHz}')
 
@@ -510,18 +561,18 @@ class TestFrameGenerators(QiskitTestCase):
                                         device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
-        self.assertEqual(obj.latex, r'{\rm VZ}(-\frac{\pi}{2})')
+        self.assertEqual(obj.latex, r'{\rm VZ}(-\pi/2)')
         self.assertEqual(obj.text, 'VZ(-pi/2)')
 
         # style check
         ref_style = {'zorder': self.formatter['layer.frame_change'],
                      'color': self.formatter['color.frame_change'],
                      'size': self.formatter['text_size.annotate'],
-                     'va': 'bottom',
+                     'va': 'center',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -536,7 +587,7 @@ class TestFrameGenerators(QiskitTestCase):
                                            device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -547,7 +598,7 @@ class TestFrameGenerators(QiskitTestCase):
         ref_style = {'zorder': self.formatter['layer.frame_change'],
                      'color': self.formatter['color.frame_change'],
                      'size': self.formatter['text_size.annotate'],
-                     'va': 'bottom',
+                     'va': 'center',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -562,8 +613,8 @@ class TestFrameGenerators(QiskitTestCase):
                                                 device=self.device)
 
         # type check
-        self.assertEqual(type(objs[0]), drawing_objects.TextData)
-        self.assertEqual(type(objs[1]), drawing_objects.TextData)
+        self.assertEqual(type(objs[0]), drawings.TextData)
+        self.assertEqual(type(objs[1]), drawings.TextData)
 
     def test_gen_raw_operand_values_compact(self):
         """Test gen_raw_operand_values_compact."""
@@ -576,11 +627,11 @@ class TestFrameGenerators(QiskitTestCase):
                                                    device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
-        self.assertEqual(obj.text, '1.57\n1.0e+06')
+        self.assertEqual(obj.text, '1.57\n1.0e6')
 
     def gen_frame_symbol(self):
         """Test gen_frame_symbol."""
@@ -593,7 +644,7 @@ class TestFrameGenerators(QiskitTestCase):
                                      device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -659,7 +710,7 @@ class TestSnapshotGenerators(QiskitTestCase):
                                          device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.channels.SnapshotChannel()])
@@ -669,7 +720,7 @@ class TestSnapshotGenerators(QiskitTestCase):
         ref_style = {'zorder': self.formatter['layer.snapshot'],
                      'color': self.formatter['color.snapshot'],
                      'size': self.formatter['text_size.annotate'],
-                     'va': 'bottom',
+                     'va': 'center',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -684,7 +735,7 @@ class TestSnapshotGenerators(QiskitTestCase):
                                          device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.channels.SnapshotChannel()])
@@ -746,7 +797,7 @@ class TestBarrierGenerators(QiskitTestCase):
                                   device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.LineData)
+        self.assertEqual(type(obj), drawings.LineData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0), pulse.ControlChannel(0)])

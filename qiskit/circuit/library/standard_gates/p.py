@@ -83,7 +83,7 @@ class PhaseGate(Gate):
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-Phase gate.
+        """Return a (multi-)controlled-Phase gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -108,10 +108,10 @@ class PhaseGate(Gate):
         r"""Return inverted Phase gate (:math:`Phase(\lambda){\dagger} = Phase(-\lambda)`)"""
         return PhaseGate(-self.params[0])
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the Phase gate."""
         lam = float(self.params[0])
-        return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
+        return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=dtype)
 
 
 class CPhaseGate(ControlledGate):
@@ -197,7 +197,7 @@ class CPhaseGate(ControlledGate):
         r"""Return inverted CPhase gate (:math:`CPhase(\lambda){\dagger} = CPhase(-\lambda)`)"""
         return CPhaseGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CPhase gate."""
         eith = numpy.exp(1j * float(self.params[0]))
         if self.ctrl_state:
@@ -205,12 +205,12 @@ class CPhaseGate(ControlledGate):
                                 [0, 1, 0, 0],
                                 [0, 0, 1, 0],
                                 [0, 0, 0, eith]],
-                               dtype=complex)
+                               dtype=dtype)
         return numpy.array([[1, 0, 0, 0],
                             [0, 1, 0, 0],
                             [0, 0, eith, 0],
                             [0, 0, 0, 1]],
-                           dtype=complex)
+                           dtype=dtype)
 
 
 class MCPhaseGate(ControlledGate):

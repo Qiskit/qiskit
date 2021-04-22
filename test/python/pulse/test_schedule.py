@@ -75,15 +75,6 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(0, sched.start_time)
         self.assertEqual(3, sched.stop_time)
 
-    def test_deprecated_style(self):
-        """Test append instructions to an empty schedule."""
-        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-
-        sched = Schedule()
-        sched = sched.append(Play(lp0, self.config.drive(0)))
-        self.assertEqual(0, sched.start_time)
-        self.assertEqual(3, sched.stop_time)
-
     def test_append_instructions_applying_to_different_channels(self):
         """Test append instructions to schedule."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
@@ -390,6 +381,13 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(sched.duration, 1525)
         self.assertTrue('sigma' in sched.instructions[0][1].pulse.parameters)
 
+    def test_numpy_integer_input(self):
+        """Test that mixed integer duration types can build a schedule (#5754)."""
+        sched = Schedule()
+        sched += Delay(np.int32(25), DriveChannel(0))
+        sched += Play(Constant(duration=30, amp=0.1), DriveChannel(0))
+        self.assertEqual(sched.duration, 55)
+
     def test_negative_time_raises(self):
         """Test that a negative time will raise an error."""
         sched = Schedule()
@@ -668,10 +666,10 @@ class TestScheduleFilter(BaseTestSchedule):
         channels = [AcquireChannel(1), DriveChannel(1)]
         filtered, excluded = self._filter_and_test_consistency(sched, channels=channels)
         for _, inst in filtered.instructions:
-            self.assertTrue(any([chan in channels for chan in inst.channels]))
+            self.assertTrue(any(chan in channels for chan in inst.channels))
 
         for _, inst in excluded.instructions:
-            self.assertFalse(any([chan in channels for chan in inst.channels]))
+            self.assertFalse(any(chan in channels for chan in inst.channels))
 
     def test_filter_exclude_name(self):
         """Test the name of the schedules after applying filter and exclude functions."""
@@ -816,7 +814,7 @@ class TestScheduleFilter(BaseTestSchedule):
                                                                time_ranges=[(25, 100)])
         for time, inst in filtered.instructions:
             self.assertIsInstance(inst, Play)
-            self.assertTrue(all([chan.index == 0 for chan in inst.channels]))
+            self.assertTrue(all(chan.index == 0 for chan in inst.channels))
             self.assertTrue(25 <= time <= 100)
         self.assertEqual(len(excluded.instructions), 5)
         self.assertTrue(excluded.instructions[0][1].channels[0] == DriveChannel(0))
@@ -979,7 +977,6 @@ class TestTimingUtils(QiskitTestCase):
 
     def test_overlaps(self):
         """Test the `_overlaps` function."""
-        # pylint: disable=invalid-name
         a = (0, 1)
         b = (1, 4)
         c = (2, 3)
@@ -994,7 +991,6 @@ class TestTimingUtils(QiskitTestCase):
 
     def test_overlaps_zero_duration(self):
         """Test the `_overlaps` function for intervals with duration zero."""
-        # pylint: disable=invalid-name
         a = 0
         b = 1
         self.assertFalse(_overlaps((a, a), (a, a)))

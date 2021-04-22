@@ -23,10 +23,9 @@ from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import transpile
 from qiskit import execute, assemble, BasicAer
-from qiskit.quantum_info import state_fidelity
+from qiskit.quantum_info import state_fidelity, Statevector, Operator
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.quantum_info.states.statevector import Statevector
 
 
 class TestInitialize(QiskitTestCase):
@@ -61,6 +60,15 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity, self._desired_fidelity,
             "Initializer has low fidelity {:.2g}.".format(fidelity))
+
+    def test_statevector(self):
+        """Initialize gates from a statevector."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/5134 (footnote)
+        desired_vector = [0, 0, 0, 1]
+        qc = QuantumCircuit(2)
+        statevector = Statevector.from_label('11')
+        qc.initialize(statevector, [0, 1])
+        self.assertEqual(qc.data[0][0].params, desired_vector)
 
     def test_bell_state(self):
         """Initialize a Bell state on 2 qubits."""
@@ -346,16 +354,55 @@ class TestInitialize(QiskitTestCase):
     def test_from_labels(self):
         """Initialize from labels."""
         desired_sv = Statevector.from_label('01+-lr')
-
         qc = QuantumCircuit(6)
         qc.initialize('01+-lr', range(6))
-        job = execute(qc, BasicAer.get_backend('statevector_simulator'))
-        result = job.result()
-        statevector = result.get_statevector()
-        fidelity = state_fidelity(statevector, desired_sv)
-        self.assertGreater(
-            fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity))
+        actual_sv = Statevector.from_instruction(qc)
+        self.assertTrue(desired_sv == actual_sv)
+
+    def test_from_int(self):
+        """Initialize from int."""
+        desired_sv = Statevector.from_label('110101')
+        qc = QuantumCircuit(6)
+        qc.initialize(53, range(6))
+        actual_sv = Statevector.from_instruction(qc)
+        self.assertTrue(desired_sv == actual_sv)
+
+    def _remove_resets(self, circ):
+        circ.data = [tup for tup in circ.data if tup[0].name != 'reset']
+
+    def test_global_phase_random(self):
+        """Test global phase preservation with random state vectors"""
+        from qiskit.quantum_info.random import random_statevector
+        repeats = 5
+        for n_qubits in [1, 2, 4]:
+            for irep in range(repeats):
+                with self.subTest(i=f'{n_qubits}_{irep}'):
+                    dim = 2**n_qubits
+                    qr = QuantumRegister(n_qubits)
+                    initializer = QuantumCircuit(qr)
+                    target = random_statevector(dim)
+                    initializer.initialize(target, qr)
+                    uninit = initializer.data[0][0].definition
+                    self._remove_resets(uninit)
+                    evolve = Statevector(uninit)
+                    self.assertEqual(target, evolve)
+
+    def test_global_phase_1q(self):
+        """Test global phase preservation with some simple 1q statevectors"""
+        target_list = [Statevector([1j, 0]), Statevector([0, 1j]),
+                       Statevector([1j/np.sqrt(2), 1j/np.sqrt(2)])]
+        n_qubits = 1
+        dim = 2**n_qubits
+        qr = QuantumRegister(n_qubits)
+        for target in target_list:
+            with self.subTest(i=target):
+                initializer = QuantumCircuit(qr)
+                initializer.initialize(target, qr)
+                # need to get rid of the resets in order to use the Operator class
+                disentangler = Operator(initializer.data[0][0].definition.data[1][0])
+                zero = Statevector.from_int(0, dim)
+                actual = zero @ disentangler
+                self.assertEqual(target, actual)
 
 
 class TestInstructionParam(QiskitTestCase):

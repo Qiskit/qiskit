@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue with the labels of parametric pulses in the
+    :class:`~qiskit.qobj.PulseQobjInstruction` class were not being properly
+    set as they are with sampled pulses. This also means that pulse names
+    that are imported from the :class:`~qiskit.providers.models.PulseDefaults`
+    returned by a :class:`~qiskit.providers.Backend`, such as ``x90``, ``x90m``,
+    etc, will properly be set.
+    Fixed `#5363 <https://github.com/Qiskit/qiskit-terra/issues/5363>`__

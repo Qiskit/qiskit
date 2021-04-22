@@ -56,11 +56,8 @@ defined as:
 Supplementary Information
 =========================
 
-.. container:: toggle
-
-   .. container:: header
-
-      **Quantum Circuit Properties**
+.. dropdown:: Quantum Circuit Properties
+   :animate: fade-in-slide-down
 
    When constructing quantum circuits, there are several properties that help quantify
    the "size" of the circuits, and their ability to be run on a noisy quantum device.
@@ -231,4 +228,4 @@ from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
 from .equivalence import EquivalenceLibrary
 from .classicalfunction.types import Int1, Int2
-from .classicalfunction import classical_function
+from .classicalfunction import classical_function, BooleanExpression

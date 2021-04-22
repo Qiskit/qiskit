@@ -163,3 +163,18 @@ class TestBackendConfiguration(QiskitTestCase):
         """Ensure that a deepcopy succeeds and results in an identical object."""
         copy_config = copy.deepcopy(self.config)
         self.assertEqual(copy_config, self.config)
+
+    def test_u_channel_lo_scale(self):
+        """Ensure that u_channel_lo scale is a complex number"""
+        valencia_conf = self.provider.get_backend('fake_valencia').configuration()
+        self.assertTrue(isinstance(valencia_conf.u_channel_lo[0][0].scale, complex))
+
+    def test_processor_type(self):
+        """Test the "processor_type" field in the backend configuration."""
+        reference_processor_type = {
+            "family": "Canary",
+            "revision": "1.0",
+            "segment": "A",
+        }
+        self.assertEqual(self.config.processor_type, reference_processor_type)
+        self.assertEqual(self.config.to_dict()['processor_type'], reference_processor_type)

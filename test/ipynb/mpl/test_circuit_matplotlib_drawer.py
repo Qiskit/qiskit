@@ -25,7 +25,8 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
-from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate
+from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate, ZGate
+from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import IQP
@@ -56,6 +57,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
     @staticmethod
     def save_data_wrap(func, testname):
         """A wrapper to save the data from a test"""
+
         def wrapper(*args, **kwargs):
             image_filename = kwargs['filename']
             with cwd(RESULTDIR):
@@ -83,6 +85,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit()
 
         self.circuit_drawer(circuit, filename='empty_circut.png')
+
+    def test_no_ops(self):
+        """Test circuit with no ops.
+        See https://github.com/Qiskit/qiskit-terra/issues/5393 """
+        circuit = QuantumCircuit(2, 3)
+        self.circuit_drawer(circuit, filename='no_op_circut.png')
 
     def test_long_name(self):
         """Test to see that long register names can be seen completely
@@ -216,15 +224,28 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_cnot(self):
         """Test different cnot gates (ccnot, mcx, etc)"""
-        qr = QuantumRegister(5, 'q')
+        qr = QuantumRegister(6, 'q')
         circuit = QuantumCircuit(qr)
         circuit.x(0)
         circuit.cx(0, 1)
         circuit.ccx(0, 1, 2)
         circuit.append(XGate().control(3, ctrl_state='010'), [qr[2], qr[3], qr[0], qr[1]])
         circuit.append(MCXGate(num_ctrl_qubits=3, ctrl_state='101'), [qr[0], qr[1], qr[2], qr[4]])
+        circuit.append(MCXVChain(3, dirty_ancillas=True), [qr[0], qr[1], qr[2], qr[3], qr[5]])
 
         self.circuit_drawer(circuit, filename='cnot.png')
+
+    def test_cz(self):
+        """Test Z and Controlled-Z Gates"""
+        qr = QuantumRegister(4, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.z(0)
+        circuit.cz(0, 1)
+        circuit.append(ZGate().control(3, ctrl_state='101'), [0, 1, 2, 3])
+        circuit.append(ZGate().control(2), [1, 2, 3])
+        circuit.append(ZGate().control(1, ctrl_state='0', label='CZ Gate'), [2, 3])
+
+        self.circuit_drawer(circuit, filename='cz.png')
 
     def test_pauli_clifford(self):
         """Test Pauli(green) and Clifford(blue) gates"""
@@ -293,10 +314,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test control labels"""
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.cy(1, 0, label='Bottom Y Label')
-        circuit.cy(2, 3, label='Top Y Label')
-        circuit.ch(0, 1, label='Top H Label')
-        circuit.append(HGate(label='H Gate Label').control(3, label='H Control Label',
+        circuit.cy(1, 0, label='Bottom Y label')
+        circuit.cy(2, 3, label='Top Y label')
+        circuit.ch(0, 1, label='Top H label')
+        circuit.append(HGate(label='H gate label').control(3, label='H control label',
                                                            ctrl_state='010'),
                        [qr[1], qr[2], qr[3], qr[0]])
 
@@ -315,7 +336,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test controlled GHZ to_gate circuit"""
         qr = QuantumRegister(5, 'q')
         circuit = QuantumCircuit(qr)
-        ghz_circuit = QuantumCircuit(3, name='This is a WWWWWWWWWWWide name Ctrl-GHZ Circuit')
+        ghz_circuit = QuantumCircuit(3, name='this is a WWWWWWWWWWWide name Ctrl-GHZ Circuit')
         ghz_circuit.h(0)
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
@@ -349,7 +370,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(3)
         circuit.h(1)
         transpiled = transpile(circuit, backend=FakeTenerife(),
-                               optimization_level=0, initial_layout=list(range(3)),
+                               optimization_level=0, initial_layout=[1, 2, 0],
                                seed_transpiler=0)
 
         self.circuit_drawer(transpiled, filename='partial_layout.png')
@@ -388,18 +409,129 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.sdg(4)
         circuit.t(4)
         circuit.tdg(4)
-        circuit.p(pi/2, 4)
-        circuit.u1(pi/2, 4)
+        circuit.p(pi / 2, 4)
+        circuit.u1(pi / 2, 4)
         circuit.cz(5, 6)
-        circuit.cu1(pi/2, 5, 6)
+        circuit.cu1(pi / 2, 5, 6)
+        circuit.cp(pi / 2, 5, 6)
         circuit.y(5)
-        circuit.rx(pi/3, 5)
-        circuit.rzx(pi/2, 5, 6)
-        circuit.u2(pi/2, pi/2, 5)
+        circuit.rx(pi / 3, 5)
+        circuit.rzx(pi / 2, 5, 6)
+        circuit.u2(pi / 2, pi / 2, 5)
         circuit.barrier(5, 6)
         circuit.reset(5)
 
         self.circuit_drawer(circuit, style={'name': 'iqx'}, filename='iqx_color.png')
+
+    def test_reverse_bits(self):
+        """Tests reverse_bits parameter"""
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.ccx(2, 1, 0)
+
+        self.circuit_drawer(circuit, reverse_bits=True, filename='reverse_bits.png')
+
+    def test_bw(self):
+        """Tests black and white style parameter"""
+        circuit = QuantumCircuit(3, 3)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.sdg(2)
+        circuit.cx(0, 1)
+        circuit.ccx(2, 1, 0)
+        circuit.swap(1, 2)
+        circuit.measure_all()
+
+        self.circuit_drawer(circuit, style={'name': 'bw'}, filename='bw.png')
+
+    def test_user_style(self):
+        """Tests loading a user style"""
+        circuit = QuantumCircuit(7)
+        circuit.h(0)
+        circuit.x(0)
+        circuit.cx(0, 1)
+        circuit.ccx(0, 1, 2)
+        circuit.swap(0, 1)
+        circuit.cswap(0, 1, 2)
+        circuit.append(SwapGate().control(2), [0, 1, 2, 3])
+        circuit.dcx(0, 1)
+        circuit.append(DCXGate().control(1), [0, 1, 2])
+        circuit.append(DCXGate().control(2), [0, 1, 2, 3])
+        circuit.z(4)
+        circuit.s(4)
+        circuit.sdg(4)
+        circuit.t(4)
+        circuit.tdg(4)
+        circuit.p(pi / 2, 4)
+        circuit.u1(pi / 2, 4)
+        circuit.cz(5, 6)
+        circuit.cu1(pi / 2, 5, 6)
+        circuit.cp(pi / 2, 5, 6)
+        circuit.y(5)
+        circuit.rx(pi / 3, 5)
+        circuit.rzx(pi / 2, 5, 6)
+        circuit.u2(pi / 2, pi / 2, 5)
+        circuit.barrier(5, 6)
+        circuit.reset(5)
+
+        self.circuit_drawer(circuit, style={'name': 'user_style'}, filename='user_style.png')
+
+    def test_subfont_change(self):
+        """Tests changing the subfont size"""
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.x(0)
+        circuit.u(pi / 2, pi / 2, pi / 2, 1)
+        circuit.p(pi / 2, 2)
+        style = {'name': 'iqx', 'subfontsize': 11}
+
+        self.circuit_drawer(circuit, style=style, filename='subfont.png')
+        self.assertEqual(style, {'name': 'iqx', 'subfontsize': 11})  # check does not change style
+
+    def test_meas_condition(self):
+        """Tests measure with a condition"""
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.measure(qr[0], cr[0])
+        circuit.h(qr[1]).c_if(cr, 1)
+        self.circuit_drawer(circuit, filename='meas_condition.png')
+
+    def test_style_custom_gates(self):
+        """Tests style for custom gates"""
+
+        def cnotnot(gate_label):
+            gate_circuit = QuantumCircuit(3, name=gate_label)
+            gate_circuit.cnot(0, 1)
+            gate_circuit.cnot(0, 2)
+            gate = gate_circuit.to_gate()
+            return gate
+
+        q = QuantumRegister(3, name='q')
+
+        circuit = QuantumCircuit(q)
+
+        circuit.append(cnotnot('CNOTNOT'), [q[0], q[1], q[2]])
+        circuit.append(cnotnot('CNOTNOT_PRIME'), [q[0], q[1], q[2]])
+        circuit.h(q[0])
+
+        self.circuit_drawer(circuit, style={
+            'displaycolor': {'CNOTNOT': ('#000000', '#FFFFFF'), 'h': ('#A1A1A1', '#043812')},
+            'displaytext': {'CNOTNOT_PRIME': "$\\mathrm{CNOTNOT}'$"}},
+                            filename='style_custom_gates.png')
+
+    def test_6095(self):
+        """Tests controlled-phase gate style
+        See https://github.com/Qiskit/qiskit-terra/issues/6095"""
+        circuit = QuantumCircuit(2)
+        circuit.cp(1.0, 0, 1)
+        circuit.h(1)
+
+        self.circuit_drawer(circuit, style={'displaycolor': {'cp': ('#A27486', '#000000'),
+                                                             'h': ('#A27486', '#000000')}},
+                            filename='6095.png')
 
 
 if __name__ == '__main__':

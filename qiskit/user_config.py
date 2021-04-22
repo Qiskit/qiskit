@@ -14,6 +14,7 @@
 
 import configparser
 import os
+from warnings import warn
 
 from qiskit import exceptions
 
@@ -29,6 +30,10 @@ class UserConfig:
     [default]
     circuit_drawer = mpl
     circuit_mpl_style = default
+    circuit_mpl_style_path = ~/.qiskit:<default location>
+    transpile_optimization_level = 1
+    parallel = False
+    num_processes = 4
 
     """
     def __init__(self, filename=None):
@@ -36,7 +41,7 @@ class UserConfig:
 
         Args:
             filename (str): The path to the user config file. If one isn't
-                specified ~/.qiskit/settings.conf is used.
+                specified, ~/.qiskit/settings.conf is used.
         """
         if filename is None:
             self.filename = DEFAULT_FILENAME
@@ -60,25 +65,53 @@ class UserConfig:
                                           'latex_source', 'auto']:
                     raise exceptions.QiskitUserConfigError(
                         "%s is not a valid circuit drawer backend. Must be "
-                        "either 'text', 'mpl', 'latex', 'auto', or "
-                        "'latex_source'"
+                        "either 'text', 'mpl', 'latex', 'latex_source', or "
+                        "'auto'."
                         % circuit_drawer)
                 self.settings['circuit_drawer'] = circuit_drawer
+
+            # Parse state_drawer
+            state_drawer = self.config_parser.get('default',
+                                                  'state_drawer',
+                                                  fallback=None)
+            if state_drawer:
+                valid_state_drawers = ['repr', 'text', 'latex', 'latex_source',
+                                       'qsphere', 'hinton', 'bloch']
+                if state_drawer not in valid_state_drawers:
+                    valid_choices_string = "', '".join(c for c in valid_state_drawers)
+                    raise exceptions.QiskitUserConfigError(
+                        f"'{state_drawer}' is not a valid state drawer backend. "
+                        f"Choose from: '{valid_choices_string}'")
+                self.settings['state_drawer'] = state_drawer
+
             # Parse circuit_mpl_style
             circuit_mpl_style = self.config_parser.get('default',
                                                        'circuit_mpl_style',
                                                        fallback=None)
             if circuit_mpl_style:
-                if circuit_mpl_style not in ['default', 'iqx', 'bw']:
-                    raise exceptions.QiskitUserConfigError(
-                        "%s is not a valid mpl circuit style. Must be "
-                        "either 'default', 'iqx', or bw'"
-                        % circuit_mpl_style)
+                if not isinstance(circuit_mpl_style, str):
+                    warn("%s is not a valid mpl circuit style. Must be "
+                         "a text string. Will not load style."
+                         % circuit_mpl_style, UserWarning, 2)
                 self.settings['circuit_mpl_style'] = circuit_mpl_style
+
+            # Parse circuit_mpl_style_path
+            circuit_mpl_style_path = self.config_parser.get('default',
+                                                            'circuit_mpl_style_path',
+                                                            fallback=None)
+            if circuit_mpl_style_path:
+                cpath_list = circuit_mpl_style_path.split(':')
+                for path in cpath_list:
+                    if not os.path.exists(os.path.expanduser(path)):
+                        warn("%s is not a valid circuit mpl style path."
+                             " Correct the path in ~/.qiskit/settings.conf."
+                             % path, UserWarning, 2)
+                self.settings['circuit_mpl_style_path'] = cpath_list
+
             # Parse transpile_optimization_level
             transpile_optimization_level = self.config_parser.getint(
                 'default', 'transpile_optimization_level', fallback=-1)
-            if not transpile_optimization_level == -1:
+            if transpile_optimization_level != -1:
                 if (transpile_optimization_level < 0 or
                         transpile_optimization_level > 3):
                     raise exceptions.QiskitUserConfigError(
@@ -86,11 +119,22 @@ class UserConfig:
                         "0, 1, 2, or 3.")
                 self.settings['transpile_optimization_level'] = (
                     transpile_optimization_level)
-            # Parse package warnings
-            package_warnings = self.config_parser.getboolean(
-                'default', 'suppress_packaging_warnings', fallback=False)
-            if package_warnings:
-                self.settings['suppress_packaging_warnings'] = package_warnings
+
+            # Parse parallel
+            parallel_enabled = self.config_parser.getboolean(
+                'default', 'parallel', fallback=None)
+            if parallel_enabled is not None:
+                self.settings['parallel_enabled'] = parallel_enabled
+
+            # Parse num_processes
+            num_processes = self.config_parser.getint(
+                'default', 'num_processes', fallback=-1)
+            if num_processes != -1:
+                if num_processes <= 0:
+                    raise exceptions.QiskitUserConfigError(
+                        "%s is not a valid number of processes. Must be "
+                        "greater than 0")
+                self.settings['num_processes'] = num_processes
 
 
 def get_config():

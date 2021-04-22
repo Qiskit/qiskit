@@ -13,8 +13,6 @@
 r"""
 Stylesheet for pulse drawer.
 
-# TODO update docstring
-
 The stylesheet `QiskitPulseStyle` is initialized with the hard-corded default values in
 `default_style`. This instance is generated when the pulse drawer module is loaded so that
 every lower modules can access to the information.
@@ -25,109 +23,12 @@ This key representation and initialization framework are the imitative of
 `rcParams` of `matplotlib`. However, the `QiskitPulseStyle` is not compatible with the `rcParams`
 because the pulse stylesheet is heavily specialized to the context of the pulse program.
 
-The settings of stylesheet are broadly separated into `formatter` and `generator`.
-
-Formatter
-~~~~~~~~~
-The `formatter` is a dictionary of drawing parameters to control the appearance of
-visualization elements. This data structure is similar to the `rcParams`.
-An end-user can add custom keys that are consumed by the user-defined generators.
-
-General setting (any):
-- `formatter.general.fig_size`: Tuple represents the figure size.
-- `formatter.general.dpi`: An integer represents the image resolution.
-
-Color (str, html color code):
-- `formatter.color.fill_waveform_d`: `ComplexColors` instance represents
-    the color of waveform in drive channels.
-- `formatter.color.fill_waveform_u`: `ComplexColors` instance represents
-    the color of waveform in control channels.
-- `formatter.color.fill_waveform_m`: `ComplexColors` instance represents
-    the color of waveform in measure channels.
-- `formatter.color.fill_waveform_a`: `ComplexColors` instance represents
-    the color of waveform in acquire channels.
-- `formatter.color.baseline`: Color code for baselines.
-- `formatter.color.barrier`: Color code for barriers.
-- `formatter.color.background`: Color code for the canvas.
-- `formatter.color.annotate`: Color code for annotations.
-- `formatter.color.frame_change`: Color code for frame change information.
-- `formatter.color.snapshot`: Color code for snapshot information.
-- `formatter.color.axis_label`: Color code for axis labels.
-
-Transparency (float value from 0 to 1):
-- formatter.alpha.fill_waveform`: Transparency of filled waveforms.
-- formatter.alpha.baseline`: Transparency of baselines.
-- formatter.alpha.barrier`: Transparency of barriers.
-
-Layer (integer, larger values come front):
-- formatter.layer.fill_waveform`: Layer position of filled waveforms.
-- formatter.layer.baseline`: Layer position of baselines.
-- formatter.layer.barrier`: Layer position of barriers.
-- formatter.layer.annotate`: Layer position of annotations.
-- formatter.layer.axis_label`: Layer position of axis labels.
-- formatter.layer.frame_change`: Layer position of frame change information.
-- formatter.layer.snapshot`: Layer position of snapshot information.
-
-Margins (float):
-- `formatter.margin.top`: Top margin of the canvas in units of pulse height.
-- `formatter.margin.bottom`: Bottom margin of the canvas in units of pulse height.
-- `formatter.margin.left`: Left margin of the canvas in units of schedule length.
-- `formatter.margin.right`: Right margin of the canvas in units of schedule length.
-- `formatter.margin.between_channel`: Spacing between channels in units of pulse height.
-
-Label offset (float):
-- `formatter.label_offset.pulse_name`: Offset of pulse name labels from the baseline in
-    units of pulse height.
-- `formatter.label_offset.scale_factor`: Offset of channel's scale factor from the baseline in
-    units of pulse height.
-- `formatter.label_offset.frame_change`: Offset of frame labels from the baseline in
-    units of pulse height.
-- `formatter.label_offset.snapshot`: Offset of snapshot labels from the baseline in
-    units of pulse height.
-
-Text size (float)
-- `formatter.text_size.axis_label`: Text size of axis labels.
-- `formatter.text_size.annotate`: Text size of annotations.
-- `formatter.text_size.frame_change`: Symbol character size of frame change.
-- `formatter.text_size.snapshot`: Symbol character size of snapshot.
-- `formatter.text_size.fig_title`: Text size of the figure title.
-
-Line width (float):
-- `formatter.line_width.fill_waveform`: Line width of filled waveforms.
-- `formatter.line_width.baseline`: Line width of baselines.
-- `formatter.line_width.barrier`: Line width of barriers.
-
-Line style (str, the syntax conforms to `matplotlib`)
-- `formatter.line_style.fill_waveform`: Line style of filled waveforms.
-- `formatter.line_style.baseline`: Line style of baselines.
-- `formatter.line_style.barrier`: Line style of barriers.
-
-Control (bool)
-- `formatter.control.apply_phase_modulation`: Set `True` to apply a phase factor
-    to waveform envelopes.
-- `formatter.control.show_snapshot_channel`: Set `True` to show the snapshot channel.
-- `formatter.control.show_acquire_channel`: Set `True` to show acquire channels.
-- `formatter.control.show_empty_channel`: Set `True` to show no waveform channels.
-
-Unicode symbol (str)
-- `formatter.unicode_symbol.frame_change`: Unicode expression of frame change.
-- `formatter.unicode_symbol.snapshot`: Unicode expression of snapshot.
-
-Latex symbol (str)
-- `formatter.latex_symbol.frame_change`: Latex expression of frame change.
-- `formatter.latex_symbol.snapshot`: Latex expression of snapshot.
-
-Generator
-~~~~~~~~~
-The `generator` is a collection of callback functions to generate drawing objects.
-An end-user can add custom functions to draw user-defined drawing objects.
-See py:mod:`qiskit.visualization.pulse_v2.generators` for the detail of generators.
-
-- `generator.waveform`: Generate drawing objects from waveform type instructions.
-- `generator.frame`: Generate drawing objects from frame type instructions.
-- `generator.channel`: Generate drawing objects from channel information.
-- `generator.snapshot`: Generate drawing objects from snapshot information.
-- `generator.barrier`: Generate drawing objects from barrier information.
+The settings of stylesheet are broadly separated into `formatter`, `generator` and `layout`.
+The formatter is a nested dictionary of drawing parameters to control the appearance of
+each visualization element. This takes similar data structure to the `rcParams` of `matplotlib`.
+The generator is a list of callback functions that generates drawing objects from
+given program and device data. The layout is a callback function that determines
+the appearance of the output image.
 """
 
 import warnings
@@ -188,7 +89,7 @@ class QiskitPulseStyle(dict):
         return sub_dict
 
 
-class IqxStandard(dict):
+class IQXStandard(dict):
     """Standard pulse stylesheet.
 
     - Generate stepwise waveform envelope with latex pulse names.
@@ -196,12 +97,14 @@ class IqxStandard(dict):
     - Plot frame change symbol with formatted operand values.
     - Show chart name with scaling factor.
     - Show snapshot and barrier.
+    - Do not show acquire channels.
     - Channels are sorted by index and control channels are added to the end.
     """
     def __init__(self, **kwargs):
         super().__init__()
         style = {'formatter.control.apply_phase_modulation': True,
                  'formatter.control.show_snapshot_channel': True,
+                 'formatter.control.show_acquire_channel': False,
                  'formatter.control.show_empty_channel': False,
                  'formatter.control.auto_chart_scaling': True,
                  'formatter.control.axis_break': True,
@@ -215,7 +118,8 @@ class IqxStandard(dict):
                  'generator.snapshot': [generators.gen_snapshot_symbol],
                  'generator.barrier': [generators.gen_barrier],
                  'layout.chart_channel_map': layouts.channel_index_grouped_sort_u,
-                 'layout.time_axis_map': layouts.time_map_in_ns}
+                 'layout.time_axis_map': layouts.time_map_in_ns,
+                 'layout.figure_title': layouts.detail_title}
         style.update(**kwargs)
         self.update(style)
 
@@ -223,26 +127,27 @@ class IqxStandard(dict):
         return 'Standard Pulse style sheet.'
 
 
-class IqxPublication(dict):
-    """Simple pulse stylesheet suited for publication.
+class IQXSimple(dict):
+    """Simple pulse stylesheet without channel notation.
 
     - Generate stepwise waveform envelope with latex pulse names.
     - Apply phase modulation to waveforms.
     - Do not show frame changes.
     - Show chart name.
     - Do not show snapshot and barrier.
+    - Do not show acquire channels.
     - Channels are sorted by qubit index.
     """
 
     def __init__(self, **kwargs):
         super().__init__()
-        style = {'formatter.control.apply_phase_modulation': True,
+        style = {'formatter.general.fig_chart_height': 5,
+                 'formatter.control.apply_phase_modulation': True,
                  'formatter.control.show_snapshot_channel': True,
+                 'formatter.control.show_acquire_channel': False,
                  'formatter.control.show_empty_channel': False,
                  'formatter.control.auto_chart_scaling': False,
                  'formatter.control.axis_break': True,
-                 'formatter.channel_scaling.drive': 5.0,
-                 'formatter.channel_scaling.measure': 5.0,
                  'generator.waveform': [generators.gen_filled_waveform_stepwise,
                                         generators.gen_ibmq_latex_waveform_name],
                  'generator.frame': [],
@@ -251,7 +156,8 @@ class IqxPublication(dict):
                  'generator.snapshot': [],
                  'generator.barrier': [],
                  'layout.chart_channel_map': layouts.qubit_index_sort,
-                 'layout.time_axis_map': layouts.time_map_in_ns}
+                 'layout.time_axis_map': layouts.time_map_in_ns,
+                 'layout.figure_title': layouts.empty_title}
         style.update(**kwargs)
         self.update(style)
 
@@ -259,26 +165,28 @@ class IqxPublication(dict):
         return 'Simple pulse style sheet for publication.'
 
 
-class IqxDebugging(dict):
+class IQXDebugging(dict):
     """Pulse stylesheet for pulse programmers. Show details of instructions.
 
     # TODO: add more generators
 
     - Generate stepwise waveform envelope with latex pulse names.
     - Generate annotation for waveform height.
-    - Do not apply phase modulation to waveforms.
+    - Apply phase modulation to waveforms.
     - Plot frame change symbol with raw operand values.
     - Show chart name and channel frequency.
     - Show snapshot and barrier.
+    - Show acquire channels.
     - Channels are sorted by index and control channels are added to the end.
     """
 
     def __init__(self, **kwargs):
         super().__init__()
-        style = {'formatter.control.apply_phase_modulation': False,
+        style = {'formatter.control.apply_phase_modulation': True,
                  'formatter.control.show_snapshot_channel': True,
+                 'formatter.control.show_acquire_channel': True,
                  'formatter.control.show_empty_channel': False,
-                 'formatter.control.auto_chart_scaling': False,
+                 'formatter.control.auto_chart_scaling': True,
                  'formatter.control.axis_break': True,
                  'generator.waveform': [generators.gen_filled_waveform_stepwise,
                                         generators.gen_ibmq_latex_waveform_name,
@@ -292,7 +200,8 @@ class IqxDebugging(dict):
                                         generators.gen_snapshot_name],
                  'generator.barrier': [generators.gen_barrier],
                  'layout.chart_channel_map': layouts.channel_index_grouped_sort_u,
-                 'layout.time_axis_map': layouts.time_map_in_ns}
+                 'layout.time_axis_map': layouts.time_map_in_ns,
+                 'layout.figure_title': layouts.detail_title}
         style.update(**kwargs)
         self.update(style)
 
@@ -305,24 +214,28 @@ def default_style() -> Dict[str, Any]:
     return {
         'formatter.general.fig_width': 13,
         'formatter.general.fig_chart_height': 1.5,
-        'formatter.general.dpi': 150,
         'formatter.general.vertical_resolution': 1e-6,
         'formatter.general.max_scale': 100,
-        'formatter.color.fill_waveform_w': ['#648fff', '#002999'],
-        'formatter.color.fill_waveform_d': ['#648fff', '#002999'],
-        'formatter.color.fill_waveform_u': ['#ffb000', '#994A00'],
-        'formatter.color.fill_waveform_m': ['#dc267f', '#760019'],
-        'formatter.color.fill_waveform_a': ['#dc267f', '#760019'],
+        'formatter.color.waveforms': {
+            'W': ['#648fff', '#002999'],
+            'D': ['#648fff', '#002999'],
+            'U': ['#ffb000', '#994A00'],
+            'M': ['#dc267f', '#760019'],
+            'A': ['#dc267f', '#760019']
+        },
         'formatter.color.baseline': '#000000',
         'formatter.color.barrier': '#222222',
         'formatter.color.background': '#f2f3f4',
+        'formatter.color.fig_title': '#000000',
         'formatter.color.annotate': '#222222',
         'formatter.color.frame_change': '#000000',
         'formatter.color.snapshot': '#000000',
         'formatter.color.axis_label': '#000000',
+        'formatter.color.opaque_shape': ['#f2f3f4', '#000000'],
         'formatter.alpha.fill_waveform': 0.3,
         'formatter.alpha.baseline': 1.0,
         'formatter.alpha.barrier': 0.7,
+        'formatter.alpha.opaque_shape': 0.7,
         'formatter.layer.fill_waveform': 2,
         'formatter.layer.baseline': 1,
         'formatter.layer.barrier': 1,
@@ -330,15 +243,16 @@ def default_style() -> Dict[str, Any]:
         'formatter.layer.axis_label': 5,
         'formatter.layer.frame_change': 4,
         'formatter.layer.snapshot': 3,
+        'formatter.layer.fig_title': 6,
         'formatter.margin.top': 0.5,
         'formatter.margin.bottom': 0.5,
         'formatter.margin.left_percent': 0.05,
         'formatter.margin.right_percent': 0.05,
-        'formatter.margin.between_channel': 0.2,
-        'formatter.label_offset.pulse_name': -0.1,
-        'formatter.label_offset.scale_factor': -0.15,
-        'formatter.label_offset.frame_change': 0.1,
-        'formatter.label_offset.snapshot': 0.1,
+        'formatter.margin.between_channel': 0.5,
+        'formatter.label_offset.pulse_name': 0.3,
+        'formatter.label_offset.chart_info': 0.3,
+        'formatter.label_offset.frame_change': 0.3,
+        'formatter.label_offset.snapshot': 0.3,
         'formatter.text_size.axis_label': 15,
         'formatter.text_size.annotate': 12,
         'formatter.text_size.frame_change': 20,
@@ -349,30 +263,40 @@ def default_style() -> Dict[str, Any]:
         'formatter.line_width.axis_break': 6,
         'formatter.line_width.baseline': 1,
         'formatter.line_width.barrier': 1,
+        'formatter.line_width.opaque_shape': 1,
         'formatter.line_style.fill_waveform': '-',
         'formatter.line_style.baseline': '-',
         'formatter.line_style.barrier': ':',
+        'formatter.line_style.opaque_shape': '--',
         'formatter.channel_scaling.drive': 1.0,
         'formatter.channel_scaling.control': 1.0,
         'formatter.channel_scaling.measure': 1.0,
         'formatter.channel_scaling.acquire': 1.0,
         'formatter.channel_scaling.pos_spacing': 0.1,
         'formatter.channel_scaling.neg_spacing': -0.1,
+        'formatter.box_width.opaque_shape': 150,
+        'formatter.box_height.opaque_shape': 0.5,
         'formatter.axis_break.length': 3000,
         'formatter.axis_break.max_length': 1000,
         'formatter.control.apply_phase_modulation': True,
         'formatter.control.show_snapshot_channel': True,
+        'formatter.control.show_acquire_channel': True,
         'formatter.control.show_empty_channel': True,
         'formatter.control.auto_chart_scaling': True,
         'formatter.control.axis_break': True,
         'formatter.unicode_symbol.frame_change': u'\u21BA',
         'formatter.unicode_symbol.snapshot': u'\u21AF',
+        'formatter.unicode_symbol.phase_parameter': u'\u03b8',
+        'formatter.unicode_symbol.freq_parameter': 'f',
         'formatter.latex_symbol.frame_change': r'\circlearrowleft',
         'formatter.latex_symbol.snapshot': '',
+        'formatter.latex_symbol.phase_parameter': r'\theta',
+        'formatter.latex_symbol.freq_parameter': 'f',
         'generator.waveform': [],
         'generator.frame': [],
         'generator.chart': [],
         'generator.snapshot': [],
         'generator.barrier': [],
         'layout.chart_channel_map': None,
-        'layout.time_axis_map': None}
+        'layout.time_axis_map': None,
+        'layout.figure_title': None}

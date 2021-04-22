@@ -23,7 +23,7 @@ class ExperimentResultData:
     """Class representing experiment result data"""
 
     def __init__(self, counts=None, snapshots=None, memory=None,
-                 statevector=None, unitary=None):
+                 statevector=None, unitary=None, **kwargs):
         """Initialize an ExperimentalResult Data class
 
         Args:
@@ -37,33 +37,34 @@ class ExperimentResultData:
                 memory enabled
             statevector (list or numpy.array): A list or numpy array of the
                 statevector result
-            unitary (list or numpy.array): A list or numpy arrray of the
+            unitary (list or numpy.array): A list or numpy array of the
                 unitary result
+            kwargs (any): additional data key-value pairs.
         """
-
+        self._data_attributes = []
         if counts is not None:
+            self._data_attributes.append('counts')
             self.counts = counts
         if snapshots is not None:
+            self._data_attributes.append('snapshots')
             self.snapshots = snapshots
         if memory is not None:
+            self._data_attributes.append('memory')
             self.memory = memory
         if statevector is not None:
+            self._data_attributes.append('statevector')
             self.statevector = statevector
         if unitary is not None:
+            self._data_attributes.append('unitary')
             self.unitary = unitary
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+            self._data_attributes.append(key)
 
     def __repr__(self):
         string_list = []
-        if hasattr(self, 'counts'):
-            string_list.append("counts=%s" % self.counts)
-        if hasattr(self, 'snapshots'):
-            string_list.append("snapshots=%s" % self.snapshots)
-        if hasattr(self, 'memory'):
-            string_list.append("memory=%s" % self.memory)
-        if hasattr(self, 'statevector'):
-            string_list.append("statevector=%s" % self.statevector)
-        if hasattr(self, 'unitary'):
-            string_list.append("unitary=%s" % self.statevector)
+        for field in self._data_attributes:
+            string_list.append(f"{field}={getattr(self, field)}")
         out = "ExperimentResultData(%s)" % ', '.join(string_list)
         return out
 
@@ -74,10 +75,8 @@ class ExperimentResultData:
             dict: The dictionary form of the ExperimentResultData
         """
         out_dict = {}
-        for field in ['counts', 'snapshots', 'memory', 'statevector',
-                      'unitary']:
-            if hasattr(self, field):
-                out_dict[field] = getattr(self, field)
+        for field in self._data_attributes:
+            out_dict[field] = getattr(self, field)
         return out_dict
 
     @classmethod
@@ -170,8 +169,8 @@ class ExperimentResult:
     def __getattr__(self, name):
         try:
             return self._metadata[name]
-        except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
+        except KeyError as ex:
+            raise AttributeError(f'Attribute {name} is not defined') from ex
 
     def to_dict(self):
         """Return a dictionary format representation of the ExperimentResult

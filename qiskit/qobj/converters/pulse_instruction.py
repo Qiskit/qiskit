@@ -10,20 +10,25 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 
+import hashlib
 import re
 import warnings
 
 from enum import Enum
+from typing import Union
 
 from qiskit.pulse import channels, instructions, library
-from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.configuration import Kernel, Discriminator
+from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.parser import parse_string_expr
-from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
+from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import QobjMeasurementOption
 from qiskit.qobj.utils import MeasLevel
+from qiskit.circuit import Parameter, ParameterExpression
 
 GIGAHERTZ_TO_SI_UNITS = 1e9
 
@@ -69,8 +74,8 @@ class ConversionMethodBinder:
         """Get conversion method for bound object."""
         try:
             return self._bound_instructions[bound]
-        except KeyError:
-            raise QiskitError('Bound method for %s is not found.' % bound)
+        except KeyError as ex:
+            raise QiskitError(f'Bound method for {bound} is not found.') from ex
 
 
 class InstructionToQobjConverter:
@@ -340,6 +345,24 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
+    @bind_instruction(instructions.Delay)
+    def convert_delay(self, shift, instruction):
+        """Return converted `Delay`.
+
+        Args:
+            shift(int): Offset time.
+            instruction (Delay): Delay instruction.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'delay',
+            't0': shift + instruction.start_time,
+            'ch': instruction.channel.name,
+            'duration': instruction.duration
+        }
+        return self._qobj_model(**command_dict)
+
     @bind_instruction(instructions.Play)
     def convert_play(self, shift, instruction):
         """Return the converted `Play`.
@@ -389,7 +412,6 @@ class InstructionToQobjConverter:
 class QobjToInstructionConverter:
     """Converts Qobj models to pulse Instructions
     """
-    # pylint: disable=invalid-name,missing-return-type-doc
     # class level tracking of conversion methods
     bind_name = ConversionMethodBinder()
     chan_regex = re.compile(r'([a-zA-Z]+)(\d+)')
@@ -410,14 +432,14 @@ class QobjToInstructionConverter:
         method = self.bind_name.get_bound_method(instruction.name)
         return method(self, instruction)
 
-    def get_channel(self, channel):
+    def get_channel(self, channel: str) -> channels.PulseChannel:
         """Parse and retrieve channel from ch string.
 
         Args:
-            channel (str): Channel to match
+            channel: Channel to match
 
         Returns:
-            (Channel, int): Matched channel
+            Matched channel
 
         Raises:
             QiskitError: Is raised if valid channel is not matched
@@ -434,6 +456,24 @@ class QobjToInstructionConverter:
                 return channels.ControlChannel(index)
 
         raise QiskitError('Channel %s is not valid' % channel)
+
+    @staticmethod
+    def disassemble_value(value_expr: Union[float, str]) -> Union[float, ParameterExpression]:
+        """A helper function to format instruction operand.
+
+        If parameter in string representation is specified, this method parses the
+        input string and generates Qiskit ParameterExpression object.
+
+        Args:
+            value_expr: Operand value in Qobj.
+
+        Returns:
+            Parsed operand value. ParameterExpression object is returned if value is not number.
+        """
+        if isinstance(value_expr, str):
+            str_expr = parse_string_expr(value_expr, partial_binding=False)
+            value_expr = str_expr(**{pname: Parameter(pname) for pname in str_expr.params})
+        return value_expr
 
     @bind_name('acquire')
     def convert_acquire(self, instruction):
@@ -499,18 +539,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        phase = instruction.phase
-
-        # This is parameterized
-        if isinstance(phase, str):
-            phase_expr = parse_string_expr(phase, partial_binding=False)
-
-            def gen_fc_sched(*args, **kwargs):
-                # this should be real value
-                _phase = phase_expr(*args, **kwargs)
-                return instructions.SetPhase(_phase, channel) << t0
-
-            return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
+        phase = self.disassemble_value(instruction.phase)
 
         return instructions.SetPhase(phase, channel) << t0
 
@@ -525,18 +554,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        phase = instruction.phase
-
-        # This is parameterized
-        if isinstance(phase, str):
-            phase_expr = parse_string_expr(phase, partial_binding=False)
-
-            def gen_fc_sched(*args, **kwargs):
-                # this should be real value
-                _phase = phase_expr(*args, **kwargs)
-                return instructions.ShiftPhase(_phase, channel) << t0
-
-            return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
+        phase = self.disassemble_value(instruction.phase)
 
         return instructions.ShiftPhase(phase, channel) << t0
 
@@ -553,19 +571,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = instruction.frequency
-
-        if isinstance(frequency, str):
-            frequency_expr = parse_string_expr(frequency, partial_binding=False)
-
-            def gen_sf_schedule(*args, **kwargs):
-                _frequency = frequency_expr(*args, **kwargs)
-                return instructions.SetFrequency(_frequency * GIGAHERTZ_TO_SI_UNITS,
-                                                 channel) << t0
-
-            return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
-        else:
-            frequency = frequency * GIGAHERTZ_TO_SI_UNITS
+        frequency = self.disassemble_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
 
         return instructions.SetFrequency(frequency, channel) << t0
 
@@ -583,19 +589,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = instruction.frequency
-
-        if isinstance(frequency, str):
-            frequency_expr = parse_string_expr(frequency, partial_binding=False)
-
-            def gen_sf_schedule(*args, **kwargs):
-                _frequency = frequency_expr(*args, **kwargs)
-                return instructions.ShiftFrequency(_frequency * GIGAHERTZ_TO_SI_UNITS,
-                                                   channel) << t0
-
-            return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
-        else:
-            frequency = frequency * GIGAHERTZ_TO_SI_UNITS
+        frequency = self.disassemble_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
 
         return instructions.ShiftFrequency(frequency, channel) << t0
 
@@ -640,6 +634,15 @@ class QobjToInstructionConverter:
     def convert_parametric(self, instruction):
         """Return the ParametricPulse implementation that is described by the instruction.
 
+        If parametric pulse label is not provided by the backend, this method naively generates
+        a pulse name based on the pulse shape and bound parameters. This pulse name is formatted
+        to, for example, `gaussian_a4e3`, here the last four digits are a part of
+        the hash string generated based on the pulse shape and the parameters.
+        Because we are using a truncated hash for readability,
+        there may be a small risk of pulse name collision with other pulses.
+        Basically the parametric pulse name is used just for visualization purpose and
+        the pulse module should not have dependency on the parametric pulse names.
+
         Args:
             instruction (PulseQobjInstruction): pulse qobj
         Returns:
@@ -647,7 +650,19 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        pulse = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters)
+
+        try:
+            pulse_name = instruction.label
+        except AttributeError:
+            sorted_params = sorted(tuple(instruction.parameters.items()), key=lambda x: x[0])
+            base_str = '{pulse}_{params}'.format(
+                pulse=instruction.pulse_shape,
+                params=str(sorted_params))
+            short_pulse_id = hashlib.md5(base_str.encode('utf-8')).hexdigest()[:4]
+            pulse_name = '{0}_{1}'.format(instruction.pulse_shape, short_pulse_id)
+
+        pulse = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters,
+                                                                     name=pulse_name)
         return instructions.Play(pulse, channel) << t0
 
     @bind_name('snapshot')

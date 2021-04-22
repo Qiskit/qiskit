@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """An instruction for blocking time on a channel; useful for scheduling alignment."""
-from typing import Optional
+from typing import Optional, Union, Tuple
 
+from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.instructions.instruction import Instruction
 
@@ -33,7 +34,7 @@ class Delay(Instruction):
         The ``channel`` will output no signal from time=0 up until time=10.
     """
 
-    def __init__(self, duration: int,
+    def __init__(self, duration: Union[int, ParameterExpression],
                  channel: Channel,
                  name: Optional[str] = None):
         """Create a new delay instruction.
@@ -45,7 +46,7 @@ class Delay(Instruction):
             channel: The channel that will have the delay.
             name: Name of the delay for display purposes.
         """
-        super().__init__((duration, channel), duration, (channel,), name=name)
+        super().__init__(operands=(duration, channel), name=name)
 
     @property
     def channel(self) -> Channel:
@@ -53,3 +54,17 @@ class Delay(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def channels(self) -> Tuple[Channel]:
+        """Returns the channels that this schedule uses."""
+        return (self.channel, )
+
+    @property
+    def duration(self) -> Union[int, ParameterExpression]:
+        """Duration of this instruction."""
+        return self.operands[0]
+
+    def is_parameterized(self) -> bool:
+        """Return ``True`` iff the instruction is parameterized."""
+        return isinstance(self.duration, ParameterExpression) or super().is_parameterized()

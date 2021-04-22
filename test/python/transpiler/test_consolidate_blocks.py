@@ -21,9 +21,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import U2Gate
 from qiskit.extensions import UnitaryGate
 from qiskit.converters import circuit_to_dag
-from qiskit.execute import execute
 from qiskit.transpiler.passes import ConsolidateBlocks
-from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.test import QiskitTestCase
@@ -50,11 +48,9 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
-        sim = UnitarySimulatorPy()
-        result = execute(qc, sim).result()
-        unitary = UnitaryGate(result.get_unitary())
+        unitary = Operator(qc)
         self.assertEqual(len(new_dag.op_nodes()), 1)
-        fidelity = process_fidelity(Operator(new_dag.op_nodes()[0].op), unitary.to_matrix())
+        fidelity = process_fidelity(Operator(new_dag.op_nodes()[0].op), unitary)
         self.assertAlmostEqual(fidelity, 1.0, places=7)
 
     def test_wire_order(self):
@@ -70,12 +66,8 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         new_node = new_dag.op_nodes()[0]
         self.assertEqual(new_node.qargs, [qr[0], qr[1]])
-        # the canonical CNOT matrix occurs when the control is more
-        # significant than target, which is the case here
-        fidelity = process_fidelity(Operator(new_node.op), np.array([[1, 0, 0, 0],
-                                                                     [0, 1, 0, 0],
-                                                                     [0, 0, 0, 1],
-                                                                     [0, 0, 1, 0]]))
+        unitary = Operator(qc)
+        fidelity = process_fidelity(Operator(new_node.op), unitary)
         self.assertAlmostEqual(fidelity, 1.0, places=7)
 
     def test_topological_order_preserved(self):
@@ -121,11 +113,9 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
-        sim = UnitarySimulatorPy()
-        result = execute(qc, sim).result()
-        unitary = UnitaryGate(result.get_unitary())
+        unitary = Operator(qc)
         self.assertEqual(len(new_dag.op_nodes()), 1)
-        fidelity = process_fidelity(Operator(new_dag.op_nodes()[0].op), unitary.to_matrix())
+        fidelity = process_fidelity(Operator(new_dag.op_nodes()[0].op), unitary)
         self.assertAlmostEqual(fidelity, 1.0, places=7)
 
     def test_block_spanning_two_regs(self):
@@ -142,11 +132,9 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
-        sim = UnitarySimulatorPy()
-        result = execute(qc, sim).result()
-        unitary = UnitaryGate(result.get_unitary())
+        unitary = Operator(qc)
         self.assertEqual(len(new_dag.op_nodes()), 1)
-        fidelity = process_fidelity(Operator(new_dag.op_nodes()[0].op), unitary.to_matrix())
+        fidelity = process_fidelity(Operator(new_dag.op_nodes()[0].op), unitary)
         self.assertAlmostEqual(fidelity, 1.0, places=7)
 
     def test_block_spanning_two_regs_different_index(self):
@@ -163,13 +151,10 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
-        sim = UnitarySimulatorPy()
-        original_result = execute(qc, sim).result()
-        original_unitary = UnitaryGate(original_result.get_unitary())
+        original_unitary = UnitaryGate(Operator(qc))
 
         from qiskit.converters import dag_to_circuit
-        new_result = execute(dag_to_circuit(new_dag), sim).result()
-        new_unitary = UnitaryGate(new_result.get_unitary())
+        new_unitary = UnitaryGate(Operator(dag_to_circuit(new_dag)))
 
         self.assertEqual(original_unitary, new_unitary)
 
@@ -318,6 +303,22 @@ class TestConsolidateBlocks(QiskitTestCase):
         consolidate_blocks_pass = ConsolidateBlocks(basis_gates=['u3'])
         res = consolidate_blocks_pass.run(dag)
         self.assertEqual(res, dag)
+
+    def test_single_gate_block_outside_basis(self):
+        """Test that a single gate block outside the configured basis gets converted."""
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        consolidate_block_pass = ConsolidateBlocks(
+            basis_gates=['id', 'cx', 'rz', 'sx', 'x'])
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(consolidate_block_pass)
+        expected = QuantumCircuit(2)
+        expected.unitary(np.array([[1, 0, 0, 0],
+                                   [0, 0, 1, 0],
+                                   [0, 1, 0, 0],
+                                   [0, 0, 0, 1]]), [0, 1])
+        self.assertEqual(expected, pass_manager.run(qc))
 
 
 if __name__ == '__main__':

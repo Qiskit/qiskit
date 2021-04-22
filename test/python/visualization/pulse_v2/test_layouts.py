@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring, invalid-name
-
 """Tests for core modules of pulse drawer."""
 
 from qiskit import pulse
@@ -34,7 +32,9 @@ class TestChannelArrangement(QiskitTestCase):
                          pulse.ControlChannel(0),
                          pulse.ControlChannel(2),
                          pulse.ControlChannel(5)]
-        self.formatter = {}
+        self.formatter = {
+            'control.show_acquire_channel': True
+        }
         self.device = device_info.OpenPulseBackendInfo(
             name='test',
             dt=1,
@@ -215,3 +215,28 @@ class TestHorizontalAxis(QiskitTestCase):
         }
         self.assertDictEqual(haxis.axis_map, ref_axis_map)
         self.assertEqual(haxis.label, 'System cycle time (dt)')
+
+
+class TestFigureTitle(QiskitTestCase):
+    """Tests for figure title generation."""
+    def setUp(self) -> None:
+        super().setUp()
+        self.device = device_info.OpenPulseBackendInfo(name='test_backend',
+                                                       dt=1e-9)
+        self.prog = pulse.Schedule(name='test_sched')
+        self.prog.insert(0, pulse.Play(pulse.Constant(100, 0.1), pulse.DriveChannel(0)),
+                         inplace=True)
+
+    def detail_title(self):
+        """Test detail_title layout function."""
+        ref_title = 'Name: test_sched, Duration: 100.0 ns, Backend: test_backend'
+        out = layouts.detail_title(self.prog, self.device)
+
+        self.assertEqual(out, ref_title)
+
+    def empty_title(self):
+        """Test empty_title layout function."""
+        ref_title = ''
+        out = layouts.detail_title(self.prog, self.device)
+
+        self.assertEqual(out, ref_title)

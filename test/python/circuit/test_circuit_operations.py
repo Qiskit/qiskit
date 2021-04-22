@@ -14,6 +14,7 @@
 """Test Qiskit's QuantumCircuit class."""
 
 from ddt import ddt, data
+import numpy as np
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
@@ -21,6 +22,7 @@ from qiskit.circuit import Gate, Instruction, Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.standard_gates import SGate
+from qiskit.quantum_info import Operator
 
 
 @ddt
@@ -44,7 +46,30 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(['x', 'x'], [x[0].name for x in qc.data])
 
     def test_combine_circuit_common(self):
-        """Test combining two circuits with same registers.
+        """Test combining two circuits with same registers (inplace=False).
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc1 = QuantumCircuit(qr, cr)
+        qc2 = QuantumCircuit(qr, cr)
+        qc1.h(qr[0])
+        qc1.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+
+        new_circuit = qc1.combine(qc2)
+
+        backend = BasicAer.get_backend('qasm_simulator')
+        shots = 1024
+        result = execute(new_circuit, backend=backend, shots=shots, seed_simulator=78).result()
+        counts = result.get_counts()
+        target = {'00': shots / 2, '01': shots / 2}
+        threshold = 0.04 * shots
+        self.assertDictEqual(qc1.count_ops(), {'h': 1, 'measure': 1})  # no changes "in-place"
+        self.assertDictEqual(qc2.count_ops(), {'measure': 1})  # no changes "in-place"
+        self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_combine_circuit_common_plus(self):
+        """Test combining two circuits with same registers (as plus).
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
@@ -60,25 +85,9 @@ class TestCircuitOperations(QiskitTestCase):
         counts = result.get_counts()
         target = {'00': shots / 2, '01': shots / 2}
         threshold = 0.04 * shots
+        self.assertDictEqual(qc1.count_ops(), {'h': 1, 'measure': 1})  # no changes "in-place"
+        self.assertDictEqual(qc2.count_ops(), {'measure': 1})  # no changes "in-place"
         self.assertDictAlmostEqual(counts, target, threshold)
-
-    def test_combine_circuit_different(self):
-        """Test combining two circuits with different registers.
-        """
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(2)
-        qc1 = QuantumCircuit(qr)
-        qc1.x(qr)
-        qc2 = QuantumCircuit(qr, cr)
-        qc2.measure(qr, cr)
-        new_circuit = qc1 + qc2
-        backend = BasicAer.get_backend('qasm_simulator')
-        shots = 1024
-        result = execute(new_circuit, backend=backend, shots=shots,
-                         seed_simulator=78).result()
-        counts = result.get_counts()
-        target = {'11': shots}
-        self.assertEqual(counts, target)
 
     def test_combine_circuit_fail(self):
         """Test combining two circuits fails if registers incompatible.
@@ -97,7 +106,30 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertRaises(CircuitError, qc1.__add__, qcr3)
 
     def test_extend_circuit(self):
-        """Test extending a circuit with same registers.
+        """Test extending a circuit with same registers (in place add).
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc1 = QuantumCircuit(qr, cr)
+        qc2 = QuantumCircuit(qr, cr)
+        qc1.h(qr[0])
+        qc1.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+
+        qc1.extend(qc2)
+        backend = BasicAer.get_backend('qasm_simulator')
+        shots = 1024
+        result = execute(qc1, backend=backend, shots=shots,
+                         seed_simulator=78).result()
+        counts = result.get_counts()
+        target = {'00': shots / 2, '01': shots / 2}
+        threshold = 0.04 * shots
+        self.assertDictEqual(qc1.count_ops(), {'h': 1, 'measure': 2})  # changes "in-place"
+        self.assertDictEqual(qc2.count_ops(), {'measure': 1})  # no changes "in-place"
+        self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_extend_circuit_iadd(self):
+        """Test extending a circuit with same registers (in place add).
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
@@ -114,25 +146,9 @@ class TestCircuitOperations(QiskitTestCase):
         counts = result.get_counts()
         target = {'00': shots / 2, '01': shots / 2}
         threshold = 0.04 * shots
+        self.assertDictEqual(qc1.count_ops(), {'h': 1, 'measure': 2})  # changes "in-place"
+        self.assertDictEqual(qc2.count_ops(), {'measure': 1})  # no changes "in-place"
         self.assertDictAlmostEqual(counts, target, threshold)
-
-    def test_extend_circuit_different_registers(self):
-        """Test extending a circuit with different registers.
-        """
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(2)
-        qc1 = QuantumCircuit(qr)
-        qc1.x(qr)
-        qc2 = QuantumCircuit(qr, cr)
-        qc2.measure(qr, cr)
-        qc1 += qc2
-        backend = BasicAer.get_backend('qasm_simulator')
-        shots = 1024
-        result = execute(qc1, backend=backend, shots=shots,
-                         seed_simulator=78).result()
-        counts = result.get_counts()
-        target = {'11': shots}
-        self.assertEqual(counts, target)
 
     def test_extend_circuit_fail(self):
         """Test extending a circuit fails if registers incompatible.
@@ -158,6 +174,169 @@ class TestCircuitOperations(QiskitTestCase):
         empty.extend(qc)
 
         self.assertListEqual(empty.qubits, qr[:])
+
+    def test_compose_circuit(self):
+        """Test composing two circuits"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc1 = QuantumCircuit(qr, cr)
+        qc2 = QuantumCircuit(qr, cr)
+        qc1.h(qr[0])
+        qc1.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+
+        qc3 = qc1.compose(qc2)
+        backend = BasicAer.get_backend('qasm_simulator')
+        shots = 1024
+        result = execute(qc3, backend=backend, shots=shots,
+                         seed_simulator=78).result()
+        counts = result.get_counts()
+        target = {'00': shots / 2, '01': shots / 2}
+        threshold = 0.04 * shots
+        self.assertDictEqual(qc3.count_ops(), {'h': 1, 'measure': 2})
+        self.assertDictEqual(qc1.count_ops(), {'h': 1, 'measure': 1})  # no changes "in-place"
+        self.assertDictEqual(qc2.count_ops(), {'measure': 1})  # no changes "in-place"
+        self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_compose_circuit_and(self):
+        """Test composing two circuits using & operator"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc1 = QuantumCircuit(qr, cr)
+        qc2 = QuantumCircuit(qr, cr)
+        qc1.h(qr[0])
+        qc1.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+
+        qc3 = qc1 & qc2
+        backend = BasicAer.get_backend('qasm_simulator')
+        shots = 1024
+        result = execute(qc3, backend=backend, shots=shots,
+                         seed_simulator=78).result()
+        counts = result.get_counts()
+        target = {'00': shots / 2, '01': shots / 2}
+        threshold = 0.04 * shots
+        self.assertDictEqual(qc3.count_ops(), {'h': 1, 'measure': 2})
+        self.assertDictEqual(qc1.count_ops(), {'h': 1, 'measure': 1})  # no changes "in-place"
+        self.assertDictEqual(qc2.count_ops(), {'measure': 1})  # no changes "in-place"
+        self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_compose_circuit_iand(self):
+        """Test composing circuits using &= operator (in place)"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc1 = QuantumCircuit(qr, cr)
+        qc2 = QuantumCircuit(qr, cr)
+        qc1.h(qr[0])
+        qc1.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+
+        qc1 &= qc2
+        backend = BasicAer.get_backend('qasm_simulator')
+        shots = 1024
+        result = execute(qc1, backend=backend, shots=shots,
+                         seed_simulator=78).result()
+        counts = result.get_counts()
+        target = {'00': shots / 2, '01': shots / 2}
+        threshold = 0.04 * shots
+        self.assertDictEqual(qc1.count_ops(), {'h': 1, 'measure': 2})  # changes "in-place"
+        self.assertDictEqual(qc2.count_ops(), {'measure': 1})  # no changes "in-place"
+        self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_compose_circuit_fail_circ_size(self):
+        """Test composing circuit fails when number of wires in circuit is not enough"""
+        qr1 = QuantumRegister(2)
+        qr2 = QuantumRegister(4)
+
+        # Creating our circuits
+        qc1 = QuantumCircuit(qr1)
+        qc1.x(0)
+        qc1.h(1)
+
+        qc2 = QuantumCircuit(qr2)
+        qc2.h([1, 2])
+        qc2.cx(2, 3)
+
+        # Composing will fail because qc2 requires 4 wires
+        self.assertRaises(CircuitError, qc1.compose, qc2)
+
+    def test_compose_circuit_fail_arg_size(self):
+        """Test composing circuit fails when arg size does not match number of wires"""
+        qr1 = QuantumRegister(2)
+        qr2 = QuantumRegister(2)
+
+        qc1 = QuantumCircuit(qr1)
+        qc1.h(0)
+
+        qc2 = QuantumCircuit(qr2)
+        qc2.cx(0, 1)
+
+        self.assertRaises(CircuitError, qc1.compose, qc2, qubits=[0])
+
+    def test_tensor_circuit(self):
+        """Test tensoring two circuits"""
+        qc1 = QuantumCircuit(1, 1)
+        qc2 = QuantumCircuit(1, 1)
+
+        qc2.h(0)
+        qc2.measure(0, 0)
+        qc1.measure(0, 0)
+
+        qc3 = qc1.tensor(qc2)
+        backend = BasicAer.get_backend('qasm_simulator')
+        shots = 1024
+        result = execute(qc3, backend=backend, shots=shots,
+                         seed_simulator=78).result()
+        counts = result.get_counts()
+        target = {'00': shots / 2, '01': shots / 2}
+        threshold = 0.04 * shots
+        self.assertDictEqual(qc3.count_ops(), {'h': 1, 'measure': 2})
+        self.assertDictEqual(qc2.count_ops(), {'h': 1, 'measure': 1})  # no changes "in-place"
+        self.assertDictEqual(qc1.count_ops(), {'measure': 1})  # no changes "in-place"
+        self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_tensor_circuit_xor(self):
+        """Test tensoring two circuits using ^ operator"""
+        qc1 = QuantumCircuit(1, 1)
+        qc2 = QuantumCircuit(1, 1)
+
+        qc2.h(0)
+        qc2.measure(0, 0)
+        qc1.measure(0, 0)
+
+        qc3 = qc1 ^ qc2
+        backend = BasicAer.get_backend('qasm_simulator')
+        shots = 1024
+        result = execute(qc3, backend=backend, shots=shots,
+                         seed_simulator=78).result()
+        counts = result.get_counts()
+        target = {'00': shots / 2, '01': shots / 2}
+        threshold = 0.04 * shots
+        self.assertDictEqual(qc3.count_ops(), {'h': 1, 'measure': 2})
+        self.assertDictEqual(qc2.count_ops(), {'h': 1, 'measure': 1})  # no changes "in-place"
+        self.assertDictEqual(qc1.count_ops(), {'measure': 1})  # no changes "in-place"
+        self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_tensor_circuit_ixor(self):
+        """Test tensoring two circuits using ^= operator"""
+        qc1 = QuantumCircuit(1, 1)
+        qc2 = QuantumCircuit(1, 1)
+
+        qc2.h(0)
+        qc2.measure(0, 0)
+        qc1.measure(0, 0)
+
+        qc1 ^= qc2
+        backend = BasicAer.get_backend('qasm_simulator')
+        shots = 1024
+        result = execute(qc1, backend=backend, shots=shots,
+                         seed_simulator=78).result()
+        counts = result.get_counts()
+        target = {'00': shots / 2, '01': shots / 2}
+        threshold = 0.04 * shots
+        self.assertDictEqual(qc1.count_ops(), {'h': 1, 'measure': 2})  # changes "in-place"
+        self.assertDictEqual(qc2.count_ops(), {'h': 1, 'measure': 1})  # no changes "in-place"
+        self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_measure_args_type_cohesion(self):
         """Test for proper args types for measure function.
@@ -337,6 +516,23 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
         self.assertTrue('measure' in circuit.count_ops().keys())
 
+    def test_remove_final_measurements_copy_with_parameters(self):
+        """Test remove_final_measurements doesn't corrupt ParameterTable
+
+        See https://github.com/Qiskit/qiskit-terra/issues/6108 for more details
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, 'meas')
+        theta = Parameter('theta')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.rz(theta, qr)
+        circuit.measure(qr, cr)
+        circuit.remove_final_measurements()
+        copy = circuit.copy()
+
+        self.assertEqual(copy, circuit)
+
     def test_remove_final_measurements_multiple_measures(self):
         """Test remove_final_measurements only removes measurements at the end of the circuit
         remove_final_measurements should not remove measurements in the beginning or middle of the
@@ -360,6 +556,20 @@ class TestCircuitOperations(QiskitTestCase):
         expected.h(0)
 
         self.assertEqual(expected, circuit)
+
+    def test_remove_final_measurements_5802(self):
+        """Test remove_final_measurements removes classical bits
+        https://github.com/Qiskit/qiskit-terra/issues/5802.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr, cr)
+        circuit.remove_final_measurements()
+
+        self.assertEqual(circuit.cregs, [])
+        self.assertEqual(circuit.clbits, [])
 
     def test_reverse(self):
         """Test reverse method reverses but does not invert."""
@@ -402,6 +612,38 @@ class TestCircuitOperations(QiskitTestCase):
                 ref.append(inst, ref.qubits, ref.clbits)
             rep = qc.repeat(3)
             self.assertEqual(rep, ref)
+
+    @data(0, 1, 4)
+    def test_repeat_global_phase(self, num):
+        """Test the global phase is properly handled upon repeat."""
+        phase = 0.123
+        qc = QuantumCircuit(1, global_phase=phase)
+        expected = np.exp(1j * phase * num) * np.identity(2)
+        np.testing.assert_array_almost_equal(Operator(qc.repeat(num)).data, expected)
+
+    def test_bind_global_phase(self):
+        """Test binding global phase."""
+        x = Parameter('x')
+        circuit = QuantumCircuit(1, global_phase=x)
+        self.assertEqual(circuit.parameters, {x})
+
+        bound = circuit.bind_parameters({x: 2})
+        self.assertEqual(bound.global_phase, 2)
+        self.assertEqual(bound.parameters, set())
+
+    def test_bind_parameter_in_phase_and_gate(self):
+        """Test binding a parameter present in the global phase and the gates."""
+        x = Parameter('x')
+        circuit = QuantumCircuit(1, global_phase=x)
+        circuit.rx(x, 0)
+        self.assertEqual(circuit.parameters, {x})
+
+        ref = QuantumCircuit(1, global_phase=2)
+        ref.rx(2, 0)
+
+        bound = circuit.bind_parameters({x: 2})
+        self.assertEqual(bound, ref)
+        self.assertEqual(bound.parameters, set())
 
     def test_power(self):
         """Test taking the circuit to a power works."""
@@ -511,6 +753,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc.measure(0, 1)
         qc.x(0)
         qc.y(1)
+        qc.global_phase = -1
 
         expected = QuantumCircuit(3, 2)
         expected.h(2)
@@ -519,11 +762,12 @@ class TestCircuitOperations(QiskitTestCase):
         expected.measure(2, 0)
         expected.x(2)
         expected.y(1)
+        expected.global_phase = -1
 
         self.assertEqual(qc.reverse_bits(), expected)
 
     def test_reverse_bits_boxed(self):
-        """Test reversing order of bits in a hierarchiecal circuit."""
+        """Test reversing order of bits in a hierarchical circuit."""
         wide_cx = QuantumCircuit(3)
         wide_cx.cx(0, 1)
         wide_cx.cx(1, 2)

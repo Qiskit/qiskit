@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
 
 """Piecewise-linearly-controlled rotation."""
 
@@ -87,7 +86,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         """The breakpoints of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
-        point implicitely is ``2**(num_state_qubits + 1)``.
+        point implicitly is ``2**(num_state_qubits + 1)``.
         """
         return self._breakpoints
 
@@ -109,7 +108,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         """The breakpoints of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
-        point implicitely is ``2**(num_state_qubits + 1)``.
+        point implicitly is ``2**(num_state_qubits + 1)``.
         """
         return self._slopes
 
@@ -128,7 +127,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         """The breakpoints of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
-        point implicitely is ``2**(num_state_qubits + 1)``.
+        point implicitly is ``2**(num_state_qubits + 1)``.
         """
         return self._offsets
 
@@ -222,19 +221,15 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
             qr_state = QuantumRegister(num_state_qubits)
             qr_target = QuantumRegister(1)
             self.qregs = [qr_state, qr_target]
-            self._qubits = qr_state[:] + qr_target[:]
             self._ancillas = []
 
             # add ancillas if required
             if len(self.breakpoints) > 1:
-                num_ancillas = num_state_qubits - 1 + len(self.breakpoints)
-                if self.contains_zero_breakpoint:
-                    num_ancillas -= 1
+                num_ancillas = num_state_qubits
                 qr_ancilla = AncillaRegister(num_ancillas)
                 self.add_register(qr_ancilla)
         else:
             self.qregs = []
-            self._qubits = []
             self._ancillas = []
 
     def _build(self):
@@ -255,18 +250,14 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                 self.append(lin_r.to_gate(), qr_state[:] + qr_target)
 
             else:
-                if self.contains_zero_breakpoint:
-                    i_compare = i - 1
-                else:
-                    i_compare = i
+                qr_compare = [qr_ancilla[0]]
+                qr_helper = qr_ancilla[1:]
 
                 # apply Comparator
                 comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
-                qr = qr_state[:] + [qr_ancilla[i_compare]]  # add ancilla as compare qubit
-                qr_remaining_ancilla = qr_ancilla[i_compare + 1:]  # take remaining ancillas
+                qr = qr_state[:] + qr_compare[:]  # add ancilla as compare qubit
 
-                self.append(comp.to_gate(),
-                            qr[:] + qr_remaining_ancilla[:comp.num_ancillas])
+                self.append(comp.to_gate(), qr[:] + qr_helper[:comp.num_ancillas])
 
                 # apply controlled rotation
                 lin_r = LinearPauliRotations(num_state_qubits=self.num_state_qubits,
@@ -274,8 +265,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                                              offset=self.mapped_offsets[i],
                                              basis=self.basis)
                 self.append(lin_r.to_gate().control(),
-                            [qr_ancilla[i_compare]] + qr_state[:] + qr_target)
+                            qr_compare[:] + qr_state[:] + qr_target)
 
                 # uncompute comparator
-                self.append(comp.to_gate().inverse(),
-                            qr[:] + qr_remaining_ancilla[:comp.num_ancillas])
+                self.append(comp.to_gate().inverse(), qr[:] + qr_helper[:comp.num_ancillas])

@@ -18,7 +18,7 @@ import inspect
 import numpy as np
 from ddt import ddt, data, unpack
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
@@ -27,9 +27,9 @@ from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
     HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
     CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
-    U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
+    U2Gate, U3Gate, CU3Gate, XGate, CXGate, ECRGate, CCXGate, YGate, CYGate,
     ZGate, CZGate, RYYGate, PhaseGate, CPhaseGate, UGate, CUGate,
-    SXGate, SXdgGate, CSXGate
+    SXGate, SXdgGate, CSXGate, RVGate
 )
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -116,6 +116,41 @@ class TestGateDefinitions(QiskitTestCase):
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
+    def test_ecr_definition(self):
+        """Test ecr gate matrix and definition.
+        """
+        circ = QuantumCircuit(2)
+        circ.ecr(0, 1)
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_rv_definition(self):
+        """Test R(v) gate to_matrix and definition.
+        """
+        qreg = QuantumRegister(1)
+        circ = QuantumCircuit(qreg)
+        vec = np.array([0.1, 0.2, 0.3], dtype=float)
+        circ.rv(*vec, 0)
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_rv_r_equiv(self):
+        """Test R(v) gate is equivalent to R gate.
+        """
+        theta = np.pi / 5
+        phi = np.pi / 3
+        rgate = RGate(theta, phi)
+        axis = np.array([np.cos(phi), np.sin(phi), 0])  # RGate axis
+        rotvec = theta * axis
+        rv = RVGate(*rotvec)
+        self.assertTrue(np.array_equal(rgate.to_matrix(), rv.to_matrix()))
+
+    def test_rv_zero(self):
+        """Test R(v) gate with zero vector returns identity
+        """
+        rv = RVGate(0, 0, 0)
+        self.assertTrue(np.array_equal(rv.to_matrix(), np.array([[1, 0], [0, 1]])))
+
 
 @ddt
 class TestStandardGates(QiskitTestCase):
@@ -201,7 +236,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         exclude = {'ControlledGate', 'DiagonalGate', 'UCGate', 'MCGupDiag',
                    'MCU1Gate', 'UnitaryGate', 'HamiltonianGate', 'MCPhaseGate',
                    'UCPauliRotGate', 'SingleQubitUnitary', 'MCXGate',
-                   'VariadicZeroParamGate', 'ClassicalFunction'}
+                   'VariadicZeroParamGate', 'ClassicalFunction', 'ClassicalElement'}
         cls._gate_classes = []
         for aclass in class_list:
             if aclass.__name__ not in exclude:
@@ -220,6 +255,8 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                     params[0] = 2
                 if gate_class.__name__ in ['PauliGate']:
                     params = ["IXYZ"]
+                if gate_class.__name__ in ['BooleanExpression']:
+                    params = ["x | y"]
                 gate = gate_class(*params)
                 equiv_lib_list = std_eqlib.get_entry(gate)
                 for ieq, equivalency in enumerate(equiv_lib_list):
@@ -236,7 +273,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
     @data(
         HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
         CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
-        U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
+        U2Gate, U3Gate, CU3Gate, XGate, CXGate, ECRGate, CCXGate, YGate, CYGate,
         ZGate, CZGate, RYYGate, PhaseGate, CPhaseGate, UGate, CUGate,
         SXGate, SXdgGate, CSXGate
     )

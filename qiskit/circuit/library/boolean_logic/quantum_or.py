@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
 
 """Implementations of boolean logic quantum circuits."""
 
@@ -60,7 +59,7 @@ class OR(QuantumCircuit):
         Args:
             num_variable_qubits: The qubits of which the OR is computed. The result will be written
                 into an additional result qubit.
-            flags: A list of +1/0/-1 marking negations or omisiions of qubits.
+            flags: A list of +1/0/-1 marking negations or omissions of qubits.
             mcx_mode: The mode to be used to implement the multi-controlled X gate.
         """
         # store num_variables_qubits and flags
