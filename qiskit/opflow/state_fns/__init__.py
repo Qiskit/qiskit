@@ -47,6 +47,7 @@ State Functions
    CircuitStateFn
    DictStateFn
    VectorStateFn
+   SparseVectorStateFn
    OperatorStateFn
    CVaRMeasurement
 
@@ -56,6 +57,7 @@ from .state_fn import StateFn
 from .dict_state_fn import DictStateFn
 from .operator_state_fn import OperatorStateFn
 from .vector_state_fn import VectorStateFn
+from .sparse_vector_state_fn import SparseVectorStateFn
 from .circuit_state_fn import CircuitStateFn
 from .cvar_measurement import CVaRMeasurement
 
