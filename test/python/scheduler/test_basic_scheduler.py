@@ -19,7 +19,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
                           MeasureChannel, MemorySlot, Gaussian, Play,
                           transforms)
-from qiskit.pulse import build, macros, play
+from qiskit.pulse import build, macros, play, InstructionScheduleMap
 
 from qiskit.test.mock import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -425,3 +425,24 @@ class TestBasicSchedule(QiskitTestCase):
         sched = schedule(qc, self.backend)
         self.assertEqual(sched,
                          transforms.target_qobj_transform(expected_schedule))
+
+    def test_schedule_block_in_instmap(self):
+        """Test schedule block in instmap can be scheduled."""
+        P0 = Parameter('P0')
+
+        with build() as pulse_prog:
+            play(Gaussian(P0, 0.1, 10), DriveChannel(0))
+
+        instmap = InstructionScheduleMap()
+        instmap.add('block_gate', (0,), pulse_prog, ['P0'])
+
+        qc = QuantumCircuit(1)
+        qc.append(Gate('block_gate', 1, [P0]), [0])
+        qc.assign_parameters({P0: 100}, inplace=True)
+
+        sched = schedule(qc, self.backend, inst_map=instmap)
+
+        ref_sched = Schedule()
+        ref_sched += Play(Gaussian(100, 0.1, 10), DriveChannel(0))
+
+        self.assertEqual(sched, ref_sched)
