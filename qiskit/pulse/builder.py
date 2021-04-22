@@ -1143,8 +1143,7 @@ def pad(*chs: chans.Channel) -> ContextManager[None]:  # pylint: disable=unused-
                   'However, if you still want delays, you can convert the output program '
                   'into `Schedule` representation by calling '
                   '`qiskit.pulse.transforms.target_qobj_transform`. Then, you can apply '
-                  '`qiskit.pulse.transforms.pad` to the converted schedule. '
-                  , DeprecationWarning)
+                  '`qiskit.pulse.transforms.pad` to the converted schedule. ', DeprecationWarning)
     try:
         yield
     finally:
