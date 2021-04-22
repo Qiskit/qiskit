@@ -95,6 +95,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                                  inst_map=inst_map,
                                  meas_map=schedule_config.meas_map,
                                  qubit_mem_slots=qubit_mem_slots)
+            meas_sched = target_qobj_transform(meas_sched)
             meas_sched = meas_sched.exclude(channels=[AcquireChannel(qubit) for qubit
                                                       in acquire_excludes])
             sched |= meas_sched
@@ -141,9 +142,10 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                 pass  # Calibration not defined for this operation
 
             try:
+                schedule = inst_map.get(inst, inst_qubits, *inst.params)
+                schedule = target_qobj_transform(schedule)
                 circ_pulse_defs.append(
-                    CircuitPulseDef(schedule=inst_map.get(inst, inst_qubits, *inst.params),
-                                    qubits=inst_qubits))
+                    CircuitPulseDef(schedule=schedule, qubits=inst_qubits))
             except PulseError as ex:
                 raise QiskitError(
                     f"Operation '{inst.name}' on qubit(s) {inst_qubits} not supported by the "
