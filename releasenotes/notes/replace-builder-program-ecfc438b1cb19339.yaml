@@ -23,7 +23,6 @@ upgrade:
 
     You can directly pass the duration-assigned schedules to the assembler (or backend),
     or you can attach them to your quantum circuit as pulse gates.
-    Pulse transforms are implicitly called and your program is converted into executable format.
 deprecations:
   - |
     Builder syntax :func:`pulse.inline` is deprecated. Instead of using this context,
