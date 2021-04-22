@@ -19,14 +19,14 @@ from scipy.optimize import differential_evolution
 from .optimizer import Optimizer, OptimizerSupportLevel
 
 
-class DE(Optimizer):
+class DifferentialEvolution(Optimizer):
     """
-    Differential Evolution (DE) optimizer
+    Differential Evolution optimizer
 
-    DE is a global and derivative-free optimizer that seeks
-    to find the optimal value of an objective function through stochastically
-    searching the optimization space of possible solutions.
-    DE belongs to the family of evolutionary optimization techniques
+    The Differential Evolution Optimizer is a global and derivative-free 
+    optimizer that seeks to find the optimal value of an objective function 
+    through stochastically searching the optimization space of possible solutions.
+    It belongs to the family of evolutionary optimization techniques
     such as genetic and particle swarm algorithms. It is best suited
     for combinatorial optimization problems and operates on real-parameter
     and real-valued objective functions.
@@ -46,13 +46,13 @@ class DE(Optimizer):
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html
     """
 
-    _OPTIONS = ['strategy', 'maxiter', 'popsize', 'mutation',
+    _OPTIONS = ['maxiter', 'strategy', 'popsize', 'mutation',
                 'recombination', 'init', 'tol', 'atol',
                 'polish', 'disp', 'workers']
 
     def __init__(self,
-                 strategy: str = 'currenttobest1bin',
                  maxiter: int = 10,
+                 strategy: str = 'currenttobest1bin',
                  popsize: int = 10,
                  mutation: Union[float, tuple] = (0.5, 1),
                  recombination: float = 0.7,
@@ -64,9 +64,9 @@ class DE(Optimizer):
                  workers: Union[int, Callable] = 1) -> None:
         """
         Args:
+            maxiter: Maximum number of generations to evolve population
             strategy: Differential evolution strategy to employ for generating new trial candidates
                       in subsequent generations/iterations
-            maxiter: Maximum number of generations to evolve population
             popsize: Number of individuals/candidates in each generation
             mutation: Mutation constant (differential weight) specified as a float in the range of
                       [0,2] or as a tuple(min, max). If specified as a tuple, the mutation constant
@@ -102,13 +102,7 @@ class DE(Optimizer):
         self._workers = workers
 
     def get_support_level(self) -> Dict[str, OptimizerSupportLevel]:
-        """Support level dictionary.
-
-
-        Returns:
-            Dict[str, int]: gradient, bounds and initial point
-                            support information that is ignored/required.
-        """
+        """ Returns support level dictionary. """
         return {
             'gradient': OptimizerSupportLevel.ignored,
             'bounds': OptimizerSupportLevel.required,
@@ -121,7 +115,7 @@ class DE(Optimizer):
                  gradient_function: Callable = None,
                  variable_bounds: List[Tuple[float, float]] = None,
                  initial_point: np.ndarray = None) -> Tuple[np.ndarray, float, int]:
-
+        """ Runs the optimization. """
         super().optimize(num_vars, objective_function, gradient_function,
                          variable_bounds, initial_point)
 
