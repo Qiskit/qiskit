@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.utils import algorithm_globals
 from qiskit.algorithms.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, P_BFGS, NELDER_MEAD,
-                                          POWELL, SLSQP, SPSA, TNC, GSLS)
+                                          POWELL, SLSQP, SPSA, TNC, GSLS, DifferentialEvolution)
 
 
 class TestOptimizers(QiskitAlgorithmsTestCase):
@@ -29,11 +29,24 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         super().setUp()
         algorithm_globals.random_seed = 52
 
-    def _optimize(self, optimizer):
+    def _optimize(self, optimizer, variable_bounds=None):
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
-        res = optimizer.optimize(len(x_0), rosen, initial_point=x_0)
+        res = optimizer.optimize(len(x_0), rosen, initial_point=x_0,
+                                 variable_bounds=variable_bounds)
         np.testing.assert_array_almost_equal(res[0], [1.0] * len(x_0), decimal=2)
         return res
+
+    def test_de(self):
+        """
+        differential evolution test
+
+        Note that the maximum number of function evaluations
+        equals (maxiter + 1)* popsize * len(x_0)
+        """
+        bounds = [(-6, 6)] * 5
+        optimizer = DifferentialEvolution(maxiter=200, popsize=10)
+        res = self._optimize(optimizer, variable_bounds=bounds)
+        self.assertLessEqual(res[2], 10050)
 
     def test_adam(self):
         """ adam test """
@@ -106,7 +119,6 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         # Ensure value is near-optimal
         self.assertLessEqual(x_value, 0.01)
         self.assertLessEqual(n_evals, 10000)
-
 
 if __name__ == '__main__':
     unittest.main()
