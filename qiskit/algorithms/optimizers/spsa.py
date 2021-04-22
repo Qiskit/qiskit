@@ -10,7 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Simultaneous Perturbation Stochastic Approximation (SPSA) optimizer."""
+"""Simultaneous Perturbation Stochastic Approximation (SPSA) optimizer.
+
+This implementation allows both, standard first-order as well as second-order SPSA.
+"""
 
 from typing import Iterator, Optional, Union, Callable, Tuple, Dict
 import logging
@@ -18,6 +21,7 @@ import warnings
 from time import time
 
 from collections import deque
+import scipy
 import numpy as np
 
 from qiskit.utils import algorithm_globals
@@ -33,7 +37,7 @@ logger = logging.getLogger(__name__)
 class SPSA(Optimizer):
     """Simultaneous Perturbation Stochastic Approximation (SPSA) optimizer.
 
-    SPSA [1] is an algorithmic method for optimizing systems with multiple unknown parameters.
+    SPSA [1] is an gradient descent method for optimizing systems with multiple unknown parameters.
     As an optimization method, it is appropriately suited to large-scale population models,
     adaptive modeling, and simulation optimization.
 
@@ -41,11 +45,17 @@ class SPSA(Optimizer):
 
         Many examples are presented at the `SPSA Web site <http://www.jhuapl.edu/SPSA>`__.
 
-    SPSA is a descent method capable of finding global minima,
-    sharing this property with other methods as simulated annealing.
-    Its main feature is the gradient approximation, which requires only two
+    The main feature of SPSA is the stochastic gradient approximation, which requires only two
     measurements of the objective function, regardless of the dimension of the optimization
     problem.
+
+    Additionally to standard, first-order SPSA, where only gradient information is used, this
+    implementation also allows second-order SPSA (2-SPSA) [2]. In 2-SPSA we also estimate the
+    Hessian of the loss with a stochastic approximation and multiply the gradient with the
+    inverse Hessian to take local curvature into account and improve convergence.
+    Notably this Hessian estimate requires only a constant number of function evaluations
+    unlike an exact evaluation of the Hessian, which scales quadratically in the number of
+    function evaluations.
 
     .. note::
 
@@ -58,7 +68,7 @@ class SPSA(Optimizer):
     The optimization process can includes a calibration phase if neither the ``learning_rate`` nor
     ``perturbation`` is provided, which requires additional functional evaluations.
     (Note that either both or none must be set.) For further details on the automatic calibration,
-    please refer to the supplementary information section IV. of [2].
+    please refer to the supplementary information section IV. of [3].
 
     References:
 
@@ -66,7 +76,11 @@ class SPSA(Optimizer):
         Optimization, Johns Hopkins APL Technical Digest, 19(4), 482–492.
         `Online. <https://www.jhuapl.edu/SPSA/PDF-SPSA/Spall_An_Overview.PDF>`_
 
-        [2]: A. Kandala et al. (2017). Hardware-efficient Variational Quantum Eigensolver for
+        [2]: J. C. Spall (1997). Accelerated second-order stochastic optimization using only
+        function measurements, Proceedings of the 36th IEEE Conference on Decision and Control,
+        1417-1424 vol.2. `Online. <https://ieeexplore.ieee.org/document/657661>`_
+
+        [3]: A. Kandala et al. (2017). Hardware-efficient Variational Quantum Eigensolver for
         Small Molecules and Quantum Magnets. Nature 549, pages242–246(2017).
         `arXiv:1704.05018v2 <https://arxiv.org/pdf/1704.05018v2.pdf#section*.11>`_
 
@@ -82,6 +96,11 @@ class SPSA(Optimizer):
                  last_avg: int = 1,
                  resamplings: Union[int, Dict[int, int]] = 1,
                  perturbation_dims: Optional[int] = None,
+                 second_order: bool = False,
+                 regularization: Optional[float] = None,
+                 hessian_delay: int = 0,
+                 lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
+                 initial_hessian: Optional[np.ndarray] = None,
                  callback: Optional[CALLBACK] = None,
                  ) -> None:
         r"""
@@ -107,11 +126,29 @@ class SPSA(Optimizer):
             perturbation_dims: The number of perturbed dimensions. Per default, all dimensions
                 are perturbed, but a smaller, fixed number can be perturbed. If set, the perturbed
                 dimensions are chosen uniformly at random.
+            second_order: If True, use 2-SPSA instead of SPSA. In 2-SPSA, the Hessian is estimated
+                additionally to the gradient, and the gradient is preconditioned with the inverse
+                of the Hessian to improve convergence.
+            regularization: To ensure the preconditioner is symmetric and positive definite, the
+                identity times a small coefficient is added to it. This generator yields that
+                coefficient.
+            hessian_delay: Start preconditioning only after a certain number of iterations.
+                Can be useful to first get a stable average over the last iterations before using
+                the preconditioner.
+            lse_solver: The method to solve for the inverse of the preconditioner. Per default an
+                exact LSE solver is used, but can e.g. be overwritten by a minimization routine.
+            initial_hessian: The initial guess for the Hessian. By default the identity matrix
+                is used.
             callback: A callback function passed information in each iteration step. The
                 information is, in this order: the parameters, the function value, the number
                 of function evaluations, the stepsize, whether the step was accepted.
         """
         super().__init__()
+
+        # general optimizer arguments
+        self.maxiter = maxiter
+        self.trust_region = trust_region
+        self.callback = callback
 
         if isinstance(learning_rate, float):
             self.learning_rate = lambda: constant(learning_rate)
@@ -123,17 +160,29 @@ class SPSA(Optimizer):
         else:
             self.perturbation = perturbation
 
-        self.maxiter = maxiter
+        # SPSA specific arguments
         self.blocking = blocking
         self.allowed_increase = allowed_increase
-        self.trust_region = trust_region
-        self.callback = callback
         self.last_avg = last_avg
         self.resamplings = resamplings
         self.perturbation_dims = perturbation_dims
 
+        # 2-SPSA specific arguments
+        if regularization is None:
+            regularization = 0.01
+
+        if lse_solver is None:
+            lse_solver = np.linalg.solve
+
+        self.second_order = second_order
+        self.hessian_delay = hessian_delay
+        self.lse_solver = lse_solver
+        self.regularization = regularization
+        self.initial_hessian = initial_hessian
+
         # runtime arguments
-        self._nfev = None
+        self._nfev = None  # the number of function evaluations
+        self._smoothed_hessian = None  # smoothed average of the Hessians
 
     @staticmethod
     def calibrate(loss: Callable[[np.ndarray], float],
@@ -212,47 +261,82 @@ class SPSA(Optimizer):
         losses = [loss(initial_point) for _ in range(avg)]
         return np.std(losses)
 
-    def _point_sample(self, loss, x, eps, delta):
+    def _point_sample(self, loss, x, eps, delta1, delta2):
         """A single sample of the gradient at position ``x`` in direction ``delta``."""
-        if self._max_evals_grouped > 1:
-            plus, minus = loss(np.concatenate((x + eps * delta, x - eps * delta)))
-        else:
-            plus, minus = loss(x + eps * delta), loss(x - eps * delta)
-
-        gradient_sample = (plus - minus) / (2 * eps) * delta
+        # points to evaluate
+        points = [x + eps * delta1, x - eps * delta1]
         self._nfev += 2
 
-        return gradient_sample
+        if self.second_order:
+            points += [x + eps * (delta1 + delta2), x + eps * (-delta1 + delta2)]
+            self._nfev += 2
 
-    def _point_estimate(self, loss, x, eps, deltas):
+        # batch evaluate the points (if possible)
+        values = _batch_evaluate(loss, points, self._max_evals_grouped)
+
+        plus = values[0]
+        minus = values[1]
+        gradient_sample = (plus - minus) / (2 * eps) * delta1
+
+        hessian_sample = None
+        if self.second_order:
+            diff = (values[2] - plus) - (values[3] - minus)
+            diff /= 2 * eps ** 2
+
+            rank_one = np.outer(delta1, delta2)
+            hessian_sample = diff * (rank_one + rank_one.T) / 2
+
+        return gradient_sample, hessian_sample
+
+    def _point_estimate(self, loss, x, eps, num_samples):
         """The gradient estimate at point ``x`` consisting as average of all directions ``delta``.
         """
-        # number of samples
-        resamplings = len(deltas)
-
         # set up variables to store averages
         gradient_estimate = np.zeros(x.size)
+        hessian_estimate = np.zeros((x.size, x.size))
 
         # iterate over the directions
-        for delta in deltas:
-            gradient_sample = self._point_sample(loss, x, eps, delta)
+        deltas1 = [bernoulli_perturbation(x.size, self.perturbation_dims)
+                   for _ in range(num_samples)]
+
+        if self.second_order:
+            deltas2 = [bernoulli_perturbation(x.size, self.perturbation_dims)
+                       for _ in range(num_samples)]
+        else:
+            deltas2 = None
+
+        for i in range(num_samples):
+            delta1 = deltas1[i]
+            delta2 = deltas2[i] if self.second_order else None
+
+            gradient_sample, hessian_sample = self._point_sample(loss, x, eps, delta1, delta2)
             gradient_estimate += gradient_sample
 
-        return gradient_estimate / resamplings
+            if self.second_order:
+                hessian_estimate += hessian_sample
+
+        return gradient_estimate / num_samples, hessian_estimate / num_samples
 
     def _compute_update(self, loss, x, k, eps):
         # compute the perturbations
         if isinstance(self.resamplings, dict):
-            avg = self.resamplings.get(k, 1)
+            num_samples = self.resamplings.get(k, 1)
         else:
-            avg = self.resamplings
-
-        gradient = np.zeros(x.size)
+            num_samples = self.resamplings
 
         # accumulate the number of samples
-        deltas = [bernoulli_perturbation(x.size, self.perturbation_dims) for _ in range(avg)]
+        gradient, hessian = self._point_estimate(loss, x, eps, num_samples)
 
-        gradient = self._point_estimate(loss, x, eps, deltas)
+        # precondition gradient with inverse Hessian, if specified
+        if self.second_order:
+            smoothed = k / (k + 1) * self._smoothed_hessian + 1 / (k + 1) * hessian
+            self._smoothed_hessian = smoothed
+
+            if k > self.hessian_delay:
+                spd_hessian = _make_spd(smoothed, self.regularization)
+
+                # solve for the gradient update
+                gradient = np.real(self.lse_solver(spd_hessian, gradient))
 
         return gradient
 
@@ -273,6 +357,7 @@ class SPSA(Optimizer):
 
         # prepare some initials
         x = np.asarray(initial_point)
+        self._smoothed_hessian = np.identity(x.size)
 
         self._nfev = 0
 
@@ -392,3 +477,31 @@ def constant(eta=0.01):
 
     while True:
         yield eta
+
+
+def _batch_evaluate(function, points, max_evals_grouped):
+    # if the function cannot handle lists of points as input, cover this case immediately
+    if max_evals_grouped == 1:
+        return [function(point) for point in points]
+
+    num_points = len(points)
+
+    # get the number of batches
+    num_batches = num_points // max_evals_grouped
+    if num_points % max_evals_grouped != 0:
+        num_batches += 1
+
+    # split the points
+    batched_points = np.split(points, num_batches)
+
+    results = []
+    for batch in batched_points:
+        results += function(batch)
+
+    return results
+
+
+def _make_spd(matrix, bias=0.01):
+    identity = np.identity(matrix.shape[0])
+    psd = scipy.linalg.sqrtm(matrix.dot(matrix))
+    return psd + bias * identity
