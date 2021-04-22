@@ -180,7 +180,10 @@ class StabilizerState(QuantumState):
             qargs (None or list): subsystems to apply the operator on.
 
         Returns:
-            complex: the expectation value (only 0 or 1 or -1)
+            complex: the expectation value (only 0 or 1 or -1).
+
+        Raises:
+            QiskitError: if the expectation value is not 0 or 1 or -1.
         """
         if qargs is None:
             qubits = range(self.data.num_qubits)
