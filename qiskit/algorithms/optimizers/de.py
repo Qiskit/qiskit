@@ -24,8 +24,9 @@ class DifferentialEvolution(Optimizer):
     Differential Evolution optimizer
 
     The Differential Evolution Optimizer is a global and derivative-free
-    optimizer that seeks to find the optimal value of an objective function
-    through stochastically searching the optimization space of possible solutions.
+    optimizer that seeks to find the optimal value of an objective function,
+    f(x) (where x represents the vector of possible parameters) through
+    stochastically searching the optimization space of possible solutions.
     It belongs to the family of evolutionary optimization techniques
     such as genetic and particle swarm algorithms. It is best suited
     for combinatorial optimization problems and operates on real-parameter
@@ -39,7 +40,9 @@ class DifferentialEvolution(Optimizer):
     (differential weight) and recombination factor (crossover probability).
     The algorithm terminates if either the maximum number of iterations/generations
     have been reached or the standard deviation of the generation of candidates
-    is below a user-specified threshold.
+    is below a user-specified threshold. Specificially, the total number of 
+    function evaluations equals (maxiter + 1)* popsize * len(x), without polishing 
+    (see below).
 
     Uses scipy.optimize.differential_evolution
     For further detail, please refer to
@@ -59,7 +62,7 @@ class DifferentialEvolution(Optimizer):
                  init: str = 'latinhypercube',
                  tol: float = 0.01,
                  atol: float = 0,
-                 polish: bool = True,
+                 polish: bool = False,
                  disp: bool = False,
                  workers: Union[int, Callable] = 1) -> None:
         """
