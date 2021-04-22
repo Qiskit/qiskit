@@ -347,6 +347,8 @@ you just need to update the reference images as follows:
     - download the new images, then copy and paste into `qiskit-terra/test/ipynb/mpl/references`
     - add, commit and push your changes, restart the Jupyter Notebook app in your browser. The 
     new tests should now pass.
+
+Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some file metadata has changed, **please do not commit and push changes to this file unless they were intentional**.
 ### Development Cycle
 
 The development cycle for qiskit-terra is all handled in the open using
