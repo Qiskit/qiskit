@@ -30,4 +30,4 @@ deprecations:
 
     Builder syntax :func:`pulse.pad` is deprecated. Because :class:`ScheduleBlock` doesn't
     support the `.insert` method (and there is no insert syntax in the builder),
-    such timeslot placeholder to block insertion of other instructions is no longer necessary.
+    timeslot placeholders to block the insertion of other instructions is no longer necessary.
