@@ -102,7 +102,8 @@ class DE(Optimizer):
         self._workers = workers
 
     def get_support_level(self) -> Dict[str, OptimizerSupportLevel]:
-        """ Support level dictionary
+        """Support level dictionary.
+
 
         Returns:
             Dict[str, int]: gradient, bounds and initial point
