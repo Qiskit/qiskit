@@ -19,7 +19,7 @@ import numpy as np
 from qiskit import circuit, compiler, pulse
 from qiskit.pulse import builder, exceptions, macros
 from qiskit.pulse.instructions import directives
-from qiskit.pulse.transforms import base_qobj_transform
+from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test.mock.utils import ConfigurableFakeBackend as ConfigurableBackend
@@ -41,7 +41,7 @@ class TestBuilder(QiskitTestCase):
 
         .. note:: Two programs are converted into standard execution format then compared.
         """
-        self.assertEqual(base_qobj_transform(program), base_qobj_transform(target))
+        self.assertEqual(target_qobj_transform(program), target_qobj_transform(target))
 
 
 class TestBuilderBase(TestBuilder):
@@ -1081,7 +1081,7 @@ class TestSubroutineCall(TestBuilder):
             pulse.call(subprogram)
             pulse.call(subprogram)
 
-        self.assertNotEqual(len(base_qobj_transform(schedule).instructions), 0)
+        self.assertNotEqual(len(target_qobj_transform(schedule).instructions), 0)
 
     def test_subroutine_not_transformed(self):
         """Test called schedule is not transformed."""
@@ -1134,7 +1134,7 @@ class TestSubroutineCall(TestBuilder):
 
         self.assertEqual(main_prog.is_parameterized(), False)
 
-        assigned_sched = base_qobj_transform(main_prog)
+        assigned_sched = target_qobj_transform(main_prog)
 
         play_0 = assigned_sched.instructions[0][1]
         play_1 = assigned_sched.instructions[1][1]
@@ -1158,7 +1158,7 @@ class TestSubroutineCall(TestBuilder):
         main_prog.assign_parameters({amp: 0.5})
         self.assertEqual(main_prog.is_parameterized(), False)
 
-        assigned_sched = base_qobj_transform(main_prog)
+        assigned_sched = target_qobj_transform(main_prog)
 
         play_0 = assigned_sched.instructions[0][1]
         play_1 = assigned_sched.instructions[1][1]
@@ -1188,7 +1188,7 @@ class TestSubroutineCall(TestBuilder):
         with pulse.build() as main_prog:
             pulse.call(subroutine, amp=0.1)
 
-        assigned_sched = base_qobj_transform(main_prog)
+        assigned_sched = target_qobj_transform(main_prog)
 
         play_0 = assigned_sched.instructions[0][1]
         play_1 = assigned_sched.instructions[1][1]
@@ -1209,7 +1209,7 @@ class TestSubroutineCall(TestBuilder):
         with pulse.build() as main_prog:
             pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.2}, sigma=40)
 
-        assigned_sched = base_qobj_transform(main_prog)
+        assigned_sched = target_qobj_transform(main_prog)
 
         play_0 = assigned_sched.instructions[0][1]
         play_1 = assigned_sched.instructions[1][1]

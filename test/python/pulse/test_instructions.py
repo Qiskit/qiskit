@@ -16,7 +16,7 @@ import numpy as np
 
 from qiskit import pulse, circuit
 from qiskit.pulse import channels, configuration, instructions, library, exceptions
-from qiskit.pulse.transforms import inline_subroutines, base_qobj_transform
+from qiskit.pulse.transforms import inline_subroutines, target_qobj_transform
 from qiskit.test import QiskitTestCase
 
 
@@ -283,7 +283,7 @@ class TestCall(QiskitTestCase):
             pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
             pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
 
-        self.assertEqual(base_qobj_transform(test_sched), base_qobj_transform(ref_sched))
+        self.assertEqual(target_qobj_transform(test_sched), target_qobj_transform(ref_sched))
 
     def test_call_initialize_with_parameter(self):
         """Test call instruction with parameterized subroutine with initial dict."""
@@ -295,8 +295,8 @@ class TestCall(QiskitTestCase):
             pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
             pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
 
-        self.assertEqual(base_qobj_transform(call.assigned_subroutine()),
-                         base_qobj_transform(ref_sched))
+        self.assertEqual(target_qobj_transform(call.assigned_subroutine()),
+                         target_qobj_transform(ref_sched))
 
     def test_call_subroutine_with_different_parameters(self):
         """Test call subroutines with different parameters in the same schedule."""
@@ -315,4 +315,4 @@ class TestCall(QiskitTestCase):
             pulse.play(pulse.Gaussian(160, 0.7, 40), pulse.DriveChannel(0))
             pulse.play(pulse.Gaussian(160, 0.3, 40), pulse.DriveChannel(0))
 
-        self.assertEqual(base_qobj_transform(test_sched), base_qobj_transform(ref_sched))
+        self.assertEqual(target_qobj_transform(test_sched), target_qobj_transform(ref_sched))

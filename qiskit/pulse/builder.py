@@ -367,8 +367,6 @@ class _PulseBuilder():
         self.compile()
         BUILDER_CONTEXTVAR.reset(self._backend_ctx_token)
 
-    # Properties and setters
-
     @property
     def backend(self):
         """Returns the builder backend if set.
@@ -390,6 +388,15 @@ class _PulseBuilder():
             raise exceptions.PulseError('The root context cannot be popped out.')
 
         return self._context_stack.pop()
+
+    def get_context(self) -> ScheduleBlock:
+        """Get current context.
+
+        Notes:
+            New instruction can be added by `.append_block` or `.append_instruction` method.
+            Use above methods rather than directly accessing to the current context.
+        """
+        return self._context_stack[-1]
 
     @property
     @_requires_backend
@@ -418,8 +425,6 @@ class _PulseBuilder():
     def circuit_scheduler_settings(self, settings: Mapping):
         self._compile_lazy_circuit()
         self._circuit_scheduler_settings = settings
-
-    # Compiling
 
     @_compile_lazy_circuit_before
     def compile(self) -> ScheduleBlock:
@@ -462,8 +467,6 @@ class _PulseBuilder():
         """Create a new circuit for lazy circuit scheduling."""
         return circuit.QuantumCircuit(self.num_qubits)
 
-    # Adding new block component
-
     @_compile_lazy_circuit_before
     def append_instruction(self, instruction: instructions.Instruction):
         """Add an instruction to the builder's context schedule.
@@ -483,8 +486,6 @@ class _PulseBuilder():
         # ignore empty context
         if len(context_block) > 0:
             self._context_stack[-1].append(context_block)
-
-    # Calling externally defined subroutines
 
     def call_subroutine(self,
                         subroutine: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
@@ -1137,8 +1138,13 @@ def pad(*chs: chans.Channel) -> ContextManager[None]:  # pylint: disable=unused-
         None
     """
     warnings.warn('Context-wise padding is being deprecated. This padding is just ignored. '
-                  'Set the padding process in the pulse transformation pass. '
-                  'This transform pass feature will be supported soon.', DeprecationWarning)
+                  'Now the builder syntax generate a program in `ScheduleBlock` representation. '
+                  'The padding with delay as a blocker is no longer necessary for this program. '
+                  'However, if you still want delays, you can convert the output program '
+                  'into `Schedule` representation by calling '
+                  '`qiskit.pulse.transforms.target_qobj_transform`. Then, you can apply '
+                  '`qiskit.pulse.transforms.pad` for the output schedule. '
+                  , DeprecationWarning)
     try:
         yield
     finally:
@@ -1281,7 +1287,11 @@ def frequency_offset(frequency: float,
         None
     """
     builder = _active_builder()
-    t0 = builder._context_stack[-1].duration
+    # TODO: Need proper implementation of compensation. t0 may depend on the parent context.
+    #  For example, the instruction position within the equispaced context depends on
+    #  the current total number of instructions, thus adding more instruction after
+    #  offset context may change the t0 when the parent context is transformed.
+    t0 = builder.get_context().duration
 
     for channel in channels:
         shift_frequency(frequency, channel)
@@ -1289,7 +1299,7 @@ def frequency_offset(frequency: float,
         yield
     finally:
         if compensate_phase:
-            duration = builder._context_stack[-1].duration - t0
+            duration = builder.get_context().duration - t0
             dt = active_backend().configuration().dt
             accumulated_phase = 2 * np.pi * ((duration * dt * frequency) % 1)
             for channel in channels:

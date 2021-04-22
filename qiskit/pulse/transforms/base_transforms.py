@@ -22,11 +22,11 @@ from qiskit.pulse.transforms import canonicalization
 InstructionSched = Union[Tuple[int, Instruction], Instruction]
 
 
-def base_qobj_transform(sched: Union[ScheduleBlock,
-                                     Schedule,
-                                     InstructionSched,
-                                     Iterable[InstructionSched]],
-                        remove_directives: bool = True) -> Schedule:
+def target_qobj_transform(sched: Union[ScheduleBlock,
+                                       Schedule,
+                                       InstructionSched,
+                                       Iterable[InstructionSched]],
+                          remove_directives: bool = True) -> Schedule:
     """A basic pulse program transformation for OpenPulse API execution.
 
     Args:
@@ -60,12 +60,13 @@ def _format_schedule_component(sched: Union[InstructionSched, Iterable[Instructi
     """A helper function to convert instructions into list of instructions."""
     # TODO remove schedule initialization with *args, Qiskit-terra/#5093
 
-    if hasattr(sched, '__iter__'):
+    try:
+        sched = list(sched)
         # (t0, inst), or list of it
         if isinstance(sched[0], int):
             # (t0, inst) tuple
-            return [sched]
+            return [tuple(sched)]
         else:
-            return list(sched)
-    else:
+            return sched
+    except TypeError:
         return [sched]

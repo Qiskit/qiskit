@@ -424,4 +424,4 @@ class TestBasicSchedule(QiskitTestCase):
         qc.add_calibration(gate='pulse_gate', qubits=[0], schedule=expected_schedule, params=[x])
         sched = schedule(qc, self.backend)
         self.assertEqual(sched,
-                         transforms.base_qobj_transform(expected_schedule))
+                         transforms.target_qobj_transform(expected_schedule))

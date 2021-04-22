@@ -98,7 +98,7 @@ def _assemble_experiments(
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
 
-    formatted_schedules = [transforms.base_qobj_transform(sched) for sched in schedules]
+    formatted_schedules = [transforms.target_qobj_transform(sched) for sched in schedules]
     compressed_schedules = transforms.compress_pulses(formatted_schedules)
 
     user_pulselib = {}
@@ -173,7 +173,7 @@ def _assemble_instructions(
         A list of converted instructions, the user pulse library dictionary (from pulse name to
         pulse samples), and the maximum number of readout memory slots used by this Schedule.
     """
-    sched = transforms.base_qobj_transform(sched)
+    sched = transforms.target_qobj_transform(sched)
 
     max_memory_slot = 0
     qobj_instructions = []

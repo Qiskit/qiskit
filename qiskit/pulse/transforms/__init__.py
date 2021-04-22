@@ -91,7 +91,7 @@ from qiskit.pulse.transforms.alignments import (
 )
 
 from qiskit.pulse.transforms.base_transforms import (
-    base_qobj_transform
+    target_qobj_transform
 )
 
 from qiskit.pulse.transforms.canonicalization import (

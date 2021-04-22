@@ -73,7 +73,7 @@ from typing import Union, List, Tuple, Iterator, Optional
 
 import numpy as np
 from qiskit import pulse
-from qiskit.pulse.transforms import base_qobj_transform
+from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import events, types, drawings, device_info
 from qiskit.visualization.pulse_v2.stylesheet import QiskitPulseStyle
@@ -252,7 +252,7 @@ class DrawerCanvas:
         Args:
             program: `Schedule` to draw.
         """
-        program = base_qobj_transform(program, remove_directives=False)
+        program = target_qobj_transform(program, remove_directives=False)
 
         # initialize scale values
         self.chan_scales = {}

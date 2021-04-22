@@ -46,7 +46,7 @@ class BaseTestBlock(QiskitTestCase):
 
     def assertScheduleEqual(self, target, reference):
         """Check if two block are equal schedule representation."""
-        self.assertEqual(transforms.base_qobj_transform(target), reference)
+        self.assertEqual(transforms.target_qobj_transform(target), reference)
 
 
 class TestTransformation(BaseTestBlock):
