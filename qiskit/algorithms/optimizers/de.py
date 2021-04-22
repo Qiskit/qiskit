@@ -40,8 +40,8 @@ class DifferentialEvolution(Optimizer):
     (differential weight) and recombination factor (crossover probability).
     The algorithm terminates if either the maximum number of iterations/generations
     have been reached or the standard deviation of the generation of candidates
-    is below a user-specified threshold. Specificially, the total number of 
-    function evaluations equals (maxiter + 1)* popsize * len(x), without polishing 
+    is below a user-specified threshold. Specificially, the total number of
+    function evaluations equals (maxiter + 1)* popsize * len(x), without polishing
     (see below).
 
     Uses scipy.optimize.differential_evolution
