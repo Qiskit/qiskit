@@ -29,7 +29,7 @@ from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.test import QiskitTestCase
 
 from qiskit.quantum_info.random import random_clifford, random_pauli
-from qiskit.quantum_info.operators import Pauli, Operator, Clifford
+from qiskit.quantum_info.operators import Pauli, Operator
 from qiskit.quantum_info.operators.symplectic.pauli import (
     _split_pauli_label, _phase_from_label)
 
