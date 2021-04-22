@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    A new global optimizer, DifferentialEvolution, is added 
+    based on `scipy.optimize.differential_evolution`.
+    This optimizer belongs to the family of evolutionary 
+    algorithms such as genetic and particle swarm algorithms. 
+    It is best suited for combinatorial optimization problems 
+    and operates on real-parameter and real-valued objective functions.
+    Found in :class:~`qiskit.algorithms.optimizers.DifferentialEvolution`
+  
