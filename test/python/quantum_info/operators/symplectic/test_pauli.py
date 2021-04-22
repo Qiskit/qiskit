@@ -346,10 +346,9 @@ class TestPauli(QiskitTestCase):
     @unpack
     def test_evolve_clifford1(self, gate, label):
         """Test evolve method for 1-qubit Clifford gates."""
-        cliff = Clifford(gate)
         op = Operator(gate)
         pauli = Pauli(label)
-        value = Operator(pauli.evolve(cliff))
+        value = Operator(pauli.evolve(gate))
         target = op.adjoint().dot(pauli).dot(op)
         self.assertEqual(value, target)
 
@@ -358,10 +357,9 @@ class TestPauli(QiskitTestCase):
     @unpack
     def test_evolve_clifford2(self, gate, label):
         """Test evolve method for 2-qubit Clifford gates."""
-        cliff = Clifford(gate)
         op = Operator(gate)
         pauli = Pauli(label)
-        value = Operator(pauli.evolve(cliff))
+        value = Operator(pauli.evolve(gate))
         target = op.adjoint().dot(pauli).dot(op)
         self.assertEqual(value, target)
 
