@@ -1086,7 +1086,7 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
         PulseError: When input ``alignment_context`` is not ``AlignmentKind`` subclasses.
     """
     if not isinstance(alignment_context, AlignmentKind):
-        raise exceptions.PulseError('Input alignment context is not `AlignmentKind` subclass.')
+        raise exceptions.PulseError('Input alignment context is not a subclass of `AlignmentKind`.')
 
     builder = _active_builder()
     builder.push_context(alignment_context)
