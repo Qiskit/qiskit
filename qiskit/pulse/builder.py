@@ -1137,13 +1137,13 @@ def pad(*chs: chans.Channel) -> ContextManager[None]:  # pylint: disable=unused-
     Yields:
         None
     """
-    warnings.warn('Context-wise padding is being deprecated. This padding is just ignored. '
-                  'Now the builder syntax generate a program in `ScheduleBlock` representation. '
+    warnings.warn('Context-wise padding is being deprecated. Requested padding is being ignored. '
+                  'Now the pulse builder generate a program in `ScheduleBlock` representation. '
                   'The padding with delay as a blocker is no longer necessary for this program. '
                   'However, if you still want delays, you can convert the output program '
                   'into `Schedule` representation by calling '
                   '`qiskit.pulse.transforms.target_qobj_transform`. Then, you can apply '
-                  '`qiskit.pulse.transforms.pad` for the output schedule. '
+                  '`qiskit.pulse.transforms.pad` to the converted schedule. '
                   , DeprecationWarning)
     try:
         yield
