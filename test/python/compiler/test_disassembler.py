@@ -188,6 +188,21 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(circuits[0], qc)
         self.assertEqual({}, header)
 
+    def test_circuit_with_mcx(self):
+        """Verify disassemble handles mcx gate - #6271."""
+        qr = QuantumRegister(5)
+        cr = ClassicalRegister(5)
+        qc = QuantumCircuit(qr, cr)
+        qc.mcx([0, 1, 2], 4)
+        qobj = assemble(qc)
+        circuits, run_config_out, header = disassemble(qobj)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 5)
+        self.assertEqual(run_config_out.memory_slots, 5)
+        self.assertEqual(len(circuits), 1)
+        self.assertEqual(circuits[0], qc)
+        self.assertEqual({}, header)
+
     def test_multiple_conditionals_multiple_registers(self):
         """Verify disassemble handles multiple conditionals and registers."""
         qr = QuantumRegister(3)
