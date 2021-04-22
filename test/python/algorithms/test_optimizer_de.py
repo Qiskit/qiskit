@@ -15,19 +15,17 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from scipy.optimize import rosen
-import numpy as np
 
 from qiskit import BasicAer
 from qiskit.algorithms import VQE
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.opflow import PauliSumOp
-from qiskit.algorithms.optimizers import DE
+from qiskit.algorithms.optimizers import DifferentialEvolution
 
 
 class TestOptimizerDE(QiskitAlgorithmsTestCase):
-    """Test Differential Evolution (DE) optimizer."""
+    """Test Differential Evolution optimizer."""
 
     def setUp(self):
         super().setUp()
@@ -41,18 +39,11 @@ class TestOptimizerDE(QiskitAlgorithmsTestCase):
             ("XX", 0.18093119978423156),
         ])
 
-    def _optimize(self, optimizer):
-        x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
-        bounds = [(-6, 6)] * len(x_0)
-        res = optimizer.optimize(len(x_0), rosen, initial_point=x_0, variable_bounds=bounds)
-        np.testing.assert_array_almost_equal(res[0], [1.0] * len(x_0), decimal=2)
-        return res
-
     def test_de(self):
         """ Test DE optimizer by using it """
 
         vqe = VQE(var_form=RealAmplitudes(),
-                  optimizer=DE(),
+                  optimizer=DifferentialEvolution(),
                   quantum_instance=QuantumInstance(BasicAer.get_backend('statevector_simulator'),
                                                    seed_simulator=algorithm_globals.random_seed,
                                                    seed_transpiler=algorithm_globals.random_seed))
