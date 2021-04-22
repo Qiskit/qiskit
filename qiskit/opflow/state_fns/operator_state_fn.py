@@ -211,7 +211,7 @@ class OperatorStateFn(StateFn):
         if isinstance(self.primitive, PauliSumOp) and isinstance(front, VectorStateFn):
             return (
                 front.primitive.expectation_value(self.primitive.primitive)
-                * self.coeff.conjugate()
+                * self.coeff
                 * front.coeff
             )
 
