@@ -218,6 +218,30 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
 
         self.assertEqual(expected, after)
 
+    def test_no_optimize_swap_with_condition(self):
+        """ Do not remove swap if it has a condition
+            qr0:--X--m--       qr0:--X--m--
+                  |  |               |  |
+            qr1:--X--|--  ==>  qr1:--X--|--
+                  |  |               |  |
+            cr0:--1--.--       cr0:--1--.--
+        """
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.swap(qr[0], qr[1]).c_if(cr, 1)
+        circuit.measure(qr[0], cr[0])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.swap(qr[0], qr[1]).c_if(cr, 1)
+        expected.measure(qr[0], cr[0])
+
+        pass_ = OptimizeSwapBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
 
 if __name__ == '__main__':
     unittest.main()
