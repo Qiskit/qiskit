@@ -26,14 +26,13 @@ class DAGNode:
     be supplied to functions that take a node.
     """
 
-    __slots__ = ['type', '_op', '_name', '_qargs', 'cargs', '_wire', 'sort_key', '_node_id']
+    __slots__ = ['type', '_op', '_qargs', 'cargs', '_wire', 'sort_key', '_node_id']
 
     def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None,
                  wire=None, nid=-1):
         """Create a node """
         self.type = type
         self._op = op
-        self._name = name
         self._qargs = qargs if qargs is not None else []
         self.cargs = cargs if cargs is not None else []
         self._wire = wire
@@ -53,14 +52,14 @@ class DAGNode:
 
     @property
     def name(self):
-        """Returns the Instruction name corresponding to the op for the node, else _name"""
-        if not self.type or self.type != 'op':
-            return self._name
-        return self._op.name
+        """Returns the Instruction name corresponding to the op for the node"""
+        if self.type and self.type == 'op':
+            return self._op.name
 
     @name.setter
     def name(self, name):
-        self._name = name
+        if self.type and self.type == 'op':
+            self._op.name = name
 
     @property
     def condition(self):
