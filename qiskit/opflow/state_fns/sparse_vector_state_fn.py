@@ -87,6 +87,19 @@ class SparseVectorStateFn(StateFn):
                                    coeff=self.coeff.conjugate(),
                                    is_measurement=(not self.is_measurement))
 
+    def equals(self, other: OperatorBase) -> bool:
+        if not isinstance(other, SparseVectorStateFn) or not self.coeff == other.coeff:
+            return False
+
+        if self.primitive.shape != other.primitive.shape:
+            return False
+
+        if self.primitive.count_nonzero() != other.primitive.count_nonzero():
+            return False
+
+        # equal if no elements are different (using != for efficiency)
+        return (self.primitive != other.primitive).nnz == 0
+
     def to_dict_fn(self) -> StateFn:
         """Convert this state function to a ``DictStateFn``.
 
@@ -97,7 +110,7 @@ class SparseVectorStateFn(StateFn):
 
         num_qubits = self.num_qubits
         dok = self.primitive.todok()
-        new_dict = {format(i[0], 'b').zfill(num_qubits): v for i, v in dok.items()}
+        new_dict = {format(i[1], 'b').zfill(num_qubits): v for i, v in dok.items()}
         return DictStateFn(new_dict, coeff=self.coeff, is_measurement=self.is_measurement)
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:

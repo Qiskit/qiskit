@@ -99,7 +99,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         with self.subTest('Most likely eigenvalues'):
             self.assertAlmostEqual(result.most_likely_eigenvalue, -1.855, delta=.001)
         with self.subTest('Most likely phase'):
-            self.assertAlmostEqual(result.most_likely_phase, 0.5937, delta=.001)
+            self.assertAlmostEqual(result.phase, 0.5937, delta=.001)
         with self.subTest('All eigenvalues'):
             phase_dict = result.filter_phases(0.1)
             phases = list(phase_dict.keys())
@@ -177,7 +177,7 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
                                 quantum_instance=qi)
         result = p_est.estimate(unitary=unitary_circuit,
                                 state_preparation=state_preparation)
-        phase = result.most_likely_phase
+        phase = result.phase
         return phase
 
     @data('qasm_simulator', 'statevector_simulator')
