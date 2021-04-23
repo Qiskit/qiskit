@@ -28,7 +28,7 @@ class DAGNode:
 
     __slots__ = ['type', '_op', '_qargs', 'cargs', '_wire', 'sort_key', '_node_id']
 
-    def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None,
+    def __init__(self, type=None, op=None, qargs=None, cargs=None,
                  wire=None, nid=-1):
         """Create a node """
         self.type = type
@@ -55,6 +55,7 @@ class DAGNode:
         """Returns the Instruction name corresponding to the op for the node"""
         if self.type and self.type == 'op':
             return self._op.name
+        return None
 
     @name.setter
     def name(self, name):
