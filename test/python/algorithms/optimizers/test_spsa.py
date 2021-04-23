@@ -122,7 +122,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         def objective(x):
             return (np.linalg.norm(x) - 2) ** 2
 
-        history = {'fnevs': [], 'points': [], 'fvals': [], 'updates': [], 'accepted': []}
+        history = {'nfevs': [], 'points': [], 'fvals': [], 'updates': [], 'accepted': []}
 
         def callback(nfev, point, fval, update, accepted):
             history['nfevs'].append(nfev)
