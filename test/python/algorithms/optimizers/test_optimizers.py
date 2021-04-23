@@ -46,7 +46,7 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         bounds = [(-6, 6)] * 5
         optimizer = DifferentialEvolution(maxiter=200, popsize=10)
         res = self._optimize(optimizer, variable_bounds=bounds)
-        self.assertLessEqual(res[2], 10050)
+        self.assertLessEqual(res[2], 11000)
 
     def test_adam(self):
         """ adam test """
