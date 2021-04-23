@@ -944,7 +944,7 @@ class TestStatevector(QiskitTestCase):
         qc2 = transpile(qc, basis_gates=['p'])
         sv = Statevector.from_instruction(qc2)
         expected = np.array([0.96891242-0.24740396j, 0])
-        self.assertEqual(float(qc2.global_phase), -1/4)
+        self.assertEqual(float(qc2.global_phase), 2*np.pi - 0.25)
         self.assertEqual(sv, Statevector(expected))
 
     def test_reverse_qargs(self):
@@ -962,7 +962,7 @@ class TestStatevector(QiskitTestCase):
         sv = Statevector.from_instruction(qc1)
         with self.subTest(msg='str(statevector)'):
             str(sv)
-        for drawtype in ['text', 'latex', 'latex_source',
+        for drawtype in ['repr', 'text', 'latex', 'latex_source',
                          'qsphere', 'hinton', 'bloch']:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 sv.draw(drawtype)

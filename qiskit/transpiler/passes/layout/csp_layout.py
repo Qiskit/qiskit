@@ -157,6 +157,7 @@ class CSPLayout(AnalysisPass):
                           "Defaulting to one solution!", RuntimeWarning)
 
     def run(self, dag):
+        """ run the layout method """
 
         if (
                 self.time_limit is None and
@@ -169,7 +170,7 @@ class CSPLayout(AnalysisPass):
                                       time_limit=self.time_limit,
                                       solution_limit=self.solution_limit)
 
-        problem = self._get_csp_problem(csp_solver, dag)
+        problem = self._get_csp_problem(dag, csp_solver)
 
         if self.solution_limit == 1:
             solution_list = [problem.getSolution()]
@@ -193,8 +194,8 @@ class CSPLayout(AnalysisPass):
                 {v: dag.qubits[k] for k, v in solution.items()})
             self.property_set['CSPLayout_stop_reason'] = stop_reason
 
-        # solution_list is empty
-        if not any(solution_list):
+        else:
+            # solution_list is empty
             stop_reason = 'nonexistent solution'
             if (
                     csp_solver.time_current is not None and
@@ -206,9 +207,10 @@ class CSPLayout(AnalysisPass):
                     csp_solver.call_current >= self.call_limit
                 ):
                 stop_reason = 'call limit reached'
+                
         self.property_set['CSPLayout_stop_reason'] = stop_reason
 
-    def _get_csp_problem(self, solver, dag):
+    def _get_csp_problem(self, dag, solver):
         """ Create a CSP Problem """
 
         physical_edges = set(self.coupling_map.get_edges())

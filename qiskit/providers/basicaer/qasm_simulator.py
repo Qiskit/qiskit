@@ -31,32 +31,36 @@ field, which is a result of measurements for each shot.
 import uuid
 import time
 import logging
+import warnings
 
 from math import log2
 from collections import Counter
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.result import Result
-from qiskit.providers import BaseBackend
+from qiskit.providers.backend import BackendV1
+from qiskit.providers.options import Options
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
 from .exceptions import BasicAerError
 from .basicaertools import single_gate_matrix
+from .basicaertools import SINGLE_QUBIT_GATES
 from .basicaertools import cx_gate_matrix
 from .basicaertools import einsum_vecmul_index
 
 logger = logging.getLogger(__name__)
 
 
-class QasmSimulatorPy(BaseBackend):
+class QasmSimulatorPy(BackendV1):
     """Python implementation of a qasm simulator."""
 
     MAX_QUBITS_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
 
     DEFAULT_CONFIGURATION = {
         'backend_name': 'qasm_simulator',
-        'backend_version': '2.0.0',
+        'backend_version': '2.1.0',
         'n_qubits': min(24, MAX_QUBITS_MEMORY),
         'url': 'https://github.com/Qiskit/qiskit-terra',
         'simulator': True,
@@ -67,7 +71,7 @@ class QasmSimulatorPy(BaseBackend):
         'max_shots': 65536,
         'coupling_map': None,
         'description': 'A python simulator for qasm experiments',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
+        'basis_gates': ['u1', 'u2', 'u3', 'rz', 'sx', 'x', 'cx', 'id', 'unitary'],
         'gates': [
             {
                 'name': 'u1',
@@ -85,13 +89,28 @@ class QasmSimulatorPy(BaseBackend):
                 'qasm_def': 'gate u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }'
             },
             {
+                'name': 'rz',
+                'parameters': ['phi'],
+                'qasm_def': 'gate rz(phi) q { U(0,0,phi) q; }'
+            },
+            {
+                'name': 'sx',
+                'parameters': [],
+                'qasm_def': 'gate sx(phi) q { U(pi/2,7*pi/2,pi/2) q; }'
+            },
+            {
+                'name': 'x',
+                'parameters': [],
+                'qasm_def': 'gate x q { U(pi,7*pi/2,pi/2) q; }'
+            },
+            {
                 'name': 'cx',
-                'parameters': ['c', 't'],
+                'parameters': [],
                 'qasm_def': 'gate cx c,t { CX c,t; }'
             },
             {
                 'name': 'id',
-                'parameters': ['a'],
+                'parameters': [],
                 'qasm_def': 'gate id a { U(0,0,0) a; }'
             },
             {
@@ -111,11 +130,12 @@ class QasmSimulatorPy(BaseBackend):
     # This should be set to True for the statevector simulator
     SHOW_FINAL_STATE = False
 
-    def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=(
-            configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
-                         provider=provider)
-
+    def __init__(self, configuration=None, provider=None, **fields):
+        super().__init__(
+            configuration=(configuration or QasmBackendConfiguration.from_dict(
+                self.DEFAULT_CONFIGURATION)),
+            provider=provider,
+            **fields)
         # Define attributes in __init__.
         self._local_random = np.random.RandomState()
         self._classical_memory = 0
@@ -125,11 +145,18 @@ class QasmSimulatorPy(BaseBackend):
         self._number_of_qubits = 0
         self._shots = 0
         self._memory = False
-        self._initial_statevector = self.DEFAULT_OPTIONS["initial_statevector"]
-        self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
+        self._initial_statevector = self.options.get('initial_statevector')
+        self._chop_threshold = self.options.get("chop_threashold")
         self._qobj_config = None
         # TEMP
         self._sample_measure = False
+
+    @classmethod
+    def _default_options(cls):
+        return Options(shots=1024, memory=False,
+                       initial_statevector=None, chop_threshold=1e-15,
+                       allow_sample_measuring=True, seed_simulator=None,
+                       parameter_binds=None)
 
     def _add_unitary(self, gate, qubits):
         """Apply an N-qubit unitary matrix.
@@ -276,10 +303,10 @@ class QasmSimulatorPy(BaseBackend):
     def _set_options(self, qobj_config=None, backend_options=None):
         """Set the backend options for all experiments in a qobj"""
         # Reset default options
-        self._initial_statevector = self.DEFAULT_OPTIONS["initial_statevector"]
-        self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
-        if backend_options is None:
-            backend_options = {}
+        self._initial_statevector = self.options.get("initial_statevector")
+        self._chop_threshold = self.options.get("chop_threshold")
+        if 'backend_options' in backend_options and backend_options['backend_options']:
+            backend_options = backend_options['backend_options']
 
         # Check for custom initial statevector in backend_options first,
         # then config second
@@ -361,7 +388,7 @@ class QasmSimulatorPy(BaseBackend):
             # measure sampling is allowed
             self._sample_measure = True
 
-    def run(self, qobj, backend_options=None):
+    def run(self, qobj, **backend_options):
         """Run qobj asynchronously.
 
         Args:
@@ -386,11 +413,28 @@ class QasmSimulatorPy(BaseBackend):
                     "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
                 }
         """
-        self._set_options(qobj_config=qobj.config,
+        if isinstance(qobj, (QuantumCircuit, list)):
+            from qiskit.compiler import assemble
+            out_options = {}
+            for key in backend_options:
+                if not hasattr(self.options, key):
+                    warnings.warn(
+                        "Option %s is not used by this backend" % key,
+                        UserWarning, stacklevel=2)
+                else:
+                    out_options[key] = backend_options[key]
+            qobj = assemble(qobj, self, **out_options)
+            qobj_options = qobj.config
+        else:
+            warnings.warn('Using a qobj for run() is deprecated and will be '
+                          'removed in a future release.',
+                          PendingDeprecationWarning,
+                          stacklevel=2)
+            qobj_options = qobj.config
+        self._set_options(qobj_config=qobj_options,
                           backend_options=backend_options)
         job_id = str(uuid.uuid4())
-        job = BasicAerJob(self, job_id, self._run_job, qobj)
-        job.submit()
+        job = BasicAerJob(self, job_id, self._run_job(job_id, qobj))
         return job
 
     def _run_job(self, job_id, qobj):
@@ -512,7 +556,7 @@ class QasmSimulatorPy(BaseBackend):
                     qubits = operation.qubits
                     gate = operation.params[0]
                     self._add_unitary(gate, qubits)
-                elif operation.name in ('U', 'u1', 'u2', 'u3'):
+                elif operation.name in SINGLE_QUBIT_GATES:
                     params = getattr(operation, 'params', None)
                     qubit = operation.qubits[0]
                     gate = single_gate_matrix(operation.name, params)

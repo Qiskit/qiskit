@@ -112,7 +112,7 @@ class ExcitationPreserving(TwoLocal):
                 the index of the entanglement layer.
                 See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
                 detail.
-            initial_state: An `InitialState` object to prepend to the circuit.
+            initial_state: A `QuantumCircuit` object to prepend to the circuit.
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
                 to each qubit in the Ansatz. Defaults to False.

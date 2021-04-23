@@ -445,10 +445,14 @@ class Pauli(BasePauli):
                          incompatible dimensions for specified subsystems.
 
         .. note::
-            Composition (``@``) is defined as `left` matrix multiplication for
-            matrix operators. That is that ``A @ B`` is equal to ``B * A``.
-            Setting ``front=True`` returns `right` matrix multiplication
-            ``A * B`` and is equivalent to the :meth:`dot` method.
+            Composition (``&``) by default is defined as `left` matrix multiplication for
+            matrix operators, while :meth:`dot` is defined as `right` matrix
+            multiplication. That is that ``A & B == A.compose(B)`` is equivalent to
+            ``B.dot(A)`` when ``A`` and ``B`` are of the same type.
+
+            Setting the ``front=True`` kwarg changes this to `right` matrix
+            multiplication and is equivalent to the :meth:`dot` method
+            ``A.dot(B) == A.compose(B, front=True)``.
         """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
@@ -471,12 +475,6 @@ class Pauli(BasePauli):
 
         Returns:
             Pauli: The operator self * other.
-
-        .. note::
-            The dot product can be obtained using the ``*`` binary operator.
-            Hence ``a.dot(b)`` is equivalent to ``a * b``. Left operator
-            multiplication can be obtained using the :meth:`compose` method.
-
         """
         return self.compose(other, qargs=qargs, front=True, inplace=inplace)
 

@@ -31,7 +31,7 @@ class TestCSPLayout(QiskitTestCase):
     def test_2q_circuit_2q_coupling(self):
         """ A simple example, without considering the direction
           0 - 1
-        qr0 - qr1
+        qr1 - qr0
         """
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)

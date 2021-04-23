@@ -55,7 +55,7 @@ def expval_pauli_with_x(complex[::1] data,
                         unsigned long long x_mask,
                         complex phase,
                         unsigned int x_max):
-        cdef unsigned long long mask_u = ~(2 ** (x_max + 1) - 1) & 0xffffffffffffffff
+        cdef unsigned long long mask_u = ~(2 ** (x_max + 1) - 1)
         cdef unsigned long long mask_l = 2**(x_max) - 1
         cdef double val = 0
         cdef unsigned int i
@@ -117,7 +117,7 @@ def density_expval_pauli_with_x(complex[::1] data,
                                 unsigned long long x_mask,
                                 complex phase,
                                 unsigned int x_max):
-        cdef unsigned long long mask_u = ~(2 ** (x_max + 1) - 1) & 0xffffffffffffffff
+        cdef unsigned long long mask_u = ~(2 ** (x_max + 1) - 1)
         cdef unsigned long long mask_l = 2**(x_max) - 1
         cdef double val = 0
         cdef unsigned int i

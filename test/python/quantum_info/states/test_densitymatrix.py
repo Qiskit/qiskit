@@ -967,7 +967,7 @@ class TestDensityMatrix(QiskitTestCase):
         dm = DensityMatrix.from_instruction(qc1)
         with self.subTest(msg='str(density_matrix)'):
             str(dm)
-        for drawtype in ['text', 'latex', 'latex_source',
+        for drawtype in ['repr', 'text', 'latex', 'latex_source',
                          'qsphere', 'hinton', 'bloch']:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 dm.draw(drawtype)
