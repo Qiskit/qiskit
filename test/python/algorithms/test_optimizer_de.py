@@ -42,7 +42,7 @@ class TestOptimizerDE(QiskitAlgorithmsTestCase):
     def test_de(self):
         """ Test DE optimizer by using it """
 
-        vqe = VQE(var_form=RealAmplitudes(),
+        vqe = VQE(ansatz=RealAmplitudes(),
                   optimizer=DifferentialEvolution(),
                   quantum_instance=QuantumInstance(BasicAer.get_backend('statevector_simulator'),
                                                    seed_simulator=algorithm_globals.random_seed,
