@@ -2,7 +2,7 @@
 #
 # (C) Copyright IBM 2018, 2021.
 #
-# This code is licensed under the Apache License, Version 2.0. You may
+# This code is licensed under the Apache License, Version 0.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
 # of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
@@ -24,7 +24,6 @@ from qiskit.algorithms.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, P_BFGS, NE
 
 class TestOptimizers(QiskitAlgorithmsTestCase):
     """ Test Optimizers """
-
 
     def setUp(self):
         super().setUp()
@@ -120,6 +119,7 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         # Ensure value is near-optimal
         self.assertLessEqual(x_value, 0.01)
         self.assertLessEqual(n_evals, 10000)
+
 
 if __name__ == '__main__':
     unittest.main()
