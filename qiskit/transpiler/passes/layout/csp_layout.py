@@ -19,7 +19,7 @@ import random
 import warnings
 from time import time
 import numpy as np
-from constraint import Problem, RecursiveBacktrackingSolver, AllDifferentConstraint
+from constraint import Problem, RecursiveBacktrackingSolver, AllDifferentConstraint, Constraint, Unassigned
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -104,6 +104,27 @@ class CustomSolver(RecursiveBacktrackingSolver):
             ):
             return solutions
         return super().recursiveBacktracking(solutions, domains, vconstraints, assignments, single)
+
+
+class CustomConstraint(Constraint):
+    """Based on constraint.FunctionConstraint, reduces all the generality to check if a
+    2-sized-tuple (control, target) is in a set (edges).
+    """
+
+    def __init__(self, edges, assigned=True):
+        self._edges = edges
+        self._assigned = assigned
+
+    def __call__(self, variables, domains, assignments, forwardcheck=False):
+        parms = (assignments.get(variables[0], Unassigned),
+                 assignments.get(variables[1], Unassigned))
+        if Unassigned in parms:
+            return (self._assigned or parms in self._edges) and (
+                    not forwardcheck or
+                    parms == (Unassigned, Unassigned) or
+                    self.forwardCheck(variables, domains, assignments)
+            )
+        return parms in self._edges
 
 
 class CSPLayout(AnalysisPass):
@@ -212,9 +233,17 @@ class CSPLayout(AnalysisPass):
 
     def _get_csp_problem(self, dag, solver):
         """ Create a CSP Problem """
+        logical_edges = set()
+        physical_edges = set()
 
+        for gate in dag.two_qubit_ops():
+            logical_edges.add((dag.qubits.index(gate.qargs[0]),
+                               dag.qubits.index(gate.qargs[1])))
         physical_edges = set(self.coupling_map.get_edges())
-        logical_edges = self._get_logical_edges(dag)
+
+        if not self.strict_direction:
+            logical_edges = {tuple(sorted(edge)) for edge in logical_edges}
+            physical_edges = {tuple(sorted(edge)) for edge in physical_edges}
 
         variables = list(range(len(dag.qubits)))
         variable_domains = list(self.coupling_map.physical_qubits)
@@ -224,22 +253,7 @@ class CSPLayout(AnalysisPass):
         problem.addVariables(variables, variable_domains)
         problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qbit
 
-        if self.strict_direction:
-            def constraint(control, target):
-                return (control, target) in physical_edges
-        else:
-            def constraint(control, target):
-                return (control, target) in physical_edges or (target, control) in physical_edges
-
         for edge in logical_edges:
-            problem.addConstraint(constraint, [edge[0], edge[1]])
+            problem.addConstraint(CustomConstraint(physical_edges), (edge[0], edge[1]))
 
         return problem
-
-    def _get_logical_edges(self, dag):
-        """Extract the logical edges from the CNOT interactions"""
-        logical_edges = set()
-        for gate in dag.two_qubit_ops():
-            logical_edges.add((dag.qubits.index(gate.qargs[0]),
-                               dag.qubits.index(gate.qargs[1])))
-        return logical_edges

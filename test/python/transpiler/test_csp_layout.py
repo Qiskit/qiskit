@@ -42,8 +42,8 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
-        self.assertEqual(layout[qr[0]], 1)
-        self.assertEqual(layout[qr[1]], 0)
+        self.assertEqual(layout[qr[0]], 0)
+        self.assertEqual(layout[qr[1]], 1)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_3q_circuit_5q_coupling(self):
@@ -67,8 +67,8 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
-        self.assertEqual(layout[qr[0]], 3)
-        self.assertEqual(layout[qr[1]], 2)
+        self.assertEqual(layout[qr[0]], 2)
+        self.assertEqual(layout[qr[1]], 3)
         self.assertEqual(layout[qr[2]], 4)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
@@ -92,14 +92,14 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
-        self.assertEqual(layout[qr0[0]], 9)
+        self.assertEqual(layout[qr0[0]], 5)
         self.assertEqual(layout[qr0[1]], 6)
         self.assertEqual(layout[qr0[2]], 7)
-        self.assertEqual(layout[qr0[3]], 5)
-        self.assertEqual(layout[qr1[0]], 14)
-        self.assertEqual(layout[qr1[1]], 12)
-        self.assertEqual(layout[qr1[2]], 1)
-        self.assertEqual(layout[qr1[3]], 8)
+        self.assertEqual(layout[qr0[3]], 14)
+        self.assertEqual(layout[qr1[0]], 8)
+        self.assertEqual(layout[qr1[1]], 1)
+        self.assertEqual(layout[qr1[2]], 2)
+        self.assertEqual(layout[qr1[3]], 12)
         self.assertEqual(layout[qr1[4]], 10)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
@@ -124,8 +124,8 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
-        self.assertEqual(layout[qr[0]], 3)
-        self.assertEqual(layout[qr[1]], 4)
+        self.assertEqual(layout[qr[0]], 1)
+        self.assertEqual(layout[qr[1]], 2)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_3q_circuit_5q_coupling_noise(self):
@@ -150,9 +150,9 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
-        self.assertEqual(layout[qr[0]], 4)
-        self.assertEqual(layout[qr[1]], 3)
-        self.assertEqual(layout[qr[2]], 2)
+        self.assertEqual(layout[qr[0]], 2)
+        self.assertEqual(layout[qr[1]], 1)
+        self.assertEqual(layout[qr[2]], 0)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_3q_circuit_16_coupling_noise(self):
@@ -331,7 +331,7 @@ class TestCSPLayout(QiskitTestCase):
         """Hard to solve situations hit the time limit"""
         dag = TestCSPLayout.create_hard_dag()
         coupling_map = CouplingMap(FakeTokyo().configuration().coupling_map)
-        pass_ = CSPLayout(coupling_map, call_limit=None, time_limit=1)
+        pass_ = CSPLayout(coupling_map, call_limit=None, time_limit=0.0001)
 
         start = process_time()
         pass_.run(dag)
@@ -364,8 +364,8 @@ class TestCSPLayout(QiskitTestCase):
 
     def test_seed(self):
         """Different seeds yield different results"""
-        seed_1 = 42
-        seed_2 = 43
+        seed_1 = 992
+        seed_2 = 993
 
         cmap5 = FakeTenerife().configuration().coupling_map
 
