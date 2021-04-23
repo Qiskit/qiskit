@@ -134,4 +134,3 @@ https://qiskit.org/documentation/release_notes.html#terra-0-9
 ## License
 
 [Apache License 2.0](LICENSE.txt)
-# test
