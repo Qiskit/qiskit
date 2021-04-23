@@ -428,17 +428,17 @@ class TestBasicSchedule(QiskitTestCase):
 
     def test_schedule_block_in_instmap(self):
         """Test schedule block in instmap can be scheduled."""
-        P0 = Parameter('P0')
+        duration = Parameter('duration')
 
         with build() as pulse_prog:
-            play(Gaussian(P0, 0.1, 10), DriveChannel(0))
+            play(Gaussian(duration, 0.1, 10), DriveChannel(0))
 
         instmap = InstructionScheduleMap()
-        instmap.add('block_gate', (0,), pulse_prog, ['P0'])
+        instmap.add('block_gate', (0,), pulse_prog, ['duration'])
 
         qc = QuantumCircuit(1)
-        qc.append(Gate('block_gate', 1, [P0]), [0])
-        qc.assign_parameters({P0: 100}, inplace=True)
+        qc.append(Gate('block_gate', 1, [duration]), [0])
+        qc.assign_parameters({duration: 100}, inplace=True)
 
         sched = schedule(qc, self.backend, inst_map=instmap)
 
