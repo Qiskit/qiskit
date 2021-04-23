@@ -26,6 +26,7 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
     inst_map = backend.defaults().instruction_schedule_map
 
 """
+import functools
 import inspect
 import warnings
 from collections import defaultdict
@@ -257,6 +258,13 @@ class InstructionScheduleMap():
         # initialize parameter list
         if callable(schedule):
             func_parameters = list(inspect.signature(schedule).parameters.keys())
+
+            # if argument is partially bound, remove bound arguments from the parameter list
+            if isinstance(schedule, functools.partial):
+                for bound_key in schedule.keywords.keys():
+                    if bound_key in func_parameters:
+                        func_parameters.remove(bound_key)
+
         else:
             func_parameters = set(param.name for param in schedule.parameters)
 
