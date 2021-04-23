@@ -40,10 +40,15 @@ class TestOptimizerDE(QiskitAlgorithmsTestCase):
         ])
 
     def test_de(self):
-        """ Test DE optimizer by using it """
-
+        """ 
+        Test DE optimizer by using it 
+        
+        Here, the optimization is set to ``polish``, that is,
+        the best population member of each iteration/generation
+        is optimized via the L-BFGS-B method.
+        """
         vqe = VQE(ansatz=RealAmplitudes(),
-                  optimizer=DifferentialEvolution(),
+                  optimizer=DifferentialEvolution(maxiter=10, popsize=10, polish=True),
                   quantum_instance=QuantumInstance(BasicAer.get_backend('statevector_simulator'),
                                                    seed_simulator=algorithm_globals.random_seed,
                                                    seed_transpiler=algorithm_globals.random_seed))
