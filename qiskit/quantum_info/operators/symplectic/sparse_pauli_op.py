@@ -280,7 +280,7 @@ class SparsePauliOp(LinearOp):
                 and not np.any(val.table.X) and not np.any(val.table.Z))
 
     def simplify(self, atol=None, rtol=None):
-        """Simplify PauliTable by combining duplicaties and removing zeros.
+        """Simplify PauliTable by combining duplicates and removing zeros.
 
         Args:
             atol (float): Optional. Absolute tolerance for checking if

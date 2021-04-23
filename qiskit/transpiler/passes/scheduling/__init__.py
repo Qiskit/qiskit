@@ -14,6 +14,6 @@
 
 from .alap import ALAPSchedule
 from .asap import ASAPSchedule
-from .time_unit_analysis import TimeUnitAnalysis
+from .time_unit_conversion import TimeUnitConversion
 from .calibration_creators import CalibrationCreator, RZXCalibrationBuilder
 from .rzx_templates import rzx_templates

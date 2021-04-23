@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue where unbound parameters only occurring in
+    the :attr:`~qiskit.circuit.QuantumCircuit.global_phase` attribute of
+    a :class:`~qiskit.circuit.QuantumCircuit` object would not
+    show in the :attr:`~qiskit.circuit.QuantumCircuit.parameters` attribute
+    and could not be bound.
+    Fixed `#5806 <https://github.com/Qiskit/qiskit-terra/issues/5806>`__

@@ -1145,10 +1145,15 @@ def state_drawer(state,
 
         **bloch**: Matplotlib figure, rendering of statevector using `plot_bloch_multivector()`.
 
+        **city**: Matplotlib figure, rendering of statevector using `plot_state_city()`.
+
+        **paulivec**: Matplotlib figure, rendering of statevector using `plot_state_paulivec()`.
+
         Args:
             output (str): Select the output method to use for drawing the
                 circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
-                ``qsphere``, ``hinton``, or ``bloch``. Default is `'text`'.
+                ``qsphere``, ``hinton``, ``bloch``, ``city`` or ``paulivec``.
+                Default is `'text`'.
             drawer_args: Arguments to be passed to the relevant drawer. For
                 'latex' and 'latex_source' see ``array_to_latex``
 
@@ -1175,7 +1180,9 @@ def state_drawer(state,
                'latex_source': state_to_latex,
                'qsphere': plot_state_qsphere,
                'hinton': plot_state_hinton,
-               'bloch': plot_bloch_multivector}
+               'bloch': plot_bloch_multivector,
+               'city': plot_state_city,
+               'paulivec': plot_state_paulivec}
     if output == 'latex':
         try:
             from IPython.display import Latex
@@ -1197,4 +1204,4 @@ def state_drawer(state,
         raise ValueError(
             """'{}' is not a valid option for drawing {} objects. Please choose from:
             'text', 'latex', 'latex_source', 'qsphere', 'hinton',
-            'bloch' or 'auto'.""".format(output, type(state).__name__)) from err
+            'bloch', 'city' or 'paulivec'.""".format(output, type(state).__name__)) from err

@@ -18,6 +18,7 @@ from functools import partial
 from itertools import product
 from typing import List, Optional, Tuple, Union
 
+import scipy
 import numpy as np
 from qiskit.circuit import Gate, Instruction
 from qiskit.circuit import (QuantumCircuit, QuantumRegister, ParameterVector,
@@ -42,6 +43,7 @@ from ...state_fns.state_fn import StateFn
 from ...state_fns.circuit_state_fn import CircuitStateFn
 from ...state_fns.dict_state_fn import DictStateFn
 from ...state_fns.vector_state_fn import VectorStateFn
+from ...state_fns.sparse_vector_state_fn import SparseVectorStateFn
 from ...exceptions import OpflowError
 from .circuit_gradient import CircuitGradient
 
@@ -199,7 +201,7 @@ class LinComb(CircuitGradient):
     @staticmethod
     def _grad_combo_fn(x, state_op):
         def get_result(item):
-            if isinstance(item, DictStateFn):
+            if isinstance(item, (DictStateFn, SparseVectorStateFn)):
                 item = item.primitive
             if isinstance(item, VectorStateFn):
                 item = item.primitive.data
@@ -214,13 +216,17 @@ class LinComb(CircuitGradient):
                 for key in prob_dict:
                     prob_dict[key] *= 2
                 return prob_dict
+            elif isinstance(item, scipy.sparse.spmatrix):
+                # Generate the operator which computes the linear combination
+                trace = _z_exp(item)
+                return trace
             elif isinstance(item, Iterable):
                 # Generate the operator which computes the linear combination
                 lin_comb_op = 2 * Z ^ (I ^ state_op.num_qubits)
                 lin_comb_op = lin_comb_op.to_matrix()
-                return list(np.diag(
-                    partial_trace(lin_comb_op.dot(np.outer(item, np.conj(item))),
-                                  [state_op.num_qubits]).data))
+                outer = np.outer(item, item.conj())
+                return list(np.diag(partial_trace(lin_comb_op.dot(outer),
+                                                  [state_op.num_qubits]).data))
             else:
                 raise TypeError(
                     'The state result should be either a DictStateFn or a VectorStateFn.')
@@ -676,3 +682,19 @@ class LinComb(CircuitGradient):
                 oplist += [SummedOp(sub_oplist) if len(sub_oplist) > 1 else sub_oplist[0]]
 
         return ListOp(oplist) if len(oplist) > 1 else oplist[0]
+
+
+def _z_exp(spmatrix):
+    """Compute the sampling probabilities of the qubits after applying Z on the ancilla."""
+
+    dok = spmatrix.todok()
+    num_qubits = int(np.log2(dok.shape[1]))
+    exp = scipy.sparse.dok_matrix((1, 2 ** (num_qubits - 1)))
+
+    for index, amplitude in dok.items():
+        binary = bin(index[1])[2:].zfill(num_qubits)
+        sign = -1 if binary[0] == '1' else 1
+        new_index = int(binary[1:], 2)
+        exp[(0, new_index)] = exp[(0, new_index)] + 2 * sign * np.abs(amplitude) ** 2
+
+    return exp

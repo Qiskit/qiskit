@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fix the global phase of the output of ``instruction.inverse``. If an instruction
-    with a global phase in the definition is inverted, the global phase should be 
-    added with a minus sign.

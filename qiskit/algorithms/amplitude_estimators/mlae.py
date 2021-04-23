@@ -87,7 +87,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             self._evaluation_schedule = evaluation_schedule
 
         if minimizer is None:
-            # default number of evaluations is max(10^5, pi/2 * 10^3 * 2^(m))
+            # default number of evaluations is max(10^4, pi/2 * 10^3 * 2^(m))
             nevals = max(10000, int(np.pi / 2 * 1000 * 2 * self._evaluation_schedule[-1]))
 
             def default_minimizer(objective_fn, bounds):
@@ -258,7 +258,6 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         result = MaximumLikelihoodAmplitudeEstimationResult()
         result.evaluation_schedule = self._evaluation_schedule
         result.minimizer = self._minimizer
-        result.evaluation_schedule = self._evaluation_schedule
         result.post_processing = estimation_problem.post_processing
 
         if self._quantum_instance.is_statevector:
