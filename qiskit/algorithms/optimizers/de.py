@@ -84,7 +84,9 @@ class DifferentialEvolution(Optimizer):
             tol: Relative tolerance for convergence
             atol: Absolute tolerance for convergence
             polish: Boolean to specify whether or not best population in last generation is
-                    optimized using scipy.optimize.minimize with the L-BFGS-B method
+                    optimized using scipy.optimize.minimize with the L-BFGS-B method. If 
+                    this is set to true, the maximum number of function evaluations will 
+                    be greater than (maxiter + 1)* popsize * len(x)
             disp: Boolean to specify if the objective function is printed at each iteration
             workers: Integer or map-like callable (multiprocessing.Pool.map) that specifies
                      how many individuals in the population to be evaluated in parallel
