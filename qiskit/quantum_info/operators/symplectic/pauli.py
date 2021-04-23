@@ -581,20 +581,25 @@ class Pauli(BasePauli):
                 "Incorrect number of qubits for Clifford ({} != {}).".format(
                     other.num_qubits, self.num_qubits))
 
-        # Initialize return to phase * I
+        if qargs is None:
+            idx = slice(None)
+        else:
+            idx = list(qargs)
+
+        # Set return to I on qargs
         ret = self.copy()
-        ret.x = 0
-        ret.z = 0
-        
+        ret.x[idx] = 0
+        ret.z[idx] = 0
+
         # Get action of Pauli's from Clifford
         adj = other.adjoint()
-        for row in adj.stabilizer[self.z]:
+        for row in adj.stabilizer[self.z[idx]]:
             row_pauli = Pauli((row.Z[0], row.X[0], 2 * row.phase[0]))
-            ret = ret.dot(row_pauli)
+            ret = ret.dot(row_pauli, qargs=qargs)
         
-        for row in adj.destabilizer[self.x]:
+        for row in adj.destabilizer[self.x[idx]]:
             row_pauli = Pauli((row.Z[0], row.X[0], 2 * row.phase[0]))
-            ret = ret.dot(row_pauli)
+            ret = ret.dot(row_pauli, qargs=qargs)
 
         return ret
 
