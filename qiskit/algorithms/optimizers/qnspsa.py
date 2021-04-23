@@ -3,8 +3,10 @@
 from typing import Iterator, Optional, Union, Callable, Dict
 
 import numpy as np
-from qiskit.circuit import ParameterVector
-from qiskit.opflow import StateFn, CircuitSampler
+from qiskit.providers import Backend
+from qiskit.circuit import ParameterVector, QuantumCircuit
+from qiskit.opflow import StateFn, CircuitSampler, ExpectationBase
+from qiskit.utils import QuantumInstance
 
 from .spsa import SPSA, _batch_evaluate
 
@@ -16,12 +18,55 @@ CALLBACK = Callable[[np.ndarray, float, float, int, bool], None]
 
 
 class QNSPSA(SPSA):
-    """Quantum Natural SPSA."""
+    r"""The Quantum Natural SPSA (QN-SPSA) optimizer.
+
+    The QN-SPSA optimizer [1] is a stochastic optimizer that belongs to the family of gradient
+    descent methods. This optimizer is based on SPSA but attempts to improve the convergence by
+    sampling the **natural gradient** instead of the vanilla, first-order gradient. It achieves
+    this by approximating Hessian of the ``fidelity`` of the ansatz circuit.
+
+    Compared to natural gradients, which require :math:`\mathcal{O}(d^2)` expectation value
+    evaluations for a circuit with :math:`d` parameters, QN-SPSA only requires
+    :math:`\mathcal{O}(1)` and can therefore significantly speed up the natural gradient calculation
+    by sacrificing some accuracy. Compared to SPSA, QN-SPSA requires 4 additional function
+    evaluations of the fidelity.
+
+    The stochastic approximation of the natural gradient can be systematically improved by
+    increasing the number of ``resamplings``. This leads to a Monte Carlo-style convergence to
+    the exact, analytic value.
+
+    Example:
+
+        This short example runs QN-SPSA for the ground state calculation of the ``Z ^ Z``
+        observable where the ansatz is a ``PauliTwoDesign`` circuit. For a real experiment,
+        the number of iterations (here 10) should be increased to several hundred steps.
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit.algorithms.optimizers import QNSPSA
+            from qiskit.circuit.library import PauliTwoDesign
+            from qiskit.opflow import Z
+
+            ansatz = PauliTwoDesign(2, reps=1, seed=2)
+            observable = Z ^ Z
+            initial_point = np.random.random(ansatz.num_parameters)
+
+            def loss(x):
+                bound = ansatz.bind_parameters(x)
+                return (StateFn(observable, is_measurement=True) @ StateFn(bound)).eval()
+
+            fidelity = QNSPSA.get_fidelity(ansatz)
+            qnspsa = QNSPSA(fidelity, maxiter=10)
+            result = qnspsa.optimize(ansatz.num_parameters, loss, initial_point=initial_point)
+
+
+    """
 
     def __init__(self,
                  fidelity: FIDELITY,
                  maxiter: int = 100,
-                 blocking: bool = False,
+                 blocking: bool = True,
                  allowed_increase: Optional[float] = None,
                  trust_region: bool = False,
                  learning_rate: Optional[Union[float, Callable[[], Iterator]]] = None,
@@ -29,7 +74,6 @@ class QNSPSA(SPSA):
                  last_avg: int = 1,
                  resamplings: Union[int, Dict[int, int]] = 1,
                  perturbation_dims: Optional[int] = None,
-                 second_order: bool = False,
                  regularization: Optional[float] = None,
                  hessian_delay: int = 0,
                  lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
@@ -127,8 +171,34 @@ class QNSPSA(SPSA):
         return gradient_estimate, hessian_estimate
 
     @staticmethod
-    def get_fidelity(circuit, backend=None, expectation=None):
-        """Get the overlap function."""
+    def get_fidelity(circuit: QuantumCircuit,
+                     backend: Optional[Union[Backend, QuantumInstance]] = None,
+                     expectation: Optional[ExpectationBase] = None
+                     ) -> Callable[[np.ndarray, np.ndarray], float]:
+        r"""Get a function to compute the fidelity of ``circuit`` with itself.
+
+        Let ``circuit`` be a parameterized quantum circuit performing the operation
+        :math:`U(\theta)` given a set of parameters :math:`\theta`. Then this method returns
+        a function to evaluate
+
+        .. math::
+
+            F(\theta, \phi) = \big|\langle 0 | U^\dagger(\theta) U(\phi) |0\rangle  \big|^2.
+
+        The output of this function can be used as input for the ``fidelity`` to the
+        :class:~`qiskit.algorithms.optimizers.QNSPSA` optimizer.
+
+        Args:
+            circuit: The circuit preparing the parameterized ansatz.
+            backend: A backend of quantum instance to evaluate the circuits. If None, plain
+                matrix multiplication will be used.
+            expectation: An expectation converter to specify how the expected value is computed.
+                If a shot-based readout is used this should be set to ``PauliExpectation``.
+
+        Returns:
+            A handle to the function :math:`F`.
+
+        """
         params_x = ParameterVector('x', circuit.num_parameters)
         params_y = ParameterVector('y', circuit.num_parameters)
 

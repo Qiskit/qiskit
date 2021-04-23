@@ -17,7 +17,6 @@ from ddt import ddt, data
 
 import numpy as np
 
-from qiskit.providers.aer import StatevectorSimulator
 from qiskit.algorithms.optimizers import SPSA, QNSPSA
 from qiskit.circuit.library import PauliTwoDesign
 from qiskit.opflow import I, Z, StateFn, CircuitSampler
@@ -37,27 +36,20 @@ class TestSPSA(QiskitAlgorithmsTestCase):
     @data('spsa', '2spsa', 'qnspsa')
     def test_pauli_two_design(self, method):
         """Test SPSA on the Pauli two-design example."""
-        circuit = PauliTwoDesign(3, reps=2, seed=2)
+        circuit = PauliTwoDesign(3, reps=1, seed=1)
         parameters = list(circuit.parameters)
         obs = Z ^ Z ^ I
         expr = ~StateFn(obs) @ StateFn(circuit)
 
-        sampler = CircuitSampler(StatevectorSimulator(), caching='all')
-
-        # starting at around -0.57
-        initial_point = np.array([-1.86141546, 0.57531717, 1.81793969, -0.29648091, 1.52771669,
-                                  2.10872189, 0.7085359, -0.26967352, 0.31890205, 0.8638752,
-                                  -2.28414718, 0.33684998])
+        initial_point = np.array([0.82311034, 0.02611798, 0.21077064, 0.61842177, 0.09828447,
+                                  0.62013131])
 
         def objective(x):
-            sampled = sampler.convert(expr, dict(zip(parameters, x)))
-            return sampled.eval().real
+            return expr.bind_parameters(dict(zip(parameters, x))).eval().real
 
-        settings = {'maxiter': 200,
+        settings = {'maxiter': 100,
                     'blocking': True,
-                    'allowed_increase': 0,
-                    'learning_rate': 0.1,
-                    'perturbation': 0.1}
+                    'allowed_increase': 0}
 
         if method == '2spsa':
             settings['second_order'] = True
@@ -65,7 +57,10 @@ class TestSPSA(QiskitAlgorithmsTestCase):
             expected_nfev = settings['maxiter'] * 5 + 1
         elif method == 'qnspsa':
             settings['fidelity'] = QNSPSA.get_fidelity(circuit)
-            settings['regularization'] = 0.01
+            settings['regularization'] = 0.001
+            settings['learning_rate'] = 0.05
+            settings['perturbation'] = 0.05
+
             expected_nfev = settings['maxiter'] * 7 + 1
         else:
             expected_nfev = settings['maxiter'] * 3 + 1
@@ -78,7 +73,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         result = spsa.optimize(circuit.num_parameters, objective, initial_point=initial_point)
 
         with self.subTest('check final accuracy'):
-            self.assertLess(result[1], -0.9)  # final loss
+            self.assertLess(result[1], -0.95)  # final loss
 
         with self.subTest('check number of function calls'):
             self.assertEqual(result[2], expected_nfev)  # function evaluations
