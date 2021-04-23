@@ -72,6 +72,7 @@ def decompose_clifford(clifford, method=None):
 def decompose_clifford_bm(clifford):
     """Decompose a clifford"""
     num_qubits = clifford.num_qubits
+    clifford_name = str(clifford)
 
     if num_qubits == 1:
         return _decompose_clifford_1q(
@@ -88,7 +89,7 @@ def decompose_clifford_bm(clifford):
         clifford, inv_circuit, cost = _reduce_cost(clifford, inv_circuit, cost)
 
     # Decompose the remaining product of 1-qubit cliffords
-    ret_circ = QuantumCircuit(num_qubits, name=str(clifford))
+    ret_circ = QuantumCircuit(num_qubits, name=clifford_name)
     for qubit in range(num_qubits):
         pos = [qubit, qubit + num_qubits]
         table = clifford.table.array[pos][:, pos]

@@ -24,8 +24,8 @@ from qiskit.utils import algorithm_globals
 
 from .optimizer import Optimizer, OptimizerSupportLevel
 
-# parameters, loss, stepsize, number of function evaluations, accepted
-CALLBACK = Callable[[np.ndarray, float, float, int, bool], None]
+# number of function evaluations, parameters, loss, stepsize, accepted
+CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
 
 logger = logging.getLogger(__name__)
 
@@ -62,13 +62,13 @@ class SPSA(Optimizer):
 
     References:
 
-        [1]: J. C. Spall (1998). An Overview of the Simultaneous Perturbation Methodfor Efficient
+        [1]: J. C. Spall (1998). An Overview of the Simultaneous Perturbation Method for Efficient
         Optimization, Johns Hopkins APL Technical Digest, 19(4), 482–492.
         `Online. <https://www.jhuapl.edu/SPSA/PDF-SPSA/Spall_An_Overview.PDF>`_
 
         [2]: A. Kandala et al. (2017). Hardware-efficient Variational Quantum Eigensolver for
         Small Molecules and Quantum Magnets. Nature 549, pages242–246(2017).
-        `Online. https://arxiv.org/pdf/1704.05018v2.pdf#section*.11`_
+        `arXiv:1704.05018v2 <https://arxiv.org/pdf/1704.05018v2.pdf#section*.11>`_
 
     """
 
@@ -108,8 +108,8 @@ class SPSA(Optimizer):
                 are perturbed, but a smaller, fixed number can be perturbed. If set, the perturbed
                 dimensions are chosen uniformly at random.
             callback: A callback function passed information in each iteration step. The
-                information is, in this order: the parameters, the function value, the number
-                of function evaluations, the stepsize, whether the step was accepted.
+                information is, in this order: the number of function evaluations, the parameters,
+                the function value, the stepsize, whether the step was accepted.
         """
         super().__init__()
 
@@ -257,19 +257,19 @@ class SPSA(Optimizer):
         return gradient
 
     def _minimize(self, loss, initial_point):
-        # ensure learning rate and perturbation are set
+        # ensure learning rate and perturbation are correctly set: either none or both
         # this happens only here because for the calibration the loss function is required
         if self.learning_rate is None and self.perturbation is None:
             get_learning_rate, get_perturbation = self.calibrate(loss, initial_point)
-            self.learning_rate = get_learning_rate
-            self.perturbation = get_perturbation
-
-        if self.learning_rate is None or self.perturbation is None:
+            # get iterator
+            eta = get_learning_rate()
+            eps = get_perturbation()
+        elif self.learning_rate is None or self.perturbation is None:
             raise ValueError('If one of learning rate or perturbation is set, both must be set.')
-
-        # get iterator
-        eta = self.learning_rate()
-        eps = self.perturbation()
+        else:
+            # get iterator
+            eta = self.learning_rate()
+            eps = self.perturbation()
 
         # prepare some initials
         x = np.asarray(initial_point)
@@ -308,9 +308,9 @@ class SPSA(Optimizer):
 
             # blocking
             if self.blocking:
+                self._nfev += 1
                 fx_next = loss(x_next)
 
-                self._nfev += 1
                 if fx + self.allowed_increase <= fx_next:  # accept only if loss improved
                     if self.callback is not None:
                         self.callback(self._nfev,  # number of function evals
@@ -328,6 +328,11 @@ class SPSA(Optimizer):
                         k, self.maxiter + 1, time() - iteration_start)
 
             if self.callback is not None:
+                # if we didn't evaluate the function yet, do it now
+                if not self.blocking:
+                    self._nfev += 1
+                    fx_next = loss(x_next)
+
                 self.callback(self._nfev,  # number of function evals
                               x_next,  # next parameters
                               fx_next,  # loss at next parameters
