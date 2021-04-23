@@ -58,7 +58,7 @@ class DAGNode:
 
     @property
     def name(self):
-        """Returns the Instruction name corresponding to the op for this node"""
+        """Returns the Instruction name corresponding to the op for the node"""
         if self.type and self.type == 'op':
             return self._op.name
         return None
