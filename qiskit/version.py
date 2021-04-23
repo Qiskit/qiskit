@@ -45,7 +45,7 @@ def _minimal_ext_cmd(cmd):
 
 def git_version():
     """Get the current git head sha1."""
-    # Determine if we're at master
+    # Determine if we're at main
     try:
         out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
         git_revision = out.strip().decode('ascii')
