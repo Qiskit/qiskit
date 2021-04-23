@@ -570,19 +570,19 @@ def _evolve_cx(base_pauli, qctrl, qtrgt):
 
 def _evolve_cz(base_pauli, q1, q2):
     """Update P -> CZ.P.CZ"""
-    x1 = base_pauli._x[:, q1]
-    x2 = base_pauli._x[:, q2]
-    base_pauli._z[:, q1] ^= x1
-    base_pauli._z[:, q2] ^= x2
+    x1 = base_pauli._x[:, q1].copy()
+    x2 = base_pauli._x[:, q2].copy()
+    base_pauli._z[:, q1] ^= x2
+    base_pauli._z[:, q2] ^= x1
     base_pauli._phase += 2 * np.logical_and(x1, x2).T
     return base_pauli
 
 
 def _evolve_cy(base_pauli, qctrl, qtrgt):
     """Update P -> CY.P.CY"""
-    x1 = base_pauli._x[:, qctrl]
-    x2 = base_pauli._x[:, qtrgt]
-    z2 = base_pauli._z[:, qtrgt]
+    x1 = base_pauli._x[:, qctrl].copy()
+    x2 = base_pauli._x[:, qtrgt].copy()
+    z2 = base_pauli._z[:, qtrgt].copy()
     base_pauli._x[:, qtrgt] ^= x1
     base_pauli._z[:, qtrgt] ^= x1
     base_pauli._z[:, qctrl] ^= np.logical_xor(x2, z2)
@@ -592,8 +592,8 @@ def _evolve_cy(base_pauli, qctrl, qtrgt):
 
 def _evolve_swap(base_pauli, q1, q2):
     """Update P -> SWAP.P.SWAP"""
-    x1 = base_pauli._x[:, q1]
-    z1 = base_pauli._z[:, q1]
+    x1 = base_pauli._x[:, q1].copy()
+    z1 = base_pauli._z[:, q1].copy()
     base_pauli._x[:, q1] = base_pauli._x[:, q2]
     base_pauli._z[:, q1] = base_pauli._z[:, q2]
     base_pauli._x[:, q2] = x1
