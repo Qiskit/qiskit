@@ -561,13 +561,42 @@ class Pauli(BasePauli):
 
         # Convert Clifford to quantum circuits
         if isinstance(other, Clifford):
-            other = other.to_circuit()
+            return self._evolve_clifford(other, qargs=qargs)
 
         if not isinstance(other, (Pauli, Instruction, QuantumCircuit)):
             # Convert to a Pauli
             other = Pauli(other)
 
         return Pauli(super().evolve(other, qargs=qargs))
+
+    def _evolve_clifford(self, other, qargs=None):
+        """Heisenberg picture evolution of a Pauli by a Clifford."""
+        # Check dimension
+        if qargs is not None and len(qargs) != other.num_qubits:
+            raise QiskitError(
+                "Incorrect number of qubits for Clifford ({} != {}).".format(
+                    other.num_qubits, len(qargs)))
+        if qargs is None and self.num_qubits != other.num_qubits:
+            raise QiskitError(
+                "Incorrect number of qubits for Clifford ({} != {}).".format(
+                    other.num_qubits, self.num_qubits))
+
+        # Initialize return to phase * I
+        ret = self.copy()
+        ret.x = 0
+        ret.z = 0
+        
+        # Get action of Pauli's from Clifford
+        adj = other.adjoint()
+        for row in adj.stabilizer[self.z]:
+            row_pauli = Pauli((row.Z[0], row.X[0], 2 * row.phase[0]))
+            ret = ret.dot(row_pauli)
+        
+        for row in adj.destabilizer[self.x]:
+            row_pauli = Pauli((row.Z[0], row.X[0], 2 * row.phase[0]))
+            ret = ret.dot(row_pauli)
+
+        return ret
 
     # ---------------------------------------------------------------------
     # Initialization helper functions
