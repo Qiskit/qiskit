@@ -25,6 +25,7 @@ from qiskit.algorithms.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, P_BFGS, NE
 class TestOptimizers(QiskitAlgorithmsTestCase):
     """ Test Optimizers """
 
+
     def setUp(self):
         super().setUp()
         algorithm_globals.random_seed = 52
