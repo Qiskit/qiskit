@@ -20,20 +20,6 @@ from .adder import Adder
 class RippleCarryAdder(Adder):
     r"""A ripple-carry circuit to perform in-place addition on two qubit registers.
 
-    Circuit to compute the sum of two qubit registers using the approach from [1].
-    Given two equally sized input registers that store quantum states
-    :math:`|a\rangle` and :math:`|b\rangle`, performs addition of numbers that
-    can be represented by the states, storing the resulting state in-place in the second register:
-
-    .. math::
-
-        |a\rangle |b\rangle \mapsto |a\rangle |a+b\rangle
-
-    Here :math:`|a\rangle` (and correspondingly :math:`|b\rangle`) stands for the direct product
-    :math:`|a_n\rangle \otimes |a_{n-1}\rangle \ldots |a_{1}\rangle \otimes |a_{0}\rangle`
-    which denotes a quantum register prepared with the value :math:`a = 2^{0}a_{0} + 2^{1}a_{1} +
-    \ldots 2^{n}a_{n}` [2].
-
     As an example, a ripple-carry adder circuit that performs addition on two 3-qubit sized
     registers is as follows:
 

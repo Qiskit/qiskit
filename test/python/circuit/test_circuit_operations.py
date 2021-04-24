@@ -753,6 +753,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc.measure(0, 1)
         qc.x(0)
         qc.y(1)
+        qc.global_phase = -1
 
         expected = QuantumCircuit(3, 2)
         expected.h(2)
@@ -761,6 +762,7 @@ class TestCircuitOperations(QiskitTestCase):
         expected.measure(2, 0)
         expected.x(2)
         expected.y(1)
+        expected.global_phase = -1
 
         self.assertEqual(qc.reverse_bits(), expected)
 
