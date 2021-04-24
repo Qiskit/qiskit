@@ -23,6 +23,7 @@ from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Instruction
 from qiskit.compiler.assembler import assemble
+from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 import qiskit.quantum_info as qi
@@ -251,7 +252,7 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
         self.assertEqual(run_config_out.qubit_lo_freq, self.backend.defaults().qubit_freq_est)
         self.assertEqual(run_config_out.rep_time, 99)
         self.assertEqual(len(scheds), 1)
-        self.assertEqual(scheds[0], sched)
+        self.assertEqual(scheds[0], target_qobj_transform(sched))
 
     def test_disassemble_multiple_schedules(self):
         """Test disassembling multiple schedules, all should have the same config.
@@ -290,8 +291,8 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
         self.assertEqual(run_config_out.shots, 2000)
         self.assertEqual(run_config_out.memory, False)
         self.assertEqual(len(scheds), 2)
-        self.assertEqual(scheds[0], sched0)
-        self.assertEqual(scheds[1], sched1)
+        self.assertEqual(scheds[0], target_qobj_transform(sched0))
+        self.assertEqual(scheds[1], target_qobj_transform(sched1))
 
     def test_disassemble_parametric_pulses(self):
         """Test disassembling multiple schedules all should have the same config.
@@ -306,7 +307,7 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
 
         qobj = assemble(sched, backend=self.backend, shots=2000)
         scheds, _, _ = disassemble(qobj)
-        self.assertEqual(scheds[0], sched)
+        self.assertEqual(scheds[0], target_qobj_transform(sched))
 
     def test_disassemble_schedule_los(self):
         """Test disassembling schedule los."""
