@@ -12,7 +12,9 @@
 
 """Compute the product of two qubit registers using classical multiplication approach."""
 
+from typing import Optional
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
+from qiskit.circuit.library.arithmetic.adders.adder import Adder
 
 
 class ClassicalMultiplier(QuantumCircuit):
@@ -73,13 +75,14 @@ class ClassicalMultiplier(QuantumCircuit):
 
     def __init__(self,
                  num_state_qubits: int,
-                 name: str = 'ClassicalMultiplier'
-                 ) -> None:
+                 adder: Optional[Adder] = None,
+                 name: str = 'ClassicalMultiplier') -> None:
         r"""
         Args:
             num_state_qubits: The number of qubits in either input register for
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
+            adder: adder circuit to be used for performing multiplication.
             name: The name of the circuit object.
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
@@ -90,15 +93,27 @@ class ClassicalMultiplier(QuantumCircuit):
         qr_a = QuantumRegister(num_state_qubits, name='a')
         qr_b = QuantumRegister(num_state_qubits, name='b')
         qr_out = QuantumRegister(2 * num_state_qubits, name='out')
-        qr_aux = AncillaRegister(1, name='aux')
 
         # initialize quantum circuit with register list
-        super().__init__(qr_a, qr_b, qr_out, qr_aux, name=name)
+        super().__init__(qr_a, qr_b, qr_out, name=name)
 
-        from qiskit.circuit.library import RippleCarryAdder
+        # prepare adder as controlled gate
+        if not adder:
+            from qiskit.circuit.library import RippleCarryAdder
+            adder = RippleCarryAdder(num_state_qubits)
+        controlled_adder = adder.to_gate().control(1)
+
+        # get the number of helper qubits needed
+        num_helper_qubits = adder.num_ancillas
+
+        # add helper qubits if required
+        if num_helper_qubits > 0:
+            qr_h = AncillaRegister(num_helper_qubits)  # helper/ancilla qubits
+            self.add_register(qr_h)
+
         # build multiplication circuit
         for i in range(num_state_qubits):
-            self.append(
-                RippleCarryAdder(num_state_qubits).to_gate().control(1),
-                [qr_a[i]] + qr_b[:] + qr_out[i:num_state_qubits+i+1] + qr_aux[:]
-            )
+            qr_list = [qr_a[i]] + qr_b[:] + qr_out[i:num_state_qubits+i+1]
+            if num_helper_qubits > 0:
+                qr_list.extend(qr_h[:])
+            self.append(controlled_adder, qr_list)
