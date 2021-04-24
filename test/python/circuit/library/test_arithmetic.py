@@ -29,12 +29,12 @@ class TestArithmetic(QiskitTestCase):
     """Test the arithmetic circuits."""
 
     def assertArithmeticIsCorrect(self,
-                                num_state_qubits: int,
-                                arithmetic_circuit: QuantumCircuit,
-                                operator: Callable[[int, int], int],
-                                num_res_qubits: int,
-                                inplace: bool,
-                                modular: bool = False):
+                                  num_state_qubits: int,
+                                  arithmetic_circuit: QuantumCircuit,
+                                  operator: Callable[[int, int], int],
+                                  num_res_qubits: int,
+                                  inplace: bool,
+                                  modular: bool = False):
         """Assert that arithmetic circuit correctly implements the operation.
 
         Args:
@@ -96,13 +96,18 @@ class TestArithmetic(QiskitTestCase):
         self.assertArithmeticIsCorrect(num_state_qubits, adder, operator.add, num_res_qubits, inplace, modular)
 
     @data(
-        (3, ClassicalMultiplier, False)
+        (3, ClassicalMultiplier, False, None),
+        (3, ClassicalMultiplier, False, ClassicalAdder),
+        (3, ClassicalMultiplier, False, RippleCarryAdder),
+        (3, ClassicalMultiplier, False, QFTAdder)
     )
     @unpack
-    def test_multiplication(self, num_state_qubits, multiplier, inplace):
+    def test_multiplication(self, num_state_qubits, multiplier, inplace, adder):
         """Test multiplication for all implemented multipliers."""
         num_res_qubits = 2 * num_state_qubits
-        multiplier = multiplier(num_state_qubits)
+        if adder:
+            adder = adder(num_state_qubits)
+        multiplier = multiplier(num_state_qubits, adder=adder)
         self.assertArithmeticIsCorrect(num_state_qubits, multiplier, operator.mul, num_res_qubits, inplace)
 
     @data(
