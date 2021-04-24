@@ -109,7 +109,7 @@ class QFTAdder(Adder):
         num_qubits_qft = num_state_qubits if modular else num_state_qubits + 1
 
         # build QFT adder circuit
-        self.append(QFT(num_qubits_qft, do_swaps=False).to_instruction(), qr_sum[:])
+        self.append(QFT(num_qubits_qft, do_swaps=False).to_gate(), qr_sum[:])
 
         for j in range(num_state_qubits):
             for k in range(num_state_qubits - j):
@@ -121,4 +121,4 @@ class QFTAdder(Adder):
                 lam = np.pi / (2 ** (j + 1))
                 self.cp(lam, qr_a[num_state_qubits - j - 1], qr_z[0])
 
-        self.append(QFT(num_qubits_qft, do_swaps=False).inverse().to_instruction(), qr_sum[:])
+        self.append(QFT(num_qubits_qft, do_swaps=False).inverse().to_gate(), qr_sum[:])
