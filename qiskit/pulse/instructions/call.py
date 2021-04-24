@@ -55,16 +55,17 @@ class Call(instruction.Instruction):
 
         # initialize parameter template
         # TODO remove self._parameter_table
-        self._arguments = dict()
         if subroutine.is_parameterized():
-            for param in subroutine.parameters:
-                self._arguments[param] = value_dict.get(param, param)
+            self._arguments = {par: value_dict.get(par, par) for par in subroutine.parameters}
+            assigned_subroutine = subroutine.assign_parameters(
+                value_dict=self.arguments,
+                inplace=False
+            )
+        else:
+            self._arguments = dict()
+            assigned_subroutine = subroutine
 
         # create cache data of parameter-assigned subroutine
-        assigned_subroutine = subroutine.assign_parameters(
-            value_dict=self.arguments,
-            inplace=False
-        )
         self._assigned_cache = tuple((self._get_arg_hash(), assigned_subroutine))
 
         super().__init__(operands=(subroutine, ), name=name or f"{self.prefix}_{subroutine.name}")
