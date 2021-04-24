@@ -14,9 +14,9 @@
 
 import unittest
 import operator
+from typing import Callable
 import numpy as np
 from ddt import ddt, data, unpack
-from typing import Callable
 
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
@@ -31,7 +31,7 @@ class TestArithmetic(QiskitTestCase):
     def assertArithmeticIsCorrect(self,
                                   num_state_qubits: int,
                                   arithmetic_circuit: QuantumCircuit,
-                                  operator: Callable[[int, int], int],
+                                  op: Callable[[int, int], int],
                                   num_res_qubits: int,
                                   inplace: bool,
                                   modular: bool = False):
@@ -42,12 +42,13 @@ class TestArithmetic(QiskitTestCase):
                 operation.
             arithmetic_circuit: The circuit performing the arithmetic operation
                 of two numbers with ``num_state_qubits`` bits.
-            operator: The arithmetic operator to be tested.
+            op: The arithmetic operator to be tested.
             num_res_qubits: The number of qubits required to store arithmetic result.
-            inplace: If True, compare against an inplace operation where the result is written into
-                the second register plus auxiliary qubits. If False, assume that the result is written
-                into a third register of appropriate size.
-            modular: If True, omit the carry qubit to obtain a modulo ``2^num_state_qubits`` operation.
+            inplace: If True, compare against an inplace operation where the result is written
+                into the second register plus auxiliary qubits. If False, assume that the
+                result is written into a third register of appropriate size.
+            modular: If True, omit the carry qubit to obtain a modulo ``2^num_state_qubits``
+                operation.
         """
         circuit = QuantumCircuit(*arithmetic_circuit.qregs)
         # create equal superposition
@@ -68,7 +69,7 @@ class TestArithmetic(QiskitTestCase):
         for x in range(2 ** num_state_qubits):
             for y in range(2 ** num_state_qubits):
                 # compute the arithmetic result
-                arithmetic_res = operator(x, y) % (2 ** num_state_qubits) if modular else operator(x, y)
+                arithmetic_res = op(x, y) % (2 ** num_state_qubits) if modular else op(x, y)
                 # compute correct index in statevector
                 bin_x = bin(x)[2:].zfill(num_state_qubits)
                 bin_y = bin(y)[2:].zfill(num_state_qubits)
@@ -93,7 +94,8 @@ class TestArithmetic(QiskitTestCase):
         """Test summation for all implemented adders."""
         num_res_qubits = num_state_qubits + 1
         adder = adder(num_state_qubits, modular=True) if modular else adder(num_state_qubits)
-        self.assertArithmeticIsCorrect(num_state_qubits, adder, operator.add, num_res_qubits, inplace, modular)
+        self.assertArithmeticIsCorrect(num_state_qubits, adder, operator.add,
+                                       num_res_qubits, inplace, modular)
 
     @data(
         (3, ClassicalMultiplier, False, None),
@@ -108,7 +110,8 @@ class TestArithmetic(QiskitTestCase):
         if adder:
             adder = adder(num_state_qubits)
         multiplier = multiplier(num_state_qubits, adder=adder)
-        self.assertArithmeticIsCorrect(num_state_qubits, multiplier, operator.mul, num_res_qubits, inplace)
+        self.assertArithmeticIsCorrect(num_state_qubits, multiplier, operator.mul,
+                                       num_res_qubits, inplace)
 
     @data(
         RippleCarryAdder,
