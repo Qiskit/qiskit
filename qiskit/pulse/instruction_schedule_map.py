@@ -36,10 +36,10 @@ from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple
 from qiskit.circuit import ParameterExpression
 from qiskit.circuit.instruction import Instruction
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
+from qiskit.pulse.schedule import Schedule, ScheduleBlock, ParameterizedSchedule
 
 ScheduleArgumentsTuple = NamedTuple('ScheduleArgumentsTuple',
-                                    [('schedule', Union[Callable, Schedule]),
+                                    [('schedule', Union[Callable, Schedule, ScheduleBlock]),
                                      ('arguments', Tuple[str])])
 ScheduleArgumentsTuple.__doc__ = 'Set of schedule generator and associated argument names.'
 ScheduleArgumentsTuple.schedule.__doc__ = 'Schedule generator function or Schedule.'
@@ -159,9 +159,10 @@ class InstructionScheduleMap():
             instruction: Union[str, Instruction],
             qubits: Union[int, Iterable[int]],
             *params: Union[int, float, complex, ParameterExpression],
-            **kwparams: Union[int, float, complex, ParameterExpression]) -> Schedule:
-        """Return the defined :py:class:`~qiskit.pulse.Schedule` for the given instruction on
-        the given qubits.
+            **kwparams: Union[int, float, complex, ParameterExpression]
+            ) -> Union[Schedule, ScheduleBlock]:
+        """Return the defined :py:class:`~qiskit.pulse.Schedule` or
+        :py:class:`~qiskit.pulse.ScheduleBlock` for the given instruction on the given qubits.
 
         If all keys are not specified this method returns schedule with unbound parameters.
 
@@ -211,7 +212,7 @@ class InstructionScheduleMap():
     def add(self,
             instruction: Union[str, Instruction],
             qubits: Union[int, Iterable[int]],
-            schedule: Union[Schedule, Callable[..., Schedule]],
+            schedule: Union[Schedule, ScheduleBlock, Callable[..., Union[Schedule, ScheduleBlock]]],
             arguments: Optional[List[str]] = None) -> None:
         """Add a new known instruction for the given qubits and its mapping to a pulse schedule.
 
@@ -250,8 +251,8 @@ class InstructionScheduleMap():
             return
 
         # validation of input data
-        if not (isinstance(schedule, Schedule) or callable(schedule)):
-            raise PulseError('Supplied schedule must be either a Schedule, or a '
+        if not (isinstance(schedule, (Schedule, ScheduleBlock)) or callable(schedule)):
+            raise PulseError('Supplied schedule must be either a Schedule, ScheduleBlock or a '
                              'callable that outputs a schedule.')
 
         # initialize parameter list
@@ -297,8 +298,9 @@ class InstructionScheduleMap():
             instruction: Union[str, Instruction],
             qubits: Union[int, Iterable[int]],
             *params: Union[int, float, complex, ParameterExpression],
-            **kwparams: Union[int, float, complex, ParameterExpression]) -> Schedule:
-        """Remove and return the defined ``Schedule`` for the given instruction on the given
+            **kwparams: Union[int, float, complex, ParameterExpression]
+            ) -> Union[Schedule, ScheduleBlock]:
+        """Remove and return the defined schedule for the given instruction on the given
         qubits.
 
         Args:
