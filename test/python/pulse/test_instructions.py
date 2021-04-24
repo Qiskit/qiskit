@@ -16,7 +16,7 @@ import numpy as np
 
 from qiskit import pulse, circuit
 from qiskit.pulse import channels, configuration, instructions, library, exceptions
-from qiskit.pulse.transforms import inline_subroutines
+from qiskit.pulse.transforms import inline_subroutines, target_qobj_transform
 from qiskit.test import QiskitTestCase
 
 
@@ -283,7 +283,7 @@ class TestCall(QiskitTestCase):
             pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
             pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
 
-        self.assertEqual(test_sched, ref_sched)
+        self.assertEqual(target_qobj_transform(test_sched), target_qobj_transform(ref_sched))
 
     def test_call_initialize_with_parameter(self):
         """Test call instruction with parameterized subroutine with initial dict."""
@@ -295,7 +295,8 @@ class TestCall(QiskitTestCase):
             pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
             pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
 
-        self.assertEqual(call.assigned_subroutine(), ref_sched)
+        self.assertEqual(target_qobj_transform(call.assigned_subroutine()),
+                         target_qobj_transform(ref_sched))
 
     def test_call_subroutine_with_different_parameters(self):
         """Test call subroutines with different parameters in the same schedule."""
@@ -306,8 +307,6 @@ class TestCall(QiskitTestCase):
             pulse.call(self.function, value_dict=init_dict1)
             pulse.call(self.function, value_dict=init_dict2)
 
-        test_sched = inline_subroutines(test_sched)
-
         with pulse.build() as ref_sched:
             pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
             pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
@@ -316,4 +315,4 @@ class TestCall(QiskitTestCase):
             pulse.play(pulse.Gaussian(160, 0.7, 40), pulse.DriveChannel(0))
             pulse.play(pulse.Gaussian(160, 0.3, 40), pulse.DriveChannel(0))
 
-        self.assertEqual(test_sched, ref_sched)
+        self.assertEqual(target_qobj_transform(test_sched), target_qobj_transform(ref_sched))
