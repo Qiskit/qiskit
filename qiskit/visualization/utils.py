@@ -74,23 +74,31 @@ def get_gate_ctrl_text(op, drawer, style=None):
         else:
             gate_text = f"$\\mathrm{{{style['disptex'][gate_text]}}}$"
 
+    elif drawer == 'latex':
+        # Special formatting for Booleans in latex (due to '~' causing crash)
+        if ((gate_text == op.name and op_type is BooleanExpression)
+                or (gate_text == base_name and base_type is BooleanExpression)):
+            gate_text = gate_text.replace('~', '$\\neg$').replace('&', '\\&')
+            gate_text = f"$\\texttt{{{gate_text}}}$"
+        # Capitalize if not a user-created gate or instruction
+        elif ((gate_text == op.name and op_type not in (Gate, Instruction))
+              or (gate_text == base_name and base_type not in (Gate, Instruction))):
+            gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
+        else:
+            gate_text = f"$\\mathrm{{{gate_text}}}$"
+            # Remove mathmode _, ^, and - formatting from user names and labels
+            gate_text = gate_text.replace('_', '\\_')
+            gate_text = gate_text.replace('^', '\\string^')
+            gate_text = gate_text.replace('-', '\\mbox{-}')
+        ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
+
     # Only captitalize internally-created gate or instruction names
     elif ((gate_text == op.name and op_type not in (Gate, Instruction))
           or (gate_text == base_name and base_type not in (Gate, Instruction))):
-        if drawer == 'latex':
-            gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
-        elif drawer == 'mpl':
+        if drawer == 'mpl':
             gate_text = gate_text.capitalize()
         else:
             gate_text = gate_text.upper()
-
-    elif drawer == 'latex':
-        gate_text = f"$\\mathrm{{{gate_text}}}$"
-        # Remove mathmode _, ^, and - formatting from user names and labels
-        gate_text = gate_text.replace('_', '\\_')
-        gate_text = gate_text.replace('^', '\\string^')
-        gate_text = gate_text.replace('-', '\\mbox{-}')
-        ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
     return gate_text, ctrl_text, raw_gate_text
 
