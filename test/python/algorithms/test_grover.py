@@ -52,17 +52,19 @@ class TestAmplificationProblem(QiskitAlgorithmsTestCase):
 
         self.assertEqual(Operator(expected), Operator(problem.grover_operator))
 
-    @data('list', 'statevector', 'callable')
+    @data('list_str', 'list_int', 'statevector', 'callable')
     def test_is_good_state(self, kind):
         """Test is_good_state works on different input types."""
-        if kind == 'list':
-            is_good_state = ['00', '11']
+        if kind == 'list_str':
+            is_good_state = ['01', '11']
+        elif kind == 'list_int':
+            is_good_state = [1]    # means bitstr[1] == '1'
         elif kind == 'statevector':
-            is_good_state = Statevector(np.array([1, 0, 0, 1]) / np.sqrt(2))
+            is_good_state = Statevector(np.array([0, 1, 0, 1]) / np.sqrt(2))
         else:
             def is_good_state(bitstr):
-                # same as ``bitstr in ['00', '11']``
-                return sum(int(bit) for bit in bitstr) % 2 == 0
+                # same as ``bitstr in ['01', '11']``
+                return bitstr[1] == '1'
 
         possible_states = [''.join(list(map(str, item)))
                            for item in itertools.product([0, 1], repeat=2)]
@@ -70,7 +72,7 @@ class TestAmplificationProblem(QiskitAlgorithmsTestCase):
         oracle = QuantumCircuit(2)
         problem = AmplificationProblem(oracle, is_good_state=is_good_state)
 
-        expected = [state in ['00', '11'] for state in possible_states]
+        expected = [state in ['01', '11'] for state in possible_states]
         # pylint: disable=not-callable
         actual = [problem.is_good_state(state) for state in possible_states]
 

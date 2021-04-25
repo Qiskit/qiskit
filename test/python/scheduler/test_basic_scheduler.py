@@ -17,8 +17,9 @@ from qiskit.circuit import Gate, Parameter
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
-                          MeasureChannel, MemorySlot, Gaussian, Play)
-from qiskit.pulse import build, macros
+                          MeasureChannel, MemorySlot, Gaussian, Play,
+                          transforms)
+from qiskit.pulse import build, macros, play, InstructionScheduleMap
 
 from qiskit.test.mock import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -419,8 +420,29 @@ class TestBasicSchedule(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.append(Gate('pulse_gate', 1, [x]), [0])
         with build() as expected_schedule:
-            Play(Gaussian(duration=160, amp=x, sigma=40), DriveChannel(0))
+            play(Gaussian(duration=160, amp=x, sigma=40), DriveChannel(0))
         qc.add_calibration(gate='pulse_gate', qubits=[0], schedule=expected_schedule, params=[x])
         sched = schedule(qc, self.backend)
         self.assertEqual(sched,
-                         expected_schedule)
+                         transforms.target_qobj_transform(expected_schedule))
+
+    def test_schedule_block_in_instmap(self):
+        """Test schedule block in instmap can be scheduled."""
+        duration = Parameter('duration')
+
+        with build() as pulse_prog:
+            play(Gaussian(duration, 0.1, 10), DriveChannel(0))
+
+        instmap = InstructionScheduleMap()
+        instmap.add('block_gate', (0,), pulse_prog, ['duration'])
+
+        qc = QuantumCircuit(1)
+        qc.append(Gate('block_gate', 1, [duration]), [0])
+        qc.assign_parameters({duration: 100}, inplace=True)
+
+        sched = schedule(qc, self.backend, inst_map=instmap)
+
+        ref_sched = Schedule()
+        ref_sched += Play(Gaussian(100, 0.1, 10), DriveChannel(0))
+
+        self.assertEqual(sched, ref_sched)
