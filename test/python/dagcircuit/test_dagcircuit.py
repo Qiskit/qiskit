@@ -1141,10 +1141,40 @@ class TestDagSubstitute(QiskitTestCase):
         self.dag.substitute_node_with_dag(cx_node, flipped_cx_circuit, wires=[v[0], v[1]])
 
         self.assertEqual(self.dag.count_ops()['h'], 5)
+        expected = DAGCircuit()
+        qreg = QuantumRegister(3, 'qr')
+        creg = ClassicalRegister(2, 'cr')
+        expected.add_qreg(qreg)
+        expected.add_creg(creg)
+        expected.apply_operation_back(HGate(), [qreg[0]], [])
+        expected.apply_operation_back(HGate(), [qreg[0]], [])
+        expected.apply_operation_back(HGate(), [qreg[1]], [])
+        expected.apply_operation_back(CXGate(), [qreg[1], qreg[0]], [])
+        expected.apply_operation_back(HGate(), [qreg[0]], [])
+        expected.apply_operation_back(HGate(), [qreg[1]], [])
+        expected.apply_operation_back(XGate(), [qreg[1]], [])
+        self.assertEqual(self.dag, expected)
 
     def test_substitute_circuit_one_front(self):
         """The method substitute_node_with_dag() replaces a leaf-in-the-front node with a DAG."""
-        pass
+        flipped_cx_circuit = DAGCircuit()
+        v = QuantumRegister(1, "v")
+        flipped_cx_circuit.add_qreg(v)
+        flipped_cx_circuit.apply_operation_back(HGate(), [v[0]], [])
+        flipped_cx_circuit.apply_operation_back(XGate(), [v[0]], [])
+
+        self.dag.substitute_node_with_dag(self.dag.op_nodes()[0],
+                                          flipped_cx_circuit)
+        expected = DAGCircuit()
+        qreg = QuantumRegister(3, 'qr')
+        creg = ClassicalRegister(2, 'cr')
+        expected.add_qreg(qreg)
+        expected.add_creg(creg)
+        expected.apply_operation_back(HGate(), [qreg[0]], [])
+        expected.apply_operation_back(XGate(), [qreg[0]], [])
+        expected.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
+        expected.apply_operation_back(XGate(), [qreg[1]], [])
+        self.assertEqual(self.dag, expected)
 
     def test_substitute_circuit_one_back(self):
         """The method substitute_node_with_dag() replaces a leaf-in-the-back node with a DAG."""
