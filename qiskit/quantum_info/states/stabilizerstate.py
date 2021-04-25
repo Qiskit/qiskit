@@ -172,6 +172,19 @@ class StabilizerState(QuantumState):
             other = StabilizerState(other)
         return StabilizerState((self.data).compose(other.data, qargs))
 
+    def stabilizer_expval(self, pauli):
+        clifford = self.data
+        # Evolve Pauli by clifford
+        p_evo = pauli.evolve(clifford)
+        # Check if zero
+        if np.any(p_evo.x):
+            return 0.0
+        # Get expval
+        expval = (-1j) ** p_evo.phase
+        if expval.imag == 0:
+            return expval.real
+        return expval
+
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
 
@@ -185,32 +198,71 @@ class StabilizerState(QuantumState):
         Raises:
             QiskitError: if the expectation value is not 0 or 1 or -1.
         """
+        num_qubits = self.data.num_qubits
         if qargs is None:
-            qubits = range(self.data.num_qubits)
+            qubits = range(num_qubits)
         else:
             qubits = qargs
 
-        stab_cpy = copy.deepcopy(self)
-        measured_qubits = []
+        # Construct Pauli on num_qubits
+        pauli = Pauli(num_qubits * 'I')
+        phase = 0
 
         for pos in qubits:
             qubit = qubits[pos]
-            pauli = (oper.to_label())[len(oper) - 1 - pos]
-            if pauli == 'I':
-                pass
-            elif pauli == 'X':
-                _append_h(stab_cpy.data, qubit)
-                measured_qubits.append(qubit)
-            elif pauli == 'Y':
-                _append_sdg(stab_cpy.data, qubit)
-                _append_h(stab_cpy.data, qubit)
-                measured_qubits.append(qubit)
-            elif pauli == 'Z':
-                measured_qubits.append(qubit)
+            pauli_pos = (oper.to_label())[len(oper) - 1 - pos]
+            if pauli_pos == 'X':
+                pauli.x[qubit] = 1
+            elif pauli_pos == 'Y':
+                pauli.x[qubit] = 1
+                pauli.z[qubit] = 1
+                phase += 1
+            elif pauli_pos == 'Z':
+                pauli.z[qubit] = 1
             else:
-                raise QiskitError("Invalid Pauli string {}".format(pauli))
+                pass
 
-        return stab_cpy._expval_z_basis(measured_qubits)
+        # Check if there is a stabilizer that anti-commutes with an odd number of qubits
+        # If so the expectation value is 0
+        for p in range(num_qubits):
+            stab = self.data.stabilizer
+            num_anti = 0
+            for qubit in qubits:
+                if pauli.z[qubit] and stab.X[p][qubit]:
+                    num_anti += 1
+                if pauli.x[qubit] and stab.Z[p][qubit]:
+                    num_anti += 1
+            if num_anti % 2 == 1:
+                return 0
+
+        # Otherwise pauli is (-1)^a prod_j S_j^b_j for Clifford stabilizers
+        # If pauli anti-commutes with D_j then b_j = 1.
+        # Multiply pauli by stabilizers with anti-commuting destabilizers
+        pauli_z = (pauli.z).copy()  # Make a copy of pauli.z
+        for p in range(num_qubits):
+            # Check if destabilizer anti-commutes
+            destab = self.data.destabilizer
+            num_anti = 0
+            for qubit in qubits:
+                if pauli.z[qubit] and destab.X[p][qubit]:
+                    num_anti += 1
+                if pauli.x[qubit] and destab.Z[p][qubit]:
+                    num_anti += 1
+            if num_anti % 2 == 0:
+                continue
+
+            # If anti-commutes multiply Pauli by stabilizer
+            stab = self.data.stabilizer
+            phase += 2 * self.data.table.phase[p + num_qubits]
+            for k in range(num_qubits):
+                phase += stab.Z[p][k] and stab.X[p][k]
+                phase += 2 * (pauli_z[k] and stab.X[p][k])
+                pauli_z[k] = pauli_z[k] ^ stab.Z[p][k]
+
+        if phase % 4 != 0:
+            return -1
+
+        return 1
 
     def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.
@@ -483,40 +535,6 @@ class StabilizerState(QuantumState):
         aux_pauli = accum_pauli
         aux_pauli.phase = accum_phase
         return aux_pauli
-
-    # -----------------------------------------------------------------------
-    # Helper functions for calculating the expectation values
-    # -----------------------------------------------------------------------
-    def _expval_z_basis(self, qubits):
-        """Calculate the Z expectation value"""
-
-        num_qubits = self.data.num_qubits
-
-        # Check if there is a row that anti-commutes with an odd number of qubits
-        # If so the expectation value is 0
-        for p in range(num_qubits):
-            num_of_x = 0
-            for qubit in qubits:
-                num_of_x += self.data.stabilizer.X[p][qubit]
-            if num_of_x % 2 == 1:
-                return 0
-
-        # Otherwise the expectation value is +1 or -1
-        # according to the measurement probabilities
-        probs = self.probabilities_dict(qubits)
-        expval = 0
-        for key, value in probs.items():
-            num_of_ones = key.count("1") % 2
-            if not num_of_ones:
-                expval += value
-            else:
-                expval -= value
-
-        if (not np.isclose(expval, 1.0)) and (not np.isclose(expval, -1.0)):
-            raise QiskitError(
-                'Invalid Expectation Value. Should be 1.0 or -1.0')
-
-        return expval
 
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
