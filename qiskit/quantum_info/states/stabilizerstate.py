@@ -180,9 +180,6 @@ class StabilizerState(QuantumState):
 
         Returns:
             complex: the expectation value (only 0 or 1 or -1).
-
-        Raises:
-            QiskitError: if the expectation value is not 0 or 1 or -1.
         """
         num_qubits = self.data.num_qubits
         if qargs is None:
