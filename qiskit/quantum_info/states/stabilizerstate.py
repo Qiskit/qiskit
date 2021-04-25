@@ -22,8 +22,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.symplectic import Clifford, Pauli
-from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x, \
-    _append_h, _append_sdg
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
 
 
 class StabilizerState(QuantumState):
@@ -171,19 +170,6 @@ class StabilizerState(QuantumState):
         if not isinstance(other, StabilizerState):
             other = StabilizerState(other)
         return StabilizerState((self.data).compose(other.data, qargs))
-
-    def stabilizer_expval(self, pauli):
-        clifford = self.data
-        # Evolve Pauli by clifford
-        p_evo = pauli.evolve(clifford)
-        # Check if zero
-        if np.any(p_evo.x):
-            return 0.0
-        # Get expval
-        expval = (-1j) ** p_evo.phase
-        if expval.imag == 0:
-            return expval.real
-        return expval
 
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
