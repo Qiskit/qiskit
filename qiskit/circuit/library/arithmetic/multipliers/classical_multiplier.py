@@ -82,10 +82,11 @@ class ClassicalMultiplier(QuantumCircuit):
             num_state_qubits: The number of qubits in either input register for
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
-            adder: adder circuit to be used for performing multiplication.
+            adder: adder circuit to be used for performing multiplication. The
+                RippleCarryAdder is used as default if no adder is provided.
             name: The name of the circuit object.
         Raises:
-            ValueError: If ``num_state_qubits`` is lower than 1.
+            ValueError: If ``num_state_qubits`` is smaller than 1.
         """
         if num_state_qubits < 1:
             raise ValueError('The number of qubits must be at least 1.')
@@ -98,7 +99,7 @@ class ClassicalMultiplier(QuantumCircuit):
         super().__init__(qr_a, qr_b, qr_out, name=name)
 
         # prepare adder as controlled gate
-        if not adder:
+        if adder is None:
             from qiskit.circuit.library import RippleCarryAdder
             adder = RippleCarryAdder(num_state_qubits)
         controlled_adder = adder.to_gate().control(1)
