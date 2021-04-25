@@ -17,7 +17,7 @@ import math
 import re
 
 import numpy as np
-from qiskit.circuit import Gate, Instruction, Clbit
+from qiskit.circuit import Gate, Instruction, Clbit, BooleanExpression
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import (SwapGate, XGate, ZGate, RZZGate,
                                                    U1Gate, PhaseGate)
@@ -374,7 +374,10 @@ class QCircuitImage:
             # Only add mathmode formatting if not already mathmode in disptex
             if gate_text[0] != '$' and gate_text[-1] != '$':
                 gate_text = f"$\\mathrm{{{gate_text}}}$"
-
+        elif ((gate_text == op.name and op_type is BooleanExpression)
+              or (gate_text == base_name and base_type is BooleanExpression)):
+            gate_text = gate_text.replace('~', '$\\neg$').replace('&', '\\&')
+            gate_text = f"$\\texttt{{{gate_text}}}$"
         # Only captitalize internally-created gate or instruction names
         elif ((gate_text == op.name and op_type not in (Gate, Instruction))
               or (gate_text == base_name and base_type not in (Gate, Instruction))):

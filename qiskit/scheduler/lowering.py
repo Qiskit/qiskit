@@ -54,6 +54,8 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
     Raises:
         QiskitError: If circuit uses a command that isn't defined in config.inst_map.
     """
+    from qiskit.pulse.transforms.base_transforms import target_qobj_transform
+
     circ_pulse_defs = []
 
     inst_map = schedule_config.inst_map
@@ -73,6 +75,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
             for qubit in qubits:
                 try:
                     meas_q = circuit.calibrations[Measure().name][((qubit,), params)]
+                    meas_q = target_qobj_transform(meas_q)
                     acquire_q = meas_q.filter(channels=[AcquireChannel(qubit)])
                     mem_slot_index = [chan.index for chan in acquire_q.channels
                                       if isinstance(chan, MemorySlot)][0]
@@ -92,6 +95,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                                  inst_map=inst_map,
                                  meas_map=schedule_config.meas_map,
                                  qubit_mem_slots=qubit_mem_slots)
+            meas_sched = target_qobj_transform(meas_sched)
             meas_sched = meas_sched.exclude(channels=[AcquireChannel(qubit) for qubit
                                                       in acquire_excludes])
             sched |= meas_sched
@@ -131,15 +135,17 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                     tuple(inst_qubits),
                     tuple(p if getattr(p, 'parameters', None) else float(p) for p in inst.params),
                 )]
+                schedule = target_qobj_transform(schedule)
                 circ_pulse_defs.append(CircuitPulseDef(schedule=schedule, qubits=inst_qubits))
                 continue
             except KeyError:
                 pass  # Calibration not defined for this operation
 
             try:
+                schedule = inst_map.get(inst, inst_qubits, *inst.params)
+                schedule = target_qobj_transform(schedule)
                 circ_pulse_defs.append(
-                    CircuitPulseDef(schedule=inst_map.get(inst, inst_qubits, *inst.params),
-                                    qubits=inst_qubits))
+                    CircuitPulseDef(schedule=schedule, qubits=inst_qubits))
             except PulseError as ex:
                 raise QiskitError(
                     f"Operation '{inst.name}' on qubit(s) {inst_qubits} not supported by the "
