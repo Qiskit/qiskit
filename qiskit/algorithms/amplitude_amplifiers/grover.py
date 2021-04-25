@@ -14,7 +14,6 @@
 
 import itertools
 import logging
-import math
 import operator
 from typing import Iterator, List, Optional, Union
 
@@ -267,7 +266,8 @@ class Grover(AmplitudeAmplifier):
         Returns:
             The optimal number of iterations for Grover's algorithm to succeed.
         """
-        return math.floor(np.pi * np.sqrt(2 ** num_qubits / num_solutions) / 4)
+        amplitude = np.sqrt(num_solutions / 2 ** num_qubits)
+        return round(np.arccos(amplitude) / (2 * np.arcsin(amplitude)))
 
     def construct_circuit(self, problem: AmplificationProblem,
                           power: Optional[int] = None,
