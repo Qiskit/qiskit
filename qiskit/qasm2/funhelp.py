@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,10 +11,8 @@
 # that they have been altered from the originals.
 
 """
-Created on Wed Mar 11 18:03:12 2020
-Support via qiskit.qasm for functional interface
-to Qasm2 source loading and exporting in functions.py
-@author: jax
+Support via qiskit.qasm2 for functional interface
+to Qasm2 source loading and dumping in functions.py
 """
 
 import warnings
@@ -47,7 +45,7 @@ def qasm_load(qasm: Qasm) -> QuantumCircuit:
     return dag_to_circuit(dag)
 
 
-def qasm_export(qc: QuantumCircuit) -> str:
+def qasm_dump(qc: QuantumCircuit) -> str:
     """
     Return OpenQASM string using qiskit.qasm code.
 

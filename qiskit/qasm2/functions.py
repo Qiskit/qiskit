@@ -11,19 +11,15 @@
 # that they have been altered from the originals.
 
 """
-Created on Wed Mar 11 18:03:12 2020
-Functional interface to Qasm2 source loading and exporting
-Supersede QuantumCircuit member functions
-Provide for pluggable qasm translator
-Based on conversation with Dr. Luciano Bello
-@author: jax
+Functional interface to Qasm2 source loading and dumping
 """
+
 from os import linesep
 from typing import List, BinaryIO, TextIO
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.qasm2 import Qasm
-from .funhelp import qasm_load, qasm_export
+from .qasm import Qasm
+from .funhelp import qasm_load, qasm_dump
 
 
 def _load_from_string(qasm_src: str or List[str]) -> QuantumCircuit:
@@ -108,16 +104,16 @@ def load(data: str or List[str] = None,
     return circ
 
 
-def export(qc: QuantumCircuit,
-           file: BinaryIO or TextIO = None,
-           filename: str = None) -> str:
+def dump(qc: QuantumCircuit,
+         file: BinaryIO or TextIO = None,
+         filename: str = None) -> str:
     """
     Decompile a QuantumCircuit into Return OpenQASM string
 
     Parameters
     ----------
     qc : QuantumCircuit
-        Circuit to decompile ("export")
+        Circuit to decompile ("dump")
 
     file : BinaryIO or TextIO, optional
         File object to write to as well as return str
@@ -127,7 +123,7 @@ def export(qc: QuantumCircuit,
         The default is None.
 
     filename : str, optional
-        Name of file to write export to as well as return str
+        Name of file to write dump to as well as return str
         Mutually exclusive with file=
         The default is None.
 
@@ -146,9 +142,9 @@ def export(qc: QuantumCircuit,
 
     """
     if filename and file:
-        raise QiskitError("export: file= and filename= are mutually exclusive")
+        raise QiskitError("dump: file= and filename= are mutually exclusive")
 
-    qasm_src = qasm_export(qc)
+    qasm_src = qasm_dump(qc)
 
     if filename:
         f_f = open(filename, 'w')

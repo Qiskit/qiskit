@@ -23,7 +23,7 @@ Qasm2 (:mod:`qiskit.qasm2`)
    Qasm
    QasmError
    load()
-   export()
+   dump()
 
 Pygments
 ========
@@ -39,7 +39,7 @@ Pygments
 from numpy import pi
 from .qasm import Qasm
 from .exceptions import QasmError
-from .functions import load, export
+from .functions import load, dump
 
 try:
     import pygments

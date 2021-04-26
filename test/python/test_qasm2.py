@@ -15,7 +15,7 @@
 import tempfile
 import unittest
 
-from qiskit.qasm2.functions import load, export
+from qiskit.qasm2.functions import load, dump
 from qiskit.test import QiskitTestCase, Path
 
 
@@ -56,12 +56,12 @@ class TestQasm2(QiskitTestCase):
         self.c_0a = load(data=lines_list)
 
         self.temp_file = tempfile.TemporaryFile(mode='w+t')
-        self.c_0_exported = export(self.c_0, file=self.temp_file)
+        self.c_0_exported = dump(self.c_0, file=self.temp_file)
 
         self.temp_bfile = tempfile.TemporaryFile(mode='w+b')
-        self.c_0_b_exported = export(self.c_0, file=self.temp_bfile)
+        self.c_0_b_exported = dump(self.c_0, file=self.temp_bfile)
 
-        self.c_0a_exported = export(self.c_0a)
+        self.c_0a_exported = dump(self.c_0a)
 
     def tearDown(self):
         super().tearDown()

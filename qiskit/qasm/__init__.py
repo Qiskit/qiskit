@@ -25,4 +25,4 @@ Qasm (:mod:`qiskit.qasm`)
    load()
    export()
 """
-from ..qasm2 import HAS_PYGMENTS, Qasm, QasmError, load, export, pi
+from ..qasm2 import HAS_PYGMENTS, Qasm, QasmError, load, pi
