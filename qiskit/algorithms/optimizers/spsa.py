@@ -510,11 +510,11 @@ def _batch_evaluate(function, points, max_evals_grouped):
         num_batches += 1
 
     # split the points
-    batched_points = np.split(points, num_batches)
+    batched_points = np.split(np.asarray(points), num_batches)
 
     results = []
     for batch in batched_points:
-        results += function(batch)
+        results += function(batch).tolist()
 
     return results
 
