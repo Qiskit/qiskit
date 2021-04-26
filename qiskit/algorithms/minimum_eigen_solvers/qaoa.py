@@ -110,8 +110,8 @@ class QAOA(VQE):
         validate_min('reps', reps, 1)
 
         self._reps = reps
-        self._mixer = mixer
-        self._initial_state = initial_state
+        self.mixer = mixer
+        self.initial_state = initial_state
 
         super().__init__(ansatz=None,
                          optimizer=optimizer,
@@ -128,39 +128,7 @@ class QAOA(VQE):
         if operator.num_qubits != self.ansatz.num_qubits:
             self.ansatz = QAOAAnsatz(operator,
                                      self._reps,
-                                     initial_state=self._initial_state,
-                                     mixer_operator=self._mixer)
+                                     initial_state=self.initial_state,
+                                     mixer_operator=self.mixer)
         operator = super()._check_operator(operator)
         return operator
-
-    @property
-    def initial_state(self) -> Optional[QuantumCircuit]:
-        """
-        Returns:
-            Returns the initial state.
-        """
-        return self._initial_state
-
-    @initial_state.setter
-    def initial_state(self, initial_state: Optional[QuantumCircuit]) -> None:
-        """
-        Args:
-            initial_state: Initial state to set.
-        """
-        self._initial_state = initial_state
-
-    @property
-    def mixer(self) -> Union[QuantumCircuit, OperatorBase]:
-        """
-        Returns:
-            Returns the mixer.
-        """
-        return self._mixer
-
-    @mixer.setter
-    def mixer(self, mixer: Union[QuantumCircuit, OperatorBase]) -> None:
-        """
-        Args:
-            mixer: Mixer to set.
-        """
-        self._mixer = mixer

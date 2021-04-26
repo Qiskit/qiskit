@@ -71,36 +71,6 @@ class MinimumEigensolverResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._eigenvalue = None
-        self._eigenstate = None
-        self._aux_operator_eigenvalues = None
-
-    @property
-    def eigenvalue(self) -> Optional[complex]:
-        """ returns eigen value """
-        return self._eigenvalue
-
-    @eigenvalue.setter
-    def eigenvalue(self, value: complex) -> None:
-        """ set eigen value """
-        self._eigenvalue = value
-
-    @property
-    def eigenstate(self) -> Optional[np.ndarray]:
-        """ return eigen state """
-        return self._eigenstate
-
-    @eigenstate.setter
-    def eigenstate(self, value: np.ndarray) -> None:
-        """ set eigen state """
-        self._eigenstate = value
-
-    @property
-    def aux_operator_eigenvalues(self) -> Optional[np.ndarray]:
-        """ return aux operator eigen values """
-        return self._aux_operator_eigenvalues
-
-    @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: np.ndarray) -> None:
-        """ set aux operator eigen values """
-        self._aux_operator_eigenvalues = value
+        self.eigenvalue = None
+        self.eigenstate = None
+        self.aux_operator_eigenvalues = None

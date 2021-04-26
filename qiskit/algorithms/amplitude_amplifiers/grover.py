@@ -202,7 +202,6 @@ class Grover(AmplitudeAmplifier):
         oracle_evaluation = False
         all_circuit_results = []
         max_probability = 0
-        shots = 0
 
         for _ in range(max_iterations):  # iterate at most to the max number of iterations
             # get next power and check if allowed
@@ -309,24 +308,6 @@ class GroverResult(AmplitudeAmplifierResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._iterations = None
-        self._circuit_results = None
-        self._shots = None
-
-    @property
-    def iterations(self) -> List[int]:
-        """All the powers of the Grover operator that have been tried.
-
-        Returns:
-            The powers of the Grover operator tested.
-        """
-        return self._iterations
-
-    @iterations.setter
-    def iterations(self, value: List[int]) -> None:
-        """Set the powers of the Grover operator that have been tried.
-
-        Args:
-            value: A new value for the powers.
-        """
-        self._iterations = value
+        self.iterations = None
+        self.circuit_results = None
+        self.shots = None

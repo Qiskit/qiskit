@@ -51,55 +51,18 @@ class AmplificationProblem:
             is_good_state: A function to check whether a string represents a good state.
         """
         self.oracle = oracle
-        self._state_preparation = state_preparation
-        self._grover_operator = grover_operator
-        self._post_processing = post_processing
+
+        if state_preparation:
+            self.state_preparation = state_preparation
+        else:
+            self.state_preparation = QuantumCircuit(oracle.num_qubits)
+            self.state_preparation.h(range(oracle.num_qubits))
+
+        self.grover_operator = grover_operator if grover_operator else \
+            GroverOperator(self.oracle, self.state_preparation)
+        self.post_processing = post_processing if post_processing else lambda x: x
         self._objective_qubits = objective_qubits
         self._is_good_state = is_good_state
-
-    @property
-    def state_preparation(self) -> QuantumCircuit:
-        r"""Get the state preparation operator :math:`\mathcal{A}`.
-
-        Returns:
-            The :math:`\mathcal{A}` operator as `QuantumCircuit`.
-        """
-        if self._state_preparation is None:
-            state_preparation = QuantumCircuit(self.oracle.num_qubits)
-            state_preparation.h(state_preparation.qubits)
-            return state_preparation
-
-        return self._state_preparation
-
-    @state_preparation.setter
-    def state_preparation(self, state_preparation: Optional[QuantumCircuit]) -> None:
-        r"""Set the :math:`\mathcal{A}` operator. If None, a layer of Hadamard gates is used.
-
-        Args:
-            state_preparation: The new :math:`\mathcal{A}` operator or None.
-        """
-        self._state_preparation = state_preparation
-
-    @property
-    def post_processing(self) -> Callable[[str], Any]:
-        """Apply post processing to the input value.
-
-        Returns:
-            A handle to the post processing function. Acts as identity by default.
-        """
-        if self._post_processing is None:
-            return lambda x: x
-
-        return self._post_processing
-
-    @post_processing.setter
-    def post_processing(self, post_processing: Callable[[str], Any]) -> None:
-        """Set the post processing function.
-
-        Args:
-            post_processing: A handle to the post processing function.
-        """
-        self._post_processing = post_processing
 
     @property
     def objective_qubits(self) -> List[int]:
@@ -156,29 +119,3 @@ class AmplificationProblem:
             is_good_state: A function to determine whether a bitstring represents a good state.
         """
         self._is_good_state = is_good_state
-
-    @property
-    def grover_operator(self) -> Optional[QuantumCircuit]:
-        r"""Get the :math:`\mathcal{Q}` operator, or Grover operator.
-
-        If the Grover operator is not set, we try to build it from the :math:`\mathcal{A}` operator
-        and `objective_qubits`. This only works if `objective_qubits` is a list of integers.
-
-        Returns:
-            The Grover operator, or None if neither the Grover operator nor the
-            :math:`\mathcal{A}` operator is  set.
-        """
-        if self._grover_operator is None:
-            return GroverOperator(self.oracle, self.state_preparation)
-        return self._grover_operator
-
-    @grover_operator.setter
-    def grover_operator(self, grover_operator: Optional[QuantumCircuit]) -> None:
-        r"""Set the :math:`\mathcal{Q}` operator.
-
-        If None, this operator is constructed from the ``oracle`` and ``state_preparation``.
-
-        Args:
-            grover_operator: The new :math:`\mathcal{Q}` operator or None.
-        """
-        self._grover_operator = grover_operator

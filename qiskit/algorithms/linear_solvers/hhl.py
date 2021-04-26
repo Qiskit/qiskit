@@ -260,7 +260,7 @@ class HHL(LinearSolver):
                 op = expectations.oplist[0]
             else:
                 op = expectations
-            self._expectation = ExpectationFactory.build(op, self._sampler.quantum_instance)
+            self.expectation = ExpectationFactory.build(op, self._sampler.quantum_instance)
 
         if self._sampler is not None:
             expectations = self._sampler.convert(expectations)

@@ -20,7 +20,7 @@ of this class to carry out the optimization. Alternatively, all of the functions
 overridden to opt-out of this infrastructure but still meet the interface requirements.
 """
 
-from typing import Optional, Callable, Union, Dict
+from typing import Optional, Callable, Union
 import time
 import logging
 from abc import abstractmethod

@@ -258,47 +258,7 @@ class FasterAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._success_probability = None
-        self._num_steps = None
-        self._num_first_state_steps = None
-        self._theta_intervals = None
-
-    @property
-    def success_probability(self) -> int:
-        """Return the success probability of the algorithm."""
-        return self._success_probability
-
-    @success_probability.setter
-    def success_probability(self, probability: int) -> None:
-        """Set the success probability of the algorithm."""
-        self._success_probability = probability
-
-    @property
-    def num_steps(self) -> int:
-        """Return the total number of steps taken in the algorithm."""
-        return self._num_steps
-
-    @num_steps.setter
-    def num_steps(self, num_steps: int) -> None:
-        """Set the total number of steps taken in the algorithm."""
-        self._num_steps = num_steps
-
-    @property
-    def num_first_state_steps(self) -> int:
-        """Return the number of steps taken in the first step of algorithm."""
-        return self._num_first_state_steps
-
-    @num_first_state_steps.setter
-    def num_first_state_steps(self, num_steps: int) -> None:
-        """Set the number of steps taken in the first step of algorithm."""
-        self._num_first_state_steps = num_steps
-
-    @property
-    def theta_intervals(self) -> List[List[float]]:
-        """Return the confidence intervals for the angles in each iteration."""
-        return self._theta_intervals
-
-    @theta_intervals.setter
-    def theta_intervals(self, value: List[List[float]]) -> None:
-        """Set the confidence intervals for the angles in each iteration."""
-        self._theta_intervals = value
+        self.success_probability = None
+        self.num_steps = None
+        self.num_first_state_steps = None
+        self.theta_intervals = None

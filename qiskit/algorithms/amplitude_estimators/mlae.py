@@ -314,61 +314,11 @@ class MaximumLikelihoodAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._theta = None
-        self._minimizer = None
-        self._good_counts = None
-        self._evaluation_schedule = None
-        self._fisher_information = None
-
-    @property
-    def theta(self) -> float:
-        r"""Return the estimate for the angle :math:`\theta`."""
-        return self._theta
-
-    @theta.setter
-    def theta(self, value: float) -> None:
-        r"""Set the estimate for the angle :math:`\theta`."""
-        self._theta = value
-
-    @property
-    def minimizer(self) -> callable:
-        """Return the minimizer used for the search of the likelihood function."""
-        return self._minimizer
-
-    @minimizer.setter
-    def minimizer(self, value: callable) -> None:
-        """Set the number minimizer used for the search of the likelihood function."""
-        self._minimizer = value
-
-    @property
-    def good_counts(self) -> List[float]:
-        """Return the percentage of good counts per circuit power."""
-        return self._good_counts
-
-    @good_counts.setter
-    def good_counts(self, counts: List[float]) -> None:
-        """Set the percentage of good counts per circuit power."""
-        self._good_counts = counts
-
-    @property
-    def evaluation_schedule(self) -> List[int]:
-        """Return the evaluation schedule for the powers of the Grover operator."""
-        return self._evaluation_schedule
-
-    @evaluation_schedule.setter
-    def evaluation_schedule(self, evaluation_schedule: List[int]) -> None:
-        """Set the evaluation schedule for the powers of the Grover operator."""
-        self._evaluation_schedule = evaluation_schedule
-
-    @property
-    def fisher_information(self) -> float:
-        """Return the Fisher information for the estimated amplitude."""
-        return self._fisher_information
-
-    @fisher_information.setter
-    def fisher_information(self, value: float) -> None:
-        """Set the Fisher information for the estimated amplitude."""
-        self._fisher_information = value
+        self.theta = None
+        self.minimizer = None
+        self.good_counts = None
+        self.evaluation_schedule = None
+        self.fisher_information = None
 
 
 def _safe_min(array, default=0):

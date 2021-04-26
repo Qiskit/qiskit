@@ -533,14 +533,4 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._cost_function_evals = None
-
-    @property
-    def cost_function_evals(self) -> Optional[int]:
-        """ Returns number of cost optimizer evaluations """
-        return self._cost_function_evals
-
-    @cost_function_evals.setter
-    def cost_function_evals(self, value: int) -> None:
-        """ Sets number of cost function evaluations """
-        self._cost_function_evals = value
+        self.cost_function_evals = None

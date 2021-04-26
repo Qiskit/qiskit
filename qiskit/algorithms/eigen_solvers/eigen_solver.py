@@ -67,36 +67,6 @@ class EigensolverResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._eigenvalues = None
-        self._eigenstates = None
-        self._aux_operator_eigenvalues = None
-
-    @property
-    def eigenvalues(self) -> Optional[np.ndarray]:
-        """ returns eigen values """
-        return self._eigenvalues
-
-    @eigenvalues.setter
-    def eigenvalues(self, value: np.ndarray) -> None:
-        """ set eigen values """
-        self._eigenvalues = value
-
-    @property
-    def eigenstates(self) -> Optional[np.ndarray]:
-        """ return eigen states """
-        return self._eigenstates
-
-    @eigenstates.setter
-    def eigenstates(self, value: np.ndarray) -> None:
-        """ set eigen states """
-        self._eigenstates = value
-
-    @property
-    def aux_operator_eigenvalues(self) -> Optional[np.ndarray]:
-        """ return aux operator eigen values """
-        return self._aux_operator_eigenvalues
-
-    @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: np.ndarray) -> None:
-        """ set aux operator eigen values """
-        self._aux_operator_eigenvalues = value
+        self.eigenvalues = None
+        self.eigenstates = None
+        self.aux_operator_eigenvalues = None
