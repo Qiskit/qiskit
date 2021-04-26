@@ -51,29 +51,11 @@ class EstimationProblem:
             is_good_state: A function to check whether a string represents a good state. Defaults
                 to all objective qubits being in state :math:`|1\rangle`.
         """
-        self._state_preparation = state_preparation
+        self.state_preparation = state_preparation
         self._objective_qubits = objective_qubits
         self._grover_operator = grover_operator
-        self._post_processing = post_processing
-        self._is_good_state = is_good_state
-
-    @property
-    def state_preparation(self) -> Optional[QuantumCircuit]:
-        r"""Get the :math:`\mathcal{A}` operator encoding the amplitude :math:`a`.
-
-        Returns:
-            The :math:`\mathcal{A}` operator as `QuantumCircuit`.
-        """
-        return self._state_preparation
-
-    @state_preparation.setter
-    def state_preparation(self, state_preparation: QuantumCircuit) -> None:
-        r"""Set the :math:`\mathcal{A}` operator, that encodes the amplitude to be estimated.
-
-        Args:
-            state_preparation: The new :math:`\mathcal{A}` operator.
-        """
-        self._state_preparation = state_preparation
+        self.post_processing = post_processing or (lambda x: x)
+        self.is_good_state = is_good_state or (lambda x: all(bit == '1' for bit in x))
 
     @property
     def objective_qubits(self) -> List[int]:
@@ -95,50 +77,6 @@ class EstimationProblem:
             objective_qubits: The criterion as callable of list of qubit indices.
         """
         self._objective_qubits = objective_qubits
-
-    @property
-    def post_processing(self) -> Callable[[float], float]:
-        """Apply post processing to the input value.
-
-        Returns:
-            A handle to the post processing function. Acts as identity by default.
-        """
-        if self._post_processing is None:
-            return lambda x: x
-
-        return self._post_processing
-
-    @post_processing.setter
-    def post_processing(self, post_processing: Optional[Callable[[float], float]]) -> None:
-        """Set the post processing function.
-
-        Args:
-            post_processing: A handle to the post processing function. If set to ``None``, the
-                identity will be used as post processing.
-        """
-        self._post_processing = post_processing
-
-    @property
-    def is_good_state(self) -> Callable[[str], bool]:
-        """Checks whether a bitstring represents a good state.
-
-        Returns:
-            Handle to the ``is_good_state`` callable.
-        """
-        if self._is_good_state is None:
-            return lambda x: all(bit == '1' for bit in x)
-
-        return self._is_good_state
-
-    @is_good_state.setter
-    def is_good_state(self, is_good_state: Optional[Callable[[str], bool]]) -> None:
-        """Set the ``is_good_state`` function.
-
-        Args:
-            is_good_state: A function to determine whether a bitstring represents a good state.
-                If set to ``None``, the good state will be defined as all bits being one.
-        """
-        self._is_good_state = is_good_state
 
     @property
     def grover_operator(self) -> Optional[QuantumCircuit]:

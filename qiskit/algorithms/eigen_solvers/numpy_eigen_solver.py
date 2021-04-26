@@ -63,7 +63,7 @@ class NumPyEigensolver(Eigensolver):
         self._in_k = k
         self._k = k
 
-        self._filter_criterion = filter_criterion
+        self.filter_criterion = filter_criterion
 
         self._ret = EigensolverResult()
 
@@ -78,18 +78,6 @@ class NumPyEigensolver(Eigensolver):
         validate_min('k', k, 1)
         self._in_k = k
         self._k = k
-
-    @property
-    def filter_criterion(self) -> Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]:
-        """ returns the filter criterion if set """
-        return self._filter_criterion
-
-    @filter_criterion.setter
-    def filter_criterion(self, filter_criterion: Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]) -> None:
-        """ set the filter criterion """
-        self._filter_criterion = filter_criterion
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -188,7 +176,7 @@ class NumPyEigensolver(Eigensolver):
             aux_operators = None
 
         k_orig = self._k
-        if self._filter_criterion:
+        if self.filter_criterion:
             # need to consider all elements if a filter is set
             self._k = 2 ** operator.num_qubits
 
@@ -199,7 +187,7 @@ class NumPyEigensolver(Eigensolver):
         self._get_energies(operator, aux_operators)
 
         # if a filter is set, loop over the given values and only keep
-        if self._filter_criterion:
+        if self.filter_criterion:
 
             eigvecs = []
             eigvals = []
@@ -212,7 +200,7 @@ class NumPyEigensolver(Eigensolver):
                     aux_op = self._ret.aux_operator_eigenvalues[i]
                 else:
                     aux_op = None
-                if self._filter_criterion(eigvec, eigval, aux_op):
+                if self.filter_criterion(eigvec, eigval, aux_op):
                     cnt += 1
                     eigvecs += [eigvec]
                     eigvals += [eigval]
