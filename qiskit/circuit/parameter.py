@@ -21,7 +21,7 @@ from .parameterexpression import ParameterExpression
 class Parameter(ParameterExpression):
     """Parameter Class for variable parameters."""
 
-    def __new__(cls, name, uuid=None):  # pylint:disable=unused-argument
+    def __new__(cls, name, uuid=None):  # pylint: disable=unused-argument
         # Parameter relies on self._uuid being set prior to other attributes
         # (e.g. symbol_map) which may depend on self._uuid for Parameter's hash
         # or __eq__ functions.

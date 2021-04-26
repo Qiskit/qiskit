@@ -11,13 +11,14 @@
 # that they have been altered from the originals.
 
 """A pulse that is described by complex-valued sample points."""
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
+from qiskit.pulse.utils import deprecated_functionality
 
 
 class Waveform(Pulse):
@@ -95,8 +96,15 @@ class Waveform(Pulse):
         return samples
 
     def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
         return False
 
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        """Return a dictionary containing the pulse's parameters."""
+        return dict()
+
+    @deprecated_functionality
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Waveform':

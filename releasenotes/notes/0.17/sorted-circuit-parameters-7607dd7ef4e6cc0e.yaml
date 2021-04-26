@@ -1,0 +1,68 @@
+---
+features:
+  - |
+    Unbound :class:`~qiskit.circuit.Parameter` objects used in a
+    :class:`~qiskit.circuit.QuantumCircuit` object will now be sorted
+    by name. This will take effect for the parameters returned by the
+    :attr:`~qiskit.circuit.QuantumCircuit.parameters` attribute. Additionally,
+    the :meth:`qiskit.circuit.QuantumCircuit.bind_parameters` and
+    :meth:`qiskit.circuit.QuantumCircuit.assign_parameters` methods can now take
+    in a list of a values which will bind/assign them to the parameters in
+    name-sorted order. Previously these methods would only take a dictionary of
+    parameters and values. For example:
+
+    .. jupyter-execute::
+
+      from qiskit.circuit import QuantumCircuit, Parameter
+
+      circuit = QuantumCircuit(1)
+      circuit.rx(Parameter('x'), 0)
+      circuit.ry(Parameter('y'), 0)
+
+      print(circuit.parameters)
+
+      bound = circuit.bind_parameters([1, 2])
+      bound.draw(output='mpl')
+
+upgrade:
+  - |
+    The :attr:`~qiskit.circuit.QuantumCircuit.parameters` attribute of the 
+    :class:`~qiskit.circuit.QuantumCircuit` class no longer is returning a
+    ``set``. Instead it returns a ``ParameterView`` object which implements
+    all the methods that ``set`` offers (albeit deprecated). This was done
+    to support a model that preserves name-sorted parameters. It
+    should be fully compatible with any previous usage of the ``set`` returned
+    by the :attr:`~qiskit.circuit.QuantumCircuit.parameters` attribute, except
+    for where explicit type checking of a set was done.
+deprecations:
+  - |
+    The use of methods inherited from the ``set`` type on the output of the
+    :attr:`~qiskit.circuit.QuantumCircuit.parameters` attribute (which used to
+    be a ``set``) of the :class:`~qiskit.circuit.QuantumCircuit` class are
+    deprecated and will be removed in a future release. This includes the
+    methods from the ``add()``, ``difference()``, ``difference_update()``,
+    ``discard()``, ``intersection()``, ``intersection_update()``,
+    ``issubset()``, ``issuperset()``, ``symmetric_difference()``,
+    ``symmetric_difference_update()``, ``union()``, ``update()``,
+    ``__isub__()`` (which is the ``-=`` operator), and ``__ixor__()`` (which is
+    the ``^=`` operator).
+  - |
+    The name of the first (and only) positional argument for the
+    :meth:`qiskit.circuit.QuantumCircuit.bind_parameters` method has changed
+    from ``value_dict`` to ``values``. The passing an argument in with the
+    name ``values_dict`` is deprecated and will be removed in future release.
+    For example, if you were previously calling
+    :meth:`~qiskit.circuit.QuantumCircuit.bind_parameters` with a call like:
+    ``bind_parameters(values_dict={})`` this is deprecated and should be
+    replaced by ``bind_parameters(values={})`` or even better just pass the
+    argument positionally ``bind_parameters({})``.
+  - |
+    The name of the first (and only) positional argument for the
+    :meth:`qiskit.circuit.QuantumCircuit.assign_parameters` method has changed
+    from ``param_dict`` to ``parameters``. Passing an argument in with the name
+    ``param_dict`` is deprecated and will be removed in future release. For
+    example, if you were previously calling
+    :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters` with a call like:
+    ``assign_parameters(param_dict={})`` this is deprecated and should be
+    replaced by ``assign_parameters(values={})`` or even better just pass the
+    argument positionally ``assign_parameters({})``.

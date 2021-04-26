@@ -34,7 +34,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
     Examples:
 
-        .. jupyer-execute::
+        .. jupyter-execute::
 
             import numpy as np
             from qiskit import QuantumCircuit
@@ -45,7 +45,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
             qc = QuantumCircuit(pw_approximation.num_qubits)
             qc.h(list(range(num_state_qubits)))
             qc.append(pw_approximation.to_instruction(), qc.qubits)
-            print(qc.draw(output='mpl'))
+            qc.draw(output='mpl')
 
     References:
 
@@ -293,6 +293,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
             self.qregs = [qr_state, qr_target]
             self._ancillas = []
             self._qubits = qr_state[:] + qr_target[:]
+            self._qubit_set = set(self._qubits)
 
             num_ancillas = num_state_qubits
             if num_ancillas > 0:
@@ -302,6 +303,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         else:
             self.qregs = []
             self._qubits = []
+            self._qubit_set = set()
             self._ancillas = []
 
     def _build(self):

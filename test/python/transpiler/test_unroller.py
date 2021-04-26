@@ -17,7 +17,7 @@
 from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.extensions.simulator import snapshot
+from qiskit.extensions.simulator import Snapshot
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
@@ -284,6 +284,24 @@ class TestUnroller(QiskitTestCase):
 
         self.assertEqual(Operator(qc), Operator(qcd))
 
+    def test_unrolling_global_phase_nested_gates(self):
+        """Test unrolling a nested gate preseveres global phase."""
+        qc = QuantumCircuit(1, global_phase=pi)
+        qc.x(0)
+        gate = qc.to_gate()
+
+        qc = QuantumCircuit(1)
+        qc.append(gate, [0])
+        gate = qc.to_gate()
+
+        qc = QuantumCircuit(1)
+        qc.append(gate, [0])
+        dag = circuit_to_dag(qc)
+        out_dag = Unroller(['x', 'u']).run(dag)
+        qcd = dag_to_circuit(out_dag)
+
+        self.assertEqual(Operator(qc), Operator(qcd))
+
 
 class TestUnrollAllInstructions(QiskitTestCase):
     """Test unrolling a circuit containing all standard instructions."""
@@ -537,8 +555,10 @@ class TestUnrollAllInstructions(QiskitTestCase):
 
     def test_unroll_snapshot(self):
         """test unroll snapshot"""
-        self.circuit.snapshot('0')
-        self.ref_circuit.snapshot('0')
+        num_qubits = self.circuit.num_qubits
+        instr = Snapshot('0', num_qubits=num_qubits)
+        self.circuit.append(instr, range(num_qubits))
+        self.ref_circuit.append(instr, range(num_qubits))
         self.compare_dags()
 
     def test_unroll_measure(self):

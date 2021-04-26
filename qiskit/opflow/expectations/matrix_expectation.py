@@ -14,13 +14,11 @@
 
 from typing import Union
 
-from ..operator_base import OperatorBase
-from .expectation_base import ExpectationBase
-from ..list_ops import ListOp, ComposedOp
-from ..state_fns.operator_state_fn import OperatorStateFn
+from qiskit.opflow.expectations.expectation_base import ExpectationBase
+from qiskit.opflow.list_ops import ComposedOp, ListOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 
-
-# pylint: disable=invalid-name
 
 class MatrixExpectation(ExpectationBase):
     """ An Expectation converter which converts Operator measurements to be matrix-based so they

@@ -46,7 +46,7 @@ class CustomSolver(RecursiveBacktrackingSolver):
                 return True
         return False
 
-    def getSolution(self,  # pylint: disable=invalid-name
+    def getSolution(self,
                     domains, constraints, vconstraints):
         """Wrap RecursiveBacktrackingSolver.getSolution to add the limits."""
         if self.call_limit is not None:
@@ -100,6 +100,7 @@ class CSPLayout(AnalysisPass):
         self.seed = seed
 
     def run(self, dag):
+        """ run the layout method """
         qubits = dag.qubits
         cxs = set()
 
@@ -113,9 +114,13 @@ class CSPLayout(AnalysisPass):
         else:
             solver = CustomSolver(call_limit=self.call_limit, time_limit=self.time_limit)
 
+        variables = list(range(len(qubits)))
+        variable_domains = list(self.coupling_map.physical_qubits)
+        random.Random(self.seed).shuffle(variable_domains)
+
         problem = Problem(solver)
-        problem.addVariables(list(range(len(qubits))), self.coupling_map.physical_qubits)
-        problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qbit
+        problem.addVariables(variables, variable_domains)
+        problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qubit
 
         if self.strict_direction:
             def constraint(control, target):
@@ -127,7 +132,6 @@ class CSPLayout(AnalysisPass):
         for pair in cxs:
             problem.addConstraint(constraint, [pair[0], pair[1]])
 
-        random.seed(self.seed)
         solution = problem.getSolution()
 
         if solution is None:
@@ -140,5 +144,7 @@ class CSPLayout(AnalysisPass):
         else:
             stop_reason = 'solution found'
             self.property_set['layout'] = Layout({v: qubits[k] for k, v in solution.items()})
+            for reg in dag.qregs.values():
+                self.property_set['layout'].add_register(reg)
 
         self.property_set['CSPLayout_stop_reason'] = stop_reason

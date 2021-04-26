@@ -57,6 +57,9 @@ class UnrollCustomDefinitions(TransformationPass):
 
         for node in dag.op_nodes():
 
+            if node.op._directive:
+                continue
+
             if dag.has_calibration_for(node):
                 continue
 
@@ -69,7 +72,7 @@ class UnrollCustomDefinitions(TransformationPass):
             try:
                 rule = node.op.definition.data
             except TypeError as err:
-                raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
+                raise QiskitError(f'Error decomposing node {node.name}: {err}') from err
             except AttributeError:
                 # definition is None
                 rule = None

@@ -13,7 +13,9 @@
 """The interface for amplification algorithms and results."""
 
 from abc import ABC, abstractmethod
-from typing import Optional, Any
+from typing import Optional, Any, Union, Dict, List
+
+import numpy as np
 
 from .amplification_problem import AmplificationProblem
 from ..algorithm_result import AlgorithmResult

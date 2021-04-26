@@ -13,8 +13,8 @@
 
 """A Jupyter magic to choose a real monospaced fonts, if available."""
 
-from IPython.display import HTML, display               # pylint: disable=import-error
-from IPython.core.magic import (line_magic,             # pylint: disable=import-error
+from IPython.display import HTML, display
+from IPython.core.magic import (line_magic,
                                 Magics, magics_class)
 
 

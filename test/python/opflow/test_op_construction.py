@@ -31,7 +31,7 @@ from qiskit.circuit.library import CZGate, ZGate
 from qiskit.opflow import (
     X, Y, Z, I, CX, T, H, Minus, PrimitiveOp, PauliOp, CircuitOp, MatrixOp, EvolvedOp, StateFn,
     CircuitStateFn, VectorStateFn, DictStateFn, OperatorStateFn, ListOp, ComposedOp, TensoredOp,
-    SummedOp, OperatorBase, Zero, OpflowError
+    SummedOp, OperatorBase, Zero, OpflowError, SparseVectorStateFn
 )
 
 
@@ -83,7 +83,6 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
     def test_evals(self):
         """ evals test """
-        # pylint: disable=no-member
         # TODO: Think about eval names
         self.assertEqual(Z.eval('0').eval('0'), 1)
         self.assertEqual(Z.eval('1').eval('0'), 0)
@@ -393,6 +392,15 @@ class TestOpConstruction(QiskitOpflowTestCase):
             self.assertEqual(sum_op.coeff, 1)
             self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'ZZ'])
             self.assertListEqual([op.coeff for op in sum_op], [10, 2, 3])
+
+        sum_op = SummedOp([])
+        with self.subTest('SummedOp test 9'):
+            self.assertEqual(sum_op.reduce(), sum_op)
+
+        sum_op = ((Z + I) ^ Z) + (Z ^ X)
+        with self.subTest('SummedOp test 10'):
+            expected = SummedOp([PauliOp(Pauli('ZZ')), PauliOp(Pauli('IZ')), PauliOp(Pauli('ZX'))])
+            self.assertEqual(sum_op.to_pauli_op(), expected)
 
     def test_compose_op_of_different_dim(self):
         """
@@ -732,7 +740,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
     def test_matrix_op_conversions(self):
         """Test to reveal QiskitError when to_instruction or to_circuit method is called on
-        parametrized matrix op."""
+        parameterized matrix op."""
         m = np.array([[0, 0, 1, 0], [0, 0, 0, -1], [1, 0, 0, 0], [0, -1, 0, 0]])
         matrix_op = MatrixOp(m, Parameter('beta'))
         for method in ['to_instruction', 'to_circuit']:
@@ -806,7 +814,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertTrue(Operator(unitary).equiv(circuit))
 
     def test_op_to_circuit_with_parameters(self):
-        """On parametrized SummedOp, to_matrix_op returns ListOp, instead of MatrixOp. To avoid
+        """On parameterized SummedOp, to_matrix_op returns ListOp, instead of MatrixOp. To avoid
         the infinite recursion, OpflowError is raised. """
         m1 = np.array([[0, 0, 1, 0], [0, 0, 0, -1], [0, 0, 0, 0], [0, 0, 0, 0]])  # non-unitary
         m2 = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0], [0, -1, 0, 0]])  # non-unitary
@@ -896,7 +904,6 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertEqual(list_op.parameters, set(params))
 
     @data(VectorStateFn([1, 0]),
-          DictStateFn({'0': 1}),
           CircuitStateFn(QuantumCircuit(1)),
           OperatorStateFn(I),
           OperatorStateFn(MatrixOp([[1, 0], [0, 1]])),
@@ -905,6 +912,25 @@ class TestOpConstruction(QiskitOpflowTestCase):
         """Test calling eval on StateFn returns the statevector."""
         expected = Statevector([1, 0])
         self.assertEqual(op.eval().primitive, expected)
+
+    def test_sparse_eval(self):
+        """Test calling eval on a DictStateFn returns a sparse statevector."""
+        op = DictStateFn({'0': 1})
+        expected = scipy.sparse.csr_matrix([[1, 0]])
+        self.assertFalse((op.eval().primitive != expected).toarray().any())
+
+    def test_sparse_to_dict(self):
+        """Test converting a sparse vector state function to a dict state function."""
+        isqrt2 = 1 / np.sqrt(2)
+        sparse = scipy.sparse.csr_matrix([[0, isqrt2, 0, isqrt2]])
+        sparse_fn = SparseVectorStateFn(sparse)
+        dict_fn = DictStateFn({'01': isqrt2, '11': isqrt2})
+
+        with self.subTest('sparse to dict'):
+            self.assertEqual(dict_fn, sparse_fn.to_dict_fn())
+
+        with self.subTest('dict to sparse'):
+            self.assertEqual(dict_fn.to_spmatrix_op(), sparse_fn)
 
     def test_to_circuit_op(self):
         """Test to_circuit_op method."""
@@ -952,6 +978,17 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertNotEqual(sum_op, sum_op3)
         self.assertNotEqual(sum_op2, sum_op3)
         self.assertEqual(sum_op3, sum_op3)
+
+    def test_empty_listops(self):
+        """Test reduce and eval on ListOp with empty oplist."""
+        with self.subTest('reduce empty ComposedOp '):
+            self.assertEqual(ComposedOp([]).reduce(), ComposedOp([]))
+        with self.subTest('reduce empty TensoredOp '):
+            self.assertEqual(TensoredOp([]).reduce(), TensoredOp([]))
+        with self.subTest('eval empty ComposedOp '):
+            self.assertEqual(ComposedOp([]).eval(), 0.0)
+        with self.subTest('eval empty TensoredOp '):
+            self.assertEqual(TensoredOp([]).eval(), 0.0)
 
 
 class TestOpMethods(QiskitOpflowTestCase):

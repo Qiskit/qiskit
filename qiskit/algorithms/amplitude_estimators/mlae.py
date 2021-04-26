@@ -81,13 +81,13 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
             self._evaluation_schedule = [0] + [2**j for j in range(evaluation_schedule)]
         else:
-            if any([value < 0 for value in evaluation_schedule]):
+            if any(value < 0 for value in evaluation_schedule):
                 raise ValueError('The elements of the evaluation schedule cannot be < 0.')
 
             self._evaluation_schedule = evaluation_schedule
 
         if minimizer is None:
-            # default number of evaluations is max(10^5, pi/2 * 10^3 * 2^(m))
+            # default number of evaluations is max(10^4, pi/2 * 10^3 * 2^(m))
             nevals = max(10000, int(np.pi / 2 * 1000 * 2 * self._evaluation_schedule[-1]))
 
             def default_minimizer(objective_fn, bounds):
@@ -166,7 +166,6 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                                     alpha: float,
                                     kind: str = 'fisher',
                                     apply_post_processing: bool = False) -> Tuple[float, float]:
-        # pylint: disable=wrong-spelling-in-docstring
         """Compute the `alpha` confidence interval using the method `kind`.
 
         The confidence level is (1 - `alpha`) and supported kinds are 'fisher',
@@ -259,7 +258,6 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         result = MaximumLikelihoodAmplitudeEstimationResult()
         result.evaluation_schedule = self._evaluation_schedule
         result.minimizer = self._minimizer
-        result.evaluation_schedule = self._evaluation_schedule
         result.post_processing = estimation_problem.post_processing
 
         if self._quantum_instance.is_statevector:

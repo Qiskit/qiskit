@@ -12,7 +12,7 @@
 """
 Symplectic Pauli Table Class
 """
-# pylint: disable=invalid-name, useless-super-delegation
+# pylint: disable=invalid-name
 
 import numpy as np
 
@@ -243,7 +243,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         """Return a view of the PauliTable."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
-        if isinstance(key, int):
+        if isinstance(key, (int, np.integer)):
             key = [key]
         return PauliTable(self._array[key])
 
@@ -272,7 +272,7 @@ class PauliTable(BaseOperator, AdjointMixin):
             QiskitError: if ind is out of bounds for the array size or
                          number of qubits.
         """
-        if isinstance(ind, int):
+        if isinstance(ind, (int, np.integer)):
             ind = [ind]
 
         # Row deletion
@@ -307,7 +307,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         Raises:
             QiskitError: if the insertion index is invalid.
         """
-        if not isinstance(ind, int):
+        if not isinstance(ind, (int, np.integer)):
             raise QiskitError("Insert index must be an integer.")
 
         if not isinstance(value, PauliTable):
@@ -467,7 +467,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         sort_inds = index.argsort()
         index = index[sort_inds]
         unique = self[index]
-        # Concatinate return tuples
+        # Concatenate return tuples
         ret = (unique, )
         if return_index:
             ret += (index, )
@@ -573,7 +573,6 @@ class PauliTable(BaseOperator, AdjointMixin):
         Raises:
             QiskitError: if other cannot be converted to a PauliTable.
         """
-        # pylint: disable=unused-argument
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
         if not isinstance(other, PauliTable):
@@ -646,7 +645,7 @@ class PauliTable(BaseOperator, AdjointMixin):
                                   (Default: None)
 
         Returns:
-            PauliTable: the concatinated table self + other.
+            PauliTable: the concatenated table self + other.
         """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
@@ -743,7 +742,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         Args:
             other (PauliTable): a PauliTable.
             anti (bool): if True return rows that anti-commute, otherwise
-                         return rows taht commute (Default: False).
+                         return rows that commute (Default: False).
 
         Returns:
             array: index array of commuting or anti-commuting row.
@@ -780,7 +779,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         tmp = PauliTable(pauli_table.array ^ pauli.array)
         tmp.X = (tmp.X & non_iden)
         tmp.Z = (tmp.Z & non_iden)
-        # Find total number of non I pauli's remaining in table
+        # Find total number of non I Pauli's remaining in table
         # if there are an even number the row commutes with the
         # input Pauli, otherwise it anti-commutes
         return np.logical_not(np.sum((tmp.X | tmp.Z), axis=1) % 2)

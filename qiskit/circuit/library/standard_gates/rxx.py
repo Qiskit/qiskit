@@ -17,7 +17,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RXXGate(Gate):
-    r"""A parameteric 2-qubit :math:`X \otimes X` interaction (rotation about XX).
+    r"""A parametric 2-qubit :math:`X \otimes X` interaction (rotation about XX).
 
     This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
 

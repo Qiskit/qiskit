@@ -77,7 +77,7 @@ class RZGate(Gate):
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-RZ gate.
+        """Return a (multi-)controlled-RZ gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -178,20 +178,19 @@ class CRZGate(ControlledGate):
     def _define(self):
         """
         gate crz(lambda) a,b
-        { u1(lambda/2) b; cx a,b;
-          u1(-lambda/2) b; cx a,b;
+        { rz(lambda/2) b; cx a,b;
+          rz(-lambda/2) b; cx a,b;
         }
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import U1Gate
         from .x import CXGate
         q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
         rules = [
-            (U1Gate(self.params[0] / 2), [q[1]], []),
+            (RZGate(self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U1Gate(-self.params[0] / 2), [q[1]], []),
+            (RZGate(-self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
         for instr, qargs, cargs in rules:

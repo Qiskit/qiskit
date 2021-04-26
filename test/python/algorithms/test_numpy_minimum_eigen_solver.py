@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,12 +14,15 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+
 import numpy as np
+from ddt import ddt, data
 
 from qiskit.algorithms import NumPyMinimumEigensolver
-from qiskit.opflow import PauliSumOp
+from qiskit.opflow import PauliSumOp, X, Y, Z
 
 
+@ddt
 class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
     """ Test NumPy Minimum Eigensolver """
 
@@ -120,6 +123,13 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
         self.assertEqual(result.eigenvalue, None)
         self.assertEqual(result.eigenstate, None)
         self.assertEqual(result.aux_operator_eigenvalues, None)
+
+    @data(X, Y, Z)
+    def test_cme_1q(self, op):
+        """ Test for 1 qubit operator """
+        algo = NumPyMinimumEigensolver()
+        result = algo.compute_minimum_eigenvalue(operator=op)
+        self.assertAlmostEqual(result.eigenvalue, -1)
 
 
 if __name__ == '__main__':

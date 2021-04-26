@@ -53,7 +53,7 @@ class TemplateOptimization(TransformationPass):
                 applying heuristics on the backward part of the algorithm. This part of the
                 algorithm creates a tree of matching scenario. This tree grows exponentially. The
                 heuristics evaluates which scenarios have the longest match and keep only those.
-                The length is the interval in the tree for cutting it and surviror is the number
+                The length is the interval in the tree for cutting it and survivor is the number
                 of scenarios that are kept. We advice to use l=3 and s=1 to have serious time
                 advantage. We remind that the heuristics implies losing a part of the maximal
                 matches. Check reference for more details.
@@ -63,7 +63,7 @@ class TemplateOptimization(TransformationPass):
                 predecessors that will be explored in the dag dependency of the circuit, each
                 qubits of the nodes are added to the set of authorized qubits. We advice to use
                 length=1. Check reference for more details.
-            user_cost_dict (Dict[str, int]): quantum cost dictonary passed to TemplateSubstitution
+            user_cost_dict (Dict[str, int]): quantum cost dictionary passed to TemplateSubstitution
                 to configure its behavior. This will override any default values if None
                 is not given. The key is the name of the gate and the value its quantum cost.
         """

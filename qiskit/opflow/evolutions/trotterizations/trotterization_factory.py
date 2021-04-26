@@ -12,10 +12,10 @@
 
 """TrotterizationFactory Class """
 
-from .trotterization_base import TrotterizationBase
-from .trotter import Trotter
-from .suzuki import Suzuki
-from .qdrift import QDrift
+from qiskit.opflow.evolutions.trotterizations.qdrift import QDrift
+from qiskit.opflow.evolutions.trotterizations.suzuki import Suzuki
+from qiskit.opflow.evolutions.trotterizations.trotter import Trotter
+from qiskit.opflow.evolutions.trotterizations.trotterization_base import TrotterizationBase
 
 
 class TrotterizationFactory():

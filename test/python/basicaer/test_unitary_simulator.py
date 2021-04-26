@@ -117,6 +117,24 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
                 fidelity = process_fidelity(unitary_target, unitary_out)
                 self.assertGreater(fidelity, 0.999)
 
+    def test_global_phase(self):
+        """Test global phase for XZH
+        See https://github.com/Qiskit/qiskit-terra/issues/3083"""
+
+        q = QuantumRegister(1)
+        circuit = QuantumCircuit(q)
+        circuit.h(q[0])
+        circuit.z(q[0])
+        circuit.x(q[0])
+
+        job = execute(circuit, self.backend)
+        result = job.result()
+
+        unitary_out = result.get_unitary(circuit)
+        unitary_target = np.array([[-1 / np.sqrt(2), 1 / np.sqrt(2)],
+                                   [1 / np.sqrt(2), 1 / np.sqrt(2)]])
+        self.assertTrue(np.allclose(unitary_out, unitary_target))
+
 
 if __name__ == '__main__':
     unittest.main()

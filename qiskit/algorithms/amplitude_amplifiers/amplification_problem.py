@@ -28,12 +28,13 @@ class AmplificationProblem:
     """
 
     def __init__(self,
-                 oracle: QuantumCircuit,
+                 oracle: Union[QuantumCircuit, Statevector],
                  state_preparation: Optional[QuantumCircuit] = None,
                  grover_operator: Optional[QuantumCircuit] = None,
                  post_processing: Optional[Callable[[str], Any]] = None,
                  objective_qubits: Optional[Union[int, List[int]]] = None,
-                 is_good_state: Optional[Callable[[str], bool]] = None,
+                 is_good_state: Optional[Union[
+                     Callable[[str], bool], List[int], List[str], Statevector]] = None,
                  ) -> None:
         r"""
         Args:
@@ -58,7 +59,7 @@ class AmplificationProblem:
 
     @property
     def state_preparation(self) -> QuantumCircuit:
-        r"""Get the state preperation operator :math:`\mathcal{A}`.
+        r"""Get the state preparation operator :math:`\mathcal{A}`.
 
         Returns:
             The :math:`\mathcal{A}` operator as `QuantumCircuit`.
@@ -127,7 +128,7 @@ class AmplificationProblem:
         self._objective_qubits = objective_qubits
 
     @property
-    def is_good_state(self) -> Callable[[str], float]:
+    def is_good_state(self) -> Callable[[str], bool]:
         """Check whether a provided bitstring is a good state or not.
 
         Returns:

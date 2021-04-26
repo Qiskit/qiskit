@@ -72,7 +72,7 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
     @unittest.skipIf(not HAS_GRAPHVIZ, 'Graphviz not installed.')
     def test_pass_manager_drawer_basic(self):
         """Test to see if the drawer draws a normal pass manager correctly"""
-        filename = self._get_resource_path('current_standard.dot')
+        filename = 'current_standard.dot'
         self.pass_manager.draw(filename=filename, raw=True)
 
         self.assertFilesAreEqual(filename, path_to_diagram_reference('pass_manager_standard.dot'))
@@ -87,7 +87,7 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
                  EnlargeWithAncilla: 'pink',
                  RemoveResetInZeroState: 'grey'}
 
-        filename = self._get_resource_path('current_style.dot')
+        filename = 'current_style.dot'
         self.pass_manager.draw(filename=filename, style=style, raw=True)
 
         self.assertFilesAreEqual(filename, path_to_diagram_reference('pass_manager_style.dot'))

@@ -12,6 +12,7 @@
 """Utility module to open an issue on the repository when CIs fail."""
 
 import os
+import re
 
 from github import Github
 
@@ -20,6 +21,7 @@ class CIFailureReporter:
     """Instances of this class can report to GitHub that the CI is failing.
 
     """
+    stable_branch_regex = re.compile(r'^stable/\d+\.\d+')
 
     def __init__(self, repository, token):
         """
@@ -45,7 +47,7 @@ class CIFailureReporter:
                 build logs.
             job_name (str): name of the failed ci job.
         """
-        if branch != 'master' and not branch.startswith('stable/'):
+        if branch != 'main' and not self.stable_branch_regex.search(branch):
             return None
         key_label = self._key_label(branch, job_name)
         issue_number = self._get_report_issue_number(key_label)
@@ -59,8 +61,8 @@ class CIFailureReporter:
             return 'randomized test'
         elif job_name == 'Benchmarks':
             return 'benchmarks failing'
-        elif branch_name == 'master':
-            return 'master failing'
+        elif branch_name == 'main':
+            return 'main failing'
         elif branch_name.startswith('stable/'):
             return 'stable failing'
         else:
@@ -154,6 +156,7 @@ def _get_info_url():
 
 
 if __name__ == '__main__':
-    _REPORTER = CIFailureReporter(_get_repo_name(), _GH_TOKEN)
-    _REPORTER.report(_get_branch_name(), _get_commit_hash(),
-                     _get_info_url(), _get_job_name())
+    if os.getenv('TRAVIS_EVENT_TYPE', '') == 'push':
+        _REPORTER = CIFailureReporter(_get_repo_name(), _GH_TOKEN)
+        _REPORTER.report(_get_branch_name(), _get_commit_hash(),
+                         _get_info_url(), _get_job_name())

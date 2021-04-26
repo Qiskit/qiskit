@@ -16,7 +16,6 @@ import functools
 
 
 def name_args(mapping, skip=0):
-    # pylint: disable=wrong-spelling-in-docstring
     """Decorator to convert unnamed arguments to named ones.
 
     Can be used to deprecate old signatures of a function, e.g.

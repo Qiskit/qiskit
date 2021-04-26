@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 # pylint: disable=unused-variable
-# pylint: disable=missing-param-doc
-# pylint: disable=missing-type-doc
 
 """
 Multi controlled single-qubit unitary up to diagonal.
@@ -47,7 +45,7 @@ class MCGupDiag(Gate):
                 gate (ndarray): 2*2 unitary (given as a (complex) ndarray)
                 num_controls (int): number of control qubits
                 num_ancillas_zero (int): number of ancilla qubits that start in the state zero
-                num_ancillas_dirty (int): number of anxilla qubits that are allowed to start in an
+                num_ancillas_dirty (int): number of ancilla qubits that are allowed to start in an
                     arbitrary state
             Raises:
                 QiskitError: if the input format is wrong; if the array gate is not unitary

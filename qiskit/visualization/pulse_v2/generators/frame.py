@@ -309,13 +309,13 @@ def gen_frame_symbol(data: types.PulseInstruction,
                 program.append('{}({:.2e} Hz)'.format(inst.__class__.__name__, inst.frequency))
             except TypeError:
                 # parameter expression
-                program.append('{}({})'.format(inst.__class__.__name__, inst.frequency.name))
+                program.append('{}({})'.format(inst.__class__.__name__, inst.frequency))
         elif isinstance(inst, (instructions.SetPhase, instructions.ShiftPhase)):
             try:
                 program.append('{}({:.2f} rad.)'.format(inst.__class__.__name__, inst.phase))
             except TypeError:
                 # parameter expression
-                program.append('{}({})'.format(inst.__class__.__name__, inst.phase.name))
+                program.append('{}({})'.format(inst.__class__.__name__, inst.phase))
 
     meta = {'total phase change': data.frame.phase,
             'total frequency change': data.frame.freq,
@@ -416,8 +416,8 @@ def _freq_to_text(formatter: Dict[str, Any],
 
     try:
         value = freq/unit_table[unit]
-    except KeyError:
-        raise VisualizationError('Unit {unit} is not supported.'.format(unit=unit))
+    except KeyError as ex:
+        raise VisualizationError(f'Unit {unit} is not supported.') from ex
 
     latex = r'{val:.2f}~{{\rm {unit}}}'.format(val=value, unit=unit)
     plain = '{val:.2f} {unit}'.format(val=value, unit=unit)

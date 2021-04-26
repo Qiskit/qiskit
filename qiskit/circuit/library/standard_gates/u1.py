@@ -93,7 +93,7 @@ class U1Gate(Gate):
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-U1 gate.
+        """Return a (multi-)controlled-U1 gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.

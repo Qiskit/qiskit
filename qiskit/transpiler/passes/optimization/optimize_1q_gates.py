@@ -70,7 +70,7 @@ class Optimize1qGates(TransformationPass):
             right_global_phase = 0
             for current_node in run:
                 left_name = current_node.name
-                if (current_node.condition is not None
+                if (current_node.op.condition is not None
                         or len(current_node.qargs) != 1
                         or left_name not in ["p", "u1", "u2", "u3", 'u', "id"]):
                     raise TranspilerError("internal error")
@@ -92,7 +92,7 @@ class Optimize1qGates(TransformationPass):
                     right_global_phase += current_node.op.definition.global_phase
                 # If there are any sympy objects coming from the gate convert
                 # to numpy.
-                left_parameters = tuple([float(x) for x in left_parameters])
+                left_parameters = tuple(float(x) for x in left_parameters)
                 # Compose gates
                 name_tuple = (left_name, right_name)
                 if name_tuple in (("u1", "u1"), ("p", "p")):
@@ -189,7 +189,7 @@ class Optimize1qGates(TransformationPass):
                                         right_parameters[2] +
                                         right_parameters[0])
                 # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
-                if right_name == "u3" or 'u':
+                if right_name in ("u3", 'u'):
                     # theta = pi/2 + 2*k*pi
                     right_angle = right_parameters[0] - np.pi / 2
                     if abs(right_angle) < self.eps:

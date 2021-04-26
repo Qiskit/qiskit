@@ -12,7 +12,7 @@
 """
 Optimized list of Pauli operators
 """
-# pylint: disable=invalid-name, abstract-method
+# pylint: disable=invalid-name
 
 import copy
 import numpy as np
@@ -299,7 +299,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         if base_z.shape != base_x.shape:
             raise QiskitError("z and x vectors are different size.")
 
-        # Convert group phase convention to internal ZX-phase convertion.
+        # Convert group phase convention to internal ZX-phase conversion.
         base_phase = np.mod(np.sum(np.logical_and(base_x, base_z),
                                    axis=1, dtype=int) + phase, 4)
         return base_z, base_x, base_phase
@@ -452,7 +452,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             'swap': _evolve_swap
         }
 
-        # Non-clifford gates
+        # Non-Clifford gates
         non_clifford = ['t', 'tdg', 'ccx', 'ccz']
 
         if isinstance(gate, str):
@@ -486,13 +486,19 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             raise QiskitError(
                 '{} instruction definition is {}; expected QuantumCircuit'.format(
                     gate.name, type(gate.definition)))
-        for instr, qregs, cregs in gate.definition:
+
+        flat_instr = gate.definition
+        bit_indices = {bit: index
+                       for bits in [flat_instr.qubits, flat_instr.clbits]
+                       for index, bit in enumerate(bits)}
+
+        for instr, qregs, cregs in flat_instr:
             if cregs:
                 raise QiskitError(
                     'Cannot apply Instruction with classical registers: {}'.format(
                         instr.name))
             # Get the integer position of the flat register
-            new_qubits = [qargs[tup.index] for tup in qregs]
+            new_qubits = [qargs[bit_indices[tup]] for tup in qregs]
             self._append_circuit(instr, new_qubits)
 
         # Since the individual gate evolution functions don't take mod
@@ -564,19 +570,19 @@ def _evolve_cx(base_pauli, qctrl, qtrgt):
 
 def _evolve_cz(base_pauli, q1, q2):
     """Update P -> CZ.P.CZ"""
-    x1 = base_pauli._x[:, q1]
-    x2 = base_pauli._x[:, q2]
-    base_pauli._z[:, q1] ^= x1
-    base_pauli._z[:, q2] ^= x2
+    x1 = base_pauli._x[:, q1].copy()
+    x2 = base_pauli._x[:, q2].copy()
+    base_pauli._z[:, q1] ^= x2
+    base_pauli._z[:, q2] ^= x1
     base_pauli._phase += 2 * np.logical_and(x1, x2).T
     return base_pauli
 
 
 def _evolve_cy(base_pauli, qctrl, qtrgt):
     """Update P -> CY.P.CY"""
-    x1 = base_pauli._x[:, qctrl]
-    x2 = base_pauli._x[:, qtrgt]
-    z2 = base_pauli._z[:, qtrgt]
+    x1 = base_pauli._x[:, qctrl].copy()
+    x2 = base_pauli._x[:, qtrgt].copy()
+    z2 = base_pauli._z[:, qtrgt].copy()
     base_pauli._x[:, qtrgt] ^= x1
     base_pauli._z[:, qtrgt] ^= x1
     base_pauli._z[:, qctrl] ^= np.logical_xor(x2, z2)
@@ -586,8 +592,8 @@ def _evolve_cy(base_pauli, qctrl, qtrgt):
 
 def _evolve_swap(base_pauli, q1, q2):
     """Update P -> SWAP.P.SWAP"""
-    x1 = base_pauli._x[:, q1]
-    z1 = base_pauli._z[:, q1]
+    x1 = base_pauli._x[:, q1].copy()
+    z1 = base_pauli._z[:, q1].copy()
     base_pauli._x[:, q1] = base_pauli._x[:, q2]
     base_pauli._z[:, q1] = base_pauli._z[:, q2]
     base_pauli._x[:, q2] = x1

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring, invalid-name
+# pylint: disable=invalid-name
 
 """Tests for drawing object generation."""
 
@@ -668,6 +668,26 @@ class TestFrameGenerators(QiskitTestCase):
                      'va': 'center',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
+
+    def gen_frame_symbol_with_parameters(self):
+        """Test gen_frame_symbol with parameterized frame."""
+        theta = -1.0 * circuit.Parameter('P0')
+        fcs = [pulse.ShiftPhase(theta, pulse.DriveChannel(0))]
+        inst_data = create_instruction(fcs, np.pi / 2, 1e6, 5, 0.1)
+
+        obj = frame.gen_frame_symbol(inst_data,
+                                     formatter=self.formatter,
+                                     device=self.device)[0]
+
+        # metadata check
+        ref_meta = {
+            'total phase change': np.pi/2,
+            'total frequency change': 1e6,
+            'program': ['ShiftPhase(-1.0*P0)'],
+            't0 (cycle time)': 5,
+            't0 (sec)': 0.5
+        }
+        self.assertDictEqual(obj.meta, ref_meta)
 
 
 class TestSnapshotGenerators(QiskitTestCase):

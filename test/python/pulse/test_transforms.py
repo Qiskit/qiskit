@@ -34,8 +34,6 @@ from qiskit.pulse.instructions import directives
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
-# pylint: disable=invalid-name
-
 
 class TestAlignMeasures(QiskitTestCase):
     """Test the helper function which aligns acquires."""
@@ -688,9 +686,7 @@ class TestAlignEquispaced(QiskitTestCase):
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(10, d0), inplace=True)
-        reference.insert(10, Delay(10, d0), inplace=True)
         reference.insert(20, Delay(10, d0), inplace=True)
-        reference.insert(30, Delay(10, d0), inplace=True)
         reference.insert(40, Delay(10, d0), inplace=True)
 
         self.assertEqual(sched, reference)
@@ -727,8 +723,6 @@ class TestAlignEquispaced(QiskitTestCase):
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(10, d0), inplace=True)
-        reference.insert(10, Delay(20, d0), inplace=True)
-        reference.insert(0, Delay(10, d1), inplace=True)
         reference.insert(10, Delay(20, d1), inplace=True)
 
         self.assertEqual(sched, reference)
@@ -770,13 +764,9 @@ class TestAlignFunc(QiskitTestCase):
         sched = transforms.align_func(sched, duration=80, func=self._position)
 
         reference = pulse.Schedule()
-        reference.insert(0, Delay(15, d0), inplace=True)
         reference.insert(15, Delay(10, d0), inplace=True)
-        reference.insert(25, Delay(10, d0), inplace=True)
         reference.insert(35, Delay(10, d0), inplace=True)
-        reference.insert(45, Delay(10, d0), inplace=True)
         reference.insert(55, Delay(10, d0), inplace=True)
-        reference.insert(65, Delay(15, d0), inplace=True)
 
         self.assertEqual(sched, reference)
 
@@ -821,7 +811,11 @@ class _TestDirective(directives.Directive):
 
     def __init__(self, *channels):
         """Test directive"""
-        super().__init__(tuple(channels), 0, tuple(channels))
+        super().__init__(operands=tuple(channels))
+
+    @property
+    def channels(self):
+        return self.operands
 
 
 class TestRemoveDirectives(QiskitTestCase):
@@ -860,6 +854,36 @@ class TestRemoveTrivialBarriers(QiskitTestCase):
         reference += directives.RelativeBarrier(pulse.DriveChannel(0),
                                                 pulse.DriveChannel(1))
         self.assertEqual(schedule, reference)
+
+
+class TestRemoveSubroutines(QiskitTestCase):
+    """Test removing of subroutines."""
+
+    def test_remove_subroutines(self):
+        """Test that nested subroutiens are removed."""
+        d0 = pulse.DriveChannel(0)
+
+        nested_routine = pulse.Schedule()
+        nested_routine.insert(10, pulse.Delay(10, d0), inplace=True)
+
+        subroutine = pulse.Schedule()
+        subroutine.insert(0, pulse.Delay(20, d0), inplace=True)
+        subroutine.insert(20, pulse.instructions.Call(nested_routine), inplace=True)
+        subroutine.insert(50, pulse.Delay(10, d0), inplace=True)
+
+        main_program = pulse.Schedule()
+        main_program.insert(0, pulse.Delay(10, d0), inplace=True)
+        main_program.insert(30, pulse.instructions.Call(subroutine), inplace=True)
+
+        target = transforms.inline_subroutines(main_program)
+
+        reference = pulse.Schedule()
+        reference.insert(0, pulse.Delay(10, d0), inplace=True)
+        reference.insert(30, pulse.Delay(20, d0), inplace=True)
+        reference.insert(60, pulse.Delay(10, d0), inplace=True)
+        reference.insert(80, pulse.Delay(10, d0), inplace=True)
+
+        self.assertEqual(target, reference)
 
 
 if __name__ == '__main__':

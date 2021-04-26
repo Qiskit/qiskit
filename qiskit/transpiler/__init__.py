@@ -20,7 +20,7 @@ Transpiler (:mod:`qiskit.transpiler`)
 Overview
 ========
 Transpilation is the process of rewriting a given input circuit to match
-the topoplogy of a specific quantum device, and/or to optimize the circuit
+the topology of a specific quantum device, and/or to optimize the circuit
 for execution on present day noisy quantum systems.
 
 Most circuits must undergo a series of transformations that make them compatible with
@@ -394,6 +394,15 @@ Fenced Objects
 
    FencedDAGCircuit
    FencedPropertySet
+
+Abstract Passes
+---------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   TransformationPass
+   AnalysisPass
 
 Exceptions
 ----------
