@@ -68,7 +68,6 @@ class QNSPSA(SPSA):
                  maxiter: int = 100,
                  blocking: bool = True,
                  allowed_increase: Optional[float] = None,
-                 trust_region: bool = False,
                  learning_rate: Optional[Union[float, Callable[[], Iterator]]] = None,
                  perturbation: Optional[Union[float, Callable[[], Iterator]]] = None,
                  last_avg: int = 1,
