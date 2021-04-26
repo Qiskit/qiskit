@@ -596,7 +596,6 @@ class Pauli(BasePauli):
         for row in adj.stabilizer[self.z[idx]]:
             row_pauli = Pauli((row.Z[0], row.X[0], 2 * row.phase[0]))
             ret = ret.dot(row_pauli, qargs=qargs)
-        
         for row in adj.destabilizer[self.x[idx]]:
             row_pauli = Pauli((row.Z[0], row.X[0], 2 * row.phase[0]))
             ret = ret.dot(row_pauli, qargs=qargs)
