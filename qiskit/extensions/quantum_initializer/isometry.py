@@ -24,7 +24,7 @@ import itertools
 import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
@@ -35,7 +35,7 @@ from qiskit.extensions.quantum_initializer.mcg_up_to_diagonal import MCGupDiag
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Isometry(Gate):
+class Isometry(Instruction):
     """
     Decomposition of arbitrary isometries from m to n qubits. In particular, this allows to
     decompose unitaries (m=n) and to do state preparation (m=0).
@@ -93,7 +93,7 @@ class Isometry(Gate):
 
         num_qubits = int(n) + num_ancillas_zero + num_ancillas_dirty
 
-        super().__init__("isometry", num_qubits, [isometry])
+        super().__init__("isometry", num_qubits, 0, [isometry])
 
     def _define(self):
         # TODO The self.inv_gate() gate.inverse() is because
@@ -274,7 +274,7 @@ class Isometry(Gate):
             # of the 2^n identity matrix
             iso_circuit = self._gates_to_uncompute()
             # invert the circuit to create the circuit implementing the isometry
-            self._inverse = iso_circuit.to_gate()
+            self._inverse = iso_circuit.to_instruction()
         return self._inverse
 
 
