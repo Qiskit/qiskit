@@ -818,12 +818,12 @@ class ScheduleBlock:
     and thus we can assign a parameter object to the instruction duration.
     Instructions are implicitly scheduled at optimum time when the program is executed.
 
-    Note that ``ScheduleBlock`` can contain :class:`~qiskit.pulse.instructions.Instruction`s
-    and other ``ScheduleBlock``s to build an experimental program, but ``Schedule`` is not
+    Note that ``ScheduleBlock`` can contain :class:`~qiskit.pulse.instructions.Instruction`
+    and other ``ScheduleBlock`` to build an experimental program, but ``Schedule`` is not
     supported. This should be added as a :class:`~qiskit.pulse.instructions.Call` instruction.
     This conversion is automatically performed with the pulse builder.
 
-    By using ``ScheduleBlock`` representation we can fully parametrize pulse waveform.
+    By using ``ScheduleBlock`` representation we can fully parametrize pulse waveforms.
     For example, Rabi schedule generator can be defined as
 
     .. code-block:: python
