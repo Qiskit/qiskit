@@ -58,9 +58,8 @@ class AmplificationProblem:
             self.state_preparation = QuantumCircuit(oracle.num_qubits)
             self.state_preparation.h(range(oracle.num_qubits))
 
-        self.grover_operator = grover_operator if grover_operator else \
-            GroverOperator(self.oracle, self.state_preparation)
-        self.post_processing = post_processing if post_processing else lambda x: x
+        self.grover_operator = grover_operator or GroverOperator(oracle, self.state_preparation)
+        self.post_processing = post_processing or (lambda x: x)
         self._objective_qubits = objective_qubits
         self._is_good_state = is_good_state
 
