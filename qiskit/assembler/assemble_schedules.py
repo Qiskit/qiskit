@@ -26,7 +26,8 @@ from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
 
 def assemble_schedules(
-        schedules: List[Union['schedule.ScheduleComponent',
+        schedules: List[Union['schedule.ScheduleBlock',
+                              'schedule.ScheduleComponent',
                               Tuple[int, 'schedule.ScheduleComponent']]],
         qobj_id: int,
         qobj_header: qobj.QobjHeader,
@@ -97,15 +98,7 @@ def _assemble_experiments(
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
 
-    formatted_schedules = []
-    for sched in schedules:
-        if isinstance(sched, pulse.Schedule):
-            sched = transforms.inline_subroutines(sched)
-            sched = transforms.flatten(sched)
-            formatted_schedules.append(sched)
-        else:
-            formatted_schedules.append(pulse.Schedule(sched))
-
+    formatted_schedules = [transforms.target_qobj_transform(sched) for sched in schedules]
     compressed_schedules = transforms.compress_pulses(formatted_schedules)
 
     user_pulselib = {}
@@ -158,7 +151,7 @@ def _assemble_experiments(
 
 
 def _assemble_instructions(
-        sched: pulse.Schedule,
+        sched: Union[pulse.Schedule, pulse.ScheduleBlock],
         instruction_converter: converters.InstructionToQobjConverter,
         run_config: RunConfig,
         user_pulselib: Dict[str, List[complex]]
@@ -180,6 +173,8 @@ def _assemble_instructions(
         A list of converted instructions, the user pulse library dictionary (from pulse name to
         pulse samples), and the maximum number of readout memory slots used by this Schedule.
     """
+    sched = transforms.target_qobj_transform(sched)
+
     max_memory_slot = 0
     qobj_instructions = []
 

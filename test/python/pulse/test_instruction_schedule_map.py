@@ -17,7 +17,7 @@ import qiskit.pulse.library as library
 from qiskit.circuit.library.standard_gates import U1Gate, U3Gate, CXGate, XGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.pulse import (InstructionScheduleMap, Play, PulseError, Schedule,
+from qiskit.pulse import (InstructionScheduleMap, Play, PulseError, Schedule, ScheduleBlock,
                           Waveform, ShiftPhase)
 from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
@@ -32,7 +32,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_add(self):
         """Test add, and that errors are raised when expected."""
         sched = Schedule()
-        sched.append(Play(Waveform(np.ones(5)), DriveChannel(0)))
+        sched.append(Play(Waveform(np.ones(5)), DriveChannel(0)), inplace=True)
         inst_map = InstructionScheduleMap()
 
         inst_map.add('u1', 1, sched)
@@ -46,6 +46,19 @@ class TestInstructionScheduleMap(QiskitTestCase):
             inst_map.add('u1', (), sched)
         with self.assertRaises(PulseError):
             inst_map.add('u1', 1, "not a schedule")
+
+    def test_add_block(self):
+        """Test add block, and that errors are raised when expected."""
+        sched = ScheduleBlock()
+        sched.append(Play(Waveform(np.ones(5)), DriveChannel(0)), inplace=True)
+        inst_map = InstructionScheduleMap()
+
+        inst_map.add('u1', 1, sched)
+        inst_map.add('u1', 0, sched)
+
+        self.assertIn('u1', inst_map.instructions)
+        self.assertEqual(inst_map.qubits_with_instruction('u1'), [0, 1])
+        self.assertTrue('u1' in inst_map.qubit_instructions(0))
 
     def test_instructions(self):
         """Test `instructions`."""
@@ -117,7 +130,16 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_get(self):
         """Test `get`."""
         sched = Schedule()
-        sched.append(Play(Waveform(np.ones(5)), DriveChannel(0)))
+        sched.append(Play(Waveform(np.ones(5)), DriveChannel(0)), inplace=True)
+        inst_map = InstructionScheduleMap()
+        inst_map.add('x', 0, sched)
+
+        self.assertEqual(sched, inst_map.get('x', (0,)))
+
+    def test_get_block(self):
+        """Test `get` block."""
+        sched = ScheduleBlock()
+        sched.append(Play(Waveform(np.ones(5)), DriveChannel(0)), inplace=True)
         inst_map = InstructionScheduleMap()
         inst_map.add('x', 0, sched)
 
