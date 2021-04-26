@@ -70,7 +70,7 @@ class VariationalAlgorithm:
             logger.info('No optimizer provided, setting it to SLSPQ.')
             optimizer = SLSQP()
 
-        self.optimizer = optimizer
+        self._optimizer = optimizer
         self._gradient = gradient
         self._cost_fn = cost_fn
         self.initial_point = initial_point
@@ -110,6 +110,16 @@ class VariationalAlgorithm:
             self._ansatz = ansatz
         else:
             raise ValueError('Unsupported type "{}" of ansatz'.format(type(ansatz)))
+
+    @property
+    def optimizer(self) -> Optional[Optimizer]:
+        """ Returns optimizer """
+        return self._optimizer
+
+    @optimizer.setter
+    def optimizer(self, optimizer: Optimizer):
+        """ Sets optimizer """
+        self._optimizer = optimizer
 
     def find_minimum(self,
                      initial_point: Optional[np.ndarray] = None,
