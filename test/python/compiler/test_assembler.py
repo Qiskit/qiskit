@@ -609,11 +609,11 @@ class TestCircuitAssembler(QiskitTestCase):
         )
         validate_qobj_against_schema(qobj)
 
-        # convert to GHz
-        qubit_lo_freq_GHz = [freq / 1e9 for freq in self.default_qubit_lo_freq]
-        meas_lo_freq_GHz = [freq / 1e9 for freq in self.default_meas_lo_freq]
-        self.assertEqual(qobj.config.qubit_lo_freq, qubit_lo_freq_GHz)
-        self.assertEqual(qobj.config.meas_lo_freq, meas_lo_freq_GHz)
+        # convert to ghz
+        qubit_lo_freq_ghz = [freq / 1e9 for freq in self.default_qubit_lo_freq]
+        meas_lo_freq_ghz = [freq / 1e9 for freq in self.default_meas_lo_freq]
+        self.assertEqual(qobj.config.qubit_lo_freq, qubit_lo_freq_ghz)
+        self.assertEqual(qobj.config.meas_lo_freq, meas_lo_freq_ghz)
 
     def test_job_lo_errors(self):
         """Test that job lo's are checked against the lo ranges and that errors are thrown if either
@@ -730,11 +730,11 @@ class TestCircuitAssembler(QiskitTestCase):
         )
         validate_qobj_against_schema(qobj)
 
-        # convert to GHz
-        qubit_lo_freq_GHz = [freq / 1e9 for freq in self.default_qubit_lo_freq]
-        meas_lo_freq_GHz = [freq / 1e9 for freq in self.default_meas_lo_freq]
-        self.assertEqual(qobj.config.qubit_lo_freq, qubit_lo_freq_GHz)
-        self.assertEqual(qobj.config.meas_lo_freq, meas_lo_freq_GHz)
+        # convert to ghz
+        qubit_lo_freq_ghz = [freq / 1e9 for freq in self.default_qubit_lo_freq]
+        meas_lo_freq_ghz = [freq / 1e9 for freq in self.default_meas_lo_freq]
+        self.assertEqual(qobj.config.qubit_lo_freq, qubit_lo_freq_ghz)
+        self.assertEqual(qobj.config.meas_lo_freq, meas_lo_freq_ghz)
         self.assertNotIn("qubit_lo_range", qobj.config.to_dict())
         self.assertNotIn("meas_lo_range", qobj.config.to_dict())
 
@@ -789,10 +789,10 @@ class TestCircuitAssembler(QiskitTestCase):
         )
         validate_qobj_against_schema(qobj)
 
-        qubit_lo_freq_GHz = [freq / 1e9 for freq in self.default_qubit_lo_freq]
-        meas_lo_freq_GHz = [freq / 1e9 for freq in self.default_meas_lo_freq]
-        self.assertListEqual(qobj.config.qubit_lo_freq, qubit_lo_freq_GHz)
-        self.assertListEqual(qobj.config.meas_lo_freq, meas_lo_freq_GHz)
+        qubit_lo_freq_ghz = [freq / 1e9 for freq in self.default_qubit_lo_freq]
+        meas_lo_freq_ghz = [freq / 1e9 for freq in self.default_meas_lo_freq]
+        self.assertListEqual(qobj.config.qubit_lo_freq, qubit_lo_freq_ghz)
+        self.assertListEqual(qobj.config.meas_lo_freq, meas_lo_freq_ghz)
         self.assertEqual(len(qobj.experiments), 2)
 
         # experiment 0 los
@@ -825,10 +825,10 @@ class TestCircuitAssembler(QiskitTestCase):
         )
         validate_qobj_against_schema(qobj)
 
-        qubit_lo_freq_GHz = [freq / 1e9 for freq in self.default_qubit_lo_freq]
-        meas_lo_freq_GHz = [freq / 1e9 for freq in self.default_meas_lo_freq]
-        self.assertListEqual(qobj.config.qubit_lo_freq, qubit_lo_freq_GHz)
-        self.assertListEqual(qobj.config.meas_lo_freq, meas_lo_freq_GHz)
+        qubit_lo_freq_ghz = [freq / 1e9 for freq in self.default_qubit_lo_freq]
+        meas_lo_freq_ghz = [freq / 1e9 for freq in self.default_meas_lo_freq]
+        self.assertListEqual(qobj.config.qubit_lo_freq, qubit_lo_freq_ghz)
+        self.assertListEqual(qobj.config.meas_lo_freq, meas_lo_freq_ghz)
         self.assertEqual(len(qobj.experiments), 2)
 
         # experiment 0 los

@@ -349,6 +349,13 @@ def _check_lo_freqs(
             ``[lo_min, lo_max]``.
         lo_type: The type of LO value--"qubit" or "meas".
         n_qubits: The number of qubits on this backend.
+
+    Raises:
+        QiskitError:
+            - If the length of the LO frequency list is not equal to the number of qubits.
+            - If the length of the LO range list is not equal to the number of qubits.
+            - If each element of the LO range is not a 2d list.
+            - If the LO frequency is not in the LO range for a given qubit.
     """
     # check LO frequencies length
     if lo_freq and len(lo_freq) != n_qubits:
