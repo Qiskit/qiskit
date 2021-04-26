@@ -311,3 +311,4 @@ class GroverResult(AmplitudeAmplifierResult):
         self.iterations = None
         self.circuit_results = None
         self.shots = None
+        self.max_probability = None

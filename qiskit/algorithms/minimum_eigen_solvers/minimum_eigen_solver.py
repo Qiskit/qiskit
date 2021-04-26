@@ -15,7 +15,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-import numpy as np
 from qiskit.opflow import OperatorBase
 from ..algorithm_result import AlgorithmResult
 
