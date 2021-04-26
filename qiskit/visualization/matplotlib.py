@@ -149,9 +149,8 @@ class MatplotlibDrawer:
         if self._fold < 2:
             self._fold = -1
         if ax is None:
-            from matplotlib.figure import Figure
             self._return_fig = True
-            self._figure = Figure()
+            self._figure = plt.figure()
             self._figure.patch.set_facecolor(color=self._style['bg'])
             self._ax = self._figure.add_subplot(111)
         else:
