@@ -164,7 +164,7 @@ from .operator_globals import (EVAL_SIG_DIGITS,
                                CX, S, H, T, Swap, CZ,
                                Zero, One, Plus, Minus)
 # Gradients
-from .gradients import (DerivativeBase, GradientBase, Gradient, NaturalGradient,
+from .gradients import (DerivativeBase, GradientBase, Gradient, NaturalGradient, SAMGradient,
                         HessianBase, Hessian, QFIBase, QFI,
                         CircuitGradient, CircuitQFI)
 # Exceptions
@@ -187,7 +187,7 @@ __all__ = [
     # Convenience immutable instances
     'X', 'Y', 'Z', 'I', 'CX', 'S', 'H', 'T', 'Swap', 'CZ', 'Zero', 'One', 'Plus', 'Minus',
     # Gradients
-    'DerivativeBase', 'GradientBase', 'Gradient', 'NaturalGradient',
+    'DerivativeBase', 'GradientBase', 'Gradient', 'NaturalGradient', 'SAMGradient',
     'HessianBase', 'Hessian', 'QFIBase', 'QFI',
     'OpflowError',
     # utils

@@ -168,6 +168,7 @@ from .derivative_base import DerivativeBase
 from .gradient_base import GradientBase
 from .gradient import Gradient
 from .natural_gradient import NaturalGradient
+from .sam_gradient import SAMGradient
 from .hessian_base import HessianBase
 from .hessian import Hessian
 from .qfi_base import QFIBase
@@ -178,6 +179,7 @@ __all__ = ['DerivativeBase',
            'GradientBase',
            'Gradient',
            'NaturalGradient',
+           'SAMGradient',
            'HessianBase',
            'Hessian',
            'QFIBase',
