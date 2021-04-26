@@ -257,8 +257,6 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                     params = ["IXYZ"]
                 if gate_class.__name__ in ['BooleanExpression']:
                     params = ["x | y"]
-                if gate_class.__name__ in ['Isometry']:
-                    params = [[[1, 0], [0, 1]], 0, 0]
                 gate = gate_class(*params)
                 equiv_lib_list = std_eqlib.get_entry(gate)
                 for ieq, equivalency in enumerate(equiv_lib_list):

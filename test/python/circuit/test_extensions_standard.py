@@ -1357,7 +1357,6 @@ class TestStandardMethods(QiskitTestCase):
         """test gates implementing to_matrix generate matrix which matches definition."""
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
         from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
-        from qiskit.extensions.quantum_initializer.isometry import Isometry
 
         params = [0.1 * (i + 1) for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
@@ -1374,8 +1373,6 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class("IXYZ")
                 elif gate_class == BooleanExpression:
                     gate = gate_class("x")
-                elif gate_class == Isometry:
-                    gate = gate_class([[1, 0], [0, 1]], 0, 0)
                 else:
                     gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
@@ -1429,8 +1426,6 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class("IXYZ")
                 elif gate_class == BooleanExpression:
                     gate = gate_class("x")
-                elif gate_class.__name__ == 'Isometry':
-                    gate = gate_class([[1, 0], [0, 1]], 0, 0)
                 else:
                     gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
