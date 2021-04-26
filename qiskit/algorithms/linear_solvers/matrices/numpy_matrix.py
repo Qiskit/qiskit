@@ -53,18 +53,11 @@ class NumPyMatrix(LinearSystemMatrix):
             evolution_time: The time of the Hamiltonian simulation.
             name: The name of the object.
         """
-
-        # define internal parameters
         self._num_state_qubits = None
-        self._tolerance = None
-        self._evolution_time = None  # makes sure the eigenvalues are contained in [0,1)
-        self._matrix = None
+        self.matrix = matrix
 
         # store parameters
         self.num_state_qubits = int(np.log2(matrix.shape[0]))
-        self.tolerance = tolerance
-        self.evolution_time = evolution_time
-        self.matrix = matrix
         super().__init__(num_state_qubits=int(np.log2(matrix.shape[0])), tolerance=tolerance,
                          evolution_time=evolution_time, name=name)
 
@@ -91,47 +84,6 @@ class NumPyMatrix(LinearSystemMatrix):
             self._invalidate()
             self._num_state_qubits = num_state_qubits
             self._reset_registers(num_state_qubits)
-
-    @property
-    def tolerance(self) -> float:
-        """Return the error tolerance"""
-        return self._tolerance
-
-    @tolerance.setter
-    def tolerance(self, tolerance: float) -> None:
-        """Set the error tolerance
-        Args:
-            tolerance: The new error tolerance.
-        """
-        self._tolerance = tolerance
-
-    @property
-    def evolution_time(self) -> float:
-        """Return the time of the evolution."""
-        return self._evolution_time
-
-    @evolution_time.setter
-    def evolution_time(self, evolution_time: float) -> None:
-        """Set the time of the evolution.
-
-        Args:
-            evolution_time: The new time of the evolution.
-        """
-        self._evolution_time = evolution_time
-
-    @property
-    def matrix(self) -> np.ndarray:
-        """Return the matrix."""
-        return self._matrix
-
-    @matrix.setter
-    def matrix(self, matrix: np.ndarray) -> None:
-        """Set the matrix.
-
-        Args:
-            matrix: The new matrix.
-        """
-        self._matrix = matrix
 
     def eigs_bounds(self) -> Tuple[float, float]:
         """Return lower and upper bounds on the eigenvalues of the matrix."""

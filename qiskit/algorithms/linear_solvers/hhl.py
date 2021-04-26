@@ -111,14 +111,14 @@ class HHL(LinearSolver):
         self._epsilon_s = epsilon / 3  # state preparation
         self._epsilon_a = epsilon / 6  # hamiltonian simulation
 
-        self._scaling = None  # scaling of the solution
+        self.scaling = None  # scaling of the solution
 
         if quantum_instance is not None:
             self._sampler = CircuitSampler(quantum_instance)
         else:
             self._sampler = None
 
-        self._expectation = expectation
+        self.expectation = expectation
 
         # For now the default reciprocal implementation is exact
         self._exact_reciprocal = True
@@ -143,27 +143,6 @@ class HHL(LinearSolver):
             quantum_instance: The quantum instance used to run this algorithm.
         """
         self._sampler.quantum_instance = quantum_instance
-
-    @property
-    def scaling(self) -> float:
-        """The scaling of the solution vector."""
-        return self._scaling
-
-    @scaling.setter
-    def scaling(self, scaling: float) -> None:
-        """Set the new scaling of the solution vector."""
-        self._scaling = scaling
-
-    @property
-    def expectation(self) -> ExpectationBase:
-        """The expectation value algorithm used to construct the expectation measurement from
-        the observable. """
-        return self._expectation
-
-    @expectation.setter
-    def expectation(self, expectation: ExpectationBase) -> None:
-        """Set the expectation value algorithm."""
-        self._expectation = expectation
 
     def _get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
         """Calculates the scaling factor to represent exactly lambda_min on nl binary digits.
@@ -273,8 +252,8 @@ class HHL(LinearSolver):
             expectations = expectations[0]
 
         # check if an expectation converter is given
-        if self._expectation is not None:
-            expectations = self._expectation.convert(expectations)
+        if self.expectation is not None:
+            expectations = self.expectation.convert(expectations)
         # if otherwise a backend was specified, try to set the best expectation value
         elif self._sampler is not None:
             if is_list:

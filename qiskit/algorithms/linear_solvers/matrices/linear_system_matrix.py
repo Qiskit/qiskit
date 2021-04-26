@@ -33,15 +33,10 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
         """
         super().__init__(name=name)
 
-        # define internal parameters
-        self._num_state_qubits = None
-        self._tolerance = None
-        self._evolution_time = None  # makes sure the eigenvalues are contained in [0,1)
-
-        # store parameters
-        self.num_state_qubits = num_state_qubits
         self.tolerance = tolerance
-        self.evolution_time = evolution_time
+        self.evolution_time = evolution_time  # makes sure the eigenvalues are contained in [0,1)
+        self._num_state_qubits = None
+        self.num_state_qubits = num_state_qubits
 
     @property
     def num_state_qubits(self) -> int:
@@ -66,33 +61,6 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
             self._invalidate()
             self._num_state_qubits = num_state_qubits
             self._reset_registers(num_state_qubits)
-
-    @property
-    def tolerance(self) -> float:
-        """Return the error tolerance"""
-        return self._tolerance
-
-    @tolerance.setter
-    def tolerance(self, tolerance: float) -> None:
-        """Set the error tolerance
-        Args:
-            tolerance: The new error tolerance.
-        """
-        self._tolerance = tolerance
-
-    @property
-    def evolution_time(self) -> float:
-        """Return the time of the evolution."""
-        return self._evolution_time
-
-    @evolution_time.setter
-    def evolution_time(self, evolution_time: float) -> None:
-        """Set the time of the evolution.
-
-        Args:
-            evolution_time: The new time of the evolution.
-        """
-        self._evolution_time = evolution_time
 
     @abstractmethod
     def eigs_bounds(self) -> Tuple[float, float]:

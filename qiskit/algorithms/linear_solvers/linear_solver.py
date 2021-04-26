@@ -35,61 +35,10 @@ class LinearSolverResult(AlgorithmResult):
         super().__init__()
 
         # Set the default to None, if the algorithm knows how to calculate it can override it.
-        self._state = None
-        self._observable = None
-        self._euclidean_norm = None
-        self._circuit_results = None
-
-    @property
-    def observable(self) -> Union[float, List[float]]:
-        """return the (list of) calculated observable(s)"""
-        return self._observable
-
-    @observable.setter
-    def observable(self, observable: Union[float, List[float]]) -> None:
-        """Set the value(s) of the observable(s).
-
-        Args:
-            observable: The new value(s) of the observable(s).
-        """
-        self._observable = observable
-
-    @property
-    def state(self) -> Union[QuantumCircuit, np.ndarray]:
-        """return either the circuit that prepares the solution or the solution as a vector"""
-        return self._state
-
-    @state.setter
-    def state(self, state: Union[QuantumCircuit, np.ndarray]) -> None:
-        """Set the solution state as either the circuit that prepares it or as a vector.
-
-        Args:
-            state: The new solution state.
-        """
-        self._state = state
-
-    @property
-    def euclidean_norm(self) -> float:
-        """return the euclidean norm if the algorithm knows how to calculate it"""
-        return self._euclidean_norm
-
-    @euclidean_norm.setter
-    def euclidean_norm(self, norm: float) -> None:
-        """Set the euclidean norm of the solution.
-
-        Args:
-            norm: The new euclidean norm of the solution.
-        """
-        self._euclidean_norm = norm
-
-    @property
-    def circuit_results(self) -> Union[List[float], List[Result]]:
-        """return the results from the circuits"""
-        return self._circuit_results
-
-    @circuit_results.setter
-    def circuit_results(self, results: Union[List[float], List[Result]]):
-        self._circuit_results = results
+        self.state = None
+        self.observable = None
+        self.euclidean_norm = None
+        self.circuit_results = None
 
 
 class LinearSolver(ABC):

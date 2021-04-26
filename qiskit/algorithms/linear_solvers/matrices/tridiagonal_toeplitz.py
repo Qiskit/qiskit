@@ -71,18 +71,13 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         """
         # define internal parameters
         self._num_state_qubits = None
-        self._main_diag = None
-        self._off_diag = None
-        self._tolerance = None
-        self._evolution_time = None  # makes sure the eigenvalues are contained in [0,1)
-        self._trotter_steps = None
-
-        # store parameters
         self.main_diag = main_diag
         self.off_diag = off_diag
+        self._evolution_time = None  # makes sure the eigenvalues are contained in [0,1)
+        self.trotter_steps = trotter_steps
+
         super().__init__(num_state_qubits=num_state_qubits, tolerance=tolerance,
                          evolution_time=evolution_time, name=name)
-        self.trotter_steps = trotter_steps
 
     @property
     def num_state_qubits(self) -> int:
@@ -109,45 +104,6 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             self._reset_registers(num_state_qubits)
 
     @property
-    def main_diag(self) -> float:
-        """Return the entry in the main diagonal."""
-        return self._main_diag
-
-    @main_diag.setter
-    def main_diag(self, main_diag: float) -> None:
-        """Set the entry in the main diagonal.
-        Args:
-            main_diag: The new entry in the main diagonal.
-        """
-        self._main_diag = main_diag
-
-    @property
-    def off_diag(self) -> float:
-        """Return the entry in the off diagonals."""
-        return self._off_diag
-
-    @off_diag.setter
-    def off_diag(self, off_diag: float) -> None:
-        """Set the entry in the off diagonals.
-        Args:
-            off_diag: The new entry in the main diagonal.
-        """
-        self._off_diag = off_diag
-
-    @property
-    def tolerance(self) -> float:
-        """Return the error tolerance"""
-        return self._tolerance
-
-    @tolerance.setter
-    def tolerance(self, tolerance: float) -> None:
-        """Set the error tolerance.
-        Args:
-            tolerance: The new error tolerance.
-        """
-        self._tolerance = tolerance
-
-    @property
     def evolution_time(self) -> float:
         """Return the time of the evolution."""
         return self._evolution_time
@@ -164,19 +120,6 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         # Update the number of trotter steps. Max 7 for now, upper bounds too loose.
         self.trotter_steps = int(np.ceil(np.sqrt(((evolution_time * np.abs(self.off_diag)) ** 3) /
                                                  2 / self.tolerance)))
-
-    @property
-    def trotter_steps(self) -> int:
-        """Return the number of trotter steps."""
-        return self._trotter_steps
-
-    @trotter_steps.setter
-    def trotter_steps(self, trotter_steps: int) -> None:
-        """Set the number of trotter steps.
-        Args:
-            trotter_steps: The new number of trotter steps.
-        """
-        self._trotter_steps = trotter_steps
 
     @property
     def matrix(self) -> np.ndarray:
