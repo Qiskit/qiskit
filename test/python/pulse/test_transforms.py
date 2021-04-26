@@ -686,9 +686,7 @@ class TestAlignEquispaced(QiskitTestCase):
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(10, d0), inplace=True)
-        reference.insert(10, Delay(10, d0), inplace=True)
         reference.insert(20, Delay(10, d0), inplace=True)
-        reference.insert(30, Delay(10, d0), inplace=True)
         reference.insert(40, Delay(10, d0), inplace=True)
 
         self.assertEqual(sched, reference)
@@ -725,8 +723,6 @@ class TestAlignEquispaced(QiskitTestCase):
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(10, d0), inplace=True)
-        reference.insert(10, Delay(20, d0), inplace=True)
-        reference.insert(0, Delay(10, d1), inplace=True)
         reference.insert(10, Delay(20, d1), inplace=True)
 
         self.assertEqual(sched, reference)
@@ -768,13 +764,9 @@ class TestAlignFunc(QiskitTestCase):
         sched = transforms.align_func(sched, duration=80, func=self._position)
 
         reference = pulse.Schedule()
-        reference.insert(0, Delay(15, d0), inplace=True)
         reference.insert(15, Delay(10, d0), inplace=True)
-        reference.insert(25, Delay(10, d0), inplace=True)
         reference.insert(35, Delay(10, d0), inplace=True)
-        reference.insert(45, Delay(10, d0), inplace=True)
         reference.insert(55, Delay(10, d0), inplace=True)
-        reference.insert(65, Delay(15, d0), inplace=True)
 
         self.assertEqual(sched, reference)
 
