@@ -170,7 +170,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
         with tempfile.TemporaryDirectory() as tmpdirname:
             tmp_path = os.path.join(tmpdirname, 'dag.png')
             dot.write_png(tmp_path)
-            image = Image.open(tmp_path)
+            with Image.open(tmp_path) as test_image:
+                image = test_image.copy()
             os.remove(tmp_path)
             return image
     else:

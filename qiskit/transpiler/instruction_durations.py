@@ -11,16 +11,15 @@
 # that they have been altered from the originals.
 
 """Durations of instructions, one of transpiler configurations."""
+import warnings
 from typing import Optional, List, Tuple, Union, Iterable, Set
 
-import warnings
-
 from qiskit.circuit import Barrier, Delay
-from qiskit.circuit import Instruction, Qubit
+from qiskit.circuit import Instruction, Qubit, ParameterExpression
+from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import BaseBackend
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils.units import apply_prefix
-from qiskit.circuit.duration import duration_in_dt
 
 
 class InstructionDurations:
@@ -203,6 +202,8 @@ class InstructionDurations:
             raise TranspilerError("dt is necessary to convert durations from '{}' to '{}'"
                                   .format(from_unit, to_unit))
         if from_unit == 's' and to_unit == 'dt':
+            if isinstance(duration, ParameterExpression):
+                return duration / self.dt
             return duration_in_dt(duration, self.dt)
         elif from_unit == 'dt' and to_unit == 's':
             return duration * self.dt
