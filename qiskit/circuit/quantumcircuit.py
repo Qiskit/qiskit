@@ -44,8 +44,8 @@ from .delay import Delay
 try:
     import pygments
     from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
-    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
-    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
+    from qiskit.qasm2.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
+    from qiskit.qasm2.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
     HAS_PYGMENTS = True
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False

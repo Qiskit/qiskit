@@ -21,7 +21,7 @@ from qiskit import QuantumCircuit
 try:
     import pygments
     from pygments.formatters import HtmlFormatter
-    from qiskit.qasm.pygments import QasmHTMLStyle, OpenQASMLexer
+    from qiskit.qasm2.pygments import QasmHTMLStyle, OpenQASMLexer
     HAS_PYGMENTS = True
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
