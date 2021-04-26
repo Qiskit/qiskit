@@ -309,13 +309,13 @@ def gen_frame_symbol(data: types.PulseInstruction,
                 program.append('{}({:.2e} Hz)'.format(inst.__class__.__name__, inst.frequency))
             except TypeError:
                 # parameter expression
-                program.append('{}({})'.format(inst.__class__.__name__, inst.frequency.name))
+                program.append('{}({})'.format(inst.__class__.__name__, inst.frequency))
         elif isinstance(inst, (instructions.SetPhase, instructions.ShiftPhase)):
             try:
                 program.append('{}({:.2f} rad.)'.format(inst.__class__.__name__, inst.phase))
             except TypeError:
                 # parameter expression
-                program.append('{}({})'.format(inst.__class__.__name__, inst.phase.name))
+                program.append('{}({})'.format(inst.__class__.__name__, inst.phase))
 
     meta = {'total phase change': data.frame.phase,
             'total frequency change': data.frame.freq,
