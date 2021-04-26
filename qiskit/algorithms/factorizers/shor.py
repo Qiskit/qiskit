@@ -471,36 +471,6 @@ class ShorResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._factors = []
-        self._total_counts = 0
-        self._successful_counts = 0
-
-    @property
-    def factors(self) -> List[List[int]]:
-        """ returns factors """
-        return self._factors
-
-    @factors.setter
-    def factors(self, value: List[List[int]]) -> None:
-        """ set factors """
-        self._factors = value
-
-    @property
-    def total_counts(self) -> int:
-        """ returns total counts """
-        return self._total_counts
-
-    @total_counts.setter
-    def total_counts(self, value: int) -> None:
-        """ set total counts """
-        self._total_counts = value
-
-    @property
-    def successful_counts(self) -> int:
-        """ returns successful counts """
-        return self._successful_counts
-
-    @successful_counts.setter
-    def successful_counts(self, value: int) -> None:
-        """ set successful counts """
-        self._successful_counts = value
+        self.factors = []
+        self.total_counts = 0
+        self.successful_counts = 0
