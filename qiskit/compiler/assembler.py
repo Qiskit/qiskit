@@ -342,7 +342,8 @@ def _check_lo_freqs(
 
     Args:
         lo_freq: List of LO frequencies.
-        lo_range: Nested list of LO frequency ranges. Inner list is of the form ``[lo_min, lo_max]``.
+        lo_range: Nested list of LO frequency ranges. Inner list is of the form
+            ``[lo_min, lo_max]``.
         lo_type: The type of LO value--"qubit" or "meas".
         n_qubits: The number of qubits on this backend.
     """
