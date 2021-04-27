@@ -73,6 +73,7 @@ from typing import Union, List, Tuple, Iterator, Optional
 
 import numpy as np
 from qiskit import pulse
+from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import events, types, drawings, device_info
 from qiskit.visualization.pulse_v2.stylesheet import QiskitPulseStyle
@@ -204,7 +205,7 @@ class DrawerCanvas:
         Raises:
             VisualizationError: When input program is invalid data format.
         """
-        if isinstance(program, pulse.Schedule):
+        if isinstance(program, (pulse.Schedule, pulse.ScheduleBlock)):
             self._schedule_loader(program)
         elif isinstance(program, (pulse.Waveform, pulse.ParametricPulse)):
             self._waveform_loader(program)
@@ -243,7 +244,7 @@ class DrawerCanvas:
 
         self.charts.append(chart)
 
-    def _schedule_loader(self, program: pulse.Schedule):
+    def _schedule_loader(self, program: Union[pulse.Schedule, pulse.ScheduleBlock]):
         """Load Schedule instance.
 
         This function is sub-routine of py:method:`load_program`.
@@ -251,6 +252,8 @@ class DrawerCanvas:
         Args:
             program: `Schedule` to draw.
         """
+        program = target_qobj_transform(program, remove_directives=False)
+
         # initialize scale values
         self.chan_scales = {}
         for chan in program.channels:
@@ -546,7 +549,7 @@ class Chart:
         else:
             self.scale = 1.0
 
-        # update vertical range with scalign and limitation
+        # update vertical range with scaling and limitation
         self.vmax = max(self.scale * self.vmax,
                         self.parent.formatter['channel_scaling.pos_spacing'])
 

@@ -32,7 +32,7 @@ from .overlap_diag import _get_generators, _partition_circuit
 
 
 class OverlapBlockDiag(CircuitQFI):
-    r"""Compute the block-diagonal of the QFI given a pure, parametrized quantum state.
+    r"""Compute the block-diagonal of the QFI given a pure, parameterized quantum state.
 
     The blocks are given by all parameterized gates in quantum circuit layer.
     See also :class:`~qiskit.opflow.QFI`.

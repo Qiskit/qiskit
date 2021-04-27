@@ -55,7 +55,7 @@ class TestAddingBitsWithoutRegisters(QiskitTestCase):
 
         qc = QuantumCircuit(qubits, clbits, ancillas)
 
-        self.assertEqual(qc.qubits, qubits)
+        self.assertEqual(qc.qubits, qubits + ancillas)
         self.assertEqual(qc.clbits, clbits)
         self.assertEqual(qc.ancillas, ancillas)
 
@@ -97,6 +97,16 @@ class TestAddingBitsWithoutRegisters(QiskitTestCase):
 
         self.assertEqual(qc.qubits, list(qr) + [new_bit])
         self.assertEqual(qc.qregs, [qr])
+
+    def test_inserted_ancilla_bits_are_added_to_qubits(self):
+        """Verify AncillaQubits added via .add_bits are added to .qubits."""
+        anc = AncillaQubit()
+        qb = Qubit()
+
+        qc = QuantumCircuit()
+        qc.add_bits([anc, qb])
+
+        self.assertEqual(qc.qubits, [anc, qb])
 
 
 class TestGatesOnWires(QiskitTestCase):
@@ -233,6 +243,23 @@ class TestGatesOnWires(QiskitTestCase):
         expected.initialize(init_vector, [qreg01[0], qreg23[0]])
 
         self.assertEqual(circuit, expected)
+
+    def test_mixed_register_and_registerless_indexing(self):
+        """Test indexing if circuit contains bits in and out of registers.
+        """
+
+        bits = [Qubit(), Qubit()]
+        qreg = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(bits, qreg)
+        for i in range(len(circuit.qubits)):
+            circuit.rz(i, i)
+
+        expected_qubit_order = bits + qreg[:]
+        expected_circuit = QuantumCircuit(bits, qreg)
+        for i in range(len(expected_circuit.qubits)):
+            expected_circuit.rz(i, expected_qubit_order[i])
+
+        self.assertEqual(circuit.data, expected_circuit.data)
 
 
 class TestGatesOnWireRange(QiskitTestCase):

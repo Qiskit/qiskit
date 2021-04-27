@@ -16,6 +16,7 @@
 
 import numpy as np
 from qiskit.circuit import Delay
+from qiskit.circuit import Parameter, ParameterVector
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test.base import QiskitTestCase
@@ -79,3 +80,42 @@ class TestDelayClass(QiskitTestCase):
         expected = np.array([[1, 0],
                              [0, 1]], dtype=complex)
         self.assertTrue(np.array_equal(actual, expected))
+
+
+class TestParameterizedDelay(QiskitTestCase):
+    """Test delay instruction with parameterized duration."""
+
+    def test_can_accept_parameterized_duration(self):
+        dur = Parameter('t')
+        self.assertEqual(Delay(dur).duration, dur)
+
+    def test_can_append_parameterized_delay(self):
+        dur = Parameter('t')
+        qc = QuantumCircuit(1)
+        qc.delay(dur)
+        self.assertEqual(qc.data[0][0], Delay(dur))
+
+    def test_can_assign_duration_parameter(self):
+        dur = Parameter('t')
+        qc = QuantumCircuit(1)
+        qc.delay(dur)
+        qc.assign_parameters({dur: 100}, inplace=True)
+        self.assertEqual(qc.data[0][0].duration, 100)
+
+    def test_fail_if_assign_invalid_duration_parameters(self):
+        dur = Parameter('t')
+        qc = QuantumCircuit(1)
+        qc.delay(dur, unit='dt')
+        with self.assertRaises(CircuitError):
+            qc.assign_parameters({dur: 1+1j}, inplace=True)
+        with self.assertRaises(CircuitError):
+            qc.assign_parameters({dur: 0.5}, inplace=True)
+
+    def test_can_assign_multiple_duration_parameters(self):
+        durs = ParameterVector('dur', 2)
+        qc = QuantumCircuit(2)
+        qc.delay(durs[0])
+        qc.delay(durs[1])
+        qc = qc.assign_parameters([0, 1])
+        durations = [inst[0].duration for inst in qc.data]
+        self.assertEqual(durations, [0, 0, 1, 1])

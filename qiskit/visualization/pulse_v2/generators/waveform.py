@@ -170,9 +170,6 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
     elif isinstance(data.inst, instructions.Delay):
         systematic_name = data.inst.name or 'Delay'
         latex_name = None
-    elif isinstance(data.inst.channel, pulse.channels.MeasureChannel):
-        systematic_name = 'Measure'
-        latex_name = None
     else:
         systematic_name = data.inst.pulse.name or data.inst.pulse.__class__.__name__
 
@@ -354,9 +351,10 @@ def _draw_shaped_waveform(xdata: np.ndarray,
 
     try:
         color_real, color_imag = formatter['color.waveforms'][channel.prefix.upper()]
-    except KeyError:
-        raise VisualizationError('Waveform color for channel type {name} is '
-                                 'not defined'.format(name=channel.prefix))
+    except KeyError as ex:
+        raise VisualizationError(
+            f"Waveform color for channel type {channel.prefix} is not defined"
+        ) from ex
 
     # create real part
     if np.any(re_y):

@@ -463,11 +463,11 @@ class TestTwoLocal(QiskitTestCase):
         with self.subTest(msg='num_parameters_settable remained constant'):
             self.assertEqual(two.num_parameters_settable, len(ordered_params))
 
-    def test_iadd_to_circuit(self):
+    def test_compose_inplace_to_circuit(self):
         """Test adding a two-local to an existing circuit."""
         two = TwoLocal(3, ['ry', 'rz'], 'cz', 'full', reps=1, insert_barriers=True)
         circuit = QuantumCircuit(3)
-        circuit += two
+        circuit.compose(two, inplace=True)
 
         reference = QuantumCircuit(3)
         param_iter = iter(two.ordered_parameters)
@@ -487,11 +487,11 @@ class TestTwoLocal(QiskitTestCase):
 
         self.assertCircuitEqual(circuit, reference)
 
-    def test_adding_two(self):
+    def test_composing_two(self):
         """Test adding two two-local circuits."""
         entangler_map = [[0, 3], [0, 2]]
         two = TwoLocal(4, [], 'cry', entangler_map, reps=1)
-        circuit = two + two
+        circuit = two.compose(two)
 
         reference = QuantumCircuit(4)
         params = two.ordered_parameters
@@ -648,6 +648,21 @@ class TestTwoLocal(QiskitTestCase):
                                        entanglement=entanglement).assign_parameters(parameters)
 
         self.assertCircuitEqual(library, expected)
+
+    def test_circular_on_same_block_and_circuit_size(self):
+        """Test circular entanglement works correctly if the circuit and block sizes match."""
+
+        two = TwoLocal(2, 'ry', 'cx', entanglement='circular', reps=1)
+        parameters = np.arange(two.num_parameters)
+
+        ref = QuantumCircuit(2)
+        ref.ry(parameters[0], 0)
+        ref.ry(parameters[1], 1)
+        ref.cx(0, 1)
+        ref.ry(parameters[2], 0)
+        ref.ry(parameters[3], 1)
+
+        self.assertCircuitEqual(two.assign_parameters(parameters), ref)
 
 
 if __name__ == '__main__':

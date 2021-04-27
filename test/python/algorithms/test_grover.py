@@ -52,17 +52,19 @@ class TestAmplificationProblem(QiskitAlgorithmsTestCase):
 
         self.assertEqual(Operator(expected), Operator(problem.grover_operator))
 
-    @data('list', 'statevector', 'callable')
+    @data('list_str', 'list_int', 'statevector', 'callable')
     def test_is_good_state(self, kind):
         """Test is_good_state works on different input types."""
-        if kind == 'list':
-            is_good_state = ['00', '11']
+        if kind == 'list_str':
+            is_good_state = ['01', '11']
+        elif kind == 'list_int':
+            is_good_state = [1]    # means bitstr[1] == '1'
         elif kind == 'statevector':
-            is_good_state = Statevector(np.array([1, 0, 0, 1]) / np.sqrt(2))
+            is_good_state = Statevector(np.array([0, 1, 0, 1]) / np.sqrt(2))
         else:
             def is_good_state(bitstr):
-                # same as ``bitstr in ['00', '11']``
-                return sum(int(bit) for bit in bitstr) % 2 == 0
+                # same as ``bitstr in ['01', '11']``
+                return bitstr[1] == '1'
 
         possible_states = [''.join(list(map(str, item)))
                            for item in itertools.product([0, 1], repeat=2)]
@@ -70,7 +72,7 @@ class TestAmplificationProblem(QiskitAlgorithmsTestCase):
         oracle = QuantumCircuit(2)
         problem = AmplificationProblem(oracle, is_good_state=is_good_state)
 
-        expected = [state in ['00', '11'] for state in possible_states]
+        expected = [state in ['01', '11'] for state in possible_states]
         # pylint: disable=not-callable
         actual = [problem.is_good_state(state) for state in possible_states]
 
@@ -190,6 +192,27 @@ class TestGrover(QiskitAlgorithmsTestCase):
         expected.compose(grover_op.power(2), inplace=True)
 
         self.assertTrue(Operator(constructed).equiv(Operator(expected)))
+
+    def test_circuit_result(self):
+        """Test circuit_result"""
+        oracle = QuantumCircuit(2)
+        oracle.cz(0, 1)
+        # is_good_state=['00'] is intentionally selected to obtain a list of results
+        problem = AmplificationProblem(oracle, is_good_state=['00'])
+        grover = Grover(iterations=[1, 2, 3, 4], quantum_instance=self.qasm)
+        result = grover.amplify(problem)
+        expected_results = [{'11': 1024}, {'00': 238, '01': 253, '10': 263, '11': 270},
+                            {'00': 238, '01': 253, '10': 263, '11': 270}, {'11': 1024}]
+        self.assertEqual(result.circuit_results, expected_results)
+
+    def test_max_probability(self):
+        """Test max_probability"""
+        oracle = QuantumCircuit(2)
+        oracle.cz(0, 1)
+        problem = AmplificationProblem(oracle, is_good_state=['11'])
+        grover = Grover(quantum_instance=self.qasm)
+        result = grover.amplify(problem)
+        self.assertEqual(result.max_probability, 1.0)
 
 
 if __name__ == '__main__':

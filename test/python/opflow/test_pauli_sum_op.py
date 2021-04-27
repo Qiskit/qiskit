@@ -13,11 +13,14 @@
 """ Test PauliSumOp """
 
 import unittest
+from itertools import product
 from test.python.opflow import QiskitOpflowTestCase
+
 import numpy as np
 from scipy.sparse import csr_matrix
 
 from qiskit import QuantumCircuit, transpile
+from qiskit.circuit import Parameter, ParameterVector
 from qiskit.opflow import (
     CX,
     CircuitStateFn,
@@ -33,8 +36,7 @@ from qiskit.opflow import (
     Z,
     Zero,
 )
-from qiskit.circuit import Parameter, ParameterVector
-from qiskit.quantum_info import Pauli, SparsePauliOp, PauliTable
+from qiskit.quantum_info import Pauli, PauliTable, SparsePauliOp
 
 
 class TestPauliSumOp(QiskitOpflowTestCase):
@@ -125,18 +127,29 @@ class TestPauliSumOp(QiskitOpflowTestCase):
 
     def test_tensor(self):
         """ Test for tensor operation """
-        pauli_sum = ((I - Z) ^ (I - Z)) + ((X - Y) ^ (X + Y))
-        expected = (
-            (I ^ I)
-            - (I ^ Z)
-            - (Z ^ I)
-            + (Z ^ Z)
-            + (X ^ X)
-            + (X ^ Y)
-            - (Y ^ X)
-            - (Y ^ Y)
-        )
-        self.assertEqual(pauli_sum, expected)
+        with self.subTest("Test 1"):
+            pauli_sum = ((I - Z) ^ (I - Z)) + ((X - Y) ^ (X + Y))
+            expected = (
+                (I ^ I)
+                - (I ^ Z)
+                - (Z ^ I)
+                + (Z ^ Z)
+                + (X ^ X)
+                + (X ^ Y)
+                - (Y ^ X)
+                - (Y ^ Y)
+            )
+            self.assertEqual(pauli_sum, expected)
+
+        with self.subTest("Test 2"):
+            pauli_sum = ((Z + I) ^ Z)
+            expected = (Z ^ Z) + (I ^ Z)
+            self.assertEqual(pauli_sum, expected)
+
+        with self.subTest("Test 3"):
+            pauli_sum = (Z ^ (Z + I))
+            expected = (Z ^ Z) + (Z ^ I)
+            self.assertEqual(pauli_sum, expected)
 
     def test_permute(self):
         """ permute test """
@@ -176,7 +189,7 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         """ eval test """
         target0 = (2 * (X ^ Y ^ Z) + 3 * (X ^ X ^ Z)).eval("000")
         target1 = (2 * (X ^ Y ^ Z) + 3 * (X ^ X ^ Z)).eval(Zero ^ 3)
-        expected = DictStateFn({"011": (3 + 2j)})
+        expected = DictStateFn({"110": (3 + 2j)})
         self.assertEqual(target0, expected)
         self.assertEqual(target1, expected)
 
@@ -191,6 +204,12 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         self.assertEqual((~OperatorStateFn(h2)@phi).eval(), 0.5)
         self.assertEqual((~OperatorStateFn(h2a)@phi).eval(), 0.25)
         self.assertEqual((~OperatorStateFn(h2b)@phi).eval(), 0.25)
+
+        pauli_op = (Z ^ I ^ X) + (I ^ I ^ Y)
+        mat_op = pauli_op.to_matrix_op()
+        full_basis = [''.join(b) for b in product('01', repeat=pauli_op.num_qubits)]
+        for bstr1, bstr2 in product(full_basis, full_basis):
+            self.assertEqual(pauli_op.eval(bstr1).eval(bstr2), mat_op.eval(bstr1).eval(bstr2))
 
     def test_exp_i(self):
         """ exp_i test """

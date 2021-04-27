@@ -54,6 +54,8 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
     Raises:
         QiskitError: If circuit uses a command that isn't defined in config.inst_map.
     """
+    from qiskit.pulse.transforms.base_transforms import target_qobj_transform
+
     circ_pulse_defs = []
 
     inst_map = schedule_config.inst_map
@@ -73,6 +75,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
             for qubit in qubits:
                 try:
                     meas_q = circuit.calibrations[Measure().name][((qubit,), params)]
+                    meas_q = target_qobj_transform(meas_q)
                     acquire_q = meas_q.filter(channels=[AcquireChannel(qubit)])
                     mem_slot_index = [chan.index for chan in acquire_q.channels
                                       if isinstance(chan, MemorySlot)][0]
@@ -92,6 +95,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                                  inst_map=inst_map,
                                  meas_map=schedule_config.meas_map,
                                  qubit_mem_slots=qubit_mem_slots)
+            meas_sched = target_qobj_transform(meas_sched)
             meas_sched = meas_sched.exclude(channels=[AcquireChannel(qubit) for qubit
                                                       in acquire_excludes])
             sched |= meas_sched
@@ -100,8 +104,11 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                                qubits=[chan.index for chan in sched.channels
                                        if isinstance(chan, AcquireChannel)])
 
+    qubit_indices = {bit: idx for idx, bit in enumerate(circuit.qubits)}
+    clbit_indices = {bit: idx for idx, bit in enumerate(circuit.clbits)}
+
     for inst, qubits, clbits in circuit.data:
-        inst_qubits = [qubit.index for qubit in qubits]  # We want only the indices of the qubits
+        inst_qubits = [qubit_indices[qubit] for qubit in qubits]
 
         if any(q in qubit_mem_slots for q in inst_qubits):
             # If we are operating on a qubit that was scheduled to be measured, process that first
@@ -120,7 +127,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                 raise QiskitError("Qubit '{}' or classical bit '{}' errored because the "
                                   "circuit Measure instruction only takes one of "
                                   "each.".format(inst_qubits, clbits))
-            qubit_mem_slots[inst_qubits[0]] = clbits[0].index
+            qubit_mem_slots[inst_qubits[0]] = clbit_indices[clbits[0]]
         else:
             try:
                 gate_cals = circuit.calibrations[inst.name]
@@ -128,19 +135,23 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                     tuple(inst_qubits),
                     tuple(p if getattr(p, 'parameters', None) else float(p) for p in inst.params),
                 )]
+                schedule = target_qobj_transform(schedule)
                 circ_pulse_defs.append(CircuitPulseDef(schedule=schedule, qubits=inst_qubits))
                 continue
             except KeyError:
                 pass  # Calibration not defined for this operation
 
             try:
+                schedule = inst_map.get(inst, inst_qubits, *inst.params)
+                schedule = target_qobj_transform(schedule)
                 circ_pulse_defs.append(
-                    CircuitPulseDef(schedule=inst_map.get(inst, inst_qubits, *inst.params),
-                                    qubits=inst_qubits))
-            except PulseError:
-                raise QiskitError("Operation '{}' on qubit(s) {} not supported by the backend "
-                                  "command definition. Did you remember to transpile your input "
-                                  "circuit for the same backend?".format(inst.name, inst_qubits))
+                    CircuitPulseDef(schedule=schedule, qubits=inst_qubits))
+            except PulseError as ex:
+                raise QiskitError(
+                    f"Operation '{inst.name}' on qubit(s) {inst_qubits} not supported by the "
+                    "backend command definition. Did you remember to transpile your input "
+                    "circuit for the same backend?"
+                ) from ex
 
     if qubit_mem_slots:
         circ_pulse_defs.append(get_measure_schedule(qubit_mem_slots))

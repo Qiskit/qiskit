@@ -15,16 +15,15 @@
 import types
 import math
 import datetime
-from IPython.display import display                     # pylint: disable=import-error
-import matplotlib.pyplot as plt                         # pylint: disable=import-error
-from matplotlib.patches import Circle                   # pylint: disable=import-error
-import ipywidgets as widgets                            # pylint: disable=import-error
+from IPython.display import display
+import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
+import ipywidgets as widgets
 from qiskit.exceptions import QiskitError
 from qiskit.visualization.gate_map import plot_gate_map, plot_error_map
 from qiskit.test.mock import FakeBackend
 
 try:
-    # pylint: disable=import-error
     from qiskit.providers.ibmq import IBMQBackend
 except ImportError:
     pass

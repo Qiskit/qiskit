@@ -11,14 +11,15 @@
 # that they have been altered from the originals.
 
 """Durations of instructions, one of transpiler configurations."""
+import warnings
 from typing import Optional, List, Tuple, Union, Iterable, Set
 
 from qiskit.circuit import Barrier, Delay
-from qiskit.circuit import Instruction, Qubit
+from qiskit.circuit import Instruction, Qubit, ParameterExpression
+from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import BaseBackend
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils.units import apply_prefix
-from qiskit.circuit.duration import duration_in_dt
 
 
 class InstructionDurations:
@@ -160,13 +161,18 @@ class InstructionDurations:
             qubits = [qubits]
 
         if isinstance(qubits[0], Qubit):
+            warnings.warn('Querying an InstructionDurations object with a Qubit '
+                          'has been deprecated and will be removed in a future '
+                          'release. Instead, query using the integer qubit '
+                          'index.', DeprecationWarning, stacklevel=2)
             qubits = [q.index for q in qubits]
 
         try:
             return self._get(inst_name, qubits, unit)
-        except TranspilerError:
-            raise TranspilerError("Duration of {} on qubits {} is not found."
-                                  .format(inst_name, qubits))
+        except TranspilerError as ex:
+            raise TranspilerError(
+                f"Duration of {inst_name} on qubits {qubits} is not found."
+            ) from ex
 
     def _get(self, name: str, qubits: List[int], to_unit: str) -> Union[float, int]:
         """Get the duration of the instruction with the name and the qubits."""
@@ -196,6 +202,8 @@ class InstructionDurations:
             raise TranspilerError("dt is necessary to convert durations from '{}' to '{}'"
                                   .format(from_unit, to_unit))
         if from_unit == 's' and to_unit == 'dt':
+            if isinstance(duration, ParameterExpression):
+                return duration / self.dt
             return duration_in_dt(duration, self.dt)
         elif from_unit == 'dt' and to_unit == 's':
             return duration * self.dt

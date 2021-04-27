@@ -24,6 +24,7 @@ from qiskit.providers import BaseBackend
 from ..converters.converter_base import ConverterBase
 from ..list_ops.composed_op import ComposedOp
 from ..list_ops.list_op import ListOp
+from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
 from ..primitive_ops.primitive_op import PrimitiveOp
 from ..state_fns import StateFn, OperatorStateFn
@@ -196,14 +197,26 @@ class DerivativeBase(ConverterBase):
         if isinstance(operator, ComposedOp):
             total_coeff = operator.coeff
             take_norm_of_coeffs = False
-            for op in operator.oplist:
+            for k, op in enumerate(operator.oplist):
                 if take_norm_of_coeffs:
                     total_coeff *= (op.coeff * np.conj(op.coeff))  # type: ignore
                 else:
                     total_coeff *= op.coeff  # type: ignore
                 if hasattr(op, 'primitive'):
                     prim = op.primitive  # type: ignore
-                    if isinstance(prim, ListOp):
+                    if isinstance(op, StateFn) and isinstance(prim, TensoredOp):
+                        # Check if any of the coefficients in the TensoredOp is a
+                        # ParameterExpression
+                        for prim_op in prim.oplist:
+                            # If a coefficient is a ParameterExpression make sure that the
+                            # coefficients are pulled together correctly
+                            if isinstance(prim_op.coeff, ParameterExpression):
+                                prim_tensored = StateFn(prim.reduce(),
+                                                        is_measurement=op.is_measurement,
+                                                        coeff=op.coeff)
+                                operator.oplist[k] = prim_tensored
+                                return operator.traverse(cls._factor_coeffs_out_of_composed_op)
+                    elif isinstance(prim, ListOp):
                         raise ValueError("This operator was not properly decomposed. "
                                          "By this point, all operator measurements should "
                                          "contain single operators, otherwise the coefficient "

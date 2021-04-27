@@ -12,7 +12,6 @@
 """
 Clifford operator class.
 """
-# pylint: disable=abstract-method
 import re
 import numpy as np
 
@@ -45,7 +44,7 @@ class Clifford(BaseOperator, AdjointMixin):
     stabilizer rows can each be accessed as a length-N Stabilizer table using
     :attr:`destabilizer` and :attr:`stabilizer` attributes.
 
-    A more easily human readible representation of the Clifford operator can
+    A more easily human readable representation of the Clifford operator can
     be obtained by calling the :meth:`to_dict` method. This representation is
     also used if a Clifford object is printed as in the following example
 
@@ -117,7 +116,7 @@ class Clifford(BaseOperator, AdjointMixin):
         # Initialize from ScalarOp as N-qubit identity discarding any global phase
         elif isinstance(data, ScalarOp):
             if not data.num_qubits or not data.is_unitary():
-                raise QiskitError("Can only initalize from N-qubit identity ScalarOp.")
+                raise QiskitError("Can only initialize from N-qubit identity ScalarOp.")
             self._table = StabilizerTable(
                 np.eye(2 * data.num_qubits, dtype=bool))
 
@@ -262,7 +261,7 @@ class Clifford(BaseOperator, AdjointMixin):
         # Validate compose dimensions
         self._op_shape.compose(other._op_shape, qargs, front)
 
-        # Pad other with identities if composeing on subsystem
+        # Pad other with identities if composing on subsystem
         other = self._pad_with_identity(other, qargs)
 
         if front:
@@ -287,7 +286,7 @@ class Clifford(BaseOperator, AdjointMixin):
         phase = np.mod(array2.dot(phase1) + phase2, 2)
 
         # Correcting for phase due to Pauli multiplication
-        ifacts = np.zeros(2 * num_qubits, dtype=np.int)
+        ifacts = np.zeros(2 * num_qubits, dtype=int)
 
         for k in range(2 * num_qubits):
 
@@ -329,7 +328,7 @@ class Clifford(BaseOperator, AdjointMixin):
     # ---------------------------------------------------------------------
 
     def to_dict(self):
-        """Return dictionary represenation of Clifford object."""
+        """Return dictionary representation of Clifford object."""
         return {
             "stabilizer": self.stabilizer.to_labels(),
             "destabilizer": self.destabilizer.to_labels()

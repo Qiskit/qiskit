@@ -14,12 +14,12 @@
 
 import logging
 
-from ..operator_base import OperatorBase
-from .evolution_base import EvolutionBase
-from .evolved_op import EvolvedOp
-from ..primitive_ops.pauli_op import PauliOp
-from ..primitive_ops.matrix_op import MatrixOp
-from ..list_ops.list_op import ListOp
+from qiskit.opflow.evolutions.evolution_base import EvolutionBase
+from qiskit.opflow.evolutions.evolved_op import EvolvedOp
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.matrix_op import MatrixOp
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +50,11 @@ class MatrixEvolution(EvolutionBase):
                 # Setting massive=False because this conversion is implicit. User can perform this
                 # action on the Hamiltonian with massive=True explicitly if they so choose.
                 # TODO explore performance to see whether we should avoid doing this repeatedly
-                matrix_ham = operator.primitive.to_matrix_op(massive=False)  # type: ignore
+                matrix_ham = operator.primitive.to_matrix_op(massive=False)
                 operator = EvolvedOp(matrix_ham, coeff=operator.coeff)
 
             if isinstance(operator.primitive, ListOp):
-                return operator.primitive.exp_i() * operator.coeff  # type: ignore
+                return operator.primitive.exp_i() * operator.coeff
             elif isinstance(operator.primitive, (MatrixOp, PauliOp)):
                 return operator.primitive.exp_i()
         elif isinstance(operator, ListOp):

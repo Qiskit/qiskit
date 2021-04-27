@@ -81,7 +81,7 @@ class ZGate(Gate):
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-Z gate.
+        """Return a (multi-)controlled-Z gate.
 
         One control returns a CZ gate.
 

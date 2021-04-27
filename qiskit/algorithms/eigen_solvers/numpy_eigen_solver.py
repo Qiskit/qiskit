@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,8 +12,9 @@
 
 """The Eigensolver algorithm."""
 
-from typing import List, Optional, Union, Tuple, Callable
 import logging
+from typing import List, Optional, Union, Tuple, Callable
+
 import numpy as np
 from scipy import sparse as scisparse
 
@@ -96,8 +97,8 @@ class NumPyEigensolver(Eigensolver):
 
     def _check_set_k(self, operator: OperatorBase) -> None:
         if operator is not None:
-            if self._in_k > 2**(operator.num_qubits):
-                self._k = 2**(operator.num_qubits)
+            if self._in_k > 2 ** operator.num_qubits:
+                self._k = 2 ** operator.num_qubits
                 logger.debug("WARNING: Asked for %s eigenvalues but max possible is %s.",
                              self._in_k, self._k)
             else:
@@ -109,22 +110,21 @@ class NumPyEigensolver(Eigensolver):
         # If matrix is diagonal, the elements on the diagonal are the eigenvalues. Solve by sorting.
         if scisparse.csr_matrix(sp_mat.diagonal()).nnz == sp_mat.nnz:
             diag = sp_mat.diagonal()
-            eigval = np.sort(diag)[:self._k]
-            temp = np.argsort(diag)[:self._k]
+            indices = np.argsort(diag)[:self._k]
+            eigval = diag[indices]
             eigvec = np.zeros((sp_mat.shape[0], self._k))
-            for i, idx in enumerate(temp):
+            for i, idx in enumerate(indices):
                 eigvec[idx, i] = 1.0
         else:
-            if self._k >= 2 ** (operator.num_qubits) - 1:
+            if self._k >= 2 ** operator.num_qubits - 1:
                 logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
                 eigval, eigvec = np.linalg.eig(operator.to_matrix())
             else:
                 eigval, eigvec = scisparse.linalg.eigs(operator.to_spmatrix(),
                                                        k=self._k, which='SR')
-        if self._k > 1:
-            idx = eigval.argsort()
-            eigval = eigval[idx]
-            eigvec = eigvec[:, idx]
+            indices = np.argsort(eigval)[:self._k]
+            eigval = eigval[indices]
+            eigvec = eigvec[:, indices]
         self._ret.eigenvalues = eigval
         self._ret.eigenstates = eigvec.T
 
@@ -190,7 +190,7 @@ class NumPyEigensolver(Eigensolver):
         k_orig = self._k
         if self._filter_criterion:
             # need to consider all elements if a filter is set
-            self._k = 2**operator.num_qubits
+            self._k = 2 ** operator.num_qubits
 
         self._ret = EigensolverResult()
         self._solve(operator)

@@ -45,13 +45,13 @@ class TestQFT(QiskitTestCase):
         num_qubits = num_qubits or qft.num_qubits
         expected = np.empty((2 ** num_qubits, 2 ** num_qubits), dtype=complex)
         for i in range(2 ** num_qubits):
-            i_qiskit = int(bin(i)[2:].zfill(num_qubits)[::-1], 2)
+            i_index = int(bin(i)[2:].zfill(num_qubits), 2)
             for j in range(i, 2 ** num_qubits):
                 entry = np.exp(2 * np.pi * 1j * i * j / 2 ** num_qubits) / 2 ** (num_qubits / 2)
-                j_qiskit = int(bin(j)[2:].zfill(num_qubits)[::-1], 2)
-                expected[i_qiskit, j_qiskit] = entry
+                j_index = int(bin(j)[2:].zfill(num_qubits), 2)
+                expected[i_index, j_index] = entry
                 if i != j:
-                    expected[j_qiskit, i_qiskit] = entry
+                    expected[j_index, i_index] = entry
 
         if inverse:
             expected = np.conj(expected)

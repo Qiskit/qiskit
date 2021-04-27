@@ -1,0 +1,12 @@
+---
+
+features:
+  - |
+    A new :class:`~qiskit.circuit.Gate` class,
+    :class:`~qiskit.circuit.library.PauliGate`, has been added
+    the :class:`qiskit.circuit.library` module and corresponding method,
+    :meth:`~qiskit.circuit.QuantumCircuit.pauli`,  was added to the
+    :class:`~qiskit.circuit.QuantumCircuit` class. This new gate class enables
+    applying several individual pauli gates to different qubits at the
+    simultaneously. This is primarily useful for simulators which can use this
+    new gate to more efficiently implement multiple simultaneous Pauli gates.

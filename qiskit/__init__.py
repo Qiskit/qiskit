@@ -95,7 +95,7 @@ class AerWrapper:
 
 
 class IBMQWrapper:
-    """Lazy loading wraooer for IBMQ provider."""
+    """Lazy loading wrapper for IBMQ provider."""
 
     def __init__(self):
         self.ibmq = None

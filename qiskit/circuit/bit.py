@@ -13,6 +13,8 @@
 """
 Quantum bit and Classical bit objects.
 """
+import warnings
+
 from qiskit.circuit.exceptions import CircuitError
 
 
@@ -33,25 +35,24 @@ class Bit:
         else:
             try:
                 index = int(index)
-            except Exception:
-                raise CircuitError("index needs to be castable to an int: type %s was provided" %
-                                   type(index))
+            except Exception as ex:
+                raise CircuitError(
+                    f"index needs to be castable to an int: type {type(index)} was provided"
+                ) from ex
 
             if index < 0:
                 index += register.size
 
             if index >= register.size:
-                raise CircuitError("index must be under the size of the register: %s was provided" %
-                                   index)
+                raise CircuitError(
+                    f"index must be under the size of the register: {index} was provided"
+                )
 
             self._register = register
             self._index = index
-            self._update_hash()
-
-    def _update_hash(self):
-        self._hash = hash((self._register, self._index))
-        self._repr = "%s(%s, %s)" % (self.__class__.__name__,
-                                     self._register, self._index)
+            self._hash = hash((self._register, self._index))
+            self._repr = "%s(%s, %s)" % (self.__class__.__name__,
+                                         self._register, self._index)
 
     @property
     def register(self):
@@ -59,16 +60,12 @@ class Bit:
         if (self._register, self._index) == (None, None):
             raise CircuitError('Attmped to query register of a new-style Bit.')
 
+        warnings.warn('Back-references to from Bit instances to their containing '
+                      'Registers have been deprecated. Instead, inspect Registers '
+                      'to find their contained Bits.',
+                      DeprecationWarning, stacklevel=2)
+
         return self._register
-
-    @register.setter
-    def register(self, value):
-        """Set bit's register."""
-        if (self._register, self._index) == (None, None):
-            raise CircuitError('Attmped to set register of a new-style Bit.')
-
-        self._register = value
-        self._update_hash()
 
     @property
     def index(self):
@@ -76,16 +73,12 @@ class Bit:
         if (self._register, self._index) == (None, None):
             raise CircuitError('Attmped to query index of a new-style Bit.')
 
+        warnings.warn('Back-references to from Bit instances to their containing '
+                      'Registers have been deprecated. Instead, inspect Registers '
+                      'to find their contained Bits.',
+                      DeprecationWarning, stacklevel=2)
+
         return self._index
-
-    @index.setter
-    def index(self, value):
-        """Set bit's index."""
-        if (self._register, self._index) == (None, None):
-            raise CircuitError('Attmped to set index of a new-style Bit.')
-
-        self._index = value
-        self._update_hash()
 
     def __repr__(self):
         """Return the official string representing the bit."""

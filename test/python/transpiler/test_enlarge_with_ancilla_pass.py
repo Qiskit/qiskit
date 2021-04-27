@@ -50,6 +50,7 @@ class TestEnlargeWithAncilla(QiskitTestCase):
         layout = Layout({0: self.qr3[0], 1: ancilla[0],
                          2: self.qr3[1], 3: ancilla[1],
                          4: self.qr3[2]})
+        layout.add_register(ancilla)
 
         pass_ = EnlargeWithAncilla()
         pass_.property_set['layout'] = layout
