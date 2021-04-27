@@ -49,7 +49,7 @@ for nts in num_time_steps:
                 ansatz = QuantumCircuit(1)
                 ansatz.rz(parameters, 0)
                 # Define a set of initial parameters
-                init_param_values = [np.pi/3]
+                init_param_values = [np.pi/2]
 
                 # Now we stack the observable and the quantum state together.
                 # The evolution time needs to be added as a coefficient to the operator
@@ -69,9 +69,9 @@ for nts in num_time_steps:
                                 init_parameter_values=init_param_values,
                                 num_time_steps=nts,
                                 ode_solver=ode_solver,
-                                # backend = Aer.get_backend('statevector_simulator'),
-                                backend=QuantumInstance(Aer.get_backend('qasm_simulator'),
-                                                        shots = 10000),
+                                backend = Aer.get_backend('statevector_simulator'),
+                                # backend=QuantumInstance(Aer.get_backend('qasm_simulator'),
+                                #                         shots = 100000),
                                 regularization=reg,
                                 error_based_ode=False,
                                 snapshot_dir=varqrte_snapshot_dir

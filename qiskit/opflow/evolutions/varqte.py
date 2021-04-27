@@ -364,10 +364,10 @@ class VarQTE(EvolutionBase):
             self._nat_grad = PauliExpectation().convert(self._nat_grad)
 
         self._grad = Gradient(self._grad_method).convert(self._operator, self._parameters)
-        # self._grad = PauliExpectation().convert(self._grad)
+        self._grad = PauliExpectation().convert(self._grad)
 
         self._metric = QFI(self._qfi_method).convert(self._operator.oplist[-1], self._parameters)
-        # self._metric = PauliExpectation().convert(self._metric)
+        self._metric = PauliExpectation().convert(self._metric)
 
     def _init_ode_solver(self,
                          t: float,
@@ -627,9 +627,9 @@ class VarQTE(EvolutionBase):
             # Get the QFI/4
             metric_res = np.array(self._metric.assign_parameters(param_dict).eval()) * 0.25
 
-        if any(np.abs(np.imag(grad_res_item)) > 1e-8 for grad_res_item in grad_res):
+        if any(np.abs(np.imag(grad_res_item)) > 1e-3 for grad_res_item in grad_res):
             raise Warning('The imaginary part of the gradient are non-negligible.')
-        if np.any([[np.abs(np.imag(metric_res_item)) > 1e-8 for metric_res_item in metric_res_row]
+        if np.any([[np.abs(np.imag(metric_res_item)) > 1e-3 for metric_res_item in metric_res_row]
                 for metric_res_row in metric_res]):
             raise Warning('The imaginary part of the gradient are non-negligible.')
 

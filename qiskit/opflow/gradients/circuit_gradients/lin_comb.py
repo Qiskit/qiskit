@@ -135,7 +135,6 @@ class LinComb(CircuitGradient):
                 meas = deepcopy(operator.oplist[0])
                 meas = meas.primitive * meas.coeff
                 if operator.coeff == 1j:
-                    # TODO check
                     meas *= 1j
                     operator.oplist[0]._coeff *= 1j
                     operator._coeff /= 1j
@@ -147,10 +146,11 @@ class LinComb(CircuitGradient):
                     if isinstance(params, (ParameterExpression, ParameterVector)) or \
                             (isinstance(params, list) and all(isinstance(param, ParameterExpression)
                                                               for param in params)):
-                        if np.iscomplex(operator.oplist[0].coeff):
+                        if np.iscomplex(meas.coeff):
                             self._phase_fix_operator = meas / 1j
-
-                        return self._gradient_states(state_op, meas_op=(2 * (Z ^ meas)),
+                        # return self._gradient_states(state_op, meas_op=(Z ^ meas),
+                        #                                 target_params=params)
+                        return self._gradient_states(state_op, meas_op=(2 * Z ^ meas),
                                                         target_params=params)
                     elif isinstance(params, tuple) or \
                             (isinstance(params, list) and all(isinstance(param, tuple)
@@ -172,7 +172,7 @@ class LinComb(CircuitGradient):
                     if isinstance(params, (ParameterExpression, ParameterVector)) or \
                             (isinstance(params, list) and all(isinstance(param, ParameterExpression)
                                                               for param in params)):
-                        if np.iscomplex(operator.oplist[0].coeff):
+                        if np.iscomplex(meas.coeff):
                             self._phase_fix_operator = meas / 1j
 
                         return state_op.traverse(partial(self._gradient_states,
@@ -549,7 +549,7 @@ class LinComb(CircuitGradient):
 
             if np.iscomplex(meas_op._coeff):
                 phase_fix = True
-                # +1j used because of ~StateFn
+                # TODO when Pauli Expectation is fixed +1j needed bc of ~StateFn formalism
                 phase_fix_observable = (Z ^ (I ^ state_op.num_qubits)) + \
                                        1j * (Y ^ (I ^ state_op.num_qubits))
                 state_qc.s(qr_superpos)
@@ -604,7 +604,7 @@ class LinComb(CircuitGradient):
                         if isinstance(meas_op, OperatorBase):
                             # state = meas_op @ state
                             state = ~StateFn(meas_op) @ state
-                            state = PauliExpectation().convert(state).reduce()
+                            # state = PauliExpectation().convert(state).reduce()
                         elif meas_op is True:
                             state = ListOp([state],
                                            combo_fn=partial(self._grad_combo_fn,
@@ -619,10 +619,11 @@ class LinComb(CircuitGradient):
                     # Add phase fix according to
                     # https://quantum-journal.org/papers/q-2019-10-07-191/pdf/
                     def phase_fix_combo_fn(x):
-                        return 2j * x[0] * x[1] # 2 correct
+                        return -2 * np.imag(x[0] * x[1]) # 2 correct
                     phase_fix_exp_op = self._phase_fix_operator
-                    phase_fix_exp_val = PauliExpectation().convert(~StateFn(phase_fix_exp_op) @
-                                        state_op).reduce()
+                    phase_fix_exp_val = ~StateFn(phase_fix_exp_op) @ state_op
+                    # phase_fix_exp_val = PauliExpectation().convert(~StateFn(phase_fix_exp_op) @
+                    #                     state_op).reduce()
 
                     phase_fix = ListOp([phase_fix_states[i], phase_fix_exp_val],
                                        combo_fn=phase_fix_combo_fn)
@@ -711,7 +712,7 @@ class LinComb(CircuitGradient):
 
                                 if meas_op is not None:
                                     state = ~StateFn(meas_op) @ state
-                                    state = PauliExpectation().convert(state).reduce()
+                                    # state = PauliExpectation().convert(state).reduce()
                                 else:
                                     # special operator for probability gradients
                                     # uses combo_fn on list op with a single operator
