@@ -75,7 +75,7 @@ class StabilizerState(QuantumState):
         return self._data == other._data
 
     def __repr__(self):
-        return 'StabilizerState({})'.format(repr(self._data))
+        return 'StabilizerState({})'.format(self._data)
 
     @property
     def data(self):
@@ -191,7 +191,7 @@ class StabilizerState(QuantumState):
         pauli = Pauli(num_qubits * 'I')
         phase = 0
 
-        for pos in qubits:
+        for pos in range(len(qubits)):
             qubit = qubits[pos]
             pauli_pos = (oper.to_label())[len(oper) - 1 - pos]
             if pauli_pos == 'X':
@@ -401,7 +401,7 @@ class StabilizerState(QuantumState):
     # Helper functions for calculating the measurement
     # -----------------------------------------------------------------------
     def _measure_and_update(self, qubit, randbit):
-        """ Measure a single qubit and return outcome and post-measure state.
+        """Measure a single qubit and return outcome and post-measure state.
 
         Note that this function uses the QuantumStates internal random
         number generator for sampling the measurement outcome. The RNG
@@ -448,7 +448,7 @@ class StabilizerState(QuantumState):
 
     @staticmethod
     def _phase_exponent(x1, z1, x2, z2):
-        """ Exponent g of i such that Pauli(x1,z1) * Pauli(x2,z2) = i^g Pauli(x1+x2,z1+z2) """
+        """Exponent g of i such that Pauli(x1,z1) * Pauli(x2,z2) = i^g Pauli(x1+x2,z1+z2) """
         # pylint: disable=invalid-name
 
         phase = (x2 * z1 * (1 + 2 * z2 + 2 * x1) - x1 * z2 * (1 + 2 * z1 + 2 * x2)) % 4
@@ -461,7 +461,7 @@ class StabilizerState(QuantumState):
         return phase
 
     def _rowsum(self, accum_pauli, accum_phase, row_pauli, row_phase):
-        """ Aaronson-Gottesman rowsum helper function """
+        """Aaronson-Gottesman rowsum helper function """
 
         newr = 2 * row_phase + 2 * accum_phase
 
@@ -481,7 +481,7 @@ class StabilizerState(QuantumState):
         return accum_pauli, accum_phase
 
     def _rowsum_nondeterministic(self, accum, row):
-        """ Updating StabilizerState Clifford table in the
+        """Updating StabilizerState Clifford table in the
         non-deterministic rowsum calculation.
         row and accum are rows in the StabilizerState Clifford table."""
 
@@ -501,9 +501,9 @@ class StabilizerState(QuantumState):
         self.data.table.Z[accum] = accum_pauli.z
 
     def _rowsum_deterministic(self, aux_pauli, row):
-        """ Updating an auxilary Pauli aux_pauli in the
+        """Updating an auxilary Pauli aux_pauli in the
         deterministic rowsum calculation.
-        The StabilizerState itself is not updated. """
+        The StabilizerState itself is not updated."""
 
         row_phase = self.data.table.phase[row]
         accum_phase = aux_pauli.phase

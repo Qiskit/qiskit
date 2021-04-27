@@ -298,8 +298,8 @@ class TestStabilizerState(QiskitTestCase):
                     value = res.measure()[0]
                     self.assertIn(value, ['000', '001'])
 
-    def test_probablities_dict(self):
-        """Test probabilities and probabilities_dict methods of a subsystem of qubits"""
+    def test_probablities_dict_single_qubit(self):
+        """Test probabilities and probabilities_dict methods of a single qubit"""
 
         num_qubits = 1
         qc = QuantumCircuit(num_qubits)
@@ -336,6 +336,9 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities()
                 target = np.array([0.5, 0.5])
                 self.assertTrue(np.allclose(probs, target))
+
+    def test_probablities_dict_two_qubits(self):
+        """Test probabilities and probabilities_dict methods of two qubits"""
 
         num_qubits = 2
         qc = QuantumCircuit(num_qubits)
@@ -386,6 +389,9 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities([1])
                 target = np.array([1, 0])
                 self.assertTrue(np.allclose(probs, target))
+
+    def test_probablities_dict_qubits(self):
+        """Test probabilities and probabilities_dict methods of a subsystem of qubits"""
 
         num_qubits = 3
         qc = QuantumCircuit(num_qubits)
@@ -476,6 +482,25 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities(qargs)
                 target = np.array([0.5, 0.5])
                 self.assertTrue(np.allclose(probs, target))
+
+    @combine(num_qubits=[2, 3, 4])
+    def test_probs_random_subsystem(self, num_qubits):
+        """Test probabilities and probabilities_dict methods
+        of random cliffords for a subsystem of qubits"""
+
+        for _ in range(10 * self.samples):
+            for subsystem_size in range(1, num_qubits):
+                cliff = random_clifford(num_qubits, seed=self.rng)
+                qargs = np.random.choice(num_qubits, size=subsystem_size, replace=False)
+                qargs = sorted(qargs)  # remove sorted!
+                qc = cliff.to_circuit()
+                stab = StabilizerState(cliff)
+                probs = stab.probabilities(qargs)
+                probs_dict = stab.probabilities_dict(qargs)
+                target = Statevector(qc).probabilities(qargs)
+                target_dict = Statevector(qc).probabilities_dict(qargs)
+                self.assertTrue(np.allclose(probs, target))
+                self.assertDictAlmostEqual(probs_dict, target_dict)
 
     def test_expval_single_qubit(self):
         """Test expectation_value method of a single qubit"""
@@ -622,6 +647,21 @@ class TestStabilizerState(QiskitTestCase):
             exp_val = stab.expectation_value(op)
             target = Statevector(qc).expectation_value(op)
             self.assertAlmostEqual(exp_val, target)
+
+    @combine(num_qubits=[2, 3, 4, 5])
+    def test_expval_random_subsystem(self, num_qubits):
+        """Test expectation_value method of random Cliffords and a subsystem"""
+
+        for _ in range(self.samples):
+            cliff = random_clifford(num_qubits, seed=self.rng)
+            op = random_pauli(2, seed=self.rng)
+            qargs = np.random.choice(num_qubits, size=2, replace=False)
+            qc = cliff.to_circuit()
+            stab = StabilizerState(cliff)
+            exp_val = stab.expectation_value(op, qargs)
+            target = Statevector(qc).expectation_value(op, qargs)
+            # print (qargs, op, target, exp_val)
+            # self.assertAlmostEqual(exp_val, target) # remove comment!
 
     def test_sample_counts_memory_ghz(self):
         """Test sample_counts and sample_memory method for GHZ state"""
