@@ -14,9 +14,9 @@
 RZX based template for a CX - singles - CX pattern
 .. parsed-literal::
 
-           ┌───────┐ ┌───────┐      ┌────────┐                       »
-q_0: ──■───┤ RX(π) ├─┤ RZ(φ) ├──■───┤ RZ(-φ) ├───────────────────────»
-     ┌─┴─┐┌┴───────┴┐├───────┤┌─┴─┐┌┴────────┤┌─────────┐┌──────────┐»
+           ┌───────┐                                                 »
+q_0: ──■───┤ RX(π) ├────────────■────────────────────────────────────»
+     ┌─┴─┐┌┴───────┴┐┌───────┐┌─┴─┐┌─────────┐┌─────────┐┌──────────┐»
 q_1: ┤ X ├┤ RX(π/2) ├┤ RZ(θ) ├┤ X ├┤ RX(π/2) ├┤ RZ(π/2) ├┤ RX(-π/2) ├»
      └───┘└─────────┘└───────┘└───┘└─────────┘└─────────┘└──────────┘»
 «     ┌──────────┐ ┌────────┐
@@ -30,23 +30,19 @@ import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 
 
-def rzx_zz4(theta: float = None, phi: float = None):
+def rzx_zz4(theta: float = None):
     """Template for a CX - singles - CX pattern."""
     if theta is None:
         theta = Parameter('ϴ')
-    if phi is None:
-        phi = Parameter('φ')
 
     qc = QuantumCircuit(2)
 
     qc.cx(0,1)
     qc.rx(np.pi, 0)
-    qc.rz(phi, 0)
     qc.rx(np.pi/2, 1)
     qc.rz(theta, 1)
     qc.cx(0,1)
 
-    qc.rz(-1*phi, 0)
     qc.rx(np.pi/2, 1)
     qc.rz(np.pi/2, 1)
     qc.rx(-np.pi/2, 1)
