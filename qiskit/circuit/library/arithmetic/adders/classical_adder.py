@@ -92,13 +92,13 @@ class ClassicalAdder(Adder):
         qc_carry.ccx(1, 2, 3)
         qc_carry.cx(1, 2)
         qc_carry.ccx(0, 2, 3)
-        qc_instruction_carry = qc_carry.to_instruction()
+        qc_instruction_carry = qc_carry.to_gate()
 
         # corresponds to Sum gate in [1]
         qc_sum = QuantumCircuit(3, name='Sum')
         qc_sum.cx(1, 2)
         qc_sum.cx(0, 2)
-        qc_instruction_sum = qc_sum.to_instruction()
+        qc_instruction_sum = qc_sum.to_gate()
 
         # Build a temporary subcircuit that adds a to b,
         # storing the result in b
@@ -114,5 +114,5 @@ class ClassicalAdder(Adder):
                                          qr_a[num_state_qubits - 1], qr_b[num_state_qubits - 1]])
 
         for j in reversed(range(num_state_qubits - 1)):
-            self.append(qc_instruction_carry, [qr_cin[j], qr_a[j], qr_b[j], qr_cin[j+1]])
+            self.append(qc_instruction_carry.inverse(), [qr_cin[j], qr_a[j], qr_b[j], qr_cin[j+1]])
             self.append(qc_instruction_sum, [qr_cin[j], qr_a[j], qr_b[j]])

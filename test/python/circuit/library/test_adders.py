@@ -44,18 +44,19 @@ class TestAdder(QiskitTestCase):
                 ``2^num_state_qubits``.
         """
         circuit = QuantumCircuit(*adder.qregs)
+
         # create equal superposition
         circuit.h(range(2 * num_state_qubits))
+
         # apply adder circuit
         circuit.compose(adder, inplace=True)
-        # obtain the statevector
+
+        # obtain the statevector and the probabilities, we don't trace out the ancilla qubits
+        # as we verify that all ancilla qubits have been uncomputed to state 0 again
         statevector = Statevector(circuit)
-        # trace out the ancillas if necessary
-        if circuit.num_ancillas > 0:
-            ancillas = list(range(circuit.num_qubits - circuit.num_ancillas, circuit.num_qubits))
-            probabilities = np.diagonal(partial_trace(statevector, ancillas))
-        else:
-            probabilities = np.abs(statevector) ** 2
+        probabilities = np.abs(statevector) ** 2
+        pad = '0' * circuit.num_ancillas  # state of the ancillas
+
         # compute the expected results
         expectations = np.zeros_like(probabilities)
         num_bits_sum = num_state_qubits + 1
@@ -68,7 +69,7 @@ class TestAdder(QiskitTestCase):
                 bin_x = bin(x)[2:].zfill(num_state_qubits)
                 bin_y = bin(y)[2:].zfill(num_state_qubits)
                 bin_res = bin(addition)[2:].zfill(num_bits_sum)
-                bin_index = bin_res + bin_x if inplace else bin_res + bin_y + bin_x
+                bin_index = pad + bin_res + bin_x if inplace else pad + bin_res + bin_y + bin_x
                 index = int(bin_index, 2)
                 expectations[index] += 1 / 2 ** (2 * num_state_qubits)
         np.testing.assert_array_almost_equal(expectations, probabilities)
@@ -76,6 +77,8 @@ class TestAdder(QiskitTestCase):
     @data(
         (3, RippleCarryAdder, True),
         (5, RippleCarryAdder, True),
+        (3, RippleCarryAdder, True, True),
+        (5, RippleCarryAdder, True, True),
         (3, QFTAdder, True),
         (5, QFTAdder, True),
         (3, QFTAdder, True, True),
