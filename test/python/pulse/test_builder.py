@@ -24,6 +24,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test.mock.utils import ConfigurableFakeBackend as ConfigurableBackend
 from qiskit.pulse import library, instructions
+from qiskit.circuit.library import standard_gates as gates
 
 
 class TestBuilder(QiskitTestCase):
@@ -854,8 +855,10 @@ class TestGates(TestBuilder):
     def test_lazy_evaluation_with_transpiler(self):
         """Test that the two cx gates are optimizied away by the transpiler."""
         with pulse.build(self.backend) as schedule:
-            pulse.cx(0, 1)
-            pulse.cx(0, 1)
+            pulse.builder.call_gate(gates.CXGate(), (0, 1), lazy = True)
+            pulse.builder.call_gate(gates.CXGate(), (0, 1), lazy = True)
+            # pulse.cx(0, 1)
+            # pulse.cx(0, 1)
 
         reference_qc = circuit.QuantumCircuit(2)
         reference = compiler.schedule(reference_qc, self.backend)
@@ -901,15 +904,20 @@ class TestBuilderComposition(TestBuilder):
         with pulse.build(self.backend) as schedule:
             with pulse.align_sequential():
                 pulse.delay(delay_dur, d0)
-                pulse.u2(0, pi/2, 1)
+                # pulse.u2(0, pi/2, 1)
+                pulse.builder.call_gate(gates.U2Gate(0, pi/2), 1, lazy = True)
             with pulse.align_right():
                 pulse.play(library.Constant(short_dur, 0.1), d1)
                 pulse.play(library.Constant(long_dur, 0.1), d2)
-                pulse.u2(0, pi/2, 1)
+                # pulse.u2(0, pi/2, 1)
+                pulse.builder.call_gate(gates.U2Gate(0, pi / 2), 1, lazy = True)
             with pulse.align_left():
-                pulse.u2(0, pi/2, 0)
-                pulse.u2(0, pi/2, 1)
-                pulse.u2(0, pi/2, 0)
+                # pulse.u2(0, pi/2, 0)
+                # pulse.u2(0, pi/2, 1)
+                # pulse.u2(0, pi/2, 0)
+                pulse.builder.call_gate(gates.U2Gate(0, pi / 2), 0, lazy = True)
+                pulse.builder.call_gate(gates.U2Gate(0, pi / 2), 1, lazy = True)
+                pulse.builder.call_gate(gates.U2Gate(0, pi / 2), 0, lazy = True)
             pulse.measure(0)
 
         # prepare and schedule circuits that will be used.
