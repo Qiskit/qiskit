@@ -54,8 +54,11 @@ class LinCombFull(CircuitQFI):
         """
         # QFI & phase fix observable
         qfi_observable = ~StateFn(4 * Z ^ (I ^ operator.num_qubits)).reduce()
+        # phase_fix_observable = SummedOp([Z ^ (I ^ operator.num_qubits),
+        #                                  -1j * Y ^ (I ^ operator.num_qubits)])
+        # +1j needed bc of ~StateFn formalism
         phase_fix_observable = SummedOp([Z ^ (I ^ operator.num_qubits),
-                                         -1j * Y ^ (I ^ operator.num_qubits)])
+                                         +1j * Y ^ (I ^ operator.num_qubits)])
         # phase_fix_observable = ~StateFn(SummedOp([Z, -1j * Y]) ^ (I ^ operator.num_qubits).reduce())
         # see https://arxiv.org/pdf/quant-ph/0108146.pdf
 

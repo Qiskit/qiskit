@@ -139,6 +139,8 @@ ansatz3.ry(params3[9], 0)
 ansatz3.ry(params3[10], 1)
 ansatz3.ry(params3[11], 2)
 
+print(ansatz3)
+
 params4 = ParameterVector('p4', 12)
 ansatz4 = QuantumCircuit(3)
 ansatz4.h(0)
@@ -163,7 +165,7 @@ ansatz4.ry(params4[9], 0)
 ansatz4.ry(params4[10], 1)
 ansatz4.ry(params4[11], 2)
 
-
+print(ansatz4)
 # ansatz4.cry(params4[3], 0, 1)
 # ansatz4.cry(params4[4], 1, 0)
 # ansatz4.cry(params4[5], 1, 2)

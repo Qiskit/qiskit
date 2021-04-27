@@ -77,11 +77,10 @@ class QuantumInstance:
         Quantum Instance holds a Qiskit Terra backend as well as configuration for circuit
         transpilation and execution. When provided to an Aqua algorithm the algorithm will
         execute the circuits it needs to run using the instance.
-
         Args:
             backend (Union['Backend', 'BaseBackend']): Instance of selected backend
-                        shots: Number of repetitions of each circuit, for sampling. This value is overriden by
-                the number of shot in the backend options, if they are set..
+            shots: Number of repetitions of each circuit, for sampling. If None, the shots are
+                extracted from the backend. If the backend has none set, the default is 1024.
             seed_simulator: Random seed for simulators
             max_credits: Maximum credits to use
             basis_gates: List of basis gate names supported by the
@@ -115,7 +114,6 @@ class QuantumInstance:
                 to monitor job progress as jobs are submitted for processing by an Aqua algorithm.
                 The callback is provided the following arguments: `job_id, job_status,
                 queue_position, job`
-
         Raises:
             QiskitError: the shots exceeds the maximum number of shots
             QiskitError: set noise model but the backend does not support that
@@ -124,25 +122,21 @@ class QuantumInstance:
         self._backend = backend
         self._pass_manager = pass_manager
 
-        # TODO: exchange this for a Backend instancecheck once Aer's simulators implement that
-        # interface
-        if hasattr(backend, 'options'):
-            if 'shots' in backend.options:
-                if shots != backend.options['shots']:
-                    logger.info('Overwriting the number of shots in the quantum instance with the '
-                                'settings from the backend.')
-                shots = backend.options.get('shots', 1024)
+        # if the shots are none, try to get them from the backend
+        if shots is None:
+            from qiskit.providers.basebackend import BaseBackend  # pylint: disable=cyclic-import
+            from qiskit.providers.backend import BackendV1  # pylint: disable=cyclic-import
+            if isinstance(backend, (BaseBackend, BackendV1)):
+                if hasattr(backend, 'options'):  # should always be true for V1
+                    backend_shots = backend.options.get('shots', 1024)
+                    if shots != backend_shots:
+                        logger.info('Overwriting the number of shots in the quantum instance with '
+                                    'the settings from the backend.')
+                    shots = backend_shots
 
-        if shots is not None:
-            # setup run config
-            if self.is_statevector and shots != 1:
-                logger.info("statevector backend only works with shot=1, changing "
-                            "shots from %s to 1.", shots)
-                shots = 1
-
-            max_shots = self._backend.configuration().max_shots
-            if max_shots is not None and shots > max_shots:
-                raise QiskitError('The maximum shots supported by the selected backend is {} ')
+        # safeguard if shots are still not set
+        if shots is None:
+            shots = 1024
 
         # pylint: disable=cyclic-import
         from qiskit.assembler.run_config import RunConfig
@@ -230,7 +224,6 @@ class QuantumInstance:
 
     def __str__(self) -> str:
         """Overload string.
-
         Returns:
             str: the info of the object.
         """
@@ -287,15 +280,12 @@ class QuantumInstance:
                 had_transpiled: bool = False):
         """
         A wrapper to interface with quantum backend.
-
         Args:
             circuits (Union['QuantumCircuit', List['QuantumCircuit']]):
                         circuits to execute
             had_transpiled: whether or not circuits had been transpiled
-
         Returns:
             Result: result object
-
         TODO: Maybe we can combine the circuits for the main ones and calibration circuits before
               assembling to the qobj.
         """
@@ -574,10 +564,8 @@ class QuantumInstance:
                                   timestamp: Optional[float] = None) -> bool:
         """
         Calculate the time difference from the query of last time.
-
         Args:
             timestamp: timestamp
-
         Returns:
             Whether or not refresh the cals_matrix
         """
@@ -595,11 +583,9 @@ class QuantumInstance:
             Optional[Union[Tuple[np.ndarray, float], Dict[str, Tuple[np.ndarray, float]]]]:
         """
         Get the stored calibration matrices and its timestamp.
-
         Args:
             qubit_index: the qubit index of corresponding calibration matrix.
                          If None, return all stored calibration matrices.
-
         Returns:
             The calibration matrix and the creation timestamp if qubit_index
             is not None otherwise, return all matrices and their timestamp

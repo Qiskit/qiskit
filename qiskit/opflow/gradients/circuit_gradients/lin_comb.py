@@ -135,6 +135,8 @@ class LinComb(CircuitGradient):
                 meas = deepcopy(operator.oplist[0])
                 meas = meas.primitive * meas.coeff
                 if operator.coeff == 1j:
+                    # TODO check
+                    meas *= 1j
                     operator.oplist[0]._coeff *= 1j
                     operator._coeff /= 1j
                 if len(operator.oplist) == 2:
@@ -547,7 +549,8 @@ class LinComb(CircuitGradient):
 
             if np.iscomplex(meas_op._coeff):
                 phase_fix = True
-                phase_fix_observable = (Z ^ (I ^ state_op.num_qubits)) - \
+                # +1j used because of ~StateFn
+                phase_fix_observable = (Z ^ (I ^ state_op.num_qubits)) + \
                                        1j * (Y ^ (I ^ state_op.num_qubits))
                 state_qc.s(qr_superpos)
                 meas_op._coeff /= 1j
