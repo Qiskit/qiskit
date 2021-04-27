@@ -18,7 +18,7 @@ from ddt import ddt, data, unpack
 
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
-from qiskit.quantum_info import Statevector, partial_trace
+from qiskit.quantum_info import Statevector
 from qiskit.circuit.library import RippleCarryAdder, QFTAdder, ClassicalAdder
 
 
