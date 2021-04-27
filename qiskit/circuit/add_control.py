@@ -93,6 +93,8 @@ def control(operation: Union[Gate, ControlledGate],
     q_ancillae = None  # TODO: add
     controlled_circ = QuantumCircuit(q_control, q_target,
                                      name='c_{}'.format(operation.name))
+    if isinstance(operation, controlledgate.ControlledGate):
+        original_ctrl_state = operation.ctrl_state
     global_phase = 0
     if operation.name == 'x' or (
             isinstance(operation, controlledgate.ControlledGate) and
@@ -103,7 +105,6 @@ def control(operation: Union[Gate, ControlledGate],
     else:
         basis = ['p', 'u', 'x', 'z', 'rx', 'ry', 'rz', 'cx']
         if isinstance(operation, controlledgate.ControlledGate):
-            original_ctrl_state = operation.ctrl_state
             operation.ctrl_state = None
         unrolled_gate = _unroll_gate(operation, basis_gates=basis)
         if unrolled_gate.definition.global_phase:
