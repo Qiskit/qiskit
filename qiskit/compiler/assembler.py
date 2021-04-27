@@ -11,24 +11,25 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj"""
-import uuid
 import copy
 import logging
+import uuid
 import warnings
 from time import time
 from typing import Union, List, Dict, Optional
+
+from qiskit.assembler import assemble_circuits, assemble_schedules
+from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumCircuit, Qubit, Parameter
 from qiskit.exceptions import QiskitError
+from qiskit.providers import BaseBackend
+from qiskit.providers.backend import Backend
 from qiskit.pulse import LoConfig, Instruction
-from qiskit.assembler.run_config import RunConfig
-from qiskit.assembler import assemble_circuits, assemble_schedules
+from qiskit.pulse import Schedule, ScheduleBlock
+from qiskit.pulse.channels import PulseChannel
 from qiskit.qobj import QobjHeader, Qobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.validation.jsonschema import SchemaValidationError
-from qiskit.providers import BaseBackend
-from qiskit.providers.backend import Backend
-from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse import Schedule
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,9 @@ def _log_assembly_time(start_time, end_time):
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
-def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, List[Schedule]],
+def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit],
+                                Schedule, List[Schedule],
+                                ScheduleBlock, Union[ScheduleBlock]],
              backend: Optional[Union[Backend, BaseBackend]] = None,
              qobj_id: Optional[str] = None,
              qobj_header: Optional[Union[QobjHeader, Dict]] = None,
@@ -154,7 +157,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
         return assemble_circuits(circuits=bound_experiments, qobj_id=qobj_id,
                                  qobj_header=qobj_header, run_config=run_config)
 
-    elif all(isinstance(exp, (Schedule, Instruction)) for exp in experiments):
+    elif all(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments):
         run_config = _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq,
                                        qubit_lo_range, meas_lo_range,
                                        schedule_los, meas_level, meas_return,
