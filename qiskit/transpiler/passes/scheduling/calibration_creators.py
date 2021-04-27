@@ -261,14 +261,6 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
     of the CX gate.
     """
 
-    def __init__(self, backend: basebackend):
-        """
-        Initializes a RZXGate calibration builder without echos.
-        Args:
-            backend: Backend for which to construct the gates.
-        """
-        super().__init__(backend)
-
     def _filter_instruction(self, inst: (int, Union['Schedule', Instruction])) -> bool:
         """
         Filters the Schedule instructions for a play instruction with a Gaussian square pulse.
@@ -312,7 +304,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
 
         control, target = None, None
 
-        for time, inst in cx_sched.instructions:
+        for _, inst in cx_sched.instructions:
             # Identify the compensation tones.
             if isinstance(inst.channel, DriveChannel) and not isinstance(inst, ShiftPhase):
                 if isinstance(inst.pulse, GaussianSquare):
