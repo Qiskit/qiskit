@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Due to the definition of the measurements in the opflow to be given as `~StateFn`, the phase fix applied in the     QFI was not evalated for the correct observable. This was fixed by defining the observable via `StateFn(..., is_measurement=True').
