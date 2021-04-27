@@ -16,6 +16,7 @@
 from ddt import ddt, data
 from qiskit import QuantumCircuit, QiskitError
 from qiskit import transpile, assemble, BasicAer
+from qiskit.circuit import Parameter
 from qiskit.test.mock.backends import FakeParis
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
@@ -328,3 +329,73 @@ class TestScheduledCircuit(QiskitTestCase):
         qobj = assemble(circ, self.simulator_backend)
         self.assertEqual(qobj.experiments[0].instructions[1].name, "delay")
         self.assertAlmostEqual(qobj.experiments[0].instructions[1].params[0], 1e-7)
+
+    # Tests for circuits with parameterized delays
+
+    def test_can_transpile_circuits_after_assigning_parameters(self):
+        """Check if not scheduled but duration is converted in dt"""
+        idle_dur = Parameter('t')
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.delay(idle_dur, 0, 'us')
+        qc.measure(0, 0)
+        qc = qc.assign_parameters({idle_dur: 0.1})
+        circ = transpile(qc, self.backend_with_dt)
+        self.assertEqual(circ.duration, None)  # not scheduled
+        self.assertEqual(circ.data[1][0].duration, 450)  # converted in dt
+
+    def test_can_transpile_and_assemble_circuits_with_assigning_parameters_inbetween(self):
+        idle_dur = Parameter('t')
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.delay(idle_dur, 0, 'us')
+        qc.measure(0, 0)
+        circ = transpile(qc, self.backend_with_dt)
+        circ = circ.assign_parameters({idle_dur: 0.1})
+        qobj = assemble(circ, self.backend_with_dt)
+        self.assertEqual(qobj.experiments[0].instructions[1].name, "delay")
+        self.assertEqual(qobj.experiments[0].instructions[1].params[0], 450)
+
+    def test_can_transpile_circuits_with_unbounded_parameters(self):
+        idle_dur = Parameter('t')
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.delay(idle_dur, 0, 'us')
+        qc.measure(0, 0)
+        # not assign parameter
+        circ = transpile(qc, self.backend_with_dt)
+        self.assertEqual(circ.duration, None)  # not scheduled
+        self.assertEqual(circ.data[1][0].unit, 'dt')  # converted in dt
+        self.assertEqual(circ.data[1][0].duration, idle_dur * 1e-6 / self.dt)  # still parameterized
+
+    def test_fail_to_assemble_circuits_with_unbounded_parameters(self):
+        idle_dur = Parameter('t')
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.delay(idle_dur, 0, 'us')
+        qc.measure(0, 0)
+        qc = transpile(qc, self.backend_with_dt)
+        with self.assertRaises(QiskitError):
+            assemble(qc, self.backend_with_dt)
+
+    @data('asap', 'alap')
+    def test_can_schedule_circuits_with_bounded_parameters(self, scheduling_method):
+        idle_dur = Parameter('t')
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.delay(idle_dur, 0, 'us')
+        qc.measure(0, 0)
+        qc = qc.assign_parameters({idle_dur: 0.1})
+        circ = transpile(qc, self.backend_with_dt, scheduling_method=scheduling_method)
+        self.assertIsNotNone(circ.duration)  # scheduled
+
+    @data('asap', 'alap')
+    def test_fail_to_schedule_circuits_with_unbounded_parameters(self, scheduling_method):
+        idle_dur = Parameter('t')
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.delay(idle_dur, 0, 'us')
+        qc.measure(0, 0)
+        # not assign parameter
+        with self.assertRaises(TranspilerError):
+            transpile(qc, self.backend_with_dt, scheduling_method=scheduling_method)

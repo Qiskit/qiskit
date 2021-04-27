@@ -102,10 +102,11 @@ class Channel(metaclass=ABCMeta):
             raise PulseError('Channel index must be a nonnegative integer')
 
     @property
-    @deprecated_functionality
     def parameters(self) -> Set:
         """Parameters which determine the channel index."""
-        return self._parameters
+        if isinstance(self.index, ParameterExpression):
+            return self.index.parameters
+        return set()
 
     def is_parameterized(self) -> bool:
         """Return True iff the channel is parameterized."""
