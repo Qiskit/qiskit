@@ -621,45 +621,6 @@ class TestCircuitAssembler(QiskitTestCase):
         qubit_lo_range = [[freq - 5e6, freq + 5e6] for freq in self.default_qubit_lo_freq]
         meas_lo_range = [[freq - 5e6, freq + 5e6] for freq in self.default_meas_lo_freq]
 
-        # invalid qubit lo list length
-        with self.assertRaises(QiskitError):
-            assemble(
-                self.circ,
-                backend=self.backend,
-                qubit_lo_freq=[4.9],
-                meas_lo_freq=self.default_meas_lo_freq,
-            )
-        # invalid meas lo list length
-        with self.assertRaises(QiskitError):
-            assemble(
-                self.circ,
-                backend=self.backend,
-                qubit_lo_freq=self.default_qubit_lo_freq,
-                meas_lo_freq=[6.7e9],
-            )
-
-        # invalid qubit lo range list length
-        with self.assertRaises(QiskitError):
-            assemble(
-                self.circ,
-                backend=self.backend,
-                qubit_lo_freq=self.default_qubit_lo_freq,
-                meas_lo_freq=self.default_meas_lo_freq,
-                qubit_lo_range=[[4.995e9, 5.005e9]],
-                meas_lo_range=meas_lo_range,
-            )
-
-        # invalid meas lo range list length
-        with self.assertRaises(QiskitError):
-            assemble(
-                self.circ,
-                backend=self.backend,
-                qubit_lo_freq=self.default_qubit_lo_freq,
-                meas_lo_freq=self.default_meas_lo_freq,
-                qubit_lo_range=[],
-                meas_lo_range=[[6.695e9, 6.705e9]],
-            )
-
         # lo range not a nested list
         with self.assertRaises(QiskitError):
             assemble(
@@ -671,7 +632,7 @@ class TestCircuitAssembler(QiskitTestCase):
                 meas_lo_range=meas_lo_range,
             )
 
-        # lo range inner list not 2d
+        # qubit lo range inner list not 2d
         with self.assertRaises(QiskitError):
             assemble(
                 self.circ,
@@ -682,7 +643,7 @@ class TestCircuitAssembler(QiskitTestCase):
                 meas_lo_range=[[6.695e9] for i in range(self.num_qubits)],
             )
 
-        # lo range inner list not 2d
+        # meas lo range inner list not 2d
         with self.assertRaises(QiskitError):
             assemble(
                 self.circ,

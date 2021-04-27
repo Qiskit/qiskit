@@ -113,7 +113,7 @@ class LoConfigConverter:
             # raise error
             if None in _q_los:
                 raise QiskitError("Invalid experiment level qubit LO's. Must either pass values "
-                                  "for  all drive channels or pass 'default_qubit_los'.")
+                                  "for all drive channels or pass 'default_qubit_los'.")
 
         return _q_los
 

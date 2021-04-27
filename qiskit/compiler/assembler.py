@@ -302,10 +302,9 @@ def _parse_common_args(
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
 
-    # check job level LO frequencies are in the proper range
-    if n_qubits:
-        _check_lo_freqs(qubit_lo_freq, qubit_lo_range, "qubit", n_qubits)
-        _check_lo_freqs(meas_lo_freq, meas_lo_range, "meas", n_qubits)
+    # check that LO frequencies are in the perscribed range
+    _check_lo_freqs(qubit_lo_freq, qubit_lo_range, "qubit")
+    _check_lo_freqs(meas_lo_freq, meas_lo_range, "meas")
 
     # configure experiment level LO frequencies
     schedule_los = schedule_los or []
@@ -338,41 +337,26 @@ def _check_lo_freqs(
     lo_freq: Union[List[float], None],
     lo_range: Union[List[float], None],
     lo_type: str,
-    n_qubits: int,
 ):
-    """Check that LO frequencies are within the perscribed LO range. Also checks length of both LO
-    lists.
+    """Check that LO frequencies are within the perscribed LO range.
+
+    NOTE: Only checks if frequency/range lists have equal length. And does not check that the lists
+    have length ``n_qubits``. This is because some backends, like simulator backends, do not
+    require these constraints. For real hardware, these parameters will be validated on the backend.
 
     Args:
         lo_freq: List of LO frequencies.
         lo_range: Nested list of LO frequency ranges. Inner list is of the form
             ``[lo_min, lo_max]``.
         lo_type: The type of LO value--"qubit" or "meas".
-        n_qubits: The number of qubits on this backend.
 
     Raises:
         QiskitError:
-            - If the length of the LO frequency list is not equal to the number of qubits.
-            - If the length of the LO range list is not equal to the number of qubits.
             - If each element of the LO range is not a 2d list.
             - If the LO frequency is not in the LO range for a given qubit.
     """
-    # check LO frequencies length
-    if lo_freq and len(lo_freq) != n_qubits:
-        raise QiskitError(
-            "Length of {}_lo_freq is {}. It must be equal to {}, the number of qubits on "
-            "this backend.".format(lo_type, len(lo_freq), n_qubits)
-        )
-    # check LO ranges length
-    if lo_range and len(lo_range) != n_qubits:
-        raise QiskitError(
-            "Length of {}_lo_range is {}. It must be equal to {}, the number of qubits on "
-            "this backend.".format(lo_type, len(lo_freq), n_qubits)
-        )
-
-    # verify LO frequencies are in range
-    if lo_freq and lo_range:
-        for i in range(n_qubits):
+    if lo_freq and lo_range and len(lo_freq) == len(lo_range):
+        for i in range(len(lo_freq)):
             freq = lo_freq[i]
             freq_range = lo_range[i]
             if not (isinstance(freq_range, list) and len(freq_range) == 2):
