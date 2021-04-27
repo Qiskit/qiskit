@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix bug where controlling another controlled_gate with open controls would unset the inner open controls.
