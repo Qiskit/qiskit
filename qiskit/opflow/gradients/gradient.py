@@ -111,6 +111,12 @@ class Gradient(GradientBase):
                 return expr == c
             return coeff == c
 
+        def is_coeff_c_abs(coeff, c):
+            if isinstance(coeff, ParameterExpression):
+                expr = coeff._symbol_expr
+                return False
+            return np.abs(coeff) == c
+
         if isinstance(params, (ParameterVector, list)):
             param_grads = [self.get_gradient(operator, param) for param in params]
             # If get_gradient returns None, then the corresponding parameter was probably not
@@ -161,7 +167,7 @@ class Gradient(GradientBase):
         if isinstance(operator, ComposedOp):
 
             # Gradient of an expectation value
-            if not is_coeff_c(np.abs(operator._coeff), 1.0):
+            if not is_coeff_c_abs(operator._coeff, 1.0):
                 raise OpflowError('Operator pre-processing failed. Coefficients were not properly '
                                   'collected inside the ComposedOp.')
 

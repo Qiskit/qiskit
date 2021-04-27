@@ -53,10 +53,9 @@ class LinCombFull(CircuitQFI):
             TypeError: If ``operator`` is an unsupported type.
         """
         # QFI & phase fix observable
-        qfi_observable = ~StateFn(4 * Z ^ (I ^ operator.num_qubits)).reduce()
-        # TODO when Pauli Expectation is fixed +1j needed bc of ~StateFn formalism
+        qfi_observable = StateFn(4 * Z ^ (I ^ operator.num_qubits), is_measurement=True).reduce()
         phase_fix_observable = SummedOp([Z ^ (I ^ operator.num_qubits),
-                                         +1j * Y ^ (I ^ operator.num_qubits)])
+                                         - 1j * Y ^ (I ^ operator.num_qubits)])
         # see https://arxiv.org/pdf/quant-ph/0108146.pdf
 
         # Check if the given operator corresponds to a quantum state given as a circuit.
@@ -156,7 +155,7 @@ class LinCombFull(CircuitQFI):
 
                 # Compute −4 * Re(〈∂kψ|ψ〉〈ψ|∂lψ〉)
                 def phase_fix_combo_fn(x):
-                    return 4 * (-0.5) * (x[0] * np.conjugate(x[1]) + x[1] * np.conjugate(x[0]))
+                    return -4 * np.real(x[0] * np.conjugate(x[1]))
 
                 phase_fix = ListOp([phase_fix_states[i], phase_fix_states[j]],
                                    combo_fn=phase_fix_combo_fn)

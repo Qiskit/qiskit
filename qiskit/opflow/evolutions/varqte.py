@@ -640,8 +640,8 @@ class VarQTE(EvolutionBase):
         while True:
             w, v = np.linalg.eigh(metric_res)
 
-            if not all(ew >= -1e-8 for ew in w):
-                raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8,
+            if not all(ew >= -1e-2 for ew in w):
+                raise Warning('The underlying metric has ein Eigenvalue < ', -1e-2,
                               '. Please use a regularized least-square solver for this problem.')
             if not all(ew >= 0 for ew in w):
                 # If not all eigenvalues are non-negative, set them to a small positive
