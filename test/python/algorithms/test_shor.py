@@ -67,13 +67,6 @@ class TestShor(QiskitAlgorithmsTestCase):
         with self.assertRaises(ValueError):
             _ = Shor().factor(N=n_v)
 
-    @idata([[2, 15, 8], [4, 15, 4]])
-    @unpack
-    def test_shor_modinv(self, a_v, m_v, expected):
-        """ shor modular inverse test """
-        modinv = Shor.modinv(a_v, m_v)
-        self.assertTrue(modinv == expected)
-
 
 if __name__ == '__main__':
     unittest.main()
