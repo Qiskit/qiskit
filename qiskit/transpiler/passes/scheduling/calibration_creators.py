@@ -17,7 +17,8 @@ from typing import List, Union
 from abc import abstractmethod
 import numpy as np
 
-from qiskit.pulse import Play, ShiftPhase, Schedule, ControlChannel, DriveChannel, GaussianSquare, Delay
+from qiskit.pulse import Play, Delay, ShiftPhase, Schedule, \
+    ControlChannel, DriveChannel, GaussianSquare
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.providers import basebackend
