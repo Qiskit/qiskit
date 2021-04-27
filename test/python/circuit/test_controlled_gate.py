@@ -212,7 +212,6 @@ class TestControlledGate(QiskitTestCase):
         gate1pre = ZGate().control(1, ctrl_state=0)
         gate1 = gate1pre.control(1, ctrl_state=1)
         gate2 = ZGate().control(2, ctrl_state=1)
-        np.set_printoptions(precision=3, suppress=True, linewidth=200)
         expected = Operator(_compute_control_matrix(ZGate().to_matrix(), 2, ctrl_state=1))
         self.assertEqual(expected, Operator(gate1))
         self.assertEqual(expected, Operator(gate2))
