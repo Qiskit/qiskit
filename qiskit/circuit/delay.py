@@ -16,6 +16,7 @@ Delay instruction (for circuit module).
 import numpy as np
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.parameterexpression import ParameterExpression
 
 
 class Delay(Instruction):
@@ -23,12 +24,6 @@ class Delay(Instruction):
 
     def __init__(self, duration, unit='dt'):
         """Create new delay instruction."""
-        if not isinstance(duration, (float, int)):
-            raise CircuitError('Unsupported duration type.')
-
-        if unit == 'dt' and not isinstance(duration, int):
-            raise CircuitError("Integer duration is required for 'dt' unit.")
-
         if unit not in {'s', 'ms', 'us', 'ns', 'ps', 'dt'}:
             raise CircuitError('Unknown unit %s is specified.' % unit)
 
@@ -72,3 +67,27 @@ class Delay(Instruction):
         """Return the official string representing the delay."""
         return "%s(duration=%s[unit=%s])" % \
                (self.__class__.__name__, self.params[0], self.unit)
+
+    def validate_parameter(self, parameter):
+        """Delay parameter (i.e. duration) must be int, float or ParameterExpression."""
+        if isinstance(parameter, int):
+            return parameter
+        elif isinstance(parameter, float):
+            if self.unit == 'dt':
+                raise CircuitError("Integer duration is expected for 'dt' unit.")
+            return parameter
+        elif isinstance(parameter, ParameterExpression):
+            if len(parameter.parameters) > 0:
+                return parameter  # expression has free parameters, we cannot validate it
+            if not parameter._symbol_expr.is_real:
+                raise CircuitError(f"Bound parameter expression is complex in delay {self.name}")
+            fval = float(parameter)
+            if self.unit == 'dt':
+                ival = int(parameter)
+                rounding_error = abs(fval - ival)
+                if rounding_error > 1e-15:
+                    raise CircuitError("Integer parameter is required for duration in 'dt' unit.")
+                return ival
+            return fval  # per default assume parameters must be real when bound
+        else:
+            raise CircuitError(f"Invalid param type {type(parameter)} for delay {self.name}.")
