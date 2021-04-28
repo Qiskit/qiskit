@@ -141,7 +141,7 @@ class Schedule:
 
         # These attributes are populated by ``_mutable_insert``
         self._timeslots = {}
-        self.__children = []
+        self._children = []
         for sched_pair in schedules:
             try:
                 time, sched = sched_pair
@@ -201,16 +201,20 @@ class Schedule:
         return tuple(self._timeslots.keys())
 
     @property
-    def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
-        """Return the child``NamedValues``s of this ``Schedule`` in the
+    def children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
+        """Return the child schedule components of this ``Schedule`` in the
         order they were added to the schedule.
+
+        Notes:
+            Nested schedules are returned as-is. If you want to collect only instructions,
+            use py:meth:`~Schedule.instructions` instead.
 
         Returns:
             A tuple, where each element is a two-tuple containing the initial
             scheduled time of each ``NamedValue`` and the component
             itself.
         """
-        return tuple(self.__children)
+        return tuple(self._children)
 
     @property
     def instructions(self) -> Tuple[Tuple[int, Instruction]]:
@@ -272,7 +276,7 @@ class Schedule:
                 :class:`~qiskit.pulse.Instruction`
                 starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
         """
-        for insert_time, child_sched in self._children:
+        for insert_time, child_sched in self.children:
             yield from child_sched._instructions(time + insert_time)
 
     def shift(self,
@@ -330,8 +334,8 @@ class Schedule:
 
         self._duration = self._duration + time
         self._timeslots = timeslots
-        self.__children = [(orig_time + time, child) for
-                           orig_time, child in self._children]
+        self._children = [(orig_time + time, child) for
+                           orig_time, child in self.children]
         return self
 
     def insert(self,
@@ -364,7 +368,7 @@ class Schedule:
             schedule: Schedule to mutably insert.
         """
         self._add_timeslots(start_time, schedule)
-        self.__children.append((start_time, schedule))
+        self._children.append((start_time, schedule))
         self._parameter_manager.update_parameter_table(schedule)
         return self
 
@@ -651,7 +655,7 @@ class Schedule:
         new_children = []
         new_parameters = ParameterManager()
 
-        for time, child in self._children:
+        for time, child in self.children:
             if child == old:
                 new_children.append((time, new))
                 new_parameters.update_parameter_table(new)
@@ -660,7 +664,7 @@ class Schedule:
                 new_parameters.update_parameter_table(child)
 
         if inplace:
-            self.__children = new_children
+            self._children = new_children
             self._parameter_manager = new_parameters
             self._renew_timeslots()
             return self

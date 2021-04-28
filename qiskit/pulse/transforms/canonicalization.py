@@ -157,7 +157,7 @@ def _inline_schedule(schedule: Schedule) -> Schedule:
     """
     ret_schedule = Schedule(name=schedule.name,
                             metadata=schedule.metadata)
-    for t0, inst in schedule._children:
+    for t0, inst in schedule.children:
         # note that schedule.instructions unintentionally flatten the nested schedule.
         # this should be performed by another transformer node.
         if isinstance(inst, instructions.Call):

@@ -143,8 +143,7 @@ class ParameterSetter(NodeVisitor):
     def visit_Schedule(self, node: Schedule):
         """Visit ``Schedule``. Recursively visit schedule children and overwrite."""
         # accessing to private member
-        # TODO: consider updating Schedule to handle this more gracefully
-        node._Schedule__children = [(t0, self.visit(sched)) for t0, sched in node.instructions]
+        node._children = [(t0, self.visit(sched)) for t0, sched in node.instructions]
         node._renew_timeslots()
 
         self._update_parameter_manager(node)

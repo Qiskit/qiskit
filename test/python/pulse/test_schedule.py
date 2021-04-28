@@ -191,7 +191,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(0, sched.stop_time)
         self.assertEqual(0, sched.duration)
         self.assertEqual(0, len(sched))
-        self.assertEqual((), sched._children)
+        self.assertEqual((), sched.children)
         self.assertEqual({}, sched.timeslots)
         self.assertEqual([], list(sched.instructions))
         self.assertFalse(sched)
