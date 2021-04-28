@@ -369,8 +369,7 @@ class DAGCircuit:
             int: The integer node index for the new op node on the DAG
         """
         # Add a new operation node to the graph
-        new_node = DAGNode(type="op", op=op, name=op.name, qargs=qargs,
-                           cargs=cargs)
+        new_node = DAGNode(type="op", op=op, qargs=qargs, cargs=cargs)
         node_index = self._multi_graph.add_node(new_node)
         new_node._node_id = node_index
         return node_index
