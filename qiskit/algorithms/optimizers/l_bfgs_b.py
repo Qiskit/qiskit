@@ -104,10 +104,16 @@ class L_BFGS_B(ScipyMinimizer):  # pylint: disable=invalid-name
                 Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped)
             )
 
+        def wrap_grad(x):
+            gradient = gradient_function(x)
+            if isinstance(gradient, np.ndarray):
+                return list(gradient)
+            return gradient
+
         return super().optimize(
             num_vars,
             objective_function,
-            lambda x: list(gradient_function(x)),
+            wrap_grad if gradient_function else None,
             variable_bounds,
             initial_point,
         )
