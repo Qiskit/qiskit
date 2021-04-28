@@ -261,17 +261,37 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
     of the CX gate.
     """
 
-    def _filter_instruction(self, inst: (int, Union['Schedule', Instruction])) -> bool:
+    @staticmethod
+    def _filter_control(inst: (int, Union['Schedule', Instruction])) -> bool:
         """
-        Filters the Schedule instructions for a play instruction with a Gaussian square pulse.
+        Filters the Schedule instructions for a Gaussian square pulse on the ControlChannel.
         Args:
             inst: Instructions to be filtered.
         Returns:
-            match: True if the instruction is a play instruction and contains
-            a Gaussian square pulse.
+            match: True if the instruction is a Play instruction with
+            a Gaussian square pulse on the ControlChannel.
         """
-        if isinstance(inst[1], Play) and isinstance(inst[1].pulse, GaussianSquare):
-            return True
+        if isinstance(inst[1], Play):
+            if isinstance(inst[1].pulse, GaussianSquare) and \
+                    isinstance(inst[1].channel, ControlChannel):
+                return True
+
+        return False
+
+    @staticmethod
+    def _filter_drive(inst: (int, Union['Schedule', Instruction])) -> bool:
+        """
+        Filters the Schedule instructions for a Gaussian square pulse on the DriveChannel.
+        Args:
+            inst: Instructions to be filtered.
+        Returns:
+            match: True if the instruction is a Play instruction with
+            a Gaussian square pulse on the DriveChannel.
+        """
+        if isinstance(inst[1], Play):
+            if isinstance(inst[1].pulse, GaussianSquare) and \
+                    isinstance(inst[1].channel, DriveChannel):
+                return True
 
         return False
 
@@ -317,11 +337,8 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
             raise QiskitError('Target qubit is None.')
 
         # Get the filtered Schedule instructions for the CR gates and compensation tones.
-        crs = cx_sched.filter(*[self._filter_instruction],
-                              channels=[ControlChannel(target),
-                                        ControlChannel(control)]).instructions
-        rotaries = cx_sched.filter(*[self._filter_instruction],
-                                   channels=[DriveChannel(target)]).instructions
+        crs = cx_sched.filter(*[self._filter_control]).instructions
+        rotaries = cx_sched.filter(*[self._filter_drive]).instructions
 
         # Stretch/compress the CR gates and compensation tones.
         cr = self.rescale_cr_inst(crs[0][1], 2*theta)
