@@ -16,13 +16,15 @@
 Base class for dummy backends.
 """
 
+import uuid
 import warnings
 
 from qiskit import circuit
 from qiskit.providers.models import BackendProperties
-from qiskit.providers import BackendV1
+from qiskit.providers import BackendV1, BaseBackend
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
+from qiskit.test.mock import fake_job
 
 try:
     from qiskit.providers import aer
@@ -168,6 +170,115 @@ class FakeBackend(BackendV1):
             job = sim.run(circuits, **kwargs)
         return job
 
-    def jobs(self, **kwargs):  # pylint: disable=unused-argument
-        """Fake a job history"""
-        return []
+
+class FakeLegacyBackend(BaseBackend):
+    """This is a dummy backend just for testing purposes of the legacy providers interface."""
+
+    def __init__(self, configuration, time_alive=10):
+        """FakeBackend initializer.
+        Args:
+            configuration (BackendConfiguration): backend configuration
+            time_alive (int): time to wait before returning result
+        """
+        super().__init__(configuration)
+        self.time_alive = time_alive
+        self._credentials = _Credentials()
+
+    def properties(self):
+        """Return backend properties"""
+        coupling_map = self.configuration().coupling_map
+        unique_qubits = list(set().union(*coupling_map))
+
+        properties = {
+            'backend_name': self.name(),
+            'backend_version': self.configuration().backend_version,
+            'last_update_date': '2000-01-01 00:00:00Z',
+            'qubits': [
+                [
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "T1",
+                        "unit": "\u00b5s",
+                        "value": 0.0
+                    },
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "T2",
+                        "unit": "\u00b5s",
+                        "value": 0.0
+                    },
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "frequency",
+                        "unit": "GHz",
+                        "value": 0.0
+                    },
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "readout_error",
+                        "unit": "",
+                        "value": 0.0
+                    },
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "operational",
+                        "unit": "",
+                        "value": 1
+                    }
+                ] for _ in range(len(unique_qubits))
+            ],
+            'gates': [{
+                "gate": "cx",
+                "name": "CX" + str(pair[0]) + "_" + str(pair[1]),
+                "parameters": [
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "gate_error",
+                        "unit": "",
+                        "value": 0.0
+                    }
+                ],
+                "qubits": [
+                    pair[0],
+                    pair[1]
+                ]
+            } for pair in coupling_map],
+            'general': []
+        }
+
+        return BackendProperties.from_dict(properties)
+
+    def run(self, qobj):
+        """Main job in simulator"""
+        if HAS_AER:
+            if qobj.type == 'PULSE':
+                from qiskit.providers.aer.pulse import PulseSystemModel
+                system_model = PulseSystemModel.from_backend(self)
+                sim = aer.Aer.get_backend('pulse_simulator')
+                job = sim.run(qobj, system_model)
+            else:
+                sim = aer.Aer.get_backend('qasm_simulator')
+                if self.properties():
+                    from qiskit.providers.aer.noise import NoiseModel
+                    noise_model = NoiseModel.from_backend(self, warnings=False)
+                    job = sim.run(qobj, noise_model=noise_model)
+                else:
+                    job = sim.run(qobj)
+
+            out_job = fake_job.FakeLegacyJob(self, job.job_id, None)
+            out_job._future = job._future
+        else:
+            if qobj.type == 'PULSE':
+                raise QiskitError("Unable to run pulse schedules without "
+                                  "qiskit-aer installed")
+            warnings.warn("Aer not found using BasicAer and no noise",
+                          RuntimeWarning)
+
+            def run_job():
+                sim = basicaer.BasicAer.get_backend('qasm_simulator')
+                return sim.run(qobj).result()
+
+            job_id = uuid.uuid4()
+            out_job = fake_job.FakeLegacyJob(self, job_id, run_job)
+            out_job.submit()
+        return out_job

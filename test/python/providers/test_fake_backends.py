@@ -24,11 +24,12 @@ from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.execute_function import execute
 from qiskit.test.base import QiskitTestCase
-from qiskit.test.mock import FakeProvider
+from qiskit.test.mock import FakeProvider, FakeLegacyProvider
 from qiskit.test.mock.fake_backend import HAS_AER
 
 
 FAKE_PROVIDER = FakeProvider()
+FAKE_LEGACY_PROVIDER = FakeLegacyProvider()
 
 
 @ddt
@@ -50,6 +51,22 @@ class TestFakeBackends(QiskitTestCase):
                       if be.configuration().num_qubits > 1],
              optimization_level=[0, 1, 2, 3])
     def test_circuit_on_fake_backend(self, backend, optimization_level):
+        if not HAS_AER and backend.configuration().num_qubits > 20:
+            self.skipTest(
+                'Unable to run fake_backend %s without qiskit-aer' %
+                backend.configuration().backend_name)
+        job = execute(self.circuit, backend,
+                      optimization_level=optimization_level,
+                      seed_simulator=42, seed_transpiler=42)
+        result = job.result()
+        counts = result.get_counts()
+        max_count = max(counts.items(), key=operator.itemgetter(1))[0]
+        self.assertEqual(max_count, '11')
+
+    @combine(backend=[be for be in FAKE_LEGACY_PROVIDER.backends()
+                      if be.configuration().num_qubits > 1],
+             optimization_level=[0, 1, 2, 3])
+    def test_circuit_on_fake_legacy_backend(self, backend, optimization_level):
         if not HAS_AER and backend.configuration().num_qubits > 20:
             self.skipTest(
                 'Unable to run fake_backend %s without qiskit-aer' %
