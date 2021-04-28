@@ -12,15 +12,14 @@
 
 """ Test Shor """
 
-import math
 import unittest
-
+import math
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, idata, unpack
 
 from qiskit import Aer, ClassicalRegister
-from qiskit.algorithms import Shor
 from qiskit.utils import QuantumInstance
-from test.python.algorithms import QiskitAlgorithmsTestCase
+from qiskit.algorithms import Shor
 
 
 @unittest.skipUnless(Aer, "qiskit-aer is required for these tests")
