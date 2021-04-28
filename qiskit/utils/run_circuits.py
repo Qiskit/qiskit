@@ -27,7 +27,6 @@ from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.result import Result
 from qiskit.qobj import QasmQobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.assembler.run_config import RunConfig
 from ..exceptions import QiskitError, MissingOptionalLibraryError
 from .backend_utils import (is_aer_provider,
                             is_basicaer_provider,
@@ -389,7 +388,7 @@ def run_circuits(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                  backend: Backend,
                  backend_options: Dict,
                  qjob_config: Dict,
-                 run_config: RunConfig,
+                 run_config: Dict,
                  job_callback: Optional[Callable] = None) -> Result:
     """
     An execution wrapper with Qiskit-Terra, with job auto recover capability.
@@ -414,7 +413,6 @@ def run_circuits(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         QiskitError: Any error except for JobError raised by Qiskit Terra
     """
     with_autorecover = not is_simulator_backend(backend)
-    run_config = run_config.to_dict()
     job = _execute_circuits(circuits,
                             backend,
                             shots=run_config.get('shots'),

@@ -299,7 +299,9 @@ class QuantumInstance:
         from qiskit.utils.run_circuits import run_qobj, run_circuits
 
         from qiskit.utils.measurement_error_mitigation import \
-            (get_measured_qubits_from_qobj, build_measurement_error_mitigation_qobj)
+            (get_measured_qubits_from_qobj, get_measured_qubits,
+             build_measurement_error_mitigation_circuits,
+             build_measurement_error_mitigation_qobj)
 
         # maybe compile
         if not had_transpiled:
@@ -307,26 +309,18 @@ class QuantumInstance:
 
         # fix for providers that don't support QasmQobj until a bigger refactor happens
         from qiskit.providers import BackendV1
-        if isinstance(self._backend, BackendV1) and \
-                not is_aer_provider(self._backend) and \
-                not is_basicaer_provider(self._backend) and \
-                not is_ibmq_provider(self._backend):
-            result = run_circuits(circuits,
-                                  self._backend,
-                                  self.backend_options,
-                                  self.qjob_config,
-                                  self.run_config,
-                                  self._job_callback)
-            self._time_taken += result.time_taken
-            if self._circuit_summary:
-                self._circuit_summary = False
-            return result
+        circuit_job = isinstance(self._backend, BackendV1) and \
+            not is_aer_provider(self._backend) and \
+            not is_basicaer_provider(self._backend) and \
+            not is_ibmq_provider(self._backend)
 
         # assemble
-        qobj = self.assemble(circuits)
+        if not circuit_job:
+            qobj = self.assemble(circuits)
 
         if self._meas_error_mitigation_cls is not None:
-            qubit_index, qubit_mappings = get_measured_qubits_from_qobj(qobj)
+            qubit_index, qubit_mappings = get_measured_qubits(circuits) \
+                if circuit_job else get_measured_qubits_from_qobj(qobj)
             qubit_index_str = '_'.join([str(x) for x in qubit_index]) + \
                 "_{}".format(self._meas_error_mitigation_shots or self._run_config.shots)
             meas_error_mitigation_fitter, timestamp = \
@@ -355,39 +349,80 @@ class QuantumInstance:
                 meas_error_mitigation_fitter is None
 
             if build_cals_matrix:
-                logger.info("Updating qobj with the circuits for measurement error mitigation.")
-                use_different_shots = not (
-                    self._meas_error_mitigation_shots is None
-                    or self._meas_error_mitigation_shots == self._run_config.shots)
-                temp_run_config = copy.deepcopy(self._run_config)
-                if use_different_shots:
-                    temp_run_config.shots = self._meas_error_mitigation_shots
+                if circuit_job:
+                    logger.info("Updating to also run measurement error mitigation.")
+                    use_different_shots = not (
+                            self._meas_error_mitigation_shots is None
+                            or self._meas_error_mitigation_shots == self._run_config.shots)
+                    temp_run_config = copy.deepcopy(self._run_config)
+                    if use_different_shots:
+                        temp_run_config.shots = self._meas_error_mitigation_shots
+                    cal_circuits, state_labels, circuit_labels = \
+                        build_measurement_error_mitigation_circuits(
+                            qubit_index,
+                            self._meas_error_mitigation_cls,
+                            self._backend,
+                            self._backend_config,
+                            self._compile_config)
+                    if use_different_shots:
+                        cals_result = run_circuits(cal_circuits, self._backend,
+                                                   self._backend_options,
+                                                   self._qjob_config,
+                                                   self._noise_config,
+                                                   self._job_callback)
+                        self._time_taken += cals_result.time_taken
+                        result = run_circuits(circuits,
+                                              self._backend,
+                                              self.backend_options,
+                                              self.qjob_config,
+                                              self.run_config.to_dict(),
+                                              self._job_callback)
+                        self._time_taken += result.time_taken
+                    else:
+                        circuits[0:0] = cal_circuits
+                        result = run_circuits(circuits,
+                                              self._backend,
+                                              self.backend_options,
+                                              self.qjob_config,
+                                              self._noise_config,
+                                              self._job_callback)
+                        self._time_taken += result.time_taken
+                        cals_result = result
 
-                cals_qobj, state_labels, circuit_labels = \
-                    build_measurement_error_mitigation_qobj(qubit_index,
-                                                            self._meas_error_mitigation_cls,
-                                                            self._backend,
-                                                            self._backend_config,
-                                                            self._compile_config,
-                                                            temp_run_config)
-                if use_different_shots or is_aer_qasm(self._backend):
-                    cals_result = run_qobj(cals_qobj, self._backend, self._qjob_config,
-                                           self._backend_options,
-                                           self._noise_config,
-                                           self._skip_qobj_validation, self._job_callback)
-                    self._time_taken += cals_result.time_taken
-                    result = run_qobj(qobj, self._backend, self._qjob_config,
-                                      self._backend_options, self._noise_config,
-                                      self._skip_qobj_validation, self._job_callback)
-                    self._time_taken += result.time_taken
                 else:
-                    # insert the calibration circuit into main qobj if the shots are the same
-                    qobj.experiments[0:0] = cals_qobj.experiments
-                    result = run_qobj(qobj, self._backend, self._qjob_config,
-                                      self._backend_options, self._noise_config,
-                                      self._skip_qobj_validation, self._job_callback)
-                    self._time_taken += result.time_taken
-                    cals_result = result
+                    logger.info("Updating qobj with the circuits for measurement error mitigation.")
+                    use_different_shots = not (
+                            self._meas_error_mitigation_shots is None
+                            or self._meas_error_mitigation_shots == self._run_config.shots)
+                    temp_run_config = copy.deepcopy(self._run_config)
+                    if use_different_shots:
+                        temp_run_config.shots = self._meas_error_mitigation_shots
+
+                    cals_qobj, state_labels, circuit_labels = \
+                        build_measurement_error_mitigation_qobj(qubit_index,
+                                                                self._meas_error_mitigation_cls,
+                                                                self._backend,
+                                                                self._backend_config,
+                                                                self._compile_config,
+                                                                temp_run_config)
+                    if use_different_shots or is_aer_qasm(self._backend):
+                        cals_result = run_qobj(cals_qobj, self._backend, self._qjob_config,
+                                               self._backend_options,
+                                               self._noise_config,
+                                               self._skip_qobj_validation, self._job_callback)
+                        self._time_taken += cals_result.time_taken
+                        result = run_qobj(qobj, self._backend, self._qjob_config,
+                                          self._backend_options, self._noise_config,
+                                          self._skip_qobj_validation, self._job_callback)
+                        self._time_taken += result.time_taken
+                    else:
+                        # insert the calibration circuit into main qobj if the shots are the same
+                        qobj.experiments[0:0] = cals_qobj.experiments
+                        result = run_qobj(qobj, self._backend, self._qjob_config,
+                                          self._backend_options, self._noise_config,
+                                          self._skip_qobj_validation, self._job_callback)
+                        self._time_taken += result.time_taken
+                        cals_result = result
 
                 logger.info("Building calibration matrix for measurement error mitigation.")
                 meas_error_mitigation_fitter = \
@@ -398,7 +433,13 @@ class QuantumInstance:
                 self._meas_error_mitigation_fitters[qubit_index_str] = \
                     (meas_error_mitigation_fitter, time.time())
             else:
-                result = run_qobj(qobj, self._backend, self._qjob_config,
+                result = run_circuits(circuits,
+                                      self._backend,
+                                      self.backend_options,
+                                      self.qjob_config,
+                                      self._noise_config,
+                                      self._job_callback) if circuit_job else \
+                         run_qobj(qobj, self._backend, self._qjob_config,
                                   self._backend_options, self._noise_config,
                                   self._skip_qobj_validation, self._job_callback)
                 self._time_taken += result.time_taken
@@ -424,7 +465,13 @@ class QuantumInstance:
                         result.results[n] = tmp_result.results[i]
 
         else:
-            result = run_qobj(qobj, self._backend, self._qjob_config,
+            result = run_circuits(circuits,
+                                  self._backend,
+                                  self.backend_options,
+                                  self.qjob_config,
+                                  self._noise_config,
+                                  self._job_callback) if circuit_job else \
+                     run_qobj(qobj, self._backend, self._qjob_config,
                               self._backend_options, self._noise_config,
                               self._skip_qobj_validation, self._job_callback)
             self._time_taken += result.time_taken
