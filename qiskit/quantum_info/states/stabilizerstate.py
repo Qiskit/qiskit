@@ -191,8 +191,7 @@ class StabilizerState(QuantumState):
         pauli = Pauli(num_qubits * 'I')
         phase = 0
 
-        for pos in range(len(qubits)):
-            qubit = qubits[pos]
+        for pos, qubit in enumerate(qubits):
             pauli_pos = (oper.to_label())[len(oper) - 1 - pos]
             if pauli_pos == 'X':
                 pauli.x[qubit] = 1
