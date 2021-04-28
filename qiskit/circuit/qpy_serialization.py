@@ -72,7 +72,7 @@ The contents of HEADER as defined as a C struct are:
 .. code-block:: c
 
     struct {
-        unit64_t name_size;
+        unit16_t name_size;
         double global_phase;
         uint32_t num_qubits;
         uint32_t num_clbits;
@@ -105,7 +105,7 @@ as:
     struct {
         char type;
         uint32_t size;
-        unit64_t name_size;
+        unit16_t name_size;
     }
 
 ``type`` can be ``'q'`` or ``'c'``.
@@ -133,7 +133,7 @@ Each custom instruction is defined with a CUSTOM_INSTRUCTION block defined as:
 .. code-block:: c
 
     struct {
-        uint64_t name_size;
+        uint16_t name_size;
         char type;
         _Bool custom_definition;
         uint64_t size
@@ -155,12 +155,12 @@ The contents of INSTRUCTIONS is a list of INSTRUCTION metadata objects
 .. code-block:: c
 
     struct {
-        uint64_t name_size;
+        uint16_t name_size;
         uint16_t num_parameters;
         uint32_t num_qargs;
         uint32_t num_cargs;
         _Bool has_conditionl
-        uint64_t conditonal_reg_name_size;
+        uint16_t conditonal_reg_name_size;
         long long conditional_value;
     }
 
@@ -218,7 +218,7 @@ a INSTRUCTION_PARAM. The contents of the PARAMETER are defined as:
 .. code-block:: c
 
     struct {
-        uint64_t name_size;
+        uint16_t name_size;
         char uuid[16];
     }
 
@@ -260,7 +260,7 @@ FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 HEADER = namedtuple('HEADER', ['name_size', 'global_phase',
                                'num_qubits', 'num_clbits', 'metadata_size',
                                'num_registers', 'num_instructions'])
-HEADER_PACK = '!QdIIQIQ'
+HEADER_PACK = '!HdIIQIQ'
 HEADER_SIZE = struct.calcsize(HEADER_PACK)
 
 # CUSTOM_DEFINITIONS
@@ -273,24 +273,24 @@ CUSTOM_DEFINITION_HEADER_SIZE = struct.calcsize(CUSTOM_DEFINITION_HEADER_PACK)
 CUSTOM_DEFINITION = namedtuple('CUSTOM_DEFINITON',
                                ['gate_name_size', 'type', 'num_qubits'
                                 'num_clbits', 'custom_definition', 'size'])
-CUSTOM_DEFINITION_PACK = '!Q1cII?Q'
+CUSTOM_DEFINITION_PACK = '!H1cII?Q'
 CUSTOM_DEFINITION_SIZE = struct.calcsize(CUSTOM_DEFINITION_PACK)
 
 
 # REGISTER binary format
 REGISTER = namedtuple('REGISTER', ['type', 'size', 'name_size'])
-REGISTER_PACK = '!1cIQ'
+REGISTER_PACK = '!1cIH'
 REGISTER_SIZE = struct.calcsize(REGISTER_PACK)
 
 # INSTRUCTION binary format
 INSTRUCTION = namedtuple('INSTRUCTION', ['name_size', 'num_parameters', 'num_qargs',
                                          'num_cargs', 'has_condition',
                                          'condition_register_size', 'value'])
-INSTRUCTION_PACK = '!QHII?Qq'
+INSTRUCTION_PACK = '!HHII?Hq'
 INSTRUCTION_SIZE = struct.calcsize(INSTRUCTION_PACK)
 # Instruction argument format
 INSTRUCTION_ARG = namedtuple('INSTRUCTION_ARG', ['type', 'size', 'name_size'])
-INSTRUCTION_ARG_PACK = '!1cIQ'
+INSTRUCTION_ARG_PACK = '!1cIH'
 INSTRUCTION_ARG_SIZE = struct.calcsize(INSTRUCTION_ARG_PACK)
 # INSTRUCTION parameter format
 INSTRUCTION_PARAM = namedtuple('INSTRUCTION_PARAM', ['type', 'size'])
@@ -298,7 +298,7 @@ INSTRUCTION_PARAM_PACK = '!1cQ'
 INSTRUCTION_PARAM_SIZE = struct.calcsize(INSTRUCTION_PARAM_PACK)
 # PARAMETER
 PARAMETER = namedtuple('PARAMETER', ['name_size', 'uuid'])
-PARAMETER_PACK = '!Q16s'
+PARAMETER_PACK = '!H16s'
 PARAMETER_SIZE = struct.calcsize(PARAMETER_PACK)
 
 
