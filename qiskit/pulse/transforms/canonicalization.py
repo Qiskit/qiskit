@@ -157,7 +157,9 @@ def _inline_schedule(schedule: Schedule) -> Schedule:
     """
     ret_schedule = Schedule(name=schedule.name,
                             metadata=schedule.metadata)
-    for t0, inst in schedule.instructions:
+    for t0, inst in schedule._children:
+        # note that schedule.instructions unintentionally flatten the nested schedule.
+        # this should be performed by another transformer node.
         if isinstance(inst, instructions.Call):
             # bind parameter
             subroutine = inst.assigned_subroutine()
@@ -166,6 +168,10 @@ def _inline_schedule(schedule: Schedule) -> Schedule:
                 subroutine = block_to_schedule(subroutine)
             # recursively inline the program
             inline_schedule = _inline_schedule(subroutine)
+            ret_schedule.insert(t0, inline_schedule, inplace=True)
+        elif isinstance(inst, Schedule):
+            # recursively inline the program
+            inline_schedule = _inline_schedule(inst)
             ret_schedule.insert(t0, inline_schedule, inplace=True)
         else:
             ret_schedule.insert(t0, inst, inplace=True)
@@ -190,6 +196,10 @@ def _inline_block(block: ScheduleBlock) -> ScheduleBlock:
                                  't0 associated with instruction will be lost.')
             # recursively inline the program
             inline_block = _inline_block(subroutine)
+            ret_block.append(inline_block, inplace=True)
+        elif isinstance(inst, ScheduleBlock):
+            # recursively inline the program
+            inline_block = _inline_block(inst)
             ret_block.append(inline_block, inplace=True)
         else:
             ret_block.append(inst, inplace=True)
