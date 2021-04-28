@@ -334,8 +334,7 @@ class Schedule:
 
         self._duration = self._duration + time
         self._timeslots = timeslots
-        self._children = [(orig_time + time, child) for
-                           orig_time, child in self.children]
+        self._children = [(orig_time + time, child) for orig_time, child in self.children]
         return self
 
     def insert(self,
