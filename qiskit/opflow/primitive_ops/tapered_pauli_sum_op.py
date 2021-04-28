@@ -34,6 +34,8 @@ logger = logging.getLogger(__name__)
 class TaperedPauliSumOp(PauliSumOp):
     """Class for PauliSumOp after tapering"""
 
+    primitive: SparsePauliOp
+
     def __init__(
         self,
         primitive: SparsePauliOp,
