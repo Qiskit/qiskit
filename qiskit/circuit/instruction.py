@@ -85,10 +85,11 @@ class Instruction:
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
-        self.params = params
 
         self._duration = duration
         self._unit = unit
+
+        self.params = params  # must be at last (other properties may be required for validation)
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
