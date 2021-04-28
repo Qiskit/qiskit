@@ -12,11 +12,17 @@
 
 """Limited-memory BFGS Bound optimizer."""
 
-from scipy import optimize as sciopt
-from .optimizer import Optimizer, OptimizerSupportLevel
+from typing import Optional
+
+import numpy as np
+
+from qiskit.utils.deprecation import deprecate_arguments
+
+from .optimizer import Optimizer
+from .scipy_minimizer import ScipyMinimizer
 
 
-class L_BFGS_B(Optimizer):  # pylint: disable=invalid-name
+class L_BFGS_B(ScipyMinimizer):  # pylint: disable=invalid-name
     """
     Limited-memory BFGS Bound optimizer.
 
@@ -37,18 +43,24 @@ class L_BFGS_B(Optimizer):  # pylint: disable=invalid-name
 
     Uses scipy.optimize.fmin_l_bfgs_b.
     For further detail, please refer to
-    https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fmin_l_bfgs_b.html
+    https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html
     """
 
-    _OPTIONS = ['maxfun', 'maxiter', 'factr', 'iprint', 'epsilon']
+    _OPTIONS = ["maxfun", "maxiter", "ftol", "iprint", "eps"]
 
     # pylint: disable=unused-argument
-    def __init__(self,
-                 maxfun: int = 1000,
-                 maxiter: int = 15000,
-                 factr: float = 10,
-                 iprint: int = -1,
-                 epsilon: float = 1e-08) -> None:
+    @deprecate_arguments({"epsilon": "eps", "factr": "ftol"})
+    def __init__(
+        self,
+        maxfun: int = 1000,
+        maxiter: int = 15000,
+        ftol: float = 2.220446049250313e-15,
+        factr: Optional[float] = None,
+        iprint: int = -1,
+        epsilon: float = 1e-08,
+        eps: float = 1e-08,
+        max_evals_grouped: int = 1,
+    ):
         r"""
         Args:
             maxfun: Maximum number of function evaluations.
@@ -68,35 +80,34 @@ class L_BFGS_B(Optimizer):  # pylint: disable=invalid-name
                 every iteration including x and g.
             epsilon: Step size used when approx_grad is True, for numerically
                 calculating the gradient
+            max_evals_grouped: TODO write
         """
-        super().__init__()
+        options = {}
+        if factr:
+            ftol = factr * np.finfo(float).eps
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
-                self._options[k] = v
+                options[k] = v
+        super().__init__(method="L-BFGS-B", options=options, max_evals_grouped=max_evals_grouped)
 
-    def get_support_level(self):
-        """ Return support level dictionary """
-        return {
-            'gradient': OptimizerSupportLevel.supported,
-            'bounds': OptimizerSupportLevel.supported,
-            'initial_point': OptimizerSupportLevel.required
-        }
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        if gradient_function is None and self.max_evals_grouped > 1:
+            epsilon = self.options["eps"]
+            gradient_function = Optimizer.wrap_function(
+                Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped)
+            )
 
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function,
-                         variable_bounds, initial_point)
-
-        if gradient_function is None and self._max_evals_grouped > 1:
-            epsilon = self._options['epsilon']
-            gradient_function = Optimizer.wrap_function(Optimizer.gradient_num_diff,
-                                                        (objective_function,
-                                                         epsilon, self._max_evals_grouped))
-
-        approx_grad = bool(gradient_function is None)
-        sol, opt, info = sciopt.fmin_l_bfgs_b(objective_function,
-                                              initial_point, bounds=variable_bounds,
-                                              fprime=gradient_function,
-                                              approx_grad=approx_grad, **self._options)
-
-        return sol, opt, info['funcalls']
+        return super().optimize(
+            num_vars,
+            objective_function,
+            lambda x: list(gradient_function(x)),
+            variable_bounds,
+            initial_point,
+        )

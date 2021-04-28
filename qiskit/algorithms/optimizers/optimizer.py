@@ -202,6 +202,43 @@ class Optimizer(ABC):
                 self.__class__.__name__)
         pass
 
+    def _validate_optimize_input(
+        self,
+        num_vars,
+        gradient_function,
+        variable_bounds,
+        initial_point,
+    ):
+        if initial_point is not None and len(initial_point) != num_vars:
+            raise ValueError("Initial point does not match dimension")
+        if variable_bounds is not None and len(variable_bounds) != num_vars:
+            raise ValueError("Variable bounds not match dimension")
+
+        has_bounds = False
+        if variable_bounds is not None:
+            # If *any* value is *equal* in bounds array to None then the does *not* have bounds
+            has_bounds = not np.any(np.equal(variable_bounds, None))
+
+        if gradient_function is None and self.is_gradient_required:
+            raise ValueError("Gradient is required but None given")
+        if not has_bounds and self.is_bounds_required:
+            raise ValueError("Variable bounds is required but None given")
+        if initial_point is None and self.is_initial_point_required:
+            raise ValueError("Initial point is required but None given")
+
+        if gradient_function is not None and self.is_gradient_ignored:
+            logger.debug(
+                'WARNING: %s does not support gradient function. It will be ignored.',
+                self.__class__.__name__)
+        if has_bounds and self.is_bounds_ignored:
+            logger.debug(
+                'WARNING: %s does not support bounds. It will be ignored.',
+                self.__class__.__name__)
+        if initial_point is not None and self.is_initial_point_ignored:
+            logger.debug(
+                'WARNING: %s does not support initial point. It will be ignored.',
+                self.__class__.__name__)
+
     @property
     def gradient_support_level(self):
         """ Returns gradient support level """
