@@ -56,35 +56,35 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         """ add test """
         pauli_sum = 3 * X + Y
         self.assertIsInstance(pauli_sum, PauliSumOp)
-        expected = PauliSumOp(
-            3.0 * SparsePauliOp(Pauli("X")) + SparsePauliOp(Pauli("Y"))
-        )
+        expected = PauliSumOp(3.0 * SparsePauliOp(Pauli("X")) + SparsePauliOp(Pauli("Y")))
         self.assertEqual(pauli_sum, expected)
 
         pauli_sum = X + Y
         summed_op = SummedOp([X, Y])
         self.assertEqual(pauli_sum, summed_op)
 
+        a = Parameter("a")
+        b = Parameter("b")
+        actual = a * PauliSumOp.from_list([("X", 2)]) + b * PauliSumOp.from_list([("Y", 1)])
+        expected = SummedOp(
+            [PauliSumOp.from_list([("X", 2)], a), PauliSumOp.from_list([("Y", 1)], b)]
+        )
+        self.assertEqual(actual, expected)
+
     def test_mul(self):
         """ multiplication test """
         target = 2 * (X + Z)
         self.assertEqual(target.coeff, 1)
-        self.assertListEqual(
-            target.primitive.to_list(), [("X", (2 + 0j)), ("Z", (2 + 0j))]
-        )
+        self.assertListEqual(target.primitive.to_list(), [("X", (2 + 0j)), ("Z", (2 + 0j))])
 
         target = 0 * (X + Z)
         self.assertEqual(target.coeff, 0)
-        self.assertListEqual(
-            target.primitive.to_list(), [("X", (1 + 0j)), ("Z", (1 + 0j))]
-        )
+        self.assertListEqual(target.primitive.to_list(), [("X", (1 + 0j)), ("Z", (1 + 0j))])
 
         beta = Parameter("β")
         target = beta * (X + Z)
         self.assertEqual(target.coeff, 1.0 * beta)
-        self.assertListEqual(
-            target.primitive.to_list(), [("X", (1 + 0j)), ("Z", (1 + 0j))]
-        )
+        self.assertListEqual(target.primitive.to_list(), [("X", (1 + 0j)), ("Z", (1 + 0j))])
 
     def test_adjoint(self):
         """ adjoint test """

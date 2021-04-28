@@ -113,10 +113,18 @@ class PauliSumOp(PrimitiveOp):
                 f"{other.num_qubits}, is not well defined"
             )
 
-        if isinstance(other, PauliSumOp):
+        if (
+            isinstance(other, PauliSumOp)
+            and isinstance(self.coeff, (int, float, complex))
+            and isinstance(other.coeff, (int, float, complex))
+        ):
             return PauliSumOp(self.coeff * self.primitive + other.coeff * other.primitive, coeff=1)
 
-        if isinstance(other, PauliOp):
+        if (
+            isinstance(other, PauliOp)
+            and isinstance(self.coeff, (int, float, complex))
+            and isinstance(other.coeff, (int, float, complex))
+        ):
             return PauliSumOp(
                 self.coeff * self.primitive + other.coeff * SparsePauliOp(other.primitive)
             )
