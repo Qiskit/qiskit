@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Fake Rome device (5 qubit).
+Fake Bogota device (5 qubit).
 """
 
 import os

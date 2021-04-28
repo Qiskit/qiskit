@@ -796,7 +796,8 @@ class TestBasisExamples(QiskitTestCase):
         expected.global_phase = circ_angle - gate_angle / 2
         expected_dag = circuit_to_dag(expected)
         self.assertEqual(out_dag, expected_dag)
-        self.assertEqual(float(out_dag.global_phase), float(expected_dag.global_phase))
+        self.assertAlmostEqual(float(out_dag.global_phase), float(expected_dag.global_phase),
+                               places=14)
         self.assertEqual(Operator(dag_to_circuit(out_dag)), Operator(expected))
 
     def test_condition_set_substitute_node(self):

@@ -148,12 +148,12 @@ class TestChannelEvents(QiskitTestCase):
         """
         ch = pulse.DriveChannel(0)
 
-        with pulse.build() as test_sched:
-            pulse.play(pulse.Gaussian(160, 0.1, 40), ch)
-            pulse.delay(0, ch)
-            pulse.play(pulse.Gaussian(160, 0.1, 40), ch)
-            pulse.delay(1, ch)
-            pulse.play(pulse.Gaussian(160, 0.1, 40), ch)
+        test_sched = pulse.Schedule()
+        test_sched += pulse.Play(pulse.Gaussian(160, 0.1, 40), ch)
+        test_sched += pulse.Delay(0, ch)
+        test_sched += pulse.Play(pulse.Gaussian(160, 0.1, 40), ch)
+        test_sched += pulse.Delay(1, ch)
+        test_sched += pulse.Play(pulse.Gaussian(160, 0.1, 40), ch)
 
         ch_events = events.ChannelEvents.load_program(test_sched, ch)
 

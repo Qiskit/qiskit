@@ -266,6 +266,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                     grover_op.global_phase = np.pi
                     for _ in range(2**power):
                         circuit.compose(grover_op, inplace=True)
+                circuits += [circuit]
 
             actual_circuits = qae.construct_circuits(problem, measurement=False)
 

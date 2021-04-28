@@ -170,9 +170,6 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
     elif isinstance(data.inst, instructions.Delay):
         systematic_name = data.inst.name or 'Delay'
         latex_name = None
-    elif isinstance(data.inst.channel, pulse.channels.MeasureChannel):
-        systematic_name = 'Measure'
-        latex_name = None
     else:
         systematic_name = data.inst.pulse.name or data.inst.pulse.__class__.__name__
 
