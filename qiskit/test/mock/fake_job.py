@@ -23,7 +23,6 @@ from qiskit.providers.jobstatus import JobStatus
 
 class FakeJob(BaseJob):
     """Fake simulator job"""
-    _executor = futures.ProcessPoolExecutor()
 
     def __init__(self, backend, job_id, fn):
         super().__init__(backend, job_id)
@@ -33,7 +32,8 @@ class FakeJob(BaseJob):
         self._future_callback = fn
 
     def submit(self):
-        self._future = self._executor.submit(self._future_callback)
+        with futures.ProcessPoolExecutor() as _executor:
+            self._future = _executor.submit(self._future_callback)
 
     def result(self, timeout=None):
         # pylint: disable=arguments-differ

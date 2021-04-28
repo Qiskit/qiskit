@@ -82,14 +82,14 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     try:
         import subprocess
 
-        _PROC = subprocess.Popen(['dot', '-V'],  # pylint: disable=invalid-name
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-        _PROC.communicate()
-        if _PROC.returncode != 0:
-            has_graphviz = False
-        else:
-            has_graphviz = True
+        with subprocess.Popen(
+            ["dot", "-V"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        ) as _proc:
+            _proc.communicate()
+            if _proc.returncode != 0:
+                has_graphviz = False
+            else:
+                has_graphviz = True
     except Exception:  # pylint: disable=broad-except
         # this is raised when the dot command cannot be found, which means GraphViz
         # isn't installed
