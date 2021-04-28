@@ -230,10 +230,14 @@ class Instruction(ABC):
         return self.insert(time, schedule, name=name)
 
     @property
-    @deprecated_functionality
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
-        return set(self._parameter_table.keys())
+        parameters = set()
+        for op in self.operands:
+            if hasattr(op, 'parameters'):
+                for op_param in op.parameters:
+                    parameters.add(op_param)
+        return parameters
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
