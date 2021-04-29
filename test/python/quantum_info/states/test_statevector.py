@@ -25,7 +25,8 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.circuit.library import HGate, QFT
 
-from qiskit.quantum_info.random import random_unitary, random_statevector
+from qiskit.quantum_info.random import (
+    random_unitary, random_statevector, random_pauli)
 from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
@@ -934,6 +935,16 @@ class TestStatevector(QiskitTestCase):
         state = random_statevector(2**op.num_qubits, seed=seed)
         target = state.expectation_value(op.to_matrix())
         expval = state.expectation_value(op)
+        self.assertAlmostEqual(expval, target)
+
+    @data([0, 1], [0, 2], [1, 0], [1, 2], [2, 0], [2, 1])
+    def test_expval_pauli_qargs(self, qubits):
+        """Test expectation_value method for Pauli op"""
+        seed = 1020
+        op = random_pauli(2, seed=seed)
+        state = random_statevector(2**3, seed=seed)
+        target = state.expectation_value(op.to_matrix(), qubits)
+        expval = state.expectation_value(op, qubits)
         self.assertAlmostEqual(expval, target)
 
     def test_global_phase(self):

@@ -366,17 +366,22 @@ class Statevector(QuantumState, TolerancesMixin):
         ret._op_shape = self._op_shape.reverse()
         return ret
 
-    def _expectation_value_pauli(self, pauli):
+    def _expectation_value_pauli(self, pauli, qargs=None):
         """Compute the expectation value of a Pauli.
 
             Args:
                 pauli (Pauli): a Pauli operator to evaluate expval of.
+                qargs (None or list): subsystems to apply operator on.
 
             Returns:
                 complex: the expectation value.
-            """
+        """
         n_pauli = len(pauli)
-        qubits = np.arange(n_pauli)
+        if qargs is None:
+            qubits = np.arange(n_pauli)
+        else:
+            qubits = np.array(qargs)
+
         x_mask = np.dot(1 << qubits, pauli.x)
         z_mask = np.dot(1 << qubits, pauli.z)
         pauli_phase = (-1j) ** pauli.phase if pauli.phase else 1
@@ -404,10 +409,10 @@ class Statevector(QuantumState, TolerancesMixin):
             complex: the expectation value.
         """
         if isinstance(oper, Pauli):
-            return self._expectation_value_pauli(oper)
+            return self._expectation_value_pauli(oper, qargs)
 
         if isinstance(oper, SparsePauliOp):
-            return sum([coeff * self._expectation_value_pauli(Pauli((z, x)))
+            return sum([coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
                         for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)])
 
         val = self.evolve(oper, qargs=qargs)
