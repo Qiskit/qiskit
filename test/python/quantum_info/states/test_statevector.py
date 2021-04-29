@@ -27,7 +27,8 @@ from qiskit import transpile
 from qiskit.circuit.library import HGate, QFT
 from qiskit.providers.basicaer import QasmSimulatorPy
 
-from qiskit.quantum_info.random import random_unitary, random_statevector
+from qiskit.quantum_info.random import (
+    random_unitary, random_statevector, random_pauli)
 from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
@@ -938,8 +939,6 @@ class TestStatevector(QiskitTestCase):
         expval = state.expectation_value(op)
         self.assertAlmostEqual(expval, target)
 
-<<<<<<< HEAD
-=======
     @data([0, 1], [0, 2], [1, 0], [1, 2], [2, 0], [2, 1])
     def test_expval_pauli_qargs(self, qubits):
         """Test expectation_value method for Pauli op"""
@@ -979,7 +978,7 @@ class TestStatevector(QiskitTestCase):
         delta = np.linalg.norm(probs - target)
         self.assertLess(delta, 0.05)
 
->>>>>>> dd718f99f... Fix QuantumState._subsystem_probabilities (#6324)
+
     def test_global_phase(self):
         """Test global phase is handled correctly when evolving statevector."""
 
