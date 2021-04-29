@@ -12,35 +12,34 @@
 
 """Remove all barriers in a circuit"""
 
-import logging
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit.barrier import Barrier
 
 
 class RemoveBarriers(TransformationPass):
     """Return a circuit with any barrier removed.
 
+    Example:
 
-    For example, the circuit::
+        .. jupyter-execute::
 
-        qr = QuantumRegister(3, 'q')
-        circuit = QuantumCircuit(qr)
-        circuit.barrier(qr)
+            from qiskit import QuantumCircuit
+            from qiskit.transpiler import PassManager
+            from qiskit.transpiler.passes import RemoveBarriers
 
-    Will be transformed into a circuit corresponding to::
+            circuit = QuantumCircuit(1)
+            circuit.x(0)
+            circuit.barrier()
+            circuit.h(0)
 
-        qr = QuantumRegister(3, 'q')
+            pm = PassManager(RemoveBarriers())
+            circuit = pm.run(circuit)
+            circuit.draw()
 
     """
 
     def run(self, dag):
         """Run the MergeAdjacentBarriers pass on `dag`."""
 
-        # sorted to so that they are in the order they appear in the DAG
-        # so ancestors/descendants makes sense
-        barriers = [nd for nd in dag.topological_op_nodes() if nd.name == 'barrier']
-
-        logging.info(f'RemoveBarriers: removing {barriers}')
         # add the merged barriers to a new DAG
         new_dag = dag._copy_circuit_metadata()
 
