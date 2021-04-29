@@ -21,9 +21,76 @@ This table tracks the meta-package versions and the version of each Qiskit eleme
 Notable Changes
 ###############
 
-###############
-Notable Changes
-###############
+*************
+Qiskit 0.25.3
+*************
+
+Terra 0.17.1
+============
+
+No change
+
+.. _Release Notes_Aer_0.8.2:
+
+Aer 0.8.2
+=========
+
+.. _Release Notes_Aer_0.8.2_Known Issues:
+
+Known Issues
+------------
+
+- The :class:`~qiskit.providers.aer.library.SaveExpectationValue` and
+  :class:`~qiskit.providers.aer.library.SaveExpectationValueVariance` have
+  been disabled for the `extended_stabilizer` method of the
+  :class:`~qiskit.providers.aer.QasmSimulator` and
+  :class:`~qiskit.providers.aer.AerSimulator` due to returning the
+  incorrect value for certain Pauli operator components. Refer to
+  `#1227 <https://github.com/Qiskit/qiskit-aer/issues/1227>` for more
+  information and examples.
+
+
+.. _Release Notes_Aer_0.8.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixes performance issue with how the ``basis_gates`` configuration
+  attribute was set. Previously there were unintended side-effects to the
+  backend class which could cause repeated simulation runtime to
+  incrementally increase. Refer to
+  `#1229 <https://github.com/Qiskit/qiskit-aer/issues/1229>` for more
+  information and examples.
+
+- Fixes a bug with the ``"multiplexer"`` simulator instruction where the
+  order of target and control qubits was reversed to the order in the
+  Qiskit instruction.
+
+- Fixes a bug introduced in 0.8.0 where GPU simulations would allocate
+  unneeded host memory in addition to the GPU memory.
+
+- Fixes a bug in the ``stabilizer`` simulator method of the
+  :class:`~qiskit.providers.aer.QasmSimulator` and
+  :class:`~qiskit.providers.aer.AerSimulator` where the expectation value
+  for the ``save_expectation_value`` and ``snapshot_expectation_value``
+  could have the wrong sign for certain ``Y`` Pauli's.
+
+
+Ignis 0.6.0
+===========
+
+No change
+
+Aqua 0.9.1
+==========
+
+No change
+
+IBM Q Provider 0.12.3
+=====================
+
+No change
+
 
 *************
 Qiskit 0.25.2
