@@ -147,7 +147,7 @@ from .operator_base import OperatorBase
 from .primitive_ops import (PrimitiveOp, PauliOp, MatrixOp, CircuitOp, PauliSumOp,
                             TaperedPauliSumOp, Z2Symmetries)
 from .state_fns import (StateFn, DictStateFn, VectorStateFn, CVaRMeasurement,
-                        CircuitStateFn, OperatorStateFn)
+                        CircuitStateFn, OperatorStateFn, SparseVectorStateFn)
 from .list_ops import ListOp, SummedOp, ComposedOp, TensoredOp
 from .converters import (ConverterBase, CircuitSampler, PauliBasisChange,
                          DictToCircuitSum, AbelianGrouper, TwoQubitReduction)
@@ -175,7 +175,7 @@ __all__ = [
     'OperatorBase',
     'PrimitiveOp', 'PauliOp', 'MatrixOp', 'CircuitOp', 'PauliSumOp', 'TaperedPauliSumOp',
     'StateFn', 'DictStateFn', 'VectorStateFn', 'CircuitStateFn', 'OperatorStateFn',
-    'CVaRMeasurement',
+    'SparseVectorStateFn', 'CVaRMeasurement',
     'ListOp', 'SummedOp', 'ComposedOp', 'TensoredOp',
     # Converters
     'ConverterBase', 'CircuitSampler', 'AbelianGrouper', 'DictToCircuitSum', 'PauliBasisChange',
