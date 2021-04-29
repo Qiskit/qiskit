@@ -674,8 +674,7 @@ class TestStabilizerState(QiskitTestCase):
             stab = StabilizerState(cliff)
             exp_val = stab.expectation_value(op, qargs)
             target = Statevector(qc).expectation_value(op, qargs)
-            # print (qargs, op, target, exp_val)
-            # self.assertAlmostEqual(exp_val, target) # remove comment!
+            self.assertAlmostEqual(exp_val, target)
 
     def test_sample_counts_memory_ghz(self):
         """Test sample_counts and sample_memory method for GHZ state"""
