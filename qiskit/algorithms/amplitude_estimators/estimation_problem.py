@@ -21,12 +21,14 @@ from qiskit.circuit.library import GroverOperator
 
 
 class EstimationProblem:
-    """The estimation problem is the input to amplitude estimation algorithm.
+    r"""The estimation problem is the input to amplitude estimation algorithm.
 
     This class contains all problem-specific information required to run an amplitude estimation
     algorithm. That means, it minimally contains the state preparation and the specification
     of the good state. It can further hold some post processing on the estimation of the amplitude
     or a custom Grover operator.
+
+    :QuantumCircuit state_preparation: The :math:`\mathcal{A}` operator as `QuantumCircuit`.
     """
 
     def __init__(self,
