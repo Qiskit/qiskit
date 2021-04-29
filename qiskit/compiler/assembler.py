@@ -356,8 +356,7 @@ def _check_lo_freqs(
             - If the LO frequency is not in the LO range for a given qubit.
     """
     if lo_freq and lo_range and len(lo_freq) == len(lo_range):
-        for i in range(len(lo_freq)):
-            freq = lo_freq[i]
+        for i, freq in enumerate(lo_freq):
             freq_range = lo_range[i]
             if not (isinstance(freq_range, list) and len(freq_range) == 2):
                 raise QiskitError(
