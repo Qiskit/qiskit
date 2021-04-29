@@ -105,7 +105,7 @@ for nts in num_time_steps:
                 varqrte_snapshot_dir = os.path.join('..', 'output_ising', 'real',
                                                     str(nts),
                                                     reg_names[j],
-                                                    ode_solvers_names[k] + 'error')
+                                                    ode_solvers_names[k] + 'nat_grad')
                 t0 = time.time()
                 varqrte = VarQRTE(parameters=parameters,
                                 grad_method='lin_comb',
@@ -114,7 +114,7 @@ for nts in num_time_steps:
                                 ode_solver=ode_solver,
                                 backend=Aer.get_backend('statevector_simulator'),
                                 regularization=reg,
-                                error_based_ode=True,
+                                error_based_ode=False,
                                 snapshot_dir=varqrte_snapshot_dir
                                 # snapshot_dir=os.path.join('..', 'test')
                                 )

@@ -53,6 +53,7 @@ reg_names = ['ridge', 'perturb_diag', 'lstsq']
 # nts = num_time_steps[1]
 output_dirs = ['h2', 'illustrative', 'illustrative_reverse', 'transverse_ising',
                'MaxCut/output_maxcut', 'MaxCut/output_maxcut_pretrained']
+# output_dirs = ['illustrative']
 output_dir = '/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output'
 for dir in output_dirs:
     for nts in num_time_steps:
@@ -137,7 +138,7 @@ for dir in output_dirs:
                     # dir_ill = '/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output/illustrative'
                     varqrte_snapshot_dir = os.path.join(output_dir, dir, 'real',
                                                         reg_names[j],
-                                                        ode_solvers_names[k] + 'error')
+                                                        ode_solvers_names[k] + 'nat_grad')
                     t0 = time.time()
                     try:
                         varqrte = VarQRTE(parameters=parameters,
@@ -159,7 +160,8 @@ for dir in output_dirs:
                         #                                     # snapshot_dir=str(nts)+'/'+str(d)).convert(op)
                         #
                         print('run time', (time.time()-t0)/60)
-                        varqrte.plot_results([varqrte_snapshot_dir], [os.path.join(varqrte_snapshot_dir,
-                                                                                    'error_bounds.npy')])
+                        varqrte.plot_results([varqrte_snapshot_dir],
+                                             [os.path.join(varqrte_snapshot_dir,
+                                                           'error_bounds.npy')])
                     except Exception:
                         pass

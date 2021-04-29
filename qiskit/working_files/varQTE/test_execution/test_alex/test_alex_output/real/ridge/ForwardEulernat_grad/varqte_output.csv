@@ -1,0 +1,1 @@
+t,params,num_params,num_time_steps,error_bound,error_bound_factor,error_grad,resid,fidelity,true_error,phase_agnostic_true_error,true_to_euler_error,trained_to_euler_error,target_energy,trained_energy,energy_error,h_norm,h_squared,variance,dtdt_trained,re_im_grad
