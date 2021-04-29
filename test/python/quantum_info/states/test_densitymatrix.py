@@ -23,7 +23,8 @@ from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import HGate, QFT
 
-from qiskit.quantum_info.random import random_unitary, random_density_matrix
+from qiskit.quantum_info.random import (
+    random_unitary, random_density_matrix, random_pauli)
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
@@ -950,6 +951,16 @@ class TestDensityMatrix(QiskitTestCase):
                                rho.data.shape, order='C')
         target = rho.expectation_value(op.to_matrix())
         expval = rho.expectation_value(op)
+        self.assertAlmostEqual(expval, target)
+
+    @data([0, 1], [0, 2], [1, 0], [1, 2], [2, 0], [2, 1])
+    def test_expval_pauli_qargs(self, qubits):
+        """Test expectation_value method for Pauli op"""
+        seed = 1020
+        op = random_pauli(2, seed=seed)
+        state = random_density_matrix(2**3, seed=seed)
+        target = state.expectation_value(op.to_matrix(), qubits)
+        expval = state.expectation_value(op, qubits)
         self.assertAlmostEqual(expval, target)
 
     def test_reverse_qargs(self):
