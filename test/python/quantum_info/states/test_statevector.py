@@ -15,6 +15,7 @@
 
 import unittest
 import logging
+from itertools import permutations
 from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_allclose
@@ -24,6 +25,7 @@ from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.circuit.library import HGate, QFT
+from qiskit.providers.basicaer import QasmSimulatorPy
 
 from qiskit.quantum_info.random import (
     random_unitary, random_statevector, random_pauli)
@@ -946,6 +948,35 @@ class TestStatevector(QiskitTestCase):
         target = state.expectation_value(op.to_matrix(), qubits)
         expval = state.expectation_value(op, qubits)
         self.assertAlmostEqual(expval, target)
+
+    @data(*[qargs for i in range(4) for qargs in permutations(range(4), r=i+1)])
+    def test_probabilities_qargs(self, qargs):
+        """Test probabilities method with qargs"""
+        # Get initial state
+        nq = 4
+        nc = len(qargs)
+        state_circ = QuantumCircuit(nq, nc)
+        for i in range(nq):
+            state_circ.ry((i + 1) * np.pi / (nq + 1), i)
+
+        # Get probabilities
+        state = Statevector(state_circ)
+        probs = state.probabilities(qargs)
+
+        # Estimate target probs from simulator measurement
+        sim = QasmSimulatorPy()
+        shots = 5000
+        seed = 100
+        circ = transpile(state_circ, sim)
+        circ.measure(qargs, range(nc))
+        result = sim.run(
+            circ, shots=shots, seed_simulator=seed).result()
+        target = np.zeros(2 ** nc, dtype=float)
+        for i, p in result.get_counts(0).int_outcomes().items():
+            target[i] = p / shots
+        # Compare
+        delta = np.linalg.norm(probs - target)
+        self.assertLess(delta, 0.05)
 
     def test_global_phase(self):
         """Test global phase is handled correctly when evolving statevector."""
