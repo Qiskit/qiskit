@@ -320,7 +320,8 @@ class DAGCircuit:
 
         Args:
             name (string): used for error reporting
-            condition (tuple or None): a condition tuple (ClassicalRegister,int)
+            condition (tuple or None): a condition tuple (ClassicalRegister,int),
+              (Clbit,Bool) or (Clbit,int)
 
         Raises:
             DAGCircuitError: if conditioning on an invalid register

@@ -80,7 +80,8 @@ class Instruction:
 
         self._params = []  # a list of gate params stored
 
-        # tuple (ClassicalRegister, int) when the instruction has a conditional ("if")
+        # tuple (ClassicalRegister, int), tuple (Clbit, Bool) or tuple (Clbit,int)
+        # when the instruction has a conditional ("if")
         self.condition = None
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
@@ -342,7 +343,7 @@ class Instruction:
 
     def c_if(self, classical, val):
         """Add classical condition on register or cbit classical and value val."""
-        if not isinstance(classical, ClassicalRegister) and not isinstance(classical, Clbit):
+        if not isinstance(classical, (ClassicalRegister, Clbit)):
             raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
             raise CircuitError("condition value should be non-negative")

@@ -57,7 +57,6 @@ def _assemble_circuit(
 
     qreg_sizes = []
     creg_sizes = []
-    clbit_list = []
     for qreg in circuit.qregs:
         qreg_sizes.append([qreg.name, qreg.size])
         for j in range(qreg.size):
@@ -68,9 +67,6 @@ def _assemble_circuit(
         for j in range(creg.size):
             clbit_labels.append([creg.name, j])
         memory_slots += creg.size
-    for creg in circuit.cregs:
-        for bit in creg:
-            clbit_list.append(bit)
 
     qubit_indices = {qubit: idx for idx, qubit in enumerate(circuit.qubits)}
     clbit_indices = {clbit: idx for idx, clbit in enumerate(circuit.clbits)}
@@ -130,14 +126,14 @@ def _assemble_circuit(
             mask = 0
             val = 0
             if isinstance(ctrl_reg, Clbit):
-                mask = (1 << clbit_list.index(ctrl_reg))
-                val = (ctrl_val & 1) << clbit_list.index(ctrl_reg)
+                mask = (1 << clbit_indices[ctrl_reg])
+                val = (ctrl_val & 1) << clbit_indices[ctrl_reg]
             else:
-                for clbit in clbit_list:
+                for clbit in clbit_indices:
                     if clbit in ctrl_reg:
-                        mask |= (1 << clbit_list.index(clbit))
+                        mask |= (1 << clbit_indices[clbit])
                         val |= (((ctrl_val >> list(ctrl_reg).index(clbit)) & 1)
-                                << clbit_list.index(clbit))
+                                << clbit_indices[clbit])
 
             conditional_reg_idx = memory_slots + max_conditional_idx
             conversion_bfunc = QasmQobjInstruction(name='bfunc',
