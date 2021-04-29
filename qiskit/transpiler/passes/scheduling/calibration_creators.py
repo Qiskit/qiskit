@@ -264,7 +264,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
     @staticmethod
     def _filter_control(inst: (int, Union['Schedule', Instruction])) -> bool:
         """
-        Filters the Schedule instructions for a Gaussian square pulse on the ControlChannel.
+        Looks for Gaussian square pulses applied to control channels.
         Args:
             inst: Instructions to be filtered.
         Returns:
@@ -281,7 +281,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
     @staticmethod
     def _filter_drive(inst: (int, Union['Schedule', Instruction])) -> bool:
         """
-        Filters the Schedule instructions for a Gaussian square pulse on the DriveChannel.
+        Looks for Gaussian square pulses applied to drive channels.
         Args:
             inst: Instructions to be filtered.
         Returns:
@@ -305,9 +305,9 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
         Returns:
             schedule: The calibration schedule for the RZXGate(theta).
         Raises:
-            QiskitError: if the control and target qubits cannot be identified, the backend
-                does not support cx between the qubits or the backend does not natively support the
-                specified direction of the cx.
+            QiskitError: If the control and target qubits cannot be identified, or the backend
+                does not support a cx gate between the qubits, or the backend does not natively
+                support the specified direction of the cx.
         """
         theta = params[0]
         q1, q2 = qubits[0], qubits[1]
@@ -326,7 +326,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
 
         for _, inst in cx_sched.instructions:
             # Identify the compensation tones.
-            if isinstance(inst.channel, DriveChannel) and not isinstance(inst, ShiftPhase):
+            if isinstance(inst.channel, DriveChannel) and isinstance(inst, Play):
                 if isinstance(inst.pulse, GaussianSquare):
                     target = inst.channel.index
                     control = q1 if target == q2 else q2
