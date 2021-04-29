@@ -978,7 +978,6 @@ class TestStatevector(QiskitTestCase):
         delta = np.linalg.norm(probs - target)
         self.assertLess(delta, 0.05)
 
-
     def test_global_phase(self):
         """Test global phase is handled correctly when evolving statevector."""
 
