@@ -71,13 +71,18 @@ class CustomConstraint(Constraint):
     2-sized-tuple (control, target) is in a set (edges).
     """
 
-    def __init__(self, edges, assigned=True):
+    def __init__(self, edges, assigned=True, strict_direction=False):
         self._edges = edges
         self._assigned = assigned
+        edge, *_ = edges
+        self.strict_direction = not isinstance(edge, frozenset)
 
     def __call__(self, variables, domains, assignments, forwardcheck=False):
-        parms = (assignments.get(variables[0], Unassigned),
-                 assignments.get(variables[1], Unassigned))
+        if self.strict_direction:
+            parms = (assignments.get(variables[0], Unassigned),
+                     assignments.get(variables[1], Unassigned))
+        else:
+            parms = frozenset(assignments.get(x, Unassigned) for x in variables)
         if Unassigned in parms:
             return (self._assigned or parms in self._edges) and (
                     not forwardcheck or
@@ -132,8 +137,8 @@ class CSPLayout(AnalysisPass):
         edges = set(self.coupling_map.get_edges())
 
         if not self.strict_direction:
-            cxs = {tuple(sorted(cx)) for cx in cxs}
-            edges = {tuple(sorted(edge)) for edge in edges}
+            cxs = {frozenset(cx) for cx in cxs}
+            edges = {frozenset(edge) for edge in edges}
 
         if self.time_limit is None and self.call_limit is None:
             solver = RecursiveBacktrackingSolver()
@@ -149,7 +154,7 @@ class CSPLayout(AnalysisPass):
         problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qubit
 
         for pair in cxs:
-            problem.addConstraint(CustomConstraint(edges), (pair[0], pair[1]))
+            problem.addConstraint(CustomConstraint(edges), pair)
 
         solution = problem.getSolution()
 

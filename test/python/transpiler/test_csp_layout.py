@@ -16,11 +16,12 @@ import unittest
 from time import process_time
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit.library import GraphState
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import CSPLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeTokyo
+from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeTokyo, FakeBogota
 
 
 class TestCSPLayout(QiskitTestCase):
@@ -29,52 +30,53 @@ class TestCSPLayout(QiskitTestCase):
 
     def test_2q_circuit_2q_coupling(self):
         """ A simple example, without considering the direction
-          0(qr0) -> 1(qr1)
+          0 - 1
+        qr1 - qr0
         """
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.cx(qr[1], qr[0])  # 1 -> 0
+        circuit.cx(qr[1], qr[0])  # qr1 -> qr0
 
         dag = circuit_to_dag(circuit)
         pass_ = CSPLayout(CouplingMap([[0, 1]]), strict_direction=False, seed=self.seed)
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
-        self.assertEqual(layout[qr[0]], 0)
-        self.assertEqual(layout[qr[1]], 1)
+        self.assertEqual(layout[qr[0]], 1)
+        self.assertEqual(layout[qr[1]], 0)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_3q_circuit_5q_coupling(self):
         """ 3 qubits in Tenerife, without considering the direction
-                 1
-             /   |
-          0 - 2(qr0) - 3(qr1)
-                |    /
-              4(qr2)
+            qr1
+           /  |
+        qr0 - qr2 - 3
+              |   /
+               4
         """
         cmap5 = FakeTenerife().configuration().coupling_map
 
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.cx(qr[1], qr[0])  # 3 -> 2
-        circuit.cx(qr[0], qr[2])  # 2 -> 4
-        circuit.cx(qr[1], qr[2])  # 3 -> 4
+        circuit.cx(qr[1], qr[0])  # qr1 -> qr0
+        circuit.cx(qr[0], qr[2])  # qr0 -> qr2
+        circuit.cx(qr[1], qr[2])  # qr1 -> qr2
 
         dag = circuit_to_dag(circuit)
         pass_ = CSPLayout(CouplingMap(cmap5), strict_direction=False, seed=self.seed)
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
-        self.assertEqual(layout[qr[0]], 2)
-        self.assertEqual(layout[qr[1]], 3)
+        self.assertEqual(layout[qr[0]], 3)
+        self.assertEqual(layout[qr[1]], 2)
         self.assertEqual(layout[qr[2]], 4)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_9q_circuit_16q_coupling(self):
         """ 9 qubits in Rueschlikon, without considering the direction
-         1(qr1_1) → 2(qr1_2) →  3  → 4  ←  5(qr0_0) ←  6(qr0_1) →  7(qr0_2) ← 8(qr1_0)
-         ↓           ↑          ↓    ↓     ↑           ↓           ↓          ↑
-         0     ←    15 → 14(qr0_3) ← 13 ← 12(qr1_3) → 11  →  10(qr1_4)    ←   9
+        q0[1] - q0[0] - q1[3] - q0[3] - q1[0] - q1[1] - q1[2] - 8
+          |       |       |       |       |       |       |     |
+        q0[2] - q1[4] -- 14 ---- 13 ---- 12 ---- 11 ---- 10 --- 9
         """
         cmap16 = FakeRueschlikon().configuration().coupling_map
 
@@ -90,14 +92,14 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
-        self.assertEqual(layout[qr0[0]], 5)
+        self.assertEqual(layout[qr0[0]], 9)
         self.assertEqual(layout[qr0[1]], 6)
         self.assertEqual(layout[qr0[2]], 7)
-        self.assertEqual(layout[qr0[3]], 14)
-        self.assertEqual(layout[qr1[0]], 8)
-        self.assertEqual(layout[qr1[1]], 1)
-        self.assertEqual(layout[qr1[2]], 2)
-        self.assertEqual(layout[qr1[3]], 12)
+        self.assertEqual(layout[qr0[3]], 5)
+        self.assertEqual(layout[qr1[0]], 14)
+        self.assertEqual(layout[qr1[1]], 12)
+        self.assertEqual(layout[qr1[2]], 1)
+        self.assertEqual(layout[qr1[3]], 8)
         self.assertEqual(layout[qr1[4]], 10)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
@@ -198,6 +200,29 @@ class TestCSPLayout(QiskitTestCase):
         self.assertIsNone(layout)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'nonexistent solution')
 
+    def test_5q_graphstate_bogota(self):
+        """ 5 qubits Graphsate in Bogota"""
+        backend = FakeBogota()
+        coupling_map = CouplingMap(backend.configuration().coupling_map)
+        backend_props = backend.properties()
+        matrix = [[0, 0, 0, 0, 1],
+                  [0, 0, 1, 0, 0],
+                  [0, 1, 0, 1, 0],
+                  [0, 0, 1, 0, 1],
+                  [1, 0, 0, 1, 0]]
+        circuit = GraphState(matrix)
+        dag = circuit_to_dag(circuit)
+        pass_ = CSPLayout(coupling_map, seed=self.seed)
+        pass_.run(dag)
+        layout = pass_.property_set['layout']
+
+        self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
+        self.assertEqual(layout[circuit.qubits[2]], 3)
+        self.assertEqual(layout[circuit.qubits[3]], 2)
+        self.assertEqual(layout[circuit.qubits[4]], 1)
+        self.assertEqual(layout[circuit.qubits[0]], 0)
+        self.assertEqual(layout[circuit.qubits[1]], 4)
+
     @staticmethod
     def create_hard_dag():
         """Creates a particularly hard circuit (returns its dag) for Tokyo"""
@@ -240,7 +265,7 @@ class TestCSPLayout(QiskitTestCase):
         """Hard to solve situations hit the time limit"""
         dag = TestCSPLayout.create_hard_dag()
         coupling_map = CouplingMap(FakeTokyo().configuration().coupling_map)
-        pass_ = CSPLayout(coupling_map, call_limit=None, time_limit=0.0001)
+        pass_ = CSPLayout(coupling_map, call_limit=None, time_limit=0.1)
 
         start = process_time()
         pass_.run(dag)
@@ -264,8 +289,8 @@ class TestCSPLayout(QiskitTestCase):
 
     def test_seed(self):
         """Different seeds yield different results"""
-        seed_1 = 992
-        seed_2 = 993
+        seed_1 = 42
+        seed_2 = 43
 
         cmap5 = FakeTenerife().configuration().coupling_map
 
