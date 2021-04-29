@@ -202,11 +202,13 @@ The contents of each INSTRUCTION_PARAM is:
     }
 
 After each INSTRUCTION_PARAM the next ``size`` bytes are the parameter's data.
-The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, or ``'n'`` which dictate
+The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, 'e', or ``'n'`` which dictate
 the format. For ``'i'`` it's an integer, ``'f'`` it's a double, ``'p'`` defines
 a :class:`~qiskit.circuit.Paramter` object  which is represented by a PARAM
-struct (see below), and ``'n'`` represents an object from numpy (either an
-``ndarray`` or a numpy type) which means the data is .npy format [#f2]_
+struct (see below), ``e`` defines a :class:`~qiskit.circuit.ParameterExpression`
+object (that's not a :class:`~qiskit.circuit.Paramter`) which is represented by
+a PARAM_EXPR struct (see below), and ``'n'`` represents an object from numpy (
+either an ``ndarray`` or a numpy type) which means the data is .npy format [#f2]_
 data.
 
 
@@ -223,8 +225,59 @@ a INSTRUCTION_PARAM. The contents of the PARAMETER are defined as:
         char uuid[16];
     }
 
+which is immediately followed by ``name_size`` utf8 bytes representing the
+parameter name.
+
+PARAMETER_EXPR
+--------------
+
+A PARAMETER_EXPR represents a :class:`~qiskit.circuit.ParameterExpression`
+object that the data for an INSTRUCTION_PARAM. The contents of a PARAMETER_EXPR
+are defined as:
+
+The PARAMETER_EXPR data starts with a header:
+
+.. code-block:: c
+
+    struct {
+        uint64_t map_elements,
+        uint64_t expr_size,
+    }
+
+Immediately following the header is ``expr_size`` bytes of utf8 data containing
+the expression string, which is the sympy srepr of the expression for the
+parameter expression. Follwing that is a symbol map which contains
+``map_elements`` elements with the format
+
+.. code-block:: c
+
+    struct {
+        char type;
+        uint64_t size;
+    }
+
+Which is followed immediately by ``PARAMETER`` object (both the struct and utf8
+name bytes) for the symbol map key. That is followed by ``size`` bytes for the
+data of the symbol. The data format is dependent on the value of ``type``. If
+``type`` is ``p`` then it represents a :class:`~qiskit.circuit.Parameter` and
+size will be 0, the value will just be the same as the key. If
+``type`` is ``f`` then it represents a double precision float. If ``type`` is
+``c`` it represents a double precision complex, which is represented by:
+
+.. code-block:: c
+
+    struct {
+        double real,
+        double imag,
+    }
+
+this matches the internal C representation of Python's complex type. [#f3]_
+Finally, if type is ``i`` it represents an integer which is an ``int64_t``.
+
+
 .. [#f1] https://tools.ietf.org/html/rfc1700
 .. [#f2] https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html
+.. [#f3] https://docs.python.org/3/c-api/complex.html#c.Py_complex
 """
 from collections import namedtuple
 import io
@@ -239,6 +292,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit import library
@@ -301,6 +355,19 @@ INSTRUCTION_PARAM_SIZE = struct.calcsize(INSTRUCTION_PARAM_PACK)
 PARAMETER = namedtuple('PARAMETER', ['name_size', 'uuid'])
 PARAMETER_PACK = '!H16s'
 PARAMETER_SIZE = struct.calcsize(PARAMETER_PACK)
+# PARAMETER_EXPR
+PARAMETER_EXPR = namedtuple('PARAMETER_EXPR', ['map_elements', 'expr_size'])
+PARAMETER_EXPR_PACK = '!QQ'
+PARAMETER_EXPR_SIZE = struct.calcsize(PARAMETER_EXPR_PACK)
+# PARAMETER_EXPR_MAP_ELEM
+PARAM_EXPR_MAP_ELEM = namedtuple('PARAMETER_EXPR_MAP_ELEM',
+                                 ['type', 'size'])
+PARAM_EXPR_MAP_ELEM_PACK = '!cQ'
+PARAM_EXPR_MAP_ELEM_SIZE = struct.calcsize(PARAM_EXPR_MAP_ELEM_PACK)
+# Complex
+COMPLEX = namedtuple('COMPLEX', ['real', 'imag'])
+COMPLEX_PACK = '!dd'
+COMPLEX_SIZE = struct.calcsize(COMPLEX_PACK)
 
 
 def _read_header(file_obj):
@@ -331,6 +398,47 @@ def _read_registers(file_obj, num_registers):
             registers['c'][name]['index_map'] = dict(
                 zip(bit_indices, registers['c'][name]['register']))
     return registers
+
+
+def _read_parameter(file_obj):
+    param_raw = struct.unpack(PARAMETER_PACK,
+                              file_obj.read(PARAMETER_SIZE))
+    name_size = param_raw[0]
+    param_uuid = uuid.UUID(bytes=param_raw[1])
+    name = file_obj.read(name_size).decode('utf8').rstrip('\x00')
+    param = Parameter.__new__(Parameter, name, uuid=param_uuid)
+    param.__init__(name)
+    return param
+
+
+def _read_parameter_expression(file_obj):
+    param_expr_raw = struct.unpack(PARAMETER_EXPR_PACK,
+                                   file_obj.read(PARAMETER_EXPR_SIZE))
+    map_elements = param_expr_raw[0]
+    from sympy.parsing.sympy_parser import parse_expr
+    expr = parse_expr(file_obj.read(param_expr_raw[1]).decode('utf8'))
+    symbol_map = {}
+    for _ in range(map_elements):
+        elem_raw = file_obj.read(PARAM_EXPR_MAP_ELEM_SIZE)
+        elem = struct.unpack(PARAM_EXPR_MAP_ELEM_PACK, elem_raw)
+        param = _read_parameter(file_obj)
+        elem_type = elem[0].decode('utf8')
+        elem_data = file_obj.read(elem[1])
+        if elem_type == 'f':
+            value = struct.unpack('!d', elem_data)
+        elif elem_type == 'i':
+            value = struct.unpack('!q', elem_data)
+        elif elem_type == 'c':
+            value = complex(*struct.unpack(COMPLEX_PACK, elem_data))
+        elif elem_type == 'p':
+            value = param._symbol_expr
+        elif elem_type == 'e':
+            value = _read_parameter_expression(io.BytesIO(elem_data))
+        else:
+            raise TypeError(
+                'Invalid parameter expression map type: %s' % elem_type)
+        symbol_map[param] = value
+    return ParameterExpression(symbol_map, expr)
 
 
 def _read_instruction(file_obj, circuit, registers, custom_instructions):
@@ -379,21 +487,14 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
         elif type_str == 'f':
             param = struct.unpack('<d', data)[0]
         elif type_str == 'n':
-            container = io.BytesIO()
-            container.write(data)
-            container.seek(0)
+            container = io.BytesIO(data)
             param = np.load(container)
         elif type_str == 'p':
-            container = io.BytesIO()
-            container.write(data)
-            container.seek(0)
-            param_raw = struct.unpack(PARAMETER_PACK,
-                                      container.read(PARAMETER_SIZE))
-            name_size = param_raw[0]
-            param_uuid = uuid.UUID(bytes=param_raw[1])
-            name = container.read(name_size).decode('utf8').rstrip('\x00')
-            param = Parameter.__new__(Parameter, name, uuid=param_uuid)
-            param.__init__(name)
+            container = io.BytesIO(data)
+            param = _read_parameter(container)
+        elif type_str == 'e':
+            container = io.BytesIO(data)
+            param = _read_parameter_expression(container)
         else:
             raise TypeError("Invalid parameter type: %s" % type_str)
         params.append(param)
@@ -466,6 +567,56 @@ def _read_custom_instructions(file_obj):
     return custom_instructions
 
 
+def _write_parameter(file_obj, param):
+    name_bytes = param._name.encode('utf8')
+    file_obj.write(struct.pack(PARAMETER_PACK, len(name_bytes),
+                   param._uuid.bytes))
+    file_obj.write(name_bytes)
+
+
+def _write_parameter_expression(file_obj, param):
+    from sympy import srepr
+    expr_bytes = srepr(param._symbol_expr).encode('utf8')
+    param_expr_header_raw = struct.pack(PARAMETER_EXPR_PACK,
+                                        len(param._parameter_symbols),
+                                        len(expr_bytes))
+    file_obj.write(param_expr_header_raw)
+    file_obj.write(expr_bytes)
+    for parameter, value in param._parameter_symbols.items():
+        parameter_container = io.BytesIO()
+        _write_parameter(parameter_container, parameter)
+        parameter_container.seek(0)
+        parameter_data = parameter_container.read()
+        if isinstance(value, float):
+            type_str = 'f'
+            data = struct.pack('!d', value)
+        elif isinstance(value, complex):
+            type_str = 'c'
+            data = struct.pack(COMPLEX_PACK, value.real, value.imag)
+        elif isinstance(value, int):
+            type_str = 'i'
+            data = struct.pack('!q', value)
+        elif value == parameter._symbol_expr:
+            type_str = 'p'
+            data = bytes()
+        elif isinstance(value, ParameterExpression):
+            type_str = 'e'
+            container = io.BytesIO()
+            _write_parameter_expression(container, value)
+            container.seek(0)
+            data = container.read()
+        else:
+            raise TypeError(
+                'Invalid expression type in symbol map for %s: %s' % (
+                    param, type(value)))
+
+        elem_header = struct.pack(PARAM_EXPR_MAP_ELEM_PACK,
+                                  type_str.encode('utf8'), len(data))
+        file_obj.write(elem_header)
+        file_obj.write(parameter_data)
+        file_obj.write(data)
+
+
 def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_map):
     gate_class_name = instruction_tuple[0].__class__.__name__
     if ((not hasattr(library, gate_class_name) and
@@ -521,10 +672,13 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
             size = struct.calcsize('<d')
         elif isinstance(param, Parameter):
             type_key = 'p'
-            name_bytes = param._name.encode('utf8')
-            container.write(struct.pack(PARAMETER_PACK, len(name_bytes),
-                                        param._uuid.bytes))
-            container.write(name_bytes)
+            _write_parameter(container, param)
+            container.seek(0)
+            data = container.read()
+            size = len(data)
+        elif isinstance(param, ParameterExpression):
+            type_key = 'e'
+            _write_parameter_expression(container, param)
             container.seek(0)
             data = container.read()
             size = len(data)

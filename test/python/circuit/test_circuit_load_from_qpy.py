@@ -239,7 +239,10 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.measure(0, 0)
 
         qpy_file = io.BytesIO()
-        self.assertRaises(TypeError, dump, qpy_file, qc)
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
 
     def test_multiple_circuits(self):
         """Test multiple circuits can be serialized together."""
