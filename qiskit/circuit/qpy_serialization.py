@@ -111,7 +111,10 @@ as:
 ``type`` can be ``'q'`` or ``'c'``.
 
 Immediately following the REGISTER struct is the utf8 encoded register name of
-size ``name_size``.
+size ``name_size``. After the ``name`` utf8 bytes there is then an array of
+uint32_t values of size ``size`` that contains a map of the register's index to
+the circuit's qubit index. For example, array element 0's value is the index
+of the ``register[0]``'s position in the containing circuit's qubits list.
 
 CUSTOM_DEFINITIONS
 ------------------
@@ -140,7 +143,7 @@ Each custom instruction is defined with a CUSTOM_INSTRUCTION block defined as:
     }
 
 Immediately following the CUSTOM_INSTRUCTION struct is the utf8 encoded name
-of size ``name_size.
+of size ``name_size``.
 
 If ``custom_definition`` is ``True`` that means that the immediately following
 ``size`` bytes contains a QPY circuit data which can be used for the custom
@@ -182,8 +185,7 @@ The contents of each INSTRUCTION_ARG is:
 
     struct {
         char type;
-        unisgned int size;
-        char name[10];
+        unisgned int index;
     }
 
 ``type`` can be ``'q'`` or ``'c'``.
@@ -235,8 +237,8 @@ import warnings
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
@@ -289,8 +291,8 @@ INSTRUCTION = namedtuple('INSTRUCTION', ['name_size', 'num_parameters', 'num_qar
 INSTRUCTION_PACK = '!HHII?Hq'
 INSTRUCTION_SIZE = struct.calcsize(INSTRUCTION_PACK)
 # Instruction argument format
-INSTRUCTION_ARG = namedtuple('INSTRUCTION_ARG', ['type', 'size', 'name_size'])
-INSTRUCTION_ARG_PACK = '!1cIH'
+INSTRUCTION_ARG = namedtuple('INSTRUCTION_ARG', ['type', 'size'])
+INSTRUCTION_ARG_PACK = '!1cI'
 INSTRUCTION_ARG_SIZE = struct.calcsize(INSTRUCTION_ARG_PACK)
 # INSTRUCTION parameter format
 INSTRUCTION_PARAM = namedtuple('INSTRUCTION_PARAM', ['type', 'size'])
@@ -317,10 +319,18 @@ def _read_registers(file_obj, num_registers):
         register_raw = file_obj.read(REGISTER_SIZE)
         register = struct.unpack(REGISTER_PACK, register_raw)
         name = file_obj.read(register[2]).decode('utf8').rstrip('\x00')
+        REGISTER_ARRAY_PACK = "%sI" % register[1]
+        bit_indices = file_obj.read(struct.calcsize(REGISTER_ARRAY_PACK))
         if register[0].decode('utf8') == 'q':
-            registers['q'][name] = QuantumRegister(register[1], name)
+            registers['q'][name] = {}
+            registers['q'][name]['register'] = QuantumRegister(register[1], name)
+            registers['q'][name]['index_map'] = dict(
+                zip(bit_indices, registers['q'][name]['register']))
         else:
-            registers['c'][name] = ClassicalRegister(register[1], name)
+            registers['c'][name] = {}
+            registers['c'][name]['register'] = ClassicalRegister(register[1], name)
+            registers['c'][name]['index_map'] = dict(
+                zip(bit_indices, registers['c'][name]['register']))
     return registers
 
 
@@ -341,22 +351,23 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
     condition_value = instruction[6]
     condition_tuple = None
     if has_condition:
-        condition_tuple = (registers['c'][condition_register], condition_value)
+        condition_tuple = (registers['c'][condition_register]['register'],
+                           condition_value)
+    qubit_indices = dict(enumerate(circuit.qubits))
+    clbit_indices = dict(enumerate(circuit.clbits))
     # Load Arguments
     for _qarg in range(num_qargs):
         qarg_raw = file_obj.read(INSTRUCTION_ARG_SIZE)
         qarg = struct.unpack(INSTRUCTION_ARG_PACK, qarg_raw)
         if qarg[0].decode('utf8').rstrip('\x00') == 'c':
             raise TypeError('Invalid input carg prior to all qargs')
-        name = file_obj.read(qarg[2]).decode('utf8').rstrip('\x00')
-        qargs.append(registers['q'][name][qarg[1]])
+        qargs.append(qubit_indices[qarg[1]])
     for _carg in range(num_cargs):
         carg_raw = file_obj.read(INSTRUCTION_ARG_SIZE)
         carg = struct.unpack(INSTRUCTION_ARG_PACK, carg_raw)
         if carg[0].decode('utf8').rstrip('\x00') == 'q':
             raise TypeError('Invalid input qarg after all qargs')
-        name = file_obj.read(carg[2]).decode('utf8').rstrip('\x00')
-        cargs.append(registers['c'][name][carg[1]])
+        cargs.append(clbit_indices[carg[1]])
     # Load Parameters
     for _param in range(num_params):
         param_raw = file_obj.read(INSTRUCTION_PARAM_SIZE)
@@ -456,7 +467,7 @@ def _read_custom_instructions(file_obj):
     return custom_instructions
 
 
-def _write_instruction(file_obj, instruction_tuple, custom_instructions):
+def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_map):
     gate_class_name = instruction_tuple[0].__class__.__name__
     if ((not hasattr(library, gate_class_name) and
          not hasattr(circuit_mod, gate_class_name) and
@@ -489,21 +500,15 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions):
     file_obj.write(condition_register)
     # Encode instruciton args
     for qbit in instruction_tuple[1]:
-        qreg_name = qbit.register.name.encode('utf8')
         instruction_arg_raw = struct.pack(INSTRUCTION_ARG_PACK,
                                           'q'.encode('utf8'),
-                                          qbit.index,
-                                          len(qreg_name))
+                                          index_map['q'][qbit])
         file_obj.write(instruction_arg_raw)
-        file_obj.write(qreg_name)
     for clbit in instruction_tuple[2]:
-        creg_name = clbit.register.name.encode('utf8')
         instruction_arg_raw = struct.pack(INSTRUCTION_ARG_PACK,
                                           'c'.encode('utf8'),
-                                          clbit.index,
-                                          len(creg_name))
+                                          index_map['c'][clbit])
         file_obj.write(instruction_arg_raw)
-        file_obj.write(creg_name)
     # Encode instruction params
     for param in instruction_tuple[0].params:
         container = io.BytesIO()
@@ -641,22 +646,35 @@ def _write_circuit(file_obj, circuit):
     file_obj.write(header)
     file_obj.write(circuit_name)
     file_obj.write(metadata_raw)
+    qubit_indices = {bit: index
+                     for index, bit in enumerate(circuit.qubits)}
+    clbit_indices = {bit: index
+                     for index, bit in enumerate(circuit.clbits)}
     if num_registers > 0:
         for reg in circuit.qregs:
             reg_name = reg.name.encode('utf8')
             file_obj.write(struct.pack(REGISTER_PACK, 'q'.encode('utf8'),
                                        reg.size, len(reg_name)))
             file_obj.write(reg_name)
+            REGISTER_ARRAY_PACK = "%sI" % reg.size
+            file_obj.write(struct.pack(REGISTER_ARRAY_PACK,
+                                       *[qubit_indices[bit] for bit in reg]))
         for reg in circuit.cregs:
             reg_name = reg.name.encode('utf8')
             file_obj.write(struct.pack(REGISTER_PACK, 'c'.encode('utf8'),
                                        reg.size, len(reg_name)))
             file_obj.write(reg_name)
+            REGISTER_ARRAY_PACK = "%sI" % reg.size
+            file_obj.write(struct.pack(REGISTER_ARRAY_PACK,
+                                       *[clbit_indices[bit] for bit in reg]))
     instruction_buffer = io.BytesIO()
     custom_instructions = {}
+    index_map = {}
+    index_map['q'] = qubit_indices
+    index_map['c'] = clbit_indices
     for instruction in circuit.data:
         _write_instruction(instruction_buffer, instruction,
-                           custom_instructions)
+                           custom_instructions, index_map)
     file_obj.write(struct.pack(CUSTOM_DEFINITION_HEADER_PACK,
                                len(custom_instructions)))
 
@@ -738,9 +756,17 @@ def _read_circuit(file_obj):
                               metadata=metadata)
         registers = _read_registers(file_obj, header[5])
         for qreg in registers['q'].values():
-            circ.add_register(qreg)
+            min_index = min(qreg['index_map'].keys())
+            qubits = [Qubit() for i in range(min_index - len(circ.qubits))]
+            if qubits:
+                circ.add_bits(qubits)
+            circ.add_register(qreg['register'])
         for creg in registers['c'].values():
-            circ.add_register(creg)
+            min_index = min(creg['index_map'].keys())
+            clbits = [Clbit() for i in range(min_index - len(circ.clbits))]
+            if clbits:
+                circ.add_bits(clbits)
+            circ.add_register(creg['register'])
     else:
         circ = QuantumCircuit(header[2], header[3],
                               name=header[0].decode('utf8').rstrip('\x00'),
