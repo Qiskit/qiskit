@@ -52,8 +52,7 @@ file header. The contents of thie file header as defined as a C struct are:
     }
 
 All values use network byte order [#f1]_ (big endian) for cross platform
-compatibility. All strings will be padded with ``0x00`` after the string
-if the string is shorter than the max size.
+compatibility.
 
 The file header is immediately followed by the circuit payloads.
 Each individual circuit is composed of the following parts:
