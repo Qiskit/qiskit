@@ -75,7 +75,7 @@ class StabilizerState(QuantumState):
         return self._data == other._data
 
     def __repr__(self):
-        return 'StabilizerState({})'.format(self._data)
+        return 'StabilizerState({})'.format(self._data.stabilizer)
 
     @property
     def data(self):
@@ -97,12 +97,18 @@ class StabilizerState(QuantumState):
     def trace(self):
         """Return the trace of the stabilizer state as a density matrix,
         which equals to 1, since it is always a pure state."""
-        return 1
+        if not self.is_valid():
+            raise QiskitError(
+                'Invalid StabilizerState. Input is not a valid Clifford.')
+        return 1.0
 
     def purity(self):
         """Return the purity of the quantum state,
         which equals to 1, since it is always a pure state."""
-        return 1
+        if not self.is_valid():
+            raise QiskitError(
+                'Invalid StabilizerState. Input is not a valid Clifford.')
+        return 1.0
 
     def to_operator(self):
         """Convert state to matrix operator class"""

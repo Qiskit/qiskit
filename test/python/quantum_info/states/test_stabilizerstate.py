@@ -81,6 +81,20 @@ class TestStabilizerState(QiskitTestCase):
             op = StabilizerState(stab).to_operator()
             self.assertEqual(op, target)
 
+    @combine(num_qubits=[2, 3, 4])
+    def test_trace(self, num_qubits):
+        """Test trace methods"""
+        stab = StabilizerState(random_clifford(num_qubits, seed=self.rng))
+        trace = stab.trace()
+        self.assertEqual(trace, 1.0)
+
+    @combine(num_qubits=[2, 3, 4])
+    def test_purity(self, num_qubits):
+        """Test purity methods"""
+        stab = StabilizerState(random_clifford(num_qubits, seed=self.rng))
+        purity = stab.purity()
+        self.assertEqual(purity, 1.0)
+
     @combine(num_qubits=[2, 3])
     def test_conjugate(self, num_qubits):
         """Test conjugate method."""
@@ -488,7 +502,7 @@ class TestStabilizerState(QiskitTestCase):
         """Test probabilities and probabilities_dict methods
         of random cliffords for a subsystem of qubits"""
 
-        for _ in range(10 * self.samples):
+        for _ in range(self.samples):
             for subsystem_size in range(1, num_qubits):
                 cliff = random_clifford(num_qubits, seed=self.rng)
                 qargs = np.random.choice(num_qubits, size=subsystem_size, replace=False)
