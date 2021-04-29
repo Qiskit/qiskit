@@ -506,7 +506,6 @@ class TestStabilizerState(QiskitTestCase):
             for subsystem_size in range(1, num_qubits):
                 cliff = random_clifford(num_qubits, seed=self.rng)
                 qargs = np.random.choice(num_qubits, size=subsystem_size, replace=False)
-                qargs = sorted(qargs)  # remove sorted!
                 qc = cliff.to_circuit()
                 stab = StabilizerState(cliff)
                 probs = stab.probabilities(qargs)
