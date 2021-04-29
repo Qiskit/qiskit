@@ -16,7 +16,8 @@ import array
 import fractions
 import logging
 import math
-from typing import Optional, Union, List
+import sys
+from typing import Optional, Union, List, Tuple
 
 import numpy as np
 
@@ -162,7 +163,7 @@ class Shor:
                                                              c_phi_add_N, iphi_add_N, qft, iqft)
 
         def append_adder(adder: QuantumCircuit, constant: int, idx: int):
-            partial_constant = (pow(2, idx, mod=N) * constant) % N
+            partial_constant = (pow(2, idx, N) * constant) % N
             angles = self._get_angles(partial_constant, n + 1)
             bound = adder.assign_parameters({angle_params: angles})
             circuit.append(bound, [*ctrl_qreg, x_qreg[idx], *b_qreg, *flag_qreg])
@@ -181,7 +182,8 @@ class Shor:
 
         circuit.append(qft, b_qreg)
 
-        a_inv = pow(a, -1, mod=N)
+        a_inv = pow(a, -1, mod=N) if sys.version_info >= (3, 8) else self.modinv(a, N)
+
         modulo_adder_inv = modulo_adder.inverse()
         for i in reversed(range(n)):
             append_adder(modulo_adder_inv, a_inv, i)
@@ -212,7 +214,7 @@ class Shor:
         # Apply the multiplication gates as showed in
         # the report in order to create the exponentiation
         for i in range(2 * n):
-            partial_a = int(pow(a, pow(2, i)))
+            partial_a = pow(a, pow(2, i), N)
             modulo_multiplier = self._controlled_multiple_mod_N(n, N, partial_a,
                                                                 c_phi_add_N, iphi_add_N, qft, iqft)
             circuit.append(modulo_multiplier, [up_qreg[i], *down_qreg, *aux_qreg])
@@ -289,6 +291,23 @@ class Shor:
         logger.info(summarize_circuits(circuit))
 
         return circuit
+
+    @staticmethod
+    def modinv(a: int, m: int) -> int:
+        """Returns the modular multiplicative inverse of a with respect to the modulus m."""
+
+        def egcd(a: int, b: int) -> Tuple[int, int, int]:
+            if a == 0:
+                return b, 0, 1
+            else:
+                g, y, x = egcd(b % a, a)
+                return g, x - (b // a) * y, y
+
+        g, x, _ = egcd(a, m)
+        if g != 1:
+            raise ValueError("The greatest common divisor of {} and {} is {}, so the "
+                             "modular inverse does not exist.".format(a, m, g))
+        return x % m
 
     def _get_factors(self, N: int, a: int, measurement: str) -> Optional[List[int]]:
         """Apply the continued fractions to find r and the gcd to find the desired factors."""
