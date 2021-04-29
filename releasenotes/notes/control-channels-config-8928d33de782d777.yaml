@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Exposes the control_channels of the backend configuration to the users as
+    a property.
