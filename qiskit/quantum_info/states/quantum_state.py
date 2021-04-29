@@ -440,43 +440,6 @@ class QuantumState:
             kets, bras, vals[inds_row, inds_col])}
 
     @staticmethod
-    def _accumulate_dims(dims, qargs):
-        """Flatten subsystem dimensions for unspecified qargs.
-
-        This has the potential to reduce the number of subsystems
-        by combining consecutive subsystems between the specified
-        qargs. For example, if we had a 5-qubit system with
-        ``dims = (2, 2, 2, 2, 2)``, and ``qargs=[0, 4]``, then the
-        flattened system will have dimensions ``new_dims = (2, 8, 2)``
-        and qargs ``new_qargs = [0, 2]``.
-
-        Args:
-            dims (tuple): subsystem dimensions.
-            qargs (list): qargs list.
-
-        Returns:
-            tuple: the pair (new_dims, new_qargs).
-        """
-
-        qargs_map = {}
-        new_dims = []
-
-        # Accumulate subsystems that can be combined
-        accum = []
-        for i, dim in enumerate(dims):
-            if i in qargs:
-                if accum:
-                    new_dims.append(np.product(accum))
-                    accum = []
-                new_dims.append(dim)
-                qargs_map[i] = len(new_dims) - 1
-            else:
-                accum.append(dim)
-        if accum:
-            new_dims.append(np.product(accum))
-        return tuple(new_dims), [qargs_map[i] for i in qargs]
-
-    @staticmethod
     def _subsystem_probabilities(probs, dims, qargs=None):
         """Marginalize a probability vector according to subsystems.
 
@@ -491,30 +454,21 @@ class QuantumState:
             np.array: the marginalized probability vector flattened
                       for the specified qargs.
         """
-
         if qargs is None:
             return probs
-
-        # Accumulate dimensions to trace over
-        accum_dims, accum_qargs = QuantumState._accumulate_dims(
-            dims, qargs)
-
-        # Get sum axis for maginalized subsystems
-        n_qargs = len(accum_dims)
-        axis = list(range(n_qargs))
-        for i in accum_qargs:
-            axis.remove(n_qargs - 1 - i)
-
-        # Reshape the probability to a tensor and sum over maginalized axes
-        new_probs = np.sum(np.reshape(probs, list(reversed(accum_dims))),
-                           axis=tuple(axis))
-
-        # Transpose output probs based on order of qargs
-        if sorted(accum_qargs) != accum_qargs:
-            axes = np.argsort(accum_qargs)
-            return np.ravel(np.transpose(new_probs, axes=axes))
-
-        return np.ravel(new_probs)
+        # Convert qargs to tensor axes
+        probs_tens = np.reshape(probs, dims)
+        ndim = probs_tens.ndim
+        qargs_axes = [ndim - 1 - i for i in reversed(qargs)]
+        # Get sum axis for marginalized subsystems
+        sum_axis = tuple(i for i in range(ndim) if i not in qargs_axes)
+        if sum_axis:
+            probs_tens = np.sum(probs_tens, axis=sum_axis)
+            qargs_axes = np.argsort(np.argsort(qargs_axes))
+        # Permute probability vector for desired qargs order
+        probs_tens = np.transpose(probs_tens, axes=qargs_axes)
+        new_probs = np.reshape(probs_tens, (probs_tens.size,))
+        return new_probs
 
     # Overloads
     def __and__(self, other):
