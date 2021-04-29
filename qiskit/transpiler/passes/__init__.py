@@ -119,6 +119,7 @@ Additional Passes
    CXDirection
    GateDirection
    MergeAdjacentBarriers
+   RemoveBarriers
    BarrierBeforeFinalMeasurements
    RemoveFinalMeasurements
    DAGFixedPoint
