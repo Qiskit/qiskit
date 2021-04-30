@@ -204,7 +204,6 @@ class TestCSPLayout(QiskitTestCase):
         """ 5 qubits Graphsate in Bogota"""
         backend = FakeBogota()
         coupling_map = CouplingMap(backend.configuration().coupling_map)
-        backend_props = backend.properties()
         matrix = [[0, 0, 0, 0, 1],
                   [0, 0, 1, 0, 0],
                   [0, 1, 0, 1, 0],
