@@ -439,7 +439,7 @@ def run_circuits(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                     if job_callback is not None:
                         job_callback(job_id, job_status, queue_position, job)
                     break
-                if job_status == JobStatus.QUEUED:
+                if job_status == JobStatus.QUEUED and hasattr(job, queue_position):
                     queue_position = job.queue_position()
                     logger.info("Job id: %s is queued at position %s", job_id, queue_position)
                 else:
