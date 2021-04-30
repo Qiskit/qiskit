@@ -115,15 +115,15 @@ class PauliSumOp(PrimitiveOp):
 
         if (
             isinstance(other, PauliSumOp)
-            and isinstance(self.coeff, (int, float, complex))
-            and isinstance(other.coeff, (int, float, complex))
+            and not isinstance(self.coeff, ParameterExpression)
+            and not isinstance(other.coeff, ParameterExpression)
         ):
             return PauliSumOp(self.coeff * self.primitive + other.coeff * other.primitive, coeff=1)
 
         if (
             isinstance(other, PauliOp)
-            and isinstance(self.coeff, (int, float, complex))
-            and isinstance(other.coeff, (int, float, complex))
+            and not isinstance(self.coeff, ParameterExpression)
+            and not isinstance(other.coeff, ParameterExpression)
         ):
             return PauliSumOp(
                 self.coeff * self.primitive + other.coeff * SparsePauliOp(other.primitive)
