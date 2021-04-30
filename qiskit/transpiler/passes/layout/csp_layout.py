@@ -71,18 +71,18 @@ class CustomConstraint(Constraint):
     2-sized-tuple (control, target) is in a set (edges).
     """
 
-    def __init__(self, edges, assigned=True, strict_direction=False):
+    def __init__(self, edges, assigned=True):
         self._edges = edges
         self._assigned = assigned
         edge, *_ = edges
         self.strict_direction = not isinstance(edge, frozenset)
 
     def __call__(self, variables, domains, assignments, forwardcheck=False):
-        if self.strict_direction:
-            parms = (assignments.get(variables[0], Unassigned),
-                     assignments.get(variables[1], Unassigned))
-        else:
-            parms = frozenset(assignments.get(x, Unassigned) for x in variables)
+        var1, var2 = variables
+        parms = (assignments.get(var1, Unassigned),
+                 assignments.get(var2, Unassigned))
+        if not self.strict_direction:
+            parms = frozenset(parms)
         if Unassigned in parms:
             return (self._assigned or parms in self._edges) and (
                     not forwardcheck or
