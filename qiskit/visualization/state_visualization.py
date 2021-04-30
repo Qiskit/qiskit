@@ -18,6 +18,7 @@
 Visualization functions for quantum states.
 """
 
+from warnings import warn
 from functools import reduce
 import colorsys
 import numpy as np
@@ -205,12 +206,19 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     if len(bloch) == 2:
         if coord_type not in ["wave"]:
             coord_type = "wave"
+            warn("""found bloch[] with size 2, with unsupported coord_type:{}, 
+                    reverting to default coord_type 'wave'""".format(coord_type),
+                 UserWarning, 2)
     elif len(bloch) == 3:
         if coord_type not in ["cartesian", "spherical"]:
             coord_type = "cartesian"
+            warn("""found bloch[] with size 3, with unsupported coord_type:{}, 
+                    reverting to default coord_type 'cartesian'""".format(coord_type),
+                 UserWarning, 2)
     else:
-        raise TypeError('Wrong number of elements.'
-                        'Make sure the first parameter is a list with 2 or 3 elements.')
+        raise TypeError('Wrong number of elements. '
+                        'Make sure the first parameter is a list with 2 or 3 elements. '
+                        'Supplied {} Arguments.'.format(len(bloch)))
 
     if figsize is None:
         figsize = (5, 5)
