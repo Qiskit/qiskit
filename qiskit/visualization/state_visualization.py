@@ -218,11 +218,9 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     if coord_type == "wave":
         n1 = bloch[0]
         n2 = bloch[1]
-        from numpy import angle, arccos
-        from math import sqrt
-        bloch[0] = sqrt(abs(n1)**2 + abs(n2)**2)
-        bloch[1] = 2 * arccos(abs(n1)/Radius)
-        bloch.append(angle(n2) - angle(n1))
+        bloch[0] = np.sqrt(abs(n1)**2 + abs(n2)**2)
+        bloch[1] = 2 * np.arccos(abs(n1)/bloch[0])
+        bloch.append(np.angle(n2) - np.angle(n1))
         coord_type = "spherical"
     if coord_type == "spherical":
         r, theta, phi = bloch[0], bloch[1], bloch[2]
