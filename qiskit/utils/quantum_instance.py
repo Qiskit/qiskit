@@ -365,27 +365,31 @@ class QuantumInstance:
                             self._backend_config,
                             self._compile_config)
                     if use_different_shots:
-                        cals_result = run_circuits(cal_circuits, self._backend,
-                                                   self._backend_options,
-                                                   self._qjob_config,
-                                                   self._noise_config,
-                                                   self._job_callback)
+                        cals_result = run_circuits(cal_circuits,
+                                                   self._backend,
+                                                   qjob_config=self._qjob_config,
+                                                   backend_options=self._backend_options,
+                                                   noise_config=self._noise_config,
+                                                   run_config=self._run_config.to_dict(),
+                                                   job_callback=self._job_callback)
                         self._time_taken += cals_result.time_taken
                         result = run_circuits(circuits,
                                               self._backend,
-                                              self.backend_options,
-                                              self.qjob_config,
-                                              self.run_config.to_dict(),
-                                              self._job_callback)
+                                              qjob_config=self.qjob_config,
+                                              backend_options=self.backend_options,
+                                              noise_config=self._noise_config,
+                                              run_config=self.run_config.to_dict(),
+                                              job_callback=self._job_callback)
                         self._time_taken += result.time_taken
                     else:
                         circuits[0:0] = cal_circuits
                         result = run_circuits(circuits,
                                               self._backend,
-                                              self.backend_options,
-                                              self.qjob_config,
-                                              self._noise_config,
-                                              self._job_callback)
+                                              qjob_config=self.qjob_config,
+                                              backend_options=self.backend_options,
+                                              noise_config=self._noise_config,
+                                              run_config=self.run_config.to_dict(),
+                                              job_callback=self._job_callback)
                         self._time_taken += result.time_taken
                         cals_result = result
 
@@ -435,10 +439,11 @@ class QuantumInstance:
             else:
                 result = run_circuits(circuits,
                                       self._backend,
-                                      self.backend_options,
-                                      self.qjob_config,
-                                      self._noise_config,
-                                      self._job_callback) if circuit_job else \
+                                      qjob_config=self.qjob_config,
+                                      backend_options=self.backend_options,
+                                      noise_config=self._noise_config,
+                                      run_config=self._run_config.to_dict(),
+                                      job_callback=self._job_callback) if circuit_job else \
                          run_qobj(qobj, self._backend, self._qjob_config,
                                   self._backend_options, self._noise_config,
                                   self._skip_qobj_validation, self._job_callback)
@@ -467,10 +472,11 @@ class QuantumInstance:
         else:
             result = run_circuits(circuits,
                                   self._backend,
-                                  self.backend_options,
-                                  self.qjob_config,
-                                  self._noise_config,
-                                  self._job_callback) if circuit_job else \
+                                  qjob_config=self.qjob_config,
+                                  backend_options=self.backend_options,
+                                  noise_config=self._noise_config,
+                                  run_config=self._run_config.to_dict(),
+                                  job_callback=self._job_callback) if circuit_job else \
                      run_qobj(qobj, self._backend, self._qjob_config,
                               self._backend_options, self._noise_config,
                               self._skip_qobj_validation, self._job_callback)
