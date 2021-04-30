@@ -185,6 +185,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
     Raises:
         ImportError: Requires matplotlib.
+        TypeError: bloch[] has wrong size.
 
     Example:
         .. jupyter-execute::
