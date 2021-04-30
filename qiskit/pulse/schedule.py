@@ -141,7 +141,7 @@ class Schedule:
 
         # These attributes are populated by ``_mutable_insert``
         self._timeslots = {}
-        self._children = []
+        self.__children = []
         for sched_pair in schedules:
             try:
                 time, sched = sched_pair
@@ -201,6 +201,24 @@ class Schedule:
         return tuple(self._timeslots.keys())
 
     @property
+    def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
+        """Deprecated. Return the child schedule components of this ``Schedule`` in the
+        order they were added to the schedule.
+
+        Notes:
+            Nested schedules are returned as-is. If you want to collect only instructions,
+            use py:meth:`~Schedule.instructions` instead.
+
+        Returns:
+            A tuple, where each element is a two-tuple containing the initial
+            scheduled time of each ``NamedValue`` and the component
+            itself.
+        """
+        warnings.warn('Schedule._children is now public method Schedule.children. '
+                      'Access to the private member is being deprecated.', DeprecationWarning)
+        return tuple(self.__children)
+
+    @property
     def children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
         """Return the child schedule components of this ``Schedule`` in the
         order they were added to the schedule.
@@ -214,7 +232,7 @@ class Schedule:
             scheduled time of each ``NamedValue`` and the component
             itself.
         """
-        return tuple(self._children)
+        return tuple(self.__children)
 
     @property
     def instructions(self) -> Tuple[Tuple[int, Instruction]]:
@@ -334,7 +352,7 @@ class Schedule:
 
         self._duration = self._duration + time
         self._timeslots = timeslots
-        self._children = [(orig_time + time, child) for orig_time, child in self.children]
+        self.__children = [(orig_time + time, child) for orig_time, child in self.children]
         return self
 
     def insert(self,
@@ -367,7 +385,7 @@ class Schedule:
             schedule: Schedule to mutably insert.
         """
         self._add_timeslots(start_time, schedule)
-        self._children.append((start_time, schedule))
+        self.__children.append((start_time, schedule))
         self._parameter_manager.update_parameter_table(schedule)
         return self
 
@@ -663,7 +681,7 @@ class Schedule:
                 new_parameters.update_parameter_table(child)
 
         if inplace:
-            self._children = new_children
+            self.__children = new_children
             self._parameter_manager = new_parameters
             self._renew_timeslots()
             return self
