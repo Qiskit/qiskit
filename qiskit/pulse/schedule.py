@@ -215,7 +215,7 @@ class Schedule:
             itself.
         """
         warnings.warn('Schedule._children is now available as the public property Schedule.children. '
-                      'Access to the private member is being deprecated.', DeprecationWarning)
+                      'Access to this private property is being deprecated.', DeprecationWarning)
         return tuple(self.__children)
 
     @property
