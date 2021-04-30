@@ -15,7 +15,7 @@ import re
 import copy
 import numbers
 import warnings
-from typing import Dict, List, Any, Iterable, Union
+from typing import Dict, List, Any, Iterable, Tuple, Union
 from collections import defaultdict
 
 from qiskit.exceptions import QiskitError
@@ -568,6 +568,8 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             (self._qubit_channel_map,
              self._channel_qubit_map,
              self._control_channels) = self._parse_channels(channels=channels)
+        else:
+            self._control_channels = defaultdict(list)
 
         if channel_bandwidth is not None:
             self.channel_bandwidth = [[min_range * 1e9, max_range * 1e9] for
@@ -693,6 +695,11 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
     def sample_rate(self) -> float:
         """Sample rate of the signal channels in Hz (1/dt)."""
         return 1.0 / self.dt
+
+    @property
+    def control_channels(self) -> Dict[Tuple[int, ...], List]:
+        """Return the control channels"""
+        return self._control_channels
 
     def drive(self, qubit: int) -> DriveChannel:
         """
