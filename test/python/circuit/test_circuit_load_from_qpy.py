@@ -219,7 +219,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circ)
 
     def test_parameter_expression(self):
-        """Test a circuit with parameter expression raises."""
+        """Test a circuit with a parameter expression."""
         theta = Parameter('theta')
         phi = Parameter('phi')
         sum_param = theta + phi

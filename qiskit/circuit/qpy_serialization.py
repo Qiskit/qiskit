@@ -267,8 +267,8 @@ size will be 0, the value will just be the same as the key. If
 .. code-block:: c
 
     struct {
-        double real,
-        double imag,
+        double real;
+        double imag;
     }
 
 this matches the internal C representation of Python's complex type. [#f3]_
