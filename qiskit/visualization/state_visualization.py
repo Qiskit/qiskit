@@ -201,18 +201,18 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
 
-    #Adding checks to revert to default coord_type depending on length of bloch[]
-    coord_type = coord_type.lower()#Accounting for user error
+    # Adding checks to revert to default coord_type depending on length of bloch[]
+    coord_type = coord_type.lower()  # Accounting for user error
     if len(bloch) == 2:
         if coord_type not in ["wave"]:
             coord_type = "wave"
-            warn("""found bloch[] with size 2, with unsupported coord_type:{}, 
+            warn("""found bloch[] with size 2, with unsupported coord_type:{},
                     reverting to default coord_type 'wave'""".format(coord_type),
                  UserWarning, 2)
     elif len(bloch) == 3:
         if coord_type not in ["cartesian", "spherical"]:
             coord_type = "cartesian"
-            warn("""found bloch[] with size 3, with unsupported coord_type:{}, 
+            warn("""found bloch[] with size 3, with unsupported coord_type:{},
                     reverting to default coord_type 'cartesian'""".format(coord_type),
                  UserWarning, 2)
     else:
