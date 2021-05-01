@@ -31,7 +31,7 @@ import numpy as np
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
-from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
+from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.utils import instruction_duration_validation, deprecated_functionality
 from qiskit.utils.multiprocessing import is_main_process
@@ -780,11 +780,7 @@ def _require_schedule_conversion(function: Callable) -> Callable:
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         from qiskit.pulse.transforms import block_to_schedule
-        if self.is_schedulable():
-            return function(block_to_schedule(self), *args, **kwargs)
-        raise UnassignedDurationError('This method requires all durations to be assigned with '
-                                      'some integer value. Please check `.parameters` to find '
-                                      'unassigned parameter objects.')
+        return function(block_to_schedule(self), *args, **kwargs)
     return wrapper
 
 
@@ -933,7 +929,7 @@ class ScheduleBlock:
                 return False
 
         # check duration assignment
-        for block in self.instructions:
+        for block in self.blocks:
             if isinstance(block, ScheduleBlock):
                 if not block.is_schedulable():
                     return False
@@ -973,13 +969,19 @@ class ScheduleBlock:
     def channels(self) -> Tuple[Channel]:
         """Returns channels that this schedule clock uses."""
         chans = set()
-        for block in self.instructions:
+        for block in self.blocks:
             for chan in block.channels:
                 chans.add(chan)
         return tuple(chans)
 
     @property
-    def instructions(self) -> Tuple[BlockComponent]:
+    @_require_schedule_conversion
+    def instructions(self) -> Tuple[Tuple[int, Instruction]]:
+        """Get the time-ordered instructions from self."""
+        return self.instructions
+
+    @property
+    def blocks(self) -> Tuple[BlockComponent]:
         """Get the time-ordered instructions from self."""
         return tuple(self._blocks)
 
@@ -1166,7 +1168,7 @@ class ScheduleBlock:
                 defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
 
         Returns:
-            ``Schedule`` consisting of instructions that are not matche with filtering condition.
+            ``Schedule`` consisting of instructions that are not match with filtering condition.
 
         Raises:
             PulseError: When this method is called. This method will be supported soon.
@@ -1198,7 +1200,7 @@ class ScheduleBlock:
         new_blocks = []
         new_parameters = ParameterManager()
 
-        for block in self.instructions:
+        for block in self.blocks:
             if block == old:
                 new_blocks.append(new)
                 new_parameters.update_parameter_table(new)
@@ -1260,7 +1262,7 @@ class ScheduleBlock:
 
     def __len__(self) -> int:
         """Return number of instructions in the schedule."""
-        return len(self.instructions)
+        return len(self.blocks)
 
     def __eq__(self, other: 'ScheduleBlock') -> bool:
         """Test if two ScheduleBlocks are equal.
@@ -1306,12 +1308,12 @@ class ScheduleBlock:
 
     def __repr__(self) -> str:
         name = format(self._name) if self._name else ""
-        instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])
-        if len(self.instructions) > 25:
-            instructions += ", ..."
+        blocks = ", ".join([repr(instr) for instr in self.blocks[:50]])
+        if len(self.blocks) > 25:
+            blocks += ", ..."
         return '{}({}, name="{}", transform={})'.format(
             self.__class__.__name__,
-            instructions,
+            blocks,
             name,
             repr(self.alignment_context)
         )

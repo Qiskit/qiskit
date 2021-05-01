@@ -41,6 +41,7 @@ class TestPulseParameters(QiskitTestCase):
         self.amp = Parameter('amp')
         self.sigma = Parameter('sigma')
         self.qubit = Parameter('q')
+        self.dur = Parameter('dur')
 
         self.freq = 4.5e9
         self.shift = 0.2e9
@@ -71,6 +72,18 @@ class TestPulseParameters(QiskitTestCase):
         inst.assign_parameters({self.qubit: 1})
         self.assertFalse(inst.is_parameterized())
         self.assertEqual(inst.parameters, set())
+
+    def test_parameter_attribute_play(self):
+        """Test the ``parameter`` attributes."""
+        inst = pulse.Play(pulse.Gaussian(self.dur, self.amp, self.sigma),
+                          pulse.DriveChannel(self.qubit))
+        self.assertTrue(inst.is_parameterized())
+        self.assertSetEqual(inst.parameters, {self.dur, self.amp, self.sigma, self.qubit})
+
+        inst = pulse.Play(pulse.Gaussian(self.dur, 0.1, self.sigma),
+                          pulse.DriveChannel(self.qubit))
+        self.assertTrue(inst.is_parameterized())
+        self.assertSetEqual(inst.parameters, {self.dur, self.sigma, self.qubit})
 
     def test_parameter_attribute_schedule(self):
         """Test the ``parameter`` attributes."""
