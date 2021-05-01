@@ -166,19 +166,21 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
 
     Args:
-        bloch (list[double]): array of either three elements where [<x>, <y>, <z>] (Cartesian)
+        bloch (list[double]): array of either three elements
+            where [<x>, <y>, <z>] (Cartesian)
             or [<r>, <theta>, <phi>] (spherical in radians)
-                <theta> is inclination angle from +z direction
-                <phi> is azimuth from +x direction,
-            or two elements [<α> , <β>] where α and β are the are complex numbers,
-                and coefficients of the qubit's wave function ∣ψ⟩ = α∣0⟩ + β∣1⟩
-        title (str): a string that represents the plot title
-        ax (matplotlib.axes.Axes): An Axes to use for rendering the bloch
-            sphere
+            <theta> is inclination angle from +z direction
+            <phi> is azimuth from +x direction,
+            or two elements [<α> , <β>] where α and β are complex numbers,
+            and coefficients of the qubit wave function ∣ψ⟩ = α∣0⟩ + β∣1⟩
+            title (str): a string that represents the plot title
+            ax (matplotlib.axes.Axes): An Axes to use for rendering the bloch
+            sphere.
         figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
         coord_type (str): a string that specifies coordinate type for bloch
-            (Cartesian, spherical or wave), default is Cartesian if length of bloch[] is 3,
-                                                       Wave if length of bloch[] is 2.
+            (Cartesian, spherical or wave), default is
+            Cartesian if length of bloch[] is 3,
+            Wave if length of bloch[] is 2.
 
     Returns:
         Figure: A matplotlib figure instance if ``ax = None``.
@@ -202,7 +204,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
 
-    # Adding checks to revert to default coord_type depending on length of bloch[]
+    # Checks to revert to default coord_type depending on length of bloch[]
     coord_type = coord_type.lower()  # Accounting for user error
     if len(bloch) == 2:
         if coord_type not in ["wave"]:
@@ -218,7 +220,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
                  UserWarning, 2)
     else:
         raise TypeError('Wrong number of elements. '
-                        'Make sure the first parameter is a list with 2 or 3 elements. '
+                        'Make sure the first parameter is a list with 2 or 3 elements.'
                         'Supplied {} Arguments.'.format(len(bloch)))
 
     if figsize is None:
