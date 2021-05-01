@@ -134,7 +134,7 @@ class ParameterSetter(NodeVisitor):
         .. note:: ``ScheduleBlock`` can have parameters in blocks and its alignment.
         """
         # accessing to protected member
-        node._blocks = [self.visit(block) for block in node.instructions]
+        node._blocks = [self.visit(block) for block in node.blocks]
         node._alignment_context = self.visit_AlignmentKind(node.alignment_context)
 
         self._update_parameter_manager(node)
