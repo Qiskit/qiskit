@@ -129,7 +129,7 @@ def get_param_str(op, drawer, ndigits=3):
         if drawer == 'latex':
             param_str = f"\\,(\\mathrm{{{','.join(param_list)}}})"
         elif drawer == 'mpl':
-            param_str = f"{', '.join(param_list)}"
+            param_str = f"{', '.join(param_list)}".replace('-', '$-$')
         else:
             param_str = f"({','.join(param_list)})"
 
