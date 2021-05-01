@@ -21,6 +21,7 @@ from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterExpression, ParameterVector
 from ..expectations.pauli_expectation import PauliExpectation
 from .gradient_base import GradientBase
+from .derivative_base import _coeff_derivative
 from ..list_ops.composed_op import ComposedOp
 from ..list_ops.list_op import ListOp
 from ..list_ops.summed_op import SummedOp
@@ -134,7 +135,7 @@ class Gradient(GradientBase):
             # Get derivative of the operator (recursively)
             d_op = self.get_gradient(op, param)
             # ..get derivative of the coeff
-            d_coeff = self.parameter_expression_grad(coeff, param)
+            d_coeff = _coeff_derivative(coeff, param)
 
             grad_op = 0
             if d_op != ~Zero @ One and not is_coeff_c(coeff, 0.0):
