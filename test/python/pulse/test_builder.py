@@ -1218,3 +1218,16 @@ class TestSubroutineCall(TestBuilder):
         self.assertEqual(play_0.pulse.sigma, 40)
         self.assertEqual(play_1.pulse.amp, 0.2)
         self.assertEqual(play_1.pulse.sigma, 40)
+
+    def test_call_subroutine_with_parametrized_duration(self):
+        """Test call subroutine containing a parametrized duration."""
+        dur = circuit.Parameter('dur')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Constant(dur, 0.1), pulse.DriveChannel(0))
+            pulse.play(pulse.Constant(dur, 0.2), pulse.DriveChannel(0))
+
+        with pulse.build() as main:
+            pulse.call(subroutine)
+
+        self.assertEqual(len(main.blocks), 1)
