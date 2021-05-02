@@ -549,8 +549,8 @@ class LinComb(CircuitGradient):
 
             if np.iscomplex(meas_op._coeff):
                 phase_fix = True
-                phase_fix_observable = (Z ^ (I ^ state_op.num_qubits)) -  \
-                                       1j * (Y ^ (I ^ state_op.num_qubits))
+                phase_fix_observable = SummedOp([Z ^ (I ^ state_op.num_qubits),
+                                         -1j * Y ^ (I ^ state_op.num_qubits)])
                 state_qc.s(qr_superpos)
                 meas_op._coeff /= 1j
 

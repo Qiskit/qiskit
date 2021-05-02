@@ -44,8 +44,10 @@ ode_solvers_names = ['ForwardEuler', 'RK45']
 #
 # ode_solvers = [RK45]
 # ode_solvers_names = ['RK45']
-regs = ['ridge', 'perturb_diag', None]
-reg_names = ['ridge', 'perturb_diag', 'lstsq']
+# regs = ['ridge', 'perturb_diag', None]
+# reg_names = ['ridge', 'perturb_diag', 'lstsq']
+regs = [None]
+reg_names = ['lstsq']
 # for nts in num_time_steps:
 # nts = num_time_steps[1]
 # g = nx.generators.random_graphs.random_regular_graph(4, 6)
@@ -76,9 +78,18 @@ for nts in num_time_steps:
 
                 # Define a set of initial parameters
                 parameters = ansatz.ordered_parameters
-                init_param_values = np.zeros(len(ansatz.ordered_parameters))
-                for i in range(ansatz.num_qubits):
-                    init_param_values[-(i + 1)] = np.pi / 2
+                # init_param_values = np.zeros(len(ansatz.ordered_parameters))
+                # for i in range(ansatz.num_qubits):
+                #     init_param_values[-(i + 1)] = np.pi / 2
+                init_param_values = [5.12065500e-02,  1.22562360e-01, - 6.70631280e-01,
+                                  5.08760200e-02,
+                 3.25997400e-02,  1.92158400e-02,  1.66097600e-01,  2.72740300e-02,
+                 5.63080000e-04, - 7.09539700e-01, - 8.62283620e-01, - 9.91696900e-02,
+                 - 1.92514850e-01,  3.08763170e-01 , 3.83842300e-02, - 5.90699800e-02,
+                 - 8.43130700e-02,  1.31088520e-01, - 5.94304400e-02,  5.88663700e-02,
+                 1.27121720e-01 , 5.75008200e-02, - 2.82536500e-02,  4.93581900e-02,
+                 1.14083460e-01 , 1.73757626e+00,  1.66688659e+00,  1.64615613e+00,
+                 1.59983932e+00 , 1.64257726e+00]
                 #     init_param_values[-(i + 1)] = (np.random.rand(1) + 0.0001) * np.pi / 2
                 # init_param_values = (np.random.rand(len(parameters)) + 0.0001) * np.pi / 2
                 print(init_param_values)
@@ -92,11 +103,11 @@ for nts in num_time_steps:
                 print('depth ', d)
                 print('---------------------------------------------------------------------')
                 t0 = time.time()
-                varqite_snapshot_dir = os.path.join('..', 'output_maxcut', 'imag',
-                                                    str(nts)+' depth '+str(d),
+                varqite_snapshot_dir = os.path.join('..',
+                                                    'output_maxcut_pretrained_from_superposition',
                                                     reg_names[j],
                                                     ode_solvers_names[k] + 'nat_grad')
-                # varqite_snapshot_dir = os.path.join('/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output/MaxCut', 'output_maxcut', 'imag',
+                # varqite_snapshot_dir = os.path.join('/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output/MaxCut', 'output_maxcut_superposition', 'imag',
                 #                                     str(nts)+'_depth_'+str(d),
                 #                                     reg_names[j],
                 #                                     ode_solvers_names[k] + 'error')
@@ -108,8 +119,8 @@ for nts in num_time_steps:
                                   regularization=reg,
                                   error_based_ode=False,
                                   snapshot_dir=varqite_snapshot_dir)
-                # approx_time_evolved_state_imag = varqite.convert(op)
-                varqite._operator = op / op.coeff
+                approx_time_evolved_state_imag = varqite.convert(op)
+                # varqite._operator = op / op.coeff
                 varqite_error_bounds, varqite_reverse_error_bounds = \
                     varqite.error_bound(
                     varqite_snapshot_dir, imag_reverse_bound=True,
@@ -131,7 +142,7 @@ for nts in num_time_steps:
 
                 print('run time', (time.time()-t0)/60)
                 print('---------------------------------------------------------------------')
-                # varqite_snapshot_dir = os.path.join('..', 'output_maxcut', 'imag',
+                # varqite_snapshot_dir = os.path.join('..', 'output_maxcut_superposition', 'imag',
                 #                                     str(nts) + ' depth ' + str(d),
                 #                                     reg_names[j],
                 #                                     ode_solvers_names[k] + 'error')

@@ -56,7 +56,7 @@ for nts in num_time_steps:
                                     init_parameter_values=init_params,
                                     num_time_steps=nts,
                                     ode_solver=ode_solver,
-                                    backend=Aer.get_backend('qasm_simulator'),
+                                    backend=Aer.get_backend('statevector_simulator'),
                                     regularization=reg,
                                     error_based_ode=False,
                                     snapshot_dir=varqrte_snapshot_dir

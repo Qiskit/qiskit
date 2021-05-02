@@ -52,7 +52,7 @@ reg_names = ['ridge', 'perturb_diag', 'lstsq']
 # for nts in num_time_steps:
 # nts = num_time_steps[1]
 output_dirs = ['h2', 'illustrative', 'illustrative_reverse', 'transverse_ising',
-               'MaxCut/output_maxcut', 'MaxCut/output_maxcut_pretrained']
+               'MaxCut/output_maxcut_superposition', 'MaxCut/output_maxcut_pretrained']
 # output_dirs = ['illustrative']
 output_dir = '/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output'
 for dir in output_dirs:
