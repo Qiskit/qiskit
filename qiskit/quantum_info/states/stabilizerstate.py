@@ -123,8 +123,8 @@ class StabilizerState(QuantumState):
             QiskitError: if other is not a StabilizerState.
         """
         if not self.is_valid():
-           raise QiskitError(
-               'Invalid StabilizerState. Input is not a valid Clifford.')
+            raise QiskitError(
+                'Invalid StabilizerState. Input is not a valid Clifford.')
         return 1.0
 
     def purity(self):
