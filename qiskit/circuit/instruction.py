@@ -80,7 +80,7 @@ class Instruction:
 
         self._params = []  # a list of gate params stored
 
-        # tuple (ClassicalRegister, int), tuple (Clbit, Bool) or tuple (Clbit,int)
+        # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
         # when the instruction has a conditional ("if")
         self.condition = None
         # list of instructions (and their contexts) that this instruction is composed of
@@ -347,6 +347,10 @@ class Instruction:
             raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
             raise CircuitError("condition value should be non-negative")
+        if isinstance(classical, val):
+            # Casting the conditional value as Boolean when
+            # the classical condition is on a classical bit.
+            val = bool(val)
         self.condition = (classical, val)
         return self
 
