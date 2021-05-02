@@ -118,17 +118,17 @@ class StabilizerState(QuantumState):
     def trace(self):
         """Return the trace of the stabilizer state as a density matrix,
         which equals to 1, since it is always a pure state."""
-        if not self.is_valid():
-            raise QiskitError(
-                'Invalid StabilizerState. Input is not a valid Clifford.')
+        # if not self.is_valid():
+        #   raise QiskitError(
+        #       'Invalid StabilizerState. Input is not a valid Clifford.')
         return 1.0
 
     def purity(self):
         """Return the purity of the quantum state,
         which equals to 1, since it is always a pure state."""
-        if not self.is_valid():
-            raise QiskitError(
-                'Invalid StabilizerState. Input is not a valid Clifford.')
+        # if not self.is_valid():
+        #    raise QiskitError(
+        #        'Invalid StabilizerState. Input is not a valid Clifford.')
         return 1.0
 
     def to_operator(self):
