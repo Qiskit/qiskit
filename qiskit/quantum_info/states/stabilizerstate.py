@@ -119,8 +119,11 @@ class StabilizerState(QuantumState):
         """Return the trace of the stabilizer state as a density matrix,
         which equals to 1, since it is always a pure state.
 
+        Returns:
+            double: the trace (should equal 1).
+
         Raises:
-            QiskitError: if other is not a StabilizerState.
+            QiskitError: if input is not a StabilizerState.
         """
         if not self.is_valid():
             raise QiskitError(
@@ -131,8 +134,11 @@ class StabilizerState(QuantumState):
         """Return the purity of the quantum state,
         which equals to 1, since it is always a pure state.
 
+        Returns:
+            double: the purity (should equal 1).
+
         Raises:
-            QiskitError: if other is not a StabilizerState.
+            QiskitError: if input is not a StabilizerState.
         """
         if not self.is_valid():
             raise QiskitError(
