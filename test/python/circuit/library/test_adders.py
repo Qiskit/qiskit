@@ -19,7 +19,7 @@ from ddt import ddt, data, unpack
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector
-from qiskit.circuit.library import RippleCarryAdder, QFTAdder, ClassicalAdder
+from qiskit.circuit.library import RippleCarryAdder, QFTAdder, PlainAdder
 
 
 @ddt
@@ -54,7 +54,7 @@ class TestAdder(QiskitTestCase):
         # obtain the statevector and the probabilities, we don't trace out the ancilla qubits
         # as we verify that all ancilla qubits have been uncomputed to state 0 again
         statevector = Statevector(circuit)
-        probabilities = np.abs(statevector) ** 2
+        probabilities = statevector.probabilities()
         pad = '0' * circuit.num_ancillas  # state of the ancillas
 
         # compute the expected results
@@ -83,19 +83,21 @@ class TestAdder(QiskitTestCase):
         (5, QFTAdder, True),
         (3, QFTAdder, True, True),
         (5, QFTAdder, True, True),
-        (3, ClassicalAdder, True),
-        (5, ClassicalAdder, True),
+        (3, PlainAdder, True),
+        (5, PlainAdder, True),
+        (3, PlainAdder, True, True),
+        (5, PlainAdder, True, True),
     )
     @unpack
     def test_summation(self, num_state_qubits, adder, inplace, modular=False):
         """Test summation for all implemented adders."""
-        adder = adder(num_state_qubits, modular=True) if modular else adder(num_state_qubits)
+        adder = adder(num_state_qubits, modular=modular)
         self.assertAdditionIsCorrect(num_state_qubits, adder, inplace, modular)
 
     @data(
         RippleCarryAdder,
         QFTAdder,
-        ClassicalAdder
+        PlainAdder
     )
     def test_raises_on_wrong_num_bits(self, adder):
         """Test an error is raised for a bad number of qubits."""

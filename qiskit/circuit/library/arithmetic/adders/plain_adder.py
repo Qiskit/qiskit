@@ -17,7 +17,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from .adder import Adder
 
 
-class ClassicalAdder(Adder):
+class PlainAdder(Adder):
     r"""A circuit that uses Classical Addition to perform in-place addition on two qubit registers.
 
     As an example, a classical adder circuit that performs addition on two 3-qubit sized
@@ -56,18 +56,21 @@ class ClassicalAdder(Adder):
 
     **References:**
 
-    [1] T. G. Draper, Addition on a Quantum Computer, 2000.
-    `arXiv:quant-ph/0008033 <https://arxiv.org/pdf/quant-ph/0008033.pdf>`_
+    [1] Vedral et al., Quantum Networks for Elementary Arithmetic Operations, 1995.
+    `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_
 
     """
 
     def __init__(self,
                  num_state_qubits: int,
-                 name: str = 'ClassicalAdder'
+                 modular: bool = False,
+                 name: str = 'PlainAdder'
                  ) -> None:
         """
         Args:
             num_state_qubits: The size of the register.
+            modular: If True, perform addition modulo ``2 ** num_state_qubits``. This needs
+                one less qubit (namely no ``cout`` qubit).
             name: The name of the circuit.
 
         Raises:
@@ -78,14 +81,17 @@ class ClassicalAdder(Adder):
 
         super().__init__(num_state_qubits, name=name)
 
-        # define the registers
+        # define the input registers
         qr_a = QuantumRegister(num_state_qubits, name='a')
         qr_b = QuantumRegister(num_state_qubits, name='b')
-        qr_cin = AncillaRegister(num_state_qubits, name='cin')
-        qr_cout = QuantumRegister(1, name='cout')
+        self.add_register(qr_a, qr_b)
 
-        # initialize the registers
-        self.add_register(qr_a, qr_b, qr_cout, qr_cin)
+        if not modular:
+            qr_cout = QuantumRegister(1, name='cout')
+            self.add_register(qr_cout)
+
+        qr_cin = AncillaRegister(num_state_qubits, name='cin')
+        self.add_register(qr_cin)
 
         # corresponds to Carry gate in [1]
         qc_carry = QuantumCircuit(4, name='Carry')
@@ -106,10 +112,13 @@ class ClassicalAdder(Adder):
         for j in range(num_state_qubits - 1):
             self.append(qc_instruction_carry, [qr_cin[j], qr_a[j], qr_b[j], qr_cin[j+1]])
 
-        self.append(qc_instruction_carry, [qr_cin[num_state_qubits - 1],
-                                           qr_a[num_state_qubits - 1], qr_b[num_state_qubits - 1],
-                                           qr_cout])
-        self.cx(qr_a[num_state_qubits - 1], qr_b[num_state_qubits - 1])
+        if not modular:
+            self.append(qc_instruction_carry, [qr_cin[num_state_qubits - 1],
+                                               qr_a[num_state_qubits - 1],
+                                               qr_b[num_state_qubits - 1],
+                                               qr_cout])
+            self.cx(qr_a[num_state_qubits - 1], qr_b[num_state_qubits - 1])
+
         self.append(qc_instruction_sum, [qr_cin[num_state_qubits - 1],
                                          qr_a[num_state_qubits - 1], qr_b[num_state_qubits - 1]])
 
