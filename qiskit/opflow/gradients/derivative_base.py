@@ -12,6 +12,7 @@
 
 """ DerivativeBase Class """
 
+import warnings
 from abc import abstractmethod
 from collections.abc import Iterable as IterableAbc
 from typing import Callable, Iterable, List, Optional, Tuple, Union
@@ -124,6 +125,11 @@ class DerivativeBase(ConverterBase):
         Returns:
             ParameterExpression representing the gradient of param_expr w.r.t. param
         """
+        warnings.warn('The DerivativeBase.parameter_expression_grad method is deprecated as of '
+                      'Qiskit Terra 0.18.0 and will be removed no earlier than 3 months after '
+                      'the release date. Use the ParameterExpression.gradient method instead for '
+                      'a direct replacement.', DeprecationWarning, stacklevel=2)
+
         if not isinstance(param_expr, ParameterExpression):
             return 0.0
 
@@ -232,3 +238,9 @@ class DerivativeBase(ConverterBase):
 
         else:
             return operator
+
+
+def _coeff_derivative(coeff, param):
+    if isinstance(coeff, ParameterExpression) and len(coeff.parameters) > 0:
+        return coeff.gradient(param)
+    return 0
