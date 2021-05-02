@@ -55,7 +55,7 @@ class LinCombFull(CircuitQFI):
         # QFI & phase fix observable
         qfi_observable = StateFn(4 * Z ^ (I ^ operator.num_qubits), is_measurement=True).reduce()
         phase_fix_observable = SummedOp([Z ^ (I ^ operator.num_qubits),
-                                         -1j * Y ^ (I ^ operator.num_qubits)])
+                                         +1j * Y ^ (I ^ operator.num_qubits)])
         # see https://arxiv.org/pdf/quant-ph/0108146.pdf
 
         # Check if the given operator corresponds to a quantum state given as a circuit.
