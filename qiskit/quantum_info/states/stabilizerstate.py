@@ -26,8 +26,29 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
 
 
 class StabilizerState(QuantumState):
-    """StabilizerState class. Based on the internal class:
-    :class:`~qiskit.quantum_info.Clifford`
+    """StabilizerState class.
+    Stabilizer simulator using the convention from reference [1].
+    Based on the internal class :class:`~qiskit.quantum_info.Clifford`.
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit
+        from qiskit.quantum_info import StabilizerState, Pauli
+
+        # Bell state generation circuit
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        stab = StabilizerState(qc)
+
+        # Print the StabilizerState
+        print(stab)
+
+        # Calculate the StabilizerState measurement probabilities dictionary
+        print (stab.probabilities_dict())
+
+        # Calculate expectation value of the StabilizerState
+        print (stab.expectation_value(Pauli('ZZ')))
 
     References:
         1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
@@ -215,11 +236,8 @@ class StabilizerState(QuantumState):
         for p in range(num_qubits):
             stab = self.data.stabilizer
             num_anti = 0
-            for qubit in qubits:
-                if pauli.z[qubit] and stab.X[p][qubit]:
-                    num_anti += 1
-                if pauli.x[qubit] and stab.Z[p][qubit]:
-                    num_anti += 1
+            num_anti += np.count_nonzero(pauli.z & stab.X[p])
+            num_anti += np.count_nonzero(pauli.x & stab.Z[p])
             if num_anti % 2 == 1:
                 return 0
 
@@ -231,21 +249,17 @@ class StabilizerState(QuantumState):
             # Check if destabilizer anti-commutes
             destab = self.data.destabilizer
             num_anti = 0
-            for qubit in qubits:
-                if pauli.z[qubit] and destab.X[p][qubit]:
-                    num_anti += 1
-                if pauli.x[qubit] and destab.Z[p][qubit]:
-                    num_anti += 1
+            num_anti += np.count_nonzero(pauli.z & destab.X[p])
+            num_anti += np.count_nonzero(pauli.x & destab.Z[p])
             if num_anti % 2 == 0:
                 continue
 
             # If anti-commutes multiply Pauli by stabilizer
             stab = self.data.stabilizer
             phase += 2 * self.data.table.phase[p + num_qubits]
-            for k in range(num_qubits):
-                phase += stab.Z[p][k] and stab.X[p][k]
-                phase += 2 * (pauli_z[k] and stab.X[p][k])
-                pauli_z[k] = pauli_z[k] ^ stab.Z[p][k]
+            phase += np.count_nonzero(stab.Z[p] & stab.X[p])
+            phase += 2 * np.count_nonzero(pauli_z & stab.X[p])
+            pauli_z = pauli_z ^ stab.Z[p]
 
         if phase % 4 != 0:
             return -1
