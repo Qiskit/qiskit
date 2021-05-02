@@ -347,7 +347,7 @@ class Instruction:
             raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
             raise CircuitError("condition value should be non-negative")
-        if isinstance(classical, val):
+        if isinstance(classical, Clbit):
             # Casting the conditional value as Boolean when
             # the classical condition is on a classical bit.
             val = bool(val)
