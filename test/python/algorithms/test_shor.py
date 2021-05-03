@@ -62,11 +62,17 @@ class TestShor(QiskitAlgorithmsTestCase):
         self.assertTrue(result.factors == [base])
         self.assertTrue(result.total_counts >= result.successful_counts)
 
-    @data(-1, 0, 1, 2, 4, 16)
-    def test_shor_bad_input(self, n_v):
-        """ shor bad input test """
+    @idata(
+        [[N, 2] for N in [-1, 0, 1, 2, 4, 16]] +
+        [[15, a] for a in [-1, 0, 1, 3, 5, 15, 16]],
+    )
+    @unpack
+    def test_shor_bad_input(self, n_v, a_v):
+        """ shor factor bad input test """
+        backend = Aer.get_backend('qasm_simulator')
+        shor = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
         with self.assertRaises(ValueError):
-            _ = Shor().factor(N=n_v)
+            _ = shor.factor(N=n_v, a=a_v)
 
     @idata([
         [15, 4, 2],
