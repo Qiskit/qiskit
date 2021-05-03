@@ -417,10 +417,6 @@ class MatplotlibDrawer:
         fs = self._style['fs']
         sfs = self._style['sfs']
 
-        # added .21 is for qubit numbers on the left side
-        """text_width = self._get_text_width(text, fs) + .21
-        sub_width = self._get_text_width(subtext, sfs, param=True) + .21
-        wid = max((text_width, sub_width, WID))"""
         wid = self._gate_width[op]
 
         qubit_span = abs(ypos) - abs(ypos_max) + 1
@@ -456,9 +452,6 @@ class MatplotlibDrawer:
         fs = self._style['fs']
         sfs = self._style['sfs']
 
-        """text_width = self._get_text_width(text, fs)
-        sub_width = self._get_text_width(subtext, sfs, param=True)
-        wid = max((text_width, sub_width, WID))"""
         wid = self._gate_width[op]
 
         box = self.patches_mod.Rectangle(xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
@@ -479,11 +472,12 @@ class MatplotlibDrawer:
                               fontsize=fs, color=gt,
                               clip_on=True, zorder=PORDER_TEXT)
 
-    def _sidetext(self, xy, tc=None, text=''):
+    def _sidetext(self, op, xy, tc=None, text=''):
         xpos, ypos = xy
 
         # 0.11 = the initial gap, add 1/2 text width to place on the right
-        text_width = self._get_text_width(text, self._style['sfs'])
+        #text_width = self._get_text_width(text, self._style['sfs'])
+        text_width = self._gate_width[op]
         xp = xpos + 0.11 + text_width / 2
         self._ax.text(xp, ypos + HIG, text, ha='center', va='top',
                       fontsize=self._style['sfs'], color=tc,
@@ -819,6 +813,7 @@ class MatplotlibDrawer:
             #
             for op in layer:
                 self._gate_width[op] = WID
+
                 if op.op._directive or op.name == 'measure':
                     continue
 
@@ -843,10 +838,10 @@ class MatplotlibDrawer:
                     if op.name == 'initialize':
                         param = '[%s]' % param
                     param = "${}$".format(param)
-                    param_width = self._get_text_width(param, fontsize=sfs,
-                                                       param=True) + 0.08
+                    raw_param_width = self._get_text_width(param, fontsize=sfs, param=True)
+                    param_width = raw_param_width + 0.08
                 else:
-                    param_width = 0.0
+                    param_width = raw_param_width = 0.0
 
                 if op.name == 'rzz' or base_name in ['u1', 'p', 'rzz']:
                     if base_name == 'u1':
@@ -855,19 +850,20 @@ class MatplotlibDrawer:
                         tname = 'P'
                     else:
                         tname = 'ZZ'
-                    gate_width = (self._get_text_width(tname + ' ()',
-                                                       fontsize=sfs)
-                                  + param_width) * 1.5
+                    raw_gate_width = (self._get_text_width(tname + ' ()', fontsize=sfs)
+                                      + param_width)
+                    gate_width = raw_gate_width * 1.5
                 else:
-                    gate_width = self._get_text_width(gate_text, fontsize=fs) + 0.10
+                    raw_gate_width = self._get_text_width(gate_text, fontsize=fs)
+                    gate_width = raw_gate_width + 0.10
                     # add .21 for the qubit numbers on the left of the multibit gates
                     if (op.name not in _standard_1q_gates and base_name not in _standard_1q_gates):
-                        gate_width += 0.21
+                        raw_gate_width = gate_width = gate_width + 0.21
 
                 box_width = max(gate_width, ctrl_width, param_width, WID)
                 if box_width > widest_box:
                     widest_box = box_width
-                self._gate_width[op] = box_width
+                self._gate_width[op] = max(raw_gate_width, raw_param_width, WID)
 
             layer_width = int(widest_box) + 1
             this_anc = prev_anc + 1
@@ -980,6 +976,7 @@ class MatplotlibDrawer:
 
                 elif op.name == 'initialize':
                     vec = "$[{}]$".format(param.replace('$', ''))
+                    print(vec)
                     if len(q_xy) == 1:
                         self._gate(op, q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc,
                                    text=gate_text, subtext=vec)
@@ -1024,7 +1021,7 @@ class MatplotlibDrawer:
                         stext = 'P'
                     else:
                         stext = 'ZZ'
-                    self._sidetext(qubit_b, tc=tc,
+                    self._sidetext(op, qubit_b, tc=tc,
                                    text='{}'.format(stext) + ' ' + '({})'.format(param))
                     self._line(qubit_b, qubit_t, lc=lc)
 
