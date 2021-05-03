@@ -71,8 +71,8 @@ class TestShor(QiskitAlgorithmsTestCase):
     @idata([
         [15, 4, 2],
         [15, 7, 4],
+        [17, 8, 8],
         [21, 13, 2],
-        [35, 8, 4],
     ])
     @unpack
     def test_shor_quantum_result(self, n_v, a_v, order):
@@ -95,7 +95,7 @@ class TestShor(QiskitAlgorithmsTestCase):
         [15, 4, [1, 4]],
         [15, 7, [1, 4, 7, 13]],
         [21, 5, [1, 4, 5, 16, 17, 20]],
-        [35, 2, [1, 2, 4, 8, 9, 11, 16, 18, 22, 23, 29, 32]],
+        [25, 4, [1, 4, 6, 9, 11, 14, 16, 19, 21, 24]],
     ])
     @unpack
     def test_shor_exponentiation_result(self, n_v, a_v, values):
