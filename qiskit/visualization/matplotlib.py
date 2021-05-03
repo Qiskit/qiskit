@@ -417,7 +417,7 @@ class MatplotlibDrawer:
         fs = self._style['fs']
         sfs = self._style['sfs']
 
-        wid = self._gate_width[op]
+        wid = max(self._gate_width[op] + 0.21, WID)
 
         qubit_span = abs(ypos) - abs(ypos_max) + 1
         height = HIG + (qubit_span - 1)
@@ -858,7 +858,7 @@ class MatplotlibDrawer:
                     gate_width = raw_gate_width + 0.10
                     # add .21 for the qubit numbers on the left of the multibit gates
                     if (op.name not in _standard_1q_gates and base_name not in _standard_1q_gates):
-                        raw_gate_width = gate_width = gate_width + 0.21
+                        gate_width += 0.21
 
                 box_width = max(gate_width, ctrl_width, param_width, WID)
                 if box_width > widest_box:
@@ -976,7 +976,6 @@ class MatplotlibDrawer:
 
                 elif op.name == 'initialize':
                     vec = "$[{}]$".format(param.replace('$', ''))
-                    print(vec)
                     if len(q_xy) == 1:
                         self._gate(op, q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc,
                                    text=gate_text, subtext=vec)
