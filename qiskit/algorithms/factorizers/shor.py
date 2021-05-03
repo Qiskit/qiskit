@@ -223,10 +223,19 @@ class Shor:
 
     @staticmethod
     def _validate_input(N: int, a: int):
+        """Check parameters of the algorithm.
+
+        Args:
+            N: The odd integer to be factored, has a min. value of 3.
+            a: Any integer that satisfies 1 < a < N and gcd(a, N) = 1.
+
+        Raises:
+            ValueError: Invalid input
+
+        """
         validate_min('N', N, 3)
         validate_min('a', a, 2)
 
-        # check the input integer
         if N < 1 or N % 2 == 0:
             raise ValueError('The input needs to be an odd integer greater than 1.')
 
@@ -237,20 +246,17 @@ class Shor:
                           N: int,
                           a: int = 2,
                           measurement: bool = False) -> QuantumCircuit:
-        """Construct circuit.
+        """Construct quantum part of the algorithm.
 
         Args:
-            N: The integer to be factored, has a min. value of 3.
+            N: The odd integer to be factored, has a min. value of 3.
             a: Any integer that satisfies 1 < a < N and gcd(a, N) = 1.
             measurement: Boolean flag to indicate if measurement should be included in the circuit.
 
         Returns:
             Quantum circuit.
 
-        Raises:
-            ValueError: Invalid N
         """
-
         self._validate_input(N, a)
 
         # Get n value used in Shor's algorithm, to know how many qubits are used
@@ -295,7 +301,6 @@ class Shor:
     @staticmethod
     def modinv(a: int, m: int) -> int:
         """Returns the modular multiplicative inverse of a with respect to the modulus m."""
-
         def egcd(a: int, b: int) -> Tuple[int, int, int]:
             if a == 0:
                 return b, 0, 1
@@ -419,7 +424,7 @@ class Shor:
         which needs to be a co-prime smaller than :math:`N` .
 
         Args:
-            N: The integer to be factored, has a min. value of 3.
+            N: The odd integer to be factored, has a min. value of 3.
             a: Any integer that satisfies 1 < a < N and gcd(a, N) = 1.
 
         Returns:
@@ -438,7 +443,7 @@ class Shor:
 
         result = ShorResult()
 
-        # check if the input integer is a power
+        # check if the input integer N is a power
         tf, b, p = is_power(N, return_decomposition=True)
         if tf:
             logger.info('The input integer is a power: %s=%s^%s.', N, b, p)
