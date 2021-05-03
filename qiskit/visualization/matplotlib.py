@@ -850,7 +850,7 @@ class MatplotlibDrawer:
                         tname = 'ZZ'
                     raw_gate_width = (self._get_text_width(tname + ' ()', fontsize=sfs)
                                       + raw_param_width)
-                    gate_width = raw_gate_width * 1.5
+                    gate_width = (raw_gate_width + 0.08) * 1.5
                 else:
                     raw_gate_width = self._get_text_width(gate_text, fontsize=fs)
                     gate_width = raw_gate_width + 0.10
