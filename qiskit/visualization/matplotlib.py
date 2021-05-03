@@ -417,7 +417,7 @@ class MatplotlibDrawer:
         fs = self._style['fs']
         sfs = self._style['sfs']
 
-        wid = max(self._gate_width[op] + 0.21, WID)
+        wid = self._gate_width[op] + 0.21
 
         qubit_span = abs(ypos) - abs(ypos_max) + 1
         height = HIG + (qubit_span - 1)
@@ -476,7 +476,6 @@ class MatplotlibDrawer:
         xpos, ypos = xy
 
         # 0.11 = the initial gap, add 1/2 text width to place on the right
-        #text_width = self._get_text_width(text, self._style['sfs'])
         text_width = self._gate_width[op]
         xp = xpos + 0.11 + text_width / 2
         self._ax.text(xp, ypos + HIG, text, ha='center', va='top',
@@ -837,7 +836,6 @@ class MatplotlibDrawer:
                     param = self._param_parse(op.op.params)
                     if op.name == 'initialize':
                         param = '[%s]' % param
-                    param = "${}$".format(param)
                     raw_param_width = self._get_text_width(param, fontsize=sfs, param=True)
                     param_width = raw_param_width + 0.08
                 else:
