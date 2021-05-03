@@ -214,8 +214,9 @@ class Schedule:
             scheduled time of each ``NamedValue`` and the component
             itself.
         """
-        warnings.warn('Schedule._children is now available as the public property Schedule.children. '
-                      'Access to this private property is being deprecated.', DeprecationWarning)
+        warnings.warn('Schedule._children is now available as the public property '
+                      'Schedule.children. Access to this private property is being deprecated.',
+                      DeprecationWarning)
         return tuple(self.__children)
 
     @property
