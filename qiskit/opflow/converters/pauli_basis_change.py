@@ -230,7 +230,7 @@ class PauliBasisChange(ConverterBase):
             The ``~StateFn @ CircuitOp`` composition equivalent to a measurement by the original
             ``PauliOp``.
         """
-        return PauliBasisChange.statefn_replacement_fn(cob_instr_op, dest_pauli_op).adjoint()
+        return ComposedOp([StateFn(dest_pauli_op, is_measurement=True), cob_instr_op])
 
     @staticmethod
     def statefn_replacement_fn(cob_instr_op: PrimitiveOp,
