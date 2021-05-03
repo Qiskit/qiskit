@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -75,7 +75,10 @@ def is_aer_provider(backend):
     """
     if has_aer():
         from qiskit.providers.aer import AerProvider
-        return isinstance(backend.provider(), AerProvider)
+        if isinstance(backend.provider(), AerProvider):
+            return True
+        from qiskit.providers.aer.backends.aerbackend import AerBackend
+        return isinstance(backend, AerBackend)
 
     return False
 
@@ -129,6 +132,10 @@ def is_statevector_backend(backend):
     Returns:
         bool: True is statevector
     """
+    if has_aer():
+        from qiskit.providers.aer.backends import StatevectorSimulator
+        if isinstance(backend, StatevectorSimulator):
+            return True
     return backend.name().startswith('statevector') if backend is not None else False
 
 
