@@ -417,7 +417,7 @@ class MatplotlibDrawer:
         fs = self._style['fs']
         sfs = self._style['sfs']
 
-        wid = self._gate_width[op] + 0.21
+        wid = max(self._gate_width[op] + 0.21, WID)
 
         qubit_span = abs(ypos) - abs(ypos_max) + 1
         height = HIG + (qubit_span - 1)
@@ -452,7 +452,7 @@ class MatplotlibDrawer:
         fs = self._style['fs']
         sfs = self._style['sfs']
 
-        wid = self._gate_width[op]
+        wid = max(self._gate_width[op], WID)
 
         box = self.patches_mod.Rectangle(xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
                                          width=wid, height=HIG, fc=fc, ec=ec,
@@ -861,7 +861,7 @@ class MatplotlibDrawer:
                 box_width = max(gate_width, ctrl_width, param_width, WID)
                 if box_width > widest_box:
                     widest_box = box_width
-                self._gate_width[op] = max(raw_gate_width, raw_param_width, WID)
+                self._gate_width[op] = max(raw_gate_width, raw_param_width)
 
             layer_width = int(widest_box) + 1
             this_anc = prev_anc + 1
