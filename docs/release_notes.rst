@@ -136,10 +136,42 @@ Qiskit 0.25.1
 Terra 0.17.1
 ============
 
+.. _Release Notes_0.17.1_Prelude:
+
+Prelude
+-------
+
+This is a bugfix release that fixes several issues from the 0.17.0 release.
+Most importantly this release fixes the incorrectly constructed sdist
+package for the 0.17.0 release which was not actually buildable and was
+blocking installation on platforms without precompiled binaries available.
+
 .. _Release Notes_0.17.1_Bug Fixes:
 
 Bug Fixes
 ---------
+
+- Fixed an issue where the :attr:`~qiskit.circuit.QuantumCircuit.global_phase`
+  attribute would not be preserved in the output
+  :class:`~qiskit.circuit.QuantumCircuit` object when the
+  :meth:`qiskit.circuit.QuantumCircuit.reverse_bits` method was called.
+  For example::
+
+    import math
+    from qiskit import QuantumCircuit
+
+    qc = QuantumCircuit(3, 2, global_phase=math.pi)
+    qc.h(0)
+    qc.s(1)
+    qc.cx(0, 1)
+    qc.measure(0, 1)
+    qc.x(0)
+    qc.y(1)
+
+    reversed = qc.reverse_bits()
+    print(reversed.global_phase)
+
+  will now correctly print :math:`\pi`.
 
 - Fixed an issue where the transpiler pass
   :class:`~qiskit.transpiler.passes.Unroller` didn't
