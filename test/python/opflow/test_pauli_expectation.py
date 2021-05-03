@@ -233,6 +233,11 @@ class TestPauliExpectation(QiskitOpflowTestCase):
                                              [1, .5**.5, (1 + .5**.5), 1],
                                              decimal=1)
 
+    def test_pauli_expectation_non_hermite_op(self):
+        """ Test PauliExpectation for non hermitian operator """
+        exp = ~StateFn(1j * Z) @ One
+        self.assertEqual(self.expect.convert(exp).eval(), 1j)
+
 
 if __name__ == '__main__':
     unittest.main()
