@@ -125,7 +125,7 @@ class QasmSimulatorPy(BackendV1):
         self._shots = 0
         self._memory = False
         self._initial_statevector = self.options.get("initial_statevector")
-        self._chop_threshold = self.options.get("chop_threashold")
+        self._chop_threshold = self.options.get("chop_threshold")
         self._qobj_config = None
         # TEMP
         self._sample_measure = False
