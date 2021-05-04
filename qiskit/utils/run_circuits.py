@@ -381,3 +381,184 @@ def run_on_backend(backend: Union[Backend, BaseBackend],
     else:
         job = backend.run(qobj, **backend_options, **noise_config)
         return job
+
+
+def run_circuits(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+                 backend: Union[Backend, BaseBackend],
+                 qjob_config: Dict,
+                 backend_options: Optional[Dict] = None,
+                 noise_config: Optional[Dict] = None,
+                 run_config: Optional[Dict] = None,
+                 job_callback: Optional[Callable] = None) -> Result:
+    """
+    An execution wrapper with Qiskit-Terra, with job auto recover capability.
+
+    The auto-recovery feature is only applied for non-simulator backend.
+    This wrapper will try to get the result no matter how long it takes.
+
+    Args:
+        circuits: circuits to execute
+        backend: backend instance
+        qjob_config: configuration for quantum job object
+        backend_options: backend options
+        noise_config: configuration for noise model
+        run_config: configuration for run
+        job_callback: callback used in querying info of the submitted job, and
+                                           providing the following arguments:
+                                            job_id, job_status, queue_position, job
+
+    Returns:
+        Result object
+
+    Raises:
+        QiskitError: Any error except for JobError raised by Qiskit Terra
+    """
+    backend_options = backend_options or {}
+    noise_config = noise_config or {}
+    run_config = run_config or {}
+    with_autorecover = not is_simulator_backend(backend)
+
+    job, job_id = _safe_submit_circuits(circuits,
+                                        backend,
+                                        qjob_config=qjob_config,
+                                        backend_options=backend_options,
+                                        noise_config=noise_config,
+                                        run_config=run_config)
+    result = None
+    if with_autorecover:
+        logger.info("Backend status: %s", backend.status())
+        logger.info("There is one jobs are submitted: id: %s", job_id)
+        while True:
+            logger.info("Running job id: %s", job_id)
+            # try to get result if possible
+            while True:
+                job_status = _safe_get_job_status(job, job_id)
+                queue_position = 0
+                if job_status in JOB_FINAL_STATES:
+                    # do callback again after the job is in the final states
+                    if job_callback is not None:
+                        job_callback(job_id, job_status, queue_position, job)
+                    break
+                if job_status == JobStatus.QUEUED and hasattr(job, queue_position):
+                    queue_position = job.queue_position()
+                    logger.info("Job id: %s is queued at position %s", job_id, queue_position)
+                else:
+                    logger.info("Job id: %s, status: %s", job_id, job_status)
+                if job_callback is not None:
+                    job_callback(job_id, job_status, queue_position, job)
+                time.sleep(qjob_config['wait'])
+
+            # get result after the status is DONE
+            if job_status == JobStatus.DONE:
+                while True:
+                    result = job.result()
+                    if result.success:
+                        logger.info("COMPLETED: job id: %s", job_id)
+                        break
+
+                    logger.warning("FAILURE: Job id: %s", job_id)
+                    logger.warning("Job (%s) is completed anyway, retrieve result "
+                                   "from backend again.", job_id)
+                    job = backend.retrieve_job(job_id)
+                break
+            # for other cases, resubmit the circuit until the result is available.
+            # since if there is no result returned, there is no way algorithm can do any process
+            if job_status == JobStatus.CANCELLED:
+                logger.warning("FAILURE: Job id: %s is cancelled. Re-submit the circuits.",
+                               job_id)
+            elif job_status == JobStatus.ERROR:
+                logger.warning("FAILURE: Job id: %s encounters the error. "
+                               "Error is : %s. Re-submit the circuits.",
+                               job_id, job.error_message())
+            else:
+                logging.warning("FAILURE: Job id: %s. Unknown status: %s. "
+                                "Re-submit the circuits.", job_id, job_status)
+
+            job, job_id = _safe_submit_circuits(circuits,
+                                                backend,
+                                                qjob_config=qjob_config,
+                                                backend_options=backend_options,
+                                                noise_config=noise_config,
+                                                run_config=run_config)
+    else:
+        result = job.result()
+
+    # If result was not successful then raise an exception with either the status msg or
+    # extra information if this was an Aer partial result return
+    if not result.success:
+        msg = result.status
+        if result.status == 'PARTIAL COMPLETED':
+            # Aer can return partial results which Aqua algorithms cannot process and signals
+            # using partial completed status where each returned result has a success and status.
+            # We use the status from the first result that was not successful
+            for res in result.results:
+                if not res.success:
+                    msg += ', ' + res.status
+                    break
+        raise QiskitError('Circuit execution failed: {}'.format(msg))
+
+    if not hasattr(result, 'time_taken'):
+        setattr(result, 'time_taken', 0.)
+
+    return result
+
+
+def _safe_submit_circuits(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+                          backend: Union[Backend, BaseBackend],
+                          qjob_config: Dict,
+                          backend_options: Dict,
+                          noise_config: Dict,
+                          run_config: Dict) -> Tuple[BaseJob, str]:
+    # assure get job ids
+    while True:
+        try:
+            job = _run_circuits_on_backend(backend,
+                                           circuits,
+                                           backend_options=backend_options,
+                                           noise_config=noise_config,
+                                           run_config=run_config)
+            job_id = job.job_id()
+            break
+        except QiskitError as ex:
+            failure_warn = True
+            if is_ibmq_provider(backend):
+                try:
+                    from qiskit.providers.ibmq import IBMQBackendJobLimitError
+                except ImportError as ex1:
+                    raise MissingOptionalLibraryError(
+                        libname='qiskit-ibmq-provider',
+                        name='_safe_submit_circuits',
+                        pip_install='pip install qiskit-ibmq-provider') from ex1
+                if isinstance(ex, IBMQBackendJobLimitError):
+
+                    oldest_running = backend.jobs(limit=1, descending=False,
+                                                  status=['QUEUED', 'VALIDATING', 'RUNNING'])
+                    if oldest_running:
+                        oldest_running = oldest_running[0]
+                        logger.warning("Job limit reached, waiting for job %s to finish "
+                                       "before submitting the next one.", oldest_running.job_id())
+                        failure_warn = False  # Don't issue a second warning.
+                        try:
+                            oldest_running.wait_for_final_state(timeout=qjob_config['timeout'],
+                                                                wait=qjob_config['wait'])
+                        except Exception:  # pylint: disable=broad-except
+                            # If the wait somehow fails or times out, we'll just re-try
+                            # the job submit and see if it works now.
+                            pass
+            if failure_warn:
+                logger.warning("FAILURE: Can not get job id, Resubmit the qobj to get job id. "
+                               "Terra job error: %s ", ex)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning("FAILURE: Can not get job id, Resubmit the qobj to get job id."
+                           "Error: %s ", ex)
+
+    return job, job_id
+
+
+def _run_circuits_on_backend(backend: Union[Backend, BaseBackend],
+                             circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+                             backend_options: Dict,
+                             noise_config: Dict,
+                             run_config: Dict) -> BaseJob:
+    """ run on backend """
+    return backend.run(circuits, **backend_options, **noise_config, **run_config)
