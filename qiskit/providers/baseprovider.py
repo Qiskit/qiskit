@@ -21,7 +21,7 @@ from .exceptions import QiskitBackendNotFoundError
 class BaseProvider(ABC):
     """Base class for a Backend Provider."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # pylint: disable=unused-argument
         warnings.warn("The BaseProvider abstract interface is deprecated as of "
                       "the 0.18.0 release and will be removed in a future "
                       "release. Instead you should build your backends using "
