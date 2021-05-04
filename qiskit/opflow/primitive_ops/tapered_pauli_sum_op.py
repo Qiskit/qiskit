@@ -67,6 +67,10 @@ class TaperedPauliSumOp(PauliSumOp):
         """
         return self._z2_symmetries
 
+    def assign_parameters(self, param_dict: dict) -> OperatorBase:
+        pauli_sum = PauliSumOp(self.primitive, self.coeff)  # pylint: disable=no-member
+        return pauli_sum.assign_parameters(param_dict)
+
 
 class Z2Symmetries:
     """ Z2 Symmetries """
