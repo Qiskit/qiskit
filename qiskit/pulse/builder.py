@@ -510,13 +510,27 @@ class _PulseBuilder():
                 these parameters are updated with the same assigned value.
 
         Raises:
-            PulseError: If specified parameter is not contained in the subroutine.
+            PulseError:
+                - When specified parameter is not contained in the subroutine
+                - When input subroutine is not valid data format.
         """
         if isinstance(subroutine, circuit.QuantumCircuit):
             self._compile_lazy_circuit()
             subroutine = self._compile_circuit(subroutine)
 
-        if len(subroutine.instructions) > 0:
+        empty_subroutine = True
+        if isinstance(subroutine, Schedule):
+            if len(subroutine.instructions) > 0:
+                empty_subroutine = False
+        elif isinstance(subroutine, ScheduleBlock):
+            if len(subroutine.blocks) > 0:
+                empty_subroutine = False
+        else:
+            raise exceptions.PulseError(f'Subroutine type {subroutine.__class__.__name__} is '
+                                        'not valid data format. Call QuantumCircuit, '
+                                        'Schedule, or ScheduleBlock.')
+
+        if not empty_subroutine:
             param_value_map = dict()
             for param_name, assigned_value in kw_params.items():
                 param_objs = subroutine.get_parameters(param_name)
@@ -1695,7 +1709,7 @@ def call_circuit(circ: circuit.QuantumCircuit):
     call(circ)
 
 
-def call(target: Union[circuit.QuantumCircuit, Schedule],
+def call(target: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
          name: Optional[str] = None,
          value_dict: Optional[Dict[ParameterValueType, ParameterValueType]] = None,
          **kw_params: ParameterValueType):

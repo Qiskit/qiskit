@@ -81,7 +81,7 @@ class AlignLeft(AlignmentKind):
             Schedule with reallocated instructions.
         """
         aligned = Schedule()
-        for _, child in schedule._children:
+        for _, child in schedule.children:
             self._push_left_append(aligned, child)
 
         return aligned
@@ -139,7 +139,7 @@ class AlignRight(AlignmentKind):
             Schedule with reallocated instructions.
         """
         aligned = Schedule()
-        for _, child in reversed(schedule._children):
+        for _, child in reversed(schedule.children):
             aligned = self._push_right_prepend(aligned, child)
 
         return aligned
@@ -200,7 +200,7 @@ class AlignSequential(AlignmentKind):
             Schedule with reallocated instructions.
         """
         aligned = Schedule()
-        for _, child in schedule._children:
+        for _, child in schedule.children:
             aligned.insert(aligned.duration, child, inplace=True)
 
         return aligned
@@ -247,17 +247,17 @@ class AlignEquispaced(AlignmentKind):
         """
         instruction_duration_validation(self.duration)
 
-        total_duration = sum([child.duration for _, child in schedule._children])
+        total_duration = sum([child.duration for _, child in schedule.children])
         if self.duration < total_duration:
             return schedule
 
         total_delay = self.duration - total_duration
 
-        if len(schedule._children) > 1:
+        if len(schedule.children) > 1:
             # Calculate the interval in between sub-schedules.
             # If the duration cannot be divided by the number of sub-schedules,
             # the modulo is appended and prepended to the input schedule.
-            interval, mod = np.divmod(total_delay, len(schedule._children) - 1)
+            interval, mod = np.divmod(total_delay, len(schedule.children) - 1)
         else:
             interval = 0
             mod = total_delay
@@ -268,7 +268,7 @@ class AlignEquispaced(AlignmentKind):
         aligned = Schedule()
         # Insert sub-schedules with interval
         _t0 = int(aligned.stop_time + delay + mod)
-        for _, child in schedule._children:
+        for _, child in schedule.children:
             aligned.insert(_t0, child, inplace=True)
             _t0 = int(aligned.stop_time + interval)
 
@@ -338,7 +338,7 @@ class AlignFunc(AlignmentKind):
             return schedule
 
         aligned = Schedule()
-        for ind, (_, child) in enumerate(schedule._children):
+        for ind, (_, child) in enumerate(schedule.children):
             _t_center = self.duration * self._func(ind + 1)
             _t0 = int(_t_center - 0.5 * child.duration)
             if _t0 < 0 or _t0 > self.duration:
