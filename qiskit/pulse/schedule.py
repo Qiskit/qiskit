@@ -202,8 +202,31 @@ class Schedule:
 
     @property
     def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
-        """Return the child``NamedValues``s of this ``Schedule`` in the
+        """Deprecated. Return the child schedule components of this ``Schedule`` in the
         order they were added to the schedule.
+
+        Notes:
+            Nested schedules are returned as-is. If you want to collect only instructions,
+            use py:meth:`~Schedule.instructions` instead.
+
+        Returns:
+            A tuple, where each element is a two-tuple containing the initial
+            scheduled time of each ``NamedValue`` and the component
+            itself.
+        """
+        warnings.warn('Schedule._children is now available as the public property '
+                      'Schedule.children. Access to this private property is being deprecated.',
+                      DeprecationWarning)
+        return tuple(self.__children)
+
+    @property
+    def children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
+        """Return the child schedule components of this ``Schedule`` in the
+        order they were added to the schedule.
+
+        Notes:
+            Nested schedules are returned as-is. If you want to collect only instructions,
+            use py:meth:`~Schedule.instructions` instead.
 
         Returns:
             A tuple, where each element is a two-tuple containing the initial
@@ -272,7 +295,7 @@ class Schedule:
                 :class:`~qiskit.pulse.Instruction`
                 starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
         """
-        for insert_time, child_sched in self._children:
+        for insert_time, child_sched in self.children:
             yield from child_sched._instructions(time + insert_time)
 
     def shift(self,
@@ -330,8 +353,7 @@ class Schedule:
 
         self._duration = self._duration + time
         self._timeslots = timeslots
-        self.__children = [(orig_time + time, child) for
-                           orig_time, child in self._children]
+        self.__children = [(orig_time + time, child) for orig_time, child in self.children]
         return self
 
     def insert(self,
@@ -651,7 +673,7 @@ class Schedule:
         new_children = []
         new_parameters = ParameterManager()
 
-        for time, child in self._children:
+        for time, child in self.children:
             if child == old:
                 new_children.append((time, new))
                 new_parameters.update_parameter_table(new)
