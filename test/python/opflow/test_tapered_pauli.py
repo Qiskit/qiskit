@@ -12,6 +12,7 @@
 
 """ Test TaperedPauliSumOp """
 
+import unittest
 from test.python.opflow import QiskitOpflowTestCase
 
 from qiskit.circuit import Parameter
@@ -50,3 +51,7 @@ class TestZ2Symmetries(QiskitOpflowTestCase):
         parameterized_op = param * self.tapered_qubit_op
         expected = PauliSumOp(self.primitive, coeff=46)
         self.assertEqual(parameterized_op.assign_parameters({param: 46}), expected)
+
+
+if __name__ == '__main__':
+    unittest.main()
