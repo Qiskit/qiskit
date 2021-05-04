@@ -108,7 +108,7 @@ class Shor:
                                          angles: Union[np.ndarray, ParameterVector]
                                          ) -> QuantumCircuit:
         """Creates a circuit which implements double-controlled modular addition by a."""
-        circuit = QuantumCircuit(num_qubits, name="phi_add")
+        circuit = QuantumCircuit(num_qubits, name="ccphi_add_mod_N")
 
         ctl_up = 0
         ctl_down = 1
@@ -241,9 +241,9 @@ class Shor:
         # Apply the multiplication gates as showed in
         # the report in order to create the exponentiation
         for i, ctl_up in enumerate(self._up_qreg):  # type: ignore
-            a = int(pow(a, pow(2, i)))
+            a_aux = int(pow(a, pow(2, i)))
             controlled_multiple_mod_N = self._controlled_multiple_mod_N(
-                len(self._down_qreg) + len(self._aux_qreg) + 1, N, a,
+                len(self._down_qreg) + len(self._aux_qreg) + 1, N, a_aux,
             )
             circuit.append(
                 controlled_multiple_mod_N, [ctl_up, *self._down_qreg, *self._aux_qreg]
@@ -341,7 +341,7 @@ class Shor:
                 other_factor = math.gcd(putting_minus, N)
 
                 # Check if the factors found are trivial factors or are the desired factors
-                if any([factor in {1, N} for factor in (one_factor, other_factor)]):
+                if any(factor in {1, N} for factor in (one_factor, other_factor)):
                     logger.debug('Found just trivial factors, not good enough.')
                     # Check if the number has already been found,
                     # (use i - 1 because i was already incremented)

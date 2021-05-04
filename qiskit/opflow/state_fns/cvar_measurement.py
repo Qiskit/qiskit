@@ -13,18 +13,21 @@
 """CVaRMeasurement class."""
 
 
-from typing import Union, Optional, Callable, Tuple
+from typing import Callable, Optional, Tuple, Union, cast
+
 import numpy as np
 
-from qiskit.circuit import ParameterExpression, QuantumCircuit, Instruction
-from qiskit.result import Result
+from qiskit.circuit import ParameterExpression
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops import ListOp, SummedOp, TensoredOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops import PauliOp
+from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
+from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
+from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
+from qiskit.opflow.state_fns.state_fn import StateFn
+from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
-
-from ..exceptions import OpflowError
-from ..operator_base import OperatorBase
-from ..list_ops import ListOp, SummedOp
-from .state_fn import StateFn
-from .operator_state_fn import OperatorStateFn
 
 
 class CVaRMeasurement(OperatorStateFn):
@@ -33,23 +36,14 @@ class CVaRMeasurement(OperatorStateFn):
 
     Used in :class:`~qiskit.opflow.CVaRExpectation`, see there for more details.
     """
-    def __new__(cls,
-                primitive: Union[str, dict, Result,
-                                 list, np.ndarray, Statevector,
-                                 QuantumCircuit, Instruction,
-                                 OperatorBase] = None,
-                alpha: float = 1.0,
-                coeff: Union[int, float, complex, ParameterExpression] = 1.0,
-                ) -> 'CVaRMeasurement':
-        obj = object.__new__(cls)
-        obj.__init__(primitive, alpha, coeff)
-        return obj
+
+    primitive: OperatorBase
 
     # TODO allow normalization somehow?
     def __init__(self,
                  primitive: Union[OperatorBase] = None,
                  alpha: float = 1.0,
-                 coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> None:
+                 coeff: Union[complex, ParameterExpression] = 1.0) -> None:
         """
         Args:
             primitive: The ``OperatorBase`` which defines the diagonal operator
@@ -94,10 +88,10 @@ class CVaRMeasurement(OperatorStateFn):
         """
         return self._alpha
 
-    def add(self, other: OperatorBase) -> OperatorBase:
+    def add(self, other: OperatorBase) -> SummedOp:
         return SummedOp([self, other])
 
-    def adjoint(self) -> OperatorBase:
+    def adjoint(self):
         """The adjoint of a CVaRMeasurement is not defined.
 
         Returns:
@@ -108,7 +102,7 @@ class CVaRMeasurement(OperatorStateFn):
         """
         raise OpflowError('Adjoint of a CVaR measurement not defined')
 
-    def mul(self, scalar: Union[int, float, complex, ParameterExpression]) -> OperatorBase:
+    def mul(self, scalar: Union[complex, ParameterExpression]) -> "CVaRMeasurement":
         if not isinstance(scalar, (int, float, complex, ParameterExpression)):
             raise ValueError('Operators can only be scalar multiplied by float or complex, not '
                              '{} of type {}.'.format(scalar, type(scalar)))
@@ -117,27 +111,25 @@ class CVaRMeasurement(OperatorStateFn):
                               coeff=self.coeff * scalar,
                               alpha=self._alpha)
 
-    def tensor(self, other: OperatorBase) -> OperatorBase:
+    def tensor(self, other: OperatorBase) -> Union["OperatorStateFn", TensoredOp]:
         if isinstance(other, OperatorStateFn):
-            return StateFn(self.primitive.tensor(other.primitive),
-                           coeff=self.coeff * other.coeff)
-        # pylint: disable=cyclic-import,import-outside-toplevel
-        from .. import TensoredOp
+            return OperatorStateFn(self.primitive.tensor(other.primitive),
+                                   coeff=self.coeff * other.coeff)
         return TensoredOp([self, other])
 
-    def to_density_matrix(self, massive: bool = False) -> np.ndarray:
+    def to_density_matrix(self, massive: bool = False):
         """Not defined."""
         raise NotImplementedError
 
-    def to_matrix_op(self, massive: bool = False) -> OperatorBase:
+    def to_matrix_op(self, massive: bool = False):
         """Not defined."""
         raise NotImplementedError
 
-    def to_matrix(self, massive: bool = False) -> np.ndarray:
+    def to_matrix(self, massive: bool = False):
         """Not defined."""
         raise NotImplementedError
 
-    def to_circuit_op(self) -> OperatorBase:
+    def to_circuit_op(self):
         """Not defined."""
         raise NotImplementedError
 
@@ -145,8 +137,7 @@ class CVaRMeasurement(OperatorStateFn):
         return 'CVaRMeasurement({}) * {}'.format(str(self.primitive), self.coeff)
 
     def eval(self,
-             front: Union[str, dict, np.ndarray,
-                          OperatorBase] = None) -> Union[float, complex]:
+             front: Union[str, dict, np.ndarray, OperatorBase, Statevector] = None) -> complex:
         r"""
         Given the energies of each sampled measurement outcome (H_i) as well as the
         sampling probability of each measurement outcome (p_i, we can compute the
@@ -174,9 +165,9 @@ class CVaRMeasurement(OperatorStateFn):
         energies, probabilities = self.get_outcome_energies_probabilities(front)
         return self.compute_cvar(energies, probabilities)
 
-    def eval_variance(self,
-                      front: Union[str, dict, np.ndarray,
-                                   OperatorBase] = None) -> Union[float, complex]:
+    def eval_variance(
+        self, front: Optional[Union[str, dict, np.ndarray, OperatorBase]] = None
+    ) -> complex:
         r"""
         Given the energies of each sampled measurement outcome (H_i) as well as the
         sampling probability of each measurement outcome (p_i, we can compute the
@@ -200,9 +191,9 @@ class CVaRMeasurement(OperatorStateFn):
         sq_energies = [energy**2 for energy in energies]
         return self.compute_cvar(sq_energies, probabilities) - self.eval(front)**2
 
-    def get_outcome_energies_probabilities(self,
-                                           front: Union[str, dict, np.ndarray,
-                                                        OperatorBase] = None) -> Tuple[list, list]:
+    def get_outcome_energies_probabilities(
+        self, front: Optional[Union[str, dict, np.ndarray, OperatorBase, Statevector]] = None
+    ) -> Tuple[list, list]:
         r"""
         In order to compute the  CVaR of an observable expectation, we require
         the energies of each sampled measurement outcome as well as the sampling
@@ -223,12 +214,8 @@ class CVaRMeasurement(OperatorStateFn):
         Raises:
             ValueError: front isn't a DictStateFn or VectorStateFn
         """
-        from .dict_state_fn import DictStateFn
-        from .vector_state_fn import VectorStateFn
-        from .circuit_state_fn import CircuitStateFn
-
         if isinstance(front, CircuitStateFn):
-            front = front.eval()
+            front = cast(StateFn, front.eval())
 
         # Standardize the inputs to a dict
         if isinstance(front, DictStateFn):
@@ -248,10 +235,10 @@ class CVaRMeasurement(OperatorStateFn):
         # add energy evaluation
         for i, outcome in enumerate(outcomes):
             key = outcome[0]
-            outcomes[i] += (obs.eval(key).adjoint().eval(key),)
+            outcomes[i] += (obs.eval(key).adjoint().eval(key),)  # type: ignore
 
         # Sort each observation based on it's energy
-        outcomes = sorted(outcomes, key=lambda x: x[2])
+        outcomes = sorted(outcomes, key=lambda x: x[2])  # type: ignore
 
         # Here probabilities are the (root) probabilities of
         # observing each state. energies are the expectation
@@ -261,11 +248,9 @@ class CVaRMeasurement(OperatorStateFn):
         # Square the dict values
         # (since CircuitSampler takes the root...)
         probabilities = [p_i * np.conj(p_i) for p_i in root_probabilities]
-        return energies, probabilities
+        return list(energies), probabilities
 
-    def compute_cvar(self,
-                     energies: list,
-                     probabilities: list) -> Union[float, complex]:
+    def compute_cvar(self, energies: list, probabilities: list) -> complex:
         r"""
         Given the energies of each sampled measurement outcome (H_i) as well as the
         sampling probability of each measurement outcome (p_i, we can compute the
@@ -327,7 +312,7 @@ class CVaRMeasurement(OperatorStateFn):
 
     def traverse(self,
                  convert_fn: Callable,
-                 coeff: Optional[Union[int, float, complex, ParameterExpression]] = None
+                 coeff: Optional[Union[complex, ParameterExpression]] = None
                  ) -> OperatorBase:
         r"""
         Apply the convert_fn to the internal primitive if the primitive is an Operator (as in
@@ -351,7 +336,7 @@ class CVaRMeasurement(OperatorStateFn):
     def sample(self,
                shots: int = 1024,
                massive: bool = False,
-               reverse_endianness: bool = False) -> dict:
+               reverse_endianness: bool = False):
         raise NotImplementedError
 
 
@@ -367,25 +352,22 @@ def _check_is_diagonal(operator: OperatorBase) -> bool:
     Raises:
         OpflowError: If the operator is not diagonal.
     """
-    # this must be a local import to avoid a cyclic import with components.uncertainty_models
-    # TODO figure out why, it was not really clear to me why
-    from ..primitive_ops import PauliOp
     if isinstance(operator, PauliOp):
         # every X component must be False
-        if not np.any(operator.primitive.x):  # type: ignore
+        if not np.any(operator.primitive.x):
             return True
         return False
 
-    if isinstance(operator, SummedOp) and operator.primitive_strings == {'Pauli'}:
+    if isinstance(operator, SummedOp):
         # cover the case of sums of diagonal paulis, but don't raise since there might be summands
         # canceling the non-diagonal parts
 
         # ignoring mypy since we know that all operators are PauliOps
-        if np.all(not np.any(op.primitive.x) for op in operator.oplist):  # type: ignore
+        if all(isinstance(op, PauliOp) and not np.any(op.primitive.x) for op in operator.oplist):
             return True
 
     if isinstance(operator, ListOp):
-        return np.all(operator.traverse(_check_is_diagonal))
+        return all(operator.traverse(_check_is_diagonal))
 
     # cannot efficiently check if a operator is diagonal, converting to matrix
     matrix = operator.to_matrix()

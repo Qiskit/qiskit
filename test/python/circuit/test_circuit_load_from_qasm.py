@@ -13,10 +13,12 @@
 
 """Test cases for the circuit qasm_file and qasm_string method."""
 
+import os
+
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Gate, Parameter
 from qiskit.exceptions import QiskitError
-from qiskit.test import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 
@@ -27,7 +29,10 @@ class LoadFromQasmTest(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.qasm_file_name = 'entangled_registers.qasm'
-        self.qasm_file_path = self._get_resource_path('qasm/' + self.qasm_file_name, Path.EXAMPLES)
+        self.qasm_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'qasm')
+        self.qasm_file_path = os.path.join(self.qasm_dir, self.qasm_file_name)
 
     def test_qasm_file(self):
         """
@@ -51,12 +56,16 @@ class LoadFromQasmTest(QiskitTestCase):
 
     def test_loading_all_qelib1_gates(self):
         """Test setting up a circuit with all gates defined in qiskit/qasm/libs/qelib1.inc."""
-        from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
-        all_gates_qasm = self._get_resource_path('all_gates.qasm', Path.QASMS)
+        from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate, UGate
+        all_gates_qasm = os.path.join(self.qasm_dir, 'all_gates.qasm')
         qasm_circuit = QuantumCircuit.from_qasm_file(all_gates_qasm)
 
-        # the hardware primitives
         ref_circuit = QuantumCircuit(3, 3)
+
+        # abstract gates (legacy)
+        ref_circuit.append(UGate(0.2, 0.1, 0.6), [0])
+        ref_circuit.cx(0, 1)
+        # the hardware primitives
         ref_circuit.append(U3Gate(0.2, 0.1, 0.6), [0])
         ref_circuit.append(U2Gate(0.1, 0.6), [0])
         ref_circuit.append(U1Gate(0.6), [0])
@@ -205,7 +214,7 @@ class LoadFromQasmTest(QiskitTestCase):
 
     def test_qasm_example_file(self):
         """Loads qasm/example.qasm."""
-        qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
+        qasm_filename = os.path.join(self.qasm_dir, 'example.qasm')
         expected_circuit = QuantumCircuit.from_qasm_str('\n'.join(["OPENQASM 2.0;",
                                                                    "include \"qelib1.inc\";",
                                                                    "qreg q[3];",
@@ -330,7 +339,7 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqualUnroll(['cx', 'h', 'tdg', 't'], circuit, expected)
 
     def test_from_qasm_str_custom_gate4(self):
-        """ Test load custom gates (parametrized)
+        """ Test load custom gates (parameterized)
         See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-551307250
         """
         qasm_string = """OPENQASM 2.0;
@@ -354,7 +363,7 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqualUnroll('u', circuit, expected)
 
     def test_from_qasm_str_custom_gate5(self):
-        """ Test load custom gates (parametrized, with biop and constant)
+        """ Test load custom gates (parameterized, with biop and constant)
         See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-551307250
         """
         qasm_string = """OPENQASM 2.0;

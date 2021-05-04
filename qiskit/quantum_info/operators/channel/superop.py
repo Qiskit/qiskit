@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unpacking-non-sequence
-
 """
 Superoperator representation of a Quantum Channel."""
 
@@ -345,6 +343,7 @@ class SuperOp(QuantumChannel):
                 raise QiskitError('{} instruction definition is {}; '
                                   'expected QuantumCircuit'.format(
                                       obj.name, type(obj.definition)))
+            qubit_indices = {bit: idx for idx, bit in enumerate(obj.definition.qubits)}
             for instr, qregs, cregs in obj.definition.data:
                 if cregs:
                     raise QiskitError(
@@ -352,9 +351,9 @@ class SuperOp(QuantumChannel):
                         .format(instr.name))
                 # Get the integer position of the flat register
                 if qargs is None:
-                    new_qargs = [tup.index for tup in qregs]
+                    new_qargs = [qubit_indices[tup] for tup in qregs]
                 else:
-                    new_qargs = [qargs[tup.index] for tup in qregs]
+                    new_qargs = [qargs[qubit_indices[tup]] for tup in qregs]
                 self._append_instruction(instr, qargs=new_qargs)
 
 

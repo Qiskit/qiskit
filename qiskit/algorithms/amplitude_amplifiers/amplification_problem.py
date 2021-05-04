@@ -76,7 +76,7 @@ class AmplificationProblem:
 
     @property
     def state_preparation(self) -> QuantumCircuit:
-        r"""Get the state preperation operator :math:`\mathcal{A}`.
+        r"""Get the state preparation operator :math:`\mathcal{A}`.
 
         Returns:
             The :math:`\mathcal{A}` operator as `QuantumCircuit`.

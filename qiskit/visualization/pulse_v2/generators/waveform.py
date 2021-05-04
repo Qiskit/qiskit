@@ -354,9 +354,10 @@ def _draw_shaped_waveform(xdata: np.ndarray,
 
     try:
         color_real, color_imag = formatter['color.waveforms'][channel.prefix.upper()]
-    except KeyError:
-        raise VisualizationError('Waveform color for channel type {name} is '
-                                 'not defined'.format(name=channel.prefix))
+    except KeyError as ex:
+        raise VisualizationError(
+            f"Waveform color for channel type {channel.prefix} is not defined"
+        ) from ex
 
     # create real part
     if np.any(re_y):

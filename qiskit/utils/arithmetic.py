@@ -51,7 +51,6 @@ def is_power(num, return_decomposition=False):
     """
     Check if num is a perfect power in O(n^3) time, n=ceil(logN)
     """
-    # pylint: disable=invalid-name
     b = 2
     while (2 ** b) <= num:
         a = 1

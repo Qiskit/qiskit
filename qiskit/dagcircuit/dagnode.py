@@ -26,23 +26,16 @@ class DAGNode:
     be supplied to functions that take a node.
     """
 
-    __slots__ = ['type', '_op', 'name', '_qargs', 'cargs', 'condition', '_wire',
-                 'sort_key', '_node_id']
+    __slots__ = ['type', '_op', 'name', '_qargs', 'cargs', '_wire', 'sort_key', '_node_id']
 
     def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None,
-                 condition=None, wire=None, nid=-1):
+                 wire=None, nid=-1):
         """Create a node """
         self.type = type
         self._op = op
         self.name = name
         self._qargs = qargs if qargs is not None else []
         self.cargs = cargs if cargs is not None else []
-        if condition:
-            warnings.warn("Use of condition arg is deprecated, set condition in instruction.",
-                          DeprecationWarning)
-        if self._op:
-            self._op.condition = condition if self._op.condition is None else self._op.condition
-        self.condition = self._op.condition if self._op is not None else None
         self._wire = wire
         self._node_id = nid
         self.sort_key = str(self._qargs)
@@ -57,6 +50,30 @@ class DAGNode:
     @op.setter
     def op(self, data):
         self._op = data
+
+    @property
+    def condition(self):
+        """Returns the condition of the node.op"""
+        if not self.type or self.type != 'op':
+            raise QiskitError("The node %s is not an op node" % (str(self)))
+        warnings.warn(
+            "The DAGNode 'condition' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "You can use 'DAGNode.op.condition' if the DAGNode is of type 'op'.",
+            DeprecationWarning, 2)
+        return self._op.condition
+
+    @condition.setter
+    def condition(self, new_condition):
+        """Sets the node.condition which sets the node.op.condition."""
+        if not self.type or self.type != 'op':
+            raise QiskitError("The node %s is not an op node" % (str(self)))
+        warnings.warn(
+            "The DAGNode 'condition' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "You can use 'DAGNode.op.condition' if the DAGNode is of type 'op'.",
+            DeprecationWarning, 2)
+        self._op.condition = new_condition
 
     @property
     def qargs(self):
@@ -90,39 +107,60 @@ class DAGNode:
     def __gt__(self, other):
         return self._node_id > other._node_id
 
-    def __hash__(self):
-        """Needed for ancestors function, which returns a set.
-        To be in a set requires the object to be hashable
-        """
-        return hash(id(self))
-
     def __str__(self):
         # TODO is this used anywhere other than in DAG drawing?
         # needs to be unique as it is what pydot uses to distinguish nodes
         return str(id(self))
 
     @staticmethod
-    def semantic_eq(node1, node2):
+    def semantic_eq(node1, node2, bit_indices1=None, bit_indices2=None):
         """
         Check if DAG nodes are considered equivalent, e.g., as a node_match for nx.is_isomorphic.
 
         Args:
             node1 (DAGNode): A node to compare.
             node2 (DAGNode): The other node to compare.
+            bit_indices1 (dict): Dictionary mapping Bit instances to their index
+                within the circuit containing node1
+            bit_indices2 (dict): Dictionary mapping Bit instances to their index
+                within the circuit containing node2
 
         Return:
             Bool: If node1 == node2
         """
+        if bit_indices1 is None or bit_indices2 is None:
+            warnings.warn(
+                'DAGNode.semantic_eq now expects two bit-to-circuit index '
+                'mappings as arguments. To ease the transition, these will be '
+                'pre-populated based on the values found in Bit.index and '
+                'Bit.register. However, this behavior is deprecated and a future '
+                'release will require the mappings to be provided as arguments.',
+                DeprecationWarning)
+
+            bit_indices1 = {arg: arg for arg in node1.qargs + node1.cargs}
+            bit_indices2 = {arg: arg for arg in node2.qargs + node2.cargs}
+
+        node1_qargs = [bit_indices1[qarg] for qarg in node1.qargs]
+        node1_cargs = [bit_indices1[carg] for carg in node1.cargs]
+
+        node2_qargs = [bit_indices2[qarg] for qarg in node2.qargs]
+        node2_cargs = [bit_indices2[carg] for carg in node2.cargs]
+
         # For barriers, qarg order is not significant so compare as sets
         if 'barrier' == node1.name == node2.name:
-            return set(node1._qargs) == set(node2._qargs)
-        result = False
+            return set(node1_qargs) == set(node2_qargs)
+
         if node1.type == node2.type:
             if node1._op == node2._op:
                 if node1.name == node2.name:
-                    if node1._qargs == node2._qargs:
-                        if node1.cargs == node2.cargs:
-                            if node1.condition == node2.condition:
-                                if node1._wire == node2._wire:
-                                    result = True
-        return result
+                    if node1_qargs == node2_qargs:
+                        if node1_cargs == node2_cargs:
+                            if node1.type == 'op':
+                                if node1._op.condition != node2._op.condition:
+                                    return False
+                            if (
+                                bit_indices1.get(node1._wire, None)
+                                == bit_indices2.get(node2._wire, None)
+                            ):
+                                return True
+        return False

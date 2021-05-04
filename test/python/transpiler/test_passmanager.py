@@ -97,7 +97,7 @@ class TestPassManager(QiskitTestCase):
             calls.append(out_dict)
 
         passmanager = PassManager()
-        passmanager.append(CommutativeCancellation())
+        passmanager.append(CommutativeCancellation(basis_gates=['u1', 'u2', 'u3', 'cx']))
         passmanager.run(circuit, callback=callback)
         self.assertEqual(len(calls), 2)
         self.assertEqual(len(calls[0]), 5)

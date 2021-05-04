@@ -19,6 +19,8 @@ from .instruction import Instruction
 class Barrier(Instruction):
     """Barrier instruction."""
 
+    _directive = True
+
     def __init__(self, num_qubits):
         """Create new barrier instruction."""
         super().__init__("barrier", num_qubits, 0, [])

@@ -32,7 +32,7 @@ class GSLS(Optimizer):
                 'step_size_multiplier', 'armijo_parameter',
                 'min_gradient_norm', 'max_failed_rejection_sampling']
 
-    # pylint:disable=unused-argument
+    # pylint: disable=unused-argument
     def __init__(self,
                  maxiter: int = 10000,
                  max_eval: int = 10000,

@@ -15,8 +15,8 @@
 
 import sys
 import time
-from IPython.display import HTML, display               # pylint: disable=import-error
-from IPython.core.magic import (line_magic,             # pylint: disable=import-error
+from IPython.display import HTML, display
+from IPython.core.magic import (line_magic,
                                 Magics, magics_class)
 import qiskit
 from qiskit.util import local_hardware_info

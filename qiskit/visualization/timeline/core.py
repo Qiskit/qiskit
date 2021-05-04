@@ -302,7 +302,7 @@ class DrawerCanvas:
 
         def _associated_bit_check(_data):
             """If any associated bit is not shown."""
-            if all([bit not in self.assigned_coordinates for bit in _data.bits]):
+            if all(bit not in self.assigned_coordinates for bit in _data.bits):
                 return False
             return True
 
@@ -319,7 +319,7 @@ class DrawerCanvas:
             return True
 
         checks = [_time_range_check, _associated_bit_check, _data_check]
-        if all([check(data) for check in checks]):
+        if all(check(data) for check in checks):
             return True
 
         return False

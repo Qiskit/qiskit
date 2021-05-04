@@ -164,7 +164,6 @@ class Stinespring(QuantumChannel):
     # ---------------------------------------------------------------------
 
     def conjugate(self):
-        # pylint: disable=assignment-from-no-return
         ret = copy.copy(self)
         stine_l = np.conjugate(self._data[0])
         stine_r = None

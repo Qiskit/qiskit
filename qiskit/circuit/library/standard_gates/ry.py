@@ -66,7 +66,7 @@ class RYGate(Gate):
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-RY gate.
+        """Return a (multi-)controlled-RY gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -167,14 +167,13 @@ class CRYGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u3 import U3Gate
         from .x import CXGate
         q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
         rules = [
-            (U3Gate(self.params[0] / 2, 0, 0), [q[1]], []),
+            (RYGate(self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
+            (RYGate(-self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
         for instr, qargs, cargs in rules:

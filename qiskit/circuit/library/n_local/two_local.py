@@ -171,7 +171,7 @@ class TwoLocal(NLocal):
                 be this specified prefix plus its index.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted. Defaults to False.
-            initial_state: An `InitialState` object to prepend to the circuit.
+            initial_state: A `QuantumCircuit` object to prepend to the circuit.
 
         """
         super().__init__(num_qubits=num_qubits,
@@ -244,8 +244,8 @@ class TwoLocal(NLocal):
         if isinstance(layer, str):
             try:
                 layer = valid_layers[layer]
-            except KeyError:
-                raise ValueError('Unknown layer name `{}`.'.format(layer))
+            except KeyError as ex:
+                raise ValueError(f'Unknown layer name `{layer}`.') from ex
 
         # try to exchange `layer` from a type to a gate instance
         if isinstance(layer, type):

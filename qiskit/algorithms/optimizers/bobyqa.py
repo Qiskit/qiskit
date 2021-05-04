@@ -35,7 +35,6 @@ class BOBYQA(Optimizer):
     https://github.com/scikit-quant/scikit-quant and https://qat4chem.lbl.gov/software.
     """
 
-    # pylint: disable=unused-argument
     def __init__(self,
                  maxiter: int = 1000,
                  ) -> None:

@@ -82,7 +82,7 @@ class YGate(Gate):
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-Y gate.
+        """Return a (multi-)controlled-Y gate.
 
         One control returns a CY gate.
 

@@ -117,6 +117,11 @@ class FakeOpenPulse2Q(FakeBackend):
                     'purpose': 'cross-resonance',
                     'type': 'control'
                 }
+            },
+            processor_type={
+                "family": "Canary",
+                "revision": "1.0",
+                "segment": "A",
             }
         )
 
@@ -307,7 +312,7 @@ class FakeOpenPulse2Q(FakeBackend):
         })
 
         mock_time = datetime.datetime.now()
-        dt = 1.3333  # pylint: disable=invalid-name
+        dt = 1.3333
         self._properties = BackendProperties(
             backend_name='fake_openpulse_2q',
             backend_version='0.0.0',

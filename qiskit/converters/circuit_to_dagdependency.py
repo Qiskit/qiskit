@@ -28,6 +28,9 @@ def circuit_to_dagdependency(circuit):
     dagdependency.name = circuit.name
     dagdependency.metadata = circuit.metadata
 
+    dagdependency.add_qubits(circuit.qubits)
+    dagdependency.add_clbits(circuit.clbits)
+
     for register in circuit.qregs:
         dagdependency.add_qreg(register)
 

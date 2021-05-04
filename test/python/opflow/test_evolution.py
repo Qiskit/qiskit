@@ -23,8 +23,6 @@ from qiskit.opflow import (CX, CircuitOp, EvolutionFactory, EvolvedOp, H, I,
                            ListOp, PauliTrotterEvolution, QDrift, SummedOp,
                            Suzuki, Trotter, X, Y, Z, Zero)
 
-# pylint: disable=invalid-name
-
 
 class TestEvolution(QiskitOpflowTestCase):
     """Evolution tests."""
@@ -209,7 +207,6 @@ class TestEvolution(QiskitOpflowTestCase):
 
     def test_matrix_op_evolution(self):
         """ MatrixOp evolution test """
-        # pylint: disable=no-member
         op = (-1.052373245772859 * I ^ I) + \
              (0.39793742484318045 * I ^ Z) + \
              (0.18093119978423156 * X ^ X) + \
@@ -252,7 +249,6 @@ class TestEvolution(QiskitOpflowTestCase):
 
     def test_matrix_op_parameterized_evolution(self):
         """ parameterized MatrixOp evolution test """
-        # pylint: disable=no-member
         theta = Parameter('θ')
         op = (-1.052373245772859 * I ^ I) + \
              (0.39793742484318045 * I ^ Z) + \

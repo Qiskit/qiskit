@@ -13,10 +13,11 @@
 """Tests for visualization tools."""
 
 import unittest
+import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit
-from qiskit.visualization import utils
+from qiskit.visualization import utils, array_to_latex
 from qiskit.test import QiskitTestCase
 
 
@@ -287,6 +288,36 @@ class TestVisualizationUtils(QiskitTestCase):
         self.assertEqual(r_exp,
                          [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
 
+    def test_get_layered_instructions_op_with_cargs(self):
+        """ Test _get_layered_instructions op with cargs right of measure
+                ┌───┐┌─┐
+        q_0: |0>┤ H ├┤M├─────────────
+                └───┘└╥┘┌───────────┐
+        q_1: |0>──────╫─┤0          ├
+                      ║ │  add_circ │
+         c_0: 0 ══════╩═╡0          ╞
+                        └───────────┘
+         c_1: 0 ═════════════════════
+        """
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.measure(0, 0)
+        qc_2 = QuantumCircuit(1, 1, name='add_circ')
+        qc_2.h(0).c_if(qc_2.cregs[0], 1)
+        qc_2.measure(0, 0)
+        qc.append(qc_2, [1], [0])
+
+        (_, _, layered_ops) = utils._get_layered_instructions(qc)
+
+        expected = [[('h', [Qubit(QuantumRegister(2, 'q'), 0)], [])],
+                    [('measure', [Qubit(QuantumRegister(2, 'q'), 0)],
+                     [Clbit(ClassicalRegister(2, 'c'), 0)])],
+                    [('add_circ', [Qubit(QuantumRegister(2, 'q'), 1)],
+                     [Clbit(ClassicalRegister(2, 'c'), 0)])]]
+
+        self.assertEqual(expected,
+                         [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
+
     def test_generate_latex_label_nomathmode(self):
         """Test generate latex label default."""
         self.assertEqual('abc', utils.generate_latex_label('abc'))
@@ -305,20 +336,31 @@ class TestVisualizationUtils(QiskitTestCase):
     def test_generate_latex_label_mathmode_underscore_outside(self):
         """Test generate latex label with underscore outside mathmode."""
         self.assertEqual(
-            'abc{\\_}{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            'abc_{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
             utils.generate_latex_label('$abc$_∭X∀Y'))
 
     def test_generate_latex_label_escaped_dollar_signs(self):
         """Test generate latex label with escaped dollarsign."""
         self.assertEqual(
-            '{\\$}{\\ensuremath{\\forall}}{\\$}',
+            '${\\ensuremath{\\forall}}$',
             utils.generate_latex_label(r'\$∀\$'))
 
     def test_generate_latex_label_escaped_dollar_sign_in_mathmode(self):
         """Test generate latex label with escaped dollar sign in mathmode."""
         self.assertEqual(
-            'a$bc{\\_}{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            'a$bc_{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
             utils.generate_latex_label(r'$a$bc$_∭X∀Y'))
+
+    def test_array_to_latex(self):
+        """Test array_to_latex produces correct latex string"""
+        matrix = [[np.sqrt(1/2), 1/16, 1/np.sqrt(8)+3j, -.5+.5j],
+                  [1/3 - 1/3j, np.sqrt(1/2)*1j, 34.3210, -9/2]]
+        matrix = np.array(matrix)
+        exp_str = "\\begin{bmatrix}\\tfrac{1}{\\sqrt{2}}&\\tfrac{1}{16}&\\tfrac{1}{\\sqrt{8}}+3i&"\
+                  "\\tfrac{1}{2}(-1+i)\\\\\\tfrac{1}{3}(1+i)&\\tfrac{1}{\\sqrt{2}}i&34.321&"\
+                  "-\\tfrac{9}{2}\\\\\\end{bmatrix}"
+        result = array_to_latex(matrix, source=True).replace(' ', '').replace('\n', '')
+        self.assertEqual(exp_str, result)
 
 
 if __name__ == '__main__':

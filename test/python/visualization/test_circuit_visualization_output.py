@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
+# pylint: disable=missing-function-docstring
 
 """Tests for comparing the outputs of circuit drawer with expected ones."""
 
@@ -83,7 +83,7 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
     # decide if the backend is available or not.
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_latex_drawer(self):
-        filename = self._get_resource_path('current_latex.png')
+        filename = 'current_latex.png'
         qc = self.sample_circuit()
         circuit_drawer(qc, filename=filename, output='latex')
         self.assertImagesAreEqual(filename, self.latex_reference)
@@ -94,14 +94,14 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_matplotlib_drawer(self):
-        filename = self._get_resource_path('current_matplot.png')
+        filename = 'current_matplot.png'
         qc = self.sample_circuit()
         circuit_drawer(qc, filename=filename, output='mpl')
         self.assertImagesAreEqual(filename, self.matplotlib_reference)
         os.remove(filename)
 
     def test_text_drawer_utf8(self):
-        filename = self._get_resource_path('current_textplot_utf8.txt')
+        filename = 'current_textplot_utf8.txt'
         qc = self.sample_circuit()
         output = _text_circuit_drawer(qc, filename=filename, fold=-1,
                                       initial_state=True, cregbundle=False, encoding='utf8')
@@ -113,7 +113,7 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         os.remove(filename)
 
     def test_text_drawer_cp437(self):
-        filename = self._get_resource_path('current_textplot_cp437.txt')
+        filename = 'current_textplot_cp437.txt'
         qc = self.sample_circuit()
         output = _text_circuit_drawer(qc, filename=filename, fold=-1,
                                       initial_state=True, cregbundle=False, encoding='cp437')

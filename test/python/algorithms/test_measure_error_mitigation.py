@@ -29,12 +29,11 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
     def test_measurement_error_mitigation_with_diff_qubit_order(self):
         """ measurement error mitigation with different qubit order"""
-        # pylint: disable=import-outside-toplevel
         try:
             from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
             from qiskit import Aer
             from qiskit.providers.aer import noise
-        except ImportError as ex:  # pylint: disable=broad-except
+        except ImportError as ex:
             self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
@@ -82,11 +81,10 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     def test_measurement_error_mitigation_with_vqe(self):
         """ measurement error mitigation test with vqe """
         try:
-            # pylint: disable=import-outside-toplevel
             from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
             from qiskit import Aer
             from qiskit.providers.aer import noise
-        except ImportError as ex:  # pylint: disable=broad-except
+        except ImportError as ex:
             self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
@@ -113,17 +111,17 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             - 0.01128010425623538 * (Z ^ Z) \
             + 0.18093119978423156 * (X ^ X)
         optimizer = SPSA(maxiter=200)
-        var_form = EfficientSU2(2, reps=1)
+        ansatz = EfficientSU2(2, reps=1)
 
         vqe = VQE(
-            var_form=var_form,
+            ansatz=ansatz,
             optimizer=optimizer,
             quantum_instance=quantum_instance
         )
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         self.assertGreater(quantum_instance.time_taken, 0.)
         quantum_instance.reset_execution_results()
-        self.assertAlmostEqual(result.eigenvalue.real, -1.86, places=2)
+        self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
 
 
 if __name__ == '__main__':

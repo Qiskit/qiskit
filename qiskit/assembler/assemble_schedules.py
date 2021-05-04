@@ -10,22 +10,24 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-import
+
 """Assemble function for converting a list of circuits into a qobj."""
 import hashlib
 from collections import defaultdict
-
 from typing import Any, Dict, List, Tuple, Union
 
 from qiskit import qobj, pulse
 from qiskit.assembler.run_config import RunConfig
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import instructions, transforms, library
+from qiskit.pulse import instructions, transforms, library, schedule, channels
 from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
 
 def assemble_schedules(
-        schedules: List[Union[pulse.ScheduleComponent, Tuple[int, pulse.ScheduleComponent]]],
+        schedules: List[Union['schedule.ScheduleComponent',
+                              Tuple[int, 'schedule.ScheduleComponent']]],
         qobj_id: int,
         qobj_header: qobj.QobjHeader,
         run_config: RunConfig) -> qobj.PulseQobj:
@@ -62,7 +64,8 @@ def assemble_schedules(
 
 
 def _assemble_experiments(
-        schedules: List[Union[pulse.ScheduleComponent, Tuple[int, pulse.ScheduleComponent]]],
+        schedules: List[Union['schedule.ScheduleComponent',
+                              Tuple[int, 'schedule.ScheduleComponent']]],
         lo_converter: converters.LoConfigConverter,
         run_config: RunConfig
 ) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:
@@ -94,27 +97,33 @@ def _assemble_experiments(
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
 
-    schedules = [
-        sched if isinstance(sched, pulse.Schedule) else pulse.Schedule(sched) for sched in schedules
-    ]
-    compressed_schedules = transforms.compress_pulses(schedules)
+    formatted_schedules = []
+    for sched in schedules:
+        if isinstance(sched, pulse.Schedule):
+            sched = transforms.inline_subroutines(sched)
+            sched = transforms.flatten(sched)
+            formatted_schedules.append(sched)
+        else:
+            formatted_schedules.append(pulse.Schedule(sched))
+
+    compressed_schedules = transforms.compress_pulses(formatted_schedules)
 
     user_pulselib = {}
     experiments = []
-    for idx, schedule in enumerate(compressed_schedules):
+    for idx, sched in enumerate(compressed_schedules):
         qobj_instructions, max_memory_slot = _assemble_instructions(
-            schedule,
+            sched,
             instruction_converter,
             run_config,
             user_pulselib)
 
-        metadata = schedule.metadata
+        metadata = sched.metadata
         if metadata is None:
             metadata = {}
         # TODO: add other experimental header items (see circuit assembler)
         qobj_experiment_header = qobj.QobjExperimentHeader(
             memory_slots=max_memory_slot + 1,  # Memory slots are 0 indexed
-            name=schedule.name or 'Experiment-%d' % idx,
+            name=sched.name or 'Experiment-%d' % idx,
             metadata=metadata)
 
         experiment = qobj.PulseQobjExperiment(
@@ -149,7 +158,7 @@ def _assemble_experiments(
 
 
 def _assemble_instructions(
-        schedule: pulse.Schedule,
+        sched: pulse.Schedule,
         instruction_converter: converters.InstructionToQobjConverter,
         run_config: RunConfig,
         user_pulselib: Dict[str, List[complex]]
@@ -161,7 +170,7 @@ def _assemble_instructions(
     The dictionary is not returned to avoid redundancy.
 
     Args:
-        schedule: Schedule to assemble.
+        sched: Schedule to assemble.
         instruction_converter: A converter instance which can convert PulseInstructions to
                                PulseQobjInstructions.
         run_config: Configuration of the runtime environment.
@@ -175,7 +184,7 @@ def _assemble_instructions(
     qobj_instructions = []
 
     acquire_instruction_map = defaultdict(list)
-    for time, instruction in schedule.instructions:
+    for time, instruction in sched.instructions:
 
         if (isinstance(instruction, instructions.Play) and
                 isinstance(instruction.pulse, library.ParametricPulse)):
@@ -193,6 +202,12 @@ def _assemble_instructions(
                 channel=instruction.channel,
                 name=name)
             user_pulselib[name] = instruction.pulse.samples
+
+        # ignore explicit delay instrs on acq channels as they are invalid on IBMQ backends;
+        # timing of other instrs will still be shifted appropriately
+        if (isinstance(instruction, instructions.Delay) and
+                isinstance(instruction.channel, channels.AcquireChannel)):
+            continue
 
         if isinstance(instruction, instructions.Acquire):
             if instruction.mem_slot:
@@ -231,19 +246,29 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
     Raises:
         QiskitError: If the instructions do not satisfy the measurement map.
     """
+    sorted_inst_map = sorted(instruction_map.items(), key=lambda item: item[0])
     meas_map_sets = [set(m) for m in meas_map]
 
-    # Check each acquisition time individually
-    for _, instrs in instruction_map.items():
-        measured_qubits = set()
-        for inst in instrs:
-            measured_qubits.add(inst.channel.index)
-
-        for meas_set in meas_map_sets:
-            intersection = measured_qubits.intersection(meas_set)
-            if intersection and intersection != meas_set:
-                raise QiskitError('Qubits to be acquired: {} do not satisfy required qubits '
-                                  'in measurement map: {}'.format(measured_qubits, meas_set))
+    # error if there is time overlap between qubits in the same meas_map
+    for idx, inst in enumerate(sorted_inst_map[:-1]):
+        inst_end_time = inst[0][0] + inst[0][1]
+        next_inst = sorted_inst_map[idx+1]
+        next_inst_time = next_inst[0][0]
+        if next_inst_time < inst_end_time:
+            inst_qubits = {inst.channel.index for inst in inst[1]}
+            next_inst_qubits = {inst.channel.index for inst in next_inst[1]}
+            for meas_set in meas_map_sets:
+                common_instr_qubits = inst_qubits.intersection(meas_set)
+                common_next = next_inst_qubits.intersection(meas_set)
+                if common_instr_qubits and common_next:
+                    raise QiskitError('Qubits {} and {} are in the same measurement grouping: {}. '
+                                      'They must either be acquired at the same time, or disjointly'
+                                      '. Instead, they were acquired at times: {}-{} and '
+                                      '{}-{}'.format(common_instr_qubits,
+                                                     common_next, meas_map,
+                                                     inst[0][0], inst_end_time,
+                                                     next_inst_time,
+                                                     next_inst_time + next_inst[0][1]))
 
 
 def _assemble_config(lo_converter: converters.LoConfigConverter,
