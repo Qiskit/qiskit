@@ -249,7 +249,7 @@ class TestParameterSetter(ParameterTestBase):
 
         self.assertEqual(assigned, ref_obj)
 
-    def test_nested_assigment_partial_bind(self):
+    def test_nested_assignment_partial_bind(self):
         """Test nested schedule with call instruction.
         Inline the schedule and partially bind parameters."""
         context = AlignEquispaced(duration=self.context_dur)
@@ -271,14 +271,14 @@ class TestParameterSetter(ParameterTestBase):
 
         ref_context = AlignEquispaced(duration=1000)
         ref_subroutine = pulse.ScheduleBlock(alignment_context=ref_context)
-        ref_subroutine += pulse.Play(pulse.Gaussian(200, self.amp1_1 + self.amp1_2, 25),
+        ref_subroutine += pulse.Play(pulse.Gaussian(200, self.amp1_1 + self.amp1_2, 50),
                                      pulse.DriveChannel(1))
 
         ref_nested_block = pulse.ScheduleBlock()
         ref_nested_block += ref_subroutine
 
         ref_obj = pulse.ScheduleBlock()
-        ref_obj += nested_block
+        ref_obj += ref_nested_block
 
         self.assertEqual(assigned, ref_obj)
 

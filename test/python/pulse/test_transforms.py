@@ -885,6 +885,54 @@ class TestRemoveSubroutines(QiskitTestCase):
 
         self.assertEqual(target, reference)
 
+    def test_call_in_nested_schedule(self):
+        """Test that subroutines in nested schedule."""
+        d0 = pulse.DriveChannel(0)
+
+        subroutine = pulse.Schedule()
+        subroutine.insert(10, pulse.Delay(10, d0), inplace=True)
+
+        nested_sched = pulse.Schedule()
+        nested_sched.insert(0, pulse.instructions.Call(subroutine), inplace=True)
+
+        main_sched = pulse.Schedule()
+        main_sched.insert(0, nested_sched, inplace=True)
+
+        target = transforms.inline_subroutines(main_sched)
+
+        # no call instruction
+        reference_nested = pulse.Schedule()
+        reference_nested.insert(0, subroutine, inplace=True)
+
+        reference = pulse.Schedule()
+        reference.insert(0, reference_nested, inplace=True)
+
+        self.assertEqual(target, reference)
+
+    def test_call_in_nested_block(self):
+        """Test that subroutines in nested schedule."""
+        d0 = pulse.DriveChannel(0)
+
+        subroutine = pulse.ScheduleBlock()
+        subroutine.append(pulse.Delay(10, d0), inplace=True)
+
+        nested_block = pulse.ScheduleBlock()
+        nested_block.append(pulse.instructions.Call(subroutine), inplace=True)
+
+        main_block = pulse.ScheduleBlock()
+        main_block.append(nested_block, inplace=True)
+
+        target = transforms.inline_subroutines(main_block)
+
+        # no call instruction
+        reference_nested = pulse.ScheduleBlock()
+        reference_nested.append(subroutine, inplace=True)
+
+        reference = pulse.ScheduleBlock()
+        reference.append(reference_nested, inplace=True)
+
+        self.assertEqual(target, reference)
+
 
 if __name__ == '__main__':
     unittest.main()
