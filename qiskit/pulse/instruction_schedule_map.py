@@ -273,7 +273,7 @@ class InstructionScheduleMap():
         elif callable(schedule):
             if arguments:
                 warnings.warn('Arguments are overridden by the callback function signature. '
-                              'Input `arguments` is just ignored.', UserWarning)
+                              'Input `arguments` are ignored.', UserWarning)
             signature = inspect.signature(schedule)
 
         else:
