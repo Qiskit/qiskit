@@ -175,7 +175,6 @@ class MatplotlibDrawer:
         self._style['sfs'] *= self._scale
         self._lwidth15 = 1.5 * self._scale
         self._lwidth2 = 2.0 * self._scale
-        self._gate_width = {}
 
         # default is to use character table for text width,
         # but get_renderer will work with some mpl backends
@@ -807,6 +806,7 @@ class MatplotlibDrawer:
         sfs = self._style['sfs']
         for layer in self._ops:
             widest_box = 0.0
+            self._gate_width = {}
             #
             # compute the layer_width for this layer
             #
