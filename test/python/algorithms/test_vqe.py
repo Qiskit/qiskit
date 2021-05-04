@@ -234,7 +234,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_with_aer_qasm(self):
         """Test VQE with Aer's qasm_simulator."""
-        backend = Aer.get_backend("qasm_simulator")
+        backend = Aer.get_backend("aer_simulator")
         optimizer = SPSA(maxiter=200, last_avg=5)
         wavefunction = self.ry_wavefunction
 
@@ -259,7 +259,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_with_aer_qasm_snapshot_mode(self):
         """Test the VQE using Aer's qasm_simulator snapshot mode."""
 
-        backend = Aer.get_backend("qasm_simulator")
+        backend = Aer.get_backend("aer_simulator")
         optimizer = L_BFGS_B()
         wavefunction = self.ry_wavefunction
 
@@ -412,7 +412,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_vqe_expectation_select(self):
         """Test expectation selection with Aer's qasm_simulator."""
-        backend = Aer.get_backend("qasm_simulator")
+        backend = Aer.get_backend("aer_simulator")
 
         with self.subTest("Defaults"):
             vqe = VQE(quantum_instance=backend)
