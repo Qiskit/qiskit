@@ -277,7 +277,7 @@ class InstructionScheduleMap():
             signature = inspect.signature(schedule)
 
         else:
-            raise PulseError('Supplied schedule must be one of the Schedule, ScheduleBlock and '
+            raise PulseError('Supplied schedule must be one of the Schedule, ScheduleBlock or a '
                              'callable that outputs a schedule.')
 
         self._map[instruction][qubits] = Generator(schedule, signature)
