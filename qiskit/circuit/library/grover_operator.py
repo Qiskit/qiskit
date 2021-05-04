@@ -92,7 +92,7 @@ class GroverOperator(QuantumCircuit):
         >>> oracle = QuantumCircuit(2)
         >>> oracle.z(0)  # good state = first qubit is |1>
         >>> grover_op = GroverOperator(oracle, insert_barriers=True)
-        >>> grover_op.draw()
+        >>> grover_op.decompose().draw()
                  ┌───┐ ░ ┌───┐ ░ ┌───┐          ┌───┐      ░ ┌───┐
         state_0: ┤ Z ├─░─┤ H ├─░─┤ X ├───────■──┤ X ├──────░─┤ H ├
                  └───┘ ░ ├───┤ ░ ├───┤┌───┐┌─┴─┐├───┤┌───┐ ░ ├───┤
@@ -104,7 +104,7 @@ class GroverOperator(QuantumCircuit):
         >>> state_preparation = QuantumCircuit(1)
         >>> state_preparation.ry(0.2, 0)  # non-uniform state preparation
         >>> grover_op = GroverOperator(oracle, state_preparation)
-        >>> grover_op.draw()
+        >>> grover_op.decompose().draw()
                  ┌───┐┌──────────┐┌───┐┌───┐┌───┐┌─────────┐
         state_0: ┤ Z ├┤ RY(-0.2) ├┤ X ├┤ Z ├┤ X ├┤ RY(0.2) ├
                  └───┘└──────────┘└───┘└───┘└───┘└─────────┘
@@ -117,7 +117,7 @@ class GroverOperator(QuantumCircuit):
         >>> state_preparation.ry(0.5, 3)
         >>> grover_op = GroverOperator(oracle, state_preparation,
         ... reflection_qubits=reflection_qubits)
-        >>> grover_op.draw()
+        >>> grover_op.decompose().draw()
                                               ┌───┐          ┌───┐
         state_0: ──────────────────────■──────┤ X ├───────■──┤ X ├──────────■────────────────
                                        │      └───┘       │  └───┘          │
@@ -131,7 +131,7 @@ class GroverOperator(QuantumCircuit):
         >>> mark_state = Statevector.from_label('011')
         >>> diffuse_operator = 2 * DensityMatrix.from_label('000') - Operator.from_label('III')
         >>> grover_op = GroverOperator(oracle=mark_state, zero_reflection=diffuse_operator)
-        >>> grover_op.draw(fold=70)
+        >>> grover_op.decompose().draw(fold=70)
                  ┌─────────────────┐      ┌───┐                          »
         state_0: ┤0                ├──────┤ H ├──────────────────────────»
                  │                 │┌─────┴───┴─────┐     ┌───┐          »
@@ -235,30 +235,38 @@ class GroverOperator(QuantumCircuit):
 
     def _build(self):
         num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
-        self.add_register(QuantumRegister(num_state_qubits, name='state'))
+        inner = QuantumCircuit(QuantumRegister(num_state_qubits, name='state'))
         num_ancillas = numpy.max([self.oracle.num_ancillas,
                                   self.zero_reflection.num_ancillas,
                                   self.state_preparation.num_ancillas])
         if num_ancillas > 0:
-            self.add_register(AncillaRegister(num_ancillas, name='ancilla'))
+            inner.add_register(AncillaRegister(num_ancillas, name='ancilla'))
 
-        self.compose(self.oracle, list(range(self.oracle.num_qubits)), inplace=True)
+        inner.compose(self.oracle, list(range(self.oracle.num_qubits)), inplace=True)
         if self._insert_barriers:
-            self.barrier()
-        self.compose(self.state_preparation.inverse(),
-                     list(range(self.state_preparation.num_qubits)),
-                     inplace=True)
+            inner.barrier()
+        inner.compose(self.state_preparation.inverse(),
+                      list(range(self.state_preparation.num_qubits)),
+                      inplace=True)
         if self._insert_barriers:
-            self.barrier()
-        self.compose(self.zero_reflection, list(range(self.zero_reflection.num_qubits)),
-                     inplace=True)
+            inner.barrier()
+        inner.compose(self.zero_reflection, list(range(self.zero_reflection.num_qubits)),
+                      inplace=True)
         if self._insert_barriers:
-            self.barrier()
-        self.compose(self.state_preparation, list(range(self.state_preparation.num_qubits)),
-                     inplace=True)
+            inner.barrier()
+        inner.compose(self.state_preparation, list(range(self.state_preparation.num_qubits)),
+                      inplace=True)
 
         # minus sign
-        self.global_phase = numpy.pi
+        inner.global_phase = numpy.pi
+
+        self.add_register(*inner.qregs)
+        if self._insert_barriers:
+            inner_wrapped = inner.to_instruction()
+        else:
+            inner_wrapped = inner.to_gate()
+
+        self.compose(inner_wrapped, inplace=True)
 
 
 # TODO use the oracle compiler or the bit string oracle

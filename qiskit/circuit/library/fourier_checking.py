@@ -82,14 +82,17 @@ class FourierChecking(QuantumCircuit):
                                "tables, each as a list of 2**n entries of "
                                "{1, -1}.")
 
-        super().__init__(num_qubits, name="fc: %s, %s" % (f, g))
+        inner = QuantumCircuit(num_qubits, name="fc: %s, %s" % (f, g))
 
-        self.h(self.qubits)
+        inner.h(inner.qubits)
 
-        self.diagonal(f, self.qubits)
+        inner.diagonal(f, inner.qubits)
 
-        self.h(self.qubits)
+        inner.h(inner.qubits)
 
-        self.diagonal(g, self.qubits)
+        inner.diagonal(g, inner.qubits)
 
-        self.h(self.qubits)
+        inner.h(inner.qubits)
+
+        super().__init__(*inner.qregs, name=inner.name)
+        self.compose(inner.to_gate(), inplace=True)

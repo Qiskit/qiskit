@@ -112,7 +112,7 @@ class QuadraticForm(QuantumCircuit):
 
         qr_input = QuantumRegister(num_input_qubits)
         qr_result = QuantumRegister(num_result_qubits)
-        super().__init__(qr_input, qr_result, name='Q(x)')
+        inner = QuantumCircuit(qr_input, qr_result, name='Q(x)')
 
         # set quadratic and linear again to None if they were None
         if len(quadratic) == 0:
@@ -124,7 +124,7 @@ class QuadraticForm(QuantumCircuit):
         scaling = np.pi * 2 ** (1 - num_result_qubits)
 
         # initial QFT (just hadamards)
-        self.h(qr_result)
+        inner.h(qr_result)
 
         if little_endian:
             qr_result = qr_result[::-1]
@@ -132,7 +132,7 @@ class QuadraticForm(QuantumCircuit):
         # constant coefficient
         if offset != 0:
             for i, q_i in enumerate(qr_result):
-                self.p(scaling * 2 ** i * offset, q_i)
+                inner.p(scaling * 2 ** i * offset, q_i)
 
         # the linear part consists of the vector and the diagonal of the
         # matrix, since x_i * x_i = x_i, as x_i is a binary variable
@@ -141,7 +141,7 @@ class QuadraticForm(QuantumCircuit):
             value += quadratic[j][j] if quadratic is not None else 0
             if value != 0:
                 for i, q_i in enumerate(qr_result):
-                    self.cp(scaling * 2 ** i * value, qr_input[j], q_i)
+                    inner.cp(scaling * 2 ** i * value, qr_input[j], q_i)
 
         # the quadratic part adds A_ij and A_ji as x_i x_j == x_j x_i
         if quadratic is not None:
@@ -150,11 +150,14 @@ class QuadraticForm(QuantumCircuit):
                     value = quadratic[j][k] + quadratic[k][j]
                     if value != 0:
                         for i, q_i in enumerate(qr_result):
-                            self.mcp(scaling * 2 ** i * value, [qr_input[j], qr_input[k]], q_i)
+                            inner.mcp(scaling * 2 ** i * value, [qr_input[j], qr_input[k]], q_i)
 
         # add the inverse QFT
         iqft = QFT(num_result_qubits, do_swaps=False).inverse().reverse_bits()
-        self.append(iqft, qr_result)
+        inner.compose(iqft, qubits=qr_result[:])
+
+        super().__init__(*inner.qregs, name='Q(x)')
+        self.compose(inner.to_gate(), qubits=inner.qregs, inplace=True)
 
     @staticmethod
     def required_result_qubits(quadratic: Union[np.ndarray, List[List[float]]],

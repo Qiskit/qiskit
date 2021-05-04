@@ -82,7 +82,6 @@ class IQP(QuantumCircuit):
         name = "iqp:" + a_str.replace('\n', ';')
 
         inner = QuantumCircuit(num_qubits, name=name)
-        super().__init__(num_qubits, name=name)
 
         inner.h(range(num_qubits))
         for i in range(num_qubits):
@@ -95,5 +94,6 @@ class IQP(QuantumCircuit):
                 inner.p(interactions[i][i] * np.pi / 8, i)
 
         inner.h(range(num_qubits))
-        all_qubits = self.qubits
-        self.append(inner, all_qubits)
+
+        super().__init__(*inner.qregs, name=inner.name)
+        self.compose(inner.to_gate(), inplace=True)

@@ -35,10 +35,9 @@ class ExactReciprocal(QuantumCircuit):
         Note:
             It is assumed that the binary string x represents a number < 1.
         """
-
         qr_state = QuantumRegister(num_state_qubits, 'state')
         qr_flag = QuantumRegister(1, 'flag')
-        super().__init__(qr_state, qr_flag, name=name)
+        inner = QuantumCircuit(qr_state, qr_flag, name=name)
 
         angles = [0.0]
         nl = 2 ** num_state_qubits
@@ -51,4 +50,7 @@ class ExactReciprocal(QuantumCircuit):
             else:
                 angles.append(0.0)
 
-        self.compose(UCRYGate(angles), [qr_flag[0]] + qr_state[:], inplace=True)
+        inner.compose(UCRYGate(angles), [qr_flag[0]] + qr_state[:], inplace=True)
+
+        super().__init__(*inner.qregs, name=name)
+        self.compose(inner.to_gate(), inplace=True)

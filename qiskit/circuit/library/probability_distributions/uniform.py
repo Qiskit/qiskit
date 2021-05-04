@@ -36,7 +36,7 @@ class UniformDistribution(QuantumCircuit):
 
     Examples:
         >>> circuit = UniformDistribution(3)
-        >>> circuit.draw()
+        >>> circuit.decompose().draw()
              ┌───┐
         q_0: ┤ H ├
              ├───┤
@@ -59,5 +59,8 @@ class UniformDistribution(QuantumCircuit):
                       'It moved to qiskit_finance.circuit.library.UniformDistribution.',
                       DeprecationWarning, stacklevel=2)
 
-        super().__init__(num_qubits, name=name)
-        self.h(self.qubits)
+        inner = QuantumCircuit(num_qubits, name=name)
+        inner.h(inner.qubits)
+
+        super().__init__(*inner.qregs, name=name)
+        self.compose(inner.to_gate(), inplace=True)
