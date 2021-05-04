@@ -34,7 +34,7 @@ from ...state_fns.dict_state_fn import DictStateFn
 from ...state_fns.vector_state_fn import VectorStateFn
 from ...state_fns.sparse_vector_state_fn import SparseVectorStateFn
 from ...exceptions import OpflowError
-from ..derivative_base import DerivativeBase
+from ..derivative_base import _coeff_derivative
 
 
 class ParamShift(CircuitGradient):
@@ -231,7 +231,7 @@ class ParamShift(CircuitGradient):
 
                 if isinstance(p_param, ParameterExpression) and not isinstance(p_param,
                                                                                Parameter):
-                    expr_grad = DerivativeBase.parameter_expression_grad(p_param, param)
+                    expr_grad = _coeff_derivative(p_param, param)
                     shifted_op *= expr_grad
                 if not summed_shifted_op:
                     summed_shifted_op = shifted_op

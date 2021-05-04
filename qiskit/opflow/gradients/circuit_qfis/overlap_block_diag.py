@@ -27,7 +27,7 @@ from ...state_fns.circuit_state_fn import CircuitStateFn
 from ...exceptions import OpflowError
 
 from .circuit_qfi import CircuitQFI
-from ..derivative_base import DerivativeBase
+from ..derivative_base import _coeff_derivative
 from .overlap_diag import _get_generators, _partition_circuit
 
 
@@ -152,8 +152,7 @@ class OverlapBlockDiag(CircuitQFI):
                         block[i][i] = ListOp([single_terms[i]], combo_fn=lambda x: 1 - x[0] ** 2)
                         if isinstance(param_expr_i, ParameterExpression) and not isinstance(
                                 param_expr_i, Parameter):
-                            expr_grad_i = DerivativeBase.parameter_expression_grad(
-                                param_expr_i, p_i)
+                            expr_grad_i = _coeff_derivative(param_expr_i, p_i)
                             block[i][i] *= expr_grad_i * expr_grad_i
                         continue
 
@@ -168,10 +167,10 @@ class OverlapBlockDiag(CircuitQFI):
 
                     # pylint: disable=unidiomatic-typecheck
                     if type(param_expr_i) == ParameterExpression:
-                        expr_grad_i = DerivativeBase.parameter_expression_grad(param_expr_i, p_i)
+                        expr_grad_i = _coeff_derivative(param_expr_i, p_i)
                         block[i][j] *= expr_grad_i
                     if type(param_expr_j) == ParameterExpression:
-                        expr_grad_j = DerivativeBase.parameter_expression_grad(param_expr_j, p_j)
+                        expr_grad_j = _coeff_derivative(param_expr_j, p_j)
                         block[i][j] *= expr_grad_j
 
             wrapped_block = ListOp([ListOp([

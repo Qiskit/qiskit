@@ -36,6 +36,9 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
 
     Raises:
         UnassignedDurationError: When any instruction duration is not assigned.
+        PulseError: When the alignment context duration is shorter than the schedule duration.
+
+    .. note:: This transform may insert barriers in between contexts.
     """
     if not block.is_schedulable():
         raise UnassignedDurationError(
@@ -43,10 +46,26 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
             'Please check `.parameters` to find unassigned parameter objects.')
 
     schedule = Schedule(name=block.name, metadata=block.metadata)
-    for op_data in block.instructions:
+
+    for op_data in block.blocks:
         if isinstance(op_data, ScheduleBlock):
             context_schedule = block_to_schedule(op_data)
+            if hasattr(op_data.alignment_context, 'duration'):
+                # context may have local scope duration, e.g. EquispacedAlignment for 1000 dt
+                post_buffer = op_data.alignment_context.duration - context_schedule.duration
+                if post_buffer < 0:
+                    raise PulseError(f'ScheduleBlock {op_data.name} has longer duration than '
+                                     'the specified context duration '
+                                     f'{context_schedule.duration} > {op_data.duration}.')
+            else:
+                post_buffer = 0
             schedule.append(context_schedule, inplace=True)
+
+            # prevent interruption by following instructions.
+            # padding with delay instructions is no longer necessary, thanks to alignment context.
+            if post_buffer > 0:
+                context_boundary = instructions.RelativeBarrier(*op_data.channels)
+                schedule.append(context_boundary.shift(post_buffer), inplace=True)
         else:
             schedule.append(op_data, inplace=True)
 
@@ -161,7 +180,7 @@ def _inline_block(block: ScheduleBlock) -> ScheduleBlock:
     ret_block = ScheduleBlock(alignment_context=block.alignment_context,
                               name=block.name,
                               metadata=block.metadata)
-    for inst in block.instructions:
+    for inst in block.blocks:
         if isinstance(inst, instructions.Call):
             # bind parameter
             subroutine = inst.assigned_subroutine()
@@ -236,11 +255,15 @@ def align_measures(schedules: Iterable[ScheduleComponent],
         from qiskit import pulse
         from qiskit.pulse import transforms
 
-        with pulse.build() as sched:
-            with pulse.align_sequential():
-                pulse.play(pulse.Constant(10, 0.5), pulse.DriveChannel(0))
-                pulse.play(pulse.Constant(10, 1.), pulse.MeasureChannel(0))
-                pulse.acquire(20, pulse.AcquireChannel(0), pulse.MemorySlot(0))
+        d0 = pulse.DriveChannel(0)
+        m0 = pulse.MeasureChannel(0)
+        a0 = pulse.AcquireChannel(0)
+        mem0 = pulse.MemorySlot(0)
+
+        sched = pulse.Schedule()
+        sched.append(pulse.Play(pulse.Constant(10, 0.5), d0), inplace=True)
+        sched.append(pulse.Play(pulse.Constant(10, 1.), m0).shift(sched.duration), inplace=True)
+        sched.append(pulse.Acquire(20, a0, mem0).shift(sched.duration), inplace=True)
 
         sched_shifted = sched << 20
 
@@ -405,3 +428,54 @@ def add_implicit_acquires(schedule: ScheduleComponent,
             new_schedule.insert(time, inst, inplace=True)
 
     return new_schedule
+
+
+def pad(schedule: Schedule,
+        channels: Optional[Iterable[chans.Channel]] = None,
+        until: Optional[int] = None,
+        inplace: bool = False
+        ) -> Schedule:
+    """Pad the input Schedule with ``Delay``s on all unoccupied timeslots until
+    ``schedule.duration`` or ``until`` if not ``None``.
+
+    Args:
+        schedule: Schedule to pad.
+        channels: Channels to pad. Defaults to all channels in
+            ``schedule`` if not provided. If the supplied channel is not a member
+            of ``schedule`` it will be added.
+        until: Time to pad until. Defaults to ``schedule.duration`` if not provided.
+        inplace: Pad this schedule by mutating rather than returning a new schedule.
+
+    Returns:
+        The padded schedule.
+    """
+    until = until or schedule.duration
+    channels = channels or schedule.channels
+
+    for channel in channels:
+        if channel not in schedule.channels:
+            schedule |= instructions.Delay(until, channel)
+            continue
+
+        curr_time = 0
+        # Use the copy of timeslots. When a delay is inserted before the current interval,
+        # current timeslot is pointed twice and the program crashes with the wrong pointer index.
+        timeslots = schedule.timeslots[channel].copy()
+        # TODO: Replace with method of getting instructions on a channel
+        for interval in timeslots:
+            if curr_time >= until:
+                break
+            if interval[0] != curr_time:
+                end_time = min(interval[0], until)
+                schedule = schedule.insert(
+                    curr_time,
+                    instructions.Delay(end_time - curr_time, channel),
+                    inplace=inplace)
+            curr_time = interval[1]
+        if curr_time < until:
+            schedule = schedule.insert(
+                curr_time,
+                instructions.Delay(until - curr_time, channel),
+                inplace=inplace)
+
+    return schedule

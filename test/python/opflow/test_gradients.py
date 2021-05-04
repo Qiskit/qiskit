@@ -692,7 +692,7 @@ class TestGradients(QiskitOpflowTestCase):
         coeff_0 = Parameter('c_0')
         coeff_1 = Parameter('c_1')
         ham = coeff_0 * X + coeff_1 * Z
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
+        op = StateFn(ham, is_measurement=True) @ CircuitStateFn(primitive=qc, coeff=1.0)
         gradient_coeffs = [coeff_0, coeff_1]
         coeff_grad = Gradient(grad_method=method).convert(op, gradient_coeffs)
         values_dict = [{coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi},
@@ -727,7 +727,7 @@ class TestGradients(QiskitOpflowTestCase):
         coeff_0 = Parameter('c_0')
         coeff_1 = Parameter('c_1')
         ham = coeff_0 * coeff_0 * X + coeff_1 * coeff_0 * Z
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = StateFn(ham, is_measurement=True) @ CircuitStateFn(primitive=qc, coeff=1.)
         gradient_coeffs = [(coeff_0, coeff_0), (coeff_0, coeff_1), (coeff_1, coeff_1)]
         coeff_grad = Hessian(hess_method=method).convert(op, gradient_coeffs)
         values_dict = [{coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi},

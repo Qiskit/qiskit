@@ -222,6 +222,11 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         np.testing.assert_array_almost_equal(val1, val3, decimal=2)
         np.testing.assert_array_almost_equal([val1] * 2, val4, decimal=2)
 
+    def test_pauli_expectation_non_hermite_op(self):
+        """ Test PauliExpectation for non hermitian operator """
+        exp = ~StateFn(1j * Z) @ One
+        self.assertEqual(self.sampler.convert(self.expect.convert(exp)).eval(), 1j)
+
 
 if __name__ == '__main__':
     unittest.main()
