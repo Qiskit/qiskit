@@ -269,6 +269,9 @@ def _basis_search(equiv_lib, source_basis, target_basis, heuristic):
         closed_set.add(current_basis)
 
         for gate_name, gate_num_qubits in current_basis:
+            if gate_name in target_basis:
+                continue
+
             equivs = equiv_lib._get_equivalences((gate_name, gate_num_qubits))
 
             basis_remain = current_basis - {(gate_name, gate_num_qubits)}
