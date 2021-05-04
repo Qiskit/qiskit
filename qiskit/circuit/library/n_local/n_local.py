@@ -130,8 +130,8 @@ class NLocal(BlueprintCircuit):
         self._data = None
         self._bounds = None
 
-        if reps <= 0:
-            raise ValueError('The value of reps should be larger than or equal to 1')
+        if reps < 0:
+            raise ValueError('The value of reps should be larger than or equal to 0')
 
         if num_qubits is not None:
             self.num_qubits = num_qubits
@@ -455,14 +455,17 @@ class NLocal(BlueprintCircuit):
     def reps(self, repetitions: int) -> None:
         """Set the repetitions.
 
+        If the repetitions are `0`, only one rotation layer with no entanglement
+        layers is applied (unless ``self.skip_final_rotation_layer`` is set to ``True``).
+
         Args:
             repetitions: The new repetitions.
 
         Raises:
-            ValueError: If reps setter has parameter repetitions <= 0.
+            ValueError: If reps setter has parameter repetitions < 0.
         """
-        if repetitions <= 0:
-            raise ValueError('The repetitions should be larger than or equal to 1')
+        if repetitions < 0:
+            raise ValueError('The repetitions should be larger than or equal to 0')
         if repetitions != self._reps:
             self._invalidate()
             self._reps = repetitions
@@ -885,7 +888,7 @@ class NLocal(BlueprintCircuit):
 
         # add the final rotation layer
         if not self._skip_final_rotation_layer:
-            if self.insert_barriers:
+            if self.insert_barriers and self.reps > 0:
                 self.barrier()
             self._build_rotation_layer(param_iter, self.reps)
 
