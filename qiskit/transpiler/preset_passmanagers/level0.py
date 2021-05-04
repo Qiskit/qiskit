@@ -105,7 +105,11 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
     # 3. Decompose so only 1-qubit and 2-qubit gates remain
-    _unroll3q = Unroll3qOrMore()
+    _unroll3q = [
+        # Use unitary synthesis for basis aware decomposition of UnitaryGates
+        UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
+        Unroll3qOrMore(),
+    ]
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -139,9 +143,14 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif translation_method == "translator":
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
-        _unroll = [UnrollCustomDefinitions(sel, basis_gates), BasisTranslator(sel, basis_gates)]
+        _unroll = [
+            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
+            UnrollCustomDefinitions(sel, basis_gates),
+            BasisTranslator(sel, basis_gates),
+        ]
     elif translation_method == "synthesis":
         _unroll = [
+            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),

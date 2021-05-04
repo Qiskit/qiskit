@@ -59,7 +59,7 @@ class SingleQubitUnitary(Gate):
         self._diag = None
 
         # Create new gate
-        super().__init__("unitary", 1, [unitary_matrix])
+        super().__init__("squ", 1, [unitary_matrix])
 
     def inverse(self):
         """Return the inverse.

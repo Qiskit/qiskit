@@ -100,7 +100,11 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     approximation_degree = pass_manager_config.approximation_degree
 
     # 1. Unroll to 1q or 2q gates
-    _unroll3q = Unroll3qOrMore()
+    _unroll3q = [
+        # Use unitary synthesis for basis aware decomposition of UnitaryGates
+        UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
+        Unroll3qOrMore(),
+    ]
 
     # 2. Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)

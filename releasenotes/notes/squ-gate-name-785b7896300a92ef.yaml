@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The :attr:`~qiskit.extensions.SingleQubitUnitary.name` attribute of the
+    :class:`~qiskit.extensions.SingleQubitUnitary` gate class has been changed
+    from ``unitary`` to ``squ``. This was necessary to avoid a conflict with
+    the :class:`~qiskit.extensions.UnitaryGate` class's name which was also
+    ``unitary`` since the 2 gates are not the same and don't have the same
+    implementation (and can't be used interchangeably).
