@@ -29,6 +29,7 @@ from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
 from .gradient import Gradient
+from .derivative_base import _coeff_derivative
 from .hessian_base import HessianBase
 from ..exceptions import OpflowError
 from ...utils.arithmetic import triu_to_dense
@@ -72,8 +73,8 @@ class Hessian(HessianBase):
     def get_hessian(self,
                     operator: OperatorBase,
                     params: Optional[Union[Tuple[ParameterExpression, ParameterExpression],
-                                     List[Tuple[ParameterExpression, ParameterExpression]],
-                                     List[ParameterExpression], ParameterVector]] = None
+                                           List[Tuple[ParameterExpression, ParameterExpression]],
+                                           List[ParameterExpression], ParameterVector]] = None
                     ) -> OperatorBase:
         """Get the Hessian for the given operator w.r.t. the given parameters
 
@@ -142,11 +143,11 @@ class Hessian(HessianBase):
             d0_op = self.get_hessian(op, p_0)
             d1_op = self.get_hessian(op, p_1)
             # ..get derivative of the coeff
-            d0_coeff = self.parameter_expression_grad(coeff, p_0)
-            d1_coeff = self.parameter_expression_grad(coeff, p_1)
+            d0_coeff = _coeff_derivative(coeff, p_0)
+            d1_coeff = _coeff_derivative(coeff, p_1)
 
             dd_op = self.get_hessian(op, params)
-            dd_coeff = self.parameter_expression_grad(d0_coeff, p_1)
+            dd_coeff = _coeff_derivative(d0_coeff, p_1)
 
             grad_op = 0
             # Avoid creating operators that will evaluate to zero
