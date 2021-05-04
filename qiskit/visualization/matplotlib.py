@@ -168,7 +168,7 @@ class MatplotlibDrawer:
                 if op.cargs:
                     self._cregbundle = False
                     warn("Cregbundle set to False since an instruction needs to refer"
-                         " to individual classical wire")
+                         " to individual classical wire", RuntimeWarning, 2)
         self._global_phase = global_phase
 
         self._ast = None
