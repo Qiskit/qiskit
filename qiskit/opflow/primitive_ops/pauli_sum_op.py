@@ -127,7 +127,7 @@ class PauliSumOp(PrimitiveOp):
         if isinstance(scalar, (int, float, complex)) and scalar != 0:
             return PauliSumOp(scalar * self.primitive, coeff=self.coeff)
 
-        return super().mul(scalar)
+        return PauliSumOp(self.primitive, coeff=self.coeff * scalar)
 
     def adjoint(self) -> "PauliSumOp":
         return PauliSumOp(self.primitive.adjoint(), coeff=self.coeff.conjugate())
