@@ -18,7 +18,7 @@ from qiskit.circuit.library.standard_gates import U1Gate, U3Gate, CXGate, XGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse import (InstructionScheduleMap, Play, PulseError, Schedule, ScheduleBlock,
-                          Waveform, ShiftPhase)
+                          Waveform, ShiftPhase, Constant)
 from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
@@ -474,3 +474,33 @@ class TestInstructionScheduleMap(QiskitTestCase):
         for test_inst, ref_inst in zip(test_sched.instructions, ref_sched.instructions):
             self.assertEqual(test_inst[0], ref_inst[0])
             self.assertAlmostEqual(test_inst[1], ref_inst[1])
+
+    def test_partially_bound_callable(self):
+        """Test register partial function."""
+        import functools
+
+        def callable_schedule(par_b, par_a):
+            sched = Schedule()
+            sched.insert(10, Play(Constant(10, par_b), DriveChannel(0)), inplace=True)
+            sched.insert(20, Play(Constant(10, par_a), DriveChannel(0)), inplace=True)
+            return sched
+
+        ref_sched = Schedule()
+        ref_sched.insert(10, Play(Constant(10, 0.1), DriveChannel(0)), inplace=True)
+        ref_sched.insert(20, Play(Constant(10, 0.2), DriveChannel(0)), inplace=True)
+
+        inst_map = InstructionScheduleMap()
+
+        def test_callable_sched1(par_b):
+            return callable_schedule(par_b, 0.2)
+
+        inst_map.add('my_gate1', (0,), test_callable_sched1, ['par_b'])
+        ret_sched = inst_map.get('my_gate1', (0,), par_b=0.1)
+        self.assertEqual(ret_sched, ref_sched)
+
+        # bind partially
+        test_callable_sched2 = functools.partial(callable_schedule, par_a=0.2)
+
+        inst_map.add('my_gate2', (0,), test_callable_sched2, ['par_b'])
+        ret_sched = inst_map.get('my_gate2', (0,), par_b=0.1)
+        self.assertEqual(ret_sched, ref_sched)
