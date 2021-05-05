@@ -305,138 +305,157 @@ from qiskit.exceptions import QiskitError
 # v1 Binary Format
 # ----------------
 # FILE_HEADER
-FILE_HEADER = namedtuple('FILE_HEADER', ['preface', 'qpy_version', 'major_version',
-                                         'minor_version', 'patch_version',
-                                         'num_circuits'])
-FILE_HEADER_PACK = '!6sBBBBQ'
+FILE_HEADER = namedtuple(
+    "FILE_HEADER",
+    ["preface", "qpy_version", "major_version", "minor_version", "patch_version", "num_circuits"],
+)
+FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 
 # HEADER binary format
-HEADER = namedtuple('HEADER', ['name_size', 'global_phase',
-                               'num_qubits', 'num_clbits', 'metadata_size',
-                               'num_registers', 'num_instructions'])
-HEADER_PACK = '!HdIIQIQ'
+HEADER = namedtuple(
+    "HEADER",
+    [
+        "name_size",
+        "global_phase",
+        "num_qubits",
+        "num_clbits",
+        "metadata_size",
+        "num_registers",
+        "num_instructions",
+    ],
+)
+HEADER_PACK = "!HdIIQIQ"
 HEADER_SIZE = struct.calcsize(HEADER_PACK)
 
 # CUSTOM_DEFINITIONS
 # CUSTOM DEFINITION HEADER
-CUSTOM_DEFINITION_HEADER = namedtuple('CUSTOM_DEFINITION_HEADER', ['size'])
-CUSTOM_DEFINITION_HEADER_PACK = '!Q'
+CUSTOM_DEFINITION_HEADER = namedtuple("CUSTOM_DEFINITION_HEADER", ["size"])
+CUSTOM_DEFINITION_HEADER_PACK = "!Q"
 CUSTOM_DEFINITION_HEADER_SIZE = struct.calcsize(CUSTOM_DEFINITION_HEADER_PACK)
 
 # CUSTOM_DEFINITION
-CUSTOM_DEFINITION = namedtuple('CUSTOM_DEFINITON',
-                               ['gate_name_size', 'type', 'num_qubits'
-                                'num_clbits', 'custom_definition', 'size'])
-CUSTOM_DEFINITION_PACK = '!H1cII?Q'
+CUSTOM_DEFINITION = namedtuple(
+    "CUSTOM_DEFINITON",
+    ["gate_name_size", "type", "num_qubits" "num_clbits", "custom_definition", "size"],
+)
+CUSTOM_DEFINITION_PACK = "!H1cII?Q"
 CUSTOM_DEFINITION_SIZE = struct.calcsize(CUSTOM_DEFINITION_PACK)
 
 
 # REGISTER binary format
-REGISTER = namedtuple('REGISTER', ['type', 'size', 'name_size'])
-REGISTER_PACK = '!1cIH'
+REGISTER = namedtuple("REGISTER", ["type", "size", "name_size"])
+REGISTER_PACK = "!1cIH"
 REGISTER_SIZE = struct.calcsize(REGISTER_PACK)
 
 # INSTRUCTION binary format
-INSTRUCTION = namedtuple('INSTRUCTION', ['name_size', 'num_parameters', 'num_qargs',
-                                         'num_cargs', 'has_condition',
-                                         'condition_register_size', 'value'])
-INSTRUCTION_PACK = '!HHII?Hq'
+INSTRUCTION = namedtuple(
+    "INSTRUCTION",
+    [
+        "name_size",
+        "num_parameters",
+        "num_qargs",
+        "num_cargs",
+        "has_condition",
+        "condition_register_size",
+        "value",
+    ],
+)
+INSTRUCTION_PACK = "!HHII?Hq"
 INSTRUCTION_SIZE = struct.calcsize(INSTRUCTION_PACK)
 # Instruction argument format
-INSTRUCTION_ARG = namedtuple('INSTRUCTION_ARG', ['type', 'size'])
-INSTRUCTION_ARG_PACK = '!1cI'
+INSTRUCTION_ARG = namedtuple("INSTRUCTION_ARG", ["type", "size"])
+INSTRUCTION_ARG_PACK = "!1cI"
 INSTRUCTION_ARG_SIZE = struct.calcsize(INSTRUCTION_ARG_PACK)
 # INSTRUCTION parameter format
-INSTRUCTION_PARAM = namedtuple('INSTRUCTION_PARAM', ['type', 'size'])
-INSTRUCTION_PARAM_PACK = '!1cQ'
+INSTRUCTION_PARAM = namedtuple("INSTRUCTION_PARAM", ["type", "size"])
+INSTRUCTION_PARAM_PACK = "!1cQ"
 INSTRUCTION_PARAM_SIZE = struct.calcsize(INSTRUCTION_PARAM_PACK)
 # PARAMETER
-PARAMETER = namedtuple('PARAMETER', ['name_size', 'uuid'])
-PARAMETER_PACK = '!H16s'
+PARAMETER = namedtuple("PARAMETER", ["name_size", "uuid"])
+PARAMETER_PACK = "!H16s"
 PARAMETER_SIZE = struct.calcsize(PARAMETER_PACK)
 # PARAMETER_EXPR
-PARAMETER_EXPR = namedtuple('PARAMETER_EXPR', ['map_elements', 'expr_size'])
-PARAMETER_EXPR_PACK = '!QQ'
+PARAMETER_EXPR = namedtuple("PARAMETER_EXPR", ["map_elements", "expr_size"])
+PARAMETER_EXPR_PACK = "!QQ"
 PARAMETER_EXPR_SIZE = struct.calcsize(PARAMETER_EXPR_PACK)
 # PARAMETER_EXPR_MAP_ELEM
-PARAM_EXPR_MAP_ELEM = namedtuple('PARAMETER_EXPR_MAP_ELEM',
-                                 ['type', 'size'])
-PARAM_EXPR_MAP_ELEM_PACK = '!cQ'
+PARAM_EXPR_MAP_ELEM = namedtuple("PARAMETER_EXPR_MAP_ELEM", ["type", "size"])
+PARAM_EXPR_MAP_ELEM_PACK = "!cQ"
 PARAM_EXPR_MAP_ELEM_SIZE = struct.calcsize(PARAM_EXPR_MAP_ELEM_PACK)
 # Complex
-COMPLEX = namedtuple('COMPLEX', ['real', 'imag'])
-COMPLEX_PACK = '!dd'
+COMPLEX = namedtuple("COMPLEX", ["real", "imag"])
+COMPLEX_PACK = "!dd"
 COMPLEX_SIZE = struct.calcsize(COMPLEX_PACK)
 
 
 def _read_header(file_obj):
     header_raw = struct.unpack(HEADER_PACK, file_obj.read(HEADER_SIZE))
     header = HEADER._make(header_raw)
-    name = file_obj.read(header[0]).decode('utf8').rstrip('\x00')
+    name = file_obj.read(header[0]).decode("utf8").rstrip("\x00")
     metadata_raw = file_obj.read(header[4])
     metadata = json.loads(metadata_raw)
     return header, name, metadata
 
 
 def _read_registers(file_obj, num_registers):
-    registers = {'q': {}, 'c': {}}
+    registers = {"q": {}, "c": {}}
     for _reg in range(num_registers):
         register_raw = file_obj.read(REGISTER_SIZE)
         register = struct.unpack(REGISTER_PACK, register_raw)
-        name = file_obj.read(register[2]).decode('utf8').rstrip('\x00')
+        name = file_obj.read(register[2]).decode("utf8").rstrip("\x00")
         REGISTER_ARRAY_PACK = "%sI" % register[1]
         bit_indices = file_obj.read(struct.calcsize(REGISTER_ARRAY_PACK))
-        if register[0].decode('utf8') == 'q':
-            registers['q'][name] = {}
-            registers['q'][name]['register'] = QuantumRegister(register[1], name)
-            registers['q'][name]['index_map'] = dict(
-                zip(bit_indices, registers['q'][name]['register']))
+        if register[0].decode("utf8") == "q":
+            registers["q"][name] = {}
+            registers["q"][name]["register"] = QuantumRegister(register[1], name)
+            registers["q"][name]["index_map"] = dict(
+                zip(bit_indices, registers["q"][name]["register"])
+            )
         else:
-            registers['c'][name] = {}
-            registers['c'][name]['register'] = ClassicalRegister(register[1], name)
-            registers['c'][name]['index_map'] = dict(
-                zip(bit_indices, registers['c'][name]['register']))
+            registers["c"][name] = {}
+            registers["c"][name]["register"] = ClassicalRegister(register[1], name)
+            registers["c"][name]["index_map"] = dict(
+                zip(bit_indices, registers["c"][name]["register"])
+            )
     return registers
 
 
 def _read_parameter(file_obj):
-    param_raw = struct.unpack(PARAMETER_PACK,
-                              file_obj.read(PARAMETER_SIZE))
+    param_raw = struct.unpack(PARAMETER_PACK, file_obj.read(PARAMETER_SIZE))
     name_size = param_raw[0]
     param_uuid = uuid.UUID(bytes=param_raw[1])
-    name = file_obj.read(name_size).decode('utf8').rstrip('\x00')
+    name = file_obj.read(name_size).decode("utf8").rstrip("\x00")
     param = Parameter.__new__(Parameter, name, uuid=param_uuid)
     param.__init__(name)
     return param
 
 
 def _read_parameter_expression(file_obj):
-    param_expr_raw = struct.unpack(PARAMETER_EXPR_PACK,
-                                   file_obj.read(PARAMETER_EXPR_SIZE))
+    param_expr_raw = struct.unpack(PARAMETER_EXPR_PACK, file_obj.read(PARAMETER_EXPR_SIZE))
     map_elements = param_expr_raw[0]
     from sympy.parsing.sympy_parser import parse_expr
-    expr = parse_expr(file_obj.read(param_expr_raw[1]).decode('utf8'))
+
+    expr = parse_expr(file_obj.read(param_expr_raw[1]).decode("utf8"))
     symbol_map = {}
     for _ in range(map_elements):
         elem_raw = file_obj.read(PARAM_EXPR_MAP_ELEM_SIZE)
         elem = struct.unpack(PARAM_EXPR_MAP_ELEM_PACK, elem_raw)
         param = _read_parameter(file_obj)
-        elem_type = elem[0].decode('utf8')
+        elem_type = elem[0].decode("utf8")
         elem_data = file_obj.read(elem[1])
-        if elem_type == 'f':
-            value = struct.unpack('!d', elem_data)
-        elif elem_type == 'i':
-            value = struct.unpack('!q', elem_data)
-        elif elem_type == 'c':
+        if elem_type == "f":
+            value = struct.unpack("!d", elem_data)
+        elif elem_type == "i":
+            value = struct.unpack("!q", elem_data)
+        elif elem_type == "c":
             value = complex(*struct.unpack(COMPLEX_PACK, elem_data))
-        elif elem_type == 'p':
+        elif elem_type == "p":
             value = param._symbol_expr
-        elif elem_type == 'e':
+        elif elem_type == "e":
             value = _read_parameter_expression(io.BytesIO(elem_data))
         else:
-            raise TypeError(
-                'Invalid parameter expression map type: %s' % elem_type)
+            raise TypeError("Invalid parameter expression map type: %s" % elem_type)
         symbol_map[param] = value
     return ParameterExpression(symbol_map, expr)
 
@@ -448,51 +467,50 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
     qargs = []
     cargs = []
     params = []
-    gate_name = file_obj.read(name_size).decode('utf8').rstrip('\x00')
+    gate_name = file_obj.read(name_size).decode("utf8").rstrip("\x00")
     num_qargs = instruction[2]
     num_cargs = instruction[3]
     num_params = instruction[1]
     has_condition = instruction[4]
     register_name_size = instruction[5]
-    condition_register = file_obj.read(register_name_size).decode('utf8').rstrip('\x00')
+    condition_register = file_obj.read(register_name_size).decode("utf8").rstrip("\x00")
     condition_value = instruction[6]
     condition_tuple = None
     if has_condition:
-        condition_tuple = (registers['c'][condition_register]['register'],
-                           condition_value)
+        condition_tuple = (registers["c"][condition_register]["register"], condition_value)
     qubit_indices = dict(enumerate(circuit.qubits))
     clbit_indices = dict(enumerate(circuit.clbits))
     # Load Arguments
     for _qarg in range(num_qargs):
         qarg_raw = file_obj.read(INSTRUCTION_ARG_SIZE)
         qarg = struct.unpack(INSTRUCTION_ARG_PACK, qarg_raw)
-        if qarg[0].decode('utf8').rstrip('\x00') == 'c':
-            raise TypeError('Invalid input carg prior to all qargs')
+        if qarg[0].decode("utf8").rstrip("\x00") == "c":
+            raise TypeError("Invalid input carg prior to all qargs")
         qargs.append(qubit_indices[qarg[1]])
     for _carg in range(num_cargs):
         carg_raw = file_obj.read(INSTRUCTION_ARG_SIZE)
         carg = struct.unpack(INSTRUCTION_ARG_PACK, carg_raw)
-        if carg[0].decode('utf8').rstrip('\x00') == 'q':
-            raise TypeError('Invalid input qarg after all qargs')
+        if carg[0].decode("utf8").rstrip("\x00") == "q":
+            raise TypeError("Invalid input qarg after all qargs")
         cargs.append(clbit_indices[carg[1]])
     # Load Parameters
     for _param in range(num_params):
         param_raw = file_obj.read(INSTRUCTION_PARAM_SIZE)
         param = struct.unpack(INSTRUCTION_PARAM_PACK, param_raw)
         data = file_obj.read(param[1])
-        type_str = param[0].decode('utf8')
+        type_str = param[0].decode("utf8")
         param = None
-        if type_str == 'i':
-            param = struct.unpack('<q', data)[0]
-        elif type_str == 'f':
-            param = struct.unpack('<d', data)[0]
-        elif type_str == 'n':
+        if type_str == "i":
+            param = struct.unpack("<q", data)[0]
+        elif type_str == "f":
+            param = struct.unpack("<d", data)[0]
+        elif type_str == "n":
             container = io.BytesIO(data)
             param = np.load(container)
-        elif type_str == 'p':
+        elif type_str == "p":
             container = io.BytesIO(data)
             param = _read_parameter(container)
-        elif type_str == 'e':
+        elif type_str == "e":
             container = io.BytesIO(data)
             param = _read_parameter_expression(container)
         else:
@@ -500,9 +518,8 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
         params.append(param)
     # Load Gate object
     gate_class = None
-    if gate_name in ('Gate', 'Instruction'):
-        inst_obj = _parse_custom_instruction(custom_instructions, gate_name,
-                                             params)
+    if gate_name in ("Gate", "Instruction"):
+        inst_obj = _parse_custom_instruction(custom_instructions, gate_name, params)
         inst_obj.condition = condition_tuple
         circuit._append(inst_obj, qargs, cargs)
         return
@@ -515,14 +532,13 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
     elif hasattr(quantum_initializer, gate_name):
         gate_class = getattr(quantum_initializer, gate_name)
     elif gate_name in custom_instructions:
-        inst_obj = _parse_custom_instruction(custom_instructions, gate_name,
-                                             params)
+        inst_obj = _parse_custom_instruction(custom_instructions, gate_name, params)
         inst_obj.condition = condition_tuple
         circuit._append(inst_obj, qargs, cargs)
         return
     else:
         raise AttributeError("Invalid instruction type: %s" % gate_name)
-    if gate_name == 'Barrier':
+    if gate_name == "Barrier":
         params = [len(qargs)]
     gate = gate_class(*params)
     gate.condition = condition_tuple
@@ -530,13 +546,12 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
 
 
 def _parse_custom_instruction(custom_instructions, gate_name, params):
-    (type_str, num_qubits, num_clbits,
-     definition) = custom_instructions[gate_name]
-    if type_str == 'i':
+    (type_str, num_qubits, num_clbits, definition) = custom_instructions[gate_name]
+    if type_str == "i":
         inst_obj = Instruction(gate_name, num_qubits, num_clbits, params)
         if definition:
             inst_obj.definition = definition
-    elif type_str == 'g':
+    elif type_str == "g":
         inst_obj = Gate(gate_name, num_qubits, params)
         inst_obj.definition = definition
     else:
@@ -547,39 +562,44 @@ def _parse_custom_instruction(custom_instructions, gate_name, params):
 def _read_custom_instructions(file_obj):
     custom_instructions = {}
     custom_definition_header_raw = file_obj.read(CUSTOM_DEFINITION_HEADER_SIZE)
-    custom_definition_header = struct.unpack(CUSTOM_DEFINITION_HEADER_PACK,
-                                             custom_definition_header_raw)
+    custom_definition_header = struct.unpack(
+        CUSTOM_DEFINITION_HEADER_PACK, custom_definition_header_raw
+    )
     if custom_definition_header[0] > 0:
         for _ in range(custom_definition_header[0]):
             custom_definition_raw = file_obj.read(CUSTOM_DEFINITION_SIZE)
-            custom_definition = struct.unpack(CUSTOM_DEFINITION_PACK,
-                                              custom_definition_raw)
-            (name_size, type_str, num_qubits,
-             num_clbits, has_custom_definition, size) = custom_definition
-            name = file_obj.read(name_size).decode('utf8').rstrip('utf8')
-            type_str = type_str.decode('utf8')
+            custom_definition = struct.unpack(CUSTOM_DEFINITION_PACK, custom_definition_raw)
+            (
+                name_size,
+                type_str,
+                num_qubits,
+                num_clbits,
+                has_custom_definition,
+                size,
+            ) = custom_definition
+            name = file_obj.read(name_size).decode("utf8").rstrip("utf8")
+            type_str = type_str.decode("utf8")
             definition_circuit = None
             if has_custom_definition:
                 definition_buffer = io.BytesIO(file_obj.read(size))
                 definition_circuit = _read_circuit(definition_buffer)
-            custom_instructions[name] = (type_str, num_qubits, num_clbits,
-                                         definition_circuit)
+            custom_instructions[name] = (type_str, num_qubits, num_clbits, definition_circuit)
     return custom_instructions
 
 
 def _write_parameter(file_obj, param):
-    name_bytes = param._name.encode('utf8')
-    file_obj.write(struct.pack(PARAMETER_PACK, len(name_bytes),
-                   param._uuid.bytes))
+    name_bytes = param._name.encode("utf8")
+    file_obj.write(struct.pack(PARAMETER_PACK, len(name_bytes), param._uuid.bytes))
     file_obj.write(name_bytes)
 
 
 def _write_parameter_expression(file_obj, param):
     from sympy import srepr
-    expr_bytes = srepr(param._symbol_expr).encode('utf8')
-    param_expr_header_raw = struct.pack(PARAMETER_EXPR_PACK,
-                                        len(param._parameter_symbols),
-                                        len(expr_bytes))
+
+    expr_bytes = srepr(param._symbol_expr).encode("utf8")
+    param_expr_header_raw = struct.pack(
+        PARAMETER_EXPR_PACK, len(param._parameter_symbols), len(expr_bytes)
+    )
     file_obj.write(param_expr_header_raw)
     file_obj.write(expr_bytes)
     for parameter, value in param._parameter_symbols.items():
@@ -588,30 +608,29 @@ def _write_parameter_expression(file_obj, param):
         parameter_container.seek(0)
         parameter_data = parameter_container.read()
         if isinstance(value, float):
-            type_str = 'f'
-            data = struct.pack('!d', value)
+            type_str = "f"
+            data = struct.pack("!d", value)
         elif isinstance(value, complex):
-            type_str = 'c'
+            type_str = "c"
             data = struct.pack(COMPLEX_PACK, value.real, value.imag)
         elif isinstance(value, int):
-            type_str = 'i'
-            data = struct.pack('!q', value)
+            type_str = "i"
+            data = struct.pack("!q", value)
         elif value == parameter._symbol_expr:
-            type_str = 'p'
+            type_str = "p"
             data = bytes()
         elif isinstance(value, ParameterExpression):
-            type_str = 'e'
+            type_str = "e"
             container = io.BytesIO()
             _write_parameter_expression(container, value)
             container.seek(0)
             data = container.read()
         else:
             raise TypeError(
-                'Invalid expression type in symbol map for %s: %s' % (
-                    param, type(value)))
+                "Invalid expression type in symbol map for %s: %s" % (param, type(value))
+            )
 
-        elem_header = struct.pack(PARAM_EXPR_MAP_ELEM_PACK,
-                                  type_str.encode('utf8'), len(data))
+        elem_header = struct.pack(PARAM_EXPR_MAP_ELEM_PACK, type_str.encode("utf8"), len(data))
         file_obj.write(elem_header)
         file_obj.write(parameter_data)
         file_obj.write(data)
@@ -619,80 +638,87 @@ def _write_parameter_expression(file_obj, param):
 
 def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_map):
     gate_class_name = instruction_tuple[0].__class__.__name__
-    if ((not hasattr(library, gate_class_name) and
-         not hasattr(circuit_mod, gate_class_name) and
-         not hasattr(extensions, gate_class_name) and
-         not hasattr(quantum_initializer, gate_class_name)) or
-            gate_class_name == 'Gate' or gate_class_name == 'Instruction'):
+    if (
+        (
+            not hasattr(library, gate_class_name)
+            and not hasattr(circuit_mod, gate_class_name)
+            and not hasattr(extensions, gate_class_name)
+            and not hasattr(quantum_initializer, gate_class_name)
+        )
+        or gate_class_name == "Gate"
+        or gate_class_name == "Instruction"
+    ):
         if instruction_tuple[0].name not in custom_instructions:
-            custom_instructions[
-                instruction_tuple[0].name] = instruction_tuple[0]
+            custom_instructions[instruction_tuple[0].name] = instruction_tuple[0]
         gate_class_name = instruction_tuple[0].name
 
     has_condition = False
-    condition_register = ''.encode('utf8')
+    condition_register = "".encode("utf8")
     condition_value = 0
     if instruction_tuple[0].condition:
         has_condition = True
-        condition_register = instruction_tuple[0].condition[0].name.encode(
-            'utf8')
+        condition_register = instruction_tuple[0].condition[0].name.encode("utf8")
         condition_value = instruction_tuple[0].condition[1]
 
-    gate_class_name = gate_class_name.encode('utf8')
-    instruction_raw = struct.pack(INSTRUCTION_PACK, len(gate_class_name),
-                                  len(instruction_tuple[0].params),
-                                  instruction_tuple[0].num_qubits,
-                                  instruction_tuple[0].num_clbits,
-                                  has_condition, len(condition_register),
-                                  condition_value)
+    gate_class_name = gate_class_name.encode("utf8")
+    instruction_raw = struct.pack(
+        INSTRUCTION_PACK,
+        len(gate_class_name),
+        len(instruction_tuple[0].params),
+        instruction_tuple[0].num_qubits,
+        instruction_tuple[0].num_clbits,
+        has_condition,
+        len(condition_register),
+        condition_value,
+    )
     file_obj.write(instruction_raw)
     file_obj.write(gate_class_name)
     file_obj.write(condition_register)
     # Encode instruciton args
     for qbit in instruction_tuple[1]:
-        instruction_arg_raw = struct.pack(INSTRUCTION_ARG_PACK,
-                                          'q'.encode('utf8'),
-                                          index_map['q'][qbit])
+        instruction_arg_raw = struct.pack(
+            INSTRUCTION_ARG_PACK, "q".encode("utf8"), index_map["q"][qbit]
+        )
         file_obj.write(instruction_arg_raw)
     for clbit in instruction_tuple[2]:
-        instruction_arg_raw = struct.pack(INSTRUCTION_ARG_PACK,
-                                          'c'.encode('utf8'),
-                                          index_map['c'][clbit])
+        instruction_arg_raw = struct.pack(
+            INSTRUCTION_ARG_PACK, "c".encode("utf8"), index_map["c"][clbit]
+        )
         file_obj.write(instruction_arg_raw)
     # Encode instruction params
     for param in instruction_tuple[0].params:
         container = io.BytesIO()
         if isinstance(param, int):
-            type_key = 'i'
-            data = struct.pack('<q', param)
-            size = struct.calcsize('<q')
+            type_key = "i"
+            data = struct.pack("<q", param)
+            size = struct.calcsize("<q")
         elif isinstance(param, float):
-            type_key = 'f'
-            data = struct.pack('<d', param)
-            size = struct.calcsize('<d')
+            type_key = "f"
+            data = struct.pack("<d", param)
+            size = struct.calcsize("<d")
         elif isinstance(param, Parameter):
-            type_key = 'p'
+            type_key = "p"
             _write_parameter(container, param)
             container.seek(0)
             data = container.read()
             size = len(data)
         elif isinstance(param, ParameterExpression):
-            type_key = 'e'
+            type_key = "e"
             _write_parameter_expression(container, param)
             container.seek(0)
             data = container.read()
             size = len(data)
         elif isinstance(param, (np.integer, np.floating, np.ndarray)):
-            type_key = 'n'
+            type_key = "n"
             np.save(container, param)
             container.seek(0)
             data = container.read()
             size = len(data)
         else:
-            raise TypeError("Invalid parameter type %s for gate %s," % (
-                instruction_tuple[0], type(param)))
-        instruction_param_raw = struct.pack(INSTRUCTION_PARAM_PACK,
-                                            type_key.encode('utf8'), size)
+            raise TypeError(
+                "Invalid parameter type %s for gate %s," % (instruction_tuple[0], type(param))
+            )
+        instruction_param_raw = struct.pack(INSTRUCTION_PARAM_PACK, type_key.encode("utf8"), size)
         file_obj.write(instruction_param_raw)
         file_obj.write(data)
         container.close()
@@ -700,9 +726,9 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
 
 def _write_custom_instruction(file_obj, name, instruction):
     if isinstance(instruction, Gate):
-        type_str = 'g'.encode('utf8')
+        type_str = "g".encode("utf8")
     else:
-        type_str = 'i'.encode('utf8')
+        type_str = "i".encode("utf8")
     has_definition = False
     size = 0
     data = None
@@ -716,11 +742,16 @@ def _write_custom_instruction(file_obj, name, instruction):
         data = definition_buffer.read()
         definition_buffer.close()
         size = len(data)
-    name_raw = name.encode('utf8')
-    custom_instruction_raw = struct.pack(CUSTOM_DEFINITION_PACK,
-                                         len(name_raw), type_str,
-                                         num_qubits, num_clbits,
-                                         has_definition, size)
+    name_raw = name.encode("utf8")
+    custom_instruction_raw = struct.pack(
+        CUSTOM_DEFINITION_PACK,
+        len(name_raw),
+        type_str,
+        num_qubits,
+        num_clbits,
+        has_definition,
+        size,
+    )
     file_obj.write(custom_instruction_raw)
     file_obj.write(name_raw)
     if data:
@@ -772,64 +803,63 @@ def dump(file_obj, circuits):
     """
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
-    version_parts = [int(x) for x in __version__.split('.')[0:3]]
-    header = struct.pack(FILE_HEADER_PACK, 'QISKIT'.encode('utf8'), 1,
-                         version_parts[0], version_parts[1], version_parts[2],
-                         len(circuits))
+    version_parts = [int(x) for x in __version__.split(".")[0:3]]
+    header = struct.pack(
+        FILE_HEADER_PACK,
+        "QISKIT".encode("utf8"),
+        1,
+        version_parts[0],
+        version_parts[1],
+        version_parts[2],
+        len(circuits),
+    )
     file_obj.write(header)
     for circuit in circuits:
         _write_circuit(file_obj, circuit)
 
 
 def _write_circuit(file_obj, circuit):
-    metadata_raw = json.dumps(circuit.metadata,
-                              separators=(',', ':')).encode('utf8')
+    metadata_raw = json.dumps(circuit.metadata, separators=(",", ":")).encode("utf8")
     metadata_size = len(metadata_raw)
     num_registers = len(circuit.qregs) + len(circuit.cregs)
     num_instructions = len(circuit)
-    circuit_name = circuit.name.encode('utf8')
-    header_raw = HEADER(name_size=len(circuit_name),
-                        global_phase=circuit.global_phase,
-                        num_qubits=circuit.num_qubits,
-                        num_clbits=circuit.num_clbits,
-                        metadata_size=metadata_size,
-                        num_registers=num_registers,
-                        num_instructions=num_instructions)
+    circuit_name = circuit.name.encode("utf8")
+    header_raw = HEADER(
+        name_size=len(circuit_name),
+        global_phase=circuit.global_phase,
+        num_qubits=circuit.num_qubits,
+        num_clbits=circuit.num_clbits,
+        metadata_size=metadata_size,
+        num_registers=num_registers,
+        num_instructions=num_instructions,
+    )
     header = struct.pack(HEADER_PACK, *header_raw)
     file_obj.write(header)
     file_obj.write(circuit_name)
     file_obj.write(metadata_raw)
-    qubit_indices = {bit: index
-                     for index, bit in enumerate(circuit.qubits)}
-    clbit_indices = {bit: index
-                     for index, bit in enumerate(circuit.clbits)}
+    qubit_indices = {bit: index for index, bit in enumerate(circuit.qubits)}
+    clbit_indices = {bit: index for index, bit in enumerate(circuit.clbits)}
     if num_registers > 0:
         for reg in circuit.qregs:
-            reg_name = reg.name.encode('utf8')
-            file_obj.write(struct.pack(REGISTER_PACK, 'q'.encode('utf8'),
-                                       reg.size, len(reg_name)))
+            reg_name = reg.name.encode("utf8")
+            file_obj.write(struct.pack(REGISTER_PACK, "q".encode("utf8"), reg.size, len(reg_name)))
             file_obj.write(reg_name)
             REGISTER_ARRAY_PACK = "%sI" % reg.size
-            file_obj.write(struct.pack(REGISTER_ARRAY_PACK,
-                                       *[qubit_indices[bit] for bit in reg]))
+            file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *[qubit_indices[bit] for bit in reg]))
         for reg in circuit.cregs:
-            reg_name = reg.name.encode('utf8')
-            file_obj.write(struct.pack(REGISTER_PACK, 'c'.encode('utf8'),
-                                       reg.size, len(reg_name)))
+            reg_name = reg.name.encode("utf8")
+            file_obj.write(struct.pack(REGISTER_PACK, "c".encode("utf8"), reg.size, len(reg_name)))
             file_obj.write(reg_name)
             REGISTER_ARRAY_PACK = "%sI" % reg.size
-            file_obj.write(struct.pack(REGISTER_ARRAY_PACK,
-                                       *[clbit_indices[bit] for bit in reg]))
+            file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *[clbit_indices[bit] for bit in reg]))
     instruction_buffer = io.BytesIO()
     custom_instructions = {}
     index_map = {}
-    index_map['q'] = qubit_indices
-    index_map['c'] = clbit_indices
+    index_map["q"] = qubit_indices
+    index_map["c"] = clbit_indices
     for instruction in circuit.data:
-        _write_instruction(instruction_buffer, instruction,
-                           custom_instructions, index_map)
-    file_obj.write(struct.pack(CUSTOM_DEFINITION_HEADER_PACK,
-                               len(custom_instructions)))
+        _write_instruction(instruction_buffer, instruction, custom_instructions, index_map)
+    file_obj.write(struct.pack(CUSTOM_DEFINITION_HEADER_PACK, len(custom_instructions)))
 
     for name, instruction in custom_instructions.items():
         _write_custom_instruction(file_obj, name, instruction)
@@ -878,22 +908,29 @@ def load(file_obj):
     """
     file_header_raw = file_obj.read(FILE_HEADER_SIZE)
     file_header = struct.unpack(FILE_HEADER_PACK, file_header_raw)
-    if file_header[0].decode('utf8') != 'QISKIT':
-        raise QiskitError('Input file is not a valid QPY file')
-    version_parts = [int(x) for x in __version__.split('.')[0:3]]
+    if file_header[0].decode("utf8") != "QISKIT":
+        raise QiskitError("Input file is not a valid QPY file")
+    version_parts = [int(x) for x in __version__.split(".")[0:3]]
     header_version_parts = [file_header[2], file_header[3], file_header[4]]
-    if version_parts[0] < header_version_parts[0] or (
-            version_parts[0] == header_version_parts[0] and
-            header_version_parts[1] > version_parts[1]) or (
-                version_parts[0] == header_version_parts[0] and
-                header_version_parts[1] == version_parts[1] and
-                header_version_parts[2] > version_parts[2]):
-        warnings.warn('The qiskit version used to generate the provided QPY '
-                      'file, %s, is newer than the current qiskit version %s. '
-                      'This may result in an error if the QPY file uses '
-                      'instructions not present in this current qiskit '
-                      'version' % ('.'.join(header_version_parts),
-                                   __version__))
+    if (
+        version_parts[0] < header_version_parts[0]
+        or (
+            version_parts[0] == header_version_parts[0]
+            and header_version_parts[1] > version_parts[1]
+        )
+        or (
+            version_parts[0] == header_version_parts[0]
+            and header_version_parts[1] == version_parts[1]
+            and header_version_parts[2] > version_parts[2]
+        )
+    ):
+        warnings.warn(
+            "The qiskit version used to generate the provided QPY "
+            "file, %s, is newer than the current qiskit version %s. "
+            "This may result in an error if the QPY file uses "
+            "instructions not present in this current qiskit "
+            "version" % (".".join(header_version_parts), __version__)
+        )
     circuits = []
     for _ in range(file_header[5]):
         circuits.append(_read_circuit(file_obj))
@@ -904,27 +941,28 @@ def _read_circuit(file_obj):
     header, name, metadata = _read_header(file_obj)
     registers = {}
     if header[5] > 0:
-        circ = QuantumCircuit(name=name,
-                              global_phase=header[1],
-                              metadata=metadata)
+        circ = QuantumCircuit(name=name, global_phase=header[1], metadata=metadata)
         registers = _read_registers(file_obj, header[5])
-        for qreg in registers['q'].values():
-            min_index = min(qreg['index_map'].keys())
+        for qreg in registers["q"].values():
+            min_index = min(qreg["index_map"].keys())
             qubits = [Qubit() for i in range(min_index - len(circ.qubits))]
             if qubits:
                 circ.add_bits(qubits)
-            circ.add_register(qreg['register'])
-        for creg in registers['c'].values():
-            min_index = min(creg['index_map'].keys())
+            circ.add_register(qreg["register"])
+        for creg in registers["c"].values():
+            min_index = min(creg["index_map"].keys())
             clbits = [Clbit() for i in range(min_index - len(circ.clbits))]
             if clbits:
                 circ.add_bits(clbits)
-            circ.add_register(creg['register'])
+            circ.add_register(creg["register"])
     else:
-        circ = QuantumCircuit(header[2], header[3],
-                              name=header[0].decode('utf8').rstrip('\x00'),
-                              global_phase=header[1],
-                              metadata=metadata)
+        circ = QuantumCircuit(
+            header[2],
+            header[3],
+            name=header[0].decode("utf8").rstrip("\x00"),
+            global_phase=header[1],
+            metadata=metadata,
+        )
     custom_instructions = _read_custom_instructions(file_obj)
     for _instruction in range(header[6]):
         _read_instruction(file_obj, circ, registers, custom_instructions)

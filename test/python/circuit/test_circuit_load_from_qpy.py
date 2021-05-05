@@ -31,13 +31,19 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_qpy_full_path(self):
         """Test full path qpy serialization for basic circuit."""
-        qr_a = QuantumRegister(4, 'a')
-        qr_b = QuantumRegister(4, 'b')
-        cr_c = ClassicalRegister(4, 'c')
-        cr_d = ClassicalRegister(4, 'd')
-        q_circuit = QuantumCircuit(qr_a, qr_b, cr_c, cr_d, name='MyCircuit',
-                                   metadata={'test': 1, 'a': 2},
-                                   global_phase=3.14159)
+        qr_a = QuantumRegister(4, "a")
+        qr_b = QuantumRegister(4, "b")
+        cr_c = ClassicalRegister(4, "c")
+        cr_d = ClassicalRegister(4, "d")
+        q_circuit = QuantumCircuit(
+            qr_a,
+            qr_b,
+            cr_c,
+            cr_d,
+            name="MyCircuit",
+            metadata={"test": 1, "a": 2},
+            global_phase=3.14159,
+        )
         q_circuit.h(qr_a)
         q_circuit.cx(qr_a, qr_b)
         q_circuit.barrier(qr_a)
@@ -116,7 +122,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_opaque_gate(self):
         """Test that custom opaque gate is correctly serialized"""
-        custom_gate = Gate('black_box', 1, [])
+        custom_gate = Gate("black_box", 1, [])
         qc = QuantumCircuit(1)
         qc.append(custom_gate, [0])
         qpy_file = io.BytesIO()
@@ -127,7 +133,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_opaque_instruction(self):
         """Test that custom opaque instruction is correctly serialized"""
-        custom_gate = Instruction('black_box', 1, 0, [])
+        custom_gate = Instruction("black_box", 1, 0, [])
         qc = QuantumCircuit(1)
         qc.append(custom_gate, [0])
         qpy_file = io.BytesIO()
@@ -138,7 +144,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_custom_gate(self):
         """Test that custom  gate is correctly serialized"""
-        custom_gate = Gate('black_box', 1, [])
+        custom_gate = Gate("black_box", 1, [])
         custom_definition = QuantumCircuit(1)
         custom_definition.h(0)
         custom_definition.rz(1.5, 0)
@@ -156,7 +162,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_custom_instruction(self):
         """Test that custom instruction is correctly serialized"""
-        custom_gate = Instruction('black_box', 1, 0, [])
+        custom_gate = Instruction("black_box", 1, 0, [])
         custom_definition = QuantumCircuit(1)
         custom_definition.h(0)
         custom_definition.rz(1.5, 0)
@@ -173,7 +179,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_parameter(self):
         """Test that a circuit with a parameter is correctly serialized."""
-        theta = Parameter('theta')
+        theta = Parameter("theta")
         qc = QuantumCircuit(5, 1)
         qc.h(0)
         for i in range(4):
@@ -192,12 +198,11 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
-        self.assertEqual(qc.bind_parameters({theta: 3.14}),
-                         new_circ.bind_parameters({theta: 3.14}))
+        self.assertEqual(qc.bind_parameters({theta: 3.14}), new_circ.bind_parameters({theta: 3.14}))
 
     def test_bound_parameter(self):
         """Test a circuit with a bound parameter is correctly serialized."""
-        theta = Parameter('theta')
+        theta = Parameter("theta")
         qc = QuantumCircuit(5, 1)
         qc.h(0)
         for i in range(4):
@@ -220,8 +225,8 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_parameter_expression(self):
         """Test a circuit with a parameter expression."""
-        theta = Parameter('theta')
-        phi = Parameter('phi')
+        theta = Parameter("theta")
+        phi = Parameter("phi")
         sum_param = theta + phi
         qc = QuantumCircuit(5, 1)
         qc.h(0)
@@ -248,9 +253,9 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test multiple circuits can be serialized together."""
         circuits = []
         for i in range(10):
-            circuits.append(random_circuit(10, 10, measure=True,
-                                           conditional=True, reset=True,
-                                           seed=42 + i))
+            circuits.append(
+                random_circuit(10, 10, measure=True, conditional=True, reset=True, seed=42 + i)
+            )
         qpy_file = io.BytesIO()
         dump(qpy_file, circuits)
         qpy_file.seek(0)
