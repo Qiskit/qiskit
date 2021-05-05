@@ -17,7 +17,7 @@ import numpy
 from qiskit.opflow import SummedOp
 
 
-class PhaseEstimationScale():
+class PhaseEstimationScale:
     """Set and use a bound on eigenvalues of a Hermitian operator in order to ensure phases are in
     the desired range and to convert measured phases into eigenvectors.
 
@@ -92,8 +92,9 @@ class PhaseEstimationScale():
             return (phi - 1) * w + id_coefficient
 
     # pylint: disable=unsubscriptable-object
-    def scale_phases(self, phases: Union[List, Dict], id_coefficient: float = 0.0
-                     ) -> Union[Dict, List]:
+    def scale_phases(
+        self, phases: Union[List, Dict], id_coefficient: float = 0.0
+    ) -> Union[Dict, List]:
         """Convert a list or dict of phases to eigenvalues.
 
         The values in the list, or keys in the dict, are values of ``phi` and
@@ -115,7 +116,7 @@ class PhaseEstimationScale():
         return phases
 
     @classmethod
-    def from_pauli_sum(cls, pauli_sum: SummedOp) -> 'PhaseEstimationScale':
+    def from_pauli_sum(cls, pauli_sum: SummedOp) -> "PhaseEstimationScale":
         """Create a PhaseEstimationScale from a `SummedOp` representing a sum of Pauli Operators.
 
         It is assumed that the ``pauli_sum`` is the sum of ``PauliOp`` objects. The bound on
@@ -132,10 +133,12 @@ class PhaseEstimationScale():
         Returns:
             A ``PhaseEstimationScale`` object
         """
-        if pauli_sum.primitive_strings() != {'Pauli'}:
+        if pauli_sum.primitive_strings() != {"Pauli"}:
             raise ValueError(
-                '`pauli_sum` must be a sum of Pauli operators. Got primitives {}.'.format(
-                    pauli_sum.primitive_strings()))
+                "`pauli_sum` must be a sum of Pauli operators. Got primitives {}.".format(
+                    pauli_sum.primitive_strings()
+                )
+            )
 
         bound = abs(pauli_sum.coeff) * sum(abs(pauli.coeff) for pauli in pauli_sum)
         return PhaseEstimationScale(bound)

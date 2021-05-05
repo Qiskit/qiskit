@@ -60,7 +60,7 @@ class U3Gate(Gate):
 
     def __init__(self, theta, phi, lam, label=None):
         """Create new U3 gate."""
-        super().__init__('u3', 1, [theta, phi, lam], label=label)
+        super().__init__("u3", 1, [theta, phi, lam], label=label)
 
     def inverse(self):
         r"""Return inverted U3 gate.
@@ -89,7 +89,8 @@ class U3Gate(Gate):
 
     def _define(self):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
         qc.u(self.params[0], self.params[1], self.params[2], 0)
         self.definition = qc
@@ -100,10 +101,13 @@ class U3Gate(Gate):
         theta, phi, lam = float(theta), float(phi), float(lam)
         cos = numpy.cos(theta / 2)
         sin = numpy.sin(theta / 2)
-        return numpy.array([
-            [cos, -numpy.exp(1j * lam) * sin],
-            [numpy.exp(1j * phi) * sin, numpy.exp(1j * (phi + lam)) * cos]
-        ], dtype=dtype)
+        return numpy.array(
+            [
+                [cos, -numpy.exp(1j * lam) * sin],
+                [numpy.exp(1j * phi) * sin, numpy.exp(1j * (phi + lam)) * cos],
+            ],
+            dtype=dtype,
+        )
 
 
 class CU3Gate(ControlledGate):
@@ -167,9 +171,15 @@ class CU3Gate(ControlledGate):
 
     def __init__(self, theta, phi, lam, label=None, ctrl_state=None):
         """Create new CU3 gate."""
-        super().__init__('cu3', 2, [theta, phi, lam], num_ctrl_qubits=1,
-                         label=label, ctrl_state=ctrl_state,
-                         base_gate=U3Gate(theta, phi, lam))
+        super().__init__(
+            "cu3",
+            2,
+            [theta, phi, lam],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=U3Gate(theta, phi, lam),
+        )
 
     def _define(self):
         """
@@ -186,7 +196,8 @@ class CU3Gate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .x import CXGate  # pylint: disable=cyclic-import
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
@@ -194,7 +205,7 @@ class CU3Gate(ControlledGate):
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
+            (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -207,10 +218,7 @@ class CU3Gate(ControlledGate):
         :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda)`)
         """
         return CU3Gate(
-            -self.params[0],
-            -self.params[2],
-            -self.params[1],
-            ctrl_state=self.ctrl_state
+            -self.params[0], -self.params[2], -self.params[1], ctrl_state=self.ctrl_state
         )
 
     def __array__(self, dtype=None):
@@ -221,28 +229,34 @@ class CU3Gate(ControlledGate):
         sin = numpy.sin(theta / 2)
         if self.ctrl_state:
             return numpy.array(
-                [[1, 0, 0, 0],
-                 [0, cos, 0, -numpy.exp(1j * lam) * sin],
-                 [0, 0, 1, 0],
-                 [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
-                dtype=dtype)
+                [
+                    [1, 0, 0, 0],
+                    [0, cos, 0, -numpy.exp(1j * lam) * sin],
+                    [0, 0, 1, 0],
+                    [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi + lam)) * cos],
+                ],
+                dtype=dtype,
+            )
         else:
             return numpy.array(
-                [[cos, 0, -numpy.exp(1j * lam) * sin, 0],
-                 [0, 1, 0, 0],
-                 [numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos, 0],
-                 [0, 0, 0, 1]],
-                dtype=dtype)
+                [
+                    [cos, 0, -numpy.exp(1j * lam) * sin, 0],
+                    [0, 1, 0, 0],
+                    [numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi + lam)) * cos, 0],
+                    [0, 0, 0, 1],
+                ],
+                dtype=dtype,
+            )
 
 
 def _generate_gray_code(num_bits):
     """Generate the gray code for ``num_bits`` bits."""
     if num_bits <= 0:
-        raise ValueError('Cannot generate the gray code for less than 1 bit.')
+        raise ValueError("Cannot generate the gray code for less than 1 bit.")
     result = [0]
     for i in range(num_bits):
-        result += [x + 2**i for x in reversed(result)]
-    return [format(x, '0%sb' % num_bits) for x in result]
+        result += [x + 2 ** i for x in reversed(result)]
+    return [format(x, "0%sb" % num_bits) for x in result]
 
 
 def _gray_code_chain(q, num_ctrl_qubits, gate):
@@ -260,12 +274,12 @@ def _gray_code_chain(q, num_ctrl_qubits, gate):
     last_pattern = None
 
     for pattern in gray_code:
-        if '1' not in pattern:
+        if "1" not in pattern:
             continue
         if last_pattern is None:
             last_pattern = pattern
         # find left most set bit
-        lm_pos = list(pattern).index('1')
+        lm_pos = list(pattern).index("1")
 
         # find changed bit
         comp = [i != j for i, j in zip(pattern, last_pattern)]
@@ -275,25 +289,17 @@ def _gray_code_chain(q, num_ctrl_qubits, gate):
             pos = None
         if pos is not None:
             if pos != lm_pos:
-                rule.append(
-                    (CXGate(), [q_controls[pos], q_controls[lm_pos]], [])
-                )
+                rule.append((CXGate(), [q_controls[pos], q_controls[lm_pos]], []))
             else:
-                indices = [i for i, x in enumerate(pattern) if x == '1']
+                indices = [i for i, x in enumerate(pattern) if x == "1"]
                 for idx in indices[1:]:
-                    rule.append(
-                        (CXGate(), [q_controls[idx], q_controls[lm_pos]], [])
-                    )
+                    rule.append((CXGate(), [q_controls[idx], q_controls[lm_pos]], []))
         # check parity
-        if pattern.count('1') % 2 == 0:
+        if pattern.count("1") % 2 == 0:
             # inverse
-            rule.append(
-                (gate.inverse(), [q_controls[lm_pos], q_target], [])
-            )
+            rule.append((gate.inverse(), [q_controls[lm_pos], q_target], []))
         else:
-            rule.append(
-                (gate, [q_controls[lm_pos], q_target], [])
-            )
+            rule.append((gate, [q_controls[lm_pos], q_target], []))
         last_pattern = pattern
 
     return rule
