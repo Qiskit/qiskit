@@ -31,13 +31,6 @@ from ..state_fns import StateFn, OperatorStateFn
 
 OperatorType = Union[StateFn, PrimitiveOp, ListOp]
 
-try:
-    import symengine
-
-    HAS_SYMENGINE = True
-except ImportError:
-    HAS_SYMENGINE = False
-
 
 class DerivativeBase(ConverterBase):
     r"""Base class for differentiating opflow objects.
