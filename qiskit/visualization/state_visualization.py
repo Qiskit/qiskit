@@ -688,7 +688,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     from matplotlib import pyplot as plt
     from matplotlib.patches import Circle
     from matplotlib import get_backend
-    from visualization.bloch import Arrow3D
+    from qiskit.visualization.bloch import Arrow3D
 
     try:
         import seaborn as sns
