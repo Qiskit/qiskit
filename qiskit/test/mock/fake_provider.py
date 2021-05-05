@@ -35,8 +35,7 @@ class FakeProvider(ProviderV1):
     def get_backend(self, name=None, **kwargs):
         backend = self._backends[0]
         if name:
-            filtered_backends = [backend for backend in self._backends
-                                 if backend.name() == name]
+            filtered_backends = [backend for backend in self._backends if backend.name() == name]
             if not filtered_backends:
                 raise QiskitBackendNotFoundError()
 
@@ -48,44 +47,46 @@ class FakeProvider(ProviderV1):
         return self._backends
 
     def __init__(self):
-        self._backends = [FakeAlmaden(),
-                          FakeArmonk(),
-                          FakeAthens(),
-                          FakeBelem(),
-                          FakeBoeblingen(),
-                          FakeBogota(),
-                          FakeBurlington(),
-                          FakeCambridge(),
-                          FakeCambridgeAlternativeBasis(),
-                          FakeCasablanca(),
-                          FakeEssex(),
-                          FakeGuadalupe(),
-                          FakeJohannesburg(),
-                          FakeLima(),
-                          FakeLondon(),
-                          FakeManhattan(),
-                          FakeMelbourne(),
-                          FakeMontreal(),
-                          FakeMumbai(),
-                          FakeOpenPulse2Q(),
-                          FakeOpenPulse3Q(),
-                          FakeOurense(),
-                          FakeParis(),
-                          FakePoughkeepsie(),
-                          FakeQasmSimulator(),
-                          FakeQuito(),
-                          FakeRochester(),
-                          FakeRome(),
-                          FakeRueschlikon(),
-                          FakeSantiago(),
-                          FakeSingapore(),
-                          FakeSydney(),
-                          FakeTenerife(),
-                          FakeTokyo(),
-                          FakeToronto(),
-                          FakeValencia(),
-                          FakeVigo(),
-                          FakeYorktown()]
+        self._backends = [
+            FakeAlmaden(),
+            FakeArmonk(),
+            FakeAthens(),
+            FakeBelem(),
+            FakeBoeblingen(),
+            FakeBogota(),
+            FakeBurlington(),
+            FakeCambridge(),
+            FakeCambridgeAlternativeBasis(),
+            FakeCasablanca(),
+            FakeEssex(),
+            FakeGuadalupe(),
+            FakeJohannesburg(),
+            FakeLima(),
+            FakeLondon(),
+            FakeManhattan(),
+            FakeMelbourne(),
+            FakeMontreal(),
+            FakeMumbai(),
+            FakeOpenPulse2Q(),
+            FakeOpenPulse3Q(),
+            FakeOurense(),
+            FakeParis(),
+            FakePoughkeepsie(),
+            FakeQasmSimulator(),
+            FakeQuito(),
+            FakeRochester(),
+            FakeRome(),
+            FakeRueschlikon(),
+            FakeSantiago(),
+            FakeSingapore(),
+            FakeSydney(),
+            FakeTenerife(),
+            FakeTokyo(),
+            FakeToronto(),
+            FakeValencia(),
+            FakeVigo(),
+            FakeYorktown(),
+        ]
 
         super().__init__()
 
@@ -139,8 +140,7 @@ class FakeLegacyProvider(BaseProvider):
     def get_backend(self, name=None, **kwargs):
         backend = self._backends[0]
         if name:
-            filtered_backends = [backend for backend in self._backends
-                                 if backend.name() == name]
+            filtered_backends = [backend for backend in self._backends if backend.name() == name]
             if not filtered_backends:
                 raise QiskitBackendNotFoundError()
 
@@ -152,39 +152,41 @@ class FakeLegacyProvider(BaseProvider):
         return self._backends
 
     def __init__(self):
-        self._backends = [FakeLegacyAlmaden(),
-                          FakeLegacyArmonk(),
-                          FakeLegacyAthens(),
-                          FakeLegacyBelem(),
-                          FakeLegacyBoeblingen(),
-                          FakeLegacyBogota(),
-                          FakeLegacyBurlington(),
-                          FakeLegacyCambridge(),
-                          FakeLegacyCambridgeAlternativeBasis(),
-                          FakeLegacyCasablanca(),
-                          FakeLegacyEssex(),
-                          FakeLegacyJohannesburg(),
-                          FakeLegacyLima(),
-                          FakeLegacyLondon(),
-                          FakeLegacyManhattan(),
-                          FakeLegacyMelbourne(),
-                          FakeLegacyMontreal(),
-                          FakeLegacyMumbai(),
-                          FakeLegacyOurense(),
-                          FakeLegacyParis(),
-                          FakeLegacyPoughkeepsie(),
-                          FakeLegacyQuito(),
-                          FakeLegacyRochester(),
-                          FakeLegacyRome(),
-                          FakeLegacyRueschlikon(),
-                          FakeLegacySantiago(),
-                          FakeLegacySingapore(),
-                          FakeLegacySydney(),
-                          FakeLegacyTenerife(),
-                          FakeLegacyTokyo(),
-                          FakeLegacyToronto(),
-                          FakeLegacyValencia(),
-                          FakeLegacyVigo(),
-                          FakeLegacyYorktown()]
+        self._backends = [
+            FakeLegacyAlmaden(),
+            FakeLegacyArmonk(),
+            FakeLegacyAthens(),
+            FakeLegacyBelem(),
+            FakeLegacyBoeblingen(),
+            FakeLegacyBogota(),
+            FakeLegacyBurlington(),
+            FakeLegacyCambridge(),
+            FakeLegacyCambridgeAlternativeBasis(),
+            FakeLegacyCasablanca(),
+            FakeLegacyEssex(),
+            FakeLegacyJohannesburg(),
+            FakeLegacyLima(),
+            FakeLegacyLondon(),
+            FakeLegacyManhattan(),
+            FakeLegacyMelbourne(),
+            FakeLegacyMontreal(),
+            FakeLegacyMumbai(),
+            FakeLegacyOurense(),
+            FakeLegacyParis(),
+            FakeLegacyPoughkeepsie(),
+            FakeLegacyQuito(),
+            FakeLegacyRochester(),
+            FakeLegacyRome(),
+            FakeLegacyRueschlikon(),
+            FakeLegacySantiago(),
+            FakeLegacySingapore(),
+            FakeLegacySydney(),
+            FakeLegacyTenerife(),
+            FakeLegacyTokyo(),
+            FakeLegacyToronto(),
+            FakeLegacyValencia(),
+            FakeLegacyVigo(),
+            FakeLegacyYorktown(),
+        ]
 
         super().__init__()

@@ -30,14 +30,16 @@ class COBYLA(Optimizer):
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    _OPTIONS = ['maxiter', 'disp', 'rhobeg']
+    _OPTIONS = ["maxiter", "disp", "rhobeg"]
 
     # pylint: disable=unused-argument
-    def __init__(self,
-                 maxiter: int = 1000,
-                 disp: bool = False,
-                 rhobeg: float = 1.0,
-                 tol: Optional[float] = None) -> None:
+    def __init__(
+        self,
+        maxiter: int = 1000,
+        disp: bool = False,
+        rhobeg: float = 1.0,
+        tol: Optional[float] = None,
+    ) -> None:
         """
         Args:
             maxiter: Maximum number of function evaluations.
@@ -53,18 +55,26 @@ class COBYLA(Optimizer):
         self._tol = tol
 
     def get_support_level(self):
-        """ Return support level dictionary """
+        """Return support level dictionary"""
         return {
-            'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.ignored,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.ignored,
+            "bounds": OptimizerSupportLevel.ignored,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function,
-                         variable_bounds, initial_point)
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
 
-        res = minimize(objective_function, initial_point, tol=self._tol,
-                       method="COBYLA", options=self._options)
+        res = minimize(
+            objective_function, initial_point, tol=self._tol, method="COBYLA", options=self._options
+        )
         return res.x, res.fun, res.nfev

@@ -40,14 +40,15 @@ logger = logging.getLogger(__name__)
 class VariationalAlgorithm:
     """The Variational Algorithm Base Class."""
 
-    def __init__(self,
-                 ansatz: QuantumCircuit,
-                 optimizer: Optimizer,
-                 cost_fn: Optional[Callable] = None,
-                 gradient: Optional[Union[GradientBase, Callable]] = None,
-                 initial_point: Optional[np.ndarray] = None,
-                 quantum_instance: Optional[
-                     Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
+    def __init__(
+        self,
+        ansatz: QuantumCircuit,
+        optimizer: Optimizer,
+        cost_fn: Optional[Callable] = None,
+        gradient: Optional[Union[GradientBase, Callable]] = None,
+        initial_point: Optional[np.ndarray] = None,
+        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+    ) -> None:
         """
         Args:
             ansatz: An optional parameterized ansatz (a.k.a. variational form).
@@ -67,7 +68,7 @@ class VariationalAlgorithm:
             self.quantum_instance = quantum_instance
 
         if optimizer is None:
-            logger.info('No optimizer provided, setting it to SLSPQ.')
+            logger.info("No optimizer provided, setting it to SLSPQ.")
             optimizer = SLSQP()
 
         self._optimizer = optimizer
@@ -83,25 +84,26 @@ class VariationalAlgorithm:
 
     @property
     def quantum_instance(self) -> Optional[QuantumInstance]:
-        """ Returns quantum instance. """
+        """Returns quantum instance."""
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
-                                                       BaseBackend, Backend]) -> None:
-        """ Sets quantum instance. """
+    def quantum_instance(
+        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
+    ) -> None:
+        """Sets quantum instance."""
         if isinstance(quantum_instance, (BaseBackend, Backend)):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
     @property
     def ansatz(self) -> Optional[QuantumCircuit]:
-        """ Returns the ansatz """
+        """Returns the ansatz"""
         return self._ansatz
 
     @ansatz.setter
     def ansatz(self, ansatz: Optional[QuantumCircuit]):
-        """ Sets the ansatz """
+        """Sets the ansatz"""
         if isinstance(ansatz, QuantumCircuit):
             # store the parameters
             self._ansatz_params = sorted(ansatz.parameters, key=lambda p: p.name)
@@ -114,30 +116,32 @@ class VariationalAlgorithm:
 
     @property
     def optimizer(self) -> Optional[Optimizer]:
-        """ Returns optimizer """
+        """Returns optimizer"""
         return self._optimizer
 
     @optimizer.setter
     def optimizer(self, optimizer: Optimizer):
-        """ Sets optimizer """
+        """Sets optimizer"""
         self._optimizer = optimizer
 
     @property
     def initial_point(self) -> Optional[np.ndarray]:
-        """ Returns initial point """
+        """Returns initial point"""
         return self._initial_point
 
     @initial_point.setter
     def initial_point(self, initial_point: np.ndarray):
-        """ Sets initial point """
+        """Sets initial point"""
         self._initial_point = initial_point
 
-    def find_minimum(self,
-                     initial_point: Optional[np.ndarray] = None,
-                     ansatz: Optional[QuantumCircuit] = None,
-                     cost_fn: Optional[Callable] = None,
-                     optimizer: Optional[Optimizer] = None,
-                     gradient_fn: Optional[Callable] = None) -> 'VariationalResult':
+    def find_minimum(
+        self,
+        initial_point: Optional[np.ndarray] = None,
+        ansatz: Optional[QuantumCircuit] = None,
+        cost_fn: Optional[Callable] = None,
+        optimizer: Optional[Optimizer] = None,
+        gradient_fn: Optional[Callable] = None,
+    ) -> "VariationalResult":
         """Optimize to find the minimum cost value.
 
         Args:
@@ -163,40 +167,42 @@ class VariationalAlgorithm:
         optimizer = optimizer if optimizer is not None else self.optimizer
 
         if ansatz is None:
-            raise ValueError('Ansatz neither supplied to constructor nor find minimum.')
+            raise ValueError("Ansatz neither supplied to constructor nor find minimum.")
         if cost_fn is None:
-            raise ValueError('Cost function neither supplied to constructor nor find minimum.')
+            raise ValueError("Cost function neither supplied to constructor nor find minimum.")
         if optimizer is None:
-            raise ValueError('Optimizer neither supplied to constructor nor find minimum.')
+            raise ValueError("Optimizer neither supplied to constructor nor find minimum.")
 
         nparms = ansatz.num_parameters
 
-        if hasattr(ansatz, 'parameter_bounds') and ansatz.parameter_bounds is not None:
+        if hasattr(ansatz, "parameter_bounds") and ansatz.parameter_bounds is not None:
             bounds = ansatz.parameter_bounds
         else:
             bounds = [(None, None)] * nparms
 
         if initial_point is not None and len(initial_point) != nparms:
             raise ValueError(
-                'Initial point size {} and parameter size {} mismatch'.format(
-                    len(initial_point), nparms))
+                "Initial point size {} and parameter size {} mismatch".format(
+                    len(initial_point), nparms
+                )
+            )
         if len(bounds) != nparms:
-            raise ValueError('Ansatz bounds size does not match parameter size')
+            raise ValueError("Ansatz bounds size does not match parameter size")
         # If *any* value is *equal* in bounds array to None then the problem does *not* have bounds
         problem_has_bounds = not np.any(np.equal(bounds, None))
         # Check capabilities of the optimizer
         if problem_has_bounds:
             if not optimizer.is_bounds_supported:
-                raise ValueError('Problem has bounds but optimizer does not support bounds')
+                raise ValueError("Problem has bounds but optimizer does not support bounds")
         else:
             if optimizer.is_bounds_required:
-                raise ValueError('Problem does not have bounds but optimizer requires bounds')
+                raise ValueError("Problem does not have bounds but optimizer requires bounds")
         if initial_point is not None:
             if not optimizer.is_initial_point_supported:
-                raise ValueError('Optimizer does not support initial point')
+                raise ValueError("Optimizer does not support initial point")
         else:
             if optimizer.is_initial_point_required:
-                if hasattr(ansatz, 'preferred_init_points'):
+                if hasattr(ansatz, "preferred_init_points"):
                     # Note: default implementation returns None, hence check again after below
                     initial_point = ansatz.preferred_init_points
 
@@ -212,12 +218,14 @@ class VariationalAlgorithm:
             if not gradient_fn:
                 gradient_fn = self._gradient
 
-        logger.info('Starting optimizer.\nbounds=%s\ninitial point=%s', bounds, initial_point)
-        opt_params, opt_val, num_optimizer_evals = optimizer.optimize(nparms,
-                                                                      cost_fn,
-                                                                      variable_bounds=bounds,
-                                                                      initial_point=initial_point,
-                                                                      gradient_function=gradient_fn)
+        logger.info("Starting optimizer.\nbounds=%s\ninitial point=%s", bounds, initial_point)
+        opt_params, opt_val, num_optimizer_evals = optimizer.optimize(
+            nparms,
+            cost_fn,
+            variable_bounds=bounds,
+            initial_point=initial_point,
+            gradient_function=gradient_fn,
+        )
         eval_time = time.time() - start
 
         result = VariationalResult()
@@ -229,9 +237,10 @@ class VariationalAlgorithm:
 
         return result
 
-    def get_prob_vector_for_params(self, construct_circuit_fn, params_s,
-                                   quantum_instance, construct_circuit_args=None):
-        """ Helper function to get probability vectors for a set of params """
+    def get_prob_vector_for_params(
+        self, construct_circuit_fn, params_s, quantum_instance, construct_circuit_args=None
+    ):
+        """Helper function to get probability vectors for a set of params"""
         circuits = []
         for params in params_s:
             circuit = construct_circuit_fn(params, **construct_circuit_args)
@@ -250,7 +259,7 @@ class VariationalAlgorithm:
         return np.array(probs_s)
 
     def get_probabilities_for_counts(self, counts):
-        """ get probabilities for counts """
+        """get probabilities for counts"""
         shots = sum(counts.values())
         states = int(2 ** len(list(counts.keys())[0]))
         probs = np.zeros(states)
@@ -260,32 +269,32 @@ class VariationalAlgorithm:
 
     @abstractmethod
     def get_optimal_cost(self):
-        """ get optimal cost """
+        """get optimal cost"""
         raise NotImplementedError()
 
     @abstractmethod
     def get_optimal_circuit(self):
-        """ get optimal circuit """
+        """get optimal circuit"""
         raise NotImplementedError()
 
     @abstractmethod
     def get_optimal_vector(self):
-        """ get optimal vector """
+        """get optimal vector"""
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def optimal_params(self):
-        """ returns optimal parameters """
+        """returns optimal parameters"""
         raise NotImplementedError()
 
     def cleanup_parameterized_circuits(self):
-        """ set parameterized circuits to None """
+        """set parameterized circuits to None"""
         self._parameterized_circuits = None
 
 
 class VariationalResult(AlgorithmResult):
-    """ Variation Algorithm Result."""
+    """Variation Algorithm Result."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -297,50 +306,50 @@ class VariationalResult(AlgorithmResult):
 
     @property
     def optimizer_evals(self) -> Optional[int]:
-        """ Returns number of optimizer evaluations """
+        """Returns number of optimizer evaluations"""
         return self._optimizer_evals
 
     @optimizer_evals.setter
     def optimizer_evals(self, value: int) -> None:
-        """ Sets number of optimizer evaluations """
+        """Sets number of optimizer evaluations"""
         self._optimizer_evals = value
 
     @property
     def optimizer_time(self) -> Optional[float]:
-        """ Returns time taken for optimization """
+        """Returns time taken for optimization"""
         return self._optimizer_time
 
     @optimizer_time.setter
     def optimizer_time(self, value: float) -> None:
-        """ Sets time taken for optimization  """
+        """Sets time taken for optimization"""
         self._optimizer_time = value
 
     @property
     def optimal_value(self) -> Optional[float]:
-        """ Returns optimal value """
+        """Returns optimal value"""
         return self._optimal_value
 
     @optimal_value.setter
     def optimal_value(self, value: int) -> None:
-        """ Sets optimal value """
+        """Sets optimal value"""
         self._optimal_value = value
 
     @property
     def optimal_point(self) -> Optional[np.ndarray]:
-        """ Returns optimal point """
+        """Returns optimal point"""
         return self._optimal_point
 
     @optimal_point.setter
     def optimal_point(self, value: np.ndarray) -> None:
-        """ Sets optimal point """
+        """Sets optimal point"""
         self._optimal_point = value
 
     @property
     def optimal_parameters(self) -> Optional[Dict]:
-        """ Returns the optimal parameters in a dictionary """
+        """Returns the optimal parameters in a dictionary"""
         return self._optimal_parameters
 
     @optimal_parameters.setter
     def optimal_parameters(self, value: Dict) -> None:
-        """ Sets optimal parameters """
+        """Sets optimal parameters"""
         self._optimal_parameters = value

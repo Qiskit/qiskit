@@ -61,7 +61,7 @@ class UGate(Gate):
 
     def __init__(self, theta, phi, lam, label=None):
         """Create new U gate."""
-        super().__init__('u', 1, [theta, phi, lam], label=label)
+        super().__init__("u", 1, [theta, phi, lam], label=label)
 
     def inverse(self):
         r"""Return inverted U gate.
@@ -83,8 +83,14 @@ class UGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CUGate(self.params[0], self.params[1], self.params[2], 0,
-                          label=label, ctrl_state=ctrl_state)
+            gate = CUGate(
+                self.params[0],
+                self.params[1],
+                self.params[2],
+                0,
+                label=label,
+                ctrl_state=ctrl_state,
+            )
             gate.base_gate.label = self.label
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
@@ -92,16 +98,16 @@ class UGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the U gate."""
         theta, phi, lam = [float(param) for param in self.params]
-        return numpy.array([
+        return numpy.array(
             [
-                numpy.cos(theta / 2),
-                -numpy.exp(1j * lam) * numpy.sin(theta / 2)
+                [numpy.cos(theta / 2), -numpy.exp(1j * lam) * numpy.sin(theta / 2)],
+                [
+                    numpy.exp(1j * phi) * numpy.sin(theta / 2),
+                    numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2),
+                ],
             ],
-            [
-                numpy.exp(1j * phi) * numpy.sin(theta / 2),
-                numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2)
-            ]
-        ], dtype=dtype)
+            dtype=dtype,
+        )
 
 
 class CUGate(ControlledGate):
@@ -164,9 +170,15 @@ class CUGate(ControlledGate):
 
     def __init__(self, theta, phi, lam, gamma, label=None, ctrl_state=None):
         """Create new CU gate."""
-        super().__init__('cu', 2, [theta, phi, lam, gamma], num_ctrl_qubits=1,
-                         label=label, ctrl_state=ctrl_state,
-                         base_gate=UGate(theta, phi, lam))
+        super().__init__(
+            "cu",
+            2,
+            [theta, phi, lam, gamma],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=UGate(theta, phi, lam),
+        )
 
     def _define(self):
         """
@@ -182,7 +194,8 @@ class CUGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         qc.p(self.params[3], 0)
         qc.p((self.params[2] + self.params[1]) / 2, 0)
@@ -203,7 +216,7 @@ class CUGate(ControlledGate):
             -self.params[2],
             -self.params[1],
             -self.params[3],
-            ctrl_state=self.ctrl_state
+            ctrl_state=self.ctrl_state,
         )
 
     def __array__(self, dtype=None):
@@ -216,15 +229,13 @@ class CUGate(ControlledGate):
         c = numpy.exp(1j * (gamma + phi)) * sin
         d = numpy.exp(1j * (gamma + phi + lam)) * cos
         if self.ctrl_state:
-            return numpy.array([[1, 0, 0, 0],
-                                [0, a, 0, b],
-                                [0, 0, 1, 0],
-                                [0, c, 0, d]], dtype=dtype)
+            return numpy.array(
+                [[1, 0, 0, 0], [0, a, 0, b], [0, 0, 1, 0], [0, c, 0, d]], dtype=dtype
+            )
         else:
-            return numpy.array([[a, 0, b, 0],
-                                [0, 1, 0, 0],
-                                [c, 0, d, 0],
-                                [0, 0, 0, 1]], dtype=dtype)
+            return numpy.array(
+                [[a, 0, b, 0], [0, 1, 0, 0], [c, 0, d, 0], [0, 0, 0, 1]], dtype=dtype
+            )
 
     @property
     def params(self):
@@ -240,8 +251,7 @@ class CUGate(ControlledGate):
             # CU has one additional parameter to the U base gate
             return self.base_gate.params + self._params
         else:
-            raise CircuitError('Controlled gate does not define base gate '
-                               'for extracting params')
+            raise CircuitError("Controlled gate does not define base gate " "for extracting params")
 
     @params.setter
     def params(self, parameters):
@@ -258,5 +268,4 @@ class CUGate(ControlledGate):
         if self.base_gate:
             self.base_gate.params = parameters[:-1]
         else:
-            raise CircuitError('Controlled gate does not define base gate '
-                               'for extracting params')
+            raise CircuitError("Controlled gate does not define base gate " "for extracting params")
