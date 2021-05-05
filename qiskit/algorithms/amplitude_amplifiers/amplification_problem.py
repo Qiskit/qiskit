@@ -27,15 +27,17 @@ class AmplificationProblem:
     on the optimal bitstring.
     """
 
-    def __init__(self,
-                 oracle: Union[QuantumCircuit, Statevector],
-                 state_preparation: Optional[QuantumCircuit] = None,
-                 grover_operator: Optional[QuantumCircuit] = None,
-                 post_processing: Optional[Callable[[str], Any]] = None,
-                 objective_qubits: Optional[Union[int, List[int]]] = None,
-                 is_good_state: Optional[Union[
-                     Callable[[str], bool], List[int], List[str], Statevector]] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        oracle: Union[QuantumCircuit, Statevector],
+        state_preparation: Optional[QuantumCircuit] = None,
+        grover_operator: Optional[QuantumCircuit] = None,
+        post_processing: Optional[Callable[[str], Any]] = None,
+        objective_qubits: Optional[Union[int, List[int]]] = None,
+        is_good_state: Optional[
+            Union[Callable[[str], bool], List[int], List[str], Statevector]
+        ] = None,
+    ) -> None:
         r"""
         Args:
             oracle: The oracle reflecting about the bad states.
@@ -159,15 +161,17 @@ class AmplificationProblem:
             if all(isinstance(good_bitstr, str) for good_bitstr in self._is_good_state):
                 return lambda bitstr: bitstr in self._is_good_state
             else:
-                return lambda bitstr: all(bitstr[good_index] == '1'  # type:ignore
-                                          for good_index in self._is_good_state)
+                return lambda bitstr: all(
+                    bitstr[good_index] == "1"  # type:ignore
+                    for good_index in self._is_good_state
+                )
 
         return lambda bitstr: bitstr in self._is_good_state.probabilities_dict()
 
     @is_good_state.setter
-    def is_good_state(self,
-                      is_good_state: Union[Callable[[str], bool], List[int], List[str], Statevector]
-                      ) -> None:
+    def is_good_state(
+        self, is_good_state: Union[Callable[[str], bool], List[int], List[str], Statevector]
+    ) -> None:
         """Set the ``is_good_state`` function.
 
         Args:

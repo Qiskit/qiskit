@@ -23,11 +23,11 @@ class FaultyQubitBackendTestCase(QiskitTestCase):
     backend = FakeOurenseFaultyQ1()
 
     def test_operational_false(self):
-        """Test operation status of the qubit. Q1 is non-operational """
+        """Test operation status of the qubit. Q1 is non-operational"""
         self.assertFalse(self.backend.properties().is_qubit_operational(1))
 
     def test_faulty_qubits(self):
-        """Test faulty_qubits method. """
+        """Test faulty_qubits method."""
         self.assertEqual(self.backend.properties().faulty_qubits(), [1])
 
 
@@ -38,31 +38,32 @@ class FaultyGate13BackendTestCase(QiskitTestCase):
     backend = FakeOurenseFaultyCX13()
 
     def test_operational_gate(self):
-        """Test is_gate_operational method. """
-        self.assertFalse(self.backend.properties().is_gate_operational('cx', [1, 3]))
-        self.assertFalse(self.backend.properties().is_gate_operational('cx', [3, 1]))
+        """Test is_gate_operational method."""
+        self.assertFalse(self.backend.properties().is_gate_operational("cx", [1, 3]))
+        self.assertFalse(self.backend.properties().is_gate_operational("cx", [3, 1]))
 
     def test_faulty_gates(self):
-        """Test faulty_gates method. """
+        """Test faulty_gates method."""
         gates = self.backend.properties().faulty_gates()
         self.assertEqual(len(gates), 2)
-        self.assertEqual([gate.gate for gate in gates], ['cx', 'cx'])
+        self.assertEqual([gate.gate for gate in gates], ["cx", "cx"])
         self.assertEqual(sorted([gate.qubits for gate in gates]), [[1, 3], [3, 1]])
 
 
 class FaultyGate01BackendTestCase(QiskitTestCase):
     """Test operational-related methods of backend.properties() with FakeOurenseFaultyCX13,
     which is like FakeOurense but with a faulty CX(Q1, Q3) and symmetric."""
+
     backend = FakeOurenseFaultyCX01()
 
     def test_operational_gate(self):
-        """Test is_gate_operational method. """
-        self.assertFalse(self.backend.properties().is_gate_operational('cx', [0, 1]))
-        self.assertFalse(self.backend.properties().is_gate_operational('cx', [1, 0]))
+        """Test is_gate_operational method."""
+        self.assertFalse(self.backend.properties().is_gate_operational("cx", [0, 1]))
+        self.assertFalse(self.backend.properties().is_gate_operational("cx", [1, 0]))
 
     def test_faulty_gates(self):
-        """Test faulty_gates method. """
+        """Test faulty_gates method."""
         gates = self.backend.properties().faulty_gates()
         self.assertEqual(len(gates), 2)
-        self.assertEqual([gate.gate for gate in gates], ['cx', 'cx'])
+        self.assertEqual([gate.gate for gate in gates], ["cx", "cx"])
         self.assertEqual(sorted([gate.qubits for gate in gates]), [[0, 1], [1, 0]])
