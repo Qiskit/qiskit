@@ -511,9 +511,9 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_reverse_bits_condition(self):
         """Tests reverse_bits with a condition and gate above"""
-        cr = ClassicalRegister(2, 'cr')
-        cr2 = ClassicalRegister(1, 'cr2')
-        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(2, "cr")
+        cr2 = ClassicalRegister(1, "cr2")
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr, cr, cr2)
         circuit.h(0)
         circuit.h(1)
@@ -523,16 +523,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.measure(2, 1)
         circuit.x(2).c_if(cr, 2)
         self.circuit_drawer(
-            circuit,
-            cregbundle=False,
-            reverse_bits=True,
-            filename='reverse_bits_cond_true.png'
+            circuit, cregbundle=False, reverse_bits=True, filename="reverse_bits_cond_true.png"
         )
         self.circuit_drawer(
-            circuit,
-            cregbundle=False,
-            reverse_bits=False,
-            filename='reverse_bits_cond_false.png'
+            circuit, cregbundle=False, reverse_bits=False, filename="reverse_bits_cond_false.png"
         )
 
     def test_style_custom_gates(self):
