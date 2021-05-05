@@ -68,4 +68,4 @@ class XOR(QuantumCircuit):
                 inner.x(i)
 
         super().__init__(*inner.qregs, name="xor")
-        self.compose(inner.to_gate(), inplace=True)
+        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)

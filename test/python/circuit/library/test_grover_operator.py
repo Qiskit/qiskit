@@ -75,7 +75,7 @@ class TestGroverOperator(QiskitTestCase):
         oracle = QuantumCircuit(4)
         oracle.z(3)
         grover_op = GroverOperator(oracle, reflection_qubits=[0, 3])
-        dag = circuit_to_dag(grover_op)
+        dag = circuit_to_dag(grover_op.decompose())
         self.assertEqual(set(dag.idle_wires()),
                          {dag.qubits[1], dag.qubits[2]})
 
@@ -112,7 +112,7 @@ class TestGroverOperator(QiskitTestCase):
             expected.h(0)  # state_in is H
             expected.compose(zero_reflection, inplace=True)
             expected.h(0)
-            self.assertEqual(expected, grover_op)
+            self.assertEqual(expected, grover_op.decompose())
 
     def test_num_mcx_ancillas(self):
         """Test the number of ancilla bits for the mcx gate in zero_reflection."""

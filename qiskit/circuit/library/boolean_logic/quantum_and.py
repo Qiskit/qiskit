@@ -62,6 +62,9 @@ class AND(QuantumCircuit):
             flags: A list of +1/0/-1 marking negations or omissions of qubits.
             mcx_mode: The mode to be used to implement the multi-controlled X gate.
         """
+        self.num_variable_qubits = num_variable_qubits
+        self.flags = flags
+
         # add registers
         qr_variable = QuantumRegister(num_variable_qubits, name='variable')
         qr_result = QuantumRegister(1, name='result')
@@ -90,4 +93,4 @@ class AND(QuantumCircuit):
             inner.x(flip_qubits)
 
         super().__init__(*inner.qregs, name='and')
-        self.compose(inner.to_gate(), inplace=True)
+        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)

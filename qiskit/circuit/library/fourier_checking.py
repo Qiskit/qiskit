@@ -95,4 +95,4 @@ class FourierChecking(QuantumCircuit):
         inner.h(inner.qubits)
 
         super().__init__(*inner.qregs, name=inner.name)
-        self.compose(inner.to_gate(), inplace=True)
+        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)

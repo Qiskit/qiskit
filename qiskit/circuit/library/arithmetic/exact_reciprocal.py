@@ -53,4 +53,4 @@ class ExactReciprocal(QuantumCircuit):
         inner.compose(UCRYGate(angles), [qr_flag[0]] + qr_state[:], inplace=True)
 
         super().__init__(*inner.qregs, name=name)
-        self.compose(inner.to_gate(), inplace=True)
+        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)

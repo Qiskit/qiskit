@@ -112,4 +112,4 @@ class QuantumVolume(QuantumCircuit):
                     inner.compose(su4, [2*w, 2*w+1], inplace=True)
 
         super().__init__(*inner.qregs, name=inner.name)
-        self.compose(inner.to_instruction(), inplace=True)
+        self.compose(inner.to_instruction(), qubits=self.qubits, inplace=True)

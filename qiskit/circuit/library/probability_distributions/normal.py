@@ -205,7 +205,7 @@ class NormalDistribution(QuantumCircuit):
             inner.compose(circuit, inplace=True)
 
         super().__init__(*inner.qregs, name=name)
-        self.compose(inner.to_gate(), inplace=True)
+        self.compose(inner.to_instruction(), qubits=self.qubits, inplace=True)
 
     @property
     def values(self) -> np.ndarray:

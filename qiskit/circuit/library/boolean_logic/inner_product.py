@@ -45,4 +45,4 @@ class InnerProduct(QuantumCircuit):
             inner.cz(qr_a[i], qr_b[i])
 
         super().__init__(*inner.qregs, name='inner_product')
-        self.compose(inner.to_gate(), inplace=True)
+        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)

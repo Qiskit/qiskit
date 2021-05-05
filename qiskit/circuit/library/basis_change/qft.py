@@ -15,7 +15,7 @@
 from typing import Optional
 import numpy as np
 
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -232,11 +232,6 @@ class QFT(BlueprintCircuit):
         inverted._inverse = not self._inverse
         return inverted
 
-    def _swap_qubits(self):
-        num_qubits = self.num_qubits
-        for i in range(num_qubits // 2):
-            self.swap(i, num_qubits - i - 1)
-
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
         if self.num_qubits is None:
@@ -250,18 +245,28 @@ class QFT(BlueprintCircuit):
         """Construct the circuit representing the desired state vector."""
         super()._build()
 
-        for j in reversed(range(self.num_qubits)):
-            self.h(j)
-            num_entanglements = max(0, j-max(0, self.approximation_degree - (self.num_qubits-j-1)))
+        num_qubits = self.num_qubits
+
+        if num_qubits == 0:
+            return
+
+        inner = QuantumCircuit(*self.qregs, name=self.name)
+        for j in reversed(range(num_qubits)):
+            inner.h(j)
+            num_entanglements = max(0, j-max(0, self.approximation_degree - (num_qubits - j - 1)))
             for k in reversed(range(j - num_entanglements, j)):
                 lam = np.pi / (2 ** (j - k))
-                self.cp(lam, j, k)
+                inner.cp(lam, j, k)
 
             if self.insert_barriers:
-                self.barrier()
+                inner.barrier()
 
         if self._do_swaps:
-            self._swap_qubits()
+            for i in range(num_qubits // 2):
+                inner.swap(i, num_qubits - i - 1)
 
         if self._inverse:
-            self._data = super().inverse()
+            inner._data = inner.inverse()
+
+        wrapped = inner.to_instruction() if self.insert_barriers else inner.to_gate()
+        self.compose(wrapped, qubits=self.qubits, inplace=True)

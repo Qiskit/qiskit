@@ -266,7 +266,7 @@ class GroverOperator(QuantumCircuit):
         else:
             inner_wrapped = inner.to_gate()
 
-        self.compose(inner_wrapped, inplace=True)
+        self.compose(inner_wrapped, qubits=self.qubits, inplace=True)
 
 
 # TODO use the oracle compiler or the bit string oracle

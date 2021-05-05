@@ -154,10 +154,10 @@ class QuadraticForm(QuantumCircuit):
 
         # add the inverse QFT
         iqft = QFT(num_result_qubits, do_swaps=False).inverse().reverse_bits()
-        inner.compose(iqft, qubits=qr_result[:])
+        inner.compose(iqft, qubits=qr_result[:], inplace=True)
 
         super().__init__(*inner.qregs, name='Q(x)')
-        self.compose(inner.to_gate(), qubits=inner.qregs, inplace=True)
+        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)
 
     @staticmethod
     def required_result_qubits(quadratic: Union[np.ndarray, List[List[float]]],

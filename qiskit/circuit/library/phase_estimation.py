@@ -89,9 +89,9 @@ class PhaseEstimation(QuantumCircuit):
         inner.h(qr_eval)  # hadamards on evaluation qubits
 
         for j in range(num_evaluation_qubits):  # controlled powers
-            inner.append(unitary.power(2**j).control(), [j] + qr_state[:])
+            inner.compose(unitary.power(2**j).control(), qubits=[j] + qr_state[:], inplace=True)
 
         inner.compose(iqft, qubits=qr_eval[:], inplace=True)  # final QFT
 
         super().__init__(*inner.qregs, name=inner.name)
-        self.compose(inner.to_gate(), inplace=True)
+        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)

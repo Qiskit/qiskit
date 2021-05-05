@@ -38,7 +38,7 @@ class TestQFT(QiskitTestCase):
             for i in range(circuit.num_qubits // 2):
                 circuit.swap(i, circuit.num_qubits - i - 1)
 
-            qft = qft + circuit
+            qft.compose(circuit, inplace=True)
 
         simulated = Operator(qft)
 

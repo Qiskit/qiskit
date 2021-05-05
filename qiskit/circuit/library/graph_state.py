@@ -87,4 +87,4 @@ class GraphState(QuantumCircuit):
                     inner.cz(i, j)
 
         super().__init__(*inner.qregs, name=inner.name)
-        self.compose(inner.to_gate(), inplace=True)
+        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)
