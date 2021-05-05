@@ -1,11 +1,12 @@
 ---
 fixes:
   - |
-    Fixes a bug in :class:`~qiskit.quantum_info.Statevector` and
+    Fixes an issue in the :class:`~qiskit.quantum_info.Statevector` and
     :class:`~qiskit.quantum_info.DensityMatrix` probability methods
-    :meth:`~qiskit.quantum_info.Statevector.probabilities`,
-    :meth:`~qiskit.quantum_info.Statevector.probabilities_dict`,
-    :meth:`~qiskit.quantum_info.DensityMatrix.probabilities`,
-    :meth:`~qiskit.quantum_info.DensityMatrix.probabilities_dict`
+    :meth:`qiskit.quantum_info.Statevector.probabilities`,
+    :meth:`qiskit.quantum_info.Statevector.probabilities_dict`,
+    :meth:`qiskit.quantum_info.DensityMatrix.probabilities`,
+    :meth:`qiskit.quantum_info.DensityMatrix.probabilities_dict`
     where the returned probabilities could have incorrect ordering
     for certain values of the ``qargs`` kwarg.
+    Fixed `#6320 <https://github.com/Qiskit/qiskit-terra/issues/6320>`__

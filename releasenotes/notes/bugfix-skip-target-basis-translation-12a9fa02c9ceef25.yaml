@@ -1,5 +1,8 @@
 ---
 fixes:
   - |
-    Fixed an issue with :class:`~qiskit.transpiler.passes.BasisTranslator` where in some
-    cases it would translate gates already in the target basis.
+    Fixed an issue with the :class:`~qiskit.transpiler.passes.BasisTranslator`
+    transpiler pass which in some cases would translate gates already in the
+    target basis. This would potentially result in both longer execution time
+    and less optimal results.
+    Fixed `#6085 <https://github.com/Qiskit/qiskit-terra/issues/6085>`__

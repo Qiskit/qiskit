@@ -1,5 +1,8 @@
 ---
 fixes:
   - |
-    Fixes a bug in :meth:`qiskit.quantum_info.Pauli.evolve` which could
-    result in the incorrect Pauli when evolving by a CZ, CY, or Swap gate.
+    Fixed an issue in the :meth:`qiskit.quantum_info.Pauli.evolve` method
+    which could have resulted in the incorrect Pauli being returned when
+    evolving by a :class:`~qiskit.circuit.library.CZGate`,
+    :class:`~qiskit.circuit.library.CYGate`, or a
+    :class:`~qiskit.circuit.library.SwapGate` gate.
