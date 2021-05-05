@@ -90,7 +90,6 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
         width = (target_area - gaussian_area) / abs(amp)
         duration = ceil((width + n_sigmas * sigma) / sample_mult) * sample_mult
 
-        # Check whether the durations of the RZX pulse and the scaled CR pulse from the CX gate match.
+        # Check whether the durations of the RZX pulse and
+        # the scaled CR pulse from the CX gate match.
         self.assertEqual(rzx_qc_duration, duration)
-
-
