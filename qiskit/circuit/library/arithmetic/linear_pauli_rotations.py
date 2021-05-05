@@ -49,12 +49,14 @@ class LinearPauliRotations(FunctionalPauliRotations):
     linear functions.
     """
 
-    def __init__(self,
-                 num_state_qubits: Optional[int] = None,
-                 slope: float = 1,
-                 offset: float = 0,
-                 basis: str = 'Y',
-                 name: str = 'LinRot') -> None:
+    def __init__(
+        self,
+        num_state_qubits: Optional[int] = None,
+        slope: float = 1,
+        offset: float = 0,
+        basis: str = "Y",
+        name: str = "LinRot",
+    ) -> None:
         r"""Create a new linear rotation circuit.
 
         Args:
@@ -131,8 +133,8 @@ class LinearPauliRotations(FunctionalPauliRotations):
         """
         if num_state_qubits:
             # set new register of appropriate size
-            qr_state = QuantumRegister(num_state_qubits, name='state')
-            qr_target = QuantumRegister(1, name='target')
+            qr_state = QuantumRegister(num_state_qubits, name="state")
+            qr_target = QuantumRegister(1, name="target")
             self.qregs = [qr_state, qr_target]
         else:
             self.qregs = []
@@ -143,13 +145,15 @@ class LinearPauliRotations(FunctionalPauliRotations):
         if self.num_state_qubits is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError('The number of qubits has not been set.')
+                raise AttributeError("The number of qubits has not been set.")
 
         if self.num_qubits < self.num_state_qubits + 1:
             valid = False
             if raise_on_failure:
-                raise CircuitError('Not enough qubits in the circuit, need at least '
-                                   '{}.'.format(self.num_state_qubits + 1))
+                raise CircuitError(
+                    "Not enough qubits in the circuit, need at least "
+                    "{}.".format(self.num_state_qubits + 1)
+                )
 
         return valid
 
@@ -158,20 +162,20 @@ class LinearPauliRotations(FunctionalPauliRotations):
         super()._build()
 
         # build the circuit
-        qr_state = self.qubits[:self.num_state_qubits]
+        qr_state = self.qubits[: self.num_state_qubits]
         qr_target = self.qubits[self.num_state_qubits]
 
-        if self.basis == 'x':
+        if self.basis == "x":
             self.rx(self.offset, qr_target)
-        elif self.basis == 'y':
+        elif self.basis == "y":
             self.ry(self.offset, qr_target)
         else:  # 'Z':
             self.rz(self.offset, qr_target)
 
         for i, q_i in enumerate(qr_state):
-            if self.basis == 'x':
+            if self.basis == "x":
                 self.crx(self.slope * pow(2, i), q_i, qr_target)
-            elif self.basis == 'y':
+            elif self.basis == "y":
                 self.cry(self.slope * pow(2, i), q_i, qr_target)
             else:  # 'Z'
                 self.crz(self.slope * pow(2, i), q_i, qr_target)

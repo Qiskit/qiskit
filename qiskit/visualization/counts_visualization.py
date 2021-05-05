@@ -198,7 +198,7 @@ def plot_histogram(
     # add some text for labels, title, and axes ticks
     ax.set_ylabel("Probabilities", fontsize=14)
     all_vals = np.concatenate(all_pvalues).ravel()
-    ax.set_ylim([0.0, min([1.2, max([1.2 * val for val in all_vals])])])
+    ax.set_ylim([0, min(1.2, max(1.2 * val for val in all_vals))])
     if sort == "desc":
         ax.invert_xaxis()
 
@@ -262,7 +262,7 @@ def _plot_histogram_data(data, labels, number_to_keep):
                 labels_dict[key] = 1
                 values.append(execution[key])
         values = np.array(values, dtype=float)
-        where_idx = np.where(values >= 0)[0]
+        where_idx = np.where(values != 0)[0]
         pvalues = values[where_idx] / sum(values[where_idx])
 
         all_pvalues.append(pvalues)

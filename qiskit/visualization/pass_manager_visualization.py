@@ -81,8 +81,8 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     try:
         import subprocess
 
-        _PROC = subprocess.Popen(
-            ["dot", "-V"],  # pylint: disable=invalid-name
+        _PROC = subprocess.Popen(  # pylint: disable=invalid-name
+            ["dot", "-V"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
