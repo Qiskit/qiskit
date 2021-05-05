@@ -14,21 +14,22 @@
 
 
 class PassManagerConfig:
-    """Pass Manager Configuration.
-    """
+    """Pass Manager Configuration."""
 
-    def __init__(self,
-                 initial_layout=None,
-                 basis_gates=None,
-                 coupling_map=None,
-                 layout_method=None,
-                 routing_method=None,
-                 translation_method=None,
-                 scheduling_method=None,
-                 instruction_durations=None,
-                 backend_properties=None,
-                 approximation_degree=None,
-                 seed_transpiler=None):
+    def __init__(
+        self,
+        initial_layout=None,
+        basis_gates=None,
+        coupling_map=None,
+        layout_method=None,
+        routing_method=None,
+        translation_method=None,
+        scheduling_method=None,
+        instruction_durations=None,
+        backend_properties=None,
+        approximation_degree=None,
+        seed_transpiler=None,
+    ):
         """Initialize a PassManagerConfig object
 
         Args:

@@ -51,7 +51,7 @@ class PauliExpectation(ExpectationBase):
         self._grouper = AbelianGrouper() if group_paulis else None
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
-        """ Accepts an Operator and returns a new Operator with the Pauli measurements replaced by
+        """Accepts an Operator and returns a new Operator with the Pauli measurements replaced by
         diagonal Pauli post-rotation based measurements so they can be evaluated by sampling and
         averaging.
 
@@ -68,8 +68,10 @@ class PauliExpectation(ExpectationBase):
                 and not isinstance(operator.primitive, PauliSumOp)
                 and {"Pauli"} != operator.primitive_strings()
             ):
-                logger.warning('Measured Observable is not composed of only Paulis, converting to '
-                               'Pauli representation, which can be expensive.')
+                logger.warning(
+                    "Measured Observable is not composed of only Paulis, converting to "
+                    "Pauli representation, which can be expensive."
+                )
                 # Setting massive=False because this conversion is implicit. User can perform this
                 # action on the Observable with massive=True explicitly if they so choose.
                 pauli_obsv = operator.primitive.to_pauli_op(massive=False)
@@ -90,14 +92,17 @@ class PauliExpectation(ExpectationBase):
         return operator
 
     def compute_variance(self, exp_op: OperatorBase) -> Union[list, float, np.ndarray]:
-
         def sum_variance(operator):
             if isinstance(operator, ComposedOp):
                 sfdict = operator.oplist[1]
                 measurement = operator.oplist[0]
                 average = measurement.eval(sfdict)
-                variance = sum([(v * (measurement.eval(b) - average))**2
-                                for (b, v) in sfdict.primitive.items()])
+                variance = sum(
+                    [
+                        (v * (measurement.eval(b) - average)) ** 2
+                        for (b, v) in sfdict.primitive.items()
+                    ]
+                )
                 return operator.coeff * variance
 
             elif isinstance(operator, ListOp):

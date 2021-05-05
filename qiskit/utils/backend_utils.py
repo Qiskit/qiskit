@@ -16,7 +16,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-_UNSUPPORTED_BACKENDS = ['unitary_simulator', 'clifford_simulator']
+_UNSUPPORTED_BACKENDS = ["unitary_simulator", "clifford_simulator"]
 
 # pylint: disable=no-name-in-module, import-error, unused-import
 
@@ -35,11 +35,12 @@ _PROVIDER_CHECK = ProviderCheck()
 
 
 def has_ibmq():
-    """ Check if IBMQ is installed """
+    """Check if IBMQ is installed"""
     if not _PROVIDER_CHECK.checked_ibmq:
         try:
             from qiskit.providers.ibmq import IBMQFactory
             from qiskit.providers.ibmq.accountprovider import AccountProvider
+
             _PROVIDER_CHECK.has_ibmq = True
         except Exception as ex:  # pylint: disable=broad-except
             _PROVIDER_CHECK.has_ibmq = False
@@ -51,10 +52,11 @@ def has_ibmq():
 
 
 def has_aer():
-    """ check if Aer is installed """
+    """check if Aer is installed"""
     if not _PROVIDER_CHECK.checked_aer:
         try:
             from qiskit.providers.aer import AerProvider
+
             _PROVIDER_CHECK.has_aer = True
         except Exception as ex:  # pylint: disable=broad-except
             _PROVIDER_CHECK.has_aer = False
@@ -75,9 +77,11 @@ def is_aer_provider(backend):
     """
     if has_aer():
         from qiskit.providers.aer import AerProvider
+
         if isinstance(backend.provider(), AerProvider):
             return True
         from qiskit.providers.aer.backends.aerbackend import AerBackend
+
         return isinstance(backend, AerBackend)
 
     return False
@@ -106,6 +110,7 @@ def is_ibmq_provider(backend):
     """
     if has_ibmq():
         from qiskit.providers.ibmq.accountprovider import AccountProvider
+
         return isinstance(backend.provider(), AccountProvider)
 
     return False
@@ -134,9 +139,10 @@ def is_statevector_backend(backend):
     """
     if has_aer():
         from qiskit.providers.aer.backends import StatevectorSimulator
+
         if isinstance(backend, StatevectorSimulator):
             return True
-    return backend.name().startswith('statevector') if backend is not None else False
+    return backend.name().startswith("statevector") if backend is not None else False
 
 
 def is_simulator_backend(backend):

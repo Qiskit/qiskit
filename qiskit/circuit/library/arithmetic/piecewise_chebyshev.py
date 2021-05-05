@@ -54,12 +54,14 @@ class PiecewiseChebyshev(BlueprintCircuit):
              `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
     """
 
-    def __init__(self,
-                 f_x: Callable[[int], float],
-                 degree: Optional[int] = None,
-                 breakpoints: Optional[List[int]] = None,
-                 num_state_qubits: Optional[int] = None,
-                 name: str = 'pw_cheb') -> None:
+    def __init__(
+        self,
+        f_x: Callable[[int], float],
+        degree: Optional[int] = None,
+        breakpoints: Optional[List[int]] = None,
+        num_state_qubits: Optional[int] = None,
+        name: str = "pw_cheb",
+    ) -> None:
         r"""
         Args:
             f_x: the function to be approximated.
@@ -90,28 +92,30 @@ class PiecewiseChebyshev(BlueprintCircuit):
         if self._f_x is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError('The function to be approximated has not been set.')
+                raise AttributeError("The function to be approximated has not been set.")
 
         if self._degree is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError('The degree of the polynomials has not been set.')
+                raise AttributeError("The degree of the polynomials has not been set.")
 
         if self._breakpoints is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError('The breakpoints have not been set.')
+                raise AttributeError("The breakpoints have not been set.")
 
         if self.num_state_qubits is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError('The number of qubits has not been set.')
+                raise AttributeError("The number of qubits has not been set.")
 
         if self.num_qubits < self.num_state_qubits + 1:
             valid = False
             if raise_on_failure:
-                raise CircuitError('Not enough qubits in the circuit, need at least '
-                                   '{}.'.format(self.num_state_qubits + 1))
+                raise CircuitError(
+                    "Not enough qubits in the circuit, need at least "
+                    "{}.".format(self.num_state_qubits + 1)
+                )
 
         return valid
 
@@ -119,8 +123,8 @@ class PiecewiseChebyshev(BlueprintCircuit):
     def f_x(self) -> Callable[[int], float]:
         """The function to be approximated.
 
-                Returns:
-                    The function to be approximated.
+        Returns:
+            The function to be approximated.
         """
         return self._f_x
 
@@ -144,8 +148,8 @@ class PiecewiseChebyshev(BlueprintCircuit):
     def degree(self) -> int:
         """The degree of the polynomials.
 
-                Returns:
-                    The degree of the polynomials.
+        Returns:
+            The degree of the polynomials.
         """
         return self._degree
 
@@ -169,8 +173,8 @@ class PiecewiseChebyshev(BlueprintCircuit):
     def breakpoints(self) -> List[int]:
         """The breakpoints for the piecewise approximation.
 
-                Returns:
-                    The breakpoints for the piecewise approximation.
+        Returns:
+            The breakpoints for the piecewise approximation.
         """
         breakpoints = self._breakpoints
 
@@ -208,8 +212,8 @@ class PiecewiseChebyshev(BlueprintCircuit):
     def polynomials(self) -> List[List[float]]:
         """The polynomials for the piecewise approximation.
 
-                Returns:
-                    The polynomials for the piecewise approximation.
+        Returns:
+            The polynomials for the piecewise approximation.
         """
         if self.num_state_qubits is None:
             return [[]]
@@ -223,9 +227,9 @@ class PiecewiseChebyshev(BlueprintCircuit):
         polynomials = []
         for i in range(0, num_intervals - 1):
             # Calculate the polynomial approximating the function on the current interval
-            poly = Chebyshev.interpolate(self._f_x, self._degree,
-                                         domain=[self._breakpoints[i],
-                                                 self._breakpoints[i + 1]])
+            poly = Chebyshev.interpolate(
+                self._f_x, self._degree, domain=[self._breakpoints[i], self._breakpoints[i + 1]]
+            )
             # Convert polynomial to the standard basis and rescale it for the rotation gates
             poly = 2 * poly.convert(kind=np.polynomial.Polynomial).coef
             # Convert to list and append
@@ -288,8 +292,8 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
         if num_state_qubits is not None:
-            qr_state = QuantumRegister(num_state_qubits, 'state')
-            qr_target = QuantumRegister(1, 'target')
+            qr_state = QuantumRegister(num_state_qubits, "state")
+            qr_target = QuantumRegister(1, "target")
             self.qregs = [qr_state, qr_target]
             self._ancillas = []
             self._qubits = qr_state[:] + qr_target[:]
@@ -307,8 +311,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
             self._ancillas = []
 
     def _build(self):
-        """Build the circuit. The operation is considered successful when q_objective is :math:`|1>`
-        """
+        """Build the circuit. The operation is considered successful when q_objective is :math:`|1>`"""
         # do not build the circuit if _data is already populated
         if self._data is not None:
             return
@@ -318,12 +321,13 @@ class PiecewiseChebyshev(BlueprintCircuit):
         # check whether the configuration is valid
         self._check_configuration()
 
-        poly_r = PiecewisePolynomialPauliRotations(self.num_state_qubits,
-                                                   self.breakpoints, self.polynomials)
+        poly_r = PiecewisePolynomialPauliRotations(
+            self.num_state_qubits, self.breakpoints, self.polynomials
+        )
 
-        qr_state = self.qubits[:self.num_state_qubits]
+        qr_state = self.qubits[: self.num_state_qubits]
         qr_target = [self.qubits[self.num_state_qubits]]
-        qr_ancillas = self.qubits[self.num_state_qubits + 1:]
+        qr_ancillas = self.qubits[self.num_state_qubits + 1 :]
 
         # Apply polynomial approximation
         self.append(poly_r.to_instruction(), qr_state[:] + qr_target + qr_ancillas[:])
