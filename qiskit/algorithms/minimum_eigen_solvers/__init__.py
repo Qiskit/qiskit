@@ -18,10 +18,10 @@ from .numpy_minimum_eigen_solver import NumPyMinimumEigensolver
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
 __all__ = [
-    'VQE',
-    'VQEResult',
-    'QAOA',
-    'NumPyMinimumEigensolver',
-    'MinimumEigensolver',
-    'MinimumEigensolverResult'
+    "VQE",
+    "VQEResult",
+    "QAOA",
+    "NumPyMinimumEigensolver",
+    "MinimumEigensolver",
+    "MinimumEigensolverResult",
 ]

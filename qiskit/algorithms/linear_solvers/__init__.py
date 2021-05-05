@@ -16,9 +16,4 @@ from .hhl import HHL
 from .numpy_linear_solver import NumPyLinearSolver
 from .linear_solver import LinearSolver, LinearSolverResult
 
-__all__ = [
-    'HHL',
-    'NumPyLinearSolver',
-    'LinearSolver',
-    'LinearSolverResult'
-]
+__all__ = ["HHL", "NumPyLinearSolver", "LinearSolver", "LinearSolverResult"]

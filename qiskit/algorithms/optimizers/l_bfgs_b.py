@@ -40,15 +40,17 @@ class L_BFGS_B(Optimizer):  # pylint: disable=invalid-name
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fmin_l_bfgs_b.html
     """
 
-    _OPTIONS = ['maxfun', 'maxiter', 'factr', 'iprint', 'epsilon']
+    _OPTIONS = ["maxfun", "maxiter", "factr", "iprint", "epsilon"]
 
     # pylint: disable=unused-argument
-    def __init__(self,
-                 maxfun: int = 1000,
-                 maxiter: int = 15000,
-                 factr: float = 10,
-                 iprint: int = -1,
-                 epsilon: float = 1e-08) -> None:
+    def __init__(
+        self,
+        maxfun: int = 1000,
+        maxiter: int = 15000,
+        factr: float = 10,
+        iprint: int = -1,
+        epsilon: float = 1e-08,
+    ) -> None:
         r"""
         Args:
             maxfun: Maximum number of function evaluations.
@@ -75,28 +77,39 @@ class L_BFGS_B(Optimizer):  # pylint: disable=invalid-name
                 self._options[k] = v
 
     def get_support_level(self):
-        """ Return support level dictionary """
+        """Return support level dictionary"""
         return {
-            'gradient': OptimizerSupportLevel.supported,
-            'bounds': OptimizerSupportLevel.supported,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.supported,
+            "bounds": OptimizerSupportLevel.supported,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function,
-                         variable_bounds, initial_point)
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
 
         if gradient_function is None and self._max_evals_grouped > 1:
-            epsilon = self._options['epsilon']
-            gradient_function = Optimizer.wrap_function(Optimizer.gradient_num_diff,
-                                                        (objective_function,
-                                                         epsilon, self._max_evals_grouped))
+            epsilon = self._options["epsilon"]
+            gradient_function = Optimizer.wrap_function(
+                Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped)
+            )
 
         approx_grad = bool(gradient_function is None)
-        sol, opt, info = sciopt.fmin_l_bfgs_b(objective_function,
-                                              initial_point, bounds=variable_bounds,
-                                              fprime=gradient_function,
-                                              approx_grad=approx_grad, **self._options)
+        sol, opt, info = sciopt.fmin_l_bfgs_b(
+            objective_function,
+            initial_point,
+            bounds=variable_bounds,
+            fprime=gradient_function,
+            approx_grad=approx_grad,
+            **self._options,
+        )
 
-        return sol, opt, info['funcalls']
+        return sol, opt, info["funcalls"]

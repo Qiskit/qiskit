@@ -51,6 +51,7 @@ from .toronto import FakeToronto
 from .valencia import FakeValencia
 from .vigo import FakeVigo
 from .yorktown import FakeYorktown
+
 # Legacy Backends
 from .almaden import FakeLegacyAlmaden
 from .armonk import FakeLegacyArmonk
