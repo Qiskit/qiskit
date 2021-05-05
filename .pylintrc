@@ -71,7 +71,8 @@ disable=spelling,       # way too noisy
     unnecessary-pass,   # allow for methods with just "pass", for clarity
     no-else-return,     # relax "elif" after a clause with a return
     docstring-first-line-empty, # relax docstring style
-    import-outside-toplevel
+    import-outside-toplevel,
+    bad-continuation, bad-whitespace # differences of opinion with black
 
 
 
@@ -212,7 +213,7 @@ max-nested-blocks=5
 [FORMAT]
 
 # Maximum number of characters on a single line.
-max-line-length=100
+max-line-length=105
 
 # Regexp for a line that is allowed to be longer than the limit.
 ignore-long-lines=^\s*(# )?<?https?://\S+>?$

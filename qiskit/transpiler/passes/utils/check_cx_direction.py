@@ -21,6 +21,9 @@ class CheckCXDirection(CheckGateDirection):
 
     def __init__(self, coupling_map):
         super().__init__(coupling_map)
-        warnings.warn("The CheckCXDirection pass has been deprecated "
-                      "and replaced by a more generic CheckGateDirection pass.",
-                      DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "The CheckCXDirection pass has been deprecated "
+            "and replaced by a more generic CheckGateDirection pass.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
