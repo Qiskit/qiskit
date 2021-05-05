@@ -1314,7 +1314,7 @@ class MatplotlibDrawer:
                     vlist = list(fmt_v.format(val))[::-1]
                     if not self._reverse_bits:
                         vlist = vlist[::-1]
-                        
+
                     # plot conditionals
                     v_ind = 0
                     xy_plot = []
