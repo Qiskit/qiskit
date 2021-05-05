@@ -21,9 +21,11 @@ from ddt import ddt, data, idata, unpack
 
 try:
     import symengine
+
     HAS_SYMENGINE = True
 except ImportError:
     from sympy import Symbol, cos
+
     HAS_SYMENGINE = False
 
 try:
@@ -295,10 +297,10 @@ class TestGradients(QiskitOpflowTestCase):
         # b = Parameter('b')
         params = a
         if HAS_SYMENGINE:
-            x = symengine.Symbol('X')
+            x = symengine.Symbol("X")
             expr = symengine.cos(x) + 1
         else:
-            x = Symbol('x')
+            x = Symbol("x")
             expr = cos(x) + 1
         c = ParameterExpression({a: x}, expr)
 

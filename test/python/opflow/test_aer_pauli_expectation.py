@@ -181,8 +181,10 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         def validate_sampler(ideal, sut, param_bindings):
             expect_sampled = ideal.convert(expect_op, params=param_bindings).eval()
             actual_sampled = sut.convert(expect_op, params=param_bindings).eval()
-            self.assertTrue(np.allclose(actual_sampled, expect_sampled),
-                            "%s != %s" % (actual_sampled, expect_sampled))
+            self.assertTrue(
+                np.allclose(actual_sampled, expect_sampled),
+                "%s != %s" % (actual_sampled, expect_sampled),
+            )
 
         def get_circuit_templates(sampler):
             return sampler._transpiled_circ_templates

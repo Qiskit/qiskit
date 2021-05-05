@@ -370,7 +370,7 @@ class TestPulseParameters(QiskitTestCase):
             # symengine is installed manually build the amplitude as a complex to
             # avoid this.
             reference = pulse.Schedule()
-            waveform = pulse.library.Constant(duration=100, amp=0.1*cmath.exp(0.5j))
+            waveform = pulse.library.Constant(duration=100, amp=0.1 * cmath.exp(0.5j))
             reference += pulse.Play(waveform, DriveChannel(0))
             self.assertEqual(result, reference)
 

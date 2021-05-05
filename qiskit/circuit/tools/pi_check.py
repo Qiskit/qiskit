@@ -46,8 +46,9 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
     """
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
-        if not hasattr(inpt._symbol_expr, 'expr_free_symbols'):
+        if not hasattr(inpt._symbol_expr, "expr_free_symbols"):
             from sympy import sympify
+
             expr = sympify(inpt._symbol_expr)
         else:
             expr = inpt._symbol_expr

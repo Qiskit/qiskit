@@ -33,6 +33,7 @@ OperatorType = Union[StateFn, PrimitiveOp, ListOp]
 
 try:
     import symengine
+
     HAS_SYMENGINE = True
 except ImportError:
     HAS_SYMENGINE = False

@@ -1257,8 +1257,7 @@ class TestParameterExpressions(QiskitTestCase):
 
                 res = complex(bound_expr)
                 expected = op(2.3, const)
-                self.assertTrue(cmath.isclose(res, expected),
-                                "%s != %s" % (res, expected))
+                self.assertTrue(cmath.isclose(res, expected), "%s != %s" % (res, expected))
 
     def test_complex_parameter_bound_to_real(self):
         """Test a complex parameter expression can be real if bound correctly."""
