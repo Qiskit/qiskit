@@ -345,7 +345,7 @@ CUSTOM_DEFINITION_HEADER_SIZE = struct.calcsize(CUSTOM_DEFINITION_HEADER_PACK)
 # CUSTOM_DEFINITION
 CUSTOM_DEFINITION = namedtuple(
     "CUSTOM_DEFINITON",
-    ["gate_name_size", "type", "num_qubits" "num_clbits", "custom_definition", "size"],
+    ["gate_name_size", "type", "num_qubits", "num_clbits", "custom_definition", "size"],
 )
 CUSTOM_DEFINITION_PACK = "!H1cII?Q"
 CUSTOM_DEFINITION_SIZE = struct.calcsize(CUSTOM_DEFINITION_PACK)
