@@ -22,6 +22,107 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.25.4
+*************
+
+.. _Release Notes_0.17.2:
+
+Terra 0.17.2
+============
+
+.. _Release Notes_0.17.2_Prelude:
+
+Prelude
+-------
+
+This is a bugfix release that fixes several issues from the 0.17.1 release.
+Most importantly this release fixes compatibility for the
+:class:`~qiskit.utils.QuantumInstance` class when running on backends that are
+based on the :class:`~qiskit.providers.BackendV1` abstract class. This fixes
+all the algorithms and applications built on :mod:`qiskit.algorithms` or
+:mod:`qiskit.opflow` when running on newer backends.
+
+.. _Release Notes_0.17.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixed an issue with the :class:`~qiskit.transpiler.passes.BasisTranslator`
+  transpiler pass which in some cases would translate gates already in the
+  target basis. This would potentially result in both longer execution time
+  and less optimal results.
+  Fixed `#6085 <https://github.com/Qiskit/qiskit-terra/issues/6085>`__
+
+- Fixed an issue in the :class:`~qiskit.algorithms.optimisers.SPSA` when
+  the optimizer was initialized with a callback function via the ``callback``
+  kwarg would potentially cause an error to be raised.
+
+- Fixed an issue in the
+  :meth:`qiskit.quantum_info.Statevector.expectation_value`
+  and :meth:`qiskit.quantum_info.DensityMatrix.expectation_value`methods
+  where the ``qargs`` kwarg was ignored if the operator was a
+  :class:`~qiskit.quantum_info.Pauli` or
+  :class:`~qiskit.quantum_info.SparsePauliOp` operator object.
+  Fixed `#6303 <https://github.com/Qiskit/qiskit-terra/issues/6303>`__
+
+- Fixed an issue in the :meth:`qiskit.quantum_info.Pauli.evolve` method
+  which could have resulted in the incorrect Pauli being returned when
+  evolving by a :class:`~qiskit.circuit.library.CZGate`,
+  :class:`~qiskit.circuit.library.CYGate`, or a
+  :class:`~qiskit.circuit.library.SwapGate` gate.
+
+- Fixed an issue in the :meth:`qiskit.opflow.SparseVectorStateFn.to_dict_fn`
+  method, which previously had at most one entry for the all zero state due
+  to an index error.
+
+- Fixed an issue in the :meth:`qiskit.opflow.SparseVectorStateFn.equals`
+  method so that is properly returning ``True`` or ``False`` instead of a
+  sparse vector comparison of the single elements.
+
+- Fixes an issue in the :class:`~qiskit.quantum_info.Statevector` and
+  :class:`~qiskit.quantum_info.DensityMatrix` probability methods
+  :meth:`qiskit.quantum_info.Statevector.probabilities`,
+  :meth:`qiskit.quantum_info.Statevector.probabilities_dict`,
+  :meth:`qiskit.quantum_info.DensityMatrix.probabilities`,
+  :meth:`qiskit.quantum_info.DensityMatrix.probabilities_dict`
+  where the returned probabilities could have incorrect ordering
+  for certain values of the ``qargs`` kwarg.
+  Fixed `#6320 <https://github.com/Qiskit/qiskit-terra/issues/6320>`__
+
+- Fixed an issue where the :class:`~qiskit.opflow.TaperedPauliSumOp` class
+  did not support the multiplication with
+  :class:`~qiskit.circuit.ParameterExpression` object and also did not have
+  a necessary :meth:`~qiskit.opflow.TaperedPauliSumOp.assign_parameters`
+  method for working with :class:`~qiskit.circuit.ParameterExpression`
+  objects.
+  Fixed `#6127 <https://github.com/Qiskit/qiskit-terra/issues/6127>`__
+
+- Fixed compatibility for the :class:`~qiskit.utils.QuantumInstance` class
+  when running on backends that are based on the
+  :class:`~qiskit.providers.BackendV1` abstract class.
+  Fixed `#6280 <https://github.com/Qiskit/qiskit-terra/issues/6280>`__
+
+Aer 0.8.2
+=========
+
+No change
+
+Ignis 0.6.0
+===========
+
+No change
+
+Aqua 0.9.1
+==========
+
+No change
+
+IBM Q Provider 0.12.3
+=====================
+
+No change
+
+*************
 Qiskit 0.25.3
 *************
 
