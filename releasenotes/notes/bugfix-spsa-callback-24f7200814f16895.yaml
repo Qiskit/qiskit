@@ -1,6 +1,6 @@
 ---
 fixes:
   - |
-    Fixed an issue in :class:`~qiskit.algorithms.optimisers.SPSA` where 
-    providing a callback function caused an error. Also updated callback
-    function parameter documentation to match code.
+    Fixed an issue in the :class:`~qiskit.algorithms.optimisers.SPSA` when
+    the optimizer was initialized with a callback function via the ``callback``
+    kwarg would potentially cause an error to be raised.

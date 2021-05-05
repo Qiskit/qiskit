@@ -1,0 +1,15 @@
+---
+prelude: >
+    This is a bugfix release that fixes several issues from the 0.17.1 release.
+    Most importantly this release fixes compatibility for the
+    :class:`~qiskit.utils.QuantumInstance` class when running on backends
+    that are based on the :class:`~qiskit.providers.BackendV1` abstract class.
+    This fixes all the algorithms and applications built on
+    :mod:`qiskit.algorithms` or :mod:`qiskit.opflow` when running on newer
+    backends.
+fixes:
+  - |
+    Fixed compatibility for the :class:`~qiskit.utils.QuantumInstance` class
+    when running on backends that are based on the
+    :class:`~qiskit.providers.BackendV1` abstract class.
+    Fixed `#6280 <https://github.com/Qiskit/qiskit-terra/issues/6280>`__

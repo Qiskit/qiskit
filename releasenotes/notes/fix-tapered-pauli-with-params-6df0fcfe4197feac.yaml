@@ -1,7 +1,10 @@
 ---
 fixes:
   - |
-    Fixes the bug where :class:`~qiskit.opflow.TaperedPauliSumOp`
-    did not support the multiplication by
-    :class:`~qiskit.circuit.ParameterExpression` and
-    :meth:`~qiskit.opflow.TaperedPauliSumOp.assign_parameters`.
+    Fixed an issue where the :class:`~qiskit.opflow.TaperedPauliSumOp` class
+    did not support the multiplication with
+    :class:`~qiskit.circuit.ParameterExpression` object and also did not have
+    a necessary :meth:`~qiskit.opflow.TaperedPauliSumOp.assign_parameters`
+    method for working with :class:`~qiskit.circuit.ParameterExpression`
+    objects.
+    Fixed `#6127 <https://github.com/Qiskit/qiskit-terra/issues/6127>`__
