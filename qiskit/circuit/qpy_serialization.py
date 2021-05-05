@@ -400,7 +400,7 @@ COMPLEX_SIZE = struct.calcsize(COMPLEX_PACK)
 def _read_header(file_obj):
     header_raw = struct.unpack(HEADER_PACK, file_obj.read(HEADER_SIZE))
     header = HEADER._make(header_raw)
-    name = file_obj.read(header[0]).decode("utf8").rstrip("\x00")
+    name = file_obj.read(header[0]).decode("utf8")
     metadata_raw = file_obj.read(header[4])
     metadata = json.loads(metadata_raw)
     return header, name, metadata
@@ -411,7 +411,7 @@ def _read_registers(file_obj, num_registers):
     for _reg in range(num_registers):
         register_raw = file_obj.read(REGISTER_SIZE)
         register = struct.unpack(REGISTER_PACK, register_raw)
-        name = file_obj.read(register[2]).decode("utf8").rstrip("\x00")
+        name = file_obj.read(register[2]).decode("utf8")
         REGISTER_ARRAY_PACK = "%sI" % register[1]
         bit_indices = file_obj.read(struct.calcsize(REGISTER_ARRAY_PACK))
         if register[0].decode("utf8") == "q":
@@ -433,7 +433,7 @@ def _read_parameter(file_obj):
     param_raw = struct.unpack(PARAMETER_PACK, file_obj.read(PARAMETER_SIZE))
     name_size = param_raw[0]
     param_uuid = uuid.UUID(bytes=param_raw[1])
-    name = file_obj.read(name_size).decode("utf8").rstrip("\x00")
+    name = file_obj.read(name_size).decode("utf8")
     param = Parameter.__new__(Parameter, name, uuid=param_uuid)
     param.__init__(name)
     return param
@@ -478,13 +478,13 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
     qargs = []
     cargs = []
     params = []
-    gate_name = file_obj.read(name_size).decode("utf8").rstrip("\x00")
+    gate_name = file_obj.read(name_size).decode("utf8")
     num_qargs = instruction[2]
     num_cargs = instruction[3]
     num_params = instruction[1]
     has_condition = instruction[4]
     register_name_size = instruction[5]
-    condition_register = file_obj.read(register_name_size).decode("utf8").rstrip("\x00")
+    condition_register = file_obj.read(register_name_size).decode("utf8")
     condition_value = instruction[6]
     condition_tuple = None
     if has_condition:
@@ -495,13 +495,13 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
     for _qarg in range(num_qargs):
         qarg_raw = file_obj.read(INSTRUCTION_ARG_SIZE)
         qarg = struct.unpack(INSTRUCTION_ARG_PACK, qarg_raw)
-        if qarg[0].decode("utf8").rstrip("\x00") == "c":
+        if qarg[0].decode("utf8") == "c":
             raise TypeError("Invalid input carg prior to all qargs")
         qargs.append(qubit_indices[qarg[1]])
     for _carg in range(num_cargs):
         carg_raw = file_obj.read(INSTRUCTION_ARG_SIZE)
         carg = struct.unpack(INSTRUCTION_ARG_PACK, carg_raw)
-        if carg[0].decode("utf8").rstrip("\x00") == "q":
+        if carg[0].decode("utf8") == "q":
             raise TypeError("Invalid input qarg after all qargs")
         cargs.append(clbit_indices[carg[1]])
     # Load Parameters
@@ -588,7 +588,7 @@ def _read_custom_instructions(file_obj):
                 has_custom_definition,
                 size,
             ) = custom_definition
-            name = file_obj.read(name_size).decode("utf8").rstrip("utf8")
+            name = file_obj.read(name_size).decode("utf8")
             type_str = type_str.decode("utf8")
             definition_circuit = None
             if has_custom_definition:
@@ -970,7 +970,7 @@ def _read_circuit(file_obj):
         circ = QuantumCircuit(
             header[2],
             header[3],
-            name=header[0].decode("utf8").rstrip("\x00"),
+            name=header[0].decode("utf8"),
             global_phase=header[1],
             metadata=metadata,
         )
