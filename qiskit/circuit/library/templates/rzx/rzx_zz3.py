@@ -32,20 +32,20 @@ from qiskit.circuit import Parameter, QuantumCircuit
 def rzx_zz3(theta: float = None):
     """Template for CX - RZGate - CX."""
     if theta is None:
-        theta = Parameter('ϴ')
+        theta = Parameter("ϴ")
 
     qc = QuantumCircuit(2)
     qc.cx(0, 1)
     qc.rz(theta, 1)
     qc.cx(0, 1)
-    qc.rz(-1*theta, 1)
+    qc.rz(-1 * theta, 1)
     # Hadamard
     qc.rz(np.pi / 2, 1)
     qc.rx(np.pi / 2, 1)
     qc.rz(np.pi / 2, 1)
 
     qc.rx(theta, 1)
-    qc.rzx(-1*theta, 0, 1)
+    qc.rzx(-1 * theta, 0, 1)
     # Hadamard
     qc.rz(np.pi / 2, 1)
     qc.rx(np.pi / 2, 1)

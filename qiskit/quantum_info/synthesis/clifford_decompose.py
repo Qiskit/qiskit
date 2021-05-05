@@ -19,8 +19,15 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
-    _append_z, _append_x, _append_h, _append_s, _append_v, _append_w,
-    _append_cx, _append_swap)
+    _append_z,
+    _append_x,
+    _append_h,
+    _append_s,
+    _append_v,
+    _append_w,
+    _append_cx,
+    _append_swap,
+)
 
 
 def decompose_clifford(clifford, method=None):
@@ -53,10 +60,10 @@ def decompose_clifford(clifford, method=None):
     """
     num_qubits = clifford.num_qubits
 
-    if method == 'AG':
+    if method == "AG":
         return decompose_clifford_ag(clifford)
 
-    if method == 'greedy':
+    if method == "greedy":
         return decompose_clifford_greedy(clifford)
 
     if num_qubits <= 3:
@@ -69,17 +76,17 @@ def decompose_clifford(clifford, method=None):
 # Synthesis based on Bravyi & Maslov decomposition
 # ---------------------------------------------------------------------
 
+
 def decompose_clifford_bm(clifford):
     """Decompose a clifford"""
     num_qubits = clifford.num_qubits
     clifford_name = str(clifford)
 
     if num_qubits == 1:
-        return _decompose_clifford_1q(
-            clifford.table.array, clifford.table.phase)
+        return _decompose_clifford_1q(clifford.table.array, clifford.table.phase)
 
     # Inverse of final decomposed circuit
-    inv_circuit = QuantumCircuit(num_qubits, name='inv_circ')
+    inv_circuit = QuantumCircuit(num_qubits, name="inv_circ")
 
     # CNOT cost of clifford
     cost = _cx_cost(clifford)
@@ -108,6 +115,7 @@ def decompose_clifford_bm(clifford):
 # Synthesis based on Aaronson & Gottesman decomposition
 # ---------------------------------------------------------------------
 
+
 def decompose_clifford_ag(clifford):
     """Decompose a Clifford operator into a QuantumCircuit.
 
@@ -119,12 +127,10 @@ def decompose_clifford_ag(clifford):
     """
     # Use 1-qubit decomposition method
     if clifford.num_qubits == 1:
-        return _decompose_clifford_1q(
-            clifford.table.array, clifford.table.phase)
+        return _decompose_clifford_1q(clifford.table.array, clifford.table.phase)
 
     # Compose a circuit which we will convert to an instruction
-    circuit = QuantumCircuit(clifford.num_qubits,
-                             name=str(clifford))
+    circuit = QuantumCircuit(clifford.num_qubits, name=str(clifford))
 
     # Make a copy of Clifford as we are going to do row reduction to
     # reduce it to an identity
@@ -155,9 +161,10 @@ def decompose_clifford_ag(clifford):
 # 1-qubit Clifford decomposition
 # ---------------------------------------------------------------------
 
+
 def _decompose_clifford_1q(pauli, phase):
     """Decompose a single-qubit clifford"""
-    circuit = QuantumCircuit(1, name='temp')
+    circuit = QuantumCircuit(1, name="temp")
 
     # Add phase correction
     destab_phase, stab_phase = phase
@@ -167,38 +174,38 @@ def _decompose_clifford_1q(pauli, phase):
         circuit.x(0)
     elif destab_phase and stab_phase:
         circuit.y(0)
-    destab_phase_label = '-' if destab_phase else '+'
-    stab_phase_label = '-' if stab_phase else '+'
+    destab_phase_label = "-" if destab_phase else "+"
+    stab_phase_label = "-" if stab_phase else "+"
 
     destab_x, destab_z = pauli[0]
     stab_x, stab_z = pauli[1]
 
     # Z-stabilizer
     if stab_z and not stab_x:
-        stab_label = 'Z'
+        stab_label = "Z"
         if destab_z:
-            destab_label = 'Y'
+            destab_label = "Y"
             circuit.s(0)
         else:
-            destab_label = 'X'
+            destab_label = "X"
 
     # X-stabilizer
     elif not stab_z and stab_x:
-        stab_label = 'X'
+        stab_label = "X"
         if destab_x:
-            destab_label = 'Y'
+            destab_label = "Y"
             circuit.sdg(0)
         else:
-            destab_label = 'Z'
+            destab_label = "Z"
         circuit.h(0)
 
     # Y-stabilizer
     else:
-        stab_label = 'Y'
+        stab_label = "Y"
         if destab_z:
-            destab_label = 'Z'
+            destab_label = "Z"
         else:
-            destab_label = 'X'
+            destab_label = "X"
             circuit.s(0)
         circuit.h(0)
         circuit.s(0)
@@ -213,6 +220,7 @@ def _decompose_clifford_1q(pauli, phase):
 # ---------------------------------------------------------------------
 # Helper functions for Bravyi & Maslov decomposition
 # ---------------------------------------------------------------------
+
 
 def _reduce_cost(clifford, inv_circuit, cost):
     """Two-qubit cost reduction step"""
@@ -293,8 +301,7 @@ def _cx_cost3(clifford):
             mask[[q2, q2 + n]] = 1
             isLocX = np.array_equal(U[q1, :] & mask, U[q1, :])
             isLocZ = np.array_equal(U[q1 + n, :] & mask, U[q1 + n, :])
-            isLocY = np.array_equal((U[q1, :] ^ U[q1 + n, :]) & mask,
-                                    (U[q1, :] ^ U[q1 + n, :]))
+            isLocY = np.array_equal((U[q1, :] ^ U[q1 + n, :]) & mask, (U[q1, :] ^ U[q1 + n, :]))
             R1[q1, q2] = 1 * (isLocX or isLocZ or isLocY) + 1 * (isLocX and isLocZ and isLocY)
 
     diag1 = np.sort(np.diag(R1)).tolist()
@@ -309,21 +316,31 @@ def _cx_cost3(clifford):
     if diag1 == [1, 1, 2]:
         return 1
 
-    if (diag1 == [0, 1, 1]
-            or (diag1 == [1, 1, 1] and nz2 < 9)
-            or (diag1 == [0, 0, 2] and diag2 == [1, 1, 2])):
+    if (
+        diag1 == [0, 1, 1]
+        or (diag1 == [1, 1, 1] and nz2 < 9)
+        or (diag1 == [0, 0, 2] and diag2 == [1, 1, 2])
+    ):
         return 2
 
-    if ((diag1 == [1, 1, 1] and nz2 == 9)
-            or (diag1 == [0, 0, 1] and (
-                nz1 == 1 or diag2 == [2, 2, 2] or (diag2 == [1, 1, 2] and nz2 < 9)))
-            or (diag1 == [0, 0, 2] and diag2 == [0, 0, 2])
-            or (diag2 == [1, 2, 2] and nz1 == 0)):
+    if (
+        (diag1 == [1, 1, 1] and nz2 == 9)
+        or (
+            diag1 == [0, 0, 1]
+            and (nz1 == 1 or diag2 == [2, 2, 2] or (diag2 == [1, 1, 2] and nz2 < 9))
+        )
+        or (diag1 == [0, 0, 2] and diag2 == [0, 0, 2])
+        or (diag2 == [1, 2, 2] and nz1 == 0)
+    ):
         return 3
 
-    if (diag2 == [0, 0, 1] or (diag1 == [0, 0, 0] and (
+    if diag2 == [0, 0, 1] or (
+        diag1 == [0, 0, 0]
+        and (
             (diag2 == [1, 1, 1] and nz2 == 9 and nz1 == 3)
-            or (diag2 == [0, 1, 1] and nz2 == 8 and nz1 == 2)))):
+            or (diag2 == [0, 1, 1] and nz2 == 8 and nz1 == 2)
+        )
+    ):
         return 5
 
     if nz1 == 3 and nz2 == 3:
@@ -335,6 +352,7 @@ def _cx_cost3(clifford):
 # ---------------------------------------------------------------------
 # Helper functions for Aaronson & Gottesman decomposition
 # ---------------------------------------------------------------------
+
 
 def _set_qubit_x_true(clifford, circuit, qubit):
     """Set destabilizer.X[qubit, qubit] to be True.
@@ -408,7 +426,7 @@ def _set_row_z_zero(clifford, circuit, qubit):
     z = clifford.stabilizer.Z[qubit]
 
     # check whether Zs need to be set to zero:
-    if np.any(z[qubit + 1:]):
+    if np.any(z[qubit + 1 :]):
         for i in range(qubit + 1, clifford.num_qubits):
             if z[i]:
                 _append_cx(clifford, i, qubit)
@@ -432,6 +450,7 @@ def _set_row_z_zero(clifford, circuit, qubit):
 # ---------------------------------------------------------------------
 # Synthesis based on Bravyi et. al. greedy clifford compiler
 # ---------------------------------------------------------------------
+
 
 def decompose_clifford_greedy(clifford):
     """Decompose a Clifford operator into a QuantumCircuit.
@@ -489,8 +508,9 @@ def decompose_clifford_greedy(clifford):
         cliff_oz = cliff_oz.compose(clifford_cpy_inv)
 
         # Compute the decoupling operator of cliff_ox and cliff_oz
-        decouple_circ, decouple_cliff = _calc_decoupling(cliff_ox, cliff_oz, qubit_list,
-                                                         min_qubit, num_qubits)
+        decouple_circ, decouple_cliff = _calc_decoupling(
+            cliff_ox, cliff_oz, qubit_list, min_qubit, num_qubits
+        )
         circ = circ.compose(decouple_circ)
 
         # Now the clifford acts trivially on min_qubit
@@ -519,27 +539,35 @@ def decompose_clifford_greedy(clifford):
 # divided into 5 equivalence classes under the action of single-qubit Cliffords
 
 # Class A - canonical representative is 'XZ'
-A_class = [[[False, True], [True, True]],  # 'XY'
-           [[False, True], [True, False]],  # 'XZ'
-           [[True, True], [False, True]],  # 'YX'
-           [[True, True], [True, False]],  # 'YZ'
-           [[True, False], [False, True]],  # 'ZX'
-           [[True, False], [True, True]]]  # 'ZY'
+A_class = [
+    [[False, True], [True, True]],  # 'XY'
+    [[False, True], [True, False]],  # 'XZ'
+    [[True, True], [False, True]],  # 'YX'
+    [[True, True], [True, False]],  # 'YZ'
+    [[True, False], [False, True]],  # 'ZX'
+    [[True, False], [True, True]],
+]  # 'ZY'
 
 # Class B - canonical representative is 'XX'
-B_class = [[[True, False], [True, False]],  # 'ZZ'
-           [[False, True], [False, True]],  # 'XX'
-           [[True, True], [True, True]]]  # 'YY'
+B_class = [
+    [[True, False], [True, False]],  # 'ZZ'
+    [[False, True], [False, True]],  # 'XX'
+    [[True, True], [True, True]],
+]  # 'YY'
 
 # Class C - canonical representative is 'XI'
-C_class = [[[True, False], [False, False]],  # 'ZI'
-           [[False, True], [False, False]],  # 'XI'
-           [[True, True], [False, False]]]  # 'YI'
+C_class = [
+    [[True, False], [False, False]],  # 'ZI'
+    [[False, True], [False, False]],  # 'XI'
+    [[True, True], [False, False]],
+]  # 'YI'
 
 # Class D - canonical representative is 'IZ'
-D_class = [[[False, False], [False, True]],  # 'IX'
-           [[False, False], [True, False]],  # 'IZ'
-           [[False, False], [True, True]]]  # 'IY'
+D_class = [
+    [[False, False], [False, True]],  # 'IX'
+    [[False, False], [True, False]],  # 'IZ'
+    [[False, False], [True, True]],
+]  # 'IY'
 
 # Class E - only 'II'
 E_class = [[[False, False], [False, False]]]  # 'II'
@@ -606,21 +634,27 @@ def _calc_decoupling(cliff_ox, cliff_oz, qubit_list, min_qubit, num_qubits):
 
         typeq = _from_pair_cliffs_to_type(cliff_ox, cliff_oz, qubit)
 
-        if typeq in [[[True, True], [False, False]],  # 'YI'
-                     [[True, True], [True, True]],  # 'YY'
-                     [[True, True], [True, False]]]:  # 'YZ':
+        if typeq in [
+            [[True, True], [False, False]],  # 'YI'
+            [[True, True], [True, True]],  # 'YY'
+            [[True, True], [True, False]],
+        ]:  # 'YZ':
             circ.s(qubit)
             _append_s(decouple_cliff, qubit)
 
-        elif typeq in [[[True, False], [False, False]],  # 'ZI'
-                       [[True, False], [True, False]],   # 'ZZ'
-                       [[True, False], [False, True]],  # 'ZX'
-                       [[False, False], [False, True]]]:  # 'IX'
+        elif typeq in [
+            [[True, False], [False, False]],  # 'ZI'
+            [[True, False], [True, False]],  # 'ZZ'
+            [[True, False], [False, True]],  # 'ZX'
+            [[False, False], [False, True]],
+        ]:  # 'IX'
             circ.h(qubit)
             _append_h(decouple_cliff, qubit)
 
-        elif typeq in [[[False, False], [True, True]],  # 'IY'
-                       [[True, False], [True, True]]]:  # 'ZY'
+        elif typeq in [
+            [[False, False], [True, True]],  # 'IY'
+            [[True, False], [True, True]],
+        ]:  # 'ZY'
             circ.s(qubit)
             circ.h(qubit)
             _append_s(decouple_cliff, qubit)

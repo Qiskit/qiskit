@@ -27,14 +27,16 @@ class NFT(Optimizer):
     See https://arxiv.org/abs/1903.12166
     """
 
-    _OPTIONS = ['maxiter', 'maxfev', 'disp', 'reset_interval']
+    _OPTIONS = ["maxiter", "maxfev", "disp", "reset_interval"]
 
     # pylint: disable=unused-argument
-    def __init__(self,
-                 maxiter: Optional[int] = None,
-                 maxfev: int = 1024,
-                 disp: bool = False,
-                 reset_interval: int = 32) -> None:
+    def __init__(
+        self,
+        maxiter: Optional[int] = None,
+        maxfev: int = 1024,
+        disp: bool = False,
+        reset_interval: int = 32,
+    ) -> None:
         """
         Built out using scipy framework, for details, please refer to
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html.
@@ -61,26 +63,35 @@ class NFT(Optimizer):
                 self._options[k] = v
 
     def get_support_level(self):
-        """ return support level dictionary """
+        """return support level dictionary"""
         return {
-            'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.ignored,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.ignored,
+            "bounds": OptimizerSupportLevel.ignored,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function,
-                         variable_bounds, initial_point)
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
 
-        res = minimize(objective_function, initial_point,
-                       method=nakanishi_fujii_todo, options=self._options)
+        res = minimize(
+            objective_function, initial_point, method=nakanishi_fujii_todo, options=self._options
+        )
         return res.x, res.fun, res.nfev
 
 
 # pylint: disable=invalid-name
-def nakanishi_fujii_todo(fun, x0, args=(), maxiter=None, maxfev=1024,
-                         reset_interval=32, eps=1e-32, callback=None, **_):
+def nakanishi_fujii_todo(
+    fun, x0, args=(), maxiter=None, maxfev=1024, reset_interval=32, eps=1e-32, callback=None, **_
+):
     """
     Find the global minimum of a function using the nakanishi_fujii_todo
     algorithm [1].

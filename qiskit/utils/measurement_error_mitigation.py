@@ -39,19 +39,21 @@ def get_measured_qubits(transpiled_circuits):
     for idx, qc in enumerate(transpiled_circuits):
         measured_qubits = []
         for inst, qargs, _ in qc.data:
-            if inst.name != 'measure':
+            if inst.name != "measure":
                 continue
             measured_qubits.append(qargs[0].index)
-        measured_qubits_str = '_'.join([str(x) for x in measured_qubits])
+        measured_qubits_str = "_".join([str(x) for x in measured_qubits])
         if measured_qubits_str not in qubit_mappings:
             qubit_mappings[measured_qubits_str] = []
         qubit_mappings[measured_qubits_str].append(idx)
         if qubit_index is None:
             qubit_index = measured_qubits
         elif set(qubit_index) != set(measured_qubits):
-            raise QiskitError("The used qubit index are different. ({}) vs ({}).\nCurrently, "
-                              "we only support all circuits using the same set of qubits "
-                              "regardless qubit order.".format(qubit_index, measured_qubits))
+            raise QiskitError(
+                "The used qubit index are different. ({}) vs ({}).\nCurrently, "
+                "we only support all circuits using the same set of qubits "
+                "regardless qubit order.".format(qubit_index, measured_qubits)
+            )
 
     return sorted(qubit_index), qubit_mappings
 
@@ -77,10 +79,10 @@ def get_measured_qubits_from_qobj(qobj):
     for idx, exp in enumerate(qobj.experiments):
         measured_qubits = []
         for instr in exp.instructions:
-            if instr.name != 'measure':
+            if instr.name != "measure":
                 continue
             measured_qubits.append(instr.qubits[0])
-        measured_qubits_str = '_'.join([str(x) for x in measured_qubits])
+        measured_qubits_str = "_".join([str(x) for x in measured_qubits])
         if measured_qubits_str not in qubit_mappings:
             qubit_mappings[measured_qubits_str] = []
         qubit_mappings[measured_qubits_str].append(idx)
@@ -88,15 +90,18 @@ def get_measured_qubits_from_qobj(qobj):
             qubit_index = measured_qubits
         else:
             if set(qubit_index) != set(measured_qubits):
-                raise QiskitError("The used qubit index are different. ({}) vs ({}).\nCurrently, "
-                                  "we only support all circuits using the same set of qubits "
-                                  "regardless qubit order.".format(qubit_index, measured_qubits))
+                raise QiskitError(
+                    "The used qubit index are different. ({}) vs ({}).\nCurrently, "
+                    "we only support all circuits using the same set of qubits "
+                    "regardless qubit order.".format(qubit_index, measured_qubits)
+                )
 
     return sorted(qubit_index), qubit_mappings
 
 
-def build_measurement_error_mitigation_circuits(qubit_list, fitter_cls, backend,
-                                                backend_config=None, compile_config=None):
+def build_measurement_error_mitigation_circuits(
+    qubit_list, fitter_cls, backend, backend_config=None, compile_config=None
+):
     """Build measurement error mitigation circuits
     Args:
         qubit_list (list[int]): list of ordered qubits used in the algorithm
@@ -113,22 +118,27 @@ def build_measurement_error_mitigation_circuits(qubit_list, fitter_cls, backend,
         MissingOptionalLibraryError: Qiskit-Ignis not installed
     """
     try:
-        from qiskit.ignis.mitigation.measurement import (complete_meas_cal,
-                                                         CompleteMeasFitter, TensoredMeasFitter)
+        from qiskit.ignis.mitigation.measurement import (
+            complete_meas_cal,
+            CompleteMeasFitter,
+            TensoredMeasFitter,
+        )
     except ImportError as ex:
         raise MissingOptionalLibraryError(
-            libname='qiskit-ignis',
-            name='build_measurement_error_mitigation_qobj',
-            pip_install='pip install qiskit-ignis') from ex
+            libname="qiskit-ignis",
+            name="build_measurement_error_mitigation_qobj",
+            pip_install="pip install qiskit-ignis",
+        ) from ex
 
-    circlabel = 'mcal'
+    circlabel = "mcal"
 
     if not qubit_list:
         raise QiskitError("The measured qubit list can not be [].")
 
     if fitter_cls == CompleteMeasFitter:
-        meas_calibs_circuits, state_labels = \
-            complete_meas_cal(qubit_list=range(len(qubit_list)), circlabel=circlabel)
+        meas_calibs_circuits, state_labels = complete_meas_cal(
+            qubit_list=range(len(qubit_list)), circlabel=circlabel
+        )
     elif fitter_cls == TensoredMeasFitter:
         # TODO support different calibration
         raise QiskitError("Does not support TensoredMeasFitter yet.")
@@ -139,50 +149,56 @@ def build_measurement_error_mitigation_circuits(qubit_list, fitter_cls, backend,
     # assure the consistent qubit mapping used in the main circuits.
 
     tmp_compile_config = copy.deepcopy(compile_config)
-    tmp_compile_config['initial_layout'] = qubit_list
-    t_meas_calibs_circuits = compiler.transpile(meas_calibs_circuits, backend,
-                                                **backend_config, **tmp_compile_config)
+    tmp_compile_config["initial_layout"] = qubit_list
+    t_meas_calibs_circuits = compiler.transpile(
+        meas_calibs_circuits, backend, **backend_config, **tmp_compile_config
+    )
     return t_meas_calibs_circuits, state_labels, circlabel
 
 
-def build_measurement_error_mitigation_qobj(qubit_list, fitter_cls, backend,
-                                            backend_config=None, compile_config=None,
-                                            run_config=None):
+def build_measurement_error_mitigation_qobj(
+    qubit_list, fitter_cls, backend, backend_config=None, compile_config=None, run_config=None
+):
     """
-        Args:
-            qubit_list (list[int]): list of ordered qubits used in the algorithm
-            fitter_cls (callable): CompleteMeasFitter or TensoredMeasFitter
-            backend (BaseBackend): backend instance
-            backend_config (dict, optional): configuration for backend
-            compile_config (dict, optional): configuration for compilation
-            run_config (RunConfig, optional): configuration for running a circuit
+    Args:
+        qubit_list (list[int]): list of ordered qubits used in the algorithm
+        fitter_cls (callable): CompleteMeasFitter or TensoredMeasFitter
+        backend (BaseBackend): backend instance
+        backend_config (dict, optional): configuration for backend
+        compile_config (dict, optional): configuration for compilation
+        run_config (RunConfig, optional): configuration for running a circuit
 
-        Returns:
-            QasmQobj: the Qobj with calibration circuits at the beginning
-            list[str]: the state labels for build MeasFitter
-            list[str]: the labels of the calibration circuits
+    Returns:
+        QasmQobj: the Qobj with calibration circuits at the beginning
+        list[str]: the state labels for build MeasFitter
+        list[str]: the labels of the calibration circuits
 
-        Raises:
-            QiskitError: when the fitter_cls is not recognizable.
-            MissingOptionalLibraryError: Qiskit-Ignis not installed
-        """
+    Raises:
+        QiskitError: when the fitter_cls is not recognizable.
+        MissingOptionalLibraryError: Qiskit-Ignis not installed
+    """
     try:
-        from qiskit.ignis.mitigation.measurement import (complete_meas_cal,
-                                                         CompleteMeasFitter, TensoredMeasFitter)
+        from qiskit.ignis.mitigation.measurement import (
+            complete_meas_cal,
+            CompleteMeasFitter,
+            TensoredMeasFitter,
+        )
     except ImportError as ex:
         raise MissingOptionalLibraryError(
-            libname='qiskit-ignis',
-            name='build_measurement_error_mitigation_qobj',
-            pip_install='pip install qiskit-ignis') from ex
+            libname="qiskit-ignis",
+            name="build_measurement_error_mitigation_qobj",
+            pip_install="pip install qiskit-ignis",
+        ) from ex
 
-    circlabel = 'mcal'
+    circlabel = "mcal"
 
     if not qubit_list:
         raise QiskitError("The measured qubit list can not be [].")
 
     if fitter_cls == CompleteMeasFitter:
-        meas_calibs_circuits, state_labels = \
-            complete_meas_cal(qubit_list=range(len(qubit_list)), circlabel=circlabel)
+        meas_calibs_circuits, state_labels = complete_meas_cal(
+            qubit_list=range(len(qubit_list)), circlabel=circlabel
+        )
     elif fitter_cls == TensoredMeasFitter:
         # TODO support different calibration
         raise QiskitError("Does not support TensoredMeasFitter yet.")
@@ -193,10 +209,11 @@ def build_measurement_error_mitigation_qobj(qubit_list, fitter_cls, backend,
     # assure the consistent qubit mapping used in the main circuits.
 
     tmp_compile_config = copy.deepcopy(compile_config)
-    tmp_compile_config['initial_layout'] = qubit_list
-    t_meas_calibs_circuits = compiler.transpile(meas_calibs_circuits, backend,
-                                                **backend_config, **tmp_compile_config)
+    tmp_compile_config["initial_layout"] = qubit_list
+    t_meas_calibs_circuits = compiler.transpile(
+        meas_calibs_circuits, backend, **backend_config, **tmp_compile_config
+    )
     cals_qobj = compiler.assemble(t_meas_calibs_circuits, backend, **run_config.to_dict())
-    if hasattr(cals_qobj.config, 'parameterizations'):
+    if hasattr(cals_qobj.config, "parameterizations"):
         del cals_qobj.config.parameterizations
     return cals_qobj, state_labels, circlabel
