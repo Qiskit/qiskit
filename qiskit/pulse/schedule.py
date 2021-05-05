@@ -151,12 +151,18 @@ class Schedule:
             self._mutable_insert(time, sched)
 
     @classmethod
-    def inherit_from(cls, other_program: Any, name: Optional[str] = None):
+    def inherit_from(cls, other_program: Any, name: Optional[str] = None) -> 'Schedule':
         """Create new schedule object with metadata of another schedule object.
 
         Args:
             other_program: Qiskit program that provides metadata to new object.
             name: Name of new schedule. Name of ``schedule`` is used by default.
+
+        Returns:
+            New schedule object with name and metadata.
+
+        Raises:
+            PulseError: When `other_program` does not provide necessary information.
         """
         try:
             name = name or other_program.name
@@ -937,12 +943,18 @@ class ScheduleBlock:
         self._parameter_manager.update_parameter_table(self._alignment_context)
 
     @classmethod
-    def inherit_from(cls, other_program: Any, name: Optional[str] = None):
+    def inherit_from(cls, other_program: Any, name: Optional[str] = None) -> 'ScheduleBlock':
         """Create new schedule object with metadata of another schedule object.
 
         Args:
             other_program: Qiskit program that provides metadata to new object.
             name: Name of new schedule. Name of ``block`` is used by default.
+
+        Returns:
+            New block object with name and metadata.
+
+        Raises:
+            PulseError: When `other_program` does not provide necessary information.
         """
         try:
             name = name or other_program.name
