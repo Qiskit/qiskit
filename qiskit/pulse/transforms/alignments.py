@@ -80,7 +80,7 @@ class AlignLeft(AlignmentKind):
         Returns:
             Schedule with reallocated instructions.
         """
-        aligned = Schedule()
+        aligned = Schedule.inherit_from(schedule)
         for _, child in schedule.children:
             self._push_left_append(aligned, child)
 
@@ -138,7 +138,7 @@ class AlignRight(AlignmentKind):
         Returns:
             Schedule with reallocated instructions.
         """
-        aligned = Schedule()
+        aligned = Schedule.inherit_from(schedule)
         for _, child in reversed(schedule.children):
             aligned = self._push_right_prepend(aligned, child)
 
@@ -199,7 +199,7 @@ class AlignSequential(AlignmentKind):
         Returns:
             Schedule with reallocated instructions.
         """
-        aligned = Schedule()
+        aligned = Schedule.inherit_from(schedule)
         for _, child in schedule.children:
             aligned.insert(aligned.duration, child, inplace=True)
 
@@ -265,7 +265,7 @@ class AlignEquispaced(AlignmentKind):
         # Calculate pre schedule delay
         delay, mod = np.divmod(mod, 2)
 
-        aligned = Schedule()
+        aligned = Schedule.inherit_from(schedule)
         # Insert sub-schedules with interval
         _t0 = int(aligned.stop_time + delay + mod)
         for _, child in schedule.children:
@@ -337,7 +337,7 @@ class AlignFunc(AlignmentKind):
         if self.duration < schedule.duration:
             return schedule
 
-        aligned = Schedule()
+        aligned = Schedule.inherit_from(schedule)
         for ind, (_, child) in enumerate(schedule.children):
             _t_center = self.duration * self._func(ind + 1)
             _t0 = int(_t_center - 0.5 * child.duration)

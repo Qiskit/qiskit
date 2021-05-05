@@ -45,7 +45,7 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
             'All instruction durations should be assigned before creating `Schedule`.'
             'Please check `.parameters` to find unassigned parameter objects.')
 
-    schedule = Schedule(name=block.name, metadata=block.metadata)
+    schedule = Schedule.inherit_from(block)
 
     for op_data in block.blocks:
         if isinstance(op_data, ScheduleBlock):
@@ -86,7 +86,7 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     new_schedules = []
 
     for schedule in schedules:
-        new_schedule = Schedule(name=schedule.name, metadata=schedule.metadata)
+        new_schedule = Schedule.inherit_from(schedule)
 
         for time, inst in schedule.instructions:
             if isinstance(inst, instructions.Play):
@@ -122,7 +122,10 @@ def flatten(program: Schedule) -> Schedule:
         PulseError: When invalid data format is given.
     """
     if isinstance(program, Schedule):
-        return Schedule(*program.instructions, name=program.name, metadata=program.metadata)
+        flat_sched = Schedule.inherit_from(program)
+        for time, inst in program.instructions:
+            flat_sched.insert(time, inst, inplace=True)
+        return flat_sched
     else:
         raise PulseError(f'Invalid input program {program.__class__.__name__} is specified.')
 
@@ -155,8 +158,7 @@ def _inline_schedule(schedule: Schedule) -> Schedule:
 
     .. note:: If subroutine is ``ScheduleBlock`` it is converted into Schedule to get ``t0``.
     """
-    ret_schedule = Schedule(name=schedule.name,
-                            metadata=schedule.metadata)
+    ret_schedule = Schedule.inherit_from(schedule)
     for t0, inst in schedule.children:
         # note that schedule.instructions unintentionally flatten the nested schedule.
         # this should be performed by another transformer node.
@@ -183,9 +185,7 @@ def _inline_block(block: ScheduleBlock) -> ScheduleBlock:
 
     .. note:: If subroutine is ``Schedule`` the function raises an error.
     """
-    ret_block = ScheduleBlock(alignment_context=block.alignment_context,
-                              name=block.name,
-                              metadata=block.metadata)
+    ret_block = ScheduleBlock.inherit_from(block)
     for inst in block.blocks:
         if isinstance(inst, instructions.Call):
             # bind parameter
@@ -353,7 +353,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     # Shift acquires according to the new scheduled time
     new_schedules = []
     for sched_idx, schedule in enumerate(schedules):
-        new_schedule = Schedule(name=schedule.name, metadata=schedule.metadata)
+        new_schedule = Schedule.inherit_from(schedule)
         stop_time = schedule.stop_time
 
         if align_all:
@@ -406,7 +406,7 @@ def add_implicit_acquires(schedule: ScheduleComponent,
     Returns:
         A ``Schedule`` with the additional acquisition instructions.
     """
-    new_schedule = Schedule(name=schedule.name, metadata=schedule.metadata)
+    new_schedule = Schedule.inherit_from(schedule)
     acquire_map = dict()
 
     for time, inst in schedule.instructions:

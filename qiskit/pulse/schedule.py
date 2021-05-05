@@ -150,6 +150,21 @@ class Schedule:
                 time, sched = 0, sched_pair
             self._mutable_insert(time, sched)
 
+    @classmethod
+    def inherit_from(cls, other_program: Any, name: Optional[str] = None):
+        """Create new schedule object with metadata of another schedule object.
+
+        Args:
+            other_program: Qiskit program that provides metadata to new object.
+            name: Name of new schedule. Name of ``schedule`` is used by default.
+        """
+        try:
+            return cls(name=name or other_program.name,
+                       metadata=other_program.metadata.copy())
+        except AttributeError:
+            raise PulseError(f'{cls.__name__} cannot be initialized from the program data '
+                             f'{other_program.__class__.__name__}.')
+
     @property
     def name(self) -> str:
         """Name of this Schedule"""
@@ -325,9 +340,10 @@ class Schedule:
             time: Time to shift by
             name: Name of the new schedule if call was mutable. Defaults to name of self
         """
-        if name is None:
-            name = self.name
-        return Schedule((time, self), name=name, metadata=self.metadata.copy())
+        shift_sched = Schedule.inherit_from(self, name)
+        shift_sched.insert(time, self, inplace=True)
+
+        return shift_sched
 
     def _mutable_shift(self,
                        time: int
@@ -401,9 +417,7 @@ class Schedule:
             schedule: Schedule to insert.
             name: Name of the new ``Schedule``. Defaults to name of ``self``.
         """
-        if name is None:
-            name = self.name
-        new_sched = Schedule(name=name, metadata=self.metadata.copy())
+        new_sched = Schedule.inherit_from(self, name)
         new_sched._mutable_insert(0, self)
         new_sched._mutable_insert(start_time, schedule)
         return new_sched
@@ -688,7 +702,10 @@ class Schedule:
             return self
         else:
             try:
-                return Schedule(*new_children, name=self.name, metadata=self.metadata.copy())
+                new_sched = Schedule.inherit_from(self)
+                for time, inst in new_children:
+                    new_sched.insert(time, inst, inplace=True)
+                return new_sched
             except PulseError as err:
                 raise PulseError(
                     'Replacement of {old} with {new} results in '
@@ -912,6 +929,22 @@ class ScheduleBlock:
 
         # get parameters from context
         self._parameter_manager.update_parameter_table(self._alignment_context)
+
+    @classmethod
+    def inherit_from(cls, other_program: Any, name: Optional[str] = None):
+        """Create new schedule object with metadata of another schedule object.
+
+        Args:
+            other_program: Qiskit program that provides metadata to new object.
+            name: Name of new schedule. Name of ``block`` is used by default.
+        """
+        try:
+            return cls(name=name or other_program.name,
+                       metadata=other_program.metadata.copy(),
+                       alignment_context=other_program.alignment_context)
+        except AttributeError:
+            raise PulseError(f'{cls.__name__} cannot be initialized from the program data '
+                             f'{other_program.__class__.__name__}.')
 
     @property
     def name(self) -> str:
