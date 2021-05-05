@@ -39,16 +39,18 @@ class NELDER_MEAD(Optimizer):  # pylint: disable=invalid-name
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    _OPTIONS = ['maxiter', 'maxfev', 'disp', 'xatol', 'adaptive']
+    _OPTIONS = ["maxiter", "maxfev", "disp", "xatol", "adaptive"]
 
     # pylint: disable=unused-argument
-    def __init__(self,
-                 maxiter: Optional[int] = None,
-                 maxfev: int = 1000,
-                 disp: bool = False,
-                 xatol: float = 0.0001,
-                 tol: Optional[float] = None,
-                 adaptive: bool = False) -> None:
+    def __init__(
+        self,
+        maxiter: Optional[int] = None,
+        maxfev: int = 1000,
+        disp: bool = False,
+        xatol: float = 0.0001,
+        tol: Optional[float] = None,
+        adaptive: bool = False,
+    ) -> None:
         """
         Args:
             maxiter: Maximum allowed number of iterations. If both maxiter and maxfev are set,
@@ -67,18 +69,30 @@ class NELDER_MEAD(Optimizer):  # pylint: disable=invalid-name
         self._tol = tol
 
     def get_support_level(self):
-        """ Return support level dictionary """
+        """Return support level dictionary"""
         return {
-            'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.ignored,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.ignored,
+            "bounds": OptimizerSupportLevel.ignored,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function,
-                         variable_bounds, initial_point)
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
 
-        res = minimize(objective_function, initial_point, tol=self._tol,
-                       method="Nelder-Mead", options=self._options)
+        res = minimize(
+            objective_function,
+            initial_point,
+            tol=self._tol,
+            method="Nelder-Mead",
+            options=self._options,
+        )
         return res.x, res.fun, res.nfev

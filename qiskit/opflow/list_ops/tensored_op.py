@@ -25,25 +25,25 @@ from qiskit.quantum_info import Statevector
 
 
 class TensoredOp(ListOp):
-    """  A class for lazily representing tensor products of Operators. Often Operators cannot be
+    """A class for lazily representing tensor products of Operators. Often Operators cannot be
     efficiently tensored to one another, but may be manipulated further so that they can be
     later. This class holds logic to indicate that the Operators in ``oplist`` are meant to
     be tensored together, and therefore if they reach a point in which they can be, such as after
-    conversion to QuantumCircuits, they can be reduced by tensor product. """
-    def __init__(self,
-                 oplist: List[OperatorBase],
-                 coeff: Union[complex, ParameterExpression] = 1.0,
-                 abelian: bool = False) -> None:
+    conversion to QuantumCircuits, they can be reduced by tensor product."""
+
+    def __init__(
+        self,
+        oplist: List[OperatorBase],
+        coeff: Union[complex, ParameterExpression] = 1.0,
+        abelian: bool = False,
+    ) -> None:
         """
         Args:
             oplist: The Operators being tensored.
             coeff: A coefficient multiplying the operator
             abelian: Indicates whether the Operators in ``oplist`` are known to mutually commute.
         """
-        super().__init__(oplist,
-                         combo_fn=partial(reduce, np.kron),
-                         coeff=coeff,
-                         abelian=abelian)
+        super().__init__(oplist, combo_fn=partial(reduce, np.kron), coeff=coeff, abelian=abelian)
 
     @property
     def num_qubits(self) -> int:
@@ -53,7 +53,7 @@ class TensoredOp(ListOp):
     def distributive(self) -> bool:
         return False
 
-    def _expand_dim(self, num_qubits: int) -> 'TensoredOp':
+    def _expand_dim(self, num_qubits: int) -> "TensoredOp":
         """Appends I ^ num_qubits to ``oplist``. Choice of PauliOp as
         identity is arbitrary and can be substituted for other PrimitiveOp identity.
 
@@ -62,6 +62,7 @@ class TensoredOp(ListOp):
         """
         # pylint: disable=cyclic-import
         from ..operator_globals import I
+
         return TensoredOp(self.oplist + [I ^ num_qubits], coeff=self.coeff)
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
@@ -103,7 +104,10 @@ class TensoredOp(ListOp):
         # pylint: disable=cyclic-import
         from ..state_fns.circuit_state_fn import CircuitStateFn
         from ..primitive_ops.primitive_op import PrimitiveOp
+
         if isinstance(circuit_op, (PrimitiveOp, CircuitStateFn)):
             return circuit_op.to_circuit()
-        raise OpflowError('Conversion to_circuit supported only for operators, where a single '
-                          'underlying circuit can be produced.')
+        raise OpflowError(
+            "Conversion to_circuit supported only for operators, where a single "
+            "underlying circuit can be produced."
+        )
