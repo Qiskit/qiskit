@@ -114,7 +114,7 @@ class RZXGate(Gate):
 
     def __init__(self, theta):
         """Create new RZX gate."""
-        super().__init__('rzx', 2, [theta])
+        super().__init__("rzx", 2, [theta])
 
     def _define(self):
         """
@@ -125,15 +125,16 @@ class RZXGate(Gate):
         from .h import HGate
         from .x import CXGate
         from .rz import RZGate
+
         theta = self.params[0]
-        q = QuantumRegister(2, 'q')
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (HGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (RZGate(theta), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (HGate(), [q[1]], [])
+            (HGate(), [q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -147,11 +148,11 @@ class RZXGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the RZX gate."""
         import numpy
+
         half_theta = float(self.params[0]) / 2
         cos = numpy.cos(half_theta)
         isin = 1j * numpy.sin(half_theta)
-        return numpy.array([[cos, 0, -isin, 0],
-                            [0, cos, 0, isin],
-                            [-isin, 0, cos, 0],
-                            [0, isin, 0, cos]],
-                           dtype=dtype)
+        return numpy.array(
+            [[cos, 0, -isin, 0], [0, cos, 0, isin], [-isin, 0, cos, 0], [0, isin, 0, cos]],
+            dtype=dtype,
+        )

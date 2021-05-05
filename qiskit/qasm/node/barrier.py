@@ -25,11 +25,14 @@ class Barrier(Node):
 
     def __init__(self, children):
         """Create the barrier node."""
-        super().__init__('barrier', children, None)
+        super().__init__("barrier", children, None)
 
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn('Parameter \'Barrier.qasm(..., prec)\' is no longer used and is being '
-                          'deprecated.', DeprecationWarning, 2)
+            warnings.warn(
+                "Parameter 'Barrier.qasm(..., prec)' is no longer used and is being " "deprecated.",
+                DeprecationWarning,
+                2,
+            )
         return "barrier " + self.children[0].qasm() + ";"
