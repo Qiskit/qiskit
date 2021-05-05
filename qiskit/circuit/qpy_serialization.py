@@ -302,6 +302,14 @@ from qiskit.extensions import quantum_initializer
 from qiskit.version import __version__
 from qiskit.exceptions import QiskitError
 
+try:
+    import symengine
+
+    HAS_SYMENGINE = True
+except ImportError:
+    HAS_SYMENGINE = False
+
+
 # v1 Binary Format
 # ----------------
 # FILE_HEADER
@@ -436,7 +444,10 @@ def _read_parameter_expression(file_obj):
     map_elements = param_expr_raw[0]
     from sympy.parsing.sympy_parser import parse_expr
 
-    expr = parse_expr(file_obj.read(param_expr_raw[1]).decode("utf8"))
+    if HAS_SYMENGINE:
+        expr = symengine.sympify(parse_expr(file_obj.read(param_expr_raw[1]).decode("utf8")))
+    else:
+        expr = parse_expr(file_obj.read(param_expr_raw[1]).decode("utf8"))
     symbol_map = {}
     for _ in range(map_elements):
         elem_raw = file_obj.read(PARAM_EXPR_MAP_ELEM_SIZE)
@@ -594,9 +605,9 @@ def _write_parameter(file_obj, param):
 
 
 def _write_parameter_expression(file_obj, param):
-    from sympy import srepr
+    from sympy import srepr, sympify
 
-    expr_bytes = srepr(param._symbol_expr).encode("utf8")
+    expr_bytes = srepr(sympify(param._symbol_expr)).encode("utf8")
     param_expr_header_raw = struct.pack(
         PARAMETER_EXPR_PACK, len(param._parameter_symbols), len(expr_bytes)
     )
