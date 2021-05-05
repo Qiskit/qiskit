@@ -159,8 +159,14 @@ class Schedule:
             name: Name of new schedule. Name of ``schedule`` is used by default.
         """
         try:
-            return cls(name=name or other_program.name,
-                       metadata=other_program.metadata.copy())
+            name = name or other_program.name
+
+            if other_program.metadata:
+                metadata = other_program.metadata.copy()
+            else:
+                metadata = None
+
+            return cls(name=name, metadata=metadata)
         except AttributeError:
             raise PulseError(f'{cls.__name__} cannot be initialized from the program data '
                              f'{other_program.__class__.__name__}.')
@@ -939,9 +945,19 @@ class ScheduleBlock:
             name: Name of new schedule. Name of ``block`` is used by default.
         """
         try:
-            return cls(name=name or other_program.name,
-                       metadata=other_program.metadata.copy(),
-                       alignment_context=other_program.alignment_context)
+            name = name or other_program.name
+
+            if other_program.metadata:
+                metadata = other_program.metadata.copy()
+            else:
+                metadata = None
+
+            try:
+                alignment_context = other_program.alignment_context
+            except AttributeError:
+                alignment_context = None
+
+            return cls(name=name, metadata=metadata, alignment_context=alignment_context)
         except AttributeError:
             raise PulseError(f'{cls.__name__} cannot be initialized from the program data '
                              f'{other_program.__class__.__name__}.')

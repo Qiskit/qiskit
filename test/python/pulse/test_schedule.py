@@ -510,6 +510,17 @@ class TestScheduleBuilding(BaseTestSchedule):
             sched = sched.append(Play(lp0, self.config.drive(0)))
             self.assertEqual(len(sched), j)
 
+    def test_inherit_from(self):
+        """Test creating schedule with another schedule."""
+        ref_metadata = {'test': 'value'}
+        ref_name = 'test'
+
+        base_sched = Schedule(name=ref_name, metadata=ref_metadata)
+        new_sched = Schedule.inherit_from(base_sched)
+
+        self.assertEqual(new_sched.name, ref_name)
+        self.assertDictEqual(new_sched.metadata, ref_metadata)
+
 
 class TestReplace(BaseTestSchedule):
     """Test schedule replacement."""

@@ -419,6 +419,17 @@ class TestBlockOperation(BaseTestBlock):
             block = block.append(pulse.Delay(10, self.d0))
             self.assertEqual(len(block), j)
 
+    def test_inherit_from(self):
+        """Test creating schedule with another schedule."""
+        ref_metadata = {'test': 'value'}
+        ref_name = 'test'
+
+        base_sched = pulse.ScheduleBlock(name=ref_name, metadata=ref_metadata)
+        new_sched = pulse.ScheduleBlock.inherit_from(base_sched)
+
+        self.assertEqual(new_sched.name, ref_name)
+        self.assertDictEqual(new_sched.metadata, ref_metadata)
+
 
 class TestBlockEquality(BaseTestBlock):
     """Test equality of blocks.
