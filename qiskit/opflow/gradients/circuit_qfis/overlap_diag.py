@@ -27,7 +27,7 @@ from ...state_fns.circuit_state_fn import CircuitStateFn
 
 
 from .circuit_qfi import CircuitQFI
-from ..derivative_base import DerivativeBase
+from ..derivative_base import _coeff_derivative
 
 
 class OverlapDiag(CircuitQFI):
@@ -131,7 +131,7 @@ class OverlapDiag(CircuitQFI):
 
             op = meas_op @ psi @ Zero
             if type(param_value) == ParameterExpression:  # pylint: disable=unidiomatic-typecheck
-                expr_grad = DerivativeBase.parameter_expression_grad(param_value, param)
+                expr_grad = _coeff_derivative(param_value, param)
                 op *= expr_grad
             rotated_op = PauliExpectation().convert(op)
             diag.append(rotated_op)

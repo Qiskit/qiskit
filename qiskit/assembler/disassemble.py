@@ -126,6 +126,8 @@ def _experiments_to_circuits(qobj):
                     _inst = instr_method(params, qubits)
                 elif i.name == 'isometry':
                     _inst = instr_method(*params, qubits, clbits)
+                elif i.name in ['mcx', 'mcu1', 'mcp']:
+                    _inst = instr_method(*params, qubits[:-1], qubits[-1], *clbits)
                 else:
                     _inst = instr_method(*params, *qubits, *clbits)
             elif name == 'bfunc':
