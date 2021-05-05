@@ -64,7 +64,7 @@ def as_soon_as_possible(circuit: QuantumCircuit,
     timed_schedules = [(time, cpd.schedule) for time, cpd in zip(start_times, circ_pulse_defs)
                        if not isinstance(cpd.schedule, Barrier)]
 
-    schedule = Schedule.inherit_from(circuit)
+    schedule = Schedule.initialize_from(circuit)
     for time, inst in timed_schedules:
         schedule.insert(time, inst, inplace=True)
     return schedule
@@ -115,7 +115,7 @@ def as_late_as_possible(circuit: QuantumCircuit,
     timed_schedules = [(time, cpd.schedule) for time, cpd in zip(start_times, circ_pulse_defs)
                        if not isinstance(cpd.schedule, Barrier)]
 
-    schedule = Schedule.inherit_from(circuit)
+    schedule = Schedule.initialize_from(circuit)
     for time, inst in timed_schedules:
         schedule.insert(time, inst, inplace=True)
     return schedule

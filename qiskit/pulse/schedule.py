@@ -151,7 +151,7 @@ class Schedule:
             self._mutable_insert(time, sched)
 
     @classmethod
-    def inherit_from(cls, other_program: Any, name: Optional[str] = None) -> 'Schedule':
+    def initialize_from(cls, other_program: Any, name: Optional[str] = None) -> 'Schedule':
         """Create new schedule object with metadata of another schedule object.
 
         Args:
@@ -173,9 +173,9 @@ class Schedule:
                 metadata = None
 
             return cls(name=name, metadata=metadata)
-        except AttributeError:
+        except AttributeError as ex:
             raise PulseError(f'{cls.__name__} cannot be initialized from the program data '
-                             f'{other_program.__class__.__name__}.')
+                             f'{other_program.__class__.__name__}.') from ex
 
     @property
     def name(self) -> str:
@@ -352,7 +352,7 @@ class Schedule:
             time: Time to shift by
             name: Name of the new schedule if call was mutable. Defaults to name of self
         """
-        shift_sched = Schedule.inherit_from(self, name)
+        shift_sched = Schedule.initialize_from(self, name)
         shift_sched.insert(time, self, inplace=True)
 
         return shift_sched
@@ -429,7 +429,7 @@ class Schedule:
             schedule: Schedule to insert.
             name: Name of the new ``Schedule``. Defaults to name of ``self``.
         """
-        new_sched = Schedule.inherit_from(self, name)
+        new_sched = Schedule.initialize_from(self, name)
         new_sched._mutable_insert(0, self)
         new_sched._mutable_insert(start_time, schedule)
         return new_sched
@@ -714,7 +714,7 @@ class Schedule:
             return self
         else:
             try:
-                new_sched = Schedule.inherit_from(self)
+                new_sched = Schedule.initialize_from(self)
                 for time, inst in new_children:
                     new_sched.insert(time, inst, inplace=True)
                 return new_sched
@@ -943,7 +943,7 @@ class ScheduleBlock:
         self._parameter_manager.update_parameter_table(self._alignment_context)
 
     @classmethod
-    def inherit_from(cls, other_program: Any, name: Optional[str] = None) -> 'ScheduleBlock':
+    def initialize_from(cls, other_program: Any, name: Optional[str] = None) -> 'ScheduleBlock':
         """Create new schedule object with metadata of another schedule object.
 
         Args:
@@ -970,9 +970,9 @@ class ScheduleBlock:
                 alignment_context = None
 
             return cls(name=name, metadata=metadata, alignment_context=alignment_context)
-        except AttributeError:
+        except AttributeError as ex:
             raise PulseError(f'{cls.__name__} cannot be initialized from the program data '
-                             f'{other_program.__class__.__name__}.')
+                             f'{other_program.__class__.__name__}.') from ex
 
     @property
     def name(self) -> str:

@@ -425,7 +425,7 @@ class TestBlockOperation(BaseTestBlock):
         ref_name = 'test'
 
         base_sched = pulse.ScheduleBlock(name=ref_name, metadata=ref_metadata)
-        new_sched = pulse.ScheduleBlock.inherit_from(base_sched)
+        new_sched = pulse.ScheduleBlock.initialize_from(base_sched)
 
         self.assertEqual(new_sched.name, ref_name)
         self.assertDictEqual(new_sched.metadata, ref_metadata)

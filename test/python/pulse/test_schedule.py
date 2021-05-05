@@ -516,7 +516,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         ref_name = 'test'
 
         base_sched = Schedule(name=ref_name, metadata=ref_metadata)
-        new_sched = Schedule.inherit_from(base_sched)
+        new_sched = Schedule.initialize_from(base_sched)
 
         self.assertEqual(new_sched.name, ref_name)
         self.assertDictEqual(new_sched.metadata, ref_metadata)
