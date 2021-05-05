@@ -14,7 +14,6 @@
 
 import warnings
 from abc import abstractmethod
-from collections.abc import Iterable as IterableAbc
 from typing import Callable, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -129,33 +128,7 @@ class DerivativeBase(ConverterBase):
                       'Qiskit Terra 0.18.0 and will be removed no earlier than 3 months after '
                       'the release date. Use the ParameterExpression.gradient method instead for '
                       'a direct replacement.', DeprecationWarning, stacklevel=2)
-
-        if not isinstance(param_expr, ParameterExpression):
-            return 0.0
-
-        if param not in param_expr._parameter_symbols:
-            return 0.0
-
-        import sympy as sy
-        expr = param_expr._symbol_expr
-        keys = param_expr._parameter_symbols[param]
-        expr_grad = sy.N(0)
-        if not isinstance(keys, IterableAbc):
-            keys = [keys]
-        for key in keys:
-            expr_grad += sy.Derivative(expr, key).doit()
-
-        # generate the new dictionary of symbols
-        # this needs to be done since in the derivative some symbols might disappear (e.g.
-        # when deriving linear expression)
-        parameter_symbols = {}
-        for parameter, symbol in param_expr._parameter_symbols.items():
-            if symbol in expr_grad.free_symbols:
-                parameter_symbols[parameter] = symbol
-
-        if len(parameter_symbols) > 0:
-            return ParameterExpression(parameter_symbols, expr=expr_grad)
-        return float(expr_grad)  # if no free symbols left, convert to float
+        return _coeff_derivative(param_expr, param)
 
     @classmethod
     def _erase_operator_coeffs(cls, operator: OperatorBase) -> OperatorBase:
