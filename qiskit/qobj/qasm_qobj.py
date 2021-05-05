@@ -30,9 +30,21 @@ from qiskit.qobj.common import QobjDictField, QobjHeader, validator
 class QasmQobjInstruction:
     """A class representing a single instruction in an QasmQobj Experiment."""
 
-    def __init__(self, name, params=None, qubits=None, register=None,
-                 memory=None, condition=None, conditional=None, label=None,
-                 mask=None, relation=None, val=None, snapshot_type=None):
+    def __init__(
+        self,
+        name,
+        params=None,
+        qubits=None,
+        register=None,
+        memory=None,
+        condition=None,
+        conditional=None,
+        label=None,
+        mask=None,
+        relation=None,
+        val=None,
+        snapshot_type=None,
+    ):
         """Instantiate a new QasmQobjInstruction object.
 
         Args:
@@ -95,14 +107,24 @@ class QasmQobjInstruction:
         Returns:
             dict: The dictionary form of the QasmQobjInstruction.
         """
-        out_dict = {'name': self.name}
-        for attr in ['params', 'qubits', 'register', 'memory', '_condition',
-                     'conditional', 'label', 'mask', 'relation', 'val',
-                     'snapshot_type']:
+        out_dict = {"name": self.name}
+        for attr in [
+            "params",
+            "qubits",
+            "register",
+            "memory",
+            "_condition",
+            "conditional",
+            "label",
+            "mask",
+            "relation",
+            "val",
+            "snapshot_type",
+        ]:
             if hasattr(self, attr):
                 # TODO: Remove the param type conversion when Aer understands
                 # ParameterExpression type
-                if attr == 'params':
+                if attr == "params":
                     params = []
                     for param in list(getattr(self, attr)):
                         if isinstance(param, ParameterExpression):
@@ -117,25 +139,45 @@ class QasmQobjInstruction:
 
     def __repr__(self):
         out = "QasmQobjInstruction(name='%s'" % self.name
-        for attr in ['params', 'qubits', 'register', 'memory', '_condition',
-                     'conditional', 'label', 'mask', 'relation', 'val',
-                     'snapshot_type']:
+        for attr in [
+            "params",
+            "qubits",
+            "register",
+            "memory",
+            "_condition",
+            "conditional",
+            "label",
+            "mask",
+            "relation",
+            "val",
+            "snapshot_type",
+        ]:
             attr_val = getattr(self, attr, None)
             if attr_val is not None:
                 if isinstance(attr_val, str):
                     out += ', %s="%s"' % (attr, attr_val)
                 else:
                     out += ", %s=%s" % (attr, attr_val)
-        out += ')'
+        out += ")"
         return out
 
     def __str__(self):
         out = "Instruction: %s\n" % self.name
-        for attr in ['params', 'qubits', 'register', 'memory', '_condition',
-                     'conditional', 'label', 'mask', 'relation', 'val',
-                     'snapshot_type']:
+        for attr in [
+            "params",
+            "qubits",
+            "register",
+            "memory",
+            "_condition",
+            "conditional",
+            "label",
+            "mask",
+            "relation",
+            "val",
+            "snapshot_type",
+        ]:
             if hasattr(self, attr):
-                out += '\t\t%s: %s\n' % (attr, getattr(self, attr))
+                out += "\t\t%s: %s\n" % (attr, getattr(self, attr))
         return out
 
     @classmethod
@@ -148,7 +190,7 @@ class QasmQobjInstruction:
         Returns:
             QasmQobjInstruction: The object from the input dictionary.
         """
-        name = data.pop('name')
+        name = data.pop("name")
         return cls(name, **data)
 
     def __eq__(self, other):
@@ -179,19 +221,22 @@ class QasmQobjExperiment:
 
     def __repr__(self):
         instructions_str = [repr(x) for x in self.instructions]
-        instructions_repr = '[' + ', '.join(instructions_str) + ']'
+        instructions_repr = "[" + ", ".join(instructions_str) + "]"
         out = "QasmQobjExperiment(config=%s, header=%s, instructions=%s)" % (
-            repr(self.config), repr(self.header), instructions_repr)
+            repr(self.config),
+            repr(self.header),
+            instructions_repr,
+        )
         return out
 
     def __str__(self):
-        out = '\nQASM Experiment:\n'
+        out = "\nQASM Experiment:\n"
         config = pprint.pformat(self.config.to_dict())
         header = pprint.pformat(self.header.to_dict())
-        out += 'Header:\n%s\n' % header
-        out += 'Config:\n%s\n\n' % config
+        out += "Header:\n%s\n" % header
+        out += "Config:\n%s\n\n" % config
         for instruction in self.instructions:
-            out += '\t%s\n' % instruction
+            out += "\t%s\n" % instruction
         return out
 
     def to_dict(self):
@@ -201,9 +246,9 @@ class QasmQobjExperiment:
             dict: The dictionary form of the QasmQObjExperiment.
         """
         out_dict = {
-            'config': self.config.to_dict(),
-            'header': self.header.to_dict(),
-            'instructions': [x.to_dict() for x in self.instructions]
+            "config": self.config.to_dict(),
+            "header": self.header.to_dict(),
+            "instructions": [x.to_dict() for x in self.instructions],
         }
         return out_dict
 
@@ -218,16 +263,16 @@ class QasmQobjExperiment:
             QasmQobjExperiment: The object from the input dictionary.
         """
         config = None
-        if 'config' in data:
-            config = QasmQobjExperimentConfig.from_dict(data.pop('config'))
+        if "config" in data:
+            config = QasmQobjExperimentConfig.from_dict(data.pop("config"))
         header = None
-        if 'header' in data:
-            header = QasmQobjExperimentHeader.from_dict(data.pop('header'))
+        if "header" in data:
+            header = QasmQobjExperimentHeader.from_dict(data.pop("header"))
         instructions = None
-        if 'instructions' in data:
+        if "instructions" in data:
             instructions = [
-                QasmQobjInstruction.from_dict(
-                    inst) for inst in data.pop('instructions')]
+                QasmQobjInstruction.from_dict(inst) for inst in data.pop("instructions")
+            ]
         return cls(config, header, instructions)
 
     def __eq__(self, other):
@@ -240,20 +285,22 @@ class QasmQobjExperiment:
 class QasmQobjConfig(SimpleNamespace):
     """A configuration for a QASM Qobj."""
 
-    def __init__(self,
-                 shots=None,
-                 max_credits=None,
-                 seed_simulator=None,
-                 memory=None,
-                 parameter_binds=None,
-                 meas_level=None,
-                 meas_return=None,
-                 memory_slots=None,
-                 n_qubits=None,
-                 pulse_library=None,
-                 calibrations=None,
-                 rep_delay=None,
-                 **kwargs):
+    def __init__(
+        self,
+        shots=None,
+        max_credits=None,
+        seed_simulator=None,
+        memory=None,
+        parameter_binds=None,
+        meas_level=None,
+        meas_return=None,
+        memory_slots=None,
+        n_qubits=None,
+        pulse_library=None,
+        calibrations=None,
+        rep_delay=None,
+        **kwargs,
+    ):
         """Model for RunConfig.
 
         Args:
@@ -321,11 +368,11 @@ class QasmQobjConfig(SimpleNamespace):
             dict: The dictionary form of the QasmQobjConfig.
         """
         out_dict = copy.copy(self.__dict__)
-        if hasattr(self, 'pulse_library'):
-            out_dict['pulse_library'] = [x.to_dict() for x in self.pulse_library]
+        if hasattr(self, "pulse_library"):
+            out_dict["pulse_library"] = [x.to_dict() for x in self.pulse_library]
 
-        if hasattr(self, 'calibrations'):
-            out_dict['calibrations'] = self.calibrations.to_dict()
+        if hasattr(self, "calibrations"):
+            out_dict["calibrations"] = self.calibrations.to_dict()
 
         return out_dict
 
@@ -339,14 +386,14 @@ class QasmQobjConfig(SimpleNamespace):
         Returns:
             QasmQobjConfig: The object from the input dictionary.
         """
-        if 'pulse_library' in data:
-            pulse_lib = data.pop('pulse_library')
+        if "pulse_library" in data:
+            pulse_lib = data.pop("pulse_library")
             pulse_lib_obj = [PulseLibraryItem.from_dict(x) for x in pulse_lib]
-            data['pulse_library'] = pulse_lib_obj
+            data["pulse_library"] = pulse_lib_obj
 
-        if 'calibrations' in data:
-            calibrations = data.pop('calibrations')
-            data['calibrations'] = QasmExperimentCalibrations.from_dict(calibrations)
+        if "calibrations" in data:
+            calibrations = data.pop("calibrations")
+            data["calibrations"] = QasmExperimentCalibrations.from_dict(calibrations)
 
         return cls(**data)
 
@@ -359,6 +406,7 @@ class QasmQobjConfig(SimpleNamespace):
 
 class QasmQobjExperimentHeader(QobjDictField):
     """A header for a single QASM experiment in the qobj."""
+
     pass
 
 
@@ -378,15 +426,15 @@ class QasmQobjExperimentConfig(QobjDictField):
 
     def to_dict(self):
         out_dict = copy.copy(self.__dict__)
-        if hasattr(self, 'calibrations'):
-            out_dict['calibrations'] = self.calibrations.to_dict()
+        if hasattr(self, "calibrations"):
+            out_dict["calibrations"] = self.calibrations.to_dict()
         return out_dict
 
     @classmethod
     def from_dict(cls, data):
-        if 'calibrations' in data:
-            calibrations = data.pop('calibrations')
-            data['calibrations'] = QasmExperimentCalibrations.from_dict(calibrations)
+        if "calibrations" in data:
+            calibrations = data.pop("calibrations")
+            data["calibrations"] = QasmExperimentCalibrations.from_dict(calibrations)
         return cls(**data)
 
 
@@ -412,7 +460,7 @@ class QasmExperimentCalibrations:
 
         """
         out_dict = copy.copy(self.__dict__)
-        out_dict['gates'] = [x.to_dict() for x in self.gates]
+        out_dict["gates"] = [x.to_dict() for x in self.gates]
         return out_dict
 
     @classmethod
@@ -426,8 +474,8 @@ class QasmExperimentCalibrations:
         Returns:
             QasmExperimentCalibrations: The QasmExperimentCalibrations from the input dictionary.
         """
-        gates = data.pop('gates')
-        data['gates'] = [GateCalibration.from_dict(x) for x in gates]
+        gates = data.pop("gates")
+        data["gates"] = [GateCalibration.from_dict(x) for x in gates]
         return cls(**data)
 
 
@@ -452,8 +500,14 @@ class GateCalibration:
         self.instructions = instructions
 
     def __hash__(self):
-        return hash((self.name, tuple(self.qubits), tuple(self.params),
-                     tuple(str(inst) for inst in self.instructions)))
+        return hash(
+            (
+                self.name,
+                tuple(self.qubits),
+                tuple(self.params),
+                tuple(str(inst) for inst in self.instructions),
+            )
+        )
 
     def to_dict(self):
         """Return a dictionary format representation of the Gate Calibration.
@@ -462,7 +516,7 @@ class GateCalibration:
             dict: The dictionary form of the GateCalibration.
         """
         out_dict = copy.copy(self.__dict__)
-        out_dict['instructions'] = [x.to_dict() for x in self.instructions]
+        out_dict["instructions"] = [x.to_dict() for x in self.instructions]
         return out_dict
 
     @classmethod
@@ -476,16 +530,15 @@ class GateCalibration:
         Returns:
             GateCalibration: The GateCalibration from the input dictionary.
         """
-        instructions = data.pop('instructions')
-        data['instructions'] = [PulseQobjInstruction.from_dict(x) for x in instructions]
+        instructions = data.pop("instructions")
+        data["instructions"] = [PulseQobjInstruction.from_dict(x) for x in instructions]
         return cls(**data)
 
 
 class QasmQobj:
     """A QASM Qobj."""
 
-    def __init__(self, qobj_id=None, config=None, experiments=None,
-                 header=None):
+    def __init__(self, qobj_id=None, config=None, experiments=None, header=None):
         """Instantiate a new QASM Qobj Object.
 
         Each QASM Qobj object is used to represent a single payload that will
@@ -504,12 +557,13 @@ class QasmQobj:
         self.config = config or QasmQobjConfig()
         self.experiments = experiments or []
         self.qobj_id = qobj_id
-        self.type = 'QASM'
-        self.schema_version = '1.3.0'
+        self.type = "QASM"
+        self.schema_version = "1.3.0"
 
     def _validate_json_schema(self, out_dict):
         class QobjEncoder(json.JSONEncoder):
             """A json encoder for qobj"""
+
             def default(self, obj):
                 if isinstance(obj, numpy.ndarray):
                     return obj.tolist()
@@ -522,10 +576,13 @@ class QasmQobj:
 
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
-        experiments_repr = '[' + ', '.join(experiments_str) + ']'
+        experiments_repr = "[" + ", ".join(experiments_str) + "]"
         out = "QasmQobj(qobj_id='%s', config=%s, experiments=%s, header=%s)" % (
-            self.qobj_id, repr(self.config), experiments_repr,
-            repr(self.header))
+            self.qobj_id,
+            repr(self.config),
+            experiments_repr,
+            repr(self.header),
+        )
         return out
 
     def __str__(self):
@@ -572,12 +629,12 @@ class QasmQobj:
             dict: A dictionary representation of the QasmQobj object
         """
         out_dict = {
-            'qobj_id': self.qobj_id,
-            'header': self.header.to_dict(),
-            'config': self.config.to_dict(),
-            'schema_version': self.schema_version,
-            'type': 'QASM',
-            'experiments': [x.to_dict() for x in self.experiments]
+            "qobj_id": self.qobj_id,
+            "header": self.header.to_dict(),
+            "config": self.config.to_dict(),
+            "schema_version": self.schema_version,
+            "type": "QASM",
+            "experiments": [x.to_dict() for x in self.experiments],
         }
         if validate:
             warnings.warn(
@@ -585,8 +642,10 @@ class QasmQobj:
                 "deprecated and will be removed in a future release. "
                 "If you're relying on this schema validation you should "
                 "pull the schemas from the Qiskit/ibmq-schemas and directly "
-                "validate your payloads with that", DeprecationWarning,
-                stacklevel=2)
+                "validate your payloads with that",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             self._validate_json_schema(out_dict)
         return out_dict
 
@@ -602,19 +661,18 @@ class QasmQobj:
             QasmQobj: The QasmQobj from the input dictionary.
         """
         config = None
-        if 'config' in data:
-            config = QasmQobjConfig.from_dict(data['config'])
+        if "config" in data:
+            config = QasmQobjConfig.from_dict(data["config"])
         experiments = None
-        if 'experiments' in data:
-            experiments = [
-                QasmQobjExperiment.from_dict(
-                    exp) for exp in data['experiments']]
+        if "experiments" in data:
+            experiments = [QasmQobjExperiment.from_dict(exp) for exp in data["experiments"]]
         header = None
-        if 'header' in data:
-            header = QobjHeader.from_dict(data['header'])
+        if "header" in data:
+            header = QobjHeader.from_dict(data["header"])
 
-        return cls(qobj_id=data.get('qobj_id'), config=config,
-                   experiments=experiments, header=header)
+        return cls(
+            qobj_id=data.get("qobj_id"), config=config, experiments=experiments, header=header
+        )
 
     def __eq__(self, other):
         if isinstance(other, QasmQobj):

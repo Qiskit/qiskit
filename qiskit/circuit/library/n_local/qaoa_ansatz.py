@@ -32,12 +32,14 @@ class QAOAAnsatz(BlueprintCircuit):
             `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
     """
 
-    def __init__(self,
-                 cost_operator=None,
-                 reps: int = 1,
-                 initial_state: Optional[QuantumCircuit] = None,
-                 mixer_operator=None,
-                 name: str = "qaoa"):
+    def __init__(
+        self,
+        cost_operator=None,
+        reps: int = 1,
+        initial_state: Optional[QuantumCircuit] = None,
+        mixer_operator=None,
+        name: str = "qaoa",
+    ):
         r"""
         Args:
             cost_operator (OperatorBase, optional): The operator representing the cost of
@@ -74,28 +76,36 @@ class QAOAAnsatz(BlueprintCircuit):
         if self._cost_operator is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError("The operator representing the cost of "
-                                     "the optimization problem is not set")
-        if self._reps is None or self._reps < 1:
+                raise AttributeError(
+                    "The operator representing the cost of " "the optimization problem is not set"
+                )
+        if self._reps is None or self._reps < 0:
             valid = False
             if raise_on_failure:
-                raise AttributeError("The integer parameter reps, which determines the depth "
-                                     "of the circuit, needs to be >= 1 but has value {}"
-                                     .format(self._reps))
+                raise AttributeError(
+                    "The integer parameter reps, which determines the depth "
+                    "of the circuit, needs to be >= 0 but has value {}".format(self._reps)
+                )
 
         if self.initial_state is not None and self.initial_state.num_qubits != self.num_qubits:
             valid = False
             if raise_on_failure:
-                raise AttributeError("The number of qubits of the initial state {} does not match "
-                                     "the number of qubits of the cost operator {}"
-                                     .format(self.initial_state.num_qubits, self.num_qubits))
+                raise AttributeError(
+                    "The number of qubits of the initial state {} does not match "
+                    "the number of qubits of the cost operator {}".format(
+                        self.initial_state.num_qubits, self.num_qubits
+                    )
+                )
 
         if self.mixer_operator is not None and self.mixer_operator.num_qubits != self.num_qubits:
             valid = False
             if raise_on_failure:
-                raise AttributeError("The number of qubits of the mixer {} does not match "
-                                     "the number of qubits of the cost operator {}"
-                                     .format(self.mixer_operator.num_qubits, self.num_qubits))
+                raise AttributeError(
+                    "The number of qubits of the mixer {} does not match "
+                    "the number of qubits of the cost operator {}".format(
+                        self.mixer_operator.num_qubits, self.num_qubits
+                    )
+                )
 
         return valid
 
@@ -124,7 +134,7 @@ class QAOAAnsatz(BlueprintCircuit):
         self._qubit_set = set()
 
         if num_qubits > 0:
-            qr = QuantumRegister(num_qubits, 'q')
+            qr = QuantumRegister(num_qubits, "q")
             self.add_register(qr)
 
     @property
@@ -151,10 +161,12 @@ class QAOAAnsatz(BlueprintCircuit):
     def _calculate_parameters(self):
         """Calculated internal parameters of the circuit to be built."""
         from qiskit.opflow import OperatorBase
+
         if isinstance(self._mixer, QuantumCircuit):
             self._num_parameters = (1 + self._mixer.num_parameters) * self._reps
-            self._bounds = [(None, None)] * self._reps + \
-                           [(None, None)] * self._reps * self._mixer.num_parameters
+            self._bounds = [(None, None)] * self._reps + [
+                (None, None)
+            ] * self._reps * self._mixer.num_parameters
         elif isinstance(self._mixer, OperatorBase):
             self._num_parameters = 2 * self._reps
             self._bounds = [(None, None)] * self._reps + [(None, None)] * self._reps
@@ -165,9 +177,11 @@ class QAOAAnsatz(BlueprintCircuit):
     def _construct_circuit(self, parameters) -> QuantumCircuit:
         """Construct a parameterized circuit."""
         if not len(parameters) == self._num_parameters:
-            raise ValueError('Incorrect number of angles: expecting {}, but {} given.'.format(
-                self._num_parameters, len(parameters)
-            ))
+            raise ValueError(
+                "Incorrect number of angles: expecting {}, but {} given.".format(
+                    self._num_parameters, len(parameters)
+                )
+            )
 
         # local imports to avoid circular imports
         from qiskit.opflow import CircuitStateFn
@@ -192,8 +206,9 @@ class QAOAAnsatz(BlueprintCircuit):
                 num_params = mixer.num_parameters
                 # the remaining [self._p:] parameters are used for the mixer,
                 # there may be multiple layers, so parameters are grouped by layers.
-                param_values = parameters[self._reps + num_params * idx:
-                                          self._reps + num_params * (idx + 1)]
+                param_values = parameters[
+                    self._reps + num_params * idx : self._reps + num_params * (idx + 1)
+                ]
                 param_dict = dict(zip(mixer.parameters, param_values))
                 mixer = mixer.assign_parameters(param_dict)
                 circuit_op = CircuitOp(mixer).compose(circuit_op)
@@ -273,10 +288,13 @@ class QAOAAnsatz(BlueprintCircuit):
         if self.num_qubits > 0:
             # local imports to avoid circular imports
             from qiskit.opflow import I, X
+
             # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
             # will simply produce rx's on each qubit.
-            mixer_terms = [(I ^ left) ^ X ^ (I ^ (self.num_qubits - left - 1))
-                           for left in range(self.num_qubits)]
+            mixer_terms = [
+                (I ^ left) ^ X ^ (I ^ (self.num_qubits - left - 1))
+                for left in range(self.num_qubits)
+            ]
             mixer = sum(mixer_terms)
             return mixer
 
