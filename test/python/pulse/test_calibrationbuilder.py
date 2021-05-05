@@ -19,8 +19,17 @@ import numpy as np
 from qiskit import circuit, schedule
 from qiskit.transpiler import PassManager
 from qiskit.test import QiskitTestCase
-from qiskit.pulse import Play, Delay, ShiftPhase, ControlChannel, DriveChannel, GaussianSquare
-from qiskit.transpiler.passes.scheduling.calibration_creators import RZXCalibrationBuilderNoEcho
+from qiskit.pulse import (
+    Play,
+    Delay,
+    ShiftPhase,
+    ControlChannel,
+    DriveChannel,
+    GaussianSquare,
+)
+from qiskit.transpiler.passes.scheduling.calibration_creators import (
+    RZXCalibrationBuilderNoEcho,
+)
 from qiskit.test.mock import FakeAthens
 
 
@@ -56,18 +65,24 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
 
         # Check that the calibrations contain the correct instructions
         # and pulses on the correct channels.
-        rzx_qc_instructions = cal_qc.calibrations['rzx'][((1, 0), (theta/2,))].instructions
+        rzx_qc_instructions = cal_qc.calibrations["rzx"][
+            ((1, 0), (theta / 2,))
+        ].instructions
         self.assertEqual(rzx_qc_instructions[0][1].channel, DriveChannel(0))
         self.assertEqual(isinstance(rzx_qc_instructions[0][1], Play), True)
-        self.assertEqual(isinstance(rzx_qc_instructions[0][1].pulse, GaussianSquare), True)
+        self.assertEqual(
+            isinstance(rzx_qc_instructions[0][1].pulse, GaussianSquare), True
+        )
         self.assertEqual(rzx_qc_instructions[1][1].channel, DriveChannel(1))
         self.assertEqual(isinstance(rzx_qc_instructions[1][1], Delay), True)
         self.assertEqual(rzx_qc_instructions[2][1].channel, ControlChannel(1))
         self.assertEqual(isinstance(rzx_qc_instructions[2][1], Play), True)
-        self.assertEqual(isinstance(rzx_qc_instructions[2][1].pulse, GaussianSquare), True)
+        self.assertEqual(
+            isinstance(rzx_qc_instructions[2][1].pulse, GaussianSquare), True
+        )
 
         # Calculate the duration of one scaled Gaussian square pulse from the CX gate.
-        cx_sched = self.inst_map.get('cx', qubits=(1, 0))
+        cx_sched = self.inst_map.get("cx", qubits=(1, 0))
 
         crs = []
         for time, inst in cx_sched.instructions:
@@ -86,7 +101,7 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
 
         gaussian_area = abs(amp) * sigma * np.sqrt(2 * np.pi) * erf(n_sigmas)
         area = gaussian_area + abs(amp) * width
-        target_area = abs(theta) / (np.pi / 2.) * area
+        target_area = abs(theta) / (np.pi / 2.0) * area
         width = (target_area - gaussian_area) / abs(amp)
         duration = ceil((width + n_sigmas * sigma) / sample_mult) * sample_mult
 
