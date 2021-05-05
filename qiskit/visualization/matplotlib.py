@@ -508,7 +508,7 @@ class MatplotlibDrawer:
         sc = gt
         return fc, ec, gt, self._style["tc"], sc, lc
 
-    def _multiqubit_gate(self, op, xy, fc=None, ec=None, gt=None, sc=None, text='', subtext=''):
+    def _multiqubit_gate(self, op, xy, fc=None, ec=None, gt=None, sc=None, text="", subtext=""):
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
@@ -1172,7 +1172,7 @@ class MatplotlibDrawer:
             for op in layer:
                 self._gate_width[op] = WID
 
-                if op.op._directive or op.name == 'measure':
+                if op.op._directive or op.name == "measure":
                     continue
 
                 base_name = None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
@@ -1197,8 +1197,8 @@ class MatplotlibDrawer:
                     and len(op.op.params) > 0
                 ):
                     param = self._param_parse(op.op.params)
-                    if op.name == 'initialize':
-                        param = '[%s]' % param
+                    if op.name == "initialize":
+                        param = "[%s]" % param
                     raw_param_width = self._get_text_width(param, fontsize=sfs, param=True)
                     param_width = raw_param_width + 0.08
                 else:
@@ -1210,9 +1210,10 @@ class MatplotlibDrawer:
                     elif base_name == "p":
                         tname = "P"
                     else:
-                        tname = 'ZZ'
-                    raw_gate_width = (self._get_text_width(tname + ' ()', fontsize=sfs)
-                                      + raw_param_width)
+                        tname = "ZZ"
+                    raw_gate_width = (
+                        self._get_text_width(tname + " ()", fontsize=sfs) + raw_param_width
+                    )
                     gate_width = (raw_gate_width + 0.08) * 1.5
                 else:
                     raw_gate_width = self._get_text_width(gate_text, fontsize=fs)
@@ -1340,8 +1341,8 @@ class MatplotlibDrawer:
                 #
                 # draw special gates
                 #
-                if op.name == 'measure':
-                    vv = self._clbit_dict[c_idxs[0]]['index']
+                if op.name == "measure":
+                    vv = self._clbit_dict[c_idxs[0]]["index"]
                     self._measure(op, q_xy[0], c_xy[0], vv, fc=fc, ec=ec, gt=gt, sc=sc)
 
                 elif op.op._directive:
@@ -1357,8 +1358,9 @@ class MatplotlibDrawer:
                 elif op.name == "initialize":
                     vec = "$[{}]$".format(param.replace("$", ""))
                     if len(q_xy) == 1:
-                        self._gate(op, q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc,
-                                   text=gate_text, subtext=vec)
+                        self._gate(
+                            op, q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec
+                        )
                     else:
                         self._multiqubit_gate(
                             op, q_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec
@@ -1489,7 +1491,14 @@ class MatplotlibDrawer:
                 # draw multi-qubit gate as final default
                 else:
                     self._multiqubit_gate(
-                        op, q_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext="{}".format(param)
+                        op,
+                        q_xy,
+                        fc=fc,
+                        ec=ec,
+                        gt=gt,
+                        sc=sc,
+                        text=gate_text,
+                        subtext="{}".format(param),
                     )
 
             # adjust the column if there have been barriers encountered, but not plotted
