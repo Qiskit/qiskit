@@ -522,10 +522,18 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
         circuit.measure(2, 1)
         circuit.x(2).c_if(cr, 2)
-        self.circuit_drawer(circuit, cregbundle=False, reverse_bits=True,
-                            filename='reverse_bits_cond_true.png')
-        self.circuit_drawer(circuit, cregbundle=False, reverse_bits=False,
-                            filename='reverse_bits_cond_false.png')
+        self.circuit_drawer(
+            circuit,
+            cregbundle=False,
+            reverse_bits=True,
+            filename='reverse_bits_cond_true.png'
+        )
+        self.circuit_drawer(
+            circuit,
+            cregbundle=False,
+            reverse_bits=False,
+            filename='reverse_bits_cond_false.png'
+        )
 
     def test_style_custom_gates(self):
         """Tests style for custom gates"""
