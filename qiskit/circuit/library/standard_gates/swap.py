@@ -106,7 +106,7 @@ class SwapGate(Gate):
 
 
 class CSwapGate(ControlledGate):
-    r"""Controlled-X gate.
+    r"""Controlled swap gate.
 
     **Circuit symbol:**
 
