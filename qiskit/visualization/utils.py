@@ -25,6 +25,7 @@ from qiskit.circuit.tools import pi_check
 
 try:
     import PIL
+
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
@@ -39,10 +40,10 @@ except ImportError:
 
 def get_gate_ctrl_text(op, drawer, style=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
-    op_label = getattr(op.op, 'label', None)
+    op_label = getattr(op.op, "label", None)
     op_type = type(op.op)
     base_name = base_label = base_type = None
-    if hasattr(op.op, 'base_gate'):
+    if hasattr(op.op, "base_gate"):
         base_name = op.op.base_gate.name
         base_label = op.op.base_gate.label
         base_type = type(op.op.base_gate)
@@ -66,36 +67,39 @@ def get_gate_ctrl_text(op, drawer, style=None):
     raw_gate_text = op.name if gate_text == base_name else gate_text
 
     # For mpl and latex drawers, check style['disptex'] in qcstyle.py
-    if drawer != 'text' and gate_text in style['disptex']:
+    if drawer != "text" and gate_text in style["disptex"]:
         # First check if this entry is in the old style disptex that
         # included "$\\mathrm{  }$". If so, take it as is.
-        if style['disptex'][gate_text][0] == '$' and style['disptex'][gate_text][-1] == '$':
-            gate_text = style['disptex'][gate_text]
+        if style["disptex"][gate_text][0] == "$" and style["disptex"][gate_text][-1] == "$":
+            gate_text = style["disptex"][gate_text]
         else:
             gate_text = f"$\\mathrm{{{style['disptex'][gate_text]}}}$"
 
-    elif drawer == 'latex':
+    elif drawer == "latex":
         # Special formatting for Booleans in latex (due to '~' causing crash)
-        if ((gate_text == op.name and op_type is BooleanExpression)
-                or (gate_text == base_name and base_type is BooleanExpression)):
-            gate_text = gate_text.replace('~', '$\\neg$').replace('&', '\\&')
+        if (gate_text == op.name and op_type is BooleanExpression) or (
+            gate_text == base_name and base_type is BooleanExpression
+        ):
+            gate_text = gate_text.replace("~", "$\\neg$").replace("&", "\\&")
             gate_text = f"$\\texttt{{{gate_text}}}$"
         # Capitalize if not a user-created gate or instruction
-        elif ((gate_text == op.name and op_type not in (Gate, Instruction))
-              or (gate_text == base_name and base_type not in (Gate, Instruction))):
+        elif (gate_text == op.name and op_type not in (Gate, Instruction)) or (
+            gate_text == base_name and base_type not in (Gate, Instruction)
+        ):
             gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
         else:
             gate_text = f"$\\mathrm{{{gate_text}}}$"
             # Remove mathmode _, ^, and - formatting from user names and labels
-            gate_text = gate_text.replace('_', '\\_')
-            gate_text = gate_text.replace('^', '\\string^')
-            gate_text = gate_text.replace('-', '\\mbox{-}')
+            gate_text = gate_text.replace("_", "\\_")
+            gate_text = gate_text.replace("^", "\\string^")
+            gate_text = gate_text.replace("-", "\\mbox{-}")
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
     # Only captitalize internally-created gate or instruction names
-    elif ((gate_text == op.name and op_type not in (Gate, Instruction))
-          or (gate_text == base_name and base_type not in (Gate, Instruction))):
-        if drawer == 'mpl':
+    elif (gate_text == op.name and op_type not in (Gate, Instruction)) or (
+        gate_text == base_name and base_type not in (Gate, Instruction)
+    ):
+        if drawer == "mpl":
             gate_text = gate_text.capitalize()
         else:
             gate_text = gate_text.upper()
@@ -105,8 +109,7 @@ def get_gate_ctrl_text(op, drawer, style=None):
 
 def get_param_str(op, drawer, ndigits=3):
     """Get the params as a string to add to the gate text display"""
-    if (not hasattr(op.op, 'params')
-            or any(isinstance(param, np.ndarray) for param in op.op.params)):
+    if not hasattr(op.op, "params") or any(isinstance(param, np.ndarray) for param in op.op.params):
         return ""
 
     if isinstance(op.op, Delay):
@@ -116,8 +119,8 @@ def get_param_str(op, drawer, ndigits=3):
         for count, param in enumerate(op.op.params):
             # Latex drawer will cause an xy-pic error if param string
             # is too long, so we limit it to 4 params.
-            if drawer == 'latex' and count > 3:
-                param_list.append('...')
+            if drawer == "latex" and count > 3:
+                param_list.append("...")
                 break
             try:
                 param_list.append(pi_check(param, output=drawer, ndigits=ndigits))
@@ -126,10 +129,10 @@ def get_param_str(op, drawer, ndigits=3):
 
     param_str = ""
     if param_list:
-        if drawer == 'latex':
+        if drawer == "latex":
             param_str = f"\\,(\\mathrm{{{','.join(param_list)}}})"
-        elif drawer == 'mpl':
-            param_str = f"{', '.join(param_list)}".replace('-', '$-$')
+        elif drawer == "mpl":
+            param_str = f"{', '.join(param_list)}".replace("-", "$-$")
         else:
             param_str = f"({','.join(param_list)})"
 
@@ -139,33 +142,40 @@ def get_param_str(op, drawer, ndigits=3):
 def generate_latex_label(label):
     """Convert a label to a valid latex string."""
     if not HAS_PYLATEX:
-        raise ImportError('The latex and latex_source drawers need '
-                          'pylatexenc installed. Run "pip install '
-                          'pylatexenc" before using the latex or '
-                          'latex_source drawers.')
+        raise ImportError(
+            "The latex and latex_source drawers need "
+            'pylatexenc installed. Run "pip install '
+            'pylatexenc" before using the latex or '
+            "latex_source drawers."
+        )
 
     regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
     match = regex.search(label)
     if not match:
-        label = label.replace(r'\$', '$')
+        label = label.replace(r"\$", "$")
         final_str = utf8tolatex(label, non_ascii_only=True)
     else:
-        mathmode_string = match.group(1).replace(r'\$', '$')
-        before_match = label[:match.start()]
-        before_match = before_match.replace(r'\$', '$')
-        after_match = label[match.end():]
-        after_match = after_match.replace(r'\$', '$')
-        final_str = (utf8tolatex(before_match, non_ascii_only=True) + mathmode_string
-                     + utf8tolatex(after_match, non_ascii_only=True))
-    return final_str.replace(' ', '\\,')   # Put in proper spaces
+        mathmode_string = match.group(1).replace(r"\$", "$")
+        before_match = label[: match.start()]
+        before_match = before_match.replace(r"\$", "$")
+        after_match = label[match.end() :]
+        after_match = after_match.replace(r"\$", "$")
+        final_str = (
+            utf8tolatex(before_match, non_ascii_only=True)
+            + mathmode_string
+            + utf8tolatex(after_match, non_ascii_only=True)
+        )
+    return final_str.replace(" ", "\\,")  # Put in proper spaces
 
 
 def _trim(image):
     """Trim a PIL image and remove white space."""
     if not HAS_PIL:
-        raise ImportError('The latex drawer needs pillow installed. '
-                          'Run "pip install pillow" before using the '
-                          'latex drawer.')
+        raise ImportError(
+            "The latex drawer needs pillow installed. "
+            'Run "pip install pillow" before using the '
+            "latex drawer."
+        )
     background = PIL.Image.new(image.mode, image.size, image.getpixel((0, 0)))
     diff = PIL.ImageChops.difference(image, background)
     diff = PIL.ImageChops.add(diff, diff, 2.0, -100)
@@ -175,8 +185,7 @@ def _trim(image):
     return image
 
 
-def _get_layered_instructions(circuit, reverse_bits=False,
-                              justify=None, idle_wires=True):
+def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wires=True):
     """
     Given a circuit, return a tuple (qubits, clbits, ops) where
     qubits and clbits are the quantum and classical registers
@@ -197,7 +206,7 @@ def _get_layered_instructions(circuit, reverse_bits=False,
         justify = justify.lower()
 
     # default to left
-    justify = justify if justify in ('right', 'none') else 'left'
+    justify = justify if justify in ("right", "none") else "left"
 
     dag = circuit_to_dag(circuit)
 
@@ -210,7 +219,7 @@ def _get_layered_instructions(circuit, reverse_bits=False,
     # it will be placed to the right of the measure op if the register matches.
     measure_map = OrderedDict([(c, -1) for c in circuit.cregs])
 
-    if justify == 'none':
+    if justify == "none":
         for node in dag.topological_op_nodes():
             ops.append([node])
     else:
@@ -223,14 +232,13 @@ def _get_layered_instructions(circuit, reverse_bits=False,
     # Optionally remove all idle wires and instructions that are on them and
     # on them only.
     if not idle_wires:
-        for wire in dag.idle_wires(ignore=['barrier', 'delay']):
+        for wire in dag.idle_wires(ignore=["barrier", "delay"]):
             if wire in qubits:
                 qubits.remove(wire)
             if wire in clbits:
                 clbits.remove(wire)
 
-    ops = [[op for op in layer if any(q in qubits for q in op.qargs)]
-           for layer in ops]
+    ops = [[op for op in layer if any(q in qubits for q in op.qargs)] for layer in ops]
 
     return qubits, clbits, ops
 
@@ -239,7 +247,7 @@ def _sorted_nodes(dag_layer):
     """Convert DAG layer into list of nodes sorted by node_id
     qiskit-terra #2802
     """
-    dag_instructions = dag_layer['graph'].op_nodes()
+    dag_instructions = dag_layer["graph"].op_nodes()
     # sort into the order they were input
     dag_instructions.sort(key=lambda nd: nd._node_id)
     return dag_instructions
@@ -264,7 +272,7 @@ def _get_gate_span(qubits, node):
     if node.op.condition:
         return qubits[min_index:]
 
-    return qubits[min_index:max_index + 1]
+    return qubits[min_index : max_index + 1]
 
 
 def _any_crossover(qubits, node, nodes):
@@ -288,7 +296,7 @@ class _LayerSpooler(list):
         self.justification = justification
         self.measure_map = measure_map
 
-        if self.justification == 'left':
+        if self.justification == "left":
             for dag_layer in dag.layers():
                 current_index = len(self) - 1
                 dag_nodes = _sorted_nodes(dag_layer)
@@ -324,8 +332,7 @@ class _LayerSpooler(list):
         """Insert node into first layer where there is no conflict going l > r"""
         measure_layer = None
         if isinstance(node.op, Measure):
-            measure_reg = next(reg for reg in self.measure_map
-                               if node.cargs[0] in reg)
+            measure_reg = next(reg for reg in self.measure_map if node.cargs[0] in reg)
 
         if not self:
             inserted = True
@@ -340,8 +347,7 @@ class _LayerSpooler(list):
             elif node.cargs:
                 for carg in node.cargs:
                     try:
-                        carg_reg = next(reg for reg in self.measure_map
-                                        if carg in reg)
+                        carg_reg = next(reg for reg in self.measure_map if carg in reg)
                         if self.measure_map[carg_reg] > index_stop:
                             index_stop = self.measure_map[carg_reg]
                     except StopIteration:
@@ -434,12 +440,13 @@ def _bloch_multivector_data(state):
     num = rho.num_qubits
     if num is None:
         raise VisualizationError("Input is not a multi-qubit quantum state.")
-    pauli_singles = PauliTable.from_labels(['X', 'Y', 'Z'])
+    pauli_singles = PauliTable.from_labels(["X", "Y", "Z"])
     bloch_data = []
     for i in range(num):
         if num > 1:
-            paulis = PauliTable(np.zeros((3, 2 * (num-1)), dtype=bool)).insert(
-                i, pauli_singles, qubit=True)
+            paulis = PauliTable(np.zeros((3, 2 * (num - 1)), dtype=bool)).insert(
+                i, pauli_singles, qubit=True
+            )
         else:
             paulis = pauli_singles
         bloch_state = [np.real(np.trace(np.dot(mat, rho.data))) for mat in paulis.matrix_iter()]
