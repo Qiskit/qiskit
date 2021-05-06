@@ -402,6 +402,7 @@ class Ex(DirectOnQuWire):
 
 class ResetDisplay(DirectOnQuWire):
     """Draws a reset gate"""
+
     def __init__(self, conditional=False):
         super().__init__("|0>")
         if conditional:
