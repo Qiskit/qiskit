@@ -200,7 +200,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         """
         if self._breakpoints is None or breakpoints != self._breakpoints:
             self._invalidate()
-            self._breakpoints = breakpoints
+            self._breakpoints = breakpoints if breakpoints is not None else [0]
 
             self._reset_registers(self.num_state_qubits)
 
