@@ -18,8 +18,10 @@ import os
 import unittest
 import math
 import numpy as np
+from numpy import pi
 
-from qiskit.visualization import self.circuit_drawer
+from qiskit.test import QiskitTestCase
+from qiskit.visualization import _latex_circuit_drawer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate
@@ -42,15 +44,13 @@ def cwd(path):
     finally:
         os.chdir(oldpwd)
 
-pi = np.pi
-
 class TestLatexDrawer(QiskitTestCase):
     """Testing Latex visualization."""
 
     def setUp(self):
     super().setUp()
-    self.self.circuit_drawer = TestLatexDrawer.save_data_wrap(
-        _matplotlib_self.circuit_drawer, str(self)
+    self.circuit_drawer = TestLatexDrawer.save_data_wrap(
+        _latex_circuit_drawer, str(self)
     )
 
     @staticmethod
