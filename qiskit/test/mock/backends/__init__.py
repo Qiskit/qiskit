@@ -15,6 +15,7 @@
 Mocked versions of real quantum backends.
 """
 
+# BackendV1 Backends
 from .almaden import FakeAlmaden
 from .armonk import FakeArmonk
 from .athens import FakeAthens
@@ -50,3 +51,39 @@ from .toronto import FakeToronto
 from .valencia import FakeValencia
 from .vigo import FakeVigo
 from .yorktown import FakeYorktown
+
+# Legacy Backends
+from .almaden import FakeLegacyAlmaden
+from .armonk import FakeLegacyArmonk
+from .athens import FakeLegacyAthens
+from .belem import FakeLegacyBelem
+from .boeblingen import FakeLegacyBoeblingen
+from .bogota import FakeLegacyBogota
+from .burlington import FakeLegacyBurlington
+from .cambridge import FakeLegacyCambridge
+from .cambridge import FakeLegacyCambridgeAlternativeBasis
+from .casablanca import FakeLegacyCasablanca
+from .essex import FakeLegacyEssex
+from .johannesburg import FakeLegacyJohannesburg
+from .lima import FakeLegacyLima
+from .london import FakeLegacyLondon
+from .manhattan import FakeLegacyManhattan
+from .melbourne import FakeLegacyMelbourne
+from .montreal import FakeLegacyMontreal
+from .mumbai import FakeLegacyMumbai
+from .ourense import FakeLegacyOurense
+from .paris import FakeLegacyParis
+from .poughkeepsie import FakeLegacyPoughkeepsie
+from .quito import FakeLegacyQuito
+from .rochester import FakeLegacyRochester
+from .rome import FakeLegacyRome
+from .rueschlikon import FakeLegacyRueschlikon
+from .santiago import FakeLegacySantiago
+from .singapore import FakeLegacySingapore
+from .sydney import FakeLegacySydney
+from .tenerife import FakeLegacyTenerife
+from .tokyo import FakeLegacyTokyo
+from .toronto import FakeLegacyToronto
+from .valencia import FakeLegacyValencia
+from .vigo import FakeLegacyVigo
+from .yorktown import FakeLegacyYorktown
