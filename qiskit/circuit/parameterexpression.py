@@ -114,8 +114,6 @@ class ParameterExpression:
             # see symengine/symengine.py#351 for more details
             if isinstance(value, numpy.floating):
                 symbol_values[param_expr] = float(value)
-            elif isinstance(value, numpy.integer):
-                symbol_values[param_expr] = int(value)
             else:
                 symbol_values[param_expr] = value
 
