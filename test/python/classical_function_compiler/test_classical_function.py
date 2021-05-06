@@ -27,14 +27,14 @@ from . import examples
 class TestOracleDecomposition(QiskitTestCase):
     """Tests ClassicalFunction.decomposition."""
 
-    @unittest.skipUnless(HAS_TWEEDLEDUM, 'tweedledum not available')
+    @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum not available")
     def test_grover_oracle(self):
-        """ grover_oracle.decomposition"""
+        """grover_oracle.decomposition"""
         oracle = compile_classical_function(examples.grover_oracle)
         quantum_circuit = QuantumCircuit(5)
         quantum_circuit.append(oracle, [2, 1, 0, 3, 4])
 
         expected = QuantumCircuit(5)
-        expected.append(XGate().control(4, ctrl_state='1010'), [2, 1, 0, 3, 4])
+        expected.append(XGate().control(4, ctrl_state="1010"), [2, 1, 0, 3, 4])
 
         self.assertEqual(quantum_circuit.decompose(), expected)

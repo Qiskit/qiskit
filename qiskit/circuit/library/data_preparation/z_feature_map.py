@@ -72,12 +72,13 @@ class ZFeatureMap(PauliFeatureMap):
 
     """
 
-    def __init__(self,
-                 feature_dimension: int,
-                 reps: int = 2,
-                 data_map_func: Optional[Callable[[np.ndarray], float]] = None,
-                 insert_barriers: bool = False,
-                 ) -> None:
+    def __init__(
+        self,
+        feature_dimension: int,
+        reps: int = 2,
+        data_map_func: Optional[Callable[[np.ndarray], float]] = None,
+        insert_barriers: bool = False,
+    ) -> None:
         """Create a new first-order Pauli-Z expansion circuit.
 
         Args:
@@ -89,8 +90,10 @@ class ZFeatureMap(PauliFeatureMap):
                 and hadamard layers.
 
         """
-        super().__init__(feature_dimension=feature_dimension,
-                         paulis=['Z'],
-                         reps=reps,
-                         data_map_func=data_map_func,
-                         insert_barriers=insert_barriers)
+        super().__init__(
+            feature_dimension=feature_dimension,
+            paulis=["Z"],
+            reps=reps,
+            data_map_func=data_map_func,
+            insert_barriers=insert_barriers,
+        )

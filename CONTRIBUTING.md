@@ -18,6 +18,10 @@ please ensure that:
 1. The code follows the code style of the project and successfully
    passes the tests. For convenience, you can execute `tox` locally,
    which will run these checks and report any issues.
+
+   If your code fails the local style checks (specifically the black
+   code formatting check) you can use `tox -eblack` to automatically
+   fix update the code formatting.
 2. The documentation has been updated accordingly. In particular, if a
    function or class has been modified during the PR, please update the
    *docstring* accordingly.
@@ -358,7 +362,24 @@ you just need to update the reference images as follows:
     new tests should now pass.
 
 Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some file metadata has changed, **please do not commit and push changes to this file unless they were intentional**.
-### Development Cycle
+
+## Style and lint
+
+Qiskit Terra uses 2 tools for verify code formatting and lint checking. The
+first tool is [black](https://github.com/psf/black) which is a code formatting
+tool that will automatically update the code formatting to a consistent style.
+The second tool is [pylint]https://www.pylint.org/) which is a code linter
+which does a deeper analysis of the Python code to find both style issues and
+potential bugs and other common issues in Python.
+
+You can check that your local modifications conform to the style rules
+by running `tox -elint` which will run `black` and `pylint` to check the local
+code formatting and lint. If black returns a code formatting error you can
+run `tox -eblack` to automatically update the code formatting to conform to
+the style. However, if `pylint` returns any error you will have to fix these
+issues by manually updating your code.
+
+## Development Cycle
 
 The development cycle for qiskit-terra is all handled in the open using
 the project boards in Github for project management. We use milestones
@@ -401,3 +422,28 @@ the following steps:
 
 The `stable/*` branches should only receive changes in the form of bug
 fixes.
+
+## Dealing with the git blame ignore list
+
+In the qiskit-terra repository we maintain a list of commits for git blame
+to ignore. This is mostly commits that are code style changes that don't
+change the functionality but just change the code formatting (for example,
+when we migrated to use black for code formatting). This file,
+`.git-blame-ignore-revs` just contains a list of commit SHA1s you can tell git
+to ignore when using the `git blame` command. This can be done one time
+with something like
+
+```
+git blame --ignore-revs-file .git-blame-ignore-revs qiskit/version.py
+
+```
+
+from the root of the repository. If you'd like to enable this by default you
+can update your local repository's configuration with:
+
+```
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+which will update your local repositories configuration to use the ignore list
+by default.
