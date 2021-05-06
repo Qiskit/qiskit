@@ -1158,7 +1158,7 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
-def state_to_latex(state, dims=None, convention='ket', **args):
+def state_to_latex(state, dims=None, convention="ket", **args):
     """Return a Latex representation of a state. Wrapper function
     for `qiskit.visualization.array_to_latex` for convetion 'vector'.
     Adds dims if necessary.
@@ -1189,7 +1189,7 @@ def state_to_latex(state, dims=None, convention='ket', **args):
 
     operator_shape = state._op_shape
     is_qubit_statevector = len(operator_shape.dims_r()) == 0 and set(operator_shape.dims_l()) == {2}
-    if convention == 'ket' and is_qubit_statevector:
+    if convention == "ket" and is_qubit_statevector:
         latex_str = _state_to_latex_ket(state._data)
     else:
         latex_str = array_to_latex(state._data, source=True, **args)
@@ -1211,7 +1211,7 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
     real_value = float(sympy.re(value))
     imag_value = float(sympy.im(value))
 
-    element = ''
+    element = ""
     if np.abs(value) > 0:
         latex_element = sympy.latex(value, full_prec=False)
         two_term = real_value != 0 and imag_value != 0
@@ -1219,9 +1219,9 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
             two_term = True
         if two_term:
             if first_term:
-                element = f'({latex_element})'
+                element = f"({latex_element})"
             else:
-                element = f'+ ({latex_element})'
+                element = f"+ ({latex_element})"
         else:
             if first_term:
                 if np.isreal(complex(value)) and value > 0:
@@ -1235,9 +1235,9 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
             else:
 
                 if imag_value == 0 and real_value > 0:
-                    element = '+' + latex_element
+                    element = "+" + latex_element
                 elif real_value == 0 and imag_value > 0:
-                    element = '+' + latex_element
+                    element = "+" + latex_element
                 else:
                     element = latex_element
                 if element == "+1":
@@ -1251,7 +1251,7 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
 
 
 def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
-    """ Convert a list of numbers to latex formatted terms
+    """Convert a list of numbers to latex formatted terms
 
     The first non-zero term is treated differently. For this term a leading + is suppressed.
 
@@ -1273,19 +1273,19 @@ def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
 def _state_to_latex_ket(data: List[complex]) -> str:
     """ Convert state vector to latex representation """
     num = int(np.log2(len(data)))
-    ket_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    ket_names = [bin(i)[2:].zfill(num) for i in range(2 ** num)]
 
     latex_terms = numbers_to_latex_terms(data)
 
-    latex_str = ''
+    latex_str = ""
     for idx, term in enumerate(latex_terms):
         if term is not None:
             ket = ket_names[idx]
-            latex_str += f'{term} |{ket}\\rangle'
+            latex_str += f"{term} |{ket}\\rangle"
     return latex_str
 
 
-class TextMatrix():
+class TextMatrix:
     """Text representation of an array, with `__str__` method so it
     displays nicely in Jupyter notebooks"""
 

@@ -1077,32 +1077,33 @@ class TestStatevector(QiskitTestCase):
             with self.subTest(msg=f"draw('{drawtype}')"):
                 sv.draw(drawtype)
         with self.subTest(msg=" draw('latex', convention='vector')"):
-            sv.draw('latex', convention='vector')
+            sv.draw("latex", convention="vector")
 
     def test_number_to_latex_terms(self):
         """ Test conversions of complex numbers to latex terms """
 
-        cases = [([1-8e-17, 0], ['', None]),
-                 ([0, -1], [None, '-']),
-                 ([0, 1], [None, '']),
-                 ([0, 1j], [None, 'i']),
-                 ([-1, 1], ['-', '+']),
-                 ([0, 1j], [None, 'i']),
-                 ([-1, 1j], ['-', '+i']),
-                 ([-1, -1-1j], ['-', '+ (-1 - i)']),
-                 ([np.sqrt(2)/2, np.sqrt(2)/2], ['\\frac{\\sqrt{2}}{2}', '+\\frac{\\sqrt{2}}{2}']),
-                 ([1+np.sqrt(2)], ['(1 + \\sqrt{2})']),
-                 ]
+        cases = [
+            ([1 - 8e-17, 0], ["", None]),
+            ([0, -1], [None, "-"]),
+            ([0, 1], [None, ""]),
+            ([0, 1j], [None, "i"]),
+            ([-1, 1], ["-", "+"]),
+            ([0, 1j], [None, "i"]),
+            ([-1, 1j], ["-", "+i"]),
+            ([-1, -1 - 1j], ["-", "+ (-1 - i)"]),
+            ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
+            ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
+        ]
         for numbers, latex_terms in cases:
             terms = numbers_to_latex_terms(numbers)
             self.assertListEqual(terms, latex_terms)
 
     def test_statevector_draw_latex_regression(self):
         """ Test numerical rounding errors are not printed """
-        sv = Statevector(np.array([1-8e-17, 8.32667268e-17j]))
-        latex_string = sv.draw(output='latex_source')
-        self.assertTrue(latex_string.startswith(' |0\\rangle'))
-        self.assertNotIn('|1\\rangle', latex_string)
+        sv = Statevector(np.array([1 - 8e-17, 8.32667268e-17j]))
+        latex_string = sv.draw(output="latex_source")
+        self.assertTrue(latex_string.startswith(" |0\\rangle"))
+        self.assertNotIn("|1\\rangle", latex_string)
 
 
 if __name__ == "__main__":
