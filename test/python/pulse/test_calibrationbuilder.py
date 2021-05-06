@@ -39,9 +39,7 @@ class TestCalibrationBuilder(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.backend = FakeAthens()
-        self.configuration = self.backend.configuration()
-        self.defaults = self.backend.defaults()
-        self.inst_map = self.defaults.instruction_schedule_map
+        self.inst_map = self. backend.defaults().instruction_schedule_map
 
 
 class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
@@ -69,17 +67,13 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
             ((1, 0), (theta / 2,))
         ].instructions
         self.assertEqual(rzx_qc_instructions[0][1].channel, DriveChannel(0))
-        self.assertEqual(isinstance(rzx_qc_instructions[0][1], Play), True)
-        self.assertEqual(
-            isinstance(rzx_qc_instructions[0][1].pulse, GaussianSquare), True
-        )
+        self.assertTrue(isinstance(rzx_qc_instructions[0][1], Play))
+        self.assertTrue(isinstance(rzx_qc_instructions[0][1].pulse, GaussianSquare))
         self.assertEqual(rzx_qc_instructions[1][1].channel, DriveChannel(1))
-        self.assertEqual(isinstance(rzx_qc_instructions[1][1], Delay), True)
+        self.assertTrue(isinstance(rzx_qc_instructions[1][1], Delay))
         self.assertEqual(rzx_qc_instructions[2][1].channel, ControlChannel(1))
-        self.assertEqual(isinstance(rzx_qc_instructions[2][1], Play), True)
-        self.assertEqual(
-            isinstance(rzx_qc_instructions[2][1].pulse, GaussianSquare), True
-        )
+        self.assertTrue(isinstance(rzx_qc_instructions[2][1], Play))
+        self.assertTrue(isinstance(rzx_qc_instructions[2][1].pulse, GaussianSquare))
 
         # Calculate the duration of one scaled Gaussian square pulse from the CX gate.
         cx_sched = self.inst_map.get("cx", qubits=(1, 0))

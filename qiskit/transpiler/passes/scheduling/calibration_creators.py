@@ -365,6 +365,9 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
             raise QiskitError("Control qubit is None.")
         if target is None:
             raise QiskitError("Target qubit is None.")
+            
+        if control != qubits[0]:
+            raise QiskitError("RZXCalibrationBuilderNoEcho only supports hardware-native RZX gates.")
 
         # Get the filtered Schedule instructions for the CR gates and compensation tones.
         crs = cx_sched.filter(*[self._filter_control]).instructions
@@ -379,8 +382,4 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
         rzx_theta = rzx_theta.insert(0, rot)
         rzx_theta = rzx_theta.insert(0, Delay(cr.duration, DriveChannel(control)))
 
-        # Reverse direction of the ZX.
-        if control == qubits[0]:
-            return rzx_theta
-        else:
-            raise QiskitError("Reverse direction not supported.")
+        return rzx_theta
