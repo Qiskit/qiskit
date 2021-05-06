@@ -77,7 +77,7 @@ class Delay(Instruction):
         elif isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:
                 return parameter  # expression has free parameters, we cannot validate it
-            if not parameter._symbol_expr.is_real:
+            if not parameter.is_real():
                 raise CircuitError(f"Bound parameter expression is complex in delay {self.name}")
             fval = float(parameter)
             if self.unit == "dt":
