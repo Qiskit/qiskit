@@ -23,4 +23,4 @@ from .quadratic_form import QuadraticForm
 from .linear_amplitude_function import LinearAmplitudeFunction
 from .adders import ClassicalAdder, RippleCarryAdder, QFTAdder
 from .piecewise_chebyshev import PiecewiseChebyshev
-from .multipliers import ClassicalMultiplier
+from .multipliers import ClassicalMultiplier, QFTMultiplier

@@ -13,3 +13,4 @@
 """The multiplier circuit library."""
 
 from .classical_multiplier import ClassicalMultiplier
+from .qft_multiplier import QFTMultiplier

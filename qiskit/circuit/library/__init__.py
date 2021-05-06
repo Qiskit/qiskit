@@ -370,6 +370,7 @@ from .arithmetic import (
     QFTAdder,
     PiecewiseChebyshev,
     ClassicalMultiplier,
+    QFTMultiplier,
 )
 
 from .n_local import (

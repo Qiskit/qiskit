@@ -21,7 +21,13 @@ from ddt import ddt, data, unpack
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector, partial_trace
-from qiskit.circuit.library import RippleCarryAdder, QFTAdder, ClassicalAdder, ClassicalMultiplier
+from qiskit.circuit.library import (
+    RippleCarryAdder,
+    QFTAdder,
+    ClassicalAdder,
+    ClassicalMultiplier,
+    QFTMultiplier
+)
 
 
 @ddt
@@ -98,18 +104,21 @@ class TestArithmetic(QiskitTestCase):
                                        num_res_qubits, inplace, modular)
 
     @data(
-        (3, ClassicalMultiplier, False, None),
+        (3, ClassicalMultiplier, False),
         (3, ClassicalMultiplier, False, ClassicalAdder),
         (3, ClassicalMultiplier, False, RippleCarryAdder),
-        (3, ClassicalMultiplier, False, QFTAdder)
+        (3, ClassicalMultiplier, False, QFTAdder),
+        (3, QFTMultiplier, False)
     )
     @unpack
-    def test_multiplication(self, num_state_qubits, multiplier, inplace, adder):
+    def test_multiplication(self, num_state_qubits, multiplier, inplace, adder=None):
         """Test multiplication for all implemented multipliers."""
         num_res_qubits = 2 * num_state_qubits
         if adder:
             adder = adder(num_state_qubits)
-        multiplier = multiplier(num_state_qubits, adder=adder)
+            multiplier = multiplier(num_state_qubits, adder=adder)
+        else:
+            multiplier = multiplier(num_state_qubits)
         self.assertArithmeticIsCorrect(num_state_qubits, multiplier, operator.mul,
                                        num_res_qubits, inplace)
 
