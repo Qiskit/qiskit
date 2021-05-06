@@ -23,6 +23,7 @@ from qiskit.providers.jobstatus import JobStatus
 
 class FakeJob(JobV1):
     """Fake simulator job"""
+
     _executor = futures.ThreadPoolExecutor()
 
     def __init__(self, backend, job_id, fn):
@@ -54,11 +55,9 @@ class FakeJob(JobV1):
         elif self._error:
             _status = JobStatus.ERROR
         else:
-            raise Exception('Unexpected state of {}'.format(
-                self.__class__.__name__))
+            raise Exception("Unexpected state of {}".format(self.__class__.__name__))
         _status_msg = None
-        return {'status': _status,
-                'status_msg': _status_msg}
+        return {"status": _status, "status_msg": _status_msg}
 
     def job_id(self):
         return self._job_id
@@ -85,6 +84,7 @@ class FakeJob(JobV1):
 
 class FakeLegacyJob(BaseJob):
     """Fake simulator job"""
+
     _executor = futures.ThreadPoolExecutor()
 
     def __init__(self, backend, job_id, fn):
@@ -116,11 +116,9 @@ class FakeLegacyJob(BaseJob):
         elif self._error:
             _status = JobStatus.ERROR
         else:
-            raise Exception('Unexpected state of {}'.format(
-                self.__class__.__name__))
+            raise Exception("Unexpected state of {}".format(self.__class__.__name__))
         _status_msg = None
-        return {'status': _status,
-                'status_msg': _status_msg}
+        return {"status": _status, "status_msg": _status_msg}
 
     def job_id(self):
         return self._job_id

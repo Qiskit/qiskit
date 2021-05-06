@@ -23,72 +23,91 @@ from qiskit import BasicAer, QuantumCircuit
 from qiskit.circuit.library import TwoLocal, EfficientSU2
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.opflow import (PrimitiveOp, X, Z, I, PauliSumOp,
-                           AerPauliExpectation, PauliExpectation,
-                           MatrixExpectation, ExpectationBase, TwoQubitReduction)
+from qiskit.opflow import (
+    PrimitiveOp,
+    X,
+    Z,
+    I,
+    PauliSumOp,
+    AerPauliExpectation,
+    PauliExpectation,
+    MatrixExpectation,
+    ExpectationBase,
+    TwoQubitReduction,
+)
 from qiskit.algorithms.optimizers import L_BFGS_B, COBYLA, SPSA, SLSQP
 from qiskit.algorithms import VQE, AlgorithmError
 
 
 @ddt
 class TestVQE(QiskitAlgorithmsTestCase):
-    """ Test VQE """
+    """Test VQE"""
 
     def setUp(self):
         super().setUp()
         self.seed = 50
         algorithm_globals.random_seed = self.seed
-        self.h2_op = -1.052373245772859 * (I ^ I) \
-            + 0.39793742484318045 * (I ^ Z) \
-            - 0.39793742484318045 * (Z ^ I) \
-            - 0.01128010425623538 * (Z ^ Z) \
+        self.h2_op = (
+            -1.052373245772859 * (I ^ I)
+            + 0.39793742484318045 * (I ^ Z)
+            - 0.39793742484318045 * (Z ^ I)
+            - 0.01128010425623538 * (Z ^ Z)
             + 0.18093119978423156 * (X ^ X)
+        )
         self.h2_energy = -1.85727503
 
-        self.ryrz_wavefunction = TwoLocal(rotation_blocks=['ry', 'rz'], entanglement_blocks='cz')
-        self.ry_wavefunction = TwoLocal(rotation_blocks='ry', entanglement_blocks='cz')
+        self.ryrz_wavefunction = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
+        self.ry_wavefunction = TwoLocal(rotation_blocks="ry", entanglement_blocks="cz")
 
-        self.qasm_simulator = QuantumInstance(BasicAer.get_backend('qasm_simulator'),
-                                              shots=1024,
-                                              seed_simulator=self.seed,
-                                              seed_transpiler=self.seed)
-        self.statevector_simulator = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
-                                                     shots=1,
-                                                     seed_simulator=self.seed,
-                                                     seed_transpiler=self.seed)
+        self.qasm_simulator = QuantumInstance(
+            BasicAer.get_backend("qasm_simulator"),
+            shots=1024,
+            seed_simulator=self.seed,
+            seed_transpiler=self.seed,
+        )
+        self.statevector_simulator = QuantumInstance(
+            BasicAer.get_backend("statevector_simulator"),
+            shots=1,
+            seed_simulator=self.seed,
+            seed_transpiler=self.seed,
+        )
 
     def test_basic_aer_statevector(self):
         """Test the VQE on BasicAer's statevector simulator."""
         wavefunction = self.ryrz_wavefunction
-        vqe = VQE(ansatz=wavefunction,
-                  optimizer=L_BFGS_B(),
-                  quantum_instance=QuantumInstance(BasicAer.get_backend('statevector_simulator'),
-                                                   basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                                                   coupling_map=[[0, 1]],
-                                                   seed_simulator=algorithm_globals.random_seed,
-                                                   seed_transpiler=algorithm_globals.random_seed))
+        vqe = VQE(
+            ansatz=wavefunction,
+            optimizer=L_BFGS_B(),
+            quantum_instance=QuantumInstance(
+                BasicAer.get_backend("statevector_simulator"),
+                basis_gates=["u1", "u2", "u3", "cx", "id"],
+                coupling_map=[[0, 1]],
+                seed_simulator=algorithm_globals.random_seed,
+                seed_transpiler=algorithm_globals.random_seed,
+            ),
+        )
 
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
-        with self.subTest(msg='test eigenvalue'):
+        with self.subTest(msg="test eigenvalue"):
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy)
 
-        with self.subTest(msg='test dimension of optimal point'):
+        with self.subTest(msg="test dimension of optimal point"):
             self.assertEqual(len(result.optimal_point), 16)
 
-        with self.subTest(msg='assert cost_function_evals is set'):
+        with self.subTest(msg="assert cost_function_evals is set"):
             self.assertIsNotNone(result.cost_function_evals)
 
-        with self.subTest(msg='assert optimizer_time is set'):
+        with self.subTest(msg="assert optimizer_time is set"):
             self.assertIsNotNone(result.optimizer_time)
 
     def test_circuit_input(self):
         """Test running the VQE on a plain QuantumCircuit object."""
         wavefunction = QuantumCircuit(2).compose(EfficientSU2(2))
         optimizer = SLSQP(maxiter=50)
-        vqe = VQE(ansatz=wavefunction,
-                  optimizer=optimizer,
-                  quantum_instance=self.statevector_simulator)
+        vqe = VQE(
+            ansatz=wavefunction, optimizer=optimizer, quantum_instance=self.statevector_simulator
+        )
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
 
@@ -116,8 +135,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_missing_varform_params(self):
         """Test specifying a variational form with no parameters raises an error."""
         circuit = QuantumCircuit(self.h2_op.num_qubits)
-        vqe = VQE(ansatz=circuit,
-                  quantum_instance=BasicAer.get_backend('statevector_simulator'))
+        vqe = VQE(ansatz=circuit, quantum_instance=BasicAer.get_backend("statevector_simulator"))
         with self.assertRaises(RuntimeError):
             vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
@@ -127,11 +145,13 @@ class TestVQE(QiskitAlgorithmsTestCase):
     )
     @unpack
     def test_max_evals_grouped(self, optimizer, places, max_evals_grouped):
-        """ VQE Optimizers test """
-        vqe = VQE(ansatz=self.ryrz_wavefunction,
-                  optimizer=optimizer,
-                  max_evals_grouped=max_evals_grouped,
-                  quantum_instance=self.statevector_simulator)
+        """VQE Optimizers test"""
+        vqe = VQE(
+            ansatz=self.ryrz_wavefunction,
+            optimizer=optimizer,
+            max_evals_grouped=max_evals_grouped,
+            quantum_instance=self.statevector_simulator,
+        )
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=places)
 
@@ -140,10 +160,12 @@ class TestVQE(QiskitAlgorithmsTestCase):
         optimizer = SPSA(maxiter=300, last_avg=5)
         wavefunction = self.ry_wavefunction
 
-        vqe = VQE(ansatz=wavefunction,
-                  optimizer=optimizer,
-                  max_evals_grouped=1,
-                  quantum_instance=self.qasm_simulator)
+        vqe = VQE(
+            ansatz=wavefunction,
+            optimizer=optimizer,
+            max_evals_grouped=1,
+            quantum_instance=self.qasm_simulator,
+        )
 
         # TODO benchmark this later.
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
@@ -155,12 +177,21 @@ class TestVQE(QiskitAlgorithmsTestCase):
         vqe = VQE(ansatz=wavefunction, quantum_instance=self.qasm_simulator)
         _ = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
-        opt_params = [3.50437328, 3.87415376, 0.93684363, 5.92219622, -1.53527887, 1.87941418,
-                      -4.5708326, 0.70187027]
+        opt_params = [
+            3.50437328,
+            3.87415376,
+            0.93684363,
+            5.92219622,
+            -1.53527887,
+            1.87941418,
+            -4.5708326,
+            0.70187027,
+        ]
 
         vqe._ret.optimal_point = opt_params
-        vqe._ret.optimal_parameters = \
-            dict(zip(sorted(wavefunction.parameters, key=lambda p: p.name), opt_params))
+        vqe._ret.optimal_parameters = dict(
+            zip(sorted(wavefunction.parameters, key=lambda p: p.name), opt_params)
+        )
 
         optimal_vector = vqe.get_optimal_vector()
         self.assertAlmostEqual(sum([v ** 2 for v in optimal_vector.values()]), 1.0, places=4)
@@ -172,17 +203,21 @@ class TestVQE(QiskitAlgorithmsTestCase):
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
-        backend = Aer.get_backend('statevector_simulator')
+        backend = Aer.get_backend("statevector_simulator")
         wavefunction = self.ry_wavefunction
         optimizer = L_BFGS_B()
 
-        quantum_instance = QuantumInstance(backend,
-                                           seed_simulator=algorithm_globals.random_seed,
-                                           seed_transpiler=algorithm_globals.random_seed)
-        vqe = VQE(ansatz=wavefunction,
-                  optimizer=optimizer,
-                  max_evals_grouped=1,
-                  quantum_instance=quantum_instance)
+        quantum_instance = QuantumInstance(
+            backend,
+            seed_simulator=algorithm_globals.random_seed,
+            seed_transpiler=algorithm_globals.random_seed,
+        )
+        vqe = VQE(
+            ansatz=wavefunction,
+            optimizer=optimizer,
+            max_evals_grouped=1,
+            quantum_instance=quantum_instance,
+        )
 
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
@@ -194,18 +229,22 @@ class TestVQE(QiskitAlgorithmsTestCase):
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
-        backend = Aer.get_backend('qasm_simulator')
+        backend = Aer.get_backend("qasm_simulator")
         optimizer = SPSA(maxiter=200, last_avg=5)
         wavefunction = self.ry_wavefunction
 
-        quantum_instance = QuantumInstance(backend,
-                                           seed_simulator=algorithm_globals.random_seed,
-                                           seed_transpiler=algorithm_globals.random_seed)
+        quantum_instance = QuantumInstance(
+            backend,
+            seed_simulator=algorithm_globals.random_seed,
+            seed_transpiler=algorithm_globals.random_seed,
+        )
 
-        vqe = VQE(ansatz=wavefunction,
-                  optimizer=optimizer,
-                  expectation=PauliExpectation(),
-                  quantum_instance=quantum_instance)
+        vqe = VQE(
+            ansatz=wavefunction,
+            optimizer=optimizer,
+            expectation=PauliExpectation(),
+            quantum_instance=quantum_instance,
+        )
 
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
@@ -218,17 +257,22 @@ class TestVQE(QiskitAlgorithmsTestCase):
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
-        backend = Aer.get_backend('qasm_simulator')
+        backend = Aer.get_backend("qasm_simulator")
         optimizer = L_BFGS_B()
         wavefunction = self.ry_wavefunction
 
-        quantum_instance = QuantumInstance(backend, shots=1,
-                                           seed_simulator=algorithm_globals.random_seed,
-                                           seed_transpiler=algorithm_globals.random_seed)
-        vqe = VQE(ansatz=wavefunction,
-                  optimizer=optimizer,
-                  expectation=AerPauliExpectation(),
-                  quantum_instance=quantum_instance)
+        quantum_instance = QuantumInstance(
+            backend,
+            shots=1,
+            seed_simulator=algorithm_globals.random_seed,
+            seed_transpiler=algorithm_globals.random_seed,
+        )
+        vqe = VQE(
+            ansatz=wavefunction,
+            optimizer=optimizer,
+            expectation=AerPauliExpectation(),
+            quantum_instance=quantum_instance,
+        )
 
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
@@ -268,60 +312,61 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
     def test_callback(self):
         """Test the callback on VQE."""
-        history = {'eval_count': [], 'parameters': [], 'mean': [], 'std': []}
+        history = {"eval_count": [], "parameters": [], "mean": [], "std": []}
 
         def store_intermediate_result(eval_count, parameters, mean, std):
-            history['eval_count'].append(eval_count)
-            history['parameters'].append(parameters)
-            history['mean'].append(mean)
-            history['std'].append(std)
+            history["eval_count"].append(eval_count)
+            history["parameters"].append(parameters)
+            history["mean"].append(mean)
+            history["std"].append(std)
 
         optimizer = COBYLA(maxiter=3)
         wavefunction = self.ry_wavefunction
 
-        vqe = VQE(ansatz=wavefunction,
-                  optimizer=optimizer,
-                  callback=store_intermediate_result,
-                  quantum_instance=self.qasm_simulator)
+        vqe = VQE(
+            ansatz=wavefunction,
+            optimizer=optimizer,
+            callback=store_intermediate_result,
+            quantum_instance=self.qasm_simulator,
+        )
         vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
-        self.assertTrue(all(isinstance(count, int) for count in history['eval_count']))
-        self.assertTrue(all(isinstance(mean, float) for mean in history['mean']))
-        self.assertTrue(all(isinstance(std, float) for std in history['std']))
-        for params in history['parameters']:
+        self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
+        self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
+        self.assertTrue(all(isinstance(std, float) for std in history["std"]))
+        for params in history["parameters"]:
             self.assertTrue(all(isinstance(param, float) for param in params))
 
     def test_reuse(self):
         """Test re-using a VQE algorithm instance."""
         vqe = VQE()
-        with self.subTest(msg='assert running empty raises AlgorithmError'):
+        with self.subTest(msg="assert running empty raises AlgorithmError"):
             with self.assertRaises(AlgorithmError):
                 _ = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
-        ansatz = TwoLocal(rotation_blocks=['ry', 'rz'], entanglement_blocks='cz')
+        ansatz = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
         vqe.ansatz = ansatz
-        with self.subTest(msg='assert missing operator raises AlgorithmError'):
+        with self.subTest(msg="assert missing operator raises AlgorithmError"):
             with self.assertRaises(AlgorithmError):
                 _ = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
         vqe.quantum_instance = self.statevector_simulator
-        with self.subTest(msg='assert VQE works once all info is available'):
+        with self.subTest(msg="assert VQE works once all info is available"):
             result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
 
-        operator = PrimitiveOp(np.array([[1, 0, 0, 0],
-                                         [0, -1, 0, 0],
-                                         [0, 0, 2, 0],
-                                         [0, 0, 0, 3]]))
+        operator = PrimitiveOp(np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 2, 0], [0, 0, 0, 3]]))
 
-        with self.subTest(msg='assert minimum eigensolver interface works'):
+        with self.subTest(msg="assert minimum eigensolver interface works"):
             result = vqe.compute_minimum_eigenvalue(operator=operator)
             self.assertAlmostEqual(result.eigenvalue.real, -1.0, places=5)
 
     def test_vqe_optimizer(self):
-        """ Test running same VQE twice to re-use optimizer, then switch optimizer """
-        vqe = VQE(optimizer=SLSQP(),
-                  quantum_instance=QuantumInstance(BasicAer.get_backend('statevector_simulator')))
+        """Test running same VQE twice to re-use optimizer, then switch optimizer"""
+        vqe = VQE(
+            optimizer=SLSQP(),
+            quantum_instance=QuantumInstance(BasicAer.get_backend("statevector_simulator")),
+        )
 
         def run_check():
             result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
@@ -329,10 +374,10 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         run_check()
 
-        with self.subTest('Optimizer re-use'):
+        with self.subTest("Optimizer re-use"):
             run_check()
 
-        with self.subTest('Optimizer replace'):
+        with self.subTest("Optimizer replace"):
             vqe.optimizer = L_BFGS_B()
             run_check()
 
@@ -343,19 +388,19 @@ class TestVQE(QiskitAlgorithmsTestCase):
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
-        backend = Aer.get_backend('qasm_simulator')
+        backend = Aer.get_backend("qasm_simulator")
 
-        with self.subTest('Defaults'):
+        with self.subTest("Defaults"):
             vqe = VQE(quantum_instance=backend)
             vqe.compute_minimum_eigenvalue(operator=self.h2_op)
             self.assertIsInstance(vqe.expectation, PauliExpectation)
 
-        with self.subTest('Include custom'):
+        with self.subTest("Include custom"):
             vqe = VQE(include_custom=True, quantum_instance=backend)
             vqe.compute_minimum_eigenvalue(operator=self.h2_op)
             self.assertIsInstance(vqe.expectation, AerPauliExpectation)
 
-        with self.subTest('Set explicitly'):
+        with self.subTest("Set explicitly"):
             vqe = VQE(expectation=AerPauliExpectation(), quantum_instance=backend)
             vqe.compute_minimum_eigenvalue(operator=self.h2_op)
             self.assertIsInstance(vqe.expectation, AerPauliExpectation)
@@ -363,34 +408,36 @@ class TestVQE(QiskitAlgorithmsTestCase):
     @data(MatrixExpectation(), None)
     def test_backend_change(self, user_expectation):
         """Test that VQE works when backend changes."""
-        vqe = VQE(ansatz=TwoLocal(rotation_blocks=['ry', 'rz'], entanglement_blocks='cz'),
-                  optimizer=SLSQP(maxiter=2),
-                  expectation=user_expectation,
-                  quantum_instance=BasicAer.get_backend('statevector_simulator'))
+        vqe = VQE(
+            ansatz=TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz"),
+            optimizer=SLSQP(maxiter=2),
+            expectation=user_expectation,
+            quantum_instance=BasicAer.get_backend("statevector_simulator"),
+        )
         result0 = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         if user_expectation is not None:
-            with self.subTest('User expectation kept.'):
+            with self.subTest("User expectation kept."):
                 self.assertEqual(vqe.expectation, user_expectation)
         else:
-            with self.subTest('Expectation created.'):
+            with self.subTest("Expectation created."):
                 self.assertIsInstance(vqe.expectation, ExpectationBase)
         try:
-            vqe.quantum_instance = BasicAer.get_backend('qasm_simulator')
+            vqe.quantum_instance = BasicAer.get_backend("qasm_simulator")
         except Exception as ex:  # pylint: disable=broad-except
             self.fail("Failed to change backend. Error: '{}'".format(str(ex)))
             return
 
         result1 = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         if user_expectation is not None:
-            with self.subTest('Change backend with user expectation, it is kept.'):
+            with self.subTest("Change backend with user expectation, it is kept."):
                 self.assertEqual(vqe.expectation, user_expectation)
         else:
-            with self.subTest('Change backend without user expectation, one created.'):
+            with self.subTest("Change backend without user expectation, one created."):
                 self.assertIsInstance(vqe.expectation, ExpectationBase)
 
-        with self.subTest('Check results.'):
+        with self.subTest("Check results."):
             self.assertEqual(len(result0.optimal_point), len(result1.optimal_point))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
