@@ -397,7 +397,6 @@ class TestLatexDrawer(QiskitTestCase):
         self.circuit_drawer(
             circuit,
             filename=filename2,
-            output="latex_source",
             cregbundle=False,
             initial_state=False,
         )
