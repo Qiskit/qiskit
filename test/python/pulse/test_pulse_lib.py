@@ -79,6 +79,15 @@ class TestWaveform(QiskitTestCase):
         with self.assertRaises(PulseError):
             Waveform(invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)))
 
+        invalid_const = 1.1
+        Waveform.limit_amplitude = False
+        wave = Waveform(invalid_const*np.exp(1j*2*np.pi*np.linspace(0, 1, 1000)))
+        self.assertGreater(np.max(np.abs(wave.samples)), 1.0)
+        with self.assertRaises(PulseError):
+            wave = Waveform(invalid_const*np.exp(1j*2*np.pi *
+                            np.linspace(0, 1, 1000)), limit_amplitude=True)
+        Waveform.limit_amplitude = True
+
         # Test case where data is converted to python types with complex as a list
         # with form [re, im] and back to a numpy array.
         # This is how the transport layer handles samples in the qobj so it is important
