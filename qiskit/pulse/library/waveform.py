@@ -32,19 +32,19 @@ class Waveform(Pulse):
         self,
         samples: Union[np.ndarray, List[complex]],
         name: Optional[str] = None,
-        limit_amplitude: Optional[bool] = None,
         epsilon: float = 1e-7,
+        limit_amplitude: Optional[bool] = None,
     ):
         """Create new sample pulse command.
 
         Args:
             samples: Complex array of the samples in the pulse envelope.
             name: Unique name to identify the pulse.
-            limit_amplitude: If True, then limit the amplitude of the waveform to 1.
             epsilon: Pulse sample norm tolerance for clipping.
                 If any sample's norm exceeds unity by less than or equal to epsilon
                 it will be clipped to unit norm. If the sample
                 norm is greater than 1+epsilon an error will be raised.
+            limit_amplitude: If True, then limit the amplitude of the waveform to 1.
         """
 
         samples = np.asarray(samples, dtype=np.complex_)
