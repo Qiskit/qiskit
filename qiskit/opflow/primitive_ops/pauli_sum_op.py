@@ -127,7 +127,7 @@ class PauliSumOp(PrimitiveOp):
         if isinstance(scalar, (int, float, complex)) and scalar != 0:
             return PauliSumOp(scalar * self.primitive, coeff=self.coeff)
 
-        return super().mul(scalar)
+        return PauliSumOp(self.primitive, coeff=self.coeff * scalar)
 
     def adjoint(self) -> "PauliSumOp":
         return PauliSumOp(self.primitive.adjoint(), coeff=self.coeff.conjugate())
@@ -215,13 +215,13 @@ class PauliSumOp(PrimitiveOp):
         # Both PauliSumOps
         if isinstance(other, PauliSumOp):
             return PauliSumOp(
-                new_self.primitive * other.primitive,
+                new_self.primitive.dot(other.primitive),
                 coeff=new_self.coeff * other.coeff,
             )
         if isinstance(other, PauliOp):
             other_primitive = SparsePauliOp(other.primitive)
             return PauliSumOp(
-                new_self.primitive * other_primitive,
+                new_self.primitive.dot(other_primitive),
                 coeff=new_self.coeff * other.coeff,
             )
 
@@ -327,7 +327,7 @@ class PauliSumOp(PrimitiveOp):
         return self.to_matrix_op().eval(front.to_matrix_op())
 
     def exp_i(self) -> OperatorBase:
-        """ Return a ``CircuitOp`` equivalent to e^-iH for this operator H. """
+        """Return a ``CircuitOp`` equivalent to e^-iH for this operator H."""
         # TODO: optimize for some special cases
         from ..evolutions.evolved_op import EvolvedOp
 

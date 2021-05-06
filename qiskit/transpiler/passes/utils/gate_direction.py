@@ -14,6 +14,7 @@
 
 from math import pi
 
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -62,8 +63,8 @@ class GateDirection(TransformationPass):
         self._ecr_dag = DAGCircuit()
         qr = QuantumRegister(2)
         self._ecr_dag.add_qreg(qr)
-        self._ecr_dag.apply_operation_back(RYGate(-pi/2), [qr[0]], [])
-        self._ecr_dag.apply_operation_back(RYGate(pi/2), [qr[1]], [])
+        self._ecr_dag.apply_operation_back(RYGate(-pi / 2), [qr[0]], [])
+        self._ecr_dag.apply_operation_back(RYGate(pi / 2), [qr[1]], [])
         self._ecr_dag.apply_operation_back(ECRGate(), [qr[1], qr[0]], [])
         self._ecr_dag.apply_operation_back(HGate(), [qr[0]], [])
         self._ecr_dag.apply_operation_back(HGate(), [qr[1]], [])
@@ -87,28 +88,35 @@ class GateDirection(TransformationPass):
         cmap_edges = set(self.coupling_map.get_edges())
 
         if len(dag.qregs) > 1:
-            raise TranspilerError('GateDirection expects a single qreg input DAG,'
-                                  'but input DAG had qregs: {}.'.format(
-                                      dag.qregs))
+            raise TranspilerError(
+                "GateDirection expects a single qreg input DAG,"
+                "but input DAG had qregs: {}.".format(dag.qregs)
+            )
+
+        trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         for node in dag.two_qubit_ops():
             control = node.qargs[0]
             target = node.qargs[1]
 
-            physical_q0 = control.index
-            physical_q1 = target.index
+            physical_q0 = trivial_layout[control]
+            physical_q1 = trivial_layout[target]
 
             if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                raise TranspilerError('The circuit requires a connection between physical '
-                                      'qubits %s and %s' % (physical_q0, physical_q1))
+                raise TranspilerError(
+                    "The circuit requires a connection between physical "
+                    "qubits %s and %s" % (physical_q0, physical_q1)
+                )
 
             if (physical_q0, physical_q1) not in cmap_edges:
-                if node.name == 'cx':
+                if node.name == "cx":
                     dag.substitute_node_with_dag(node, self._cx_dag)
-                elif node.name == 'ecr':
+                elif node.name == "ecr":
                     dag.substitute_node_with_dag(node, self._ecr_dag)
                 else:
-                    raise TranspilerError('Flipping of gate direction is only supported '
-                                          'for CX and ECR at this time.')
+                    raise TranspilerError(
+                        "Flipping of gate direction is only supported "
+                        "for CX and ECR at this time."
+                    )
 
         return dag

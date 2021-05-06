@@ -54,8 +54,7 @@ class TestChoi(ChannelTestCase):
         self.assertEqual(chan.num_qubits, 2)
 
         # Wrong input or output dims should raise exception
-        self.assertRaises(
-            QiskitError, Choi, mat8, input_dims=[4], output_dims=[4])
+        self.assertRaises(QiskitError, Choi, mat8, input_dims=[4], output_dims=[4])
 
     def test_circuit_init(self):
         """Test initialization from a circuit."""
@@ -100,16 +99,14 @@ class TestChoi(ChannelTestCase):
         """Test is_cptp method."""
         self.assertTrue(Choi(self.depol_choi(0.25)).is_cptp())
         # Non-CPTP should return false
-        self.assertFalse(
-            Choi(1.25 * self.choiI - 0.25 * self.depol_choi(1)).is_cptp())
+        self.assertFalse(Choi(1.25 * self.choiI - 0.25 * self.depol_choi(1)).is_cptp())
 
     def test_conjugate(self):
         """Test conjugate method."""
         # Test channel measures in Z basis and prepares in Y basis
         # Zp -> Yp, Zm -> Ym
         Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j],
-                                                              [-1j, 1]]) / 2
+        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j], [-1j, 1]]) / 2
         chan = Choi(np.kron(Zp, Yp) + np.kron(Zm, Ym))
         # Conjugate channel swaps Y-basis states
         targ = Choi(np.kron(Zp, Ym) + np.kron(Zm, Yp))
@@ -121,8 +118,7 @@ class TestChoi(ChannelTestCase):
         # Test channel measures in Z basis and prepares in Y basis
         # Zp -> Yp, Zm -> Ym
         Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j],
-                                                              [-1j, 1]]) / 2
+        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j], [-1j, 1]]) / 2
         chan = Choi(np.kron(Zp, Yp) + np.kron(Zm, Ym))
         # Transpose channel swaps basis
         targ = Choi(np.kron(Yp, Zp) + np.kron(Ym, Zm))
@@ -134,8 +130,7 @@ class TestChoi(ChannelTestCase):
         # Test channel measures in Z basis and prepares in Y basis
         # Zp -> Yp, Zm -> Ym
         Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j],
-                                                              [-1j, 1]]) / 2
+        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j], [-1j, 1]]) / 2
         chan = Choi(np.kron(Zp, Yp) + np.kron(Zm, Ym))
         # Ajoint channel swaps Y-basis elements and Z<->Y bases
         targ = Choi(np.kron(Ym, Zp) + np.kron(Yp, Zm))
@@ -144,8 +139,7 @@ class TestChoi(ChannelTestCase):
 
     def test_compose_except(self):
         """Test compose different dimension exception"""
-        self.assertRaises(QiskitError,
-                          Choi(np.eye(4)).compose, Choi(np.eye(8)))
+        self.assertRaises(QiskitError, Choi(np.eye(4)).compose, Choi(np.eye(8)))
         self.assertRaises(QiskitError, Choi(np.eye(4)).compose, 2)
 
     def test_compose(self):
@@ -165,8 +159,7 @@ class TestChoi(ChannelTestCase):
 
         # Measure and rotation
         Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Xp, Xm = np.array([[1, 1], [1, 1]]) / 2, np.array([[1, -1], [-1, 1]
-                                                           ]) / 2
+        Xp, Xm = np.array([[1, 1], [1, 1]]) / 2, np.array([[1, -1], [-1, 1]]) / 2
         chan1 = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
         chan2 = Choi(self.choiX)
         # X-gate second does nothing
@@ -203,8 +196,7 @@ class TestChoi(ChannelTestCase):
 
         # Measure and rotation
         Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Xp, Xm = np.array([[1, 1], [1, 1]]) / 2, np.array([[1, -1], [-1, 1]
-                                                           ]) / 2
+        Xp, Xm = np.array([[1, 1], [1, 1]]) / 2, np.array([[1, -1], [-1, 1]]) / 2
         chan1 = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
         chan2 = Choi(self.choiX)
         # X-gate second does nothing
@@ -241,8 +233,7 @@ class TestChoi(ChannelTestCase):
 
         # Measure and rotation
         Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Xp, Xm = np.array([[1, 1], [1, 1]]) / 2, np.array([[1, -1], [-1, 1]
-                                                           ]) / 2
+        Xp, Xm = np.array([[1, 1], [1, 1]]) / 2, np.array([[1, -1], [-1, 1]]) / 2
         chan1 = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
         chan2 = Choi(self.choiX)
         # X-gate second does nothing
@@ -330,7 +321,7 @@ class TestChoi(ChannelTestCase):
         depol = Choi(self.depol_choi(1 - p_id))
 
         # Compose 3 times
-        p_id3 = p_id**3
+        p_id3 = p_id ** 3
         chan3 = depol.power(3)
         targ3 = Choi(self.depol_choi(1 - p_id3))
         self.assertEqual(chan3, targ3)
@@ -359,37 +350,37 @@ class TestChoi(ChannelTestCase):
         op01 = op1.tensor(op0)
         eye = Choi(self.choiI)
 
-        with self.subTest(msg='qargs=[0]'):
+        with self.subTest(msg="qargs=[0]"):
             value = op + op0([0])
             target = op + eye.tensor(eye).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[1]'):
+        with self.subTest(msg="qargs=[1]"):
             value = op + op0([1])
             target = op + eye.tensor(op0).tensor(eye)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[2]'):
+        with self.subTest(msg="qargs=[2]"):
             value = op + op0([2])
             target = op + op0.tensor(eye).tensor(eye)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[0, 1]'):
+        with self.subTest(msg="qargs=[0, 1]"):
             value = op + op01([0, 1])
             target = op + eye.tensor(op1).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[1, 0]'):
+        with self.subTest(msg="qargs=[1, 0]"):
             value = op + op01([1, 0])
             target = op + eye.tensor(op0).tensor(op1)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[0, 2]'):
+        with self.subTest(msg="qargs=[0, 2]"):
             value = op + op01([0, 2])
             target = op + op1.tensor(eye).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[2, 0]'):
+        with self.subTest(msg="qargs=[2, 0]"):
             value = op + op01([2, 0])
             target = op + op0.tensor(eye).tensor(op1)
             self.assertEqual(value, target)
@@ -406,37 +397,37 @@ class TestChoi(ChannelTestCase):
         op01 = op1.tensor(op0)
         eye = Choi(self.choiI)
 
-        with self.subTest(msg='qargs=[0]'):
+        with self.subTest(msg="qargs=[0]"):
             value = op - op0([0])
             target = op - eye.tensor(eye).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[1]'):
+        with self.subTest(msg="qargs=[1]"):
             value = op - op0([1])
             target = op - eye.tensor(op0).tensor(eye)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[2]'):
+        with self.subTest(msg="qargs=[2]"):
             value = op - op0([2])
             target = op - op0.tensor(eye).tensor(eye)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[0, 1]'):
+        with self.subTest(msg="qargs=[0, 1]"):
             value = op - op01([0, 1])
             target = op - eye.tensor(op1).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[1, 0]'):
+        with self.subTest(msg="qargs=[1, 0]"):
             value = op - op01([1, 0])
             target = op - eye.tensor(op0).tensor(op1)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[0, 2]'):
+        with self.subTest(msg="qargs=[0, 2]"):
             value = op - op01([0, 2])
             target = op - op1.tensor(eye).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[2, 0]'):
+        with self.subTest(msg="qargs=[2, 0]"):
             value = op - op01([2, 0])
             target = op - op0.tensor(eye).tensor(op1)
             self.assertEqual(value, target)
@@ -459,8 +450,8 @@ class TestChoi(ChannelTestCase):
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Choi(self.choiI)
-        self.assertRaises(QiskitError, chan._multiply, 's')
-        self.assertRaises(QiskitError, chan.__rmul__, 's')
+        self.assertRaises(QiskitError, chan._multiply, "s")
+        self.assertRaises(QiskitError, chan.__rmul__, "s")
         self.assertRaises(QiskitError, chan._multiply, chan)
         self.assertRaises(QiskitError, chan.__rmul__, chan)
 
@@ -471,5 +462,5 @@ class TestChoi(ChannelTestCase):
         self.assertEqual(-chan, targ)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

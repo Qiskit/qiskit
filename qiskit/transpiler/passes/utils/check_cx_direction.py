@@ -17,10 +17,13 @@ from qiskit.transpiler.passes.utils.check_gate_direction import CheckGateDirecti
 
 
 class CheckCXDirection(CheckGateDirection):
-    """Deprecated: use CheckGateDirection pass."""
+    """Deprecated: use :class:`qiskit.transpiler.passes.CheckGateDirection` pass instead."""
 
     def __init__(self, coupling_map):
         super().__init__(coupling_map)
-        warnings.warn("The CheckCXDirection pass has been deprecated "
-                      "and replaced by a more generic CheckGateDirection pass.",
-                      DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "The CheckCXDirection pass has been deprecated "
+            "and replaced by a more generic CheckGateDirection pass.",
+            DeprecationWarning,
+            stacklevel=2,
+        )

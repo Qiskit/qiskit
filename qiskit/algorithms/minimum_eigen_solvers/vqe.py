@@ -25,8 +25,16 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
-from qiskit.opflow import (OperatorBase, ExpectationBase, ExpectationFactory, StateFn,
-                           CircuitStateFn, ListOp, I, CircuitSampler)
+from qiskit.opflow import (
+    OperatorBase,
+    ExpectationBase,
+    ExpectationFactory,
+    StateFn,
+    CircuitStateFn,
+    ListOp,
+    I,
+    CircuitSampler,
+)
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
@@ -38,23 +46,23 @@ from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
-# disable check for var_forms, optimizer setter because of pylint bug
+# disable check for ansatzes, optimizer setter because of pylint bug
 # pylint: disable=no-member
 
 
 class VQE(VariationalAlgorithm, MinimumEigensolver):
     r"""The Variational Quantum Eigensolver algorithm.
 
-    `VQE <https://arxiv.org/abs/1304.3061>`__ is a hybrid algorithm that uses a
-    variational technique and interleaves quantum and classical computations in order to find
+    `VQE <https://arxiv.org/abs/1304.3061>`__ is a quantum algorithm that uses a
+    variational technique to find
     the minimum eigenvalue of the Hamiltonian :math:`H` of a given system.
 
     An instance of VQE requires defining two algorithmic sub-components:
     a trial state (a.k.a. ansatz) which is a :class:`QuantumCircuit`, and one of the classical
     :mod:`~qiskit.algorithms.optimizers`. The ansatz is varied, via its set of parameters, by the
     optimizer, such that it works towards a state, as determined by the parameters applied to the
-    variational form, that will result in the minimum expectation value being measured of the input
-    operator (Hamiltonian).
+    ansatz, that will result in the minimum expectation value being measured of the input operator
+    (Hamiltonian).
 
     An optional array of parameter values, via the *initial_point*, may be provided as the
     starting point for the search of the minimum eigenvalue. This feature is particularly useful
@@ -67,17 +75,17 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     /chemistry/h2_vqe_initial_point.ipynb>`__ detailing this use case.
 
     The length of the *initial_point* list value must match the number of the parameters
-    expected by the variational form being used. If the *initial_point* is left at the default
-    of ``None``, then VQE will look to the variational form for a preferred value, based on its
-    given initial state. If the variational form returns ``None``,
+    expected by the ansatz being used. If the *initial_point* is left at the default
+    of ``None``, then VQE will look to the ansatz for a preferred value, based on its
+    given initial state. If the ansatz returns ``None``,
     then a random point will be generated within the parameter bounds set, as per above.
-    If the variational form provides ``None`` as the lower bound, then VQE
-    will default it to :math:`-2\pi`; similarly, if the variational form returns ``None``
+    If the ansatz provides ``None`` as the lower bound, then VQE
+    will default it to :math:`-2\pi`; similarly, if the ansatz returns ``None``
     as the upper bound, the default value will be :math:`2\pi`.
 
     .. note::
 
-        The VQE stores the parameters of ``var_form`` sorted by name to map the values
+        The VQE stores the parameters of ``ansatz`` sorted by name to map the values
         provided by the optimizer to the circuit. This is done to ensure reproducible results,
         for example such that running the optimization twice with same random seeds yields the
         same result. Also, the ``optimal_point`` of the result object can be used as initial
@@ -85,28 +93,29 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     """
 
-    def __init__(self,
-                 var_form: Optional[QuantumCircuit] = None,
-                 optimizer: Optional[Optimizer] = None,
-                 initial_point: Optional[np.ndarray] = None,
-                 gradient: Optional[Union[GradientBase, Callable]] = None,
-                 expectation: Optional[ExpectationBase] = None,
-                 include_custom: bool = False,
-                 max_evals_grouped: int = 1,
-                 callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-                 quantum_instance: Optional[
-                     Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
+    def __init__(
+        self,
+        ansatz: Optional[QuantumCircuit] = None,
+        optimizer: Optional[Optimizer] = None,
+        initial_point: Optional[np.ndarray] = None,
+        gradient: Optional[Union[GradientBase, Callable]] = None,
+        expectation: Optional[ExpectationBase] = None,
+        include_custom: bool = False,
+        max_evals_grouped: int = 1,
+        callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+    ) -> None:
         """
 
         Args:
-            var_form: A parameterized circuit used as Ansatz for the wave function.
+            ansatz: A parameterized circuit used as Ansatz for the wave function.
             optimizer: A classical optimizer.
             initial_point: An optional initial point (i.e. initial parameter values)
-                for the optimizer. If ``None`` then VQE will look to the variational form for a
-                preferred point and if not will simply compute a random one.
+                for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
+                point and if not will simply compute a random one.
             gradient: An optional gradient function or operator for optimizer.
             expectation: The Expectation converter for taking the average value of the
-                Observable over the var_form state function. When ``None`` (the default) an
+                Observable over the ansatz state function. When ``None`` (the default) an
                 :class:`~qiskit.opflow.expectations.ExpectationFactory` is used to select
                 an appropriate expectation based on the operator and backend. When using Aer
                 qasm_simulator backend, with paulis, it is however much faster to leverage custom
@@ -128,19 +137,19 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 Four parameter values are passed to the callback as follows during each evaluation
                 by the optimizer for its current set of parameters as it works towards the minimum.
                 These are: the evaluation count, the optimizer parameters for the
-                variational form, the evaluated mean and the evaluated standard deviation.`
+                ansatz, the evaluated mean and the evaluated standard deviation.`
             quantum_instance: Quantum Instance or Backend
         """
-        validate_min('max_evals_grouped', max_evals_grouped, 1)
-        if var_form is None:
-            var_form = RealAmplitudes()
+        validate_min("max_evals_grouped", max_evals_grouped, 1)
+        if ansatz is None:
+            ansatz = RealAmplitudes()
 
         if optimizer is None:
             optimizer = SLSQP()
 
-        # set the initial point to the preferred parameters of the variational form
-        if initial_point is None and hasattr(var_form, 'preferred_init_points'):
-            initial_point = var_form.preferred_init_points
+        # set the initial point to the preferred parameters of the ansatz
+        if initial_point is None and hasattr(ansatz, "preferred_init_points"):
+            initial_point = ansatz.preferred_init_points
 
         self._max_evals_grouped = max_evals_grouped
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
@@ -149,12 +158,14 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._include_custom = include_custom
         self._expect_op = None
 
-        super().__init__(var_form=var_form,
-                         optimizer=optimizer,
-                         cost_fn=self._energy_evaluation,
-                         gradient=gradient,
-                         initial_point=initial_point,
-                         quantum_instance=quantum_instance)
+        super().__init__(
+            ansatz=ansatz,
+            optimizer=optimizer,
+            cost_fn=self._energy_evaluation,
+            gradient=gradient,
+            initial_point=initial_point,
+            quantum_instance=quantum_instance,
+        )
         self._ret = VQEResult()
         self._eval_time = None
         self._optimizer.set_max_evals_grouped(max_evals_grouped)
@@ -163,12 +174,15 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._eval_count = 0
         logger.info(self.print_settings())
 
-    def _try_set_expectation_value_from_factory(self,
-                                                operator: OperatorBase) -> None:
+    def _try_set_expectation_value_from_factory(self, operator: OperatorBase) -> None:
         if operator is not None and self.quantum_instance is not None:
-            self._set_expectation(ExpectationFactory.build(operator=operator,
-                                                           backend=self.quantum_instance,
-                                                           include_custom=self._include_custom))
+            self._set_expectation(
+                ExpectationFactory.build(
+                    operator=operator,
+                    backend=self.quantum_instance,
+                    include_custom=self._include_custom,
+                )
+            )
 
     def _set_expectation(self, exp: ExpectationBase) -> None:
         self._expectation = exp
@@ -176,19 +190,20 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._expect_op = None
 
     @VariationalAlgorithm.quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
-                                                       BaseBackend, Backend]) -> None:
-        """ set quantum_instance """
+    def quantum_instance(
+        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
+    ) -> None:
+        """set quantum_instance"""
         super(VQE, self.__class__).quantum_instance.__set__(self, quantum_instance)
 
         self._circuit_sampler = CircuitSampler(
-            self._quantum_instance,
-            param_qobj=is_aer_provider(self._quantum_instance.backend))
+            self._quantum_instance, param_qobj=is_aer_provider(self._quantum_instance.backend)
+        )
 
     @property
     def expectation(self) -> ExpectationBase:
-        """ The expectation value algorithm used to construct the expectation measurement from
-        the observable. """
+        """The expectation value algorithm used to construct the expectation measurement from
+        the observable."""
         return self._expectation
 
     @expectation.setter
@@ -196,24 +211,24 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._set_expectation(exp)
         self._user_valid_expectation = self._expectation is not None
 
-    def _check_operator_varform(self,
-                                operator: OperatorBase):
-        """Check that the number of qubits of operator and variational form match."""
-        if operator is not None and self.var_form is not None:
-            if operator.num_qubits != self.var_form.num_qubits:
-                # try to set the number of qubits on the variational form, if possible
+    def _check_operator_varform(self, operator: OperatorBase):
+        """Check that the number of qubits of operator and ansatz match."""
+        if operator is not None and self.ansatz is not None:
+            if operator.num_qubits != self.ansatz.num_qubits:
+                # try to set the number of qubits on the ansatz, if possible
                 try:
-                    self.var_form.num_qubits = operator.num_qubits
-                    self._var_form_params = sorted(self.var_form.parameters, key=lambda p: p.name)
+                    self.ansatz.num_qubits = operator.num_qubits
+                    self._ansatz_params = sorted(self.ansatz.parameters, key=lambda p: p.name)
                 except AttributeError as ex:
-                    raise AlgorithmError("The number of qubits of the variational form "
-                                         "does not match the operator, and the variational "
-                                         "form does not allow setting the number of qubits "
-                                         " using `num_qubits`.") from ex
+                    raise AlgorithmError(
+                        "The number of qubits of the ansatz does not match the "
+                        "operator, and the ansatz does not allow setting the "
+                        "number of qubits using `num_qubits`."
+                    ) from ex
 
     @VariationalAlgorithm.optimizer.setter  # type: ignore
     def optimizer(self, optimizer: Optimizer):
-        """ Sets optimizer """
+        """Sets optimizer"""
         super(VQE, self.__class__).optimizer.__set__(self, optimizer)  # type: ignore
         if optimizer is not None:
             optimizer.set_max_evals_grouped(self._max_evals_grouped)
@@ -241,26 +256,28 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         """
         ret = "\n"
         ret += "==================== Setting of {} ============================\n".format(
-            self.__class__.__name__)
+            self.__class__.__name__
+        )
         ret += "{}".format(self.setting)
         ret += "===============================================================\n"
-        if hasattr(self._var_form, 'setting'):
-            ret += "{}".format(self._var_form.setting)
-        elif hasattr(self._var_form, 'print_settings'):
-            ret += "{}".format(self._var_form.print_settings())
-        elif isinstance(self._var_form, QuantumCircuit):
-            ret += "var_form is a custom circuit"
+        if hasattr(self._ansatz, "setting"):
+            ret += "{}".format(self._ansatz.setting)
+        elif hasattr(self._ansatz, "print_settings"):
+            ret += "{}".format(self._ansatz.print_settings())
+        elif isinstance(self._ansatz, QuantumCircuit):
+            ret += "ansatz is a custom circuit"
         else:
-            ret += "var_form has not been set"
+            ret += "ansatz has not been set"
         ret += "===============================================================\n"
         ret += "{}".format(self._optimizer.setting)
         ret += "===============================================================\n"
         return ret
 
-    def construct_expectation(self,
-                              parameter: Union[List[float], List[Parameter], np.ndarray],
-                              operator: OperatorBase,
-                              ) -> OperatorBase:
+    def construct_expectation(
+        self,
+        parameter: Union[List[float], List[Parameter], np.ndarray],
+        operator: OperatorBase,
+    ) -> OperatorBase:
         r"""
         Generate the ansatz circuit and expectation value measurement, and return their
         runnable composition.
@@ -281,11 +298,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         operator = self._check_operator(operator)
 
-        if isinstance(self.var_form, QuantumCircuit):
-            param_dict = dict(zip(self._var_form_params, parameter))  # type: Dict
-            wave_function = self.var_form.assign_parameters(param_dict)
+        if isinstance(self.ansatz, QuantumCircuit):
+            param_dict = dict(zip(self._ansatz_params, parameter))  # type: Dict
+            wave_function = self.ansatz.assign_parameters(param_dict)
         else:
-            wave_function = self.var_form.construct_circuit(parameter)
+            wave_function = self.ansatz.construct_circuit(parameter)
 
         # Expectation was never created , try to create one
         if self._expectation is None:
@@ -293,18 +310,21 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         # If setting the expectation failed, raise an Error:
         if self._expectation is None:
-            raise AlgorithmError('No expectation set and could not automatically set one, please '
-                                 'try explicitly setting an expectation or specify a backend so it '
-                                 'can be chosen automatically.')
+            raise AlgorithmError(
+                "No expectation set and could not automatically set one, please "
+                "try explicitly setting an expectation or specify a backend so it "
+                "can be chosen automatically."
+            )
 
         observable_meas = self.expectation.convert(StateFn(operator, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
         return observable_meas.compose(ansatz_circuit_op).reduce()
 
-    def construct_circuit(self,
-                          parameter: Union[List[float], List[Parameter], np.ndarray],
-                          operator: OperatorBase,
-                          ) -> List[QuantumCircuit]:
+    def construct_circuit(
+        self,
+        parameter: Union[List[float], List[Parameter], np.ndarray],
+        operator: OperatorBase,
+    ) -> List[QuantumCircuit]:
         """Return the circuits used to compute the expectation value.
 
         Args:
@@ -334,31 +354,30 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def supports_aux_operators(cls) -> bool:
         return True
 
-    def _eval_aux_ops(self,
-                      aux_operators: List[OperatorBase],
-                      threshold: float = 1e-12) -> None:
+    def _eval_aux_ops(self, aux_operators: List[OperatorBase], threshold: float = 1e-12) -> None:
         # Create new CircuitSampler to avoid breaking existing one's caches.
         sampler = CircuitSampler(self.quantum_instance)
 
-        aux_op_meas = self.expectation.convert(StateFn(ListOp(aux_operators),
-                                                       is_measurement=True))
+        aux_op_meas = self.expectation.convert(StateFn(ListOp(aux_operators), is_measurement=True))
         aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.get_optimal_circuit()))
         values = np.real(sampler.convert(aux_op_expect).eval())
 
         # Discard values below threshold
-        aux_op_results = (values * (np.abs(values) > threshold))
+        aux_op_results = values * (np.abs(values) > threshold)
         # Deal with the aux_op behavior where there can be Nones or Zero qubit Paulis in the list
         _aux_op_nones = [op is None for op in aux_operators]
-        self._ret.aux_operator_eigenvalues = \
-            [None if is_none else [result]
-             for (is_none, result) in zip(_aux_op_nones, aux_op_results)]
+        self._ret.aux_operator_eigenvalues = [
+            None if is_none else [result]
+            for (is_none, result) in zip(_aux_op_nones, aux_op_results)
+        ]
         # As this has mixed types, since it can included None, it needs to explicitly pass object
         # data type to avoid numpy 1.19 warning message about implicit conversion being deprecated
-        self._ret.aux_operator_eigenvalues = \
-            np.array([self._ret.aux_operator_eigenvalues], dtype=object)
+        self._ret.aux_operator_eigenvalues = np.array(
+            [self._ret.aux_operator_eigenvalues], dtype=object
+        )
 
     def _check_operator(self, operator: OperatorBase) -> OperatorBase:
-        """ set operator """
+        """set operator"""
         self._expect_op = None
         self._check_operator_varform(operator)
         # Expectation was not passed by user, try to create one
@@ -367,15 +386,14 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         return operator
 
     def compute_minimum_eigenvalue(
-            self,
-            operator: OperatorBase,
-            aux_operators: Optional[List[Optional[OperatorBase]]] = None
+        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
     ) -> MinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
 
         if self.quantum_instance is None:
-            raise AlgorithmError("A QuantumInstance or Backend "
-                                 "must be supplied to run the quantum algorithm.")
+            raise AlgorithmError(
+                "A QuantumInstance or Backend " "must be supplied to run the quantum algorithm."
+            )
 
         if operator is None:
             raise AlgorithmError("The operator was never provided.")
@@ -405,26 +423,32 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         if self._gradient:
             if isinstance(self._gradient, GradientBase):
                 self._gradient = self._gradient.gradient_wrapper(
-                    ~StateFn(operator) @ StateFn(self._var_form),
-                    bind_params=self._var_form_params,
-                    backend=self._quantum_instance)
+                    ~StateFn(operator) @ StateFn(self._ansatz),
+                    bind_params=self._ansatz_params,
+                    backend=self._quantum_instance,
+                )
         if not self._expect_op:
-            self._expect_op = self.construct_expectation(self._var_form_params, operator)
-        vqresult = self.find_minimum(initial_point=self.initial_point,
-                                     var_form=self.var_form,
-                                     cost_fn=self._energy_evaluation,
-                                     gradient_fn=self._gradient,
-                                     optimizer=self.optimizer)
+            self._expect_op = self.construct_expectation(self._ansatz_params, operator)
+        vqresult = self.find_minimum(
+            initial_point=self.initial_point,
+            ansatz=self.ansatz,
+            cost_fn=self._energy_evaluation,
+            gradient_fn=self._gradient,
+            optimizer=self.optimizer,
+        )
 
         self._ret = VQEResult()
         self._ret.combine(vqresult)
 
-        if vqresult.optimizer_evals is not None and \
-                self._eval_count >= vqresult.optimizer_evals:
+        if vqresult.optimizer_evals is not None and self._eval_count >= vqresult.optimizer_evals:
             self._eval_count = vqresult.optimizer_evals
         self._eval_time = vqresult.optimizer_time
-        logger.info('Optimization complete in %s seconds.\nFound opt_params %s in %s evals',
-                    self._eval_time, vqresult.optimal_point, self._eval_count)
+        logger.info(
+            "Optimization complete in %s seconds.\nFound opt_params %s in %s evals",
+            self._eval_time,
+            vqresult.optimal_point,
+            self._eval_count,
+        )
 
         self._ret.eigenvalue = vqresult.optimal_value + 0j
         self._ret.eigenstate = self.get_optimal_vector()
@@ -437,31 +461,32 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return self._ret
 
-    def _energy_evaluation(self,
-                           parameters: Union[List[float], np.ndarray]
-                           ) -> Union[float, List[float]]:
-        """Evaluate energy at given parameters for the variational form.
+    def _energy_evaluation(
+        self, parameters: Union[List[float], np.ndarray]
+    ) -> Union[float, List[float]]:
+        """Evaluate energy at given parameters for the ansatz.
 
         This is the objective function to be passed to the optimizer that is used for evaluation.
 
         Args:
-            parameters: The parameters for the variational form.
+            parameters: The parameters for the ansatz.
 
         Returns:
             Energy of the hamiltonian of each parameter.
 
 
         Raises:
-            RuntimeError: If the variational form has no parameters.
+            RuntimeError: If the ansatz has no parameters.
         """
-        num_parameters = self.var_form.num_parameters
-        if self._var_form.num_parameters == 0:
-            raise RuntimeError('The var_form cannot have 0 parameters.')
+        num_parameters = self.ansatz.num_parameters
+        if self._ansatz.num_parameters == 0:
+            raise RuntimeError("The ansatz cannot have 0 parameters.")
 
         parameter_sets = np.reshape(parameters, (-1, num_parameters))
         # Create dict associating each parameter with the lists of parameterization values for it
-        param_bindings = dict(zip(self._var_form_params,
-                                  parameter_sets.transpose().tolist()))  # type: Dict
+        param_bindings = dict(
+            zip(self._ansatz_params, parameter_sets.transpose().tolist())
+        )  # type: Dict
 
         start_time = time()
         sampled_expect_op = self._circuit_sampler.convert(self._expect_op, params=param_bindings)
@@ -477,40 +502,48 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             self._eval_count += len(means)
 
         end_time = time()
-        logger.info('Energy evaluation returned %s - %.5f (ms), eval count: %s',
-                    means, (end_time - start_time) * 1000, self._eval_count)
+        logger.info(
+            "Energy evaluation returned %s - %.5f (ms), eval count: %s",
+            means,
+            (end_time - start_time) * 1000,
+            self._eval_count,
+        )
 
         return means if len(means) > 1 else means[0]
 
     def get_optimal_cost(self) -> float:
         """Get the minimal cost or energy found by the VQE."""
         if self._ret.optimal_point is None:
-            raise AlgorithmError("Cannot return optimal cost before running the "
-                                 "algorithm to find optimal params.")
+            raise AlgorithmError(
+                "Cannot return optimal cost before running the " "algorithm to find optimal params."
+            )
         return self._ret.optimal_value
 
     def get_optimal_circuit(self) -> QuantumCircuit:
         """Get the circuit with the optimal parameters."""
         if self._ret.optimal_point is None:
-            raise AlgorithmError("Cannot find optimal circuit before running the "
-                                 "algorithm to find optimal params.")
-        return self.var_form.assign_parameters(self._ret.optimal_parameters)
+            raise AlgorithmError(
+                "Cannot find optimal circuit before running the "
+                "algorithm to find optimal params."
+            )
+        return self.ansatz.assign_parameters(self._ret.optimal_parameters)
 
     def get_optimal_vector(self) -> Union[List[float], Dict[str, int]]:
-        """Get the simulation outcome of the optimal circuit. """
+        """Get the simulation outcome of the optimal circuit."""
         from qiskit.utils.run_circuits import find_regs_by_name
 
         if self._ret.optimal_point is None:
-            raise AlgorithmError("Cannot find optimal vector before running the "
-                                 "algorithm to find optimal params.")
+            raise AlgorithmError(
+                "Cannot find optimal vector before running the " "algorithm to find optimal params."
+            )
         qc = self.get_optimal_circuit()
         min_vector = {}
         if self._quantum_instance.is_statevector:
             ret = self._quantum_instance.execute(qc)
             min_vector = ret.get_statevector(qc)
         else:
-            c = ClassicalRegister(qc.width(), name='c')
-            q = find_regs_by_name(qc, 'q')
+            c = ClassicalRegister(qc.width(), name="c")
+            q = find_regs_by_name(qc, "q")
             qc.add_register(c)
             qc.barrier(q)
             qc.measure(q, c)
@@ -523,14 +556,14 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     @property
     def optimal_params(self) -> List[float]:
-        """The optimal parameters for the variational form."""
+        """The optimal parameters for the ansatz."""
         if self._ret.optimal_point is None:
             raise AlgorithmError("Cannot find optimal params before running the algorithm.")
         return self._ret.optimal_point
 
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):
-    """ VQE Result."""
+    """VQE Result."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -538,10 +571,10 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
 
     @property
     def cost_function_evals(self) -> Optional[int]:
-        """ Returns number of cost optimizer evaluations """
+        """Returns number of cost optimizer evaluations"""
         return self._cost_function_evals
 
     @cost_function_evals.setter
     def cost_function_evals(self, value: int) -> None:
-        """ Sets number of cost function evaluations """
+        """Sets number of cost function evaluations"""
         self._cost_function_evals = value
