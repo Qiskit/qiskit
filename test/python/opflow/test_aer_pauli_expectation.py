@@ -40,6 +40,7 @@ from qiskit.opflow import (
     Zero,
 )
 
+
 class TestAerPauliExpectation(QiskitOpflowTestCase):
     """Pauli Change of Basis Expectation tests."""
 
@@ -244,7 +245,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         np.testing.assert_array_almost_equal([val1] * 2, val4, decimal=2)
 
     def test_list_pauli_sum(self):
-        """ Test AerPauliExpectation for ListOp[PauliSumOp]"""
+        """Test AerPauliExpectation for ListOp[PauliSumOp]"""
         test_op = ListOp([PauliSumOp.from_list([("XX", 1), ("ZI", 3), ("ZZ", 5)])])
         observable = AerPauliExpectation().convert(~StateFn(test_op))
         self.assertIsInstance(observable, ListOp)

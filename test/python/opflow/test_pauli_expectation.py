@@ -247,7 +247,7 @@ class TestPauliExpectation(QiskitOpflowTestCase):
         self.assertEqual(self.expect.convert(exp).eval(), 1j)
 
     def test_list_pauli_sum_op(self):
-        """ Test PauliExpectation for List[PauliSumOp] """
+        """Test PauliExpectation for List[PauliSumOp]"""
         test_op = ListOp([~StateFn(PauliSumOp.from_list([("XX", 1), ("ZI", 3), ("ZZ", 5)]))])
         observable = self.expect.convert(test_op)
         self.assertIsInstance(observable, ListOp)
