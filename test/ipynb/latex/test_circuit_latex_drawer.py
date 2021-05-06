@@ -15,6 +15,8 @@
 """Tests for visualization of circuit with Latex drawer."""
 
 import os
+import json
+from contextlib import contextmanager
 import unittest
 import math
 import numpy as np
@@ -29,7 +31,6 @@ from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
-from .visualization import QiskitVisualizationTestCase
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -61,7 +62,7 @@ class TestLatexDrawer(QiskitTestCase):
             image_filename = kwargs["filename"]
             with cwd(RESULTDIR):
                 results = func(*args, **kwargs)
-                TestMatplotlibDrawer.save_data(image_filename, testname)
+                TestLatexDrawer.save_data(image_filename, testname)
             return results
 
         return wrapper
