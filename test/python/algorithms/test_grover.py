@@ -21,7 +21,7 @@ from ddt import ddt, data
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms import Grover, AmplificationProblem
-from qiskit.circuit.library import GroverOperator
+from qiskit.circuit.library import GroverOperator, PhaseOracle
 from qiskit.quantum_info import Operator, Statevector
 
 
@@ -232,6 +232,15 @@ class TestGrover(QiskitAlgorithmsTestCase):
         grover = Grover(quantum_instance=self.qasm)
         result = grover.amplify(problem)
         self.assertEqual(result.max_probability, 1.0)
+
+    def test_oracle_evaluation(self):
+        """Test oracle_evaluation for PhaseOracle"""
+        oracle = PhaseOracle("x1 & x2 & (not x3)")
+        problem = AmplificationProblem(oracle, is_good_state=oracle.evaluate_bitstring)
+        grover = Grover(quantum_instance=self.qasm)
+        result = grover.amplify(problem)
+        self.assertTrue(result.oracle_evaluation)
+        self.assertEqual("011", result.top_measurement)
 
 
 if __name__ == "__main__":
