@@ -35,18 +35,29 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         obs = Z ^ Z ^ I
         expr = ~StateFn(obs) @ StateFn(circuit)
 
-        initial_point = np.array([0.1822308, -0.27254251,  0.83684425,  0.86153976, -0.7111668,
-                                  0.82766631,  0.97867993,  0.46136964,  2.27079901,  0.13382699,
-                                  0.29589915,  0.64883193])
+        initial_point = np.array(
+            [
+                0.1822308,
+                -0.27254251,
+                0.83684425,
+                0.86153976,
+                -0.7111668,
+                0.82766631,
+                0.97867993,
+                0.46136964,
+                2.27079901,
+                0.13382699,
+                0.29589915,
+                0.64883193,
+            ]
+        )
 
         def objective(x):
             return expr.bind_parameters(dict(zip(parameters, x))).eval().real
 
-        spsa = SPSA(maxiter=100,
-                    blocking=True,
-                    allowed_increase=0,
-                    learning_rate=0.1,
-                    perturbation=0.1)
+        spsa = SPSA(
+            maxiter=100, blocking=True, allowed_increase=0, learning_rate=0.1, perturbation=0.1
+        )
 
         result = spsa.optimize(circuit.num_parameters, objective, initial_point=initial_point)
 
@@ -55,6 +66,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
 
     def test_recalibrate_at_optimize(self):
         """Test SPSA calibrates anew upon each optimization run, if no autocalibration is set."""
+
         def objective(x):
             return -(x ** 2)
 
