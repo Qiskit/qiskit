@@ -45,7 +45,7 @@ class RemoveBarriers(TransformationPass):
 
         # go over current nodes, and add them to the new dag
         for node in dag.topological_op_nodes():
-            if node.name == 'barrier':
+            if node.name == "barrier":
                 pass
             else:
                 # copy the condition over too

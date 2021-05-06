@@ -23,8 +23,7 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
     """Test the MergeAdjacentBarriers pass"""
 
     def test_remove_barriers(self):
-        """ Remove all barriers
-        """
+        """Remove all barriers"""
 
         circuit = QuantumCircuit(2)
         circuit.barrier()
@@ -38,8 +37,7 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_remove_barriers_other_gates(self):
-        """ Remove all barriers, leave other gates intact
-        """
+        """Remove all barriers, leave other gates intact"""
 
         circuit = QuantumCircuit(1)
         circuit.barrier()
@@ -57,5 +55,5 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
