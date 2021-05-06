@@ -21,7 +21,7 @@ import numpy as np
 from numpy import pi
 
 from qiskit.test import QiskitTestCase
-from qiskit.visualization import _latex_circuit_drawer
+from qiskit.visualization.circuit_visualization import _latex_circuit_drawer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate
