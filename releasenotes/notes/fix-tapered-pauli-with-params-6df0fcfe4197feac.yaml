@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the bug where :class:`~qiskit.opflow.TaperedPauliSumOp`
+    did not support the multiplication by
+    :class:`~qiskit.circuit.ParameterExpression` and
+    :meth:`~qiskit.opflow.TaperedPauliSumOp.assign_parameters`.

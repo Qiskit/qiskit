@@ -24,6 +24,7 @@ from qiskit.circuit import Measure
 
 try:
     import PIL
+
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
@@ -39,32 +40,40 @@ except ImportError:
 def generate_latex_label(label):
     """Convert a label to a valid latex string."""
     if not HAS_PYLATEX:
-        raise ImportError('The latex and latex_source drawers need '
-                          'pylatexenc installed. Run "pip install '
-                          'pylatexenc" before using the latex or '
-                          'latex_source drawers.')
+        raise ImportError(
+            "The latex and latex_source drawers need "
+            'pylatexenc installed. Run "pip install '
+            'pylatexenc" before using the latex or '
+            "latex_source drawers."
+        )
 
     regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
     match = regex.search(label)
     if not match:
-        label = label.replace(r'\$', '$')
-        return utf8tolatex(label)
+        label = label.replace(r"\$", "$")
+        final_str = utf8tolatex(label, non_ascii_only=True)
     else:
-        mathmode_string = match.group(1).replace(r'\$', '$')
-        before_match = label[:match.start()]
-        before_match = before_match.replace(r'\$', '$')
-        after_match = label[match.end():]
-        after_match = after_match.replace(r'\$', '$')
-        return utf8tolatex(before_match) + mathmode_string + utf8tolatex(
-            after_match)
+        mathmode_string = match.group(1).replace(r"\$", "$")
+        before_match = label[: match.start()]
+        before_match = before_match.replace(r"\$", "$")
+        after_match = label[match.end() :]
+        after_match = after_match.replace(r"\$", "$")
+        final_str = (
+            utf8tolatex(before_match, non_ascii_only=True)
+            + mathmode_string
+            + utf8tolatex(after_match, non_ascii_only=True)
+        )
+    return final_str.replace(" ", "\\,")  # Put in proper spaces
 
 
 def _trim(image):
     """Trim a PIL image and remove white space."""
     if not HAS_PIL:
-        raise ImportError('The latex drawer needs pillow installed. '
-                          'Run "pip install pillow" before using the '
-                          'latex drawer.')
+        raise ImportError(
+            "The latex drawer needs pillow installed. "
+            'Run "pip install pillow" before using the '
+            "latex drawer."
+        )
     background = PIL.Image.new(image.mode, image.size, image.getpixel((0, 0)))
     diff = PIL.ImageChops.difference(image, background)
     diff = PIL.ImageChops.add(diff, diff, 2.0, -100)
@@ -74,11 +83,10 @@ def _trim(image):
     return image
 
 
-def _get_layered_instructions(circuit, reverse_bits=False,
-                              justify=None, idle_wires=True):
+def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wires=True):
     """
-    Given a circuit, return a tuple (qregs, cregs, ops) where
-    qregs and cregs are the quantum and classical registers
+    Given a circuit, return a tuple (qubits, clbits, ops) where
+    qubits and clbits are the quantum and classical registers
     in order (based on reverse_bits) and ops is a list
     of DAG nodes whose type is "operation".
 
@@ -96,83 +104,82 @@ def _get_layered_instructions(circuit, reverse_bits=False,
         justify = justify.lower()
 
     # default to left
-    justify = justify if justify in ('right', 'none') else 'left'
+    justify = justify if justify in ("right", "none") else "left"
 
     dag = circuit_to_dag(circuit)
 
     ops = []
-    qregs = dag.qubits
-    cregs = dag.clbits
+    qubits = dag.qubits
+    clbits = dag.clbits
 
     # Create a mapping of each register to the max layer number for all measure ops
     # with that register as the target. Then when a node with condition is seen,
     # it will be placed to the right of the measure op if the register matches.
     measure_map = OrderedDict([(c, -1) for c in circuit.cregs])
 
-    if justify == 'none':
+    if justify == "none":
         for node in dag.topological_op_nodes():
             ops.append([node])
     else:
         ops = _LayerSpooler(dag, justify, measure_map)
 
     if reverse_bits:
-        qregs.reverse()
-        cregs.reverse()
+        qubits.reverse()
+        clbits.reverse()
 
     # Optionally remove all idle wires and instructions that are on them and
     # on them only.
     if not idle_wires:
-        for wire in dag.idle_wires(ignore=['barrier', 'delay']):
-            if wire in qregs:
-                qregs.remove(wire)
-            if wire in cregs:
-                cregs.remove(wire)
+        for wire in dag.idle_wires(ignore=["barrier", "delay"]):
+            if wire in qubits:
+                qubits.remove(wire)
+            if wire in clbits:
+                clbits.remove(wire)
 
-    ops = [[op for op in layer if any(q in qregs for q in op.qargs)]
-           for layer in ops]
+    ops = [[op for op in layer if any(q in qubits for q in op.qargs)] for layer in ops]
 
-    return qregs, cregs, ops
+    return qubits, clbits, ops
 
 
 def _sorted_nodes(dag_layer):
     """Convert DAG layer into list of nodes sorted by node_id
     qiskit-terra #2802
     """
-    dag_instructions = dag_layer['graph'].op_nodes()
+    dag_instructions = dag_layer["graph"].op_nodes()
     # sort into the order they were input
     dag_instructions.sort(key=lambda nd: nd._node_id)
     return dag_instructions
 
 
-def _get_gate_span(qregs, instruction):
+def _get_gate_span(qubits, node):
     """Get the list of qubits drawing this gate would cover
     qiskit-terra #2802
     """
-    min_index = len(qregs)
+    min_index = len(qubits)
     max_index = 0
-    for qreg in instruction.qargs:
-        index = qregs.index(qreg)
+    for qreg in node.qargs:
+        index = qubits.index(qreg)
 
         if index < min_index:
             min_index = index
         if index > max_index:
             max_index = index
 
-    if instruction.cargs:
-        return qregs[min_index:]
-    if instruction.condition:
-        return qregs[min_index:]
+    if node.cargs:
+        return qubits[min_index:]
+    if node.op.condition:
+        return qubits[min_index:]
 
-    return qregs[min_index:max_index + 1]
+    return qubits[min_index : max_index + 1]
 
 
-def _any_crossover(qregs, node, nodes):
+def _any_crossover(qubits, node, nodes):
     """Return True .IFF. 'node' crosses over any in 'nodes',"""
-    gate_span = _get_gate_span(qregs, node)
+    gate_span = _get_gate_span(qubits, node)
     all_indices = []
     for check_node in nodes:
         if check_node != node:
-            all_indices += _get_gate_span(qregs, check_node)
+            all_indices += _get_gate_span(qubits, check_node)
     return any(i in gate_span for i in all_indices)
 
 
@@ -183,11 +190,11 @@ class _LayerSpooler(list):
         """Create spool"""
         super().__init__()
         self.dag = dag
-        self.qregs = dag.qubits
+        self.qubits = dag.qubits
         self.justification = justification
         self.measure_map = measure_map
 
-        if self.justification == 'left':
+        if self.justification == "left":
             for dag_layer in dag.layers():
                 current_index = len(self) - 1
                 dag_nodes = _sorted_nodes(dag_layer)
@@ -217,13 +224,13 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qregs, node, nodes)
+        return not _any_crossover(self.qubits, node, nodes)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
         measure_layer = None
         if isinstance(node.op, Measure):
-            measure_reg = node.cargs[0].register
+            measure_reg = next(reg for reg in self.measure_map if node.cargs[0] in reg)
 
         if not self:
             inserted = True
@@ -231,8 +238,19 @@ class _LayerSpooler(list):
         else:
             inserted = False
             curr_index = index
-            index_stop = -1 if not node.condition else self.measure_map[node.condition[0]]
             last_insertable_index = -1
+            index_stop = -1
+            if node.op.condition:
+                index_stop = self.measure_map[node.op.condition[0]]
+            elif node.cargs:
+                for carg in node.cargs:
+                    try:
+                        carg_reg = next(reg for reg in self.measure_map if carg in reg)
+                        if self.measure_map[carg_reg] > index_stop:
+                            index_stop = self.measure_map[carg_reg]
+                    except StopIteration:
+                        pass
+
             while curr_index > index_stop:
                 if self.is_found_in(node, self[curr_index]):
                     break
@@ -320,12 +338,13 @@ def _bloch_multivector_data(state):
     num = rho.num_qubits
     if num is None:
         raise VisualizationError("Input is not a multi-qubit quantum state.")
-    pauli_singles = PauliTable.from_labels(['X', 'Y', 'Z'])
+    pauli_singles = PauliTable.from_labels(["X", "Y", "Z"])
     bloch_data = []
     for i in range(num):
         if num > 1:
-            paulis = PauliTable(np.zeros((3, 2 * (num-1)), dtype=bool)).insert(
-                i, pauli_singles, qubit=True)
+            paulis = PauliTable(np.zeros((3, 2 * (num - 1)), dtype=bool)).insert(
+                i, pauli_singles, qubit=True
+            )
         else:
             paulis = pauli_singles
         bloch_state = [np.real(np.trace(np.dot(mat, rho.data))) for mat in paulis.matrix_iter()]

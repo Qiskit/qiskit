@@ -25,6 +25,7 @@ from .symplectic.random import random_pauli
 from .symplectic.random import random_clifford
 from .symplectic.random import random_pauli_table
 from .symplectic.random import random_stabilizer_table
+from .dihedral.random import random_cnotdihedral
 
 DEFAULT_RNG = default_rng()
 
@@ -51,6 +52,7 @@ def random_unitary(dims, seed=None):
 
     dim = np.product(dims)
     from scipy import stats
+
     mat = stats.unitary_group.rvs(dim, random_state=random_state)
     return Operator(mat, input_dims=dims, output_dims=dims)
 
@@ -86,15 +88,12 @@ def random_hermitian(dims, traceless=False, seed=None):
         mat = np.zeros((dim, dim), dtype=complex)
     else:
         # Generate diagonal part of matrix for Gaussian N(0, 1)
-        mat = np.diag(stats.norm.rvs(
-            scale=1, size=dim, random_state=rng).astype(complex))
+        mat = np.diag(stats.norm.rvs(scale=1, size=dim, random_state=rng).astype(complex))
 
     # Generate lower triangular values from Gaussian N(0, 0.5)
     num_tril = (dim * (dim - 1)) // 2
-    real_tril = stats.norm.rvs(
-        scale=0.5, size=num_tril, random_state=rng)
-    imag_tril = stats.norm.rvs(
-        scale=0.5, size=num_tril, random_state=rng)
+    real_tril = stats.norm.rvs(scale=0.5, size=num_tril, random_state=rng)
+    imag_tril = stats.norm.rvs(scale=0.5, size=num_tril, random_state=rng)
     # Get lower triangular indices
     rows, cols = np.tril_indices(dim, -1)
     mat[(rows, cols)] = real_tril + 1j * imag_tril
@@ -102,10 +101,7 @@ def random_hermitian(dims, traceless=False, seed=None):
     return Operator(mat, input_dims=dims, output_dims=dims)
 
 
-def random_quantum_channel(input_dims=None,
-                           output_dims=None,
-                           rank=None,
-                           seed=None):
+def random_quantum_channel(input_dims=None, output_dims=None, rank=None, seed=None):
     """Return a random CPTP quantum channel.
 
     This constructs the Stinespring operator for the quantum channel by
@@ -127,8 +123,8 @@ def random_quantum_channel(input_dims=None,
     # Determine total input and output dimensions
     if input_dims is None and output_dims is None:
         raise QiskitError(
-            'No dimensions specified: input_dims and output_dims cannot'
-            ' both be None.')
+            "No dimensions specified: input_dims and output_dims cannot" " both be None."
+        )
     if input_dims is None:
         input_dims = output_dims
     elif output_dims is None:
@@ -146,9 +142,7 @@ def random_quantum_channel(input_dims=None,
     from scipy import stats
 
     # Generate a random unitary matrix
-    unitary = stats.unitary_group.rvs(
-        max(rank * d_out, d_in), random_state=seed)
+    unitary = stats.unitary_group.rvs(max(rank * d_out, d_in), random_state=seed)
 
     # Truncate columns to produce an isometry
-    return Stinespring(
-        unitary[:, :d_in], input_dims=input_dims, output_dims=output_dims)
+    return Stinespring(unitary[:, :d_in], input_dims=input_dims, output_dims=output_dims)

@@ -12,12 +12,12 @@
 
 """Optimize chains of single-qubit gates using Euler 1q decomposer"""
 
-import logging
 import copy
+import logging
+import math
 
 import numpy as np
 
-from qiskit.quantum_info import Operator
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.circuit.library.standard_gates import U3Gate
@@ -56,8 +56,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
                             break
                     # if not a subset, add it to the list
                     else:
-                        self.basis.append(one_qubit_decompose.OneQubitEulerDecomposer(
-                            euler_basis_name))
+                        self.basis.append(
+                            one_qubit_decompose.OneQubitEulerDecomposer(euler_basis_name)
+                        )
 
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.
@@ -79,27 +80,29 @@ class Optimize1qGatesDecomposition(TransformationPass):
             if len(run) <= 1:
                 params = run[0].op.params
                 # Remove single identity gates
-                if len(params) > 0 and np.array_equal(run[0].op.to_matrix(),
-                                                      identity_matrix):
+                if len(params) > 0 and np.array_equal(run[0].op.to_matrix(), identity_matrix):
                     dag.remove_op_node(run[0])
                     continue
-                if (isinstance(run[0].op, U3Gate) and
-                        np.isclose(float(params[0]), [0, np.pi/2],
-                                   atol=1e-12, rtol=0).any()):
-                    single_u3 = True
+                if isinstance(run[0].op, U3Gate):
+                    param = float(params[0])
+                    if math.isclose(param, 0, rel_tol=0, abs_tol=1e-12) or math.isclose(
+                        param, np.pi / 2, abs_tol=1e-12, rel_tol=0
+                    ):
+                        single_u3 = True
+                    else:
+                        continue
                 else:
                     continue
 
             new_circs = []
-            operator = Operator(run[0].op)
+            operator = run[0].op.to_matrix()
             for gate in run[1:]:
-                operator = operator.compose(gate.op)
+                operator = gate.op.to_matrix().dot(operator)
             for decomposer in self.basis:
-                new_circs.append(decomposer(operator))
+                new_circs.append(decomposer._decompose(operator))
             if new_circs:
                 new_circ = min(new_circs, key=len)
-                if (len(run) > len(new_circ) or (single_u3 and
-                                                 new_circ.data[0][0].name != 'u3')):
+                if len(run) > len(new_circ) or (single_u3 and new_circ.data[0][0].name != "u3"):
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
                     # Delete the other nodes in the run
