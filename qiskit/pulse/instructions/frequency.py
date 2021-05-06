@@ -34,9 +34,12 @@ class SetFrequency(Instruction):
     The duration of SetFrequency is 0.
     """
 
-    def __init__(self, frequency: Union[float, ParameterExpression],
-                 channel: PulseChannel,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        frequency: Union[float, ParameterExpression],
+        channel: PulseChannel,
+        name: Optional[str] = None,
+    ):
         """Creates a new set channel frequency instruction.
 
         Args:
@@ -63,7 +66,7 @@ class SetFrequency(Instruction):
     @property
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
-        return (self.channel, )
+        return (self.channel,)
 
     @property
     def duration(self) -> int:
@@ -78,10 +81,12 @@ class SetFrequency(Instruction):
 class ShiftFrequency(Instruction):
     """Shift the channel frequency away from the current frequency."""
 
-    def __init__(self,
-                 frequency: Union[float, ParameterExpression],
-                 channel: PulseChannel,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        frequency: Union[float, ParameterExpression],
+        channel: PulseChannel,
+        name: Optional[str] = None,
+    ):
         """Creates a new shift frequency instruction.
 
         Args:
@@ -108,7 +113,7 @@ class ShiftFrequency(Instruction):
     @property
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
-        return (self.channel, )
+        return (self.channel,)
 
     @property
     def duration(self) -> int:

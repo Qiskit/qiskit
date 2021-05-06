@@ -34,7 +34,6 @@ FAKE_LEGACY_PROVIDER = FakeLegacyProvider()
 
 @ddt
 class TestFakeBackends(QiskitTestCase):
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -47,37 +46,49 @@ class TestFakeBackends(QiskitTestCase):
         cls.circuit.x(1)
         cls.circuit.measure_all()
 
-    @combine(backend=[be for be in FAKE_PROVIDER.backends()
-                      if be.configuration().num_qubits > 1],
-             optimization_level=[0, 1, 2, 3])
+    @combine(
+        backend=[be for be in FAKE_PROVIDER.backends() if be.configuration().num_qubits > 1],
+        optimization_level=[0, 1, 2, 3],
+    )
     def test_circuit_on_fake_backend(self, backend, optimization_level):
         if not HAS_AER and backend.configuration().num_qubits > 20:
             self.skipTest(
-                'Unable to run fake_backend %s without qiskit-aer' %
-                backend.configuration().backend_name)
-        job = execute(self.circuit, backend,
-                      optimization_level=optimization_level,
-                      seed_simulator=42, seed_transpiler=42)
+                "Unable to run fake_backend %s without qiskit-aer"
+                % backend.configuration().backend_name
+            )
+        job = execute(
+            self.circuit,
+            backend,
+            optimization_level=optimization_level,
+            seed_simulator=42,
+            seed_transpiler=42,
+        )
         result = job.result()
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
-        self.assertEqual(max_count, '11')
+        self.assertEqual(max_count, "11")
 
-    @combine(backend=[be for be in FAKE_LEGACY_PROVIDER.backends()
-                      if be.configuration().num_qubits > 1],
-             optimization_level=[0, 1, 2, 3])
+    @combine(
+        backend=[be for be in FAKE_LEGACY_PROVIDER.backends() if be.configuration().num_qubits > 1],
+        optimization_level=[0, 1, 2, 3],
+    )
     def test_circuit_on_fake_legacy_backend(self, backend, optimization_level):
         if not HAS_AER and backend.configuration().num_qubits > 20:
             self.skipTest(
-                'Unable to run fake_backend %s without qiskit-aer' %
-                backend.configuration().backend_name)
-        job = execute(self.circuit, backend,
-                      optimization_level=optimization_level,
-                      seed_simulator=42, seed_transpiler=42)
+                "Unable to run fake_backend %s without qiskit-aer"
+                % backend.configuration().backend_name
+            )
+        job = execute(
+            self.circuit,
+            backend,
+            optimization_level=optimization_level,
+            seed_simulator=42,
+            seed_transpiler=42,
+        )
         result = job.result()
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
-        self.assertEqual(max_count, '11')
+        self.assertEqual(max_count, "11")
 
     def test_qobj_failure(self):
         backend = FAKE_PROVIDER.backends()[-1]
@@ -118,7 +129,7 @@ class TestFakeBackends(QiskitTestCase):
 
     @data(*FAKE_PROVIDER.backends())
     def test_defaults_to_dict(self, backend):
-        if hasattr(backend, 'defaults'):
+        if hasattr(backend, "defaults"):
             defaults = backend.defaults()
             self.assertIsInstance(defaults.to_dict(), dict)
 
@@ -130,4 +141,4 @@ class TestFakeBackends(QiskitTestCase):
                 self.assertGreater(i, 1e6)
                 self.assertGreater(i, 1e6)
         else:
-            self.skipTest('Backend %s does not have defaults' % backend)
+            self.skipTest("Backend %s does not have defaults" % backend)

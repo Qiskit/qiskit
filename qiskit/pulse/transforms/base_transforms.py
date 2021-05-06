@@ -22,11 +22,10 @@ from qiskit.pulse.transforms import canonicalization
 InstructionSched = Union[Tuple[int, Instruction], Instruction]
 
 
-def target_qobj_transform(sched: Union[ScheduleBlock,
-                                       Schedule,
-                                       InstructionSched,
-                                       Iterable[InstructionSched]],
-                          remove_directives: bool = True) -> Schedule:
+def target_qobj_transform(
+    sched: Union[ScheduleBlock, Schedule, InstructionSched, Iterable[InstructionSched]],
+    remove_directives: bool = True,
+) -> Schedule:
     """A basic pulse program transformation for OpenPulse API execution.
 
     Args:
