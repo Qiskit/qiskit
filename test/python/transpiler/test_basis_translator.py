@@ -26,6 +26,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
+from qiskit.test.mock import FakeAthens
 
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -819,7 +820,6 @@ class TestBasisExamples(QiskitTestCase):
 
     def test_skip_target_basis_equivalences_1(self):
         """Test that BasisTranslator skips gates in the target_basis - #6085"""
-        from qiskit.test.mock import FakeAthens
 
         qstr = 'OPENQASM 2.0; \
         include "qelib1.inc"; \
@@ -850,8 +850,8 @@ class TestBasisExamples(QiskitTestCase):
         circ_transpiled = transpile(
             circ,
             backend=FakeAthens(),
-            basis_gates=['id', 'rz', 'sx', 'x', 'cx'],
-            routing_method='sabre',
-            seed_transpiler=42
+            basis_gates=["id", "rz", "sx", "x", "cx"],
+            routing_method="sabre",
+            seed_transpiler=42,
         )
-        self.assertEqual(circ_transpiled.count_ops(), {'cx': 91, 'rz':66, 'sx': 22})
+        self.assertEqual(circ_transpiled.count_ops(), {"cx": 91, "rz": 66, "sx": 22})
