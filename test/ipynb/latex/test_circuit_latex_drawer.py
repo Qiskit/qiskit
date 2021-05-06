@@ -48,10 +48,10 @@ class TestLatexDrawer(QiskitTestCase):
     """Testing Latex visualization."""
 
     def setUp(self):
-    super().setUp()
-    self.circuit_drawer = TestLatexDrawer.save_data_wrap(
-        _latex_circuit_drawer, str(self)
-    )
+        super().setUp()
+        self.circuit_drawer = TestLatexDrawer.save_data_wrap(
+            _latex_circuit_drawer, str(self)
+        )
 
     @staticmethod
     def save_data_wrap(func, testname):
