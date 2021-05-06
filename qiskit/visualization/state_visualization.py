@@ -18,9 +18,11 @@
 Visualization functions for quantum states.
 """
 
+from typing import Optional, List
 from functools import reduce
 import colorsys
 import numpy as np
+import sympy
 from scipy import linalg
 from qiskit import user_config
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -1156,15 +1158,18 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
-def state_to_latex(state, dims=None, **args):
+def state_to_latex(state, dims=None, convention='ket', **args):
     """Return a Latex representation of a state. Wrapper function
-    for `qiskit.visualization.array_to_latex` to add dims if necessary.
+    for `qiskit.visualization.array_to_latex` for convetion 'vector'.
+    Adds dims if necessary.
     Intended for use within `state_drawer`.
 
     Args:
         state (`Statevector` or `DensityMatrix`): State to be drawn
         dims (bool): Whether to display the state's `dims`
-        *args: Arguments to be passed directly to `array_to_latex`
+        convention (str): Either 'vector' or 'ket'. For 'ket' plot the state in the ket-notation.
+                Otherwise plot as a vector
+        **args: Arguments to be passed directly to `array_to_latex` for convention 'ket'
 
     Returns:
         `str`: Latex representation of the state
@@ -1181,11 +1186,106 @@ def state_to_latex(state, dims=None, **args):
         prefix = "\\begin{align}\n"
         dims_str = state._op_shape.dims_l()
         suffix = f"\\\\\n\\text{{dims={dims_str}}}\n\\end{{align}}"
-    latex_str = array_to_latex(state._data, source=True, **args)
+
+    operator_shape = state._op_shape
+    is_qubit_statevector = len(operator_shape.dims_r()) == 0 and set(operator_shape.dims_l()) == {2}
+    if convention == 'ket' and is_qubit_statevector:
+        latex_str = _state_to_latex_ket(state._data)
+    else:
+        latex_str = array_to_latex(state._data, source=True, **args)
     return prefix + latex_str + suffix
 
 
-class TextMatrix:
+def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
+    """Convert a complex number to latex code suitable for a ket expression
+
+    Args:
+        raw_value: Value to convert
+        first_term: If True then generate latex code for the first term in an expression
+    Returns:
+        String with latex code or None if no term is required
+    """
+    raw_value = complex(np.real_if_close(raw_value))
+
+    value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
+    real_value = float(sympy.re(value))
+    imag_value = float(sympy.im(value))
+
+    element = ''
+    if np.abs(value) > 0:
+        latex_element = sympy.latex(value, full_prec=False)
+        two_term = real_value != 0 and imag_value != 0
+        if isinstance(value, sympy.core.Add):
+            two_term = True
+        if two_term:
+            if first_term:
+                element = f'({latex_element})'
+            else:
+                element = f'+ ({latex_element})'
+        else:
+            if first_term:
+                if np.isreal(complex(value)) and value > 0:
+                    element = latex_element
+                else:
+                    element = latex_element
+                if element == "1":
+                    element = ""
+                elif element == "-1":
+                    element = "-"
+            else:
+
+                if imag_value == 0 and real_value > 0:
+                    element = '+' + latex_element
+                elif real_value == 0 and imag_value > 0:
+                    element = '+' + latex_element
+                else:
+                    element = latex_element
+                if element == "+1":
+                    element = "+"
+                elif element == "-1":
+                    element = "-"
+
+        return element
+    else:
+        return None
+
+
+def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
+    """ Convert a list of numbers to latex formatted terms
+
+    The first non-zero term is treated differently. For this term a leading + is suppressed.
+
+    Args:
+        numbers: List of numbers to format
+    Returns:
+        List of formatted terms
+    """
+    first_term = True
+    terms = []
+    for number in numbers:
+        term = num_to_latex_ket(number, first_term)
+        if term is not None:
+            first_term = False
+        terms.append(term)
+    return terms
+
+
+def _state_to_latex_ket(data: List[complex]) -> str:
+    """ Convert state vector to latex representation """
+    num = int(np.log2(len(data)))
+    ket_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+
+    latex_terms = numbers_to_latex_terms(data)
+
+    latex_str = ''
+    for idx, term in enumerate(latex_terms):
+        if term is not None:
+            ket = ket_names[idx]
+            latex_str += f'{term} |{ket}\\rangle'
+    return latex_str
+
+
+class TextMatrix():
     """Text representation of an array, with `__str__` method so it
     displays nicely in Jupyter notebooks"""
 
