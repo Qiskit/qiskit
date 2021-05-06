@@ -1271,7 +1271,7 @@ def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
 
 
 def _state_to_latex_ket(data: List[complex]) -> str:
-    """ Convert state vector to latex representation """
+    """Convert state vector to latex representation"""
     num = int(np.log2(len(data)))
     ket_names = [bin(i)[2:].zfill(num) for i in range(2 ** num)]
 

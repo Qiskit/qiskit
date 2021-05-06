@@ -1080,7 +1080,7 @@ class TestStatevector(QiskitTestCase):
             sv.draw("latex", convention="vector")
 
     def test_number_to_latex_terms(self):
-        """ Test conversions of complex numbers to latex terms """
+        """Test conversions of complex numbers to latex terms"""
 
         cases = [
             ([1 - 8e-17, 0], ["", None]),
@@ -1099,7 +1099,7 @@ class TestStatevector(QiskitTestCase):
             self.assertListEqual(terms, latex_terms)
 
     def test_statevector_draw_latex_regression(self):
-        """ Test numerical rounding errors are not printed """
+        """Test numerical rounding errors are not printed"""
         sv = Statevector(np.array([1 - 8e-17, 8.32667268e-17j]))
         latex_string = sv.draw(output="latex_source")
         self.assertTrue(latex_string.startswith(" |0\\rangle"))
