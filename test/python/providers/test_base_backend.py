@@ -26,8 +26,8 @@ class TestBackendAttrs(QiskitTestCase):
 
     def test_name(self):
         """Test that name can be extracted."""
-        self.assertEqual(self.pulse_backend.name(), 'fake_openpulse_2q')
-        self.assertEqual(self.backend.name(), 'fake_melbourne')
+        self.assertEqual(self.pulse_backend.name(), "fake_openpulse_2q")
+        self.assertEqual(self.backend.name(), "fake_melbourne")
 
     def test_version(self):
         """Test that name can be extracted."""
@@ -36,7 +36,6 @@ class TestBackendAttrs(QiskitTestCase):
 
     def test_str_and_repr(self):
         """Test the custom __str__ and __repr__ methods."""
-        self.assertEqual(str(self.pulse_backend), 'fake_openpulse_2q')
-        self.assertEqual(str(self.backend), 'fake_melbourne')
-        self.assertEqual(repr(self.pulse_backend),
-                         "<FakeOpenPulse2Q('fake_openpulse_2q')>")
+        self.assertEqual(str(self.pulse_backend), "fake_openpulse_2q")
+        self.assertEqual(str(self.backend), "fake_melbourne")
+        self.assertEqual(repr(self.pulse_backend), "<FakeOpenPulse2Q('fake_openpulse_2q')>")
