@@ -991,9 +991,8 @@ class TextDrawing():
         base_gate = getattr(instruction.op, 'base_gate', None)
 
         if instruction.op.condition is not None:
-            # conditional
-            cllabel = TextDrawing.label_for_conditional(instruction)
-            layer.set_cl_multibox(instruction.op.condition[0], cllabel, top_connect='╨')
+            inst_cond = instruction.op.condition
+            layer.set_cl_multibox(inst_cond[0], inst_cond[1], top_connect='╨')
             conditional = True
 
         # add in a gate that operates over multiple qubits
@@ -1302,20 +1301,37 @@ class Layer:
                                            wire_label=qargs.pop(0), conditional=conditional))
         return bit_index
 
-    def set_cl_multibox(self, creg, label, top_connect='┴'):
+    def set_cl_multibox(self, creg, val, top_connect='┴'):
         """Sets the multi clbit box.
 
         Args:
             creg (string): The affected classical register.
-            label (string): The label for the multi clbit box.
+            val (int): The value of the condition.
             top_connect (char): The char to connect the box on the top.
         """
         if self.cregbundle:
+            label = "= %s" % val
             self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
         else:
             clbit = [bit for bit in self.clbits
                      if self._clbit_locations[bit]['register'] == creg]
-            self._set_multibox(label, clbits=clbit, top_connect=top_connect)
+            cond_bin = bin(val)[2:].zfill(len(clbit))
+            self.set_cond_bullets(cond_bin, clbits=clbit)
+
+    def set_cond_bullets(self, val, clbits):
+        """Sets bullets for classical conditioning when cregbundle=False.
+
+            Args:
+                val (int): The condition value.
+                clbits (list[Clbit]): The list of classical bits on
+                    which the instruction is conditioned.
+        """
+        vlist = list(val[::-1])
+        for i, bit in enumerate(clbits):
+            if vlist[i] == '1':
+                self.set_clbit(bit, Bullet(top_connect="║"))
+            elif vlist[i] == '0':
+                self.set_clbit(bit, OpenBullet(top_connect="║"))
 
     def set_qu_multibox(self, bits, label, top_connect=None, bot_connect=None,
                         conditional=False, controlled_edge=None):
