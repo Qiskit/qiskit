@@ -487,8 +487,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_inherit_from(self):
         """Test creating schedule with another schedule."""
-        ref_metadata = {'test': 'value'}
-        ref_name = 'test'
+        ref_metadata = {"test": "value"}
+        ref_name = "test"
 
         base_sched = Schedule(name=ref_name, metadata=ref_metadata)
         new_sched = Schedule.initialize_from(base_sched)

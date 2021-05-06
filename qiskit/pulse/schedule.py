@@ -154,7 +154,7 @@ class Schedule:
             self._mutable_insert(time, sched)
 
     @classmethod
-    def initialize_from(cls, other_program: Any, name: Optional[str] = None) -> 'Schedule':
+    def initialize_from(cls, other_program: Any, name: Optional[str] = None) -> "Schedule":
         """Create new schedule object with metadata of another schedule object.
 
         Args:
@@ -177,8 +177,10 @@ class Schedule:
 
             return cls(name=name, metadata=metadata)
         except AttributeError as ex:
-            raise PulseError(f'{cls.__name__} cannot be initialized from the program data '
-                             f'{other_program.__class__.__name__}.') from ex
+            raise PulseError(
+                f"{cls.__name__} cannot be initialized from the program data "
+                f"{other_program.__class__.__name__}."
+            ) from ex
 
     @property
     def name(self) -> str:
@@ -946,7 +948,7 @@ class ScheduleBlock:
         self._parameter_manager.update_parameter_table(self._alignment_context)
 
     @classmethod
-    def initialize_from(cls, other_program: Any, name: Optional[str] = None) -> 'ScheduleBlock':
+    def initialize_from(cls, other_program: Any, name: Optional[str] = None) -> "ScheduleBlock":
         """Create new schedule object with metadata of another schedule object.
 
         Args:
@@ -974,8 +976,10 @@ class ScheduleBlock:
 
             return cls(name=name, metadata=metadata, alignment_context=alignment_context)
         except AttributeError as ex:
-            raise PulseError(f'{cls.__name__} cannot be initialized from the program data '
-                             f'{other_program.__class__.__name__}.') from ex
+            raise PulseError(
+                f"{cls.__name__} cannot be initialized from the program data "
+                f"{other_program.__class__.__name__}."
+            ) from ex
 
     @property
     def name(self) -> str:
