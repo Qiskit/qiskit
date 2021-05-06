@@ -104,7 +104,7 @@ class SwapGate(Gate):
 
 
 class CSwapGate(ControlledGate):
-    r"""Controlled swap gate.
+    r"""Controlled-SWAP gate, also known as the Fredkin gate.
 
     **Circuit symbol:**
 
