@@ -258,7 +258,10 @@ class TestUnitaryCircuit(QiskitTestCase):
         qr = QuantumRegister(2, 'q0')
         cr = ClassicalRegister(1, 'c0')
         qc = QuantumCircuit(qr, cr)
-        matrix = numpy.eye(4)
+        matrix = numpy.asarray([[0, 0, 0, 1],
+                                [0, 0, 1, 0],
+                                [0, 1, 0, 0],
+                                [1, 0, 0, 0]])
         unitary_gate = UnitaryGate(matrix, label="custom_gate")
 
         qc.x(qr[0])
@@ -271,8 +274,8 @@ class TestUnitaryCircuit(QiskitTestCase):
                         "creg c0[1];\n" \
                         "x q0[0];\n" \
                         "gate custom_gate p0,p1 {\n" \
-                        "\tu3(0,0,0) p0;\n" \
-                        "\tu3(0,0,0) p1;\n" \
+                        "\tu3(pi,-pi/2,pi/2) p0;\n" \
+                        "\tu3(pi,pi/2,-pi/2) p1;\n" \
                         "}\n" \
                         "custom_gate q0[0],q0[1];\n" \
                         "custom_gate q0[1],q0[0];\n"

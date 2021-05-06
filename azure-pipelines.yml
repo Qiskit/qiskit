@@ -6,7 +6,7 @@
 trigger:
   branches:
     include:
-      - master
+      - main
       - stable/*
   tags:
     include:
@@ -148,6 +148,7 @@ stages:
               pip | "$(Agent.OS)"
               pip
             path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - task: Cache@2
           inputs:
             key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
@@ -156,7 +157,7 @@ stages:
               stestr | "$(Agent.OS)"
               stestr
             path: .stestr
-          displayName: Cache pip
+          displayName: Cache stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -203,6 +204,9 @@ stages:
             stestr last --subunit | ./subunit_to_junit.py -o junit/test-results.xml
             popd
             cp -r /tmp/terra-tests/junit .
+            pushd .stestr
+            ls | grep -P "^\d" | xargs -d "\n" rm -f
+            popd
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -283,6 +287,7 @@ stages:
               stestr | "$(Agent.OS)"
               stestr
             path: .stestr
+          displayName: Cache stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -319,6 +324,9 @@ stages:
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+            pushd .stestr
+            ls | grep -e '^[[:digit:]]' | xargs -n1 rm -f
+            popd
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -348,6 +356,7 @@ stages:
               stestr | "$(Agent.OS)"
               stestr
             path: .stestr
+          displayName: Cache stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -389,6 +398,9 @@ stages:
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
+            pushd .stestr
+            ls | grep -P "^\d" | xargs -d "\n" rm -f
+            popd
           condition: succeededOrFailed()
           env:
             LANG: 'C.UTF-8'
@@ -428,6 +440,7 @@ stages:
               stestr | "$(Agent.OS)"
               stestr
             path: .stestr
+          displayName: Cache stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -469,6 +482,9 @@ stages:
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
+            pushd .stestr
+            ls | grep -P "^\d" | xargs -d "\n" rm -f
+            popd
           condition: succeededOrFailed()
           env:
             LANG: 'C.UTF-8'
@@ -515,6 +531,7 @@ stages:
               stestr | "$(Agent.OS)"
               stestr
             path: .stestr
+          displayName: Cache stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -552,6 +569,9 @@ stages:
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+            pushd .stestr
+            ls | grep -P "^\d" | xargs -d "\n" rm -f
+            popd
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -595,6 +615,7 @@ stages:
               stestr | "$(Agent.OS)"
               stestr
             path: .stestr
+          displayName: Cache stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -610,7 +631,7 @@ stages:
             source test-job/bin/activate
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-            stestr run --concurrency 2
+            stestr run
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
@@ -630,6 +651,9 @@ stages:
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+            pushd .stestr
+            ls | grep -e '^[[:digit:]]' | xargs -n1 rm -f
+            popd
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
