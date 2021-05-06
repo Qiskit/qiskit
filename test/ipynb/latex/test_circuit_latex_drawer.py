@@ -45,6 +45,7 @@ def cwd(path):
     finally:
         os.chdir(oldpwd)
 
+
 class TestLatexDrawer(QiskitTestCase):
     """Testing Latex visualization."""
 
@@ -84,9 +85,8 @@ class TestLatexDrawer(QiskitTestCase):
         """Test draw an empty circuit"""
         filename = self._get_resource_path("test_latex_empty.tex")
         circuit = QuantumCircuit(1)
-        self.circuit_drawer(circuit, filename=filename)
 
-        
+        self.circuit_drawer(circuit, filename=filename)
 
     def test_tiny_circuit(self):
         """Test draw tiny circuit."""
@@ -96,8 +96,6 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename=filename)
 
-        
-
     def test_normal_circuit(self):
         """Test draw normal size circuit."""
         filename = self._get_resource_path("test_latex_normal.tex")
@@ -106,8 +104,6 @@ class TestLatexDrawer(QiskitTestCase):
             circuit.h(qubit)
 
         self.circuit_drawer(circuit, filename=filename)
-
-        
 
     def test_4597(self):
         """Test cregbundle and conditional gates.
@@ -121,8 +117,6 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename=filename)
 
-        
-
     def test_deep_circuit(self):
         """Test draw deep circuit."""
         filename = self._get_resource_path("test_latex_deep.tex")
@@ -131,8 +125,6 @@ class TestLatexDrawer(QiskitTestCase):
             circuit.h(0)
 
         self.circuit_drawer(circuit, filename=filename)
-
-        
 
     def test_huge_circuit(self):
         """Test draw huge circuit."""
@@ -143,8 +135,6 @@ class TestLatexDrawer(QiskitTestCase):
             circuit.cx(qubit, 39)
 
         self.circuit_drawer(circuit, filename=filename)
-
-        
 
     def test_teleport(self):
         """Test draw teleport circuit."""
@@ -171,8 +161,6 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename=filename)
 
-        
-
     def test_global_phase(self):
         """Test circuit with global phase"""
         filename = self._get_resource_path("test_latex_global_phase.tex")
@@ -181,16 +169,12 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename=filename)
 
-        
-
     def test_no_ops(self):
         """Test circuit with no ops.
         See https://github.com/Qiskit/qiskit-terra/issues/5393"""
         filename = self._get_resource_path("test_latex_no_ops.tex")
         circuit = QuantumCircuit(2, 3)
         self.circuit_drawer(circuit, filename=filename)
-
-        
 
     def test_long_name(self):
         """Test to see that long register names can be seen completely
@@ -211,8 +195,6 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename=filename)
 
-        
-
     def test_conditional(self):
         """Test that circuits with conditionals draw correctly"""
         filename = self._get_resource_path("test_latex_conditional.tex")
@@ -226,8 +208,6 @@ class TestLatexDrawer(QiskitTestCase):
         circuit.h(qr[0]).c_if(cr, 2)
 
         self.circuit_drawer(circuit, filename=filename)
-
-        
 
     def test_plot_partial_barrier(self):
         """Test plotting of partial barriers."""
@@ -244,8 +224,6 @@ class TestLatexDrawer(QiskitTestCase):
         circuit.h(q[0])
 
         self.circuit_drawer(circuit, filename=filename)
-
-        
 
     def test_plot_barriers(self):
         """Test to see that plotting barriers works.
@@ -273,10 +251,7 @@ class TestLatexDrawer(QiskitTestCase):
         # check the barriers plot properly when plot_barriers= True
         self.circuit_drawer(circuit, filename=filename1, plot_barriers=True)
 
-        
         self.circuit_drawer(circuit, filename=filename2, plot_barriers=False)
-
-        
 
     def test_no_barriers_false(self):
         """Generate the same circuit as test_plot_barriers but without the barrier commands
@@ -289,8 +264,6 @@ class TestLatexDrawer(QiskitTestCase):
         circuit.h(q1[1])
 
         self.circuit_drawer(circuit, filename=filename)
-
-        
 
     def test_big_gates(self):
         """Test large gates with params"""
@@ -320,8 +293,6 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename=filename)
 
-        
-
     def test_cnot(self):
         """Test different cnot gates (ccnot, mcx, etc)"""
         filename = self._get_resource_path("test_latex_cnot.tex")
@@ -334,8 +305,6 @@ class TestLatexDrawer(QiskitTestCase):
         circuit.append(MCXGate(num_ctrl_qubits=3, ctrl_state="101"), [qr[0], qr[1], qr[2], qr[4]])
 
         self.circuit_drawer(circuit, filename=filename)
-
-        
 
     def test_pauli_clifford(self):
         """Test Pauli(green) and Clifford(blue) gates"""
@@ -358,8 +327,6 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename=filename)
 
-        
-
     def test_u_gates(self):
         """Test U 1, 2, & 3 gates"""
         filename = self._get_resource_path("test_latex_u_gates.tex")
@@ -376,8 +343,6 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename=filename)
 
-        
-
     def test_creg_initial(self):
         """Test cregbundle and initial state options"""
         filename1 = self._get_resource_path("test_latex_creg_initial_true.tex")
@@ -393,15 +358,12 @@ class TestLatexDrawer(QiskitTestCase):
             circuit, filename=filename1, cregbundle=True, initial_state=True
         )
 
-        
         self.circuit_drawer(
             circuit,
             filename=filename2,
             cregbundle=False,
             initial_state=False,
         )
-
-        
 
     def test_r_gates(self):
         """Test all R gates"""
@@ -419,8 +381,6 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename=filename)
 
-        
-
     def test_cswap_rzz(self):
         """Test controlled swap and rzz gates"""
         filename = self._get_resource_path("test_latex_cswap_rzz.tex")
@@ -432,8 +392,6 @@ class TestLatexDrawer(QiskitTestCase):
         circuit.append(RZZGate(3 * pi / 4).control(3, ctrl_state="010"), [2, 1, 4, 3, 0])
 
         self.circuit_drawer(circuit, filename=filename)
-
-        
 
     def test_ghz_to_gate(self):
         """Test controlled GHZ to_gate circuit"""
@@ -450,8 +408,6 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename=filename)
 
-        
-
     def test_scale(self):
         """Tests scale
         See: https://github.com/Qiskit/qiskit-terra/issues/4179"""
@@ -463,13 +419,9 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename=filename1)
 
-        
         self.circuit_drawer(circuit, filename=filename2, scale=0.5)
 
-        
         self.circuit_drawer(circuit, filename=filename3, scale=2.0)
-
-        
 
     def test_pi_param_expr(self):
         """Text pi in circuit with parameter expression."""
@@ -479,8 +431,6 @@ class TestLatexDrawer(QiskitTestCase):
         circuit.rx((pi - x) * (pi - y), 0)
 
         self.circuit_drawer(circuit, filename=filename)
-
-        
 
     def test_partial_layout(self):
         """Tests partial_layout
@@ -498,8 +448,6 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(transpiled, filename=filename)
 
-        
-
     def test_init_reset(self):
         """Test reset and initialize with 1 and 2 qubits"""
         filename = self._get_resource_path("test_latex_init_reset.tex")
@@ -509,8 +457,6 @@ class TestLatexDrawer(QiskitTestCase):
         circuit.initialize([0, 1, 0, 0], [0, 1])
 
         self.circuit_drawer(circuit, filename=filename)
-
-        
 
     def test_iqx_colors(self):
         """Tests with iqx color scheme"""
@@ -544,8 +490,6 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename=filename)
 
-        
-
     def test_reverse_bits(self):
         """Tests reverse_bits parameter"""
         filename = self._get_resource_path("test_latex_reverse_bits.tex")
@@ -555,8 +499,6 @@ class TestLatexDrawer(QiskitTestCase):
         circuit.ccx(2, 1, 0)
 
         self.circuit_drawer(circuit, filename=filename, reverse_bits=True)
-
-        
 
     def test_meas_condition(self):
         """Tests measure with a condition"""
@@ -569,8 +511,6 @@ class TestLatexDrawer(QiskitTestCase):
         circuit.measure(qr[0], cr[0])
         circuit.h(qr[1]).c_if(cr, 1)
         self.circuit_drawer(circuit, filename=filename)
-
-        
 
 
 if __name__ == "__main__":
