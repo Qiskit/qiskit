@@ -18,7 +18,6 @@ from test.python.opflow import QiskitOpflowTestCase
 from itertools import product
 import numpy as np
 from ddt import ddt, data, idata, unpack
-from sympy import Symbol, cos
 
 try:
     import jax.numpy as jnp
@@ -288,10 +287,7 @@ class TestGradients(QiskitOpflowTestCase):
         a = Parameter("a")
         # b = Parameter('b')
         params = a
-        x = Symbol("x")
-        expr = cos(x) + 1
-        c = ParameterExpression({a: x}, expr)
-
+        c = np.cos(a) + 1
         q = QuantumRegister(1)
         qc = QuantumCircuit(q)
         qc.h(q)
