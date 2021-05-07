@@ -61,7 +61,7 @@ class RippleCarryAdder(Adder):
 
     def __init__(self,
                  num_state_qubits: int,
-                 modular: bool = False,
+                 fixed_point: bool = False,
                  name: str = 'RippleCarryAdder'
                  ) -> None:
         r"""
@@ -84,7 +84,7 @@ class RippleCarryAdder(Adder):
 
         # initialize quantum circuit with register list
         self.add_register(qr_a, qr_b)
-        if not modular:
+        if not fixed_point:
             qr_z = QuantumRegister(1, name='cout')
             self.add_register(qr_z)
 
@@ -112,7 +112,7 @@ class RippleCarryAdder(Adder):
         for i in range(num_state_qubits-1):
             self.append(qc_instruction_mac, [qr_a[i+1], qr_b[i+1], qr_a[i]])
 
-        if not modular:
+        if not fixed_point:
             self.cx(qr_a[-1], qr_z[0])
 
         for i in reversed(range(num_state_qubits-1)):

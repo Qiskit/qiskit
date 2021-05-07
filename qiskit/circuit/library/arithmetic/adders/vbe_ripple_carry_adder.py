@@ -18,35 +18,30 @@ from .adder import Adder
 
 
 class VBERippleCarryAdder(Adder):
-    r"""A circuit that uses Classical Addition/Plain Adder to perform in-place addition on two qubit registers.
+    r"""The VBE ripple carry adder [1].
 
-    As an example, a classical adder circuit that performs addition on two 3-qubit sized
+    This circuit performs inplace addition of two equally-sized quantum registers.
+    As an example, a classical adder circuit that performs addition on two 2-qubit sized
     registers is as follows:
 
     .. parsed-literal::
-      
-                ┌────────┐                                                      ┌───────────┐┌──────┐
-           a_0: ┤1       ├──────────────────────────────────────────────────────┤1          ├┤1     ├
-                │        │┌────────┐                       ┌───────────┐┌──────┐│           ││      │
-           a_1: ┤        ├┤1       ├───────────────────────┤1          ├┤1     ├┤           ├┤      ├
-                │        ││        │┌────────┐     ┌──────┐│           ││      ││           ││      │
-           a_2: ┤        ├┤        ├┤1       ├──■──┤1     ├┤           ├┤      ├┤           ├┤      ├
-                │        ││        ││        │  │  │      ││           ││      ││           ││      │
-           b_0: ┤2       ├┤        ├┤        ├──┼──┤      ├┤           ├┤      ├┤2          ├┤2     ├
-                │        ││        ││        │  │  │      ││           ││      ││           ││  Sum │
-           b_1: ┤  Carry ├┤2       ├┤        ├──┼──┤      ├┤2          ├┤2     ├┤  Carry_dg ├┤      ├
-                │        ││        ││        │┌─┴─┐│      ││           ││  Sum ││           ││      │
-           b_2: ┤        ├┤  Carry ├┤2       ├┤ X ├┤2     ├┤  Carry_dg ├┤      ├┤           ├┤      ├
-                │        ││        ││  Carry │└───┘│  Sum ││           ││      ││           ││      │
-        cout_0: ┤        ├┤        ├┤3       ├─────┤      ├┤           ├┤      ├┤           ├┤      ├
-                │        ││        ││        │     │      ││           ││      ││           ││      │
-         cin_0: ┤0       ├┤        ├┤        ├─────┤      ├┤           ├┤      ├┤0          ├┤0     ├
-                │        ││        ││        │     │      ││           ││      ││           │└──────┘
-         cin_1: ┤3       ├┤0       ├┤        ├─────┤      ├┤0          ├┤0     ├┤3          ├────────
-                └────────┘│        ││        │     │      ││           │└──────┘└───────────┘
-         cin_2: ──────────┤3       ├┤0       ├─────┤0     ├┤3          ├─────────────────────────────
-                          └────────┘└────────┘     └──────┘└───────────┘
-        
+
+                ┌────────┐                       ┌───────────┐┌──────┐
+           a_0: ┤1       ├───────────────────────┤1          ├┤1     ├
+                │        │┌────────┐     ┌──────┐│           ││      │
+           a_1: ┤        ├┤1       ├──■──┤1     ├┤           ├┤      ├
+                │        ││        │  │  │      ││           ││      │
+           b_0: ┤2       ├┤        ├──┼──┤      ├┤2          ├┤2     ├
+                │        ││        │┌─┴─┐│      ││           ││  Sum │
+           b_1: ┤  Carry ├┤2       ├┤ X ├┤2     ├┤  Carry_dg ├┤      ├
+                │        ││  Carry │└───┘│  Sum ││           ││      │
+        cout_0: ┤        ├┤3       ├─────┤      ├┤           ├┤      ├
+                │        ││        │     │      ││           ││      │
+         cin_0: ┤0       ├┤        ├─────┤      ├┤0          ├┤0     ├
+                │        ││        │     │      ││           │└──────┘
+         cin_1: ┤3       ├┤0       ├─────┤0     ├┤3          ├────────
+                └────────┘└────────┘     └──────┘└───────────┘
+
 
     Here *Carry* and *Sum* gates correspond to the gates introduced in [1].
     *Carry_dg* correspond to the inverse of the *Carry* gate. Note that
@@ -64,13 +59,13 @@ class VBERippleCarryAdder(Adder):
 
     def __init__(self,
                  num_state_qubits: int,
-                 modular: bool = False,
+                 fixed_point: bool = False,
                  name: str = 'VBERippleCarryAdder'
                  ) -> None:
         """
         Args:
             num_state_qubits: The size of the register.
-            modular: If True, perform addition modulo ``2 ** num_state_qubits``. This needs
+            fixed_point: If True, perform addition modulo ``2 ** num_state_qubits``. This needs
                 one less qubit (namely no ``cout`` qubit).
             name: The name of the circuit.
 
@@ -87,7 +82,7 @@ class VBERippleCarryAdder(Adder):
         qr_b = QuantumRegister(num_state_qubits, name='b')
         self.add_register(qr_a, qr_b)
 
-        if not modular:
+        if not fixed_point:
             qr_cout = QuantumRegister(1, name='cout')
             self.add_register(qr_cout)
 
@@ -107,13 +102,10 @@ class VBERippleCarryAdder(Adder):
         qc_sum.cx(0, 2)
         qc_instruction_sum = qc_sum.to_gate()
 
-        # Build a temporary subcircuit that adds a to b,
-        # storing the result in b
-
         for j in range(num_state_qubits - 1):
             self.append(qc_instruction_carry, [qr_cin[j], qr_a[j], qr_b[j], qr_cin[j+1]])
 
-        if not modular:
+        if not fixed_point:
             self.append(qc_instruction_carry, [qr_cin[num_state_qubits - 1],
                                                qr_a[num_state_qubits - 1],
                                                qr_b[num_state_qubits - 1],
