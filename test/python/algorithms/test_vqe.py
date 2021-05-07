@@ -22,7 +22,7 @@ from ddt import data, ddt, unpack
 
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.algorithms import VQE, AlgorithmError
-from qiskit.algorithms.optimizers import COBYLA, L_BFGS_B, SLSQP, SPSA
+from qiskit.algorithms.optimizers import COBYLA, L_BFGS_B, P_BFGS, SLSQP, SPSA
 from qiskit.circuit.library import EfficientSU2, TwoLocal
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import (
@@ -271,8 +271,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
 
+    @data(L_BFGS_B(), P_BFGS())
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
-    def test_with_gradient(self):
+    def test_with_gradient(self, gradient):
         """Test VQE using Gradient()."""
         quantum_instance = QuantumInstance(
             backend=Aer.get_backend("qasm_simulator"),
