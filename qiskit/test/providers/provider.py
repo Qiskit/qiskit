@@ -30,8 +30,9 @@ class ProviderTestCase(QiskitTestCase):
             ``_get_provider`` function.
         backend_name (str): name of a backend provided by the provider.
     """
+
     provider_cls = None
-    backend_name = ''
+    backend_name = ""
 
     def setUp(self):
         super().setUp()
@@ -40,7 +41,7 @@ class ProviderTestCase(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         if cls is ProviderTestCase:
-            raise SkipTest('Skipping base class tests')
+            raise SkipTest("Skipping base class tests")
         super().setUpClass()
 
     def _get_provider(self):

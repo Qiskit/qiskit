@@ -30,11 +30,13 @@ class PhaseEstimator(ABC):
     """
 
     @abstractmethod
-    def estimate(self,
-                 unitary: Optional[QuantumCircuit] = None,
-                 state_preparation: Optional[QuantumCircuit] = None,
-                 pe_circuit: Optional[QuantumCircuit] = None,
-                 num_unitary_qubits: Optional[int] = None) -> 'PhaseEstimatorResult':
+    def estimate(
+        self,
+        unitary: Optional[QuantumCircuit] = None,
+        state_preparation: Optional[QuantumCircuit] = None,
+        pe_circuit: Optional[QuantumCircuit] = None,
+        num_unitary_qubits: Optional[int] = None,
+    ) -> "PhaseEstimatorResult":
         """Estimate the phase."""
         raise NotImplementedError
 

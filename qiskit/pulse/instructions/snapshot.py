@@ -23,7 +23,7 @@ from qiskit.pulse.instructions.instruction import Instruction
 class Snapshot(Instruction):
     """An instruction targeted for simulators, to capture a moment in the simulation."""
 
-    def __init__(self, label: str, snapshot_type: str = 'statevector', name: Optional[str] = None):
+    def __init__(self, label: str, snapshot_type: str = "statevector", name: Optional[str] = None):
         """Create new snapshot.
 
         Args:
@@ -37,7 +37,7 @@ class Snapshot(Instruction):
             PulseError: If snapshot label is invalid.
         """
         if not isinstance(label, str):
-            raise PulseError('Snapshot label must be a string.')
+            raise PulseError("Snapshot label must be a string.")
         self._channel = SnapshotChannel()
         if name is None:
             name = label
@@ -63,7 +63,7 @@ class Snapshot(Instruction):
     @property
     def channels(self) -> Tuple[SnapshotChannel]:
         """Returns the channels that this schedule uses."""
-        return (self.channel, )
+        return (self.channel,)
 
     @property
     def duration(self) -> int:

@@ -36,10 +36,11 @@ class OverlapDiag(CircuitQFI):
     See also :class:`~qiskit.opflow.QFI`.
     """
 
-    def convert(self,
-                operator: Union[CircuitOp, CircuitStateFn],
-                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
-                ) -> ListOp:
+    def convert(
+        self,
+        operator: Union[CircuitOp, CircuitStateFn],
+        params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]],
+    ) -> ListOp:
         r"""
         Args:
             operator: The operator corresponding to the quantum state :math:`|\psi(\omega)\rangle`
@@ -56,16 +57,17 @@ class OverlapDiag(CircuitQFI):
         """
 
         if not isinstance(operator, CircuitStateFn):
-            raise NotImplementedError('operator must be a CircuitStateFn')
+            raise NotImplementedError("operator must be a CircuitStateFn")
 
         return self._diagonal_approx(operator=operator, params=params)
 
     # TODO, for some reason diagonal_approx doesn't use the same get_parameter_expression method.
     # This should be fixed.
-    def _diagonal_approx(self,
-                         operator: Union[CircuitOp, CircuitStateFn],
-                         params: Union[ParameterExpression, ParameterVector, List]
-                         ) -> ListOp:
+    def _diagonal_approx(
+        self,
+        operator: Union[CircuitOp, CircuitStateFn],
+        params: Union[ParameterExpression, ParameterVector, List],
+    ) -> ListOp:
         """
         Args:
             operator: The operator corresponding to the quantum state |ψ(ω)〉for which we compute
@@ -84,7 +86,7 @@ class OverlapDiag(CircuitQFI):
         """
 
         if not isinstance(operator, (CircuitOp, CircuitStateFn)):
-            raise NotImplementedError('operator must be a CircuitOp or CircuitStateFn')
+            raise NotImplementedError("operator must be a CircuitOp or CircuitStateFn")
 
         # If a single parameter is given wrap it into a list.
         if isinstance(params, ParameterExpression):
@@ -112,15 +114,18 @@ class OverlapDiag(CircuitQFI):
         diag = []
         for param in params:
             if len(circuit._parameter_table[param]) > 1:
-                raise NotImplementedError("OverlapDiag does not yet support multiple "
-                                          "gates parameterized by a single parameter. For such "
-                                          "circuits use LinCombFull")
+                raise NotImplementedError(
+                    "OverlapDiag does not yet support multiple "
+                    "gates parameterized by a single parameter. For such "
+                    "circuits use LinCombFull"
+                )
 
             gate = circuit._parameter_table[param][0][0]
 
             if len(gate.params) != 1:
-                raise TypeError("OverlapDiag cannot yet support gates with more than one "
-                                "parameter.")
+                raise TypeError(
+                    "OverlapDiag cannot yet support gates with more than one " "parameter."
+                )
 
             param_value = gate.params[0]
             generator = generators[param]
@@ -142,10 +147,11 @@ class OverlapDiag(CircuitQFI):
 
 def _partition_circuit(circuit):
     dag = circuit_to_dag(circuit)
-    dag_layers = ([i['graph'] for i in dag.serial_layers()])
+    dag_layers = [i["graph"] for i in dag.serial_layers()]
     num_qubits = circuit.num_qubits
     layers = list(
-        zip(dag_layers, [{x: False for x in range(0, num_qubits)} for layer in dag_layers]))
+        zip(dag_layers, [{x: False for x in range(0, num_qubits)} for layer in dag_layers])
+    )
 
     # initialize the ledger
     # The ledger tracks which qubits in each layer are available to have
@@ -221,14 +227,16 @@ def _get_generators(params, circuit):
     bit_indices = {bit: index for index, bit in enumerate(circuit.qubits)}
 
     for layer in layers:
-        instr = layer['graph'].op_nodes()[0].op
+        instr = layer["graph"].op_nodes()[0].op
         # if no gate is parameterized, skip
         if not any(isinstance(param, ParameterExpression) for param in instr.params):
             continue
 
         if len(instr.params) != 1:
-            raise NotImplementedError('The QFI diagonal approximation currently only supports '
-                                      'gates with a single free parameter.')
+            raise NotImplementedError(
+                "The QFI diagonal approximation currently only supports "
+                "gates with a single free parameter."
+            )
         param_value = instr.params[0]
 
         for param in params:
@@ -241,11 +249,11 @@ def _get_generators(params, circuit):
                 elif isinstance(instr, RXGate):
                     generator = X
                 else:
-                    raise NotImplementedError(f'Generator for gate {instr.name} not implemented.')
+                    raise NotImplementedError(f"Generator for gate {instr.name} not implemented.")
 
                 # get all qubit indices in this layer where the param parameterizes
                 # an operation.
-                indices = [[bit_indices[q] for q in qreg] for qreg in layer['partition']]
+                indices = [[bit_indices[q] for q in qreg] for qreg in layer["partition"]]
                 indices = [item for sublist in indices for item in sublist]
 
                 if len(indices) > 1:
