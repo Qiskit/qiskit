@@ -83,8 +83,9 @@ class TestQAOAAnsatz(QiskitTestCase):
         initial_state.y(0)
         mixer = Z
 
-        circuit = QAOAAnsatz(cost_operator=I, reps=2, initial_state=initial_state,
-                             mixer_operator=mixer)
+        circuit = QAOAAnsatz(
+            cost_operator=I, reps=2, initial_state=initial_state, mixer_operator=mixer
+        )
 
         parameters = circuit.parameters
         self.assertEqual(2, len(parameters))

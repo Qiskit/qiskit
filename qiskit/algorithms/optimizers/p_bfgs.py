@@ -41,14 +41,16 @@ class P_BFGS(Optimizer):  # pylint: disable=invalid-name
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fmin_l_bfgs_b.html
     """
 
-    _OPTIONS = ['maxfun', 'factr', 'iprint']
+    _OPTIONS = ["maxfun", "factr", "iprint"]
 
     # pylint: disable=unused-argument
-    def __init__(self,
-                 maxfun: int = 1000,
-                 factr: float = 10,
-                 iprint: int = -1,
-                 max_processes: Optional[int] = None) -> None:
+    def __init__(
+        self,
+        maxfun: int = 1000,
+        factr: float = 10,
+        iprint: int = -1,
+        max_processes: Optional[int] = None,
+    ) -> None:
         r"""
         Args:
             maxfun: Maximum number of function evaluations.
@@ -68,7 +70,7 @@ class P_BFGS(Optimizer):  # pylint: disable=invalid-name
             max_processes: maximum number of processes allowed, has a min. value of 1 if not None.
         """
         if max_processes:
-            validate_min('max_processes', max_processes, 1)
+            validate_min("max_processes", max_processes, 1)
         super().__init__()
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
@@ -76,34 +78,44 @@ class P_BFGS(Optimizer):  # pylint: disable=invalid-name
         self._max_processes = max_processes
 
     def get_support_level(self):
-        """ return support level dictionary """
+        """return support level dictionary"""
         return {
-            'gradient': OptimizerSupportLevel.supported,
-            'bounds': OptimizerSupportLevel.supported,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.supported,
+            "bounds": OptimizerSupportLevel.supported,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
         num_procs = multiprocessing.cpu_count() - 1
-        num_procs = \
+        num_procs = (
             num_procs if self._max_processes is None else min(num_procs, self._max_processes)
+        )
         num_procs = num_procs if num_procs >= 0 else 0
 
-        if platform.system() == 'Darwin':
+        if platform.system() == "Darwin":
             # Changed in version 3.8: On macOS, the spawn start method is now the
             # default. The fork start method should be considered unsafe as it can
             # lead to crashes.
             # However P_BFGS doesn't support spawn, so we revert to single process.
             major, minor, _ = platform.python_version_tuple()
-            if major > '3' or (major == '3' and minor >= '8'):
+            if major > "3" or (major == "3" and minor >= "8"):
                 num_procs = 0
-                logger.warning("For MacOS, python >= 3.8, using only current process. "
-                               "Multiple core use not supported.")
-        elif platform.system() == 'Windows':
+                logger.warning(
+                    "For MacOS, python >= 3.8, using only current process. "
+                    "Multiple core use not supported."
+                )
+        elif platform.system() == "Windows":
             num_procs = 0
-            logger.warning("For Windows, using only current process. "
-                           "Multiple core use not supported.")
+            logger.warning(
+                "For Windows, using only current process. " "Multiple core use not supported."
+            )
 
         queue = multiprocessing.Queue()
         # bounds for additional initial points in case bounds has any None values
@@ -114,8 +126,9 @@ class P_BFGS(Optimizer):  # pylint: disable=invalid-name
         high = [(u if u is not None else threshold) for (l, u) in variable_bounds]
 
         def optimize_runner(_queue, _i_pt):  # Multi-process sampling
-            _sol, _opt, _nfev = self._optimize(num_vars, objective_function,
-                                               gradient_function, variable_bounds, _i_pt)
+            _sol, _opt, _nfev = self._optimize(
+                num_vars, objective_function, gradient_function, variable_bounds, _i_pt
+            )
             _queue.put((_sol, _opt, _nfev))
 
         # Start off as many other processes running the optimize (can be 0)
@@ -129,8 +142,9 @@ class P_BFGS(Optimizer):  # pylint: disable=invalid-name
         # While the one _optimize in this process below runs the other processes will
         # be running to. This one runs
         # with the supplied initial point. The process ones have their own random one
-        sol, opt, nfev = self._optimize(num_vars, objective_function,
-                                        gradient_function, variable_bounds, initial_point)
+        sol, opt, nfev = self._optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
 
         for proc in processes:
             # For each other process we wait now for it to finish and see if it has
@@ -143,14 +157,25 @@ class P_BFGS(Optimizer):  # pylint: disable=invalid-name
 
         return sol, opt, nfev
 
-    def _optimize(self, num_vars, objective_function, gradient_function=None,
-                  variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function,
-                         variable_bounds, initial_point)
+    def _optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
 
         approx_grad = bool(gradient_function is None)
-        sol, opt, info = sciopt.fmin_l_bfgs_b(objective_function, initial_point,
-                                              bounds=variable_bounds,
-                                              fprime=gradient_function,
-                                              approx_grad=approx_grad, **self._options)
-        return sol, opt, info['funcalls']
+        sol, opt, info = sciopt.fmin_l_bfgs_b(
+            objective_function,
+            initial_point,
+            bounds=variable_bounds,
+            fprime=gradient_function,
+            approx_grad=approx_grad,
+            **self._options,
+        )
+        return sol, opt, info["funcalls"]

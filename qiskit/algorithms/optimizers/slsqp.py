@@ -35,15 +35,17 @@ class SLSQP(Optimizer):
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    _OPTIONS = ['maxiter', 'disp', 'ftol', 'eps']
+    _OPTIONS = ["maxiter", "disp", "ftol", "eps"]
 
     # pylint: disable=unused-argument
-    def __init__(self,
-                 maxiter: int = 100,
-                 disp: bool = False,
-                 ftol: float = 1e-06,
-                 tol: Optional[float] = None,
-                 eps: float = 1.4901161193847656e-08) -> None:
+    def __init__(
+        self,
+        maxiter: int = 100,
+        disp: bool = False,
+        ftol: float = 1e-06,
+        tol: Optional[float] = None,
+        eps: float = 1.4901161193847656e-08,
+    ) -> None:
         """
         Args:
             maxiter: Maximum number of iterations.
@@ -59,25 +61,38 @@ class SLSQP(Optimizer):
         self._tol = tol
 
     def get_support_level(self):
-        """ Return support level dictionary """
+        """Return support level dictionary"""
         return {
-            'gradient': OptimizerSupportLevel.supported,
-            'bounds': OptimizerSupportLevel.supported,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.supported,
+            "bounds": OptimizerSupportLevel.supported,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function,
-                         gradient_function, variable_bounds, initial_point)
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
 
         if gradient_function is None and self._max_evals_grouped > 1:
-            epsilon = self._options['eps']
-            gradient_function = Optimizer.wrap_function(Optimizer.gradient_num_diff,
-                                                        (objective_function, epsilon,
-                                                         self._max_evals_grouped))
+            epsilon = self._options["eps"]
+            gradient_function = Optimizer.wrap_function(
+                Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped)
+            )
 
-        res = minimize(objective_function, initial_point, jac=gradient_function,
-                       tol=self._tol, bounds=variable_bounds, method="SLSQP",
-                       options=self._options)
+        res = minimize(
+            objective_function,
+            initial_point,
+            jac=gradient_function,
+            tol=self._tol,
+            bounds=variable_bounds,
+            method="SLSQP",
+            options=self._options,
+        )
         return res.x, res.fun, res.nfev

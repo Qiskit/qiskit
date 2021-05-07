@@ -167,9 +167,9 @@ class TestRandomClifford(QiskitTestCase):
         """Test random_clifford {num_qubits}-qubits."""
         seed = 213
         value = random_clifford(num_qubits, seed=seed)
-        with self.subTest(msg='Test type'):
+        with self.subTest(msg="Test type"):
             self.assertIsInstance(value, Clifford)
-        with self.subTest(msg='Test num_qubits'):
+        with self.subTest(msg="Test num_qubits"):
             self.assertEqual(value.num_qubits, num_qubits)
 
     def test_fixed_seed(self):
@@ -194,16 +194,15 @@ class TestRandomClifford(QiskitTestCase):
 class TestPauliTwoDesignTable(QiskitTestCase):
     """Testing random_pauli_table function."""
 
-    @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 200, 250],
-             size=[1, 10, 100])
+    @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 200, 250], size=[1, 10, 100])
     def test_valid(self, num_qubits, size):
         """Test random_pauli_table {num_qubits}-qubits, size {size}."""
         value = random_pauli_table(num_qubits, size=size)
-        with self.subTest(msg='Test type'):
+        with self.subTest(msg="Test type"):
             self.assertIsInstance(value, PauliTable)
-        with self.subTest(msg='Test num_qubits'):
+        with self.subTest(msg="Test num_qubits"):
             self.assertEqual(value.num_qubits, num_qubits)
-        with self.subTest(msg='Test type'):
+        with self.subTest(msg="Test type"):
             self.assertEqual(len(value), size)
 
     def test_fixed_seed(self):
@@ -228,16 +227,15 @@ class TestPauliTwoDesignTable(QiskitTestCase):
 class TestRandomStabilizerTable(QiskitTestCase):
     """Testing random_stabilizer_table function."""
 
-    @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 200, 250],
-             size=[1, 10, 100])
+    @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 200, 250], size=[1, 10, 100])
     def test_valid(self, num_qubits, size):
         """Test random_stabilizer_table {num_qubits}-qubits, size {size}."""
         value = random_stabilizer_table(num_qubits, size=size)
-        with self.subTest(msg='Test type'):
+        with self.subTest(msg="Test type"):
             self.assertIsInstance(value, StabilizerTable)
-        with self.subTest(msg='Test num_qubits'):
+        with self.subTest(msg="Test num_qubits"):
             self.assertEqual(value.num_qubits, num_qubits)
-        with self.subTest(msg='Test type'):
+        with self.subTest(msg="Test type"):
             self.assertEqual(len(value), size)
 
     def test_fixed_seed(self):
@@ -258,5 +256,5 @@ class TestRandomStabilizerTable(QiskitTestCase):
         self.assertFalse(np.all(rng_before == rng_after))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -48,9 +48,9 @@ class Shor:
     See also https://arxiv.org/abs/quant-ph/0205095
     """
 
-    def __init__(self,
-                 quantum_instance: Optional[
-                     Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
+    def __init__(
+        self, quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None
+    ) -> None:
         """
         Args:
             quantum_instance: Quantum Instance or Backend
@@ -73,13 +73,14 @@ class Shor:
 
     @property
     def quantum_instance(self) -> Optional[QuantumInstance]:
-        """ Returns quantum instance. """
+        """Returns quantum instance."""
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
-                                                       BaseBackend, Backend]) -> None:
-        """ Sets quantum instance. """
+    def quantum_instance(
+        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
+    ) -> None:
+        """Sets quantum instance."""
         if isinstance(quantum_instance, (BaseBackend, Backend)):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
@@ -90,7 +91,7 @@ class Shor:
         angles = np.zeros([self._n + 1])
         for i in range(0, self._n + 1):
             for j in range(i, self._n + 1):
-                if s[j] == '1':
+                if s[j] == "1":
                     angles[self._n - i] += math.pow(2, -(j - i))
             angles[self._n - i] *= np.pi
         return angles[::-1]
@@ -103,10 +104,9 @@ class Shor:
             circuit.p(angle, i)
         return circuit.to_gate()
 
-    def _double_controlled_phi_add_mod_N(self,
-                                         num_qubits: int,
-                                         angles: Union[np.ndarray, ParameterVector]
-                                         ) -> QuantumCircuit:
+    def _double_controlled_phi_add_mod_N(
+        self, num_qubits: int, angles: Union[np.ndarray, ParameterVector]
+    ) -> QuantumCircuit:
         """Creates a circuit which implements double-controlled modular addition by a."""
         circuit = QuantumCircuit(num_qubits, name="ccphi_add_mod_N")
 
@@ -142,11 +142,9 @@ class Shor:
 
     def _controlled_multiple_mod_N(self, num_qubits: int, N: int, a: int) -> Instruction:
         """Implements modular multiplication by a as an instruction."""
-        circuit = QuantumCircuit(
-            num_qubits, name="multiply_by_{}_mod_{}".format(a % N, N)
-        )
-        down = circuit.qubits[1: self._n + 1]
-        aux = circuit.qubits[self._n + 1:]
+        circuit = QuantumCircuit(num_qubits, name="multiply_by_{}_mod_{}".format(a % N, N))
+        down = circuit.qubits[1 : self._n + 1]
+        aux = circuit.qubits[self._n + 1 :]
         qubits = [aux[i] for i in reversed(range(self._n + 1))]
         ctl_up = 0
         ctl_aux = aux[-1]
@@ -183,10 +181,7 @@ class Shor:
         circuit.append(self._iqft, qubits)
         return circuit.to_instruction()
 
-    def construct_circuit(self,
-                          N: int,
-                          a: int = 2,
-                          measurement: bool = False) -> QuantumCircuit:
+    def construct_circuit(self, N: int, a: int = 2, measurement: bool = False) -> QuantumCircuit:
         """Construct circuit.
 
         Args:
@@ -200,15 +195,15 @@ class Shor:
         Raises:
             ValueError: Invalid N
         """
-        validate_min('N', N, 3)
-        validate_min('a', a, 2)
+        validate_min("N", N, 3)
+        validate_min("a", a, 2)
 
         # check the input integer
         if N < 1 or N % 2 == 0:
-            raise ValueError('The input needs to be an odd integer greater than 1.')
+            raise ValueError("The input needs to be an odd integer greater than 1.")
 
         if a >= N or math.gcd(a, N) != 1:
-            raise ValueError('The integer a needs to satisfy a < N and gcd(a, N) = 1.')
+            raise ValueError("The integer a needs to satisfy a < N and gcd(a, N) = 1.")
 
         # Get n value used in Shor's algorithm, to know how many qubits are used
         self._n = math.ceil(math.log(N, 2))
@@ -216,17 +211,16 @@ class Shor:
         self._iqft.num_qubits = self._n + 1
 
         # quantum register where the sequential QFT is performed
-        self._up_qreg = QuantumRegister(2 * self._n, name='up')
+        self._up_qreg = QuantumRegister(2 * self._n, name="up")
         # quantum register where the multiplications are made
-        self._down_qreg = QuantumRegister(self._n, name='down')
+        self._down_qreg = QuantumRegister(self._n, name="down")
         # auxiliary quantum register used in addition and multiplication
-        self._aux_qreg = QuantumRegister(self._n + 2, name='aux')
+        self._aux_qreg = QuantumRegister(self._n + 2, name="aux")
 
         # Create Quantum Circuit
-        circuit = QuantumCircuit(self._up_qreg,
-                                 self._down_qreg,
-                                 self._aux_qreg,
-                                 name="Shor(N={}, a={})".format(N, a))
+        circuit = QuantumCircuit(
+            self._up_qreg, self._down_qreg, self._aux_qreg, name="Shor(N={}, a={})".format(N, a)
+        )
 
         # Create gates to perform addition/subtraction by N in Fourier Space
         self._phi_add_N = self._phi_add_gate(self._aux_qreg.size - 1, self._get_angles(N))
@@ -243,18 +237,18 @@ class Shor:
         for i, ctl_up in enumerate(self._up_qreg):  # type: ignore
             a_aux = int(pow(a, pow(2, i)))
             controlled_multiple_mod_N = self._controlled_multiple_mod_N(
-                len(self._down_qreg) + len(self._aux_qreg) + 1, N, a_aux,
+                len(self._down_qreg) + len(self._aux_qreg) + 1,
+                N,
+                a_aux,
             )
-            circuit.append(
-                controlled_multiple_mod_N, [ctl_up, *self._down_qreg, *self._aux_qreg]
-            )
+            circuit.append(controlled_multiple_mod_N, [ctl_up, *self._down_qreg, *self._aux_qreg])
 
         # Apply inverse QFT
         iqft = QFT(len(self._up_qreg)).inverse().to_instruction()
         circuit.append(iqft, self._up_qreg)
 
         if measurement:
-            up_cqreg = ClassicalRegister(2 * self._n, name='m')
+            up_cqreg = ClassicalRegister(2 * self._n, name="m")
             circuit.add_register(up_cqreg)
             circuit.measure(self._up_qreg, up_cqreg)
 
@@ -265,6 +259,7 @@ class Shor:
     @staticmethod
     def modinv(a: int, m: int) -> int:
         """Returns the modular multiplicative inverse of a with respect to the modulus m."""
+
         def egcd(a: int, b: int) -> Tuple[int, int, int]:
             if a == 0:
                 return b, 0, 1
@@ -274,20 +269,22 @@ class Shor:
 
         g, x, _ = egcd(a, m)
         if g != 1:
-            raise ValueError("The greatest common divisor of {} and {} is {}, so the "
-                             "modular inverse does not exist.".format(a, m, g))
+            raise ValueError(
+                "The greatest common divisor of {} and {} is {}, so the "
+                "modular inverse does not exist.".format(a, m, g)
+            )
         return x % m
 
     def _get_factors(self, N: int, a: int, measurement: str) -> Optional[List[int]]:
         """Apply the continued fractions to find r and the gcd to find the desired factors."""
         x_final = int(measurement, 2)
-        logger.info('In decimal, x_final value for this result is: %s.', x_final)
+        logger.info("In decimal, x_final value for this result is: %s.", x_final)
 
         if x_final <= 0:
-            fail_reason = 'x_final value is <= 0, there are no continued fractions.'
+            fail_reason = "x_final value is <= 0, there are no continued fractions."
         else:
             fail_reason = None
-            logger.debug('Running continued fractions for this case.')
+            logger.debug("Running continued fractions for this case.")
 
         # Calculate T and x/T
         T_upper = len(measurement)
@@ -299,8 +296,8 @@ class Shor:
 
         # Initialize the first values according to CF rule
         i = 0
-        b = array.array('i')
-        t = array.array('f')
+        b = array.array("i")
+        t = array.array("f")
 
         b.append(math.floor(x_over_T))
         t.append(x_over_T - b[i])
@@ -320,7 +317,7 @@ class Shor:
             i += 1
 
             if denominator % 2 == 1:
-                logger.debug('Odd denominator, will try next iteration of continued fractions.')
+                logger.debug("Odd denominator, will try next iteration of continued fractions.")
                 continue
 
             # Denominator is even, try to get factors of N
@@ -331,7 +328,7 @@ class Shor:
 
             # Check if the value is too big or not
             if exponential > 1000000000:
-                fail_reason = 'denominator of continued fraction is too big.'
+                fail_reason = "denominator of continued fraction is too big."
             else:
                 # The value is not too big,
                 # get the right values and do the proper gcd()
@@ -342,19 +339,20 @@ class Shor:
 
                 # Check if the factors found are trivial factors or are the desired factors
                 if any(factor in {1, N} for factor in (one_factor, other_factor)):
-                    logger.debug('Found just trivial factors, not good enough.')
+                    logger.debug("Found just trivial factors, not good enough.")
                     # Check if the number has already been found,
                     # (use i - 1 because i was already incremented)
                     if t[i - 1] == 0:
-                        fail_reason = 'the continued fractions found exactly x_final/(2^(2n)).'
+                        fail_reason = "the continued fractions found exactly x_final/(2^(2n))."
                 else:
                     # Successfully factorized N
                     return sorted((one_factor, other_factor))
 
         # Search for factors failed, write the reason for failure to the debug logs
         logger.debug(
-            'Cannot find factors from measurement %s because %s',
-            measurement, fail_reason or 'it took too many attempts.'
+            "Cannot find factors from measurement %s because %s",
+            measurement,
+            fail_reason or "it took too many attempts.",
         )
         return None
 
@@ -372,14 +370,15 @@ class Shor:
         # Get the denominator from the value obtained
         frac = fractions.Fraction(x_over_T).limit_denominator()
 
-        logger.debug('Approximation number %s of continued fractions:', len(b))
+        logger.debug("Approximation number %s of continued fractions:", len(b))
         logger.debug("Numerator:%s \t\t Denominator: %s.", frac.numerator, frac.denominator)
         return frac.denominator
 
-    def factor(self,
-               N: int,
-               a: int = 2,
-               ) -> 'ShorResult':
+    def factor(
+        self,
+        N: int,
+        a: int = 2,
+    ) -> "ShorResult":
         """Execute the algorithm.
 
         The input integer :math:`N` to be factored is expected to be odd and greater than 2.
@@ -399,41 +398,43 @@ class Shor:
             AlgorithmError: If a quantum instance or backend has not been provided
 
         """
-        validate_min('N', N, 3)
-        validate_min('a', a, 2)
+        validate_min("N", N, 3)
+        validate_min("a", a, 2)
 
         # check the input integer
         if N < 1 or N % 2 == 0:
-            raise ValueError('The input needs to be an odd integer greater than 1.')
+            raise ValueError("The input needs to be an odd integer greater than 1.")
 
         if a >= N or math.gcd(a, N) != 1:
-            raise ValueError('The integer a needs to satisfy a < N and gcd(a, N) = 1.')
+            raise ValueError("The integer a needs to satisfy a < N and gcd(a, N) = 1.")
 
         if self.quantum_instance is None:
-            raise AlgorithmError("A QuantumInstance or Backend "
-                                 "must be supplied to run the quantum algorithm.")
+            raise AlgorithmError(
+                "A QuantumInstance or Backend " "must be supplied to run the quantum algorithm."
+            )
 
         result = ShorResult()
 
         # check if the input integer is a power
         tf, b, p = is_power(N, return_decomposition=True)
         if tf:
-            logger.info('The input integer is a power: %s=%s^%s.', N, b, p)
+            logger.info("The input integer is a power: %s=%s^%s.", N, b, p)
             result.factors.append(b)
 
         if not result.factors:
-            logger.debug('Running with N=%s and a=%s.', N, a)
+            logger.debug("Running with N=%s and a=%s.", N, a)
 
             if self._quantum_instance.is_statevector:
                 circuit = self.construct_circuit(N=N, a=a, measurement=False)
-                logger.warning('The statevector_simulator might lead to '
-                               'subsequent computation using too much memory.')
+                logger.warning(
+                    "The statevector_simulator might lead to "
+                    "subsequent computation using too much memory."
+                )
                 result = self._quantum_instance.execute(circuit)
                 complete_state_vec = result.get_statevector(circuit)
                 # TODO: this uses too much memory
                 up_qreg_density_mat = partial_trace(
-                    complete_state_vec,
-                    range(2 * self._n, 4 * self._n + 2)
+                    complete_state_vec, range(2 * self._n, 4 * self._n + 2)
                 )
                 up_qreg_density_mat_diag = np.diag(up_qreg_density_mat)
 
@@ -455,10 +456,7 @@ class Shor:
                 factors = self._get_factors(N, a, measurement)
 
                 if factors:
-                    logger.info(
-                        'Found factors %s from measurement %s.',
-                        factors, measurement
-                    )
+                    logger.info("Found factors %s from measurement %s.", factors, measurement)
                     result.successful_counts = result.successful_counts + 1
                     if factors not in result.factors:
                         result.factors.append(factors)
@@ -467,7 +465,7 @@ class Shor:
 
 
 class ShorResult(AlgorithmResult):
-    """ Shor Result."""
+    """Shor Result."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -477,30 +475,30 @@ class ShorResult(AlgorithmResult):
 
     @property
     def factors(self) -> List[List[int]]:
-        """ returns factors """
+        """returns factors"""
         return self._factors
 
     @factors.setter
     def factors(self, value: List[List[int]]) -> None:
-        """ set factors """
+        """set factors"""
         self._factors = value
 
     @property
     def total_counts(self) -> int:
-        """ returns total counts """
+        """returns total counts"""
         return self._total_counts
 
     @total_counts.setter
     def total_counts(self, value: int) -> None:
-        """ set total counts """
+        """set total counts"""
         self._total_counts = value
 
     @property
     def successful_counts(self) -> int:
-        """ returns successful counts """
+        """returns successful counts"""
         return self._successful_counts
 
     @successful_counts.setter
     def successful_counts(self, value: int) -> None:
-        """ set successful counts """
+        """set successful counts"""
         self._successful_counts = value
