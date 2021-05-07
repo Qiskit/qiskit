@@ -14,11 +14,10 @@
 
 from typing import Optional
 
-from scipy.optimize import minimize
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .scipy_minimizer import ScipyMinimizer
 
 
-class NELDER_MEAD(Optimizer):  # pylint: disable=invalid-name
+class NELDER_MEAD(ScipyMinimizer):  # pylint: disable=invalid-name
     """
     Nelder-Mead optimizer.
 
@@ -50,6 +49,7 @@ class NELDER_MEAD(Optimizer):  # pylint: disable=invalid-name
         xatol: float = 0.0001,
         tol: Optional[float] = None,
         adaptive: bool = False,
+        **kwargs,
     ) -> None:
         """
         Args:
@@ -62,19 +62,11 @@ class NELDER_MEAD(Optimizer):  # pylint: disable=invalid-name
             tol: Tolerance for termination.
             adaptive: Adapt algorithm parameters to dimensionality of problem.
         """
-        super().__init__()
+        options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
-                self._options[k] = v
-        self._tol = tol
-
-    def get_support_level(self):
-        """Return support level dictionary"""
-        return {
-            "gradient": OptimizerSupportLevel.ignored,
-            "bounds": OptimizerSupportLevel.ignored,
-            "initial_point": OptimizerSupportLevel.required,
-        }
+                options[k] = v
+        super().__init__(method="Nelder-Mead", options=options, tol=tol, **kwargs)
 
     def optimize(
         self,
@@ -84,15 +76,10 @@ class NELDER_MEAD(Optimizer):  # pylint: disable=invalid-name
         variable_bounds=None,
         initial_point=None,
     ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-
-        res = minimize(
+        return super().optimize(
+            num_vars,
             objective_function,
-            initial_point,
-            tol=self._tol,
-            method="Nelder-Mead",
-            options=self._options,
+            gradient_function=gradient_function,
+            variable_bounds=variable_bounds,
+            initial_point=initial_point,
         )
-        return res.x, res.fun, res.nfev

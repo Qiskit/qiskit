@@ -59,7 +59,7 @@ class L_BFGS_B(ScipyMinimizer):  # pylint: disable=invalid-name
         iprint: int = -1,
         epsilon: float = 1e-08,
         eps: float = 1e-08,
-        max_evals_grouped: int = 1,
+        **kwargs,
     ):
         r"""
         Args:
@@ -80,7 +80,6 @@ class L_BFGS_B(ScipyMinimizer):  # pylint: disable=invalid-name
                 every iteration including x and g.
             epsilon: Step size used when approx_grad is True, for numerically
                 calculating the gradient
-            max_evals_grouped: TODO write
         """
         options = {}
         if factr:
@@ -88,7 +87,7 @@ class L_BFGS_B(ScipyMinimizer):  # pylint: disable=invalid-name
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
-        super().__init__(method="L-BFGS-B", options=options, max_evals_grouped=max_evals_grouped)
+        super().__init__(method="L-BFGS-B", options=options, **kwargs)
 
     def optimize(
         self,
@@ -98,8 +97,8 @@ class L_BFGS_B(ScipyMinimizer):  # pylint: disable=invalid-name
         variable_bounds=None,
         initial_point=None,
     ):
-        if gradient_function is None and self.max_evals_grouped > 1:
-            epsilon = self.options["eps"]
+        if gradient_function is None and self._max_evals_grouped > 1:
+            epsilon = self._options["eps"]
             gradient_function = Optimizer.wrap_function(
                 Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped)
             )

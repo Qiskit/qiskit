@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Powell optimizer."""
+"""Wrapper class of scipy.optimize.minimize."""
 
 from collections.abc import Sequence
 from typing import Any, Dict, Optional, Union
@@ -32,7 +32,7 @@ class ScipyMinimizer(Optimizer):
         self,
         method: str,
         options: Optional[Dict[str, Any]] = None,
-        max_evals_grouped: int = 1,
+        tol: Optional[float] = None,
         **kwargs,
     ):
         """
@@ -40,12 +40,27 @@ class ScipyMinimizer(Optimizer):
         """
         # pylint: disable=super-init-not-called
         self.method = method
-        if method in {"L-BFGS-B", "TNC", "SLSQP", "Powell", "trust-constr"}:
+        self._set_support_level()
+        super().__init__()
+        self._options = options
+        self._tol = tol
+        self._kwargs = kwargs
+
+    def get_support_level(self):
+        """Return support level dictionary"""
+        return {
+            "gradient": self._gradient_support_level,
+            "bounds": self._bounds_support_level,
+            "initial_point": self._initial_point_support_level,
+        }
+
+    def _set_support_level(self):
+        if self.method in {"L-BFGS-B", "TNC", "SLSQP", "Powell", "trust-constr"}:
             self._bounds_support_level = OptimizerSupportLevel.supported
         else:
             self._bounds_support_level = OptimizerSupportLevel.ignored
 
-        if method in {
+        if self.method in {
             "CG",
             "BFGS",
             "Newton-CG",
@@ -64,18 +79,6 @@ class ScipyMinimizer(Optimizer):
 
         self._initial_point_support_level = OptimizerSupportLevel.required
 
-        self.options = options
-        self.max_evals_grouped = max_evals_grouped
-        self._kwargs = kwargs
-
-    def get_support_level(self):
-        """ Return support level dictionary """
-        return {
-            "gradient": self._gradient_support_level,
-            "bounds": self._bounds_support_level,
-            "initial_point": self._initial_point_support_level,
-        }
-
     def optimize(
         self,
         num_vars,
@@ -84,17 +87,25 @@ class ScipyMinimizer(Optimizer):
         variable_bounds: Optional[Union[Sequence, Bounds]] = None,
         initial_point=None,
     ):
-        self._validate_optimize_input(
-            num_vars, gradient_function, variable_bounds, initial_point
+        if self.is_bounds_ignored:
+            variable_bounds = None
+        if self.is_gradient_ignored:
+            gradient_function = None
+        super().optimize(
+            num_vars,
+            objective_function,
+            gradient_function=gradient_function,
+            variable_bounds=variable_bounds,
+            initial_point=initial_point,
         )
-
         res = minimize(
             fun=objective_function,
             x0=initial_point,
             method=self.method,
             jac=gradient_function,
             bounds=variable_bounds,
-            options=self.options,
+            tol=self._tol,
+            options=self._options,
             **self._kwargs,
         )
         return res.x, res.fun, res.nfev

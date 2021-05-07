@@ -14,11 +14,11 @@
 
 from typing import Optional
 
-from scipy.optimize import minimize
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer
+from .scipy_minimizer import ScipyMinimizer
 
 
-class CG(Optimizer):
+class CG(ScipyMinimizer):
     """Conjugate Gradient optimizer.
 
     CG is an algorithm for the numerical solution of systems of linear equations whose matrices are
@@ -42,6 +42,7 @@ class CG(Optimizer):
         gtol: float = 1e-5,
         tol: Optional[float] = None,
         eps: float = 1.4901161193847656e-08,
+        **kwargs,
     ) -> None:
         """
         Args:
@@ -51,19 +52,11 @@ class CG(Optimizer):
             tol: Tolerance for termination.
             eps: If jac is approximated, use this value for the step size.
         """
-        super().__init__()
+        options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
-                self._options[k] = v
-        self._tol = tol
-
-    def get_support_level(self):
-        """Return support level dictionary"""
-        return {
-            "gradient": OptimizerSupportLevel.supported,
-            "bounds": OptimizerSupportLevel.ignored,
-            "initial_point": OptimizerSupportLevel.required,
-        }
+                options[k] = v
+        super().__init__(method="L-BFGS-B", options=options, tol=tol, **kwargs)
 
     def optimize(
         self,
@@ -73,22 +66,16 @@ class CG(Optimizer):
         variable_bounds=None,
         initial_point=None,
     ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-
         if gradient_function is None and self._max_evals_grouped > 1:
             epsilon = self._options["eps"]
             gradient_function = Optimizer.wrap_function(
                 Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped)
             )
 
-        res = minimize(
+        return super().optimize(
+            num_vars,
             objective_function,
-            initial_point,
-            jac=gradient_function,
-            tol=self._tol,
-            method="CG",
-            options=self._options,
+            gradient_function=gradient_function,
+            variable_bounds=variable_bounds,
+            initial_point=initial_point,
         )
-        return res.x, res.fun, res.nfev

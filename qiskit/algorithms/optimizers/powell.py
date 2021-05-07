@@ -14,11 +14,10 @@
 
 from typing import Optional
 
-from scipy.optimize import minimize
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .scipy_minimizer import ScipyMinimizer
 
 
-class POWELL(Optimizer):
+class POWELL(ScipyMinimizer):
     """
     Powell optimizer.
 
@@ -43,6 +42,7 @@ class POWELL(Optimizer):
         disp: bool = False,
         xtol: float = 0.0001,
         tol: Optional[float] = None,
+        **kwargs,
     ) -> None:
         """
         Args:
@@ -54,19 +54,11 @@ class POWELL(Optimizer):
             xtol: Relative error in solution xopt acceptable for convergence.
             tol: Tolerance for termination.
         """
-        super().__init__()
+        options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
-                self._options[k] = v
-        self._tol = tol
-
-    def get_support_level(self):
-        """Return support level dictionary"""
-        return {
-            "gradient": OptimizerSupportLevel.ignored,
-            "bounds": OptimizerSupportLevel.ignored,
-            "initial_point": OptimizerSupportLevel.required,
-        }
+                options[k] = v
+        super().__init__("Powell", options=options, tol=tol, **kwargs)
 
     def optimize(
         self,
@@ -76,11 +68,10 @@ class POWELL(Optimizer):
         variable_bounds=None,
         initial_point=None,
     ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        return super().optimize(
+            num_vars,
+            objective_function,
+            gradient_function=gradient_function,
+            variable_bounds=variable_bounds,
+            initial_point=initial_point,
         )
-
-        res = minimize(
-            objective_function, initial_point, tol=self._tol, method="Powell", options=self._options
-        )
-        return res.x, res.fun, res.nfev

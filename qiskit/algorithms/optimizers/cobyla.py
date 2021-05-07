@@ -14,11 +14,10 @@
 
 from typing import Optional
 
-from scipy.optimize import minimize
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .scipy_minimizer import ScipyMinimizer
 
 
-class COBYLA(Optimizer):
+class COBYLA(ScipyMinimizer):
     """
     Constrained Optimization By Linear Approximation optimizer.
 
@@ -39,6 +38,7 @@ class COBYLA(Optimizer):
         disp: bool = False,
         rhobeg: float = 1.0,
         tol: Optional[float] = None,
+        **kwargs,
     ) -> None:
         """
         Args:
@@ -48,19 +48,11 @@ class COBYLA(Optimizer):
             tol: Final accuracy in the optimization (not precisely guaranteed).
                  This is a lower bound on the size of the trust region.
         """
-        super().__init__()
+        options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
-                self._options[k] = v
-        self._tol = tol
-
-    def get_support_level(self):
-        """Return support level dictionary"""
-        return {
-            "gradient": OptimizerSupportLevel.ignored,
-            "bounds": OptimizerSupportLevel.ignored,
-            "initial_point": OptimizerSupportLevel.required,
-        }
+                options[k] = v
+        super().__init__(method="COBYLA", options=options, tol=tol, **kwargs)
 
     def optimize(
         self,
@@ -70,11 +62,10 @@ class COBYLA(Optimizer):
         variable_bounds=None,
         initial_point=None,
     ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        return super().optimize(
+            num_vars,
+            objective_function,
+            gradient_function=gradient_function,
+            variable_bounds=variable_bounds,
+            initial_point=initial_point,
         )
-
-        res = minimize(
-            objective_function, initial_point, tol=self._tol, method="COBYLA", options=self._options
-        )
-        return res.x, res.fun, res.nfev

@@ -15,12 +15,12 @@
 from typing import Optional
 
 import numpy as np
-from scipy.optimize import minimize
 from scipy.optimize import OptimizeResult
-from .optimizer import Optimizer, OptimizerSupportLevel
+
+from .scipy_minimizer import ScipyMinimizer
 
 
-class NFT(Optimizer):
+class NFT(ScipyMinimizer):
     """
     Nakanishi-Fujii-Todo algorithm.
 
@@ -57,18 +57,11 @@ class NFT(Optimizer):
                 Sequential minimal optimization for quantum-classical hybrid algorithms.
                 arXiv preprint arXiv:1903.12166.
         """
-        super().__init__()
+        options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
-                self._options[k] = v
-
-    def get_support_level(self):
-        """return support level dictionary"""
-        return {
-            "gradient": OptimizerSupportLevel.ignored,
-            "bounds": OptimizerSupportLevel.ignored,
-            "initial_point": OptimizerSupportLevel.required,
-        }
+                options[k] = v
+        super().__init__(method=nakanishi_fujii_todo, options=options)
 
     def optimize(
         self,
@@ -78,14 +71,13 @@ class NFT(Optimizer):
         variable_bounds=None,
         initial_point=None,
     ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        return super().optimize(
+            num_vars,
+            objective_function,
+            gradient_function=gradient_function,
+            variable_bounds=variable_bounds,
+            initial_point=initial_point,
         )
-
-        res = minimize(
-            objective_function, initial_point, method=nakanishi_fujii_todo, options=self._options
-        )
-        return res.x, res.fun, res.nfev
 
 
 # pylint: disable=invalid-name
