@@ -16,27 +16,15 @@ from typing import Optional
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library.arithmetic.adders.adder import Adder
 
+from .multiplier import Multiplier
 
-class ClassicalMultiplier(QuantumCircuit):
+
+class ClassicalMultiplier(Multiplier):
     r"""A multiplication circuit to store product of two input registers out-of-place.
 
-    Circuit to compute the product of two qubit registers using the approach from [1].
-    Given two equally sized input registers that store quantum states
-    :math:`|a\rangle` and :math:`|b\rangle`, performs multiplication of numbers that
-    can be represented by the states, storing the resulting state out-of-place
-    in a third output register:
-
-    .. math::
-
-        |a\rangle |b\rangle |0\rangle \mapsto |a\rangle |b\rangle |a \cdot b\rangle
-
-    Here :math:`|a\rangle` (and correspondingly :math:`|b\rangle`) stands for the direct product
-    :math:`|a_n\rangle \otimes |a_{n-1}\rangle \ldots |a_{1}\rangle \otimes |a_{0}\rangle`
-    which denotes a quantum register prepared with the value :math:`a = 2^{0}a_{0} + 2^{1}a_{1} +
-    \ldots 2^{n}a_{n}` [2].
-
-    As an example, a multiplier circuit that performs multiplication on two 2-qubit sized
-    registers is as follows:
+    Circuit uses the approach from [1]. As an example, a multiplier circuit that
+    performs multiplication on two 2-qubit sized registers with the default adder
+    is as follows:
 
     .. parsed-literal::
 
@@ -67,9 +55,6 @@ class ClassicalMultiplier(QuantumCircuit):
 
     [1] Häner et al., Optimizing Quantum Circuits for Arithmetic, 2018.
     `arXiv:1805.12445 <https://arxiv.org/pdf/1805.12445.pdf>`_
-
-    [2] Vedral et al., Quantum Networks for Elementary Arithmetic Operations, 1995.
-    `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_
 
     """
 
