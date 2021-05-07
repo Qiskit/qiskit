@@ -45,11 +45,12 @@ class AerPauliExpectation(ExpectationBase):
         Returns:
             The converted operator.
         """
-        if isinstance(operator, ListOp):
-            return operator.traverse(self.convert)
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
             return self._replace_pauli_sums(operator.primitive) * operator.coeff
-        return operator
+        elif isinstance(operator, ListOp):
+            return operator.traverse(self.convert)
+        else:
+            return operator
 
     @classmethod
     def _replace_pauli_sums(cls, operator):
