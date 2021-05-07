@@ -186,8 +186,12 @@ class MatplotlibDrawer:
             for op in layer:
                 if op.cargs:
                     self._cregbundle = False
-                    warn("Cregbundle set to False since an instruction needs to refer"
-                         " to individual classical wire", RuntimeWarning, 2)
+                    warn(
+                        "Cregbundle set to False since an instruction needs to refer"
+                        " to individual classical wire",
+                        RuntimeWarning,
+                        2,
+                    )
         self._global_phase = global_phase
 
         self._ast = None
@@ -513,8 +517,9 @@ class MatplotlibDrawer:
         sc = gt
         return fc, ec, gt, self._style["tc"], sc, lc
 
-    def _multiqubit_gate(self, xy, c_xy=None, fc=None, ec=None,
-                         gt=None, sc=None, text='', subtext=''):
+    def _multiqubit_gate(
+        self, xy, c_xy=None, fc=None, ec=None, gt=None, sc=None, text="", subtext=""
+    ):
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
@@ -522,8 +527,8 @@ class MatplotlibDrawer:
             cxpos = min([x[0] for x in c_xy])
             cypos = min([y[1] for y in c_xy])
             ypos = min(ypos, cypos)
-        fs = self._style['fs']
-        sfs = self._style['sfs']
+        fs = self._style["fs"]
+        sfs = self._style["sfs"]
 
         # added .21 is for qubit numbers on the left side
         text_width = self._get_text_width(text, fs) + 0.21
@@ -546,30 +551,30 @@ class MatplotlibDrawer:
         # annotate inputs
         for bit, y in enumerate([x[1] for x in xy]):
             self._ax.text(
-                xpos + .07 - 0.5 * wid,
+                xpos + 0.07 - 0.5 * wid,
                 y,
                 str(bit),
-                ha='left',
-                va='center',
+                ha="left",
+                va="center",
                 fontsize=fs,
                 color=gt,
                 clip_on=True,
-                zorder=PORDER_TEXT
-                )
+                zorder=PORDER_TEXT,
+            )
         if c_xy:
             # annotate classical inputs
             for bit, y in enumerate([x[1] for x in c_xy]):
                 self._ax.text(
-                    cxpos + .07 - 0.5 * wid,
+                    cxpos + 0.07 - 0.5 * wid,
                     y,
                     str(bit),
-                    ha='left',
-                    va='center',
+                    ha="left",
+                    va="center",
                     fontsize=fs,
                     color=gt,
                     clip_on=True,
-                    zorder=PORDER_TEXT
-                    )
+                    zorder=PORDER_TEXT,
+                )
         if text:
             if subtext:
                 self._ax.text(
@@ -1509,8 +1514,14 @@ class MatplotlibDrawer:
                 # draw multi-qubit gate as final default
                 else:
                     self._multiqubit_gate(
-                        q_xy, c_xy, fc=fc, ec=ec, gt=gt, sc=sc,
-                        text=gate_text, subtext='{}'.format(param)
+                        q_xy,
+                        c_xy,
+                        fc=fc,
+                        ec=ec,
+                        gt=gt,
+                        sc=sc,
+                        text=gate_text,
+                        subtext="{}".format(param),
                     )
 
             # adjust the column if there have been barriers encountered, but not plotted
