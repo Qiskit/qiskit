@@ -20,7 +20,7 @@ from qiskit.circuit.library.basis_change import QFT
 from .adder import Adder
 
 
-class QFTAdder(Adder):
+class DraperQFTAdder(Adder):
     r"""A circuit that uses QFT to perform in-place addition on two qubit registers.
 
     For registers with :math:`n` qubits, the QFT adder can perform addition modulo
@@ -59,7 +59,7 @@ class QFTAdder(Adder):
     def __init__(self,
                  num_state_qubits: int,
                  fixed_point: bool = False,
-                 name: str = 'QFTAdder'
+                 name: str = 'DraperQFTAdder'
                  ) -> None:
         r"""
         Args:

@@ -19,7 +19,7 @@ from ddt import ddt, data, unpack
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector
-from qiskit.circuit.library import RippleCarryAdder, QFTAdder, VBERippleCarryAdder
+from qiskit.circuit.library import CDKMRippleCarryAdder, DraperQFTAdder, VBERippleCarryAdder
 
 
 @ddt
@@ -75,14 +75,14 @@ class TestAdder(QiskitTestCase):
         np.testing.assert_array_almost_equal(expectations, probabilities)
 
     @data(
-        (3, RippleCarryAdder, True),
-        (5, RippleCarryAdder, True),
-        (3, RippleCarryAdder, True, True),
-        (5, RippleCarryAdder, True, True),
-        (3, QFTAdder, True),
-        (5, QFTAdder, True),
-        (3, QFTAdder, True, True),
-        (5, QFTAdder, True, True),
+        (3, CDKMRippleCarryAdder, True),
+        (5, CDKMRippleCarryAdder, True),
+        (3, CDKMRippleCarryAdder, True, True),
+        (5, CDKMRippleCarryAdder, True, True),
+        (3, DraperQFTAdder, True),
+        (5, DraperQFTAdder, True),
+        (3, DraperQFTAdder, True, True),
+        (5, DraperQFTAdder, True, True),
         (5, VBERippleCarryAdder, True),
         (3, VBERippleCarryAdder, True, True),
         (5, VBERippleCarryAdder, True, True),
@@ -94,8 +94,8 @@ class TestAdder(QiskitTestCase):
         self.assertAdditionIsCorrect(num_state_qubits, adder, inplace, fixed_point)
 
     @data(
-        RippleCarryAdder,
-        QFTAdder,
+        CDKMRippleCarryAdder,
+        DraperQFTAdder,
         VBERippleCarryAdder
     )
     def test_raises_on_wrong_num_bits(self, adder):

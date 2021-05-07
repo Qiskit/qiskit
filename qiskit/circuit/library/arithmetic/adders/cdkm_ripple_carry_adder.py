@@ -17,7 +17,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from .adder import Adder
 
 
-class RippleCarryAdder(Adder):
+class CDKMRippleCarryAdder(Adder):
     r"""A ripple-carry circuit to perform in-place addition on two qubit registers.
 
     As an example, a ripple-carry adder circuit that performs addition on two 3-qubit sized
@@ -62,7 +62,7 @@ class RippleCarryAdder(Adder):
     def __init__(self,
                  num_state_qubits: int,
                  fixed_point: bool = False,
-                 name: str = 'RippleCarryAdder'
+                 name: str = 'CDKMRippleCarryAdder'
                  ) -> None:
         r"""
         Args:

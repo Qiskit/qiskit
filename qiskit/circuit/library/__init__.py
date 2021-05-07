@@ -146,8 +146,8 @@ Adders
 .. autosummary::
    :toctree: ../stubs/
 
-   QFTAdder
-   RippleCarryAdder
+   DraperQFTAdder
+   CDKMRippleCarryAdder
    VBERippleCarryAdder
    WeightedAdder
 
@@ -358,8 +358,8 @@ from .arithmetic import (
     QuadraticForm,
     LinearAmplitudeFunction,
     VBERippleCarryAdder,
-    RippleCarryAdder,
-    QFTAdder,
+    CDKMRippleCarryAdder,
+    DraperQFTAdder,
     PiecewiseChebyshev,
 )
 
