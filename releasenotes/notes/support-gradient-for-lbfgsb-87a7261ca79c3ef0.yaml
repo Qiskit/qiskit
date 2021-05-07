@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    :class:`~qiskit.algorithms.VQE` with :class:`~qiskit.algorithms.optimizers.L_BFGS_B`
+    supports the Gradient Framework.
