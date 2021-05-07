@@ -20,7 +20,35 @@ from qiskit.circuit.library.basis_change import QFT
 
 
 class QFTMultiplier(QuantumCircuit):
-    r"""A QFT multiplication circuit to store product of two input registers out-of-place."""
+    r"""A QFT multiplication circuit to store product of two input registers out-of-place.
+
+    Circuit to compute the product of two qubit registers using the QFT approach from [1].
+    Given two equally sized input registers that store quantum states
+    :math:`|a\rangle` and :math:`|b\rangle`, performs multiplication of numbers that
+    can be represented by the states, storing the resulting state out-of-place
+    in a third output register:
+
+    .. math::
+
+        |a\rangle |b\rangle |0\rangle \mapsto |a\rangle |b\rangle |a \cdot b\rangle
+
+    Here :math:`|a\rangle` (and correspondingly :math:`|b\rangle`) stands for the direct product
+    :math:`|a_n\rangle \otimes |a_{n-1}\rangle \ldots |a_{1}\rangle \otimes |a_{0}\rangle`
+    which denotes a quantum register prepared with the value :math:`a = 2^{0}a_{0} + 2^{1}a_{1} +
+    \ldots 2^{n}a_{n}` [2].
+
+    Multiplication in this circuit is implemented using the procedure of Fig. 3 in [1], where
+    weighted sum rotations are implemented as given in Fig. 5 in [1].
+
+    **References:**
+
+    [1] Ruiz-Perez et al., Quantum arithmetic with the Quantum Fourier Transform, 2017.
+    `arXiv:1411.5949 <https://arxiv.org/pdf/1411.5949.pdf>`_
+
+    [2] Vedral et al., Quantum Networks for Elementary Arithmetic Operations, 1995.
+    `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_
+
+    """
 
     def __init__(self,
                  num_state_qubits: int,
