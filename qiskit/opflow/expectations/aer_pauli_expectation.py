@@ -51,7 +51,6 @@ class AerPauliExpectation(ExpectationBase):
             return self._replace_pauli_sums(operator.primitive) * operator.coeff
         return operator
 
-    # pylint: disable=inconsistent-return-statements
     @classmethod
     def _replace_pauli_sums(cls, operator):
         try:
@@ -95,6 +94,10 @@ class AerPauliExpectation(ExpectationBase):
             snapshot_op = CircuitStateFn(snapshot_instruction, is_measurement=True)
             return snapshot_op
 
+        raise TypeError(
+            f"Conversion of OperatorStateFn of {operator.__class__.__name__} is not defined."
+        )
+
     def compute_variance(self, exp_op: OperatorBase) -> Union[list, float]:
         r"""
         Compute the variance of the expectation estimator. Because Aer takes this expectation
@@ -115,5 +118,6 @@ class AerPauliExpectation(ExpectationBase):
                 return 0.0
             elif isinstance(operator, ListOp):
                 return operator._combo_fn([sum_variance(op) for op in operator.oplist])
+            raise TypeError(f"Variance cannot be computed for {operator.__class__.__name__}.")
 
         return sum_variance(exp_op)
