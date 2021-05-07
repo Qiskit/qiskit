@@ -713,27 +713,11 @@ def plot_state_qsphere(
             "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
         )
 
-    from mpl_toolkits.mplot3d import proj3d
-    from matplotlib.patches import FancyArrowPatch
     import matplotlib.gridspec as gridspec
     from matplotlib import pyplot as plt
     from matplotlib.patches import Circle
     from matplotlib import get_backend
-
-    class Arrow3D(FancyArrowPatch):
-        """Standard 3D arrow."""
-
-        def __init__(self, xs, ys, zs, *args, **kwargs):
-            """Create arrow."""
-            FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
-            self._verts3d = xs, ys, zs
-
-        def draw(self, renderer):
-            """Draw the arrow."""
-            xs3d, ys3d, zs3d = self._verts3d
-            xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-            self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-            FancyArrowPatch.draw(self, renderer)
+    from qiskit.visualization.bloch import Arrow3D
 
     try:
         import seaborn as sns
