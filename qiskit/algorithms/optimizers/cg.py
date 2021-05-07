@@ -52,11 +52,14 @@ class CG(ScipyMinimizer):
             tol: Tolerance for termination.
             eps: If jac is approximated, use this value for the step size.
         """
-        options = {}
+        if "options" in kwargs:
+            options = kwargs.pop("options")
+        else:
+            options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
-        super().__init__(method="L-BFGS-B", options=options, tol=tol, **kwargs)
+        super().__init__(method="CG", options=options, tol=tol, **kwargs)
 
     def optimize(
         self,

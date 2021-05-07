@@ -12,6 +12,7 @@
 
 """Limited-memory BFGS Bound optimizer."""
 
+import warnings
 from typing import Optional
 
 import numpy as np
@@ -49,12 +50,12 @@ class L_BFGS_B(ScipyMinimizer):  # pylint: disable=invalid-name
     _OPTIONS = ["maxfun", "maxiter", "ftol", "iprint", "eps"]
 
     # pylint: disable=unused-argument
-    @deprecate_arguments({"epsilon": "eps", "factr": "ftol"})
+    @deprecate_arguments({"epsilon": "eps"})
     def __init__(
         self,
         maxfun: int = 1000,
         maxiter: int = 15000,
-        ftol: float = 2.220446049250313e-15,
+        ftol: float = 10 * np.finfo(float).eps,
         factr: Optional[float] = None,
         iprint: int = -1,
         epsilon: float = 1e-08,
@@ -81,9 +82,19 @@ class L_BFGS_B(ScipyMinimizer):  # pylint: disable=invalid-name
             epsilon: Step size used when approx_grad is True, for numerically
                 calculating the gradient
         """
-        options = {}
-        if factr:
+        if factr is not None:
+            warnings.warn(
+                "L_BFGS_B.__init__() keyword argument factr is deprecated and replaced with ftol. "
+                "The relationship between the two is ftol = factr * numpy.finfo(float).eps. "
+                "See https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
             ftol = factr * np.finfo(float).eps
+        if "options" in kwargs:
+            options = kwargs.pop("options")
+        else:
+            options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
@@ -103,7 +114,7 @@ class L_BFGS_B(ScipyMinimizer):  # pylint: disable=invalid-name
                 Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped)
             )
 
-        def wrap_grad(x):
+        def wrapped_gradient(x):
             gradient = gradient_function(x)
             if isinstance(gradient, np.ndarray):
                 return list(gradient)
@@ -112,7 +123,7 @@ class L_BFGS_B(ScipyMinimizer):  # pylint: disable=invalid-name
         return super().optimize(
             num_vars,
             objective_function,
-            wrap_grad if gradient_function else None,
+            wrapped_gradient if gradient_function else None,
             variable_bounds,
             initial_point,
         )

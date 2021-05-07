@@ -45,6 +45,7 @@ class SLSQP(ScipyMinimizer):
         ftol: float = 1e-06,
         tol: Optional[float] = None,
         eps: float = 1.4901161193847656e-08,
+        **kwargs,
     ) -> None:
         """
         Args:
@@ -54,11 +55,14 @@ class SLSQP(ScipyMinimizer):
             tol: Tolerance for termination.
             eps: Step size used for numerical approximation of the Jacobian.
         """
-        options = {}
+        if "options" in kwargs:
+            options = kwargs.pop("options")
+        else:
+            options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
-        super().__init__("SLSQP", options=options, tol=tol)
+        super().__init__("SLSQP", options=options, tol=tol, **kwargs)
 
     def optimize(
         self,

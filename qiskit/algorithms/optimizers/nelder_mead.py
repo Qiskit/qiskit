@@ -62,7 +62,10 @@ class NELDER_MEAD(ScipyMinimizer):  # pylint: disable=invalid-name
             tol: Tolerance for termination.
             adaptive: Adapt algorithm parameters to dimensionality of problem.
         """
-        options = {}
+        if "options" in kwargs:
+            options = kwargs.pop("options")
+        else:
+            options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v

@@ -65,7 +65,10 @@ class TNC(ScipyMinimizer):
             tol: Tolerance for termination.
             eps: Step size used for numerical approximation of the Jacobian.
         """
-        options = {}
+        if "options" in kwargs:
+            options = kwargs.pop("options")
+        else:
+            options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v

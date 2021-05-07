@@ -12,22 +12,23 @@
 
 """Parallelized Limited-memory BFGS optimizer"""
 
-from typing import Optional
+import logging
 import multiprocessing
 import platform
-import logging
+import warnings
+from typing import Optional
 
 import numpy as np
-from scipy import optimize as sciopt
 
 from qiskit.utils import algorithm_globals
 from qiskit.utils.validation import validate_min
-from .optimizer import Optimizer, OptimizerSupportLevel
+
+from .scipy_minimizer import ScipyMinimizer
 
 logger = logging.getLogger(__name__)
 
 
-class P_BFGS(Optimizer):  # pylint: disable=invalid-name
+class P_BFGS(ScipyMinimizer):  # pylint: disable=invalid-name
     """
     Parallelized Limited-memory BFGS optimizer.
 
@@ -41,15 +42,17 @@ class P_BFGS(Optimizer):  # pylint: disable=invalid-name
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fmin_l_bfgs_b.html
     """
 
-    _OPTIONS = ["maxfun", "factr", "iprint"]
+    _OPTIONS = ["maxfun", "ftol", "iprint"]
 
     # pylint: disable=unused-argument
     def __init__(
         self,
         maxfun: int = 1000,
-        factr: float = 10,
+        ftol: float = 10 * np.finfo(float).eps,
+        factr: Optional[float] = None,
         iprint: int = -1,
         max_processes: Optional[int] = None,
+        **kwargs,
     ) -> None:
         r"""
         Args:
@@ -71,19 +74,24 @@ class P_BFGS(Optimizer):  # pylint: disable=invalid-name
         """
         if max_processes:
             validate_min("max_processes", max_processes, 1)
-        super().__init__()
+        if factr is not None:
+            warnings.warn(
+                "P_BFGS.__init__() keyword argument factr is deprecated and replaced with ftol. "
+                "The relationship between the two is ftol = factr * numpy.finfo(float).eps. "
+                "See https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+            ftol = factr * np.finfo(float).eps
+        if "options" in kwargs:
+            options = kwargs.pop("options")
+        else:
+            options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
-                self._options[k] = v
+                options[k] = v
+        super().__init__(method="L-BFGS-B", options=options, **kwargs)
         self._max_processes = max_processes
-
-    def get_support_level(self):
-        """return support level dictionary"""
-        return {
-            "gradient": OptimizerSupportLevel.supported,
-            "bounds": OptimizerSupportLevel.supported,
-            "initial_point": OptimizerSupportLevel.required,
-        }
 
     def optimize(
         self,
@@ -165,17 +173,16 @@ class P_BFGS(Optimizer):  # pylint: disable=invalid-name
         variable_bounds=None,
         initial_point=None,
     ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
+        def wrapped_gradient(x):
+            gradient = gradient_function(x)
+            if isinstance(gradient, np.ndarray):
+                return list(gradient)
+            return gradient
 
-        approx_grad = bool(gradient_function is None)
-        sol, opt, info = sciopt.fmin_l_bfgs_b(
+        return super().optimize(
+            num_vars,
             objective_function,
+            wrapped_gradient if gradient_function else None,
+            variable_bounds,
             initial_point,
-            bounds=variable_bounds,
-            fprime=gradient_function,
-            approx_grad=approx_grad,
-            **self._options,
         )
-        return sol, opt, info["funcalls"]

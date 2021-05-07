@@ -36,6 +36,7 @@ class NFT(ScipyMinimizer):
         maxfev: int = 1024,
         disp: bool = False,
         reset_interval: int = 32,
+        **kwargs,
     ) -> None:
         """
         Built out using scipy framework, for details, please refer to
@@ -57,11 +58,14 @@ class NFT(ScipyMinimizer):
                 Sequential minimal optimization for quantum-classical hybrid algorithms.
                 arXiv preprint arXiv:1903.12166.
         """
-        options = {}
+        if "options" in kwargs:
+            options = kwargs.pop("options")
+        else:
+            options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
-        super().__init__(method=nakanishi_fujii_todo, options=options)
+        super().__init__(method=nakanishi_fujii_todo, options=options, **kwargs)
 
     def optimize(
         self,
