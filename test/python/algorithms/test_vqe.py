@@ -273,7 +273,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
     @data(L_BFGS_B(), P_BFGS())
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
-    def test_with_gradient(self, gradient):
+    def test_with_gradient(self, optimizer):
         """Test VQE using Gradient()."""
         quantum_instance = QuantumInstance(
             backend=Aer.get_backend("qasm_simulator"),
@@ -283,11 +283,11 @@ class TestVQE(QiskitAlgorithmsTestCase):
         )
         vqe = VQE(
             ansatz=self.ry_wavefunction,
-            optimizer=L_BFGS_B(),
+            optimizer=optimizer,
             gradient=Gradient(),
             expectation=AerPauliExpectation(),
             quantum_instance=quantum_instance,
-            max_evals_grouped=1111,
+            max_evals_grouped=100,
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=2)
