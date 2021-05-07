@@ -147,7 +147,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- markdownlint-disable -->
 <table>
   <tr>
-    <td align="center"><a href="https://github.com/javabster"><img src="https://avatars.githubusercontent.com/u/23662430?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Abby Mitchell</b></sub></a><br /><a href="#example-javabster" title="Examples">💡</a></td>
+    <td align="center"><a href="https://github.com/javabster"><img src="https://avatars.githubusercontent.com/u/23662430?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Abby Mitchell</b></sub></a><br /><a href="#example-javabster" title="Examples">💡</a> <a href="https://github.com/javabster/qiskit-terra/commits?author=javabster" title="Code">💻</a> <a href="https://github.com/javabster/qiskit-terra/commits?author=javabster" title="Documentation">📖</a> <a href="#maintenance-javabster" title="Maintenance">🚧</a></td>
   </tr>
 </table>
 
