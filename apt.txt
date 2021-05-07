@@ -1,7 +1,7 @@
 dvipng
 ghostscript
 texlive-fonts-recommended
-texline-generic-recommended
+texlive-generic-recommended
 texlive-latex-base
 texlive-latex-extra
 texlive-latex-recommended
