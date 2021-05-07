@@ -37,12 +37,15 @@ class BaseJob(ABC):
             job_id: a unique id in the context of the backend used to run
                 the job.
         """
-        warnings.warn("The BaseJob abstract interface is deprecated as of "
-                      "the 0.18.0 release and will be removed in a future "
-                      "release. Instead you should build your backends using "
-                      "the JobV1 abstract class (which is the current "
-                      "latest version of the backend interface)",
-                      DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "The BaseJob abstract interface is deprecated as of "
+            "the 0.18.0 release and will be removed in a future "
+            "release. Instead you should build your backends using "
+            "the JobV1 abstract class (which is the current "
+            "latest version of the backend interface)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._job_id = job_id
         self._backend = backend
 

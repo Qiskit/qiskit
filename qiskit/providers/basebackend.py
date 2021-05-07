@@ -41,12 +41,15 @@ class BaseBackend(ABC):
         Raises:
             QiskitError: if an error occurred when instantiating the backend.
         """
-        warnings.warn("The BaseBackend abstract interface is deprecated as of "
-                      "the 0.18.0 release and will be removed in a future "
-                      "release. Instead you should build your backends using "
-                      "the BackendV1 abstract class (which is the current "
-                      "latest version of the backend interface)",
-                      DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "The BaseBackend abstract interface is deprecated as of "
+            "the 0.18.0 release and will be removed in a future "
+            "release. Instead you should build your backends using "
+            "the BackendV1 abstract class (which is the current "
+            "latest version of the backend interface)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._configuration = configuration
         self._provider = provider
 
