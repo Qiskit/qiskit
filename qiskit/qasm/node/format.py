@@ -24,7 +24,7 @@ class Format(Node):
     def __init__(self, value):
         """Create the version node."""
         super().__init__("format", None, None)
-        parts = re.match(r'(\w+)\s+(\d+)\.(\d+)', value)
+        parts = re.match(r"(\w+)\s+(\d+)\.(\d+)", value)
         self.language = parts.group(1)
         self.majorversion = parts.group(2)
         self.minorversion = parts.group(3)
@@ -36,6 +36,9 @@ class Format(Node):
     def qasm(self, prec=None):
         """Return the corresponding format string."""
         if prec is not None:
-            warnings.warn('Parameter \'Format.qasm(..., prec)\' is no longer used and is being '
-                          'deprecated.', DeprecationWarning, 2)
+            warnings.warn(
+                "Parameter 'Format.qasm(..., prec)' is no longer used and is being " "deprecated.",
+                DeprecationWarning,
+                2,
+            )
         return "%s %s;" % (self.language, self.version())
