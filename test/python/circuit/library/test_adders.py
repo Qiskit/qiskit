@@ -19,7 +19,7 @@ from ddt import ddt, data, unpack
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector
-from qiskit.circuit.library import RippleCarryAdder, QFTAdder, PlainAdder
+from qiskit.circuit.library import RippleCarryAdder, QFTAdder, VBERippleCarryAdder
 
 
 @ddt
@@ -84,9 +84,9 @@ class TestAdder(QiskitTestCase):
         (3, QFTAdder, True, True),
         (5, QFTAdder, True, True),
         (3, PlainAdder, True),
-        (5, PlainAdder, True),
-        (3, PlainAdder, True, True),
-        (5, PlainAdder, True, True),
+        (5, VBERippleCarryAdder, True),
+        (3, VBERippleCarryAdder, True, True),
+        (5, VBERippleCarryAdder, True, True),
     )
     @unpack
     def test_summation(self, num_state_qubits, adder, inplace, modular=False):
@@ -97,7 +97,7 @@ class TestAdder(QiskitTestCase):
     @data(
         RippleCarryAdder,
         QFTAdder,
-        PlainAdder
+        VBERippleCarryAdder
     )
     def test_raises_on_wrong_num_bits(self, adder):
         """Test an error is raised for a bad number of qubits."""

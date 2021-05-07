@@ -14,4 +14,4 @@
 
 from .ripple_carry_adder import RippleCarryAdder
 from .qft_adder import QFTAdder
-from .plain_adder import PlainAdder
+from .vbe_ripple_carry_adder import VBERippleCarryAdder

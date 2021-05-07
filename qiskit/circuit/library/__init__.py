@@ -146,9 +146,9 @@ Adders
 .. autosummary::
    :toctree: ../stubs/
 
-   PlainAdder
    QFTAdder
    RippleCarryAdder
+   VBERippleCarryAdder
    WeightedAdder
 
 Comparators
@@ -357,7 +357,7 @@ from .arithmetic import (
     WeightedAdder,
     QuadraticForm,
     LinearAmplitudeFunction,
-    PlainAdder,
+    VBERippleCarryAdder,
     RippleCarryAdder,
     QFTAdder,
     PiecewiseChebyshev,
