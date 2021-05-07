@@ -15,8 +15,16 @@
 from typing import Optional, Union
 from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
-from qiskit.opflow import (EvolutionBase, PauliTrotterEvolution, OperatorBase,
-                           SummedOp, PauliOp, MatrixOp, PauliSumOp, StateFn)
+from qiskit.opflow import (
+    EvolutionBase,
+    PauliTrotterEvolution,
+    OperatorBase,
+    SummedOp,
+    PauliOp,
+    MatrixOp,
+    PauliSumOp,
+    StateFn,
+)
 from qiskit.providers import BaseBackend
 from .phase_estimation import PhaseEstimation
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
@@ -77,9 +85,11 @@ class HamiltonianPhaseEstimation:
 
     """
 
-    def __init__(self,
-                 num_evaluation_qubits: int,
-                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
+    def __init__(
+        self,
+        num_evaluation_qubits: int,
+        quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None,
+    ) -> None:
         """
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
@@ -87,8 +97,8 @@ class HamiltonianPhaseEstimation:
             quantum_instance: The quantum instance on which the circuit will be run.
         """
         self._phase_estimation = PhaseEstimation(
-            num_evaluation_qubits=num_evaluation_qubits,
-            quantum_instance=quantum_instance)
+            num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance
+        )
 
     def _get_scale(self, hamiltonian, bound=None) -> None:
         if bound is None:
@@ -116,10 +126,13 @@ class HamiltonianPhaseEstimation:
         return unitary_circuit.decompose().decompose()
 
     # pylint: disable=arguments-differ
-    def estimate(self, hamiltonian: OperatorBase,
-                 state_preparation: Optional[StateFn] = None,
-                 evolution: Optional[EvolutionBase] = None,
-                 bound: Optional[float] = None) -> HamiltonianPhaseEstimationResult:
+    def estimate(
+        self,
+        hamiltonian: OperatorBase,
+        state_preparation: Optional[StateFn] = None,
+        evolution: Optional[EvolutionBase] = None,
+        bound: Optional[float] = None,
+    ) -> HamiltonianPhaseEstimationResult:
         """Run the Hamiltonian phase estimation algorithm.
 
         Args:
@@ -147,7 +160,7 @@ class HamiltonianPhaseEstimation:
         if evolution is None:
             evolution = PauliTrotterEvolution()
         elif not isinstance(evolution, EvolutionBase):
-            raise TypeError(f'Expecting type EvolutionBase, got {type(evolution)}')
+            raise TypeError(f"Expecting type EvolutionBase, got {type(evolution)}")
 
         if isinstance(hamiltonian, PauliSumOp):
             hamiltonian = hamiltonian.to_pauli_op()
@@ -174,25 +187,27 @@ class HamiltonianPhaseEstimation:
 
         elif isinstance(hamiltonian, MatrixOp):
             if bound is None:
-                raise ValueError('bound must be specified if Hermitian operator is MatrixOp')
+                raise ValueError("bound must be specified if Hermitian operator is MatrixOp")
 
             # Do not subtract an identity term from the matrix, so do not compensate.
             id_coefficient = 0.0
             pe_scale = self._get_scale(hamiltonian, bound)
             unitary = self._get_unitary(hamiltonian, pe_scale, evolution)
         else:
-            raise TypeError(f'Hermitian operator of type {type(hamiltonian)} not supported.')
+            raise TypeError(f"Hermitian operator of type {type(hamiltonian)} not supported.")
 
         if state_preparation is not None:
             state_preparation = state_preparation.to_circuit_op().to_circuit()
         # run phase estimation
         phase_estimation_result = self._phase_estimation.estimate(
-            unitary=unitary, state_preparation=state_preparation)
+            unitary=unitary, state_preparation=state_preparation
+        )
 
         return HamiltonianPhaseEstimationResult(
             phase_estimation_result=phase_estimation_result,
             id_coefficient=id_coefficient,
-            phase_estimation_scale=pe_scale)
+            phase_estimation_scale=pe_scale,
+        )
 
 
 def _remove_identity(pauli_sum):
