@@ -179,7 +179,7 @@ my_gate_{0} qr[0];\n""".format(
         """Test circuit qasm() method with pi params."""
         circuit = QuantumCircuit(2)
         circuit.cz(0, 1)
-        circuit.append(U3Gate(2*pi, 3*pi, -5*pi), [0])
+        circuit.append(U3Gate(2 * pi, 3 * pi, -5 * pi), [0])
         qasm_str = circuit.qasm()
         circuit2 = QuantumCircuit.from_qasm_str(qasm_str)
         self.assertEqual(circuit, circuit2)

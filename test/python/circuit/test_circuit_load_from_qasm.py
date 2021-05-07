@@ -57,7 +57,8 @@ class LoadFromQasmTest(QiskitTestCase):
     def test_loading_all_standard_gates(self):
         """Test setting up circuit with all gates defined in qiskit/qasm/libs/standard_gates.inc."""
         from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate, UGate
-        all_gates_qasm = self._get_resource_path('all_standard_gates.qasm', Path.QASMS)
+
+        all_gates_qasm = self._get_resource_path("all_standard_gates.qasm", Path.QASMS)
         qasm_circuit = QuantumCircuit.from_qasm_file(all_gates_qasm)
 
         ref_circuit = QuantumCircuit(3, 3)
@@ -114,7 +115,8 @@ class LoadFromQasmTest(QiskitTestCase):
     def test_loading_all_qelib1_gates(self):
         """Test setting up circuit with all gates defined in qiskit/qasm/libs/qelib1.inc."""
         from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate, UGate
-        all_gates_qasm = self._get_resource_path('all_qelib1_gates.qasm', Path.QASMS)
+
+        all_gates_qasm = self._get_resource_path("all_qelib1_gates.qasm", Path.QASMS)
         qasm_circuit = QuantumCircuit.from_qasm_file(all_gates_qasm)
 
         ref_circuit = QuantumCircuit(3, 3)

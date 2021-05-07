@@ -205,16 +205,15 @@ class AstInterpreter:
 
             maxidx = max(map(len, bits))
             for idx in range(maxidx):
-                self.arg_stack.append({gargs[j]: args[j]
-                                       for j in range(len(gargs))})
+                self.arg_stack.append({gargs[j]: args[j] for j in range(len(gargs))})
                 # Only index into register arguments.
-                element = [idx * x for x in
-                           [len(bits[j]) > 1 for j in range(len(bits))]]
-                self.bit_stack.append({gbits[j]: bits[j][element[j]]
-                                       for j in range(len(gbits))})
-                self._create_dag_op(name,
-                                    [self.arg_stack[-1][s].sym() for s in gargs],
-                                    [self.bit_stack[-1][s] for s in gbits])
+                element = [idx * x for x in [len(bits[j]) > 1 for j in range(len(bits))]]
+                self.bit_stack.append({gbits[j]: bits[j][element[j]] for j in range(len(gbits))})
+                self._create_dag_op(
+                    name,
+                    [self.arg_stack[-1][s].sym() for s in gargs],
+                    [self.bit_stack[-1][s] for s in gbits],
+                )
                 self.arg_stack.pop()
                 self.bit_stack.pop()
         else:
