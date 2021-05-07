@@ -1,0 +1,27 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "javabster",
+      "name": "Abby Mitchell",
+      "avatar_url": "https://avatars.githubusercontent.com/u/23662430?v=4",
+      "profile": "https://github.com/javabster",
+      "contributions": [
+        "example",
+        "code",
+        "doc",
+        "maintenance"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "qiskit-terra",
+  "projectOwner": "javabster",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "skipCi": true
+}
