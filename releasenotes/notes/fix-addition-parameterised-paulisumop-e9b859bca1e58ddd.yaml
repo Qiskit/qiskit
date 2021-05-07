@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Addition between :class:`~qiskit.opflow.PauliSumOp`s that have
+    :class:`~qiskit.circuit.ParameterExpression` coefficients raises `QiskitError`.
+    Now we support the addition.
