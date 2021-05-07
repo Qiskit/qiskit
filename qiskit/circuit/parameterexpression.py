@@ -107,10 +107,16 @@ class ParameterExpression:
         self._raise_if_passed_unknown_parameters(parameter_values.keys())
         self._raise_if_passed_nan(parameter_values)
 
-        symbol_values = {
-            self._parameter_symbols[parameter]: value
-            for parameter, value in parameter_values.items()
-        }
+        symbol_values = {}
+        for parameter, value in parameter_values.items():
+            param_expr = self._parameter_symbols[parameter]
+            # TODO: Remove after symengine supports single precision floats
+            # see symengine/symengine.py#351 for more details
+            if isinstance(value, numpy.floating):
+                symbol_values[param_expr] = float(value)
+            else:
+                symbol_values[param_expr] = value
+
         bound_symbol_expr = self._symbol_expr.subs(symbol_values)
 
         # Don't use sympy.free_symbols to count remaining parameters here.
