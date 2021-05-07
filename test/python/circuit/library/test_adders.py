@@ -33,6 +33,10 @@ class TestAdder(QiskitTestCase):
                                 fixed_point: bool):
         """Assert that adder correctly implements the summation.
 
+        This test prepares a equal superposition state in both input registers, then performs
+        the addition on the superposition and checks that the output state is the expected
+        superposition of all possible additions.
+
         Args:
             num_state_qubits: The number of bits in the numbers that are added.
             adder: The circuit performing the addition of two numbers with ``num_state_qubits``
