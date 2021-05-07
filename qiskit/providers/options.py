@@ -38,12 +38,12 @@ class Options(MutableMapping):
             super().__getattribute__(field)
         elif field not in self._dict:
             raise AttributeError("%s not a valid option" % field)
-        self._dict[field]
+        return self._dict[field]
 
     def __getitem__(self, field):
         if field not in self._dict:
             raise KeyError("%s not a valid option" % field)
-        self._dict.get(field, default)
+        self._dict.get(field)
 
     def __setitem__(self, field, value):
         if field in self._dict:
@@ -75,7 +75,7 @@ class Options(MutableMapping):
         """Update options with kwargs"""
         self._dict.update(fields)
 
-    def get(self, field, default=None):
+    def get(self, field, default=None):  # pylint: disable=arguments-differ
         """Get an option value for a given key."""
         return self._dict.get(field, default)
 
