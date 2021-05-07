@@ -56,11 +56,9 @@ class DraperQFTAdder(Adder):
 
     """
 
-    def __init__(self,
-                 num_state_qubits: int,
-                 fixed_point: bool = False,
-                 name: str = 'DraperQFTAdder'
-                 ) -> None:
+    def __init__(
+        self, num_state_qubits: int, fixed_point: bool = False, name: str = "DraperQFTAdder"
+    ) -> None:
         r"""
         Args:
             num_state_qubits: The number of qubits in either input register for
@@ -74,16 +72,16 @@ class DraperQFTAdder(Adder):
             ValueError: If ``num_state_qubits`` is lower than 1.
         """
         if num_state_qubits < 1:
-            raise ValueError('The number of qubits must be at least 1.')
+            raise ValueError("The number of qubits must be at least 1.")
 
         super().__init__(num_state_qubits, name=name)
 
-        qr_a = QuantumRegister(num_state_qubits, name='a')
-        qr_b = QuantumRegister(num_state_qubits, name='b')
+        qr_a = QuantumRegister(num_state_qubits, name="a")
+        qr_b = QuantumRegister(num_state_qubits, name="b")
         qr_list = [qr_a, qr_b]
 
         if not fixed_point:
-            qr_z = QuantumRegister(1, name='cout')
+            qr_z = QuantumRegister(1, name="cout")
             qr_list.append(qr_z)
 
         # add registers

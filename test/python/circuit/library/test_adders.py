@@ -26,11 +26,9 @@ from qiskit.circuit.library import CDKMRippleCarryAdder, DraperQFTAdder, VBERipp
 class TestAdder(QiskitTestCase):
     """Test the adder circuits."""
 
-    def assertAdditionIsCorrect(self,
-                                num_state_qubits: int,
-                                adder: QuantumCircuit,
-                                inplace: bool,
-                                fixed_point: bool):
+    def assertAdditionIsCorrect(
+        self, num_state_qubits: int, adder: QuantumCircuit, inplace: bool, fixed_point: bool
+    ):
         """Assert that adder correctly implements the summation.
 
         This test prepares a equal superposition state in both input registers, then performs
@@ -59,7 +57,7 @@ class TestAdder(QiskitTestCase):
         # as we verify that all ancilla qubits have been uncomputed to state 0 again
         statevector = Statevector(circuit)
         probabilities = statevector.probabilities()
-        pad = '0' * circuit.num_ancillas  # state of the ancillas
+        pad = "0" * circuit.num_ancillas  # state of the ancillas
 
         # compute the expected results
         expectations = np.zeros_like(probabilities)
@@ -97,16 +95,12 @@ class TestAdder(QiskitTestCase):
         adder = adder(num_state_qubits, fixed_point=fixed_point)
         self.assertAdditionIsCorrect(num_state_qubits, adder, inplace, fixed_point)
 
-    @data(
-        CDKMRippleCarryAdder,
-        DraperQFTAdder,
-        VBERippleCarryAdder
-    )
+    @data(CDKMRippleCarryAdder, DraperQFTAdder, VBERippleCarryAdder)
     def test_raises_on_wrong_num_bits(self, adder):
         """Test an error is raised for a bad number of qubits."""
         with self.assertRaises(ValueError):
             _ = adder(-1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

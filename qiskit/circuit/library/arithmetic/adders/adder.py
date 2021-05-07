@@ -39,7 +39,7 @@ class Adder(QuantumCircuit):
 
     """
 
-    def __init__(self, num_state_qubits: int, name: str = 'Adder') -> None:
+    def __init__(self, num_state_qubits: int, name: str = "Adder") -> None:
         """
         Args:
             num_state_qubits: The number of qubits in each of the registers.
