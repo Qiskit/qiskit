@@ -23,11 +23,12 @@ from qiskit.circuit.exceptions import CircuitError
 class Permutation(QuantumCircuit):
     """An n_qubit circuit that permutes qubits."""
 
-    def __init__(self,
-                 num_qubits: int,
-                 pattern: Optional[List[int]] = None,
-                 seed: Optional[int] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        num_qubits: int,
+        pattern: Optional[List[int]] = None,
+        seed: Optional[int] = None,
+    ) -> None:
         """Return an n_qubit permutation circuit implemented using SWAPs.
 
         Args:
@@ -60,15 +61,16 @@ class Permutation(QuantumCircuit):
         """
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):
-                raise CircuitError("Permutation pattern must be some "
-                                   "ordering of 0..num_qubits-1 in a list.")
+                raise CircuitError(
+                    "Permutation pattern must be some " "ordering of 0..num_qubits-1 in a list."
+                )
             pattern = np.array(pattern)
         else:
             rng = np.random.default_rng(seed)
             pattern = np.arange(num_qubits)
             rng.shuffle(pattern)
 
-        name = "permutation_" + np.array_str(pattern).replace(' ', ',')
+        name = "permutation_" + np.array_str(pattern).replace(" ", ",")
 
         inner = QuantumCircuit(num_qubits, name=name)
 
