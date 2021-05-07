@@ -1,4 +1,7 @@
 # Qiskit Terra
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
 [![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)<!--- long-description-skip-begin -->[![Build Status](https://img.shields.io/travis/com/Qiskit/qiskit-terra/master.svg?style=popout-square)](https://travis-ci.com/Qiskit/qiskit-terra)[![Release](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)](https://github.com/Qiskit/qiskit-terra/releases)[![Downloads](https://img.shields.io/pypi/dm/qiskit-terra.svg?style=popout-square)](https://pypi.org/project/qiskit-terra/)[![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit-terra/badge.svg?branch=master)](https://coveralls.io/github/Qiskit/qiskit-terra?branch=master)<!--- long-description-skip-end -->
 
 **Qiskit** is an open-source framework for working with noisy quantum computers at the level of pulses, circuits, and algorithms.
@@ -134,3 +137,23 @@ https://qiskit.org/documentation/release_notes.html#terra-0-9
 ## License
 
 [Apache License 2.0](LICENSE.txt)
+
+## Contributors ✨
+
+Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="https://github.com/javabster"><img src="https://avatars.githubusercontent.com/u/23662430?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Abby Mitchell</b></sub></a><br /><a href="#example-javabster" title="Examples">💡</a></td>
+  </tr>
+</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
