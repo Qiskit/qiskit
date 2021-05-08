@@ -46,18 +46,14 @@ class QFTMultiplier(Multiplier):
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
             name: The name of the circuit object.
-        Raises:
-            ValueError: If ``num_state_qubits`` is smaller than 1.
-        """
-        if num_state_qubits < 1:
-            raise ValueError('The number of qubits must be at least 1.')
 
+        """
+        super().__init__(num_state_qubits, name=name)
+
+        # define the registers
         qr_a = QuantumRegister(num_state_qubits, name='a')
         qr_b = QuantumRegister(num_state_qubits, name='b')
         qr_out = QuantumRegister(2 * num_state_qubits, name='out')
-
-        # initialize quantum circuit with register list
-        super().__init__(qr_a, qr_b, qr_out, name=name)
 
         # build multiplication circuit
         self.append(QFT(2 * num_state_qubits, do_swaps=False).to_gate(), qr_out[:])

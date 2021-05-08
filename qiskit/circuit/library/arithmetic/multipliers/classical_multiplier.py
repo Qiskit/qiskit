@@ -70,18 +70,14 @@ class ClassicalMultiplier(Multiplier):
             adder: adder circuit to be used for performing multiplication. The
                 RippleCarryAdder is used as default if no adder is provided.
             name: The name of the circuit object.
-        Raises:
-            ValueError: If ``num_state_qubits`` is smaller than 1.
         """
-        if num_state_qubits < 1:
-            raise ValueError('The number of qubits must be at least 1.')
+        super().__init__(num_state_qubits, name=name)
 
+        # define the registers
         qr_a = QuantumRegister(num_state_qubits, name='a')
         qr_b = QuantumRegister(num_state_qubits, name='b')
         qr_out = QuantumRegister(2 * num_state_qubits, name='out')
-
-        # initialize quantum circuit with register list
-        super().__init__(qr_a, qr_b, qr_out, name=name)
+        self.add_register(qr_a, qr_b, qr_out)
 
         # prepare adder as controlled gate
         if adder is None:

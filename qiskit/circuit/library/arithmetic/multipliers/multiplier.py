@@ -45,7 +45,12 @@ class Multiplier(QuantumCircuit):
         Args:
             num_state_qubits: The number of qubits in each of the input registers.
             name: The name of the circuit.
+        Raises:
+            ValueError: If ``num_state_qubits`` is smaller than 1.
         """
+        if num_state_qubits < 1:
+            raise ValueError('The number of qubits must be at least 1.')
+
         super().__init__(name=name)
         self._num_state_qubits = num_state_qubits
 
