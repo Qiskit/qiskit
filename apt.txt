@@ -10,4 +10,5 @@ ghostscript
 # texlive-science
 # texlive-xetex
 texlive-full
+dlocate
 poppler-utils
