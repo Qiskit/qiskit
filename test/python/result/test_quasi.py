@@ -17,12 +17,13 @@ from qiskit.result import QuasiDistribution
 
 def test_known_quasi_conversion():
     """Reproduce conversion from Smolin PRL"""
-    qprobs = {'0': 3/5, '1': 1/2, '2': 7/20, '3': 1/10, '4': -11/20}
+    qprobs = {"0": 3 / 5, "1": 1 / 2, "2": 7 / 20, "3": 1 / 10, "4": -11 / 20}
     closest, dist = QuasiDistribution(qprobs).nearest_probability_distribution(
-        return_distance=True)
-    ans = {'0': 9/20, '1': 7/20, '2': 1/5}
+        return_distance=True
+    )
+    ans = {"0": 9 / 20, "1": 7 / 20, "2": 1 / 5}
     # Check probs are correct
     for key, val in closest.items():
         assert abs(ans[key] - val) < 1e-14
     # Check if distance calculation is correct
-    assert abs(dist-sqrt(0.38)) < 1e-14
+    assert abs(dist - sqrt(0.38)) < 1e-14
