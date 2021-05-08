@@ -182,16 +182,7 @@ class MatplotlibDrawer:
         self._ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
         self._initial_state = initial_state
         self._cregbundle = cregbundle
-        for layer in self._ops:
-            for op in layer:
-                if op.cargs:
-                    self._cregbundle = False
-                    warn(
-                        "Cregbundle set to False since an instruction needs to refer"
-                        " to individual classical wire",
-                        RuntimeWarning,
-                        2,
-                    )
+        self._set_cregbundle()
         self._global_phase = global_phase
 
         self._ast = None
@@ -320,6 +311,24 @@ class MatplotlibDrawer:
         self._qubit = []
         for r in qubit:
             self._qubit.append(r)
+
+    def _set_cregbundle(self):
+        """Sets the cregbundle to False if there is any instruction that
+        needs access to individual clbit."""
+        for layer in self._ops:
+            for op in layer:
+                if op.cargs and op.name != "measure":
+                    self._cregbundle = False
+                    warn(
+                        "Cregbundle set to False since an instruction needs to refer"
+                        " to individual classical wire",
+                        RuntimeWarning,
+                        2,
+                    )
+                    break
+            else:
+                continue
+            break
 
     @property
     def ast(self):
