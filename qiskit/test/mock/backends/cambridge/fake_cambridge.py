@@ -21,15 +21,15 @@ from qiskit.test.mock import fake_qasm_backend
 class FakeCambridge(fake_qasm_backend.FakeQasmBackend):
     """A fake Cambridge backend.
 
-               00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
-               ↕                    ↕
-               05                  06
-               ↕                    ↕
-     07 ↔ 08 ↔ 09 ↔ 10 ↔ 11 ↔ 12 ↔ 13 ↔ 14 ↔ 15
-     ↕                   ↕                    ↕
-     16                  17                  18
-     ↕                   ↕                    ↕
-     19 ↔ 20 ↔ 21 ↔ 22 ↔ 23 ↔ 24 ↔ 25 ↔ 26 ↔ 27
+              00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
+              ↕                    ↕
+              05                  06
+              ↕                    ↕
+    07 ↔ 08 ↔ 09 ↔ 10 ↔ 11 ↔ 12 ↔ 13 ↔ 14 ↔ 15
+    ↕                   ↕                    ↕
+    16                  17                  18
+    ↕                   ↕                    ↕
+    19 ↔ 20 ↔ 21 ↔ 22 ↔ 23 ↔ 24 ↔ 25 ↔ 26 ↔ 27
     """
 
     dirname = os.path.dirname(__file__)
@@ -45,21 +45,21 @@ class FakeCambridgeAlternativeBasis(FakeCambridge):
 
     def __init__(self):
         super().__init__()
-        self._configuration.basis_gates = ['u', 'sx', 'p', 'cx', 'id']
+        self._configuration.basis_gates = ["u", "sx", "p", "cx", "id"]
 
 
 class FakeLegacyCambridge(fake_qasm_backend.FakeQasmLegacyBackend):
     """A fake Cambridge backend.
 
-               00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
-               ↕                    ↕
-               05                  06
-               ↕                    ↕
-     07 ↔ 08 ↔ 09 ↔ 10 ↔ 11 ↔ 12 ↔ 13 ↔ 14 ↔ 15
-     ↕                   ↕                    ↕
-     16                  17                  18
-     ↕                   ↕                    ↕
-     19 ↔ 20 ↔ 21 ↔ 22 ↔ 23 ↔ 24 ↔ 25 ↔ 26 ↔ 27
+              00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
+              ↕                    ↕
+              05                  06
+              ↕                    ↕
+    07 ↔ 08 ↔ 09 ↔ 10 ↔ 11 ↔ 12 ↔ 13 ↔ 14 ↔ 15
+    ↕                   ↕                    ↕
+    16                  17                  18
+    ↕                   ↕                    ↕
+    19 ↔ 20 ↔ 21 ↔ 22 ↔ 23 ↔ 24 ↔ 25 ↔ 26 ↔ 27
     """
 
     dirname = os.path.dirname(__file__)
@@ -75,4 +75,4 @@ class FakeLegacyCambridgeAlternativeBasis(FakeLegacyCambridge):
 
     def __init__(self):
         super().__init__()
-        self._configuration.basis_gates = ['u', 'sx', 'p', 'cx', 'id']
+        self._configuration.basis_gates = ["u", "sx", "p", "cx", "id"]

@@ -53,10 +53,10 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
     special_unitary_matrix = np.asarray(special_unitary_matrix, dtype=complex)
     # extract the right component
     R = special_unitary_matrix[:2, :2].copy()
-    detR = R[0, 0]*R[1, 1] - R[0, 1]*R[1, 0]
+    detR = R[0, 0] * R[1, 1] - R[0, 1] * R[1, 0]
     if abs(detR) < 0.1:
         R = special_unitary_matrix[2:, :2].copy()
-        detR = R[0, 0]*R[1, 1] - R[0, 1]*R[1, 0]
+        detR = R[0, 0] * R[1, 1] - R[0, 1] * R[1, 0]
     if abs(detR) < 0.1:
         raise QiskitError("decompose_two_qubit_product_gate: unable to decompose: detR < 0.1")
     R /= np.sqrt(detR)
@@ -65,7 +65,7 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
     temp = np.kron(np.eye(2), R.T.conj())
     temp = special_unitary_matrix.dot(temp)
     L = temp[::2, ::2]
-    detL = L[0, 0]*L[1, 1] - L[0, 1]*L[1, 0]
+    detL = L[0, 0] * L[1, 1] - L[0, 1] * L[1, 0]
     if abs(detL) < 0.9:
         raise QiskitError("decompose_two_qubit_product_gate: unable to decompose: detL < 0.9")
     L /= np.sqrt(detL)
@@ -73,29 +73,26 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
 
     temp = np.kron(L, R)
     deviation = abs(abs(temp.conj().T.dot(special_unitary_matrix).trace()) - 4)
-    if deviation > 1.E-13:
-        raise QiskitError("decompose_two_qubit_product_gate: decomposition failed: "
-                          "deviation too large: {}".format(deviation))
+    if deviation > 1.0e-13:
+        raise QiskitError(
+            "decompose_two_qubit_product_gate: decomposition failed: "
+            "deviation too large: {}".format(deviation)
+        )
 
     return L, R, phase
 
 
-_B = (1.0/math.sqrt(2)) * np.array([[1, 1j, 0, 0],
-                                    [0, 0, 1j, 1],
-                                    [0, 0, 1j, -1],
-                                    [1, -1j, 0, 0]], dtype=complex)
+_B = (1.0 / math.sqrt(2)) * np.array(
+    [[1, 1j, 0, 0], [0, 0, 1j, 1], [0, 0, 1j, -1], [1, -1j, 0, 0]], dtype=complex
+)
 _Bd = _B.T.conj()
-_ipx = np.array([[0, 1j],
-                 [1j, 0]], dtype=complex)
-_ipy = np.array([[0, 1],
-                 [-1, 0]], dtype=complex)
-_ipz = np.array([[1j, 0],
-                 [0, -1j]], dtype=complex)
-_id = np.array([[1, 0],
-                [0, 1]], dtype=complex)
+_ipx = np.array([[0, 1j], [1j, 0]], dtype=complex)
+_ipy = np.array([[0, 1], [-1, 0]], dtype=complex)
+_ipz = np.array([[1j, 0], [0, -1j]], dtype=complex)
+_id = np.array([[1, 0], [0, 1]], dtype=complex)
 
 
-class TwoQubitWeylDecomposition():
+class TwoQubitWeylDecomposition:
     """Decompose two-qubit unitary U = (K1l⊗K1r).Exp(i a xx + i b yy + i c zz).(K2l⊗K2r) , where U ∈
     U(4), (K1l|K1r|K2l|K2r) ∈ SU(2), and we stay in the "Weyl Chamber" 𝜋/4 ≥ a ≥ b ≥ |c|
 
@@ -125,18 +122,19 @@ class TwoQubitWeylDecomposition():
     _original_decomposition: "TwoQubitWeylDecomposition"
     _is_flipped_from_original: bool  # The approx is closest to a Weyl reflection of the original?
 
-    _default_1q_basis: ClassVar[str] = 'ZYZ'  # Default one qubit basis (explicit parameterization)
+    _default_1q_basis: ClassVar[str] = "ZYZ"  # Default one qubit basis (explicit parameterization)
 
     def __init_subclass__(cls, **kwargs):
         """Subclasses should be concrete, not factories.
 
         Make explicitly-instantiated subclass __new__  call base __new__ with fidelity=None"""
         super().__init_subclass__(**kwargs)
-        cls.__new__ = (lambda cls, *a, fidelity=None, **k:
-                       TwoQubitWeylDecomposition.__new__(cls, *a, fidelity=None, **k))
+        cls.__new__ = lambda cls, *a, fidelity=None, **k: TwoQubitWeylDecomposition.__new__(
+            cls, *a, fidelity=None, **k
+        )
 
     @staticmethod
-    def __new__(cls, unitary_matrix, *, fidelity=(1.-1.E-9)):
+    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9)):
         """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
 
         The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
@@ -149,13 +147,13 @@ class TwoQubitWeylDecomposition():
         The overall decomposition scheme is taken from Drury and Love, arXiv:0806.4015 [quant-ph].
         """
         pi = np.pi
-        pi2 = np.pi/2
-        pi4 = np.pi/4
+        pi2 = np.pi / 2
+        pi4 = np.pi / 4
 
         # Make U be in SU(4)
         U = np.array(unitary_matrix, dtype=complex, copy=True)
         detU = la.det(U)
-        U *= detU**(-0.25)
+        U *= detU ** (-0.25)
         global_phase = cmath.phase(detU) / 4
 
         Up = _Bd.dot(U).dot(_B)
@@ -166,21 +164,21 @@ class TwoQubitWeylDecomposition():
         # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
         state = np.random.default_rng(2020)
         for _ in range(100):  # FIXME: this randomized algorithm is horrendous
-            M2real = state.normal()*M2.real + state.normal()*M2.imag
+            M2real = state.normal() * M2.real + state.normal() * M2.imag
             _, P = np.linalg.eigh(M2real)
             D = P.T.dot(M2).dot(P).diagonal()
-            if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=0, atol=1.0E-13):
+            if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=0, atol=1.0e-13):
                 break
         else:
             raise QiskitError("TwoQubitWeylDecomposition: failed to diagonalize M2")
 
-        d = -np.angle(D)/2
-        d[3] = -d[0]-d[1]-d[2]
-        cs = np.mod((d[:3]+d[3])/2, 2*np.pi)
+        d = -np.angle(D) / 2
+        d[3] = -d[0] - d[1] - d[2]
+        cs = np.mod((d[:3] + d[3]) / 2, 2 * np.pi)
 
         # Reorder the eigenvalues to get in the Weyl chamber
         cstemp = np.mod(cs, pi2)
-        np.minimum(cstemp, pi2-cstemp, cstemp)
+        np.minimum(cstemp, pi2 - cstemp, cstemp)
         order = np.argsort(cstemp)[[1, 2, 0]]
         cs = cs[order]
         d[:3] = d[order]
@@ -191,7 +189,7 @@ class TwoQubitWeylDecomposition():
             P[:, -1] = -P[:, -1]
 
         # Find K1, K2 so that U = K1.A.K2, with K being product of single-qubit unitaries
-        K1 = _B.dot(Up).dot(P).dot(np.diag(np.exp(1j*d))).dot(_Bd)
+        K1 = _B.dot(Up).dot(P).dot(np.diag(np.exp(1j * d))).dot(_Bd)
         K2 = _B.dot(P.T).dot(_Bd)
 
         K1l, K1r, phase_l = decompose_two_qubit_product_gate(K1)
@@ -202,24 +200,24 @@ class TwoQubitWeylDecomposition():
 
         # Flip into Weyl chamber
         if cs[0] > pi2:
-            cs[0] -= 3*pi2
+            cs[0] -= 3 * pi2
             K1l = K1l.dot(_ipy)
             K1r = K1r.dot(_ipy)
             global_phase += pi2
         if cs[1] > pi2:
-            cs[1] -= 3*pi2
+            cs[1] -= 3 * pi2
             K1l = K1l.dot(_ipx)
             K1r = K1r.dot(_ipx)
             global_phase += pi2
         conjs = 0
         if cs[0] > pi4:
-            cs[0] = pi2-cs[0]
+            cs[0] = pi2 - cs[0]
             K1l = K1l.dot(_ipy)
             K2r = _ipy.dot(K2r)
             conjs += 1
             global_phase -= pi2
         if cs[1] > pi4:
-            cs[1] = pi2-cs[1]
+            cs[1] = pi2 - cs[1]
             K1l = K1l.dot(_ipx)
             K2r = _ipx.dot(K2r)
             conjs += 1
@@ -227,14 +225,14 @@ class TwoQubitWeylDecomposition():
             if conjs == 1:
                 global_phase -= pi
         if cs[2] > pi2:
-            cs[2] -= 3*pi2
+            cs[2] -= 3 * pi2
             K1l = K1l.dot(_ipz)
             K1r = K1r.dot(_ipz)
             global_phase += pi2
             if conjs == 1:
                 global_phase -= pi
         if conjs == 1:
-            cs[2] = pi2-cs[2]
+            cs[2] = pi2 - cs[2]
             K1l = K1l.dot(_ipz)
             K2r = _ipz.dot(K2r)
             global_phase += pi2
@@ -264,15 +262,18 @@ class TwoQubitWeylDecomposition():
         od._is_flipped_from_original = False
 
         def is_close(ap, bp, cp):
-            da, db, dc = a-ap, b-bp, c-cp
-            tr = 4*complex(math.cos(da)*math.cos(db)*math.cos(dc),
-                           math.sin(da)*math.sin(db)*math.sin(dc))
+            da, db, dc = a - ap, b - bp, c - cp
+            tr = 4 * complex(
+                math.cos(da) * math.cos(db) * math.cos(dc),
+                math.sin(da) * math.sin(db) * math.sin(dc),
+            )
             fid = trace_to_fid(tr)
             return fid >= fidelity
 
         if fidelity is None:  # Don't specialize if None
-            instance = super().__new__(TwoQubitWeylGeneral
-                                       if cls is TwoQubitWeylDecomposition else cls)
+            instance = super().__new__(
+                TwoQubitWeylGeneral if cls is TwoQubitWeylDecomposition else cls
+            )
         elif is_close(0, 0, 0):
             instance = super().__new__(TwoQubitWeylIdEquiv)
         elif is_close(pi4, pi4, pi4) or is_close(pi4, pi4, -pi4):
@@ -285,11 +286,11 @@ class TwoQubitWeylDecomposition():
             instance = super().__new__(TwoQubitWeylControlledEquiv)
         elif is_close(pi4, pi4, c):
             instance = super().__new__(TwoQubitWeylMirrorControlledEquiv)
-        elif is_close((a+b)/2, (a+b)/2, c):
+        elif is_close((a + b) / 2, (a + b) / 2, c):
             instance = super().__new__(TwoQubitWeylfSimaabEquiv)
-        elif is_close(a, (b+c)/2, (b+c)/2):
+        elif is_close(a, (b + c) / 2, (b + c) / 2):
             instance = super().__new__(TwoQubitWeylfSimabbEquiv)
-        elif is_close(a, (b-c)/2, (c-b)/2):
+        elif is_close(a, (b - c) / 2, (c - b) / 2):
             instance = super().__new__(TwoQubitWeylfSimabmbEquiv)
         else:
             instance = super().__new__(TwoQubitWeylGeneral)
@@ -311,26 +312,38 @@ class TwoQubitWeylDecomposition():
 
         # Update the phase after specialization:
         if self._is_flipped_from_original:
-            da, db, dc = (np.pi/2-od.a)-self.a, od.b-self.b, -od.c-self.c
-            tr = 4 * complex(math.cos(da)*math.cos(db)*math.cos(dc),
-                             math.sin(da)*math.sin(db)*math.sin(dc))
+            da, db, dc = (np.pi / 2 - od.a) - self.a, od.b - self.b, -od.c - self.c
+            tr = 4 * complex(
+                math.cos(da) * math.cos(db) * math.cos(dc),
+                math.sin(da) * math.sin(db) * math.sin(dc),
+            )
         else:
-            da, db, dc = od.a-self.a, od.b-self.b, od.c-self.c
-            tr = 4 * complex(math.cos(da)*math.cos(db)*math.cos(dc),
-                             math.sin(da)*math.sin(db)*math.sin(dc))
+            da, db, dc = od.a - self.a, od.b - self.b, od.c - self.c
+            tr = 4 * complex(
+                math.cos(da) * math.cos(db) * math.cos(dc),
+                math.sin(da) * math.sin(db) * math.sin(dc),
+            )
         self.global_phase += cmath.phase(tr)
         self.calculated_fidelity = trace_to_fid(tr)
         if logger.isEnabledFor(logging.DEBUG):
             actual_fidelity = self.actual_fidelity()
-            logger.debug("Requested fidelity: %s calculated fidelity: %s actual fidelity %s",
-                         self.requested_fidelity, self.calculated_fidelity, actual_fidelity)
-            if abs(self.calculated_fidelity - actual_fidelity) > 1.E-12:
-                logger.warning("Requested fidelity different from actual by %s",
-                               self.calculated_fidelity - actual_fidelity)
-        if self.requested_fidelity and self.calculated_fidelity + 1.E-13 < self.requested_fidelity:
-            raise QiskitError(f"{self.__class__.__name__}: "
-                              f"calculated fidelity: {self.calculated_fidelity} "
-                              f"is worse than requested fidelity: {self.requested_fidelity}.")
+            logger.debug(
+                "Requested fidelity: %s calculated fidelity: %s actual fidelity %s",
+                self.requested_fidelity,
+                self.calculated_fidelity,
+                actual_fidelity,
+            )
+            if abs(self.calculated_fidelity - actual_fidelity) > 1.0e-12:
+                logger.warning(
+                    "Requested fidelity different from actual by %s",
+                    self.calculated_fidelity - actual_fidelity,
+                )
+        if self.requested_fidelity and self.calculated_fidelity + 1.0e-13 < self.requested_fidelity:
+            raise QiskitError(
+                f"{self.__class__.__name__}: "
+                f"calculated fidelity: {self.calculated_fidelity} "
+                f"is worse than requested fidelity: {self.requested_fidelity}."
+            )
 
     def specialize(self):
         """Make changes to the decomposition to comply with any specialization.
@@ -340,16 +353,19 @@ class TwoQubitWeylDecomposition():
         __init__()"""
         raise NotImplementedError
 
-    def circuit(self, *, euler_basis: Optional[str] = None,
-                simplify=False, atol=DEFAULT_ATOL) -> QuantumCircuit:
+    def circuit(
+        self, *, euler_basis: Optional[str] = None, simplify=False, atol=DEFAULT_ATOL
+    ) -> QuantumCircuit:
         """Returns Weyl decomposition in circuit form.
 
         simplify, atol arguments are passed to OneQubitEulerDecomposer"""
         if euler_basis is None:
             euler_basis = self._default_1q_basis
         oneq_decompose = OneQubitEulerDecomposer(euler_basis)
-        c1l, c1r, c2l, c2r = (oneq_decompose(k, simplify=simplify, atol=atol)
-                              for k in (self.K1l, self.K1r, self.K2l, self.K2r))
+        c1l, c1r, c2l, c2r = (
+            oneq_decompose(k, simplify=simplify, atol=atol)
+            for k in (self.K1l, self.K1r, self.K2l, self.K2r)
+        )
         circ = QuantumCircuit(2, global_phase=self.global_phase)
         circ.compose(c2r, [0], inplace=True)
         circ.compose(c2l, [1], inplace=True)
@@ -363,11 +379,11 @@ class TwoQubitWeylDecomposition():
 
         Can be overriden in subclasses for special cases"""
         if not simplify or abs(self.a) > atol:
-            circ.rxx(-self.a*2, 0, 1)
+            circ.rxx(-self.a * 2, 0, 1)
         if not simplify or abs(self.b) > atol:
-            circ.ryy(-self.b*2, 0, 1)
+            circ.ryy(-self.b * 2, 0, 1)
         if not simplify or abs(self.c) > atol:
-            circ.rzz(-self.c*2, 0, 1)
+            circ.rzz(-self.c * 2, 0, 1)
 
     def actual_fidelity(self, **kwargs) -> float:
         """Calculates the actual fidelity of the decomposed circuit to the input unitary"""
@@ -376,26 +392,32 @@ class TwoQubitWeylDecomposition():
         return trace_to_fid(trace)
 
     def __repr__(self):
-        """Represent with enough precision to allow copy-paste debugging of all corner cases
-        """
+        """Represent with enough precision to allow copy-paste debugging of all corner cases"""
         prefix = f"{type(self).__qualname__}.from_bytes("
         with io.BytesIO() as f:
             np.save(f, self.unitary_matrix, allow_pickle=False)
             b64 = base64.encodebytes(f.getvalue()).splitlines()
         b64ascii = [repr(x) for x in b64]
         b64ascii[-1] += ","
-        pretty = [f'# {x.rstrip()}' for x in str(self).splitlines()]
-        indent = '\n' + ' '*4
-        lines = ([prefix] + pretty + b64ascii +
-                 [f"requested_fidelity={self.requested_fidelity},",
-                  f"calculated_fidelity={self.calculated_fidelity},",
-                  f"actual_fidelity={self.actual_fidelity()},",
-                  f"abc={(self.a, self.b, self.c)})"])
+        pretty = [f"# {x.rstrip()}" for x in str(self).splitlines()]
+        indent = "\n" + " " * 4
+        lines = (
+            [prefix]
+            + pretty
+            + b64ascii
+            + [
+                f"requested_fidelity={self.requested_fidelity},",
+                f"calculated_fidelity={self.calculated_fidelity},",
+                f"actual_fidelity={self.actual_fidelity()},",
+                f"abc={(self.a, self.b, self.c)})",
+            ]
+        )
         return indent.join(lines)
 
     @classmethod
-    def from_bytes(cls, bytes_in: bytes, *, requested_fidelity: float, **kwargs
-                   ) -> "TwoQubitWeylDecomposition":
+    def from_bytes(
+        cls, bytes_in: bytes, *, requested_fidelity: float, **kwargs
+    ) -> "TwoQubitWeylDecomposition":
         """Decode bytes into TwoQubitWeylDecomposition. Used by __repr__"""
         del kwargs  # Unused (just for display)
         b64 = base64.decodebytes(bytes_in)
@@ -418,7 +440,7 @@ class TwoQubitWeylIdEquiv(TwoQubitWeylDecomposition):
     """
 
     def specialize(self):
-        self.a = self.b = self.c = 0.
+        self.a = self.b = self.c = 0.0
         self.K1l = self.K1l @ self.K2l
         self.K1r = self.K1r @ self.K2r
         self.K2l = _id.copy()
@@ -432,6 +454,7 @@ class TwoQubitWeylSWAPEquiv(TwoQubitWeylDecomposition):
         K2l = Id ,
         K2r = Id .
     """
+
     def specialize(self):
         if self.c > 0:
             self.K1l = self.K1l @ self.K2r
@@ -440,15 +463,15 @@ class TwoQubitWeylSWAPEquiv(TwoQubitWeylDecomposition):
             self._is_flipped_from_original = True
             self.K1l = self.K1l @ _ipz @ self.K2r
             self.K1r = self.K1r @ _ipz @ self.K2l
-            self.global_phase = self.global_phase + np.pi/2
-        self.a = self.b = self.c = np.pi/4
+            self.global_phase = self.global_phase + np.pi / 2
+        self.a = self.b = self.c = np.pi / 4
         self.K2l = _id.copy()
         self.K2r = _id.copy()
 
     def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
         del self, simplify, atol  # unused
         circ.swap(0, 1)
-        circ.global_phase -= 3*np.pi/4
+        circ.global_phase -= 3 * np.pi / 4
 
 
 def _closest_partial_swap(a, b, c) -> float:
@@ -456,10 +479,10 @@ def _closest_partial_swap(a, b, c) -> float:
     trace distance for Ud(x, x, x) from Ud(a, b, c)
     """
     m = (a + b + c) / 3
-    am, bm, cm = a-m, b-m, c-m
-    ab, bc, ca = a-b, b-c, c-a
+    am, bm, cm = a - m, b - m, c - m
+    ab, bc, ca = a - b, b - c, c - a
 
-    return m + am * bm * cm * (6 + ab*ab + bc*bc * ca*ca) / 18
+    return m + am * bm * cm * (6 + ab * ab + bc * bc * ca * ca) / 18
 
 
 class TwoQubitWeylPartialSWAPEquiv(TwoQubitWeylDecomposition):
@@ -468,6 +491,7 @@ class TwoQubitWeylPartialSWAPEquiv(TwoQubitWeylDecomposition):
     This gate binds 3 parameters, we make it canonical by setting:
         K2l = Id .
     """
+
     def specialize(self):
         self.a = self.b = self.c = _closest_partial_swap(self.a, self.b, self.c)
         self.K1l = self.K1l @ self.K2l
@@ -495,8 +519,8 @@ class TwoQubitWeylPartialSWAPFlipEquiv(TwoQubitWeylDecomposition):
         self.K2l = _id.copy()
 
 
-_oneq_xyx = OneQubitEulerDecomposer('XYX')
-_oneq_zyz = OneQubitEulerDecomposer('ZYZ')
+_oneq_xyx = OneQubitEulerDecomposer("XYX")
+_oneq_zyz = OneQubitEulerDecomposer("ZYZ")
 
 
 class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
@@ -506,7 +530,8 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
         K2l = Ry(θl).Rx(λl) ,
         K2r = Ry(θr).Rx(λr) .
     """
-    _default_1q_basis = 'XYX'
+
+    _default_1q_basis = "XYX"
 
     def specialize(self):
         self.b = self.c = 0
@@ -526,8 +551,9 @@ class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
         K2l = Ry(θl).Rz(λl) ,
         K2r = Ry(θr).Rz(λr) .
     """
+
     def specialize(self):
-        self.a = self.b = np.pi/4
+        self.a = self.b = np.pi / 4
         k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_zyz.angles_and_phase(self.K2l)
         k2rtheta, k2rphi, k2rlambda, k2rphase = _oneq_zyz.angles_and_phase(self.K2r)
         self.global_phase += k2lphase + k2rphase
@@ -538,8 +564,8 @@ class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
 
     def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
         circ.swap(0, 1)
-        circ.rzz((np.pi/4 - self.c) * 2, 0, 1)
-        circ.global_phase += np.pi/4
+        circ.rzz((np.pi / 4 - self.c) * 2, 0, 1)
+        circ.global_phase += np.pi / 4
 
 
 # These next 3 gates use the definition of fSim from https://arxiv.org/pdf/2001.08343.pdf eq (1)
@@ -549,8 +575,9 @@ class TwoQubitWeylfSimaabEquiv(TwoQubitWeylDecomposition):
     This gate binds 5 parameters, we make it canonical by setting:
         K2l = Ry(θl).Rz(λl) .
     """
+
     def specialize(self):
-        self.a = self.b = (self.a + self.b)/2
+        self.a = self.b = (self.a + self.b) / 2
         k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_zyz.angles_and_phase(self.K2l)
         self.global_phase += k2lphase
         self.K1r = self.K1r @ np.asarray(RZGate(k2lphi))
@@ -565,10 +592,11 @@ class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
     This gate binds 5 parameters, we make it canonical by setting:
         K2l = Ry(θl).Rx(λl) .
     """
-    _default_1q_basis = 'XYX'
+
+    _default_1q_basis = "XYX"
 
     def specialize(self):
-        self.b = self.c = (self.b + self.c)/2
+        self.b = self.c = (self.b + self.c) / 2
         k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_xyx.angles_and_phase(self.K2l)
         self.global_phase += k2lphase
         self.K1r = self.K1r @ np.asarray(RXGate(k2lphi))
@@ -584,10 +612,10 @@ class TwoQubitWeylfSimabmbEquiv(TwoQubitWeylDecomposition):
         K2l = Ry(θl).Rx(λl) .
     """
 
-    _default_1q_basis = 'XYX'
+    _default_1q_basis = "XYX"
 
     def specialize(self):
-        self.b = (self.b - self.c)/2
+        self.b = (self.b - self.c) / 2
         self.c = -self.b
         k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_xyx.angles_and_phase(self.K2l)
         self.global_phase += k2lphase
@@ -603,24 +631,28 @@ class TwoQubitWeylGeneral(TwoQubitWeylDecomposition):
     This gate binds all 6 possible parameters, so there is no need to make the single-qubit
     pre-/post-gates canonical.
     """
+
     def specialize(self):
         pass  # Nothing to do
 
 
 def Ud(a, b, c):
-    """Generates the array Exp(i(a xx + b yy + c zz))
-    """
-    return np.array([[cmath.exp(1j*c)*math.cos(a-b), 0, 0, 1j*cmath.exp(1j*c)*math.sin(a-b)],
-                     [0, cmath.exp(-1j*c)*math.cos(a+b), 1j*cmath.exp(-1j*c)*math.sin(a+b), 0],
-                     [0, 1j*cmath.exp(-1j*c)*math.sin(a+b), cmath.exp(-1j*c)*math.cos(a+b), 0],
-                     [1j*cmath.exp(1j*c)*math.sin(a-b), 0, 0, cmath.exp(1j*c)*math.cos(a-b)]],
-                    dtype=complex)
+    """Generates the array Exp(i(a xx + b yy + c zz))"""
+    return np.array(
+        [
+            [cmath.exp(1j * c) * math.cos(a - b), 0, 0, 1j * cmath.exp(1j * c) * math.sin(a - b)],
+            [0, cmath.exp(-1j * c) * math.cos(a + b), 1j * cmath.exp(-1j * c) * math.sin(a + b), 0],
+            [0, 1j * cmath.exp(-1j * c) * math.sin(a + b), cmath.exp(-1j * c) * math.cos(a + b), 0],
+            [1j * cmath.exp(1j * c) * math.sin(a - b), 0, 0, cmath.exp(1j * c) * math.cos(a - b)],
+        ],
+        dtype=complex,
+    )
 
 
 def trace_to_fid(trace):
     """Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
     M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)"""
-    return (4 + abs(trace)**2)/20
+    return (4 + abs(trace) ** 2) / 20
 
 
 def rz_array(theta):
@@ -628,11 +660,12 @@ def rz_array(theta):
 
     Rz(theta) = diag(exp(-i*theta/2),exp(i*theta/2))
     """
-    return np.array([[cmath.exp(-1j*theta/2.0), 0],
-                     [0, cmath.exp(1j*theta/2.0)]], dtype=complex)
+    return np.array(
+        [[cmath.exp(-1j * theta / 2.0), 0], [0, cmath.exp(1j * theta / 2.0)]], dtype=complex
+    )
 
 
-class TwoQubitBasisDecomposer():
+class TwoQubitBasisDecomposer:
     """A class for decomposing 2-qubit unitaries into minimal number of uses of a 2-qubit
     basis gate.
 
@@ -652,35 +685,82 @@ class TwoQubitBasisDecomposer():
         if euler_basis is not None:
             self._decomposer1q = OneQubitEulerDecomposer(euler_basis)
         else:
-            self._decomposer1q = OneQubitEulerDecomposer('U3')
+            self._decomposer1q = OneQubitEulerDecomposer("U3")
 
         # FIXME: find good tolerances
-        self.is_supercontrolled = math.isclose(basis.a, np.pi/4) and math.isclose(basis.c, 0.)
+        self.is_supercontrolled = math.isclose(basis.a, np.pi / 4) and math.isclose(basis.c, 0.0)
 
         # Create some useful matrices U1, U2, U3 are equivalent to the basis,
         # expand as Ui = Ki1.Ubasis.Ki2
         b = basis.b
-        K11l = 1/(1+1j) * np.array([[-1j*cmath.exp(-1j*b), cmath.exp(-1j*b)],
-                                    [-1j*cmath.exp(1j*b), -cmath.exp(1j*b)]], dtype=complex)
-        K11r = 1/math.sqrt(2) * np.array([[1j*cmath.exp(-1j*b), -cmath.exp(-1j*b)],
-                                          [cmath.exp(1j*b), -1j*cmath.exp(1j*b)]], dtype=complex)
-        K12l = 1/(1+1j) * np.array([[1j, 1j],
-                                    [-1, 1]], dtype=complex)
-        K12r = 1/math.sqrt(2) * np.array([[1j, 1],
-                                          [-1, -1j]], dtype=complex)
-        K32lK21l = 1/math.sqrt(2) * np.array([[1+1j*np.cos(2*b), 1j*np.sin(2*b)],
-                                              [1j*np.sin(2*b), 1-1j*np.cos(2*b)]], dtype=complex)
-        K21r = 1/(1-1j) * np.array([[-1j*cmath.exp(-2j*b), cmath.exp(-2j*b)],
-                                    [1j*cmath.exp(2j*b), cmath.exp(2j*b)]], dtype=complex)
-        K22l = 1/math.sqrt(2) * np.array([[1, -1],
-                                          [1, 1]], dtype=complex)
+        K11l = (
+            1
+            / (1 + 1j)
+            * np.array(
+                [
+                    [-1j * cmath.exp(-1j * b), cmath.exp(-1j * b)],
+                    [-1j * cmath.exp(1j * b), -cmath.exp(1j * b)],
+                ],
+                dtype=complex,
+            )
+        )
+        K11r = (
+            1
+            / math.sqrt(2)
+            * np.array(
+                [
+                    [1j * cmath.exp(-1j * b), -cmath.exp(-1j * b)],
+                    [cmath.exp(1j * b), -1j * cmath.exp(1j * b)],
+                ],
+                dtype=complex,
+            )
+        )
+        K12l = 1 / (1 + 1j) * np.array([[1j, 1j], [-1, 1]], dtype=complex)
+        K12r = 1 / math.sqrt(2) * np.array([[1j, 1], [-1, -1j]], dtype=complex)
+        K32lK21l = (
+            1
+            / math.sqrt(2)
+            * np.array(
+                [
+                    [1 + 1j * np.cos(2 * b), 1j * np.sin(2 * b)],
+                    [1j * np.sin(2 * b), 1 - 1j * np.cos(2 * b)],
+                ],
+                dtype=complex,
+            )
+        )
+        K21r = (
+            1
+            / (1 - 1j)
+            * np.array(
+                [
+                    [-1j * cmath.exp(-2j * b), cmath.exp(-2j * b)],
+                    [1j * cmath.exp(2j * b), cmath.exp(2j * b)],
+                ],
+                dtype=complex,
+            )
+        )
+        K22l = 1 / math.sqrt(2) * np.array([[1, -1], [1, 1]], dtype=complex)
         K22r = np.array([[0, 1], [-1, 0]], dtype=complex)
-        K31l = 1/math.sqrt(2) * np.array([[cmath.exp(-1j*b), cmath.exp(-1j*b)],
-                                          [-cmath.exp(1j*b), cmath.exp(1j*b)]], dtype=complex)
-        K31r = 1j * np.array([[cmath.exp(1j*b), 0],
-                              [0, -cmath.exp(-1j*b)]], dtype=complex)
-        K32r = 1/(1-1j) * np.array([[cmath.exp(1j*b), -cmath.exp(-1j*b)],
-                                    [-1j*cmath.exp(1j*b), -1j*cmath.exp(-1j*b)]], dtype=complex)
+        K31l = (
+            1
+            / math.sqrt(2)
+            * np.array(
+                [[cmath.exp(-1j * b), cmath.exp(-1j * b)], [-cmath.exp(1j * b), cmath.exp(1j * b)]],
+                dtype=complex,
+            )
+        )
+        K31r = 1j * np.array([[cmath.exp(1j * b), 0], [0, -cmath.exp(-1j * b)]], dtype=complex)
+        K32r = (
+            1
+            / (1 - 1j)
+            * np.array(
+                [
+                    [cmath.exp(1j * b), -cmath.exp(-1j * b)],
+                    [-1j * cmath.exp(1j * b), -1j * cmath.exp(-1j * b)],
+                ],
+                dtype=complex,
+            )
+        )
         k1ld = basis.K1l.T.conj()
         k1rd = basis.K1r.T.conj()
         k2ld = basis.K2l.T.conj()
@@ -712,13 +792,17 @@ class TwoQubitBasisDecomposer():
         # Decomposition into different number of gates
         # In the future could use different decomposition functions for different basis classes, etc
         if not self.is_supercontrolled:
-            warnings.warn("Only know how to decompose properly for supercontrolled basis gate. "
-                          "This gate is ~Ud({}, {}, {})".format(basis.a, basis.b, basis.c),
-                          stacklevel=2)
-        self.decomposition_fns = [self.decomp0,
-                                  self.decomp1,
-                                  self.decomp2_supercontrolled,
-                                  self.decomp3_supercontrolled]
+            warnings.warn(
+                "Only know how to decompose properly for supercontrolled basis gate. "
+                "This gate is ~Ud({}, {}, {})".format(basis.a, basis.b, basis.c),
+                stacklevel=2,
+            )
+        self.decomposition_fns = [
+            self.decomp0,
+            self.decomp1,
+            self.decomp2_supercontrolled,
+            self.decomp3_supercontrolled,
+        ]
 
     def traces(self, target):
         """Give the expected traces :math:`|Tr(U \\cdot Utarget^dag)|` for different number of
@@ -728,12 +812,20 @@ class TwoQubitBasisDecomposer():
         # This doesn't come up if either c1==0 or c2==0 but otherwise be careful.
         ta, tb, tc = target.a, target.b, target.c
         bb = self.basis.b
-        return [4*complex(math.cos(ta)*math.cos(tb)*math.cos(tc),
-                          math.sin(ta)*math.sin(tb)*math.sin(tc)),
-                4*complex(math.cos(math.pi/4-ta)*math.cos(bb-tb)*math.cos(tc),
-                          math.sin(math.pi/4-ta)*math.sin(bb-tb)*math.sin(tc)),
-                4*math.cos(tc),
-                4]
+        return [
+            4
+            * complex(
+                math.cos(ta) * math.cos(tb) * math.cos(tc),
+                math.sin(ta) * math.sin(tb) * math.sin(tc),
+            ),
+            4
+            * complex(
+                math.cos(math.pi / 4 - ta) * math.cos(bb - tb) * math.cos(tc),
+                math.sin(math.pi / 4 - ta) * math.sin(bb - tb) * math.sin(tc),
+            ),
+            4 * math.cos(tc),
+            4,
+        ]
 
     @staticmethod
     def decomp0(target):
@@ -780,8 +872,8 @@ class TwoQubitBasisDecomposer():
 
         U0l = target.K1l.dot(self.q0l)
         U0r = target.K1r.dot(self.q0r)
-        U1l = self.q1la.dot(rz_array(-2*target.a)).dot(self.q1lb)
-        U1r = self.q1ra.dot(rz_array(2*target.b)).dot(self.q1rb)
+        U1l = self.q1la.dot(rz_array(-2 * target.a)).dot(self.q1lb)
+        U1r = self.q1ra.dot(rz_array(2 * target.b)).dot(self.q1rb)
         U2l = self.q2l.dot(target.K2l)
         U2r = self.q2r.dot(target.K2r)
 
@@ -795,9 +887,9 @@ class TwoQubitBasisDecomposer():
         U0l = target.K1l.dot(self.u0l)
         U0r = target.K1r.dot(self.u0r)
         U1l = self.u1l
-        U1r = self.u1ra.dot(rz_array(-2*target.c)).dot(self.u1rb)
-        U2l = self.u2la.dot(rz_array(-2*target.a)).dot(self.u2lb)
-        U2r = self.u2ra.dot(rz_array(2*target.b)).dot(self.u2rb)
+        U1r = self.u1ra.dot(rz_array(-2 * target.c)).dot(self.u1rb)
+        U2l = self.u2la.dot(rz_array(-2 * target.a)).dot(self.u2lb)
+        U2r = self.u2ra.dot(rz_array(2 * target.b)).dot(self.u2rb)
         U3l = self.u3l.dot(target.K2l)
         U3r = self.u3r.dot(target.K2r)
 
@@ -814,7 +906,7 @@ class TwoQubitBasisDecomposer():
 
         target_decomposed = TwoQubitWeylDecomposition(target)
         traces = self.traces(target_decomposed)
-        expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity**i for i in range(4)]
+        expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity ** i for i in range(4)]
 
         best_nbasis = int(np.argmax(expected_fidelities))
         if _num_basis_uses is not None:
@@ -829,26 +921,35 @@ class TwoQubitBasisDecomposer():
         if best_nbasis == 2:
             return_circuit.global_phase += np.pi
         for i in range(best_nbasis):
-            return_circuit.compose(decomposition_euler[2*i], [q[0]], inplace=True)
-            return_circuit.compose(decomposition_euler[2*i+1], [q[1]], inplace=True)
+            return_circuit.compose(decomposition_euler[2 * i], [q[0]], inplace=True)
+            return_circuit.compose(decomposition_euler[2 * i + 1], [q[1]], inplace=True)
             return_circuit.append(self.gate, [q[0], q[1]])
-        return_circuit.compose(decomposition_euler[2*best_nbasis], [q[0]], inplace=True)
-        return_circuit.compose(decomposition_euler[2*best_nbasis+1], [q[1]], inplace=True)
+        return_circuit.compose(decomposition_euler[2 * best_nbasis], [q[0]], inplace=True)
+        return_circuit.compose(decomposition_euler[2 * best_nbasis + 1], [q[1]], inplace=True)
 
         return return_circuit
 
     def num_basis_gates(self, unitary):
-        """ Computes the number of basis gates needed in
+        """Computes the number of basis gates needed in
         a decomposition of input unitary
         """
         unitary = np.asarray(unitary, dtype=complex)
         a, b, c = weyl_coordinates(unitary)[:]
-        traces = [4*(math.cos(a)*math.cos(b)*math.cos(c)+1j*math.sin(a)*math.sin(b)*math.sin(c)),
-                  4*(math.cos(np.pi/4-a)*math.cos(self.basis.b-b)*math.cos(c) +
-                     1j*math.sin(np.pi/4-a)*math.sin(self.basis.b-b)*math.sin(c)),
-                  4*math.cos(c),
-                  4]
-        return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity**i for i in range(4)])
+        traces = [
+            4
+            * (
+                math.cos(a) * math.cos(b) * math.cos(c)
+                + 1j * math.sin(a) * math.sin(b) * math.sin(c)
+            ),
+            4
+            * (
+                math.cos(np.pi / 4 - a) * math.cos(self.basis.b - b) * math.cos(c)
+                + 1j * math.sin(np.pi / 4 - a) * math.sin(self.basis.b - b) * math.sin(c)
+            ),
+            4 * math.cos(c),
+            4,
+        ]
+        return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity ** i for i in range(4)])
 
 
 two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CXGate())
