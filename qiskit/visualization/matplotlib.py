@@ -509,7 +509,26 @@ class MatplotlibDrawer:
                         gt=gt,
                         sc=sc,
                         text=gate_text,
-                        subtext=str(param),
+                        subtext=str(param)
+                    )
+
+                # draw RZZ gate
+                elif isinstance(node.op, RZZGate):
+                    self._symmetric_gate(
+                        node,
+                        RZZGate,
+                        q_xy,
+                        qubit_b,
+                        qubit_t,
+                        fc=fc,
+                        ec=ec,
+                        tc=tc,
+                        gt=gt,
+                        sc=sc,
+                        lc=lc,
+                        gate_text=gate_text,
+                        ctrl_text=ctrl_text,
+                        param=str(param)
                     )
 
                 # draw controlled gates
@@ -527,7 +546,7 @@ class MatplotlibDrawer:
                         lc=lc,
                         text=gate_text,
                         subtext=str(param),
-                        ctrl_text=ctrl_text,
+                        ctrl_text=ctrl_text
                     )
 
                 # draw multi-qubit gate as final default
@@ -705,10 +724,12 @@ class MatplotlibDrawer:
 
             # if single qubit, no params, and no labels, layer_width is 1
             if (
-                not hasattr(node.op, "params")
+                isinstance(node.op, SwapGate)
+                or base_name == 'swap'
+                or (not hasattr(node.op, "params")
                 and (len(node.qargs) - num_ctrl_qubits) == 1
                 and gate_text in (node.op.name, base_name)
-                and ctrl_text is None
+                and ctrl_text is None)
             ):
                 continue
 
@@ -731,7 +752,7 @@ class MatplotlibDrawer:
             else:
                 param_width = raw_param_width = 0.0
 
-            if node.op.name == "rzz" or base_name in ["u1", "p", "rzz"]:
+            if isinstance(node.op, RZZGate) or base_name in ["u1", "p", "rzz"]:
                 raw_gate_width = (
                     self._get_text_width(gate_text + " ()", fontsize=self._sfs) + param_width
                 )
@@ -742,12 +763,11 @@ class MatplotlibDrawer:
                 # add .21 for the qubit numbers on the left of the multibit gates
                 if len(node.qargs) - num_ctrl_qubits > 1:
                     gate_width += 0.21
-                    raw_gate_width += 0.21
 
             box_width = max(gate_width, ctrl_width, param_width, WID)
             if box_width > widest_box:
                 widest_box = box_width
-            self._node_width[node] = max(raw_gate_width, raw_param_width, WID)
+            self._node_width[node] = max(raw_gate_width, raw_param_width)
 
         return int(widest_box) + 1
 
@@ -990,7 +1010,7 @@ class MatplotlibDrawer:
 
     def _gate(self, node, xy, fc=None, ec=None, gt=None, sc=None, text="", subtext=""):
         xpos, ypos = xy
-        wid = self._node_width[node]
+        wid = max(self._node_width[node], WID)
 
         box = self._patches_mod.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
@@ -1052,7 +1072,7 @@ class MatplotlibDrawer:
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
 
-        wid = self._node_width[node]
+        wid = max(self._node_width[node] + 0.21, WID)
 
         qubit_span = abs(ypos) - abs(ypos_max) + 1
         height = HIG + (qubit_span - 1)
@@ -1136,42 +1156,61 @@ class MatplotlibDrawer:
     ):
         base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
 
-        if isinstance(node.op, RZZGate) or isinstance(
-            base_type, (U1Gate, PhaseGate, ZGate, RZZGate)
-        ):
-            self._build_symmetric_gate(node, base_type, xy, fc=fc)
-
         num_ctrl_qubits = node.op.num_ctrl_qubits
         num_qargs = len(xy) - num_ctrl_qubits
         self._set_ctrl_bits(
             node.op.ctrl_state, num_ctrl_qubits, xy, ec=ec, tc=tc, text=ctrl_text, qargs=node.qargs
         )
         self._line(qubit_b, qubit_t, lc=lc)
-        if num_qargs == 1 and base_name == "x":
+
+        if isinstance(node.op, RZZGate) or isinstance(
+            base_type, (U1Gate, PhaseGate, ZGate, RZZGate)
+        ):
+            self._symmetric_gate(
+                node,
+                base_type,
+                xy,
+                qubit_b,
+                qubit_t,
+                fc=fc,
+                ec=ec,
+                tc=tc,
+                gt=gt,
+                sc=sc,
+                lc=lc,
+                gate_text=text,
+                ctrl_text=ctrl_text,
+                param=subtext
+            )
+        elif num_qargs == 1 and isinstance(base_type, XGate):
             tgt_color = self._style["dispcol"]["target"]
             tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
             self._x_tgt_qubit(xy[num_ctrl_qubits], ec=ec, ac=tgt)
         elif num_qargs == 1:
-            self._build_gate(
+            self._gate(
                 node,
                 xy[num_ctrl_qubits],
                 fc=fc,
                 ec=ec,
                 gt=gt,
                 sc=sc,
-                text=gate_text,
-                subtext="{}".format(param),
+                text=text,
+                subtext=subtext
             )
+        # swap gate
+        elif isinstance(base_type, SwapGate):
+            self._swap(xy[num_ctrl_qubits:], lc)
+
         else:
-            self._build_multiqubit_gate(
+            self._multiqubit_gate(
                 node,
                 xy[num_ctrl_qubits:],
                 fc=fc,
                 ec=ec,
                 gt=gt,
                 sc=sc,
-                text=gate_text,
-                subtext="{}".format(param),
+                text=text,
+                subtext=subtext
             )
 
     def _set_ctrl_bits(
@@ -1282,7 +1321,6 @@ class MatplotlibDrawer:
         param="",
     ):
         base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
-
         # cz and mcz gates
         if not isinstance(node.op, ZGate) and isinstance(base_type, ZGate):
             num_ctrl_qubits = node.op.num_ctrl_qubits
@@ -1298,33 +1336,27 @@ class MatplotlibDrawer:
             self._ctrl_qubit(xy[-1], fc=ec, ec=ec, tc=tc)
             self._line(qubit_b, qubit_t, lc=lc, zorder=PORDER_LINE + 1)
 
-        """# cu1, cp, rzz, and controlled rzz gates (sidetext gates)
-        elif node.op.name == 'rzz' or base_name in ['u1', 'p', 'rzz']:
-            num_ctrl_qubits = 0 if node.op.name == 'rzz' else node.op.num_ctrl_qubits
-            if node.op.name != 'rzz':
+        # cu1, cp, rzz, and controlled rzz gates (sidetext gates)
+        elif isinstance(node.op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
+            num_ctrl_qubits = 0 if isinstance(node.op, RZZGate) else node.op.num_ctrl_qubits
+            if not isinstance(node.op, RZZGate):
                 self._set_ctrl_bits(node.op.ctrl_state, num_ctrl_qubits,
                                     xy, ec=ec, tc=tc, text=ctrl_text, qargs=node.qargs)
             self._ctrl_qubit(xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
-            if base_name not in ['u1', 'p']:
+            if not isinstance(base_type, (U1Gate, PhaseGate)):
                 self._ctrl_qubit(xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
             self._sidetext(node, qubit_b, tc=tc,
                            text='{}'.format(gate_text) + ' ' + '({})'.format(param))
             self._line(qubit_b, qubit_t, lc=lc)
 
-        # swap gate
-        elif node.op.name == 'swap':
-            self._swap(xy[0], color=lc)
-            self._swap(xy[1], color=lc)
-            self._line(qubit_b, qubit_t, lc=lc)
-
         # cswap gate
-        elif node.op.name != 'swap' and base_name == 'swap':
+        elif not isinstance(node.op, SwapGate) and isinstance(base_type, SwapGate):
             num_ctrl_qubits = node.op.num_ctrl_qubits
             self._set_ctrl_bits(node.op.ctrl_state, num_ctrl_qubits,
                                 xy, ec=ec, tc=tc, text=ctrl_text, qargs=node.qargs)
             self._swap(xy[num_ctrl_qubits], color=lc)
-            self._swap(xy[num_ctrl_qubits + 1], color=lc)
-            self._line(qubit_b, qubit_t, lc=lc)"""
+            #self._swap(xy[num_ctrl_qubits + 1], color=lc)
+            self._line(qubit_b, qubit_t, lc=lc)
 
     def _swap(self, xy, color=None):
         self._swap_cross(xy[0], color=color)
