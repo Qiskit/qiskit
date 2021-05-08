@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added `ProbDistribution` and `QuasiDistribution` needed for runtime results
+    for the circuit runner, and probably useful elsewhere.
