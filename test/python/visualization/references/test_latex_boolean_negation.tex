@@ -1,8 +1,8 @@
 % \documentclass[preview]{standalone}
 % If the image is too large to fit on this documentclass use
 \documentclass[draft]{beamer}
-% img_width = 2, img_depth = 4
-\usepackage[size=custom,height=10,width=22,scale=0.7]{beamerposter}
+% img_width = 4, img_depth = 3
+\usepackage[size=custom,height=10,width=10,scale=0.7]{beamerposter}
 % instead and customize the height and width (in cm) to fit.
 % Large images may run out of memory quickly.
 % To fix this use the LuaLaTeX compiler, which dynamically
@@ -16,8 +16,10 @@
 
 \begin{equation*}
     \Qcircuit @C=1.0em @R=1.0em @!R {
-	 	\lstick{ {q}_{0} :  } & \gate{\mathrm{|\psi\rangle}\,(\mathrm{0,1})} & \multigate{1}{\mathrm{|\psi\rangle}\,(\mathrm{0,1,0,0})}_<<<{0} & \qw & \qw\\
-	 	\lstick{ {q}_{1} :  } & \gate{\mathrm{\left|0\right\rangle}} & \ghost{\mathrm{|\psi\rangle}\,(\mathrm{0,1,0,0})}_<<<{1} & \qw & \qw\\
+	 	\lstick{ {q}_{0} :  } & \multigate{3}{\texttt{$\neg$x\,\&\,(y\,|\,z)}}_<<<{0} & \qw & \qw\\
+	 	\lstick{ {q}_{1} :  } & \ghost{\texttt{$\neg$x\,\&\,(y\,|\,z)}}_<<<{1} & \qw & \qw\\
+	 	\lstick{ {q}_{2} :  } & \ghost{\texttt{$\neg$x\,\&\,(y\,|\,z)}}_<<<{2} & \qw & \qw\\
+	 	\lstick{ {q}_{3} :  } & \ghost{\texttt{$\neg$x\,\&\,(y\,|\,z)}}_<<<{3} & \qw & \qw\\
 	 }
 \end{equation*}
 

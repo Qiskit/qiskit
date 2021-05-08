@@ -24,7 +24,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate
 from qiskit.extensions import HamiltonianGate
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, BooleanExpression
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
 from .visualization import QiskitVisualizationTestCase
@@ -495,6 +495,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.u1(pi / 2, 4)
         circuit.cz(5, 6)
         circuit.cu1(pi / 2, 5, 6)
+        circuit.cp(pi / 2, 5, 6)
         circuit.y(5)
         circuit.rx(pi / 3, 5)
         circuit.rzx(pi / 2, 5, 6)
@@ -528,6 +529,17 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.h(qr[0])
         circuit.measure(qr[0], cr[0])
         circuit.h(qr[1]).c_if(cr, 1)
+        circuit_drawer(circuit, filename=filename, output="latex_source")
+
+        self.assertEqualToReference(filename)
+
+    def test_boolean_negation(self):
+        """Tests Boolean negation symbol"""
+
+        filename = self._get_resource_path("test_latex_boolean_negation.tex")
+        expression = BooleanExpression("~x & (y | z)")
+        circuit = QuantumCircuit(4)
+        circuit.append(expression, [0, 1, 2, 3])
         circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)

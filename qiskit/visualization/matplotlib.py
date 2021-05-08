@@ -16,10 +16,7 @@
 
 import collections
 import itertools
-import json
 import re
-import os
-from warnings import warn
 
 import numpy as np
 
@@ -31,10 +28,9 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
-from qiskit.circuit import ControlledGate, Gate, Instruction
-from qiskit.visualization.qcstyle import DefaultStyle, set_style
-from qiskit.circuit import Delay
-from qiskit import user_config
+from qiskit.circuit import ControlledGate, Gate
+from qiskit.visualization.qcstyle import load_style
+from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
 from qiskit.circuit.tools.pi_check import pi_check
 
 # Default gate width and height
@@ -162,7 +158,12 @@ class MatplotlibDrawer:
         self._clbit_dict = collections.OrderedDict()
         self._ops = ops
         self._scale = 1.0 if scale is None else scale
-        self._style = self._load_style(style)
+        self._style, def_font_ratio = load_style(style)
+
+        # If font/subfont ratio changes from default, have to scale width calculations for
+        # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
+        self._subfont_factor = self._style["sfs"] * def_font_ratio / self._style["fs"]
+
         self._plot_barriers = plot_barriers
         self._layout = layout
         self._fold = fold
@@ -316,84 +317,6 @@ class MatplotlibDrawer:
         """AST getter"""
         return self._ast
 
-    def _load_style(self, style):
-        current_style = DefaultStyle().style
-        style_name = "default"
-        def_font_ratio = current_style["fs"] / current_style["sfs"]
-
-        config = user_config.get_config()
-        if style is not None:
-            if style is False:
-                style_name = "bw"
-            elif isinstance(style, dict) and "name" in style:
-                style_name = style["name"]
-            elif isinstance(style, str):
-                style_name = style
-            elif config:
-                style_name = config.get("circuit_mpl_style", "default")
-            elif not isinstance(style, (str, dict)):
-                warn(
-                    "style parameter '{}' must be a str or a dictionary."
-                    " Will use default style.".format(style),
-                    UserWarning,
-                    2,
-                )
-        if style_name.endswith(".json"):
-            style_name = style_name[:-5]
-
-        # Search for file in 'styles' dir, then config_path, and finally 'cwd'
-        style_path = []
-        if style_name != "default":
-            style_name = style_name + ".json"
-            spath = os.path.dirname(os.path.abspath(__file__))
-            style_path.append(os.path.join(spath, "styles", style_name))
-            if config:
-                config_path = config.get("circuit_mpl_style_path", "")
-                if config_path:
-                    for path in config_path:
-                        style_path.append(os.path.normpath(os.path.join(path, style_name)))
-            style_path.append(os.path.normpath(os.path.join("", style_name)))
-
-            for path in style_path:
-                exp_user = os.path.expanduser(path)
-                if os.path.isfile(exp_user):
-                    try:
-                        with open(exp_user) as infile:
-                            json_style = json.load(infile)
-                        set_style(current_style, json_style)
-                        break
-                    except json.JSONDecodeError as e:
-                        warn(
-                            "Could not decode JSON in file '{}': {}. ".format(path, str(e))
-                            + "Will use default style.",
-                            UserWarning,
-                            2,
-                        )
-                        break
-                    except (OSError, FileNotFoundError):
-                        warn(
-                            "Error loading JSON file '{}'. Will use default style.".format(path),
-                            UserWarning,
-                            2,
-                        )
-                        break
-            else:
-                warn(
-                    "Style JSON file '{}' not found in any of these locations: {}. Will use"
-                    " default style.".format(style_name, ", ".join(style_path)),
-                    UserWarning,
-                    2,
-                )
-
-        if isinstance(style, dict):
-            set_style(current_style, style)
-
-        # If font/subfont ratio changes from default, have to scale width calculations for
-        # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
-        self._subfont_factor = current_style["sfs"] * def_font_ratio / current_style["fs"]
-
-        return current_style
-
     # This computes the width of a string in the default font
     def _get_text_width(self, text, fontsize, param=False):
         if not text:
@@ -436,45 +359,10 @@ class MatplotlibDrawer:
                 sum_text *= self._subfont_factor
             return sum_text
 
-    def _param_parse(self, v):
-        param_parts = [None] * len(v)
-        for i, e in enumerate(v):
-            try:
-                param_parts[i] = pi_check(e, output="mpl", ndigits=3)
-            except TypeError:
-                param_parts[i] = str(e)
-        param_parts = ", ".join(param_parts).replace("-", "$-$")
-        return param_parts
-
-    def _get_gate_ctrl_text(self, op):
-        op_label = getattr(op.op, "label", None)
+    def _get_colors(self, op, gate_text):
         base_name = None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
-        base_label = None if not hasattr(op.op, "base_gate") else op.op.base_gate.label
-        ctrl_text = None
-        if base_label:
-            gate_text = base_label
-            ctrl_text = op_label
-        elif op_label and isinstance(op.op, ControlledGate):
-            gate_text = base_name
-            ctrl_text = op_label
-        elif op_label:
-            gate_text = op_label
-        elif base_name:
-            gate_text = base_name
-        else:
-            gate_text = op.name
-
-        if gate_text in self._style["disptex"]:
-            gate_text = "{}".format(self._style["disptex"][gate_text])
-        elif gate_text in (op.name, base_name) and not isinstance(op.op, (Gate, Instruction)):
-            gate_text = gate_text.capitalize()
-
-        return gate_text, ctrl_text
-
-    def _get_colors(self, op):
-        base_name = None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
-        if op.name in self._style["dispcol"]:
-            color = self._style["dispcol"][op.name]
+        if gate_text in self._style["dispcol"]:
+            color = self._style["dispcol"][gate_text]
             # Backward compatibility for style dict using 'displaycolor' with
             # gate color and no text color, so test for str first
             if isinstance(color, str):
@@ -1177,7 +1065,7 @@ class MatplotlibDrawer:
                     continue
 
                 base_name = None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
-                gate_text, ctrl_text = self._get_gate_ctrl_text(op)
+                gate_text, ctrl_text, _ = get_gate_ctrl_text(op, "mpl", style=self._style)
 
                 # if a standard_gate, no params, and no labels, layer_width is 1
                 if not hasattr(op.op, "params") and (
@@ -1197,7 +1085,7 @@ class MatplotlibDrawer:
                     and not any(isinstance(param, np.ndarray) for param in op.op.params)
                     and len(op.op.params) > 0
                 ):
-                    param = self._param_parse(op.op.params)
+                    param = get_param_str(op, "mpl", ndigits=3)
                     if op.name == "initialize":
                         param = "[%s]" % param
                     param = "${}$".format(param)
@@ -1232,8 +1120,10 @@ class MatplotlibDrawer:
             #
             for op in layer:
                 base_name = None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
-                gate_text, ctrl_text = self._get_gate_ctrl_text(op)
-                fc, ec, gt, tc, sc, lc = self._get_colors(op)
+                gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
+                    op, "mpl", style=self._style
+                )
+                fc, ec, gt, tc, sc, lc = self._get_colors(op, raw_gate_text)
 
                 # get qubit index
                 q_idxs = []
@@ -1289,7 +1179,7 @@ class MatplotlibDrawer:
                     and len(op.op.params) > 0
                     and not any(isinstance(param, np.ndarray) for param in op.op.params)
                 ):
-                    param = "{}".format(self._param_parse(op.op.params))
+                    param = "{}".format(get_param_str(op, "mpl", ndigits=3))
                 else:
                     param = ""
 
@@ -1361,13 +1251,6 @@ class MatplotlibDrawer:
                         self._multiqubit_gate(
                             q_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec
                         )
-                elif isinstance(op.op, Delay):
-                    param_text = "(%s)" % param
-                    if op.op.unit:
-                        param_text += "[%s]" % op.op.unit
-                    self._gate(
-                        q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=param_text
-                    )
                 #
                 # draw single qubit gates
                 #
@@ -1410,7 +1293,10 @@ class MatplotlibDrawer:
                     if base_name not in ["u1", "p"]:
                         self._ctrl_qubit(q_xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
                     if base_name == "u1":
-                        stext = self._style["disptex"]["u1"]
+                        if self._style["disptex"]["u1"].find("\\mathrm") >= 0:
+                            stext = self._style["disptex"]["u1"]
+                        else:
+                            stext = f"$\\mathrm{{{self._style['disptex']['u1']}}}$"
                     elif base_name == "p":
                         stext = "P"
                     else:

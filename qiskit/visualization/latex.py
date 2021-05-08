@@ -17,14 +17,14 @@ import math
 import re
 
 import numpy as np
-from qiskit.circuit import Gate, Instruction, Clbit, BooleanExpression
+from qiskit.circuit import Gate, Clbit
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGate, U1Gate, PhaseGate
 from qiskit.circuit.measure import Measure
-from qiskit.visualization.qcstyle import DefaultStyle
+from qiskit.visualization.qcstyle import load_style
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
-from .utils import generate_latex_label
+from .utils import get_gate_ctrl_text, get_param_str, generate_latex_label
 
 
 class QCircuitImage:
@@ -42,6 +42,7 @@ class QCircuitImage:
         clbits,
         ops,
         scale,
+        style=None,
         reverse_bits=False,
         plot_barriers=True,
         layout=None,
@@ -58,6 +59,7 @@ class QCircuitImage:
             clbits (list[Clbit]): list of clbits
             ops (list[list[DAGNode]]): list of circuit instructions, grouped by layer
             scale (float): image scaling
+            style (dict or str): dictionary of style or file name of style file
             reverse_bits (bool): when True, reverse the bit ordering of the registers
             plot_barriers (bool): Enable/disable drawing barriers in the output
                circuit. Defaults to True.
@@ -142,7 +144,7 @@ class QCircuitImage:
         self.cregbundle = cregbundle
         self.global_phase = global_phase
 
-        self._style = DefaultStyle().style
+        self._style, _ = load_style(style)
 
     def latex(self):
         """Return LaTeX string representation of circuit."""
@@ -386,55 +388,6 @@ class QCircuitImage:
 
         return (height, width, self.scale)
 
-    def _get_gate_ctrl_text(self, op):
-        """Load the gate_text and ctrl_text strings based on names and labels"""
-        op_label = getattr(op.op, "label", None)
-        op_type = type(op.op)
-        base_name = base_label = base_type = None
-        if hasattr(op.op, "base_gate"):
-            base_name = op.op.base_gate.name
-            base_label = op.op.base_gate.label
-            base_type = type(op.op.base_gate)
-        ctrl_text = None
-
-        if base_label:
-            gate_text = base_label
-            ctrl_text = op_label
-        elif op_label and isinstance(op.op, ControlledGate):
-            gate_text = base_name
-            ctrl_text = op_label
-        elif op_label:
-            gate_text = op_label
-        elif base_name:
-            gate_text = base_name
-        else:
-            gate_text = op.name
-
-        if gate_text in self._style["disptex"]:
-            gate_text = self._style["disptex"][gate_text]
-            # Only add mathmode formatting if not already mathmode in disptex
-            if gate_text[0] != "$" and gate_text[-1] != "$":
-                gate_text = f"$\\mathrm{{{gate_text}}}$"
-        elif (gate_text == op.name and op_type is BooleanExpression) or (
-            gate_text == base_name and base_type is BooleanExpression
-        ):
-            gate_text = gate_text.replace("~", "$\\neg$").replace("&", "\\&")
-            gate_text = f"$\\texttt{{{gate_text}}}$"
-        # Only captitalize internally-created gate or instruction names
-        elif (gate_text == op.name and op_type not in (Gate, Instruction)) or (
-            gate_text == base_name and base_type not in (Gate, Instruction)
-        ):
-            gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
-        else:
-            gate_text = f"$\\mathrm{{{gate_text}}}$"
-            # Remove mathmode _, ^, and - formatting from user names and labels
-            gate_text = gate_text.replace("_", "\\_")
-            gate_text = gate_text.replace("^", "\\string^")
-            gate_text = gate_text.replace("-", "\\mbox{-}")
-
-        ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
-        return gate_text, ctrl_text
-
     def _build_latex_array(self):
         """Returns an array of strings containing \\LaTeX for this circuit."""
 
@@ -459,8 +412,8 @@ class QCircuitImage:
                     self._build_barrier(op, column)
 
                 else:
-                    gate_text, _ = self._get_gate_ctrl_text(op)
-                    gate_text = self._add_params_to_gate_text(op, gate_text)
+                    gate_text, _, _ = get_gate_ctrl_text(op, "latex", style=self._style)
+                    gate_text += get_param_str(op, "latex", ndigits=4)
                     gate_text = generate_latex_label(gate_text)
                     wire_list = [self.img_regs[qarg] for qarg in op.qargs]
 
@@ -635,23 +588,6 @@ class QCircuitImage:
             # ctrl_item[1] is ctrl_state for this bit
             control = "\\ctrlo" if ctrl_item[1] == "0" else "\\ctrl"
             self._latex[pos][col] = f"{control}" + "{" + str(nxt - wire_list[index]) + "}"
-
-    def _add_params_to_gate_text(self, op, gate_text):
-        """Add the params to the end of the current gate_text"""
-
-        # Must limit to 4 params or may get dimension too large error
-        # from xy-pic xymatrix command
-        if len(op.op.params) > 0 and not any(
-            isinstance(param, np.ndarray) for param in op.op.params
-        ):
-            gate_text += "\\,\\mathrm{(}"
-            for param_count, param in enumerate(op.op.params):
-                if param_count > 3:
-                    gate_text += "...,"
-                    break
-                gate_text += "\\mathrm{%s}," % pi_check(param, output="latex", ndigits=4)
-            gate_text = gate_text[:-1] + "\\mathrm{)}"
-        return gate_text
 
     def _add_condition(self, op, wire_list, col):
         """Add a condition to the _latex list"""

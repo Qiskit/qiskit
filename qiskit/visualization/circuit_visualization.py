@@ -82,7 +82,7 @@ def circuit_drawer(
             the `mpl`, `latex` and `latex_source` outputs. Defaults to 1.0.
         filename (str): file path to save image to. Defaults to None.
         style (dict or str): dictionary of style or file name of style json file.
-            This option is only used by the `mpl` output type.
+            This option is only used by the `mpl` or `latex` output type.
             If `style` is a str, it is used as the path to a json file
             which contains a style dict. The file will be opened, parsed, and
             then any style elements in the dict will replace the default values
@@ -343,6 +343,7 @@ def _text_circuit_drawer(
 def _latex_circuit_drawer(
     circuit,
     scale=0.7,
+    style=None,
     filename=None,
     plot_barriers=True,
     reverse_bits=False,
@@ -359,6 +360,7 @@ def _latex_circuit_drawer(
     Args:
         circuit (QuantumCircuit): a quantum circuit
         scale (float): scaling factor
+        style (dict or str): dictionary of style or file name of style file
         filename (str): file path to save image to
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
@@ -390,6 +392,7 @@ def _latex_circuit_drawer(
             circuit,
             filename=tmppath,
             scale=scale,
+            style=style,
             plot_barriers=plot_barriers,
             reverse_bits=reverse_bits,
             justify=justify,
@@ -459,6 +462,7 @@ def _generate_latex_source(
     circuit,
     filename=None,
     scale=0.7,
+    style=None,
     reverse_bits=False,
     plot_barriers=True,
     justify=None,
@@ -472,6 +476,7 @@ def _generate_latex_source(
     Args:
         circuit (QuantumCircuit): a quantum circuit
         scale (float): scaling factor
+        style (dict or str): dictionary of style or file name of style file
         filename (str): optional filename to write latex
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
@@ -504,6 +509,7 @@ def _generate_latex_source(
         clbits,
         ops,
         scale,
+        style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
         layout=layout,
