@@ -75,8 +75,8 @@ class BackendStatus:
                 return True
         return False
 
-    def _repr_html_(self):
-
+    def _repr_html_(self) -> str:
+        """Return html representation of the object"""
         rpr = self.__repr__()
         html_code = (
             f"<pre>{html.escape(rpr)}</pre>"
@@ -86,4 +86,4 @@ class BackendStatus:
             f"<b>status</b>: {self.status_msg}<br/>"
         )
 
-        return txt
+        return html_code
