@@ -40,18 +40,18 @@ class TestZ2Symmetries(QiskitOpflowTestCase):
         self.tapered_qubit_op = TaperedPauliSumOp(self.primitive, z2_symmetries)
 
     def test_multiply_parameter(self):
-        """ test for multiplication of parameter """
+        """test for multiplication of parameter"""
         param = Parameter("c")
         expected = PauliSumOp(self.primitive, coeff=param)
         self.assertEqual(param * self.tapered_qubit_op, expected)
 
     def test_assign_parameters(self):
-        """ test assign_parameters """
+        """test assign_parameters"""
         param = Parameter("c")
         parameterized_op = param * self.tapered_qubit_op
         expected = PauliSumOp(self.primitive, coeff=46)
         self.assertEqual(parameterized_op.assign_parameters({param: 46}), expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
