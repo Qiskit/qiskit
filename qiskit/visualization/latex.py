@@ -143,7 +143,7 @@ class QCircuitImage:
 
         self.cregs_bits = [self.bit_locations[bit]["register"] for bit in clbits]
         self.img_regs = {bit: ind for ind, bit in enumerate(self.ordered_bits)}
-        
+
         if self.cregbundle:
             self.img_width = len(qubits) + len(self.cregs)
         else:
@@ -485,8 +485,9 @@ class QCircuitImage:
                     elif isinstance(op.op, ControlledGate):
                         num_cols_op = self._build_ctrl_gate(op, gate_text, wire_list, column)
                     else:
-                        num_cols_op = self._build_multi_gate(op, gate_text, wire_list,
-                                                             cwire_list, column)
+                        num_cols_op = self._build_multi_gate(
+                            op, gate_text, wire_list, cwire_list, column
+                        )
 
                 num_cols_layer = max(num_cols_layer, num_cols_op)
 
@@ -519,8 +520,9 @@ class QCircuitImage:
                     if wire in cwire_list:
                         wire_ind = cwire_list.index(wire)
                 if wire in wire_list + cwire_list:
-                    self._latex[wire][col] = ghost_box + "_" +\
-                        "<"*(len(str(wire_ind))+2) + "{%s}" % wire_ind
+                    self._latex[wire][col] = (
+                        ghost_box + "_" + "<" * (len(str(wire_ind)) + 2) + "{%s}" % wire_ind
+                    )
                 else:
                     self._latex[wire][col] = ghost_box
         return num_cols_op
