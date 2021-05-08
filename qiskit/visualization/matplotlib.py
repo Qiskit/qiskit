@@ -14,7 +14,6 @@
 
 """mpl circuit visualization backend."""
 
-import collections
 import itertools
 import re
 
@@ -29,6 +28,17 @@ except ImportError:
     HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate, Gate
+from qiskit.circuit.library import (
+    Measure,
+    SwapGate,
+    RZZGate,
+    U1Gate,
+    PhaseGate,
+    XGate,
+    DCXGate,
+    ZGate,
+)
+from qiskit.extensions import Initialize
 from qiskit.visualization.qcstyle import load_style
 from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
 from qiskit.circuit.tools.pi_check import pi_check
@@ -43,64 +53,51 @@ PORDER_LINE = 3
 PORDER_REGLINE = 2
 PORDER_GRAY = 3
 PORDER_TEXT = 6
-PORDER_SUBP = 4
 
 
 class Anchor:
     """Locate the anchors for the gates"""
 
     def __init__(self, reg_num, yind, fold):
-        self.__yind = yind
-        self.__fold = fold
-        self.__reg_num = reg_num
-        self.__gate_placed = []
+        self._yind = yind
+        self._fold = fold
+        self._reg_num = reg_num
+        self._gate_placed = []
+        self.nxt_anchor_idx = 0
         self.gate_anchor = 0
 
     def plot_coord(self, index, gate_width, x_offset):
         """Set the coord positions for an index"""
-        h_pos = index % self.__fold + 1
+        h_pos = index % self._fold + 1
         # check folding
-        if self.__fold > 0:
-            if h_pos + (gate_width - 1) > self.__fold:
-                index += self.__fold - (h_pos - 1)
-            x_pos = index % self.__fold + 0.5 * gate_width + 0.04
-            y_pos = self.__yind - (index // self.__fold) * (self.__reg_num + 1)
+        if self._fold > 0:
+            if h_pos + (gate_width - 1) > self._fold:
+                index += self._fold - (h_pos - 1)
+            x_pos = index % self._fold + 0.5 * gate_width + 0.04
+            y_pos = self._yind - (index // self._fold) * (self._reg_num + 1)
         else:
             x_pos = index + 0.5 * gate_width + 0.04
-            y_pos = self.__yind
+            y_pos = self._yind
 
         # could have been updated, so need to store
         self.gate_anchor = index
         return x_pos + x_offset, y_pos
 
-    def is_locatable(self, index, gate_width):
-        """Determine if a gate has been placed"""
-        hold = [index + i for i in range(gate_width)]
-        for p in hold:
-            if p in self.__gate_placed:
-                return False
-        return True
-
-    def set_index(self, index, gate_width):
+    def set_index(self, index, layer_width):
         """Set the index for a gate"""
-        if self.__fold < 2:
+        if self._fold < 2:
             _index = index
         else:
-            h_pos = index % self.__fold + 1
-            if h_pos + (gate_width - 1) > self.__fold:
-                _index = index + self.__fold - (h_pos - 1) + 1
+            h_pos = index % self._fold + 1
+            if h_pos + (layer_width - 1) > self._fold:
+                _index = index + self._fold - (h_pos - 1) + 1
             else:
                 _index = index
-        for ii in range(gate_width):
-            if _index + ii not in self.__gate_placed:
-                self.__gate_placed.append(_index + ii)
-        self.__gate_placed.sort()
-
-    def get_index(self):
-        """Getter for the index"""
-        if self.__gate_placed:
-            return self.__gate_placed[-1] + 1
-        return 0
+        for ii in range(layer_width):
+            idx = _index + ii
+            if idx not in self._gate_placed:
+                self._gate_placed.append(idx)
+                self.nxt_anchor_idx = idx + 1
 
 
 class MatplotlibDrawer:
@@ -112,7 +109,7 @@ class MatplotlibDrawer:
         self,
         qubits,
         clbits,
-        ops,
+        nodes,
         scale=None,
         style=None,
         plot_barriers=True,
@@ -133,18 +130,18 @@ class MatplotlibDrawer:
             )
         from matplotlib import patches
 
-        self.patches_mod = patches
+        self._patches_mod = patches
         from matplotlib import pyplot as plt
 
-        self.plt_mod = plt
+        self._plt_mod = plt
         if not HAS_PYLATEX:
             raise ImportError(
                 "The class MatplotlibDrawer needs pylatexenc. "
                 'to install, run "pip install pylatexenc".'
             )
-        self._clbit = []
-        self._qubit = []
-        self._registers(clbits, qubits)
+
+        # First load register and index info for the cregs and qregs,
+        # then add any bits which don't have registers associated with them.
         self._bit_locations = {
             bit: {"register": register, "index": index}
             for register in cregs + qregs
@@ -154,10 +151,13 @@ class MatplotlibDrawer:
             if bit not in self._bit_locations:
                 self._bit_locations[bit] = {"register": None, "index": index}
 
-        self._qubit_dict = collections.OrderedDict()
-        self._clbit_dict = collections.OrderedDict()
-        self._ops = ops
+        self._qubit = qubits
+        self._clbit = clbits
+        self._qubit_dict = {}
+        self._clbit_dict = {}
+        self._nodes = nodes
         self._scale = 1.0 if scale is None else scale
+
         self._style, def_font_ratio = load_style(style)
 
         # If font/subfont ratio changes from default, have to scale width calculations for
@@ -169,6 +169,7 @@ class MatplotlibDrawer:
         self._fold = fold
         if self._fold < 2:
             self._fold = -1
+
         if ax is None:
             self._return_fig = True
             self._figure = plt.figure()
@@ -181,30 +182,21 @@ class MatplotlibDrawer:
         self._ax.axis("off")
         self._ax.set_aspect("equal")
         self._ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
+
         self._initial_state = initial_state
         self._cregbundle = cregbundle
         self._global_phase = global_phase
 
-        self._ast = None
         self._n_lines = 0
         self._xmax = 0
         self._ymax = 0
         self._x_offset = 0
         self._reg_long_text = 0
-        self._style["fs"] *= self._scale
-        self._style["sfs"] *= self._scale
+        self._fs = self._style["fs"] * self._scale
+        self._sfs = self._style["sfs"] * self._scale
         self._lwidth15 = 1.5 * self._scale
         self._lwidth2 = 2.0 * self._scale
-        self._gate_width = {}
-
-        # default is to use character table for text width,
-        # but get_renderer will work with some mpl backends
-        """fig = plt.figure()
-        if hasattr(fig.canvas, 'get_renderer'):
-            self._renderer = fig.canvas.get_renderer()
-        else:
-            self._renderer = None"""
-        self._renderer = None
+        self._node_width = {}
 
         # these char arrays are for finding text_width when not
         # using get_renderer method for the matplotlib backend
@@ -305,63 +297,541 @@ class MatplotlibDrawer:
             "}": (0.1896, 0.1188),
         }
 
-    def _registers(self, clbit, qubit):
-        self._clbit = []
-        for r in clbit:
-            self._clbit.append(r)
-        self._qubit = []
-        for r in qubit:
-            self._qubit.append(r)
+    def draw(self, filename=None, verbose=False):
+        """Draw method called from circuit_drawer"""
+        self._draw_regs()
+        self._draw_ops(verbose)
+        self._draw_wires()
+        _xl = -self._style["margin"][0]
+        _xr = self._xmax + self._style["margin"][1]
+        _yb = -self._ymax - self._style["margin"][2] + 1 - 0.5
+        _yt = self._style["margin"][3] + 0.5
+        self._ax.set_xlim(_xl, _xr)
+        self._ax.set_ylim(_yb, _yt)
 
-    @property
-    def ast(self):
-        """AST getter"""
-        return self._ast
+        # update figure size
+        fig_w = _xr - _xl
+        fig_h = _yt - _yb
+        if self._style["figwidth"] < 0.0:
+            self._style["figwidth"] = fig_w * BASE_SIZE * self._fs / 72 / WID
+        self._figure.set_size_inches(
+            self._style["figwidth"], self._style["figwidth"] * fig_h / fig_w
+        )
+        if self._global_phase:
+            self._plt_mod.text(
+                _xl, _yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
+            )
 
-    # This computes the width of a string in the default font
+        if filename:
+            self._figure.savefig(
+                filename,
+                dpi=self._style["dpi"],
+                bbox_inches="tight",
+                facecolor=self._figure.get_facecolor(),
+            )
+        if self._return_fig:
+            from matplotlib import get_backend
+
+            if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
+                self._plt_mod.close(self._figure)
+            return self._figure
+
+    def _draw_regs(self):
+        """Setup info for drawing reg names and numbers"""
+        longest_reg_name_width = 0
+        initial_qbit = " |0>" if self._initial_state else ""
+        initial_cbit = " 0" if self._initial_state else ""
+
+        def _fix_double_script(reg_name):
+            words = reg_name.split(" ")
+            words = [word.replace("_", r"\_") if word.count("_") > 1 else word for word in words]
+            words = [
+                word.replace("^", r"\^{\ }") if word.count("^") > 1 else word for word in words
+            ]
+            reg_name = " ".join(words).replace(" ", "\\;")
+            return reg_name
+
+        # quantum register
+        for ii, reg in enumerate(self._qubit):
+            register = self._bit_locations[reg]["register"]
+            index = self._bit_locations[reg]["index"]
+
+            if len(self._qubit) > 1:
+                if self._layout is None:
+                    qubit_name = "${{{name}}}_{{{index}}}$".format(name=register.name, index=index)
+                else:
+                    if self._layout[index]:
+                        virt_bit = self._layout[index]
+                        try:
+                            virt_reg = next(
+                                reg for reg in self._layout.get_registers() if virt_bit in reg
+                            )
+                            qubit_name = "${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$".format(
+                                name=virt_reg.name,
+                                index=virt_reg[:].index(virt_bit),
+                                physical=index,
+                            )
+
+                        except StopIteration:
+                            qubit_name = "${{{name}}} \\mapsto {{{physical}}}$".format(
+                                name=virt_bit, physical=index
+                            )
+                    else:
+                        qubit_name = "${{{physical}}}$".format(physical=index)
+            else:
+                qubit_name = "{name}".format(name=register.name)
+            qubit_name = _fix_double_script(qubit_name) + initial_qbit
+            text_width = self._get_text_width(qubit_name, self._fs) * 1.15
+
+            if text_width > longest_reg_name_width:
+                longest_reg_name_width = text_width
+            pos = -ii
+            self._qubit_dict[ii] = {
+                "y": pos,
+                "reg_name": qubit_name,
+                "index": index,
+                "group": register,
+            }
+            self._n_lines += 1
+
+        # classical register
+        if self._clbit:
+            n_clbit = self._clbit.copy()
+            n_clbit.pop(0)
+            idx = 0
+            y_off = -len(self._qubit)
+            for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._clbit, n_clbit)):
+                pos = y_off - idx
+                register = self._bit_locations[reg]["register"]
+                index = self._bit_locations[reg]["index"]
+
+                if self._cregbundle:
+                    clbit_name = "{}".format(register.name)
+                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
+                    text_width = self._get_text_width(register.name, self._fs) * 1.15
+                    if text_width > longest_reg_name_width:
+                        longest_reg_name_width = text_width
+                    self._clbit_dict[ii] = {
+                        "y": pos,
+                        "reg_name": clbit_name,
+                        "index": index,
+                        "group": register,
+                    }
+                    if not (not nreg or register != self._bit_locations[nreg]["register"]):
+                        continue
+                else:
+                    clbit_name = "${}_{{{}}}$".format(register.name, index)
+                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
+                    text_width = self._get_text_width(register.name, self._fs) * 1.15
+                    if text_width > longest_reg_name_width:
+                        longest_reg_name_width = text_width
+                    self._clbit_dict[ii] = {
+                        "y": pos,
+                        "reg_name": clbit_name,
+                        "index": index,
+                        "group": register,
+                    }
+                self._n_lines += 1
+                idx += 1
+
+        self._reg_long_text = longest_reg_name_width
+        self._x_offset = -1.2 + self._reg_long_text
+
+    def _draw_ops(self, verbose=False):
+
+        # generate coordinate manager
+        self._q_anchors = {}
+        for key, qubit in self._qubit_dict.items():
+            self._q_anchors[key] = Anchor(reg_num=self._n_lines, yind=qubit["y"], fold=self._fold)
+        self._c_anchors = {}
+        for key, clbit in self._clbit_dict.items():
+            self._c_anchors[key] = Anchor(reg_num=self._n_lines, yind=clbit["y"], fold=self._fold)
+        # draw the ops
+        prev_anc = -1
+        for layer in self._nodes:
+            layer_width = self._get_layer_width(layer)
+            this_anc = prev_anc + 1
+
+            # draw the gates in this layer
+            for node in layer:
+                # get display text and colors
+                gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
+                    node, "mpl", style=self._style
+                )
+                fc, ec, gt, tc, sc, lc = self._get_colors(node, raw_gate_text)
+
+                # get coordinates
+                c_idxs, q_xy, c_xy, this_anc = self._get_coords(node, layer_width, this_anc)
+
+                # bottom and top point of qubit
+                qubit_b = min(q_xy, key=lambda xy: xy[1])
+                qubit_t = max(q_xy, key=lambda xy: xy[1])
+
+                if verbose:
+                    print(node.op)
+
+                # load param
+                param = ""
+                if (
+                    node.type == "op"
+                    and hasattr(node.op, "params")
+                    and len(node.op.params) > 0
+                    and not any(isinstance(param, np.ndarray) for param in node.op.params)
+                ):
+                    param = "{}".format(get_param_str(node, "mpl", ndigits=3))
+                    if isinstance(node.op, Initialize):
+                        param = "$[{}]$".format(param.replace("$", ""))
+
+                # add conditional
+                if node.op.condition:
+                    cond_xy = [
+                        self._c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
+                        for ii in self._clbit_dict
+                    ]
+                    self._condition(node, cond_xy, qubit_b)
+
+                # draw measure
+                if isinstance(node.op, Measure):
+                    self._measure(node, q_xy[0], c_xy[0], c_idxs, fc=fc, ec=ec, gt=gt, sc=sc)
+
+                # draw barriers, snapshots, etc.
+                elif node.op._directive:
+                    if self._plot_barriers:
+                        self._barrier(q_xy)
+
+                # draw single qubit gates
+                elif len(q_xy) == 1:
+                    self._gate(
+                        node,
+                        q_xy[0],
+                        fc=fc,
+                        ec=ec,
+                        gt=gt,
+                        sc=sc,
+                        text=gate_text,
+                        subtext=str(param),
+                    )
+
+                # draw controlled gates
+                elif isinstance(node.op, ControlledGate):
+                    self._control_gate(
+                        node,
+                        q_xy,
+                        qubit_b,
+                        qubit_t,
+                        fc=fc,
+                        ec=ec,
+                        gt=gt,
+                        sc=sc,
+                        tc=tc,
+                        lc=lc,
+                        text=gate_text,
+                        subtext=str(param),
+                        ctrl_text=ctrl_text,
+                    )
+
+                # draw multi-qubit gate as final default
+                else:
+                    self._multiqubit_gate(
+                        node,
+                        q_xy,
+                        fc=fc,
+                        ec=ec,
+                        gt=gt,
+                        sc=sc,
+                        lc=lc,
+                        text=gate_text,
+                        subtext=str(param),
+                    )
+
+            # adjust the column if there have been barriers encountered, but not plotted
+            barrier_offset = 0
+            if not self._plot_barriers:
+                # only adjust if everything in the layer wasn't plotted
+                barrier_offset = -1 if all(node.op._directive for op in layer) else 0
+
+            prev_anc = this_anc + layer_width + barrier_offset - 1
+
+    def _draw_wires(self):
+        """After the ops have been drawn, draw the wires, regs, and index numbers. Must
+        do this after draw_ops in order to know how long the wires need to be."""
+
+        anchors = [self._q_anchors[ii].nxt_anchor_idx for ii in self._qubit_dict]
+        max_anc = max(anchors) if anchors else 0
+        n_fold = max(0, max_anc - 1) // self._fold if self._fold > 0 else 0
+
+        # window size
+        if max_anc > self._fold > 0:
+            self._xmax = self._fold + 1 + self._x_offset - 0.9
+            self._ymax = (n_fold + 1) * (self._n_lines + 1) - 1
+        else:
+            x_incr = 0.4 if not self._nodes else 0.9
+            self._xmax = max_anc + 1 + self._x_offset - x_incr
+            self._ymax = self._n_lines
+
+        # add horizontal lines
+        for ii in range(n_fold + 1):
+            feedline_r = n_fold > 0 and n_fold > ii
+            feedline_l = ii > 0
+            self._draw_regs_sub(ii, feedline_l, feedline_r)
+
+        # draw anchor index number
+        if self._style["index"]:
+            for ii in range(max_anc):
+                if self._fold > 0:
+                    x_coord = ii % self._fold + self._reg_long_text - 0.67
+                    y_coord = -(ii // self._fold) * (self._n_lines + 1) + 0.7
+                else:
+                    x_coord = ii + self._reg_long_text - 0.67
+                    y_coord = 0.7
+                self._ax.text(
+                    x_coord,
+                    y_coord,
+                    str(ii + 1),
+                    ha="center",
+                    va="center",
+                    fontsize=self._sfs,
+                    color=self._style["tc"],
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
+
+    def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
+        """Draw the reg names and numbers, wires, and vertical lines at the end"""
+        # quantum register
+        for qubit in self._qubit_dict.values():
+            qubit_name = qubit["reg_name"]
+            y = qubit["y"] - n_fold * (self._n_lines + 1)
+            self._ax.text(
+                self._x_offset - 0.2,
+                y,
+                qubit_name,
+                ha="right",
+                va="center",
+                fontsize=1.25 * self._fs,
+                color=self._style["tc"],
+                clip_on=True,
+                zorder=PORDER_TEXT,
+            )
+            # draw the qubit wire
+            self._line([self._x_offset, y], [self._xmax, y], zorder=PORDER_REGLINE)
+
+        # classical register
+        this_clbit_dict = {}
+        for clbit in self._clbit_dict.values():
+            clbit_name = clbit["reg_name"]
+            y = clbit["y"] - n_fold * (self._n_lines + 1)
+            if y not in this_clbit_dict.keys():
+                this_clbit_dict[y] = {"val": 1, "reg_name": clbit_name}
+            else:
+                this_clbit_dict[y]["val"] += 1
+        for y, this_clbit in this_clbit_dict.items():
+            # cregbundle
+            if this_clbit["val"] > 1:
+                self._ax.plot(
+                    [self._x_offset + 0.2, self._x_offset + 0.3],
+                    [y - 0.1, y + 0.1],
+                    color=self._style["cc"],
+                    zorder=PORDER_LINE,
+                )
+                self._ax.text(
+                    self._x_offset + 0.1,
+                    y + 0.1,
+                    str(this_clbit["val"]),
+                    ha="left",
+                    va="bottom",
+                    fontsize=0.8 * self._fs,
+                    color=self._style["tc"],
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
+            self._ax.text(
+                self._x_offset - 0.2,
+                y,
+                this_clbit["reg_name"],
+                ha="right",
+                va="center",
+                fontsize=1.25 * self._fs,
+                color=self._style["tc"],
+                clip_on=True,
+                zorder=PORDER_TEXT,
+            )
+            # draw the clbit wire
+            self._line(
+                [self._x_offset, y],
+                [self._xmax, y],
+                lc=self._style["cc"],
+                ls=self._style["cline"],
+                zorder=PORDER_REGLINE,
+            )
+
+        # lf vertical line at either end
+        if feedline_l or feedline_r:
+            xpos_l = self._x_offset - 0.01
+            xpos_r = self._fold + self._x_offset + 0.1
+            ypos1 = -n_fold * (self._n_lines + 1)
+            ypos2 = -(n_fold + 1) * (self._n_lines) - n_fold + 1
+            if feedline_l:
+                self._ax.plot(
+                    [xpos_l, xpos_l],
+                    [ypos1, ypos2],
+                    color=self._style["lc"],
+                    linewidth=self._lwidth15,
+                    zorder=PORDER_LINE,
+                )
+            if feedline_r:
+                self._ax.plot(
+                    [xpos_r, xpos_r],
+                    [ypos1, ypos2],
+                    color=self._style["lc"],
+                    linewidth=self._lwidth15,
+                    zorder=PORDER_LINE,
+                )
+
+    def _get_layer_width(self, layer):
+        # compute the layer_width for this layer
+        widest_box = WID
+        for node in layer:
+            self._node_width[node] = WID
+            num_ctrl_qubits = (
+                0 if not hasattr(node.op, "num_ctrl_qubits") else node.op.num_ctrl_qubits
+            )
+
+            if node.op._directive or isinstance(node.op, Measure):
+                continue
+
+            base_name = None if not hasattr(node.op, "base_gate") else node.op.base_gate.name
+            gate_text, ctrl_text, _ = get_gate_ctrl_text(node, "mpl", style=self._style)
+
+            # if single qubit, no params, and no labels, layer_width is 1
+            if (
+                not hasattr(node.op, "params")
+                and (len(node.qargs) - num_ctrl_qubits) == 1
+                and gate_text in (node.op.name, base_name)
+                and ctrl_text is None
+            ):
+                continue
+
+            # small increments at end of the 3 _get_text_width calls are for small
+            # spacing adjustments between gates
+            ctrl_width = self._get_text_width(ctrl_text, fontsize=self._sfs) - 0.05
+
+            # get param_width, but 0 for gates with array params
+            if (
+                hasattr(node.op, "params")
+                and not any(isinstance(param, np.ndarray) for param in node.op.params)
+                and len(node.op.params) > 0
+            ):
+                param = get_param_str(node, "mpl", ndigits=3)
+                if node.op.name == "initialize":
+                    param = "[%s]" % param
+                param = "${}$".format(param)
+                raw_param_width = self._get_text_width(param, fontsize=self._sfs, param=True)
+                param_width = raw_param_width + 0.08
+            else:
+                param_width = raw_param_width = 0.0
+
+            if node.op.name == "rzz" or base_name in ["u1", "p", "rzz"]:
+                raw_gate_width = (
+                    self._get_text_width(gate_text + " ()", fontsize=self._sfs) + param_width
+                )
+                gate_width = raw_gate_width * 1.5
+            else:
+                raw_gate_width = self._get_text_width(gate_text, fontsize=self._fs)
+                gate_width = raw_gate_width + 0.10
+                # add .21 for the qubit numbers on the left of the multibit gates
+                if len(node.qargs) - num_ctrl_qubits > 1:
+                    gate_width += 0.21
+                    raw_gate_width += 0.21
+
+            box_width = max(gate_width, ctrl_width, param_width, WID)
+            if box_width > widest_box:
+                widest_box = box_width
+            self._node_width[node] = max(raw_gate_width, raw_param_width, WID)
+
+        return int(widest_box) + 1
+
+    def _get_coords(self, node, layer_width, this_anc):
+        # get qubit index
+        q_idxs = []
+        for qarg in node.qargs:
+            for index, reg in self._qubit_dict.items():
+                if (
+                    reg["group"] == self._bit_locations[qarg]["register"]
+                    and reg["index"] == self._bit_locations[qarg]["index"]
+                ):
+                    q_idxs.append(index)
+                    break
+
+        # get clbit index
+        c_idxs = []
+        for carg in node.cargs:
+            for index, reg in self._clbit_dict.items():
+                if (
+                    reg["group"] == self._bit_locations[carg]["register"]
+                    and reg["index"] == self._bit_locations[carg]["index"]
+                ):
+                    c_idxs.append(index)
+                    break
+
+        # only add the gate to the anchors if it is going to be plotted.
+        if self._plot_barriers or not node.op._directive:
+            for ii in q_idxs:
+                self._q_anchors[ii].set_index(this_anc, layer_width)
+
+        # qubit coordinate
+        q_xy = [
+            self._q_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset) for ii in q_idxs
+        ]
+        # clbit coordinate
+        c_xy = [
+            self._c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset) for ii in c_idxs
+        ]
+        # update index based on the value from plotting
+        this_anc = self._q_anchors[q_idxs[0]].gate_anchor
+
+        return c_idxs, q_xy, c_xy, this_anc
+
     def _get_text_width(self, text, fontsize, param=False):
+        """This computes the width of a string in the default font"""
         if not text:
             return 0.0
 
-        if self._renderer:
-            t = self.plt_mod.text(0.5, 0.5, text, fontsize=fontsize)
-            return t.get_window_extent(renderer=self._renderer).width / 60.0
-        else:
-            math_mode_match = self._mathmode_regex.search(text)
-            num_underscores = 0
-            num_carets = 0
-            if math_mode_match:
-                math_mode_text = math_mode_match.group(1)
-                num_underscores = math_mode_text.count("_")
-                num_carets = math_mode_text.count("^")
-            text = LatexNodes2Text().latex_to_text(text.replace("$$", ""))
+        math_mode_match = self._mathmode_regex.search(text)
+        num_underscores = 0
+        num_carets = 0
+        if math_mode_match:
+            math_mode_text = math_mode_match.group(1)
+            num_underscores = math_mode_text.count("_")
+            num_carets = math_mode_text.count("^")
+        text = LatexNodes2Text().latex_to_text(text.replace("$$", ""))
 
-            # If there are subscripts or superscripts in mathtext string
-            # we need to account for that spacing by manually removing
-            # from text string for text length
-            if num_underscores:
-                text = text.replace("_", "", num_underscores)
-            if num_carets:
-                text = text.replace("^", "", num_carets)
+        # If there are subscripts or superscripts in mathtext string
+        # we need to account for that spacing by manually removing
+        # from text string for text length
+        if num_underscores:
+            text = text.replace("_", "", num_underscores)
+        if num_carets:
+            text = text.replace("^", "", num_carets)
 
-            # This changes hyphen to + to match width of math mode minus sign.
-            if param:
-                text = text.replace("-", "+")
+        # This changes hyphen to + to match width of math mode minus sign.
+        if param:
+            text = text.replace("-", "+")
 
-            f = 0 if fontsize == self._style["fs"] else 1
-            sum_text = 0.0
-            for c in text:
-                try:
-                    sum_text += self._char_list[c][f]
-                except KeyError:
-                    # if non-ASCII char, use width of 'c', an average size
-                    sum_text += self._char_list["c"][f]
-            if f == 1:
-                sum_text *= self._subfont_factor
-            return sum_text
+        f = 0 if fontsize == self._fs else 1
+        sum_text = 0.0
+        for c in text:
+            try:
+                sum_text += self._char_list[c][f]
+            except KeyError:
+                # if non-ASCII char, use width of 'c', an average size
+                sum_text += self._char_list["c"][f]
+        if f == 1:
+            sum_text *= self._subfont_factor
+        return sum_text
 
-    def _get_colors(self, op, gate_text):
-        base_name = None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
+    def _get_colors(self, node, gate_text):
+        base_name = None if not hasattr(node.op, "base_gate") else node.op.base_gate.name
         if gate_text in self._style["dispcol"]:
             color = self._style["dispcol"][gate_text]
             # Backward compatibility for style dict using 'displaycolor' with
@@ -396,87 +866,133 @@ class MatplotlibDrawer:
         sc = gt
         return fc, ec, gt, self._style["tc"], sc, lc
 
-    def _multiqubit_gate(self, op, xy, fc=None, ec=None, gt=None, sc=None, text="", subtext=""):
-        xpos = min([x[0] for x in xy])
-        ypos = min([y[1] for y in xy])
-        ypos_max = max([y[1] for y in xy])
-        fs = self._style["fs"]
-        sfs = self._style["sfs"]
+    def _condition(self, node, cond_xy, qubit_b):
+        mask = 0
+        for index, cbit in enumerate(self._clbit):
+            if self._bit_locations[cbit]["register"] == node.op.condition[0]:
+                mask |= 1 << index
+        val = node.op.condition[1]
+        # cbit list to consider
+        fmt_c = "{{:0{}b}}".format(len(cond_xy))
+        cmask = list(fmt_c.format(mask))[::-1]
+        # value
+        fmt_v = "{{:0{}b}}".format(cmask.count("1"))
+        vlist = list(fmt_v.format(val))[::-1]
+        # plot conditionals
+        v_ind = 0
+        xy_plot = []
+        for xy, m in zip(cond_xy, cmask):
+            if m == "1":
+                if xy not in xy_plot:
+                    fc = self._style["lc"] if vlist[v_ind] == "1" else self._style["bg"]
+                    box = self._patches_mod.Circle(
+                        xy=xy,
+                        radius=WID * 0.15,
+                        fc=fc,
+                        ec=self._style["lc"],
+                        linewidth=self._lwidth15,
+                        zorder=PORDER_GATE,
+                    )
+                    self._ax.add_patch(box)
+                    xy_plot.append(xy)
+                v_ind += 1
+        clbit_b = min(xy_plot, key=lambda xy: xy[1])
+        xpos, ypos = clbit_b
+        self._ax.text(
+            xpos,
+            ypos - 0.3 * HIG,
+            hex(val),
+            ha="center",
+            va="top",
+            fontsize=self._sfs,
+            color=self._style["tc"],
+            clip_on=True,
+            zorder=PORDER_TEXT,
+        )
+        self._line(qubit_b, clbit_b, lc=self._style["cc"], ls=self._style["cline"])
 
-        wid = max(self._gate_width[op] + 0.21, WID)
+    def _measure(self, node, qxy, cxy, c_idxs, fc=None, ec=None, gt=None, sc=None):
+        qx, qy = qxy
+        cx, cy = cxy
+        cid = self._clbit_dict[c_idxs[0]]["index"]
 
-        qubit_span = abs(ypos) - abs(ypos_max) + 1
-        height = HIG + (qubit_span - 1)
-        box = self.patches_mod.Rectangle(
-            xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
-            width=wid,
-            height=height,
-            fc=fc,
-            ec=ec,
-            linewidth=self._lwidth15,
+        # draw gate box
+        self._gate(node, qxy, fc=fc, ec=ec, gt=gt, sc=sc)
+
+        # add measure symbol
+        arc = self._patches_mod.Arc(
+            xy=(qx, qy - 0.15 * HIG),
+            width=WID * 0.7,
+            height=HIG * 0.7,
+            theta1=0,
+            theta2=180,
+            fill=False,
+            ec=gt,
+            linewidth=self._lwidth2,
             zorder=PORDER_GATE,
         )
-        self._ax.add_patch(box)
-
-        # annotate inputs
-        for bit, y in enumerate([x[1] for x in xy]):
+        self._ax.add_patch(arc)
+        self._ax.plot(
+            [qx, qx + 0.35 * WID],
+            [qy - 0.15 * HIG, qy + 0.20 * HIG],
+            color=gt,
+            linewidth=self._lwidth2,
+            zorder=PORDER_GATE,
+        )
+        # arrow
+        self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style["cc"], ls=self._style["cline"])
+        arrowhead = self._patches_mod.Polygon(
+            (
+                (cx - 0.20 * WID, cy + 0.35 * WID),
+                (cx + 0.20 * WID, cy + 0.35 * WID),
+                (cx, cy + 0.04),
+            ),
+            fc=self._style["cc"],
+            ec=None,
+        )
+        self._ax.add_artist(arrowhead)
+        # target
+        if self._cregbundle:
             self._ax.text(
-                xpos + 0.07 - 0.5 * wid,
-                y,
-                str(bit),
+                cx + 0.25,
+                cy + 0.1,
+                str(cid),
                 ha="left",
-                va="center",
-                fontsize=fs,
-                color=gt,
+                va="bottom",
+                fontsize=0.8 * self._fs,
+                color=self._style["tc"],
                 clip_on=True,
                 zorder=PORDER_TEXT,
             )
-        if text:
-            if subtext:
-                self._ax.text(
-                    xpos + 0.11,
-                    ypos + 0.4 * height,
-                    text,
-                    ha="center",
-                    va="center",
-                    fontsize=fs,
-                    color=gt,
-                    clip_on=True,
-                    zorder=PORDER_TEXT,
-                )
-                self._ax.text(
-                    xpos + 0.11,
-                    ypos + 0.2 * height,
-                    subtext,
-                    ha="center",
-                    va="center",
-                    fontsize=sfs,
-                    color=sc,
-                    clip_on=True,
-                    zorder=PORDER_TEXT,
-                )
-            else:
-                self._ax.text(
-                    xpos + 0.11,
-                    ypos + 0.5 * (qubit_span - 1),
-                    text,
-                    ha="center",
-                    va="center",
-                    fontsize=fs,
-                    color=gt,
-                    clip_on=True,
-                    zorder=PORDER_TEXT,
-                    wrap=True,
-                )
 
-    def _gate(self, op, xy, fc=None, ec=None, gt=None, sc=None, text="", subtext=""):
+    def _barrier(self, q_xy):
+        for xy in q_xy:
+            xpos, ypos = xy
+            self._ax.plot(
+                [xpos, xpos],
+                [ypos + 0.5, ypos - 0.5],
+                linewidth=self._scale,
+                linestyle="dashed",
+                color=self._style["lc"],
+                zorder=PORDER_TEXT,
+            )
+            box = self._patches_mod.Rectangle(
+                xy=(xpos - (0.3 * WID), ypos - 0.5),
+                width=0.6 * WID,
+                height=1,
+                fc=self._style["bc"],
+                ec=None,
+                alpha=0.6,
+                linewidth=self._lwidth15,
+                zorder=PORDER_GRAY,
+            )
+            self._ax.add_patch(box)
+
+    def _gate(self, node, xy, fc=None, ec=None, gt=None, sc=None, text="", subtext=""):
         xpos, ypos = xy
-        fs = self._style["fs"]
-        sfs = self._style["sfs"]
+        wid = self._node_width[node]
 
-        wid = max(self._gate_width[op], WID)
-
-        box = self.patches_mod.Rectangle(
+        box = self._patches_mod.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
             width=wid,
             height=HIG,
@@ -495,7 +1011,7 @@ class MatplotlibDrawer:
                     text,
                     ha="center",
                     va="center",
-                    fontsize=fs,
+                    fontsize=self._fs,
                     color=gt,
                     clip_on=True,
                     zorder=PORDER_TEXT,
@@ -506,7 +1022,7 @@ class MatplotlibDrawer:
                     subtext,
                     ha="center",
                     va="center",
-                    fontsize=sfs,
+                    fontsize=self._sfs,
                     color=sc,
                     clip_on=True,
                     zorder=PORDER_TEXT,
@@ -518,25 +1034,333 @@ class MatplotlibDrawer:
                     text,
                     ha="center",
                     va="center",
-                    fontsize=fs,
+                    fontsize=self._fs,
                     color=gt,
                     clip_on=True,
                     zorder=PORDER_TEXT,
                 )
 
-    def _sidetext(self, op, xy, tc=None, text=""):
+    def _multiqubit_gate(
+        self, node, xy, fc=None, ec=None, gt=None, sc=None, lc=None, text="", subtext=""
+    ):
+        # swap gate
+        if isinstance(node.op, SwapGate):
+            self._swap(xy, lc)
+            return
+
+        xpos = min([x[0] for x in xy])
+        ypos = min([y[1] for y in xy])
+        ypos_max = max([y[1] for y in xy])
+
+        wid = self._node_width[node]
+
+        qubit_span = abs(ypos) - abs(ypos_max) + 1
+        height = HIG + (qubit_span - 1)
+        box = self._patches_mod.Rectangle(
+            xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
+            width=wid,
+            height=height,
+            fc=fc,
+            ec=ec,
+            linewidth=self._lwidth15,
+            zorder=PORDER_GATE,
+        )
+        self._ax.add_patch(box)
+
+        # annotate inputs
+        for bit, y in enumerate([x[1] for x in xy]):
+            self._ax.text(
+                xpos + 0.07 - 0.5 * wid,
+                y,
+                str(bit),
+                ha="left",
+                va="center",
+                fontsize=self._fs,
+                color=gt,
+                clip_on=True,
+                zorder=PORDER_TEXT,
+            )
+        if text:
+            if subtext:
+                self._ax.text(
+                    xpos + 0.11,
+                    ypos + 0.4 * height,
+                    text,
+                    ha="center",
+                    va="center",
+                    fontsize=self._fs,
+                    color=gt,
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
+                self._ax.text(
+                    xpos + 0.11,
+                    ypos + 0.2 * height,
+                    subtext,
+                    ha="center",
+                    va="center",
+                    fontsize=self._sfs,
+                    color=sc,
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
+            else:
+                self._ax.text(
+                    xpos + 0.11,
+                    ypos + 0.5 * (qubit_span - 1),
+                    text,
+                    ha="center",
+                    va="center",
+                    fontsize=self._fs,
+                    color=gt,
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                    wrap=True,
+                )
+
+    def _control_gate(
+        self,
+        node,
+        xy,
+        qubit_b,
+        qubit_t,
+        fc=None,
+        ec=None,
+        gt=None,
+        sc=None,
+        tc=None,
+        lc=None,
+        text="",
+        subtext="",
+        ctrl_text="",
+    ):
+        base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
+
+        if isinstance(node.op, RZZGate) or isinstance(
+            base_type, (U1Gate, PhaseGate, ZGate, RZZGate)
+        ):
+            self._build_symmetric_gate(node, base_type, xy, fc=fc)
+
+        num_ctrl_qubits = node.op.num_ctrl_qubits
+        num_qargs = len(xy) - num_ctrl_qubits
+        self._set_ctrl_bits(
+            node.op.ctrl_state, num_ctrl_qubits, xy, ec=ec, tc=tc, text=ctrl_text, qargs=node.qargs
+        )
+        self._line(qubit_b, qubit_t, lc=lc)
+        if num_qargs == 1 and base_name == "x":
+            tgt_color = self._style["dispcol"]["target"]
+            tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
+            self._x_tgt_qubit(xy[num_ctrl_qubits], ec=ec, ac=tgt)
+        elif num_qargs == 1:
+            self._build_gate(
+                node,
+                xy[num_ctrl_qubits],
+                fc=fc,
+                ec=ec,
+                gt=gt,
+                sc=sc,
+                text=gate_text,
+                subtext="{}".format(param),
+            )
+        else:
+            self._build_multiqubit_gate(
+                node,
+                xy[num_ctrl_qubits:],
+                fc=fc,
+                ec=ec,
+                gt=gt,
+                sc=sc,
+                text=gate_text,
+                subtext="{}".format(param),
+            )
+
+    def _set_ctrl_bits(
+        self, ctrl_state, num_ctrl_qubits, qbit, ec=None, tc=None, text="", qargs=None
+    ):
+        # place the control label at the top or bottom of controls
+        if text:
+            qlist = [self._bit_locations[qubit]["index"] for qubit in qargs]
+            ctbits = qlist[:num_ctrl_qubits]
+            qubits = qlist[num_ctrl_qubits:]
+            max_ctbit = max(ctbits)
+            min_ctbit = min(ctbits)
+            top = min(qubits) > min_ctbit
+
+        # display the control qubits as open or closed based on ctrl_state
+        cstate = "{:b}".format(ctrl_state).rjust(num_ctrl_qubits, "0")[::-1]
+        for i in range(num_ctrl_qubits):
+            fc_open_close = ec if cstate[i] == "1" else self._style["bg"]
+            text_top = None
+            if text:
+                if top and qlist[i] == min_ctbit:
+                    text_top = True
+                elif not top and qlist[i] == max_ctbit:
+                    text_top = False
+            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec, tc=tc, text=text, text_top=text_top)
+
+    def _ctrl_qubit(self, xy, fc=None, ec=None, tc=None, text="", text_top=None):
+        xpos, ypos = xy
+        box = self._patches_mod.Circle(
+            xy=(xpos, ypos),
+            radius=WID * 0.15,
+            fc=fc,
+            ec=ec,
+            linewidth=self._lwidth15,
+            zorder=PORDER_GATE,
+        )
+        self._ax.add_patch(box)
+        # display the control label at the top or bottom if there is one
+        if text_top is True:
+            self._ax.text(
+                xpos,
+                ypos + 0.7 * HIG,
+                text,
+                ha="center",
+                va="top",
+                fontsize=self._sfs,
+                color=tc,
+                clip_on=True,
+                zorder=PORDER_TEXT,
+            )
+        elif text_top is False:
+            self._ax.text(
+                xpos,
+                ypos - 0.3 * HIG,
+                text,
+                ha="center",
+                va="top",
+                fontsize=self._sfs,
+                color=tc,
+                clip_on=True,
+                zorder=PORDER_TEXT,
+            )
+
+    def _x_tgt_qubit(self, xy, ec=None, ac=None):
+        linewidth = self._lwidth2
+        xpos, ypos = xy
+        box = self._patches_mod.Circle(
+            xy=(xpos, ypos),
+            radius=HIG * 0.35,
+            fc=ec,
+            ec=ec,
+            linewidth=linewidth,
+            zorder=PORDER_GATE,
+        )
+        self._ax.add_patch(box)
+
+        # add '+' symbol
+        self._ax.plot(
+            [xpos, xpos],
+            [ypos - 0.2 * HIG, ypos + 0.2 * HIG],
+            color=ac,
+            linewidth=linewidth,
+            zorder=PORDER_GATE + 1,
+        )
+        self._ax.plot(
+            [xpos - 0.2 * HIG, xpos + 0.2 * HIG],
+            [ypos, ypos],
+            color=ac,
+            linewidth=linewidth,
+            zorder=PORDER_GATE + 1,
+        )
+
+    def _symmetric_gate(
+        self,
+        node,
+        base_type,
+        xy,
+        qubit_b,
+        qubit_t,
+        fc=None,
+        ec=None,
+        tc=None,
+        gt=None,
+        sc=None,
+        lc=None,
+        gate_text="",
+        ctrl_text="",
+        param="",
+    ):
+        base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
+
+        # cz and mcz gates
+        if not isinstance(node.op, ZGate) and isinstance(base_type, ZGate):
+            num_ctrl_qubits = node.op.num_ctrl_qubits
+            self._set_ctrl_bits(
+                node.op.ctrl_state,
+                num_ctrl_qubits,
+                xy,
+                ec=ec,
+                tc=tc,
+                text=ctrl_text,
+                qargs=node.qargs,
+            )
+            self._ctrl_qubit(xy[-1], fc=ec, ec=ec, tc=tc)
+            self._line(qubit_b, qubit_t, lc=lc, zorder=PORDER_LINE + 1)
+
+        """# cu1, cp, rzz, and controlled rzz gates (sidetext gates)
+        elif node.op.name == 'rzz' or base_name in ['u1', 'p', 'rzz']:
+            num_ctrl_qubits = 0 if node.op.name == 'rzz' else node.op.num_ctrl_qubits
+            if node.op.name != 'rzz':
+                self._set_ctrl_bits(node.op.ctrl_state, num_ctrl_qubits,
+                                    xy, ec=ec, tc=tc, text=ctrl_text, qargs=node.qargs)
+            self._ctrl_qubit(xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
+            if base_name not in ['u1', 'p']:
+                self._ctrl_qubit(xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
+            self._sidetext(node, qubit_b, tc=tc,
+                           text='{}'.format(gate_text) + ' ' + '({})'.format(param))
+            self._line(qubit_b, qubit_t, lc=lc)
+
+        # swap gate
+        elif node.op.name == 'swap':
+            self._swap(xy[0], color=lc)
+            self._swap(xy[1], color=lc)
+            self._line(qubit_b, qubit_t, lc=lc)
+
+        # cswap gate
+        elif node.op.name != 'swap' and base_name == 'swap':
+            num_ctrl_qubits = node.op.num_ctrl_qubits
+            self._set_ctrl_bits(node.op.ctrl_state, num_ctrl_qubits,
+                                xy, ec=ec, tc=tc, text=ctrl_text, qargs=node.qargs)
+            self._swap(xy[num_ctrl_qubits], color=lc)
+            self._swap(xy[num_ctrl_qubits + 1], color=lc)
+            self._line(qubit_b, qubit_t, lc=lc)"""
+
+    def _swap(self, xy, color=None):
+        self._swap_cross(xy[0], color=color)
+        self._swap_cross(xy[1], color=color)
+        self._line(xy[0], xy[1], lc=color)
+
+    def _swap_cross(self, xy, color=None):
+        xpos, ypos = xy
+
+        self._ax.plot(
+            [xpos - 0.20 * WID, xpos + 0.20 * WID],
+            [ypos - 0.20 * WID, ypos + 0.20 * WID],
+            color=color,
+            linewidth=self._lwidth2,
+            zorder=PORDER_LINE + 1,
+        )
+        self._ax.plot(
+            [xpos - 0.20 * WID, xpos + 0.20 * WID],
+            [ypos + 0.20 * WID, ypos - 0.20 * WID],
+            color=color,
+            linewidth=self._lwidth2,
+            zorder=PORDER_LINE + 1,
+        )
+
+    def _sidetext(self, node, xy, tc=None, text=""):
         xpos, ypos = xy
 
         # 0.11 = the initial gap, add 1/2 text width to place on the right
-        text_width = self._gate_width[op]
-        xp = xpos + 0.11 + text_width / 2
+        xp = xpos + 0.11 + self._node_width[node] / 2
         self._ax.text(
             xp,
             ypos + HIG,
             text,
             ha="center",
             va="top",
-            fontsize=self._style["sfs"],
+            fontsize=self._sfs,
             color=tc,
             clip_on=True,
             zorder=PORDER_TEXT,
@@ -577,865 +1401,6 @@ class MatplotlibDrawer:
                 linestyle=linestyle,
                 zorder=zorder,
             )
-
-    def _measure(self, op, qxy, cxy, cid, fc=None, ec=None, gt=None, sc=None):
-        qx, qy = qxy
-        cx, cy = cxy
-
-        # draw gate box
-        self._gate(op, qxy, fc=fc, ec=ec, gt=gt, sc=sc)
-
-        # add measure symbol
-        arc = self.patches_mod.Arc(
-            xy=(qx, qy - 0.15 * HIG),
-            width=WID * 0.7,
-            height=HIG * 0.7,
-            theta1=0,
-            theta2=180,
-            fill=False,
-            ec=gt,
-            linewidth=self._lwidth2,
-            zorder=PORDER_GATE,
-        )
-        self._ax.add_patch(arc)
-        self._ax.plot(
-            [qx, qx + 0.35 * WID],
-            [qy - 0.15 * HIG, qy + 0.20 * HIG],
-            color=gt,
-            linewidth=self._lwidth2,
-            zorder=PORDER_GATE,
-        )
-        # arrow
-        self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style["cc"], ls=self._style["cline"])
-        arrowhead = self.patches_mod.Polygon(
-            (
-                (cx - 0.20 * WID, cy + 0.35 * WID),
-                (cx + 0.20 * WID, cy + 0.35 * WID),
-                (cx, cy + 0.04),
-            ),
-            fc=self._style["cc"],
-            ec=None,
-        )
-        self._ax.add_artist(arrowhead)
-        # target
-        if self._cregbundle:
-            self._ax.text(
-                cx + 0.25,
-                cy + 0.1,
-                str(cid),
-                ha="left",
-                va="bottom",
-                fontsize=0.8 * self._style["fs"],
-                color=self._style["tc"],
-                clip_on=True,
-                zorder=PORDER_TEXT,
-            )
-
-    def _conditional(self, xy, istrue=False):
-        xpos, ypos = xy
-
-        fc = self._style["lc"] if istrue else self._style["bg"]
-        box = self.patches_mod.Circle(
-            xy=(xpos, ypos),
-            radius=WID * 0.15,
-            fc=fc,
-            ec=self._style["lc"],
-            linewidth=self._lwidth15,
-            zorder=PORDER_GATE,
-        )
-        self._ax.add_patch(box)
-
-    def _ctrl_qubit(self, xy, fc=None, ec=None, tc=None, text="", text_top=None):
-        xpos, ypos = xy
-        box = self.patches_mod.Circle(
-            xy=(xpos, ypos),
-            radius=WID * 0.15,
-            fc=fc,
-            ec=ec,
-            linewidth=self._lwidth15,
-            zorder=PORDER_GATE,
-        )
-        self._ax.add_patch(box)
-        # display the control label at the top or bottom if there is one
-        if text_top is True:
-            self._ax.text(
-                xpos,
-                ypos + 0.7 * HIG,
-                text,
-                ha="center",
-                va="top",
-                fontsize=self._style["sfs"],
-                color=tc,
-                clip_on=True,
-                zorder=PORDER_TEXT,
-            )
-        elif text_top is False:
-            self._ax.text(
-                xpos,
-                ypos - 0.3 * HIG,
-                text,
-                ha="center",
-                va="top",
-                fontsize=self._style["sfs"],
-                color=tc,
-                clip_on=True,
-                zorder=PORDER_TEXT,
-            )
-
-    def _set_ctrl_bits(
-        self, ctrl_state, num_ctrl_qubits, qbit, ec=None, tc=None, text="", qargs=None
-    ):
-        # place the control label at the top or bottom of controls
-        if text:
-            qlist = [self._bit_locations[qubit]["index"] for qubit in qargs]
-            ctbits = qlist[:num_ctrl_qubits]
-            qubits = qlist[num_ctrl_qubits:]
-            max_ctbit = max(ctbits)
-            min_ctbit = min(ctbits)
-            top = min(qubits) > min_ctbit
-
-        # display the control qubits as open or closed based on ctrl_state
-        cstate = "{:b}".format(ctrl_state).rjust(num_ctrl_qubits, "0")[::-1]
-        for i in range(num_ctrl_qubits):
-            fc_open_close = ec if cstate[i] == "1" else self._style["bg"]
-            text_top = None
-            if text:
-                if top and qlist[i] == min_ctbit:
-                    text_top = True
-                elif not top and qlist[i] == max_ctbit:
-                    text_top = False
-            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec, tc=tc, text=text, text_top=text_top)
-
-    def _x_tgt_qubit(self, xy, ec=None, ac=None):
-        linewidth = self._lwidth2
-        xpos, ypos = xy
-        box = self.patches_mod.Circle(
-            xy=(xpos, ypos),
-            radius=HIG * 0.35,
-            fc=ec,
-            ec=ec,
-            linewidth=linewidth,
-            zorder=PORDER_GATE,
-        )
-        self._ax.add_patch(box)
-
-        # add '+' symbol
-        self._ax.plot(
-            [xpos, xpos],
-            [ypos - 0.2 * HIG, ypos + 0.2 * HIG],
-            color=ac,
-            linewidth=linewidth,
-            zorder=PORDER_GATE + 1,
-        )
-        self._ax.plot(
-            [xpos - 0.2 * HIG, xpos + 0.2 * HIG],
-            [ypos, ypos],
-            color=ac,
-            linewidth=linewidth,
-            zorder=PORDER_GATE + 1,
-        )
-
-    def _swap(self, xy, color=None):
-        xpos, ypos = xy
-
-        self._ax.plot(
-            [xpos - 0.20 * WID, xpos + 0.20 * WID],
-            [ypos - 0.20 * WID, ypos + 0.20 * WID],
-            color=color,
-            linewidth=self._lwidth2,
-            zorder=PORDER_LINE + 1,
-        )
-        self._ax.plot(
-            [xpos - 0.20 * WID, xpos + 0.20 * WID],
-            [ypos + 0.20 * WID, ypos - 0.20 * WID],
-            color=color,
-            linewidth=self._lwidth2,
-            zorder=PORDER_LINE + 1,
-        )
-
-    def _barrier(self, config):
-        xys = config["coord"]
-        for xy in xys:
-            xpos, ypos = xy
-            self._ax.plot(
-                [xpos, xpos],
-                [ypos + 0.5, ypos - 0.5],
-                linewidth=self._scale,
-                linestyle="dashed",
-                color=self._style["lc"],
-                zorder=PORDER_TEXT,
-            )
-            box = self.patches_mod.Rectangle(
-                xy=(xpos - (0.3 * WID), ypos - 0.5),
-                width=0.6 * WID,
-                height=1,
-                fc=self._style["bc"],
-                ec=None,
-                alpha=0.6,
-                linewidth=self._lwidth15,
-                zorder=PORDER_GRAY,
-            )
-            self._ax.add_patch(box)
-
-    def draw(self, filename=None, verbose=False):
-        """Draw method called from circuit_drawer"""
-        self._draw_regs()
-        self._draw_ops(verbose)
-        _xl = -self._style["margin"][0]
-        _xr = self._xmax + self._style["margin"][1]
-        _yb = -self._ymax - self._style["margin"][2] + 1 - 0.5
-        _yt = self._style["margin"][3] + 0.5
-        self._ax.set_xlim(_xl, _xr)
-        self._ax.set_ylim(_yb, _yt)
-
-        # update figure size
-        fig_w = _xr - _xl
-        fig_h = _yt - _yb
-        if self._style["figwidth"] < 0.0:
-            self._style["figwidth"] = fig_w * BASE_SIZE * self._style["fs"] / 72 / WID
-        self._figure.set_size_inches(
-            self._style["figwidth"], self._style["figwidth"] * fig_h / fig_w
-        )
-        if self._global_phase:
-            self.plt_mod.text(
-                _xl, _yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
-            )
-
-        if filename:
-            self._figure.savefig(
-                filename,
-                dpi=self._style["dpi"],
-                bbox_inches="tight",
-                facecolor=self._figure.get_facecolor(),
-            )
-        if self._return_fig:
-            from matplotlib import get_backend
-
-            if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-                self.plt_mod.close(self._figure)
-            return self._figure
-
-    def _draw_regs(self):
-        longest_reg_name_width = 0
-        initial_qbit = " |0>" if self._initial_state else ""
-        initial_cbit = " 0" if self._initial_state else ""
-
-        def _fix_double_script(reg_name):
-            words = reg_name.split(" ")
-            words = [word.replace("_", r"\_") if word.count("_") > 1 else word for word in words]
-            words = [
-                word.replace("^", r"\^{\ }") if word.count("^") > 1 else word for word in words
-            ]
-            reg_name = " ".join(words).replace(" ", "\\;")
-            return reg_name
-
-        # quantum register
-        fs = self._style["fs"]
-        for ii, reg in enumerate(self._qubit):
-            register = self._bit_locations[reg]["register"]
-            index = self._bit_locations[reg]["index"]
-
-            if len(self._qubit) > 1:
-                if self._layout is None:
-                    qubit_name = "${{{name}}}_{{{index}}}$".format(name=register.name, index=index)
-                else:
-                    if self._layout[index]:
-                        virt_bit = self._layout[index]
-                        try:
-                            virt_reg = next(
-                                reg for reg in self._layout.get_registers() if virt_bit in reg
-                            )
-                            qubit_name = "${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$".format(
-                                name=virt_reg.name,
-                                index=virt_reg[:].index(virt_bit),
-                                physical=index,
-                            )
-
-                        except StopIteration:
-                            qubit_name = "${{{name}}} \\mapsto {{{physical}}}$".format(
-                                name=virt_bit, physical=index
-                            )
-                    else:
-                        qubit_name = "${{{physical}}}$".format(physical=index)
-            else:
-                qubit_name = "{name}".format(name=register.name)
-            qubit_name = _fix_double_script(qubit_name) + initial_qbit
-            text_width = self._get_text_width(qubit_name, fs) * 1.15
-
-            if text_width > longest_reg_name_width:
-                longest_reg_name_width = text_width
-            pos = -ii
-            self._qubit_dict[ii] = {
-                "y": pos,
-                "reg_name": qubit_name,
-                "index": index,
-                "group": register,
-            }
-            self._n_lines += 1
-
-        # classical register
-        if self._clbit:
-            n_clbit = self._clbit.copy()
-            n_clbit.pop(0)
-            idx = 0
-            y_off = -len(self._qubit)
-            for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._clbit, n_clbit)):
-                pos = y_off - idx
-                register = self._bit_locations[reg]["register"]
-                index = self._bit_locations[reg]["index"]
-
-                if self._cregbundle:
-                    clbit_name = "{}".format(register.name)
-                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
-                    text_width = self._get_text_width(register.name, fs) * 1.15
-                    if text_width > longest_reg_name_width:
-                        longest_reg_name_width = text_width
-                    self._clbit_dict[ii] = {
-                        "y": pos,
-                        "reg_name": clbit_name,
-                        "index": index,
-                        "group": register,
-                    }
-                    if not (not nreg or register != self._bit_locations[nreg]["register"]):
-                        continue
-                else:
-                    clbit_name = "${}_{{{}}}$".format(register.name, index)
-                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
-                    text_width = self._get_text_width(register.name, fs) * 1.15
-                    if text_width > longest_reg_name_width:
-                        longest_reg_name_width = text_width
-                    self._clbit_dict[ii] = {
-                        "y": pos,
-                        "reg_name": clbit_name,
-                        "index": index,
-                        "group": register,
-                    }
-                self._n_lines += 1
-                idx += 1
-
-        self._reg_long_text = longest_reg_name_width
-        self._x_offset = -1.2 + self._reg_long_text
-
-    def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
-        # quantum register
-        fs = self._style["fs"]
-        for qubit in self._qubit_dict.values():
-            qubit_name = qubit["reg_name"]
-            y = qubit["y"] - n_fold * (self._n_lines + 1)
-            self._ax.text(
-                self._x_offset - 0.2,
-                y,
-                qubit_name,
-                ha="right",
-                va="center",
-                fontsize=1.25 * fs,
-                color=self._style["tc"],
-                clip_on=True,
-                zorder=PORDER_TEXT,
-            )
-            self._line([self._x_offset, y], [self._xmax, y], zorder=PORDER_REGLINE)
-
-        # classical register
-        this_clbit_dict = {}
-        for clbit in self._clbit_dict.values():
-            clbit_name = clbit["reg_name"]
-            y = clbit["y"] - n_fold * (self._n_lines + 1)
-            if y not in this_clbit_dict.keys():
-                this_clbit_dict[y] = {"val": 1, "reg_name": clbit_name}
-            else:
-                this_clbit_dict[y]["val"] += 1
-        for y, this_clbit in this_clbit_dict.items():
-            # cregbundle
-            if this_clbit["val"] > 1:
-                self._ax.plot(
-                    [self._x_offset + 0.2, self._x_offset + 0.3],
-                    [y - 0.1, y + 0.1],
-                    color=self._style["cc"],
-                    zorder=PORDER_LINE,
-                )
-                self._ax.text(
-                    self._x_offset + 0.1,
-                    y + 0.1,
-                    str(this_clbit["val"]),
-                    ha="left",
-                    va="bottom",
-                    fontsize=0.8 * fs,
-                    color=self._style["tc"],
-                    clip_on=True,
-                    zorder=PORDER_TEXT,
-                )
-            self._ax.text(
-                self._x_offset - 0.2,
-                y,
-                this_clbit["reg_name"],
-                ha="right",
-                va="center",
-                fontsize=1.25 * fs,
-                color=self._style["tc"],
-                clip_on=True,
-                zorder=PORDER_TEXT,
-            )
-            self._line(
-                [self._x_offset, y],
-                [self._xmax, y],
-                lc=self._style["cc"],
-                ls=self._style["cline"],
-                zorder=PORDER_REGLINE,
-            )
-
-        # lf vertical line at either end
-        if feedline_l or feedline_r:
-            xpos_l = self._x_offset - 0.01
-            xpos_r = self._fold + self._x_offset + 0.1
-            ypos1 = -n_fold * (self._n_lines + 1)
-            ypos2 = -(n_fold + 1) * (self._n_lines) - n_fold + 1
-            if feedline_l:
-                self._ax.plot(
-                    [xpos_l, xpos_l],
-                    [ypos1, ypos2],
-                    color=self._style["lc"],
-                    linewidth=self._lwidth15,
-                    zorder=PORDER_LINE,
-                )
-            if feedline_r:
-                self._ax.plot(
-                    [xpos_r, xpos_r],
-                    [ypos1, ypos2],
-                    color=self._style["lc"],
-                    linewidth=self._lwidth15,
-                    zorder=PORDER_LINE,
-                )
-
-    def _draw_ops(self, verbose=False):
-        _standard_1q_gates = [
-            "x",
-            "y",
-            "z",
-            "id",
-            "h",
-            "r",
-            "s",
-            "sdg",
-            "t",
-            "tdg",
-            "rx",
-            "ry",
-            "rz",
-            "rxx",
-            "ryy",
-            "rzx",
-            "u1",
-            "u2",
-            "u3",
-            "u",
-            "swap",
-            "reset",
-            "sx",
-            "sxdg",
-            "p",
-        ]
-        _barriers = {"coord": [], "group": []}
-
-        #
-        # generate coordinate manager
-        #
-        q_anchors = {}
-        for key, qubit in self._qubit_dict.items():
-            q_anchors[key] = Anchor(reg_num=self._n_lines, yind=qubit["y"], fold=self._fold)
-        c_anchors = {}
-        for key, clbit in self._clbit_dict.items():
-            c_anchors[key] = Anchor(reg_num=self._n_lines, yind=clbit["y"], fold=self._fold)
-        #
-        # draw the ops
-        #
-        prev_anc = -1
-        fs = self._style["fs"]
-        sfs = self._style["sfs"]
-        for layer in self._ops:
-            widest_box = 0.0
-            self._gate_width = {}
-            #
-            # compute the layer_width for this layer
-            #
-            for op in layer:
-                self._gate_width[op] = WID
-
-                if op.op._directive or op.name == "measure":
-                    continue
-
-                base_name = None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
-                gate_text, ctrl_text, _ = get_gate_ctrl_text(op, "mpl", style=self._style)
-
-                # if a standard_gate, no params, and no labels, layer_width is 1
-                if not hasattr(op.op, "params") and (
-                    (op.name in _standard_1q_gates or base_name in _standard_1q_gates)
-                    and gate_text in (op.name, base_name)
-                    and ctrl_text is None
-                ):
-                    continue
-
-                # small increments at end of the 3 _get_text_width calls are for small
-                # spacing adjustments between gates
-                ctrl_width = self._get_text_width(ctrl_text, fontsize=sfs) - 0.05
-
-                # get param_width, but 0 for gates with array params
-                if (
-                    hasattr(op.op, "params")
-                    and not any(isinstance(param, np.ndarray) for param in op.op.params)
-                    and len(op.op.params) > 0
-                ):
-                    param = get_param_str(op, "mpl", ndigits=3)
-                    if op.name == "initialize":
-                        param = "[%s]" % param
-                    raw_param_width = self._get_text_width(param, fontsize=sfs, param=True)
-                    param_width = raw_param_width + 0.08
-                else:
-                    param_width = raw_param_width = 0.0
-
-                if op.name == "rzz" or base_name in ["u1", "p", "rzz"]:
-                    if base_name == "u1":
-                        tname = "U1"
-                    elif base_name == "p":
-                        tname = "P"
-                    else:
-                        tname = "ZZ"
-                    raw_gate_width = (
-                        self._get_text_width(tname + " ()", fontsize=sfs) + raw_param_width
-                    )
-                    gate_width = (raw_gate_width + 0.08) * 1.5
-                else:
-                    raw_gate_width = self._get_text_width(gate_text, fontsize=fs)
-                    gate_width = raw_gate_width + 0.10
-                    # add .21 for the qubit numbers on the left of the multibit gates
-                    if op.name not in _standard_1q_gates and base_name not in _standard_1q_gates:
-                        gate_width += 0.21
-
-                box_width = max(gate_width, ctrl_width, param_width, WID)
-                if box_width > widest_box:
-                    widest_box = box_width
-                self._gate_width[op] = max(raw_gate_width, raw_param_width)
-
-            layer_width = int(widest_box) + 1
-            this_anc = prev_anc + 1
-            #
-            # draw the gates in this layer
-            #
-            for op in layer:
-                base_name = None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
-                gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
-                    op, "mpl", style=self._style
-                )
-                fc, ec, gt, tc, sc, lc = self._get_colors(op, raw_gate_text)
-
-                # get qubit index
-                q_idxs = []
-                for qarg in op.qargs:
-                    for index, reg in self._qubit_dict.items():
-                        if (
-                            reg["group"] == self._bit_locations[qarg]["register"]
-                            and reg["index"] == self._bit_locations[qarg]["index"]
-                        ):
-                            q_idxs.append(index)
-                            break
-
-                # get clbit index
-                c_idxs = []
-                for carg in op.cargs:
-                    for index, reg in self._clbit_dict.items():
-                        if (
-                            reg["group"] == self._bit_locations[carg]["register"]
-                            and reg["index"] == self._bit_locations[carg]["index"]
-                        ):
-                            c_idxs.append(index)
-                            break
-
-                # only add the gate to the anchors if it is going to be plotted.
-                # this prevents additional blank wires at the end of the line if
-                # the last instruction is a barrier type
-                if self._plot_barriers or not op.op._directive:
-                    for ii in q_idxs:
-                        q_anchors[ii].set_index(this_anc, layer_width)
-
-                # qubit coordinate
-                q_xy = [
-                    q_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset) for ii in q_idxs
-                ]
-                # clbit coordinate
-                c_xy = [
-                    c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset) for ii in c_idxs
-                ]
-                # bottom and top point of qubit
-                qubit_b = min(q_xy, key=lambda xy: xy[1])
-                qubit_t = max(q_xy, key=lambda xy: xy[1])
-
-                # update index based on the value from plotting
-                this_anc = q_anchors[q_idxs[0]].gate_anchor
-
-                if verbose:
-                    print(op)
-
-                # load param
-                if (
-                    op.type == "op"
-                    and hasattr(op.op, "params")
-                    and len(op.op.params) > 0
-                    and not any(isinstance(param, np.ndarray) for param in op.op.params)
-                ):
-                    param = "{}".format(get_param_str(op, "mpl", ndigits=3))
-                else:
-                    param = ""
-
-                # conditional gate
-                if op.type == "op" and op.op.condition:
-                    c_xy = [
-                        c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
-                        for ii in self._clbit_dict
-                    ]
-                    mask = 0
-                    for index, cbit in enumerate(self._clbit):
-                        if self._bit_locations[cbit]["register"] == op.op.condition[0]:
-                            mask |= 1 << index
-                    val = op.op.condition[1]
-                    # cbit list to consider
-                    fmt_c = "{{:0{}b}}".format(len(c_xy))
-                    cmask = list(fmt_c.format(mask))[::-1]
-                    # value
-                    fmt_v = "{{:0{}b}}".format(cmask.count("1"))
-                    vlist = list(fmt_v.format(val))[::-1]
-                    # plot conditionals
-                    v_ind = 0
-                    xy_plot = []
-                    for xy, m in zip(c_xy, cmask):
-                        if m == "1":
-                            if xy not in xy_plot:
-                                if vlist[v_ind] == "1" or self._cregbundle:
-                                    self._conditional(xy, istrue=True)
-                                else:
-                                    self._conditional(xy, istrue=False)
-                                xy_plot.append(xy)
-                            v_ind += 1
-                    clbit_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
-                    xpos, ypos = clbit_b
-                    self._ax.text(
-                        xpos,
-                        ypos - 0.3 * HIG,
-                        hex(val),
-                        ha="center",
-                        va="top",
-                        fontsize=sfs,
-                        color=self._style["tc"],
-                        clip_on=True,
-                        zorder=PORDER_TEXT,
-                    )
-                    self._line(qubit_t, clbit_b, lc=self._style["cc"], ls=self._style["cline"])
-                #
-                # draw special gates
-                #
-                if op.name == "measure":
-                    vv = self._clbit_dict[c_idxs[0]]["index"]
-                    self._measure(op, q_xy[0], c_xy[0], vv, fc=fc, ec=ec, gt=gt, sc=sc)
-
-                elif op.op._directive:
-                    _barriers = {"coord": [], "group": []}
-                    for index, qbit in enumerate(q_idxs):
-                        q_group = self._qubit_dict[qbit]["group"]
-                        if q_group not in _barriers["group"]:
-                            _barriers["group"].append(q_group)
-                        _barriers["coord"].append(q_xy[index])
-                    if self._plot_barriers:
-                        self._barrier(_barriers)
-
-                elif op.name == "initialize":
-                    vec = "$[{}]$".format(param.replace("$", ""))
-                    if len(q_xy) == 1:
-                        self._gate(
-                            op, q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec
-                        )
-                    else:
-                        self._multiqubit_gate(
-                            op, q_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec
-                        )
-
-                #
-                # draw single qubit gates
-                #
-                elif len(q_xy) == 1:
-                    self._gate(
-                        op, q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=str(param)
-                    )
-                #
-                # draw controlled and special gates
-                #
-                # cz and mcz gates
-                elif op.name != "z" and base_name == "z":
-                    num_ctrl_qubits = op.op.num_ctrl_qubits
-                    self._set_ctrl_bits(
-                        op.op.ctrl_state,
-                        num_ctrl_qubits,
-                        q_xy,
-                        ec=ec,
-                        tc=tc,
-                        text=ctrl_text,
-                        qargs=op.qargs,
-                    )
-                    self._ctrl_qubit(q_xy[-1], fc=ec, ec=ec, tc=tc)
-                    self._line(qubit_b, qubit_t, lc=lc, zorder=PORDER_LINE + 1)
-
-                # cu1, cp, rzz, and controlled rzz gates (sidetext gates)
-                elif op.name == "rzz" or base_name in ["u1", "p", "rzz"]:
-                    num_ctrl_qubits = 0 if op.name == "rzz" else op.op.num_ctrl_qubits
-                    if op.name != "rzz":
-                        self._set_ctrl_bits(
-                            op.op.ctrl_state,
-                            num_ctrl_qubits,
-                            q_xy,
-                            ec=ec,
-                            tc=tc,
-                            text=ctrl_text,
-                            qargs=op.qargs,
-                        )
-                    self._ctrl_qubit(q_xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
-                    if base_name not in ["u1", "p"]:
-                        self._ctrl_qubit(q_xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
-                    if base_name == "u1":
-                        if self._style["disptex"]["u1"].find("\\mathrm") >= 0:
-                            stext = self._style["disptex"]["u1"]
-                        else:
-                            stext = f"$\\mathrm{{{self._style['disptex']['u1']}}}$"
-                    elif base_name == "p":
-                        stext = "P"
-                    else:
-                        stext = "ZZ"
-                    self._sidetext(
-                        op, qubit_b, tc=tc, text="{}".format(stext) + " " + "({})".format(param)
-                    )
-                    self._line(qubit_b, qubit_t, lc=lc)
-
-                # swap gate
-                elif op.name == "swap":
-                    self._swap(q_xy[0], color=lc)
-                    self._swap(q_xy[1], color=lc)
-                    self._line(qubit_b, qubit_t, lc=lc)
-
-                # cswap gate
-                elif op.name != "swap" and base_name == "swap":
-                    num_ctrl_qubits = op.op.num_ctrl_qubits
-                    self._set_ctrl_bits(
-                        op.op.ctrl_state,
-                        num_ctrl_qubits,
-                        q_xy,
-                        ec=ec,
-                        tc=tc,
-                        text=ctrl_text,
-                        qargs=op.qargs,
-                    )
-                    self._swap(q_xy[num_ctrl_qubits], color=lc)
-                    self._swap(q_xy[num_ctrl_qubits + 1], color=lc)
-                    self._line(qubit_b, qubit_t, lc=lc)
-
-                # all other controlled gates
-                elif isinstance(op.op, ControlledGate):
-                    num_ctrl_qubits = op.op.num_ctrl_qubits
-                    num_qargs = len(q_xy) - num_ctrl_qubits
-                    self._set_ctrl_bits(
-                        op.op.ctrl_state,
-                        num_ctrl_qubits,
-                        q_xy,
-                        ec=ec,
-                        tc=tc,
-                        text=ctrl_text,
-                        qargs=op.qargs,
-                    )
-                    self._line(qubit_b, qubit_t, lc=lc)
-                    if num_qargs == 1 and base_name == "x":
-                        tgt_color = self._style["dispcol"]["target"]
-                        tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
-                        self._x_tgt_qubit(q_xy[num_ctrl_qubits], ec=ec, ac=tgt)
-                    elif num_qargs == 1:
-                        self._gate(
-                            op,
-                            q_xy[num_ctrl_qubits],
-                            fc=fc,
-                            ec=ec,
-                            gt=gt,
-                            sc=sc,
-                            text=gate_text,
-                            subtext="{}".format(param),
-                        )
-                    else:
-                        self._multiqubit_gate(
-                            op,
-                            q_xy[num_ctrl_qubits:],
-                            fc=fc,
-                            ec=ec,
-                            gt=gt,
-                            sc=sc,
-                            text=gate_text,
-                            subtext="{}".format(param),
-                        )
-
-                # draw multi-qubit gate as final default
-                else:
-                    self._multiqubit_gate(
-                        op,
-                        q_xy,
-                        fc=fc,
-                        ec=ec,
-                        gt=gt,
-                        sc=sc,
-                        text=gate_text,
-                        subtext="{}".format(param),
-                    )
-
-            # adjust the column if there have been barriers encountered, but not plotted
-            barrier_offset = 0
-            if not self._plot_barriers:
-                # only adjust if everything in the layer wasn't plotted
-                barrier_offset = -1 if all(op.op._directive for op in layer) else 0
-
-            prev_anc = this_anc + layer_width + barrier_offset - 1
-        #
-        # adjust window size and draw horizontal lines
-        #
-        anchors = [q_anchors[ii].get_index() for ii in self._qubit_dict]
-        max_anc = max(anchors) if anchors else 0
-        n_fold = max(0, max_anc - 1) // self._fold if self._fold > 0 else 0
-
-        # window size
-        if max_anc > self._fold > 0:
-            self._xmax = self._fold + 1 + self._x_offset - 0.9
-            self._ymax = (n_fold + 1) * (self._n_lines + 1) - 1
-        else:
-            x_incr = 0.4 if not self._ops else 0.9
-            self._xmax = max_anc + 1 + self._x_offset - x_incr
-            self._ymax = self._n_lines
-
-        # add horizontal lines
-        for ii in range(n_fold + 1):
-            feedline_r = n_fold > 0 and n_fold > ii
-            feedline_l = ii > 0
-            self._draw_regs_sub(ii, feedline_l, feedline_r)
-
-        # draw anchor index number
-        if self._style["index"]:
-            for ii in range(max_anc):
-                if self._fold > 0:
-                    x_coord = ii % self._fold + self._reg_long_text - 0.67
-                    y_coord = -(ii // self._fold) * (self._n_lines + 1) + 0.7
-                else:
-                    x_coord = ii + self._reg_long_text - 0.67
-                    y_coord = 0.7
-                self._ax.text(
-                    x_coord,
-                    y_coord,
-                    str(ii + 1),
-                    ha="center",
-                    va="center",
-                    fontsize=sfs,
-                    color=self._style["tc"],
-                    clip_on=True,
-                    zorder=PORDER_TEXT,
-                )
 
 
 class HasMatplotlibWrapper:
