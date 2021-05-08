@@ -16,8 +16,8 @@ from .probability import ProbDistribution
 
 
 class QuasiDistribution(dict):
-    """A dict-like class for representing qasi-probabilities.
-    """
+    """A dict-like class for representing qasi-probabilities."""
+
     def __init__(self, data, shots=None):
         """Builds a quasiprobability distribution object.
 
@@ -49,14 +49,14 @@ class QuasiDistribution(dict):
         beta = 0
         diff = 0
         for key, val in sorted_probs.items():
-            temp = val+beta/num_elems
+            temp = val + beta / num_elems
             if temp < 0:
                 beta += val
                 num_elems -= 1
-                diff += val*val
+                diff += val * val
             else:
-                diff += (beta/num_elems)*(beta/num_elems)
-                new_probs[key] = sorted_probs[key] + beta/num_elems
+                diff += (beta / num_elems) * (beta / num_elems)
+                new_probs[key] = sorted_probs[key] + beta / num_elems
         if return_distance:
             return ProbDistribution(new_probs, self.shots), sqrt(diff)
         return ProbDistribution(new_probs, self.shots)
