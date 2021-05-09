@@ -14,7 +14,7 @@
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library import RZGate
 from qiskit.circuit.library.basis_change import QFT
 
