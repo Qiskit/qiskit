@@ -14,7 +14,6 @@
 Stabilizer state class.
 """
 
-import copy
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -77,7 +76,8 @@ class StabilizerState(QuantumState):
             self._data = Clifford(data, validate)
 
         # Initialize
-        super().__init__(op_shape=OpShape.auto(num_qubits_r=self._data.num_qubits, num_qubits_l=0))
+        super().__init__(op_shape=OpShape.auto(num_qubits_r=self._data.num_qubits,
+                                               num_qubits_l=0))
 
     def __eq__(self, other):
         return self._data.stabilizer == other._data.stabilizer
@@ -352,8 +352,8 @@ class StabilizerState(QuantumState):
         if qargs is None:
             return StabilizerState(Clifford((np.eye(2 * self.clifford.num_qubits))))
 
+        ret = self.copy()
         for qubit in qargs:
-            ret = self.copy()
             # Apply measurement and get classical outcome
             outcome = ret._measure_and_update(qubit, 0)
 
