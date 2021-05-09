@@ -17,7 +17,6 @@ Stabilizer state class.
 import copy
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.op_shape import OpShape
