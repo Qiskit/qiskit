@@ -454,6 +454,63 @@ class OpenBullet(DirectOnQuWire):
         self.mid_bck = "─"
 
 
+class DirectOnClWire(DrawElement):
+    """
+    Element to the classical wire (without the box).
+    """
+
+    def __init__(self, label=""):
+        super().__init__(label)
+        self.top_format = " %s "
+        self.mid_format = "═%s═"
+        self.bot_format = " %s "
+        self._mid_padding = self.mid_bck = "═"
+        self.top_connector = {"│": "│"}
+        self.bot_connector = {"│": "│"}
+
+
+class ClBullet(DirectOnClWire):
+    """Draws a bullet on classical wire (usually with a connector). E.g. the top part of a CX gate.
+
+    ::
+
+        top:
+        mid: ═■═  ═══■═══
+        bot:  │      │
+    """
+
+    def __init__(self, top_connect="", bot_connect="", conditional=False, label=None, bottom=False):
+        super().__init__("■")
+        self.top_connect = top_connect
+        self.bot_connect = "║" if conditional else bot_connect
+        if label and bottom:
+            self.bot_connect = label
+        elif label:
+            self.top_connect = label
+        self.mid_bck = "═"
+
+
+class ClOpenBullet(DirectOnClWire):
+    """Draws an open bullet on classical wire (usually with a connector). E.g. the top part of a CX gate.
+
+    ::
+
+        top:
+        mid: ═o═  ═══o═══
+        bot:  │      │
+    """
+
+    def __init__(self, top_connect="", bot_connect="", conditional=False, label=None, bottom=False):
+        super().__init__("o")
+        self.top_connect = top_connect
+        self.bot_connect = "║" if conditional else bot_connect
+        if label and bottom:
+            self.bot_connect = label
+        elif label:
+            self.top_connect = label
+        self.mid_bck = "═"
+
+
 class EmptyWire(DrawElement):
     """This element is just the wire, with no instructions nor operations."""
 
@@ -1409,17 +1466,20 @@ class Layer:
     def set_cond_bullets(self, val, clbits):
         """Sets bullets for classical conditioning when cregbundle=False.
 
-            Args:
-                val (int): The condition value.
-                clbits (list[Clbit]): The list of classical bits on
-                    which the instruction is conditioned.
+        Args:
+            val (int): The condition value.
+            clbits (list[Clbit]): The list of classical bits on
+                which the instruction is conditioned.
         """
         vlist = list(val[::-1])
         for i, bit in enumerate(clbits):
+            bot_connect = " "
+            if bit == clbits[-1]:
+                bot_connect = "=%s" % str(int(val, 2))
             if vlist[i] == "1":
-                self.set_clbit(bit, Bullet(top_connect="║"))
+                self.set_clbit(bit, ClBullet(top_connect="║", bot_connect=bot_connect))
             elif vlist[i] == "0":
-                self.set_clbit(bit, OpenBullet(top_connect="║"))
+                self.set_clbit(bit, ClOpenBullet(top_connect="║", bot_connect=bot_connect))
 
     def set_qu_multibox(
         self,
