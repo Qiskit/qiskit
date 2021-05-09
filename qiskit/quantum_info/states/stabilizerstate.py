@@ -136,7 +136,9 @@ class StabilizerState(QuantumState):
 
     def conjugate(self):
         """Return the conjugate of the operator."""
-        return StabilizerState(Clifford.conjugate(self.clifford))
+        ret = self.copy()
+        ret._data = ret._data.conjugate()
+        return ret
 
     def tensor(self, other):
         """Return the tensor product stabilzier state self ⊗ other.
@@ -188,7 +190,9 @@ class StabilizerState(QuantumState):
         """
         if not isinstance(other, StabilizerState):
             other = StabilizerState(other)
-        return StabilizerState((self.clifford).compose(other.clifford, qargs))
+        ret = self.copy()
+        ret._data = self.clifford.compose(other.clifford, qargs=qargs)
+        return ret
 
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
