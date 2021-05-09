@@ -18,9 +18,9 @@ import copy
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.symplectic import Clifford, Pauli
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
 
@@ -56,56 +56,44 @@ class StabilizerState(QuantumState):
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
-    def __init__(self, data):
+    def __init__(self, data, validate=True):
         """Initialize a StabilizerState object.
 
         Args:
             data (StabilizerState or Clifford or Pauli or QuantumCircuit or
                   qiskit.circuit.Instruction):
                 Data from which the stabilizer state can be constructed.
-
-        Raises:
-            QiskitError: if input data is not a valid stabilizer state (not a valid Clifford).
+            validate (boolean): validate that the stabilizer state data is
+                a valid Clifford.
         """
 
-        # Initialize from a Clifford
-        if isinstance(data, Clifford):
-            self._data = data
-
+        # Initialize from another StabilizerState
+        if isinstance(data, StabilizerState):
+            self._data = data._data
         # Initialize from a Pauli
         elif isinstance(data, Pauli):
             self._data = Clifford(data.to_instruction())
-
-        # Initialize from another StabilizerState
-        elif isinstance(data, StabilizerState):
-            self._data = data._data
-
-        # Initialize from a QuantumCircuit or Instruction object
-        elif isinstance(data, (QuantumCircuit, Instruction)):
-            self._data = Clifford.from_circuit(data)
-
-        # Validate that Clifford table is a symplectic matrix
-        if not self.is_valid():
-            raise QiskitError(
-                'Invalid StabilizerState. Input is not a valid Clifford.')
+        # Initialize from a Clifford, QuantumCircuit or Instruction
+        else:
+            self._data = Clifford(data, validate)
 
         # Initialize
-        super().__init__()
+        super().__init__(op_shape=OpShape.auto(num_qubits_r=self._data.num_qubits, num_qubits_l=0))
 
     def __eq__(self, other):
-        return self._data == other._data
+        return self._data.stabilizer == other._data.stabilizer
 
     def __repr__(self):
         return 'StabilizerState({})'.format(self._data.stabilizer)
 
     @property
-    def data(self):
-        """Return StabilizerState data"""
+    def clifford(self):
+        """Return StabilizerState Clifford data"""
         return self._data
 
     def is_valid(self, atol=None, rtol=None):
         """Return True if a valid StabilizerState."""
-        return Clifford.is_unitary(self.data)
+        return self._data.is_unitary()
 
     def _add(self, other):
         raise NotImplementedError(
@@ -126,8 +114,7 @@ class StabilizerState(QuantumState):
             QiskitError: if input is not a StabilizerState.
         """
         if not self.is_valid():
-            raise QiskitError(
-                'Invalid StabilizerState. Input is not a valid Clifford.')
+            raise QiskitError('StabilizerState is not a valid quantum state.')
         return 1.0
 
     def purity(self):
@@ -141,21 +128,20 @@ class StabilizerState(QuantumState):
             QiskitError: if input is not a StabilizerState.
         """
         if not self.is_valid():
-            raise QiskitError(
-                'Invalid StabilizerState. Input is not a valid Clifford.')
+            raise QiskitError('StabilizerState is not a valid quantum state.')
         return 1.0
 
     def to_operator(self):
         """Convert state to matrix operator class"""
-        return Clifford(self.data).to_operator()
+        return Clifford(self.clifford).to_operator()
 
     def conjugate(self):
         """Return the conjugate of the operator."""
-        return StabilizerState(Clifford.conjugate(self.data))
+        return StabilizerState(Clifford.conjugate(self.clifford))
 
     def transpose(self):
         """Return the transpose of the operator."""
-        return StabilizerState(Clifford.transpose(self.data))
+        return StabilizerState(Clifford.transpose(self.clifford))
 
     def tensor(self, other):
         """Return the tensor product stabilzier state self ⊗ other.
@@ -171,7 +157,7 @@ class StabilizerState(QuantumState):
         """
         if not isinstance(other, StabilizerState):
             other = StabilizerState(other)
-        return StabilizerState((self.data).tensor(other.data))
+        return StabilizerState((self.clifford).tensor(other.clifford))
 
     def expand(self, other):
         """Return the tensor product stabilzier state other ⊗ self.
@@ -187,7 +173,7 @@ class StabilizerState(QuantumState):
         """
         if not isinstance(other, StabilizerState):
             other = StabilizerState(other)
-        return StabilizerState((self.data).expand(other.data))
+        return StabilizerState((self.clifford).expand(other.clifford))
 
     def evolve(self, other, qargs=None):
         """Evolve a stabilizer state by a Clifford operator.
@@ -210,7 +196,7 @@ class StabilizerState(QuantumState):
 
         if not isinstance(other, StabilizerState):
             other = StabilizerState(other)
-        return StabilizerState((self.data).compose(other.data, qargs))
+        return StabilizerState((self.clifford).compose(other.clifford, qargs))
 
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
@@ -222,7 +208,7 @@ class StabilizerState(QuantumState):
         Returns:
             complex: the expectation value (only 0 or 1 or -1).
         """
-        num_qubits = self.data.num_qubits
+        num_qubits = self.clifford.num_qubits
         if qargs is None:
             qubits = range(num_qubits)
         else:
@@ -248,7 +234,7 @@ class StabilizerState(QuantumState):
         # Check if there is a stabilizer that anti-commutes with an odd number of qubits
         # If so the expectation value is 0
         for p in range(num_qubits):
-            stab = self.data.stabilizer
+            stab = self.clifford.stabilizer
             num_anti = 0
             num_anti += np.count_nonzero(pauli.z & stab.X[p])
             num_anti += np.count_nonzero(pauli.x & stab.Z[p])
@@ -261,7 +247,7 @@ class StabilizerState(QuantumState):
         pauli_z = (pauli.z).copy()  # Make a copy of pauli.z
         for p in range(num_qubits):
             # Check if destabilizer anti-commutes
-            destab = self.data.destabilizer
+            destab = self.clifford.destabilizer
             num_anti = 0
             num_anti += np.count_nonzero(pauli.z & destab.X[p])
             num_anti += np.count_nonzero(pauli.x & destab.Z[p])
@@ -269,8 +255,8 @@ class StabilizerState(QuantumState):
                 continue
 
             # If anti-commutes multiply Pauli by stabilizer
-            stab = self.data.stabilizer
-            phase += 2 * self.data.table.phase[p + num_qubits]
+            stab = self.clifford.stabilizer
+            phase += 2 * self.clifford.table.phase[p + num_qubits]
             phase += np.count_nonzero(stab.Z[p] & stab.X[p])
             phase += 2 * np.count_nonzero(pauli_z & stab.X[p])
             pauli_z = pauli_z ^ stab.Z[p]
@@ -297,7 +283,7 @@ class StabilizerState(QuantumState):
         """
         probs_dict = self.probabilities_dict(qargs, decimals)
         if qargs is None:
-            qargs = range(self.data.num_qubits)
+            qargs = range(self.clifford.num_qubits)
         probs = np.zeros(2 ** len(qargs))
 
         for key, value in probs_dict.items():
@@ -327,7 +313,7 @@ class StabilizerState(QuantumState):
             dict: The measurement probabilities in dict (ket) form.
         """
         if qargs is None:
-            qubits = range(self.data.num_qubits)
+            qubits = range(self.clifford.num_qubits)
         else:
             qubits = qargs
 
@@ -364,7 +350,7 @@ class StabilizerState(QuantumState):
         """
         # Resetting all qubits does not require sampling or RNG
         if qargs is None:
-            return StabilizerState(Clifford((np.eye(2 * self.data.num_qubits))))
+            return StabilizerState(Clifford((np.eye(2 * self.clifford.num_qubits))))
 
         for qubit in qargs:
             # Apply measurement and get classical outcome
@@ -373,7 +359,7 @@ class StabilizerState(QuantumState):
             # Use the outcome to apply X gate to any qubits left in the
             # |1> state after measure, then discard outcome.
             if outcome == 1:
-                _append_x(self.data, qubit)
+                _append_x(self.clifford, qubit)
 
         return self
 
@@ -396,7 +382,7 @@ class StabilizerState(QuantumState):
                    corresponding outcome.
         """
         if qargs is None:
-            qargs = range(self.data.num_qubits)
+            qargs = range(self.clifford.num_qubits)
 
         outcome = ''
         for qubit in qargs:
@@ -445,36 +431,36 @@ class StabilizerState(QuantumState):
         The random case happens if there is a row anti-commuting with Z[qubit]
         """
 
-        num_qubits = self.data.num_qubits
+        num_qubits = self.clifford.num_qubits
 
         # Check if there exists stabilizer anticommuting with Z[qubit]
         # in this case the measurement outcome is random
-        z_anticommuting = np.nonzero(self.data.stabilizer.X[:, qubit])[0]
+        z_anticommuting = np.nonzero(self.clifford.stabilizer.X[:, qubit])[0]
 
         # Non-deterministic outcome
         if len(z_anticommuting) != 0:
-            p_qubit = np.min(np.nonzero(self.data.stabilizer.X[:, qubit]))
+            p_qubit = np.min(np.nonzero(self.clifford.stabilizer.X[:, qubit]))
             p_qubit += num_qubits
             outcome = randbit
 
             # Updating the StabilizerState
             for i in range(2 * num_qubits):
                 # the last condition is not in the AG paper but we seem to need it
-                if (self.data.table.X[i][qubit]) and (i != p_qubit) and \
+                if (self.clifford.table.X[i][qubit]) and (i != p_qubit) and \
                         (i != (p_qubit - num_qubits)):
                     self._rowsum_nondeterministic(i, p_qubit)
 
-            self.data.table[p_qubit - num_qubits] = copy.deepcopy(self.data.table[p_qubit])
-            self.data.table.X[p_qubit] = np.zeros(num_qubits)
-            self.data.table.Z[p_qubit] = np.zeros(num_qubits)
-            self.data.table.Z[p_qubit][qubit] = True
-            self.data.table.phase[p_qubit] = outcome
+            self.clifford.table[p_qubit - num_qubits] = copy.deepcopy(self.clifford.table[p_qubit])
+            self.clifford.table.X[p_qubit] = np.zeros(num_qubits)
+            self.clifford.table.Z[p_qubit] = np.zeros(num_qubits)
+            self.clifford.table.Z[p_qubit][qubit] = True
+            self.clifford.table.phase[p_qubit] = outcome
             return outcome
 
         # Deterministic outcome - measuring it will not change the StabilizerState
         aux_pauli = Pauli(num_qubits * 'I')
         for i in range(num_qubits):
-            if self.data.table.X[i][qubit]:
+            if self.clifford.table.X[i][qubit]:
                 aux_pauli = self._rowsum_deterministic(aux_pauli, i + num_qubits)
         outcome = aux_pauli.phase
         return outcome
@@ -498,7 +484,7 @@ class StabilizerState(QuantumState):
 
         newr = 2 * row_phase + 2 * accum_phase
 
-        for qubit in range(self.data.num_qubits):
+        for qubit in range(self.clifford.num_qubits):
             newr += self._phase_exponent(row_pauli.x[qubit],
                                          row_pauli.z[qubit],
                                          accum_pauli.x[qubit],
@@ -518,31 +504,31 @@ class StabilizerState(QuantumState):
         non-deterministic rowsum calculation.
         row and accum are rows in the StabilizerState Clifford table."""
 
-        row_phase = self.data.table.phase[row]
-        accum_phase = self.data.table.phase[accum]
+        row_phase = self.clifford.table.phase[row]
+        accum_phase = self.clifford.table.phase[accum]
 
-        row_pauli = self.data.table.pauli[row]
-        accum_pauli = self.data.table.pauli[accum]
+        row_pauli = self.clifford.table.pauli[row]
+        accum_pauli = self.clifford.table.pauli[accum]
         row_pauli = Pauli(row_pauli.to_labels()[0])
         accum_pauli = Pauli(accum_pauli.to_labels()[0])
 
         accum_pauli, accum_phase = self._rowsum(accum_pauli, accum_phase,
                                                 row_pauli, row_phase)
 
-        self.data.table.phase[accum] = accum_phase
-        self.data.table.X[accum] = accum_pauli.x
-        self.data.table.Z[accum] = accum_pauli.z
+        self.clifford.table.phase[accum] = accum_phase
+        self.clifford.table.X[accum] = accum_pauli.x
+        self.clifford.table.Z[accum] = accum_pauli.z
 
     def _rowsum_deterministic(self, aux_pauli, row):
         """Updating an auxilary Pauli aux_pauli in the
         deterministic rowsum calculation.
         The StabilizerState itself is not updated."""
 
-        row_phase = self.data.table.phase[row]
+        row_phase = self.clifford.table.phase[row]
         accum_phase = aux_pauli.phase
 
         accum_pauli = aux_pauli
-        row_pauli = self.data.table.pauli[row]
+        row_pauli = self.clifford.table.pauli[row]
         row_pauli = Pauli(row_pauli.to_labels()[0])
 
         accum_pauli, accum_phase = self._rowsum(accum_pauli, accum_phase,
@@ -563,7 +549,7 @@ class StabilizerState(QuantumState):
         for i in range(len(qubits)):
             qubit = qubits[len(qubits) - i - 1]
             if outcome[i] == 'X':
-                is_deterministic = not any(self.data.stabilizer.X[:, qubit])
+                is_deterministic = not any(self.clifford.stabilizer.X[:, qubit])
                 if is_deterministic:
                     single_qubit_outcome = self._measure_and_update(qubit, 0)
                     if single_qubit_outcome:
