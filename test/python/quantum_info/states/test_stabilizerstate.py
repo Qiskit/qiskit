@@ -104,15 +104,6 @@ class TestStabilizerState(QiskitTestCase):
             state = StabilizerState(stab).conjugate()
             self.assertEqual(state, target)
 
-    @combine(num_qubits=[2, 3])
-    def test_transpose(self, num_qubits):
-        """Test transpose method."""
-        for _ in range(self.samples):
-            stab = StabilizerState(random_clifford(num_qubits, seed=self.rng))
-            target = StabilizerState(stab.transpose())
-            state = StabilizerState(stab).transpose()
-            self.assertEqual(state, target)
-
     def test_tensor(self):
         """Test tensor method."""
         for _ in range(self.samples):

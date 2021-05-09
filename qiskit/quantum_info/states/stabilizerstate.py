@@ -139,10 +139,6 @@ class StabilizerState(QuantumState):
         """Return the conjugate of the operator."""
         return StabilizerState(Clifford.conjugate(self.clifford))
 
-    def transpose(self):
-        """Return the transpose of the operator."""
-        return StabilizerState(Clifford.transpose(self.clifford))
-
     def tensor(self, other):
         """Return the tensor product stabilzier state self ⊗ other.
 
@@ -191,9 +187,6 @@ class StabilizerState(QuantumState):
             QiskitError: if the operator dimension does not match the
                          specified StabilizerState subsystem dimensions.
         """
-        if qargs is None:
-            qargs = getattr(other, 'qargs', None)
-
         if not isinstance(other, StabilizerState):
             other = StabilizerState(other)
         return StabilizerState((self.clifford).compose(other.clifford, qargs))
