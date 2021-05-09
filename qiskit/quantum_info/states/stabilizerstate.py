@@ -346,15 +346,16 @@ class StabilizerState(QuantumState):
             return StabilizerState(Clifford((np.eye(2 * self.clifford.num_qubits))))
 
         for qubit in qargs:
+            ret = self.copy()
             # Apply measurement and get classical outcome
-            outcome = self._measure_and_update(qubit, 0)
+            outcome = ret._measure_and_update(qubit, 0)
 
             # Use the outcome to apply X gate to any qubits left in the
             # |1> state after measure, then discard outcome.
             if outcome == 1:
-                _append_x(self.clifford, qubit)
+                _append_x(ret.clifford, qubit)
 
-        return self
+        return ret
 
     def measure(self, qargs=None):
         """Measure subsystems and return outcome and post-measure state.
@@ -377,11 +378,12 @@ class StabilizerState(QuantumState):
         if qargs is None:
             qargs = range(self.clifford.num_qubits)
 
+        ret = self.copy()
         outcome = ''
         for qubit in qargs:
-            randbit = self._rng.randint(2)
-            outcome = str(self._measure_and_update(qubit, randbit)) + outcome
-        return outcome, self
+            randbit = ret._rng.randint(2)
+            outcome = str(ret._measure_and_update(qubit, randbit)) + outcome
+        return outcome, ret
 
     def sample_memory(self, shots, qargs=None):
         """Sample a list of qubit measurement outcomes in the computational basis.
@@ -405,7 +407,7 @@ class StabilizerState(QuantumState):
         memory = []
         for _ in range(shots):
             # copy the StabilizerState since measure updates it
-            stab = copy.deepcopy(self)
+            stab = self.copy()
             memory.append(stab.measure(qargs)[0])
         return memory
 
@@ -538,13 +540,14 @@ class StabilizerState(QuantumState):
         """Recursive helper function for calculating the probabilities"""
 
         qubit_for_branching = -1
+        ret = self.copy()
 
         for i in range(len(qubits)):
             qubit = qubits[len(qubits) - i - 1]
             if outcome[i] == 'X':
-                is_deterministic = not any(self.clifford.stabilizer.X[:, qubit])
+                is_deterministic = not any(ret.clifford.stabilizer.X[:, qubit])
                 if is_deterministic:
-                    single_qubit_outcome = self._measure_and_update(qubit, 0)
+                    single_qubit_outcome = ret._measure_and_update(qubit, 0)
                     if single_qubit_outcome:
                         outcome[i] = '1'
                     else:
@@ -564,7 +567,7 @@ class StabilizerState(QuantumState):
             else:
                 new_outcome[qubit_for_branching] = '0'
 
-            stab_cpy = self.copy()
+            stab_cpy = ret.copy()
             stab_cpy._measure_and_update(
                 qubits[len(qubits) - qubit_for_branching - 1], single_qubit_outcome)
             stab_cpy._get_probablities(qubits, new_outcome, 0.5 * outcome_prob, probs)
