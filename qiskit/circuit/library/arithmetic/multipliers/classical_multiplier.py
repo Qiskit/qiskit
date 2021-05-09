@@ -13,7 +13,7 @@
 """Compute the product of two qubit registers using classical multiplication approach."""
 
 from typing import Optional
-from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumRegister, AncillaRegister
 from qiskit.circuit.library.arithmetic.adders.adder import Adder
 
 from .multiplier import Multiplier
@@ -28,24 +28,24 @@ class ClassicalMultiplier(Multiplier):
 
     .. parsed-literal::
 
-          a_0: ──────────■───────────────────────────────
+          a_0: ──────────■────────────────────────────────────────
                          │
-          a_1: ──────────┼────────────────────■──────────
-               ┌─────────┴─────────┐┌─────────┴─────────┐
-          b_0: ┤0                  ├┤0                  ├
-               │                   ││                   │
-          b_1: ┤1                  ├┤1                  ├
-               │                   ││                   │
-        out_0: ┤2                  ├┤                   ├
-               │                   ││                   │
-        out_1: ┤3 RippleCarryAdder ├┤2 RippleCarryAdder ├
-               │                   ││                   │
-        out_2: ┤4                  ├┤3                  ├
-               │                   ││                   │
-        out_3: ┤                   ├┤4                  ├
-               │                   ││                   │
-        aux_0: ┤5                  ├┤5                  ├
-               └───────────────────┘└───────────────────┘
+          a_1: ──────────┼─────────────────────────■──────────────
+               ┌─────────┴──────────────┐┌─────────┴─────────────┐
+          b_0: ┤0                       ├┤0                      ├
+               │                        ││                       │
+          b_1: ┤1                       ├┤1                      ├
+               │                        ││                       │
+        out_0: ┤2                       ├┤                       ├
+               │                        ││                       │
+        out_1: ┤3 CDKMRippleCarryAdder  ├┤2 CDKMRippleCarryAdder ├
+               │                        ││                       │
+        out_2: ┤4                       ├┤3                      ├
+               │                        ││                       │
+        out_3: ┤                        ├┤4                      ├
+               │                        ││                       │
+        aux_0: ┤5                       ├┤5                      ├
+               └────────────────────────┘└───────────────────────┘
 
     Multiplication in this circuit is implemented in a classical approach by performing
     a series of shifted additions using one of the input registers while the qubits
@@ -68,7 +68,7 @@ class ClassicalMultiplier(Multiplier):
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
             adder: adder circuit to be used for performing multiplication. The
-                RippleCarryAdder is used as default if no adder is provided.
+                CDKMRippleCarryAdder is used as default if no adder is provided.
             name: The name of the circuit object.
         """
         super().__init__(num_state_qubits, name=name)
@@ -81,8 +81,10 @@ class ClassicalMultiplier(Multiplier):
 
         # prepare adder as controlled gate
         if adder is None:
-            from qiskit.circuit.library import RippleCarryAdder
-            adder = RippleCarryAdder(num_state_qubits)
+            from qiskit.circuit.library import CDKMRippleCarryAdder
+            adder = CDKMRippleCarryAdder(num_state_qubits)
+        else:
+            adder = adder(num_state_qubits)
         controlled_adder = adder.to_gate().control(1)
 
         # get the number of helper qubits needed
