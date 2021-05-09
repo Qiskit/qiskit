@@ -20,14 +20,14 @@ from qiskit.circuit.library.basis_change import QFT
 from .adder import Adder
 
 
-class QFTAdder(Adder):
+class DraperQFTAdder(Adder):
     r"""A circuit that uses QFT to perform in-place addition on two qubit registers.
 
     For registers with :math:`n` qubits, the QFT adder can perform addition modulo
-    :math:`2^n` (with `modular=True`) or ordinary addition by adding a carry qubits (with
-    `modular=False`).
+    :math:`2^n` (with `fixed_point=True`) or ordinary addition by adding a carry qubits (with
+    `fixed_point=False`).
 
-    As an example, a non-modular QFT adder circuit that performs addition on two 2-qubit sized
+    As an example, a non-fixed_point QFT adder circuit that performs addition on two 2-qubit sized
     registers is as follows:
 
     .. parsed-literal::
@@ -56,42 +56,40 @@ class QFTAdder(Adder):
 
     """
 
-    def __init__(self,
-                 num_state_qubits: int,
-                 modular: bool = False,
-                 name: str = 'QFTAdder'
-                 ) -> None:
+    def __init__(
+        self, num_state_qubits: int, fixed_point: bool = False, name: str = "DraperQFTAdder"
+    ) -> None:
         r"""
         Args:
             num_state_qubits: The number of qubits in either input register for
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
-            modular: Whether addition is modular with mod :math:`2^n`.
-                Additional qubit is attached in case of non-modular addition
+            fixed_point: Whether addition is fixed_point with mod :math:`2^n`.
+                Additional qubit is attached in case of non-fixed_point addition
                 to carry the most significant qubit of the sum.
             name: The name of the circuit object.
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
         """
         if num_state_qubits < 1:
-            raise ValueError('The number of qubits must be at least 1.')
+            raise ValueError("The number of qubits must be at least 1.")
 
         super().__init__(num_state_qubits, name=name)
 
-        qr_a = QuantumRegister(num_state_qubits, name='a')
-        qr_b = QuantumRegister(num_state_qubits, name='b')
+        qr_a = QuantumRegister(num_state_qubits, name="a")
+        qr_b = QuantumRegister(num_state_qubits, name="b")
         qr_list = [qr_a, qr_b]
 
-        if not modular:
-            qr_z = QuantumRegister(1, name='cout')
+        if not fixed_point:
+            qr_z = QuantumRegister(1, name="cout")
             qr_list.append(qr_z)
 
         # add registers
         self.add_register(*qr_list)
 
         # define register containing the sum and number of qubits for QFT circuit
-        qr_sum = qr_b[:] if modular else qr_b[:] + qr_z[:]
-        num_qubits_qft = num_state_qubits if modular else num_state_qubits + 1
+        qr_sum = qr_b[:] if fixed_point else qr_b[:] + qr_z[:]
+        num_qubits_qft = num_state_qubits if fixed_point else num_state_qubits + 1
 
         # build QFT adder circuit
         self.append(QFT(num_qubits_qft, do_swaps=False).to_gate(), qr_sum[:])
@@ -101,7 +99,7 @@ class QFTAdder(Adder):
                 lam = np.pi / (2 ** k)
                 self.cp(lam, qr_a[j], qr_b[j + k])
 
-        if not modular:
+        if not fixed_point:
             for j in range(num_state_qubits):
                 lam = np.pi / (2 ** (j + 1))
                 self.cp(lam, qr_a[num_state_qubits - j - 1], qr_z[0])

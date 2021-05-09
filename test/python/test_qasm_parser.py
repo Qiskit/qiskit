@@ -23,9 +23,9 @@ from qiskit.test import QiskitTestCase
 
 def parse(file_path):
     """
-      Simple helper
-      - file_path: Path to the OpenQASM file
-      - prec: Precision for the returned string
+    Simple helper
+    - file_path: Path to the OpenQASM file
+    - prec: Precision for the returned string
     """
     qasm = Qasm(file_path)
     return qasm.parse().qasm()
@@ -36,12 +36,10 @@ class TestParser(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.qasm_dir = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            'qasm')
-        self.qasm_file_path = os.path.join(self.qasm_dir, 'example.qasm')
-        self.qasm_file_path_fail = os.path.join(self.qasm_dir, 'example_fail.qasm')
-        self.qasm_file_path_if = os.path.join(self.qasm_dir, 'example_if.qasm')
+        self.qasm_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "qasm")
+        self.qasm_file_path = os.path.join(self.qasm_dir, "example.qasm")
+        self.qasm_file_path_fail = os.path.join(self.qasm_dir, "example_fail.qasm")
+        self.qasm_file_path_if = os.path.join(self.qasm_dir, "example_if.qasm")
 
     def test_parser(self):
         """should return a correct response for a valid circuit."""
@@ -50,25 +48,31 @@ class TestParser(QiskitTestCase):
         self.log.info(res)
         # TODO: For now only some basic checks.
         starts_expected = "OPENQASM 2.0;\ngate "
-        ends_expected = '\n'.join(['}',
-                                   'qreg q[3];',
-                                   'qreg r[3];',
-                                   'h q;',
-                                   'cx q,r;',
-                                   'creg c[3];',
-                                   'creg d[3];',
-                                   'barrier q;',
-                                   'measure q -> c;',
-                                   'measure r -> d;', ''])
+        ends_expected = "\n".join(
+            [
+                "}",
+                "qreg q[3];",
+                "qreg r[3];",
+                "h q;",
+                "cx q,r;",
+                "creg c[3];",
+                "creg d[3];",
+                "barrier q;",
+                "measure q -> c;",
+                "measure r -> d;",
+                "",
+            ]
+        )
 
-        self.assertEqual(res[:len(starts_expected)], starts_expected)
-        self.assertEqual(res[-len(ends_expected):], ends_expected)
+        self.assertEqual(res[: len(starts_expected)], starts_expected)
+        self.assertEqual(res[-len(ends_expected) :], ends_expected)
 
     def test_parser_fail(self):
         """should fail a for a  not valid circuit."""
 
-        self.assertRaisesRegex(QasmError, "Perhaps there is a missing",
-                               parse, file_path=self.qasm_file_path_fail)
+        self.assertRaisesRegex(
+            QasmError, "Perhaps there is a missing", parse, file_path=self.qasm_file_path_fail
+        )
 
     def test_all_valid_nodes(self):
         """Test that the tree contains only Node subclasses."""
@@ -96,5 +100,5 @@ class TestParser(QiskitTestCase):
             self.assertTrue(isinstance(token, ply.lex.LexToken))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

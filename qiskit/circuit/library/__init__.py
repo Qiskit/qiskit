@@ -146,9 +146,9 @@ Adders
 .. autosummary::
    :toctree: ../stubs/
 
-   PlainAdder
-   QFTAdder
-   RippleCarryAdder
+   DraperQFTAdder
+   CDKMRippleCarryAdder
+   VBERippleCarryAdder
    WeightedAdder
 
 Multipliers
@@ -346,7 +346,7 @@ from .generalized_gates import (
     GRX,
     GRY,
     GRZ,
-    RVGate
+    RVGate,
 )
 from .boolean_logic import (
     AND,
@@ -365,9 +365,9 @@ from .arithmetic import (
     WeightedAdder,
     QuadraticForm,
     LinearAmplitudeFunction,
-    PlainAdder,
-    RippleCarryAdder,
-    QFTAdder,
+    VBERippleCarryAdder,
+    CDKMRippleCarryAdder,
+    DraperQFTAdder,
     PiecewiseChebyshev,
     ClassicalMultiplier,
     QFTMultiplier,
@@ -380,17 +380,13 @@ from .n_local import (
     RealAmplitudes,
     EfficientSU2,
     ExcitationPreserving,
-    QAOAAnsatz
+    QAOAAnsatz,
 )
-from .data_preparation import (
-    PauliFeatureMap,
-    ZFeatureMap,
-    ZZFeatureMap
-)
+from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap
 from .probability_distributions import (
     LogNormalDistribution,
     NormalDistribution,
-    UniformDistribution
+    UniformDistribution,
 )
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking

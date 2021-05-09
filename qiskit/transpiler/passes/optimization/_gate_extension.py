@@ -20,6 +20,7 @@ non-trivial and/or have unknown post-conditions.
 """
 try:
     from z3 import Not, And
+
     HAS_Z3 = True
 except ImportError:
     HAS_Z3 = False

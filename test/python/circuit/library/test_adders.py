@@ -19,19 +19,21 @@ from ddt import ddt, data, unpack
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector
-from qiskit.circuit.library import RippleCarryAdder, QFTAdder, PlainAdder
+from qiskit.circuit.library import CDKMRippleCarryAdder, DraperQFTAdder, VBERippleCarryAdder
 
 
 @ddt
 class TestAdder(QiskitTestCase):
     """Test the adder circuits."""
 
-    def assertAdditionIsCorrect(self,
-                                num_state_qubits: int,
-                                adder: QuantumCircuit,
-                                inplace: bool,
-                                modular: bool):
+    def assertAdditionIsCorrect(
+        self, num_state_qubits: int, adder: QuantumCircuit, inplace: bool, fixed_point: bool
+    ):
         """Assert that adder correctly implements the summation.
+
+        This test prepares a equal superposition state in both input registers, then performs
+        the addition on the superposition and checks that the output state is the expected
+        superposition of all possible additions.
 
         Args:
             num_state_qubits: The number of bits in the numbers that are added.
@@ -40,7 +42,7 @@ class TestAdder(QiskitTestCase):
             inplace: If True, compare against an inplace addition where the result is written into
                 the second register plus carry qubit. If False, assume that the result is written
                 into a third register of appropriate size.
-            modular: If True, omit the carry qubit to obtain an addition modulo
+            fixed_point: If True, omit the carry qubit to obtain an addition modulo
                 ``2^num_state_qubits``.
         """
         circuit = QuantumCircuit(*adder.qregs)
@@ -55,7 +57,7 @@ class TestAdder(QiskitTestCase):
         # as we verify that all ancilla qubits have been uncomputed to state 0 again
         statevector = Statevector(circuit)
         probabilities = statevector.probabilities()
-        pad = '0' * circuit.num_ancillas  # state of the ancillas
+        pad = "0" * circuit.num_ancillas  # state of the ancillas
 
         # compute the expected results
         expectations = np.zeros_like(probabilities)
@@ -64,7 +66,7 @@ class TestAdder(QiskitTestCase):
         for x in range(2 ** num_state_qubits):
             for y in range(2 ** num_state_qubits):
                 # compute the sum
-                addition = (x + y) % (2 ** num_state_qubits) if modular else x + y
+                addition = (x + y) % (2 ** num_state_qubits) if fixed_point else x + y
                 # compute correct index in statevector
                 bin_x = bin(x)[2:].zfill(num_state_qubits)
                 bin_y = bin(y)[2:].zfill(num_state_qubits)
@@ -75,35 +77,30 @@ class TestAdder(QiskitTestCase):
         np.testing.assert_array_almost_equal(expectations, probabilities)
 
     @data(
-        (3, RippleCarryAdder, True),
-        (5, RippleCarryAdder, True),
-        (3, RippleCarryAdder, True, True),
-        (5, RippleCarryAdder, True, True),
-        (3, QFTAdder, True),
-        (5, QFTAdder, True),
-        (3, QFTAdder, True, True),
-        (5, QFTAdder, True, True),
-        (3, PlainAdder, True),
-        (5, PlainAdder, True),
-        (3, PlainAdder, True, True),
-        (5, PlainAdder, True, True),
+        (3, CDKMRippleCarryAdder, True),
+        (5, CDKMRippleCarryAdder, True),
+        (3, CDKMRippleCarryAdder, True, True),
+        (5, CDKMRippleCarryAdder, True, True),
+        (3, DraperQFTAdder, True),
+        (5, DraperQFTAdder, True),
+        (3, DraperQFTAdder, True, True),
+        (5, DraperQFTAdder, True, True),
+        (5, VBERippleCarryAdder, True),
+        (3, VBERippleCarryAdder, True, True),
+        (5, VBERippleCarryAdder, True, True),
     )
     @unpack
-    def test_summation(self, num_state_qubits, adder, inplace, modular=False):
+    def test_summation(self, num_state_qubits, adder, inplace, fixed_point=False):
         """Test summation for all implemented adders."""
-        adder = adder(num_state_qubits, modular=modular)
-        self.assertAdditionIsCorrect(num_state_qubits, adder, inplace, modular)
+        adder = adder(num_state_qubits, fixed_point=fixed_point)
+        self.assertAdditionIsCorrect(num_state_qubits, adder, inplace, fixed_point)
 
-    @data(
-        RippleCarryAdder,
-        QFTAdder,
-        PlainAdder
-    )
+    @data(CDKMRippleCarryAdder, DraperQFTAdder, VBERippleCarryAdder)
     def test_raises_on_wrong_num_bits(self, adder):
         """Test an error is raised for a bad number of qubits."""
         with self.assertRaises(ValueError):
             _ = adder(-1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

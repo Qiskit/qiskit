@@ -21,6 +21,6 @@ from .polynomial_pauli_rotations import PolynomialPauliRotations
 from .weighted_adder import WeightedAdder
 from .quadratic_form import QuadraticForm
 from .linear_amplitude_function import LinearAmplitudeFunction
-from .adders import PlainAdder, RippleCarryAdder, QFTAdder
+from .adders import VBERippleCarryAdder, CDKMRippleCarryAdder, DraperQFTAdder
 from .piecewise_chebyshev import PiecewiseChebyshev
 from .multipliers import ClassicalMultiplier, QFTMultiplier

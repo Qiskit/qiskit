@@ -3,9 +3,9 @@ features:
   - |
     Add a new circuit library submodule to perform classical addition of two equally-sized
     qubit registers. For two registers :math:`|a\rangle_n` and :math:`|b\rangle_n` on :math:`n`
-    qubits, the three new classes :class:`~qiskit.circuit.library.RippleCarryAdder`,
+    qubits, the three new classes :class:`~qiskit.circuit.library.CDKMRippleCarryAdder`,
     :class:`~qiskit.circuit.library.ClassicalAdder` and
-    :class:`~qiskit.circuit.library.QFTAdder` perform the operation
+    :class:`~qiskit.circuit.library.DraperQFTAdder` perform the operation
 
     .. math::
 
@@ -14,7 +14,7 @@ features:
     Example::
 
       from qiskit.circuit import QuantumCircuit
-      from qiskit.circuit.library import RippleCarryAdder
+      from qiskit.circuit.library import CDKMRippleCarryAdder
       from qiskit.quantum_info import Statevector
 
       # a encodes |01> = 1
@@ -26,7 +26,7 @@ features:
       b.x(1)
 
       # adder on 2-bit numbers
-      adder = RippleCarryAdder(2)
+      adder = CDKMRippleCarryAdder(2)
 
       # add the state preparations to the front of the circuit
       adder.compose(a, [0, 1], inplace=True, front=True)

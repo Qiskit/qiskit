@@ -30,17 +30,17 @@ from .visualization import QiskitVisualizationTestCase, path_to_diagram_referenc
 class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
     """Visual accuracy of visualization tools outputs tests."""
 
-    latex_reference = path_to_diagram_reference('circuit_latex_ref.png')
-    matplotlib_reference = path_to_diagram_reference('circuit_matplotlib_ref.png')
-    text_reference_utf8 = path_to_diagram_reference('circuit_text_ref_utf8.txt')
-    text_reference_cp437 = path_to_diagram_reference('circuit_text_ref_cp437.txt')
+    latex_reference = path_to_diagram_reference("circuit_latex_ref.png")
+    matplotlib_reference = path_to_diagram_reference("circuit_matplotlib_ref.png")
+    text_reference_utf8 = path_to_diagram_reference("circuit_text_ref_utf8.txt")
+    text_reference_cp437 = path_to_diagram_reference("circuit_text_ref_cp437.txt")
 
     def sample_circuit(self):
         """Generate a sample circuit that includes the most common elements of
         quantum circuits.
         """
-        qr = QuantumRegister(3, 'q')
-        cr = ClassicalRegister(3, 'c')
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
         circuit = QuantumCircuit(qr, cr)
         circuit.x(qr[0])
         circuit.y(qr[0])
@@ -81,49 +81,51 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
 
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
-    @unittest.skip('Useful for refactoring purposes, skipping by default.')
+    @unittest.skip("Useful for refactoring purposes, skipping by default.")
     def test_latex_drawer(self):
-        filename = 'current_latex.png'
+        filename = "current_latex.png"
         qc = self.sample_circuit()
-        circuit_drawer(qc, filename=filename, output='latex')
+        circuit_drawer(qc, filename=filename, output="latex")
         self.assertImagesAreEqual(filename, self.latex_reference)
         os.remove(filename)
 
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
-    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
-    @unittest.skip('Useful for refactoring purposes, skipping by default.')
+    @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
+    @unittest.skip("Useful for refactoring purposes, skipping by default.")
     def test_matplotlib_drawer(self):
-        filename = 'current_matplot.png'
+        filename = "current_matplot.png"
         qc = self.sample_circuit()
-        circuit_drawer(qc, filename=filename, output='mpl')
+        circuit_drawer(qc, filename=filename, output="mpl")
         self.assertImagesAreEqual(filename, self.matplotlib_reference)
         os.remove(filename)
 
     def test_text_drawer_utf8(self):
-        filename = 'current_textplot_utf8.txt'
+        filename = "current_textplot_utf8.txt"
         qc = self.sample_circuit()
-        output = _text_circuit_drawer(qc, filename=filename, fold=-1,
-                                      initial_state=True, cregbundle=False, encoding='utf8')
+        output = _text_circuit_drawer(
+            qc, filename=filename, fold=-1, initial_state=True, cregbundle=False, encoding="utf8"
+        )
         try:
-            encode(str(output), encoding='utf8')
+            encode(str(output), encoding="utf8")
         except UnicodeEncodeError:
             self.fail("_text_circuit_drawer() should be utf8.")
-        self.assertFilesAreEqual(filename, self.text_reference_utf8, 'utf8')
+        self.assertFilesAreEqual(filename, self.text_reference_utf8, "utf8")
         os.remove(filename)
 
     def test_text_drawer_cp437(self):
-        filename = 'current_textplot_cp437.txt'
+        filename = "current_textplot_cp437.txt"
         qc = self.sample_circuit()
-        output = _text_circuit_drawer(qc, filename=filename, fold=-1,
-                                      initial_state=True, cregbundle=False, encoding='cp437')
+        output = _text_circuit_drawer(
+            qc, filename=filename, fold=-1, initial_state=True, cregbundle=False, encoding="cp437"
+        )
         try:
-            encode(str(output), encoding='cp437')
+            encode(str(output), encoding="cp437")
         except UnicodeEncodeError:
             self.fail("_text_circuit_drawer() should be cp437.")
-        self.assertFilesAreEqual(filename, self.text_reference_cp437, 'cp437')
+        self.assertFilesAreEqual(filename, self.text_reference_cp437, "cp437")
         os.remove(filename)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)
