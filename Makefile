@@ -51,7 +51,10 @@ lint:
 	python tools/find_optional_imports.py
 
 style:
-	pycodestyle qiskit test
+	black --check qiskit test tools
+
+black:
+	black qiskit test tools
 
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
