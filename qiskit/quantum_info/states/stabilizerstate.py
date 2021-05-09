@@ -154,7 +154,9 @@ class StabilizerState(QuantumState):
         """
         if not isinstance(other, StabilizerState):
             other = StabilizerState(other)
-        return StabilizerState((self.clifford).tensor(other.clifford))
+        ret = self.copy()
+        ret._data = self.clifford.tensor(other.clifford)
+        return ret
 
     def expand(self, other):
         """Return the tensor product stabilzier state other ⊗ self.
@@ -170,7 +172,9 @@ class StabilizerState(QuantumState):
         """
         if not isinstance(other, StabilizerState):
             other = StabilizerState(other)
-        return StabilizerState((self.clifford).expand(other.clifford))
+        ret = self.copy()
+        ret._data = self.clifford.expand(other.clifford)
+        return ret
 
     def evolve(self, other, qargs=None):
         """Evolve a stabilizer state by a Clifford operator.
