@@ -54,6 +54,7 @@ class QFTMultiplier(Multiplier):
         qr_a = QuantumRegister(num_state_qubits, name='a')
         qr_b = QuantumRegister(num_state_qubits, name='b')
         qr_out = QuantumRegister(2 * num_state_qubits, name='out')
+        self.add_register(qr_a, qr_b, qr_out)
 
         # build multiplication circuit
         self.append(QFT(2 * num_state_qubits, do_swaps=False).to_gate(), qr_out[:])
