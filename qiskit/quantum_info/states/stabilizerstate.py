@@ -439,13 +439,22 @@ class StabilizerState(QuantumState):
 
         # Check if there exists stabilizer anticommuting with Z[qubit]
         # in this case the measurement outcome is random
-        z_anticommuting = np.nonzero(stab_X[:, qubit])[0]
+        z_anticommuting = np.any(stab_X[:, qubit])
 
-        # Non-deterministic outcome
-        if len(z_anticommuting) != 0:
+        if z_anticommuting == 0:
+            # Deterministic outcome - measuring it will not change the StabilizerState
+            aux_pauli = Pauli(num_qubits * 'I')
+            for i in range(num_qubits):
+                if table.X[i][qubit]:
+                    aux_pauli = self._rowsum_deterministic(table, aux_pauli, i + num_qubits)
+            outcome = aux_pauli.phase
+            return outcome
+
+        else:
+            # Non-deterministic outcome
+            outcome = randbit
             p_qubit = np.min(np.nonzero(stab_X[:, qubit]))
             p_qubit += num_qubits
-            outcome = randbit
 
             # Updating the StabilizerState
             for i in range(2 * num_qubits):
@@ -459,14 +468,6 @@ class StabilizerState(QuantumState):
             table.Z[p_qubit][qubit] = True
             table.phase[p_qubit] = outcome
             return outcome
-
-        # Deterministic outcome - measuring it will not change the StabilizerState
-        aux_pauli = Pauli(num_qubits * 'I')
-        for i in range(num_qubits):
-            if table.X[i][qubit]:
-                aux_pauli = self._rowsum_deterministic(table, aux_pauli, i + num_qubits)
-        outcome = aux_pauli.phase
-        return outcome
 
     @staticmethod
     def _phase_exponent(x1, z1, x2, z2):
