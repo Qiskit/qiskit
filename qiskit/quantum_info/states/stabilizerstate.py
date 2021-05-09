@@ -430,36 +430,37 @@ class StabilizerState(QuantumState):
         """
 
         num_qubits = self.clifford.num_qubits
+        table = self.clifford.table
+        stab_X = self.clifford.stabilizer.X
 
         # Check if there exists stabilizer anticommuting with Z[qubit]
         # in this case the measurement outcome is random
-        z_anticommuting = np.nonzero(self.clifford.stabilizer.X[:, qubit])[0]
+        z_anticommuting = np.nonzero(stab_X[:, qubit])[0]
 
         # Non-deterministic outcome
         if len(z_anticommuting) != 0:
-            p_qubit = np.min(np.nonzero(self.clifford.stabilizer.X[:, qubit]))
+            p_qubit = np.min(np.nonzero(stab_X[:, qubit]))
             p_qubit += num_qubits
             outcome = randbit
 
             # Updating the StabilizerState
             for i in range(2 * num_qubits):
                 # the last condition is not in the AG paper but we seem to need it
-                if (self.clifford.table.X[i][qubit]) and (i != p_qubit) and \
-                        (i != (p_qubit - num_qubits)):
-                    self._rowsum_nondeterministic(i, p_qubit)
+                if (table.X[i][qubit]) and (i != p_qubit) and (i != (p_qubit - num_qubits)):
+                    self._rowsum_nondeterministic(table, i, p_qubit)
 
-            self.clifford.table[p_qubit - num_qubits] = copy.deepcopy(self.clifford.table[p_qubit])
-            self.clifford.table.X[p_qubit] = np.zeros(num_qubits)
-            self.clifford.table.Z[p_qubit] = np.zeros(num_qubits)
-            self.clifford.table.Z[p_qubit][qubit] = True
-            self.clifford.table.phase[p_qubit] = outcome
+            table[p_qubit - num_qubits] = table[p_qubit].copy()
+            table.X[p_qubit] = np.zeros(num_qubits)
+            table.Z[p_qubit] = np.zeros(num_qubits)
+            table.Z[p_qubit][qubit] = True
+            table.phase[p_qubit] = outcome
             return outcome
 
         # Deterministic outcome - measuring it will not change the StabilizerState
         aux_pauli = Pauli(num_qubits * 'I')
         for i in range(num_qubits):
-            if self.clifford.table.X[i][qubit]:
-                aux_pauli = self._rowsum_deterministic(aux_pauli, i + num_qubits)
+            if table.X[i][qubit]:
+                aux_pauli = self._rowsum_deterministic(table, aux_pauli, i + num_qubits)
         outcome = aux_pauli.phase
         return outcome
 
@@ -477,13 +478,14 @@ class StabilizerState(QuantumState):
                 'Invalid rowsum phase exponent in measurement calculation.')
         return phase
 
-    def _rowsum(self, accum_pauli, accum_phase, row_pauli, row_phase):
+    @staticmethod
+    def _rowsum(accum_pauli, accum_phase, row_pauli, row_phase):
         """Aaronson-Gottesman rowsum helper function """
 
         newr = 2 * row_phase + 2 * accum_phase
 
-        for qubit in range(self.clifford.num_qubits):
-            newr += self._phase_exponent(row_pauli.x[qubit],
+        for qubit in range(row_pauli.num_qubits):
+            newr += StabilizerState._phase_exponent(row_pauli.x[qubit],
                                          row_pauli.z[qubit],
                                          accum_pauli.x[qubit],
                                          accum_pauli.z[qubit])
@@ -497,40 +499,42 @@ class StabilizerState(QuantumState):
         accum_pauli.z ^= row_pauli.z
         return accum_pauli, accum_phase
 
-    def _rowsum_nondeterministic(self, accum, row):
+    @staticmethod
+    def _rowsum_nondeterministic(table, accum, row):
         """Updating StabilizerState Clifford table in the
         non-deterministic rowsum calculation.
         row and accum are rows in the StabilizerState Clifford table."""
 
-        row_phase = self.clifford.table.phase[row]
-        accum_phase = self.clifford.table.phase[accum]
+        row_phase = table.phase[row]
+        accum_phase = table.phase[accum]
 
-        row_pauli = self.clifford.table.pauli[row]
-        accum_pauli = self.clifford.table.pauli[accum]
+        row_pauli = table.pauli[row]
+        accum_pauli = table.pauli[accum]
         row_pauli = Pauli(row_pauli.to_labels()[0])
         accum_pauli = Pauli(accum_pauli.to_labels()[0])
 
-        accum_pauli, accum_phase = self._rowsum(accum_pauli, accum_phase,
-                                                row_pauli, row_phase)
+        accum_pauli, accum_phase = StabilizerState._rowsum(accum_pauli, accum_phase,
+                                                           row_pauli, row_phase)
 
-        self.clifford.table.phase[accum] = accum_phase
-        self.clifford.table.X[accum] = accum_pauli.x
-        self.clifford.table.Z[accum] = accum_pauli.z
+        table.phase[accum] = accum_phase
+        table.X[accum] = accum_pauli.x
+        table.Z[accum] = accum_pauli.z
 
-    def _rowsum_deterministic(self, aux_pauli, row):
+    @staticmethod
+    def _rowsum_deterministic(table, aux_pauli, row):
         """Updating an auxilary Pauli aux_pauli in the
         deterministic rowsum calculation.
         The StabilizerState itself is not updated."""
 
-        row_phase = self.clifford.table.phase[row]
+        row_phase = table.phase[row]
         accum_phase = aux_pauli.phase
 
         accum_pauli = aux_pauli
-        row_pauli = self.clifford.table.pauli[row]
+        row_pauli = table.pauli[row]
         row_pauli = Pauli(row_pauli.to_labels()[0])
 
-        accum_pauli, accum_phase = self._rowsum(accum_pauli, accum_phase,
-                                                row_pauli, row_phase)
+        accum_pauli, accum_phase = StabilizerState._rowsum(accum_pauli, accum_phase,
+                                                           row_pauli, row_phase)
 
         aux_pauli = accum_pauli
         aux_pauli.phase = accum_phase
