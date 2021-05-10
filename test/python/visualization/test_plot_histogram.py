@@ -104,14 +104,8 @@ class TestPlotHistogram(QiskitTestCase):
         }
 
         success = False
-        try:
-            plot_histogram([raw_dist, exact_dist])
-        # Catch the tick labels error that pops up in MPL
-        except ValueError:
-            pass
-        else:
-            success = True
-        self.assertTrue(success)
+         fig = plot_histogram([raw_dist, exact_dist])
+        self.assertIsInstance(fig,  mpl.Figure)
 
 
 if __name__ == "__main__":
