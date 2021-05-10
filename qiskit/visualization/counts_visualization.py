@@ -145,16 +145,12 @@ def plot_histogram(
         for item in labels:
             dist.append(DIST_MEAS[sort](item, target_string))
 
-        labels = [
-            list(x) for x in zip(*sorted(zip(dist, labels), key=lambda pair: pair[0]))
-        ][1]
+        labels = [list(x) for x in zip(*sorted(zip(dist, labels), key=lambda pair: pair[0]))][1]
 
     length = len(data)
     width = 1 / (len(data) + 1)  # the width of the bars
 
-    labels_dict, all_pvalues, all_inds = _plot_histogram_data(
-        data, labels, number_to_keep
-    )
+    labels_dict, all_pvalues, all_inds = _plot_histogram_data(data, labels, number_to_keep)
     rects = []
     for item, _ in enumerate(data):
         for idx, val in enumerate(all_pvalues[item]):
