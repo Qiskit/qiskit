@@ -15,6 +15,12 @@ from math import sqrt
 from .probability import ProbDistribution
 
 
+# NOTE: A dict subclass should not overload any dunder methods like __getitem__
+# this can cause unexpected behavior and issues as the cPython dict
+# implementation has many standard methods in C for performance and the dunder
+# methods are not always used as expected. For example, update() doesn't call
+# __setitem__ so overloading __setitem__ would not always provide the expected
+# result
 class QuasiDistribution(dict):
     """A dict-like class for representing qasi-probabilities."""
 
