@@ -210,12 +210,14 @@ class VarQRTE(VarQTE):
             raise Warning('The number of the gradient errors is incompatible with the number of '
                           'the time steps.')
         # errors = [gradient_errors[j] + energies[j]-energies[0] for j in range(len(energies))]
-        e_bound = []
+        e_bounds = []
         for j, dt in enumerate(times):
             # e_bound.append(np.trapz(errors[:j+1], x=times[:j+1]))
-            e_bound.append(np.trapz(gradient_errors[:j + 1], x=times[:j + 1]))
+            e_bounds.append(np.trapz(gradient_errors[:j + 1], x=times[:j + 1]))
             # e_bound.append(e_bound[j] + gradient_errors[j] * dt)
-        return e_bound
+        # TODO add clipping
+        # e_bounds = [np.sqrt(2) if e_bound > np.sqrt(2) else e_bound for e_bound in e_bounds]
+        return e_bounds
 
     def _exact_state(self,
                      time: Union[float, complex]) -> Iterable:

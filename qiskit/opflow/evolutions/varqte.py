@@ -109,6 +109,7 @@ class VarQTE(EvolutionBase):
     Algorithms that use McLachlans variational principle to compute a time evolution for a given
     Hermitian operator (Hamiltonian) and quantum state.
     """
+
     def __init__(self,
                  grad_method: Union[str, CircuitGradient] = 'lin_comb',
                  qfi_method: Union[str, CircuitQFI] = 'lin_comb_full',
@@ -289,8 +290,10 @@ class VarQTE(EvolutionBase):
             grad_errors = []
             energies = []
             time = []
-            time_steps = []
+            # time_steps = []
+            h_squareds = []
             stddevs = []
+
             for line in reader:
                 if first:
                     first = False
@@ -301,26 +304,35 @@ class VarQTE(EvolutionBase):
                 time.append(t_line)
                 grad_errors.append(float(line['error_grad']))
                 energies.append(float(line['trained_energy']))
+                h_squareds.append(float(line['h_squared']))
                 stddevs.append(np.sqrt(float(line['variance'])))
-
-        zipped_lists = zip(time, grad_errors, stddevs)
-
-        sorted_pairs = sorted(zipped_lists)
-
-        triples = zip(*sorted_pairs)
-
-        time, grad_errors, stddevs = [list(triple) for triple in triples]
-
-        for j in range(len(time)-1):
-            time_steps.append(time[j+1]-time[j])
 
         if not np.iscomplex(self._operator.coeff):
             # VarQITE
-            e_bound = self._get_error_bound(grad_errors, time, stddevs, imag_reverse_bound,
-                                            trunc_bound, H)
+            zipped_lists = zip(time, grad_errors, energies, h_squareds, stddevs)
+        else:
+            # VarQRTE
+            zipped_lists = zip(time, grad_errors, energies)
+
+        sorted_pairs = sorted(zipped_lists)
+
+        multiples = zip(*sorted_pairs)
+
+
+
+        # for j in range(len(time)-1):
+        #     time_steps.append(time[j+1]-time[j])
+
+        if not np.iscomplex(self._operator.coeff):
+            # VarQITE
+            time, grad_errors, energies, h_squareds, stddevs = \
+                [list(multiple) for multiple in multiples]
+            e_bound = self._get_error_bound(grad_errors, time, stddevs, h_squareds, H,
+                                            energies, imag_reverse_bound)
 
         else:
             # VarQRTE
+            time, grad_errors, energies = [list(multiple) for multiple in multiples]
             e_bound = self._get_error_bound(grad_errors, time, energies)
         return e_bound
 
@@ -820,11 +832,10 @@ class VarQTE(EvolutionBase):
             # plt.scatter(time, true_error, color='purple', marker='x', s=40, label='actual error')
 
             plt.legend(loc='best')
-            plt.xlabel('time')
             plt.ylabel('error')
             plt.ylim(bottom=-0.01)
-            # plt.ylim((-0.01, 1.03))
-            plt.autoscale(enable=True)
+            # plt.ylim((-0.01, 0.25))
+            # plt.autoscale(enable=True)
             # plt.yticks(np.linspace(0, 1, 11))
             # plt.autoscale(enable=True)
             # plt.autoscale(enable=True)
@@ -932,8 +943,10 @@ class VarQTE(EvolutionBase):
             plt.ylabel('fidelity')
             # plt.autoscale(enable=True)
             # plt.xticks(range(counter-1))
+            # plt.ylim((0.9, 1.003))
+            # plt.yticks(np.linspace(0.9, 1, 6))
             plt.ylim((0, 1.03))
-            # plt.autoscale(enable=True)
+            plt.autoscale(enable=True)
             plt.yticks(np.linspace(0, 1, 11))
             plt.legend(loc='best')
             plt.savefig(os.path.join(data_dir, 'fidelity.png'))

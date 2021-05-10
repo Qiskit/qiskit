@@ -12,6 +12,7 @@
 
 """ PauliTrotterEvolution Class """
 
+
 import logging
 from typing import Optional, Union, cast
 

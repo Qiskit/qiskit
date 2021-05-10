@@ -55,7 +55,7 @@ class LinCombFull(CircuitQFI):
         # QFI & phase fix observable
         qfi_observable = StateFn(4 * Z ^ (I ^ operator.num_qubits), is_measurement=True).reduce()
         phase_fix_observable = SummedOp([Z ^ (I ^ operator.num_qubits),
-                                         +1j * Y ^ (I ^ operator.num_qubits)])
+                                         -1j * Y ^ (I ^ operator.num_qubits)])
         # see https://arxiv.org/pdf/quant-ph/0108146.pdf
 
         # Check if the given operator corresponds to a quantum state given as a circuit.
@@ -72,7 +72,7 @@ class LinCombFull(CircuitQFI):
         # First, the operators are computed which can compensate for a potential phase-mismatch
         # between target and trained state, i.e.〈ψ|∂lψ〉
         gradient_states = LinComb()._gradient_states(
-            operator, meas_op=phase_fix_observable, target_params=params, open_ctrl=False,
+            operator, meas_op=phase_fix_observable, target_params=params, open_ctrl=True,
             trim_after_grad_gate=True
         )
         # if type(gradient_states) in [ListOp, SummedOp]:  # pylint: disable=unidiomatic-typecheck

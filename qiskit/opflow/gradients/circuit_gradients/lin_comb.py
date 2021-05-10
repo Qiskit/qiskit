@@ -550,7 +550,7 @@ class LinComb(CircuitGradient):
             if np.iscomplex(meas_op._coeff):
                 phase_fix = True
                 phase_fix_observable = SummedOp([Z ^ (I ^ state_op.num_qubits),
-                                         +1j * Y ^ (I ^ state_op.num_qubits)])
+                                         -1j * Y ^ (I ^ state_op.num_qubits)])
                 state_qc.s(qr_superpos)
                 meas_op._coeff /= 1j
 
@@ -567,7 +567,7 @@ class LinComb(CircuitGradient):
             # between target and trained state, i.e.〈ψ|∂lψ〉
             gradient_states = LinComb()._gradient_states(
                 state_op, meas_op=phase_fix_observable, target_params=target_params,
-                open_ctrl=False, trim_after_grad_gate=True)
+                open_ctrl=True, trim_after_grad_gate=True)
 
             if type(gradient_states) == ListOp:  # pylint: disable=unidiomatic-typecheck
                 phase_fix_states = gradient_states.oplist

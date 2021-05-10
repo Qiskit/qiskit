@@ -15,6 +15,8 @@
 from typing import List, Union, Dict, Iterable, Tuple, Any, Optional
 import warnings
 
+from scipy.optimize import fmin_cobyla
+
 import numpy as np
 import scipy as sp
 from scipy.linalg import expm
@@ -162,18 +164,17 @@ class VarQITE(VarQTE):
                          gradient_errors: List,
                          times: List,
                          stddevs: List,
-                         imag_reverse_bound: bool = True,
-                         trunc_bound: bool = False,
-                         H: Optional[Union[List, np.ndarray]] = None) -> Union[List, Tuple[List,
-                                                                                           List],
-                                                                               Tuple[List, List,
-                                                                               List]]:
+                         h_squareds: List,
+                         H: Union[List, np.ndarray],
+                         energies: List,
+                         imag_reverse_bound: bool = True) -> Union[List, Tuple[List, List]]:
         """
         Get the upper bound to a global phase agnostic l2-norm error for VarQITE simulation
         Args:
             gradient_errors: Error of the state propagation gradient for each t in times
             times: List of all points in time considered throughout the simulation
             stddevs: Standard deviations for times sqrt(⟨ψ(ω)|H^2| ψ(ω)〉- ⟨ψ(ω)|H| ψ(ω)〉^2)
+            h_squareds: ⟨ψ(ω)|H| ψ(ω)〉^2 for all times
             imag_reverse_bound: If True compute the reverse error bound
             H: If imag_reverse_bound find the first and second Eigenvalue of H to compute the
                reverse bound
@@ -188,51 +189,71 @@ class VarQITE(VarQTE):
         if not len(gradient_errors) == len(times):
             raise Warning('The number of the gradient errors is incompatible with the number of '
                           'the time steps.')
+
+        def optimization(eps: float,
+                         e: float,
+                         var: float,
+                         h_squared: float) -> float:
+
+            c_alpha = lambda a: np.sqrt((1-a)**2 + 2*a *(1-a)*e + a**2*h_squared)
+
+            def optimization_fun(alpha: float) -> float:
+                return (-1) * eps**2 / c_alpha(alpha) * (e + alpha * (var - e - e**2))
+
+            def constraint1(alpha: float):
+                return (1 - alpha + alpha * e) / c_alpha(alpha)**2 - 1 + eps**2 /2
+
+            def constraint2(alpha: float) -> float:
+                # Constraint alpha >= 0
+                return alpha
+
+            def constraint3(alpha: float) -> float:
+                # Constraint alpha <= 1
+                return 1 - alpha
+
+            return fmin_cobyla(func=optimization_fun, x0=[0.5], cons=[constraint1, constraint2,
+                                                                   constraint3])[0]
+
+        error_bounds = [0]
+
+        for j in range(len(times)):
+            if j == 0:
+                continue
+            delta_t = times[j]-times[j-1]
+            y = optimization(error_bounds[j-1], energies[j-1], stddevs[j-1]**2, h_squareds[j-1])
+            #  bound for |<\psi_{t+1}|\psi^*_{t+1}>|**2
+            overlap_item = (1 - error_bounds[j-1]**2 / 2)**2 + \
+                           2 * delta_t * (1 - error_bounds[j-1]**2 / 2) * \
+                           ((1 - error_bounds[j-1]**2 / 2)*energies[j-1] - y)
+            # bound for |<\psi_{t+1}|\psi^*_{t+1}>|
+            overlap_item = np.sqrt(overlap_item)
+            # \epsilon_{t+1}
+            error_bounds.append(np.sqrt(2-2*overlap_item))
+
+        """
+       
+        norms = []
+        for e in energies:
+            norms.append(np.linalg.norm(e * np.eye(np.shape(H)[0]) - H, np.inf))
+        
+        # integral_items = np.add(2 * stddevs, norms)
+        # or
+        
+        integral_items = np.add(stddevs, norms)
+        # integral_items = stddevs
         gradient_error_factors = []
         for j in range(len(times)):
-            stddev_factor = np.exp(2 * np.trapz(stddevs[j:], x=times[j:]))
-                # stddev_factor += (stddevs[k]+stddevs[k+1]) * 0.5 * time_steps[k]
-                # stddev_factor = 1
-                # for k in range(j, len(time)):
-                #     stddev_factor *= (1 + 2 * time[k] * stddevs[k])
-
+            stddev_factor = np.exp(np.trapz(integral_items[j:], x=times[j:]))
             gradient_error_factors.append(stddev_factor)
-
-        if trunc_bound:
-            gradient_error_factors_truncated = []
-            for p in range(len(gradient_error_factors)):
-                if np.abs(gradient_error_factors[p] - gradient_error_factors[p+1]) <= np.quantile(
-                        gradient_error_factors, 0.05):
-                    gradient_error_factors_truncated.extend(gradient_error_factors[p:])
-                    trunc_gradient_errors = []
-                    trunc_gradient_errors.extend(gradient_errors[p:])
-                    trunc_times = []
-                    trunc_times.extend(times[p:])
-                    break
-
-            trunc_e_bounds = []
-            for j in range(len(trunc_times)):
-                # if use_integral_approx:
-                trunc_e_bounds.append(
-                    np.trapz(np.multiply(trunc_gradient_errors[:j + 1],
-                                         gradient_error_factors_truncated[:j + 1]),
-                             x=trunc_times[:j + 1]))
-
-
 
         e_bounds = []
         for j in range(len(times)):
-            # if use_integral_approx:
             e_bounds.append(np.trapz(np.multiply(gradient_errors[:j+1], gradient_error_factors[
                                                                         :j+1]), x=times[:j+1]))
-            # else:
-                # raise Warning('Summed Implementation not finished.')
-                # e_bounds.append(e_bounds[j] + (gradient_errors[j] * gradient_error_factors[j]) *
-                #                 (time(j+1) - time(j)))
-                # if j == len(time) - 1:
-                #     e_bounds = [0] + e_bounds
-                #     break
+         """
         # print('Error bounds ', e_bounds)
+
+        # e_bounds = [np.sqrt(2) if e_bound > np.sqrt(2) else e_bound for e_bound in e_bounds]
 
         if imag_reverse_bound:
             if H is None:
@@ -268,12 +289,10 @@ class VarQITE(VarQTE):
                 #                           reverse_times[j])
 
             reverse_bounds.reverse()
-            if trunc_bound:
-                return e_bounds, reverse_bounds, trunc_e_bounds
-            else:
-                return e_bounds, reverse_bounds
-        if trunc_bound:
-            return e_bounds, trunc_e_bounds
+
+            # reverse_bounds = [np.sqrt(2) if e_bound > np.sqrt(2) else e_bound for e_bound in
+            #                   reverse_bounds]
+            return e_bounds, reverse_bounds
         return e_bounds
 
     def _exact_state(self,
