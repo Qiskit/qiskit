@@ -432,11 +432,11 @@ class StabilizerState(QuantumState):
 
         num_qubits = self.clifford.num_qubits
         table = self.clifford.table
-        stab_X = self.clifford.stabilizer.X
+        stab_x = self.clifford.stabilizer.X
 
         # Check if there exists stabilizer anticommuting with Z[qubit]
         # in this case the measurement outcome is random
-        z_anticommuting = np.any(stab_X[:, qubit])
+        z_anticommuting = np.any(stab_x[:, qubit])
 
         if z_anticommuting == 0:
             # Deterministic outcome - measuring it will not change the StabilizerState
@@ -450,7 +450,7 @@ class StabilizerState(QuantumState):
         else:
             # Non-deterministic outcome
             outcome = randbit
-            p_qubit = np.min(np.nonzero(stab_X[:, qubit]))
+            p_qubit = np.min(np.nonzero(stab_x[:, qubit]))
             p_qubit += num_qubits
 
             # Updating the StabilizerState
