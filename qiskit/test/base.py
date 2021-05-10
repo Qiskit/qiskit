@@ -435,7 +435,10 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             r".*QuantumCircuit\.extend.*",
             r".*psi @ U.*",
             r".*qiskit\.circuit\.library\.standard_gates\.ms import.*",
-            r"elementwise comparison failed.*"
+            r"elementwise comparison failed.*",
+            r"The jsonschema validation included in qiskit-terra.*",
+            r"The DerivativeBase.parameter_expression_grad method.*",
+            r"Back-references to from Bit instances.*"
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
