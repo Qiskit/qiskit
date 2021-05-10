@@ -574,7 +574,7 @@ def run_circuits(
     else:
         results = []
         for job in jobs:
-            results.append(job.result(**qjob_config))
+            results.append(job.result())
 
     result = _combine_result_objects(results) if results else None
 
