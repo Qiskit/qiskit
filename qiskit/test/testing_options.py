@@ -18,7 +18,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_test_options(option_var='QISKIT_TESTS'):
+def get_test_options(option_var="QISKIT_TESTS"):
     """Read option_var from env and returns a dict in which the test options are set.
 
     Args:
@@ -27,12 +27,7 @@ def get_test_options(option_var='QISKIT_TESTS'):
     Returns:
         dict: A dictionary with the format {<option>: (bool)<activated>}.
     """
-    tests_options = {
-        'skip_online': False,
-        'mock_online': False,
-        'run_slow': False,
-        'rec': False
-    }
+    tests_options = {"skip_online": False, "mock_online": False, "run_slow": False, "rec": False}
 
     def turn_false(option):
         """Turn an option to False.
@@ -48,9 +43,9 @@ def get_test_options(option_var='QISKIT_TESTS'):
         return True
 
     dependency_solvers = {
-        'skip_online': lambda: turn_false('rec'),
-        'mock_online': lambda: turn_false('skip_online'),
-        'rec': lambda: turn_false('skip_online') and turn_false('run_slow')
+        "skip_online": lambda: turn_false("rec"),
+        "mock_online": lambda: turn_false("skip_online"),
+        "rec": lambda: turn_false("skip_online") and turn_false("run_slow"),
     }
 
     def set_flag(flag_):
@@ -64,14 +59,14 @@ def get_test_options(option_var='QISKIT_TESTS'):
             dependency_solvers[flag_]()
 
     flag_string = os.getenv(option_var, None)
-    flags = flag_string.split(',') if flag_string else []
+    flags = flag_string.split(",") if flag_string else []
     for flag in flags:
         if flag not in tests_options:
             logger.error('Testing option "%s" unknown.', flag)
         set_flag(flag)
 
     if _is_ci_fork_pull_request():
-        set_flag('skip_online')
+        set_flag("skip_online")
 
     logger.debug(tests_options)
     return tests_options
@@ -87,12 +82,12 @@ def _is_ci_fork_pull_request():
         bool: True if the tests are executed inside a CI tool, and the changes
             are not against the "main" branch.
     """
-    if os.getenv('TRAVIS'):
+    if os.getenv("TRAVIS"):
         # Using Travis CI.
-        if os.getenv('TRAVIS_PULL_REQUEST_BRANCH'):
+        if os.getenv("TRAVIS_PULL_REQUEST_BRANCH"):
             return True
-    elif os.getenv('APPVEYOR'):
+    elif os.getenv("APPVEYOR"):
         # Using AppVeyor CI.
-        if os.getenv('APPVEYOR_PULL_REQUEST_NUMBER'):
+        if os.getenv("APPVEYOR_PULL_REQUEST_NUMBER"):
             return True
     return False

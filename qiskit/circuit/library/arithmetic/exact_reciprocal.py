@@ -25,7 +25,7 @@ class ExactReciprocal(QuantumCircuit):
         |x\rangle |0\rangle \mapsto \cos(1/x)|x\rangle|0\rangle + \sin(1/x)|x\rangle |1\rangle
     """
 
-    def __init__(self, num_state_qubits: int, scaling: float, name: str = '1/x') -> None:
+    def __init__(self, num_state_qubits: int, scaling: float, name: str = "1/x") -> None:
         r"""
         Args:
             num_state_qubits: The number of qubits representing the value to invert.
@@ -36,8 +36,8 @@ class ExactReciprocal(QuantumCircuit):
             It is assumed that the binary string x represents a number < 1.
         """
 
-        qr_state = QuantumRegister(num_state_qubits, 'state')
-        qr_flag = QuantumRegister(1, 'flag')
+        qr_state = QuantumRegister(num_state_qubits, "state")
+        qr_flag = QuantumRegister(1, "flag")
         super().__init__(qr_state, qr_flag, name=name)
 
         angles = [0.0]
