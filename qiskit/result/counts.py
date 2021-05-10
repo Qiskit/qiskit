@@ -18,7 +18,7 @@ from qiskit.result import postprocess
 from qiskit import exceptions
 
 
-# NOTE: A dict subclass should not overload any dunder methods like __getitem__
+# NOTE: A dict subclass should not overload any dunder methods like __setitem__
 # this can cause unexpected behavior and issues as the cPython dict
 # implementation has many standard methods in C for performance and the dunder
 # methods are not always used as expected. For example, update() doesn't call
@@ -74,10 +74,14 @@ class Counts(dict):
             elif isinstance(first_key, str):
                 if first_key.startswith("0x"):
                     self.hex_raw = data
-                    self.int_raw = {int(key, 0): value for key, value in self.hex_raw.items()}
+                    self.int_raw = {
+                        int(key, 0): value for key, value in self.hex_raw.items()
+                    }
                 elif first_key.startswith("0b"):
                     self.int_raw = {int(key, 0): value for key, value in data.items()}
-                    self.hex_raw = {hex(key): value for key, value in self.int_raw.items()}
+                    self.hex_raw = {
+                        hex(key): value for key, value in self.int_raw.items()
+                    }
                 else:
                     if not creg_sizes and not memory_slots:
                         self.hex_raw = None
@@ -103,17 +107,39 @@ class Counts(dict):
                     "Invalid input key type %s, must be either an int "
                     "key or string key with hexademical value or bit string"
                 )
-        header = {}
-        self.creg_sizes = creg_sizes
-        if self.creg_sizes:
-            header["creg_sizes"] = self.creg_sizes
-        self.memory_slots = memory_slots
-        if self.memory_slots:
-            header["memory_slots"] = self.memory_slots
+
         if not bin_data:
-            bin_data = postprocess.format_counts(self.hex_raw, header=header)
-        super().__init__(bin_data)
+            bin_data = postprocess.format_counts(
+                self.hex_raw,
+                header={"creg_sizes": creg_sizes, "memory_slots": memory_slots},
+            )
+
+        super().__init__({k: v for k, v in bin_data.items() if v != 0})
+
+        if not memory_slots:
+            if creg_sizes:
+                memory_slots = sum((i[1] for i in creg_sizes))
+            else:
+                memory_slots = max([len(k) for k in bin_data.keys()]) if bin_data else 0
+
+        self.creg_sizes = creg_sizes
+        self.memory_slots = memory_slots
         self.time_taken = time_taken
+
+    def __getitem__(self, key):
+        try:
+            return super().__getitem__(key)
+        except KeyError:
+            if isinstance(key, int):
+                key = hex(key)
+            key = key.replace(" ", "")
+            if not self.bitstring_regex.search(key):
+                key = postprocess.format_counts_memory(
+                    key, {"memory_slots": self.memory_slots}
+                )
+            if self.memory_slots == len(key):
+                return 0
+            raise KeyError(f"{key} not found")
 
     def most_frequent(self):
         """Return the most frequent count
@@ -125,12 +151,15 @@ class Counts(dict):
                 an empty object.
         """
         if not self:
-            raise exceptions.QiskitError("Can not return a most frequent count on an empty object")
+            raise exceptions.QiskitError(
+                "Can not return a most frequent count on an empty object"
+            )
         max_value = max(self.values())
         max_values_counts = [x[0] for x in self.items() if x[1] == max_value]
         if len(max_values_counts) != 1:
             raise exceptions.QiskitError(
-                "Multiple values have the same maximum counts: %s" % ",".join(max_values_counts)
+                "Multiple values have the same maximum counts: %s"
+                % ",".join(max_values_counts)
             )
         return max_values_counts[0]
 

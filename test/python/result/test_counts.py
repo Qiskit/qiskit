@@ -28,16 +28,40 @@ class TestCounts(unittest.TestCase):
         result = counts.Counts(raw_counts)
         self.assertEqual(expected, result)
 
+    def test_memory_slots_from_data(self):
+        """Guess memory slots from data"""
+        result = counts.Counts({"0x0": 21, "0x2": 12})
+        self.assertEqual(result.memory_slots, 2)
+
+    def test_memory_slots_from_creg(self):
+        """Guess memory slots from cregs"""
+        result = counts.Counts(
+            {},
+            creg_sizes=[["c0", 2], ["c0", 1], ["c1", 2]],
+        )
+        self.assertEqual(result.memory_slots, 5)
+
     def test_counts_with_exta_formatting_data(self):
         raw_counts = {"0x0": 4, "0x2": 10}
         expected = {"0 0 00": 4, "0 0 10": 10}
         result = counts.Counts(
-            raw_counts, "test_counts", creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4
+            raw_counts,
+            "test_counts",
+            creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]],
+            memory_slots=4,
         )
         self.assertEqual(result, expected)
 
     def test_marginal_counts(self):
-        raw_counts = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
+        raw_counts = {
+            "0x0": 4,
+            "0x1": 7,
+            "0x2": 10,
+            "0x6": 5,
+            "0x9": 11,
+            "0xD": 9,
+            "0xE": 8,
+        }
         expected = {"00": 4, "01": 27, "10": 23}
         counts_obj = counts.Counts(raw_counts, creg_sizes=[["c0", 4]], memory_slots=4)
         result = utils.marginal_counts(counts_obj, [0, 1])
@@ -79,7 +103,10 @@ class TestCounts(unittest.TestCase):
         raw_counts = {0: 4, 2: 10}
         expected = {"0 0 00": 4, "0 0 10": 10}
         result = counts.Counts(
-            raw_counts, "test_counts", creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4
+            raw_counts,
+            "test_counts",
+            creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]],
+            memory_slots=4,
         )
         self.assertEqual(result, expected)
 
@@ -128,12 +155,23 @@ class TestCounts(unittest.TestCase):
         raw_counts = {"0": 4, "10": 10}
         expected = {"0 0 00": 4, "0 0 10": 10}
         result = counts.Counts(
-            raw_counts, "test_counts", creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4
+            raw_counts,
+            "test_counts",
+            creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]],
+            memory_slots=4,
         )
         self.assertEqual(result, expected)
 
     def test_marginal_bitstring_counts(self):
-        raw_counts = {"0": 4, "1": 7, "10": 10, "110": 5, "1001": 11, "1101": 9, "1110": 8}
+        raw_counts = {
+            "0": 4,
+            "1": 7,
+            "10": 10,
+            "110": 5,
+            "1001": 11,
+            "1101": 9,
+            "1110": 8,
+        }
         expected = {"00": 4, "01": 27, "10": 23}
         counts_obj = counts.Counts(raw_counts, creg_sizes=[["c0", 4]], memory_slots=4)
         result = utils.marginal_counts(counts_obj, [0, 1])
@@ -192,7 +230,9 @@ class TestCounts(unittest.TestCase):
             "21": 104,
             "22": 102,
         }
-        self.assertRaises(exceptions.QiskitError, counts.Counts, raw_counts, creg_sizes=[["c0", 4]])
+        self.assertRaises(
+            exceptions.QiskitError, counts.Counts, raw_counts, creg_sizes=[["c0", 4]]
+        )
 
     def test_qudit_counts_hex_outcome(self):
         raw_counts = {
@@ -249,7 +289,10 @@ class TestCounts(unittest.TestCase):
         raw_counts = {"0b0": 4, "0b10": 10}
         expected = {"0 0 00": 4, "0 0 10": 10}
         result = counts.Counts(
-            raw_counts, "test_counts", creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4
+            raw_counts,
+            "test_counts",
+            creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]],
+            memory_slots=4,
         )
         self.assertEqual(result, expected)
 
@@ -304,7 +347,10 @@ class TestCounts(unittest.TestCase):
         raw_counts = {}
         expected = {}
         result = counts.Counts(
-            raw_counts, "test_counts", creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4
+            raw_counts,
+            "test_counts",
+            creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]],
+            memory_slots=4,
         )
         self.assertEqual(result, expected)
 
@@ -326,3 +372,32 @@ class TestCounts(unittest.TestCase):
         counts_obj = counts.Counts(raw_counts)
         result = counts_obj.hex_outcomes()
         self.assertEqual(expected, result)
+
+
+class TestCountsWithZeros(unittest.TestCase):
+    def test_no_native_zero(self):
+        """Zero counts are not added to the native dict"""
+        counts_raw = {"0": 0, "10": 12}
+        expected = {"10": 12}
+        counts_obj = counts.Counts(counts_raw)
+        self.assertEqual(expected, counts_obj)
+
+    def test_get_zero(self):
+        """Get an implicit zero"""
+        counts_raw = {0: 21, 2: 12}
+        counts_obj = counts.Counts(counts_raw)
+        self.assertEqual(counts_obj[1], 0)
+
+    def test_out_of_range(self):
+        """Get an out-of-range key (KeyError)"""
+        counts_raw = {0: 21, 2: 12}
+        counts_obj = counts.Counts(counts_raw)
+        self.assertRaises(KeyError, lambda: counts_obj[10])
+
+    def test_eq_bitstring_int(self):
+        """Compare counts with zeros (bitstring vs int)"""
+        counts_raw_1 = {"0": 21, "10": 12}
+        counts_raw_2 = {0: 21, 1: 0, 2: 12}
+        counts_1 = counts.Counts(counts_raw_1)
+        counts_2 = counts.Counts(counts_raw_2)
+        self.assertEqual(counts_1, counts_2)

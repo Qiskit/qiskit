@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    The class :class:`~qiskit.result.Counts` was extended to return implicit 0s, when a key is not in the returned result but it is in the range of possible results.
