@@ -211,8 +211,8 @@ class VarQITE(VarQTE):
                 # Constraint alpha <= 1
                 return 1 - alpha
 
-            return fmin_cobyla(func=optimization_fun, x0=[0.5], cons=[constraint1, constraint2,
-                                                                   constraint3])[0]
+            return fmin_cobyla(func=optimization_fun, x0=0.5, cons=[constraint1, constraint2,
+                                                                   constraint3]).tolist()
 
         error_bounds = [0]
 
