@@ -9,6 +9,6 @@ texlive-latex-recommended
 # texlive-publishers
 texlive-science
 # texlive-xetex
-texlive-texmf
+texlive-pictures
 dlocate
 poppler-utils
