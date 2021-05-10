@@ -438,7 +438,14 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             r"elementwise comparison failed.*",
             r"The jsonschema validation included in qiskit-terra.*",
             r"The DerivativeBase.parameter_expression_grad method.*",
-            r"Back-references to from Bit instances.*"
+            r"Back-references to from Bit instances.*",
+            r"Calling insert is being deprecated.*",
+            r"Calling stop_time is being deprecated.*",
+            r"Calling timeslots is being deprecated.*",
+            r"Calling start_time is being deprecated.*",
+            r"Calling ch_stop_time is being deprecated.*",
+            r"Calling ch_start_time is being deprecated.*",
+            r"Calling shift is being deprecated.*",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
