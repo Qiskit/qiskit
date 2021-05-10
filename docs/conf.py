@@ -44,7 +44,7 @@ author = 'Qiskit Development Team'
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '0.17.2'
+release = '0.17.3'
 
 # -- General configuration ---------------------------------------------------
 
