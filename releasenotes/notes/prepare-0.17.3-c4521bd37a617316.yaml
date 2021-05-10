@@ -9,4 +9,4 @@ prelude: |
     These were only added for compatibility with that new feature in the
     qiskit-ibmq-provider release and the API for these classes is considered
     experimental and not considered stable for the 0.17.x release series. The
-    interface may change when 0.1.8.0 is released in the future.
+    interface may change when 0.18.0 is released in the future.
