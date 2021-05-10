@@ -58,10 +58,13 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        mpl_close('all')
         self.circuit_drawer = TestMatplotlibDrawer.save_data_wrap(
             _matplotlib_circuit_drawer, str(self)
         )
+
+    def tearDown(self):
+        super().tearDown()
+        mpl_close('all')
 
     @staticmethod
     def save_data_wrap(func, testname):
