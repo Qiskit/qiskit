@@ -368,7 +368,7 @@ Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some 
 Qiskit Terra uses 2 tools for verify code formatting and lint checking. The
 first tool is [black](https://github.com/psf/black) which is a code formatting
 tool that will automatically update the code formatting to a consistent style.
-The second tool is [pylint]https://www.pylint.org/) which is a code linter
+The second tool is [pylint](https://www.pylint.org/) which is a code linter
 which does a deeper analysis of the Python code to find both style issues and
 potential bugs and other common issues in Python.
 
@@ -422,3 +422,28 @@ the following steps:
 
 The `stable/*` branches should only receive changes in the form of bug
 fixes.
+
+## Dealing with the git blame ignore list
+
+In the qiskit-terra repository we maintain a list of commits for git blame
+to ignore. This is mostly commits that are code style changes that don't
+change the functionality but just change the code formatting (for example,
+when we migrated to use black for code formatting). This file,
+`.git-blame-ignore-revs` just contains a list of commit SHA1s you can tell git
+to ignore when using the `git blame` command. This can be done one time
+with something like
+
+```
+git blame --ignore-revs-file .git-blame-ignore-revs qiskit/version.py
+
+```
+
+from the root of the repository. If you'd like to enable this by default you
+can update your local repository's configuration with:
+
+```
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+which will update your local repositories configuration to use the ignore list
+by default.
