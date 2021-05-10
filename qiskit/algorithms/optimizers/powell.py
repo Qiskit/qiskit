@@ -42,6 +42,7 @@ class POWELL(ScipyMinimizer):
         disp: bool = False,
         xtol: float = 0.0001,
         tol: Optional[float] = None,
+        options: Optional[dict] = None,
         **kwargs,
     ) -> None:
         """
@@ -53,28 +54,12 @@ class POWELL(ScipyMinimizer):
             disp: Set to True to print convergence messages.
             xtol: Relative error in solution xopt acceptable for convergence.
             tol: Tolerance for termination.
+            options: A dictionary of solver options.
+            kwargs: additional kwargs for scipy.optimize.minimize.
         """
-        if "options" in kwargs:
-            options = kwargs.pop("options")
-        else:
+        if options is None:
             options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
         super().__init__("Powell", options=options, tol=tol, **kwargs)
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        return super().optimize(
-            num_vars,
-            objective_function,
-            gradient_function=gradient_function,
-            variable_bounds=variable_bounds,
-            initial_point=initial_point,
-        )

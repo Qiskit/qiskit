@@ -14,7 +14,6 @@
 
 from typing import Optional
 
-from .optimizer import Optimizer
 from .scipy_minimizer import ScipyMinimizer
 
 
@@ -42,6 +41,7 @@ class CG(ScipyMinimizer):
         gtol: float = 1e-5,
         tol: Optional[float] = None,
         eps: float = 1.4901161193847656e-08,
+        options: Optional[dict] = None,
         **kwargs,
     ) -> None:
         """
@@ -51,34 +51,12 @@ class CG(ScipyMinimizer):
             gtol: Gradient norm must be less than gtol before successful termination.
             tol: Tolerance for termination.
             eps: If jac is approximated, use this value for the step size.
+            options: A dictionary of solver options.
+            kwargs: additional kwargs for scipy.optimize.minimize.
         """
-        if "options" in kwargs:
-            options = kwargs.pop("options")
-        else:
+        if options is None:
             options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
         super().__init__(method="CG", options=options, tol=tol, **kwargs)
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        if gradient_function is None and self._max_evals_grouped > 1:
-            epsilon = self._options["eps"]
-            gradient_function = Optimizer.wrap_function(
-                Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped)
-            )
-
-        return super().optimize(
-            num_vars,
-            objective_function,
-            gradient_function=gradient_function,
-            variable_bounds=variable_bounds,
-            initial_point=initial_point,
-        )

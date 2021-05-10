@@ -38,6 +38,7 @@ class COBYLA(ScipyMinimizer):
         disp: bool = False,
         rhobeg: float = 1.0,
         tol: Optional[float] = None,
+        options: Optional[dict] = None,
         **kwargs,
     ) -> None:
         """
@@ -47,25 +48,12 @@ class COBYLA(ScipyMinimizer):
             rhobeg: Reasonable initial changes to the variables.
             tol: Final accuracy in the optimization (not precisely guaranteed).
                  This is a lower bound on the size of the trust region.
+            options: A dictionary of solver options.
+            kwargs: additional kwargs for scipy.optimize.minimize.
         """
-        options = {}
+        if options is None:
+            options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
         super().__init__(method="COBYLA", options=options, tol=tol, **kwargs)
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        return super().optimize(
-            num_vars,
-            objective_function,
-            gradient_function=gradient_function,
-            variable_bounds=variable_bounds,
-            initial_point=initial_point,
-        )

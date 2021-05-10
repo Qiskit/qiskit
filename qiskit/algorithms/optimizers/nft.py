@@ -36,6 +36,7 @@ class NFT(ScipyMinimizer):
         maxfev: int = 1024,
         disp: bool = False,
         reset_interval: int = 32,
+        options: Optional[dict] = None,
         **kwargs,
     ) -> None:
         """
@@ -48,6 +49,8 @@ class NFT(ScipyMinimizer):
             disp: disp
             reset_interval: The minimum estimates directly once
                             in ``reset_interval`` times.
+            options: A dictionary of solver options.
+            kwargs: additional kwargs for scipy.optimize.minimize.
 
         Notes:
             In this optimization method, the optimization function have to satisfy
@@ -58,30 +61,12 @@ class NFT(ScipyMinimizer):
                 Sequential minimal optimization for quantum-classical hybrid algorithms.
                 arXiv preprint arXiv:1903.12166.
         """
-        if "options" in kwargs:
-            options = kwargs.pop("options")
-        else:
+        if options is None:
             options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
         super().__init__(method=nakanishi_fujii_todo, options=options, **kwargs)
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        return super().optimize(
-            num_vars,
-            objective_function,
-            gradient_function=gradient_function,
-            variable_bounds=variable_bounds,
-            initial_point=initial_point,
-        )
 
 
 # pylint: disable=invalid-name

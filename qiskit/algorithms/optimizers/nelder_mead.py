@@ -49,6 +49,7 @@ class NELDER_MEAD(ScipyMinimizer):  # pylint: disable=invalid-name
         xatol: float = 0.0001,
         tol: Optional[float] = None,
         adaptive: bool = False,
+        options: Optional[dict] = None,
         **kwargs,
     ) -> None:
         """
@@ -61,28 +62,12 @@ class NELDER_MEAD(ScipyMinimizer):  # pylint: disable=invalid-name
             xatol: Absolute error in xopt between iterations that is acceptable for convergence.
             tol: Tolerance for termination.
             adaptive: Adapt algorithm parameters to dimensionality of problem.
+            options: A dictionary of solver options.
+            kwargs: additional kwargs for scipy.optimize.minimize.
         """
-        if "options" in kwargs:
-            options = kwargs.pop("options")
-        else:
+        if options is None:
             options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
         super().__init__(method="Nelder-Mead", options=options, tol=tol, **kwargs)
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        return super().optimize(
-            num_vars,
-            objective_function,
-            gradient_function=gradient_function,
-            variable_bounds=variable_bounds,
-            initial_point=initial_point,
-        )
