@@ -19,6 +19,8 @@ from qiskit.test import QiskitTestCase
 
 
 class TestQuasiDistribution(QiskitTestCase):
+    """Test QuasiDistribution class."""
+
     def test_known_quasi_conversion(self):
         """Reproduce conversion from Smolin PRL"""
         qprobs = {"0": 3 / 5, "1": 1 / 2, "2": 7 / 20, "3": 1 / 10, "4": -11 / 20}
