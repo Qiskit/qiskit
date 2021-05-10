@@ -230,9 +230,7 @@ class TestCounts(unittest.TestCase):
             "21": 104,
             "22": 102,
         }
-        self.assertRaises(
-            exceptions.QiskitError, counts.Counts, raw_counts, creg_sizes=[["c0", 4]]
-        )
+        self.assertRaises(exceptions.QiskitError, counts.Counts, raw_counts, creg_sizes=[["c0", 4]])
 
     def test_qudit_counts_hex_outcome(self):
         raw_counts = {

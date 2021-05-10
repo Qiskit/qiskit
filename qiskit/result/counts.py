@@ -74,14 +74,10 @@ class Counts(dict):
             elif isinstance(first_key, str):
                 if first_key.startswith("0x"):
                     self.hex_raw = data
-                    self.int_raw = {
-                        int(key, 0): value for key, value in self.hex_raw.items()
-                    }
+                    self.int_raw = {int(key, 0): value for key, value in self.hex_raw.items()}
                 elif first_key.startswith("0b"):
                     self.int_raw = {int(key, 0): value for key, value in data.items()}
-                    self.hex_raw = {
-                        hex(key): value for key, value in self.int_raw.items()
-                    }
+                    self.hex_raw = {hex(key): value for key, value in self.int_raw.items()}
                 else:
                     if not creg_sizes and not memory_slots:
                         self.hex_raw = None
@@ -134,9 +130,7 @@ class Counts(dict):
                 key = hex(key)
             key = key.replace(" ", "")
             if not self.bitstring_regex.search(key):
-                key = postprocess.format_counts_memory(
-                    key, {"memory_slots": self.memory_slots}
-                )
+                key = postprocess.format_counts_memory(key, {"memory_slots": self.memory_slots})
             if self.memory_slots == len(key):
                 return 0
             raise KeyError(f"{key} not found")
@@ -151,15 +145,12 @@ class Counts(dict):
                 an empty object.
         """
         if not self:
-            raise exceptions.QiskitError(
-                "Can not return a most frequent count on an empty object"
-            )
+            raise exceptions.QiskitError("Can not return a most frequent count on an empty object")
         max_value = max(self.values())
         max_values_counts = [x[0] for x in self.items() if x[1] == max_value]
         if len(max_values_counts) != 1:
             raise exceptions.QiskitError(
-                "Multiple values have the same maximum counts: %s"
-                % ",".join(max_values_counts)
+                "Multiple values have the same maximum counts: %s" % ",".join(max_values_counts)
             )
         return max_values_counts[0]
 
