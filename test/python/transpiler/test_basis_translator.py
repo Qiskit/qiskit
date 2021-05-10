@@ -822,7 +822,7 @@ class TestBasisExamples(QiskitTestCase):
         """Test that BasisTranslator skips gates in the target_basis - #6085"""
 
         qstr = 'OPENQASM 2.0; \
-        include "qelib1.inc"; \
+        include "standard_gates.inc"; \
         qreg q[5]; \
         cu1(4.1564508) q[2],q[3]; \
         ccx q[0],q[1],q[4]; \
