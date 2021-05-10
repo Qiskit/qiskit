@@ -420,7 +420,7 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             "numba",
             "qiskit.utils.measurement_error_mitigation",
             "qiskit.circuit.library.standard_gates.x",
-            "test.python.circuit.test_gate_power"
+            "test.python.circuit.test_gate_power",
         ]
         warnings.filterwarnings("error", category=DeprecationWarning)
         for mod in allow_DeprecationWarning_modules:
@@ -429,11 +429,13 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             r".*LogNormalDistribution.*",
             r".*NormalDistribution.*",
             r".*UniformDistribution.*",
-            r".*QuantumCircuit.combine.*",
-            r".*QuantumCircuit.__add__.*",
-            r".*QuantumCircuit.__iadd__.*",
-            r".*QuantumCircuit.extend.*",
-            r".*qiskit.circuit.library.standard_gates.ms.*"
+            r".*QuantumCircuit\.combine.*",
+            r".*QuantumCircuit\.__add__.*",
+            r".*QuantumCircuit\.__iadd__.*",
+            r".*QuantumCircuit\.extend.*",
+            r".*psi @ U.*",
+            r".*qiskit\.circuit\.library\.standard_gates\.ms import.*",
+            r"elementwise comparison failed.*"
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
