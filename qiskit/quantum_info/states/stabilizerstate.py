@@ -76,14 +76,13 @@ class StabilizerState(QuantumState):
             self._data = Clifford(data, validate)
 
         # Initialize
-        super().__init__(op_shape=OpShape.auto(num_qubits_r=self._data.num_qubits,
-                                               num_qubits_l=0))
+        super().__init__(op_shape=OpShape.auto(num_qubits_r=self._data.num_qubits, num_qubits_l=0))
 
     def __eq__(self, other):
         return self._data.stabilizer == other._data.stabilizer
 
     def __repr__(self):
-        return 'StabilizerState({})'.format(self._data.stabilizer)
+        return "StabilizerState({})".format(self._data.stabilizer)
 
     @property
     def clifford(self):
@@ -95,12 +94,10 @@ class StabilizerState(QuantumState):
         return self._data.is_unitary()
 
     def _add(self, other):
-        raise NotImplementedError(
-            "{} does not support addition".format(type(self)))
+        raise NotImplementedError("{} does not support addition".format(type(self)))
 
     def _multiply(self, other):
-        raise NotImplementedError(
-            "{} does not support scalar multiplication".format(type(self)))
+        raise NotImplementedError("{} does not support scalar multiplication".format(type(self)))
 
     def trace(self):
         """Return the trace of the stabilizer state as a density matrix,
@@ -113,7 +110,7 @@ class StabilizerState(QuantumState):
             QiskitError: if input is not a StabilizerState.
         """
         if not self.is_valid():
-            raise QiskitError('StabilizerState is not a valid quantum state.')
+            raise QiskitError("StabilizerState is not a valid quantum state.")
         return 1.0
 
     def purity(self):
@@ -127,7 +124,7 @@ class StabilizerState(QuantumState):
             QiskitError: if input is not a StabilizerState.
         """
         if not self.is_valid():
-            raise QiskitError('StabilizerState is not a valid quantum state.')
+            raise QiskitError("StabilizerState is not a valid quantum state.")
         return 1.0
 
     def to_operator(self):
@@ -215,18 +212,18 @@ class StabilizerState(QuantumState):
             qubits = qargs
 
         # Construct Pauli on num_qubits
-        pauli = Pauli(num_qubits * 'I')
+        pauli = Pauli(num_qubits * "I")
         phase = 0
 
         for pos, qubit in enumerate(qubits):
             pauli_pos = (oper.to_label())[len(oper) - 1 - pos]
-            if pauli_pos == 'X':
+            if pauli_pos == "X":
                 pauli.x[qubit] = 1
-            elif pauli_pos == 'Y':
+            elif pauli_pos == "Y":
                 pauli.x[qubit] = 1
                 pauli.z[qubit] = 1
                 phase += 1
-            elif pauli_pos == 'Z':
+            elif pauli_pos == "Z":
                 pauli.z[qubit] = 1
             else:
                 pass
@@ -317,7 +314,7 @@ class StabilizerState(QuantumState):
         else:
             qubits = qargs
 
-        outcome = ['X'] * len(qubits)
+        outcome = ["X"] * len(qubits)
         outcome_prob = 1.0
         probs = {}  # probabilities dictionary
 
@@ -386,7 +383,7 @@ class StabilizerState(QuantumState):
             qargs = range(self.clifford.num_qubits)
 
         ret = self.copy()
-        outcome = ''
+        outcome = ""
         for qubit in qargs:
             randbit = ret._rng.randint(2)
             outcome = str(ret._measure_and_update(qubit, randbit)) + outcome
@@ -443,7 +440,7 @@ class StabilizerState(QuantumState):
 
         if z_anticommuting == 0:
             # Deterministic outcome - measuring it will not change the StabilizerState
-            aux_pauli = Pauli(num_qubits * 'I')
+            aux_pauli = Pauli(num_qubits * "I")
             for i in range(num_qubits):
                 if table.X[i][qubit]:
                     aux_pauli = self._rowsum_deterministic(table, aux_pauli, i + num_qubits)
@@ -471,7 +468,7 @@ class StabilizerState(QuantumState):
 
     @staticmethod
     def _phase_exponent(x1, z1, x2, z2):
-        """Exponent g of i such that Pauli(x1,z1) * Pauli(x2,z2) = i^g Pauli(x1+x2,z1+z2) """
+        """Exponent g of i such that Pauli(x1,z1) * Pauli(x2,z2) = i^g Pauli(x1+x2,z1+z2)"""
         # pylint: disable=invalid-name
 
         phase = (x2 * z1 * (1 + 2 * z2 + 2 * x1) - x1 * z2 * (1 + 2 * z1 + 2 * x2)) % 4
@@ -479,25 +476,22 @@ class StabilizerState(QuantumState):
             phase += 4  # now phase in {0, 1, 3}
 
         if phase == 2:
-            raise QiskitError(
-                'Invalid rowsum phase exponent in measurement calculation.')
+            raise QiskitError("Invalid rowsum phase exponent in measurement calculation.")
         return phase
 
     @staticmethod
     def _rowsum(accum_pauli, accum_phase, row_pauli, row_phase):
-        """Aaronson-Gottesman rowsum helper function """
+        """Aaronson-Gottesman rowsum helper function"""
 
         newr = 2 * row_phase + 2 * accum_phase
 
         for qubit in range(row_pauli.num_qubits):
-            newr += StabilizerState._phase_exponent(row_pauli.x[qubit],
-                                         row_pauli.z[qubit],
-                                         accum_pauli.x[qubit],
-                                         accum_pauli.z[qubit])
+            newr += StabilizerState._phase_exponent(
+                row_pauli.x[qubit], row_pauli.z[qubit], accum_pauli.x[qubit], accum_pauli.z[qubit]
+            )
         newr %= 4
         if (newr != 0) & (newr != 2):
-            raise QiskitError(
-                'Invalid rowsum in measurement calculation.')
+            raise QiskitError("Invalid rowsum in measurement calculation.")
 
         accum_phase = int((newr == 2))
         accum_pauli.x ^= row_pauli.x
@@ -518,8 +512,9 @@ class StabilizerState(QuantumState):
         row_pauli = Pauli(row_pauli.to_labels()[0])
         accum_pauli = Pauli(accum_pauli.to_labels()[0])
 
-        accum_pauli, accum_phase = StabilizerState._rowsum(accum_pauli, accum_phase,
-                                                           row_pauli, row_phase)
+        accum_pauli, accum_phase = StabilizerState._rowsum(
+            accum_pauli, accum_phase, row_pauli, row_phase
+        )
 
         table.phase[accum] = accum_phase
         table.X[accum] = accum_pauli.x
@@ -538,8 +533,9 @@ class StabilizerState(QuantumState):
         row_pauli = table.pauli[row]
         row_pauli = Pauli(row_pauli.to_labels()[0])
 
-        accum_pauli, accum_phase = StabilizerState._rowsum(accum_pauli, accum_phase,
-                                                           row_pauli, row_phase)
+        accum_pauli, accum_phase = StabilizerState._rowsum(
+            accum_pauli, accum_phase, row_pauli, row_phase
+        )
 
         aux_pauli = accum_pauli
         aux_pauli.phase = accum_phase
@@ -556,30 +552,31 @@ class StabilizerState(QuantumState):
 
         for i in range(len(qubits)):
             qubit = qubits[len(qubits) - i - 1]
-            if outcome[i] == 'X':
+            if outcome[i] == "X":
                 is_deterministic = not any(ret.clifford.stabilizer.X[:, qubit])
                 if is_deterministic:
                     single_qubit_outcome = ret._measure_and_update(qubit, 0)
                     if single_qubit_outcome:
-                        outcome[i] = '1'
+                        outcome[i] = "1"
                     else:
-                        outcome[i] = '0'
+                        outcome[i] = "0"
                 else:
                     qubit_for_branching = i
 
         if qubit_for_branching == -1:
-            str_outcome = ''.join(outcome)
+            str_outcome = "".join(outcome)
             probs[str_outcome] = outcome_prob
             return
 
         for single_qubit_outcome in range(0, 2):
             new_outcome = outcome.copy()
             if single_qubit_outcome:
-                new_outcome[qubit_for_branching] = '1'
+                new_outcome[qubit_for_branching] = "1"
             else:
-                new_outcome[qubit_for_branching] = '0'
+                new_outcome[qubit_for_branching] = "0"
 
             stab_cpy = ret.copy()
             stab_cpy._measure_and_update(
-                qubits[len(qubits) - qubit_for_branching - 1], single_qubit_outcome)
+                qubits[len(qubits) - qubit_for_branching - 1], single_qubit_outcome
+            )
             stab_cpy._get_probablities(qubits, new_outcome, 0.5 * outcome_prob, probs)
