@@ -13,6 +13,7 @@
 """Tests for plot_histogram."""
 
 import unittest
+import matplotlib as mpl
 
 from qiskit.test import QiskitTestCase
 from qiskit.tools.visualization import plot_histogram
@@ -103,9 +104,8 @@ class TestPlotHistogram(QiskitTestCase):
             "001111": 34,
         }
 
-        success = False
-         fig = plot_histogram([raw_dist, exact_dist])
-        self.assertIsInstance(fig,  mpl.Figure)
+        fig = plot_histogram([raw_dist, exact_dist])
+        self.assertIsInstance(fig,  mpl.figure.Figure)
 
 
 if __name__ == "__main__":
