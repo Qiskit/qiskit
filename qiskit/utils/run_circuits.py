@@ -472,9 +472,9 @@ def run_circuits(
         count = 0
         while count < len(circuits):
             some_circuits = circuits[count : count + max_circuits_per_job]
-            circuits.append(some_circuits)
+            split_circuits.append(some_circuits)
             job, job_id = _safe_submit_circuits(
-                circuits,
+                some_circuits,
                 backend,
                 qjob_config=qjob_config,
                 backend_options=backend_options,
@@ -496,12 +496,13 @@ def run_circuits(
         jobs = [job]
         job_ids = [job_id]
         split_circuits = [circuits]
-    result = None
+    results = []
     if with_autorecover:
         logger.info("Backend status: %s", backend.status())
         logger.info("There are %s jobs are submitted.", len(jobs))
         logger.info("All job ids:\n%s", job_ids)
         for idx, _ in enumerate(jobs):
+            result = None
             logger.info("Backend status: %s", backend.status())
             logger.info("There is one jobs are submitted: id: %s", job_id)
             job = jobs[idx]
@@ -531,7 +532,8 @@ def run_circuits(
                     while True:
                         result = job.result()
                         if result.success:
-                            logger.info("COMPLETED: job id: %s", job_id)
+                            results.append(result)
+                            logger.info("COMPLETED the %s-th job, job id: %s", idx, job_id)
                             break
 
                         logger.warning("FAILURE: Job id: %s", job_id)
@@ -570,7 +572,11 @@ def run_circuits(
                     run_config=run_config,
                 )
     else:
-        result = job.result()
+        results = []
+        for job in jobs:
+            results.append(job.result(**qjob_config))
+
+    result = _combine_result_objects(results) if results else None
 
     # If result was not successful then raise an exception with either the status msg or
     # extra information if this was an Aer partial result return
