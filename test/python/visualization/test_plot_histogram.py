@@ -105,7 +105,7 @@ class TestPlotHistogram(QiskitTestCase):
         }
 
         fig = plot_histogram([raw_dist, exact_dist])
-        self.assertIsInstance(fig,  mpl.figure.Figure)
+        self.assertIsInstance(fig, mpl.figure.Figure)
 
 
 if __name__ == "__main__":
