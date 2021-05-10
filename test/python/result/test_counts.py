@@ -31,9 +31,8 @@ class TestCounts(unittest.TestCase):
     def test_counts_with_exta_formatting_data(self):
         raw_counts = {"0x0": 4, "0x2": 10}
         expected = {"0 0 00": 4, "0 0 10": 10}
-        result = counts.Counts(
-            raw_counts, "test_counts", creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4
-        )
+        result = counts.Counts(raw_counts, creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]],
+                               memory_slots=4)
         self.assertEqual(result, expected)
 
     def test_marginal_counts(self):
@@ -78,9 +77,8 @@ class TestCounts(unittest.TestCase):
     def test_int_counts_with_exta_formatting_data(self):
         raw_counts = {0: 4, 2: 10}
         expected = {"0 0 00": 4, "0 0 10": 10}
-        result = counts.Counts(
-            raw_counts, "test_counts", creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4
-        )
+        result = counts.Counts(raw_counts, creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]],
+                               memory_slots=4)
         self.assertEqual(result, expected)
 
     def test_marginal_int_counts(self):
@@ -127,9 +125,8 @@ class TestCounts(unittest.TestCase):
     def test_bistring_counts_with_exta_formatting_data(self):
         raw_counts = {"0": 4, "10": 10}
         expected = {"0 0 00": 4, "0 0 10": 10}
-        result = counts.Counts(
-            raw_counts, "test_counts", creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4
-        )
+        result = counts.Counts(raw_counts, creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]],
+                               memory_slots=4)
         self.assertEqual(result, expected)
 
     def test_marginal_bitstring_counts(self):
@@ -248,9 +245,8 @@ class TestCounts(unittest.TestCase):
     def test_0b_bistring_counts_with_exta_formatting_data(self):
         raw_counts = {"0b0": 4, "0b10": 10}
         expected = {"0 0 00": 4, "0 0 10": 10}
-        result = counts.Counts(
-            raw_counts, "test_counts", creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4
-        )
+        result = counts.Counts(raw_counts, creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]],
+                               memory_slots=4)
         self.assertEqual(result, expected)
 
     def test_marginal_0b_string_counts(self):
@@ -303,9 +299,8 @@ class TestCounts(unittest.TestCase):
     def test_empty_bistring_counts_with_exta_formatting_data(self):
         raw_counts = {}
         expected = {}
-        result = counts.Counts(
-            raw_counts, "test_counts", creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]], memory_slots=4
-        )
+        result = counts.Counts(raw_counts, creg_sizes=[["c0", 2], ["c0", 1], ["c1", 1]],
+                               memory_slots=4)
         self.assertEqual(result, expected)
 
     def test_int_outcomes_with_empty_counts(self):

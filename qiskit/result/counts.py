@@ -29,7 +29,7 @@ class Counts(dict):
 
     bitstring_regex = re.compile(r"^[01\s]+$")
 
-    def __init__(self, data, time_taken=None, creg_sizes=None, memory_slots=None):
+    def __init__(self, data, creg_sizes=None, memory_slots=None):
         """Build a counts object
 
         Args:
@@ -42,13 +42,11 @@ class Counts(dict):
                      * A bit string prefixed with ``0b`` for example ``'0b1011'``
                      * A bit string formatted across register and memory slots.
                        For example, ``'00 10'``.
-                     * A dit string, for example ``'02'``. Note for objects created
-                       with dit strings the ``creg_sizes``and ``memory_slots``
+                     * A bit string, for example ``'02'``. Note for objects created
+                       with bit strings the ``creg_sizes``and ``memory_slots``
                        kwargs don't work and :meth:`hex_outcomes` and
                        :meth:`int_outcomes` also do not work.
 
-            time_taken (float): The duration of the experiment that generated
-                the counts
             creg_sizes (list): a nested list where the inner element is a list
                 of tuples containing both the classical register name and
                 classical register size. For example,
@@ -57,7 +55,7 @@ class Counts(dict):
                 experiment.
         Raises:
             TypeError: If the input key type is not an int or string
-            QiskitError: If a dit string key is input with creg_sizes and/or
+            QiskitError: If a bit string key is input with creg_sizes and/or
                 memory_slots
         """
         bin_data = None
@@ -89,8 +87,8 @@ class Counts(dict):
                         for bitstring, value in data.items():
                             if not self.bitstring_regex.search(bitstring):
                                 raise exceptions.QiskitError(
-                                    "Counts objects with dit strings do not "
-                                    "currently support dit string formatting parameters "
+                                    "Counts objects with bit strings do not "
+                                    "currently support bit string formatting parameters "
                                     "creg_sizes or memory_slots"
                                 )
                             int_key = self._remove_space_underscore(bitstring)
@@ -112,8 +110,8 @@ class Counts(dict):
             header["memory_slots"] = self.memory_slots
         if not bin_data:
             bin_data = postprocess.format_counts(self.hex_raw, header=header)
+
         super().__init__(bin_data)
-        self.time_taken = time_taken
 
     def most_frequent(self):
         """Return the most frequent count
@@ -141,7 +139,7 @@ class Counts(dict):
             dict: A dictionary with the keys as hexadecimal strings instead of
                 bitstrings
         Raises:
-            QiskitError: If the Counts object contains counts for dit strings
+            QiskitError: If the Counts object contains counts for bit strings
         """
         if self.hex_raw:
             return {key.lower(): value for key, value in self.hex_raw.items()}
@@ -150,7 +148,7 @@ class Counts(dict):
             for bitstring, value in self.items():
                 if not self.bitstring_regex.search(bitstring):
                     raise exceptions.QiskitError(
-                        "Counts objects with dit strings do not "
+                        "Counts objects with bit strings do not "
                         "currently support conversion to hexadecimal"
                     )
                 int_key = self._remove_space_underscore(bitstring)
@@ -163,7 +161,7 @@ class Counts(dict):
         Returns:
             dict: A dictionary with the keys as integers instead of bitstrings
         Raises:
-            QiskitError: If the Counts object contains counts for dit strings
+            QiskitError: If the Counts object contains counts for bit strings
         """
         if self.int_raw:
             return self.int_raw
@@ -172,7 +170,7 @@ class Counts(dict):
             for bitstring, value in self.items():
                 if not self.bitstring_regex.search(bitstring):
                     raise exceptions.QiskitError(
-                        "Counts objects with dit strings do not "
+                        "Counts objects with bit strings do not "
                         "currently support conversion to integer"
                     )
                 int_key = self._remove_space_underscore(bitstring)
