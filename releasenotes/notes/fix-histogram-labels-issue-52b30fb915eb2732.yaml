@@ -1,7 +1,5 @@
 ---
-issues:
+fixes:
   - |
-    Fixed an issue in `plot_histogram` where an error would raise because of distributions
-    with unequal lengths.  This was caused by the change in PR #6340.  We remove the
-    inequality altogether from the label selection, and add a test to catch the ValueError
-    from MPL when the list of labels does not match the number of items to plot.
+    Fixed an issue in :func:`~qiskit.visualization.plot_histogram` function where a `ValueError`
+    would be raised when the function run on distributions with unequal lengths. 
