@@ -27,6 +27,7 @@ import itertools
 import logging
 import os
 import sys
+import warnings
 import unittest
 from unittest.util import safe_repr
 
@@ -411,6 +412,31 @@ class FullQiskitTestCase(BaseQiskitTestCase):
         # Determines if the TestCase is using IBMQ credentials.
         cls.using_ibmq_credentials = False
         cls.log = logging.getLogger(cls.__name__)
+
+        warnings.filterwarnings("error", category=DeprecationWarning)
+        allow_DeprecationWarning_modules = [
+            "test.ipynb.mpl.test_circuit_matplotlib_drawer",
+            "pybobyqa",
+            "numba",
+            "qiskit.utils.measurement_error_mitigation",
+            "qiskit.circuit.library.standard_gates.x",
+            "test.python.circuit.test_gate_power"
+        ]
+        warnings.filterwarnings("error", category=DeprecationWarning)
+        for mod in allow_DeprecationWarning_modules:
+            warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
+        allow_DeprecationWarning_message = [
+            r".*LogNormalDistribution.*",
+            r".*NormalDistribution.*",
+            r".*UniformDistribution.*",
+            r".*QuantumCircuit.combine.*",
+            r".*QuantumCircuit.__add__.*",
+            r".*QuantumCircuit.__iadd__.*",
+            r".*QuantumCircuit.extend.*",
+            r".*qiskit.circuit.library.standard_gates.ms.*"
+        ]
+        for msg in allow_DeprecationWarning_message:
+            warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
 
 
 def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
