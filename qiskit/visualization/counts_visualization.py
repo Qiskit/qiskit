@@ -231,11 +231,9 @@ def _plot_histogram_data(data, labels, number_to_keep):
                 labels_dict[key] = 1
                 values.append(execution[key])
         values = np.array(values, dtype=float)
-        where_idx = np.where(values >= 0)[0]
-        pvalues = values[where_idx] / sum(values[where_idx])
-
+        pvalues = values / sum(values)
         all_pvalues.append(pvalues)
-        numelem = len(values[where_idx])
+        numelem = len(values)
         ind = np.arange(numelem)  # the x locations for the groups
         all_inds.append(ind)
 
