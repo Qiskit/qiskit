@@ -1385,25 +1385,28 @@ class TestConditional(QiskitTestCase):
         self.assertEqual(gate_node.cargs, [])
         self.assertEqual(gate_node.condition, (self.creg, 1))
         self.assertEqual(
-            sorted(self.dag._multi_graph.in_edges(gate_node._node_id)),
-            sorted(
-                [
-                    (self.dag.input_map[self.qreg[0]]._node_id, gate_node._node_id, self.qreg[0]),
-                    (self.dag.input_map[self.creg[0]]._node_id, gate_node._node_id, self.creg[0]),
-                    (self.dag.input_map[self.creg[1]]._node_id, gate_node._node_id, self.creg[1]),
-                ]
-            ),
+            self.dag._multi_graph.in_edges(gate_node._node_id)[0],
+            (self.dag.input_map[self.creg[1]]._node_id, gate_node._node_id, self.creg[1]),
         )
-
         self.assertEqual(
-            sorted(self.dag._multi_graph.out_edges(gate_node._node_id)),
-            sorted(
-                [
-                    (gate_node._node_id, self.dag.output_map[self.qreg[0]]._node_id, self.qreg[0]),
-                    (gate_node._node_id, self.dag.output_map[self.creg[0]]._node_id, self.creg[0]),
-                    (gate_node._node_id, self.dag.output_map[self.creg[1]]._node_id, self.creg[1]),
-                ]
-            ),
+            self.dag._multi_graph.in_edges(gate_node._node_id)[1],
+            (self.dag.input_map[self.creg[0]]._node_id, gate_node._node_id, self.creg[0]),
+        )
+        self.assertEqual(
+            self.dag._multi_graph.in_edges(gate_node._node_id)[2],
+            (self.dag.input_map[self.qreg[0]]._node_id, gate_node._node_id, self.qreg[0]),
+        )
+        self.assertEqual(
+            self.dag._multi_graph.out_edges(gate_node._node_id)[0],
+            (gate_node._node_id, self.dag.output_map[self.creg[1]]._node_id, self.creg[1]),
+        )
+        self.assertEqual(
+            self.dag._multi_graph.out_edges(gate_node._node_id)[1],
+            (gate_node._node_id, self.dag.output_map[self.creg[0]]._node_id, self.creg[0]),
+        )
+        self.assertEqual(
+            self.dag._multi_graph.out_edges(gate_node._node_id)[2],
+            (gate_node._node_id, self.dag.output_map[self.qreg[0]]._node_id, self.qreg[0]),
         )
 
     def test_clbit_conditional(self):
