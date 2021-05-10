@@ -20,4 +20,4 @@ class DAGLongestPath(AnalysisPass):
 
     def run(self, dag):
         """Run the DAGLongestPath pass on `dag`."""
-        self.property_set['dag_longest_path'] = dag.longest_path()
+        self.property_set["dag_longest_path"] = dag.longest_path()

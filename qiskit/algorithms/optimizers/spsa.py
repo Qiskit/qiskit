@@ -72,18 +72,19 @@ class SPSA(Optimizer):
 
     """
 
-    def __init__(self,
-                 maxiter: int = 100,
-                 blocking: bool = False,
-                 allowed_increase: Optional[float] = None,
-                 trust_region: bool = False,
-                 learning_rate: Optional[Union[float, Callable[[], Iterator]]] = None,
-                 perturbation: Optional[Union[float, Callable[[], Iterator]]] = None,
-                 last_avg: int = 1,
-                 resamplings: Union[int, Dict[int, int]] = 1,
-                 perturbation_dims: Optional[int] = None,
-                 callback: Optional[CALLBACK] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        maxiter: int = 100,
+        blocking: bool = False,
+        allowed_increase: Optional[float] = None,
+        trust_region: bool = False,
+        learning_rate: Optional[Union[float, Callable[[], Iterator]]] = None,
+        perturbation: Optional[Union[float, Callable[[], Iterator]]] = None,
+        last_avg: int = 1,
+        resamplings: Union[int, Dict[int, int]] = 1,
+        perturbation_dims: Optional[int] = None,
+        callback: Optional[CALLBACK] = None,
+    ) -> None:
         r"""
         Args:
             maxiter: The maximum number of iterations.
@@ -136,14 +137,16 @@ class SPSA(Optimizer):
         self._nfev = None
 
     @staticmethod
-    def calibrate(loss: Callable[[np.ndarray], float],
-                  initial_point: np.ndarray,
-                  c: float = 0.2,
-                  stability_constant: float = 0,
-                  target_magnitude: Optional[float] = None,  # 2 pi / 10
-                  alpha: float = 0.602,
-                  gamma: float = 0.101,
-                  modelspace: bool = False) -> Tuple[Iterator[float], Iterator[float]]:
+    def calibrate(
+        loss: Callable[[np.ndarray], float],
+        initial_point: np.ndarray,
+        c: float = 0.2,
+        stability_constant: float = 0,
+        target_magnitude: Optional[float] = None,  # 2 pi / 10
+        alpha: float = 0.602,
+        gamma: float = 0.101,
+        modelspace: bool = False,
+    ) -> Tuple[Iterator[float], Iterator[float]]:
         r"""Calibrate SPSA parameters with a powerseries as learning rate and perturbation coeffs.
 
         The powerseries are:
@@ -192,7 +195,7 @@ class SPSA(Optimizer):
 
         # compute the rescaling factor for correct first learning rate
         if a < 1e-10:
-            warnings.warn(f'Calibration failed, using {target_magnitude} for `a`')
+            warnings.warn(f"Calibration failed, using {target_magnitude} for `a`")
             a = target_magnitude
 
         # set up the powerseries
@@ -205,9 +208,9 @@ class SPSA(Optimizer):
         return learning_rate, perturbation
 
     @staticmethod
-    def estimate_stddev(loss: Callable[[np.ndarray], float],
-                        initial_point: np.ndarray,
-                        avg: int = 25) -> float:
+    def estimate_stddev(
+        loss: Callable[[np.ndarray], float], initial_point: np.ndarray, avg: int = 25
+    ) -> float:
         """Estimate the standard deviation of the loss function."""
         losses = [loss(initial_point) for _ in range(avg)]
         return np.std(losses)
@@ -225,8 +228,7 @@ class SPSA(Optimizer):
         return gradient_sample
 
     def _point_estimate(self, loss, x, eps, deltas):
-        """The gradient estimate at point ``x`` consisting as average of all directions ``delta``.
-        """
+        """The gradient estimate at point ``x`` consisting as average of all directions ``delta``."""
         # number of samples
         resamplings = len(deltas)
 
@@ -265,7 +267,7 @@ class SPSA(Optimizer):
             eta = get_learning_rate()
             eps = get_perturbation()
         elif self.learning_rate is None or self.perturbation is None:
-            raise ValueError('If one of learning rate or perturbation is set, both must be set.')
+            raise ValueError("If one of learning rate or perturbation is set, both must be set.")
         else:
             # get iterator
             eta = self.learning_rate()
@@ -284,8 +286,8 @@ class SPSA(Optimizer):
             if self.allowed_increase is None:
                 self.allowed_increase = 2 * self.estimate_stddev(loss, x)
 
-        logger.info('=' * 30)
-        logger.info('Starting SPSA optimization')
+        logger.info("=" * 30)
+        logger.info("Starting SPSA optimization")
         start = time()
 
         # keep track of the last few steps to return their average
@@ -313,19 +315,26 @@ class SPSA(Optimizer):
 
                 if fx + self.allowed_increase <= fx_next:  # accept only if loss improved
                     if self.callback is not None:
-                        self.callback(self._nfev,  # number of function evals
-                                      x_next,  # next parameters
-                                      fx_next,  # loss at next parameters
-                                      np.linalg.norm(update),  # size of the update step
-                                      False)  # not accepted
+                        self.callback(
+                            self._nfev,  # number of function evals
+                            x_next,  # next parameters
+                            fx_next,  # loss at next parameters
+                            np.linalg.norm(update),  # size of the update step
+                            False,
+                        )  # not accepted
 
-                    logger.info('Iteration %s/%s rejected in %s.',
-                                k, self.maxiter + 1, time() - iteration_start)
+                    logger.info(
+                        "Iteration %s/%s rejected in %s.",
+                        k,
+                        self.maxiter + 1,
+                        time() - iteration_start,
+                    )
                     continue
                 fx = fx_next
 
-            logger.info('Iteration %s/%s done in %s.',
-                        k, self.maxiter + 1, time() - iteration_start)
+            logger.info(
+                "Iteration %s/%s done in %s.", k, self.maxiter + 1, time() - iteration_start
+            )
 
             if self.callback is not None:
                 # if we didn't evaluate the function yet, do it now
@@ -333,11 +342,13 @@ class SPSA(Optimizer):
                     self._nfev += 1
                     fx_next = loss(x_next)
 
-                self.callback(self._nfev,  # number of function evals
-                              x_next,  # next parameters
-                              fx_next,  # loss at next parameters
-                              np.linalg.norm(update),  # size of the update step
-                              True)  # accepted
+                self.callback(
+                    self._nfev,  # number of function evals
+                    x_next,  # next parameters
+                    fx_next,  # loss at next parameters
+                    np.linalg.norm(update),  # size of the update step
+                    True,
+                )  # accepted
 
             # update parameters
             x = x_next
@@ -348,8 +359,8 @@ class SPSA(Optimizer):
                 if len(last_steps) > self.last_avg:
                     last_steps.popleft()
 
-        logger.info('SPSA finished in %s', time() - start)
-        logger.info('=' * 30)
+        logger.info("SPSA finished in %s", time() - start)
+        logger.info("=" * 30)
 
         if self.last_avg > 1:
             x = np.mean(last_steps, axis=0)
@@ -359,13 +370,19 @@ class SPSA(Optimizer):
     def get_support_level(self):
         """Get the support level dictionary."""
         return {
-            'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.ignored,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.ignored,
+            "bounds": OptimizerSupportLevel.ignored,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
         return self._minimize(objective_function, initial_point)
 
 
@@ -375,8 +392,9 @@ def bernoulli_perturbation(dim, perturbation_dims=None):
         return 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=dim)
 
     pert = 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=perturbation_dims)
-    indices = algorithm_globals.random.choice(list(range(dim)), size=perturbation_dims,
-                                              replace=False)
+    indices = algorithm_globals.random.choice(
+        list(range(dim)), size=perturbation_dims, replace=False
+    )
     result = np.zeros(dim)
     result[indices] = pert
 
