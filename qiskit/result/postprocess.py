@@ -60,7 +60,7 @@ def format_counts_memory(shot_memory, header=None):
             specifying the number of total memory_slots in the experiment.
 
     Returns:
-        dict: a formatted memory
+        str: a formatted memory
     """
     if shot_memory.startswith("0x"):
         shot_memory = _hex_to_bin(shot_memory)
