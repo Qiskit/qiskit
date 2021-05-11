@@ -184,6 +184,15 @@ class TestGrover(QiskitAlgorithmsTestCase):
         ret = grover.amplify(problem)
         self.assertIn(ret.top_measurement, ["11"])
 
+    def test_optimal_num_iterations(self):
+        """Test optimal_num_iterations"""
+        num_qubits = 7
+        for num_solutions in range(1, 2 ** num_qubits):
+            amplitude = np.sqrt(num_solutions / 2 ** num_qubits)
+            expected = round(np.arccos(amplitude) / (2 * np.arcsin(amplitude)))
+            actual = Grover.optimal_num_iterations(num_solutions, num_qubits)
+        self.assertEqual(actual, expected)
+
     def test_construct_circuit(self):
         """Test construct_circuit"""
         oracle = QuantumCircuit(2)

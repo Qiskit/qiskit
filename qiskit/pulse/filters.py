@@ -54,7 +54,11 @@ def filter_instructions(
     if negate and len(filters) > 0:
         valid_insts = ~valid_insts
 
-    return Schedule(*time_inst_tuples[valid_insts], name=sched.name, metadata=sched.metadata)
+    filter_schedule = Schedule.initialize_from(sched)
+    for time, inst in time_inst_tuples[valid_insts]:
+        filter_schedule.insert(time, inst, inplace=True)
+
+    return filter_schedule
 
 
 def composite_filter(
