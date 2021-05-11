@@ -413,6 +413,7 @@ class FullQiskitTestCase(BaseQiskitTestCase):
         cls.using_ibmq_credentials = False
         cls.log = logging.getLogger(cls.__name__)
 
+        warnings.filterwarnings("error", category=DeprecationWarning)
         allow_DeprecationWarning_modules = [
             "test.ipynb.mpl.test_circuit_matplotlib_drawer",
             "test.python.pulse.test_parameters",
@@ -432,7 +433,6 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             "qiskit.pulse.library.parametric_pulses",
             "qiskit.quantum_info.operators.symplectic.pauli",
         ]
-        warnings.filterwarnings("error", category=DeprecationWarning)
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
         allow_DeprecationWarning_message = [
