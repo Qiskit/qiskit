@@ -62,8 +62,6 @@ class TestQAOAAnsatz(QiskitTestCase):
         mixer.ry(1, 0)
         circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
 
-        print(circuit.draw())
-
         parameters = circuit.parameters
         self.assertEqual(0, len(parameters))
         self.assertIsInstance(circuit.data[0][0], HGate)

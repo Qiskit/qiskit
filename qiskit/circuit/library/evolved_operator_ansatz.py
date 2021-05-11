@@ -27,7 +27,9 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
 
     def __init__(
         self,
-        operators: Optional[Union["OperatorBase", QuantumCircuit, List[Union["OperatorBase", QuantumCircuit]]]] = None,
+        operators: Optional[
+            Union["OperatorBase", QuantumCircuit, List[Union["OperatorBase", QuantumCircuit]]]
+        ] = None,
         reps: int = 1,
         evolution: Optional["EvolutionBase"] = None,
         insert_barriers: bool = False,
