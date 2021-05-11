@@ -13,6 +13,7 @@
 # pylint: disable=missing-docstring
 
 import os
+from uuid import uuid4
 
 from qiskit import exceptions
 from qiskit.test import QiskitTestCase
@@ -20,9 +21,9 @@ from qiskit import user_config
 
 
 class TestUserConfig(QiskitTestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.file_path = "temp.txt"
+    def setUp(self):
+        super().setUp()
+        self.file_path = "test_%s.conf" % uuid4()
 
     def test_empty_file_read(self):
         config = user_config.UserConfig(self.file_path)
