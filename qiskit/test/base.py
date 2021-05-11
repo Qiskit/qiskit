@@ -433,6 +433,7 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             "qiskit.pulse.library.parametric_pulses",
             "qiskit.quantum_info.operators.symplectic.pauli",
             "test.python.quantum_info.operators.test_operator",
+            "test.python.quantum_info.operators.test_scalar_op",
         ]
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
