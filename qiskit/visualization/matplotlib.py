@@ -193,7 +193,7 @@ class MatplotlibDrawer:
         self._xmax = 0
         self._ymax = 0
         self._x_offset = 0
-        self._reg_long_text = 0
+
         self._fs = self._style["fs"] * self._scale
         self._sfs = self._style["sfs"] * self._scale
         self._lwidth15 = 1.5 * self._scale
@@ -306,21 +306,18 @@ class MatplotlibDrawer:
         for layer in self._nodes:
             layer_width = self._get_layer_width(layer)
             self._layer_widths.append(layer_width)
-        total_layer_width = sum(self._layer_widths) + 1
+        total_layer_width = sum(self._layer_widths)
+        n_fold = total_layer_width // self._fold if self._fold > 0 else 0
 
         self._get_reg_names_and_numbers()
-        
-        n_fold = max(0, total_layer_width - 2) // self._fold if self._fold > 0 else 0
-        self._n_lines = len(self._qubit) + len(self._clbit)
 
         # window size
         if total_layer_width > self._fold > 0:
             self._xmax = self._fold + self._x_offset + 0.1
-            print('xmax', self._xmax)
             self._ymax = (n_fold + 1) * (self._n_lines + 1) - 1
         else:
             x_incr = 0.4 if not self._nodes else 0.9
-            self._xmax = total_layer_width + self._x_offset - x_incr
+            self._xmax = total_layer_width + 1 + self._x_offset - x_incr
             self._ymax = self._n_lines
 
         _xl = -self._style["margin"][0]
@@ -330,7 +327,6 @@ class MatplotlibDrawer:
         self._ax.set_xlim(_xl, _xr)
         self._ax.set_ylim(_yb, _yt)
 
-        print('at top', _xl, _xr, self._xmax, self._fold, self._x_offset)
         # update figure size
         fig_w = _xr - _xl
         fig_h = _yt - _yb
@@ -350,7 +346,6 @@ class MatplotlibDrawer:
             self._lwidth2 = 2.0 * self._scale
             print(self._fs)
             print(self._sfs)
-
 
         self._draw_regs_wires(total_layer_width, n_fold)
         self._draw_ops(verbose)
@@ -377,6 +372,124 @@ class MatplotlibDrawer:
             if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
                 self._plt_mod.close(self._figure)
             return self._figure
+
+    def _draw_regs_wires(self, total_layer_width, n_fold):
+        """Draw the register names and numbers, wires, and vertical lines at the ends"""
+
+        for fold_num in range(n_fold + 1):
+            # quantum register
+            for qubit in self._qubit_dict.values():
+                qubit_name = qubit["reg_name"]
+                y = qubit["y"] - fold_num * (self._n_lines + 1)
+                self._ax.text(
+                    self._x_offset - 0.2,
+                    y,
+                    qubit_name,
+                    ha="right",
+                    va="center",
+                    fontsize=1.25 * self._fs,
+                    color=self._style["tc"],
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
+                # draw the qubit wire
+                self._line([self._x_offset, y], [self._xmax, y], zorder=PORDER_REGLINE)
+
+            # classical register
+            this_clbit_dict = {}
+            for clbit in self._clbit_dict.values():
+                clbit_name = clbit["reg_name"]
+                y = clbit["y"] - fold_num * (self._n_lines + 1)
+                if y not in this_clbit_dict.keys():
+                    this_clbit_dict[y] = {"val": 1, "reg_name": clbit_name}
+                else:
+                    this_clbit_dict[y]["val"] += 1
+
+            for y, this_clbit in this_clbit_dict.items():
+                # cregbundle
+                if this_clbit["val"] > 1:
+                    self._ax.plot(
+                        [self._x_offset + 0.2, self._x_offset + 0.3],
+                        [y - 0.1, y + 0.1],
+                        color=self._style["cc"],
+                        zorder=PORDER_LINE,
+                    )
+                    self._ax.text(
+                        self._x_offset + 0.1,
+                        y + 0.1,
+                        str(this_clbit["val"]),
+                        ha="left",
+                        va="bottom",
+                        fontsize=0.8 * self._fs,
+                        color=self._style["tc"],
+                        clip_on=True,
+                        zorder=PORDER_TEXT,
+                    )
+                self._ax.text(
+                    self._x_offset - 0.2,
+                    y,
+                    this_clbit["reg_name"],
+                    ha="right",
+                    va="center",
+                    fontsize=1.25 * self._fs,
+                    color=self._style["tc"],
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
+                # draw the clbit wire
+                self._line(
+                    [self._x_offset, y],
+                    [self._xmax, y],
+                    lc=self._style["cc"],
+                    ls=self._style["cline"],
+                    zorder=PORDER_REGLINE,
+                )
+
+            # lf vertical line at either end
+            feedline_r = n_fold > 0 and n_fold > fold_num
+            feedline_l = fold_num > 0
+            if feedline_l or feedline_r:
+                xpos_l = self._x_offset - 0.01
+                xpos_r = self._fold + self._x_offset + 0.1
+                ypos1 = -fold_num * (self._n_lines + 1)
+                ypos2 = -(fold_num + 1) * (self._n_lines) - fold_num + 1
+                if feedline_l:
+                    self._ax.plot(
+                        [xpos_l, xpos_l],
+                        [ypos1, ypos2],
+                        color=self._style["lc"],
+                        linewidth=self._lwidth15,
+                        zorder=PORDER_LINE,
+                    )
+                if feedline_r:
+                    self._ax.plot(
+                        [xpos_r, xpos_r],
+                        [ypos1, ypos2],
+                        color=self._style["lc"],
+                        linewidth=self._lwidth15,
+                        zorder=PORDER_LINE,
+                    )
+
+        # draw anchor index number
+        if self._style["index"]:
+            for layer_num in range(total_layer_width):
+                if self._fold > 0:
+                    x_coord = layer_num % self._fold + self._x_offset + 0.53
+                    y_coord = -(layer_num // self._fold) * (self._n_lines + 1) + 0.7
+                else:
+                    x_coord = layer_num + self._x_offset + 0.53
+                    y_coord = 0.7
+                self._ax.text(
+                    x_coord,
+                    y_coord,
+                    str(layer_num + 1),
+                    ha="center",
+                    va="center",
+                    fontsize=self._sfs,
+                    color=self._style["tc"],
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
 
     def _draw_ops(self, verbose=False):
         """Draw the gates in the circuit"""
@@ -489,132 +602,6 @@ class MatplotlibDrawer:
                 barrier_offset = -1 if all(node.op._directive for op in layer) else 0
 
             prev_anc = this_anc + layer_width + barrier_offset - 1
-
-    def _draw_regs_wires(self, total_layer_width, n_fold):
-        """After the ops have been drawn, draw the wires, regs, and index numbers. Must
-        do this after draw_ops in order to know how long the wires need to be."""
-
-        # add horizontal lines
-        for ii in range(n_fold + 1):
-            feedline_r = n_fold > 0 and n_fold > ii
-            feedline_l = ii > 0
-            self._draw_regs_sub(ii, feedline_l, feedline_r)
-
-        # draw anchor index number
-        if self._style["index"]:
-            for ii in range(total_layer_width):
-                if self._fold > 0:
-                    x_coord = ii % self._fold + self._x_offset + 0.53
-                    y_coord = -(ii // self._fold) * (self._n_lines + 1) + 0.7
-                else:
-                    x_coord = ii + self._x_offset + 0.53
-                    y_coord = 0.7
-                self._ax.text(
-                    x_coord,
-                    y_coord,
-                    str(ii + 1),
-                    ha="center",
-                    va="center",
-                    fontsize=self._sfs,
-                    color=self._style["tc"],
-                    clip_on=True,
-                    zorder=PORDER_TEXT,
-                )
-
-    def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
-        """Draw the reg names and numbers, wires, and vertical lines at the end"""
-        # quantum register
-        for qubit in self._qubit_dict.values():
-            qubit_name = qubit["reg_name"]
-            y = qubit["y"] - n_fold * (self._n_lines + 1)
-            self._ax.text(
-                self._x_offset - 0.2,
-                y,
-                qubit_name,
-                ha="right",
-                va="center",
-                fontsize=1.25 * self._fs,
-                color=self._style["tc"],
-                clip_on=True,
-                zorder=PORDER_TEXT,
-            )
-            # draw the qubit wire
-            print('in draw', self._xmax)
-            self._line([self._x_offset, y], [self._xmax, y], zorder=PORDER_REGLINE)
-
-        # classical register
-        this_clbit_dict = {}
-        for clbit in self._clbit_dict.values():
-            clbit_name = clbit["reg_name"]
-            y = clbit["y"] - n_fold * (self._n_lines + 1)
-            if y not in this_clbit_dict.keys():
-                this_clbit_dict[y] = {"val": 1, "reg_name": clbit_name}
-            else:
-                this_clbit_dict[y]["val"] += 1
-        for y, this_clbit in this_clbit_dict.items():
-            # cregbundle
-            if this_clbit["val"] > 1:
-                self._ax.plot(
-                    [self._x_offset + 0.2, self._x_offset + 0.3],
-                    [y - 0.1, y + 0.1],
-                    color=self._style["cc"],
-                    zorder=PORDER_LINE,
-                )
-                self._ax.text(
-                    self._x_offset + 0.1,
-                    y + 0.1,
-                    str(this_clbit["val"]),
-                    ha="left",
-                    va="bottom",
-                    fontsize=0.8 * self._fs,
-                    color=self._style["tc"],
-                    clip_on=True,
-                    zorder=PORDER_TEXT,
-                )
-            self._ax.text(
-                self._x_offset - 0.2,
-                y,
-                this_clbit["reg_name"],
-                ha="right",
-                va="center",
-                fontsize=1.25 * self._fs,
-                color=self._style["tc"],
-                clip_on=True,
-                zorder=PORDER_TEXT,
-            )
-            # draw the clbit wire
-            self._line(
-                [self._x_offset, y],
-                [self._xmax, y],
-                lc=self._style["cc"],
-                ls=self._style["cline"],
-                zorder=PORDER_REGLINE,
-            )
-
-        print('at draw', self._xmax, self._fold, self._x_offset)
-        # lf vertical line at either end
-        if feedline_l or feedline_r:
-            xpos_l = self._x_offset - 0.01
-            xpos_r = self._fold + self._x_offset + 0.1
-            ypos1 = -n_fold * (self._n_lines + 1)
-            ypos2 = -(n_fold + 1) * (self._n_lines) - n_fold + 1
-            if feedline_l:
-                self._ax.plot(
-                    [xpos_l, xpos_l],
-                    [ypos1, ypos2],
-                    color=self._style["lc"],
-                    linewidth=self._lwidth15,
-                    zorder=PORDER_LINE,
-                )
-            if feedline_r:
-                print('xpos', xpos_r)
-                self._ax.plot(
-                    [xpos_r, xpos_r],
-                    [ypos1, ypos2],
-                    color=self._style["lc"],
-                    linewidth=self._lwidth15,
-                    zorder=PORDER_LINE,
-                )
 
     def _get_layer_width(self, layer):
         """Compute the layer_width for this layer"""
@@ -737,6 +724,7 @@ class MatplotlibDrawer:
                 "index": index,
                 "group": register,
             }
+            self._n_lines += 1
 
         # classical register
         if self._clbit:
@@ -775,6 +763,7 @@ class MatplotlibDrawer:
                         "index": index,
                         "group": register,
                     }
+                self._n_lines += 1
                 idx += 1
 
         self._x_offset = -1.2 + longest_reg_name_width
