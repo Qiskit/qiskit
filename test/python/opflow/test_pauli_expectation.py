@@ -12,32 +12,32 @@
 
 """ Test PauliExpectation """
 
+import itertools
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
-import itertools
+
 import numpy as np
 
-from qiskit.utils import QuantumInstance
-from qiskit.utils import algorithm_globals
+from qiskit import BasicAer
 from qiskit.opflow import (
+    CX,
+    CircuitSampler,
+    H,
+    I,
+    ListOp,
+    Minus,
+    One,
+    PauliExpectation,
+    PauliSumOp,
+    Plus,
+    S,
+    StateFn,
     X,
     Y,
     Z,
-    I,
-    CX,
-    H,
-    S,
-    ListOp,
     Zero,
-    One,
-    Plus,
-    Minus,
-    StateFn,
-    PauliExpectation,
-    CircuitSampler,
 )
-
-from qiskit import BasicAer
+from qiskit.utils import QuantumInstance, algorithm_globals
 
 
 # pylint: disable=invalid-name
@@ -245,6 +245,14 @@ class TestPauliExpectation(QiskitOpflowTestCase):
         """Test PauliExpectation for non hermitian operator"""
         exp = ~StateFn(1j * Z) @ One
         self.assertEqual(self.expect.convert(exp).eval(), 1j)
+
+    def test_list_pauli_sum_op(self):
+        """Test PauliExpectation for List[PauliSumOp]"""
+        test_op = ListOp([~StateFn(PauliSumOp.from_list([("XX", 1), ("ZI", 3), ("ZZ", 5)]))])
+        observable = self.expect.convert(test_op)
+        self.assertIsInstance(observable, ListOp)
+        self.assertIsInstance(observable[0][0][0].primitive, PauliSumOp)
+        self.assertIsInstance(observable[0][1][0].primitive, PauliSumOp)
 
 
 if __name__ == "__main__":
