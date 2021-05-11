@@ -12,20 +12,21 @@
 
 """AbelianGrouper Class"""
 
-import warnings
-from typing import List, Tuple, Dict, cast, Optional
+from collections import defaultdict
+from typing import List, Tuple, Union, cast
 
 import numpy as np
 import retworkx as rx
 
-from .converter_base import ConverterBase
-from ..list_ops.list_op import ListOp
-from ..list_ops.summed_op import SummedOp
-from ..operator_base import OperatorBase
-from ..primitive_ops.pauli_op import PauliOp
-from ..primitive_ops.pauli_sum_op import PauliSumOp
-from ..state_fns.operator_state_fn import OperatorStateFn
-from ..exceptions import OpflowError
+from qiskit.opflow.converters.converter_base import ConverterBase
+from qiskit.opflow.evolutions.evolved_op import EvolvedOp
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
+from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 
 
 class AbelianGrouper(ConverterBase):
@@ -59,40 +60,33 @@ class AbelianGrouper(ConverterBase):
         Returns:
             The converted Operator.
         """
-        # pylint: disable=cyclic-import,import-outside-toplevel
-        from ..evolutions.evolved_op import EvolvedOp
-
-        # TODO: implement direct way
         if isinstance(operator, PauliSumOp):
-            operator = operator.to_pauli_op()
+            return self.group_subops(operator)
 
         if isinstance(operator, ListOp):
-            if isinstance(operator, SummedOp) and all(isinstance(op, PauliOp)
-                                                      for op in operator.oplist):
+            if isinstance(operator, SummedOp) and all(
+                isinstance(op, PauliOp) for op in operator.oplist
+            ):
                 # For now, we only support graphs over Paulis.
                 return self.group_subops(operator)
             elif self._traverse:
                 return operator.traverse(self.convert)
-            else:
-                return operator
         elif isinstance(operator, OperatorStateFn) and self._traverse:
-            return OperatorStateFn(self.convert(operator.primitive),
-                                   is_measurement=operator.is_measurement,
-                                   coeff=operator.coeff)
+            return OperatorStateFn(
+                self.convert(operator.primitive),
+                is_measurement=operator.is_measurement,
+                coeff=operator.coeff,
+            )
         elif isinstance(operator, EvolvedOp) and self._traverse:
-            return EvolvedOp(self.convert(operator.primitive), coeff=operator.coeff)  # type: ignore
-        else:
-            return operator
+            return EvolvedOp(self.convert(operator.primitive), coeff=operator.coeff)
+        return operator
 
     @classmethod
-    def group_subops(cls, list_op: ListOp, fast: Optional[bool] = None,
-                     use_nx: Optional[bool] = None) -> ListOp:
+    def group_subops(cls, list_op: Union[ListOp, PauliSumOp]) -> ListOp:
         """Given a ListOp, attempt to group into Abelian ListOps of the same type.
 
         Args:
             list_op: The Operator to group into Abelian groups
-            fast: Ignored - parameter will be removed in future release
-            use_nx: Ignored - parameter will be removed in future release
 
         Returns:
             The grouped Operator.
@@ -100,22 +94,15 @@ class AbelianGrouper(ConverterBase):
         Raises:
             OpflowError: If any of list_op's sub-ops is not ``PauliOp``.
         """
-        if fast is not None or use_nx is not None:
-            warnings.warn('Options `fast` and `use_nx` of `AbelianGrouper.group_subops` are '
-                          'no longer used and are now deprecated and will be removed no '
-                          'sooner than 3 months following the 0.8.0 release.')
+        if isinstance(list_op, ListOp):
+            for op in list_op.oplist:
+                if not isinstance(op, PauliOp):
+                    raise OpflowError(
+                        "Cannot determine Abelian groups if any Operator in list_op is not "
+                        f"`PauliOp`. E.g., {op} ({type(op)})"
+                    )
 
-        # TODO: implement direct way
-        if isinstance(list_op, PauliSumOp):
-            list_op = list_op.to_pauli_op()
-
-        for op in list_op.oplist:
-            if not isinstance(op, PauliOp):
-                raise OpflowError(
-                    'Cannot determine Abelian groups if any Operator in list_op is not '
-                    '`PauliOp`. E.g., {} ({})'.format(op, type(op)))
-
-        edges = cls._commutation_graph(list_op)
+        edges = cls._anti_commutation_graph(list_op)
         nodes = range(len(list_op))
 
         graph = rx.PyGraph()
@@ -123,32 +110,47 @@ class AbelianGrouper(ConverterBase):
         graph.add_edges_from_no_data(edges)
         # Keys in coloring_dict are nodes, values are colors
         coloring_dict = rx.graph_greedy_color(graph)
+        groups = defaultdict(list)
+        for idx, color in coloring_dict.items():
+            groups[color].append(idx)
 
-        groups = {}  # type: Dict
-        # sort items so that the output is consistent with all options (fast and use_nx)
-        for idx, color in sorted(coloring_dict.items()):
-            groups.setdefault(color, []).append(list_op[idx])
+        if isinstance(list_op, PauliSumOp):
+            primitive = list_op.primitive
+            return SummedOp(
+                [PauliSumOp(primitive[group], grouping_type="TPB") for group in groups.values()],
+                coeff=list_op.coeff,
+            )
 
-        group_ops = [list_op.__class__(group, abelian=True) for group in groups.values()]
+        group_ops: List[ListOp] = [
+            list_op.__class__([list_op[idx] for idx in group], abelian=True)
+            for group in groups.values()
+        ]
         if len(group_ops) == 1:
-            return group_ops[0] * list_op.coeff  # type: ignore
-        return list_op.__class__(group_ops, coeff=list_op.coeff)  # type: ignore
+            return group_ops[0].mul(list_op.coeff)
+        return list_op.__class__(group_ops, coeff=list_op.coeff)
 
     @staticmethod
-    def _commutation_graph(list_op: ListOp) -> List[Tuple[int, int]]:
+    def _anti_commutation_graph(ops: Union[ListOp, PauliSumOp]) -> List[Tuple[int, int]]:
         """Create edges (i, j) if i and j are not commutable.
 
         Note:
             This method is applicable to only PauliOps.
 
         Args:
-            list_op: list_op
+            ops: operators
 
         Returns:
             A list of pairs of indices of the operators that are not commutable
         """
         # convert a Pauli operator into int vector where {I: 0, X: 2, Y: 3, Z: 1}
-        mat1 = np.array([op.primitive.z + 2 * op.primitive.x for op in list_op], dtype=np.int8)
+        if isinstance(ops, PauliSumOp):
+            mat1 = np.array(
+                [op.primitive.table.Z[0] + 2 * op.primitive.table.X[0] for op in ops],
+                dtype=np.int8,
+            )
+        else:
+            mat1 = np.array([op.primitive.z + 2 * op.primitive.x for op in ops], dtype=np.int8)
+
         mat2 = mat1[:, None]
         # mat3[i, j] is True if i and j are commutable with TPB
         mat3 = (((mat1 * mat2) * (mat1 - mat2)) == 0).all(axis=2)

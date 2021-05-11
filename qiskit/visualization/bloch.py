@@ -53,9 +53,9 @@ __all__ = ['Bloch']
 import os
 import numpy as np
 from matplotlib import get_backend
-import matplotlib.pyplot as plt  # pylint: disable=import-error
-from matplotlib.patches import FancyArrowPatch  # pylint: disable=import-error
-from mpl_toolkits.mplot3d import (Axes3D, proj3d)  # pylint: disable=import-error
+import matplotlib.pyplot as plt
+from matplotlib.patches import FancyArrowPatch
+from mpl_toolkits.mplot3d import (Axes3D, proj3d)
 
 
 class Arrow3D(FancyArrowPatch):
@@ -308,7 +308,7 @@ class Bloch():
         self.annotations = []
 
     def add_points(self, points, meth='s'):
-        """Add a list of data points to bloch sphere.
+        """Add a list of data points to Bloch sphere.
 
         Args:
             points (array_like):
@@ -351,7 +351,7 @@ class Bloch():
 
     def add_annotation(self, state_or_vector, text, **kwargs):
         """Add a text or LaTeX annotation to Bloch sphere,
-        parametrized by a qubit state or a vector.
+        parameterized by a qubit state or a vector.
 
         Args:
             state_or_vector (array_like):

@@ -38,13 +38,22 @@ class SubstitutionConfig:
         self.clbit_config = clbit_config if clbit_config is not None else []
         self.pred_block = pred_block
 
+    def has_parameters(self):
+        """Ensure that the template does not have parameters."""
+        for node in self.template_dag_dep.get_nodes():
+            for param in node.op.params:
+                if isinstance(param, ParameterExpression):
+                    return True
+
+        return False
+
 
 class TemplateSubstitution:
     """
-    Class to run the subsitution algorithm from the list of maximal matches.
+    Class to run the substitution algorithm from the list of maximal matches.
     """
 
-    def __init__(self, max_matches, circuit_dag_dep, template_dag_dep):
+    def __init__(self, max_matches, circuit_dag_dep, template_dag_dep, user_cost_dict=None):
         """
         Initialize TemplateSubstitution with necessary arguments.
         Args:
@@ -52,6 +61,8 @@ class TemplateSubstitution:
              the template matching algorithm.
             circuit_dag_dep (DAGDependency): circuit in the dag dependency form.
             template_dag_dep (DAGDependency): template in the dag dependency form.
+            user_cost_dict (Optional[dict]): user provided cost dictionary that will override
+                the default cost dictionary.
         """
 
         self.match_stack = max_matches
@@ -62,6 +73,16 @@ class TemplateSubstitution:
         self.unmatched_list = []
         self.dag_dep_optimized = DAGDependency()
         self.dag_optimized = DAGCircuit()
+
+        if user_cost_dict is not None:
+            self.cost_dict = dict(user_cost_dict)
+        else:
+            self.cost_dict = {'id': 0, 'x': 1, 'y': 1, 'z': 1, 'h': 1, 't': 1, 'tdg': 1, 's': 1,
+                              'sdg': 1, 'u1': 1, 'u2': 2, 'u3': 2, 'rx': 1, 'ry': 1, 'rz': 1,
+                              'r': 2, 'cx': 2, 'cy': 4, 'cz': 4, 'ch': 8, 'swap': 6, 'iswap': 8,
+                              'rxx': 9, 'ryy': 9, 'rzz': 5, 'rzx': 7, 'ms': 9, 'cu3': 10, 'crx': 10,
+                              'cry': 10, 'crz': 10, 'ccx': 21, 'rccx': 12, 'c3x': 96, 'rc3x': 24,
+                              'c4x': 312, 'p': 1}
 
     def _pred_block(self, circuit_sublist, index):
         """
@@ -94,18 +115,13 @@ class TemplateSubstitution:
         Returns:
             bool: True if the quantum cost is reduced
         """
-        cost_dict = {'id': 0, 'x': 1, 'y': 1, 'z': 1, 'h': 1, 't': 1, 'tdg': 1, 's': 1, 'sdg': 1,
-                     'u1': 1, 'u2': 2, 'u3': 2, 'rx': 1, 'ry': 1, 'rz': 1, 'r': 2, 'cx': 2,
-                     'cy': 4, 'cz': 4, 'ch': 8, 'swap': 6, 'iswap': 8, 'rxx': 9, 'ryy': 9,
-                     'rzz': 5, 'rzx': 7, 'ms': 9, 'cu3': 10, 'crx': 10, 'cry': 10, 'crz': 10,
-                     'ccx': 21, 'rccx': 12, 'c3x': 96, 'rc3x': 24, 'c4x': 312, 'p': 1}
         cost_left = 0
         for i in left:
-            cost_left += cost_dict[self.template_dag_dep.get_node(i).name]
+            cost_left += self.cost_dict[self.template_dag_dep.get_node(i).name]
 
         cost_right = 0
         for j in right:
-            cost_right += cost_dict[self.template_dag_dep.get_node(j).name]
+            cost_right += self.cost_dict[self.template_dag_dep.get_node(j).name]
 
         return cost_left > cost_right
 
@@ -213,6 +229,11 @@ class TemplateSubstitution:
         list_predecessors = []
         remove_list = []
 
+        # First remove any scenarios that have parameters in the template.
+        for scenario in self.substitution_list:
+            if scenario.has_parameters():
+                remove_list.append(scenario)
+
         # Initialize predecessors for each group of matches.
         for scenario in self.substitution_list:
             predecessors = set()
@@ -285,7 +306,7 @@ class TemplateSubstitution:
         # Remove incompatible matches.
         self._remove_impossible()
 
-        # First sort the matches accordding to the smallest index in the matches (circuit).
+        # First sort the matches according to the smallest index in the matches (circuit).
         self.substitution_list.sort(key=lambda x: x.circuit_config[0])
 
         # Change position of the groups due to predecessors of other groups.
@@ -344,7 +365,6 @@ class TemplateSubstitution:
                 for elem in pred:
                     node = self.circuit_dag_dep.get_node(elem)
                     inst = node.op.copy()
-                    inst.condition = node.condition
                     dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
                     already_sub.append(elem)
 
@@ -367,7 +387,6 @@ class TemplateSubstitution:
                         cargs = []
                     node = group.template_dag_dep.get_node(index)
                     inst = node.op.copy()
-                    inst.condition = node.condition
 
                     dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
 
@@ -375,7 +394,6 @@ class TemplateSubstitution:
             for node_id in self.unmatched_list:
                 node = self.circuit_dag_dep.get_node(node_id)
                 inst = node.op.copy()
-                inst.condition = node.condition
                 dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
 
             dag_dep_opt._add_successors()

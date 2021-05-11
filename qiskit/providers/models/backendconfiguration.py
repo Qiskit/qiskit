@@ -209,7 +209,8 @@ class QasmBackendConfiguration:
                  default_rep_delay=None, max_experiments=None,
                  sample_name=None, n_registers=None, register_map=None,
                  configurable=None, credits_required=None, online_date=None,
-                 display_name=None, description=None, tags=None, dt=None, dtm=None, **kwargs):
+                 display_name=None, description=None, tags=None, dt=None, dtm=None,
+                 processor_type=None, **kwargs):
         """Initialize a QasmBackendConfiguration Object
 
         Args:
@@ -254,6 +255,14 @@ class QasmBackendConfiguration:
             tags (list): A list of string tags to describe the backend
             dt (float): Qubit drive channel timestep in nanoseconds.
             dtm (float): Measurement drive channel timestep in nanoseconds.
+            processor_type (dict): Processor type for this backend. A dictionary of the
+                form ``{"family": <str>, "revision": <str>, segment: <str>}`` such as
+                ``{"family": "Canary", "revision": "1.0", segment: "A"}``.
+
+                - family: Processor family of this backend.
+                - revision: Revision version of this processor.
+                - segment: Segment this processor belongs to within a larger chip.
+
             **kwargs: optional fields
         """
         self._data = {}
@@ -305,9 +314,11 @@ class QasmBackendConfiguration:
         # Add pulse properties here because some backends do not
         # fit within the Qasm / Pulse backend partitioning in Qiskit
         if dt is not None:
-            self.dt = dt * 1e-9  # pylint: disable=invalid-name
+            self.dt = dt * 1e-9
         if dtm is not None:
             self.dtm = dtm * 1e-9
+        if processor_type is not None:
+            self.processor_type = processor_type
 
         if 'qubit_lo_range' in kwargs.keys():
             kwargs['qubit_lo_range'] = [[min_range * 1e9, max_range * 1e9] for
@@ -326,8 +337,8 @@ class QasmBackendConfiguration:
     def __getattr__(self, name):
         try:
             return self._data[name]
-        except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
+        except KeyError as ex:
+            raise AttributeError(f'Attribute {name} is not defined') from ex
 
     @classmethod
     def from_dict(cls, data):
@@ -378,7 +389,7 @@ class QasmBackendConfiguration:
         for kwarg in ['max_experiments', 'sample_name', 'n_registers',
                       'register_map', 'configurable', 'credits_required',
                       'online_date', 'display_name', 'description',
-                      'tags', 'dt', 'dtm']:
+                      'tags', 'dt', 'dtm', 'processor_type']:
             if hasattr(self, kwarg):
                 out_dict[kwarg] = getattr(self, kwarg)
 
@@ -548,7 +559,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
 
         self.rep_times = [_rt * 1e-6 for _rt in rep_times]  # convert to sec
 
-        self.dt = dt * 1e-9  # pylint: disable=invalid-name
+        self.dt = dt * 1e-9
         self.dtm = dtm * 1e-9
 
         if channels is not None:
@@ -651,7 +662,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         if self.rep_times:
             out_dict['rep_times'] = [_rt * 1e6 for _rt in self.rep_times]
 
-        out_dict['dt'] *= 1e9  # pylint: disable=invalid-name
+        out_dict['dt'] *= 1e9
         out_dict['dtm'] *= 1e9
 
         if hasattr(self, 'channel_bandwidth'):
@@ -666,6 +677,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                 for k, v in hamiltonian['vars'].items()
             }
             out_dict['hamiltonian'] = hamiltonian
+
+        if hasattr(self, 'channels'):
+            out_dict['channels'] = self.channels
 
         return out_dict
 
@@ -747,14 +761,16 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             if isinstance(qubits, list):
                 qubits = tuple(qubits)
             return self._control_channels[qubits]
-        except KeyError:
-            raise BackendConfigurationError("Couldn't find the ControlChannel operating on qubits "
-                                            "{} on {}-qubit system. The ControlChannel information"
-                                            " is retrieved from the "
-                                            " backend.".format(qubits, self.n_qubits))
-        except AttributeError:
-            raise BackendConfigurationError("This backend - '{}' does not provide channel "
-                                            "information.".format(self.backend_name))
+        except KeyError as ex:
+            raise BackendConfigurationError(
+                f"Couldn't find the ControlChannel operating on qubits {qubits} on "
+                f"{self.n_qubits}-qubit system. The ControlChannel information is retrieved "
+                "from the backend."
+            ) from ex
+        except AttributeError as ex:
+            raise BackendConfigurationError(
+                f"This backend - '{self.backend_name}' does not provide channel information."
+            ) from ex
 
     def get_channel_qubits(self, channel: Channel) -> List[int]:
         """
@@ -769,11 +785,12 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         """
         try:
             return self._channel_qubit_map[channel]
-        except KeyError:
-            raise BackendConfigurationError("Couldn't find the Channel - {}".format(channel))
-        except AttributeError:
-            raise BackendConfigurationError("This backend - '{}' does not provide channel "
-                                            "information.".format(self.backend_name))
+        except KeyError as ex:
+            raise BackendConfigurationError(f"Couldn't find the Channel - {channel}") from ex
+        except AttributeError as ex:
+            raise BackendConfigurationError(
+                f"This backend - '{self.backend_name}' does not provide channel information."
+            ) from ex
 
     def get_qubit_channels(self, qubit: Union[int, Iterable[int]]) -> List[Channel]:
         r"""Return a list of channels which operate on the given ``qubit``.
@@ -799,11 +816,12 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             elif isinstance(qubit, tuple):
                 channels.update(self._qubit_channel_map[qubit])
             return list(channels)
-        except KeyError:
-            raise BackendConfigurationError("Couldn't find the qubit - {}".format(qubit))
-        except AttributeError:
-            raise BackendConfigurationError("This backend - '{}' does not provide channel "
-                                            "information.".format(self.backend_name))
+        except KeyError as ex:
+            raise BackendConfigurationError(f"Couldn't find the qubit - {qubit}") from ex
+        except AttributeError as ex:
+            raise BackendConfigurationError(
+                f"This backend - '{self.backend_name}' does not provide channel information."
+            ) from ex
 
     def describe(self, channel: ControlChannel) -> Dict[DriveChannel, complex]:
         """
@@ -885,5 +903,5 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         channel_prefix = re.match(r"(?P<channel>[a-z]+)(?P<index>[0-9]+)", channel)
         try:
             return channel_prefix.group('channel'), int(channel_prefix.group('index'))
-        except AttributeError:
-            raise BackendConfigurationError("Invalid channel name - '{}' found.".format(channel))
+        except AttributeError as ex:
+            raise BackendConfigurationError(f"Invalid channel name - '{channel}' found.") from ex

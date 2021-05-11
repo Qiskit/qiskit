@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,ungrouped-imports,import-error
+# pylint: disable=invalid-name
 # pylint: disable=inconsistent-return-statements,unsubscriptable-object
 # pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 
@@ -22,41 +22,14 @@ from functools import reduce
 import colorsys
 import numpy as np
 from scipy import linalg
-from qiskit.quantum_info.states import DensityMatrix
+from qiskit import user_config
+from qiskit.quantum_info.states.densitymatrix import DensityMatrix
+from qiskit.visualization.array import array_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
-from .matplotlib import HAS_MATPLOTLIB
-
-if HAS_MATPLOTLIB:
-    from matplotlib import get_backend
-    from matplotlib import pyplot as plt
-    from matplotlib.patches import FancyArrowPatch
-    from matplotlib.patches import Circle
-    import matplotlib.colors as mcolors
-    from matplotlib.colors import Normalize, LightSource
-    import matplotlib.gridspec as gridspec
-    from mpl_toolkits.mplot3d import proj3d
-    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-    from qiskit.visualization.exceptions import VisualizationError
-    from qiskit.visualization.bloch import Bloch
-    from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
-    from qiskit.circuit.tools.pi_check import pi_check
-
-
-if HAS_MATPLOTLIB:
-    class Arrow3D(FancyArrowPatch):
-        """Standard 3D arrow."""
-
-        def __init__(self, xs, ys, zs, *args, **kwargs):
-            """Create arrow."""
-            FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
-            self._verts3d = xs, ys, zs
-
-        def draw(self, renderer):
-            """Draw the arrow."""
-            xs3d, ys3d, zs3d = self._verts3d
-            xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-            self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-            FancyArrowPatch.draw(self, renderer)
+from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
+from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
+from qiskit.circuit.tools.pi_check import pi_check
 
 
 @deprecate_arguments({'rho': 'state'})
@@ -107,6 +80,9 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run '
                           '"pip install matplotlib".')
+    from matplotlib import pyplot as plt
+    from matplotlib import get_backend
+
     # Figure data
     rho = DensityMatrix(state)
     num = rho.num_qubits
@@ -189,7 +165,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
 
     Args:
-        bloch (list[double]): array of three elements where [<x>, <y>, <z>] (cartesian)
+        bloch (list[double]): array of three elements where [<x>, <y>, <z>] (Cartesian)
             or [<r>, <theta>, <phi>] (spherical in radians)
             <theta> is inclination angle from +z direction
             <phi> is azimuth from +x direction
@@ -198,7 +174,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
             sphere
         figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
         coord_type (str): a string that specifies coordinate type for bloch
-            (cartesian or spherical), default is cartesian
+            (Cartesian or spherical), default is Cartesian
 
     Returns:
         Figure: A matplotlib figure instance if ``ax = None``.
@@ -217,6 +193,10 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run '
                           '"pip install matplotlib".')
+    from qiskit.visualization.bloch import Bloch
+    from matplotlib import get_backend
+    from matplotlib import pyplot as plt
+
     if figsize is None:
         figsize = (5, 5)
     B = Bloch(axes=ax)
@@ -238,7 +218,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
 
 @deprecate_arguments({'rho': 'state'})
-def plot_bloch_multivector(state, title='', figsize=None, *, rho=None):
+def plot_bloch_multivector(state, title='', figsize=None, *, rho=None, reverse_bits=False):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -247,6 +227,7 @@ def plot_bloch_multivector(state, title='', figsize=None, *, rho=None):
         state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Has no effect, here for compatibility only.
+        reverse_bits (bool): If True, plots qubits following Qiskit's convention [Default:False].
 
     Returns:
         matplotlib.Figure:
@@ -269,19 +250,25 @@ def plot_bloch_multivector(state, title='', figsize=None, *, rho=None):
             qc.cx(0, 1)
 
             state = Statevector.from_instruction(qc)
-            plot_bloch_multivector(state, title="New Bloch Multivector")
+            plot_bloch_multivector(state, title="New Bloch Multivector", reverse_bits=False)
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
+    from matplotlib import get_backend
+    from matplotlib import pyplot as plt
+
     # Data
-    bloch_data = _bloch_multivector_data(state)
+    bloch_data = (_bloch_multivector_data(state)[::-1]
+                  if reverse_bits
+                  else _bloch_multivector_data(state))
     num = len(bloch_data)
     width, height = plt.figaspect(1/num)
     fig = plt.figure(figsize=(width, height))
     for i in range(num):
+        pos = num - 1 - i if reverse_bits else i
         ax = fig.add_subplot(1, num, i + 1, projection='3d')
-        plot_bloch_vector(bloch_data[i], "qubit " + str(i), ax=ax,
+        plot_bloch_vector(bloch_data[i], "qubit " + str(pos), ax=ax,
                           figsize=figsize)
     fig.suptitle(title, fontsize=16)
     if get_backend() in ['module://ipykernel.pylab.backend_inline',
@@ -345,8 +332,12 @@ def plot_state_city(state, title="", figsize=None, color=None,
                 title="New State City")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
+    from matplotlib import get_backend
+    from matplotlib import pyplot as plt
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
     rho = DensityMatrix(state)
     num = rho.num_qubits
     if num is None:
@@ -395,8 +386,7 @@ def plot_state_city(state, title="", figsize=None, color=None,
     elif ax_real is not None:
         fig = ax_real.get_figure()
         ax1 = ax_real
-        if ax_imag is not None:
-            ax2 = ax_imag
+        ax2 = ax_imag
     else:
         fig = ax_imag.get_figure()
         ax1 = None
@@ -543,8 +533,11 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
                 title="New PauliVec plot")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
+    from matplotlib import get_backend
+    from matplotlib import pyplot as plt
+
     labels, values = _paulivec_data(state)
     numelem = len(values)
 
@@ -664,7 +657,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
             radians or degrees for the phase values in the plot.
 
     Returns:
-        Figure: A matplotlib figure instance if the ``ax`` kwag is not set
+        Figure: A matplotlib figure instance if the ``ax`` kwarg is not set
 
     Raises:
         ImportError: Requires matplotlib.
@@ -688,13 +681,36 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
            plot_state_qsphere(state)
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
+
+    from mpl_toolkits.mplot3d import proj3d
+    from matplotlib.patches import FancyArrowPatch
+    import matplotlib.gridspec as gridspec
+    from matplotlib import pyplot as plt
+    from matplotlib.patches import Circle
+    from matplotlib import get_backend
+
+    class Arrow3D(FancyArrowPatch):
+        """Standard 3D arrow."""
+
+        def __init__(self, xs, ys, zs, *args, **kwargs):
+            """Create arrow."""
+            FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
+            self._verts3d = xs, ys, zs
+
+        def draw(self, renderer):
+            """Draw the arrow."""
+            xs3d, ys3d, zs3d = self._verts3d
+            xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+            self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
+            FancyArrowPatch.draw(self, renderer)
+
     try:
         import seaborn as sns
-    except ImportError:
+    except ImportError as ex:
         raise ImportError('Must have seaborn installed to use '
-                          'plot_state_qsphere. To install, run "pip install seaborn".')
+                          'plot_state_qsphere. To install, run "pip install seaborn".') from ex
     rho = DensityMatrix(state)
     num = rho.num_qubits
     if num is None:
@@ -880,7 +896,14 @@ def generate_facecolors(x, y, z, dx, dy, dz, color):
         color (array_like): sequence of valid color specifications, optional
     Returns:
         list: Shaded colors for bars.
+    Raises:
+        ImportError: If matplotlib is not installed
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
+    import matplotlib.colors as mcolors
+
     cuboid = np.array([
         # -z
         (
@@ -997,6 +1020,13 @@ def _shade_colors(color, normals, lightsource=None):
     Shade *color* using normal vectors given by *normals*.
     *color* can also be an array of the same length as *normals*.
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
+
+    from matplotlib.colors import Normalize, LightSource
+    import matplotlib.colors as mcolors
+
     if lightsource is None:
         # chosen for backwards-compatibility
         lightsource = LightSource(azdeg=225, altdeg=19.4712)
@@ -1022,3 +1052,156 @@ def _shade_colors(color, normals, lightsource=None):
         colors = np.asanyarray(color).copy()
 
     return colors
+
+
+def state_to_latex(state, dims=None, **args):
+    """Return a Latex representation of a state. Wrapper function
+    for `qiskit.visualization.array_to_latex` to add dims if necessary.
+    Intended for use within `state_drawer`.
+
+    Args:
+        state (`Statevector` or `DensityMatrix`): State to be drawn
+        dims (bool): Whether to display the state's `dims`
+        *args: Arguments to be passed directly to `array_to_latex`
+
+    Returns:
+        `str`: Latex representation of the state
+    """
+    if dims is None:  # show dims if state is not only qubits
+        if set(state.dims()) == {2}:
+            dims = False
+        else:
+            dims = True
+
+    prefix = ""
+    suffix = ""
+    if dims:
+        prefix = "\\begin{align}\n"
+        dims_str = state._op_shape.dims_l()
+        suffix = f"\\\\\n\\text{{dims={dims_str}}}\n\\end{{align}}"
+    latex_str = array_to_latex(state._data, source=True, **args)
+    return prefix + latex_str + suffix
+
+
+class TextMatrix():
+    """Text representation of an array, with `__str__` method so it
+    displays nicely in Jupyter notebooks"""
+    def __init__(self, state, max_size=8, dims=None, prefix='', suffix=''):
+        self.state = state
+        self.max_size = max_size
+        if dims is None:  # show dims if state is not only qubits
+            if set(state.dims()) == {2}:
+                dims = False
+            else:
+                dims = True
+        self.dims = dims
+        self.prefix = prefix
+        self.suffix = suffix
+        if isinstance(max_size, int):
+            self.max_size = max_size
+        elif isinstance(state, DensityMatrix):
+            # density matrices are square, so threshold for
+            # summarization is shortest side squared
+            self.max_size = min(max_size)**2
+        else:
+            self.max_size = max_size[0]
+
+    def __str__(self):
+        threshold = self.max_size
+        data = np.array2string(
+            self.state._data,
+            prefix=self.prefix,
+            threshold=threshold,
+            separator=','
+        )
+        dimstr = ''
+        if self.dims:
+            data += ',\n'
+            dimstr += ' '*len(self.prefix)
+            dimstr += f'dims={self.state._op_shape.dims_l()}'
+        return self.prefix + data + dimstr + self.suffix
+
+    def __repr__(self):
+        return self.__str__()
+
+
+def state_drawer(state,
+                 output=None,
+                 **drawer_args
+                 ):
+    """Returns a visualization of the state.
+
+        **repr**: ASCII TextMatrix of the state's ``_repr_``.
+
+        **text**: ASCII TextMatrix that can be printed in the console.
+
+        **latex**: An IPython Latex object for displaying in Jupyter Notebooks.
+
+        **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
+
+        **qsphere**: Matplotlib figure, rendering of statevector using `plot_state_qsphere()`.
+
+        **hinton**: Matplotlib figure, rendering of statevector using `plot_state_hinton()`.
+
+        **bloch**: Matplotlib figure, rendering of statevector using `plot_bloch_multivector()`.
+
+        **city**: Matplotlib figure, rendering of statevector using `plot_state_city()`.
+
+        **paulivec**: Matplotlib figure, rendering of statevector using `plot_state_paulivec()`.
+
+        Args:
+            output (str): Select the output method to use for drawing the
+                circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
+                ``qsphere``, ``hinton``, ``bloch``, ``city`` or ``paulivec``.
+                Default is `'text`'.
+            drawer_args: Arguments to be passed to the relevant drawer. For
+                'latex' and 'latex_source' see ``array_to_latex``
+
+        Returns:
+            :class:`matplotlib.figure` or :class:`str` or
+            :class:`TextMatrix` or :class:`IPython.display.Latex`:
+            Drawing of the state.
+
+        Raises:
+            ImportError: when `output` is `latex` and IPython is not installed.
+            ValueError: when `output` is not a valid selection.
+    """
+    config = user_config.get_config()
+    # Get default 'output' from config file else use 'repr'
+    default_output = 'repr'
+    if output is None:
+        if config:
+            default_output = config.get('state_drawer', 'repr')
+        output = default_output
+    output = output.lower()
+
+    # Choose drawing backend:
+    drawers = {'text': TextMatrix,
+               'latex_source': state_to_latex,
+               'qsphere': plot_state_qsphere,
+               'hinton': plot_state_hinton,
+               'bloch': plot_bloch_multivector,
+               'city': plot_state_city,
+               'paulivec': plot_state_paulivec}
+    if output == 'latex':
+        try:
+            from IPython.display import Latex
+        except ImportError as err:
+            raise ImportError('IPython is not installed, to install run: '
+                              '"pip install ipython", or set output=\'latex_source\' '
+                              'instead for an ASCII string.') from err
+        else:
+            draw_func = drawers['latex_source']
+            return Latex(f"$${draw_func(state, **drawer_args)}$$")
+
+    if output == 'repr':
+        return state.__repr__()
+
+    try:
+        draw_func = drawers[output]
+        return draw_func(state, **drawer_args)
+    except KeyError as err:
+        raise ValueError(
+            """'{}' is not a valid option for drawing {} objects. Please choose from:
+            'text', 'latex', 'latex_source', 'qsphere', 'hinton',
+            'bloch', 'city' or 'paulivec'.""".format(output, type(state).__name__)) from err

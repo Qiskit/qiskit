@@ -23,7 +23,7 @@ from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.library import (
     NLocal, TwoLocal, RealAmplitudes, ExcitationPreserving, XGate, CRXGate, CCXGate,
-    SwapGate, RXGate, RYGate, EfficientSU2, RZGate, RXXGate, RYYGate
+    SwapGate, RXGate, RYGate, EfficientSU2, RZGate, RXXGate, RYYGate, CXGate
 )
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
@@ -96,14 +96,14 @@ class TestNLocal(QiskitTestCase):
         reference = QuantumCircuit(max(num_qubits))
 
         # construct the NLocal from the first circuit
-        first_circuit = random_circuit(num_qubits[0], depth)
+        first_circuit = random_circuit(num_qubits[0], depth, seed=4200)
         # TODO Terra bug: if this is to_gate it fails, since the QC adds an instruction not gate
         nlocal = NLocal(max(num_qubits), entanglement_blocks=first_circuit.to_instruction(), reps=1)
         reference.append(first_circuit, list(range(num_qubits[0])))
 
         # append the rest
         for num in num_qubits[1:]:
-            circuit = random_circuit(num, depth)
+            circuit = random_circuit(num, depth, seed=4200)
             nlocal.append(circuit, list(range(num)))
             reference.append(circuit, list(range(num)))
 
@@ -119,14 +119,14 @@ class TestNLocal(QiskitTestCase):
         reference = QuantumCircuit(max(num_qubits))
 
         # construct the NLocal from the first circuit
-        first_circuit = random_circuit(num_qubits[0], depth)
+        first_circuit = random_circuit(num_qubits[0], depth, seed=4220)
         # TODO Terra bug: if this is to_gate it fails, since the QC adds an instruction not gate
         nlocal = NLocal(max(num_qubits), entanglement_blocks=first_circuit.to_instruction(), reps=1)
         reference.append(first_circuit, list(range(num_qubits[0])))
 
         # append the rest
         for num in num_qubits[1:]:
-            circuit = random_circuit(num, depth)
+            circuit = random_circuit(num, depth, seed=4220)
             nlocal.add_layer(NLocal(num, entanglement_blocks=circuit, reps=1))
             reference.append(circuit, list(range(num)))
 
@@ -138,8 +138,8 @@ class TestNLocal(QiskitTestCase):
         num_qubits, depth = 2, 2
 
         # construct two circuits for adding
-        first_circuit = random_circuit(num_qubits, depth)
-        circuit = random_circuit(num_qubits, depth)
+        first_circuit = random_circuit(num_qubits, depth, seed=4242)
+        circuit = random_circuit(num_qubits, depth, seed=4242)
 
         # get a reference
         reference = first_circuit + circuit
@@ -291,6 +291,23 @@ class TestNLocal(QiskitTestCase):
             with self.subTest(rep_num=rep_num):
                 # using a set here since the order does not matter
                 self.assertEqual(set(entangler_map), set(expected))
+
+    def test_pairwise_entanglement(self):
+        """Test pairwise entanglement."""
+        nlocal = NLocal(5, rotation_blocks=XGate(), entanglement_blocks=CXGate(),
+                        entanglement='pairwise', reps=1)
+        entangler_map = nlocal.get_entangler_map(0, 0, 2)
+        pairwise = [(0, 1), (2, 3), (1, 2), (3, 4)]
+
+        self.assertEqual(pairwise, entangler_map)
+
+    def test_pairwise_entanglement_raises(self):
+        """Test choosing pairwise entanglement raises an error for too large blocks."""
+        nlocal = NLocal(3, XGate(), CCXGate(), entanglement='pairwise', reps=1)
+
+        # pairwise entanglement is only defined if the entangling gate has 2 qubits
+        with self.assertRaises(ValueError):
+            print(nlocal.draw())
 
     def test_entanglement_by_list(self):
         """Test setting the entanglement by list.
@@ -446,11 +463,11 @@ class TestTwoLocal(QiskitTestCase):
         with self.subTest(msg='num_parameters_settable remained constant'):
             self.assertEqual(two.num_parameters_settable, len(ordered_params))
 
-    def test_iadd_to_circuit(self):
+    def test_compose_inplace_to_circuit(self):
         """Test adding a two-local to an existing circuit."""
         two = TwoLocal(3, ['ry', 'rz'], 'cz', 'full', reps=1, insert_barriers=True)
         circuit = QuantumCircuit(3)
-        circuit += two
+        circuit.compose(two, inplace=True)
 
         reference = QuantumCircuit(3)
         param_iter = iter(two.ordered_parameters)
@@ -470,11 +487,11 @@ class TestTwoLocal(QiskitTestCase):
 
         self.assertCircuitEqual(circuit, reference)
 
-    def test_adding_two(self):
+    def test_composing_two(self):
         """Test adding two two-local circuits."""
         entangler_map = [[0, 3], [0, 2]]
         two = TwoLocal(4, [], 'cry', entangler_map, reps=1)
-        circuit = two + two
+        circuit = two.compose(two)
 
         reference = QuantumCircuit(4)
         params = two.ordered_parameters
@@ -631,6 +648,21 @@ class TestTwoLocal(QiskitTestCase):
                                        entanglement=entanglement).assign_parameters(parameters)
 
         self.assertCircuitEqual(library, expected)
+
+    def test_circular_on_same_block_and_circuit_size(self):
+        """Test circular entanglement works correctly if the circuit and block sizes match."""
+
+        two = TwoLocal(2, 'ry', 'cx', entanglement='circular', reps=1)
+        parameters = np.arange(two.num_parameters)
+
+        ref = QuantumCircuit(2)
+        ref.ry(parameters[0], 0)
+        ref.ry(parameters[1], 1)
+        ref.cx(0, 1)
+        ref.ry(parameters[2], 0)
+        ref.ry(parameters[3], 1)
+
+        self.assertCircuitEqual(two.assign_parameters(parameters), ref)
 
 
 if __name__ == '__main__':

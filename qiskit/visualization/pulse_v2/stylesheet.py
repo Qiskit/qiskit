@@ -172,7 +172,7 @@ class IQXDebugging(dict):
 
     - Generate stepwise waveform envelope with latex pulse names.
     - Generate annotation for waveform height.
-    - Do not apply phase modulation to waveforms.
+    - Apply phase modulation to waveforms.
     - Plot frame change symbol with raw operand values.
     - Show chart name and channel frequency.
     - Show snapshot and barrier.
@@ -182,7 +182,7 @@ class IQXDebugging(dict):
 
     def __init__(self, **kwargs):
         super().__init__()
-        style = {'formatter.control.apply_phase_modulation': False,
+        style = {'formatter.control.apply_phase_modulation': True,
                  'formatter.control.show_snapshot_channel': True,
                  'formatter.control.show_acquire_channel': True,
                  'formatter.control.show_empty_channel': False,
@@ -248,7 +248,7 @@ def default_style() -> Dict[str, Any]:
         'formatter.margin.bottom': 0.5,
         'formatter.margin.left_percent': 0.05,
         'formatter.margin.right_percent': 0.05,
-        'formatter.margin.between_channel': 0.2,
+        'formatter.margin.between_channel': 0.5,
         'formatter.label_offset.pulse_name': 0.3,
         'formatter.label_offset.chart_info': 0.3,
         'formatter.label_offset.frame_change': 0.3,

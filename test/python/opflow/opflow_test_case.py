@@ -12,22 +12,9 @@
 
 """ Opflow Test Case """
 
-import platform
-import logging
 from qiskit.test import QiskitTestCase
 
 
 class QiskitOpflowTestCase(QiskitTestCase):
     """Opflow test Case"""
-    def setUp(self):
-        super().setUp()
-        # disable logging due to Unicode logging error
-        if platform.system() == 'Windows':
-            self.disable_logging()
-
-    def disable_logging(self):
-        """ Disable Qiskit logging"""
-        logger = logging.getLogger('qiskit')
-        for handler in reversed(logger.handlers):
-            self.addCleanup(logger.addHandler, handler)
-            logger.removeHandler(handler)
+    pass

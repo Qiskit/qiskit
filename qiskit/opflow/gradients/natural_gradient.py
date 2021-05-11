@@ -14,12 +14,15 @@
 
 from collections.abc import Iterable
 from typing import List, Tuple, Callable, Optional, Union
-
+import functools
 import numpy as np
+
+from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.exceptions import MissingOptionalLibraryError
 from ..operator_base import OperatorBase
 from ..list_ops.list_op import ListOp
+from ..list_ops.composed_op import ComposedOp
 from ..state_fns.circuit_state_fn import CircuitStateFn
 from .circuit_gradients import CircuitGradient
 from .circuit_qfis import CircuitQFI
@@ -68,16 +71,17 @@ class NaturalGradient(GradientBase):
         self._regularization = regularization
         self._epsilon = kwargs.get('epsilon', 1e-6)
 
-    # pylint: disable=arguments-differ
+    # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Optional[Union[ParameterVector, ParameterExpression,
-                                       List[ParameterExpression]]] = None
+                params: Optional[
+                    Union[ParameterVector, ParameterExpression, List[ParameterExpression]]] = None
                 ) -> OperatorBase:
         r"""
         Args:
             operator: The operator we are taking the gradient of.
-            params: The parameters we are taking the gradient with respect to.
+            params: The parameters we are taking the gradient with respect to. If not explicitly
+                passed, they are inferred from the operator and sorted by name.
 
         Returns:
             An operator whose evaluation yields the NaturalGradient.
@@ -86,12 +90,22 @@ class NaturalGradient(GradientBase):
             TypeError: If ``operator`` does not represent an expectation value or the quantum
                 state is not ``CircuitStateFn``.
             ValueError: If ``params`` contains a parameter not present in ``operator``.
+            ValueError: If ``operator`` is not parameterized.
         """
+        if not isinstance(operator, ComposedOp):
+            if not (isinstance(operator, ListOp) and len(operator.oplist) == 1):
+                raise TypeError('Please provide the operator either as ComposedOp or as ListOp of '
+                                'a CircuitStateFn potentially with a combo function.')
+
         if not isinstance(operator[-1], CircuitStateFn):
             raise TypeError('Please make sure that the operator for which you want to compute '
                             'Quantum Fisher Information represents an expectation value or a '
                             'loss function and that the quantum state is given as '
                             'CircuitStateFn.')
+        if len(operator.parameters) == 0:
+            raise ValueError("The operator we are taking the gradient of is not parameterized!")
+        if params is None:
+            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
         if not isinstance(params, Iterable):
             params = [params]
         # Instantiate the gradient

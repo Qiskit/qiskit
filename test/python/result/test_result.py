@@ -174,6 +174,45 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(marginal_counts(result, [0]).get_counts(1),
                          expected_marginal_counts_2)
 
+    def test_marginal_counts_result_creg_sizes(self):
+        """Test that marginal_counts with Result input properly changes creg_sizes."""
+        raw_counts = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0xE': 8}
+        data = models.ExperimentResultData(counts=dict(**raw_counts))
+        exp_result_header = QobjExperimentHeader(creg_sizes=[['c0', 1], ['c1', 3]],
+                                                 memory_slots=4)
+        exp_result = models.ExperimentResult(shots=54, success=True, data=data,
+                                             header=exp_result_header)
+
+        result = Result(results=[exp_result], **self.base_result_args)
+
+        expected_marginal_counts = {'0 0': 14, '0 1': 18, '1 0': 13, '1 1': 9}
+        expected_creg_sizes = [['c0', 1], ['c1', 1]]
+        expected_memory_slots = 2
+        marginal_counts_result = marginal_counts(result, [0, 2])
+        self.assertEqual(marginal_counts_result.results[0].header.creg_sizes,
+                         expected_creg_sizes)
+        self.assertEqual(marginal_counts_result.results[0].header.memory_slots,
+                         expected_memory_slots)
+        self.assertEqual(marginal_counts_result.get_counts(0),
+                         expected_marginal_counts)
+
+    def test_marginal_counts_result_format(self):
+        """Test that marginal_counts with format_marginal true properly formats output."""
+        raw_counts_1 = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0x12': 8}
+        data_1 = models.ExperimentResultData(counts=dict(**raw_counts_1))
+        exp_result_header_1 = QobjExperimentHeader(creg_sizes=[['c0', 2], ['c1', 3]],
+                                                   memory_slots=5)
+        exp_result_1 = models.ExperimentResult(shots=54, success=True, data=data_1,
+                                               header=exp_result_header_1)
+
+        result = Result(results=[exp_result_1], **self.base_result_args)
+
+        expected_marginal_counts_1 = {'0_0 _0': 14, '0_0 _1': 18,
+                                      '0_1 _0': 5, '0_1 _1': 9, '1_0 _0': 8}
+        marginal_counts_result = marginal_counts(result.get_counts(), [0, 2, 4],
+                                                 format_marginal=True)
+        self.assertEqual(marginal_counts_result, expected_marginal_counts_1)
+
     def test_marginal_counts_inplace_true(self):
         """Test marginal_counts(Result, inplace = True)
         """

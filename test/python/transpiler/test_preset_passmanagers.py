@@ -14,6 +14,8 @@
 from test import combine
 from ddt import ddt, data
 
+import numpy as np
+
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit
 from qiskit.compiler import transpile, assemble
@@ -23,6 +25,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.test.mock import (FakeTenerife, FakeMelbourne, FakeJohannesburg,
                               FakeRueschlikon, FakeTokyo, FakePoughkeepsie)
 from qiskit.converters import circuit_to_dag
+from qiskit.circuit.library import GraphState
 
 
 def emptycircuit():
@@ -85,6 +88,23 @@ class TestPresetPassManager(QiskitTestCase):
         result = transpile(circuit, basis_gates=None, optimization_level=0)
         self.assertEqual(result, circuit)
 
+    @combine(level=[0, 1, 2, 3], name='level{level}')
+    def test_respect_basis(self, level):
+        """Test that all levels respect basis"""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.cp(np.pi / 8, 0, 1)
+        qc.cp(np.pi / 4, 0, 2)
+        basis_gates = ['id', 'rz', 'sx', 'x', 'cx']
+        result = transpile(qc, basis_gates=basis_gates,
+                           coupling_map=[[0, 1], [2, 1]],
+                           optimization_level=level)
+
+        dag = circuit_to_dag(result)
+        circuit_ops = set(node.name for node in dag.topological_op_nodes())
+        self.assertEqual(circuit_ops.union(set(basis_gates)), set(basis_gates))
+
 
 @ddt
 class TestTranspileLevels(QiskitTestCase):
@@ -130,7 +150,7 @@ class TestPassesInspection(QiskitTestCase):
         self.assertNotIn('TrivialLayout', self.passes)
         self.assertNotIn('ApplyLayout', self.passes)
         self.assertNotIn('StochasticSwap', self.passes)
-        self.assertNotIn('CheckCXDirection', self.passes)
+        self.assertNotIn('CheckGateDirection', self.passes)
 
     @data(0, 1, 2, 3)
     def test_backend(self, level):
@@ -145,7 +165,7 @@ class TestPassesInspection(QiskitTestCase):
 
         self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
-        self.assertIn('CheckCXDirection', self.passes)
+        self.assertIn('CheckGateDirection', self.passes)
 
     @data(0, 1, 2, 3)
     def test_5409(self, level):
@@ -166,7 +186,7 @@ class TestPassesInspection(QiskitTestCase):
 
     @data(0, 1, 2, 3)
     def test_symmetric_coupling_map(self, level):
-        """Symmetric coupling map does not run CheckCXDirection
+        """Symmetric coupling map does not run CheckGateDirection
         """
         qr = QuantumRegister(2, 'q')
         qc = QuantumCircuit(qr)
@@ -182,10 +202,10 @@ class TestPassesInspection(QiskitTestCase):
 
         self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
-        self.assertNotIn('CheckCXDirection', self.passes)
+        self.assertNotIn('CheckGateDirection', self.passes)
 
     @data(0, 1, 2, 3)
-    def test_inital_layout_fully_connected_cm(self, level):
+    def test_initial_layout_fully_connected_cm(self, level):
         """Honor initial_layout when coupling_map=None
         See: https://github.com/Qiskit/qiskit-terra/issues/5345
         """
@@ -282,10 +302,11 @@ class TestInitialLayouts(QiskitTestCase):
 
         self.assertEqual(qc_b._layout._p2v, final_layout)
 
+        output_qr = qc_b.qregs[0]
         for gate, qubits, _ in qc_b:
             if gate.name == 'cx':
                 for qubit in qubits:
-                    self.assertIn(qubit.index, [11, 3])
+                    self.assertIn(qubit, [output_qr[11], output_qr[3]])
 
     @data(0, 1, 2, 3)
     def test_layout_2503(self, level):
@@ -321,10 +342,11 @@ class TestInitialLayouts(QiskitTestCase):
         gate_0, qubits_0, _ = qc_b[0]
         gate_1, qubits_1, _ = qc_b[1]
 
+        output_qr = qc_b.qregs[0]
         self.assertIsInstance(gate_0, U3Gate)
-        self.assertEqual(qubits_0[0].index, 6)
+        self.assertEqual(qubits_0[0], output_qr[6])
         self.assertIsInstance(gate_1, U2Gate)
-        self.assertEqual(qubits_1[0].index, 12)
+        self.assertEqual(qubits_1[0], output_qr[12])
 
 
 @ddt
@@ -386,26 +408,26 @@ class TestFinalLayouts(QiskitTestCase):
                         18: Qubit(QuantumRegister(15, 'ancilla'), 13),
                         19: Qubit(QuantumRegister(15, 'ancilla'), 14)}
 
-        csp_layout = {0: Qubit(QuantumRegister(3, 'qr1'), 1),
-                      1: Qubit(QuantumRegister(3, 'qr1'), 2),
-                      2: Qubit(QuantumRegister(2, 'qr2'), 0),
-                      5: Qubit(QuantumRegister(3, 'qr1'), 0),
-                      6: Qubit(QuantumRegister(2, 'qr2'), 1),
-                      3: Qubit(QuantumRegister(15, 'ancilla'), 0),
-                      4: Qubit(QuantumRegister(15, 'ancilla'), 1),
-                      7: Qubit(QuantumRegister(15, 'ancilla'), 2),
-                      8: Qubit(QuantumRegister(15, 'ancilla'), 3),
-                      9: Qubit(QuantumRegister(15, 'ancilla'), 4),
-                      10: Qubit(QuantumRegister(15, 'ancilla'), 5),
-                      11: Qubit(QuantumRegister(15, 'ancilla'), 6),
-                      12: Qubit(QuantumRegister(15, 'ancilla'), 7),
-                      13: Qubit(QuantumRegister(15, 'ancilla'), 8),
-                      14: Qubit(QuantumRegister(15, 'ancilla'), 9),
-                      15: Qubit(QuantumRegister(15, 'ancilla'), 10),
-                      16: Qubit(QuantumRegister(15, 'ancilla'), 11),
-                      17: Qubit(QuantumRegister(15, 'ancilla'), 12),
-                      18: Qubit(QuantumRegister(15, 'ancilla'), 13),
-                      19: Qubit(QuantumRegister(15, 'ancilla'), 14)}
+        csp_layout = {13: Qubit(QuantumRegister(3, 'qr1'), 0),
+                      19: Qubit(QuantumRegister(3, 'qr1'), 1),
+                      14: Qubit(QuantumRegister(3, 'qr1'), 2),
+                      18: Qubit(QuantumRegister(2, 'qr2'), 0),
+                      17: Qubit(QuantumRegister(2, 'qr2'), 1),
+                      0: Qubit(QuantumRegister(15, 'ancilla'), 0),
+                      1: Qubit(QuantumRegister(15, 'ancilla'), 1),
+                      2: Qubit(QuantumRegister(15, 'ancilla'), 2),
+                      3: Qubit(QuantumRegister(15, 'ancilla'), 3),
+                      4: Qubit(QuantumRegister(15, 'ancilla'), 4),
+                      5: Qubit(QuantumRegister(15, 'ancilla'), 5),
+                      6: Qubit(QuantumRegister(15, 'ancilla'), 6),
+                      7: Qubit(QuantumRegister(15, 'ancilla'), 7),
+                      8: Qubit(QuantumRegister(15, 'ancilla'), 8),
+                      9: Qubit(QuantumRegister(15, 'ancilla'), 9),
+                      10: Qubit(QuantumRegister(15, 'ancilla'), 10),
+                      11: Qubit(QuantumRegister(15, 'ancilla'), 11),
+                      12: Qubit(QuantumRegister(15, 'ancilla'), 12),
+                      15: Qubit(QuantumRegister(15, 'ancilla'), 13),
+                      16: Qubit(QuantumRegister(15, 'ancilla'), 14)}
 
         # Trivial layout
         expected_layout_level0 = trivial_layout
@@ -460,6 +482,48 @@ class TestFinalLayouts(QiskitTestCase):
         backend = FakeTokyo()
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(result._layout._p2v, expected_layouts[level])
+
+    @data(0, 1, 2, 3)
+    def test_all_levels_use_trivial_if_perfect(self, level):
+        """Test that we always use trivial if it's a perfect match.
+
+        See: https://github.com/Qiskit/qiskit-terra/issues/5694 for more
+        details
+        """
+        backend = FakeTokyo()
+        config = backend.configuration()
+
+        rows = [x[0] for x in config.coupling_map]
+        cols = [x[1] for x in config.coupling_map]
+
+        adjacency_matrix = np.zeros((20, 20))
+        adjacency_matrix[rows, cols] = 1
+        qc = GraphState(adjacency_matrix)
+        qc.measure_all()
+        expected = {
+            0: Qubit(QuantumRegister(20, 'q'), 0),
+            1: Qubit(QuantumRegister(20, 'q'), 1),
+            2: Qubit(QuantumRegister(20, 'q'), 2),
+            3: Qubit(QuantumRegister(20, 'q'), 3),
+            4: Qubit(QuantumRegister(20, 'q'), 4),
+            5: Qubit(QuantumRegister(20, 'q'), 5),
+            6: Qubit(QuantumRegister(20, 'q'), 6),
+            7: Qubit(QuantumRegister(20, 'q'), 7),
+            8: Qubit(QuantumRegister(20, 'q'), 8),
+            9: Qubit(QuantumRegister(20, 'q'), 9),
+            10: Qubit(QuantumRegister(20, 'q'), 10),
+            11: Qubit(QuantumRegister(20, 'q'), 11),
+            12: Qubit(QuantumRegister(20, 'q'), 12),
+            13: Qubit(QuantumRegister(20, 'q'), 13),
+            14: Qubit(QuantumRegister(20, 'q'), 14),
+            15: Qubit(QuantumRegister(20, 'q'), 15),
+            16: Qubit(QuantumRegister(20, 'q'), 16),
+            17: Qubit(QuantumRegister(20, 'q'), 17),
+            18: Qubit(QuantumRegister(20, 'q'), 18),
+            19: Qubit(QuantumRegister(20, 'q'), 19)
+        }
+        trans_qc = transpile(qc, backend, optimization_level=level)
+        self.assertEqual(trans_qc._layout._p2v, expected)
 
     @data(0, 1)
     def test_trivial_layout(self, level):

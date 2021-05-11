@@ -22,16 +22,16 @@ For example::
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
 import warnings
-
-from abc import ABC
+from abc import ABC, abstractproperty
 from collections import defaultdict
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
-
-import numpy as np
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
+
+
 # pylint: disable=missing-return-doc
 
 
@@ -42,15 +42,15 @@ class Instruction(ABC):
 
     def __init__(self,
                  operands: Tuple,
-                 duration: int,
-                 channels: Tuple[Channel],
+                 duration: int = None,
+                 channels: Tuple[Channel] = None,
                  name: Optional[str] = None):
         """Instruction initializer.
 
         Args:
             operands: The argument list.
-            duration: Length of time taken by the instruction in terms of dt.
-            channels: Tuple of pulse channels that this instruction operates on.
+            duration: Deprecated.
+            channels: Deprecated.
             name: Optional display name for this instruction.
 
         Raises:
@@ -58,48 +58,33 @@ class Instruction(ABC):
             PulseError: If the input ``channels`` are not all of
                 type :class:`Channel`.
         """
-        if not isinstance(duration, (int, np.integer)):
-            raise PulseError("Instruction duration must be an integer, "
-                             "got {} instead.".format(duration))
-        if duration < 0:
-            raise PulseError("{} duration of {} is invalid: must be nonnegative."
-                             "".format(self.__class__.__name__, duration))
+        if duration is not None:
+            warnings.warn('Specifying duration in the constructor is deprecated. '
+                          'Now duration is an abstract property rather than class variable. '
+                          'All subclasses should implement ``duration`` accordingly. '
+                          'See Qiskit-Terra #5679 for more information.',
+                          DeprecationWarning)
 
-        for channel in channels:
-            if not isinstance(channel, Channel):
-                raise PulseError("Expected a channel, got {} instead.".format(channel))
+        if channels is not None:
+            warnings.warn('Specifying ``channels`` in the constructor is deprecated. '
+                          'All channels should be stored in ``operands``.',
+                          DeprecationWarning)
 
-        self._duration = duration
-        self._channels = channels
-        self._timeslots = {channel: [(0, self.duration)] for channel in channels}
         self._operands = operands
         self._name = name
         self._hash = None
 
         self._parameter_table = defaultdict(list)
-        for idx, op in enumerate(operands):
-            if isinstance(op, ParameterExpression):
-                for param in op.parameters:
-                    self._parameter_table[param].append(idx)
-            elif isinstance(op, Channel) and op.is_parameterized():
-                for param in op.parameters:
-                    self._parameter_table[param].append(idx)
+        self._initialize_parameter_table(operands)
+
+        for channel in self.channels:
+            if not isinstance(channel, Channel):
+                raise PulseError("Expected a channel, got {} instead.".format(channel))
 
     @property
     def name(self) -> str:
         """Name of this instruction."""
         return self._name
-
-    @property
-    def command(self) -> None:
-        """The associated command. Commands are deprecated, so this method will be deprecated
-        shortly.
-
-        Returns:
-            Command: The deprecated command if available.
-        """
-        warnings.warn("The `command` method is deprecated. Commands have been removed and this "
-                      "method returns None.", DeprecationWarning)
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name
@@ -111,16 +96,10 @@ class Instruction(ABC):
         """Return instruction operands."""
         return self._operands
 
-    @property
+    @abstractproperty
     def channels(self) -> Tuple[Channel]:
-        """Returns channels that this schedule uses."""
-        return self._channels
-
-    @property
-    def timeslots(self) -> Dict[Channel, List[Tuple[int, int]]]:
-        """Occupied time slots by this instruction."""
-        warnings.warn("Access to Instruction timeslots is deprecated.")
-        return self._timeslots
+        """Returns the channels that this schedule uses."""
+        raise NotImplementedError
 
     @property
     def start_time(self) -> int:
@@ -135,7 +114,7 @@ class Instruction(ABC):
     @property
     def duration(self) -> int:
         """Duration of this instruction."""
-        return self._duration
+        raise NotImplementedError
 
     @property
     def _children(self) -> Tuple['Instruction']:
@@ -191,6 +170,11 @@ class Instruction(ABC):
 
     def flatten(self) -> 'Instruction':
         """Return itself as already single instruction."""
+
+        warnings.warn('`This method is being deprecated. Please use '
+                      '`qiskit.pulse.transforms.flatten` function with this schedule.',
+                      DeprecationWarning)
+
         return self
 
     def shift(self,
@@ -246,14 +230,31 @@ class Instruction(ABC):
         return self.insert(time, schedule, name=name)
 
     @property
+    @deprecated_functionality
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
         return set(self._parameter_table.keys())
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return bool(self.parameters)
+        return any(chan.is_parameterized() for chan in self.channels)
 
+    def _initialize_parameter_table(self,
+                                    operands: Tuple[Any]):
+        """A helper method to initialize parameter table.
+
+        Args:
+            operands: List of operands associated with this instruction.
+        """
+        for idx, op in enumerate(operands):
+            if isinstance(op, ParameterExpression):
+                for param in op.parameters:
+                    self._parameter_table[param].append(idx)
+            elif isinstance(op, Channel) and isinstance(op.index, ParameterExpression):
+                for param in op.index.parameters:
+                    self._parameter_table[param].append(idx)
+
+    @deprecated_functionality
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Instruction':
@@ -275,7 +276,8 @@ class Instruction(ABC):
             value = value_dict[parameter]
             op_indices = self._parameter_table[parameter]
             for op_idx in op_indices:
-                new_operands[op_idx] = new_operands[op_idx].assign(parameter, value)
+                param_expr = new_operands[op_idx]
+                new_operands[op_idx] = format_parameter_value(param_expr.assign(parameter, value))
 
             # Update parameter table
             entry = self._parameter_table.pop(parameter)
@@ -288,6 +290,7 @@ class Instruction(ABC):
                         self._parameter_table[new_parameter] = entry
 
         self._operands = tuple(new_operands)
+
         return self
 
     def draw(self, dt: float = 1, style=None,
@@ -317,7 +320,7 @@ class Instruction(ABC):
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule
         """
-        # pylint: disable=invalid-name, cyclic-import
+        # pylint: disable=cyclic-import
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style,

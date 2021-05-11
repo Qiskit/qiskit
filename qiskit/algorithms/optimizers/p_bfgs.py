@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,7 +20,7 @@ import logging
 import numpy as np
 from scipy import optimize as sciopt
 
-from qiskit.utils import aqua_globals
+from qiskit.utils import algorithm_globals
 from qiskit.utils.validation import validate_min
 from .optimizer import Optimizer, OptimizerSupportLevel
 
@@ -121,7 +121,7 @@ class P_BFGS(Optimizer):  # pylint: disable=invalid-name
         # Start off as many other processes running the optimize (can be 0)
         processes = []
         for _ in range(num_procs):
-            i_pt = aqua_globals.random.uniform(low, high)  # Another random point in bounds
+            i_pt = algorithm_globals.random.uniform(low, high)  # Another random point in bounds
             proc = multiprocessing.Process(target=optimize_runner, args=(queue, i_pt))
             processes.append(proc)
             proc.start()

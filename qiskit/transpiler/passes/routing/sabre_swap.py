@@ -13,7 +13,7 @@
 """Routing via SWAP insertion using the SABRE method from Li et al."""
 
 import logging
-from copy import copy
+from copy import copy, deepcopy
 from itertools import cycle
 import numpy as np
 
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 EXTENDED_SET_SIZE = 20     # Size of lookahead window. TODO: set dynamically to len(current_layout)
 EXTENDED_SET_WEIGHT = 0.5  # Weight of lookahead window compared to front_layer.
 
-DECAY_RATE = 0.001         # Decay cooefficient for penalizing serial swaps.
+DECAY_RATE = 0.001         # Decay coefficient for penalizing serial swaps.
 DECAY_RESET_INTERVAL = 5   # How often to reset all decay rates to 1.
 
 
@@ -36,7 +36,7 @@ class SabreSwap(TransformationPass):
     r"""Map input circuit onto a backend topology via insertion of SWAPs.
 
     Implementation of the SWAP-based heuristic search from the SABRE qubit
-    mapping paper [1] (Algorithm 1). The hueristic aims to minimize the number
+    mapping paper [1] (Algorithm 1). The heuristic aims to minimize the number
     of lossy SWAPs inserted and the depth of the circuit.
 
     This algorithm starts from an initial layout of virtual qubits onto physical
@@ -52,7 +52,7 @@ class SabreSwap(TransformationPass):
     and update the mapping.
 
     The search for SWAPs is restricted, in the sense that we only consider
-    physical qubits in the neighoborhood of those qubits involved in
+    physical qubits in the neighborhood of those qubits involved in
     ``front_layer``. These give rise to a ``swap_candidate_list`` which is
     scored according to some heuristic cost function. The best SWAP is
     implemented and ``current_layout`` updated.
@@ -118,11 +118,19 @@ class SabreSwap(TransformationPass):
         """
 
         super().__init__()
-        self.coupling_map = coupling_map
+
+        # Assume bidirectional couplings, fixing gate direction is easy later.
+        if coupling_map.is_symmetric:
+            self.coupling_map = coupling_map
+        else:
+            self.coupling_map = deepcopy(coupling_map)
+            self.coupling_map.make_symmetric()
+
         self.heuristic = heuristic
         self.seed = seed
         self.applied_gates = None
         self.qubits_decay = None
+        self._bit_indices = None
 
     def run(self, dag):
         """Run the SabreSwap pass on `dag`.
@@ -146,11 +154,11 @@ class SabreSwap(TransformationPass):
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = dag._copy_circuit_metadata()
 
-        # Assume bidirectional couplings, fixing gate direction is easy later.
-        self.coupling_map.make_symmetric()
-
         canonical_register = dag.qregs['q']
         current_layout = Layout.generate_trivial_layout(canonical_register)
+
+        self._bit_indices = {bit: idx
+                             for idx, bit in enumerate(canonical_register)}
 
         # A decay factor for each qubit used to heuristically penalize recently
         # used qubits (to encourage parallelism).
@@ -175,11 +183,10 @@ class SabreSwap(TransformationPass):
 
             if execute_gate_list:
                 for node in execute_gate_list:
-                    new_node = _transform_gate_for_layout(node, current_layout)
+                    new_node = _transform_gate_for_layout(node, current_layout, canonical_register)
                     mapped_dag.apply_operation_back(new_node.op,
                                                     new_node.qargs,
-                                                    new_node.cargs,
-                                                    new_node.condition)
+                                                    new_node.cargs)
                     front_layer.remove(node)
                     self.applied_gates.add(node)
                     for successor in dag.quantum_successors(node):
@@ -216,10 +223,10 @@ class SabreSwap(TransformationPass):
                 swap_scores[swap_qubits] = score
             min_score = min(swap_scores.values())
             best_swaps = [k for k, v in swap_scores.items() if v == min_score]
-            best_swaps.sort(key=lambda x: (x[0].index, x[1].index))
+            best_swaps.sort(key=lambda x: (self._bit_indices[x[0]], self._bit_indices[x[1]]))
             best_swap = rng.choice(best_swaps)
             swap_node = DAGNode(op=SwapGate(), qargs=best_swap, type='op')
-            swap_node = _transform_gate_for_layout(swap_node, current_layout)
+            swap_node = _transform_gate_for_layout(swap_node, current_layout, canonical_register)
             mapped_dag.apply_operation_back(swap_node.op, swap_node.qargs)
             current_layout.swap(*best_swap)
 
@@ -253,7 +260,7 @@ class SabreSwap(TransformationPass):
         """
         predecessors = dag.quantum_predecessors(node)
         predecessors = filter(lambda x: x.type == 'op', predecessors)
-        return all([n in self.applied_gates for n in predecessors])
+        return all(n in self.applied_gates for n in predecessors)
 
     def _obtain_extended_set(self, dag, front_layer):
         """Populate extended_set by looking ahead a fixed number of gates.
@@ -301,7 +308,7 @@ class SabreSwap(TransformationPass):
                 for neighbor in self.coupling_map.neighbors(physical):
                     virtual_neighbor = current_layout[neighbor]
                     swap = sorted([virtual, virtual_neighbor],
-                                  key=lambda q: (q.register.name, q.index))
+                                  key=lambda q: self._bit_indices[q])
                     candidate_swaps.add(tuple(swap))
 
         return candidate_swaps
@@ -341,13 +348,12 @@ class SabreSwap(TransformationPass):
             raise TranspilerError('Heuristic %s not recognized.' % heuristic)
 
 
-def _transform_gate_for_layout(op_node, layout):
+def _transform_gate_for_layout(op_node, layout, device_qreg):
     """Return node implementing a virtual op on given layout."""
     mapped_op_node = copy(op_node)
 
-    device_qreg = op_node.qargs[0].register
     premap_qargs = op_node.qargs
     mapped_qargs = map(lambda x: device_qreg[layout[x]], premap_qargs)
-    mapped_op_node.qargs = mapped_op_node.op.qargs = list(mapped_qargs)
+    mapped_op_node.qargs = list(mapped_qargs)
 
     return mapped_op_node

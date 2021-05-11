@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,6 @@
 """Analytical Quantum Gradient Descent (AQGD) optimizer."""
 
 import logging
-import warnings
 from typing import Callable, Tuple, List, Dict, Union
 
 import numpy as np
@@ -27,7 +26,7 @@ logger = logging.getLogger(__name__)
 class AQGD(Optimizer):
     """Analytic Quantum Gradient Descent (AQGD) with Epochs optimizer.
     Performs gradient descent optimization with a momentum term, analytic gradients,
-    and customized step length schedule for parametrized quantum gates, i.e.
+    and customized step length schedule for parameterized quantum gates, i.e.
     Pauli Rotations. See, for example:
 
     * K. Mitarai, M. Negoro, M. Kitagawa, and K. Fujii. (2018).
@@ -38,7 +37,7 @@ class AQGD(Optimizer):
       Evaluating analytic gradients on quantum hardware. Phys. Rev. A 99, 032331.
       https://arxiv.org/abs/1811.11184
 
-    for further details on analytic gradients of parametrized quantum gates.
+    for further details on analytic gradients of parameterized quantum gates.
 
     Gradients are computed "analytically" using the quantum circuit when evaluating
     the objective function.
@@ -50,7 +49,6 @@ class AQGD(Optimizer):
                  maxiter: Union[int, List[int]] = 1000,
                  eta: Union[float, List[float]] = 1.0,
                  tol: float = 1e-6,  # this is tol
-                 disp: bool = False,
                  momentum: Union[float, List[float]] = 0.25,
                  param_tol: float = 1e-6,
                  averaging: int = 10) -> None:
@@ -64,7 +62,6 @@ class AQGD(Optimizer):
             tol: Tolerance for change in windowed average of objective values.
                 Convergence occurs when either objective tolerance is met OR parameter
                 tolerance is met.
-            disp: Set to True to display convergence messages.
             momentum: Bias towards the previous gradient momentum in current
                 update. Must be within the bounds: [0,1)
             param_tol: Tolerance for change in norm of parameters.
@@ -93,12 +90,6 @@ class AQGD(Optimizer):
         self._param_tol = param_tol
         self._tol = tol
         self._averaging = averaging
-        if disp:
-            warnings.warn('The disp parameter is deprecated as of '
-                          '0.8.0 and will be removed no sooner than 3 months after the release. '
-                          'The information is now available if you enable INFO level logging.',
-                          DeprecationWarning, stacklevel=2)
-        self._disp = disp
 
         # state
         self._avg_objval = None
@@ -299,9 +290,6 @@ class AQGD(Optimizer):
         converged = False
         for (eta, mom_coeff) in zip(self._eta, self._momenta_coeff):
             logger.info("Epoch: %4d | Stepsize: %6.4f | Momentum: %6.4f", epoch, eta, mom_coeff)
-            if self._disp:
-                print("Epoch: {:4d} | Stepsize: {:6.4f} | Momentum: {:6.4f}"
-                      .format(epoch, eta, mom_coeff))
 
             sum_max_iters = sum(self._maxiter[0:epoch + 1])
             while iter_count < sum_max_iters:
@@ -314,14 +302,15 @@ class AQGD(Optimizer):
                     break
 
                 # Calculate objective function and estimate of analytical gradient
-                objval, gradient = \
-                    self._compute_objective_fn_and_gradient(params, objective_function)
+                if gradient_function is None:
+                    objval, gradient = \
+                        self._compute_objective_fn_and_gradient(params, objective_function)
+                else:
+                    objval = objective_function(params)
+                    gradient = gradient_function(params)
 
                 logger.info(" Iter: %4d | Obj: %11.6f | Grad Norm: %f",
                             iter_count, objval, np.linalg.norm(gradient, ord=np.inf))
-                if self._disp:
-                    print(" Iter: {:4d} | Obj: {:11.6f} | Grad Norm: {:f}"
-                          .format(iter_count, objval, np.linalg.norm(gradient, ord=np.inf)))
 
                 # Check for objective convergence
                 converged = self._converged_objective(objval, self._tol, self._averaging)

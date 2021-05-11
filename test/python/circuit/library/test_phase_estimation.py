@@ -128,11 +128,11 @@ class TestPhaseEstimation(QiskitTestCase):
 
         with self.subTest('default QFT'):
             pec = PhaseEstimation(3, unitary)
-            expected_qft = QFT(3, inverse=True, do_swaps=False)
+            expected_qft = QFT(3, inverse=True, do_swaps=False).reverse_bits()
             self.assertEqual(pec.data[-1][0].definition, expected_qft)
 
         with self.subTest('custom QFT'):
-            iqft = QFT(3, approximation_degree=2, do_swaps=False).inverse()
+            iqft = QFT(3, approximation_degree=2).inverse()
             pec = PhaseEstimation(3, unitary, iqft=iqft)
             self.assertEqual(pec.data[-1][0].definition, iqft)
 

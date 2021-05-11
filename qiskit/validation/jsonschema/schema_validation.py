@@ -14,14 +14,11 @@
 
 import json
 import os
-import logging
 import warnings
 
 import jsonschema
 
 from .exceptions import SchemaValidationError, _SummaryValidationError
-
-logger = logging.getLogger(__name__)
 
 
 _DEFAULT_SCHEMA_PATHS = {
@@ -83,9 +80,8 @@ def _get_validator(name, schema=None, check_schema=True,
     if schema is None:
         try:
             schema = _SCHEMAS[name]
-        except KeyError:
-            raise SchemaValidationError("Valid schema name or schema must "
-                                        "be provided.")
+        except KeyError as ex:
+            raise SchemaValidationError("Valid schema name or schema must be provided.") from ex
 
     if name not in _VALIDATORS:
         # Resolve JSON spec from schema if needed

@@ -106,8 +106,8 @@ class Result:
     def __getattr__(self, name):
         try:
             return self._metadata[name]
-        except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
+        except KeyError as ex:
+            raise AttributeError(f'Attribute {name} is not defined') from ex
 
     @classmethod
     def from_dict(cls, data):
@@ -179,8 +179,8 @@ class Result:
         """
         try:
             return self._get_experiment(experiment).data.to_dict()
-        except (KeyError, TypeError):
-            raise QiskitError('No data for experiment "{}"'.format(repr(experiment)))
+        except (KeyError, TypeError) as ex:
+            raise QiskitError(f'No data for experiment "{repr(experiment)}"') from ex
 
     def get_memory(self, experiment=None):
         """Get the sequence of memory states (readouts) for each shot
@@ -193,7 +193,7 @@ class Result:
 
         Returns:
             List[str] or np.ndarray: Either the list of each outcome, formatted according to
-                registers in circuit or a complex numpy np.darray with shape:
+                registers in circuit or a complex numpy np.ndarray with shape:
 
                 ============  =============  =====
                 `meas_level`  `meas_return`  shape
@@ -228,13 +228,13 @@ class Result:
             else:
                 raise QiskitError('Measurement level {} is not supported'.format(meas_level))
 
-        except KeyError:
+        except KeyError as ex:
             raise QiskitError(
                 'No memory for experiment "{}". '
                 'Please verify that you either ran a measurement level 2 job '
                 'with the memory flag set, eg., "memory=True", '
                 'or a measurement level 0/1 job.'.format(repr(experiment))
-            )
+            ) from ex
 
     def get_counts(self, experiment=None):
         """Get the histogram data of an experiment.
@@ -304,8 +304,8 @@ class Result:
         try:
             return postprocess.format_statevector(self.data(experiment)['statevector'],
                                                   decimals=decimals)
-        except KeyError:
-            raise QiskitError('No statevector for experiment "{}"'.format(repr(experiment)))
+        except KeyError as ex:
+            raise QiskitError(f'No statevector for experiment "{repr(experiment)}"') from ex
 
     def get_unitary(self, experiment=None, decimals=None):
         """Get the final unitary of an experiment.
@@ -326,8 +326,8 @@ class Result:
         try:
             return postprocess.format_unitary(self.data(experiment)['unitary'],
                                               decimals=decimals)
-        except KeyError:
-            raise QiskitError('No unitary for experiment "{}"'.format(repr(experiment)))
+        except KeyError as ex:
+            raise QiskitError(f'No unitary for experiment "{repr(experiment)}"') from ex
 
     def _get_experiment(self, key=None):
         """Return a single experiment result from a given key.
@@ -358,8 +358,8 @@ class Result:
         if isinstance(key, int):
             try:
                 exp = self.results[key]
-            except IndexError:
-                raise QiskitError('Result for experiment "%s" could not be found.' % key)
+            except IndexError as ex:
+                raise QiskitError(f'Result for experiment "{key}" could not be found.') from ex
         else:
             # Look into `result[x].header.name` for the names.
             exp = [result for result in self.results

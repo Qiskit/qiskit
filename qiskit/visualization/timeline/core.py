@@ -136,6 +136,8 @@ class DrawerCanvas:
         Args:
             data: New drawing to add.
         """
+        if not self.formatter['control.show_clbits']:
+            data.bits = [b for b in data.bits if not isinstance(b, circuit.Clbit)]
         self._collections[data.data_key] = data
 
     def load_program(self,
@@ -299,8 +301,8 @@ class DrawerCanvas:
             return True
 
         def _associated_bit_check(_data):
-            """If all associated bits are not shown."""
-            if all([bit not in self.assigned_coordinates for bit in _data.bits]):
+            """If any associated bit is not shown."""
+            if all(bit not in self.assigned_coordinates for bit in _data.bits):
                 return False
             return True
 
@@ -317,7 +319,7 @@ class DrawerCanvas:
             return True
 
         checks = [_time_range_check, _associated_bit_check, _data_check]
-        if all([check(data) for check in checks]):
+        if all(check(data) for check in checks):
             return True
 
         return False
@@ -377,11 +379,12 @@ class DrawerCanvas:
 
         This method dynamically shifts horizontal position of links if they are overlapped.
         """
-        allowed_overlap = self.formatter['margin.link_interval_dt']
+        duration = self.time_range[1] - self.time_range[0]
+        allowed_overlap = self.formatter['margin.link_interval_percent'] * duration
 
         # return y coordinates
         def y_coords(link: drawings.GateLinkData):
-            return np.array([self.assigned_coordinates.get(bit, None) for bit in link.bits])
+            return np.array([self.assigned_coordinates.get(bit, np.nan) for bit in link.bits])
 
         # group overlapped links
         overlapped_group = []

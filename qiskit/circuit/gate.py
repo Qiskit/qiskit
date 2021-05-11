@@ -46,14 +46,14 @@ class Gate(Instruction):
         """Return a Numpy.array for the gate unitary matrix.
 
         Returns:
-            np.ndarray: if the Gate subclass has a matrix defintion.
+            np.ndarray: if the Gate subclass has a matrix definition.
 
         Raises:
             CircuitError: If a Gate subclass does not implement this method an
                 exception will be raised when this base class method is called.
         """
         if hasattr(self, '__array__'):
-            # pylint: disable = no-member
+            # pylint: disable=no-member
             return self.__array__(dtype=complex)
         raise CircuitError("to_matrix not defined for this {}".format(type(self)))
 
@@ -220,9 +220,10 @@ class Gate(Instruction):
         """
         if len(qargs) != self.num_qubits or cargs:
             raise CircuitError(
-                'The amount of qubit/clbit arguments does not match the gate expectation.')
+                f'The amount of qubit({len(qargs)})/clbit({len(cargs)}) arguments does'
+                f' not match the gate expectation ({self.num_qubits}).')
 
-        if any([not qarg for qarg in qargs]):
+        if any(not qarg for qarg in qargs):
             raise CircuitError('One or more of the arguments are empty')
 
         if len(qargs) == 1:

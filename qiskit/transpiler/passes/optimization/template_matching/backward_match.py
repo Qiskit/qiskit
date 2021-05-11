@@ -289,10 +289,11 @@ class BackwardMatch:
         Returns:
             bool: True if possible, False otherwise.
         """
-        if node_circuit.condition and node_template.conditon:
+        if (node_circuit.type == 'op' and node_circuit.op.condition
+                and node_template.type == 'op' and node_template.op.condition):
             if set(carg_circuit) != set(node_template.cindices):
                 return False
-            if node_circuit.condition[1] != node_template.conditon[1]:
+            if node_circuit.op.condition[1] != node_template.op.conditon[1]:
                 return False
         return True
 
@@ -648,8 +649,8 @@ class BackwardMatch:
                                                           counter_scenario + 1)
                     self.matching_list.append_scenario(matching_scenario)
 
-                    # Third option, all succesors are blocked (circuit gate is
-                    # moved to the rigth).
+                    # Third option, all successors are blocked (circuit gate is
+                    # moved to the right).
 
                     broken_matches = []
 

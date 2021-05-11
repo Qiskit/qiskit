@@ -13,12 +13,9 @@
 """Sequential Least SQuares Programming optimizer"""
 
 from typing import Optional
-import logging
 
 from scipy.optimize import minimize
 from .optimizer import Optimizer, OptimizerSupportLevel
-
-logger = logging.getLogger(__name__)
 
 
 class SLSQP(Optimizer):

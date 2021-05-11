@@ -70,7 +70,7 @@ class TestQuaternions(QiskitTestCase):
 
     def test_equiv_quaternions(self):
         """Different Euler rotations give same quaternion, up to sign."""
-        # Check if euler angles from to_zyz return same quaternion
+        # Check if Euler angles from to_zyz return same quaternion
         # up to a sign (2pi rotation)
         rot = ['xyz', 'xyx', 'xzy', 'xzx', 'yzx', 'yzy', 'yxz', 'yxy', 'zxy', 'zxz', 'zyx', 'zyz']
         for value in rot:

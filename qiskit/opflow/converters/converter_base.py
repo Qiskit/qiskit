@@ -12,13 +12,9 @@
 
 """ ConverterBase Class """
 
-import logging
-
 from abc import ABC, abstractmethod
 
-from ..operator_base import OperatorBase
-
-logger = logging.getLogger(__name__)
+from qiskit.opflow.operator_base import OperatorBase
 
 
 class ConverterBase(ABC):

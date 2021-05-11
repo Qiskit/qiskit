@@ -17,11 +17,12 @@ import math
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, idata, unpack
 
-from qiskit import BasicAer
+from qiskit import Aer
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms import Shor
 
 
+@unittest.skipUnless(Aer, "qiskit-aer is required for these tests")
 @ddt
 class TestShor(QiskitAlgorithmsTestCase):
     """test Shor's algorithm"""
@@ -32,20 +33,19 @@ class TestShor(QiskitAlgorithmsTestCase):
     @unpack
     def test_shor_factoring(self, n_v, backend, factors):
         """ shor factoring test """
-        shor = Shor(n_v)
-        result_dict = shor.run(QuantumInstance(BasicAer.get_backend(backend), shots=1000))
-        self.assertListEqual(result_dict['factors'][0], factors)
-        self.assertTrue(result_dict["total_counts"] >= result_dict["successful_counts"])
+        shor = Shor(quantum_instance=QuantumInstance(Aer.get_backend(backend), shots=1000))
+        result = shor.factor(N=n_v)
+        self.assertListEqual(result.factors[0], factors)
+        self.assertTrue(result.total_counts >= result.successful_counts)
 
     @data(5, 7)
     def test_shor_no_factors(self, n_v):
         """ shor no factors test """
-        shor = Shor(n_v)
-        backend = BasicAer.get_backend('qasm_simulator')
-        quantum_instance = QuantumInstance(backend, shots=1000)
-        ret = shor.run(quantum_instance)
-        self.assertTrue(ret['factors'] == [])
-        self.assertTrue(ret["successful_counts"] == 0)
+        backend = Aer.get_backend('qasm_simulator')
+        shor = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
+        result = shor.factor(N=n_v)
+        self.assertTrue(result.factors == [])
+        self.assertTrue(result.successful_counts == 0)
 
     @idata([
         [3, 5],
@@ -55,18 +55,17 @@ class TestShor(QiskitAlgorithmsTestCase):
     def test_shor_power(self, base, power):
         """ shor power test """
         n_v = int(math.pow(base, power))
-        shor = Shor(n_v)
-        backend = BasicAer.get_backend('qasm_simulator')
-        quantum_instance = QuantumInstance(backend, shots=1000)
-        ret = shor.run(quantum_instance)
-        self.assertTrue(ret['factors'] == [base])
-        self.assertTrue(ret["total_counts"] >= ret["successful_counts"])
+        backend = Aer.get_backend('qasm_simulator')
+        shor = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
+        result = shor.factor(N=n_v)
+        self.assertTrue(result.factors == [base])
+        self.assertTrue(result.total_counts >= result.successful_counts)
 
     @data(-1, 0, 1, 2, 4, 16)
     def test_shor_bad_input(self, n_v):
         """ shor bad input test """
         with self.assertRaises(ValueError):
-            Shor(n_v)
+            _ = Shor().factor(N=n_v)
 
     @idata([[2, 15, 8], [4, 15, 4]])
     @unpack

@@ -1,0 +1,27 @@
+% \documentclass[preview]{standalone}
+% If the image is too large to fit on this documentclass use
+\documentclass[draft]{beamer}
+% img_width = 5, img_depth = 7
+\usepackage[size=custom,height=10,width=16,scale=0.7]{beamerposter}
+% instead and customize the height and width (in cm) to fit.
+% Large images may run out of memory quickly.
+% To fix this use the LuaLaTeX compiler, which dynamically
+% allocates memory.
+\usepackage[braket, qm]{qcircuit}
+\usepackage{amsmath}
+\pdfmapfile{+sansmathaccent.map}
+% \usepackage[landscape]{geometry}
+% Comment out the above line if using the beamer documentclass.
+\begin{document}
+
+\begin{equation*}
+    \Qcircuit @C=1.0em @R=0.2em @!R {
+	 	\lstick{ {q}_{0} :  } & \gate{\mathrm{X}} & \gate{\mathrm{Y}} & \gate{\mathrm{Z}} & \gate{\mathrm{I}} & \qw & \qw & \qw\\
+	 	\lstick{ {q}_{1} :  } & \gate{\mathrm{H}} & \ctrl{1} & \ctrl{1} & \ctrl{1} & \qw & \qw & \qw\\
+	 	\lstick{ {q}_{2} :  } & \qw & \targ & \gate{\mathrm{Y}} & \control\qw & \qw & \qw & \qw\\
+	 	\lstick{ {q}_{3} :  } & \qswap & \gate{\mathrm{S}} & \gate{\mathrm{S}^\dagger} & \multigate{1}{\mathrm{Iswap}}_<<<{0} & \multigate{1}{\mathrm{Dcx}}_<<<{0} & \qw & \qw\\
+	 	\lstick{ {q}_{4} :  } & \qswap \qwx[-1] & \qw & \qw & \ghost{\mathrm{Iswap}}_<<<{1} & \ghost{\mathrm{Dcx}}_<<<{1} & \qw & \qw\\
+	 }
+\end{equation*}
+
+\end{document}

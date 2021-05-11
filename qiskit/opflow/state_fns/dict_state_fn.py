@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,31 +12,33 @@
 
 """ DictStateFn Class """
 
-from typing import Optional, Union, Set, Dict, cast, List
 import itertools
+from typing import Dict, List, Optional, Set, Union, cast
+
 import numpy as np
 from scipy import sparse
 
-from qiskit.result import Result
 from qiskit.circuit import ParameterExpression
-from qiskit.utils import aqua_globals
-
-from ..exceptions import OpflowError
-from ..operator_base import OperatorBase
-from .state_fn import StateFn
-from ..list_ops.list_op import ListOp
-from .vector_state_fn import VectorStateFn
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.state_fns.state_fn import StateFn
+from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
+from qiskit.quantum_info import Statevector
+from qiskit.result import Result
+from qiskit.utils import algorithm_globals
 
 
 class DictStateFn(StateFn):
     """ A class for state functions and measurements which are defined by a lookup table,
     stored in a dict.
     """
+    primitive: Dict[str, complex]
 
     # TODO allow normalization somehow?
     def __init__(self,
                  primitive: Union[str, dict, Result] = None,
-                 coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+                 coeff: Union[complex, ParameterExpression] = 1.0,
                  is_measurement: bool = False) -> None:
         """
             Args:
@@ -79,7 +81,7 @@ class DictStateFn(StateFn):
 
     @property
     def num_qubits(self) -> int:
-        return len(list(self.primitive.keys())[0])
+        return len(next(iter(self.primitive)))
 
     def add(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:
@@ -99,12 +101,12 @@ class DictStateFn(StateFn):
                             for (b, v) in self.primitive.items()}
                 new_dict.update({b: v * other.coeff for (b, v) in other.primitive.items()
                                  if b not in self.primitive})
-                return StateFn(new_dict, is_measurement=self._is_measurement)
-        # pylint: disable=cyclic-import,import-outside-toplevel
+                return DictStateFn(new_dict, is_measurement=self._is_measurement)
+        # pylint: disable=cyclic-import
         from ..list_ops.summed_op import SummedOp
         return SummedOp([self, other])
 
-    def adjoint(self) -> OperatorBase:
+    def adjoint(self) -> "DictStateFn":
         return DictStateFn({b: np.conj(v) for (b, v) in self.primitive.items()},
                            coeff=self.coeff.conjugate(),
                            is_measurement=(not self.is_measurement))
@@ -137,7 +139,7 @@ class DictStateFn(StateFn):
             return StateFn(new_dict,
                            coeff=self.coeff * other.coeff,
                            is_measurement=self.is_measurement)
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from ..list_ops.tensored_op import TensoredOp
         return TensoredOp([self, other])
 
@@ -158,8 +160,7 @@ class DictStateFn(StateFn):
         return vec if not self.is_measurement else vec.reshape(1, -1)
 
     def to_spmatrix(self) -> sparse.spmatrix:
-        """
-        Same as to_matrix, but returns csr sparse matrix.
+        """Same as to_matrix, but returns csr sparse matrix.
 
         Returns:
             CSR sparse matrix representation of the State function.
@@ -174,10 +175,15 @@ class DictStateFn(StateFn):
                                   shape=(1, 2**self.num_qubits))
         return spvec if not self.is_measurement else spvec.transpose()
 
+    def to_spmatrix_op(self) -> OperatorBase:
+        """Convert this state function to a ``SparseVectorStateFn``."""
+        from .sparse_vector_state_fn import SparseVectorStateFn
+        return SparseVectorStateFn(self.to_spmatrix(), self.coeff, self.is_measurement)
+
     def to_circuit_op(self) -> OperatorBase:
-        """ Return ``StateFnCircuit`` corresponding to this StateFn."""
+        """Convert this state function to a ``CircuitStateFn``."""
         from .circuit_state_fn import CircuitStateFn
-        csfn = CircuitStateFn.from_dict(self.primitive) * self.coeff  # type: ignore
+        csfn = CircuitStateFn.from_dict(self.primitive) * self.coeff
         return csfn.adjoint() if self.is_measurement else csfn
 
     def __str__(self) -> str:
@@ -192,13 +198,15 @@ class DictStateFn(StateFn):
                                         self.coeff)
 
     # pylint: disable=too-many-return-statements
-    def eval(self,
-             front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
-             ) -> Union[OperatorBase, float, complex]:
+    def eval(
+        self,
+        front: Optional[
+            Union[str, Dict[str, complex], np.ndarray, OperatorBase, Statevector]
+        ] = None,
+    ) -> Union[OperatorBase, complex]:
         if front is None:
-            vector_state_fn = self.to_matrix_op().eval()
-            vector_state_fn = cast(OperatorBase, vector_state_fn)
-            return vector_state_fn
+            sparse_vector_state_fn = self.to_spmatrix_op().eval()
+            return sparse_vector_state_fn
 
         if not self.is_measurement and isinstance(front, OperatorBase):
             raise ValueError(
@@ -206,14 +214,14 @@ class DictStateFn(StateFn):
                 'sf.adjoint() first to convert to measurement.')
 
         if isinstance(front, ListOp) and front.distributive:
-            return front.combo_fn([self.eval(front.coeff * front_elem)  # type: ignore
+            return front.combo_fn([self.eval(front.coeff * front_elem)
                                    for front_elem in front.oplist])
 
         # For now, always do this. If it's not performant, we can be more granular.
         if not isinstance(front, OperatorBase):
             front = StateFn(front)
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from ..operator_globals import EVAL_SIG_DIGITS
 
         # If the primitive is a lookup of bitstrings,
@@ -239,24 +247,26 @@ class DictStateFn(StateFn):
         from .circuit_state_fn import CircuitStateFn
         if isinstance(front, CircuitStateFn):
             # Don't reimplement logic from CircuitStateFn
-            return np.conj(
-                front.adjoint().eval(self.adjoint().primitive)) * self.coeff  # type: ignore
+            self_adjoint = cast(DictStateFn, self.adjoint())
+            return np.conj(front.adjoint().eval(self_adjoint.primitive)) * self.coeff
 
         from .operator_state_fn import OperatorStateFn
         if isinstance(front, OperatorStateFn):
             return cast(Union[OperatorBase, float, complex], front.adjoint().eval(self.adjoint()))
 
         # All other OperatorBases go here
-        return front.adjoint().eval(self.adjoint().primitive).adjoint() * self.coeff  # type: ignore
+        self_adjoint = cast(DictStateFn, self.adjoint())
+        adjointed_eval = cast(OperatorBase, front.adjoint().eval(self_adjoint.primitive))
+        return adjointed_eval.adjoint() * self.coeff
 
     def sample(self,
                shots: int = 1024,
                massive: bool = False,
-               reverse_endianness: bool = False) -> dict:
+               reverse_endianness: bool = False) -> Dict[str, float]:
         probs = np.square(np.abs(np.array(list(self.primitive.values()))))
-        unique, counts = np.unique(aqua_globals.random.choice(list(self.primitive.keys()),
-                                                              size=shots,
-                                                              p=(probs / sum(probs))),
+        unique, counts = np.unique(algorithm_globals.random.choice(list(self.primitive.keys()),
+                                                                   size=shots,
+                                                                   p=(probs / sum(probs))),
                                    return_counts=True)
         counts = dict(zip(unique, counts))
         if reverse_endianness:

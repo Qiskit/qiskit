@@ -14,17 +14,19 @@
 
 import logging
 from typing import Union
+
 import numpy as np
 
-from .expectation_base import ExpectationBase
-from ..operator_base import OperatorBase
-from ..list_ops.list_op import ListOp
-from ..list_ops.composed_op import ComposedOp
-from ..state_fns.state_fn import StateFn
-from ..state_fns.operator_state_fn import OperatorStateFn
-from ..converters.pauli_basis_change import PauliBasisChange
-from ..converters.abelian_grouper import AbelianGrouper
-from ..primitive_ops.pauli_sum_op import PauliSumOp
+from qiskit.opflow.converters.abelian_grouper import AbelianGrouper
+from qiskit.opflow.converters.pauli_basis_change import PauliBasisChange
+from qiskit.opflow.expectations.expectation_base import ExpectationBase
+from qiskit.opflow.list_ops.composed_op import ComposedOp
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
+from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
+from qiskit.opflow.state_fns.state_fn import StateFn
 
 logger = logging.getLogger(__name__)
 
@@ -59,17 +61,13 @@ class PauliExpectation(ExpectationBase):
         Returns:
             The converted operator.
         """
-        # TODO: implement direct way
-        if (
-                isinstance(operator, OperatorStateFn)
-                and isinstance(operator.primitive, PauliSumOp)
-                and operator.is_measurement
-        ):
-            operator = ~OperatorStateFn(operator.primitive.to_pauli_op(), operator.coeff)
-
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
             # Change to Pauli representation if necessary
-            if not {'Pauli'} == operator.primitive_strings():
+            if (
+                isinstance(operator.primitive, (ListOp, PrimitiveOp))
+                and not isinstance(operator.primitive, PauliSumOp)
+                and {"Pauli"} != operator.primitive_strings()
+            ):
                 logger.warning('Measured Observable is not composed of only Paulis, converting to '
                                'Pauli representation, which can be expensive.')
                 # Setting massive=False because this conversion is implicit. User can perform this
@@ -77,7 +75,7 @@ class PauliExpectation(ExpectationBase):
                 pauli_obsv = operator.primitive.to_pauli_op(massive=False)
                 operator = StateFn(pauli_obsv, is_measurement=True, coeff=operator.coeff)
 
-            if self._grouper and isinstance(operator.primitive, ListOp):
+            if self._grouper and isinstance(operator.primitive, (ListOp, PauliSumOp)):
                 grouped = self._grouper.convert(operator.primitive)
                 operator = StateFn(grouped, is_measurement=True, coeff=operator.coeff)
 
@@ -86,11 +84,10 @@ class PauliExpectation(ExpectationBase):
             cob = PauliBasisChange(replacement_fn=PauliBasisChange.measurement_replacement_fn)
             return cob.convert(operator).reduce()
 
-        elif isinstance(operator, ListOp):
+        if isinstance(operator, ListOp):
             return operator.traverse(self.convert).reduce()
 
-        else:
-            return operator
+        return operator
 
     def compute_variance(self, exp_op: OperatorBase) -> Union[list, float, np.ndarray]:
 

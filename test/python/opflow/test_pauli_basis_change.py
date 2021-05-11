@@ -15,9 +15,11 @@
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
 import itertools
+from functools import reduce
 import numpy as np
 
-from qiskit.opflow import X, Y, Z, I, SummedOp, ComposedOp
+from qiskit.quantum_info import Pauli
+from qiskit.opflow import X, Y, Z, I, SummedOp, ComposedOp, PauliSumOp
 from qiskit.opflow.converters import PauliBasisChange
 
 
@@ -92,6 +94,28 @@ class TestPauliCoB(QiskitOpflowTestCase):
                 cob_mat[i] = cob.oplist[i].to_matrix()
                 np.testing.assert_array_almost_equal(pauli.to_matrix(), cob_mat[i])
             np.testing.assert_array_almost_equal(paulis.to_matrix(), sum(cob_mat))
+
+    def test_grouped_pauli(self):
+        """ grouped pauli test """
+        pauli = 2 * (I ^ I) + (X ^ I) + 3 * (X ^ Y)
+        grouped_pauli = PauliSumOp(pauli.primitive, grouping_type="TPB")
+
+        converter = PauliBasisChange()
+        cob = converter.convert(grouped_pauli)
+        np.testing.assert_array_almost_equal(pauli.to_matrix(), cob.to_matrix())
+
+        origin_x = reduce(np.logical_or, pauli.primitive.table.X)
+        origin_z = reduce(np.logical_or, pauli.primitive.table.Z)
+        origin_pauli = Pauli((origin_z, origin_x))
+        inst, dest = converter.get_cob_circuit(origin_pauli)
+        self.assertEqual(str(dest), "ZZ")
+        expected_inst = np.array([
+            [0.5, -0.5j, 0.5, -0.5j],
+            [0.5, 0.5j, 0.5, 0.5j],
+            [0.5, -0.5j, -0.5, 0.5j],
+            [0.5, 0.5j, -0.5, -0.5j]
+        ])
+        np.testing.assert_array_almost_equal(inst.to_matrix(), expected_inst)
 
 
 if __name__ == '__main__':

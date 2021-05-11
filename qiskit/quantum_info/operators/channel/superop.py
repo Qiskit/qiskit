@@ -10,20 +10,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unpacking-non-sequence
-
 """
 Superoperator representation of a Quantum Channel."""
 
+import copy
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.transformations import _to_superop
 from qiskit.quantum_info.operators.channel.transformations import _bipartite_tensor
+from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
 class SuperOp(QuantumChannel):
@@ -84,6 +85,8 @@ class SuperOp(QuantumChannel):
             output_dim = int(np.sqrt(dout))
             if output_dim**2 != dout or input_dim**2 != din:
                 raise QiskitError("Invalid shape for SuperOp matrix.")
+            op_shape = OpShape.auto(dims_l=output_dims, dims_r=input_dims,
+                                    shape=(output_dim, input_dim))
         else:
             # Otherwise we initialize by conversion from another Qiskit
             # object into the QuantumChannel.
@@ -102,18 +105,12 @@ class SuperOp(QuantumChannel):
                 data = self._init_transformer(data)
             # Now that the input is an operator we convert it to a
             # SuperOp object
+            op_shape = data._op_shape
             input_dim, output_dim = data.dim
             rep = getattr(data, '_channel_rep', 'Operator')
             super_mat = _to_superop(rep, data._data, input_dim, output_dim)
-            if input_dims is None:
-                input_dims = data.input_dims()
-            if output_dims is None:
-                output_dims = data.output_dims()
-        # Finally we format and validate the channel input and
-        # output dimensions
-        input_dims, output_dims, num_qubits = self._automatic_dims(
-            input_dims, input_dim, output_dims, output_dim)
-        super().__init__(super_mat, input_dims, output_dims, num_qubits, 'SuperOp')
+        # Initialize QuantumChannel
+        super().__init__(super_mat, op_shape=op_shape)
 
     def __array__(self, dtype=None):
         if dtype:
@@ -121,10 +118,10 @@ class SuperOp(QuantumChannel):
         return self.data
 
     @property
-    def _shape(self):
+    def _tensor_shape(self):
         """Return the tensor shape of the superoperator matrix"""
-        return 2 * tuple(reversed(self.output_dims())) + 2 * tuple(
-            reversed(self.input_dims()))
+        return 2 * tuple(reversed(self._op_shape.dims_l())) + 2 * tuple(
+            reversed(self._op_shape.dims_r()))
 
     @property
     def _bipartite_shape(self):
@@ -132,49 +129,56 @@ class SuperOp(QuantumChannel):
         return (self._output_dim, self._output_dim, self._input_dim,
                 self._input_dim)
 
+    # ---------------------------------------------------------------------
+    # BaseOperator methods
+    # ---------------------------------------------------------------------
+
     def conjugate(self):
-        """Return the conjugate of the QuantumChannel."""
-        return SuperOp(np.conj(self._data), self.input_dims(),
-                       self.output_dims())
+        ret = copy.copy(self)
+        ret._data = np.conj(self._data)
+        return ret
 
     def transpose(self):
-        """Return the transpose of the QuantumChannel."""
-        return SuperOp(np.transpose(self._data),
-                       input_dims=self.output_dims(),
-                       output_dims=self.input_dims())
+        ret = copy.copy(self)
+        ret._data = np.transpose(self._data)
+        ret._op_shape = self._op_shape.transpose()
+        return ret
+
+    def adjoint(self):
+        ret = copy.copy(self)
+        ret._data = np.conj(np.transpose(self._data))
+        ret._op_shape = self._op_shape.transpose()
+        return ret
+
+    def tensor(self, other):
+        if not isinstance(other, SuperOp):
+            other = SuperOp(other)
+        return self._tensor(self, other)
+
+    def expand(self, other):
+        if not isinstance(other, SuperOp):
+            other = SuperOp(other)
+        return self._tensor(other, self)
+
+    @classmethod
+    def _tensor(cls, a, b):
+        ret = copy.copy(a)
+        ret._op_shape = a._op_shape.tensor(b._op_shape)
+        ret._data = _bipartite_tensor(a._data, b.data,
+                                      shape1=a._bipartite_shape,
+                                      shape2=b._bipartite_shape)
+        return ret
 
     def compose(self, other, qargs=None, front=False):
-        """Return the composed quantum channel self @ other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-            qargs (list or None): a list of subsystem positions to apply
-                                  other on. If None apply on all
-                                  subsystems [default: None].
-            front (bool): If True compose using right operator multiplication,
-                          instead of left multiplication [default: False].
-
-        Returns:
-            SuperOp: The quantum channel self @ other.
-
-        Raises:
-            QiskitError: if other has incompatible dimensions.
-
-        Additional Information:
-            Composition (``@``) is defined as `left` matrix multiplication for
-            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
-            Setting ``front=True`` returns `right` matrix multiplication
-            ``A * B`` and is equivalent to the :meth:`dot` method.
-        """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
-        # Convert other to SuperOp
         if not isinstance(other, SuperOp):
             other = SuperOp(other)
         # Validate dimensions are compatible and return the composed
         # operator dimensions
-        input_dims, output_dims = self._get_compose_dims(
-            other, qargs, front)
+        new_shape = self._op_shape.compose(other._op_shape, qargs, front)
+        input_dims = new_shape.dims_r()
+        output_dims = new_shape.dims_l()
 
         # Full composition of superoperators
         if qargs is None:
@@ -182,15 +186,18 @@ class SuperOp(QuantumChannel):
                 data = np.dot(self._data, other.data)
             else:
                 data = np.dot(other.data, self._data)
-            return SuperOp(data, input_dims, output_dims)
+            ret = SuperOp(data, input_dims, output_dims)
+            ret._op_shape = new_shape
+            return ret
 
         # Compute tensor contraction indices from qargs
+        num_qargs_l, num_qargs_r = self._op_shape.num_qargs
         if front:
-            num_indices = self._num_input
-            shift = 2 * self._num_output
+            num_indices = num_qargs_r
+            shift = 2 * num_qargs_l
             right_mul = True
         else:
-            num_indices = self._num_output
+            num_indices = num_qargs_l
             shift = 0
             right_mul = False
 
@@ -198,8 +205,8 @@ class SuperOp(QuantumChannel):
         # Note that we must reverse the subsystem dimension order as
         # qubit 0 corresponds to the right-most position in the tensor
         # product, which is the last tensor wire index.
-        tensor = np.reshape(self.data, self._shape)
-        mat = np.reshape(other.data, other._shape)
+        tensor = np.reshape(self.data, self._tensor_shape)
+        mat = np.reshape(other.data, other._tensor_shape)
         # Add first set of indices
         indices = [2 * num_indices - 1 - qubit for qubit in qargs
                    ] + [num_indices - 1 - qubit for qubit in qargs]
@@ -207,80 +214,13 @@ class SuperOp(QuantumChannel):
         data = np.reshape(
             Operator._einsum_matmul(tensor, mat, indices, shift, right_mul),
             final_shape)
-        return SuperOp(data, input_dims, output_dims)
+        ret = SuperOp(data, input_dims, output_dims)
+        ret._op_shape = new_shape
+        return ret
 
-    def power(self, n):
-        """Return the compose of a QuantumChannel with itself n times.
-
-        Args:
-            n (int): compute the matrix power of the superoperator matrix.
-
-        Returns:
-            SuperOp: the n-times composition channel as a SuperOp object.
-
-        Raises:
-            QiskitError: if the input and output dimensions of the
-                         QuantumChannel are not equal, or the power is not
-                         an integer.
-        """
-        if not isinstance(n, (int, np.integer)):
-            raise QiskitError("Can only power with integer powers.")
-        if self._input_dim != self._output_dim:
-            raise QiskitError("Can only power with input_dim = output_dim.")
-        # Override base class power so we can implement more efficiently
-        # using Numpy.matrix_power
-        return SuperOp(np.linalg.matrix_power(self._data, n),
-                       self.input_dims(), self.output_dims())
-
-    def tensor(self, other):
-        """Return the tensor product channel self ⊗ other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-
-        Returns:
-            SuperOp: the tensor product channel self ⊗ other as a SuperOp
-            object.
-
-        Raises:
-            QiskitError: if other cannot be converted to a channel.
-        """
-        # Convert other to SuperOp
-        if not isinstance(other, SuperOp):
-            other = SuperOp(other)
-
-        input_dims = other.input_dims() + self.input_dims()
-        output_dims = other.output_dims() + self.output_dims()
-        data = _bipartite_tensor(self._data,
-                                 other.data,
-                                 shape1=self._bipartite_shape,
-                                 shape2=other._bipartite_shape)
-        return SuperOp(data, input_dims, output_dims)
-
-    def expand(self, other):
-        """Return the tensor product channel other ⊗ self.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-
-        Returns:
-            SuperOp: the tensor product channel other ⊗ self as a SuperOp
-            object.
-
-        Raises:
-            QiskitError: if other cannot be converted to a channel.
-        """
-        # Convert other to SuperOp
-        if not isinstance(other, SuperOp):
-            other = SuperOp(other)
-
-        input_dims = self.input_dims() + other.input_dims()
-        output_dims = self.output_dims() + other.output_dims()
-        data = _bipartite_tensor(other.data,
-                                 self._data,
-                                 shape1=other._bipartite_shape,
-                                 shape2=self._bipartite_shape)
-        return SuperOp(data, input_dims, output_dims)
+    # ---------------------------------------------------------------------
+    # Additional methods
+    # ---------------------------------------------------------------------
 
     def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the quantum channel.
@@ -306,7 +246,7 @@ class SuperOp(QuantumChannel):
 
         if qargs is None:
             # Evolution on full matrix
-            if state._dim != self._input_dim:
+            if state._op_shape.shape[0] != self._op_shape.shape[1]:
                 raise QiskitError(
                     "Operator input dimension is not equal to density matrix dimension."
                 )
@@ -324,8 +264,8 @@ class SuperOp(QuantumChannel):
                 "Operator input dimensions are not equal to statevector subsystem dimensions."
             )
         # Reshape statevector and operator
-        tensor = np.reshape(state.data, state._shape)
-        mat = np.reshape(self.data, self._shape)
+        tensor = np.reshape(state.data, state._op_shape.tensor_shape)
+        mat = np.reshape(self.data, self._tensor_shape)
         # Construct list of tensor indices of statevector to be contracted
         num_indices = len(state.dims())
         indices = [num_indices - 1 - qubit for qubit in qargs
@@ -403,6 +343,7 @@ class SuperOp(QuantumChannel):
                 raise QiskitError('{} instruction definition is {}; '
                                   'expected QuantumCircuit'.format(
                                       obj.name, type(obj.definition)))
+            qubit_indices = {bit: idx for idx, bit in enumerate(obj.definition.qubits)}
             for instr, qregs, cregs in obj.definition.data:
                 if cregs:
                     raise QiskitError(
@@ -410,7 +351,11 @@ class SuperOp(QuantumChannel):
                         .format(instr.name))
                 # Get the integer position of the flat register
                 if qargs is None:
-                    new_qargs = [tup.index for tup in qregs]
+                    new_qargs = [qubit_indices[tup] for tup in qregs]
                 else:
-                    new_qargs = [qargs[tup.index] for tup in qregs]
+                    new_qargs = [qargs[qubit_indices[tup]] for tup in qregs]
                 self._append_instruction(instr, qargs=new_qargs)
+
+
+# Update docstrings for API docs
+generate_apidocs(SuperOp)

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,15 +12,11 @@
 
 """Line search with Gaussian-smoothed samples on a sphere."""
 
-import warnings
 from typing import Dict, Optional, Tuple, List, Callable
-import logging
 import numpy as np
 
-from qiskit.utils import aqua_globals
+from qiskit.utils import algorithm_globals
 from .optimizer import Optimizer, OptimizerSupportLevel
-
-logger = logging.getLogger(__name__)
 
 
 class GSLS(Optimizer):
@@ -36,7 +32,7 @@ class GSLS(Optimizer):
                 'step_size_multiplier', 'armijo_parameter',
                 'min_gradient_norm', 'max_failed_rejection_sampling']
 
-    # pylint:disable=unused-argument
+    # pylint: disable=unused-argument
     def __init__(self,
                  maxiter: int = 10000,
                  max_eval: int = 10000,
@@ -48,8 +44,7 @@ class GSLS(Optimizer):
                  step_size_multiplier: float = 0.4,
                  armijo_parameter: float = 1.0e-1,
                  min_gradient_norm: float = 1e-8,
-                 max_failed_rejection_sampling: int = 50,
-                 max_iter: Optional[int] = None) -> None:
+                 max_failed_rejection_sampling: int = 50) -> None:
         """
         Args:
             maxiter: Maximum number of iterations.
@@ -67,15 +62,8 @@ class GSLS(Optimizer):
             min_gradient_norm: If the gradient norm is below this threshold, the algorithm stops.
             max_failed_rejection_sampling: Maximum number of attempts to sample points within
                 bounds.
-            max_iter: Deprecated, use maxiter.
         """
         super().__init__()
-        if max_iter is not None:
-            warnings.warn('The max_iter parameter is deprecated as of '
-                          '0.8.0 and will be removed no sooner than 3 months after the release. '
-                          'You should use maxiter instead.',
-                          DeprecationWarning)
-            maxiter = max_iter
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 self._options[k] = v
@@ -101,7 +89,7 @@ class GSLS(Optimizer):
                          variable_bounds, initial_point)
 
         if initial_point is None:
-            initial_point = aqua_globals.random.normal(size=num_vars)
+            initial_point = algorithm_globals.random.normal(size=num_vars)
         else:
             initial_point = np.array(initial_point)
 
@@ -242,7 +230,7 @@ class GSLS(Optimizer):
         Returns:
             A tuple containing the sampling points and the directions.
         """
-        normal_samples = aqua_globals.random.normal(size=(num_points, n))
+        normal_samples = algorithm_globals.random.normal(size=(num_points, n))
         row_norms = np.linalg.norm(normal_samples, axis=1, keepdims=True)
         directions = normal_samples / row_norms
         points = x + self._options['sampling_radius'] * directions

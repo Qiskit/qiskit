@@ -28,21 +28,19 @@ def dagdependency_to_dag(dagdependency):
     dagcircuit.name = dagdependency.name
     dagcircuit.metadata = dagdependency.metadata
 
-    qregs = list(dagdependency.qregs.values())
-    cregs = list(dagdependency.cregs.values())
+    dagcircuit.add_qubits(dagdependency.qubits)
+    dagcircuit.add_clbits(dagdependency.clbits)
 
-    for register in qregs:
+    for register in dagdependency.qregs.values():
         dagcircuit.add_qreg(register)
 
-    for register in cregs:
+    for register in dagdependency.cregs.values():
         dagcircuit.add_creg(register)
 
     for node in dagdependency.get_nodes():
         # Get arguments for classical control (if any)
         inst = node.op.copy()
-        inst.condition = node.condition
-
-        dagcircuit.apply_operation_back(inst, node.qargs, node.cargs, inst.condition)
+        dagcircuit.apply_operation_back(inst, node.qargs, node.cargs)
 
     # copy metadata
     dagcircuit.global_phase = dagdependency.global_phase

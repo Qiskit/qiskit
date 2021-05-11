@@ -20,8 +20,6 @@ from typing import Tuple, List, Union, Optional
 
 from qiskit.pulse.channels import Channel
 
-# pylint: disable=missing-type-doc
-
 
 class ScheduleComponent(metaclass=ABCMeta):
     """ScheduleComponent has been deprecated.

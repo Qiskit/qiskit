@@ -32,7 +32,7 @@ def schedule_circuit(circuit: QuantumCircuit,
     Supported methods:
 
         * ``'as_soon_as_possible'``: Schedule pulses greedily, as early as possible on a
-          qubit resource. alias: ``'asap'``)
+          qubit resource. (alias: ``'asap'``)
         * ``'as_late_as_possible'``: Schedule pulses late-- keep qubits in the ground state when
           possible. (alias: ``'alap'``)
 
@@ -57,5 +57,5 @@ def schedule_circuit(circuit: QuantumCircuit,
         method = 'as_late_as_possible'
     try:
         return methods[method](circuit, schedule_config)
-    except KeyError:
-        raise QiskitError("Scheduling method {method} isn't recognized.".format(method=method))
+    except KeyError as ex:
+        raise QiskitError(f"Scheduling method {method} isn't recognized.") from ex

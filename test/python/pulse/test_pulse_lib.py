@@ -15,7 +15,7 @@
 import unittest
 import numpy as np
 
-from qiskit.pulse.library import (Waveform, Constant, ConstantPulse, Gaussian, GaussianSquare, Drag,
+from qiskit.pulse.library import (Waveform, Constant, Gaussian, GaussianSquare, Drag,
                                   gaussian, gaussian_square, drag as pl_drag)
 
 from qiskit.pulse import functional_pulse, PulseError
@@ -110,7 +110,7 @@ class TestParametricPulses(QiskitTestCase):
     def test_gaussian_square_pulse(self):
         """Test that GaussianSquare sample pulse matches the pulse library."""
         gauss_sq = GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100)
-        sample_pulse = gauss_sq.get_sample_pulse()
+        sample_pulse = gauss_sq.get_waveform()
         self.assertIsInstance(sample_pulse, Waveform)
         pulse_lib_gauss_sq = gaussian_square(duration=125, sigma=4, amp=0.5j, width=100,
                                              zero_ends=True).samples
@@ -133,7 +133,7 @@ class TestParametricPulses(QiskitTestCase):
     def test_drag_pulse(self):
         """Test that the Drag sample pulse matches the pulse library."""
         drag = Drag(duration=25, sigma=4, amp=0.5j, beta=1)
-        sample_pulse = drag.get_sample_pulse()
+        sample_pulse = drag.get_waveform()
         self.assertIsInstance(sample_pulse, Waveform)
         pulse_lib_drag = pl_drag(duration=25, sigma=4, amp=0.5j, beta=1, zero_ends=True).samples
         np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_drag)
@@ -215,13 +215,6 @@ class TestParametricPulses(QiskitTestCase):
             Drag(duration=25, amp=0.2 + 0.3j, sigma=-7.8, beta=4)
         with self.assertRaises(PulseError):
             Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4j)
-
-    def test_deprecated_parametric_pulses(self):
-        """Test deprecated parametric pulses."""
-        with self.assertWarns(DeprecationWarning):
-            const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
-            self.assertEqual(const.get_waveform().samples[0], 0.1 + 0.4j)
-            self.assertEqual(len(const.get_waveform().samples), 150)
 
     def test_hash_generation(self):
         """Test if pulse generate unique hash."""

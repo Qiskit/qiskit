@@ -15,11 +15,11 @@
 import time
 import threading
 import types
-from IPython.display import display                              # pylint: disable=import-error
-from IPython.core.magic import line_magic, Magics, magics_class  # pylint: disable=import-error
-from IPython.core import magic_arguments                         # pylint: disable=import-error
-import matplotlib.pyplot as plt                                  # pylint: disable=import-error
-import ipywidgets as widgets                                     # pylint: disable=import-error
+from IPython.display import display
+from IPython.core.magic import line_magic, Magics, magics_class
+from IPython.core import magic_arguments
+import matplotlib.pyplot as plt
+import ipywidgets as widgets
 from qiskit.tools.monitor.overview import get_unique_backends
 from qiskit.visualization.gate_map import plot_gate_map
 
@@ -262,7 +262,7 @@ def update_backend_info(self, interval=60):
             started = True
             current_interval = 0
         time.sleep(1)
-        all_dead = not any([wid._is_alive for wid in self.children])
+        all_dead = not any(wid._is_alive for wid in self.children)
         current_interval += 1
 
 

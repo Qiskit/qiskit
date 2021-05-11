@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=bad-docstring-quotes
-
 """Tests for the wrapper functionality."""
 
 import os
@@ -35,6 +33,10 @@ class TestJupyter(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.execution_path = os.path.join(Path.SDK.value, '..')
+        self.notebook_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(
+                os.path.abspath(__file__)))),
+            'notebooks')
 
     def _execute_notebook(self, filename):
         # Create the preprocessor.
@@ -75,15 +77,13 @@ class TestJupyter(QiskitTestCase):
         sys.platform != 'linux', 'Fails with Python >=3.8 on osx and windows')
     def test_jupyter_jobs_pbars(self):
         """Test Jupyter progress bars and job status functionality"""
-        self._execute_notebook(self._get_resource_path(
-            'notebooks/test_pbar_status.ipynb'))
+        self._execute_notebook(os.path.join(self.notebook_dir, 'test_pbar_status.ipynb'))
 
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     @slow_test
     def test_backend_tools(self):
         """Test Jupyter backend tools."""
-        self._execute_notebook(self._get_resource_path(
-            'notebooks/test_backend_tools.ipynb'))
+        self._execute_notebook(os.path.join(self.notebook_dir, 'test_backend_tools.ipynb'))
 
 
 if __name__ == '__main__':

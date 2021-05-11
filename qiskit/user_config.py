@@ -14,21 +14,12 @@
 
 import configparser
 import os
-import sys
 from warnings import warn
 
 from qiskit import exceptions
 
 DEFAULT_FILENAME = os.path.join(os.path.expanduser("~"),
                                 '.qiskit', 'settings.conf')
-
-if os.getenv('QISKIT_PARALLEL', None) is not None:
-    PARALLEL_DEFAULT = os.getenv('QISKIT_PARALLEL', None).lower() == 'true'
-else:
-    if sys.platform in {'darwin', 'win32'}:
-        PARALLEL_DEFAULT = False
-    else:
-        PARALLEL_DEFAULT = True
 
 
 class UserConfig:
@@ -41,7 +32,6 @@ class UserConfig:
     circuit_mpl_style = default
     circuit_mpl_style_path = ~/.qiskit:<default location>
     transpile_optimization_level = 1
-    suppress_packaging_warnings = False
     parallel = False
     num_processes = 4
 
@@ -80,6 +70,20 @@ class UserConfig:
                         % circuit_drawer)
                 self.settings['circuit_drawer'] = circuit_drawer
 
+            # Parse state_drawer
+            state_drawer = self.config_parser.get('default',
+                                                  'state_drawer',
+                                                  fallback=None)
+            if state_drawer:
+                valid_state_drawers = ['repr', 'text', 'latex', 'latex_source',
+                                       'qsphere', 'hinton', 'bloch']
+                if state_drawer not in valid_state_drawers:
+                    valid_choices_string = "', '".join(c for c in valid_state_drawers)
+                    raise exceptions.QiskitUserConfigError(
+                        f"'{state_drawer}' is not a valid state drawer backend. "
+                        f"Choose from: '{valid_choices_string}'")
+                self.settings['state_drawer'] = state_drawer
+
             # Parse circuit_mpl_style
             circuit_mpl_style = self.config_parser.get('default',
                                                        'circuit_mpl_style',
@@ -107,7 +111,7 @@ class UserConfig:
             # Parse transpile_optimization_level
             transpile_optimization_level = self.config_parser.getint(
                 'default', 'transpile_optimization_level', fallback=-1)
-            if not transpile_optimization_level == -1:
+            if transpile_optimization_level != -1:
                 if (transpile_optimization_level < 0 or
                         transpile_optimization_level > 3):
                     raise exceptions.QiskitUserConfigError(
@@ -116,21 +120,16 @@ class UserConfig:
                 self.settings['transpile_optimization_level'] = (
                     transpile_optimization_level)
 
-            # Parse package warnings
-            package_warnings = self.config_parser.getboolean(
-                'default', 'suppress_packaging_warnings', fallback=False)
-            if package_warnings:
-                self.settings['suppress_packaging_warnings'] = package_warnings
-
             # Parse parallel
             parallel_enabled = self.config_parser.getboolean(
-                'default', 'parallel', fallback=PARALLEL_DEFAULT)
-            self.settings['parallel_enabled'] = parallel_enabled
+                'default', 'parallel', fallback=None)
+            if parallel_enabled is not None:
+                self.settings['parallel_enabled'] = parallel_enabled
 
             # Parse num_processes
             num_processes = self.config_parser.getint(
                 'default', 'num_processes', fallback=-1)
-            if not num_processes == -1:
+            if num_processes != -1:
                 if num_processes <= 0:
                     raise exceptions.QiskitUserConfigError(
                         "%s is not a valid number of processes. Must be "
@@ -150,7 +149,7 @@ def get_config():
     """
     filename = os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
     if not os.path.isfile(filename):
-        return {'parallel_enabled': PARALLEL_DEFAULT}
+        return {}
     user_config = UserConfig(filename)
     user_config.read_config_file()
     return user_config.settings

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,12 +18,14 @@ from functools import partial
 from itertools import product
 from typing import List, Optional, Tuple, Union
 
+import scipy
 import numpy as np
-from qiskit.circuit import Gate, Instruction, Qubit
+from qiskit.circuit import Gate, Instruction
 from qiskit.circuit import (QuantumCircuit, QuantumRegister, ParameterVector,
-                            ParameterExpression)
+                            ParameterExpression, Parameter)
+from qiskit.circuit.parametertable import ParameterTable
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.library import SGate, SdgGate, HGate
+from qiskit.circuit.library import SGate, SdgGate, XGate
 from qiskit.circuit.library.standard_gates import (CXGate, CYGate, CZGate,
                                                    IGate, RXGate, RXXGate,
                                                    RYGate, RYYGate, RZGate,
@@ -34,14 +36,15 @@ from qiskit.quantum_info import partial_trace
 from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
 from ...list_ops.composed_op import ComposedOp
+from ...list_ops.summed_op import SummedOp
 from ...operator_globals import Z, I, One, Zero
 from ...primitive_ops.primitive_op import PrimitiveOp
 from ...state_fns.state_fn import StateFn
 from ...state_fns.circuit_state_fn import CircuitStateFn
 from ...state_fns.dict_state_fn import DictStateFn
 from ...state_fns.vector_state_fn import VectorStateFn
+from ...state_fns.sparse_vector_state_fn import SparseVectorStateFn
 from ...exceptions import OpflowError
-from ..derivative_base import DerivativeBase
 from .circuit_gradient import CircuitGradient
 
 
@@ -53,16 +56,15 @@ class LinComb(CircuitGradient):
     see e.g. https://arxiv.org/pdf/1811.11184.pdf
     """
 
+    # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Optional[Union[ParameterExpression, ParameterVector,
-                                       List[ParameterExpression],
-                                       Tuple[ParameterExpression, ParameterExpression],
-                                       List[Tuple[ParameterExpression, ParameterExpression]]]]
-                = None,
+                params: Union[ParameterExpression, ParameterVector,
+                              List[ParameterExpression],
+                              Tuple[ParameterExpression, ParameterExpression],
+                              List[Tuple[ParameterExpression, ParameterExpression]]]
                 ) -> OperatorBase:
-        """ Convert the given operator into an operator object that represents the gradient w.r.t.
-            params
+        """Convert ``operator`` into an operator that represents the gradient w.r.t. ``params``.
 
         Args:
             operator: The operator we are taking the gradient of: ⟨ψ(ω)|O(θ)|ψ(ω)〉
@@ -83,14 +85,12 @@ class LinComb(CircuitGradient):
     # pylint: disable=too-many-return-statements
     def _prepare_operator(self,
                           operator: OperatorBase,
-                          params: Optional[Union[ParameterExpression, ParameterVector,
-                                                 List[ParameterExpression],
-                                                 Tuple[ParameterExpression, ParameterExpression],
-                                                 List[Tuple[ParameterExpression,
-                                                            ParameterExpression]]]] = None
+                          params: Union[ParameterExpression, ParameterVector,
+                                        List[ParameterExpression],
+                                        Tuple[ParameterExpression, ParameterExpression],
+                                        List[Tuple[ParameterExpression, ParameterExpression]]]
                           ) -> OperatorBase:
-        """ Traverse through the given operator to get back the adapted operator representing the
-            gradient
+        """Traverse ``operator`` to get back the adapted operator representing the gradient.
 
         Args:
             operator: The operator we are taking the gradient of: ⟨ψ(ω)|O(θ)|ψ(ω)〉
@@ -103,19 +103,23 @@ class LinComb(CircuitGradient):
 
         Returns:
             Adapted operator.
-                Measurement operators are attached with an additional Z term acting
-                on an additional working qubit.
-                Quantum states - which must be given as circuits - are adapted. An additional
-                working qubit controls intercepting gates.
-                See e.g. Evaluating analytic gradients on quantum hardware
-                    Maria Schuld, Ville Bergholm, Christian Gogolin, Josh Izaac, and Nathan Killoran
-                    Phys. Rev. A 99, 032331 – Published 21 March 2019
+            Measurement operators are attached with an additional Z term acting
+            on an additional working qubit.
+            Quantum states - which must be given as circuits - are adapted. An additional
+            working qubit controls intercepting gates.
+            See e.g. [1].
 
         Raises:
             ValueError: If ``operator`` does not correspond to an expectation value.
             TypeError: If the ``StateFn`` corresponding to the quantum state could not be extracted
                        from ``operator``.
             OpflowError: If third or higher order gradients are requested.
+
+        References:
+            [1]: Evaluating analytic gradients on quantum hardware
+                 Maria Schuld, Ville Bergholm, Christian Gogolin, Josh Izaac, and Nathan Killoran
+                 Phys. Rev. A 99, 032331 – Published 21 March 2019
+
         """
 
         if isinstance(operator, ComposedOp):
@@ -194,390 +198,10 @@ class LinComb(CircuitGradient):
             return operator
         return operator
 
-    def _gradient_states(self,
-                         state_op: StateFn,
-                         meas_op: Optional[OperatorBase] = None,
-                         target_params: Optional[
-                             Union[ParameterExpression, ParameterVector,
-                                   List[ParameterExpression]]] = None
-                         ) -> ListOp:
-        """Generate the gradient states.
-
-        Args:
-            state_op: The operator representing the quantum state for which we compute the gradient.
-            meas_op: The operator representing the observable for which we compute the gradient.
-            target_params: The parameters we are taking the gradient wrt: ω
-
-        Returns:
-            ListOp of StateFns as quantum circuits which are the states w.r.t. which we compute the
-            gradient. If a parameter appears multiple times, one circuit is created per
-            parameterized gates to compute the product rule.
-
-        Raises:
-            OpflowError: If one of the circuits could not be constructed.
-            TypeError: If the operators is of unsupported type.
-        """
-        state_qc = deepcopy(state_op.primitive)
-
-        # Define the working qubit to realize the linear combination of unitaries
-        qr_work = QuantumRegister(1, 'work_qubit_lin_comb_grad')
-        work_q = qr_work[0]
-
-        if not isinstance(target_params, (list, np.ndarray)):
-            target_params = [target_params]
-
-        if len(target_params) > 1:
-            states = None
-
-        additional_qubits: Tuple[List[Qubit], List[Qubit]] = ([work_q], [])
-
-        for param in target_params:
-            if param not in state_qc._parameter_table.get_keys():
-                op = ~Zero @ One
-            else:
-                param_gates = state_qc._parameter_table[param]
-                for m, param_occurence in enumerate(param_gates):
-                    coeffs, gates = self._gate_gradient_dict(param_occurence[0])[param_occurence[1]]
-
-                    # construct the states
-                    for k, gate_to_insert in enumerate(gates):
-                        grad_state = QuantumCircuit(*state_qc.qregs, qr_work)
-                        grad_state.compose(state_qc, inplace=True)
-
-                        # apply Hadamard on work_q
-                        self.insert_gate(grad_state, param_occurence[0], HGate(), qubits=[work_q])
-
-                        # Fix work_q phase
-                        coeff_i = coeffs[k]
-                        sign = np.sign(coeff_i)
-                        is_complex = np.iscomplex(coeff_i)
-                        if sign == -1:
-                            if is_complex:
-                                self.insert_gate(grad_state, param_occurence[0],
-                                                 SdgGate(), qubits=[work_q])
-                            else:
-                                self.insert_gate(grad_state, param_occurence[0],
-                                                 ZGate(), qubits=[work_q])
-                        else:
-                            if is_complex:
-                                self.insert_gate(grad_state, param_occurence[0],
-                                                 SGate(), qubits=[work_q])
-
-                        # Insert controlled, intercepting gate - controlled by |0>
-                        if isinstance(param_occurence[0], UGate):
-                            if param_occurence[1] == 0:
-                                self.insert_gate(grad_state, param_occurence[0],
-                                                 RZGate(param_occurence[0].params[2]))
-                                self.insert_gate(grad_state, param_occurence[0],
-                                                 RXGate(np.pi / 2))
-                                self.insert_gate(grad_state, param_occurence[0],
-                                                 gate_to_insert,
-                                                 additional_qubits=additional_qubits)
-                                self.insert_gate(grad_state, param_occurence[0],
-                                                 RXGate(-np.pi / 2))
-                                self.insert_gate(grad_state, param_occurence[0],
-                                                 RZGate(-param_occurence[0].params[2]))
-
-                            elif param_occurence[1] == 1:
-                                self.insert_gate(grad_state, param_occurence[0],
-                                                 gate_to_insert, after=True,
-                                                 additional_qubits=additional_qubits)
-                            else:
-                                self.insert_gate(grad_state, param_occurence[0],
-                                                 gate_to_insert,
-                                                 additional_qubits=additional_qubits)
-                        else:
-                            self.insert_gate(grad_state, param_occurence[0],
-                                             gate_to_insert,
-                                             additional_qubits=additional_qubits)
-                        grad_state.h(work_q)
-
-                        state = np.sqrt(np.abs(coeff_i)) * state_op.coeff * CircuitStateFn(
-                            grad_state)
-                        # Chain Rule parameter expressions
-                        gate_param = param_occurence[0].params[param_occurence[1]]
-                        if meas_op:
-                            if gate_param == param:
-                                state = meas_op @ state
-                            else:
-                                if isinstance(gate_param, ParameterExpression):
-                                    expr_grad = DerivativeBase.parameter_expression_grad(gate_param,
-                                                                                         param)
-                                    state = (expr_grad * meas_op) @ state
-                                else:
-                                    state = ~Zero @ One
-                        else:
-                            if gate_param == param:
-                                state = ListOp([state],
-                                               combo_fn=partial(self._grad_combo_fn,
-                                                                state_op=state_op))
-                            else:
-                                if isinstance(gate_param, ParameterExpression):
-                                    expr_grad = DerivativeBase.parameter_expression_grad(gate_param,
-                                                                                         param)
-                                    state = expr_grad * ListOp(
-                                        [state],
-                                        combo_fn=partial(self._grad_combo_fn, state_op=state_op))
-                                else:
-                                    state = ~Zero @ One
-
-                        if m == 0 and k == 0:
-                            op = state
-                        else:
-                            # Product Rule
-                            op += state
-                if len(target_params) > 1:
-                    if not states:
-                        states = [op]
-                    else:
-                        states += [op]
-                else:
-                    return op
-        if len(target_params) > 1:
-            return ListOp(states)
-        else:
-            return op
-
-    def _hessian_states(self,
-                        state_op: StateFn,
-                        meas_op: Optional[OperatorBase] = None,
-                        target_params: Optional[Union[Tuple[ParameterExpression,
-                                                            ParameterExpression],
-                                                      List[Tuple[ParameterExpression,
-                                                                 ParameterExpression]]]] = None
-                        ) -> OperatorBase:
-        """Generate the operator states whose evaluation returns the Hessian (items).
-
-        Args:
-            state_op: The operator representing the quantum state for which we compute the Hessian.
-            meas_op: The operator representing the observable for which we compute the gradient.
-            target_params: The parameters we are computing the Hessian wrt: ω
-
-        Returns:
-            Operators which give the Hessian. If a parameter appears multiple times, one circuit is
-            created per parameterized gates to compute the product rule.
-
-        Raises:
-            OpflowError: If one of the circuits could not be constructed.
-            TypeError: If ``operator`` is of unsupported type.
-        """
-        state_qc = deepcopy(state_op.primitive)
-        if isinstance(target_params, list) and isinstance(target_params[0], tuple):
-            tuples_list = deepcopy(target_params)
-            target_params = []
-            for tuples in tuples_list:
-                if all([param in state_qc._parameter_table.get_keys() for param in tuples]):
-                    for param in tuples:
-                        if param not in target_params:
-                            target_params.append(param)
-        elif isinstance(target_params, tuple):
-            tuples_list = deepcopy([target_params])
-            target_params = []
-            for tuples in tuples_list:
-                if all([param in state_qc._parameter_table.get_keys() for param in tuples]):
-                    for param in tuples:
-                        if param not in target_params:
-                            target_params.append(param)
-        else:
-            raise TypeError(
-                'Please define in the parameters for which the Hessian is evaluated either '
-                'as parameter tuple or a list of parameter tuples')
-
-        qr_add0 = QuantumRegister(1, 'work_qubit0')
-        work_q0 = qr_add0[0]
-        qr_add1 = QuantumRegister(1, 'work_qubit1')
-        work_q1 = qr_add1[0]
-        # create a copy of the original circuit with an additional working qubit register
-        circuit = state_qc.copy()
-        circuit.add_register(qr_add0, qr_add1)
-        # Get the circuits needed to compute the Hessian
-        hessian_ops = None
-        for param_a, param_b in tuples_list:
-
-            if param_a not in state_qc._parameter_table.get_keys() or param_b \
-                    not in state_qc._parameter_table.get_keys():
-                hessian_op = ~Zero @ One
-            else:
-                param_gates_a = state_qc._parameter_table[param_a]
-                param_gates_b = state_qc._parameter_table[param_b]
-                for i, param_occurence_a in enumerate(param_gates_a):
-                    coeffs_a, gates_a = self._gate_gradient_dict(param_occurence_a[0])[
-                        param_occurence_a[1]]
-                    # apply Hadamard on working qubit
-                    self.insert_gate(circuit, param_occurence_a[0], HGate(),
-                                     qubits=[work_q0])
-                    self.insert_gate(circuit, param_occurence_a[0], HGate(),
-                                     qubits=[work_q1])
-                    for j, gate_to_insert_a in enumerate(gates_a):
-
-                        coeff_a = coeffs_a[j]
-                        hessian_circuit_temp = QuantumCircuit(*circuit.qregs)
-                        hessian_circuit_temp.data = circuit.data
-                        # Fix working qubit 0 phase
-                        sign = np.sign(coeff_a)
-                        is_complex = np.iscomplex(coeff_a)
-                        if sign == -1:
-                            if is_complex:
-                                self.insert_gate(hessian_circuit_temp,
-                                                 param_occurence_a[0],
-                                                 SdgGate(),
-                                                 qubits=[work_q0])
-                            else:
-                                self.insert_gate(hessian_circuit_temp,
-                                                 param_occurence_a[0],
-                                                 ZGate(),
-                                                 qubits=[work_q0])
-                        else:
-                            if is_complex:
-                                self.insert_gate(hessian_circuit_temp,
-                                                 param_occurence_a[0],
-                                                 SGate(),
-                                                 qubits=[work_q0])
-
-                        # Insert controlled, intercepting gate - controlled by |1>
-                        if isinstance(param_occurence_a[0], UGate):
-                            if param_occurence_a[1] == 0:
-                                self.insert_gate(hessian_circuit_temp, param_occurence_a[0],
-                                                 RZGate(param_occurence_a[0].params[2]))
-                                self.insert_gate(hessian_circuit_temp, param_occurence_a[0],
-                                                 RXGate(np.pi / 2))
-                                self.insert_gate(hessian_circuit_temp, param_occurence_a[0],
-                                                 gate_to_insert_a,
-                                                 additional_qubits=([work_q0], []))
-                                self.insert_gate(hessian_circuit_temp, param_occurence_a[0],
-                                                 RXGate(-np.pi / 2))
-                                self.insert_gate(hessian_circuit_temp, param_occurence_a[0],
-                                                 RZGate(-param_occurence_a[0].params[2]))
-
-                            elif param_occurence_a[1] == 1:
-                                self.insert_gate(hessian_circuit_temp, param_occurence_a[0],
-                                                 gate_to_insert_a, after=True,
-                                                 additional_qubits=([work_q0], []))
-                            else:
-                                self.insert_gate(hessian_circuit_temp, param_occurence_a[0],
-                                                 gate_to_insert_a,
-                                                 additional_qubits=([work_q0], []))
-                        else:
-                            self.insert_gate(hessian_circuit_temp, param_occurence_a[0],
-                                             gate_to_insert_a, additional_qubits=([work_q0], []))
-
-                        for m, param_occurence_b in enumerate(param_gates_b):
-                            coeffs_b, gates_b = self._gate_gradient_dict(param_occurence_b[0])[
-                                param_occurence_b[1]]
-                            for n, gate_to_insert_b in enumerate(gates_b):
-                                coeff_b = coeffs_b[n]
-                                # create a copy of the original circuit with the same registers
-                                hessian_circuit = QuantumCircuit(*hessian_circuit_temp.qregs)
-                                hessian_circuit.data = hessian_circuit_temp.data
-
-                                # Fix working qubit 1 phase
-                                sign = np.sign(coeff_b)
-                                is_complex = np.iscomplex(coeff_b)
-                                if sign == -1:
-                                    if is_complex:
-                                        self.insert_gate(hessian_circuit,
-                                                         param_occurence_b[0],
-                                                         SdgGate(),
-                                                         qubits=[work_q1])
-                                    else:
-                                        self.insert_gate(hessian_circuit,
-                                                         param_occurence_b[0],
-                                                         ZGate(),
-                                                         qubits=[work_q1])
-                                else:
-                                    if is_complex:
-                                        self.insert_gate(hessian_circuit,
-                                                         param_occurence_b[0],
-                                                         SGate(),
-                                                         qubits=[work_q1])
-
-                                # Insert controlled, intercepting gate - controlled by |1>
-
-                                if isinstance(param_occurence_b[0], UGate):
-                                    if param_occurence_b[1] == 0:
-                                        self.insert_gate(hessian_circuit, param_occurence_b[0],
-                                                         RZGate(param_occurence_b[0].params[2]))
-                                        self.insert_gate(hessian_circuit, param_occurence_b[0],
-                                                         RXGate(np.pi / 2))
-                                        self.insert_gate(hessian_circuit, param_occurence_b[0],
-                                                         gate_to_insert_b,
-                                                         additional_qubits=([work_q1], []))
-                                        self.insert_gate(hessian_circuit, param_occurence_b[0],
-                                                         RXGate(-np.pi / 2))
-                                        self.insert_gate(hessian_circuit, param_occurence_b[0],
-                                                         RZGate(-param_occurence_b[0].params[2]))
-
-                                    elif param_occurence_b[1] == 1:
-                                        self.insert_gate(hessian_circuit, param_occurence_b[0],
-                                                         gate_to_insert_b, after=True,
-                                                         additional_qubits=([work_q1], []))
-                                    else:
-                                        self.insert_gate(hessian_circuit, param_occurence_b[0],
-                                                         gate_to_insert_b,
-                                                         additional_qubits=([work_q1], []))
-                                else:
-                                    self.insert_gate(hessian_circuit, param_occurence_b[0],
-                                                     gate_to_insert_b,
-                                                     additional_qubits=([work_q1], []))
-
-                                hessian_circuit.h(work_q0)
-                                hessian_circuit.cz(work_q1, work_q0)
-                                hessian_circuit.h(work_q1)
-
-                                term = state_op.coeff * np.sqrt(np.abs(coeff_a) * np.abs(coeff_b)) \
-                                                      * CircuitStateFn(hessian_circuit)
-
-                                # Chain Rule Parameter Expression
-                                gate_param_a = param_occurence_a[0].params[param_occurence_a[1]]
-                                gate_param_b = param_occurence_b[0].params[param_occurence_b[1]]
-
-                                if meas_op:
-                                    meas = deepcopy(meas_op)
-                                    if isinstance(gate_param_a, ParameterExpression):
-                                        expr_grad = DerivativeBase.parameter_expression_grad(
-                                            gate_param_a,
-                                            param_a)
-                                        meas *= expr_grad
-                                    if isinstance(gate_param_b, ParameterExpression):
-                                        expr_grad = DerivativeBase.parameter_expression_grad(
-                                            gate_param_a,
-                                            param_a)
-                                        meas *= expr_grad
-                                    term = meas @ term
-                                else:
-                                    term = ListOp([term],
-                                                  combo_fn=partial(self._hess_combo_fn,
-                                                                   state_op=state_op))
-                                    if isinstance(gate_param_a, ParameterExpression):
-                                        expr_grad = DerivativeBase.parameter_expression_grad(
-                                            gate_param_a,
-                                            param_a)
-                                        term *= expr_grad
-                                    if isinstance(gate_param_b, ParameterExpression):
-                                        expr_grad = DerivativeBase.parameter_expression_grad(
-                                            gate_param_a,
-                                            param_a)
-                                        term *= expr_grad
-
-                                if i == 0 and j == 0 and m == 0 and n == 0:
-                                    hessian_op = term
-                                else:
-                                    # Product Rule
-                                    hessian_op += term
-            # Create a list of Hessian elements w.r.t. the given parameter tuples
-            if len(tuples_list) == 1:
-                return hessian_op
-            else:
-                if not hessian_ops:
-                    hessian_ops = [hessian_op]
-                else:
-                    hessian_ops += [hessian_op]
-        return ListOp(hessian_ops)
-
     @staticmethod
     def _grad_combo_fn(x, state_op):
         def get_result(item):
-            if isinstance(item, DictStateFn):
+            if isinstance(item, (DictStateFn, SparseVectorStateFn)):
                 item = item.primitive
             if isinstance(item, VectorStateFn):
                 item = item.primitive.data
@@ -592,13 +216,17 @@ class LinComb(CircuitGradient):
                 for key in prob_dict:
                     prob_dict[key] *= 2
                 return prob_dict
+            elif isinstance(item, scipy.sparse.spmatrix):
+                # Generate the operator which computes the linear combination
+                trace = _z_exp(item)
+                return trace
             elif isinstance(item, Iterable):
                 # Generate the operator which computes the linear combination
                 lin_comb_op = 2 * Z ^ (I ^ state_op.num_qubits)
                 lin_comb_op = lin_comb_op.to_matrix()
-                return list(np.diag(
-                    partial_trace(lin_comb_op.dot(np.outer(item, np.conj(item))),
-                                  [state_op.num_qubits]).data))
+                outer = np.outer(item, item.conj())
+                return list(np.diag(partial_trace(lin_comb_op.dot(outer),
+                                                  [state_op.num_qubits]).data))
             else:
                 raise TypeError(
                     'The state result should be either a DictStateFn or a VectorStateFn.')
@@ -672,7 +300,7 @@ class LinComb(CircuitGradient):
 
         Raises:
             OpflowError: If the input gate is controlled by another state but '|1>^{\otimes k}'
-            TypeError: If the input gate is not a supported parametrized gate.
+            TypeError: If the input gate is not a supported parameterized gate.
         """
 
         # pylint: disable=too-many-return-statements
@@ -754,44 +382,319 @@ class LinComb(CircuitGradient):
                 coeffs_gates.append(c_g)
             return coeffs_gates
 
-        raise TypeError('Unrecognized parametrized gate, {}'.format(gate))
+        raise TypeError('Unrecognized parameterized gate, {}'.format(gate))
 
     @staticmethod
-    def insert_gate(circuit: QuantumCircuit,
-                    reference_gate: Gate,
-                    gate_to_insert: Instruction,
-                    qubits: Optional[List[Qubit]] = None,
-                    additional_qubits: Optional[Tuple[List[Qubit], List[Qubit]]] = None,
-                    after: bool = False):
-        """Insert a gate into the circuit.
+    def apply_grad_gate(circuit, gate, param_index, grad_gate, grad_coeff, qr_superpos,
+                        open_ctrl=False, trim_after_grad_gate=False):
+        """Util function to apply a gradient gate for the linear combination of unitaries method.
+
+        Replaces the ``gate`` instance in ``circuit`` with ``grad_gate`` using ``qr_superpos`` as
+        superposition qubit. Also adds the appropriate sign-fix gates on the superposition qubit.
 
         Args:
-            circuit: The circuit onto which the gate is added.
-            reference_gate: A gate instance before or after which a gate is inserted.
-            gate_to_insert: The gate to be inserted.
-            qubits: The qubits on which the gate is inserted. If None, the qubits of the
-                reference_gate are used.
-            additional_qubits: If qubits is None and the qubits of the reference_gate are
-                used, this can be used to specify additional qubits before (first list in
-                tuple) or after (second list in tuple) the qubits.
-            after: If the gate_to_insert should be inserted after the reference_gate set True.
+            circuit (QuantumCircuit): The circuit in which to do the replacements.
+            gate (Gate): The gate instance to replace.
+            param_index (int): The index of the parameter in ``gate``.
+            grad_gate (Gate): A controlled gate encoding the gradient of ``gate``.
+            grad_coeff (float): A coefficient to the gradient component. Might not be one if the
+                gradient contains multiple summed terms.
+            qr_superpos (QuantumRegister): A ``QuantumRegister`` of size 1 contained in ``circuit``
+                that is used as control for ``grad_gate``.
+            open_ctrl (bool): If True use an open control for ``grad_gate`` instead of closed.
+            trim_after_grad_gate (bool): If True remove all gates after the ``grad_gate``. Can
+                be used to reduce the circuit depth in e.g. computing an overlap of gradients.
+
+        Returns:
+            QuantumCircuit: A copy of the original circuit with the gradient gate added.
 
         Raises:
-            OpflowError: Gate insertion fail
+            RuntimeError: If ``gate`` is not in ``circuit``.
         """
+        # copy the input circuit taking the gates by reference
+        out = QuantumCircuit(*circuit.qregs)
+        out._data = circuit._data.copy()
+        out._parameter_table = ParameterTable({
+            param: values.copy() for param, values in circuit._parameter_table.items()
+        })
 
-        if isinstance(gate_to_insert, IGate):
-            return
+        # get the data index and qubits of the target gate  TODO use built-in
+        gate_idx, gate_qubits = None, None
+        for i, (op, qarg, _) in enumerate(out._data):
+            if op is gate:
+                gate_idx, gate_qubits = i, qarg
+                break
+        if gate_idx is None:
+            raise RuntimeError('The specified gate could not be found in the circuit data.')
+
+        # initialize replacement instructions
+        replacement = []
+
+        # insert the phase fix before the target gate better documentation
+        sign = np.sign(grad_coeff)
+        is_complex = np.iscomplex(grad_coeff)
+
+        if sign < 0 and is_complex:
+            replacement.append((SdgGate(), qr_superpos[:], []))
+        elif sign < 0:
+            replacement.append((ZGate(), qr_superpos[:], []))
+        elif is_complex:
+            replacement.append((SGate(), qr_superpos[:], []))
+        # else no additional gate required
+
+        # open control if specified
+        if open_ctrl:
+            replacement += [(XGate(), qr_superpos[:], [])]
+
+        # compute the replacement
+        if isinstance(gate, UGate) and param_index == 0:
+            theta = gate.params[2]
+            rz_plus, rz_minus = RZGate(theta), RZGate(-theta)
+            replacement += [(rz_plus, [qubit], []) for qubit in gate_qubits]
+            replacement += [(RXGate(np.pi / 2), [qubit], []) for qubit in gate_qubits]
+            replacement.append((grad_gate, qr_superpos[:] + gate_qubits, []))
+            replacement += [(RXGate(-np.pi / 2), [qubit], []) for qubit in gate_qubits]
+            replacement += [(rz_minus, [qubit], []) for qubit in gate_qubits]
+
+            # update parametertable if necessary
+            if isinstance(theta, ParameterExpression):
+                out._update_parameter_table(rz_plus)
+                out._update_parameter_table(rz_minus)
+
+            if open_ctrl:
+                replacement += [(XGate(), qr_superpos[:], [])]
+
+            if not trim_after_grad_gate:
+                replacement.append((gate, gate_qubits, []))
+
+        elif isinstance(gate, UGate) and param_index == 1:
+            # gradient gate is applied after the original gate in this case
+            replacement.append((gate, gate_qubits, []))
+            replacement.append((grad_gate, qr_superpos[:] + gate_qubits, []))
+            if open_ctrl:
+                replacement += [(XGate(), qr_superpos[:], [])]
+
         else:
-            for i, op in enumerate(circuit.data):
-                if op[0] == reference_gate:
-                    qubits = qubits or op[1]
-                    if additional_qubits:
-                        qubits = additional_qubits[0] + qubits + additional_qubits[1]
-                    if after:
-                        insertion_index = i + 1
-                    else:
-                        insertion_index = i
-                    circuit.data.insert(insertion_index, (gate_to_insert, qubits, []))
-                    return
-            raise OpflowError('Could not insert the controlled gate, something went wrong!')
+            replacement.append((grad_gate, qr_superpos[:] + gate_qubits, []))
+            if open_ctrl:
+                replacement += [(XGate(), qr_superpos[:], [])]
+            if not trim_after_grad_gate:
+                replacement.append((gate, gate_qubits, []))
+
+        # replace the parameter we compute the derivative of with the replacement
+        # TODO can this be done more efficiently?
+        if trim_after_grad_gate:  # remove everything after the gradient gate
+            out._data[gate_idx:] = replacement
+            # reset parameter table
+            table = ParameterTable()
+            for op, _, _ in out._data:
+                for idx, param_expression in enumerate(op.params):
+                    if isinstance(param_expression, ParameterExpression):
+                        for param in param_expression.parameters:
+                            if param not in table.keys():
+                                table[param] = [(op, idx)]
+                            else:
+                                table[param].append((op, idx))
+
+            out._parameter_table = table
+
+        else:
+            out._data[gate_idx:gate_idx + 1] = replacement
+
+        return out
+
+    def _gradient_states(self,
+                         state_op: StateFn,
+                         meas_op: Union[OperatorBase, bool] = True,
+                         target_params: Optional[Union[Parameter, List[Parameter]]] = None,
+                         open_ctrl: bool = False,
+                         trim_after_grad_gate: bool = False
+                         ) -> ListOp:
+        """Generate the gradient states.
+
+        Args:
+            state_op: The operator representing the quantum state for which we compute the gradient.
+            meas_op: The operator representing the observable for which we compute the gradient.
+            target_params: The parameters we are taking the gradient wrt: ω
+            open_ctrl: If True use an open control for ``grad_gate`` instead of closed.
+            trim_after_grad_gate: If True remove all gates after the ``grad_gate``. Can
+                be used to reduce the circuit depth in e.g. computing an overlap of gradients.
+
+        Returns:
+            ListOp of StateFns as quantum circuits which are the states w.r.t. which we compute the
+            gradient. If a parameter appears multiple times, one circuit is created per
+            parameterized gates to compute the product rule.
+
+        Raises:
+            AquaError: If one of the circuits could not be constructed.
+            TypeError: If the operators is of unsupported type.
+        """
+        qr_superpos = QuantumRegister(1)
+        state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
+        state_qc.h(qr_superpos)
+        state_qc.compose(state_op.primitive, inplace=True)
+
+        # Define the working qubit to realize the linear combination of unitaries
+        if not isinstance(target_params, (list, np.ndarray)):
+            target_params = [target_params]
+
+        oplist = []
+        for param in target_params:
+            if param not in state_qc.parameters:
+                oplist += [~Zero @ One]
+            else:
+                param_gates = state_qc._parameter_table[param]
+                sub_oplist = []
+                for gate, idx in param_gates:
+                    grad_coeffs, grad_gates = self._gate_gradient_dict(gate)[idx]
+
+                    # construct the states
+                    for grad_coeff, grad_gate in zip(grad_coeffs, grad_gates):
+                        grad_circuit = self.apply_grad_gate(
+                            state_qc, gate, idx, grad_gate, grad_coeff, qr_superpos,
+                            open_ctrl, trim_after_grad_gate
+                        )
+                        # apply final hadamard on superposition qubit
+                        grad_circuit.h(qr_superpos)
+
+                        # compute the correct coefficient and append to list of circuits
+                        coeff = np.sqrt(np.abs(grad_coeff)) * state_op.coeff
+                        state = CircuitStateFn(grad_circuit, coeff=coeff)
+
+                        # apply the chain rule if the parameter expression if required
+                        param_expression = gate.params[idx]
+
+                        if isinstance(meas_op, OperatorBase):
+                            state = meas_op @ state
+                        elif meas_op is True:
+                            state = ListOp([state],
+                                           combo_fn=partial(self._grad_combo_fn,
+                                                            state_op=state_op))
+
+                        if param_expression != param:  # parameter is not identity, apply chain rule
+                            param_grad = param_expression.gradient(param)
+                            state *= param_grad
+
+                        sub_oplist += [state]
+
+                oplist += [SummedOp(sub_oplist) if len(sub_oplist) > 1 else sub_oplist[0]]
+
+        return ListOp(oplist) if len(oplist) > 1 else oplist[0]
+
+    def _hessian_states(self,
+                        state_op: StateFn,
+                        meas_op: Optional[OperatorBase] = None,
+                        target_params: Optional[Union[Tuple[ParameterExpression,
+                                                            ParameterExpression],
+                                                      List[Tuple[ParameterExpression,
+                                                                 ParameterExpression]]]] = None
+                        ) -> OperatorBase:
+        """Generate the operator states whose evaluation returns the Hessian (items).
+
+        Args:
+            state_op: The operator representing the quantum state for which we compute the Hessian.
+            meas_op: The operator representing the observable for which we compute the gradient.
+            target_params: The parameters we are computing the Hessian wrt: ω
+
+        Returns:
+            Operators which give the Hessian. If a parameter appears multiple times, one circuit is
+            created per parameterized gates to compute the product rule.
+
+        Raises:
+            AquaError: If one of the circuits could not be constructed.
+            TypeError: If ``operator`` is of unsupported type.
+        """
+        if not isinstance(target_params, list):
+            target_params = [target_params]
+
+        if not all(isinstance(params, tuple) for params in target_params):
+            raise TypeError('Please define in the parameters for which the Hessian is evaluated '
+                            'either as parameter tuple or a list of parameter tuples')
+
+        # create circuit with two additional qubits
+        qr_add0 = QuantumRegister(1, 's0')
+        qr_add1 = QuantumRegister(1, 's1')
+        state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_add0, qr_add1)
+
+        # add hadamards
+        state_qc.h(qr_add0)
+        state_qc.h(qr_add1)
+
+        # compose with the original circuit
+        state_qc.compose(state_op.primitive, inplace=True)
+
+        # create a copy of the original circuit with an additional working qubit register
+        oplist = []
+        for param_a, param_b in target_params:
+            if param_a not in state_qc.parameters or param_b not in state_qc.parameters:
+                oplist += [~Zero @ One]
+            else:
+                sub_oplist = []
+                param_gates_a = state_qc._parameter_table[param_a]
+                param_gates_b = state_qc._parameter_table[param_b]
+                for gate_a, idx_a in param_gates_a:
+                    grad_coeffs_a, grad_gates_a = self._gate_gradient_dict(gate_a)[idx_a]
+
+                    for grad_coeff_a, grad_gate_a in zip(grad_coeffs_a, grad_gates_a):
+                        grad_circuit = self.apply_grad_gate(
+                            state_qc, gate_a, idx_a, grad_gate_a, grad_coeff_a, qr_add0
+                        )
+
+                        for gate_b, idx_b in param_gates_b:
+                            grad_coeffs_b, grad_gates_b = self._gate_gradient_dict(gate_b)[idx_b]
+
+                            for grad_coeff_b, grad_gate_b in zip(grad_coeffs_b, grad_gates_b):
+                                hessian_circuit = self.apply_grad_gate(
+                                    grad_circuit, gate_b, idx_b, grad_gate_b, grad_coeff_b, qr_add1
+                                )
+
+                                # final hadamards and CZ
+                                hessian_circuit.h(qr_add0)
+                                hessian_circuit.cz(qr_add1[0], qr_add0[0])
+                                hessian_circuit.h(qr_add1)
+
+                                coeff = state_op.coeff
+                                coeff *= np.sqrt(np.abs(grad_coeff_a) * np.abs(grad_coeff_b))
+                                state = CircuitStateFn(hessian_circuit, coeff=coeff)
+
+                                if meas_op is not None:
+                                    state = meas_op @ state
+                                else:
+                                    # special operator for probability gradients
+                                    # uses combo_fn on list op with a single operator
+                                    state = ListOp([state], combo_fn=partial(self._hess_combo_fn,
+                                                                             state_op=state_op))
+
+                                # Chain Rule Parameter Expression
+                                param_grad = 1
+                                for gate, idx, param in zip(
+                                        [gate_a, gate_b], [idx_a, idx_b], [param_a, param_b]
+                                ):
+                                    param_expression = gate.params[idx]
+                                    if param_expression != param:  # need to apply chain rule
+                                        param_grad *= param_expression.gradient(param)
+
+                                if param_grad != 1:
+                                    state *= param_grad
+
+                                sub_oplist += [state]
+
+                oplist += [SummedOp(sub_oplist) if len(sub_oplist) > 1 else sub_oplist[0]]
+
+        return ListOp(oplist) if len(oplist) > 1 else oplist[0]
+
+
+def _z_exp(spmatrix):
+    """Compute the sampling probabilities of the qubits after applying Z on the ancilla."""
+
+    dok = spmatrix.todok()
+    num_qubits = int(np.log2(dok.shape[1]))
+    exp = scipy.sparse.dok_matrix((1, 2 ** (num_qubits - 1)))
+
+    for index, amplitude in dok.items():
+        binary = bin(index[1])[2:].zfill(num_qubits)
+        sign = -1 if binary[0] == '1' else 1
+        new_index = int(binary[1:], 2)
+        exp[(0, new_index)] = exp[(0, new_index)] + 2 * sign * np.abs(amplitude) ** 2
+
+    return exp

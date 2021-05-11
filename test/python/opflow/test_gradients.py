@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,12 +27,13 @@ except ImportError:
     _HAS_JAX = False
 
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer
+from qiskit.test import slow_test
 from qiskit.utils import QuantumInstance
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.utils import aqua_globals
+from qiskit.utils import algorithm_globals
 from qiskit.algorithms import VQE
 from qiskit.algorithms.optimizers import CG
-from qiskit.opflow import I, X, Y, Z, StateFn, CircuitStateFn, ListOp, CircuitSampler
+from qiskit.opflow import I, X, Y, Z, StateFn, CircuitStateFn, ListOp, CircuitSampler, TensoredOp
 from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
 from qiskit.opflow.gradients.qfi import QFI
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
@@ -47,7 +48,7 @@ class TestGradients(QiskitOpflowTestCase):
 
     def setUp(self):
         super().setUp()
-        aqua_globals.random_seed = 50
+        algorithm_globals.random_seed = 50
 
     @data('lin_comb', 'param_shift', 'fin_diff')
     def test_gradient_p(self, method):
@@ -125,7 +126,7 @@ class TestGradients(QiskitOpflowTestCase):
     def test_gradient_rxx(self, method):
         """Test the state gradient for XX rotation
         """
-        ham = Z ^ X
+        ham = TensoredOp([Z, X])
         a = Parameter('a')
 
         q = QuantumRegister(2)
@@ -144,10 +145,10 @@ class TestGradients(QiskitOpflowTestCase):
 
     @data('lin_comb', 'param_shift', 'fin_diff')
     def test_gradient_ryy(self, method):
-        # pylint: disable=wrong-spelling-in-comment
         """Test the state gradient for YY rotation
         """
-        ham = Y ^ Y
+        alpha = Parameter('alpha')
+        ham = TensoredOp([Y, alpha*Y])
         a = Parameter('a')
 
         q = QuantumRegister(2)
@@ -159,12 +160,12 @@ class TestGradients(QiskitOpflowTestCase):
         values_dict = [{a: np.pi / 8}, {a: np.pi}]
         correct_values = [[0], [0]]
         for i, value_dict in enumerate(values_dict):
+            value_dict[alpha] = 1.
             np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
                                                  correct_values[i], decimal=1)
 
     @data('lin_comb', 'param_shift', 'fin_diff')
     def test_gradient_rzz(self, method):
-        # pylint: disable=wrong-spelling-in-comment
         """Test the state gradient for ZZ rotation
         """
         ham = Z ^ X
@@ -370,24 +371,21 @@ class TestGradients(QiskitOpflowTestCase):
         """
 
         ham = 0.5 * X - 1 * Z
-        a = Parameter('a')
-        b = Parameter('b')
-        params = [(a, a), (a, b), (b, b)]
+        params = ParameterVector('a', 2)
 
         q = QuantumRegister(1)
         qc = QuantumCircuit(q)
         qc.h(q)
-        qc.rz(a, q[0])
-        qc.rx(b, q[0])
+        qc.rz(params[0], q[0])
+        qc.rx(params[1], q[0])
 
         op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
-        state_hess = Hessian(hess_method=method).convert(operator=op, params=params)
+        state_hess = Hessian(hess_method=method).convert(operator=op)
 
-        values_dict = [{a: np.pi / 4, b: np.pi}, {a: np.pi / 4, b: np.pi / 4},
-                       {a: np.pi / 2, b: np.pi / 4}]
-        correct_values = [[-0.5 / np.sqrt(2), 1 / np.sqrt(2), 0],
-                          [-0.5 / np.sqrt(2) + 0.5, -1 / 2., 0.5],
-                          [1 / np.sqrt(2), 0, 1 / np.sqrt(2)]]
+        values_dict = [{params[0]: np.pi / 4, params[1]: np.pi},
+                       {params[0]: np.pi / 4, params[1]: np.pi / 4}]
+        correct_values = [[[-0.5 / np.sqrt(2), 1 / np.sqrt(2)], [1 / np.sqrt(2), 0]],
+                          [[-0.5 / np.sqrt(2) + 0.5, -1 / 2.], [-1 / 2., 0.5]]]
 
         for i, value_dict in enumerate(values_dict):
             np.testing.assert_array_almost_equal(state_hess.assign_parameters(value_dict).eval(),
@@ -500,67 +498,40 @@ class TestGradients(QiskitOpflowTestCase):
                 np.testing.assert_array_almost_equal(prob_hess_result,
                                                      correct_values[i][j], decimal=1)
 
-    @data('lin_comb_full', 'overlap_block_diag', 'overlap_diag')
-    def test_qfi(self, method):
-        """Test if the quantum fisher information calculation is correct
-
-        QFI = [[1, 0], [0, 1]] - [[0, 0], [0, cos^2(a)]]
-        """
-
-        a = Parameter('a')
-        b = Parameter('b')
-        params = [a, b]
-
-        q = QuantumRegister(1)
-        qc = QuantumCircuit(q)
-        qc.h(q)
-        qc.rz(params[0], q[0])
-        qc.rx(params[1], q[0])
-
-        op = CircuitStateFn(primitive=qc, coeff=1.)
-        qfi = QFI(qfi_method=method).convert(operator=op, params=params)
-        values_dict = [{params[0]: np.pi / 4, params[1]: 0.1}, {params[0]: np.pi, params[1]: 0.1},
-                       {params[0]: np.pi / 2, params[1]: 0.1}]
-        correct_values = [[[1, 0], [0, 0.5]], [[1, 0], [0, 0]], [[1, 0], [0, 1]]]
-        for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(qfi.assign_parameters(value_dict).eval(),
-                                                 correct_values[i], decimal=1)
-
     @idata(product(['lin_comb', 'param_shift', 'fin_diff'],
                    [None, 'lasso', 'ridge', 'perturb_diag', 'perturb_diag_elements']))
     @unpack
     def test_natural_gradient(self, method, regularization):
         """Test the natural gradient"""
         try:
-            ham = 0.5 * X - 1 * Z
-            a = Parameter('a')
-            b = Parameter('b')
-            params = [a, b]
+            for params in (ParameterVector('a', 2),
+                           [Parameter('a'), Parameter('b')]):
+                ham = 0.5 * X - 1 * Z
 
-            q = QuantumRegister(1)
-            qc = QuantumCircuit(q)
-            qc.h(q)
-            qc.rz(params[0], q[0])
-            qc.rx(params[1], q[0])
+                q = QuantumRegister(1)
+                qc = QuantumCircuit(q)
+                qc.h(q)
+                qc.rz(params[0], q[0])
+                qc.rx(params[1], q[0])
 
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
-            nat_grad = NaturalGradient(grad_method=method,
-                                       regularization=regularization).convert(operator=op,
-                                                                              params=params)
-            values_dict = [{params[0]: np.pi / 4, params[1]: np.pi / 2}]
-            correct_values = [[-2.36003979, 2.06503481]] \
-                if regularization == 'ridge' else [[-4.2, 0]]
-            for i, value_dict in enumerate(values_dict):
-                np.testing.assert_array_almost_equal(nat_grad.assign_parameters(value_dict).eval(),
-                                                     correct_values[i],
-                                                     decimal=0)
+                op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+                nat_grad = NaturalGradient(grad_method=method, regularization=regularization)\
+                    .convert(operator=op)
+                values_dict = [{params[0]: np.pi / 4, params[1]: np.pi / 2}]
+                correct_values = [[-2.36003979, 2.06503481]] \
+                    if regularization == 'ridge' else [[-4.2, 0]]
+                for i, value_dict in enumerate(values_dict):
+                    np.testing.assert_array_almost_equal(
+                        nat_grad.assign_parameters(value_dict).eval(),
+                        correct_values[i],
+                        decimal=0)
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
     def test_natural_gradient2(self):
         """Test the natural gradient 2"""
         with self.assertRaises(TypeError):
-            _ = NaturalGradient().convert(None)
+            _ = NaturalGradient().convert(None, None)
 
     @idata(zip(['lin_comb_full', 'overlap_block_diag', 'overlap_diag'],
                [LinCombFull, OverlapBlockDiag, OverlapDiag]))
@@ -648,10 +619,7 @@ class TestGradients(QiskitOpflowTestCase):
 
     @data('lin_comb', 'param_shift', 'fin_diff')
     def test_grad_combo_fn_chain_rule(self, method):
-        """
-        Test the chain rule for a custom gradient combo function
-
-        """
+        """Test the chain rule for a custom gradient combo function."""
         np.random.seed(2)
 
         def combo_fn(x):
@@ -677,10 +645,7 @@ class TestGradients(QiskitOpflowTestCase):
                                              correct_values)
 
     def test_grad_combo_fn_chain_rule_nat_grad(self):
-        """
-        Test the chain rule for a custom gradient combo function
-
-        """
+        """Test the chain rule for a custom gradient combo function."""
         np.random.seed(2)
 
         def combo_fn(x):
@@ -800,11 +765,10 @@ class TestGradients(QiskitOpflowTestCase):
         shots = 8000
         if method == 'fin_diff':
             np.random.seed(8)
-            state_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.)).convert(
-                operator=op,
-                params=params)
+            state_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.))\
+                .convert(operator=op)
         else:
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
+            state_grad = Gradient(grad_method=method).convert(operator=op)
         values_dict = [{a: np.pi / 4, b: np.pi}, {params[0]: np.pi / 4, params[1]: np.pi / 4},
                        {params[0]: np.pi / 2, params[1]: np.pi / 4}]
         correct_values = [[-0.5 / np.sqrt(2), 1 / np.sqrt(2)], [-0.5 / np.sqrt(2) - 0.5, -1 / 2.],
@@ -849,11 +813,14 @@ class TestGradients(QiskitOpflowTestCase):
                 params=params)
         else:
             prob_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-        values_dict = [{a: [np.pi / 4], b: [0]}, {params[0]: [np.pi / 4], params[1]: [np.pi / 4]},
+        values_dict = [{a: [np.pi / 4], b: [0]},
+                       {params[0]: [np.pi / 4], params[1]: [np.pi / 4]},
                        {params[0]: [np.pi / 2], params[1]: [np.pi]}]
-        correct_values = [[[0, 0], [1 / (2 * np.sqrt(2)), - 1 / (2 * np.sqrt(2))]],
-                          [[1 / 4, -1 / 4], [1 / 4, - 1 / 4]],
-                          [[0, 0], [- 1 / 2, 1 / 2]]]
+        correct_values = [
+            [[0, 0], [1 / (2 * np.sqrt(2)), - 1 / (2 * np.sqrt(2))]],
+            [[1 / 4, -1 / 4], [1 / 4, - 1 / 4]],
+            [[0, 0], [-1 / 2, 1 / 2]]
+        ]
 
         backend = BasicAer.get_backend('qasm_simulator')
         q_instance = QuantumInstance(backend=backend, shots=shots)
@@ -861,11 +828,12 @@ class TestGradients(QiskitOpflowTestCase):
         for i, value_dict in enumerate(values_dict):
             sampler = CircuitSampler(backend=q_instance).convert(prob_grad,
                                                                  params=value_dict)
-            result = sampler.eval()
-            np.testing.assert_array_almost_equal(result[0], correct_values[i], decimal=1)
+            result = sampler.eval()[0]
+            self.assertTrue(np.allclose(result[0].toarray(), correct_values[i][0], atol=0.1))
+            self.assertTrue(np.allclose(result[1].toarray(), correct_values[i][1], atol=0.1))
 
     @idata(['statevector_simulator', 'qasm_simulator'])
-    def test_gradient_wrapper(self, backend):
+    def test_gradient_wrapper(self, backend_type):
         """Test the gradient wrapper for probability gradients
         dp0/da = cos(a)sin(b) / 2
         dp1/da = - cos(a)sin(b) / 2
@@ -886,7 +854,7 @@ class TestGradients(QiskitOpflowTestCase):
         op = CircuitStateFn(primitive=qc, coeff=1.)
 
         shots = 8000
-        backend = BasicAer.get_backend(backend)
+        backend = BasicAer.get_backend(backend_type)
         q_instance = QuantumInstance(backend=backend, shots=shots)
         if method == 'fin_diff':
             np.random.seed(8)
@@ -902,9 +870,13 @@ class TestGradients(QiskitOpflowTestCase):
                           [[0, 0], [- 1 / 2, 1 / 2]]]
         for i, value in enumerate(values):
             result = prob_grad(value)
-            np.testing.assert_array_almost_equal(result, correct_values[i], decimal=1)
+            if backend_type == 'qasm_simulator':  # sparse result
+                result = [result[0].toarray(), result[1].toarray()]
 
-    @unittest.skip(reason="Logging too much info and crashing stestr.")
+            self.assertTrue(np.allclose(result[0], correct_values[i][0], atol=0.1))
+            self.assertTrue(np.allclose(result[1], correct_values[i][1], atol=0.1))
+
+    @slow_test
     def test_vqe(self):
         """Test VQE with gradients"""
 
@@ -937,10 +909,31 @@ class TestGradients(QiskitOpflowTestCase):
         grad = Gradient(grad_method=method)
 
         # Gradient callable
-        vqe = VQE(h2_hamiltonian, wavefunction, optimizer=optimizer, gradient=grad)
+        vqe = VQE(ansatz=wavefunction,
+                  optimizer=optimizer,
+                  gradient=grad,
+                  quantum_instance=q_instance)
 
-        result = vqe.run(q_instance)
-        np.testing.assert_almost_equal(result['optimal_value'], h2_energy, decimal=0)
+        result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
+        np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
+
+    def test_qfi_overlap_works_with_bound_parameters(self):
+        """Test all QFI methods work if the circuit contains a gate with bound parameters."""
+
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.ry(np.pi / 4, 0)
+        circuit.rx(x, 0)
+        state = StateFn(circuit)
+
+        methods = ['lin_comb_full', 'overlap_diag', 'overlap_block_diag']
+        reference = 0.5
+
+        for method in methods:
+            with self.subTest(method):
+                qfi = QFI(method)
+                value = np.real(qfi.convert(state, [x]).bind_parameters({x: 0.12}).eval())
+                self.assertAlmostEqual(value[0][0], reference)
 
 
 @ddt
@@ -974,6 +967,193 @@ class TestParameterGradients(QiskitOpflowTestCase):
         expr = 2 * x + 1
         grad = Gradient.parameter_expression_grad(expr, x)
         self.assertIsInstance(grad, float)
+
+
+@ddt
+class TestQFI(QiskitOpflowTestCase):
+    """Tests for the quantum Fisher information."""
+
+    @data('lin_comb_full', 'overlap_block_diag', 'overlap_diag')
+    def test_qfi_simple(self, method):
+        """Test if the quantum fisher information calculation is correct for a simple test case.
+
+        QFI = [[1, 0], [0, 1]] - [[0, 0], [0, cos^2(a)]]
+        """
+        # create the circuit
+        a, b = Parameter('a'), Parameter('b')
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.rz(a, 0)
+        qc.rx(b, 0)
+
+        # convert the circuit to a QFI object
+        op = CircuitStateFn(qc)
+        qfi = QFI(qfi_method=method).convert(operator=op)
+
+        # test for different values
+        values_dict = [{a: np.pi / 4, b: 0.1},
+                       {a: np.pi, b: 0.1},
+                       {a: np.pi / 2, b: 0.1}]
+        correct_values = [[[1, 0], [0, 0.5]],
+                          [[1, 0], [0, 0]],
+                          [[1, 0], [0, 1]]]
+
+        for i, value_dict in enumerate(values_dict):
+            actual = qfi.assign_parameters(value_dict).eval()
+            np.testing.assert_array_almost_equal(actual, correct_values[i], decimal=1)
+
+    def test_qfi_maxcut(self):
+        """Test the QFI for a simple MaxCut problem.
+
+        This is interesting because it contains the same parameters in different gates.
+        """
+        # create maxcut circuit for the hamiltonian
+        # H = (I ^ I ^ Z ^ Z) + (I ^ Z ^ I ^ Z) + (Z ^ I ^ I ^ Z) + (I ^ Z ^ Z ^ I)
+
+        x = ParameterVector('x', 2)
+        ansatz = QuantumCircuit(4)
+
+        # initial hadamard layer
+        ansatz.h(ansatz.qubits)
+
+        # e^{iZZ} layers
+        def expiz(qubit0, qubit1):
+            ansatz.cx(qubit0, qubit1)
+            ansatz.rz(2 * x[0], qubit1)
+            ansatz.cx(qubit0, qubit1)
+
+        expiz(2, 1)
+        expiz(3, 0)
+        expiz(2, 0)
+        expiz(1, 0)
+
+        # mixer layer with RX gates
+        for i in range(ansatz.num_qubits):
+            ansatz.rx(2 * x[1], i)
+
+        point = {x[0]: 0.4, x[1]: 0.69}
+
+        # reference computed via finite difference
+        reference = np.array([[16.0, -5.551], [-5.551, 18.497]])
+
+        # QFI from gradient framework
+        qfi = QFI().convert(CircuitStateFn(ansatz), params=x[:])
+        actual = np.array(qfi.bind_parameters(point).eval()).real
+        np.testing.assert_array_almost_equal(actual, reference, decimal=3)
+
+    def test_qfi_circuit_shared_params(self):
+        """Test the QFI circuits for parameters shared across some gates."""
+        # create the test circuit
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.rx(x, 0)
+        circuit.rx(x, 0)
+
+        # construct the QFI circuits used in the evaluation
+
+        circuit1 = QuantumCircuit(2)
+        circuit1.h(1)
+        circuit1.x(1)
+        circuit1.cx(1, 0)
+        circuit1.x(1)
+        circuit1.cx(1, 0)
+        # circuit1.rx(x, 0)  # trimmed
+        # circuit1.rx(x, 0)  # trimmed
+        circuit1.h(1)
+
+        circuit2 = QuantumCircuit(2)
+        circuit2.h(1)
+        circuit2.x(1)
+        circuit2.cx(1, 0)
+        circuit2.x(1)
+        circuit2.rx(x, 0)
+        circuit2.cx(1, 0)
+        # circuit2.rx(x, 0)  # trimmed
+        circuit2.h(1)
+
+        circuit3 = QuantumCircuit(2)
+        circuit3.h(1)
+        circuit3.cx(1, 0)
+        circuit3.x(1)
+        circuit3.rx(x, 0)
+        circuit3.cx(1, 0)
+        # circuit3.rx(x, 0)  # trimmed
+        circuit3.x(1)
+        circuit3.h(1)
+
+        circuit4 = QuantumCircuit(2)
+        circuit4.h(1)
+        circuit4.rx(x, 0)
+        circuit4.x(1)
+        circuit4.cx(1, 0)
+        circuit4.x(1)
+        circuit4.cx(1, 0)
+        # circuit4.rx(x, 0)  # trimmed
+        circuit4.h(1)
+
+        # this naming and adding of register is required bc circuit's are only equal if the
+        # register have the same names
+        circuit5 = QuantumCircuit(2)
+        circuit5.h(1)
+        circuit5.sdg(1)
+        circuit5.cx(1, 0)
+        # circuit5.rx(x, 0)  # trimmed
+        circuit5.h(1)
+
+        circuit6 = QuantumCircuit(2)
+        circuit6.h(1)
+        circuit6.sdg(1)
+        circuit6.rx(x, 0)
+        circuit6.cx(1, 0)
+        circuit6.h(1)
+
+        # compare
+        qfi = QFI().convert(StateFn(circuit), params=[x])
+
+        circuit_sets = ([circuit1, circuit2, circuit3, circuit4],
+                        [circuit5, circuit6], [circuit5, circuit6])
+        list_ops = (qfi.oplist[0].oplist[0].oplist[:-1],
+                    qfi.oplist[0].oplist[0].oplist[-1].oplist[0].oplist,
+                    qfi.oplist[0].oplist[0].oplist[-1].oplist[1].oplist)
+
+        # compose both on the same circuit such that the comparison works
+        base = QuantumCircuit(2)
+
+        for i, (circuit_set, list_op) in enumerate(zip(circuit_sets, list_ops)):
+            for j, (reference, composed_op) in enumerate(zip(circuit_set, list_op)):
+                with self.subTest(f'set {i} circuit {j}'):
+                    self.assertEqual(base.compose(composed_op[1].primitive),
+                                     base.compose(reference))
+
+    def test_overlap_qfi_bound_parameters(self):
+        """Test the overlap QFI works on a circuit with multi-parameter bound gates."""
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.u(1, 2, 3, 0)
+        circuit.rx(x, 0)
+
+        qfi = QFI('overlap_diag').convert(StateFn(circuit), [x])
+        value = qfi.bind_parameters({x: 1}).eval()[0][0]
+        ref = 0.87737713
+        self.assertAlmostEqual(value, ref)
+
+    def test_overlap_qfi_raises_on_multiparam(self):
+        """Test the overlap QFI raises an appropriate error on multi-param unbound gates."""
+        x = ParameterVector('x', 2)
+        circuit = QuantumCircuit(1)
+        circuit.u(x[0], x[1], 2, 0)
+
+        with self.assertRaises(NotImplementedError):
+            _ = QFI('overlap_diag').convert(StateFn(circuit), [x])
+
+    def test_overlap_qfi_raises_on_unsupported_gate(self):
+        """Test the overlap QFI raises an appropriate error on multi-param unbound gates."""
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.p(x, 0)
+
+        with self.assertRaises(NotImplementedError):
+            _ = QFI('overlap_diag').convert(StateFn(circuit), [x])
 
 
 if __name__ == '__main__':

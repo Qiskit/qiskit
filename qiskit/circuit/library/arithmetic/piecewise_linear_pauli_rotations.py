@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
 
 """Piecewise-linearly-controlled rotation."""
 
@@ -87,7 +86,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         """The breakpoints of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
-        point implicitely is ``2**(num_state_qubits + 1)``.
+        point implicitly is ``2**(num_state_qubits + 1)``.
         """
         return self._breakpoints
 
@@ -109,7 +108,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         """The breakpoints of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
-        point implicitely is ``2**(num_state_qubits + 1)``.
+        point implicitly is ``2**(num_state_qubits + 1)``.
         """
         return self._slopes
 
@@ -128,7 +127,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         """The breakpoints of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
-        point implicitely is ``2**(num_state_qubits + 1)``.
+        point implicitly is ``2**(num_state_qubits + 1)``.
         """
         return self._offsets
 
@@ -222,7 +221,6 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
             qr_state = QuantumRegister(num_state_qubits)
             qr_target = QuantumRegister(1)
             self.qregs = [qr_state, qr_target]
-            self._qubits = qr_state[:] + qr_target[:]
             self._ancillas = []
 
             # add ancillas if required
@@ -232,7 +230,6 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                 self.add_register(qr_ancilla)
         else:
             self.qregs = []
-            self._qubits = []
             self._ancillas = []
 
     def _build(self):

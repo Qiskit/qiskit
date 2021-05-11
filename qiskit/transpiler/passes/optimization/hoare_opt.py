@@ -10,13 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Pass for hoare logic circuit optimization. """
+""" Pass for Hoare logic circuit optimization. """
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import ControlledGate, Gate
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.exceptions import TranspilerError
-from . import _gate_extension  # pylint: disable=W0611
+from . import _gate_extension  # pylint: disable=unused-import
 try:
     from z3 import And, Or, Not, Implies, Solver, Bool, unsat
     HAS_Z3 = True
@@ -25,7 +25,7 @@ except ImportError:
 
 
 class HoareOptimizer(TransformationPass):
-    """ This is a transpiler pass using hoare logic circuit optimization.
+    """ This is a transpiler pass using Hoare logic circuit optimization.
         The inner workings of this are detailed in:
         https://arxiv.org/abs/1810.00375
     """
@@ -47,19 +47,19 @@ class HoareOptimizer(TransformationPass):
         self.varnum = None
         self.size = size
 
-    def _gen_variable(self, qb_id):
+    def _gen_variable(self, qubit):
         """ After each gate generate a new unique variable name for each of the
             qubits, using scheme: 'q[id]_[gatenum]', e.g. q1_0 -> q1_1 -> q1_2,
                                                           q2_0 -> q2_1
         Args:
-            qb_id (int): index of qubit to generate new variable for
+            qubit (Qubit): qubit to generate new variable for
         Returns:
             BoolRef: z3 variable of qubit state
         """
-        varname = "q" + str(qb_id) + "_" + str(self.gatenum[qb_id])
+        varname = "q" + str(qubit) + "_" + str(self.gatenum[qubit])
         var = Bool(varname)
-        self.gatenum[qb_id] += 1
-        self.variables[qb_id].append(var)
+        self.gatenum[qubit] += 1
+        self.variables[qubit].append(var)
         return var
 
     def _initialize(self, dag):
@@ -67,12 +67,13 @@ class HoareOptimizer(TransformationPass):
         Args:
             dag (DAGCircuit): input DAG to get qubits from
         """
+
         for qbt in dag.qubits:
-            self.gatenum[qbt.index] = 0
-            self.variables[qbt.index] = []
-            self.gatecache[qbt.index] = []
-            self.varnum[qbt.index] = dict()
-            x = self._gen_variable(qbt.index)
+            self.gatenum[qbt] = 0
+            self.variables[qbt] = []
+            self.gatecache[qbt] = []
+            self.varnum[qbt] = dict()
+            x = self._gen_variable(qbt)
             self.solver.add(Not(x))
 
     def _add_postconditions(self, gate, ctrl_ones, trgtqb, trgtvar):
@@ -89,7 +90,7 @@ class HoareOptimizer(TransformationPass):
         """
         new_vars = []
         for qbt in trgtqb:
-            new_vars.append(self._gen_variable(qbt.index))
+            new_vars.append(self._gen_variable(qbt))
 
         try:
             self.solver.add(
@@ -158,29 +159,29 @@ class HoareOptimizer(TransformationPass):
                 dag.remove_op_node(node)
             elif self.size > 1:
                 for qbt in node.qargs:
-                    self.gatecache[qbt.index].append(node)
-                    self.varnum[qbt.index][node] = self.gatenum[qbt.index]-1
+                    self.gatecache[qbt].append(node)
+                    self.varnum[qbt][node] = self.gatenum[qbt]-1
                 for qbt in node.qargs:
-                    if len(self.gatecache[qbt.index]) >= self.size:
-                        self._multigate_opt(dag, qbt.index)
+                    if len(self.gatecache[qbt]) >= self.size:
+                        self._multigate_opt(dag, qbt)
 
             self._add_postconditions(gate, ctrl_ones, trgtqb, trgtvar)
 
-    def _target_successive_seq(self, qb_id):
+    def _target_successive_seq(self, qubit):
         """ gates are target successive if they have the same set of target
             qubits and follow each other immediately on these target qubits
             (consider sequences of length 2 for now)
         Args:
-            qb_id (int): index of qubit cache to inspect
+            qubit (Qubit): qubit cache to inspect
         Returns:
-            list(list(DAGNode)): list of target succesive gate sequences for
+            list(list(DAGNode)): list of target successive gate sequences for
                                  this qubit's cache
         """
         seqs = []
-        for i in range(len(self.gatecache[qb_id])-1):
+        for i in range(len(self.gatecache[qubit])-1):
             append = True
-            node1 = self.gatecache[qb_id][i]
-            node2 = self.gatecache[qb_id][i+1]
+            node1 = self.gatecache[qubit][i]
+            node2 = self.gatecache[qubit][i+1]
             trgtqb1 = self._seperate_ctrl_trgt(node1)[2]
             trgtqb2 = self._seperate_ctrl_trgt(node2)[2]
 
@@ -188,8 +189,8 @@ class HoareOptimizer(TransformationPass):
                 continue
             try:
                 for qbt in trgtqb1:
-                    idx = self.gatecache[qbt.index].index(node1)
-                    if self.gatecache[qbt.index][idx+1] is not node2:
+                    idx = self.gatecache[qbt].index(node1)
+                    if self.gatecache[qbt][idx+1] is not node2:
                         append = False
             except (IndexError, ValueError):
                 continue
@@ -200,7 +201,7 @@ class HoareOptimizer(TransformationPass):
         return seqs
 
     def _is_identity(self, sequence):
-        """ determine whether the sequence of gates combines to the idendity
+        """ determine whether the sequence of gates combines to the identity
             (consider sequences of length 2 for now)
         Args:
             sequence (list(DAGNode)): gate sequence to inspect
@@ -255,55 +256,55 @@ class HoareOptimizer(TransformationPass):
 
         return res
 
-    def _multigate_opt(self, dag, qb_id, max_idx=None, dnt_rec=None):
+    def _multigate_opt(self, dag, qubit, max_idx=None, dnt_rec=None):
         """
         Args:
             dag (DAGCircuit): the directed acyclic graph to run on.
-            qb_id (int): qubit id whose gate cache is to be optimized
+            qubit (Qubit): qubit whose gate cache is to be optimized
             max_idx (int): a value indicates a recursive call, optimize
                            and remove gates up to this point in the cache
             dnt_rec (list(int)): don't recurse on these qubit caches (again)
         """
-        if not self.gatecache[qb_id]:
+        if not self.gatecache[qubit]:
             return
 
         # try to optimize this qubit's pipeline
-        for seq in self._target_successive_seq(qb_id):
+        for seq in self._target_successive_seq(qubit):
             if self._is_identity(seq) and self._seq_as_one(seq):
                 for node in seq:
                     dag.remove_op_node(node)
                     # if recursive call, gate will be removed further down
                     if max_idx is None:
                         for qbt in node.qargs:
-                            self.gatecache[qbt.index].remove(node)
+                            self.gatecache[qbt].remove(node)
                     else:
-                        if self.gatecache[qb_id].index(node) > max_idx:
+                        if self.gatecache[qubit].index(node) > max_idx:
                             for qbt in node.qargs:
-                                self.gatecache[qbt.index].remove(node)
+                                self.gatecache[qbt].remove(node)
 
-        if len(self.gatecache[qb_id]) < self.size and max_idx is None:
+        if len(self.gatecache[qubit]) < self.size and max_idx is None:
             # unless in a rec call, we are done if the cache isn't full
             return
         elif max_idx is None:
             # need to remove at least one gate from cache, so remove oldest
             max_idx = 0
             dnt_rec = set()
-            dnt_rec.add(qb_id)
-            gates_tbr = [self.gatecache[qb_id][0]]
+            dnt_rec.add(qubit)
+            gates_tbr = [self.gatecache[qubit][0]]
         else:
             # need to remove all gates up to max_idx (in reverse order)
-            gates_tbr = self.gatecache[qb_id][max_idx::-1]
+            gates_tbr = self.gatecache[qubit][max_idx::-1]
 
         for node in gates_tbr:
             # for rec call, only look at qubits that haven't been optimized yet
-            new_qb = [x.index for x in node.qargs if x.index not in dnt_rec]
+            new_qb = [x for x in node.qargs if x not in dnt_rec]
             dnt_rec.update(new_qb)
             for qbt in new_qb:
                 idx = self.gatecache[qbt].index(node)
                 # recursive chain to optimize all gates in this qubit's cache
                 self._multigate_opt(dag, qbt, max_idx=idx, dnt_rec=dnt_rec)
         # truncate gatecache for this qubit to after above gate
-        self.gatecache[qb_id] = self.gatecache[qb_id][max_idx+1:]
+        self.gatecache[qubit] = self.gatecache[qubit][max_idx+1:]
 
     def _seperate_ctrl_trgt(self, node):
         """ Get the target qubits and control qubits if available,
@@ -317,13 +318,13 @@ class HoareOptimizer(TransformationPass):
         ctrlqb = node.qargs[:numctrl]
         trgtqb = node.qargs[numctrl:]
         try:
-            ctrlvar = [self.variables[qb.index][self.varnum[qb.index][node]]
+            ctrlvar = [self.variables[qb][self.varnum[qb][node]]
                        for qb in ctrlqb]
-            trgtvar = [self.variables[qb.index][self.varnum[qb.index][node]]
+            trgtvar = [self.variables[qb][self.varnum[qb][node]]
                        for qb in trgtqb]
         except KeyError:
-            ctrlvar = [self.variables[qb.index][-1] for qb in ctrlqb]
-            trgtvar = [self.variables[qb.index][-1] for qb in trgtqb]
+            ctrlvar = [self.variables[qb][-1] for qb in ctrlqb]
+            trgtvar = [self.variables[qb][-1] for qb in trgtqb]
         return (ctrlqb, ctrlvar, trgtqb, trgtvar)
 
     def _reset(self):
@@ -348,5 +349,5 @@ class HoareOptimizer(TransformationPass):
         self._traverse_dag(dag)
         if self.size > 1:
             for qbt in dag.qubits:
-                self._multigate_opt(dag, qbt.index)
+                self._multigate_opt(dag, qbt)
         return dag

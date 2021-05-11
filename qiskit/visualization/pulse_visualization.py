@@ -10,24 +10,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 matplotlib pulse visualization.
 """
+import warnings
+
 from typing import Union, Callable, List, Dict, Tuple
 
-from qiskit.pulse import Schedule, Instruction, SamplePulse, Waveform
+from qiskit.pulse import Schedule, Instruction, Waveform
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
-
-try:
-    from matplotlib import get_backend
-    HAS_MATPLOTLIB = True
-except ImportError:
-    HAS_MATPLOTLIB = False
+from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 
 
 def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
@@ -46,7 +41,9 @@ def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
                  channels: List[Channel] = None,
                  show_framechange_channels: bool = True,
                  draw_title: bool = False):
-    """Plot the interpolated envelope of pulse and schedule.
+    """Deprecated.
+
+    Plot the interpolated envelope of pulse and schedule.
 
     Args:
         data: Pulse or schedule object to plot.
@@ -143,9 +140,19 @@ def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
         VisualizationError: when invalid data is given
         ImportError: when matplotlib is not installed
     """
+    warnings.warn('This legacy pulse drawer is deprecated and will be removed no earlier than '
+                  '3 months after the release date. Use `qiskit.visualization.pulse_drawer_v2` '
+                  'instead. After the legacy drawer is removed, the import path of this module '
+                  'will be dedicated to the v2 drawer. '
+                  'New drawer will provide much more flexibility with richer stylesheets '
+                  'and cleaner visualization.', DeprecationWarning)
+
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
-    if isinstance(data, (SamplePulse, Waveform)):
+    from matplotlib import get_backend
+    from matplotlib import pyplot as plt
+
+    if isinstance(data, Waveform):
         drawer = _matplotlib.WaveformDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
     elif isinstance(data, (Schedule, Instruction)):
@@ -164,7 +171,7 @@ def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
 
     if get_backend() in ['module://ipykernel.pylab.backend_inline',
                          'nbAgg']:
-        _matplotlib.plt.close(image)
+        plt.close(image)
     if image and interactive:
         image.show()
     return image

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,7 +17,7 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.utils import QuantumInstance, aqua_globals
+from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.algorithms import VQE
 from qiskit.opflow import I, X, Z
 from qiskit.algorithms.optimizers import SPSA
@@ -29,16 +29,15 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
     def test_measurement_error_mitigation_with_diff_qubit_order(self):
         """ measurement error mitigation with different qubit order"""
-        # pylint: disable=import-outside-toplevel
         try:
             from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
             from qiskit import Aer
             from qiskit.providers.aer import noise
-        except ImportError as ex:  # pylint: disable=broad-except
+        except ImportError as ex:
             self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
-        aqua_globals.random_seed = 0
+        algorithm_globals.random_seed = 0
 
         # build noise model
         noise_model = noise.NoiseModel()
@@ -82,15 +81,14 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     def test_measurement_error_mitigation_with_vqe(self):
         """ measurement error mitigation test with vqe """
         try:
-            # pylint: disable=import-outside-toplevel
             from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
             from qiskit import Aer
             from qiskit.providers.aer import noise
-        except ImportError as ex:  # pylint: disable=broad-except
+        except ImportError as ex:
             self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
-        aqua_globals.random_seed = 0
+        algorithm_globals.random_seed = 0
 
         # build noise model
         noise_model = noise.NoiseModel()
@@ -113,18 +111,17 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             - 0.01128010425623538 * (Z ^ Z) \
             + 0.18093119978423156 * (X ^ X)
         optimizer = SPSA(maxiter=200)
-        var_form = EfficientSU2(2, reps=1)
+        ansatz = EfficientSU2(2, reps=1)
 
         vqe = VQE(
-            var_form=var_form,
-            operator=h2_hamiltonian,
-            quantum_instance=quantum_instance,
+            ansatz=ansatz,
             optimizer=optimizer,
+            quantum_instance=quantum_instance
         )
-        result = vqe.compute_minimum_eigenvalue()
+        result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         self.assertGreater(quantum_instance.time_taken, 0.)
         quantum_instance.reset_execution_results()
-        self.assertAlmostEqual(result.eigenvalue.real, -1.86, places=2)
+        self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
 
 
 if __name__ == '__main__':
