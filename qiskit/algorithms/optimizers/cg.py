@@ -53,6 +53,7 @@ class CG(ScipyMinimizer):
             tol: Tolerance for termination.
             eps: If jac is approximated, use this value for the step size.
             options: A dictionary of solver options.
+            max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
         if options is None:

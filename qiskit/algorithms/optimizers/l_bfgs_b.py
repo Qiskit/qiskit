@@ -85,6 +85,7 @@ class L_BFGS_B(ScipyMinimizer):  # pylint: disable=invalid-name
             epsilon: (DEPRECATED) Step size used when approx_grad is True, for numerically
                 calculating the gradient
             options: A dictionary of solver options.
+            max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
         if factr is not None:
