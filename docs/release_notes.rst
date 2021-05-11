@@ -22,6 +22,166 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.26.0
+*************
+
+.. _Release Notes_0.17.3:
+
+Terra 0.17.3
+============
+
+.. _Release Notes_0.17.3_Prelude:
+
+Prelude
+-------
+
+This release includes 2 new classes,
+:class:`~qiskit.result.ProbDistribution` and
+:class:`~qiskit.result.QuasiDistribution`, which were needed for
+compatibility with the recent qiskit-ibmq-provider release's beta support
+for the
+`qiskit-runtime <https://github.com/Qiskit-Partners/qiskit-runtime>`__.
+These were only added for compatibility with that new feature in the
+qiskit-ibmq-provider release and the API for these classes is considered
+experimental and not considered stable for the 0.17.x release series. The
+interface may change when 0.18.0 is released in the future.
+
+.. _Release Notes_0.17.3_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixed an issue in :func:`~qiskit.visualization.plot_histogram` function where a ``ValueError``
+  would be raised when the function run on distributions with unequal lengths.
+
+Aer 0.8.2
+=========
+
+No change
+
+Ignis 0.6.0
+===========
+
+No change
+
+Aqua 0.9.1
+==========
+
+No change
+
+IBM Q Provider 0.13.1
+=====================
+
+.. _Release Notes_IBMQ_0.13.0_Prelude:
+
+Prelude
+-------
+
+This release introduces a new feature ``Qiskit Runtime Service``.
+Qiskit Runtime is a new architecture offered by IBM Quantum that significantly
+reduces waiting time during computational iterations. You can execute your
+experiments near the quantum hardware, without the interactions of multiple
+layers of classical and quantum hardware slowing it down.
+
+Qiskit Runtime allows authorized users to upload their Qiskit quantum programs,
+which are Python code that takes certain inputs, performs quantum and maybe
+classical computation, and returns the processing results. The same or other
+authorized users can then invoke these quantum programs by simply passing in the
+required input parameters.
+
+Note that Qiskit Runtime is currently in private beta for select account but
+will be released to the public in the near future.
+
+.. _Release Notes_IBMQ_0.13.0_New Features:
+
+New Features
+------------
+
+- :class:`qiskit.providers.ibmq.experiment.analysis_result.AnalysisResult` now has an additional
+  ``verified`` attribute which identifies if the ``quality`` has been verified by a human.
+
+- :class:`qiskit.providers.ibmq.experiment.Experiment` now has an additional
+  ``notes`` attribute which can be used to set notes on an experiment.
+
+- This release introduces a new feature ``Qiskit Runtime Service``.
+  Qiskit Runtime is a new architecture that
+  significantly reduces waiting time during computational iterations.
+  This new service allows authorized users to upload their Qiskit quantum
+  programs, which are Python code that takes
+  certain inputs, performs quantum and maybe classical computation, and returns
+  the processing results. The same or other authorized users can then invoke
+  these quantum programs by simply passing in the required input parameters.
+
+  An example of using this new service::
+
+    from qiskit import IBMQ
+
+    provider = IBMQ.load_account()
+    # Print all avaiable programs.
+    provider.runtime.pprint_programs()
+
+    # Prepare the inputs. See program documentation on input parameters.
+    inputs = {...}
+    options = {"backend_name": provider.backend.ibmq_montreal.name()}
+
+    job = provider.runtime.run(program_id="runtime-simple",
+                               options=options,
+                               inputs=inputs)
+    # Check job status.
+    print(f"job status is {job.status()}")
+
+    # Get job result.
+    result = job.result()
+
+.. _Release Notes_IBMQ_0.13.0_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+- The deprecated ``Human Bad``, ``Computer Bad``, ``Computer Good`` and
+  ``Human Good`` enum values have been removed from
+  :class:`qiskit.providers.ibmq.experiment.constants.ResultQuality`. They
+  are replaced with ``Bad`` and ``Good`` values which should be used with
+  the ``verified`` attribute on
+  :class:`qiskit.providers.ibmq.experiment.analysis_result.AnalysisResult`:
+
+  +---------------+-------------+----------+
+  | Old Quality   | New Quality | Verified |
+  +===============+=============+==========+
+  | Human Bad     | Bad         | True     |
+  +---------------+-------------+----------+
+  | Computer Bad  | Bad         | False    |
+  +---------------+-------------+----------+
+  | Computer Good | Good        | False    |
+  +---------------+-------------+----------+
+  | Human Good    | Good        | True     |
+  +---------------+-------------+----------+
+
+  Furthermore, the ``NO_INFORMATION`` enum has been renamed to ``UNKNOWN``.
+
+- The :meth:`qiskit.providers.ibmq.IBMQBackend.defaults` method now always
+  returns pulse defaults if they are available, regardless whether open
+  pulse is enabled for the provider.
+
+.. _Release Notes_IBMQ_0.13.0_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixes the issue wherein passing in a noise model when sending a job to
+  an IBMQ simulator would raise a ``TypeError``. Fixes
+  `#894 <https://github.com/Qiskit/qiskit-ibmq-provider/issues/894>`_
+
+.. _Release Notes_IBMQ_0.13.0_Other Notes:
+
+Other Notes
+-----------
+
+- The :class:`qiskit.providers.ibmq.experiment.analysis_result.AnalysisResult`
+  ``fit`` attribute is now optional.
+
+
+*************
 Qiskit 0.25.4
 *************
 
