@@ -289,7 +289,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
             quantum_instance=quantum_instance,
             max_evals_grouped=100,
         )
-        result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+        vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
     def test_with_two_qubit_reduction(self):
         """Test the VQE using TwoQubitReduction."""
