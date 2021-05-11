@@ -42,6 +42,7 @@ class CG(ScipyMinimizer):
         tol: Optional[float] = None,
         eps: float = 1.4901161193847656e-08,
         options: Optional[dict] = None,
+        max_evals_grouped: int = 1,
         **kwargs,
     ) -> None:
         """
@@ -59,4 +60,10 @@ class CG(ScipyMinimizer):
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
-        super().__init__(method="CG", options=options, tol=tol, **kwargs)
+        super().__init__(
+            method="CG",
+            options=options,
+            tol=tol,
+            max_evals_grouped=max_evals_grouped,
+            **kwargs,
+        )

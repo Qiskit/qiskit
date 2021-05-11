@@ -18,6 +18,8 @@ from typing import Any, Callable, Dict, Optional, Union
 import numpy as np
 from scipy.optimize import Bounds, minimize
 
+from qiskit.utils.validation import validate_min
+
 from .optimizer import Optimizer, OptimizerSupportLevel
 
 
@@ -34,6 +36,7 @@ class ScipyMinimizer(Optimizer):
         method: Union[str, Callable],
         tol: Optional[float] = None,
         options: Optional[Dict[str, Any]] = None,
+        max_evals_grouped: int = 1,
         **kwargs,
     ):
         """
@@ -42,14 +45,16 @@ class ScipyMinimizer(Optimizer):
             tol: Tolerance for termination.
             options: A dictionary of solver options.
             kwargs: additional kwargs for scipy.optimize.minimize.
+            max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
         """
         # pylint: disable=super-init-not-called
         self._method = method.lower() if isinstance(method, str) else method
         self._set_support_level()
-        self._options = options if options is not None else {}
         self._tol = tol
+        self._options = options if options is not None else {}
+        validate_min("max_evals_grouped", max_evals_grouped, 1)
+        self._max_evals_grouped = max_evals_grouped
         self._kwargs = kwargs
-        self._max_evals_grouped = 1
 
     def get_support_level(self):
         """Return support level dictionary"""
@@ -92,10 +97,12 @@ class ScipyMinimizer(Optimizer):
         variable_bounds: Optional[Union[Sequence, Bounds]] = None,
         initial_point=None,
     ):
+        # Remove ignored parameters to supress the warning of scipy.optimize.minimize
         if self.is_bounds_ignored:
             variable_bounds = None
         if self.is_gradient_ignored:
             gradient_function = None
+
         if self.is_gradient_supported and gradient_function is None and self._max_evals_grouped > 1:
             if "eps" in self._options:
                 epsilon = self._options["eps"]
@@ -107,13 +114,20 @@ class ScipyMinimizer(Optimizer):
                 Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped)
             )
 
+        # Workaround for L_BFGS_B because it does not accept np.ndarray.
+        # See https://github.com/Qiskit/qiskit-terra/pull/6373.
+        if gradient_function is not None and self._method == "l_bfgs_b":
+            gradient_function = self._wrap_gradient(gradient_function)
+
+        # Validate the input
         super().optimize(
             num_vars,
             objective_function,
             gradient_function=gradient_function,
             variable_bounds=variable_bounds,
             initial_point=initial_point,
-        )  # Validate the input
+        )
+
         res = minimize(
             fun=objective_function,
             x0=initial_point,
@@ -125,3 +139,13 @@ class ScipyMinimizer(Optimizer):
             **self._kwargs,
         )
         return res.x, res.fun, res.nfev
+
+    @staticmethod
+    def _wrap_gradient(gradient_function):
+        def wrapped_gradient(x):
+            gradient = gradient_function(x)
+            if isinstance(gradient, np.ndarray):
+                return list(gradient)
+            return gradient
+
+        return wrapped_gradient

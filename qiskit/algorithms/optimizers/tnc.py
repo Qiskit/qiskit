@@ -45,6 +45,7 @@ class TNC(ScipyMinimizer):
         tol: Optional[float] = None,
         eps: float = 1e-08,
         options: Optional[dict] = None,
+        max_evals_grouped: int = 1,
         **kwargs,
     ) -> None:
         """
@@ -72,4 +73,10 @@ class TNC(ScipyMinimizer):
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
-        super().__init__("TNC", options=options, tol=tol, **kwargs)
+        super().__init__(
+            "TNC",
+            options=options,
+            tol=tol,
+            max_evals_grouped=max_evals_grouped,
+            **kwargs,
+        )
