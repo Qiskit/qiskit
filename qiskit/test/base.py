@@ -413,7 +413,6 @@ class FullQiskitTestCase(BaseQiskitTestCase):
         cls.using_ibmq_credentials = False
         cls.log = logging.getLogger(cls.__name__)
 
-        warnings.filterwarnings("error", category=DeprecationWarning)
         allow_DeprecationWarning_modules = [
             "test.ipynb.mpl.test_circuit_matplotlib_drawer",
             "test.python.pulse.test_parameters",
@@ -451,6 +450,7 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             r"The DerivativeBase.parameter_expression_grad method.*",
             r"Back-references to from Bit instances.*",
             r"The QuantumCircuit.u. method.*",
+            r"The CXDirection pass has been deprecated"
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
