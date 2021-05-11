@@ -421,6 +421,8 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             "test.python.circuit.test_gate_power",
             "test.python.pulse.test_builder",
             "test.python.pulse.test_block",
+            "test.python.quantum_info.operators.symplectic.test_legacy_pauli",
+            "qiskit.quantum_info.operators.pauli",
             "pybobyqa",
             "numba",
             "qiskit.utils.measurement_error_mitigation",
@@ -429,6 +431,7 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             "qiskit.pulse.instructions.instruction",
             "qiskit.pulse.instructions.play",
             "qiskit.pulse.library.parametric_pulses",
+            "qiskit.quantum_info.operators.symplectic.pauli",
         ]
         warnings.filterwarnings("error", category=DeprecationWarning)
         for mod in allow_DeprecationWarning_modules:
