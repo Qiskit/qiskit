@@ -197,6 +197,8 @@ class MatplotlibDrawer:
         self._lwidth15 = 1.5 * self._scale
         self._lwidth2 = 2.0 * self._scale
         self._node_width = {}
+        self._layer_widths = []
+        self._total_layer_width = 0
 
         # these char arrays are for finding text_width when not
         # using get_renderer method for the matplotlib backend
@@ -299,9 +301,23 @@ class MatplotlibDrawer:
 
     def draw(self, filename=None, verbose=False):
         """Draw method called from circuit_drawer"""
-        self._draw_regs()
-        self._draw_ops(verbose)
-        self._draw_wires()
+        for layer in self._nodes:
+            layer_width = self._get_layer_width(layer)
+            self._total_layer_width += layer_width
+            self._layer_widths.append(layer_width)
+        max_anc = self._total_layer_width# if anchors else 0
+        n_fold = max(0, max_anc - 1) // self._fold if self._fold > 0 else 0
+        self._n_lines = len(self._qubit) + len(self._clbit)
+
+        # window size
+        if max_anc > self._fold > 0:
+            self._xmax = self._fold + 1 + self._x_offset - 0.9
+            self._ymax = (n_fold + 1) * (self._n_lines + 1) - 1
+        else:
+            x_incr = 0.4 if not self._nodes else 0.9
+            self._xmax = max_anc + 1 + self._x_offset - x_incr
+            self._ymax = self._n_lines
+
         _xl = -self._style["margin"][0]
         _xr = self._xmax + self._style["margin"][1]
         _yb = -self._ymax - self._style["margin"][2] + 1 - 0.5
@@ -312,11 +328,29 @@ class MatplotlibDrawer:
         # update figure size
         fig_w = _xr - _xl
         fig_h = _yt - _yb
-        if self._style["figwidth"] < 0.0:
+        if self._style["figwidth"] < 0.0 and self._return_fig:
             self._style["figwidth"] = fig_w * BASE_SIZE * self._fs / 72 / WID
+        else:
+            print('fig', fig_w)
+            self._scale = self._style["figwidth"] / fig_w
+            print('scale', self._scale)
+            fig_w *= self._scale
+            fig_h *= self._scale
+            print(fig_w, fig_h)
+            print('fs', self._fs, self._sfs)
+            self._fs = self._fs * self._scale#self._style["fs"] * self._scale
+            self._sfs = self._sfs * self._scale#self._style["sfs"] * self._scale
+            self._lwidth15 = 1.5 * self._scale
+            self._lwidth2 = 2.0 * self._scale
+            print(self._fs)
+            print(self._sfs)
+        print('figure set size', self._style['figwidth'])
         self._figure.set_size_inches(
             self._style["figwidth"], self._style["figwidth"] * fig_h / fig_w
         )
+        self._draw_regs()
+        self._draw_ops(verbose)
+        self._draw_wires()
         if self._global_phase:
             self._plt_mod.text(
                 _xl, _yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
@@ -392,7 +426,7 @@ class MatplotlibDrawer:
                 "index": index,
                 "group": register,
             }
-            self._n_lines += 1
+            #self._n_lines += 1
 
         # classical register
         if self._clbit:
@@ -431,13 +465,14 @@ class MatplotlibDrawer:
                         "index": index,
                         "group": register,
                     }
-                self._n_lines += 1
+                #self._n_lines += 1
                 idx += 1
 
         self._reg_long_text = longest_reg_name_width
         self._x_offset = -1.2 + self._reg_long_text
 
     def _draw_ops(self, verbose=False):
+        """Draw the gates in the circuit"""
 
         # generate coordinate manager
         self._q_anchors = {}
@@ -446,10 +481,11 @@ class MatplotlibDrawer:
         self._c_anchors = {}
         for key, clbit in self._clbit_dict.items():
             self._c_anchors[key] = Anchor(reg_num=self._n_lines, yind=clbit["y"], fold=self._fold)
+
         # draw the ops
         prev_anc = -1
-        for layer in self._nodes:
-            layer_width = self._get_layer_width(layer)
+        for i, layer in enumerate(self._nodes):
+            layer_width = self._layer_widths[i]
             this_anc = prev_anc + 1
 
             # draw the gates in this layer
@@ -462,10 +498,6 @@ class MatplotlibDrawer:
 
                 # get coordinates
                 c_idxs, q_xy, c_xy, this_anc = self._get_coords(node, layer_width, this_anc)
-
-                # bottom and top point of qubit
-                qubit_b = min(q_xy, key=lambda xy: xy[1])
-                qubit_t = max(q_xy, key=lambda xy: xy[1])
 
                 if verbose:
                     print(node.op)
@@ -488,7 +520,7 @@ class MatplotlibDrawer:
                         self._c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
                         for ii in self._clbit_dict
                     ]
-                    self._condition(node, cond_xy, qubit_b)
+                    self._condition(node, q_xy, cond_xy)
 
                 # draw measure
                 if isinstance(node.op, Measure):
@@ -512,32 +544,11 @@ class MatplotlibDrawer:
                         subtext=str(param),
                     )
 
-                # draw RZZ gate
-                elif isinstance(node.op, RZZGate):
-                    self._symmetric_gate(
-                        node,
-                        RZZGate,
-                        q_xy,
-                        qubit_b,
-                        qubit_t,
-                        fc=fc,
-                        ec=ec,
-                        tc=tc,
-                        gt=gt,
-                        sc=sc,
-                        lc=lc,
-                        gate_text=gate_text,
-                        ctrl_text=ctrl_text,
-                        param=str(param),
-                    )
-
                 # draw controlled gates
                 elif isinstance(node.op, ControlledGate):
                     self._control_gate(
                         node,
                         q_xy,
-                        qubit_b,
-                        qubit_t,
                         fc=fc,
                         ec=ec,
                         gt=gt,
@@ -558,6 +569,7 @@ class MatplotlibDrawer:
                         ec=ec,
                         gt=gt,
                         sc=sc,
+                        tc=tc,
                         lc=lc,
                         text=gate_text,
                         subtext=str(param),
@@ -576,7 +588,7 @@ class MatplotlibDrawer:
         do this after draw_ops in order to know how long the wires need to be."""
 
         anchors = [self._q_anchors[ii].nxt_anchor_idx for ii in self._qubit_dict]
-        max_anc = max(anchors) if anchors else 0
+        max_anc = self._total_layer_width# if anchors else 0
         n_fold = max(0, max_anc - 1) // self._fold if self._fold > 0 else 0
 
         # window size
@@ -708,7 +720,7 @@ class MatplotlibDrawer:
                 )
 
     def _get_layer_width(self, layer):
-        # compute the layer_width for this layer
+        """Compute the layer_width for this layer"""
         widest_box = WID
         for node in layer:
             self._node_width[node] = WID
@@ -719,19 +731,19 @@ class MatplotlibDrawer:
             if node.op._directive or isinstance(node.op, Measure):
                 continue
 
-            base_name = None if not hasattr(node.op, "base_gate") else node.op.base_gate.name
+            base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
             gate_text, ctrl_text, _ = get_gate_ctrl_text(node, "mpl", style=self._style)
 
             # if single qubit, no params, and no labels, layer_width is 1
             if (
-                isinstance(node.op, SwapGate)
-                or base_name == "swap"
-                or (
-                    not hasattr(node.op, "params")
-                    and (len(node.qargs) - num_ctrl_qubits) == 1
-                    and gate_text in (node.op.name, base_name)
+                (
+                    (len(node.qargs) - num_ctrl_qubits) == 1
+                    and len(gate_text) < 3
+                    and (not hasattr(node.op, "params") or len(node.op.params) == 0)
                     and ctrl_text is None
                 )
+                or isinstance(node.op, SwapGate)
+                or isinstance(base_type, SwapGate)
             ):
                 continue
 
@@ -742,23 +754,22 @@ class MatplotlibDrawer:
             # get param_width, but 0 for gates with array params
             if (
                 hasattr(node.op, "params")
-                and not any(isinstance(param, np.ndarray) for param in node.op.params)
                 and len(node.op.params) > 0
+                and not any(isinstance(param, np.ndarray) for param in node.op.params)
             ):
                 param = get_param_str(node, "mpl", ndigits=3)
-                if node.op.name == "initialize":
+                if isinstance(node.op, Initialize):
                     param = "[%s]" % param
-                param = "${}$".format(param)
                 raw_param_width = self._get_text_width(param, fontsize=self._sfs, param=True)
                 param_width = raw_param_width + 0.08
             else:
                 param_width = raw_param_width = 0.0
 
-            if isinstance(node.op, RZZGate) or base_name in ["u1", "p", "rzz"]:
+            if isinstance(node.op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
                 raw_gate_width = (
                     self._get_text_width(gate_text + " ()", fontsize=self._sfs) + param_width
                 )
-                gate_width = raw_gate_width * 1.5
+                gate_width = (raw_gate_width + 0.08) * 1.5
             else:
                 raw_gate_width = self._get_text_width(gate_text, fontsize=self._fs)
                 gate_width = raw_gate_width + 0.10
@@ -888,8 +899,9 @@ class MatplotlibDrawer:
         sc = gt
         return fc, ec, gt, self._style["tc"], sc, lc
 
-    def _condition(self, node, cond_xy, qubit_b):
+    def _condition(self, node, xy, cond_xy):
         mask = 0
+        qubit_b = min(xy, key=lambda xy: xy[1])
         for index, cbit in enumerate(self._clbit):
             if self._bit_locations[cbit]["register"] == node.op.condition[0]:
                 mask |= 1 << index
@@ -1063,13 +1075,32 @@ class MatplotlibDrawer:
                 )
 
     def _multiqubit_gate(
-        self, node, xy, fc=None, ec=None, gt=None, sc=None, lc=None, text="", subtext=""
+        self, node, xy, fc=None, ec=None, gt=None, sc=None, tc=None, lc=None, text="", subtext=""
     ):
         # swap gate
         if isinstance(node.op, SwapGate):
             self._swap(xy, lc)
             return
 
+        # RZZ Gate
+        elif isinstance(node.op, RZZGate):
+            self._symmetric_gate(
+                node,
+                RZZGate,
+                xy,
+                fc=fc,
+                ec=ec,
+                gt=gt,
+                sc=sc,
+                tc=tc,
+                lc=lc,
+                gate_text=text,
+                ctrl_text=None,
+                param=subtext,
+            )
+            return
+
+        print('in multi', self._fs, self._sfs)
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
@@ -1144,8 +1175,6 @@ class MatplotlibDrawer:
         self,
         node,
         xy,
-        qubit_b,
-        qubit_t,
         fc=None,
         ec=None,
         gt=None,
@@ -1158,6 +1187,8 @@ class MatplotlibDrawer:
     ):
         base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
 
+        qubit_b = min(xy, key=lambda xy: xy[1])
+        qubit_t = max(xy, key=lambda xy: xy[1])
         num_ctrl_qubits = node.op.num_ctrl_qubits
         num_qargs = len(xy) - num_ctrl_qubits
         self._set_ctrl_bits(
@@ -1172,8 +1203,6 @@ class MatplotlibDrawer:
                 node,
                 base_type,
                 xy,
-                qubit_b,
-                qubit_t,
                 fc=fc,
                 ec=ec,
                 tc=tc,
@@ -1296,8 +1325,6 @@ class MatplotlibDrawer:
         node,
         base_type,
         xy,
-        qubit_b,
-        qubit_t,
         fc=None,
         ec=None,
         tc=None,
@@ -1308,6 +1335,8 @@ class MatplotlibDrawer:
         ctrl_text="",
         param="",
     ):
+        qubit_b = min(xy, key=lambda xy: xy[1])
+        qubit_t = max(xy, key=lambda xy: xy[1])
         base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
         # cz and mcz gates
         if not isinstance(node.op, ZGate) and isinstance(base_type, ZGate):
