@@ -416,11 +416,19 @@ class FullQiskitTestCase(BaseQiskitTestCase):
         warnings.filterwarnings("error", category=DeprecationWarning)
         allow_DeprecationWarning_modules = [
             "test.ipynb.mpl.test_circuit_matplotlib_drawer",
+            "test.python.pulse.test_parameters",
+            "test.python.pulse.test_transforms",
+            "test.python.circuit.test_gate_power",
+            "test.python.pulse.test_builder",
+            "test.python.pulse.test_block",
             "pybobyqa",
             "numba",
             "qiskit.utils.measurement_error_mitigation",
             "qiskit.circuit.library.standard_gates.x",
-            "test.python.circuit.test_gate_power",
+            "qiskit.pulse.schedule",
+            "qiskit.pulse.instructions.instruction",
+            "qiskit.pulse.instructions.play",
+            "qiskit.pulse.library.parametric_pulses",
         ]
         warnings.filterwarnings("error", category=DeprecationWarning)
         for mod in allow_DeprecationWarning_modules:
@@ -439,13 +447,7 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             r"The jsonschema validation included in qiskit-terra.*",
             r"The DerivativeBase.parameter_expression_grad method.*",
             r"Back-references to from Bit instances.*",
-            r"Calling insert is being deprecated.*",
-            r"Calling stop_time is being deprecated.*",
-            r"Calling timeslots is being deprecated.*",
-            r"Calling start_time is being deprecated.*",
-            r"Calling ch_stop_time is being deprecated.*",
-            r"Calling ch_start_time is being deprecated.*",
-            r"Calling shift is being deprecated.*",
+            r"The QuantumCircuit.u2 method.*",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
