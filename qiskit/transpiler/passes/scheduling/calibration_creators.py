@@ -145,28 +145,20 @@ class RZXCalibrationBuilder(CalibrationCreator):
 
             if target_area > gaussian_area:
                 width = (target_area - gaussian_area) / abs(amp)
-                duration = (
-                    math.ceil((width + n_sigmas * sigma) / sample_mult) * sample_mult
-                )
+                duration = math.ceil((width + n_sigmas * sigma) / sample_mult) * sample_mult
                 return Play(
-                    GaussianSquare(
-                        amp=sign * amp, width=width, sigma=sigma, duration=duration
-                    ),
+                    GaussianSquare(amp=sign * amp, width=width, sigma=sigma, duration=duration),
                     channel=instruction.channel,
                 )
             else:
                 amp_scale = sign * target_area / gaussian_area
                 duration = math.ceil(n_sigmas * sigma / sample_mult) * sample_mult
                 return Play(
-                    GaussianSquare(
-                        amp=amp * amp_scale, width=0, sigma=sigma, duration=duration
-                    ),
+                    GaussianSquare(amp=amp * amp_scale, width=0, sigma=sigma, duration=duration),
                     channel=instruction.channel,
                 )
         else:
-            raise QiskitError(
-                "RZXCalibrationBuilder only stretches/compresses GaussianSquare."
-            )
+            raise QiskitError("RZXCalibrationBuilder only stretches/compresses GaussianSquare.")
 
     def get_calibration(self, params: List, qubits: List) -> Schedule:
         """
@@ -208,9 +200,7 @@ class RZXCalibrationBuilder(CalibrationCreator):
                     crs.append((time, inst))
 
             # Identify the compensation tones.
-            if isinstance(inst.channel, DriveChannel) and not isinstance(
-                inst, ShiftPhase
-            ):
+            if isinstance(inst.channel, DriveChannel) and not isinstance(inst, ShiftPhase):
                 if isinstance(inst.pulse, GaussianSquare):
                     comp_tones.append((time, inst))
                     target = inst.channel.index
@@ -365,9 +355,11 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
             raise QiskitError("Control qubit is None.")
         if target is None:
             raise QiskitError("Target qubit is None.")
-            
+
         if control != qubits[0]:
-            raise QiskitError("RZXCalibrationBuilderNoEcho only supports hardware-native RZX gates.")
+            raise QiskitError(
+                "RZXCalibrationBuilderNoEcho only supports hardware-native RZX gates."
+            )
 
         # Get the filtered Schedule instructions for the CR gates and compensation tones.
         crs = cx_sched.filter(*[self._filter_control]).instructions
