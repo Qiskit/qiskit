@@ -440,6 +440,8 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             "test.python.quantum_info.operators.channel.test_chi",
             "test.python.quantum_info.operators.channel.test_superop",
             "test.python.quantum_info.operators.channel.test_stinespring",
+            "test.python.quantum_info.operators.symplectic.test_sparse_pauli_op",
+            "test.python.quantum_info.operators.channel.test_ptm",
         ]
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
