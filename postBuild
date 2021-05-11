@@ -13,6 +13,8 @@ pip install .
 # Dependencies
 # - pdflatex: for LaTex drawer
 jupyter labextension install @jupyterlab/latex
+wget "https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz"
+./install-tl -no-gui
 
 # Activation of appmode extension
 jupyter nbextension     enable --py --sys-prefix appmode
