@@ -112,6 +112,7 @@ class MatplotlibDrawer:
         nodes,
         scale=None,
         style=None,
+        reverse_bits=False,
         plot_barriers=True,
         layout=None,
         fold=25,
@@ -164,6 +165,7 @@ class MatplotlibDrawer:
         # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
         self._subfont_factor = self._style["sfs"] * def_font_ratio / self._style["fs"]
 
+        self._reverse_bits = reverse_bits
         self._plot_barriers = plot_barriers
         self._layout = layout
         self._fold = fold
@@ -171,12 +173,12 @@ class MatplotlibDrawer:
             self._fold = -1
 
         if ax is None:
-            self._return_fig = True
+            self._user_ax = False
             self._figure = plt.figure()
             self._figure.patch.set_facecolor(color=self._style["bg"])
             self._ax = self._figure.add_subplot(111)
         else:
-            self._return_fig = False
+            self._user_ax = True
             self._ax = ax
             self._figure = ax.get_figure()
         self._ax.axis("off")
@@ -198,7 +200,6 @@ class MatplotlibDrawer:
         self._lwidth2 = 2.0 * self._scale
         self._node_width = {}
         self._layer_widths = []
-        self._total_layer_width = 0
 
         # these char arrays are for finding text_width when not
         # using get_renderer method for the matplotlib backend
@@ -301,21 +302,25 @@ class MatplotlibDrawer:
 
     def draw(self, filename=None, verbose=False):
         """Draw method called from circuit_drawer"""
+
         for layer in self._nodes:
             layer_width = self._get_layer_width(layer)
-            self._total_layer_width += layer_width
             self._layer_widths.append(layer_width)
-        max_anc = self._total_layer_width# if anchors else 0
-        n_fold = max(0, max_anc - 1) // self._fold if self._fold > 0 else 0
+        total_layer_width = sum(self._layer_widths) + 1
+
+        self._get_reg_names_and_numbers()
+        
+        n_fold = max(0, total_layer_width - 2) // self._fold if self._fold > 0 else 0
         self._n_lines = len(self._qubit) + len(self._clbit)
 
         # window size
-        if max_anc > self._fold > 0:
-            self._xmax = self._fold + 1 + self._x_offset - 0.9
+        if total_layer_width > self._fold > 0:
+            self._xmax = self._fold + self._x_offset + 0.1
+            print('xmax', self._xmax)
             self._ymax = (n_fold + 1) * (self._n_lines + 1) - 1
         else:
             x_incr = 0.4 if not self._nodes else 0.9
-            self._xmax = max_anc + 1 + self._x_offset - x_incr
+            self._xmax = total_layer_width + self._x_offset - x_incr
             self._ymax = self._n_lines
 
         _xl = -self._style["margin"][0]
@@ -325,10 +330,11 @@ class MatplotlibDrawer:
         self._ax.set_xlim(_xl, _xr)
         self._ax.set_ylim(_yb, _yt)
 
+        print('at top', _xl, _xr, self._xmax, self._fold, self._x_offset)
         # update figure size
         fig_w = _xr - _xl
         fig_h = _yt - _yb
-        if self._style["figwidth"] < 0.0 and self._return_fig:
+        if self._style["figwidth"] < 0.0 and not self._user_ax:
             self._style["figwidth"] = fig_w * BASE_SIZE * self._fs / 72 / WID
         else:
             print('fig', fig_w)
@@ -344,13 +350,15 @@ class MatplotlibDrawer:
             self._lwidth2 = 2.0 * self._scale
             print(self._fs)
             print(self._sfs)
+
+
+        self._draw_regs_wires(total_layer_width, n_fold)
+        self._draw_ops(verbose)
+
         print('figure set size', self._style['figwidth'])
         self._figure.set_size_inches(
             self._style["figwidth"], self._style["figwidth"] * fig_h / fig_w
         )
-        self._draw_regs()
-        self._draw_ops(verbose)
-        self._draw_wires()
         if self._global_phase:
             self._plt_mod.text(
                 _xl, _yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
@@ -363,113 +371,12 @@ class MatplotlibDrawer:
                 bbox_inches="tight",
                 facecolor=self._figure.get_facecolor(),
             )
-        if self._return_fig:
+        if not self._user_ax:
             from matplotlib import get_backend
 
             if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
                 self._plt_mod.close(self._figure)
             return self._figure
-
-    def _draw_regs(self):
-        """Setup info for drawing reg names and numbers"""
-        longest_reg_name_width = 0
-        initial_qbit = " |0>" if self._initial_state else ""
-        initial_cbit = " 0" if self._initial_state else ""
-
-        def _fix_double_script(reg_name):
-            words = reg_name.split(" ")
-            words = [word.replace("_", r"\_") if word.count("_") > 1 else word for word in words]
-            words = [
-                word.replace("^", r"\^{\ }") if word.count("^") > 1 else word for word in words
-            ]
-            reg_name = " ".join(words).replace(" ", "\\;")
-            return reg_name
-
-        # quantum register
-        for ii, reg in enumerate(self._qubit):
-            register = self._bit_locations[reg]["register"]
-            index = self._bit_locations[reg]["index"]
-
-            if len(self._qubit) > 1:
-                if self._layout is None:
-                    qubit_name = "${{{name}}}_{{{index}}}$".format(name=register.name, index=index)
-                else:
-                    if self._layout[index]:
-                        virt_bit = self._layout[index]
-                        try:
-                            virt_reg = next(
-                                reg for reg in self._layout.get_registers() if virt_bit in reg
-                            )
-                            qubit_name = "${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$".format(
-                                name=virt_reg.name,
-                                index=virt_reg[:].index(virt_bit),
-                                physical=index,
-                            )
-
-                        except StopIteration:
-                            qubit_name = "${{{name}}} \\mapsto {{{physical}}}$".format(
-                                name=virt_bit, physical=index
-                            )
-                    else:
-                        qubit_name = "${{{physical}}}$".format(physical=index)
-            else:
-                qubit_name = "{name}".format(name=register.name)
-            qubit_name = _fix_double_script(qubit_name) + initial_qbit
-            text_width = self._get_text_width(qubit_name, self._fs) * 1.15
-
-            if text_width > longest_reg_name_width:
-                longest_reg_name_width = text_width
-            pos = -ii
-            self._qubit_dict[ii] = {
-                "y": pos,
-                "reg_name": qubit_name,
-                "index": index,
-                "group": register,
-            }
-            #self._n_lines += 1
-
-        # classical register
-        if self._clbit:
-            n_clbit = self._clbit.copy()
-            n_clbit.pop(0)
-            idx = 0
-            y_off = -len(self._qubit)
-            for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._clbit, n_clbit)):
-                pos = y_off - idx
-                register = self._bit_locations[reg]["register"]
-                index = self._bit_locations[reg]["index"]
-
-                if self._cregbundle:
-                    clbit_name = "{}".format(register.name)
-                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
-                    text_width = self._get_text_width(register.name, self._fs) * 1.15
-                    if text_width > longest_reg_name_width:
-                        longest_reg_name_width = text_width
-                    self._clbit_dict[ii] = {
-                        "y": pos,
-                        "reg_name": clbit_name,
-                        "index": index,
-                        "group": register,
-                    }
-                    if not (not nreg or register != self._bit_locations[nreg]["register"]):
-                        continue
-                else:
-                    clbit_name = "${}_{{{}}}$".format(register.name, index)
-                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
-                    text_width = self._get_text_width(register.name, self._fs) * 1.15
-                    if text_width > longest_reg_name_width:
-                        longest_reg_name_width = text_width
-                    self._clbit_dict[ii] = {
-                        "y": pos,
-                        "reg_name": clbit_name,
-                        "index": index,
-                        "group": register,
-                    }
-                #self._n_lines += 1
-                idx += 1
-
-        self._reg_long_text = longest_reg_name_width
-        self._x_offset = -1.2 + self._reg_long_text
 
     def _draw_ops(self, verbose=False):
         """Draw the gates in the circuit"""
@@ -583,22 +490,9 @@ class MatplotlibDrawer:
 
             prev_anc = this_anc + layer_width + barrier_offset - 1
 
-    def _draw_wires(self):
+    def _draw_regs_wires(self, total_layer_width, n_fold):
         """After the ops have been drawn, draw the wires, regs, and index numbers. Must
         do this after draw_ops in order to know how long the wires need to be."""
-
-        anchors = [self._q_anchors[ii].nxt_anchor_idx for ii in self._qubit_dict]
-        max_anc = self._total_layer_width# if anchors else 0
-        n_fold = max(0, max_anc - 1) // self._fold if self._fold > 0 else 0
-
-        # window size
-        if max_anc > self._fold > 0:
-            self._xmax = self._fold + 1 + self._x_offset - 0.9
-            self._ymax = (n_fold + 1) * (self._n_lines + 1) - 1
-        else:
-            x_incr = 0.4 if not self._nodes else 0.9
-            self._xmax = max_anc + 1 + self._x_offset - x_incr
-            self._ymax = self._n_lines
 
         # add horizontal lines
         for ii in range(n_fold + 1):
@@ -608,12 +502,12 @@ class MatplotlibDrawer:
 
         # draw anchor index number
         if self._style["index"]:
-            for ii in range(max_anc):
+            for ii in range(total_layer_width):
                 if self._fold > 0:
-                    x_coord = ii % self._fold + self._reg_long_text - 0.67
+                    x_coord = ii % self._fold + self._x_offset + 0.53
                     y_coord = -(ii // self._fold) * (self._n_lines + 1) + 0.7
                 else:
-                    x_coord = ii + self._reg_long_text - 0.67
+                    x_coord = ii + self._x_offset + 0.53
                     y_coord = 0.7
                 self._ax.text(
                     x_coord,
@@ -645,6 +539,7 @@ class MatplotlibDrawer:
                 zorder=PORDER_TEXT,
             )
             # draw the qubit wire
+            print('in draw', self._xmax)
             self._line([self._x_offset, y], [self._xmax, y], zorder=PORDER_REGLINE)
 
         # classical register
@@ -696,6 +591,7 @@ class MatplotlibDrawer:
                 zorder=PORDER_REGLINE,
             )
 
+        print('at draw', self._xmax, self._fold, self._x_offset)
         # lf vertical line at either end
         if feedline_l or feedline_r:
             xpos_l = self._x_offset - 0.01
@@ -711,6 +607,7 @@ class MatplotlibDrawer:
                     zorder=PORDER_LINE,
                 )
             if feedline_r:
+                print('xpos', xpos_r)
                 self._ax.plot(
                     [xpos_r, xpos_r],
                     [ypos1, ypos2],
@@ -783,6 +680,104 @@ class MatplotlibDrawer:
             self._node_width[node] = max(raw_gate_width, raw_param_width)
 
         return int(widest_box) + 1
+
+    def _get_reg_names_and_numbers(self):
+        """Setup info for drawing reg names and numbers"""
+        longest_reg_name_width = 0
+        initial_qbit = " |0>" if self._initial_state else ""
+        initial_cbit = " 0" if self._initial_state else ""
+
+        def _fix_double_script(reg_name):
+            words = reg_name.split(" ")
+            words = [word.replace("_", r"\_") if word.count("_") > 1 else word for word in words]
+            words = [
+                word.replace("^", r"\^{\ }") if word.count("^") > 1 else word for word in words
+            ]
+            reg_name = " ".join(words).replace(" ", "\\;")
+            return reg_name
+
+        # quantum register
+        for ii, reg in enumerate(self._qubit):
+            register = self._bit_locations[reg]["register"]
+            index = self._bit_locations[reg]["index"]
+
+            if len(self._qubit) > 1:
+                if self._layout is None:
+                    qubit_name = "${{{name}}}_{{{index}}}$".format(name=register.name, index=index)
+                else:
+                    if self._layout[index]:
+                        virt_bit = self._layout[index]
+                        try:
+                            virt_reg = next(
+                                reg for reg in self._layout.get_registers() if virt_bit in reg
+                            )
+                            qubit_name = "${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$".format(
+                                name=virt_reg.name,
+                                index=virt_reg[:].index(virt_bit),
+                                physical=index,
+                            )
+
+                        except StopIteration:
+                            qubit_name = "${{{name}}} \\mapsto {{{physical}}}$".format(
+                                name=virt_bit, physical=index
+                            )
+                    else:
+                        qubit_name = "${{{physical}}}$".format(physical=index)
+            else:
+                qubit_name = "{name}".format(name=register.name)
+            qubit_name = _fix_double_script(qubit_name) + initial_qbit
+            text_width = self._get_text_width(qubit_name, self._fs) * 1.15
+
+            if text_width > longest_reg_name_width:
+                longest_reg_name_width = text_width
+            pos = -ii
+            self._qubit_dict[ii] = {
+                "y": pos,
+                "reg_name": qubit_name,
+                "index": index,
+                "group": register,
+            }
+
+        # classical register
+        if self._clbit:
+            n_clbit = self._clbit.copy()
+            n_clbit.pop(0)
+            idx = 0
+            y_off = -len(self._qubit)
+            for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._clbit, n_clbit)):
+                pos = y_off - idx
+                register = self._bit_locations[reg]["register"]
+                index = self._bit_locations[reg]["index"]
+
+                if self._cregbundle:
+                    clbit_name = "{}".format(register.name)
+                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
+                    text_width = self._get_text_width(register.name, self._fs) * 1.15
+                    if text_width > longest_reg_name_width:
+                        longest_reg_name_width = text_width
+                    self._clbit_dict[ii] = {
+                        "y": pos,
+                        "reg_name": clbit_name,
+                        "index": index,
+                        "group": register,
+                    }
+                    if not (not nreg or register != self._bit_locations[nreg]["register"]):
+                        continue
+                else:
+                    clbit_name = "${}_{{{}}}$".format(register.name, index)
+                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
+                    text_width = self._get_text_width(register.name, self._fs) * 1.15
+                    if text_width > longest_reg_name_width:
+                        longest_reg_name_width = text_width
+                    self._clbit_dict[ii] = {
+                        "y": pos,
+                        "reg_name": clbit_name,
+                        "index": index,
+                        "group": register,
+                    }
+                idx += 1
+
+        self._x_offset = -1.2 + longest_reg_name_width
 
     def _get_coords(self, node, layer_width, this_anc):
         # get qubit index
@@ -906,12 +901,17 @@ class MatplotlibDrawer:
             if self._bit_locations[cbit]["register"] == node.op.condition[0]:
                 mask |= 1 << index
         val = node.op.condition[1]
+
         # cbit list to consider
         fmt_c = "{{:0{}b}}".format(len(cond_xy))
         cmask = list(fmt_c.format(mask))[::-1]
+
         # value
         fmt_v = "{{:0{}b}}".format(cmask.count("1"))
-        vlist = list(fmt_v.format(val))[::-1]
+        vlist = list(fmt_v.format(val))
+        if not self._reverse_bits:
+            vlist = vlist[::-1]
+
         # plot conditionals
         v_ind = 0
         xy_plot = []
