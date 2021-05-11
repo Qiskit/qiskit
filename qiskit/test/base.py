@@ -432,6 +432,7 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             "qiskit.pulse.instructions.play",
             "qiskit.pulse.library.parametric_pulses",
             "qiskit.quantum_info.operators.symplectic.pauli",
+            "test.python.quantum_info.operators.test_operator",
         ]
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
@@ -450,7 +451,8 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             r"The DerivativeBase.parameter_expression_grad method.*",
             r"Back-references to from Bit instances.*",
             r"The QuantumCircuit.u. method.*",
-            r"The CXDirection pass has been deprecated"
+            r"The QuantumCircuit.cu.",
+            r"The CXDirection pass has been deprecated",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
