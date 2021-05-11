@@ -333,15 +333,15 @@ class MatplotlibDrawer:
         if self._style["figwidth"] < 0.0 and not self._user_ax:
             self._style["figwidth"] = fig_w * BASE_SIZE * self._fs / 72 / WID
         else:
-            print('fig', fig_w)
+            print("fig", fig_w)
             self._scale = self._style["figwidth"] / fig_w
-            print('scale', self._scale)
+            print("scale", self._scale)
             fig_w *= self._scale
             fig_h *= self._scale
             print(fig_w, fig_h)
-            print('fs', self._fs, self._sfs)
-            self._fs = self._fs * self._scale#self._style["fs"] * self._scale
-            self._sfs = self._sfs * self._scale#self._style["sfs"] * self._scale
+            print("fs", self._fs, self._sfs)
+            self._fs = self._fs * self._scale  # self._style["fs"] * self._scale
+            self._sfs = self._sfs * self._scale  # self._style["sfs"] * self._scale
             self._lwidth15 = 1.5 * self._scale
             self._lwidth2 = 2.0 * self._scale
             print(self._fs)
@@ -350,7 +350,7 @@ class MatplotlibDrawer:
         self._draw_regs_wires(total_layer_width, n_fold)
         self._draw_ops(verbose)
 
-        print('figure set size', self._style['figwidth'])
+        print("figure set size", self._style["figwidth"])
         self._figure.set_size_inches(
             self._style["figwidth"], self._style["figwidth"] * fig_h / fig_w
         )
@@ -669,7 +669,7 @@ class MatplotlibDrawer:
         return int(widest_box) + 1
 
     def _get_reg_names_and_numbers(self):
-        """Setup info for drawing reg names and numbers"""
+        """Get all the info for drawing reg names and numbers"""
         longest_reg_name_width = 0
         initial_qbit = " |0>" if self._initial_state else ""
         initial_cbit = " 0" if self._initial_state else ""
@@ -769,6 +769,8 @@ class MatplotlibDrawer:
         self._x_offset = -1.2 + longest_reg_name_width
 
     def _get_coords(self, node, layer_width, this_anc):
+        """Load all the coordinate info needed to place the gates on the drawing"""
+
         # get qubit index
         q_idxs = []
         for qarg in node.qargs:
@@ -810,7 +812,7 @@ class MatplotlibDrawer:
         return c_idxs, q_xy, c_xy, this_anc
 
     def _get_text_width(self, text, fontsize, param=False):
-        """This computes the width of a string in the default font"""
+        """Compute the width of a string in the default font"""
         if not text:
             return 0.0
 
@@ -848,6 +850,7 @@ class MatplotlibDrawer:
         return sum_text
 
     def _get_colors(self, node, gate_text):
+        """Get all the colors needed for drawing the circuit"""
         base_name = None if not hasattr(node.op, "base_gate") else node.op.base_gate.name
         if gate_text in self._style["dispcol"]:
             color = self._style["dispcol"][gate_text]
@@ -884,6 +887,7 @@ class MatplotlibDrawer:
         return fc, ec, gt, self._style["tc"], sc, lc
 
     def _condition(self, node, xy, cond_xy):
+        """Add a conditional to a gate"""
         mask = 0
         qubit_b = min(xy, key=lambda xy: xy[1])
         for index, cbit in enumerate(self._clbit):
@@ -935,6 +939,7 @@ class MatplotlibDrawer:
         self._line(qubit_b, clbit_b, lc=self._style["cc"], ls=self._style["cline"])
 
     def _measure(self, node, qxy, cxy, c_idxs, fc=None, ec=None, gt=None, sc=None):
+        """Draw the measure symbol and the line to the clbit"""
         qx, qy = qxy
         cx, cy = cxy
         cid = self._clbit_dict[c_idxs[0]]["index"]
@@ -989,6 +994,7 @@ class MatplotlibDrawer:
             )
 
     def _barrier(self, q_xy):
+        """Draw a barrier"""
         for xy in q_xy:
             xpos, ypos = xy
             self._ax.plot(
@@ -1012,6 +1018,7 @@ class MatplotlibDrawer:
             self._ax.add_patch(box)
 
     def _gate(self, node, xy, fc=None, ec=None, gt=None, sc=None, text="", subtext=""):
+        """Draw a 1-qubit gate"""
         xpos, ypos = xy
         wid = max(self._node_width[node], WID)
 
@@ -1066,7 +1073,9 @@ class MatplotlibDrawer:
     def _multiqubit_gate(
         self, node, xy, fc=None, ec=None, gt=None, sc=None, tc=None, lc=None, text="", subtext=""
     ):
-        # swap gate
+        """Draw a gate covering more than one qubit"""
+
+        # Swap gate
         if isinstance(node.op, SwapGate):
             self._swap(xy, lc)
             return
@@ -1089,7 +1098,7 @@ class MatplotlibDrawer:
             )
             return
 
-        print('in multi', self._fs, self._sfs)
+        print("in multi", self._fs, self._sfs)
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
@@ -1174,8 +1183,8 @@ class MatplotlibDrawer:
         subtext="",
         ctrl_text="",
     ):
+        """Draw a controlled gate"""
         base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
-
         qubit_b = min(xy, key=lambda xy: xy[1])
         qubit_t = max(xy, key=lambda xy: xy[1])
         num_ctrl_qubits = node.op.num_ctrl_qubits
@@ -1206,11 +1215,12 @@ class MatplotlibDrawer:
             tgt_color = self._style["dispcol"]["target"]
             tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
             self._x_tgt_qubit(xy[num_ctrl_qubits], ec=ec, ac=tgt)
+
         elif num_qargs == 1:
             self._gate(
                 node, xy[num_ctrl_qubits], fc=fc, ec=ec, gt=gt, sc=sc, text=text, subtext=subtext
             )
-        # swap gate
+
         elif isinstance(base_type, SwapGate):
             self._swap(xy[num_ctrl_qubits:], lc)
 
@@ -1222,6 +1232,7 @@ class MatplotlibDrawer:
     def _set_ctrl_bits(
         self, ctrl_state, num_ctrl_qubits, qbit, ec=None, tc=None, text="", qargs=None
     ):
+        """Determine which qubits are controls and whether they are open or closed"""
         # place the control label at the top or bottom of controls
         if text:
             qlist = [self._bit_locations[qubit]["index"] for qubit in qargs]
@@ -1244,6 +1255,7 @@ class MatplotlibDrawer:
             self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec, tc=tc, text=text, text_top=text_top)
 
     def _ctrl_qubit(self, xy, fc=None, ec=None, tc=None, text="", text_top=None):
+        """Draw a control circle and if top or bottom control, draw control label"""
         xpos, ypos = xy
         box = self._patches_mod.Circle(
             xy=(xpos, ypos),
@@ -1254,6 +1266,7 @@ class MatplotlibDrawer:
             zorder=PORDER_GATE,
         )
         self._ax.add_patch(box)
+
         # display the control label at the top or bottom if there is one
         if text_top is True:
             self._ax.text(
@@ -1281,6 +1294,7 @@ class MatplotlibDrawer:
             )
 
     def _x_tgt_qubit(self, xy, ec=None, ac=None):
+        """Draw the cnot target symbol"""
         linewidth = self._lwidth2
         xpos, ypos = xy
         box = self._patches_mod.Circle(
@@ -1324,37 +1338,20 @@ class MatplotlibDrawer:
         ctrl_text="",
         param="",
     ):
+        """Draw symmetric gates for cz, cu1, cp, cswap, and rzz"""
         qubit_b = min(xy, key=lambda xy: xy[1])
         qubit_t = max(xy, key=lambda xy: xy[1])
         base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
+
         # cz and mcz gates
         if not isinstance(node.op, ZGate) and isinstance(base_type, ZGate):
             num_ctrl_qubits = node.op.num_ctrl_qubits
-            self._set_ctrl_bits(
-                node.op.ctrl_state,
-                num_ctrl_qubits,
-                xy,
-                ec=ec,
-                tc=tc,
-                text=ctrl_text,
-                qargs=node.qargs,
-            )
             self._ctrl_qubit(xy[-1], fc=ec, ec=ec, tc=tc)
             self._line(qubit_b, qubit_t, lc=lc, zorder=PORDER_LINE + 1)
 
         # cu1, cp, rzz, and controlled rzz gates (sidetext gates)
         elif isinstance(node.op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
             num_ctrl_qubits = 0 if isinstance(node.op, RZZGate) else node.op.num_ctrl_qubits
-            if not isinstance(node.op, RZZGate):
-                self._set_ctrl_bits(
-                    node.op.ctrl_state,
-                    num_ctrl_qubits,
-                    xy,
-                    ec=ec,
-                    tc=tc,
-                    text=ctrl_text,
-                    qargs=node.qargs,
-                )
             self._ctrl_qubit(xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
             if not isinstance(base_type, (U1Gate, PhaseGate)):
                 self._ctrl_qubit(xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
@@ -1363,28 +1360,14 @@ class MatplotlibDrawer:
             )
             self._line(qubit_b, qubit_t, lc=lc)
 
-        # cswap gate
-        elif not isinstance(node.op, SwapGate) and isinstance(base_type, SwapGate):
-            num_ctrl_qubits = node.op.num_ctrl_qubits
-            self._set_ctrl_bits(
-                node.op.ctrl_state,
-                num_ctrl_qubits,
-                xy,
-                ec=ec,
-                tc=tc,
-                text=ctrl_text,
-                qargs=node.qargs,
-            )
-            self._swap(xy[num_ctrl_qubits], color=lc)
-            # self._swap(xy[num_ctrl_qubits + 1], color=lc)
-            self._line(qubit_b, qubit_t, lc=lc)
-
     def _swap(self, xy, color=None):
+        """Draw a Swap gate"""
         self._swap_cross(xy[0], color=color)
         self._swap_cross(xy[1], color=color)
         self._line(xy[0], xy[1], lc=color)
 
     def _swap_cross(self, xy, color=None):
+        """Draw the Swap cross symbol"""
         xpos, ypos = xy
 
         self._ax.plot(
@@ -1403,6 +1386,7 @@ class MatplotlibDrawer:
         )
 
     def _sidetext(self, node, xy, tc=None, text=""):
+        """Draw the sidetext for symmetric gates"""
         xpos, ypos = xy
 
         # 0.11 = the initial gap, add 1/2 text width to place on the right
@@ -1420,6 +1404,7 @@ class MatplotlibDrawer:
         )
 
     def _line(self, xy0, xy1, lc=None, ls=None, zorder=PORDER_LINE):
+        """Draw a line from xy0 to xy1"""
         x0, y0 = xy0
         x1, y1 = xy1
         linecolor = self._style["lc"] if lc is None else lc
