@@ -25,103 +25,12 @@ from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 
 
 class PauliList(BasePauli):
-    r"""Symplectic representation of a list Pauli matrices.
+    r"""List of N-qubit Pauli operators.
 
-    **Symplectic Representation**
-
-    The symplectic representation of a single-qubit Pauli matrix
-    is a pair of boolean values :math:`[x, z]` such that the Pauli matrix
-    is given by :math:`P = (-i)^{z * x} \sigma_z^z.\sigma_x^x`.
-    The correspondence between labels, symplectic representation,
-    and matrices for single-qubit Paulis are shown in Table 1.
-
-    .. list-table:: Pauli Representations
-        :header-rows: 1
-
-        * - Label
-          - Symplectic
-          - Matrix
-        * - ``"I"``
-          - :math:`[0, 0]`
-          - :math:`\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}`
-        * - ``"X"``
-          - :math:`[1, 0]`
-          - :math:`\begin{bmatrix} 0 & 1 \\ 1 & 0  \end{bmatrix}`
-        * - ``"Y"``
-          - :math:`[1, 1]`
-          - :math:`\begin{bmatrix} 0 & -i \\ i & 0  \end{bmatrix}`
-        * - ``"Z"``
-          - :math:`[0, 1]`
-          - :math:`\begin{bmatrix} 1 & 0 \\ 0 & -1  \end{bmatrix}`
-
-    The full Pauli table is a M x 2N boolean matrix:
-
-    .. math::
-
-        \left(\begin{array}{ccc|ccc}
-            x_{0,0} & ... & x_{0,N-1} & z_{0,0} & ... & z_{0,N-1}  \\
-            x_{1,0} & ... & x_{1,N-1} & z_{1,0} & ... & z_{1,N-1}  \\
-            \vdots & \ddots & \vdots & \vdots & \ddots & \vdots  \\
-            x_{M-1,0} & ... & x_{M-1,N-1} & z_{M-1,0} & ... & z_{M-1,N-1}
-        \end{array}\right)
-
-    where each row is a block vector :math:`[X_i, Z_i]` with
-    :math:`X = [x_{i,0}, ..., x_{i,N-1}]`, :math:`Z = [z_{i,0}, ..., z_{i,N-1}]`
-    is the symplectic representation of an `N`-qubit Pauli.
-    This representation is based on reference [1].
-
-    PauliList's can be created from a list of labels using :meth:`from_labels`,
-    and converted to a list of labels or a list of matrices using
-    :meth:`to_labels` and :meth:`to_matrix` respectively.
-
-    **Group Product**
-
-    The Pauli's in the Pauli table do not represent the full Pauli as they are
-    restricted to having `+1` phase. The dot-product for the Pauli's is defined
-    to discard any phase obtained from matrix multiplication so that we have
-    :math:`X.z = Z.x = Y`, etc. This means that for the PauliList class the
-    operator methods :meth:`compose` and :meth:`dot` are equivalent.
-
-    +-------+---+---+---+---+
-    | A.B   | I | X | Y | Z |
-    +=======+===+===+===+===+
-    | **I** | I | X | Y | Z |
-    +-------+---+---+---+---+
-    | **X** | X | I | Z | Y |
-    +-------+---+---+---+---+
-    | **Y** | Y | Z | I | X |
-    +-------+---+---+---+---+
-    | **Z** | Z | Y | X | I |
-    +-------+---+---+---+---+
-
-    **Qubit Ordering**
-
-    The qubits are ordered in the table such the least significant qubit
-    `[x_{i, 0}, z_{i, 0}]` is the first element of each of the :math:`X_i, Z_i`
-    vector blocks. This is the opposite order to position in string labels or
-    matrix tensor products where the least significant qubit is the right-most
-    string character. For example Pauli ``"ZX"`` has ``"X"`` on qubit-0
-    and ``"Z"`` on qubit 1, and would have symplectic vectors :math:`x=[1, 0]`,
-    :math:`z=[0, 1]`.
-
-    **Data Access**
-
-    Subsets of rows can be accessed using the list access ``[]`` operator and
-    will return a table view of part of the PauliList. The underlying Numpy
-    array can be directly accessed using the :attr:`array` property, and the
-    sub-arrays for only the `X` or `Z` blocks can be accessed using the
-    :attr:`X` and :attr:`Z` properties respectively.
-
-    **Iteration**
-
-    Rows in the Pauli table can be iterated over like a list. Iteration can
-    also be done using the label or matrix representation of each row using the
-    :meth:`label_iter` and :meth:`matrix_iter` methods.
-
-    References:
-        1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
-           Phys. Rev. A 70, 052328 (2004).
-           `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
+    This class is an efficient representation of a list of
+    :class:`Pauli` operators. It supports 1D numpy array indexing
+    returning a :class:`Pauli` for integer indexes or a
+    :class:`PauliList` for slice or list indices.
     """
 
     # Set the max number of qubits * paulis before string truncation
@@ -155,8 +64,7 @@ class PauliList(BasePauli):
             base_z, base_x, base_phase = self._from_array(*data)
         elif isinstance(data, StabilizerTable):
             # Conversion from legacy StabilizerTable
-            base_z, base_x, base_phase = self._from_array(
-                data.Z, data.X, 2 * data.phase)
+            base_z, base_x, base_phase = self._from_array(data.Z, data.X, 2 * data.phase)
         elif isinstance(data, PauliTable):
             # Conversion from legacy PauliTable
             base_z, base_x, base_phase = self._from_array(data.Z, data.X)
@@ -174,7 +82,7 @@ class PauliList(BasePauli):
     def __array__(self, dtype=None):
         """Convert to numpy array"""
         # pylint: disable=unused-argument
-        shape = (len(self), ) + 2 * (2 ** self.num_qubits, )
+        shape = (len(self),) + 2 * (2 ** self.num_qubits,)
         ret = np.zeros(shape, dtype=complex)
         for i, mat in enumerate(self.matrix_iter()):
             ret[i] = mat
@@ -230,29 +138,30 @@ class PauliList(BasePauli):
             if self._num_paulis > max_paulis:
                 stop = max_paulis
         labels = [str(self[i]) for i in range(stop)]
-        prefix = 'PauliList(' if show_class else ''
-        tail = ')' if show_class else ''
+        prefix = "PauliList(" if show_class else ""
+        tail = ")" if show_class else ""
         if stop != self._num_paulis:
-            suffix = ', ...]' + tail
+            suffix = ", ...]" + tail
         else:
-            suffix = ']' + tail
+            suffix = "]" + tail
         list_str = np.array2string(
-            np.array(labels), threshold=stop + 1, separator=', ',
-            prefix=prefix, suffix=suffix)
+            np.array(labels), threshold=stop + 1, separator=", ", prefix=prefix, suffix=suffix
+        )
         return prefix + list_str[:-1] + suffix
 
     def __eq__(self, other):
         """Entrywise comparison of Pauli equality."""
         if not isinstance(other, PauliList):
             other = PauliList(other)
-        return np.all(self.phase == other.phase) and np.all(
-            self.z == other.z, axis=1) & np.all(self.x == other.x, axis=1)
+        return np.all(self.phase == other.phase) and np.all(self.z == other.z, axis=1) & np.all(
+            self.x == other.x, axis=1
+        )
 
     def equiv(self, other):
         """Entrywise comparison of Pauli equivalence up to global phase.
 
         Args:
-            other (Pauli or Pauli Table): a comparison object.
+            other (PauliList or Pauli): a comparison object.
 
         Returns:
             np.ndarray: An array of True or False for entrywise equivalence
@@ -260,8 +169,7 @@ class PauliList(BasePauli):
         """
         if not isinstance(other, PauliList):
             other = PauliList(other)
-        return np.all(self.z == other.z, axis=1) & np.all(
-            self.x == other.x, axis=1)
+        return np.all(self.z == other.z, axis=1) & np.all(self.x == other.x, axis=1)
 
     # ---------------------------------------------------------------------
     # Direct array access
@@ -316,16 +224,19 @@ class PauliList(BasePauli):
         # Row-only indexing
         if isinstance(index, (int, np.int)):
             # Single Pauli
-            return Pauli(BasePauli(self._z[np.newaxis, index],
-                                   self._x[np.newaxis, index],
-                                   self._phase[np.newaxis, index]))
+            return Pauli(
+                BasePauli(
+                    self._z[np.newaxis, index],
+                    self._x[np.newaxis, index],
+                    self._phase[np.newaxis, index],
+                )
+            )
         elif isinstance(index, (slice, list, np.ndarray)):
             # Sub-Table view
-            return PauliList(BasePauli(self._z[index], self._x[index],
-                                       self._phase[index]))
+            return PauliList(BasePauli(self._z[index], self._x[index], self._phase[index]))
 
         # Row and Qubit indexing
-        return PauliList(self._z[index], self._x[index], phase=0)
+        return PauliList((self._z[index], self._x[index], 0))
 
     def __setitem__(self, index, value):
         """Update PauliList."""
@@ -373,8 +284,10 @@ class PauliList(BasePauli):
         # Row deletion
         if not qubit:
             if max(ind) >= len(self):
-                raise QiskitError("Indices {} are not all less than the size"
-                                  " of the PauliList ({})".format(ind, len(self)))
+                raise QiskitError(
+                    "Indices {} are not all less than the size"
+                    " of the PauliList ({})".format(ind, len(self))
+                )
             z = np.delete(self._z, ind, axis=0)
             x = np.delete(self._x, ind, axis=0)
 
@@ -382,13 +295,15 @@ class PauliList(BasePauli):
 
         # Column (qubit) deletion
         if max(ind) >= self.num_qubits:
-            raise QiskitError("Indices {} are not all less than the number of"
-                              " qubits in the PauliList ({})".format(ind, self.num_qubits))
+            raise QiskitError(
+                "Indices {} are not all less than the number of"
+                " qubits in the PauliList ({})".format(ind, self.num_qubits)
+            )
         z = np.delete(self._z, ind, axis=1)
         x = np.delete(self._x, ind, axis=1)
         # Use self.phase, not self._phase as deleting qubits can change the
         # ZX phase convention
-        return PauliList(z, x, self.phase)
+        return PauliList((z, x, self.phase))
 
     def insert(self, ind, value, qubit=False):
         """Insert Pauli's into the table.
@@ -418,8 +333,10 @@ class PauliList(BasePauli):
         size = self._num_paulis
         if not qubit:
             if ind > size:
-                raise QiskitError("Index {} is larger than the number of rows in the"
-                                  " PauliList ({}).".format(ind, size))
+                raise QiskitError(
+                    "Index {} is larger than the number of rows in the"
+                    " PauliList ({}).".format(ind, size)
+                )
             base_z = np.insert(self._z, ind, value._z, axis=0)
             base_x = np.insert(self._x, ind, value._x, axis=0)
             base_phase = np.insert(self._phase, ind, value._phase)
@@ -427,8 +344,10 @@ class PauliList(BasePauli):
 
         # Column insertion
         if ind > self.num_qubits:
-            raise QiskitError("Index {} is greater than number of qubits"
-                              " in the PauliList ({})".format(ind, self.num_qubits))
+            raise QiskitError(
+                "Index {} is greater than number of qubits"
+                " in the PauliList ({})".format(ind, self.num_qubits)
+            )
         # TODO: Fix phase
         if len(value) == 1:
             # Pad blocks to correct size
@@ -440,14 +359,16 @@ class PauliList(BasePauli):
             value_z = value.z
         else:
             # Blocks are incorrect size
-            raise QiskitError("Input PauliList must have a single row, or"
-                              " the same number of rows as the Pauli Table"
-                              " ({}).".format(size))
+            raise QiskitError(
+                "Input PauliList must have a single row, or"
+                " the same number of rows as the Pauli Table"
+                " ({}).".format(size)
+            )
         # Build new array by blocks
         z = np.hstack([self.z[:, :ind], value_z])
         x = np.hstack([self.x[:, :ind], value_x])
 
-        return PauliList(z, x, self.phase)
+        return PauliList((z, x, self.phase))
 
     def argsort(self, weight=False, phase=False):
         """Return indices for sorting the rows of the table.
@@ -481,7 +402,7 @@ class PauliList(BasePauli):
         indices = np.arange(self._num_paulis)
 
         # Initial sort by phases
-        sort_inds = phases.argsort(kind='stable')
+        sort_inds = phases.argsort(kind="stable")
         indices = indices[sort_inds]
         order = order[sort_inds]
         if phase:
@@ -491,7 +412,7 @@ class PauliList(BasePauli):
 
         # Sort by order
         for i in range(self.num_qubits):
-            sort_inds = order[:, i].argsort(kind='stable')
+            sort_inds = order[:, i].argsort(kind="stable")
             order = order[sort_inds]
             indices = indices[sort_inds]
             if weight:
@@ -502,12 +423,12 @@ class PauliList(BasePauli):
         # If using weights we implement a sort by total number
         # of non-identity Paulis
         if weight:
-            indices = indices[weights.argsort(kind='stable')]
+            indices = indices[weights.argsort(kind="stable")]
 
         # If sorting by phase we perform a final sort by the phase value
         # of each pauli
         if phase:
-            indices = indices[phases.argsort(kind='stable')]
+            indices = indices[phases.argsort(kind="stable")]
         return indices
 
     def sort(self, weight=False, phase=False):
@@ -532,7 +453,7 @@ class PauliList(BasePauli):
                       'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ']
             # Shuffle Labels
             shuffle(labels)
-            pt = PauliList.from_labels(labels)
+            pt = PauliList(labels)
             print('Initial Ordering')
             print(pt)
 
@@ -592,31 +513,28 @@ class PauliList(BasePauli):
         if np.any(self._phase != self._phase[0]):
             # Create a single array of Pauli's and phases for calling np.unique on
             # so that we treat different phased Pauli's as unique
-            array = np.hstack([self._z, self._x,
-                               self.phase.reshape((self.phase.shape[0], 1))])
+            array = np.hstack([self._z, self._x, self.phase.reshape((self.phase.shape[0], 1))])
         else:
             # All Pauli's have the same phase so we only need to sort the array
             array = np.hstack([self._z, self._x])
 
         # Get indexes of unique entries
         if return_counts:
-            _, index, counts = np.unique(array, return_index=True,
-                                         return_counts=True, axis=0)
+            _, index, counts = np.unique(array, return_index=True, return_counts=True, axis=0)
         else:
             _, index = np.unique(array, return_index=True, axis=0)
 
         # Sort the index so we return unique rows in the original array order
         sort_inds = index.argsort()
         index = index[sort_inds]
-        unique = PauliList(BasePauli(self._z[index], self._x[index],
-                                     self._phase[index]))
+        unique = PauliList(BasePauli(self._z[index], self._x[index], self._phase[index]))
 
         # Concatinate return tuples
-        ret = (unique, )
+        ret = (unique,)
         if return_index:
-            ret += (index, )
+            ret += (index,)
         if return_counts:
-            ret += (counts[sort_inds], )
+            ret += (counts[sort_inds],)
         if len(ret) == 1:
             return ret[0]
         return ret
@@ -642,8 +560,10 @@ class PauliList(BasePauli):
         if not isinstance(other, PauliList):
             other = PauliList(other)
         if len(other) not in [1, len(self)]:
-            raise QiskitError("Incompatible PauliLists. Other list must "
-                              "have either 1 or the same number of Paulis.")
+            raise QiskitError(
+                "Incompatible PauliLists. Other list must "
+                "have either 1 or the same number of Paulis."
+            )
         return PauliList(super().tensor(other))
 
     def expand(self, other):
@@ -663,8 +583,10 @@ class PauliList(BasePauli):
         if not isinstance(other, PauliList):
             other = PauliList(other)
         if len(other) not in [1, len(self)]:
-            raise QiskitError("Incompatible PauliLists. Other list must "
-                              "have either 1 or the same number of Paulis.")
+            raise QiskitError(
+                "Incompatible PauliLists. Other list must "
+                "have either 1 or the same number of Paulis."
+            )
         return PauliList(super().expand(other))
 
     def compose(self, other, qargs=None, front=True, inplace=False):
@@ -686,14 +608,15 @@ class PauliList(BasePauli):
                          for the specified qargs.
         """
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
         if not isinstance(other, PauliList):
             other = PauliList(other)
         if len(other) not in [1, len(self)]:
-            raise QiskitError("Incompatible PauliLists. Other list must "
-                              "have either 1 or the same number of Paulis.")
-        return PauliList(super().compose(
-            other, qargs=qargs, front=front, inplace=inplace))
+            raise QiskitError(
+                "Incompatible PauliLists. Other list must "
+                "have either 1 or the same number of Paulis."
+            )
+        return PauliList(super().compose(other, qargs=qargs, front=front, inplace=inplace))
 
     # pylint: disable=arguments-differ
     def dot(self, other, qargs=None, inplace=False):
@@ -730,24 +653,25 @@ class PauliList(BasePauli):
             PauliList: the concatinated list self + other.
         """
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
 
         if not isinstance(other, PauliList):
             other = PauliList(other)
 
-        self._validate_add_dims(other, qargs)
+        self._op_shape._validate_add(other._op_shape, qargs)
 
         base_phase = np.hstack((self._phase, other._phase))
 
-        if qargs is None or (sorted(qargs) == qargs
-                             and len(qargs) == self.num_qubits):
+        if qargs is None or (sorted(qargs) == qargs and len(qargs) == self.num_qubits):
             base_z = np.vstack([self._z, other._z])
             base_x = np.vstack([self._x, other._x])
         else:
             # Pad other with identity and then add
-            padded = BasePauli(np.zeros((1, self.num_qubits), dtype=np.bool),
-                               np.zeros((1, self.num_qubits), dtype=np.bool),
-                               np.zeros(self.num_qubits, dtype=np.int))
+            padded = BasePauli(
+                np.zeros((1, self.num_qubits), dtype=np.bool),
+                np.zeros((1, self.num_qubits), dtype=np.bool),
+                np.zeros(self.num_qubits, dtype=np.int),
+            )
             padded = padded.compose(other, qargs=qargs, inplace=True)
             base_z = np.vstack([self._z, padded._z])
             base_x = np.vstack([self._x, padded._x])
@@ -799,7 +723,7 @@ class PauliList(BasePauli):
             bool: True if Pauli's commute, False if they anti-commute.
         """
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
         if not isinstance(other, BasePauli):
             other = PauliList(other)
         return super().commutes(other, qargs=qargs)
@@ -835,7 +759,7 @@ class PauliList(BasePauli):
         from qiskit.circuit import Instruction, QuantumCircuit
 
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
 
         # Convert quantum circuits to Cliffords
         if isinstance(other, Clifford):
@@ -861,14 +785,16 @@ class PauliList(BasePauli):
         Returns:
             LabelIterator: label iterator object for the PauliList.
         """
+
         class LabelIterator(CustomIterator):
             """Label representation iteration and item access."""
+
             def __repr__(self):
                 return "<PauliList_label_iterator at {}>".format(hex(id(self)))
 
             def __getitem__(self, key):
-                return self.obj._to_label(self.obj._z[key], self.obj._x[key],
-                                          self.obj._phase[key])
+                return self.obj._to_label(self.obj._z[key], self.obj._x[key], self.obj._phase[key])
+
         return LabelIterator(self)
 
     def matrix_iter(self, sparse=False):
@@ -886,12 +812,16 @@ class PauliList(BasePauli):
         Returns:
             MatrixIterator: matrix iterator object for the PauliList.
         """
+
         class MatrixIterator(CustomIterator):
             """Matrix representation iteration and item access."""
+
             def __repr__(self):
                 return "<PauliList_matrix_iterator at {}>".format(hex(id(self)))
 
             def __getitem__(self, key):
-                return self.obj._to_matrix(self.obj._z[key], self.obj._x[key],
-                                           self.obj._phase[key], sparse=sparse)
+                return self.obj._to_matrix(
+                    self.obj._z[key], self.obj._x[key], self.obj._phase[key], sparse=sparse
+                )
+
         return MatrixIterator(self)
