@@ -439,6 +439,7 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             "test.python.quantum_info.operators.channel.test_choi",
             "test.python.quantum_info.operators.channel.test_chi",
             "test.python.quantum_info.operators.channel.test_superop",
+            "test.python.quantum_info.operators.channel.test_stinespring",
         ]
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
