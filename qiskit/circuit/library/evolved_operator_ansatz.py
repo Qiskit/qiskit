@@ -27,7 +27,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
 
     def __init__(
         self,
-        operators: Optional[Union["OperatorBase", List["OperatorBase"]]] = None,
+        operators: Optional[Union["OperatorBase", QuantumCircuit, List[Union["OperatorBase", QuantumCircuit]]]] = None,
         reps: int = 1,
         evolution: Optional["EvolutionBase"] = None,
         insert_barriers: bool = False,
@@ -49,15 +49,15 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
 
             evolution = PauliTrotterEvolution()
 
+        if operators is not None:
+            operators = _validate_operators(operators)
+
         super().__init__(name=name)
-        self._operators = None
+        self._operators = operators
         self._evolution = evolution
         self._reps = reps
         self._insert_barriers = insert_barriers
         self._initial_state = initial_state
-
-        # use setter to set operators
-        self.operators = operators
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         if self.operators is None:
@@ -113,14 +113,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
     @operators.setter
     def operators(self, operators: Union["OperatorBase", List["OperatorBase"]]) -> None:
         """Set the operators to be evolved."""
-        if not isinstance(operators, list):
-            operators = [operators]
-
-        if len(operators) > 1:
-            num_qubits = operators[0].num_qubits
-            if any(operators[i].num_qubits != num_qubits for i in range(1, len(operators))):
-                raise ValueError("All operators must act on the same number of qubits.")
-
+        operators = _validate_operators(operators)
         self._invalidate()
         self._operators = operators
 
@@ -162,9 +155,26 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         self._data = []
 
         # get the evolved operators as circuits
+        from qiskit.opflow import PauliOp
+
         coeff = Parameter("c")
-        evolved_ops = [self.evolution.convert((coeff * op).exp_i()) for op in self.operators]
-        circuits = [evolved_op.reduce().to_circuit() for evolved_op in evolved_ops]
+        circuits = []
+        is_evolved_operator = []
+        for op in self.operators:
+            # if the operator is already the evolved circuit just append it
+            if isinstance(op, QuantumCircuit):
+                circuits.append(op)
+                is_evolved_operator.append(False)  # has no time coeff
+            else:
+                # check if the operator is just the identity, if yes, skip it
+                if isinstance(op, PauliOp):
+                    sig_qubits = np.logical_or(op.primitive.x, op.primitive.z)
+                    if sum(sig_qubits) == 0:
+                        continue
+
+                evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
+                circuits.append(evolved_op.to_circuit())
+                is_evolved_operator.append(True)  # has time coeff
 
         # set the registers
         num_qubits = circuits[0].num_qubits
@@ -176,18 +186,36 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
             pass
 
         # build the circuit
-        times = ParameterVector("t", self.reps * len(self.operators))
+        times = ParameterVector("t", self.reps * sum(is_evolved_operator))
         times_it = iter(times)
 
         first = True
         for _ in range(self.reps):
-            for circuit in circuits:
+            for is_evolved, circuit in zip(is_evolved_operator, circuits):
                 if first:
                     first = False
                 else:
                     if self._insert_barriers:
                         self.barrier()
-                self.compose(circuit.assign_parameters({coeff: next(times_it)}), inplace=True)
 
-        if self._initial_state:
-            self.compose(self._initial_state, front=True, inplace=True)
+                if is_evolved:
+                    bound = circuit.assign_parameters({coeff: next(times_it)})
+                else:
+                    bound = circuit
+
+                self.compose(bound, inplace=True)
+
+        if self.initial_state:
+            self.compose(self.initial_state, front=True, inplace=True)
+
+
+def _validate_operators(operators):
+    if not isinstance(operators, list):
+        operators = [operators]
+
+    if len(operators) > 1:
+        num_qubits = operators[0].num_qubits
+        if any(operators[i].num_qubits != num_qubits for i in range(1, len(operators))):
+            raise ValueError("All operators must act on the same number of qubits.")
+
+    return operators
