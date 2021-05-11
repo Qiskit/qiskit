@@ -11,22 +11,27 @@
 # that they have been altered from the originals.
 
 """A pulse that is described by complex-valued sample points."""
-from typing import Callable, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
+from qiskit.pulse.utils import deprecated_functionality
 
 
 class Waveform(Pulse):
     """A pulse specified completely by complex-valued samples; each sample is played for the
     duration of the backend cycle-time, dt.
     """
-    def __init__(self, samples: Union[np.ndarray, List[complex]],
-                 name: Optional[str] = None,
-                 epsilon: float = 1e-7):
+
+    def __init__(
+        self,
+        samples: Union[np.ndarray, List[complex]],
+        name: Optional[str] = None,
+        epsilon: float = 1e-7,
+    ):
         """Create new sample pulse command.
 
         Args:
@@ -67,73 +72,56 @@ class Waveform(Pulse):
             PulseError: If there exists a pulse sample with a norm greater than 1+epsilon.
         """
         samples_norm = np.abs(samples)
-        to_clip = (samples_norm > 1.) & (samples_norm <= 1. + epsilon)
+        to_clip = (samples_norm > 1.0) & (samples_norm <= 1.0 + epsilon)
 
         if np.any(to_clip):
             # first try normalizing by the abs value
             clip_where = np.argwhere(to_clip)
             clip_angle = np.angle(samples[clip_where])
-            clipped_samples = np.exp(1j*clip_angle, dtype=np.complex_)
+            clipped_samples = np.exp(1j * clip_angle, dtype=np.complex_)
 
             # if norm still exceed one subtract epsilon
             # required for some platforms
             clipped_sample_norms = np.abs(clipped_samples)
-            to_clip_epsilon = clipped_sample_norms > 1.
+            to_clip_epsilon = clipped_sample_norms > 1.0
             if np.any(to_clip_epsilon):
                 clip_where_epsilon = np.argwhere(to_clip_epsilon)
-                clipped_samples_epsilon = (1-epsilon)*np.exp(
-                    1j*clip_angle[clip_where_epsilon], dtype=np.complex_)
+                clipped_samples_epsilon = (1 - epsilon) * np.exp(
+                    1j * clip_angle[clip_where_epsilon], dtype=np.complex_
+                )
                 clipped_samples[clip_where_epsilon] = clipped_samples_epsilon
 
             # update samples with clipped values
             samples[clip_where] = clipped_samples
             samples_norm[clip_where] = np.abs(clipped_samples)
 
-        if np.any(samples_norm > 1.):
-            raise PulseError('Pulse contains sample with norm greater than 1+epsilon.')
+        if np.any(samples_norm > 1.0):
+            raise PulseError("Pulse contains sample with norm greater than 1+epsilon.")
 
         return samples
 
     def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
         return False
 
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]
-                          ) -> 'Waveform':
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        """Return a dictionary containing the pulse's parameters."""
+        return dict()
+
+    @deprecated_functionality
+    def assign_parameters(
+        self, value_dict: Dict[ParameterExpression, ParameterValueType]
+    ) -> "Waveform":
         # Waveforms don't accept parameters
         return self
 
-    def draw(self, dt: float = 1,
-             style=None,
-             filename: Optional[str] = None,
-             interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False,
-             draw_title: bool = False):
-        """Plot the interpolated envelope of pulse.
-
-        Args:
-            dt: Time interval of samples.
-            style (Optional[PulseStyle]): A style sheet to configure plot appearance.
-            filename: Name required to save pulse image.
-            interp_method: A function for interpolation.
-            scale: Relative visual scaling of waveform amplitudes.
-            interactive: When set true show the circuit in a new window.
-                (This depends on the matplotlib backend being used.)
-            draw_title: Add a title to the plot when set to ``True``.
-
-        Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse envelope
-        """
-        # pylint: disable=invalid-name, cyclic-import
-        from qiskit import visualization
-
-        return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
-                                          interp_method=interp_method, scale=scale,
-                                          interactive=interactive)
-
     def __eq__(self, other: Pulse) -> bool:
-        return super().__eq__(other) and self.samples.shape == other.samples.shape and \
-               np.allclose(self.samples, other.samples, rtol=0, atol=self.epsilon)
+        return (
+            super().__eq__(other)
+            and self.samples.shape == other.samples.shape
+            and np.allclose(self.samples, other.samples, rtol=0, atol=self.epsilon)
+        )
 
     def __hash__(self) -> int:
         return hash(self.samples.tostring())
@@ -142,5 +130,8 @@ class Waveform(Pulse):
         opt = np.get_printoptions()
         np.set_printoptions(threshold=50)
         np.set_printoptions(**opt)
-        return "{}({}{})".format(self.__class__.__name__, repr(self.samples),
-                                 ", name='{}'".format(self.name) if self.name is not None else "")
+        return "{}({}{})".format(
+            self.__class__.__name__,
+            repr(self.samples),
+            ", name='{}'".format(self.name) if self.name is not None else "",
+        )

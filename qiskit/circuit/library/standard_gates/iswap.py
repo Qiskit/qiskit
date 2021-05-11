@@ -77,7 +77,7 @@ class iSwapGate(Gate):
 
     def __init__(self):
         """Create new iSwap gate."""
-        super().__init__('iswap', 2, [])
+        super().__init__("iswap", 2, [])
 
     def _define(self):
         """
@@ -95,7 +95,8 @@ class iSwapGate(Gate):
         from .h import HGate
         from .s import SGate
         from .x import CXGate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (SGate(), [q[0]], []),
@@ -103,16 +104,13 @@ class iSwapGate(Gate):
             (HGate(), [q[0]], []),
             (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[0]], []),
-            (HGate(), [q[1]], [])
+            (HGate(), [q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the iSWAP gate."""
-        return np.array([[1, 0, 0, 0],
-                         [0, 0, 1j, 0],
-                         [0, 1j, 0, 0],
-                         [0, 0, 0, 1]], dtype=complex)
+        return np.array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]], dtype=dtype)

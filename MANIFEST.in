@@ -1,9 +1,11 @@
 include LICENSE.txt
+include requirements.txt
 include qiskit/qasm/libs/*.inc
 include qiskit/schemas/*.json
+include qiskit/schemas/examples/*.json
 include qiskit/VERSION.txt
-include qiskit/transpiler/passes/routing/cython/stochastic_swap/*.pyx
-include qiskit/transpiler/passes/routing/cython/stochastic_swap/*.pxd
+recursive-include qiskit *.pyx
+recursive-include qiskit *.pxd
 include qiskit/visualization/styles/*.json
 recursive-include qiskit/test/mock/backends *.json
 

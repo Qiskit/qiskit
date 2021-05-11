@@ -10,6 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
+
+
 """Test the TemplateOptimization pass."""
 
 import unittest
@@ -20,6 +23,7 @@ from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library.templates import template_nct_2a_2, template_nct_5a_3
 from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.test import QiskitTestCase
@@ -59,7 +63,7 @@ class TestTemplateMatching(QiskitTestCase):
         """
         Check the cancellation of CX gates for the apply of a self made template cx-cx.
         """
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit_in = QuantumCircuit(qr)
         circuit_in.h(qr[0])
         circuit_in.h(qr[0])
@@ -71,7 +75,7 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_in.cx(qr[1], qr[0])
         dag_in = circuit_to_dag(circuit_in)
 
-        qrt = QuantumRegister(2, 'qrc')
+        qrt = QuantumRegister(2, "qrc")
         qct = QuantumCircuit(qrt)
         qct.cx(0, 1)
         qct.cx(0, 1)
@@ -91,7 +95,7 @@ class TestTemplateMatching(QiskitTestCase):
         """
         Check the cancellation of CX gates for the apply of the library template cx-cx (2a_2).
         """
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit_in = QuantumCircuit(qr)
         circuit_in.h(qr[0])
         circuit_in.h(qr[0])
@@ -150,7 +154,7 @@ class TestTemplateMatching(QiskitTestCase):
         qr_4: ──■──┤ X ├───────────────
                    └───┘
         """
-        qr = QuantumRegister(5, 'qr')
+        qr = QuantumRegister(5, "qr")
         circuit_in = QuantumCircuit(qr)
         circuit_in.ccx(qr[3], qr[4], qr[0])
         circuit_in.cx(qr[1], qr[4])
@@ -183,7 +187,7 @@ class TestTemplateMatching(QiskitTestCase):
         """
         If a template is not equivalent to the identity, it raises an error.
         """
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit_in = QuantumCircuit(qr)
         circuit_in.h(qr[0])
         circuit_in.h(qr[0])
@@ -195,7 +199,7 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_in.cx(qr[1], qr[0])
         dag_in = circuit_to_dag(circuit_in)
 
-        qrt = QuantumRegister(2, 'qrc')
+        qrt = QuantumRegister(2, "qrc")
         qct = QuantumCircuit(qrt)
         qct.cx(0, 1)
         qct.x(0)
@@ -205,6 +209,21 @@ class TestTemplateMatching(QiskitTestCase):
         pass_ = TemplateOptimization(template_list)
 
         self.assertRaises(TranspilerError, pass_.run, dag_in)
+
+    def test_accept_dagdependency(self):
+        """
+        Check that users can supply DAGDependency in the template list.
+        """
+        circuit_in = QuantumCircuit(2)
+        circuit_in.cnot(0, 1)
+        circuit_in.cnot(0, 1)
+
+        templates = [circuit_to_dagdependency(circuit_in)]
+
+        pass_ = TemplateOptimization(template_list=templates)
+        circuit_out = PassManager(pass_).run(circuit_in)
+
+        self.assertEqual(circuit_out.count_ops().get("cx", 0), 0)
 
     def test_parametric_template(self):
         """
@@ -234,17 +253,17 @@ class TestTemplateMatching(QiskitTestCase):
 
         class CZp(Gate):
             """CZ gates used for the test."""
+
             def __init__(self, num_qubits, params):
-                super().__init__('cz', num_qubits, params)
+                super().__init__("cz", num_qubits, params)
 
             def inverse(self):
-                inverse = UnitaryGate(
-                    np.diag([1.0, 1.0, 1.0, np.exp(-2.0j * self.params[0])]))
-                inverse.name = 'icz'
+                inverse = UnitaryGate(np.diag([1.0, 1.0, 1.0, np.exp(-2.0j * self.params[0])]))
+                inverse.name = "icz"
                 return inverse
 
         def template_czp2():
-            beta = Parameter('β')
+            beta = Parameter("β")
             qc = QuantumCircuit(2)
             qc.p(-beta, 0)
             qc.p(-beta, 1)
@@ -257,7 +276,7 @@ class TestTemplateMatching(QiskitTestCase):
 
         def count_cx(qc):
             """Counts the number of CX gates for testing."""
-            return qc.count_ops().get('cx', 0)
+            return qc.count_ops().get("cx", 0)
 
         circuit_in = QuantumCircuit(3)
         circuit_in.p(-2, 0)
@@ -274,11 +293,10 @@ class TestTemplateMatching(QiskitTestCase):
         pass_ = TemplateOptimization(template_list=[template_czp2()])
         circuit_out = PassManager(pass_).run(circuit_in)
 
-        np.testing.assert_almost_equal(Operator(circuit_out).data[3, 3], np.exp(-4.j))
-        np.testing.assert_almost_equal(Operator(circuit_out).data[7, 7], np.exp(-10.j))
+        np.testing.assert_almost_equal(Operator(circuit_out).data[3, 3], np.exp(-4.0j))
+        np.testing.assert_almost_equal(Operator(circuit_out).data[7, 7], np.exp(-10.0j))
         self.assertEqual(count_cx(circuit_out), 0)  # Two matches => no CX gates.
-        np.testing.assert_almost_equal(Operator(circuit_in).data,
-                                       Operator(circuit_out).data)
+        np.testing.assert_almost_equal(Operator(circuit_in).data, Operator(circuit_out).data)
 
         circuit_in = QuantumCircuit(3)
         circuit_in.p(-2, 0)
@@ -296,9 +314,51 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_out = PassManager(pass_).run(circuit_in)
 
         self.assertEqual(count_cx(circuit_out), 2)  # One match => two CX gates.
-        np.testing.assert_almost_equal(Operator(circuit_in).data,
-                                       Operator(circuit_out).data)
+        np.testing.assert_almost_equal(Operator(circuit_in).data, Operator(circuit_out).data)
+
+    def test_unbound_parameters(self):
+        """
+        Test that partial matches with parameters will not raise errors.
+        This tests that if parameters are still in the temporary template after
+        _attempt_bind then they will not be used.
+        """
+
+        class PhaseSwap(Gate):
+            """CZ gates used for the test."""
+
+            def __init__(self, num_qubits, params):
+                super().__init__("p", num_qubits, params)
+
+            def inverse(self):
+                inverse = UnitaryGate(
+                    np.diag(
+                        [1.0, 1.0, np.exp(-1.0j * self.params[0]), np.exp(-1.0j * self.params[0])]
+                    )
+                )
+                inverse.name = "p"
+                return inverse
+
+        def template():
+            beta = Parameter("β")
+            qc = QuantumCircuit(2)
+            qc.cx(1, 0)
+            qc.cx(1, 0)
+            qc.p(beta, 1)
+            qc.append(PhaseSwap(2, [beta]), [0, 1])
+
+            return qc
+
+        circuit_in = QuantumCircuit(2)
+        circuit_in.cx(1, 0)
+        circuit_in.cx(1, 0)
+
+        pass_ = TemplateOptimization(template_list=[template()])
+        circuit_out = PassManager(pass_).run(circuit_in)
+
+        # This template will not fully match as long as gates with parameters do not
+        # commute with any other gates in the DAG dependency.
+        self.assertEqual(circuit_out.count_ops().get("cx", 0), 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
