@@ -1311,7 +1311,7 @@ class MatplotlibDrawer:
                     cmask = list(fmt_c.format(mask))[::-1]
                     # value
                     fmt_v = "{{:0{}b}}".format(cmask.count("1"))
-                    vlist = list(fmt_v.format(val))[::-1]
+                    vlist = list(fmt_v.format(val))
                     if not self._reverse_bits:
                         vlist = vlist[::-1]
 
