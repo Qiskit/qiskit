@@ -450,7 +450,7 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             r"The jsonschema validation included in qiskit-terra.*",
             r"The DerivativeBase.parameter_expression_grad method.*",
             r"Back-references to from Bit instances.*",
-            r"The QuantumCircuit.u2 method.*",
+            r"The QuantumCircuit.u. method.*",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
