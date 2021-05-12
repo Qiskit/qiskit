@@ -24,7 +24,7 @@ For example::
 import warnings
 from abc import ABC, abstractproperty
 from collections import defaultdict
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any
+from typing import Callable, Dict, List, Optional, Set, Tuple, Any, Union
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
@@ -118,10 +118,11 @@ class Instruction(ABC):
         return self.duration
 
     @property
-    def duration(self) -> int:
+    def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
         raise NotImplementedError
 
+    @deprecated_functionality
     @property
     def _children(self) -> Tuple["Instruction"]:
         """Instruction has no child nodes."""
@@ -130,7 +131,7 @@ class Instruction(ABC):
     @property
     def instructions(self) -> Tuple[Tuple[int, "Instruction"]]:
         """Iterable for getting instructions from Schedule tree."""
-        return tuple(self._instructions())
+        return tuple((tuple((0, self)),))
 
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return duration of the supplied channels in this Instruction.
@@ -158,18 +159,6 @@ class Instruction(ABC):
         if any(chan in self.channels for chan in channels):
             return self.duration
         return 0
-
-    def _instructions(self, time: int = 0) -> Iterable[Tuple[int, "Instruction"]]:
-        """Iterable for flattening Schedule tree.
-
-        Args:
-            time: Shifted time of this node due to parent
-
-        Yields:
-            Tuple[int, Union['Schedule, 'Instruction']]: Tuple of the form
-                (start_time, instruction).
-        """
-        yield (time, self)
 
     def flatten(self) -> "Instruction":
         """Return itself as already single instruction."""

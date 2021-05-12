@@ -281,7 +281,7 @@ class _PulseBuilder:
     def __init__(
         self,
         backend=None,
-        block: Optional[ScheduleBlock] = None,
+        root_program: Optional[Union[Schedule, ScheduleBlock]] = None,
         name: Optional[str] = None,
         default_alignment: Union[str, AlignmentKind] = "left",
         default_transpiler_settings: Mapping = None,
@@ -299,7 +299,7 @@ class _PulseBuilder:
         Args:
             backend (Union[Backend, BaseBackend]): Input backend to use in
                 builder. If not set certain functionality will be unavailable.
-            block: Initital ``ScheduleBlock`` to build on.
+            root_program: Initial program to build on.
             name: Name of pulse program to be built.
             default_alignment: Default scheduling alignment for builder.
                 One of ``left``, ``right``, ``sequential`` or an instance of
@@ -309,8 +309,11 @@ class _PulseBuilder:
                 circuit to pulse scheduler.
 
         Raises:
-            PulseError: When invalid ``default_alignment`` or `block` is specified.
+            PulseError: When invalid ``default_alignment`` is specified.
         """
+        if isinstance(root_program, Schedule):
+            root_program = transforms.schedule_to_block(root_program)
+
         #: BaseBackend: Backend instance for context builder.
         self._backend = backend
 
@@ -333,18 +336,8 @@ class _PulseBuilder:
         self._name = name
 
         # Add root block if provided. Schedule will be built on top of this.
-        if block is not None:
-            if isinstance(block, ScheduleBlock):
-                root_block = block
-            elif isinstance(block, Schedule):
-                root_block = ScheduleBlock()
-                root_block.append(instructions.Call(subroutine=block))
-            else:
-                raise exceptions.PulseError(
-                    f"Input `block` type {block.__class__.__name__} is "
-                    "not a valid format. Specify a pulse program."
-                )
-            self._context_stack.append(root_block)
+        if root_program is not None:
+            self._context_stack.append(root_program)
 
         # Set default alignment context
         alignment = _PulseBuilder.__alignment_kinds__.get(default_alignment, default_alignment)
@@ -444,7 +437,11 @@ class _PulseBuilder:
 
         while len(self._context_stack) > 1:
             current = self.pop_context()
-            self.append_block(current)
+            self.append_program(current)
+
+        # assign node time if all durations are defined
+        if self._context_stack[0].is_schedulable():
+            transforms.allocate_node_time(self._context_stack[0])
 
         return self._context_stack[0]
 
@@ -458,7 +455,7 @@ class _PulseBuilder:
             lazy_circuit = self._lazy_circuit
             # reset lazy circuit
             self._lazy_circuit = self._new_circuit()
-            self.call_subroutine(subroutine=self._compile_circuit(lazy_circuit))
+            self.append_program(context_schedule=self._compile_circuit(lazy_circuit))
 
     def _compile_circuit(self, circ) -> Schedule:
         """Take a QuantumCircuit and output the pulse schedule associated with the circuit."""
@@ -484,15 +481,32 @@ class _PulseBuilder:
         self._context_stack[-1].append(instruction)
 
     @_compile_lazy_circuit_before
-    def append_block(self, context_block: ScheduleBlock):
-        """Add a :class:`ScheduleBlock` to the builder's context schedule.
+    def append_program(self, program: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock]):
+        """Add a program block to the builder's context schedule.
 
         Args:
-            context_block: ScheduleBlock to append to the current context block.
+            program: A program block to append to the current context block.
+
+        Raises:
+            PulseError:
+                - When input subroutine is not valid data format.
         """
+        if isinstance(program, circuit.QuantumCircuit):
+            self._compile_lazy_circuit()
+            program = self._compile_circuit(program)
+
         # ignore empty context
-        if len(context_block) > 0:
-            self._context_stack[-1].append(context_block)
+        if isinstance(program, (Schedule, ScheduleBlock)):
+            if len(program) > 0:
+                if isinstance(program, Schedule):
+                    program = transforms.schedule_to_block(program)
+                self._context_stack[-1].append(program)
+        else:
+            raise exceptions.PulseError(
+                f"Program type {program.__class__.__name__} is "
+                "not valid data format. Add QuantumCircuit, "
+                "Schedule, or ScheduleBlock."
+            )
 
     def call_subroutine(
         self,
@@ -527,39 +541,30 @@ class _PulseBuilder:
             self._compile_lazy_circuit()
             subroutine = self._compile_circuit(subroutine)
 
-        empty_subroutine = True
-        if isinstance(subroutine, Schedule):
-            if len(subroutine.instructions) > 0:
-                empty_subroutine = False
-        elif isinstance(subroutine, ScheduleBlock):
-            if len(subroutine.blocks) > 0:
-                empty_subroutine = False
+        if isinstance(subroutine, (Schedule, ScheduleBlock)):
+            if len(subroutine) > 0:
+                param_value_map = dict()
+                for param_name, assigned_value in kw_params.items():
+                    param_objs = subroutine.get_parameters(param_name)
+                    if len(param_objs) > 0:
+                        for param_obj in param_objs:
+                            param_value_map[param_obj] = assigned_value
+                    else:
+                        raise exceptions.PulseError(
+                            f"Parameter {param_name} is not defined in the target subroutine. "
+                            f'{", ".join(map(str, subroutine.parameters))} can be specified.'
+                        )
+
+                if value_dict:
+                    param_value_map.update(value_dict)
+
+                self.append_instruction(instructions.Call(subroutine, param_value_map, name))
         else:
             raise exceptions.PulseError(
                 f"Subroutine type {subroutine.__class__.__name__} is "
                 "not valid data format. Call QuantumCircuit, "
                 "Schedule, or ScheduleBlock."
             )
-
-        if not empty_subroutine:
-            param_value_map = dict()
-            for param_name, assigned_value in kw_params.items():
-                param_objs = subroutine.get_parameters(param_name)
-                if len(param_objs) > 0:
-                    for param_obj in param_objs:
-                        param_value_map[param_obj] = assigned_value
-                else:
-                    raise exceptions.PulseError(
-                        f"Parameter {param_name} is not defined in the target subroutine. "
-                        f'{", ".join(map(str, subroutine.parameters))} can be specified.'
-                    )
-
-            if value_dict:
-                param_value_map.update(value_dict)
-
-            call_def = instructions.Call(subroutine, param_value_map, name)
-
-            self.append_instruction(call_def)
 
     @_requires_backend
     def call_gate(self, gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
@@ -601,7 +606,7 @@ class _PulseBuilder:
 
 def build(
     backend=None,
-    schedule: Optional[ScheduleBlock] = None,
+    schedule: Optional[Union[Schedule, ScheduleBlock]] = None,
     name: Optional[str] = None,
     default_alignment: Optional[Union[str, AlignmentKind]] = "left",
     default_transpiler_settings: Optional[Dict[str, Any]] = None,
@@ -635,7 +640,8 @@ def build(
     Args:
         backend (Union[Backend, BaseBackend]): A Qiskit backend. If not supplied certain
             builder functionality will be unavailable.
-        schedule: A pulse ``ScheduleBlock`` in which your pulse program will be built.
+        schedule: A pulse ``Schedule`` or ``ScheduleBlock`` in which
+            your pulse program will be built.
         name: Name of pulse program to be built.
         default_alignment: Default scheduling alignment for builder.
             One of ``left``, ``right``, ``sequential`` or an alignment context.
@@ -648,7 +654,7 @@ def build(
     """
     return _PulseBuilder(
         backend=backend,
-        block=schedule,
+        root_program=schedule,
         name=name,
         default_alignment=default_alignment,
         default_transpiler_settings=default_transpiler_settings,
@@ -709,7 +715,7 @@ def append_schedule(schedule: Union[Schedule, ScheduleBlock]):
     if isinstance(schedule, Schedule):
         _active_builder().append_instruction(instructions.Call(subroutine=schedule))
     elif isinstance(schedule, ScheduleBlock):
-        _active_builder().append_block(schedule)
+        _active_builder().append_program(schedule)
     else:
         raise exceptions.PulseError(
             f"Input program {schedule.__class__.__name__} is not "
@@ -909,7 +915,7 @@ def align_left() -> ContextManager[None]:
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_program(current)
 
 
 @contextmanager
@@ -947,7 +953,7 @@ def align_right() -> AlignmentKind:
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_program(current)
 
 
 @contextmanager
@@ -985,7 +991,7 @@ def align_sequential() -> AlignmentKind:
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_program(current)
 
 
 @contextmanager
@@ -1036,7 +1042,7 @@ def align_equispaced(duration: Union[int, ParameterExpression]) -> AlignmentKind
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_program(current)
 
 
 @contextmanager
@@ -1097,7 +1103,7 @@ def align_func(
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_program(current)
 
 
 @contextmanager
@@ -1123,7 +1129,7 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_program(current)
 
 
 @utils.deprecated_functionality
@@ -1135,14 +1141,6 @@ def inline() -> ContextManager[None]:
     .. warning:: This will cause all scheduling directives within this context
         to be ignored.
     """
-
-    def _flatten(block):
-        for inst in block.blocks:
-            if isinstance(inst, ScheduleBlock):
-                yield from _flatten(inst)
-            else:
-                yield inst
-
     builder = _active_builder()
 
     # set a placeholder
@@ -1151,8 +1149,8 @@ def inline() -> ContextManager[None]:
         yield
     finally:
         placeholder = builder.pop_context()
-        for inst in _flatten(placeholder):
-            builder.append_instruction(inst)
+        for node in placeholder.nodes(flatten=True):
+            builder.append_instruction(node.data)
 
 
 @contextmanager
@@ -1940,7 +1938,7 @@ def macro(func: Callable):
         with build(backend=_builder.backend, name=func_name) as built:
             output = func(*args, **kwargs)
 
-        _builder.call_subroutine(built)
+        _builder.append_program(built)
         return output
 
     return wrapper
@@ -2028,7 +2026,7 @@ def measure(
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
-    _active_builder().call_subroutine(measure_sched)
+    _active_builder().append_program(measure_sched)
 
     if len(qubits) == 1:
         return registers[0]
@@ -2063,7 +2061,7 @@ def measure_all() -> List[chans.MemorySlot]:
         The ``register``\s the qubit measurement results will be stored in.
     """
     backend = active_backend()
-    qubits = range(num_qubits())
+    qubits = list(range(num_qubits()))
     registers = [chans.MemorySlot(qubit) for qubit in qubits]
     measure_sched = macros.measure(
         qubits=qubits,
@@ -2074,7 +2072,7 @@ def measure_all() -> List[chans.MemorySlot]:
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
-    _active_builder().call_subroutine(measure_sched)
+    _active_builder().append_program(measure_sched)
 
     return registers
 

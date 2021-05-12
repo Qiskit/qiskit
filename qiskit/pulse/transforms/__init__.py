@@ -44,6 +44,7 @@ Openpulse backends.
 
    add_implicit_acquires
    align_measures
+   allocate_node_time
    block_to_schedule
    compress_pulses
    flatten
@@ -51,6 +52,7 @@ Openpulse backends.
    pad
    remove_directives
    remove_trivial_barriers
+   schedule_to_block
 
 
 DAG
@@ -95,6 +97,7 @@ from qiskit.pulse.transforms.base_transforms import target_qobj_transform
 from qiskit.pulse.transforms.canonicalization import (
     add_implicit_acquires,
     align_measures,
+    allocate_node_time,
     block_to_schedule,
     compress_pulses,
     flatten,
@@ -102,6 +105,7 @@ from qiskit.pulse.transforms.canonicalization import (
     pad,
     remove_directives,
     remove_trivial_barriers,
+    schedule_to_block,
 )
 
 from qiskit.pulse.transforms.dag import block_to_dag

@@ -12,13 +12,15 @@
 """A collection of passes to reallocate the timeslots of instructions according to context."""
 
 import abc
-from typing import Callable, Dict, Any, Union
+import copy
+from typing import Callable, Dict, Any, Union, Iterator
 
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule, ScheduleComponent
+from qiskit.pulse.schedule import Schedule, ScheduleBlock, ScheduleNode
+from qiskit.pulse.instructions import RelativeBarrier
 from qiskit.pulse.utils import instruction_duration_validation, deprecated_functionality
 
 
@@ -32,7 +34,9 @@ class AlignmentKind(abc.ABC):
         self._context_params = tuple()
 
     @abc.abstractmethod
-    def align(self, schedule: Schedule) -> Schedule:
+    def align(
+        self, schedule: Union[Schedule, ScheduleBlock], inplace: bool = False
+    ) -> Union[Schedule, ScheduleBlock]:
         """Reallocate instructions according to the policy.
 
         Only top-level sub-schedules are aligned. If sub-schedules are nested,
@@ -62,6 +66,32 @@ class AlignmentKind(abc.ABC):
         return f"{name}({opts_str})"
 
 
+class Frozen(AlignmentKind):
+    """Keep node time."""
+
+    is_sequential = False
+
+    def align(
+        self, schedule: Union[Schedule, ScheduleBlock], inplace: bool = False
+    ) -> Union[Schedule, ScheduleBlock]:
+        """Reallocate instructions according to the policy.
+
+        Only top-level sub-schedules are aligned. If sub-schedules are nested,
+        nested schedules are not recursively aligned.
+
+        Args:
+            schedule: Schedule to align.
+            inplace: Set ``True`` to override input schedule.
+
+        Returns:
+            Schedule with reallocated instructions.
+        """
+        if inplace:
+            return schedule
+        else:
+            return copy.deepcopy(schedule)
+
+
 class AlignLeft(AlignmentKind):
     """Align instructions in as-soon-as-possible manner.
 
@@ -70,7 +100,9 @@ class AlignLeft(AlignmentKind):
 
     is_sequential = False
 
-    def align(self, schedule: Schedule) -> Schedule:
+    def align(
+        self, schedule: Union[Schedule, ScheduleBlock], inplace: bool = False
+    ) -> Union[Schedule, ScheduleBlock]:
         """Reallocate instructions according to the policy.
 
         Only top-level sub-schedules are aligned. If sub-schedules are nested,
@@ -78,49 +110,30 @@ class AlignLeft(AlignmentKind):
 
         Args:
             schedule: Schedule to align.
+            inplace: Set ``True`` to override input schedule.
 
         Returns:
             Schedule with reallocated instructions.
         """
-        aligned = Schedule.initialize_from(schedule)
-        for _, child in schedule.children:
-            self._push_left_append(aligned, child)
+        if not inplace:
+            aligned = copy.deepcopy(schedule)
+        else:
+            aligned = schedule
+
+        # this should not have logic accessing to timeslot, i.e. block has no timeslot.
+        ch_stop_time = {chan: 0 for chan in aligned.channels}
+        for node in _time_ordered_node(aligned):
+            op_data = node.data
+            t_start = max([ch_stop_time[chan] for chan in op_data.channels])
+            node.time = t_start
+            t_stop = t_start + op_data.duration
+            for chan in op_data.channels:
+                ch_stop_time[chan] = t_stop
+
+        if isinstance(schedule, Schedule):
+            aligned._renew_timeslots()
 
         return aligned
-
-    @staticmethod
-    def _push_left_append(this: Schedule, other: ScheduleComponent) -> Schedule:
-        """Return ``this`` with ``other`` inserted at the maximum time over
-        all channels shared between ```this`` and ``other``.
-
-        Args:
-            this: Input schedule to which ``other`` will be inserted.
-            other: Other schedule to insert.
-
-        Returns:
-            Push left appended schedule.
-        """
-        this_channels = set(this.channels)
-        other_channels = set(other.channels)
-        shared_channels = list(this_channels & other_channels)
-        ch_slacks = [
-            this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
-            for channel in shared_channels
-        ]
-
-        if ch_slacks:
-            slack_chan = shared_channels[np.argmin(ch_slacks)]
-            shared_insert_time = this.ch_stop_time(slack_chan) - other.ch_start_time(slack_chan)
-        else:
-            shared_insert_time = 0
-
-        # Handle case where channels not common to both might actually start
-        # after ``this`` has finished.
-        other_only_insert_time = other.ch_start_time(*(other_channels - this_channels))
-        # Choose whichever is greatest.
-        insert_time = max(shared_insert_time, other_only_insert_time)
-
-        return this.insert(insert_time, other, inplace=True)
 
 
 class AlignRight(AlignmentKind):
@@ -131,7 +144,9 @@ class AlignRight(AlignmentKind):
 
     is_sequential = False
 
-    def align(self, schedule: Schedule) -> Schedule:
+    def align(
+        self, schedule: Union[Schedule, ScheduleBlock], inplace: bool = False
+    ) -> Union[Schedule, ScheduleBlock]:
         """Reallocate instructions according to the policy.
 
         Only top-level sub-schedules are aligned. If sub-schedules are nested,
@@ -139,50 +154,37 @@ class AlignRight(AlignmentKind):
 
         Args:
             schedule: Schedule to align.
+            inplace: Set ``True`` to override input schedule.
 
         Returns:
             Schedule with reallocated instructions.
         """
-        aligned = Schedule.initialize_from(schedule)
-        for _, child in reversed(schedule.children):
-            aligned = self._push_right_prepend(aligned, child)
+        if not inplace:
+            aligned = copy.deepcopy(schedule)
+        else:
+            aligned = schedule
+
+        # this should not have logic accessing to timeslot, i.e. block has no timeslot.
+        ch_stop_time = {chan: 0 for chan in aligned.channels}
+        for node in _time_ordered_node(aligned, reversed=True):
+            op_data = node.data
+            t_stop = min([ch_stop_time[chan] for chan in op_data.channels])
+            t_start = t_stop - op_data.duration
+            node.time = t_start
+            for chan in op_data.channels:
+                ch_stop_time[chan] = t_start
+
+        # shift to positive time
+        duration = min(ch_stop_time.values())
+        for node in aligned.nodes():
+            node.time -= duration
+
+        if isinstance(schedule, Schedule):
+            aligned._renew_timeslots()
+        else:
+            aligned._duration = int(np.abs(duration))
 
         return aligned
-
-    @staticmethod
-    def _push_right_prepend(this: ScheduleComponent, other: ScheduleComponent) -> Schedule:
-        """Return ``this`` with ``other`` inserted at the latest possible time
-        such that ``other`` ends before it overlaps with any of ``this``.
-
-        If required ``this`` is shifted  to start late enough so that there is room
-        to insert ``other``.
-
-        Args:
-           this: Input schedule to which ``other`` will be inserted.
-           other: Other schedule to insert.
-
-        Returns:
-           Push right prepended schedule.
-        """
-        this_channels = set(this.channels)
-        other_channels = set(other.channels)
-        shared_channels = list(this_channels & other_channels)
-        ch_slacks = [
-            this.ch_start_time(channel) - other.ch_stop_time(channel) for channel in shared_channels
-        ]
-
-        if ch_slacks:
-            insert_time = min(ch_slacks) + other.start_time
-        else:
-            insert_time = this.stop_time - other.stop_time + other.start_time
-
-        if insert_time < 0:
-            this.shift(-insert_time, inplace=True)
-            this.insert(0, other, inplace=True)
-        else:
-            this.insert(insert_time, other, inplace=True)
-
-        return this
 
 
 class AlignSequential(AlignmentKind):
@@ -194,7 +196,9 @@ class AlignSequential(AlignmentKind):
 
     is_sequential = True
 
-    def align(self, schedule: Schedule) -> Schedule:
+    def align(
+        self, schedule: Union[Schedule, ScheduleBlock], inplace: bool = False
+    ) -> Union[Schedule, ScheduleBlock]:
         """Reallocate instructions according to the policy.
 
         Only top-level sub-schedules are aligned. If sub-schedules are nested,
@@ -202,13 +206,24 @@ class AlignSequential(AlignmentKind):
 
         Args:
             schedule: Schedule to align.
+            inplace: Set ``True`` to override input schedule.
 
         Returns:
             Schedule with reallocated instructions.
         """
-        aligned = Schedule.initialize_from(schedule)
-        for _, child in schedule.children:
-            aligned.insert(aligned.duration, child, inplace=True)
+        if not inplace:
+            aligned = copy.deepcopy(schedule)
+        else:
+            aligned = schedule
+
+        # this should not have logic accessing to timeslot, i.e. block has no timeslot.
+        last_t0 = 0
+        for node in _time_ordered_node(aligned):
+            node.time = last_t0
+            last_t0 += node.data.duration
+
+        if isinstance(schedule, Schedule):
+            aligned._renew_timeslots()
 
         return aligned
 
@@ -227,8 +242,6 @@ class AlignEquispaced(AlignmentKind):
 
         Args:
             duration: Duration of this context. This should be larger than the schedule duration.
-                If the specified duration is shorter than the schedule duration,
-                no alignment is performed and the input schedule is just returned.
                 This duration can be parametrized.
         """
         super().__init__()
@@ -240,7 +253,9 @@ class AlignEquispaced(AlignmentKind):
         """Return context duration."""
         return self._context_params[0]
 
-    def align(self, schedule: Schedule) -> Schedule:
+    def align(
+        self, schedule: Union[Schedule, ScheduleBlock], inplace: bool = False
+    ) -> Union[Schedule, ScheduleBlock]:
         """Reallocate instructions according to the policy.
 
         Only top-level sub-schedules are aligned. If sub-schedules are nested,
@@ -248,36 +263,53 @@ class AlignEquispaced(AlignmentKind):
 
         Args:
             schedule: Schedule to align.
+            inplace: Set ``True`` to override input schedule.
 
         Returns:
             Schedule with reallocated instructions.
+
+        Raises:
+            PulseError: When context duration is shorter than total schedule duration.
         """
         instruction_duration_validation(self.duration)
 
-        total_duration = sum([child.duration for _, child in schedule.children])
-        if self.duration < total_duration:
-            return schedule
+        if not inplace:
+            aligned = copy.deepcopy(schedule)
+        else:
+            aligned = schedule
 
+        total_duration = sum([node.data.duration for node in schedule.nodes()])
+        if self.duration < total_duration:
+            raise PulseError(
+                "Context duration is shorter than minimum schedule duration. "
+                f"{self.duration} < {total_duration}. This operation cannot be performed."
+            )
         total_delay = self.duration - total_duration
 
-        if len(schedule.children) > 1:
+        num_nodes = len(schedule)
+        if num_nodes > 1:
             # Calculate the interval in between sub-schedules.
             # If the duration cannot be divided by the number of sub-schedules,
             # the modulo is appended and prepended to the input schedule.
-            interval, mod = np.divmod(total_delay, len(schedule.children) - 1)
+            interval, mod = np.divmod(total_delay, num_nodes - 1)
         else:
             interval = 0
             mod = total_delay
 
         # Calculate pre schedule delay
-        delay, mod = np.divmod(mod, 2)
+        pre_delay, mod = np.divmod(mod, 2)
 
-        aligned = Schedule.initialize_from(schedule)
-        # Insert sub-schedules with interval
-        _t0 = int(aligned.stop_time + delay + mod)
-        for _, child in schedule.children:
-            aligned.insert(_t0, child, inplace=True)
-            _t0 = int(aligned.stop_time + interval)
+        # this should not have logic accessing to timeslot, i.e. block has no timeslot.
+        last_t0 = pre_delay
+        for node in _time_ordered_node(aligned):
+            node.time = last_t0
+            last_t0 += node.data.duration + interval
+
+        # to prevent interruption of following instruction.
+        aligned.add_node(op_data=RelativeBarrier(*aligned.channels), time=self.duration)
+
+        if isinstance(schedule, Schedule):
+            aligned._renew_timeslots()
 
         return aligned
 
@@ -310,8 +342,6 @@ class AlignFunc(AlignmentKind):
 
         Args:
             duration: Duration of this context. This should be larger than the schedule duration.
-                If the specified duration is shorter than the schedule duration,
-                no alignment is performed and the input schedule is just returned.
                 This duration can be parametrized.
             func: A function that takes an index of sub-schedule and returns the
                 fractional coordinate of of that sub-schedule. The returned value should be
@@ -327,7 +357,9 @@ class AlignFunc(AlignmentKind):
         """Return context duration."""
         return self._context_params[0]
 
-    def align(self, schedule: Schedule) -> Schedule:
+    def align(
+        self, schedule: Union[Schedule, ScheduleBlock], inplace: bool = False
+    ) -> Union[Schedule, ScheduleBlock]:
         """Reallocate instructions according to the policy.
 
         Only top-level sub-schedules are aligned. If sub-schedules are nested,
@@ -335,22 +367,43 @@ class AlignFunc(AlignmentKind):
 
         Args:
             schedule: Schedule to align.
+            inplace: Set ``True`` to override input schedule.
 
         Returns:
             Schedule with reallocated instructions.
+
+        Raises:
+            PulseError:
+                - When context duration is shorter than total schedule duration.
+                - When i-th location p_i = f(i) is too small or too large.
         """
         instruction_duration_validation(self.duration)
 
-        if self.duration < schedule.duration:
-            return schedule
+        if not inplace:
+            aligned = copy.deepcopy(schedule)
+        else:
+            aligned = schedule
 
-        aligned = Schedule.initialize_from(schedule)
-        for ind, (_, child) in enumerate(schedule.children):
-            _t_center = self.duration * self._func(ind + 1)
-            _t0 = int(_t_center - 0.5 * child.duration)
-            if _t0 < 0 or _t0 > self.duration:
-                PulseError("Invalid schedule position t=%d is specified at index=%d" % (_t0, ind))
-            aligned.insert(_t0, child, inplace=True)
+        total_duration = sum([node.data.duration for node in schedule.nodes()])
+        if self.duration < total_duration:
+            raise PulseError(
+                "Context duration is shorter than minimum schedule duration. "
+                f"{self.duration} < {total_duration}. This operation cannot be performed."
+            )
+
+        # this should not have logic accessing to timeslot, i.e. block has no timeslot.
+        for i, node in enumerate(_time_ordered_node(aligned)):
+            location = self.duration * self._func(i + 1)
+            t0 = int(location - 0.5 * node.data.duration)
+            if t0 < 0 or t0 > self.duration:
+                PulseError("Invalid t0=%d is specified at index=%d" % (t0, i))
+            node.time = t0
+
+        # to prevent interruption of following instruction.
+        aligned.add_node(op_data=RelativeBarrier(*aligned.channels), time=self.duration)
+
+        if isinstance(schedule, Schedule):
+            aligned._renew_timeslots()
 
         return aligned
 
@@ -364,6 +417,51 @@ class AlignFunc(AlignmentKind):
             "duration": self._context_params[0],
             "func": self._func.__name__,
         }
+
+
+def _time_ordered_node(
+    schedule: Union[Schedule, ScheduleBlock], reversed: bool = False
+) -> Iterator[ScheduleNode]:
+    """A helper function to return a generator of time-ordered program node.
+
+    .. notes::
+        This function returns mutable nodes.
+
+    Args:
+        schedule: Target schedule to return nodes.
+        reversed: Set ``True`` to return node in reversed order.
+    """
+    try:
+        nodes = sorted(schedule.nodes(), key=lambda node: node.time)
+    except TypeError:
+        # sort time assigned node while keeping the position of parametrized duration node
+        scheduled_nodes = []
+        flexible_nodes = []
+
+        prev_node = None
+        for node in schedule.nodes():
+            if node.time is None:
+                flexible_nodes.append((prev_node, node))
+            else:
+                scheduled_nodes.append(node)
+            prev_node = node.location
+
+        scheduled_nodes = sorted(scheduled_nodes, key=lambda node: node.time)
+
+        # insert flexible node into right position
+        # we can track node position thanks to unique location attribute.
+        for location, node in flexible_nodes:
+            if location is None:
+                scheduled_nodes.insert(0, node)
+            else:
+                list_pos = scheduled_nodes.index(location) + 1
+                scheduled_nodes.insert(list_pos, node)
+        nodes = scheduled_nodes
+
+    if reversed:
+        yield from nodes[::-1]
+    else:
+        yield from nodes
 
 
 @deprecated_functionality

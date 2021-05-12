@@ -24,14 +24,15 @@ import itertools
 import multiprocessing as mp
 import sys
 import warnings
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any, Iterator
 
 import numpy as np
+import uuid
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.utils import instruction_duration_validation, deprecated_functionality
 from qiskit.utils.multiprocessing import is_main_process
@@ -48,6 +49,51 @@ ScheduleComponent = Union["Schedule", Instruction]
 
 BlockComponent = Union["ScheduleBlock", Instruction]
 """An element that composes a pulse schedule block."""
+
+
+class ScheduleNode:
+    """A class to represent an instruction node in the program."""
+
+    def __init__(self, data: Union[ScheduleComponent, BlockComponent], time: Optional[int] = None):
+        """Initialize new node.
+
+        Args:
+            data: The instruction of sub program attached to this node.
+            time: Absolute time when the instruction is issued, if assigned.
+        """
+        self._location = str(uuid.uuid4())
+        self._data = data
+        self._time = time
+
+    @property
+    def location(self) -> str:
+        return self._location
+
+    @property
+    def data(self) -> Union[ScheduleComponent, BlockComponent]:
+        return self._data
+
+    @data.setter
+    def data(self, new_data: Union[ScheduleComponent, BlockComponent]):
+        self._data = new_data
+
+    @property
+    def time(self) -> int:
+        return self._time
+
+    @time.setter
+    def time(self, new_time: int):
+        self._time = new_time
+
+    def __repr__(self):
+        return f"Node at {self.location}: {repr(self.data)}"
+
+    def __eq__(self, other):
+        if isinstance(other, ScheduleNode):
+            # this doesn't care what it stores
+            return self.location == other.location
+        else:
+            return self.location == other
 
 
 class Schedule:
@@ -133,18 +179,28 @@ class Schedule:
             if sys.platform != "win32" and not is_main_process():
                 name += "-{}".format(mp.current_process().pid)
 
-        self._name = name
-        self._parameter_manager = ParameterManager()
-
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for schedule metadata")
+
+        #: str: Name of this schedule
+        self._name = name
+
+        #: ParameterManager: Parameter table to manage instruction parameters
+        self._parameter_manager = ParameterManager()
+
+        #: Dict[str, Any]: Metadata
         self._metadata = metadata or dict()
 
+        #: int: Duration of this schedule
         self._duration = 0
 
-        # These attributes are populated by ``_mutable_insert``
+        #: List[ScheduleNode]: List of node this schedule stores. Populated by _mutable_insert.
+        self._nodes = list()
+
+        #: TimeSlots: Occupied time intervals per channel. Populated by _mutable_insert.
         self._timeslots = {}
-        self.__children = []
+
+        # add instructions
         for sched_pair in schedules:
             try:
                 time, sched = sched_pair
@@ -228,7 +284,7 @@ class Schedule:
         return self.duration
 
     @property
-    def channels(self) -> Tuple[Channel]:
+    def channels(self) -> Tuple[Channel, ...]:
         """Returns channels that this schedule uses."""
         return tuple(self._timeslots.keys())
 
@@ -251,7 +307,7 @@ class Schedule:
             "Schedule.children. Access to this private property is being deprecated.",
             DeprecationWarning,
         )
-        return tuple(self.__children)
+        return self.children
 
     @property
     def children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
@@ -267,17 +323,35 @@ class Schedule:
             scheduled time of each ``NamedValue`` and the component
             itself.
         """
-        return tuple(self.__children)
+        return tuple((node.time, node.data) for node in self._nodes)
 
     @property
-    def instructions(self) -> Tuple[Tuple[int, Instruction]]:
+    def instructions(self) -> Tuple[Tuple[int, Instruction], ...]:
         """Get the time-ordered instructions from self."""
 
-        def key(time_inst_pair):
-            inst = time_inst_pair[1]
-            return (time_inst_pair[0], inst.duration, sorted(chan.name for chan in inst.channels))
+        def inline_nodes(time, data):
+            try:
+                for node in data.nodes():
+                    yield from inline_nodes(time + node.time, node.data)
+            except AttributeError:
+                yield time, data
 
-        return tuple(sorted(self._instructions(), key=key))
+        def key(time_data_tuple):
+            time, data = time_data_tuple
+            return time, data.duration, sorted(chan.name for chan in data.channels)
+
+        return tuple(sorted(inline_nodes(0, self), key=key))
+
+    def nodes(self, flatten: bool = True) -> Iterator[ScheduleNode]:
+        """Get instruction nodes in the program."""
+        for node in self._nodes:
+            if flatten:
+                try:
+                    yield from node.nodes(flatten=flatten)
+                except AttributeError:
+                    yield node
+            else:
+                yield node
 
     @property
     def parameters(self) -> Set:
@@ -317,20 +391,6 @@ class Schedule:
         except ValueError:
             # If there are no instructions over channels
             return 0
-
-    def _instructions(self, time: int = 0):
-        """Iterable for flattening Schedule tree.
-
-        Args:
-            time: Shifted time due to parent.
-
-        Yields:
-            Iterable[Tuple[int, Instruction]]: Tuple containing the time each
-                :class:`~qiskit.pulse.Instruction`
-                starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
-        """
-        for insert_time, child_sched in self.children:
-            yield from child_sched._instructions(time + insert_time)
 
     def shift(self, time: int, name: Optional[str] = None, inplace: bool = False) -> "Schedule":
         """Return a schedule shifted forward by ``time``.
@@ -377,7 +437,7 @@ class Schedule:
 
         self._duration = self._duration + time
         self._timeslots = timeslots
-        self.__children = [(orig_time + time, child) for orig_time, child in self.children]
+        self._nodes = [(orig_time + time, child) for orig_time, child in self.children]
         return self
 
     def insert(
@@ -407,9 +467,7 @@ class Schedule:
             start_time: Time to insert the second schedule.
             schedule: Schedule to mutably insert.
         """
-        self._add_timeslots(start_time, schedule)
-        self.__children.append((start_time, schedule))
-        self._parameter_manager.update_parameter_table(schedule)
+        self.add_node(schedule, start_time)
         return self
 
     def _immutable_insert(
@@ -425,7 +483,8 @@ class Schedule:
             name: Name of the new ``Schedule``. Defaults to name of ``self``.
         """
         new_sched = Schedule.initialize_from(self, name)
-        new_sched._mutable_insert(0, self)
+        for node in self.nodes():
+            new_sched._mutable_insert(node.time, node.data)
         new_sched._mutable_insert(start_time, schedule)
         return new_sched
 
@@ -449,6 +508,79 @@ class Schedule:
         common_channels = set(self.channels) & set(schedule.channels)
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name, inplace=inplace)
+
+    def add_node(self, op_data: ScheduleComponent, time: Optional[int] = None) -> str:
+        """Add new node to this program.
+
+        Args:
+            op_data: Instruction or sub program data.
+            time: The time that the instruction or sub program is issued.
+
+        Returns:
+            New node location.
+        """
+        node = ScheduleNode(data=op_data, time=time)
+        self._nodes.append(node)
+        self._parameter_manager.add_parameters(node)
+        self._add_timeslots(time, op_data)
+
+        return node.location
+
+    def get_node(self, location: str) -> ScheduleNode:
+        """Pop specific node associated with given location.
+
+        Args:
+            location: Location of target node.
+
+        Returns:
+            Node specified by the location. The returned node is mutable.
+        """
+        for node in self.nodes(flatten=True):
+            if node == location:
+                return node
+
+    def update_node_data(self, location: str, new_data: ScheduleComponent):
+        """Update node data.
+
+        Args:
+            location: Location of target node to update.
+            new_data: New BlockComponent to override.
+
+        Raises:
+            PulseError: When target node is not found.
+
+        Raises:
+            PulseError: When node is not found.
+        """
+        target_node = self.get_node(location)
+        if target_node is None:
+            raise PulseError(f"Node {location} is not found in this program.")
+
+        # remove parameters and timeslot associated with the replaced node data
+        self._parameter_manager.remove_parameters(target_node)
+        self._remove_timeslots(target_node.time, target_node.data)
+
+        # renew node
+        target_node.data = new_data
+
+        # update parameter and timeslot with new data
+        self._parameter_manager.add_parameters(target_node)
+        self._add_timeslots(target_node.time, target_node.data)
+
+    def node_locations(self, data: ScheduleComponent) -> List[str]:
+        """Return location information where the data is placed in the program.
+
+        Args:
+            data: The target block component data to search for.
+
+        Returns:
+            A list of location information.
+        """
+        locations = []
+        for node in self.nodes(flatten=True):
+            if node.data == data:
+                locations.append(node.location)
+        return locations
 
     def flatten(self) -> "Schedule":
         """Deprecated."""
@@ -646,7 +778,7 @@ class Schedule:
 
     def replace(
         self,
-        old: ScheduleComponent,
+        old: Union[ScheduleComponent, str],
         new: ScheduleComponent,
         inplace: bool = False,
     ) -> "Schedule":
@@ -654,9 +786,6 @@ class Schedule:
         instruction.
 
         The replacement matching is based on an instruction equality check.
-
-        .. jupyter-kernel:: python3
-            :id: replace
 
         .. jupyter-execute::
 
@@ -675,25 +804,10 @@ class Schedule:
 
             assert sched == pulse.Schedule(new)
 
-        Only matches at the top-level of the schedule tree. If you wish to
-        perform this replacement over all instructions in the schedule tree.
-        Flatten the schedule prior to running::
-
-        .. jupyter-execute::
-
-            sched = pulse.Schedule()
-
-            sched += pulse.Schedule(old)
-
-            sched = sched.flatten()
-
-            sched = sched.replace(old, new)
-
-            assert sched == pulse.Schedule(new)
-
         Args:
-            old: Instruction to replace.
-            new: Instruction to replace with.
+            old: Schedule component or location to replace with. If you specify a location,
+                You can replace the specific data node in the program.
+            new: Schedule component to replace with.
             inplace: Replace instruction by mutably modifying this ``Schedule``.
 
         Returns:
@@ -702,35 +816,20 @@ class Schedule:
         Raises:
             PulseError: If the ``Schedule`` after replacements will has a timing overlap.
         """
-        from qiskit.pulse.parameter_manager import ParameterManager
-
-        new_children = []
-        new_parameters = ParameterManager()
-
-        for time, child in self.children:
-            if child == old:
-                new_children.append((time, new))
-                new_parameters.update_parameter_table(new)
-            else:
-                new_children.append((time, child))
-                new_parameters.update_parameter_table(child)
+        if isinstance(old, (Instruction, Schedule)):
+            locations = self.node_locations(old)
+        else:
+            locations = [old]
 
         if inplace:
-            self.__children = new_children
-            self._parameter_manager = new_parameters
-            self._renew_timeslots()
-            return self
+            new_program = self
         else:
-            try:
-                new_sched = Schedule.initialize_from(self)
-                for time, inst in new_children:
-                    new_sched.insert(time, inst, inplace=True)
-                return new_sched
-            except PulseError as err:
-                raise PulseError(
-                    "Replacement of {old} with {new} results in "
-                    "overlapping instructions.".format(old=old, new=new)
-                ) from err
+            new_program = copy.deepcopy(self)
+
+        for location in locations:
+            new_program.update_node_data(location, new)
+
+        return new_program
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
@@ -819,23 +918,23 @@ class Schedule:
 
     def __repr__(self) -> str:
         name = format(self._name) if self._name else ""
-        instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])
-        if len(self.instructions) > 25:
-            instructions += ", ..."
-        return '{}({}, name="{}")'.format(self.__class__.__name__, instructions, name)
+        data_reprs = ", ".join([repr((node.time, repr(node.data))) for node in self._nodes[:25]])
+        if len(self) > 25:
+            data_reprs += ", ..."
+        return f"{self.__class__.__name__}({data_reprs}, name='{name}')"
 
 
-def _require_schedule_conversion(function: Callable) -> Callable:
-    """A method decorator to convert schedule block to pulse schedule.
-
-    This conversation is performed for backward compatibility only if all durations are assigned.
-    """
+def _require_scheduling(function: Callable) -> Callable:
+    """A method to assign node time in not scheduled."""
 
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
-        from qiskit.pulse.transforms import block_to_schedule
+        if not all(node.time for node in self.nodes()):
+            from qiskit.pulse.transforms import allocate_node_time
 
-        return function(block_to_schedule(self), *args, **kwargs)
+            return function(allocate_node_time(self), *args, **kwargs)
+        else:
+            return self
 
     return wrapper
 
@@ -934,18 +1033,26 @@ class ScheduleBlock:
             if sys.platform != "win32" and not is_main_process():
                 name += "-{}".format(mp.current_process().pid)
 
-        self._name = name
-        self._parameter_manager = ParameterManager()
-
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for schedule metadata")
+
+        #: str: Name of this block
+        self._name = name
+
+        #: ParameterManager: Parameter table to manage instruction parameters
+        self._parameter_manager = ParameterManager()
+
+        #: Dict[str, Any]: Metadata
         self._metadata = metadata or dict()
 
+        #: AlignmentKind: Alignment context instance
         self._alignment_context = alignment_context or AlignLeft()
-        self._blocks = list()
+
+        #: List[ScheduleNode]: List of node this block stores.
+        self._nodes = list()
 
         # get parameters from context
-        self._parameter_manager.update_parameter_table(self._alignment_context)
+        self._parameter_manager.add_parameters(self._alignment_context)
 
     @classmethod
     def initialize_from(cls, other_program: Any, name: Optional[str] = None) -> "ScheduleBlock":
@@ -1013,96 +1120,104 @@ class ScheduleBlock:
 
     def is_schedulable(self) -> bool:
         """Return ``True`` if all durations are assigned."""
-        # check context assignment
+        # check context parameter assignment
         for context_param in self.alignment_context._context_params:
             if isinstance(context_param, ParameterExpression):
                 return False
 
-        # check duration assignment
-        for block in self.blocks:
-            if isinstance(block, ScheduleBlock):
-                if not block.is_schedulable():
-                    return False
-            else:
-                if not isinstance(block.duration, int):
-                    return False
-        return True
+        # check node duration assignment
+        return all(isinstance(node.data.duration, int) for node in self.nodes(flatten=True))
+
+    def scheduled(self) -> bool:
+        """Return ``True`` if all node time is assigned."""
+        return all(node.time is not None for node in self.nodes())
 
     @property
     @deprecated_functionality
-    @_require_schedule_conversion
+    @_require_scheduling
     def timeslots(self) -> TimeSlots:
         """Time keeping attribute."""
-        return self.timeslots
+        timeslots = {chan: list() for chan in self.channels}
+
+        for t0, inst in self.instructions:
+            interval = t0, t0 + inst.duration
+            for chan in inst.channels:
+                index = _find_insertion_index(timeslots[chan], interval)
+                timeslots[chan].insert(index, interval)
+
+        return timeslots
 
     @property
-    @_require_schedule_conversion
+    @_require_scheduling
     def duration(self) -> int:
         """Duration of this schedule block."""
-        return self.duration
+        return max(node.time + node.data.duration for node in self.nodes())
 
     @property
     @deprecated_functionality
-    @_require_schedule_conversion
+    @_require_scheduling
     def start_time(self) -> int:
         """Starting time of this schedule block."""
         return self.ch_start_time(*self.channels)
 
     @property
     @deprecated_functionality
-    @_require_schedule_conversion
+    @_require_scheduling
     def stop_time(self) -> int:
         """Stopping time of this schedule block."""
         return self.duration
 
     @property
-    def channels(self) -> Tuple[Channel]:
+    def channels(self) -> Tuple[Channel, ...]:
         """Returns channels that this schedule clock uses."""
         chans = set()
-        for block in self.blocks:
-            for chan in block.channels:
+        for node in self.nodes():
+            for chan in node.data.channels:
                 chans.add(chan)
         return tuple(chans)
 
     @property
-    @_require_schedule_conversion
-    def instructions(self) -> Tuple[Tuple[int, Instruction]]:
+    @_require_scheduling
+    def instructions(self) -> Tuple[Tuple[int, Instruction], ...]:
         """Get the time-ordered instructions from self."""
-        return self.instructions
+
+        def inline_nodes(time, data):
+            try:
+                for node in data.nodes():
+                    yield from inline_nodes(time + node.time, node.data)
+            except AttributeError:
+                yield time, data
+
+        def key(time_data_tuple):
+            time, data = time_data_tuple
+            return time, data.duration, sorted(chan.name for chan in data.channels)
+
+        return tuple(sorted(inline_nodes(0, self), key=key))
 
     @property
-    def blocks(self) -> Tuple[BlockComponent]:
-        """Get the time-ordered instructions from self."""
-        return tuple(self._blocks)
+    @deprecated_functionality
+    def blocks(self) -> Tuple[BlockComponent, ...]:
+        """Get the list of instructions from self."""
+        return tuple(node.data for node in self._nodes)
+
+    def nodes(self, flatten: bool = True) -> Iterator[ScheduleNode]:
+        """Get instruction nodes in the program."""
+        for node in self._nodes:
+            if flatten:
+                try:
+                    yield from node.nodes(flatten=flatten)
+                except AttributeError:
+                    yield node
+            else:
+                yield node
 
     @property
     def parameters(self) -> Set:
         """Parameters which determine the schedule behavior."""
         return self._parameter_manager.parameters
 
-    @_require_schedule_conversion
     def ch_duration(self, *channels: Channel) -> int:
         """Return the time of the end of the last instruction over the supplied channels.
-
-        Args:
-            *channels: Channels within ``self`` to include.
-        """
-        return self.ch_duration(*channels)
-
-    @deprecated_functionality
-    @_require_schedule_conversion
-    def ch_start_time(self, *channels: Channel) -> int:
-        """Return the time of the start of the first instruction over the supplied channels.
-
-        Args:
-            *channels: Channels within ``self`` to include.
-        """
-        return self.ch_start_time(*channels)
-
-    @deprecated_functionality
-    @_require_schedule_conversion
-    def ch_stop_time(self, *channels: Channel) -> int:
-        """Return maximum start time over supplied channels.
 
         Args:
             *channels: Channels within ``self`` to include.
@@ -1110,6 +1225,38 @@ class ScheduleBlock:
         return self.ch_stop_time(*channels)
 
     @deprecated_functionality
+    @_require_scheduling
+    def ch_start_time(self, *channels: Channel) -> int:
+        """Return the time of the start of the first instruction over the supplied channels.
+
+        Args:
+            *channels: Channels within ``self`` to include.
+        """
+        start_times = [
+            node.time
+            for node in self.nodes()
+            if any(chan in channels for chan in node.data.channels)
+        ]
+
+        return min(start_times)
+
+    @deprecated_functionality
+    @_require_scheduling
+    def ch_stop_time(self, *channels: Channel) -> int:
+        """Return maximum start time over supplied channels.
+
+        Args:
+            *channels: Channels within ``self`` to include.
+        """
+        stop_times = [
+            node.time + node.data.duration
+            for node in self.nodes()
+            if any(chan in channels for chan in node.data.channels)
+        ]
+
+        return max(stop_times)
+
+    @_require_scheduling
     def shift(self, time: int, name: Optional[str] = None, inplace: bool = True):
         """This method will be removed. Temporarily added for backward compatibility.
 
@@ -1189,13 +1336,89 @@ class ScheduleBlock:
         if not inplace:
             ret_block = copy.deepcopy(self)
             ret_block._name = name or self.name
-            ret_block.append(block, inplace=True)
+            ret_block.add_node(block)
             return ret_block
         else:
-            self._blocks.append(block)
-            self._parameter_manager.update_parameter_table(block)
-
+            self.add_node(block)
             return self
+
+    def add_node(self, op_data: BlockComponent, time: Optional[int] = None) -> str:
+        """Add new node to this program.
+
+        Args:
+            op_data: Instruction or sub program data.
+            time: The time that the instruction or sub program is issued.
+
+        Returns:
+            New node location.
+        """
+        node = ScheduleNode(data=op_data, time=time)
+        self._nodes.append(node)
+        self._parameter_manager.add_parameters(node)
+
+        return node.location
+
+    def get_node(self, location: str) -> ScheduleNode:
+        """Pop specific node associated with given location.
+
+        Args:
+            location: Location of target node.
+
+        Returns:
+            Node specified by the location. The returned node is mutable.
+        """
+        for node in self.nodes(flatten=True):
+            if node == location:
+                return node
+
+    def update_node_data(self, location: str, new_data: BlockComponent):
+        """Update node data.
+
+        Args:
+            location: Location of target node to update.
+            new_data: New BlockComponent to override.
+
+        Raises:
+            PulseError: When target node is not found.
+
+        Raises:
+            PulseError: When node is not found.
+        """
+        target_node = self.get_node(location)
+        if target_node is None:
+            raise PulseError(f"Node {location} is not found in this program.")
+        node_time = target_node.time
+
+        # remove parameters associated with the replaced data
+        self._parameter_manager.remove_parameters(target_node)
+
+        # renew node
+        target_node.data = new_data
+        target_node.time = None
+        try:
+            if node_time is not None and target_node.data.duration == new_data.duration:
+                # if node duration is unchanged, no need to reschedule
+                target_node.time = node_time
+        except UnassignedDurationError:
+            pass
+
+        # update parameter with new data
+        self._parameter_manager.add_parameters(target_node)
+
+    def node_locations(self, data: BlockComponent) -> List[str]:
+        """Return location information where the data is placed in the program.
+
+        Args:
+            data: The target block component data to search for.
+
+        Returns:
+            A list of location information.
+        """
+        locations = []
+        for node in self.nodes(flatten=True):
+            if node.data == data:
+                locations.append(node.location)
+        return locations
 
     def filter(
         self,
@@ -1286,46 +1509,57 @@ class ScheduleBlock:
 
     def replace(
         self,
-        old: BlockComponent,
+        old: Union[BlockComponent, str],
         new: BlockComponent,
         inplace: bool = True,
     ) -> "ScheduleBlock":
         """Return a ``ScheduleBlock`` with the ``old`` component replaced with a ``new``
         component.
 
+        The replacement matching is based on an instruction equality check.
+
+        .. jupyter-execute::
+
+            from qiskit import pulse
+
+            d0 = pulse.DriveChannel(0)
+
+            block = pulse.ScheduleBlock()
+
+            old = pulse.Play(pulse.Constant(100, 1.0), d0)
+            new = pulse.Play(pulse.Constant(100, 0.1), d0)
+
+            block.append(old)
+            block.replace(old, new)
+
+            new_block = pulse.ScheduleBlock()
+            new_block.append(new)
+
+            assert block == new_block
+
         Args:
-            old: Schedule block component to replace.
+            old: Schedule block component or location to replace with. If you specify a location,
+                You can replace the specific data node in the program.
             new: Schedule block component to replace with.
             inplace: Replace instruction by mutably modifying this ``ScheduleBlock``.
 
         Returns:
             The modified schedule block with ``old`` replaced by ``new``.
         """
-        from qiskit.pulse.parameter_manager import ParameterManager
-
-        new_blocks = []
-        new_parameters = ParameterManager()
-
-        for block in self.blocks:
-            if block == old:
-                new_blocks.append(new)
-                new_parameters.update_parameter_table(new)
-            else:
-                if isinstance(block, ScheduleBlock):
-                    new_blocks.append(block.replace(old, new, inplace))
-                else:
-                    new_blocks.append(block)
-                new_parameters.update_parameter_table(block)
+        if isinstance(old, (Instruction, ScheduleBlock)):
+            locations = self.node_locations(old)
+        else:
+            locations = [old]
 
         if inplace:
-            self._blocks = new_blocks
-            self._parameter_manager = new_parameters
-            return self
+            new_program = self
         else:
-            ret_block = copy.deepcopy(self)
-            ret_block._blocks = new_blocks
-            ret_block._parameter_manager = new_parameters
-            return ret_block
+            new_program = copy.deepcopy(self)
+
+        for location in locations:
+            new_program.update_node_data(location, new)
+
+        return new_program
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
@@ -1364,7 +1598,7 @@ class ScheduleBlock:
 
     def __len__(self) -> int:
         """Return number of instructions in the schedule."""
-        return len(self.blocks)
+        return len(self._nodes)
 
     def __eq__(self, other: "ScheduleBlock") -> bool:
         """Test if two ScheduleBlocks are equal.
@@ -1411,11 +1645,12 @@ class ScheduleBlock:
 
     def __repr__(self) -> str:
         name = format(self._name) if self._name else ""
-        blocks = ", ".join([repr(instr) for instr in self.blocks[:50]])
-        if len(self.blocks) > 25:
-            blocks += ", ..."
-        return '{}({}, name="{}", transform={})'.format(
-            self.__class__.__name__, blocks, name, repr(self.alignment_context)
+        data_reprs = ", ".join([repr(node.data) for node in self._nodes[:25]])
+        if len(self) > 25:
+            data_reprs += ", ..."
+        return (
+            f"{self.__class__.__name__}({data_reprs}, name={name}, "
+            f"alignment_context={repr(self.alignment_context)}"
         )
 
     def __add__(self, other: BlockComponent) -> "ScheduleBlock":

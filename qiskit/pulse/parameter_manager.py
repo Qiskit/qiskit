@@ -51,6 +51,7 @@ Note that we don't need to write any parameter management logic for each object,
 and thus this parameter framework gives greater scalability to the pulse module.
 """
 from copy import deepcopy, copy
+from collections import defaultdict
 from typing import List, Dict, Set, Any, Union
 
 from qiskit.circuit.parameter import Parameter
@@ -58,7 +59,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse import instructions, channels
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import ParametricPulse, Waveform
-from qiskit.pulse.schedule import Schedule, ScheduleBlock
+from qiskit.pulse.schedule import Schedule, ScheduleBlock, ScheduleNode
 from qiskit.pulse.transforms.alignments import AlignmentKind
 from qiskit.pulse.utils import format_parameter_value
 
@@ -135,21 +136,24 @@ class ParameterSetter(NodeVisitor):
 
         .. note:: ``ScheduleBlock`` can have parameters in blocks and its alignment.
         """
-        # accessing to protected member
-        node._blocks = [self.visit(block) for block in node.blocks]
+        for sub_node in node.nodes():
+            sub_node.data = self.visit(sub_node.data)
         node._alignment_context = self.visit_AlignmentKind(node.alignment_context)
 
-        self._update_parameter_manager(node)
+        # update parameter mapping according to new assignment
+        node._parameter_manager.add_parameters(self._param_map)
+
         return node
 
     def visit_Schedule(self, node: Schedule):
         """Visit ``Schedule``. Recursively visit schedule children and overwrite."""
-        # accessing to private member
-        # TODO: consider updating Schedule to handle this more gracefully
-        node._Schedule__children = [(t0, self.visit(sched)) for t0, sched in node.instructions]
+        for sub_node in node.nodes():
+            sub_node.data = self.visit(sub_node.data)
         node._renew_timeslots()
 
-        self._update_parameter_manager(node)
+        # update parameter mapping according to new assignment
+        node._parameter_manager.add_parameters(self._param_map)
+
         return node
 
     def visit_AlignmentKind(self, node: AlignmentKind):
@@ -242,24 +246,6 @@ class ParameterSetter(NodeVisitor):
                 new_value = new_value.assign(parameter, self._param_map[parameter])
 
         return format_parameter_value(new_value)
-
-    def _update_parameter_manager(self, node: Union[Schedule, ScheduleBlock]):
-        """A helper function to update parameter manager of pulse program."""
-        new_parameters = set()
-
-        for parameter in node.parameters:
-            if parameter in self._param_map:
-                value = self._param_map[parameter]
-                if isinstance(value, ParameterExpression):
-                    for new_parameter in value.parameters:
-                        new_parameters.add(new_parameter)
-            else:
-                new_parameters.add(parameter)
-
-        if hasattr(node, "_parameter_manager"):
-            node._parameter_manager._parameters = new_parameters
-        else:
-            raise PulseError(f"Node type {node.__class__.__name__} has no parameter manager.")
 
 
 class ParameterGetter(NodeVisitor):
@@ -355,12 +341,12 @@ class ParameterManager:
 
     def __init__(self):
         """Create new parameter table for pulse programs."""
-        self._parameters = set()
+        self._parameters = defaultdict(list)
 
     @property
     def parameters(self) -> Set:
         """Parameters which determine the schedule behavior."""
-        return self._parameters
+        return set(self._parameters.keys())
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
@@ -408,14 +394,55 @@ class ParameterManager:
             return visitor.visit(source)
         return source
 
-    def update_parameter_table(self, new_node: Any):
+    def add_parameters(self, new_node: Union[ScheduleNode, AlignmentKind]):
         """A helper function to update parameter table with given data node.
 
         Args:
             new_node: A new data node to be added.
         """
         visitor = ParameterGetter()
-        visitor.visit(new_node)
+        if isinstance(new_node, ScheduleNode):
+            data = new_node.data
+            location = new_node.location
+        else:
+            data = new_node
+            location = new_node.__class__.__name__
+
+        visitor.visit(data)
 
         for parameter in visitor.parameters:
-            self._parameters.add(parameter)
+            self._parameters[parameter].append(location)
+
+    def remove_parameters(self, old_node: ScheduleNode):
+        """A helper function to remove parameter mapping associated with given node location.
+
+        Args:
+            old_node: A old data node to be removed.
+        """
+        for param in self.parameters:
+            locations = self._parameters.pop(param)
+            try:
+                locations.remove(old_node.location)
+                if len(locations) > 0:
+                    self._parameters[param] = locations
+            except ValueError:
+                self._parameters[param] = locations
+
+    def update_parameters(self, new_mapping: Dict[ParameterExpression, ParameterValueType]):
+        """Update parameters with new parameter assignment.
+
+        Args:
+            new_mapping: New parameter mapping dictionary.
+        """
+        updated_parameters = defaultdict(list)
+
+        for parameter, locations in self._parameters.items():
+            if parameter in new_mapping:
+                assigned_val = new_mapping[parameter]
+                if isinstance(assigned_val, ParameterExpression):
+                    for new_param in assigned_val.parameters:
+                        updated_parameters[new_param] = locations
+            else:
+                updated_parameters[parameter] = locations
+
+        self._parameters = updated_parameters

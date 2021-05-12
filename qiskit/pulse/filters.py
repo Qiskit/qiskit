@@ -15,50 +15,69 @@
 import abc
 from typing import Callable, List, Union, Iterable, Optional, Tuple, Any
 
-import numpy as np
-
-from qiskit.pulse import Schedule
-from qiskit.pulse.channels import Channel
-from qiskit.pulse.schedule import Interval
+from qiskit.pulse import instructions
+from qiskit.pulse.channels import Channel, PulseChannel
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.schedule import Interval, Schedule, ScheduleBlock
+from qiskit.pulse.transforms import inline_subroutines
+from qiskit.pulse.utils import format_parameter_value
 
 
 def filter_instructions(
-    sched: Schedule, filters: List[Callable], negate: bool = False, recurse_subroutines: bool = True
+    sched: Union[Schedule, ScheduleBlock],
+    filters: Union[Callable, List[Callable]],
+    negate: bool = False,
+    recurse_subroutines: bool = True,
 ) -> Schedule:
     """A filtering function that takes a schedule and returns a schedule consisting of
     filtered instructions.
 
     Args:
-        sched: A pulse schedule to be filtered.
+        sched: A pulse program to be filtered.
         filters: List of callback functions that take an instruction and return boolean.
         negate: Set `True` to accept an instruction if a filter function returns `False`.
             Otherwise the instruction is accepted when the filter function returns `False`.
         recurse_subroutines: Set `True` to individually filter instructions inside of a subroutine
             defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
+            When this option is enabled, call instructions are inlined and thus the context of
+            subroutine will be lost.
 
     Returns:
         Filtered pulse schedule.
     """
-    from qiskit.pulse.transforms import flatten, inline_subroutines
+    try:
+        filters = list(filters)
+    except TypeError:
+        filters = [filters]
 
-    target_sched = flatten(sched)
+    filtered_sched = sched.__class__.initialize_from(sched)
+
     if recurse_subroutines:
-        target_sched = inline_subroutines(target_sched)
+        sched = inline_subroutines(sched)
 
-    time_inst_tuples = np.array(target_sched.instructions)
+    for node in sched.nodes():
+        is_valid = all(filt((node.time, node.data)) for filt in filters)
+        if (not is_valid and not negate) or (is_valid and negate):
+            # node matches with the filter condition
+            pulse_chans = [chan for chan in node.data.channels if isinstance(chan, PulseChannel)]
+            node_dur = format_parameter_value(node.data.duration)
+            if node_dur != 0 and pulse_chans:
+                # insert placeholder.
+                # note that removing node from a block may change following node scheduling.
+                for chan in pulse_chans:
+                    filtered_sched.add_node(instructions.Delay(node_dur, chan), node.time)
+            else:
+                # remove node
+                continue
+        else:
+            if isinstance(node.data, (Schedule, ScheduleBlock)):
+                filtered_sched.add_node(
+                    filter_instructions(node.data, filters, negate, recurse_subroutines), node.time
+                )
+            else:
+                filtered_sched.add_node(node.data, node.time)
 
-    valid_insts = np.ones(len(time_inst_tuples), dtype=bool)
-    for filt in filters:
-        valid_insts = np.logical_and(valid_insts, np.array(list(map(filt, time_inst_tuples))))
-
-    if negate and len(filters) > 0:
-        valid_insts = ~valid_insts
-
-    filter_schedule = Schedule.initialize_from(sched)
-    for time, inst in time_inst_tuples[valid_insts]:
-        filter_schedule.insert(time, inst, inplace=True)
-
-    return filter_schedule
+    return filtered_sched
 
 
 def composite_filter(
@@ -165,9 +184,15 @@ def with_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
         Returns:
             If instruction matches with condition.
         """
+        time, data = time_inst
         for t0, t1 in ranges:
-            inst_start = time_inst[0]
-            inst_stop = inst_start + time_inst[1].duration
+            if time is None:
+                raise PulseError(
+                    f"Instruction {data.name} is not scheduled. "
+                    "This schedule cannot be filtered by intervals."
+                )
+            inst_start = time
+            inst_stop = inst_start + data.duration
             if t0 <= inst_start and inst_stop <= t1:
                 return True
         return False

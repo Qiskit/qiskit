@@ -42,7 +42,7 @@ def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
 
 @functools.lru_cache(maxsize=None)
 def format_parameter_value(
-    operand: Union[ParameterExpression],
+    operand: Union[ParameterExpression, int, float, complex],
 ) -> Union[ParameterExpression, int, float, complex]:
     """Convert ParameterExpression into the most suitable data type.
 

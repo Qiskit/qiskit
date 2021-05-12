@@ -11,34 +11,87 @@
 # that they have been altered from the originals.
 """Basic rescheduling functions which take schedule or instructions and return new schedules."""
 
+import copy
 import warnings
 from collections import defaultdict
 from typing import List, Optional, Iterable, Union
-
-import numpy as np
 
 from qiskit.pulse import channels as chans, exceptions, instructions
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.exceptions import UnassignedDurationError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
-from qiskit.pulse.schedule import Schedule, ScheduleBlock, ScheduleComponent
+from qiskit.pulse.library import Waveform
+from qiskit.pulse.schedule import Schedule, ScheduleBlock
+from qiskit.pulse.transforms.alignments import Frozen
 
 
 def block_to_schedule(block: ScheduleBlock) -> Schedule:
-    """Convert ``ScheduleBlock`` to ``Schedule``.
+    """Convert ``ScheduleBlock`` into ``Schedule``.
 
     Args:
         block: A ``ScheduleBlock`` to convert.
 
     Returns:
-        Scheduled pulse program.
+        A program in ``Schedule`` representation.
+
+    .. note:: This transformation only converts blocks in the main program.
+        Blocks inline in ``Call`` instructions are not converted.
+        Apply `qiskit.pulse.transforms.inline_subroutines` transformation first.
+    """
+    schedule = Schedule.initialize_from(block)
+    if not block.scheduled():
+        block = allocate_node_time(block)
+
+    for node in block.nodes():
+        op_data = node.data
+        if isinstance(op_data, ScheduleBlock):
+            op_data = block_to_schedule(op_data)
+        schedule.add_node(op_data, node.time)
+
+    return schedule
+
+
+def schedule_to_block(schedule: Schedule) -> ScheduleBlock:
+    """Convert ``Schedule`` into ``ScheduleBlock``.
+
+    Args:
+        schedule: A ``Schedule`` to convert.
+
+    Returns:
+        A program in ``ScheduleBlock`` representation.
+
+    .. note:: This transformation only converts schedules in the main program.
+        Schedules inline in ``Call`` instructions are not converted.
+        Apply `qiskit.pulse.transforms.inline_subroutines` transformation first.
+    """
+    block = ScheduleBlock.initialize_from(schedule)
+    block._alignment_context = Frozen()
+
+    for node in block.nodes():
+        op_data = node.data
+        if isinstance(op_data, Schedule):
+            op_data = schedule_to_block(op_data)
+        block.add_node(op_data, node.time)
+
+    return block
+
+
+def allocate_node_time(block: ScheduleBlock) -> ScheduleBlock:
+    """Schedule block nodes.
+
+    .. notes::
+        This is mutably update node time of input block.
+        Previously assigned node time is removed before allocating new node time.
+
+    Args:
+        block: A block to schedule.
+
+    Returns:
+        A scheduled block.
 
     Raises:
         UnassignedDurationError: When any instruction duration is not assigned.
-        PulseError: When the alignment context duration is shorter than the schedule duration.
-
-    .. note:: This transform may insert barriers in between contexts.
     """
     if not block.is_schedulable():
         raise UnassignedDurationError(
@@ -46,66 +99,58 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
             "Please check `.parameters` to find unassigned parameter objects."
         )
 
-    schedule = Schedule.initialize_from(block)
+    if block.scheduled() or isinstance(block.alignment_context, Frozen):
+        # already scheduled
+        return block
 
-    for op_data in block.blocks:
-        if isinstance(op_data, ScheduleBlock):
-            context_schedule = block_to_schedule(op_data)
-            if hasattr(op_data.alignment_context, "duration"):
-                # context may have local scope duration, e.g. EquispacedAlignment for 1000 dt
-                post_buffer = op_data.alignment_context.duration - context_schedule.duration
-                if post_buffer < 0:
-                    raise PulseError(
-                        f"ScheduleBlock {op_data.name} has longer duration than "
-                        "the specified context duration "
-                        f"{context_schedule.duration} > {op_data.duration}."
-                    )
-            else:
-                post_buffer = 0
-            schedule.append(context_schedule, inplace=True)
+    # schedule nested blocks to extract the node duration
+    for node in block.nodes(flatten=True):
+        if isinstance(node.data, ScheduleBlock):
+            allocate_node_time(node.data)
 
-            # prevent interruption by following instructions.
-            # padding with delay instructions is no longer necessary, thanks to alignment context.
-            if post_buffer > 0:
-                context_boundary = instructions.RelativeBarrier(*op_data.channels)
-                schedule.append(context_boundary.shift(post_buffer), inplace=True)
-        else:
-            schedule.append(op_data, inplace=True)
-
-    # transform with defined policy
-    return block.alignment_context.align(schedule)
+    return block.alignment_context.align(block, inplace=True)
 
 
-def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
-    """Optimization pass to replace identical pulses.
+def compress_pulses(
+    schedules: List[Union[Schedule, ScheduleBlock]]
+) -> List[Union[Schedule, ScheduleBlock]]:
+    """Optimization pass to replace identical waveforms.
 
     Args:
         schedules: Schedules to compress.
 
     Returns:
         Compressed schedules.
+
+    .. note::
+        This transform doesn't check nested schedule and subroutines.
+        These transformations should be applied first.
     """
     existing_pulses = []
     new_schedules = []
 
     for schedule in schedules:
-        new_schedule = Schedule.initialize_from(schedule)
+        new_schedule = schedule.__class__.initialize_from(schedule)
 
-        for time, inst in schedule.instructions:
-            if isinstance(inst, instructions.Play):
-                if inst.pulse in existing_pulses:
-                    idx = existing_pulses.index(inst.pulse)
-                    identical_pulse = existing_pulses[idx]
-                    new_schedule.insert(
-                        time,
-                        instructions.Play(identical_pulse, inst.channel, inst.name),
-                        inplace=True,
-                    )
+        for node in schedule.nodes():
+            op_data = node.data
+            if isinstance(op_data, instructions.Play):
+                if isinstance(op_data.pulse, Waveform):
+                    # Waveform should be merged to remove duplicated pulse library entries
+                    if op_data.pulse in existing_pulses:
+                        idx = existing_pulses.index(op_data.pulse)
+                        new_op_data = instructions.Play(
+                            pulse=existing_pulses[idx], channel=op_data.channel, name=op_data.name
+                        )
+                    else:
+                        existing_pulses.append(op_data.pulse)
+                        new_op_data = op_data
                 else:
-                    existing_pulses.append(inst.pulse)
-                    new_schedule.insert(time, inst, inplace=True)
+                    # Parametric pulse doesn't consume memory
+                    new_op_data = op_data
+                new_schedule.add_node(new_op_data, node.time)
             else:
-                new_schedule.insert(time, inst, inplace=True)
+                new_schedule.add_node(op_data, node.time)
 
         new_schedules.append(new_schedule)
 
@@ -123,6 +168,11 @@ def flatten(program: Schedule) -> Schedule:
 
     Raises:
         PulseError: When invalid data format is given.
+
+    .. notes::
+        ``ScheduleBlock`` cannot be flattened because a block cannot be inserted into
+        another block with different alignment context.
+        This causes a fatal problem for scheduling.
     """
     if isinstance(program, Schedule):
         flat_sched = Schedule.initialize_from(program)
@@ -133,7 +183,9 @@ def flatten(program: Schedule) -> Schedule:
         raise PulseError(f"Invalid input program {program.__class__.__name__} is specified.")
 
 
-def inline_subroutines(program: Union[Schedule, ScheduleBlock]) -> Union[Schedule, ScheduleBlock]:
+def inline_subroutines(
+    program: Union[Schedule, ScheduleBlock], inplace: bool = False
+) -> Union[Schedule, ScheduleBlock]:
     """Recursively remove call instructions and inline the respective subroutine instructions.
 
     Assigned parameter values, which are stored in the parameter table, are also applied.
@@ -141,77 +193,45 @@ def inline_subroutines(program: Union[Schedule, ScheduleBlock]) -> Union[Schedul
 
     Args:
         program: A program which may contain the subroutine, i.e. ``Call`` instruction.
+        inplace: Set ``True`` to override input schedule.
 
     Returns:
         A schedule without subroutine.
 
     Raises:
-        PulseError: When input program is not valid data format.
+        PulseError: When subroutine is not valid data format.
     """
-    if isinstance(program, Schedule):
-        return _inline_schedule(program)
-    elif isinstance(program, ScheduleBlock):
-        return _inline_block(program)
+    if not inplace:
+        main_routine = copy.deepcopy(program)
     else:
-        raise PulseError(f"Invalid program {program.__class__.__name__} is specified.")
+        main_routine = program
 
-
-def _inline_schedule(schedule: Schedule) -> Schedule:
-    """A helper function to inline subroutine of schedule.
-
-    .. note:: If subroutine is ``ScheduleBlock`` it is converted into Schedule to get ``t0``.
-    """
-    ret_schedule = Schedule.initialize_from(schedule)
-    for t0, inst in schedule.children:
-        # note that schedule.instructions unintentionally flatten the nested schedule.
-        # this should be performed by another transformer node.
-        if isinstance(inst, instructions.Call):
-            # bind parameter
-            subroutine = inst.assigned_subroutine()
-            # convert into schedule if block is given
-            if isinstance(subroutine, ScheduleBlock):
-                subroutine = block_to_schedule(subroutine)
+    for node in main_routine.nodes():
+        op_data = node.data
+        if isinstance(op_data, instructions.Call):
+            subroutine = op_data.assigned_subroutine()
+            if not isinstance(subroutine, type(main_routine)):
+                # Format data if data type is not identical to main program.
+                if isinstance(main_routine, Schedule):
+                    subroutine = block_to_schedule(subroutine)
+                elif isinstance(main_routine, ScheduleBlock):
+                    subroutine = schedule_to_block(subroutine)
+                else:
+                    raise PulseError(
+                        f"Invalid subroutine data type {subroutine.__class__.__name__} is found."
+                    )
             # recursively inline the program
-            inline_schedule = _inline_schedule(subroutine)
-            ret_schedule.insert(t0, inline_schedule, inplace=True)
-        elif isinstance(inst, Schedule):
+            node.data = inline_subroutines(subroutine, inplace=True)
+        if isinstance(op_data, (Schedule, ScheduleBlock)):
             # recursively inline the program
-            inline_schedule = _inline_schedule(inst)
-            ret_schedule.insert(t0, inline_schedule, inplace=True)
-        else:
-            ret_schedule.insert(t0, inst, inplace=True)
-    return ret_schedule
+            node.data = inline_subroutines(op_data, inplace=True)
+
+    return main_routine
 
 
-def _inline_block(block: ScheduleBlock) -> ScheduleBlock:
-    """A helper function to inline subroutine of schedule block.
-
-    .. note:: If subroutine is ``Schedule`` the function raises an error.
-    """
-    ret_block = ScheduleBlock.initialize_from(block)
-    for inst in block.blocks:
-        if isinstance(inst, instructions.Call):
-            # bind parameter
-            subroutine = inst.assigned_subroutine()
-            if isinstance(subroutine, Schedule):
-                raise PulseError(
-                    f"A subroutine {subroutine.name} is a pulse Schedule. "
-                    "This program cannot be inserted into ScheduleBlock because "
-                    "t0 associated with instruction will be lost."
-                )
-            # recursively inline the program
-            inline_block = _inline_block(subroutine)
-            ret_block.append(inline_block, inplace=True)
-        elif isinstance(inst, ScheduleBlock):
-            # recursively inline the program
-            inline_block = _inline_block(inst)
-            ret_block.append(inline_block, inplace=True)
-        else:
-            ret_block.append(inst, inplace=True)
-    return ret_block
-
-
-def remove_directives(schedule: Schedule) -> Schedule:
+def remove_directives(
+    schedule: Union[Schedule, ScheduleBlock],
+) -> Union[Schedule, ScheduleBlock]:
     """Remove directives.
 
     Args:
@@ -220,10 +240,16 @@ def remove_directives(schedule: Schedule) -> Schedule:
     Returns:
         A schedule without directives.
     """
-    return schedule.exclude(instruction_types=[directives.Directive])
+    from qiskit.pulse.filters import filter_instructions, with_instruction_types
+
+    return filter_instructions(
+        schedule, with_instruction_types([directives.Directive]), negate=True
+    )
 
 
-def remove_trivial_barriers(schedule: Schedule) -> Schedule:
+def remove_trivial_barriers(
+    schedule: Union[Schedule, ScheduleBlock],
+) -> Union[Schedule, ScheduleBlock]:
     """Remove trivial barriers with 0 or 1 channels.
 
     Args:
@@ -232,15 +258,17 @@ def remove_trivial_barriers(schedule: Schedule) -> Schedule:
     Returns:
         schedule: A schedule without trivial barriers
     """
+    from qiskit.pulse.filters import filter_instructions
 
-    def filter_func(inst):
-        return isinstance(inst[1], directives.RelativeBarrier) and len(inst[1].channels) < 2
-
-    return schedule.exclude(filter_func)
+    return filter_instructions(
+        schedule,
+        lambda node: isinstance(node[1], directives.RelativeBarrier) and len(node[1].channels < 2),
+        negate=True,
+    )
 
 
 def align_measures(
-    schedules: Iterable[ScheduleComponent],
+    schedules: Iterable[Union[Schedule, ScheduleBlock]],
     inst_map: Optional[InstructionScheduleMap] = None,
     cal_gate: str = "u3",
     max_calibration_duration: Optional[int] = None,
@@ -314,54 +342,51 @@ def align_measures(
         The input list of schedules transformed to have their measurements aligned.
 
     Raises:
-        PulseError: If the provided alignment time is negative.
+        PulseError:
+            - If the provided alignment time is negative.
     """
-
-    def get_first_acquire_times(schedules):
-        """Return a list of first acquire times for each schedule."""
-        acquire_times = []
-        for schedule in schedules:
-            visited_channels = set()
-            qubit_first_acquire_times = defaultdict(lambda: None)
-
-            for time, inst in schedule.instructions:
-                if isinstance(inst, instructions.Acquire) and inst.channel not in visited_channels:
-                    visited_channels.add(inst.channel)
-                    qubit_first_acquire_times[inst.channel.index] = time
-
-            acquire_times.append(qubit_first_acquire_times)
-        return acquire_times
-
-    def get_max_calibration_duration(inst_map, cal_gate):
-        """Return the time needed to allow for readout discrimination calibration pulses."""
-        # TODO (qiskit-terra #5472): fix behavior of this.
-        max_calibration_duration = 0
-        for qubits in inst_map.qubits_with_instruction(cal_gate):
-            cmd = inst_map.get(cal_gate, qubits, np.pi, 0, np.pi)
-            max_calibration_duration = max(cmd.duration, max_calibration_duration)
-        return max_calibration_duration
+    _aligned_channels = (chans.MeasureChannel, chans.AcquireChannel)
 
     if align_time is not None and align_time < 0:
         raise exceptions.PulseError("Align time cannot be negative.")
 
-    first_acquire_times = get_first_acquire_times(schedules)
+    # get first acquire times
+    first_acquire_times = []
+    for schedule in schedules:
+        if isinstance(schedule, ScheduleBlock) and not schedule.scheduled():
+            schedule = allocate_node_time(schedule)
+
+        qubit_first_acquire_times = defaultdict(lambda: None)
+        for time, op_data in inline_subroutines(schedule, inplace=False).instructions:
+            if (
+                isinstance(op_data, instructions.Acquire)
+                and op_data.channel.index not in qubit_first_acquire_times
+            ):
+                qubit_first_acquire_times[op_data.channel.index] = time
+        first_acquire_times.append(qubit_first_acquire_times)
+
+    # maximum calibration duration
+    if max_calibration_duration is None:
+        max_calibration_duration = 0
+        if inst_map is not None:
+            for qubits in inst_map.qubits_with_instruction(cal_gate):
+                cmd = inst_map.get(cal_gate, qubits)
+                max_calibration_duration = max(cmd.duration, max_calibration_duration)
+
     # Extract the maximum acquire in every schedule across all acquires in the schedule.
     # If there are no acquires in the schedule default to 0.
     max_acquire_times = [max(0, *times.values()) for times in first_acquire_times]
+
     if align_time is None:
-        if max_calibration_duration is None:
-            if inst_map:
-                max_calibration_duration = get_max_calibration_duration(inst_map, cal_gate)
-            else:
-                max_calibration_duration = 0
         align_time = max(max_calibration_duration, *max_acquire_times)
 
     # Shift acquires according to the new scheduled time
     new_schedules = []
     for sched_idx, schedule in enumerate(schedules):
-        new_schedule = Schedule.initialize_from(schedule)
+        new_schedule = schedule.__class__.initialize_from(schedule)
         stop_time = schedule.stop_time
 
+        # shift for instructions before measurement
         if align_all:
             if first_acquire_times[sched_idx]:
                 shift = align_time - max_acquire_times[sched_idx]
@@ -370,18 +395,11 @@ def align_measures(
         else:
             shift = 0
 
-        for time, inst in schedule.instructions:
-            measurement_channels = {
-                chan.index
-                for chan in inst.channels
-                if isinstance(chan, (chans.MeasureChannel, chans.AcquireChannel))
-            }
-            if measurement_channels:
+        for time, op_data in schedule.instructions:
+            if all(isinstance(chan, _aligned_channels) for chan in op_data.channels):
                 sched_first_acquire_times = first_acquire_times[sched_idx]
                 max_start_time = max(
-                    sched_first_acquire_times[chan]
-                    for chan in measurement_channels
-                    if chan in sched_first_acquire_times
+                    sched_first_acquire_times.get(chan.index, 0) for chan in op_data.channels
                 )
                 shift = align_time - max_start_time
 
@@ -392,14 +410,15 @@ def align_measures(
                     "This may result in an instruction being scheduled before t=0 and "
                     "an error being raised."
                 )
-            new_schedule.insert(time + shift, inst, inplace=True)
-
+            new_schedule.add_node(op_data, time + shift)
         new_schedules.append(new_schedule)
 
     return new_schedules
 
 
-def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]) -> Schedule:
+def add_implicit_acquires(
+    schedule: Union[Schedule, ScheduleBlock], meas_map: List[List[int]]
+) -> Union[Schedule, ScheduleBlock]:
     """Return a new schedule with implicit acquires from the measurement mapping replaced by
     explicit ones.
 
@@ -409,50 +428,47 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
     Args:
         schedule: Schedule to be aligned.
         meas_map: List of lists of qubits that are measured together.
+        inplace: Set ``True`` to override input schedule.
 
     Returns:
         A ``Schedule`` with the additional acquisition instructions.
     """
-    new_schedule = Schedule.initialize_from(schedule)
-    acquire_map = dict()
+    new_schedule = schedule.__class__.initialize_from(schedule)
 
-    for time, inst in schedule.instructions:
-        if isinstance(inst, instructions.Acquire):
-            if inst.mem_slot and inst.mem_slot.index != inst.channel.index:
-                warnings.warn(
-                    "One of your acquires was mapped to a memory slot which didn't match"
-                    " the qubit index. I'm relabeling them to match."
-                )
-
+    for node in schedule.nodes():
+        op_data = node.data
+        if isinstance(op_data, instructions.Acquire):
+            warnings.warn(
+                f"Acquire instruction at {node.location} was mapped to a memory slot "
+                "which didn't match the qubit index. I'm relabeling them to match."
+            )
             # Get the label of all qubits that are measured with the qubit(s) in this instruction
             all_qubits = []
             for sublist in meas_map:
-                if inst.channel.index in sublist:
+                if op_data.channel.index in sublist:
                     all_qubits.extend(sublist)
             # Replace the old acquire instruction by a new one explicitly acquiring all qubits in
             # the measurement group.
             for i in all_qubits:
-                explicit_inst = instructions.Acquire(
-                    inst.duration,
-                    chans.AcquireChannel(i),
+                explicit_op_data = instructions.Acquire(
+                    duration=op_data.duration,
+                    channel=chans.AcquireChannel(i),
                     mem_slot=chans.MemorySlot(i),
-                    kernel=inst.kernel,
-                    discriminator=inst.discriminator,
+                    kernel=op_data.kernel,
+                    discriminator=op_data.discriminator,
                 )
-                if time not in acquire_map:
-                    new_schedule.insert(time, explicit_inst, inplace=True)
-                    acquire_map = {time: {i}}
-                elif i not in acquire_map[time]:
-                    new_schedule.insert(time, explicit_inst, inplace=True)
-                    acquire_map[time].add(i)
+                new_schedule.add_node(explicit_op_data, node.time)
+        elif isinstance(op_data, (Schedule, ScheduleBlock)):
+            # recursively add implicit acquires to nested schedules
+            new_schedule.add_node(add_implicit_acquires(op_data, meas_map), node.time)
         else:
-            new_schedule.insert(time, inst, inplace=True)
+            new_schedule.add_node(op_data, node.time)
 
     return new_schedule
 
 
 def pad(
-    schedule: Schedule,
+    schedule: Union[Schedule, ScheduleBlock],
     channels: Optional[Iterable[chans.Channel]] = None,
     until: Optional[int] = None,
     inplace: bool = False,
@@ -471,31 +487,30 @@ def pad(
     Returns:
         The padded schedule.
     """
+    if not inplace:
+        schedule = copy.deepcopy(schedule)
+
+    if isinstance(schedule, ScheduleBlock) and not schedule.scheduled():
+        schedule = allocate_node_time(schedule)
+
     until = until or schedule.duration
     channels = channels or schedule.channels
 
     for channel in channels:
         if channel not in schedule.channels:
-            schedule |= instructions.Delay(until, channel)
+            schedule.add_node(instructions.Delay(until, channel), time=0)
             continue
 
         curr_time = 0
-        # Use the copy of timeslots. When a delay is inserted before the current interval,
-        # current timeslot is pointed twice and the program crashes with the wrong pointer index.
-        timeslots = schedule.timeslots[channel].copy()
-        # TODO: Replace with method of getting instructions on a channel
-        for interval in timeslots:
+        for time, op_data in schedule.instructions:
             if curr_time >= until:
                 break
-            if interval[0] != curr_time:
-                end_time = min(interval[0], until)
-                schedule = schedule.insert(
-                    curr_time, instructions.Delay(end_time - curr_time, channel), inplace=inplace
+            if time != curr_time:
+                schedule.add_node(
+                    instructions.Delay(min(time, until) - curr_time, channel), time=curr_time
                 )
-            curr_time = interval[1]
+                curr_time = time + op_data.duration
         if curr_time < until:
-            schedule = schedule.insert(
-                curr_time, instructions.Delay(until - curr_time, channel), inplace=inplace
-            )
+            schedule.add_node(instructions.Delay(until - curr_time, channel), time=curr_time)
 
     return schedule

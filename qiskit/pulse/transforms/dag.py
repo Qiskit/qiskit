@@ -71,8 +71,8 @@ def _sequential_allocation(block: ScheduleBlock) -> rx.PyDAG:
 
     prev_node = None
     edges = []
-    for inst in block.blocks:
-        current_node = dag_blocks.add_node(inst)
+    for node in block.nodes():
+        current_node = dag_blocks.add_node(node.data)
         if prev_node is not None:
             edges.append((prev_node, current_node))
         prev_node = current_node
@@ -87,9 +87,9 @@ def _parallel_allocation(block: ScheduleBlock) -> rx.PyDAG:
 
     slots = dict()
     edges = []
-    for inst in block.blocks:
-        current_node = dag_blocks.add_node(inst)
-        for chan in inst.channels:
+    for node in block.nodes():
+        current_node = dag_blocks.add_node(node.data)
+        for chan in node.data.channels:
             prev_node = slots.pop(chan, None)
             if prev_node is not None:
                 edges.append((prev_node, current_node))
