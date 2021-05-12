@@ -345,8 +345,12 @@ class Instruction:
             )
 
         else:
+            if getattr(self,"label", None) is None:
+                label = None
+            else:
+                label = self.label + "_dg"
             inverse_gate = Gate(
-                name=self.name + "_dg", num_qubits=self.num_qubits, params=self.params.copy()
+                name=self.name + "_dg", num_qubits=self.num_qubits, params=self.params.copy(), label=label
             )
 
         inverse_gate.definition = QuantumCircuit(
