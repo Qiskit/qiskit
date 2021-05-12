@@ -51,8 +51,8 @@ class TestExperimentData(unittest.TestCase):
             **attrs
         )
         self.assertEqual(exp_data.backend.name(), self.backend.name())
-        self.assertEqual(exp_data.type, 'my_type')
-        self.assertEqual(exp_data.id, '1234')
+        self.assertEqual(exp_data.experiment_type, 'my_type')
+        self.assertEqual(exp_data.experiment_id, '1234')
         self.assertEqual(exp_data.tags(), ['tag1', 'tag2'])
         for key, val in attrs.items():
             self.assertEqual(getattr(exp_data, key), val)
