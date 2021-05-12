@@ -47,6 +47,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
             initial_state: A `QuantumCircuit` object to prepend to the circuit.
         """
         if evolution is None:
+            # pylint: disable=cyclic-import
             from qiskit.opflow import PauliTrotterEvolution
 
             evolution = PauliTrotterEvolution()
