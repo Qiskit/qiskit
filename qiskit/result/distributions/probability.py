@@ -29,8 +29,8 @@ class ProbDistribution(dict):
 
         Args:
             data (dict): Input probability data. Where the keys
-                represent a measured classical value and the value is an
-                integer the probability of that result.
+                represent a measured classical value and the value is a
+                float for the probability of that result.
                 The keys can be one of several formats:
 
                      * A hexadecimal string of the form ``"0x4a"``
