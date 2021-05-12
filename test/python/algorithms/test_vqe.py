@@ -301,7 +301,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
             gradient=Gradient(),
             expectation=AerPauliExpectation(),
             quantum_instance=quantum_instance,
-            max_evals_grouped=100,
+            max_evals_grouped=1000,
         )
         vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
