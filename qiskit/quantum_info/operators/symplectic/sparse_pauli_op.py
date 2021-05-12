@@ -324,6 +324,27 @@ class SparsePauliOp(LinearOp):
             coeffs = np.array([0j])
         return SparsePauliOp(table, coeffs)
 
+    def sort(self, weight=False):
+        """Sort the terms in the operator.
+
+        The sort order is as specified in :meth:`~PauliTable.sort`. In particular,
+        the sort order is only determined by the Pauli strings in the table. The
+        coefficients are permuted according to the same order.
+
+        Before comparing two instances of `SparsePauliOp`, you might want to call the
+        :meth:`simplify` method followed by this method.
+
+        Args:
+            weight (bool): optionally sort by weight if True (Default: False).
+
+        Returns:
+            PauliTable: a sorted copy of the original sparse Pauli sum.
+        """
+        indices = self.table.argsort(weight=weight)
+        table = self.table[indices]
+        coeffs = self.coeffs[indices]
+        return SparsePauliOp(table, coeffs)
+
     # ---------------------------------------------------------------------
     # Additional conversions
     # ---------------------------------------------------------------------
