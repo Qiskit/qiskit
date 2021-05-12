@@ -19,10 +19,10 @@ import numpy as np
 
 from qiskit.utils.deprecation import deprecate_arguments
 
-from .scipy_minimizer import ScipyMinimizer
+from .scipy_optimizer import SciPyOptimizer
 
 
-class L_BFGS_B(ScipyMinimizer):  # pylint: disable=invalid-name
+class L_BFGS_B(SciPyOptimizer):  # pylint: disable=invalid-name
     """
     Limited-memory BFGS Bound optimizer.
 

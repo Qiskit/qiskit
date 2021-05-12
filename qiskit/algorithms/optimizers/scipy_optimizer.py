@@ -23,7 +23,7 @@ from qiskit.utils.validation import validate_min
 from .optimizer import Optimizer, OptimizerSupportLevel
 
 
-class ScipyMinimizer(Optimizer):
+class SciPyOptimizer(Optimizer):
     """
     Optimizer using scipy.optimize.minimize.
 

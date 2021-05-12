@@ -14,10 +14,10 @@
 
 from typing import Optional
 
-from .scipy_minimizer import ScipyMinimizer
+from .scipy_optimizer import SciPyOptimizer
 
 
-class SLSQP(ScipyMinimizer):
+class SLSQP(SciPyOptimizer):
     """
     Sequential Least SQuares Programming optimizer.
 

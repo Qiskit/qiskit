@@ -14,10 +14,10 @@
 
 from typing import Optional
 
-from .scipy_minimizer import ScipyMinimizer
+from .scipy_optimizer import SciPyOptimizer
 
 
-class COBYLA(ScipyMinimizer):
+class COBYLA(SciPyOptimizer):
     """
     Constrained Optimization By Linear Approximation optimizer.
 

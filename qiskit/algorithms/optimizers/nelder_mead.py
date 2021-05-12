@@ -14,10 +14,10 @@
 
 from typing import Optional
 
-from .scipy_minimizer import ScipyMinimizer
+from .scipy_optimizer import SciPyOptimizer
 
 
-class NELDER_MEAD(ScipyMinimizer):  # pylint: disable=invalid-name
+class NELDER_MEAD(SciPyOptimizer):  # pylint: disable=invalid-name
     """
     Nelder-Mead optimizer.
 

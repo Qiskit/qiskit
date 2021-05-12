@@ -115,7 +115,7 @@ from .nlopts.isres import ISRES
 from .optimizer import Optimizer, OptimizerSupportLevel
 from .p_bfgs import P_BFGS
 from .powell import POWELL
-from .scipy_minimizer import ScipyMinimizer
+from .scipy_optimizer import SciPyOptimizer
 from .slsqp import SLSQP
 from .snobfit import SNOBFIT
 from .spsa import SPSA
@@ -134,7 +134,7 @@ __all__ = [
     "NFT",
     "P_BFGS",
     "POWELL",
-    "ScipyMinimizer",
+    "SciPyOptimizer",
     "SLSQP",
     "SPSA",
     "TNC",

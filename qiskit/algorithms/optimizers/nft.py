@@ -17,10 +17,10 @@ from typing import Optional
 import numpy as np
 from scipy.optimize import OptimizeResult
 
-from .scipy_minimizer import ScipyMinimizer
+from .scipy_optimizer import SciPyOptimizer
 
 
-class NFT(ScipyMinimizer):
+class NFT(SciPyOptimizer):
     """
     Nakanishi-Fujii-Todo algorithm.
 

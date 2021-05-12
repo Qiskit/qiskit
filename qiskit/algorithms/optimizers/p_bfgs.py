@@ -23,12 +23,12 @@ import numpy as np
 from qiskit.utils import algorithm_globals
 from qiskit.utils.validation import validate_min
 
-from .scipy_minimizer import ScipyMinimizer
+from .scipy_optimizer import SciPyOptimizer
 
 logger = logging.getLogger(__name__)
 
 
-class P_BFGS(ScipyMinimizer):  # pylint: disable=invalid-name
+class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
     """
     Parallelized Limited-memory BFGS optimizer.
 

@@ -14,10 +14,10 @@
 
 from typing import Optional
 
-from .scipy_minimizer import ScipyMinimizer
+from .scipy_optimizer import SciPyOptimizer
 
 
-class CG(ScipyMinimizer):
+class CG(SciPyOptimizer):
     """Conjugate Gradient optimizer.
 
     CG is an algorithm for the numerical solution of systems of linear equations whose matrices are

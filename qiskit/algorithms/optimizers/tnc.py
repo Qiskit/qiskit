@@ -14,10 +14,10 @@
 
 from typing import Optional
 
-from .scipy_minimizer import ScipyMinimizer
+from .scipy_optimizer import SciPyOptimizer
 
 
-class TNC(ScipyMinimizer):
+class TNC(SciPyOptimizer):
     """
     Truncated Newton (TNC) optimizer.
 
