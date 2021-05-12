@@ -348,7 +348,10 @@ class Instruction:
             if getattr(self,"label", None) is None:
                 label = None
             else:
-                label = self.label + "_dg"
+                if self.label.endswith("_dg"):  # pylint: disable=no-member
+                    label = self.label[:-3]  # pylint: disable=no-member
+                else:
+                    label = self.label + "_dg"  # pylint: disable=no-member
             inverse_gate = Gate(
                 name=self.name + "_dg", num_qubits=self.num_qubits, params=self.params.copy(), label=label
             )
