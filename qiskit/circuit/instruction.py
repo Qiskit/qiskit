@@ -349,7 +349,7 @@ class Instruction:
             )
 
         else:
-            if getattr(self,"label", None) is None:
+            if getattr(self, "label", None) is None:
                 label = None
             else:
                 if self.label.endswith("_dg"):  # pylint: disable=no-member
