@@ -194,10 +194,10 @@ class MatplotlibDrawer:
         self._ymax = 0
         self._x_offset = 0
 
-        self._fs = self._style["fs"] * self._scale
-        self._sfs = self._style["sfs"] * self._scale
-        self._lwidth15 = 1.5 * self._scale
-        self._lwidth2 = 2.0 * self._scale
+        self._fs = self._style["fs"]# * self._scale
+        self._sfs = self._style["sfs"]# * self._scale
+        self._lwidth15 = 1.5# * self._scale
+        self._lwidth2 = 2.0# * self._scale"""
         self._node_width = {}
         self._layer_widths = []
 
@@ -303,18 +303,20 @@ class MatplotlibDrawer:
     def draw(self, filename=None, verbose=False):
         """Draw method called from circuit_drawer"""
 
+        # get layer widths and compute number of folds
         for layer in self._nodes:
             layer_width = self._get_layer_width(layer)
             self._layer_widths.append(layer_width)
         total_layer_width = sum(self._layer_widths)
-        n_fold = total_layer_width // self._fold if self._fold > 0 else 0
+        num_folds = total_layer_width // self._fold if self._fold > 0 else 0
 
+        # load the _qubit_dict and _clbit_dict with register info
         self._get_reg_names_and_numbers()
 
-        # window size
+        # compute the window size
         if total_layer_width > self._fold > 0:
             self._xmax = self._fold + self._x_offset + 0.1
-            self._ymax = (n_fold + 1) * (self._n_lines + 1) - 1
+            self._ymax = (num_folds + 1) * (self._n_lines + 1) - 1
         else:
             x_incr = 0.4 if not self._nodes else 0.9
             self._xmax = total_layer_width + 1 + self._x_offset - x_incr
@@ -327,33 +329,27 @@ class MatplotlibDrawer:
         self._ax.set_xlim(_xl, _xr)
         self._ax.set_ylim(_yb, _yt)
 
-        # update figure size
+        # update figure size before doing any matplotlib drawing
         fig_w = _xr - _xl
         fig_h = _yt - _yb
-        if self._style["figwidth"] < 0.0 and not self._user_ax:
-            self._style["figwidth"] = fig_w * BASE_SIZE * self._fs / 72 / WID
+        if self._style["figwidth"] <= 0.0 and not self._user_ax:
+            figure_width = fig_w * 0.836111111# * self._fs * 0.0643162 #BASE_SIZE / 72 / WID
+            self._figure.set_size_inches(figure_width, figure_width * fig_h / fig_w)
+        elif self._user_ax:
+            figure_width = self._figure.get_size_inches()[0]
         else:
-            print("fig", fig_w)
-            self._scale = self._style["figwidth"] / fig_w
-            print("scale", self._scale)
-            fig_w *= self._scale
-            fig_h *= self._scale
-            print(fig_w, fig_h)
-            print("fs", self._fs, self._sfs)
-            self._fs = self._fs * self._scale  # self._style["fs"] * self._scale
-            self._sfs = self._sfs * self._scale  # self._style["sfs"] * self._scale
-            self._lwidth15 = 1.5 * self._scale
-            self._lwidth2 = 2.0 * self._scale
-            print(self._fs)
-            print(self._sfs)
+            figure_width = self._style["figwidth"]
+            self._figure.set_size_inches(figure_width, figure_width * fig_h / fig_w)
 
-        self._draw_regs_wires(total_layer_width, n_fold)
+        self._scale = figure_width / fig_w
+        self._fs = self._fs * self._scale * 1.196
+        self._sfs = self._sfs * self._scale * 1.196
+        self._lwidth15 = 1.5 * self._scale
+        self._lwidth2 = 2.0 * self._scale
+
+        self._draw_regs_wires(total_layer_width, num_folds)
         self._draw_ops(verbose)
 
-        print("figure set size", self._style["figwidth"])
-        self._figure.set_size_inches(
-            self._style["figwidth"], self._style["figwidth"] * fig_h / fig_w
-        )
         if self._global_phase:
             self._plt_mod.text(
                 _xl, _yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
@@ -373,10 +369,10 @@ class MatplotlibDrawer:
                 self._plt_mod.close(self._figure)
             return self._figure
 
-    def _draw_regs_wires(self, total_layer_width, n_fold):
+    def _draw_regs_wires(self, total_layer_width, num_folds):
         """Draw the register names and numbers, wires, and vertical lines at the ends"""
 
-        for fold_num in range(n_fold + 1):
+        for fold_num in range(num_folds + 1):
             # quantum register
             for qubit in self._qubit_dict.values():
                 qubit_name = qubit["reg_name"]
@@ -446,7 +442,7 @@ class MatplotlibDrawer:
                 )
 
             # lf vertical line at either end
-            feedline_r = n_fold > 0 and n_fold > fold_num
+            feedline_r = num_folds > 0 and num_folds > fold_num
             feedline_l = fold_num > 0
             if feedline_l or feedline_r:
                 xpos_l = self._x_offset - 0.01
@@ -1098,7 +1094,6 @@ class MatplotlibDrawer:
             )
             return
 
-        print("in multi", self._fs, self._sfs)
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
