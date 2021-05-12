@@ -179,13 +179,12 @@ class MatplotlibDrawer:
             self._figure = ax.get_figure()
         self._ax.axis("off")
         self._ax.set_aspect("equal")
-        self._ax.tick_params(
-            labelbottom=False, labeltop=False, labelleft=False, labelright=False
-        )
+        self._ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
         self._initial_state = initial_state
         self._cregbundle = cregbundle
         self._global_phase = global_phase
 
+        self._ast = None
         self._n_lines = 0
         self._xmax = 0
         self._ymax = 0
@@ -196,6 +195,17 @@ class MatplotlibDrawer:
         self._lwidth15 = 1.5 * self._scale
         self._lwidth2 = 2.0 * self._scale
 
+        # default is to use character table for text width,
+        # but get_renderer will work with some mpl backends
+        """fig = plt.figure()
+        if hasattr(fig.canvas, 'get_renderer'):
+            self._renderer = fig.canvas.get_renderer()
+        else:
+            self._renderer = None"""
+        self._renderer = None
+
+        # these char arrays are for finding text_width when not
+        # using get_renderer method for the matplotlib backend
         self._char_list = {
             " ": (0.0958, 0.0583),
             "!": (0.1208, 0.0729),
@@ -301,6 +311,11 @@ class MatplotlibDrawer:
         for r in qubit:
             self._qubit.append(r)
 
+    @property
+    def ast(self):
+        """AST getter"""
+        return self._ast
+
     def _load_style(self, style):
         current_style = DefaultStyle().style
         style_name = "default"
@@ -336,9 +351,7 @@ class MatplotlibDrawer:
                 config_path = config.get("circuit_mpl_style_path", "")
                 if config_path:
                     for path in config_path:
-                        style_path.append(
-                            os.path.normpath(os.path.join(path, style_name))
-                        )
+                        style_path.append(os.path.normpath(os.path.join(path, style_name)))
             style_path.append(os.path.normpath(os.path.join("", style_name)))
 
             for path in style_path:
@@ -351,9 +364,7 @@ class MatplotlibDrawer:
                         break
                     except json.JSONDecodeError as e:
                         warn(
-                            "Could not decode JSON in file '{}': {}. ".format(
-                                path, str(e)
-                            )
+                            "Could not decode JSON in file '{}': {}. ".format(path, str(e))
                             + "Will use default style.",
                             UserWarning,
                             2,
@@ -361,9 +372,7 @@ class MatplotlibDrawer:
                         break
                     except (OSError, FileNotFoundError):
                         warn(
-                            "Error loading JSON file '{}'. Will use default style.".format(
-                                path
-                            ),
+                            "Error loading JSON file '{}'. Will use default style.".format(path),
                             UserWarning,
                             2,
                         )
@@ -381,9 +390,7 @@ class MatplotlibDrawer:
 
         # If font/subfont ratio changes from default, have to scale width calculations for
         # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
-        self._subfont_factor = (
-            current_style["sfs"] * def_font_ratio / current_style["fs"]
-        )
+        self._subfont_factor = current_style["sfs"] * def_font_ratio / current_style["fs"]
 
         return current_style
 
@@ -392,38 +399,42 @@ class MatplotlibDrawer:
         if not text:
             return 0.0
 
-        math_mode_match = self._mathmode_regex.search(text)
-        num_underscores = 0
-        num_carets = 0
-        if math_mode_match:
-            math_mode_text = math_mode_match.group(1)
-            num_underscores = math_mode_text.count("_")
-            num_carets = math_mode_text.count("^")
-        text = LatexNodes2Text().latex_to_text(text.replace("$$", ""))
+        if self._renderer:
+            t = self.plt_mod.text(0.5, 0.5, text, fontsize=fontsize)
+            return t.get_window_extent(renderer=self._renderer).width / 60.0
+        else:
+            math_mode_match = self._mathmode_regex.search(text)
+            num_underscores = 0
+            num_carets = 0
+            if math_mode_match:
+                math_mode_text = math_mode_match.group(1)
+                num_underscores = math_mode_text.count("_")
+                num_carets = math_mode_text.count("^")
+            text = LatexNodes2Text().latex_to_text(text.replace("$$", ""))
 
-        # If there are subscripts or superscripts in mathtext string
-        # we need to account for that spacing by manually removing
-        # from text string for text length
-        if num_underscores:
-            text = text.replace("_", "", num_underscores)
-        if num_carets:
-            text = text.replace("^", "", num_carets)
+            # If there are subscripts or superscripts in mathtext string
+            # we need to account for that spacing by manually removing
+            # from text string for text length
+            if num_underscores:
+                text = text.replace("_", "", num_underscores)
+            if num_carets:
+                text = text.replace("^", "", num_carets)
 
-        # This changes hyphen to + to match width of math mode minus sign.
-        if param:
-            text = text.replace("-", "+")
+            # This changes hyphen to + to match width of math mode minus sign.
+            if param:
+                text = text.replace("-", "+")
 
-        f = 0 if fontsize == self._style["fs"] else 1
-        sum_text = 0.0
-        for c in text:
-            try:
-                sum_text += self._char_list[c][f]
-            except KeyError:
-                # if non-ASCII char, use width of 'c', an average size
-                sum_text += self._char_list["c"][f]
-        if f == 1:
-            sum_text *= self._subfont_factor
-        return sum_text
+            f = 0 if fontsize == self._style["fs"] else 1
+            sum_text = 0.0
+            for c in text:
+                try:
+                    sum_text += self._char_list[c][f]
+                except KeyError:
+                    # if non-ASCII char, use width of 'c', an average size
+                    sum_text += self._char_list["c"][f]
+            if f == 1:
+                sum_text *= self._subfont_factor
+            return sum_text
 
     def _param_parse(self, v):
         param_parts = [None] * len(v)
@@ -455,9 +466,7 @@ class MatplotlibDrawer:
 
         if gate_text in self._style["disptex"]:
             gate_text = "{}".format(self._style["disptex"][gate_text])
-        elif gate_text in (op.name, base_name) and not isinstance(
-            op.op, (Gate, Instruction)
-        ):
+        elif gate_text in (op.name, base_name) and not isinstance(op.op, (Gate, Instruction)):
             gate_text = gate_text.capitalize()
 
         return gate_text, ctrl_text
@@ -498,9 +507,7 @@ class MatplotlibDrawer:
         sc = gt
         return fc, ec, gt, self._style["tc"], sc, lc
 
-    def _multiqubit_gate(
-        self, xy, fc=None, ec=None, gt=None, sc=None, text="", subtext=""
-    ):
+    def _multiqubit_gate(self, xy, fc=None, ec=None, gt=None, sc=None, text="", subtext=""):
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
@@ -715,9 +722,7 @@ class MatplotlibDrawer:
             zorder=PORDER_GATE,
         )
         # arrow
-        self._line(
-            qxy, [cx, cy + 0.35 * WID], lc=self._style["cc"], ls=self._style["cline"]
-        )
+        self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style["cc"], ls=self._style["cline"])
         arrowhead = self.patches_mod.Polygon(
             (
                 (cx - 0.20 * WID, cy + 0.35 * WID),
@@ -815,9 +820,7 @@ class MatplotlibDrawer:
                     text_top = True
                 elif not top and qlist[i] == max_ctbit:
                     text_top = False
-            self._ctrl_qubit(
-                qbit[i], fc=fc_open_close, ec=ec, tc=tc, text=text, text_top=text_top
-            )
+            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec, tc=tc, text=text, text_top=text_top)
 
     def _x_tgt_qubit(self, xy, ec=None, ac=None):
         linewidth = self._lwidth2
@@ -911,9 +914,7 @@ class MatplotlibDrawer:
         )
         if self._global_phase:
             self.plt_mod.text(
-                _xl,
-                _yt,
-                "Global Phase: %s" % pi_check(self._global_phase, output="mpl"),
+                _xl, _yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
             )
 
         if filename:
@@ -937,13 +938,9 @@ class MatplotlibDrawer:
 
         def _fix_double_script(reg_name):
             words = reg_name.split(" ")
+            words = [word.replace("_", r"\_") if word.count("_") > 1 else word for word in words]
             words = [
-                word.replace("_", r"\_") if word.count("_") > 1 else word
-                for word in words
-            ]
-            words = [
-                word.replace("^", r"\^{\ }") if word.count("^") > 1 else word
-                for word in words
+                word.replace("^", r"\^{\ }") if word.count("^") > 1 else word for word in words
             ]
             reg_name = " ".join(words).replace(" ", "\\;")
             return reg_name
@@ -956,17 +953,13 @@ class MatplotlibDrawer:
 
             if len(self._qubit) > 1:
                 if self._layout is None:
-                    qubit_name = "${{{name}}}_{{{index}}}$".format(
-                        name=register.name, index=index
-                    )
+                    qubit_name = "${{{name}}}_{{{index}}}$".format(name=register.name, index=index)
                 else:
                     if self._layout[index]:
                         virt_bit = self._layout[index]
                         try:
                             virt_reg = next(
-                                reg
-                                for reg in self._layout.get_registers()
-                                if virt_bit in reg
+                                reg for reg in self._layout.get_registers() if virt_bit in reg
                             )
                             qubit_name = "${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$".format(
                                 name=virt_reg.name,
@@ -1002,9 +995,7 @@ class MatplotlibDrawer:
             n_clbit.pop(0)
             idx = 0
             y_off = -len(self._qubit)
-            for ii, (reg, nreg) in enumerate(
-                itertools.zip_longest(self._clbit, n_clbit)
-            ):
+            for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._clbit, n_clbit)):
                 pos = y_off - idx
                 register = self._bit_locations[reg]["register"]
                 index = self._bit_locations[reg]["index"]
@@ -1021,9 +1012,7 @@ class MatplotlibDrawer:
                         "index": index,
                         "group": register,
                     }
-                    if not (
-                        not nreg or register != self._bit_locations[nreg]["register"]
-                    ):
+                    if not (not nreg or register != self._bit_locations[nreg]["register"]):
                         continue
                 else:
                     clbit_name = "${}_{{{}}}$".format(register.name, index)
@@ -1161,18 +1150,17 @@ class MatplotlibDrawer:
             "sxdg",
             "p",
         ]
+        _barriers = {"coord": [], "group": []}
 
+        #
         # generate coordinate manager
+        #
         q_anchors = {}
         for key, qubit in self._qubit_dict.items():
-            q_anchors[key] = Anchor(
-                reg_num=self._n_lines, yind=qubit["y"], fold=self._fold
-            )
+            q_anchors[key] = Anchor(reg_num=self._n_lines, yind=qubit["y"], fold=self._fold)
         c_anchors = {}
         for key, clbit in self._clbit_dict.items():
-            c_anchors[key] = Anchor(
-                reg_num=self._n_lines, yind=clbit["y"], fold=self._fold
-            )
+            c_anchors[key] = Anchor(reg_num=self._n_lines, yind=clbit["y"], fold=self._fold)
         #
         # draw the ops
         #
@@ -1188,9 +1176,7 @@ class MatplotlibDrawer:
                 if op.op._directive or op.name == "measure":
                     continue
 
-                base_name = (
-                    None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
-                )
+                base_name = None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
                 gate_text, ctrl_text = self._get_gate_ctrl_text(op)
 
                 # if a standard_gate, no params, and no labels, layer_width is 1
@@ -1215,9 +1201,7 @@ class MatplotlibDrawer:
                     if op.name == "initialize":
                         param = "[%s]" % param
                     param = "${}$".format(param)
-                    param_width = (
-                        self._get_text_width(param, fontsize=sfs, param=True) + 0.08
-                    )
+                    param_width = self._get_text_width(param, fontsize=sfs, param=True) + 0.08
                 else:
                     param_width = 0.0
 
@@ -1234,10 +1218,7 @@ class MatplotlibDrawer:
                 else:
                     gate_width = self._get_text_width(gate_text, fontsize=fs) + 0.10
                     # add .21 for the qubit numbers on the left of the multibit gates
-                    if (
-                        op.name not in _standard_1q_gates
-                        and base_name not in _standard_1q_gates
-                    ):
+                    if op.name not in _standard_1q_gates and base_name not in _standard_1q_gates:
                         gate_width += 0.21
 
                 box_width = max(gate_width, ctrl_width, param_width, WID)
@@ -1250,9 +1231,7 @@ class MatplotlibDrawer:
             # draw the gates in this layer
             #
             for op in layer:
-                base_name = (
-                    None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
-                )
+                base_name = None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
                 gate_text, ctrl_text = self._get_gate_ctrl_text(op)
                 fc, ec, gt, tc, sc, lc = self._get_colors(op)
 
@@ -1287,13 +1266,11 @@ class MatplotlibDrawer:
 
                 # qubit coordinate
                 q_xy = [
-                    q_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
-                    for ii in q_idxs
+                    q_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset) for ii in q_idxs
                 ]
                 # clbit coordinate
                 c_xy = [
-                    c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
-                    for ii in c_idxs
+                    c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset) for ii in c_idxs
                 ]
                 # bottom and top point of qubit
                 qubit_b = min(q_xy, key=lambda xy: xy[1])
@@ -1358,9 +1335,7 @@ class MatplotlibDrawer:
                         clip_on=True,
                         zorder=PORDER_TEXT,
                     )
-                    self._line(
-                        qubit_t, clbit_b, lc=self._style["cc"], ls=self._style["cline"]
-                    )
+                    self._line(qubit_t, clbit_b, lc=self._style["cc"], ls=self._style["cline"])
                 #
                 # draw special gates
                 #
@@ -1381,50 +1356,24 @@ class MatplotlibDrawer:
                 elif op.name == "initialize":
                     vec = "$[{}]$".format(param.replace("$", ""))
                     if len(q_xy) == 1:
-                        self._gate(
-                            q_xy[0],
-                            fc=fc,
-                            ec=ec,
-                            gt=gt,
-                            sc=sc,
-                            text=gate_text,
-                            subtext=vec,
-                        )
+                        self._gate(q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec)
                     else:
                         self._multiqubit_gate(
-                            q_xy,
-                            fc=fc,
-                            ec=ec,
-                            gt=gt,
-                            sc=sc,
-                            text=gate_text,
-                            subtext=vec,
+                            q_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec
                         )
                 elif isinstance(op.op, Delay):
                     param_text = "(%s)" % param
                     if op.op.unit:
                         param_text += "[%s]" % op.op.unit
                     self._gate(
-                        q_xy[0],
-                        fc=fc,
-                        ec=ec,
-                        gt=gt,
-                        sc=sc,
-                        text=gate_text,
-                        subtext=param_text,
+                        q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=param_text
                     )
                 #
                 # draw single qubit gates
                 #
                 elif len(q_xy) == 1:
                     self._gate(
-                        q_xy[0],
-                        fc=fc,
-                        ec=ec,
-                        gt=gt,
-                        sc=sc,
-                        text=gate_text,
-                        subtext=str(param),
+                        q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=str(param)
                     )
                 #
                 # draw controlled and special gates
@@ -1467,9 +1416,7 @@ class MatplotlibDrawer:
                     else:
                         stext = "ZZ"
                     self._sidetext(
-                        qubit_b,
-                        tc=tc,
-                        text="{}".format(stext) + " " + "({})".format(param),
+                        qubit_b, tc=tc, text="{}".format(stext) + " " + "({})".format(param)
                     )
                     self._line(qubit_b, qubit_t, lc=lc)
 
@@ -1537,13 +1484,7 @@ class MatplotlibDrawer:
                 # draw multi-qubit gate as final default
                 else:
                     self._multiqubit_gate(
-                        q_xy,
-                        fc=fc,
-                        ec=ec,
-                        gt=gt,
-                        sc=sc,
-                        text=gate_text,
-                        subtext="{}".format(param),
+                        q_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext="{}".format(param)
                     )
 
             # adjust the column if there have been barriers encountered, but not plotted
