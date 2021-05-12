@@ -70,9 +70,19 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
     @classmethod
     def _tensor(cls, a, b):
-        z = np.hstack([a._stack(b._z, a._num_paulis), a._z])
-        x = np.hstack([a._stack(b._x, a._num_paulis), a._x])
-        phase = np.mod(a._phase + b._phase, 4)
+        x1 = cls._stack(a._x, b._num_paulis, False)
+        x2 = cls._stack(b._x, a._num_paulis)
+        z1 = cls._stack(a._z, b._num_paulis, False)
+        z2 = cls._stack(b._z, a._num_paulis)
+        phase1 = (
+            np.vstack(b._num_paulis * [a._phase])
+            .transpose(1, 0)
+            .reshape(a._num_paulis * b._num_paulis)
+        )
+        phase2 = cls._stack(b._phase, a._num_paulis)
+        z = np.hstack([z2, z1])
+        x = np.hstack([x2, x1])
+        phase = np.mod(phase1 + phase2, 4)
         return BasePauli(z, x, phase)
 
     # pylint: disable=arguments-differ
@@ -251,6 +261,15 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         # Otherwise evolve by the inverse circuit to compute C^dg.P.C
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
+    def _eq(self, other):
+        """Entrywise comparison of Pauli equality."""
+        return (
+            self.num_qubits == other.num_qubits
+            and np.all(np.mod(self._phase, 4) == np.mod(other._phase, 4))
+            and np.all(self._z == other._z)
+            and np.all(self._x == other._x)
+        )
+
     # ---------------------------------------------------------------------
     # Helper Methods
     # ---------------------------------------------------------------------
@@ -268,11 +287,13 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return np.sum(np.logical_and(self._x, self._z), axis=1)
 
     @staticmethod
-    def _stack(array, size):
+    def _stack(array, size, vertical=True):
         """Stack array."""
         if size == 1:
             return array
-        return np.vstack(size * [array])
+        if vertical:
+            return np.vstack(size * [array]).reshape((size * len(array),) + array.shape[1:])
+        return np.hstack(size * [array]).reshape((size * len(array),) + array.shape[1:])
 
     @staticmethod
     def _phase_from_complex(coeff):

@@ -225,14 +225,9 @@ class Pauli(BasePauli):
 
     def __eq__(self, other):
         """Test if two Paulis are equal."""
-        if not isinstance(other, Pauli):
+        if not isinstance(other, BasePauli):
             return False
-        return (
-            len(self) == len(other)
-            and np.all(np.mod(self._phase, 4) == np.mod(other._phase, 4))
-            and np.all(self._z == other._z)
-            and np.all(self._x == other._x)
-        )
+        return self._eq(other)
 
     def equiv(self, other):
         """Return True if Pauli's are equivalent up to group phase.
