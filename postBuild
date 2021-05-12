@@ -13,6 +13,7 @@ pip install .
 # Dependencies
 # - pdflatex: for LaTex drawer
 jupyter labextension install @jupyterlab/latex
+pip install pdflatex
 
 # Activation of appmode extension
 jupyter nbextension     enable --py --sys-prefix appmode
