@@ -83,9 +83,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
-    layout_method = pass_manager_config.layout_method or 'dense'
-    routing_method = pass_manager_config.routing_method or 'stochastic'
-    translation_method = pass_manager_config.translation_method or 'translator'
+    layout_method = pass_manager_config.layout_method or "dense"
+    routing_method = pass_manager_config.routing_method or "stochastic"
+    translation_method = pass_manager_config.translation_method or "translator"
     scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
@@ -95,28 +95,31 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
 
-    _choose_layout_and_score = [TrivialLayout(coupling_map),
-                                Layout2qDistance(coupling_map,
-                                                 property_name='trivial_layout_score')]
+    _choose_layout_and_score = [
+        TrivialLayout(coupling_map),
+        Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
+    ]
 
     def _choose_layout_condition(property_set):
-        return not property_set['layout']
+        return not property_set["layout"]
 
     # 2. Use a better layout on densely connected qubits, if circuit needs swaps
-    if layout_method == 'trivial':
+    if layout_method == "trivial":
         _improve_layout = TrivialLayout(coupling_map)
-    elif layout_method == 'dense':
+    elif layout_method == "dense":
         _improve_layout = DenseLayout(coupling_map, backend_properties)
-    elif layout_method == 'noise_adaptive':
+    elif layout_method == "noise_adaptive":
         _improve_layout = NoiseAdaptiveLayout(backend_properties)
-    elif layout_method == 'sabre':
+    elif layout_method == "sabre":
         _improve_layout = SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler)
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
     def _not_perfect_yet(property_set):
-        return property_set['trivial_layout_score'] is not None and \
-               property_set['trivial_layout_score'] != 0
+        return (
+            property_set["trivial_layout_score"] is not None
+            and property_set["trivial_layout_score"] != 0
+        )
 
     # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
@@ -128,31 +131,36 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _swap_check = CheckMap(coupling_map)
 
     def _swap_condition(property_set):
-        return not property_set['is_swap_mapped']
+        return not property_set["is_swap_mapped"]
 
     _swap = [BarrierBeforeFinalMeasurements()]
-    if routing_method == 'basic':
+    if routing_method == "basic":
         _swap += [BasicSwap(coupling_map)]
-    elif routing_method == 'stochastic':
+    elif routing_method == "stochastic":
         _swap += [StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
-    elif routing_method == 'lookahead':
+    elif routing_method == "lookahead":
         _swap += [LookaheadSwap(coupling_map, search_depth=4, search_width=4)]
-    elif routing_method == 'sabre':
-        _swap += [SabreSwap(coupling_map, heuristic='lookahead', seed=seed_transpiler)]
-    elif routing_method == 'none':
-        _swap += [Error(msg='No routing method selected, but circuit is not routed to device. '
-                            'CheckMap Error: {check_map_msg}', action='raise')]
+    elif routing_method == "sabre":
+        _swap += [SabreSwap(coupling_map, heuristic="lookahead", seed=seed_transpiler)]
+    elif routing_method == "none":
+        _swap += [
+            Error(
+                msg="No routing method selected, but circuit is not routed to device. "
+                "CheckMap Error: {check_map_msg}",
+                action="raise",
+            )
+        ]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
     # 6. Unroll to the basis
-    if translation_method == 'unroller':
+    if translation_method == "unroller":
         _unroll = [Unroller(basis_gates)]
-    elif translation_method == 'translator':
+    elif translation_method == "translator":
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
-        _unroll = [UnrollCustomDefinitions(sel, basis_gates),
-                   BasisTranslator(sel, basis_gates)]
-    elif translation_method == 'synthesis':
+
+        _unroll = [UnrollCustomDefinitions(sel, basis_gates), BasisTranslator(sel, basis_gates)]
+    elif translation_method == "synthesis":
         _unroll = [
             Unroll3qOrMore(),
             Collect2qBlocks(),
@@ -166,7 +174,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _direction_check = [CheckGateDirection(coupling_map)]
 
     def _direction_condition(property_set):
-        return not property_set['is_direction_mapped']
+        return not property_set["is_direction_mapped"]
 
     _direction = [GateDirection(coupling_map)]
 
@@ -174,10 +182,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _reset = RemoveResetInZeroState()
 
     # 9. Merge 1q rotations and cancel CNOT gates iteratively until no more change in depth
-    _depth_check = [Depth(), FixedPoint('depth')]
+    _depth_check = [Depth(), FixedPoint("depth")]
 
     def _opt_control(property_set):
-        return not property_set['depth_fixed_point']
+        return not property_set["depth_fixed_point"]
 
     _opt = [Optimize1qGatesDecomposition(basis_gates), CXCancellation()]
 
@@ -185,9 +193,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # Schedule the circuit only when scheduling_method is supplied
     _scheduling = [TimeUnitConversion(instruction_durations)]
     if scheduling_method:
-        if scheduling_method in {'alap', 'as_late_as_possible'}:
+        if scheduling_method in {"alap", "as_late_as_possible"}:
             _scheduling += [ALAPSchedule(instruction_durations)]
-        elif scheduling_method in {'asap', 'as_soon_as_possible'}:
+        elif scheduling_method in {"asap", "as_soon_as_possible"}:
             _scheduling += [ASAPSchedule(instruction_durations)]
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)

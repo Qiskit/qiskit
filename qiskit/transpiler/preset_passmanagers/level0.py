@@ -75,9 +75,9 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
-    layout_method = pass_manager_config.layout_method or 'trivial'
-    routing_method = pass_manager_config.routing_method or 'stochastic'
-    translation_method = pass_manager_config.translation_method or 'translator'
+    layout_method = pass_manager_config.layout_method or "trivial"
+    routing_method = pass_manager_config.routing_method or "stochastic"
+    translation_method = pass_manager_config.translation_method or "translator"
     scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
@@ -88,15 +88,15 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
-        return not property_set['layout']
+        return not property_set["layout"]
 
-    if layout_method == 'trivial':
+    if layout_method == "trivial":
         _choose_layout = TrivialLayout(coupling_map)
-    elif layout_method == 'dense':
+    elif layout_method == "dense":
         _choose_layout = DenseLayout(coupling_map, backend_properties)
-    elif layout_method == 'noise_adaptive':
+    elif layout_method == "noise_adaptive":
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
-    elif layout_method == 'sabre':
+    elif layout_method == "sabre":
         _choose_layout = SabreLayout(coupling_map, max_iterations=1, seed=seed_transpiler)
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
@@ -111,31 +111,36 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _swap_check = CheckMap(coupling_map)
 
     def _swap_condition(property_set):
-        return not property_set['is_swap_mapped']
+        return not property_set["is_swap_mapped"]
 
     _swap = [BarrierBeforeFinalMeasurements()]
-    if routing_method == 'basic':
+    if routing_method == "basic":
         _swap += [BasicSwap(coupling_map)]
-    elif routing_method == 'stochastic':
+    elif routing_method == "stochastic":
         _swap += [StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
-    elif routing_method == 'lookahead':
+    elif routing_method == "lookahead":
         _swap += [LookaheadSwap(coupling_map, search_depth=2, search_width=2)]
-    elif routing_method == 'sabre':
-        _swap += [SabreSwap(coupling_map, heuristic='basic', seed=seed_transpiler)]
-    elif routing_method == 'none':
-        _swap += [Error(msg='No routing method selected, but circuit is not routed to device. '
-                            'CheckMap Error: {check_map_msg}', action='raise')]
+    elif routing_method == "sabre":
+        _swap += [SabreSwap(coupling_map, heuristic="basic", seed=seed_transpiler)]
+    elif routing_method == "none":
+        _swap += [
+            Error(
+                msg="No routing method selected, but circuit is not routed to device. "
+                "CheckMap Error: {check_map_msg}",
+                action="raise",
+            )
+        ]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
     # 5. Unroll to the basis
-    if translation_method == 'unroller':
+    if translation_method == "unroller":
         _unroll = [Unroller(basis_gates)]
-    elif translation_method == 'translator':
+    elif translation_method == "translator":
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
-        _unroll = [UnrollCustomDefinitions(sel, basis_gates),
-                   BasisTranslator(sel, basis_gates)]
-    elif translation_method == 'synthesis':
+
+        _unroll = [UnrollCustomDefinitions(sel, basis_gates), BasisTranslator(sel, basis_gates)]
+    elif translation_method == "synthesis":
         _unroll = [
             Unroll3qOrMore(),
             Collect2qBlocks(),
@@ -149,7 +154,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _direction_check = [CheckGateDirection(coupling_map)]
 
     def _direction_condition(property_set):
-        return not property_set['is_direction_mapped']
+        return not property_set["is_direction_mapped"]
 
     _direction = [GateDirection(coupling_map)]
 
@@ -157,9 +162,9 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # Schedule the circuit only when scheduling_method is supplied
     _scheduling = [TimeUnitConversion(instruction_durations)]
     if scheduling_method:
-        if scheduling_method in {'alap', 'as_late_as_possible'}:
+        if scheduling_method in {"alap", "as_late_as_possible"}:
             _scheduling += [ALAPSchedule(instruction_durations)]
-        elif scheduling_method in {'asap', 'as_soon_as_possible'}:
+        elif scheduling_method in {"asap", "as_soon_as_possible"}:
             _scheduling += [ASAPSchedule(instruction_durations)]
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)

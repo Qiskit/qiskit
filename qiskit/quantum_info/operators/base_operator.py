@@ -27,8 +27,9 @@ from .mixins import GroupMixin
 class BaseOperator(GroupMixin, ABC):
     """Abstract operator base class."""
 
-    def __init__(self, input_dims=None, output_dims=None,
-                 num_qubits=None, shape=None, op_shape=None):
+    def __init__(
+        self, input_dims=None, output_dims=None, num_qubits=None, shape=None, op_shape=None
+    ):
         """Initialize a BaseOperator shape
 
         Args:
@@ -48,10 +49,9 @@ class BaseOperator(GroupMixin, ABC):
         if op_shape:
             self._op_shape = op_shape
         else:
-            self._op_shape = OpShape.auto(shape=shape,
-                                          dims_l=output_dims,
-                                          dims_r=input_dims,
-                                          num_qubits=num_qubits)
+            self._op_shape = OpShape.auto(
+                shape=shape, dims_l=output_dims, dims_r=input_dims, num_qubits=num_qubits
+            )
 
     # Set higher priority than Numpy array and matrix classes
     __array_priority__ = 20
@@ -64,14 +64,14 @@ class BaseOperator(GroupMixin, ABC):
         if n_qargs not in self._op_shape.num_qargs:
             raise QiskitError(
                 "qargs does not match the number of operator qargs "
-                f"({n_qargs} not in {self._op_shape.num_qargs})")
+                f"({n_qargs} not in {self._op_shape.num_qargs})"
+            )
         ret = copy.copy(self)
         ret._qargs = tuple(qargs)
         return ret
 
     def __eq__(self, other):
-        return (isinstance(other, type(self))
-                and self._op_shape == other._op_shape)
+        return isinstance(other, type(self)) and self._op_shape == other._op_shape
 
     @property
     def qargs(self):
@@ -116,8 +116,8 @@ class BaseOperator(GroupMixin, ABC):
                          subsystem output dimensions is not constant.
         """
         new_shape = OpShape.auto(
-            dims_l=output_dims, dims_r=input_dims, num_qubits=num_qubits,
-            shape=self._op_shape.shape)
+            dims_l=output_dims, dims_r=input_dims, num_qubits=num_qubits, shape=self._op_shape.shape
+        )
         ret = copy.copy(self)
         ret._op_shape = new_shape
         return ret
