@@ -324,7 +324,7 @@ class MatplotlibDrawer:
 
         _xl = -self._style["margin"][0]
         _xr = self._xmax + self._style["margin"][1]
-        _yb = -self._ymax - self._style["margin"][2] + 1 - 0.5
+        _yb = -self._ymax - self._style["margin"][2] + 0.5
         _yt = self._style["margin"][3] + 0.5
         self._ax.set_xlim(_xl, _xr)
         self._ax.set_ylim(_yb, _yt)
@@ -332,8 +332,12 @@ class MatplotlibDrawer:
         # update figure size before doing any matplotlib drawing
         fig_w = _xr - _xl
         fig_h = _yt - _yb
-        if self._style["figwidth"] <= 0.0 and not self._user_ax:
-            figure_width = fig_w * 0.836111111# * self._fs * 0.0643162 #BASE_SIZE / 72 / WID
+
+        if self._scale != 1.0:
+            self._figure.set_size_inches(fig_w * self._scale, fig_h * self._scale)
+        elif self._style["figwidth"] <= 0.0 and not self._user_ax:
+            print(fig_w)
+            figure_width = fig_w * self._fs * BASE_SIZE / 72 / WID
             self._figure.set_size_inches(figure_width, figure_width * fig_h / fig_w)
         elif self._user_ax:
             figure_width = self._figure.get_size_inches()[0]
@@ -341,11 +345,12 @@ class MatplotlibDrawer:
             figure_width = self._style["figwidth"]
             self._figure.set_size_inches(figure_width, figure_width * fig_h / fig_w)
 
-        self._scale = figure_width / fig_w
-        self._fs = self._fs * self._scale * 1.196
-        self._sfs = self._sfs * self._scale * 1.196
+        if self._scale == 1.0:
+            self._scale = 1.196 * figure_width / fig_w
+        self._fs = self._fs * self._scale
+        self._sfs = self._sfs * self._scale
         self._lwidth15 = 1.5 * self._scale
-        self._lwidth2 = 2.0 * self._scale
+        self._lwidth2 = 2.0 * self._scale 
 
         self._draw_regs_wires(total_layer_width, num_folds)
         self._draw_ops(verbose)
