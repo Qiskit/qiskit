@@ -75,15 +75,6 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(0, sched.start_time)
         self.assertEqual(3, sched.stop_time)
 
-    def test_deprecated_style(self):
-        """Test append instructions to an empty schedule."""
-        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-
-        sched = Schedule()
-        sched = sched.append(Play(lp0, self.config.drive(0)))
-        self.assertEqual(0, sched.start_time)
-        self.assertEqual(3, sched.stop_time)
-
     def test_append_instructions_applying_to_different_channels(self):
         """Test append instructions to schedule."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)

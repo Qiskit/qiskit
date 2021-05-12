@@ -47,7 +47,7 @@ class CIFailureReporter:
                 build logs.
             job_name (str): name of the failed ci job.
         """
-        if branch != 'master' and not self.stable_branch_regex.search(branch):
+        if branch != 'main' and not self.stable_branch_regex.search(branch):
             return None
         key_label = self._key_label(branch, job_name)
         issue_number = self._get_report_issue_number(key_label)
@@ -61,8 +61,8 @@ class CIFailureReporter:
             return 'randomized test'
         elif job_name == 'Benchmarks':
             return 'benchmarks failing'
-        elif branch_name == 'master':
-            return 'master failing'
+        elif branch_name == 'main':
+            return 'main failing'
         elif branch_name.startswith('stable/'):
             return 'stable failing'
         else:

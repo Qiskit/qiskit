@@ -55,6 +55,7 @@ Standard Gates
    RCCXGate
    RC3XGate
    Reset
+   RGate
    RXGate
    RXXGate
    RYGate
@@ -62,6 +63,7 @@ Standard Gates
    RZGate
    RZZGate
    RZXGate
+   ECRGate
    SGate
    SdgGate
    SwapGate
@@ -93,6 +95,7 @@ Generalized Gates
    GRX
    GRY
    GRZ
+   RVGate
 
 Boolean Logic Circuits
 ======================
@@ -135,6 +138,7 @@ Functional Pauli Rotations
    PolynomialPauliRotations
    PiecewiseLinearPauliRotations
    PiecewisePolynomialPauliRotations
+   PiecewiseChebyshev
 
 Adders
 ++++++
@@ -181,6 +185,7 @@ Particular Quantum Circuits
    QuantumVolume
    PhaseEstimation
    GroverOperator
+   PhaseOracle
 
 Probability distributions
 =========================
@@ -273,6 +278,44 @@ NCT (Not-CNOT-Toffoli) template circuits
    templates.nct.template_nct_9d_9
    templates.nct.template_nct_9d_10
 
+Clifford template circuits
+==========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   clifford_2_1
+   clifford_2_2
+   clifford_2_3
+   clifford_2_4
+   clifford_3_1
+   clifford_4_1
+   clifford_4_2
+   clifford_4_3
+   clifford_4_4
+   clifford_5_1
+   clifford_6_1
+   clifford_6_2
+   clifford_6_3
+   clifford_6_4
+   clifford_6_5
+   clifford_8_1
+   clifford_8_2
+   clifford_8_3
+
+RZXGate template circuits
+=========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   rzx_yz
+   rzx_xz
+   rzx_cy
+   rzx_zz1
+   rzx_zz2
+   rzx_zz3
+
 """
 
 from .standard_gates import *
@@ -311,6 +354,7 @@ from .arithmetic import (
     WeightedAdder,
     QuadraticForm,
     LinearAmplitudeFunction,
+    PiecewiseChebyshev,
 )
 from .n_local import (
     NLocal,
@@ -338,3 +382,4 @@ from .hidden_linear_function import HiddenLinearFunction
 from .iqp import IQP
 from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
+from .phase_oracle import PhaseOracle

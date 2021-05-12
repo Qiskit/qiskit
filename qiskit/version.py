@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,broad-except,cyclic-import
+# pylint: disable=no-name-in-module,broad-except,cyclic-import,import-error
 
 """Contains the terra version."""
 
@@ -45,7 +45,7 @@ def _minimal_ext_cmd(cmd):
 
 def git_version():
     """Get the current git head sha1."""
-    # Determine if we're at master
+    # Determine if we're at main
     try:
         out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
         git_revision = out.strip().decode('ascii')
@@ -113,11 +113,33 @@ class QiskitVersion(Mapping):
             self._version_dict['qiskit-ibmq-provider'] = ibmq.__version__
         except Exception:
             self._version_dict['qiskit-ibmq-provider'] = None
+        # TODO: Remove aqua after deprecation is complete and it is removed from
+        # the metapackage
         try:
             from qiskit import aqua
             self._version_dict['qiskit-aqua'] = aqua.__version__
         except Exception:
             self._version_dict['qiskit-aqua'] = None
+        try:
+            import qiskit_nature
+            self._version_dict['qiskit-nature'] = qiskit_nature.__version__
+        except Exception:
+            self._version_dict['qiskit-nature'] = None
+        try:
+            import qiskit_finance
+            self._version_dict['qiskit-finance'] = qiskit_finance.__version__
+        except Exception:
+            self._version_dict['qiskit-finance'] = None
+        try:
+            import qiskit_optimization
+            self._version_dict['qiskit-optimization'] = qiskit_optimization.__version__
+        except Exception:
+            self._version_dict['qiskit-optimization'] = None
+        try:
+            import qiskit_machine_learning
+            self._version_dict['qiskit-machine-learning'] = qiskit_machine_learning.__version__
+        except Exception:
+            self._version_dict['qiskit-machine-learning'] = None
         try:
             self._version_dict['qiskit'] = pkg_resources.get_distribution('qiskit').version
         except Exception:

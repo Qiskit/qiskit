@@ -117,14 +117,14 @@ class Instruction:
             try:
                 if numpy.shape(self_param) == numpy.shape(other_param) \
                         and numpy.allclose(self_param, other_param,
-                                           atol=_CUTOFF_PRECISION):
+                                           atol=_CUTOFF_PRECISION, rtol=0):
                     continue
             except TypeError:
                 pass
 
             try:
                 if numpy.isclose(float(self_param), float(other_param),
-                                 atol=_CUTOFF_PRECISION):
+                                 atol=_CUTOFF_PRECISION, rtol=0):
                     continue
             except TypeError:
                 pass
@@ -410,7 +410,8 @@ class Instruction:
         """
         if len(qargs) != self.num_qubits:
             raise CircuitError(
-                'The amount of qubit arguments does not match the instruction expectation.')
+                f'The amount of qubit arguments {len(qargs)} does not match'
+                f' the instruction expectation ({self.num_qubits}).')
 
         #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]

@@ -12,12 +12,13 @@
 
 """Test for the QASM parser"""
 
+import os
 import unittest
 import ply
 
 from qiskit.qasm import Qasm, QasmError
 from qiskit.qasm.node.node import Node
-from qiskit.test import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase
 
 
 def parse(file_path):
@@ -35,11 +36,12 @@ class TestParser(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.qasm_file_path = self._get_resource_path('example.qasm', Path.QASMS)
-        self.qasm_file_path_fail = self._get_resource_path(
-            'example_fail.qasm', Path.QASMS)
-        self.qasm_file_path_if = self._get_resource_path(
-            'example_if.qasm', Path.QASMS)
+        self.qasm_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            'qasm')
+        self.qasm_file_path = os.path.join(self.qasm_dir, 'example.qasm')
+        self.qasm_file_path_fail = os.path.join(self.qasm_dir, 'example_fail.qasm')
+        self.qasm_file_path_if = os.path.join(self.qasm_dir, 'example_if.qasm')
 
     def test_parser(self):
         """should return a correct response for a valid circuit."""

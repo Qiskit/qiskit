@@ -1,0 +1,60 @@
+---
+features:
+  - |
+    When running on Windows, parallel execution with the
+    :func:`~qiskit.tools.parallel_map` function can now be enabled (it is
+    still disabled by default). To do this you can either set
+    ``parallel = True`` in a user config file, or set the ``QISKIT_PARALLEL``
+    environment variable to ``TRUE`` (this will also effect
+    :func:`~qiskit.compiler.transpile` and :func:`~qiskit.compiler.assemble`
+    which both use :func:`~qiskit.tools.parallel_map` internally). It is
+    important to note that when enabling parallelism on Windows there are
+    limitations around how Python launches processes for Windows, see the
+    Known Issues section below for more details on the limitations with
+    parallel execution on Windows.
+issues:
+  - |
+    On Windows systems when parallel execution is enabled for
+    :func:`~qiskit.tools.parallel_map` parallelism may not work when called
+    from a script running outside of a ``if __name__ == '__main__':`` block.
+    This is due to how Python launches parallel processes on Windows. If a
+    ``RuntimeError`` or ``AttributeError`` are raised by scripts that call
+    :func:`~qiskit.tools.parallel_map` (including using functions that use
+    ``parallel_map()`` internally like :func:`~qiskit.compiler.transpile`)
+    with Windows and parallelism enabled you can try embedding the script
+    calls inside ``if __name__ == '__main__':`` to workaround the issue.
+    For example::
+
+      from qiskit import QuantumCircuit, QiskitError
+      from qiskit import execute, Aer
+
+      qc1 = QuantumCircuit(2, 2)
+      qc1.h(0)
+      qc1.cx(0, 1)
+      qc1.measure([0,1], [0,1])
+      # making another circuit: superpositions
+      qc2 = QuantumCircuit(2, 2)
+      qc2.h([0,1])
+      qc2.measure([0,1], [0,1])
+      execute([qc1, qc2], Aer.get_backend('qasm_simulator'))
+
+    should be changed to::
+
+      from qiskit import QuantumCircuit, QiskitError
+      from qiskit import execute, Aer
+
+      def main():
+          qc1 = QuantumCircuit(2, 2)
+          qc1.h(0)
+          qc1.cx(0, 1)
+          qc1.measure([0,1], [0,1])
+          # making another circuit: superpositions
+          qc2 = QuantumCircuit(2, 2)
+          qc2.h([0,1])
+          qc2.measure([0,1], [0,1])
+          execute([qc1, qc2], Aer.get_backend('qasm_simulator'))
+
+      if __name__ == '__main__':
+          main()
+
+    if any errors are encountered with parallelism on Windows.

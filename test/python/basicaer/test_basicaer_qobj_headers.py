@@ -65,11 +65,3 @@ class TestBasicAerQobj(QiskitTestCase):
                 result = backend.run(qobj).result()
                 self.assertEqual(result.header.to_dict(), custom_qobj_header)
                 self.assertEqual(result.results[0].header.some_field, 'extra info')
-
-    def test_job_qobj(self):
-        """Test job.qobj()."""
-        for backend in BasicAer.backends():
-            with self.subTest(backend=backend):
-                qobj = assemble(self.qc1)
-                job = backend.run(qobj)
-                self.assertEqual(job.qobj(), qobj)

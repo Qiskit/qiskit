@@ -98,10 +98,8 @@ class NLocal(BlueprintCircuit):
             skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
             skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
                 are entangled. If ``False``, the rotation gates act on all qubits.
-            initial_state: A `qiskit.aqua.components.initial_states.InitialState` object which can
-                be used to describe an initial state prepended to the NLocal circuit. This
-                is primarily for compatibility with algorithms in Qiskit Aqua, which leverage
-                this object to prepare input states.
+            initial_state: A `QuantumCircuit` object which can be used to describe an initial state
+                prepended to the NLocal circuit.
             name: The name of the circuit.
 
         Examples:
@@ -109,8 +107,6 @@ class NLocal(BlueprintCircuit):
 
         Raises:
             ImportError: If an ``initial_state`` is specified but Qiskit Aqua is not installed.
-            TypeError: If an ``initial_state`` is specified but not of the correct type,
-                ``qiskit.aqua.components.initial_states.InitialState``.
             ValueError: If reps parameter is less than or equal to 0.
         """
         super().__init__(name=name)
@@ -150,16 +146,6 @@ class NLocal(BlueprintCircuit):
             self.entanglement = entanglement
 
         if initial_state is not None:
-            try:
-                from qiskit.aqua.components.initial_states import InitialState
-                if not isinstance(initial_state, InitialState):
-                    raise TypeError('initial_state must be of type InitialState, but is '
-                                    '{}.'.format(type(initial_state)))
-            except ImportError as ex:
-                raise ImportError(
-                    'Could not import the qiskit.aqua.components.initial_states.'
-                    'InitialState. To use this feature Qiskit Aqua must be installed.'
-                ) from ex
             self.initial_state = initial_state
 
     @property
@@ -457,16 +443,6 @@ class NLocal(BlueprintCircuit):
         return num
 
     @property
-    def parameters(self) -> Set[Parameter]:
-        """Get the :class:`~qiskit.circuit.Parameter` objects in the circuit.
-
-        Returns:
-            A set containing the unbound circuit parameters.
-        """
-        self._build()
-        return super().parameters
-
-    @property
     def reps(self) -> int:
         """The number of times rotation and entanglement block are repeated.
 
@@ -730,7 +706,7 @@ class NLocal(BlueprintCircuit):
                 parameterized_block = self._parameterize_block(block, params=params)
                 layer.compose(parameterized_block, i)
 
-            self += layer
+            self.compose(layer, inplace=True)
         else:
             # cannot prepend a block currently, just rebuild
             self._invalidate()
@@ -832,7 +808,7 @@ class NLocal(BlueprintCircuit):
                 layer.compose(parameterized_block, indices, inplace=True)
 
             # add the layer to the circuit
-            self += layer
+            self.compose(layer, inplace=True)
 
     def _build_entanglement_layer(self, param_iter, i):
         """Build an entanglement layer."""
@@ -848,7 +824,7 @@ class NLocal(BlueprintCircuit):
                 layer.compose(parameterized_block, indices, inplace=True)
 
             # add the layer to the circuit
-            self += layer
+            self.compose(layer, inplace=True)
 
     def _build_additional_layers(self, which):
         if which == 'appended':
@@ -867,7 +843,7 @@ class NLocal(BlueprintCircuit):
             for indices in ent:
                 layer.compose(block, indices, inplace=True)
 
-            self += layer
+            self.compose(layer, inplace=True)
 
     def _build(self) -> None:
         """Build the circuit."""
@@ -884,7 +860,7 @@ class NLocal(BlueprintCircuit):
         # use the initial state circuit if it is not None
         if self._initial_state:
             circuit = self._initial_state.construct_circuit('circuit', register=self.qregs[0])
-            self += circuit
+            self.compose(circuit, inplace=True)
 
         param_iter = iter(self.ordered_parameters)
 
