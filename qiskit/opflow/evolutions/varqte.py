@@ -262,7 +262,6 @@ class VarQTE(EvolutionBase):
     def error_bound(self,
                     data_dir: str,
                     imag_reverse_bound: bool = True,
-                    trunc_bound: bool = False,
                     H: Optional[Union[List, np.ndarray]] = None) -> List:
         """
         Evaluate an upper bound to the error of the VarQTE simulation

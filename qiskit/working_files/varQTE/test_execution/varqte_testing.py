@@ -119,22 +119,26 @@ for dir in output_dirs:
                     """
                     varqite._operator = op
 
-                    varqite_error_bounds, varqite_reverse_error_bounds = varqite.error_bound(
+                    # varqite_error_bounds, varqite_reverse_error_bounds = varqite.error_bound(
+                    #     varqite_snapshot_dir, imag_reverse_bound=True, H=observable.to_matrix(
+                    #         massive=True))
+                    varqite_error_bounds = varqite.error_bound(
                         varqite_snapshot_dir, imag_reverse_bound=True, H=observable.to_matrix(
                             massive=True))
                     np.save(os.path.join(varqite_snapshot_dir, 'error_bounds.npy'),
                             varqite_error_bounds)
-                    np.save(os.path.join(varqite_snapshot_dir, 'reverse_error_bounds.npy'),
-                            varqite_reverse_error_bounds)
-                    # dir_fast = '../output/imag/10/ridge/RK45error'
-                    # varqite.print_results([dir_fast], [os.path.join(dir_fast,
-                    #                                                'error_bounds.npy')])
+                    # np.save(os.path.join(varqite_snapshot_dir, 'reverse_error_bounds.npy'),
+                    #         varqite_reverse_error_bounds)
+
+                    # varqite.plot_results([varqite_snapshot_dir],
+                    #                      [os.path.join(varqite_snapshot_dir,
+                    #                                    'error_bounds.npy')],
+                    #                      [os.path.join(varqite_snapshot_dir,
+                    #                                    'reverse_error_bounds.npy')]
+                    #                       )
                     varqite.plot_results([varqite_snapshot_dir],
                                          [os.path.join(varqite_snapshot_dir,
-                                                       'error_bounds.npy')],
-                                         [os.path.join(varqite_snapshot_dir,
-                                                       'reverse_error_bounds.npy')]
-                                          )
+                                                       'error_bounds.npy')])
 
                     print('run time', (time.time()-t0)/60)
                     """

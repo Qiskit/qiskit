@@ -17,6 +17,7 @@ import warnings
 
 from scipy.optimize import fmin_cobyla
 
+import math
 import numpy as np
 import scipy as sp
 from scipy.linalg import expm
@@ -190,29 +191,245 @@ class VarQITE(VarQTE):
             raise Warning('The number of the gradient errors is incompatible with the number of '
                           'the time steps.')
 
-        def optimization(eps: float,
+        """
+         def optimization(eps: float,
                          e: float,
                          var: float,
                          h_squared: float) -> float:
 
             c_alpha = lambda a: np.sqrt((1-a)**2 + 2*a *(1-a)*e + a**2*h_squared)
 
-            def optimization_fun(alpha: float) -> float:
+            def optimization_fun(alpha: Iterable[float]) -> float:
+                alpha = alpha[0]
                 return (-1) * eps**2 / c_alpha(alpha) * (e + alpha * (var - e - e**2))
 
-            def constraint1(alpha: float):
+            def constraint1(alpha: Iterable[float]) -> float:
+                alpha = alpha[0]
                 return (1 - alpha + alpha * e) / c_alpha(alpha)**2 - 1 + eps**2 /2
 
-            def constraint2(alpha: float) -> float:
+            def constraint2(alpha: Iterable[float]) -> float:
                 # Constraint alpha >= 0
-                return alpha
+                return alpha[0]
 
-            def constraint3(alpha: float) -> float:
+            def constraint3(alpha: Iterable[float]) -> float:
                 # Constraint alpha <= 1
-                return 1 - alpha
+                return 1 - alpha[0]
+            # alpha_opt = fmin_cobyla(func=optimization_fun, x0=[0.5], rhobeg=0.01,
+            #                         rhoend=1e-8, cons=[constraint2, constraint3, constraint1],
+            #                         catol=1e-16)[0]
+            objective_list = []
+            constraint1_list = []
+            for a in np.linspace(0, 1, 1000):
+                objective_list.append(optimization_fun([a]))
+                constraint1_list.append(constraint1([a]))
 
-            return fmin_cobyla(func=optimization_fun, x0=0.5, cons=[constraint1, constraint2,
-                                                                   constraint3]).tolist()
+            import matplotlib.pyplot as plt
+            plt.figure(1)
+            plt.plot(np.linspace(0, 1, 1000), objective_list)
+            plt.ylabel('objective value')
+            plt.xlabel(r'$\alpha$')
+            plt.savefig(self._snapshot_dir + '/objective_values.png')
+            plt.close()
+
+            plt.figure(2)
+            plt.scatter(np.linspace(0, 1, 1000), constraint1_list)
+            plt.ylabel('constraint value')
+            plt.xlabel(r'$\alpha$')
+            plt.savefig(self._snapshot_dir + '/constraint_values.png')
+            plt.close()
+
+            # print('eps', eps)
+            # print('e', e)
+            # print('var ', var)
+            # print('h_squared ', h_squared)
+            # print('alpha_opt ', alpha_opt)
+            # if alpha_opt < 0:
+            #     if np.abs(alpha_opt) < 1e-4:
+            #         alpha_opt = 0
+            #     else:
+            #         raise Warning('alpha < 0 - non-negligible')
+            #     print('alpha_opt cut-off ', alpha_opt)
+            alpha_opt_list = np.linspace(0, 1, 1000).tolist()
+            while True:
+                index = objective_list.index(min(objective_list))
+                if constraint1_list[index] < 0:
+                    objective_list.pop(index)
+                    constraint1_list.pop(index)
+                    alpha_opt_list.pop(index)
+                else:
+                    break
+            alpha_opt = alpha_opt_list[index]
+            if len(alpha_opt_list) != len(constraint1_list) or \
+                len(alpha_opt_list) != len(objective_list):
+                raise Warning('Item removal failed')
+            print('alpha_opt ', alpha_opt)
+            print('Y(alpha_opt) ', optimization_fun([alpha_opt]))
+            return optimization_fun([alpha_opt])
+        error_bounds = [0]
+
+        for j in range(len(times)):
+            if j == 0:
+                continue
+            delta_t = times[j]-times[j-1]
+            y = optimization(error_bounds[j-1], energies[j-1], stddevs[j-1]**2, h_squareds[j-1])
+            #  bound for |<\psi_{t+1}|\psi^*_{t+1}>|**2
+            if (1 - error_bounds[j-1]**2 / 2) < 0:
+                print(r'1-\frac{\epsilon^2}{2} ', 1 - error_bounds[j-1]**2 / 2)
+            if ((1 - error_bounds[j-1]**2 / 2) * energies[j-1] - y) < 0:
+                print(r'1-\frac{\epsilon^2}{2}E-Y ', ((1 - error_bounds[j-1]**2 / 2) * energies[
+                    j-1] - y))
+            print('E ', energies[j-1])
+            overlap_item = (1 - error_bounds[j-1]**2 / 2)**2 + \
+                           2 * delta_t * (1 - error_bounds[j-1]**2 / 2) * \
+                           ((1 - error_bounds[j-1]**2 / 2) * energies[j-1] - y)
+            # bound for |<\psi_{t+1}|\psi^*_{t+1}>|
+            if overlap_item < 0:
+                print('overlap_item negative')
+            print('overlap item before sqrt', overlap_item)
+            overlap_item = np.sqrt(overlap_item)
+            # \epsilon_{t+1}
+            error_bounds.append(np.sqrt(2-2*overlap_item) + delta_t * gradient_errors[j-1])
+        """
+
+        def optimization(eps: float,
+                         e: float,
+                         var: float,
+                         h_squared: float) -> float:
+            print('hsquared ', h_squared)
+            print('e ', e)
+            print('var ', var)
+
+            c_alpha = lambda a: np.sqrt((1-a)**2 + 2*a *(1-a)*e + a**2*h_squared)
+
+
+            def optimization_fun(alpha: Iterable[float]) -> float:
+                alpha = alpha[0]
+                e_star = ((1 + alpha - alpha ** 2) * e + alpha ** 2 * h_squared) / c_alpha(
+                    alpha) ** 2
+
+                # return 2 * (1-np.abs(((1-alpha) + alpha * e - 2*delta_t*alpha*var)/c_alpha(
+                # alpha)))
+
+                # return 2/c_alpha(alpha) * ((1-alpha) * np.sqrt(alpha) *
+                #                            np.sqrt(e - 2/c_alpha(alpha) *
+                #                                    (e - alpha*e - alpha*e**2 + alpha*var)) +
+                #                            alpha * np.sqrt(1 - e - delta_t*
+                #                                            (e**2 - 2*e/c_alpha(alpha) *
+                #                                             (e - alpha * e - alpha *
+                #                                              e**2 + alpha * var) - 2 * var
+                #                                             )
+                #                                            )
+                #                            )
+
+                # Fidelity
+
+                # return 2 * (1 - (
+                #         (1 - eps**2/2)**2 +
+                #          2 * delta_t * (1 - eps**2/2) *
+                #         ((1 - eps**2/2) * (e + ((1 + alpha - alpha **2) * e + alpha **2 *
+                #                                 h_squared) / c_alpha(alpha)**2)
+                #          - 2 /c_alpha(alpha) * ((1-alpha) * e + alpha * h_squared))
+                #                 )
+                #             )
+
+                # # Bures
+                #
+                # value_under_sqrt_1 = 1 + delta_t * (e_star - e) - np.abs(1 + delta_t * (e_star - e))
+                # value_under_sqrt_2 = 1 + delta_t * (e * e_star - h_squared) - \
+                #                    np.abs(e - 2 * delta_t * var)
+                # print('val under sqrt 1', value_under_sqrt_1)
+                # print('val under sqrt 2', value_under_sqrt_2)
+                # return_val = (1 - alpha)/ c_alpha(alpha) * np.sqrt(value_under_sqrt_1) +\
+                #        alpha/c_alpha(alpha) * np.sqrt(value_under_sqrt_2)
+                # if math.isnan(return_val):
+                #     pass
+
+                # Direct Bures
+                abs_value = np.abs((1-eps**2)/2 * (1 + 2 * delta_t*e) - 2 * delta_t/c_alpha(alpha)
+                                   * ((1 - alpha) * e + alpha * h_squared))
+                # print('abs value ', abs_value)
+                return_val = np.sqrt(2)*np.sqrt(1 - abs_value)
+
+
+
+                                                # np.abs(((1-alpha + alpha * e) *
+                                                #         (1 + delta_t * (e + e_star)) -
+                                                #          2 * delta_t * ((1 - alpha) * e +
+                                                #                        alpha * h_squared)
+                                                #         )/c_alpha(alpha)))
+
+                return return_val
+
+
+            # def constraint0(alpha: Iterable):
+            #     return 1 - np.abs(1 - delta_t * alpha / c_alpha(alpha) * var)
+
+            """
+            """
+            def constraint1(alpha: Iterable[float]) -> float:
+                alpha = alpha[0]
+                return (1 - alpha + alpha * e) / c_alpha(alpha)**2 - 1 + eps**2 /2
+
+            def constraint2(alpha: Iterable[float]) -> float:
+                # Constraint alpha >= 0
+                return alpha[0]
+
+            def constraint3(alpha: Iterable[float]) -> float:
+                # Constraint alpha <= 1
+                return 1 - alpha[0]
+            # alpha_opt = fmin_cobyla(func=optimization_fun, x0=[0.5], rhobeg=0.01,
+            #                         rhoend=1e-8, cons=[constraint2, constraint3, constraint1],
+            #                         catol=1e-16)[0]
+            alpha_opt_list = []
+            objective_list = []
+            # constraint0_list = []
+            constraint1_list = []
+            for a in np.linspace(0, 1, 1000):
+                opt_fun = optimization_fun([a])
+                # print('optimization function ', opt_fun)
+                # print('alpha ', a)
+                if math.isnan(opt_fun):
+                    pass
+                else:
+                    objective_list.append(opt_fun)
+                    # constraint0_list.append(constraint0([a]))
+                    constraint1_list.append(constraint1([a]))
+                    alpha_opt_list.append([a])
+            if len(objective_list) == 0:
+                print('No suitable alpha found')
+
+            import matplotlib.pyplot as plt
+            plt.figure(1)
+            plt.plot(alpha_opt_list, objective_list)
+            plt.ylabel('objective value')
+            plt.xlabel(r'$\alpha$')
+            plt.savefig(self._snapshot_dir + '/objective_values.png')
+            plt.close()
+
+            plt.figure(2)
+            plt.scatter(alpha_opt_list, constraint1_list)
+            plt.ylabel('constraint value')
+            plt.xlabel(r'$\alpha$')
+            plt.savefig(self._snapshot_dir + '/constraint_values.png')
+            plt.close()
+
+            print('be careful maximization happening')
+            # index = objective_list.index(max(objective_list))
+            while True:
+                index = objective_list.index(max(objective_list))
+                if constraint1_list[index] < 0:
+                    objective_list.pop(index)
+                    constraint1_list.pop(index)
+                    alpha_opt_list.pop(index)
+                else:
+                    break
+            alpha_opt = alpha_opt_list[index]
+            if len(alpha_opt_list) != len(constraint1_list) or \
+                len(alpha_opt_list) != len(objective_list):
+                raise Warning('Item removal failed')
+            print('alpha_opt ', alpha_opt)
+            print('Y(alpha_opt) ', optimization_fun(alpha_opt))
+            return optimization_fun(alpha_opt)
 
         error_bounds = [0]
 
@@ -222,14 +439,11 @@ class VarQITE(VarQTE):
             delta_t = times[j]-times[j-1]
             y = optimization(error_bounds[j-1], energies[j-1], stddevs[j-1]**2, h_squareds[j-1])
             #  bound for |<\psi_{t+1}|\psi^*_{t+1}>|**2
-            overlap_item = (1 - error_bounds[j-1]**2 / 2)**2 + \
-                           2 * delta_t * (1 - error_bounds[j-1]**2 / 2) * \
-                           ((1 - error_bounds[j-1]**2 / 2)*energies[j-1] - y)
-            # bound for |<\psi_{t+1}|\psi^*_{t+1}>|
-            overlap_item = np.sqrt(overlap_item)
-            # \epsilon_{t+1}
-            error_bounds.append(np.sqrt(2-2*overlap_item))
 
+            # \epsilon_{t+1}
+            error_bounds.append(y + delta_t * gradient_errors[j-1])
+
+#--------------------------------
         """
        
         norms = []
@@ -250,7 +464,7 @@ class VarQITE(VarQTE):
         for j in range(len(times)):
             e_bounds.append(np.trapz(np.multiply(gradient_errors[:j+1], gradient_error_factors[
                                                                         :j+1]), x=times[:j+1]))
-         """
+        
         # print('Error bounds ', e_bounds)
 
         # e_bounds = [np.sqrt(2) if e_bound > np.sqrt(2) else e_bound for e_bound in e_bounds]
@@ -293,7 +507,10 @@ class VarQITE(VarQTE):
             # reverse_bounds = [np.sqrt(2) if e_bound > np.sqrt(2) else e_bound for e_bound in
             #                   reverse_bounds]
             return e_bounds, reverse_bounds
-        return e_bounds
+             """
+        print('error bounds', np.around(error_bounds, 4))
+        print('gradient errors', np.around(gradient_errors, 4))
+        return error_bounds
 
     def _exact_state(self,
                      time: Union[float, complex]) -> Iterable:
