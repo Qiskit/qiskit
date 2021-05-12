@@ -125,7 +125,7 @@ class Counts(dict):
     def __getitem__(self, key):
         try:
             return super().__getitem__(key)
-        except KeyError:
+        except KeyError as keyerror:
             if isinstance(key, int):
                 key = hex(key)
             key = key.replace(" ", "")
@@ -133,7 +133,7 @@ class Counts(dict):
                 key = postprocess.format_counts_memory(key, {"memory_slots": self.memory_slots})
             if self.memory_slots == len(key):
                 return 0
-            raise KeyError(f"{key} not found")
+            raise KeyError from keyerror
 
     def most_frequent(self):
         """Return the most frequent count
