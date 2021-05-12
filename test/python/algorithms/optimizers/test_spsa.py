@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.algorithms.optimizers import SPSA, QNSPSA
 from qiskit.circuit.library import PauliTwoDesign
-from qiskit.opflow import I, Z, StateFn, CircuitSampler
+from qiskit.opflow import I, Z, StateFn
 from qiskit.utils import algorithm_globals
 
 

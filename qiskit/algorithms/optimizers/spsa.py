@@ -300,7 +300,7 @@ class SPSA(Optimizer):
         return gradient_sample, hessian_sample
 
     def _point_estimate(self, loss, x, eps, num_samples):
-        """The gradient estimate at point ``x`` consisting as average of all directions ``delta``."""
+        """The gradient estimate at point x."""
         # set up variables to store averages
         gradient_estimate = np.zeros(x.size)
         hessian_estimate = np.zeros((x.size, x.size))
