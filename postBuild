@@ -13,9 +13,10 @@ pip install .
 # Dependencies
 # - pdflatex: for LaTex drawer
 jupyter labextension install @jupyterlab/latex
-wget "https://mirrors.ctan.org/graphics/qcircuit.zip"
-unzip qcircuit.zip
-pip install pdflatex
+wget "http://mirrors.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz"
+tar -xf install-tl-unx.tar.gz
+cd install-tl-20210512/
+./install-tl
 
 # Activation of appmode extension
 jupyter nbextension     enable --py --sys-prefix appmode
