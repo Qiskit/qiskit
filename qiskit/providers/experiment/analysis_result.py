@@ -69,7 +69,7 @@ class AnalysisResultV1(AnalysisResult):
         Args:
             result_data: Analysis result data.
             analysis_type: Analysis type.
-            device_components: Target device component this analysis is for.
+            device_components: Target device components this analysis is for.
             experiment_id: ID of the experiment.
             result_id: Result ID. If ``None``, one is generated.
             quality: Quality of the analysis.
@@ -152,7 +152,7 @@ class AnalysisResultV1(AnalysisResult):
         _result_data['_source'] = self._source
 
         new_data = {'experiment_id': self._experiment_id, 'result_type': self._type}
-        update_data = {'result_id': self.id, 'data': _result_data,
+        update_data = {'result_id': self.result_id, 'data': _result_data,
                        'tags': self.tags, 'quality': self.quality}
 
         service = service or self._service
@@ -196,7 +196,7 @@ class AnalysisResultV1(AnalysisResult):
             self.save()
 
     @property
-    def id(self):
+    def result_id(self):
         """Return analysis result ID.
 
         Returns:
@@ -205,7 +205,7 @@ class AnalysisResultV1(AnalysisResult):
         return self._id
 
     @property
-    def type(self) -> str:
+    def result_type(self) -> str:
         """Return analysis result type.
 
         Returns:

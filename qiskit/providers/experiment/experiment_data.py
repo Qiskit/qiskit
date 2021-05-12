@@ -25,7 +25,7 @@ from functools import wraps
 import traceback
 
 from qiskit.version import __qiskit_version__
-from qiskit.providers import Job, BaseJob, Backend, BaseBackend
+from qiskit.providers import Job, BaseJob, Backend, BaseBackend, Provider
 from qiskit.result import Result
 from qiskit.providers import JobStatus
 from qiskit.exceptions import QiskitError
@@ -79,8 +79,8 @@ class ExperimentDataV1(ExperimentData):
 
     def __init__(
             self,
-            backend: Union[Backend, BaseBackend],
             experiment_type: str,
+            backend: Optional[Union[Backend, BaseBackend]] = None,
             experiment_id: Optional[str] = None,
             tags: Optional[List[str]] = None,
             job_ids: Optional[List[str]] = None,
@@ -92,9 +92,8 @@ class ExperimentDataV1(ExperimentData):
         """Initializes the experiment data.
 
         Args:
-            backend: Backend the experiment runs on. It can either be a
-                :class:`~qiskit.providers.Backend` instance or just backend name.
             experiment_type: Experiment type.
+            backend: Backend the experiment runs on.
             experiment_id: Experiment ID. One will be generated if not supplied.
             tags: Tags to be associated with the experiment.
             job_ids: IDs of jobs submitted for the experiment.
@@ -109,7 +108,8 @@ class ExperimentDataV1(ExperimentData):
             ExperimentError: If an input argument is invalid.
         """
         metadata = metadata or {}
-        self._source = metadata.pop(
+        self._metadata = copy.deepcopy(metadata)
+        self._source = self._metadata.pop(
             "_source",
             {"class": f"{self.__class__.__module__}.{self.__class__.__name__}",
              "data_version": self._metadata_version,
@@ -118,21 +118,16 @@ class ExperimentDataV1(ExperimentData):
         self._service = None
         self._backend = backend
         self.auto_save = False
-        try:
-            self._service = backend.provider().service('experiment')
-            self.auto_save = self._service.option['auto_save']
-        except Exception:  # pylint: disable=broad-except
-            pass
+        self._set_service_from_backend(backend)
 
         self._id = experiment_id or str(uuid.uuid4())
         self._type = experiment_type
         self._tags = tags or []
         self._share_level = share_level
         self._notes = notes or ""
-        self._metadata = copy.deepcopy(metadata)
 
         job_ids = job_ids or []
-        self._jobs = OrderedDict((k, None) for k in job_ids)
+        self._jobs = OrderedDict.fromkeys(job_ids)
         self._job_futures = []
         self._errors = []
 
@@ -140,14 +135,28 @@ class ExperimentDataV1(ExperimentData):
         self._data = []
 
         figure_names = figure_names or []
-        self._figures = dict.fromkeys(figure_names)
+        self._figures = OrderedDict.fromkeys(figure_names)
         self._figures_queue = queue.Queue()
-        self._figure_names = figure_names  # Only used by add_figure.
+        # _figure_names is only used by add_figure() which may run in a
+        # separate thread so should not be accessed by main thread.
+        self._figure_names = figure_names
 
         self._analysis_results_queue = queue.Queue()
         self._analysis_results = []
 
         self._created_in_db = False
+
+    def _set_service_from_backend(self, backend: Union[Backend, BaseBackend]) -> None:
+        """Set the service to be used from the input backend.
+
+        Args:
+            backend: Backend whose provider may offer experiment service.
+        """
+        try:
+            self._service = backend.provider().service('experiment')
+            self.auto_save = self._service.option['auto_save']
+        except Exception:  # pylint: disable=broad-except
+            self._service = None
 
     def add_data(
             self,
@@ -175,6 +184,14 @@ class ExperimentDataV1(ExperimentData):
         elif isinstance(data, Result):
             self._add_result_data(data)
         elif isinstance(data, (Job, BaseJob)):
+            if self.backend and self.backend != data.backend():
+                LOG.warning(f"Adding a job from a backend {data.backend()} that is different "
+                            f"than the current ExperimentData backend ({self.backend}). "
+                            f"The new backend will be used.")
+                self._backend = data.backend()
+                if not self._service:
+                    self._set_service_from_backend(self._backend)
+
             self._jobs[data.job_id()] = data
             self._job_futures.append(
                 (data, self._executor.submit(self._wait_for_job, data, post_processing_callback)))
@@ -213,6 +230,9 @@ class ExperimentDataV1(ExperimentData):
             if 'counts' in data:
                 # Format to Counts object rather than hex dict
                 data['counts'] = result.get_counts(i)
+            expr_result = result.results[i]
+            if hasattr(expr_result, 'header') and hasattr(expr_result.header, 'metadata'):
+                data['metadata'] = expr_result.header.metadata
             self._add_single_data(data)
 
     def _add_single_data(self, data: Dict[str, any]) -> None:
@@ -242,11 +262,11 @@ class ExperimentDataV1(ExperimentData):
             Experiment data.
         """
         # Get job results if missing experiment data.
-        if not self._data and self._backend.provider():
+        if (not self._data) and self._provider:
             for jid in self._jobs:
                 if self._jobs[jid] is None:
                     try:
-                        self._jobs[jid] = self._backend.provider().retrieve_job(jid)
+                        self._jobs[jid] = self._provider.retrieve_job(jid)
                     except Exception:  # pylint: disable=broad-except
                         pass
                 if self._jobs[jid] is not None:
@@ -312,7 +332,7 @@ class ExperimentDataV1(ExperimentData):
             if isinstance(figure, str):
                 figure_name = figure
             else:
-                figure_name = f"figure_{self.id}_{len(self.figure_names)}"
+                figure_name = f"figure_{self.experiment_id}_{len(self.figure_names)}"
 
         existing_figure = figure_name in self._figure_names
         if existing_figure and not overwrite:
@@ -323,7 +343,8 @@ class ExperimentDataV1(ExperimentData):
         out = [figure_name, 0]
         service = service or self._service
         if service:
-            data = {'experiment_id': self.id, 'figure': figure, 'figure_name': figure_name}
+            data = {'experiment_id': self.experiment_id,
+                    'figure': figure, 'figure_name': figure_name}
             _, out = save_data(is_new=not existing_figure,
                                new_func=service.create_figure,
                                update_func=service.update_figure,
@@ -336,13 +357,13 @@ class ExperimentDataV1(ExperimentData):
 
     def figure(
             self,
-            figure_name: str,
+            figure_key: Union[str, int],
             file_name: Optional[str] = None
     ) -> Union[int, bytes]:
         """Retrieve the specified experiment figure.
 
         Args:
-            figure_name: Name of the figure.
+            figure_key: Name or index of the figure.
             file_name: Name of the local file to save the figure to. If ``None``,
                 the content of the figure is returned instead.
 
@@ -355,7 +376,11 @@ class ExperimentDataV1(ExperimentData):
         """
         self._collect_from_queues()
 
-        figure_data = self._figures.get(figure_name, None)
+        # Convert index to name.
+        if isinstance(figure_key, int):
+            figure_key = list(self._figures.keys())[figure_key]
+
+        figure_data = self._figures.get(figure_key, None)
         if figure_data is not None:
             if isinstance(figure_data, str):
                 with open(figure_data, 'rb') as file:
@@ -366,9 +391,9 @@ class ExperimentDataV1(ExperimentData):
                     return num_bytes
             return figure_data
         elif self.service:
-            return self.service.figure(experiment_id=self.id,
-                                       figure_name=figure_name, file_name=file_name)
-        raise ExperimentEntryNotFound(f"Figure {figure_name} not found.")
+            return self.service.figure(experiment_id=self.experiment_id,
+                                       figure_name=figure_key, file_name=file_name)
+        raise ExperimentEntryNotFound(f"Figure {figure_key} not found.")
 
     @auto_save
     def add_analysis_result(
@@ -411,7 +436,7 @@ class ExperimentDataV1(ExperimentData):
 
         if self.service and (not self._analysis_results or refresh):
             self._analysis_results = self.service.analysis_results(
-                experiment_id=self.id, limit=None)
+                experiment_id=self.experiment_id, limit=None)
 
         if index is None:
             return self._analysis_results
@@ -419,7 +444,7 @@ class ExperimentDataV1(ExperimentData):
             return self._analysis_results[index]
         if isinstance(index, str):
             for res in self._analysis_results:
-                if res.id == index:
+                if res.result_id == index:
                     return res
             raise QiskitError(f"Analysis result {index} not found.")
         raise QiskitError(f"Invalid index type {type(index)}.")
@@ -478,6 +503,15 @@ class ExperimentDataV1(ExperimentData):
         """
         return json.loads(data, cls=self._json_decoder)
 
+    def cancel_jobs(self) -> None:
+        """Cancel any running jobs."""
+        for job, fut in self._job_futures:
+            if not fut.done():
+                try:
+                    job.cancel()
+                except Exception as err:
+                    LOG.warning(f"Unable to cancel job {job.job_id()}: {err}")
+
     def status(self) -> str:
         """Return the data processing status.
 
@@ -506,13 +540,21 @@ class ExperimentDataV1(ExperimentData):
             self._errors.extend([f"Job {bad_job.job_id()} failed" for bad_job
                                  in job_stats[JobStatus.ERROR]])
 
-        if not self._errors:
+        if self._errors:
             return "ERROR"
 
         if self._job_futures:
             return "POST_PROCESSING"
 
         return "DONE"
+
+    def errors(self) -> str:
+        """Return errors encountered.
+
+        Returns:
+            Experiment errors.
+        """
+        return "\n".join(self._errors)
 
     def tags(self) -> List[str]:
         """Return tags assigned to this experiment data.
@@ -533,7 +575,18 @@ class ExperimentDataV1(ExperimentData):
         self._tags = new_tags
 
     @property
-    def id(self) -> str:
+    def _provider(self) -> Optional[Provider]:
+        """Return the provider.
+
+        Returns:
+            Provider used for the experiment, or ``None`` if unknown.
+        """
+        if self._backend is None:
+            return None
+        return self._backend.provider()
+
+    @property
+    def experiment_id(self) -> str:
         """Return experiment ID
 
         Returns:
@@ -550,11 +603,11 @@ class ExperimentDataV1(ExperimentData):
         return list(self._jobs.keys())
 
     @property
-    def backend(self) -> Union[BaseBackend, Backend]:
+    def backend(self) -> Optional[Union[BaseBackend, Backend]]:
         """Return backend.
 
         Returns:
-            Backend this experiment is for.
+            Backend this experiment is for, or ``None`` if backend is unknown.
         """
         return self._backend
 
@@ -568,7 +621,7 @@ class ExperimentDataV1(ExperimentData):
         return self._metadata
 
     @property
-    def type(self) -> str:
+    def experiment_type(self) -> str:
         """Return experiment type.
 
         Returns:
@@ -660,8 +713,8 @@ class ExperimentDataV1(ExperimentData):
         n_res = len(self._analysis_results)
         status = self.status()
         ret = line
-        ret += f'\nExperiment: {self.type}'
-        ret += f'\nExperiment ID: {self.id}'
+        ret += f'\nExperiment: {self.experiment_type}'
+        ret += f'\nExperiment ID: {self.experiment_type}'
         ret += f'\nStatus: {status}'
         if status == "ERROR":
             ret += "\n".join(self._errors)
