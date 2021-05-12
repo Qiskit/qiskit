@@ -15,6 +15,7 @@ pip install .
 jupyter labextension install @jupyterlab/latex
 wget "https://mirrors.ctan.org/graphics/qcircuit.zip"
 unzip qcircuit.zip
+pip install pdflatex
 
 # Activation of appmode extension
 jupyter nbextension     enable --py --sys-prefix appmode
