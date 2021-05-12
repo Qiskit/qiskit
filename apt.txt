@@ -3,12 +3,12 @@ ghostscript
 # texlive-fonts-recommended
 # texlive-fonts-extra
 # texlive-generic-recommended
-texlive-latex-base
-texlive-latex-extra
-texlive-latex-recommended
+# texlive-latex-base
+# texlive-latex-extra
+# texlive-latex-recommended
 # texlive-publishers
-texlive-science
+# texlive-science
 # texlive-xetex
-texlive-pictures
+# texlive-pictures
 dlocate
 poppler-utils
