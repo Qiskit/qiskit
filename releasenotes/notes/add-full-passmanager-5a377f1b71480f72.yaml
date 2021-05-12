@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Added a new class, :class:`qiskit.transpiler.FullPassManager`, which is
+    a :class:`~qiskit.transpiler.PassManager` subclass that has a pipeline
+    with defined phases to the circuit compilation. Each phase is a
+    :class:`~qiskit.transpiler.PassManager` object that will get executed
+    in a fixed order. For example::
+
+      from qiskit.transpiler.passes import *
+      from qiskit.transpiler import PassManager, FullPassManager
+
+      basis_gates = ['rx', 'ry', 'rxx']
+      init = PassManager([UnitarySynthesis(basis_gates), Unroll3qOrMore()])
+      translate = PassManager([Collect2qBlocks(),
+                               ConsolidateBlocks(basis_gates=basis_gates),
+                               UnitarySynthesis(basis_gates)])
+
+      full_pass_manager = FullPassManager(init=init, translation=translate)

@@ -312,3 +312,157 @@ class PassManager:
                 item["flow_controllers"] = {}
             ret.append(item)
         return ret
+
+
+class FullPassManager(PassManager):
+    """A full Pass manager pipeline for a backend
+
+    Instances of FullPassManager define a full compilation pipeline from a abstract virtual
+    circuit to one that is optimized and capable of running on the specified backend. It is
+    built using predefined stages:
+
+    1. Init - any initial passes that are run before we start embedding the circuit to the backend
+    2. Layout - This stage runs layout and maps the virtual qubits in the
+    circuit to the physical qubits on a backend
+    3. Routing - This stage runs after a layout has been run and will insert any
+        necessary gates to move the qubit states around until it can be run on
+        backend's compuling map.
+    4. Translation - Perform the basis gate translation, in other words translate the gates
+        in the circuit to the target backend's basis set
+    5. Pre-Optimization - Any passes to run before the main optimization loop
+    6. Optimization - The main optimization loop, this will typically run in a loop trying to optimize
+        the circuit until a condtion (such as fixed depth) is reached.
+    7. Post-Optimization - Any passes to run after the main optimization loop
+
+    """
+
+    phases = [
+        "init",
+        "layout",
+        "routing",
+        "translation",
+        "pre_optimization",
+        "optimization",
+        "post_optimization",
+    ]
+
+    def __init__(
+        self,
+        init=None,
+        layout=None,
+        routing=None,
+        translation=None,
+        pre_optimization=None,
+        optimization=None,
+        post_optimization=None,
+    ):
+        """Initialize a new FullPassManager object
+
+        Args:
+            init (PassManager): A passmanager to run for the initial stage of the
+                compilation.
+            layout (PassManager): A passmanager to run for the layout stage of the
+                compilation.
+            routing (PassManager): A pass manager to run for the routing stage
+                of the compilation
+            translation (PassManager): A pass manager to run for the translation
+                stage of the compilation
+            pre_opt (PassManager): A pass manager to run before the optimization
+                loop
+            optimization (PassManager): A pass manager to run for the
+                optimization loop stage
+            post_opt (PassManager): A pass manager to run after the optimization
+                loop
+        """
+        super().__init__()
+        self._init = init
+        self._layout = layout
+        self._routing = routing
+        self._translation = translation
+        self._pre_optimization = pre_optimization
+        self._optimization = optimization
+        self._post_optimization = post_optimization
+        self._update_passmanager()
+
+    def _update_passmanager(self):
+        self._pass_sets = []
+        if self._init:
+            self._pass_sets.extend(self._init._pass_sets)
+        if self._layout:
+            self._pass_sets.extend(self._layout._pass_sets)
+        if self._routing:
+            self._pass_sets.extend(self._routing._pass_sets)
+        if self._translation:
+            self._pass_sets.extend(self._translation._pass_sets)
+        if self._pre_optimization:
+            self._pass_sets.extend(self._pre_optimization._pass_sets)
+        if self._optimization:
+            self._pass_sets.extend(self._optimization._pass_sets)
+        if self._post_optimization:
+            self._pass_sets.extend(self._post_optimization._pass_sets)
+
+    @property
+    def init(self):
+        """Get the :class:`~qiskit.transpiler.PassManager` for the init stage."""
+        return self._init
+
+    @init.setter
+    def init(self, value):
+        """Set the :class:`~qiskit.transpiler.PassManager` for the init stage."""
+        self._init = value
+        self._update_passmanager()
+
+    @property
+    def layout(self):
+        """Get the :class:`~qiskit.transpiler.PassManager` for the layout stage."""
+        return self._layout
+
+    @layout.setter
+    def layout(self, value):
+        """Set the :class:`~qiskit.transpiler.PassManager` for the layout stage."""
+        self._layout = value
+        self._update_passmanager()
+
+    @property
+    def routing(self):
+        """Get the :class:`~qiskit.transpiler.PassManager` for the routing stage."""
+        return self._routing
+
+    @routing.setter
+    def routing(self, value):
+        """Set the :class:`~qiskit.transpiler.PassManager` for the routing stage."""
+        self._routing = value
+        self._update_passmanager()
+
+    @property
+    def pre_optimization(self):
+        """Get the :class:`~qiskit.transpiler.PassManager` for the pre_optimization stage."""
+        return self._pre_optimization
+
+    @pre_optimization.setter
+    def pre_optimization(self, value):
+        """Set the :class:`~qiskit.transpiler.PassManager` for the pre_optimization stage."""
+        self._pre_optimization = value
+        self._update_passmanager()
+
+    @property
+    def optimization(self):
+        """Get the :class:`~qiskit.transpiler.PassManager` for the optimization stage."""
+        return self._optimization
+
+    @optimization.setter
+    def optimization(self, value):
+        """Set the :class:`~qiskit.transpiler.PassManager` for the optimization stage."""
+        self._optimization = value
+        self._update_passmanager()
+
+    @property
+    def post_optimization(self):
+        """Get the :class:`~qiskit.transpiler.PassManager` for the post_optimization stage."""
+        return self._post_optimization
+
+    @post_optimization.setter
+    def post_optimization(self, value):
+        """Set the :class:`~qiskit.transpiler.PassManager` for the post_optimization stage."""
+        self._post_optimization = value
+        self._update_passmanager()

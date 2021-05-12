@@ -17,6 +17,7 @@ Level 0 pass manager: no explicit optimization other than mapping to backend.
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.passmanager import FullPassManager
 
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
@@ -49,7 +50,7 @@ from qiskit.transpiler.passes import Error
 from qiskit.transpiler import TranspilerError
 
 
-def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
+def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> FullPassManager:
     """Level 0 pass manager: no explicit optimization other than mapping to backend.
 
     This pass manager applies the user-given initial layout. If none is given, a trivial
@@ -170,18 +171,30 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
     # Build pass manager
-    pm0 = PassManager()
     if coupling_map or initial_layout:
-        pm0.append(_given_layout)
-        pm0.append(_choose_layout, condition=_choose_layout_condition)
-        pm0.append(_embed)
-        pm0.append(_unroll3q)
-        pm0.append(_swap_check)
-        pm0.append(_swap, condition=_swap_condition)
-    pm0.append(_unroll)
+        layout = PassManager()
+        layout.append(_given_layout)
+        layout.append(_choose_layout, condition=_choose_layout_condition)
+        layout.append(_embed)
+        routing = PassManager()
+        routing.append(_unroll3q)
+        routing.append(_swap_check)
+        routing.append(_swap, condition=_swap_condition)
+    else:
+        layout = None
+        routing = None
+    translation = PassManager(_unroll)
     if coupling_map and not coupling_map.is_symmetric:
-        pm0.append(_direction_check)
-        pm0.append(_direction, condition=_direction_condition)
-        pm0.append(_unroll)
-    pm0.append(_scheduling)
-    return pm0
+        pre_opt = PassManager(_direction_check)
+        pre_opt.append(_direction, condition=_direction_condition)
+        pre_opt.append(_unroll)
+    else:
+        pre_opt = None
+    post_opt = PassManager(_scheduling)
+    return FullPassManager(
+        layout=layout,
+        routing=routing,
+        translation=translation,
+        pre_optimization=pre_opt,
+        post_optimization=post_opt,
+    )

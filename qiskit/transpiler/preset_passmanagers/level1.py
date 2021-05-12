@@ -17,6 +17,7 @@ Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.passmanager import FullPassManager
 
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
@@ -201,21 +202,35 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
     # Build pass manager
-    pm1 = PassManager()
-    if coupling_map or initial_layout:
-        pm1.append(_given_layout)
-        pm1.append(_choose_layout_and_score, condition=_choose_layout_condition)
-        pm1.append(_improve_layout, condition=_not_perfect_yet)
-        pm1.append(_embed)
-        pm1.append(_unroll3q)
-        pm1.append(_swap_check)
-        pm1.append(_swap, condition=_swap_condition)
-    pm1.append(_unroll)
-    if coupling_map and not coupling_map.is_symmetric:
-        pm1.append(_direction_check)
-        pm1.append(_direction, condition=_direction_condition)
-    pm1.append(_reset)
-    pm1.append(_depth_check + _opt + _unroll, do_while=_opt_control)
-    pm1.append(_scheduling)
 
-    return pm1
+    if coupling_map or initial_layout:
+        layout = PassManager()
+        layout.append(_given_layout)
+        layout.append(_choose_layout_and_score, condition=_choose_layout_condition)
+        layout.append(_improve_layout, condition=_not_perfect_yet)
+        layout.append(_embed)
+        routing = PassManager()
+        routing.append(_unroll3q)
+        routing.append(_swap_check)
+        routing.append(_swap, condition=_swap_condition)
+    else:
+        layout = None
+        routing = None
+    translation = PassManager(_unroll)
+    pre_optimization = PassManager()
+    if coupling_map and not coupling_map.is_symmetric:
+        pre_optimization.append(_direction_check)
+        pre_optimization.append(_direction, condition=_direction_condition)
+    pre_optimization.append(_reset)
+    optimization = PassManager()
+    optimization.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+    post_optimization = PassManager(_scheduling)
+
+    return FullPassManager(
+        layout=layout,
+        routing=routing,
+        translation=translation,
+        pre_optimization=pre_optimization,
+        optimization=optimization,
+        post_optimization=post_optimization,
+    )
