@@ -63,22 +63,23 @@ class QNSPSA(SPSA):
 
     """
 
-    def __init__(self,
-                 fidelity: FIDELITY,
-                 maxiter: int = 100,
-                 blocking: bool = True,
-                 allowed_increase: Optional[float] = None,
-                 learning_rate: Optional[Union[float, Callable[[], Iterator]]] = None,
-                 perturbation: Optional[Union[float, Callable[[], Iterator]]] = None,
-                 last_avg: int = 1,
-                 resamplings: Union[int, Dict[int, int]] = 1,
-                 perturbation_dims: Optional[int] = None,
-                 regularization: Optional[float] = None,
-                 hessian_delay: int = 0,
-                 lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
-                 initial_hessian: Optional[np.ndarray] = None,
-                 callback: Optional[CALLBACK] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        fidelity: FIDELITY,
+        maxiter: int = 100,
+        blocking: bool = True,
+        allowed_increase: Optional[float] = None,
+        learning_rate: Optional[Union[float, Callable[[], Iterator]]] = None,
+        perturbation: Optional[Union[float, Callable[[], Iterator]]] = None,
+        last_avg: int = 1,
+        resamplings: Union[int, Dict[int, int]] = 1,
+        perturbation_dims: Optional[int] = None,
+        regularization: Optional[float] = None,
+        hessian_delay: int = 0,
+        lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
+        initial_hessian: Optional[np.ndarray] = None,
+        callback: Optional[CALLBACK] = None,
+    ) -> None:
         r"""
         Args:
             fidelity: A function to compute the fidelity of the ansatz state with itself for
@@ -125,31 +126,34 @@ class QNSPSA(SPSA):
                 information is, in this order: the parameters, the function value, the number
                 of function evaluations, the stepsize, whether the step was accepted.
         """
-        super().__init__(maxiter,
-                         blocking,
-                         allowed_increase,
-                         # trust region *must* be false for natural gradients to work
-                         trust_region=False,
-                         learning_rate=learning_rate,
-                         perturbation=perturbation,
-                         resamplings=resamplings,
-                         callback=callback,
-                         second_order=True,
-                         hessian_delay=hessian_delay,
-                         lse_solver=lse_solver,
-                         regularization=regularization,
-                         perturbation_dims=perturbation_dims,
-                         initial_hessian=initial_hessian
-                         )
+        super().__init__(
+            maxiter,
+            blocking,
+            allowed_increase,
+            # trust region *must* be false for natural gradients to work
+            trust_region=False,
+            learning_rate=learning_rate,
+            perturbation=perturbation,
+            resamplings=resamplings,
+            callback=callback,
+            second_order=True,
+            hessian_delay=hessian_delay,
+            lse_solver=lse_solver,
+            regularization=regularization,
+            perturbation_dims=perturbation_dims,
+            initial_hessian=initial_hessian,
+        )
 
         self.fidelity = fidelity
 
     def _point_sample(self, loss, x, eps, delta1, delta2):
         loss_points = [x + eps * delta1, x - eps * delta1]
-        fidelity_points = [(x, x + eps * delta1),
-                           (x, x - eps * delta1),
-                           (x, x + eps * (delta1 + delta2)),
-                           (x, x + eps * (-delta1 + delta2))]
+        fidelity_points = [
+            (x, x + eps * delta1),
+            (x, x - eps * delta1),
+            (x, x + eps * (delta1 + delta2)),
+            (x, x + eps * (-delta1 + delta2)),
+        ]
         self._nfev += 6
 
         loss_values = _batch_evaluate(loss, loss_points, self._max_evals_grouped)
@@ -170,10 +174,11 @@ class QNSPSA(SPSA):
         return gradient_estimate, hessian_estimate
 
     @staticmethod
-    def get_fidelity(circuit: QuantumCircuit,
-                     backend: Optional[Union[Backend, QuantumInstance]] = None,
-                     expectation: Optional[ExpectationBase] = None
-                     ) -> Callable[[np.ndarray, np.ndarray], float]:
+    def get_fidelity(
+        circuit: QuantumCircuit,
+        backend: Optional[Union[Backend, QuantumInstance]] = None,
+        expectation: Optional[ExpectationBase] = None,
+    ) -> Callable[[np.ndarray, np.ndarray], float]:
         r"""Get a function to compute the fidelity of ``circuit`` with itself.
 
         Let ``circuit`` be a parameterized quantum circuit performing the operation
@@ -198,26 +203,31 @@ class QNSPSA(SPSA):
             A handle to the function :math:`F`.
 
         """
-        params_x = ParameterVector('x', circuit.num_parameters)
-        params_y = ParameterVector('y', circuit.num_parameters)
+        params_x = ParameterVector("x", circuit.num_parameters)
+        params_y = ParameterVector("y", circuit.num_parameters)
 
-        expression = ~StateFn(circuit.assign_parameters(
-            params_x)) @ StateFn(circuit.assign_parameters(params_y))
+        expression = ~StateFn(circuit.assign_parameters(params_x)) @ StateFn(
+            circuit.assign_parameters(params_y)
+        )
 
         if expectation is not None:
             expression = expectation.convert(expression)
 
         if backend is None:
+
             def fidelity(values_x, values_y):
-                value_dict = dict(zip(params_x[:] + params_y[:],
-                                      values_x.tolist() + values_y.tolist()))
+                value_dict = dict(
+                    zip(params_x[:] + params_y[:], values_x.tolist() + values_y.tolist())
+                )
                 return np.abs(expression.bind_parameters(value_dict).eval()) ** 2
+
         else:
             sampler = CircuitSampler(backend)
 
             def fidelity(values_x, values_y):
-                value_dict = dict(zip(params_x[:] + params_y[:],
-                                      values_x.tolist() + values_y.tolist()))
+                value_dict = dict(
+                    zip(params_x[:] + params_y[:], values_x.tolist() + values_y.tolist())
+                )
                 return np.abs(sampler.convert(expression, params=value_dict).eval()) ** 2
 
         return fidelity

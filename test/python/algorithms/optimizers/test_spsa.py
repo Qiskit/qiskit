@@ -33,7 +33,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         algorithm_globals.random_seed = 12
 
     # @slow_test
-    @data('spsa', '2spsa', 'qnspsa')
+    @data("spsa", "2spsa", "qnspsa")
     def test_pauli_two_design(self, method):
         """Test SPSA on the Pauli two-design example."""
         circuit = PauliTwoDesign(3, reps=1, seed=1)
@@ -41,45 +41,45 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         obs = Z ^ Z ^ I
         expr = ~StateFn(obs) @ StateFn(circuit)
 
-        initial_point = np.array([0.82311034, 0.02611798, 0.21077064, 0.61842177, 0.09828447,
-                                  0.62013131])
+        initial_point = np.array(
+            [0.82311034, 0.02611798, 0.21077064, 0.61842177, 0.09828447, 0.62013131]
+        )
 
         def objective(x):
             return expr.bind_parameters(dict(zip(parameters, x))).eval().real
 
-        settings = {'maxiter': 100,
-                    'blocking': True,
-                    'allowed_increase': 0}
+        settings = {"maxiter": 100, "blocking": True, "allowed_increase": 0}
 
-        if method == '2spsa':
-            settings['second_order'] = True
-            settings['regularization'] = 0.01
-            expected_nfev = settings['maxiter'] * 5 + 1
-        elif method == 'qnspsa':
-            settings['fidelity'] = QNSPSA.get_fidelity(circuit)
-            settings['regularization'] = 0.001
-            settings['learning_rate'] = 0.05
-            settings['perturbation'] = 0.05
+        if method == "2spsa":
+            settings["second_order"] = True
+            settings["regularization"] = 0.01
+            expected_nfev = settings["maxiter"] * 5 + 1
+        elif method == "qnspsa":
+            settings["fidelity"] = QNSPSA.get_fidelity(circuit)
+            settings["regularization"] = 0.001
+            settings["learning_rate"] = 0.05
+            settings["perturbation"] = 0.05
 
-            expected_nfev = settings['maxiter'] * 7 + 1
+            expected_nfev = settings["maxiter"] * 7 + 1
         else:
-            expected_nfev = settings['maxiter'] * 3 + 1
+            expected_nfev = settings["maxiter"] * 3 + 1
 
-        if method == 'qnspsa':
+        if method == "qnspsa":
             spsa = QNSPSA(**settings)
         else:
             spsa = SPSA(**settings)
 
         result = spsa.optimize(circuit.num_parameters, objective, initial_point=initial_point)
 
-        with self.subTest('check final accuracy'):
+        with self.subTest("check final accuracy"):
             self.assertLess(result[1], -0.95)  # final loss
 
-        with self.subTest('check number of function calls'):
+        with self.subTest("check number of function calls"):
             self.assertEqual(result[2], expected_nfev)  # function evaluations
 
     def test_recalibrate_at_optimize(self):
         """Test SPSA calibrates anew upon each optimization run, if no autocalibration is set."""
+
         def objective(x):
             return -(x ** 2)
 
@@ -98,6 +98,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
                 while True:
                     x *= x
                     yield x
+
             return learning_rate
 
         def get_perturbation():
@@ -106,6 +107,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
                 while True:
                     x *= x
                     yield max(x, 0.01)
+
             return perturbation
 
         def objective(x):
@@ -122,14 +124,14 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         def objective(x):
             return (np.linalg.norm(x) - 2) ** 2
 
-        history = {'nfevs': [], 'points': [], 'fvals': [], 'updates': [], 'accepted': []}
+        history = {"nfevs": [], "points": [], "fvals": [], "updates": [], "accepted": []}
 
         def callback(nfev, point, fval, update, accepted):
-            history['nfevs'].append(nfev)
-            history['points'].append(point)
-            history['fvals'].append(fval)
-            history['updates'].append(update)
-            history['accepted'].append(accepted)
+            history["nfevs"].append(nfev)
+            history["points"].append(point)
+            history["fvals"].append(fval)
+            history["updates"].append(update)
+            history["accepted"].append(accepted)
 
         maxiter = 10
         spsa = SPSA(maxiter=maxiter, learning_rate=0.01, perturbation=0.01, callback=callback)
