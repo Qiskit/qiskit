@@ -194,10 +194,11 @@ class MatplotlibDrawer:
         self._ymax = 0
         self._x_offset = 0
 
-        self._fs = self._style["fs"]# * self._scale
-        self._sfs = self._style["sfs"]# * self._scale
-        self._lwidth15 = 1.5# * self._scale
-        self._lwidth2 = 2.0# * self._scale"""
+        self._fs = self._style["fs"]
+        self._sfs = self._style["sfs"]
+        self._lwidth15 = 1.5
+        self._lwidth2 = 2.0
+        self._lwidth1 = 1.0
         self._node_width = {}
         self._layer_widths = []
 
@@ -322,42 +323,53 @@ class MatplotlibDrawer:
             self._xmax = total_layer_width + 1 + self._x_offset - x_incr
             self._ymax = self._n_lines
 
-        _xl = -self._style["margin"][0]
-        _xr = self._xmax + self._style["margin"][1]
-        _yb = -self._ymax - self._style["margin"][2] + 0.5
-        _yt = self._style["margin"][3] + 0.5
-        self._ax.set_xlim(_xl, _xr)
-        self._ax.set_ylim(_yb, _yt)
+        xl = -self._style["margin"][0]
+        xr = self._xmax + self._style["margin"][1]
+        yb = -self._ymax - self._style["margin"][2] + 0.5
+        yt = self._style["margin"][3] + 0.5
+        self._ax.set_xlim(xl, xr)
+        self._ax.set_ylim(yb, yt)
 
         # update figure size before doing any matplotlib drawing
-        fig_w = _xr - _xl
-        fig_h = _yt - _yb
+        base_fig_w = xr - xl
+        base_fig_h = yt - yb
 
-        if self._scale != 1.0:
-            self._figure.set_size_inches(fig_w * self._scale, fig_h * self._scale)
-        elif self._style["figwidth"] <= 0.0 and not self._user_ax:
-            print(fig_w)
-            figure_width = fig_w * self._fs * BASE_SIZE / 72 / WID
-            self._figure.set_size_inches(figure_width, figure_width * fig_h / fig_w)
-        elif self._user_ax:
-            figure_width = self._figure.get_size_inches()[0]
+        # if user passes in an ax, this size takes priority over any other settings
+        if self._user_ax:
+            adj_fig_w = self._figure.get_size_inches()[0]
+            self._scale = adj_fig_w * 1.19601329 / base_fig_w
+
+        # if scale not 1.0, use this scale factor 
+        elif self._scale != 1.0:
+            self._figure.set_size_inches(base_fig_w * self._scale, base_fig_h * self._scale)
+            self._scale *= 1.19601329
+
+        # if "figwidth" style param set, use this to scale
+        elif self._style["figwidth"] > 0.0:
+            adj_fig_w = self._style["figwidth"]
+            self._figure.set_size_inches(adj_fig_w, adj_fig_w * base_fig_h / base_fig_w)
+            self._scale = adj_fig_w * 1.19601329 / base_fig_w
+
+        # otherwise, default to the old way of displaying a circuit
         else:
-            figure_width = self._style["figwidth"]
-            self._figure.set_size_inches(figure_width, figure_width * fig_h / fig_w)
+            # for backward compatibility, need to scale to a default value equal to
+            # self._fs * 3.01 / 72 / 0.65
+            adj_fig_w = base_fig_w * 0.8361111
+            self._figure.set_size_inches(adj_fig_w, adj_fig_w * base_fig_h / base_fig_w)
+            self._scale = self._scale * 1.19601329 * adj_fig_w / base_fig_w
 
-        if self._scale == 1.0:
-            self._scale = 1.196 * figure_width / fig_w
         self._fs = self._fs * self._scale
         self._sfs = self._sfs * self._scale
         self._lwidth15 = 1.5 * self._scale
-        self._lwidth2 = 2.0 * self._scale 
+        self._lwidth2 = 2.0 * self._scale
+        self._lwidth1 = 1.0 * self._scale
 
         self._draw_regs_wires(total_layer_width, num_folds)
         self._draw_ops(verbose)
 
         if self._global_phase:
             self._plt_mod.text(
-                _xl, _yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
+                xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
             )
 
         if filename:
@@ -1001,7 +1013,7 @@ class MatplotlibDrawer:
             self._ax.plot(
                 [xpos, xpos],
                 [ypos + 0.5, ypos - 0.5],
-                linewidth=self._scale,
+                linewidth=self._lwidth1,
                 linestyle="dashed",
                 color=self._style["lc"],
                 zorder=PORDER_TEXT,
