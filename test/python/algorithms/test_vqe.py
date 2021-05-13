@@ -279,6 +279,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
 
+    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     @data(
         CG(maxiter=1),
         L_BFGS_B(maxfun=1),
@@ -286,7 +287,6 @@ class TestVQE(QiskitAlgorithmsTestCase):
         SLSQP(maxiter=1),
         TNC(maxiter=1),
     )
-    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_with_gradient(self, optimizer):
         """Test VQE using Gradient()."""
         quantum_instance = QuantumInstance(
