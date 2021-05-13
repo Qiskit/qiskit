@@ -2497,6 +2497,114 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_3q_3c_qlabels_inverted(self):
+        """Test q3-q0-q1-c0-c1-c_10 in q0-q1-q2-q3-c0-c1-c2-c_10-c_11
+        See https://github.com/Qiskit/qiskit-terra/issues/6178"""
+        expected = "\n".join(
+            [
+                "        ┌───────┐",
+                "q_0: |0>┤1      ├",
+                "        │       │",
+                "q_1: |0>┤2      ├",
+                "        │       │",
+                "q_2: |0>┤       ├",
+                "        │       │",
+                "q_3: |0>┤0      ├",
+                "        │  Name │",
+                " c_0: 0 ╡0      ╞",
+                "        │       │",
+                " c_1: 0 ╡1      ╞",
+                "        │       │",
+                " c_2: 0 ╡       ╞",
+                "        │       │",
+                "c1_0: 0 ╡2      ╞",
+                "        └───────┘",
+                "c1_1: 0 ═════════",
+                "                 ",
+            ]
+        )
+
+        qr = QuantumRegister(4, name="q")
+        cr = ClassicalRegister(3, name="c")
+        cr1 = ClassicalRegister(2, name="c1")
+        circuit = QuantumCircuit(qr, cr, cr1)
+        inst = QuantumCircuit(3, 3, name="Name").to_instruction()
+        circuit.append(inst, [qr[3], qr[0], qr[1]], [cr[0], cr[1], cr1[0]])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_3q_3c_clabels_inverted(self):
+        """Test q0-q1-q3-c_11-c0-c_10 in q0-q1-q2-q3-c0-c1-c2-c_10-c_11
+        See https://github.com/Qiskit/qiskit-terra/issues/6178"""
+        expected = "\n".join(
+            [
+                "        ┌───────┐",
+                "q_0: |0>┤0      ├",
+                "        │       │",
+                "q_1: |0>┤1      ├",
+                "        │       │",
+                "q_2: |0>┤       ├",
+                "        │       │",
+                "q_3: |0>┤2      ├",
+                "        │       │",
+                " c_0: 0 ╡1 Name ╞",
+                "        │       │",
+                " c_1: 0 ╡       ╞",
+                "        │       │",
+                " c_2: 0 ╡       ╞",
+                "        │       │",
+                "c1_0: 0 ╡2      ╞",
+                "        │       │",
+                "c1_1: 0 ╡0      ╞",
+                "        └───────┘",
+            ]
+        )
+
+        qr = QuantumRegister(4, name="q")
+        cr = ClassicalRegister(3, name="c")
+        cr1 = ClassicalRegister(2, name="c1")
+        circuit = QuantumCircuit(qr, cr, cr1)
+        inst = QuantumCircuit(3, 3, name="Name").to_instruction()
+        circuit.append(inst, [qr[0], qr[1], qr[3]], [cr1[1], cr[0], cr1[0]])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_3q_3c_qclabels_inverted(self):
+        """Test q3-q1-q2-c_11-c0-c_10 in q0-q1-q2-q3-c0-c1-c2-c_10-c_11
+        See https://github.com/Qiskit/qiskit-terra/issues/6178"""
+        expected = "\n".join(
+            [
+                "                 ",
+                "q_0: |0>─────────",
+                "        ┌───────┐",
+                "q_1: |0>┤1      ├",
+                "        │       │",
+                "q_2: |0>┤2      ├",
+                "        │       │",
+                "q_3: |0>┤0      ├",
+                "        │       │",
+                " c_0: 0 ╡1      ╞",
+                "        │  Name │",
+                " c_1: 0 ╡       ╞",
+                "        │       │",
+                " c_2: 0 ╡       ╞",
+                "        │       │",
+                "c1_0: 0 ╡2      ╞",
+                "        │       │",
+                "c1_1: 0 ╡0      ╞",
+                "        └───────┘",
+            ]
+        )
+
+        qr = QuantumRegister(4, name="q")
+        cr = ClassicalRegister(3, name="c")
+        cr1 = ClassicalRegister(2, name="c1")
+        circuit = QuantumCircuit(qr, cr, cr1)
+        inst = QuantumCircuit(3, 3, name="Name").to_instruction()
+        circuit.append(inst, [qr[3], qr[1], qr[2]], [cr1[1], cr[0], cr1[0]])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextDrawerAppendedLargeInstructions(QiskitTestCase):
     """Composite instructions with more than 10 qubits
