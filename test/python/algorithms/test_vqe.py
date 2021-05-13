@@ -283,7 +283,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     @data(
         CG(maxiter=1),
         L_BFGS_B(maxfun=1),
-        P_BFGS(maxfun=1),
+        P_BFGS(maxfun=1, max_processes=0),
         SLSQP(maxiter=1),
         TNC(maxiter=1),
     )

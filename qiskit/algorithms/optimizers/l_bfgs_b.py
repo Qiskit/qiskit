@@ -107,7 +107,7 @@ class L_BFGS_B(Optimizer):  # pylint: disable=invalid-name
         def wrapped_gradient(x):
             gradient = gradient_function(x)
             if isinstance(gradient, np.ndarray):
-                return list(gradient)
+                return gradient.tolist()
             return gradient
 
         approx_grad = bool(gradient_function is None)
