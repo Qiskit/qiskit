@@ -25,12 +25,12 @@ class TestGMSLibrary(QiskitTestCase):
 
     def test_twoq_equivalence(self):
         """Test GMS on 2 qubits is same as RXX."""
-        circuit = GMS(num_qubits=2, theta=[[0, np.pi/3], [0, 0]])
-        expected = RXXGate(np.pi/3)
+        circuit = GMS(num_qubits=2, theta=[[0, np.pi / 3], [0, 0]])
+        expected = RXXGate(np.pi / 3)
         expected = Operator(expected)
         simulated = Operator(circuit)
         self.assertTrue(expected.equiv(simulated))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

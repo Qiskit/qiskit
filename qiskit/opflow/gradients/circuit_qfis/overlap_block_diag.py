@@ -27,7 +27,7 @@ from ...state_fns.circuit_state_fn import CircuitStateFn
 from ...exceptions import OpflowError
 
 from .circuit_qfi import CircuitQFI
-from ..derivative_base import DerivativeBase
+from ..derivative_base import _coeff_derivative
 from .overlap_diag import _get_generators, _partition_circuit
 
 
@@ -38,10 +38,11 @@ class OverlapBlockDiag(CircuitQFI):
     See also :class:`~qiskit.opflow.QFI`.
     """
 
-    def convert(self,
-                operator: Union[CircuitOp, CircuitStateFn],
-                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
-                ) -> ListOp:
+    def convert(
+        self,
+        operator: Union[CircuitOp, CircuitStateFn],
+        params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]],
+    ) -> ListOp:
         r"""
         Args:
             operator: The operator corresponding to the quantum state :math:`|\psi(\omega)\rangle`
@@ -56,15 +57,14 @@ class OverlapBlockDiag(CircuitQFI):
             NotImplementedError: If ``operator`` is neither ``CircuitOp`` nor ``CircuitStateFn``.
         """
         if not isinstance(operator, (CircuitOp, CircuitStateFn)):
-            raise NotImplementedError('operator must be a CircuitOp or CircuitStateFn')
+            raise NotImplementedError("operator must be a CircuitOp or CircuitStateFn")
         return self._block_diag_approx(operator=operator, params=params)
 
-    def _block_diag_approx(self,
-                           operator: Union[CircuitOp, CircuitStateFn],
-                           params: Union[ParameterExpression,
-                                         ParameterVector,
-                                         List[ParameterExpression]]
-                           ) -> ListOp:
+    def _block_diag_approx(
+        self,
+        operator: Union[CircuitOp, CircuitStateFn],
+        params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]],
+    ) -> ListOp:
         r"""
         Args:
             operator: The operator corresponding to the quantum state :math:`|\psi(\omega)\rangle`
@@ -131,13 +131,16 @@ class OverlapBlockDiag(CircuitQFI):
 
             def get_parameter_expression(circuit, param):
                 if len(circuit._parameter_table[param]) > 1:
-                    raise NotImplementedError("OverlapDiag does not yet support multiple "
-                                              "gates parameterized by a single parameter. For such "
-                                              "circuits use LinCombFull")
+                    raise NotImplementedError(
+                        "OverlapDiag does not yet support multiple "
+                        "gates parameterized by a single parameter. For such "
+                        "circuits use LinCombFull"
+                    )
                 gate = circuit._parameter_table[param][0][0]
                 if len(gate.params) > 1:
-                    raise OpflowError("OverlapDiag cannot yet support gates with more than one "
-                                      "parameter.")
+                    raise OpflowError(
+                        "OverlapDiag cannot yet support gates with more than one " "parameter."
+                    )
 
                 param_value = gate.params[0]
                 return param_value
@@ -151,9 +154,9 @@ class OverlapBlockDiag(CircuitQFI):
                     if i == j:
                         block[i][i] = ListOp([single_terms[i]], combo_fn=lambda x: 1 - x[0] ** 2)
                         if isinstance(param_expr_i, ParameterExpression) and not isinstance(
-                                param_expr_i, Parameter):
-                            expr_grad_i = DerivativeBase.parameter_expression_grad(
-                                param_expr_i, p_i)
+                            param_expr_i, Parameter
+                        ):
+                            expr_grad_i = _coeff_derivative(param_expr_i, p_i)
                             block[i][i] *= expr_grad_i * expr_grad_i
                         continue
 
@@ -168,17 +171,16 @@ class OverlapBlockDiag(CircuitQFI):
 
                     # pylint: disable=unidiomatic-typecheck
                     if type(param_expr_i) == ParameterExpression:
-                        expr_grad_i = DerivativeBase.parameter_expression_grad(param_expr_i, p_i)
+                        expr_grad_i = _coeff_derivative(param_expr_i, p_i)
                         block[i][j] *= expr_grad_i
                     if type(param_expr_j) == ParameterExpression:
-                        expr_grad_j = DerivativeBase.parameter_expression_grad(param_expr_j, p_j)
+                        expr_grad_j = _coeff_derivative(param_expr_j, p_j)
                         block[i][j] *= expr_grad_j
 
-            wrapped_block = ListOp([ListOp([
-                block[i][j]
-                for j in range(i, len(params))]) for i in range(len(params))],
-                                   combo_fn=triu_to_dense)
+            wrapped_block = ListOp(
+                [ListOp([block[i][j] for j in range(i, len(params))]) for i in range(len(params))],
+                combo_fn=triu_to_dense,
+            )
             blocks.append(wrapped_block)
 
-        return ListOp(oplist=blocks,
-                      combo_fn=lambda x: np.real(block_diag(*x))[:, perm][perm, :])
+        return ListOp(oplist=blocks, combo_fn=lambda x: np.real(block_diag(*x))[:, perm][perm, :])

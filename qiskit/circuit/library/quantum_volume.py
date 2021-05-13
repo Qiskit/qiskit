@@ -57,11 +57,13 @@ class QuantumVolume(QuantumCircuit):
     [`arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`_]
     """
 
-    def __init__(self,
-                 num_qubits: int,
-                 depth: Optional[int] = None,
-                 seed: Optional[Union[int, np.random.Generator]] = None,
-                 classical_permutation: bool = True) -> None:
+    def __init__(
+        self,
+        num_qubits: int,
+        depth: Optional[int] = None,
+        seed: Optional[Union[int, np.random.Generator]] = None,
+        classical_permutation: bool = True,
+    ) -> None:
         """Create quantum volume model circuit of size num_qubits x depth.
 
         Args:
@@ -82,8 +84,8 @@ class QuantumVolume(QuantumCircuit):
 
         # Parameters
         depth = depth or num_qubits  # how many layers of SU(4)
-        width = int(np.floor(num_qubits/2))  # how many SU(4)s fit in each layer
-        name = "quantum_volume_" + str([num_qubits, depth, seed]).replace(' ', '')
+        width = int(np.floor(num_qubits / 2))  # how many SU(4)s fit in each layer
+        name = "quantum_volume_" + str([num_qubits, depth, seed]).replace(" ", "")
         super().__init__(num_qubits, name=name)
 
         # Generator random unitary seeds in advance.
@@ -105,11 +107,11 @@ class QuantumVolume(QuantumCircuit):
             for w in range(width):
                 seed_u = unitary_seeds[d][w]
                 su4 = random_unitary(4, seed=seed_u).to_instruction()
-                su4.label = 'su4_' + str(seed_u)
+                su4.label = "su4_" + str(seed_u)
                 if classical_permutation:
-                    physical_qubits = int(perm[2*w]), int(perm[2*w+1])
+                    physical_qubits = int(perm[2 * w]), int(perm[2 * w + 1])
                     inner.compose(su4, [physical_qubits[0], physical_qubits[1]], inplace=True)
                 else:
-                    inner.compose(su4, [2*w, 2*w+1], inplace=True)
+                    inner.compose(su4, [2 * w, 2 * w + 1], inplace=True)
         inner.label = name
         self.append(inner, self.qubits)
