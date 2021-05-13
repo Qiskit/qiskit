@@ -413,7 +413,8 @@ def _read_registers(file_obj, num_registers):
         register = struct.unpack(REGISTER_PACK, register_raw)
         name = file_obj.read(register[2]).decode("utf8")
         REGISTER_ARRAY_PACK = "%sI" % register[1]
-        bit_indices = file_obj.read(struct.calcsize(REGISTER_ARRAY_PACK))
+        bit_indices_raw = file_obj.read(struct.calcsize(REGISTER_ARRAY_PACK))
+        bit_indices = struct.unpack(REGISTER_ARRAY_PACK, bit_indices_raw)
         if register[0].decode("utf8") == "q":
             registers["q"][name] = {}
             registers["q"][name]["register"] = QuantumRegister(register[1], name)
@@ -950,10 +951,22 @@ def load(file_obj):
 
 def _read_circuit(file_obj):
     header, name, metadata = _read_header(file_obj)
+    (
+        name_size,
+        global_phase,
+        num_qubits,
+        num_clbits,
+        metadata_size,
+        num_registers,
+        num_instructions,
+    ) = header
     registers = {}
-    if header[5] > 0:
-        circ = QuantumCircuit(name=name, global_phase=header[1], metadata=metadata)
-        registers = _read_registers(file_obj, header[5])
+    if num_registers > 0:
+        circ = QuantumCircuit(name=name, global_phase=global_phase, metadata=metadata)
+        # TODO Update to handle registers composed of not continuous bit
+        # indices. Right now this only works for standalone registers or
+        # registers composed bit indices that are continuous
+        registers = _read_registers(file_obj, num_registers)
         for qreg in registers["q"].values():
             min_index = min(qreg["index_map"].keys())
             qubits = [Qubit() for i in range(min_index - len(circ.qubits))]
@@ -968,14 +981,14 @@ def _read_circuit(file_obj):
             circ.add_register(creg["register"])
     else:
         circ = QuantumCircuit(
-            header[2],
-            header[3],
-            name=header[0].decode("utf8"),
-            global_phase=header[1],
+            num_qubits,
+            num_clbits,
+            name=name,
+            global_phase=global_phase,
             metadata=metadata,
         )
     custom_instructions = _read_custom_instructions(file_obj)
-    for _instruction in range(header[6]):
+    for _instruction in range(num_instructions):
         _read_instruction(file_obj, circ, registers, custom_instructions)
 
     return circ
