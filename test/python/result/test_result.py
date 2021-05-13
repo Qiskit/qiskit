@@ -128,7 +128,7 @@ class TestResultOperations(QiskitTestCase):
         )
 
         raw_counts_2 = {"0x1": 0, "0x4": 3, "0x6": 6, "0xA": 1, "0xB": 2}
-        processed_counts_2 = {"0001": 0, "0100": 3, "0110": 6, "1010": 1, "1011": 2}
+        processed_counts_2 = {"0100": 3, "0110": 6, "1010": 1, "1011": 2}
         data_2 = models.ExperimentResultData(counts=dict(**raw_counts_2))
         exp_result_header_2 = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
         exp_result_2 = models.ExperimentResult(
