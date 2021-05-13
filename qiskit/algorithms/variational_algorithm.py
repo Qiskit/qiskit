@@ -20,6 +20,7 @@ of this class to carry out the optimization. Alternatively, all of the functions
 overridden to opt-out of this infrastructure but still meet the interface requirements.
 """
 
+import warnings
 from typing import Optional, Callable, Union, Dict
 import time
 import logging
@@ -42,8 +43,8 @@ class VariationalAlgorithm:
 
     def __init__(
         self,
-        ansatz: QuantumCircuit,
-        optimizer: Optimizer,
+        ansatz: Optional[QuantumCircuit] = None,
+        optimizer: Optional[Optimizer] = None,
         cost_fn: Optional[Callable] = None,
         gradient: Optional[Union[GradientBase, Callable]] = None,
         initial_point: Optional[np.ndarray] = None,
@@ -63,6 +64,14 @@ class VariationalAlgorithm:
         Raises:
              ValueError: for invalid input
         """
+        if any(arg is not None for arg in [
+            ansatz, optimizer, cost_fn, gradient, initial_point, quantum_instance
+        ]):
+            warnings.warn('The VariationalAlgorithm class has been reduced to an abstract '
+                          'interface. Passing any arguments to the initializer is deprecated as of '
+                          'Qiskit Terra 0.18.0 and will be unsupported no sooner than 3 months '
+                          'after the release date.', DeprecationWarning, stacklevel=2)
+
         self._quantum_instance = None
         if quantum_instance:
             self.quantum_instance = quantum_instance
