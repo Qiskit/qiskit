@@ -66,7 +66,7 @@ class NLoptOptimizer(Optimizer):
                 libname="nlopt",
                 name="NLoptOptimizer",
                 msg="See https://qiskit.org/documentation/apidoc/"
-                "qiskit.aqua.components.optimizers.nlopts.html"
+                "qiskit.algorithms.optimizers.nlopts.html"
                 " for installation information",
             )
 
