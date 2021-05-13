@@ -952,11 +952,11 @@ def load(file_obj):
 def _read_circuit(file_obj):
     header, name, metadata = _read_header(file_obj)
     (
-        name_size,
+        name_size,  # pylint: disable=unused-variable
         global_phase,
         num_qubits,
         num_clbits,
-        metadata_size,
+        metadata_size,  # pylint: disable=unused-variable
         num_registers,
         num_instructions,
     ) = header
