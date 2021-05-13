@@ -143,7 +143,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
         high = [(u if u is not None else threshold) for (l, u) in variable_bounds]
 
         def optimize_runner(_queue, _i_pt):  # Multi-process sampling
-            _sol, _opt, _nfev = super().optimize(
+            _sol, _opt, _nfev = self._optimize(
                 num_vars, objective_function, gradient_function, variable_bounds, _i_pt
             )
             _queue.put((_sol, _opt, _nfev))
@@ -159,7 +159,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
         # While the one optimize in this process below runs the other processes will
         # be running to. This one runs
         # with the supplied initial point. The process ones have their own random one
-        sol, opt, nfev = super().optimize(
+        sol, opt, nfev = self._optimize(
             num_vars, objective_function, gradient_function, variable_bounds, initial_point
         )
 
@@ -173,3 +173,15 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
             nfev += p_nfev
 
         return sol, opt, nfev
+
+    def _optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        return super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
