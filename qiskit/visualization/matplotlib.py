@@ -327,8 +327,10 @@ class MatplotlibDrawer:
         xr = self._xmax + self._style["margin"][1]
         yb = -self._ymax - self._style["margin"][2] + 0.5
         yt = self._style["margin"][3] + 0.5
-        self._ax.set_xlim(xl, xr)
-        self._ax.set_ylim(yb, yt)
+        print(xl, xr)
+        if not self._user_ax:
+            self._ax.set_xlim(xl, xr)
+            self._ax.set_ylim(yb, yt)
 
         # update figure size before doing any matplotlib drawing
         base_fig_w = xr - xl
@@ -337,26 +339,25 @@ class MatplotlibDrawer:
         # if user passes in an ax, this size takes priority over any other settings
         if self._user_ax:
             adj_fig_w = self._figure.get_size_inches()[0]
-            self._scale = adj_fig_w * 1.19601329 / base_fig_w
+            self._scale = adj_fig_w / base_fig_w
 
         # if scale not 1.0, use this scale factor 
         elif self._scale != 1.0:
             self._figure.set_size_inches(base_fig_w * self._scale, base_fig_h * self._scale)
-            self._scale *= 1.19601329
 
         # if "figwidth" style param set, use this to scale
         elif self._style["figwidth"] > 0.0:
-            adj_fig_w = self._style["figwidth"]
+            adj_fig_w = self._style["figwidth"] * 1.19601329
             self._figure.set_size_inches(adj_fig_w, adj_fig_w * base_fig_h / base_fig_w)
-            self._scale = adj_fig_w * 1.19601329 / base_fig_w
+            self._scale = adj_fig_w / base_fig_w
 
         # otherwise, default to the old way of displaying a circuit
         else:
             # for backward compatibility, need to scale to a default value equal to
             # self._fs * 3.01 / 72 / 0.65
-            adj_fig_w = base_fig_w * 0.8361111
+            adj_fig_w = base_fig_w
             self._figure.set_size_inches(adj_fig_w, adj_fig_w * base_fig_h / base_fig_w)
-            self._scale = self._scale * 1.19601329 * adj_fig_w / base_fig_w
+            #self._scale = self._scale * 1.19601329 * adj_fig_w / base_fig_w
 
         self._fs = self._fs * self._scale
         self._sfs = self._sfs * self._scale
@@ -911,12 +912,13 @@ class MatplotlibDrawer:
         # cbit list to consider
         fmt_c = "{{:0{}b}}".format(len(cond_xy))
         cmask = list(fmt_c.format(mask))[::-1]
-
+        print('xy, qubit_b, fmt_c, cmask', xy, qubit_b, fmt_c, cmask)
         # value
         fmt_v = "{{:0{}b}}".format(cmask.count("1"))
         vlist = list(fmt_v.format(val))
         if not self._reverse_bits:
             vlist = vlist[::-1]
+        print('fmt_v', vlist)
 
         # plot conditionals
         v_ind = 0
