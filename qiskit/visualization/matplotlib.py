@@ -309,6 +309,7 @@ class MatplotlibDrawer:
             layer_width = self._get_layer_width(layer)
             self._layer_widths.append(layer_width)
         total_layer_width = sum(self._layer_widths)
+        print(total_layer_width)
         num_folds = total_layer_width // self._fold if self._fold > 0 else 0
 
         # load the _qubit_dict and _clbit_dict with register info
@@ -912,13 +913,12 @@ class MatplotlibDrawer:
         # cbit list to consider
         fmt_c = "{{:0{}b}}".format(len(cond_xy))
         cmask = list(fmt_c.format(mask))[::-1]
-        print('xy, qubit_b, fmt_c, cmask', xy, qubit_b, fmt_c, cmask)
+
         # value
         fmt_v = "{{:0{}b}}".format(cmask.count("1"))
         vlist = list(fmt_v.format(val))
         if not self._reverse_bits:
             vlist = vlist[::-1]
-        print('fmt_v', vlist)
 
         # plot conditionals
         v_ind = 0
@@ -926,7 +926,10 @@ class MatplotlibDrawer:
         for xy, m in zip(cond_xy, cmask):
             if m == "1":
                 if xy not in xy_plot:
-                    fc = self._style["lc"] if vlist[v_ind] == "1" else self._style["bg"]
+                    if vlist[v_ind] == "1" or self._cregbundle:
+                        fc = self._style["lc"]
+                    else:
+                        fc = self._style["bg"]
                     box = self._patches_mod.Circle(
                         xy=xy,
                         radius=WID * 0.15,
