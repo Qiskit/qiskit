@@ -23,6 +23,7 @@ import queue
 from collections import OrderedDict, defaultdict
 from functools import wraps
 import traceback
+import contextlib
 
 from qiskit.version import __qiskit_version__
 from qiskit.providers import Job, BaseJob, Backend, BaseBackend, Provider
@@ -131,18 +132,20 @@ class ExperimentDataV1(ExperimentData):
         self._job_futures = []
         self._errors = []
 
-        self._data_queue = queue.Queue()
         self._data = []
-
         figure_names = figure_names or []
         self._figures = OrderedDict.fromkeys(figure_names)
-        self._figures_queue = queue.Queue()
-        # _figure_names is only used by add_figure() which may run in a
-        # separate thread so should not be accessed by main thread.
-        self._figure_names = figure_names
-
-        self._analysis_results_queue = queue.Queue()
         self._analysis_results = []
+
+        # The ``add_data()`` method may spawn a new thread to wait for a job to
+        # finish and invoke a postprocessing function. This postprocessing is
+        # expected to add data/analysis results/figures, while the main thread may
+        # be looping through those variables. Hence we're using Queues for the
+        # postprocessing thread to write into.
+        self._data_queue = queue.Queue()
+        self._figures_queue = queue.Queue()
+        self._figure_names = figure_names  # Only used by postprocessing thread.
+        self._analysis_results_queue = queue.Queue()
 
         self._created_in_db = False
 
@@ -152,11 +155,10 @@ class ExperimentDataV1(ExperimentData):
         Args:
             backend: Backend whose provider may offer experiment service.
         """
-        try:
+        with contextlib.suppress(Exception):
             self._service = backend.provider().service('experiment')
-            self.auto_save = self._service.option['auto_save']
-        except Exception:  # pylint: disable=broad-except
-            self._service = None
+        with contextlib.suppress(Exception):
+            self.auto_save = self._service.option('auto_save')
 
     def add_data(
             self,
@@ -187,10 +189,11 @@ class ExperimentDataV1(ExperimentData):
             if self.backend and self.backend != data.backend():
                 LOG.warning(f"Adding a job from a backend {data.backend()} that is different "
                             f"than the current ExperimentData backend ({self.backend}). "
-                            f"The new backend will be used.")
-                self._backend = data.backend()
-                if not self._service:
-                    self._set_service_from_backend(self._backend)
+                            f"The new backend will be used, but "
+                            f"service is not changed if one already exists.")
+            self._backend = data.backend()
+            if not self._service:
+                self._set_service_from_backend(self._backend)
 
             self._jobs[data.job_id()] = data
             self._job_futures.append(
@@ -308,17 +311,21 @@ class ExperimentDataV1(ExperimentData):
             figure: Union[str, bytes],
             figure_name: Optional[str] = None,
             overwrite: bool = False,
+            save: bool = None,
             service: Optional['ExperimentServiceV1'] = None
     ) -> Tuple[str, int]:
-        """Save the experiment figure.
+        """Add the experiment figure.
 
         Args:
-            figure: Name of the figure file or figure data to upload.
+            figure: Name of the figure file or figure data.
             figure_name: Name of the figure. If ``None``, use the figure file name, if
                 given, or a generated name.
             overwrite: Whether to overwrite the figure if one already exists with
                 the same name.
-            service: Experiment service to be used to save the figure.
+            save: Whether to save the figure in the database. If ``None``, the ``auto_save``
+                value is used.
+            service: Experiment service to be used to save the figure. If ``None``,
+                the default service is used.
 
         Returns:
             A tuple of the name and size of the saved figure. Returned size
@@ -342,10 +349,11 @@ class ExperimentDataV1(ExperimentData):
 
         out = [figure_name, 0]
         service = service or self._service
-        if service:
+        to_save = save or self.auto_save
+        if to_save and service:
             data = {'experiment_id': self.experiment_id,
                     'figure': figure, 'figure_name': figure_name}
-            _, out = save_data(is_new=not existing_figure,
+            _, out = save_data(is_new=(not existing_figure),
                                new_func=service.create_figure,
                                update_func=service.update_figure,
                                new_data={},
@@ -414,8 +422,9 @@ class ExperimentDataV1(ExperimentData):
 
     def analysis_result(
             self,
-            index: Optional[Union[int, slice, str]],
-            refresh: bool = False) -> Union[AnalysisResult, List[AnalysisResult]]:
+            index: Optional[Union[int, slice, str]] = None,
+            refresh: bool = False
+    ) -> Union[AnalysisResult, List[AnalysisResult]]:
         """Return analysis results associated with this experiment.
 
         Args:
@@ -455,6 +464,8 @@ class ExperimentDataV1(ExperimentData):
     ) -> None:
         """Save this experiment in the database.
 
+        Note that this method does not save analysis results nor figures.
+
         Args:
             service: Experiment service to be used to save the data.
                 If ``None``, the provider used to submit jobs will be used.
@@ -465,6 +476,10 @@ class ExperimentDataV1(ExperimentData):
         service = service or self._service
         if not service:
             LOG.warning("Experiment cannot be saved because no experiment service is available.")
+            return
+
+        if not self._backend:
+            LOG.warning("Experiment cannot be saved because backend is missing.")
             return
 
         self._collect_from_queues()
@@ -478,7 +493,7 @@ class ExperimentDataV1(ExperimentData):
             update_data['share_level'] = self.share_level
 
         self._created_in_db, _ = save_data(
-            is_new=self._created_in_db,
+            is_new=(not self._created_in_db),
             new_func=service.create_experiment,
             update_func=service.update_experiment,
             new_data=new_data, update_data=update_data)
@@ -702,6 +717,8 @@ class ExperimentDataV1(ExperimentData):
         if self._service:
             raise ExperimentError("An experiment service is already being used.")
         self._service = service
+        with contextlib.suppress(Exception):
+            self.auto_save = self._service.option('auto_save')
 
     @property
     def source(self) -> Dict:
