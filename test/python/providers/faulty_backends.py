@@ -73,6 +73,7 @@ class FakeOurenseFaultyCX13CX31(FakeOurense):
                 )
         return BackendProperties.from_dict(props)
 
+
 class FakeOurenseFaultyCX13(FakeOurense):
     """A fake 5 qubit backend, with faulty CX(Q1, Q3), but valid CX(Q3, Q1)
     0 ↔ 1 <- 3 ↔ 4

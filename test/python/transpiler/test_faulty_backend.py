@@ -93,7 +93,10 @@ class TestFaultyCX01CX10(TestFaultyBackendCase):
         circuit.ccx(0, 1, 2)
         circuit.measure_all()
         result = transpile(
-            circuit, backend=FakeOurenseFaultyCX01CX10(), optimization_level=level, seed_transpiler=42
+            circuit,
+            backend=FakeOurenseFaultyCX01CX10(),
+            optimization_level=level,
+            seed_transpiler=42,
         )
 
         self.assertIdleCX01(result)
@@ -164,7 +167,10 @@ class TestFaultyCX13CX31(TestFaultyBackendCase):
         circuit.ccx(0, 1, 2)
         circuit.measure_all()
         result = transpile(
-            circuit, backend=FakeOurenseFaultyCX13CX31(), optimization_level=level, seed_transpiler=42
+            circuit,
+            backend=FakeOurenseFaultyCX13CX31(),
+            optimization_level=level,
+            seed_transpiler=42,
         )
 
         self.assertIdleCX13(result)
@@ -209,6 +215,7 @@ class TestFaultyCX13CX31(TestFaultyBackendCase):
 
         self.assertEqual(context.exception.message, message)
 
+
 @ddt
 class TestFaultyCX13(TestFaultyBackendCase):
     """Test preset passmanagers with FakeOurenseFaultyCX13
@@ -217,6 +224,7 @@ class TestFaultyCX13(TestFaultyBackendCase):
              ↕
              2
     """
+
     def assertIdleCX13(self, circuit):
         """Asserts the CX(1, 3) is not used in the circuit"""
         physical_qubits = QuantumRegister(5, "q")
@@ -234,8 +242,12 @@ class TestFaultyCX13(TestFaultyBackendCase):
         circuit.ccx(2, 3, 4)
         circuit.measure_all()
         result = transpile(
-            circuit, backend=FakeOurenseFaultyCX13(), optimization_level=level,
-            initial_layout=range(5), seed_transpiler=42)
+            circuit,
+            backend=FakeOurenseFaultyCX13(),
+            optimization_level=level,
+            initial_layout=range(5),
+            seed_transpiler=42,
+        )
         self.assertIdleCX13(result)
         self.assertEqualCount(circuit, result)
 
@@ -263,6 +275,7 @@ class TestFaultyCX13(TestFaultyBackendCase):
 
         self.assertIdleCX13(result)
         self.assertEqualCount(circuit, result)
+
 
 @ddt
 class TestFaultyQ1(TestFaultyBackendCase):
