@@ -33,10 +33,11 @@ class ProbDistribution(dict):
                 float for the probability of that result.
                 The keys can be one of several formats:
 
-                     * A hexadecimal string of the form ``"0x4a"``
-                     * A bit string prefixed with ``0b`` for example
-                        ``'0b1011'``
+                    * A hexadecimal string of the form ``"0x4a"``
+                    * A bit string prefixed with ``0b`` for example
+                      ``'0b1011'``
                     * An integer
+
             shots (int): Number of shots the distribution was derived from.
 
         Raises:
