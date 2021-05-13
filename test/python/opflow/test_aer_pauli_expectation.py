@@ -17,27 +17,28 @@ import unittest
 from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
 
+from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import (
-    X,
-    Y,
-    Z,
-    I,
     CX,
-    H,
-    S,
-    ListOp,
-    Zero,
-    One,
-    Plus,
-    Minus,
-    StateFn,
     AerPauliExpectation,
     CircuitSampler,
     CircuitStateFn,
+    H,
+    I,
+    ListOp,
+    Minus,
+    One,
     PauliExpectation,
+    PauliSumOp,
+    Plus,
+    S,
+    StateFn,
+    X,
+    Y,
+    Z,
+    Zero,
 )
-from qiskit.circuit.library import RealAmplitudes
 
 
 class TestAerPauliExpectation(QiskitOpflowTestCase):
@@ -181,7 +182,10 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         def validate_sampler(ideal, sut, param_bindings):
             expect_sampled = ideal.convert(expect_op, params=param_bindings).eval()
             actual_sampled = sut.convert(expect_op, params=param_bindings).eval()
-            self.assertAlmostEqual(actual_sampled, expect_sampled, delta=0.1)
+            self.assertTrue(
+                np.allclose(actual_sampled, expect_sampled),
+                "%s != %s" % (actual_sampled, expect_sampled),
+            )
 
         def get_circuit_templates(sampler):
             return sampler._transpiled_circ_templates
@@ -239,6 +243,14 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         np.testing.assert_array_almost_equal([val1] * 2, val2, decimal=2)
         np.testing.assert_array_almost_equal(val1, val3, decimal=2)
         np.testing.assert_array_almost_equal([val1] * 2, val4, decimal=2)
+
+    def test_list_pauli_sum(self):
+        """Test AerPauliExpectation for ListOp[PauliSumOp]"""
+        test_op = ListOp([PauliSumOp.from_list([("XX", 1), ("ZI", 3), ("ZZ", 5)])])
+        observable = AerPauliExpectation().convert(~StateFn(test_op))
+        self.assertIsInstance(observable, ListOp)
+        self.assertIsInstance(observable[0], CircuitStateFn)
+        self.assertTrue(observable[0].is_measurement)
 
     def test_pauli_expectation_non_hermite_op(self):
         """Test PauliExpectation for non hermitian operator"""
