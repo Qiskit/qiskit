@@ -64,7 +64,8 @@ barrier qr1[0],qr2[0],qr2[1];
 measure qr1[0] -> cr[0];
 measure qr2[0] -> cr[1];
 measure qr2[1] -> cr[2];\n"""
-        self.assertEqual(qc.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_with_composite_circuit(self):
         """Test circuit qasm() method when a composite circuit instruction
@@ -98,7 +99,9 @@ barrier qr[0],qr[1];
 composite_circ qr[0],qr[1];
 measure qr[0] -> cr[0];
 measure qr[1] -> cr[1];\n"""
-        self.assertEqual(qc.qasm(), expected_qasm)
+
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_with_multiple_same_composite_circuits(self):
         """Test circuit qasm() method when a composite circuit is added
@@ -134,7 +137,8 @@ composite_circ qr[0],qr[1];
 composite_circ qr[0],qr[1];
 measure qr[0] -> cr[0];
 measure qr[1] -> cr[1];\n"""
-        self.assertEqual(qc.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_with_multiple_composite_circuits_with_same_name(self):
         """Test circuit qasm() method when multiple composite circuit instructions
@@ -172,15 +176,17 @@ my_gate_{1} qr[0];
 my_gate_{0} qr[0];\n""".format(
             my_gate_inst3_id, my_gate_inst2_id
         )
-        self.assertEqual(circuit.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(circuit.qasm(), expected_qasm)
 
     def test_circuit_qasm_pi(self):
         """Test circuit qasm() method with pi params."""
         circuit = QuantumCircuit(2)
         circuit.cz(0, 1)
         circuit.u(2 * pi, 3 * pi, -5 * pi, 0)
-        qasm_str = circuit.qasm()
-        circuit2 = QuantumCircuit.from_qasm_str(qasm_str)
+        with self.assertWarns(DeprecationWarning):
+            qasm_str = circuit.qasm()
+            circuit2 = QuantumCircuit.from_qasm_str(qasm_str)
         self.assertEqual(circuit, circuit2)
 
     def test_circuit_qasm_with_composite_circuit_with_one_param(self):
@@ -193,9 +199,9 @@ gate nG0(param0) q0 { h q0; }
 qreg q[3];
 creg c[3];
 nG0(pi) q[0];\n"""
-        qc = QuantumCircuit.from_qasm_str(original_str)
-
-        self.assertEqual(original_str, qc.qasm())
+        with self.assertWarns(DeprecationWarning):
+            qc = QuantumCircuit.from_qasm_str(original_str)
+            self.assertEqual(original_str, qc.qasm())
 
     def test_circuit_qasm_with_composite_circuit_with_many_params_and_qubits(self):
         """Test circuit qasm() method when a composite circuit instruction
@@ -209,17 +215,18 @@ qreg r[3];
 creg c[3];
 creg d[3];
 nG0(pi,pi/2) q[0],r[0];\n"""
-        qc = QuantumCircuit.from_qasm_str(original_str)
-
-        self.assertEqual(original_str, qc.qasm())
+        with self.assertWarns(DeprecationWarning):
+            qc = QuantumCircuit.from_qasm_str(original_str)
+            self.assertEqual(original_str, qc.qasm())
 
     def test_unbound_circuit_raises(self):
         """Test circuits with unbound parameters raises."""
         qc = QuantumCircuit(1)
         theta = Parameter("θ")
         qc.rz(theta, 0)
-        with self.assertRaises(QasmError):
-            qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(QasmError):
+                qc.qasm()
 
     def test_gate_qasm_with_ctrl_state(self):
         """Test gate qasm() with controlled gate that has ctrl_state setting."""
@@ -227,5 +234,6 @@ nG0(pi,pi/2) q[0],r[0];\n"""
 
         qc = QuantumCircuit(2)
         qc.ch(0, 1, ctrl_state=0)
-        qasm_str = qc.qasm()
-        self.assertEqual(Operator(qc), Operator(QuantumCircuit.from_qasm_str(qasm_str)))
+        with self.assertWarns(DeprecationWarning):
+            qasm_str = qc.qasm()
+            self.assertEqual(Operator(qc), Operator(QuantumCircuit.from_qasm_str(qasm_str)))
