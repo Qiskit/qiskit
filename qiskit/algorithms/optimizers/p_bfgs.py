@@ -86,7 +86,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
                 "The relationship between the two is ftol = factr * numpy.finfo(float).eps. "
                 "See https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html.",
                 DeprecationWarning,
-                stacklevel=3,
+                stacklevel=2,
             )
             ftol = factr * np.finfo(float).eps
         if options is None:
@@ -157,7 +157,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
             proc.start()
 
         # While the one optimize in this process below runs the other processes will
-        # be running to. This one runs
+        # be running too. This one runs
         # with the supplied initial point. The process ones have their own random one
         sol, opt, nfev = self._optimize(
             num_vars, objective_function, gradient_function, variable_bounds, initial_point

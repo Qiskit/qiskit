@@ -94,7 +94,7 @@ class L_BFGS_B(SciPyOptimizer):  # pylint: disable=invalid-name
                 "The relationship between the two is ftol = factr * numpy.finfo(float).eps. "
                 "See https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html.",
                 DeprecationWarning,
-                stacklevel=3,
+                stacklevel=2,
             )
             ftol = factr * np.finfo(float).eps
         if options is None:

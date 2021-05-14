@@ -24,11 +24,10 @@ from .optimizer import Optimizer, OptimizerSupportLevel
 
 
 class SciPyOptimizer(Optimizer):
-    """
-    Optimizer using scipy.optimize.minimize.
+    """A general Qiskit Optimizer wrapping scipy.optimize.minimize.
 
     For further detail, please refer to
-    See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
     def __init__(
