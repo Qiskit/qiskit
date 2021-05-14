@@ -418,15 +418,6 @@ def run_circuits(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     run_config = run_config or {}
     with_autorecover = not is_simulator_backend(backend)
 
-<<<<<<< HEAD
-    job, job_id = _safe_submit_circuits(circuits,
-                                        backend,
-                                        qjob_config=qjob_config,
-                                        backend_options=backend_options,
-                                        noise_config=noise_config,
-                                        run_config=run_config)
-    result = None
-=======
     if MAX_CIRCUITS_PER_JOB is not None:
         max_circuits_per_job = int(MAX_CIRCUITS_PER_JOB)
     else:
@@ -467,7 +458,6 @@ def run_circuits(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         job_ids = [job_id]
         split_circuits = [circuits]
     results = []
->>>>>>> 9d4bb91b8... Respect max_experiments in QuantumInstance BackendV1 path (#6391)
     if with_autorecover:
         logger.info("Backend status: %s", backend.status())
         logger.info("There are %s jobs are submitted.", len(jobs))
@@ -496,19 +486,7 @@ def run_circuits(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                         logger.info("Job id: %s, status: %s", job_id, job_status)
                     if job_callback is not None:
                         job_callback(job_id, job_status, queue_position, job)
-<<<<<<< HEAD
-                    break
-                if job_status == JobStatus.QUEUED and hasattr(job, queue_position):
-                    queue_position = job.queue_position()
-                    logger.info("Job id: %s is queued at position %s", job_id, queue_position)
-                else:
-                    logger.info("Job id: %s, status: %s", job_id, job_status)
-                if job_callback is not None:
-                    job_callback(job_id, job_status, queue_position, job)
-                time.sleep(qjob_config['wait'])
-=======
                     time.sleep(qjob_config["wait"])
->>>>>>> 9d4bb91b8... Respect max_experiments in QuantumInstance BackendV1 path (#6391)
 
                 # get result after the status is DONE
                 if job_status == JobStatus.DONE:
@@ -519,32 +497,6 @@ def run_circuits(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                             logger.info("COMPLETED the %s-th job, job id: %s", idx, job_id)
                             break
 
-<<<<<<< HEAD
-                    logger.warning("FAILURE: Job id: %s", job_id)
-                    logger.warning("Job (%s) is completed anyway, retrieve result "
-                                   "from backend again.", job_id)
-                    job = backend.retrieve_job(job_id)
-                break
-            # for other cases, resubmit the circuit until the result is available.
-            # since if there is no result returned, there is no way algorithm can do any process
-            if job_status == JobStatus.CANCELLED:
-                logger.warning("FAILURE: Job id: %s is cancelled. Re-submit the circuits.",
-                               job_id)
-            elif job_status == JobStatus.ERROR:
-                logger.warning("FAILURE: Job id: %s encounters the error. "
-                               "Error is : %s. Re-submit the circuits.",
-                               job_id, job.error_message())
-            else:
-                logging.warning("FAILURE: Job id: %s. Unknown status: %s. "
-                                "Re-submit the circuits.", job_id, job_status)
-
-            job, job_id = _safe_submit_circuits(circuits,
-                                                backend,
-                                                qjob_config=qjob_config,
-                                                backend_options=backend_options,
-                                                noise_config=noise_config,
-                                                run_config=run_config)
-=======
                         logger.warning("FAILURE: Job id: %s", job_id)
                         logger.warning(
                             "Job (%s) is completed anyway, retrieve result " "from backend again.",
@@ -580,7 +532,6 @@ def run_circuits(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                     noise_config=noise_config,
                     run_config=run_config,
                 )
->>>>>>> 9d4bb91b8... Respect max_experiments in QuantumInstance BackendV1 path (#6391)
     else:
         results = []
         for job in jobs:
