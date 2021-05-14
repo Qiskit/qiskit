@@ -17,7 +17,7 @@ ARG NB_UID
 USER root
 COPY . ${HOME}
 RUN chown -R ${NB_USER} ${HOME}
-RUN chown -R ${NB_USER} /opt/conda
+# RUN chown -R ${NB_USER} /opt/conda
 USER ${NB_USER}
 ENV PATH /opt/conda/bin:$PATH
 
