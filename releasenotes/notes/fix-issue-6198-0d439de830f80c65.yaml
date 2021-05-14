@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix bug to allow setting breakpoints=None:
