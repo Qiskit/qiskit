@@ -169,12 +169,18 @@ class P_BFGS(Optimizer):  # pylint: disable=invalid-name
             num_vars, objective_function, gradient_function, variable_bounds, initial_point
         )
 
+        def wrapped_gradient(x):
+            gradient = gradient_function(x)
+            if isinstance(gradient, np.ndarray):
+                return gradient.tolist()
+            return gradient
+
         approx_grad = bool(gradient_function is None)
         sol, opt, info = sciopt.fmin_l_bfgs_b(
             objective_function,
             initial_point,
             bounds=variable_bounds,
-            fprime=gradient_function,
+            fprime=wrapped_gradient,
             approx_grad=approx_grad,
             **self._options,
         )
