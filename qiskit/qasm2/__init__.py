@@ -43,6 +43,7 @@ from .functions import load, dump
 
 try:
     import pygments
+
     HAS_PYGMENTS = True
 except ImportError:
     HAS_PYGMENTS = False

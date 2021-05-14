@@ -43,7 +43,7 @@ def _load_from_string(qasm_src: str or List[str]) -> QuantumCircuit:
     """
 
     if isinstance(qasm_src, list):
-        qasm_src = ''.join(s + linesep for s in qasm_src)
+        qasm_src = "".join(s + linesep for s in qasm_src)
     qasm = Qasm(data=qasm_src)
     circ = qasm_load(qasm)
     return circ
@@ -68,8 +68,7 @@ def _load_from_file(filename: str) -> QuantumCircuit:
     return qasm_load(qasm)
 
 
-def load(data: str or List[str] = None,
-         filename: str = None) -> QuantumCircuit:
+def load(data: str or List[str] = None, filename: str = None) -> QuantumCircuit:
     """
 
 
@@ -104,9 +103,7 @@ def load(data: str or List[str] = None,
     return circ
 
 
-def dump(qc: QuantumCircuit,
-         file: BinaryIO or TextIO = None,
-         filename: str = None) -> str:
+def dump(qc: QuantumCircuit, file: BinaryIO or TextIO = None, filename: str = None) -> str:
     """
     Decompile a QuantumCircuit into Return OpenQASM string
 
@@ -147,12 +144,12 @@ def dump(qc: QuantumCircuit,
     qasm_src = qasm_dump(qc)
 
     if filename:
-        f_f = open(filename, 'w')
+        f_f = open(filename, "w")
         f_f.write(qasm_src)
         f_f.close()
     elif file:
-        if 'b' in file.mode:
-            file.write(bytes(qasm_src, 'utf-8'))
+        if "b" in file.mode:
+            file.write(bytes(qasm_src, "utf-8"))
         else:
             file.write(qasm_src)
     return qasm_src

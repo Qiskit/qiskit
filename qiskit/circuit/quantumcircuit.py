@@ -46,6 +46,7 @@ try:
     from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
     from qiskit.qasm2.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
     from qiskit.qasm2.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
+
     HAS_PYGMENTS = True
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
@@ -1343,22 +1344,27 @@ class QuantumCircuit:
                 ``True``.
             QasmError: If circuit has free parameters.
         """
-        warnings.warn("""qasm() is deprecated, use
+        warnings.warn(
+            """qasm() is deprecated, use
                       qiskit.qasm2.functions.export(qc=qc,
                                                     formatted=formatted,
                                                     filename=filename)
                       instead""",
-                      DeprecationWarning)
+            DeprecationWarning,
+        )
         from qiskit.qasm2.functions import dump
+
         ret_str = dump(self, filename=filename)
         if formatted:
             if not HAS_PYGMENTS:
-                raise ImportError("To use the formatted output pygments>2.4 "
-                                  "must be installed. To install pygments run "
-                                  '"pip install pygments".')
-            code = pygments.highlight(ret_str,
-                                      OpenQASMLexer(),
-                                      Terminal256Formatter(style=QasmTerminalStyle))
+                raise ImportError(
+                    "To use the formatted output pygments>2.4 "
+                    "must be installed. To install pygments run "
+                    '"pip install pygments".'
+                )
+            code = pygments.highlight(
+                ret_str, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
+            )
             print(code)
             return None
         else:
@@ -1902,10 +1908,13 @@ class QuantumCircuit:
         Return:
           QuantumCircuit: The QuantumCircuit object for the input QASM
         """
-        warnings.warn("""from_qasm_file() is deprecated,
+        warnings.warn(
+            """from_qasm_file() is deprecated,
                       use qiskit.qasm2.functions.load(filename=path) instead""",
-                      DeprecationWarning)
+            DeprecationWarning,
+        )
         from qiskit.qasm2.functions import load
+
         return load(filename=path)
 
     @staticmethod
@@ -1917,10 +1926,13 @@ class QuantumCircuit:
         Return:
           QuantumCircuit: The QuantumCircuit object for the input QASM
         """
-        warnings.warn("""from_qasm_str() is deprecated,
+        warnings.warn(
+            """from_qasm_str() is deprecated,
                       use qiskit.qasm2.functions.load(data=qasm_str) instead""",
-                      DeprecationWarning)
+            DeprecationWarning,
+        )
         from qiskit.qasm2.functions import load
+
         return load(data=qasm_str)
 
     @property
