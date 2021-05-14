@@ -82,7 +82,7 @@ class QFT(BlueprintCircuit):
         do_swaps: bool = True,
         inverse: bool = False,
         insert_barriers: bool = False,
-        name: str = "qft",
+        name: str = "QFT",
     ) -> None:
         """Construct a new QFT circuit.
 
@@ -217,8 +217,8 @@ class QFT(BlueprintCircuit):
             The inverted circuit.
         """
 
-        if self.name in ("qft", "iqft"):
-            name = "qft" if self._inverse else "iqft"
+        if self.name in ("QFT", "IQFT"):
+            name = "QFT" if self._inverse else "IQFT"
         else:
             name = self.name + "_dg"
 
