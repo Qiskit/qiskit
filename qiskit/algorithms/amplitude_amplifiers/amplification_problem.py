@@ -63,7 +63,7 @@ class AmplificationProblem:
         self._grover_operator = grover_operator
         self._post_processing = post_processing
         self._objective_qubits = objective_qubits
-        if is_good_state:
+        if is_good_state is not None:
             self._is_good_state = is_good_state
         elif hasattr(oracle, 'evaluate_bitstring'):
             self._is_good_state = oracle.evaluate_bitstring
