@@ -58,7 +58,7 @@ class QNSPSA(SPSA):
             import numpy as np
             from qiskit.algorithms.optimizers import QNSPSA
             from qiskit.circuit.library import PauliTwoDesign
-            from qiskit.opflow import Z
+            from qiskit.opflow import Z, StateFn
 
             ansatz = PauliTwoDesign(2, reps=1, seed=2)
             observable = Z ^ Z
