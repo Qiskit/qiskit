@@ -287,6 +287,7 @@ class PauliSumOp(PrimitiveOp):
                             'real': obj.real,
                             'imag': obj.imag}
                 elif isinstance(obj, ParameterExpression):
+                    breakpoint()
                     return {'__parameter_expression__': True,
                             'expr': str(obj)}
                 return json.JSONEncoder.default(self, obj)

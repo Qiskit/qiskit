@@ -309,6 +309,25 @@ class TestPauliSumOp(QiskitOpflowTestCase):
                          decoded_pauli_sum.assign_parameters(
                              {decoded_pauli_sum.parameters.pop(): 2}))
 
+    def test_json_same_name_different_instance(self):
+        """Test two parameter instances of same name"""
+        x = Parameter('a')
+        y = Parameter('a')
+        pauli_sum_x = PauliSumOp(SparsePauliOp(Pauli("XYZX"),
+                                               coeffs=[1]),
+                                 coeff=x)
+        pauli_sum_y = PauliSumOp(SparsePauliOp(Pauli("XYZX"),
+                                               coeffs=[1]),
+                                 coeff=y)
+        json_string_x = pauli_sum_x.to_json()
+        json_string_y = pauli_sum_y.to_json()        
+        breakpoint()
+        decoded_pauli_sum_x = PauliSumOp.from_json(json_string_x)
+        self.assertEqual(pauli_sum.assign_parameters({x: 2}),
+                         decoded_pauli_sum.assign_parameters(
+                             {decoded_pauli_sum.parameters.pop(): 2}))
+
+
     def test_json_complex(self):
         """Test json serializer for PauliSumOp"""
         pauli_sum = PauliSumOp(SparsePauliOp(Pauli("XYZX"),
