@@ -10,14 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test Qiskit's QASM2 dumper."""
+"""Test Qiskit QASM support deprecated dumper."""
 
 from math import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter
-from qiskit.qasm2.exceptions import QasmError
+from qiskit.qasm import QasmError
 
 
 class TestCircuitQasm(QiskitTestCase):
