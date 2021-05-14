@@ -99,6 +99,12 @@ class Anchor:
                 self._gate_placed.append(idx)
                 self.nxt_anchor_idx = idx + 1
 
+    def get_index(self):
+        """Getter for the index"""
+        if self._gate_placed:
+            return self._gate_placed[-1] + 1
+        return 0
+
 
 class MatplotlibDrawer:
     """Matplotlib drawer class called from circuit_drawer"""
@@ -189,16 +195,8 @@ class MatplotlibDrawer:
         self._cregbundle = cregbundle
         self._global_phase = global_phase
 
-        self._n_lines = 0
-        self._xmax = 0
-        self._ymax = 0
-        self._x_offset = 0
-
         self._fs = self._style["fs"]
         self._sfs = self._style["sfs"]
-        self._lwidth15 = 1.5
-        self._lwidth2 = 2.0
-        self._lwidth1 = 1.0
         self._node_width = {}
         self._layer_widths = []
 
@@ -309,7 +307,6 @@ class MatplotlibDrawer:
             layer_width = self._get_layer_width(layer)
             self._layer_widths.append(layer_width)
         total_layer_width = sum(self._layer_widths)
-        print(total_layer_width)
         num_folds = total_layer_width // self._fold if self._fold > 0 else 0
 
         # load the _qubit_dict and _clbit_dict with register info
@@ -328,19 +325,25 @@ class MatplotlibDrawer:
         xr = self._xmax + self._style["margin"][1]
         yb = -self._ymax - self._style["margin"][2] + 0.5
         yt = self._style["margin"][3] + 0.5
-        print(xl, xr)
-        if not self._user_ax:
-            self._ax.set_xlim(xl, xr)
-            self._ax.set_ylim(yb, yt)
+        self._ax.set_xlim(xl, xr)
+        self._ax.set_ylim(yb, yt)
 
         # update figure size before doing any matplotlib drawing
-        base_fig_w = xr - xl
-        base_fig_h = yt - yb
+        # for backward compatibility, need to scale by a default value equal to
+        # self._fs * 3.01 / 72 / 0.65
+        base_fig_w = (xr - xl) * 0.83611111
+        base_fig_h = (yt - yb) * 0.83611111
+        scale = self._scale
 
         # if user passes in an ax, this size takes priority over any other settings
         if self._user_ax:
+            bbox = self._ax.get_window_extent().transformed(self._figure.dpi_scale_trans.inverted())
+            print(base_fig_w)
+            print(bbox.height, bbox.width)
             adj_fig_w = self._figure.get_size_inches()[0]
-            self._scale = adj_fig_w / base_fig_w
+            scale = (bbox.width / base_fig_w)# / 0.8361111
+            #scale = 1.19
+            print('SCALE', scale)
 
         # if scale not 1.0, use this scale factor 
         elif self._scale != 1.0:
@@ -348,25 +351,22 @@ class MatplotlibDrawer:
 
         # if "figwidth" style param set, use this to scale
         elif self._style["figwidth"] > 0.0:
-            adj_fig_w = self._style["figwidth"] * 1.19601329
+            # in order to get actual inches, need to scale by factor
+            adj_fig_w = self._style["figwidth"] * 1.282736
             self._figure.set_size_inches(adj_fig_w, adj_fig_w * base_fig_h / base_fig_w)
-            self._scale = adj_fig_w / base_fig_w
+            scale = adj_fig_w / base_fig_w
 
-        # otherwise, default to the old way of displaying a circuit
+        # otherwise, display default size
         else:
-            # for backward compatibility, need to scale to a default value equal to
-            # self._fs * 3.01 / 72 / 0.65
-            adj_fig_w = base_fig_w
-            self._figure.set_size_inches(adj_fig_w, adj_fig_w * base_fig_h / base_fig_w)
-            #self._scale = self._scale * 1.19601329 * adj_fig_w / base_fig_w
+            self._figure.set_size_inches(base_fig_w, base_fig_h)
 
-        self._fs = self._fs * self._scale
-        self._sfs = self._sfs * self._scale
-        self._lwidth15 = 1.5 * self._scale
-        self._lwidth2 = 2.0 * self._scale
-        self._lwidth1 = 1.0 * self._scale
+        self._fs *= scale
+        self._sfs *= scale
+        self._lwidth1 = 1.0 * scale
+        self._lwidth15 = 1.5 * scale
+        self._lwidth2 = 2.0 * scale
 
-        self._draw_regs_wires(total_layer_width, num_folds)
+        self._draw_regs_wires(num_folds)
         self._draw_ops(verbose)
 
         if self._global_phase:
@@ -388,7 +388,7 @@ class MatplotlibDrawer:
                 self._plt_mod.close(self._figure)
             return self._figure
 
-    def _draw_regs_wires(self, total_layer_width, num_folds):
+    def _draw_regs_wires(self, num_folds):
         """Draw the register names and numbers, wires, and vertical lines at the ends"""
 
         for fold_num in range(num_folds + 1):
@@ -484,27 +484,6 @@ class MatplotlibDrawer:
                         linewidth=self._lwidth15,
                         zorder=PORDER_LINE,
                     )
-
-        # draw anchor index number
-        if self._style["index"]:
-            for layer_num in range(total_layer_width):
-                if self._fold > 0:
-                    x_coord = layer_num % self._fold + self._x_offset + 0.53
-                    y_coord = -(layer_num // self._fold) * (self._n_lines + 1) + 0.7
-                else:
-                    x_coord = layer_num + self._x_offset + 0.53
-                    y_coord = 0.7
-                self._ax.text(
-                    x_coord,
-                    y_coord,
-                    str(layer_num + 1),
-                    ha="center",
-                    va="center",
-                    fontsize=self._sfs,
-                    color=self._style["tc"],
-                    clip_on=True,
-                    zorder=PORDER_TEXT,
-                )
 
     def _draw_ops(self, verbose=False):
         """Draw the gates in the circuit"""
@@ -618,6 +597,29 @@ class MatplotlibDrawer:
 
             prev_anc = this_anc + layer_width + barrier_offset - 1
 
+        # draw anchor index number
+        if self._style["index"]:
+            anchors = [self._q_anchors[ii].get_index() for ii in self._qubit_dict]
+            max_anc = max(anchors) if anchors else 0
+            for layer_num in range(max_anc):
+                if self._fold > 0:
+                    x_coord = layer_num % self._fold + self._x_offset + 0.53
+                    y_coord = -(layer_num // self._fold) * (self._n_lines + 1) + 0.7
+                else:
+                    x_coord = layer_num + self._x_offset + 0.53
+                    y_coord = 0.7
+                self._ax.text(
+                    x_coord,
+                    y_coord,
+                    str(layer_num + 1),
+                    ha="center",
+                    va="center",
+                    fontsize=self._sfs,
+                    color=self._style["tc"],
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
+
     def _get_layer_width(self, layer):
         """Compute the layer_width for this layer"""
         widest_box = WID
@@ -686,6 +688,7 @@ class MatplotlibDrawer:
     def _get_reg_names_and_numbers(self):
         """Get all the info for drawing reg names and numbers"""
         longest_reg_name_width = 0
+        self._n_lines = 0
         initial_qbit = " |0>" if self._initial_state else ""
         initial_cbit = " 0" if self._initial_state else ""
 
