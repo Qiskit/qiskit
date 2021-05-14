@@ -21,11 +21,7 @@ RUN chown -R ${NB_USER} ${HOME}
 USER ${NB_USER}
 ENV PATH /opt/conda/bin:$PATH
 
-RUN adduser --disabled-password \
-    --gecos "Default user" \
-    --uid ${NB_UID} \
-    ${NB_USER} && \
-    apt-get update && \
+RUN apt-get update && \
     apt-get install -f -y --no-install-recommends texlive-latex-base && \
     apt-get install -f -y texlive-pictures && \
     apt-get install -f -y vim
