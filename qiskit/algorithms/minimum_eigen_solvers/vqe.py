@@ -151,10 +151,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             if not isinstance(quantum_instance, QuantumInstance):
                 quantum_instance = QuantumInstance(quantum_instance)
 
-        # set the initial point to the preferred parameters of the ansatz
-        if initial_point is None and hasattr(ansatz, "preferred_init_points"):
-            initial_point = ansatz.preferred_init_points
-
         super().__init__()
 
         self._max_evals_grouped = max_evals_grouped
@@ -174,11 +170,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         self._eval_time = None
         self._eval_count = None
-        self._ret = None
         self._optimizer.set_max_evals_grouped(max_evals_grouped)
         self._callback = callback
 
         logger.info(self.print_settings())
+
+        # TODO remove this once the stateful methods are deleted
+        self._ret = None
 
     def _try_set_expectation_value_from_factory(self, operator: OperatorBase) -> None:
         if operator is not None and self.quantum_instance is not None:
@@ -629,19 +627,22 @@ def _validate_initial_point(point, ansatz):
 
     # if the point is None choose a random initial point
     if point is None:
-        # get bounds if ansatz has them set, otherwise use [-2pi, 2pi] for each parameter
-        default_bounds = [(-2 * np.pi, 2 * np.pi)] * expected_size
-        bounds = getattr(ansatz, "parameter_bounds", default_bounds)
+        if hasattr(ansatz, "preferred_init_points"):
+            point = ansatz.preferred_init_points
+        else:
+            # get bounds if ansatz has them set, otherwise use [-2pi, 2pi] for each parameter
+            default_bounds = [(-2 * np.pi, 2 * np.pi)] * expected_size
+            bounds = getattr(ansatz, "parameter_bounds", default_bounds)
 
-        # replace all Nones by [-2pi, 2pi]
-        lower_bounds = []
-        upper_bounds = []
-        for lower, upper in bounds:
-            lower_bounds.append(lower if lower is not None else -2 * np.pi)
-            upper_bounds.append(upper if upper is not None else 2 * np.pi)
+            # replace all Nones by [-2pi, 2pi]
+            lower_bounds = []
+            upper_bounds = []
+            for lower, upper in bounds:
+                lower_bounds.append(lower if lower is not None else -2 * np.pi)
+                upper_bounds.append(upper if upper is not None else 2 * np.pi)
 
-        # sample from within bounds
-        point = algorithm_globals.random.uniform(lower_bounds, upper_bounds)
+            # sample from within bounds
+            point = algorithm_globals.random.uniform(lower_bounds, upper_bounds)
 
     elif len(point) != expected_size:
         raise ValueError(f'The dimension of the initial point ({len(point)}) does not match the '
