@@ -66,19 +66,31 @@ class TestTextDrawerElement(QiskitTestCase):
     def test_measure_to(self):
         """MeasureTo element."""
         element = elements.MeasureTo()
-        expected = [" ║ ", "═╩═", "   "]
+        # fmt: off
+        expected = [" ║ ",
+                    "═╩═",
+                    "   "]
+        # fmt: on
         self.assertEqualElement(expected, element)
 
     def test_measure_to_label(self):
         """MeasureTo element with cregbundle"""
         element = elements.MeasureTo("1")
-        expected = [" ║ ", "═╩═", " 1 "]
+        # fmt: off
+        expected = [" ║ ",
+                    "═╩═",
+                    " 1 "]
+        # fmt: on
         self.assertEqualElement(expected, element)
 
     def test_measure_from(self):
         """MeasureFrom element."""
         element = elements.MeasureFrom()
-        expected = ["┌─┐", "┤M├", "└╥┘"]
+        # fmt: off
+        expected = ["┌─┐",
+                    "┤M├",
+                    "└╥┘"]
+        # fmt: on
         self.assertEqualElement(expected, element)
 
     def test_text_empty(self):
@@ -799,9 +811,13 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
 
     def test_text_repr(self):
         """The measure operator. repr."""
-        expected = "\n".join(
-            ["        ┌─┐", "q_0: |0>┤M├", "        └╥┘", " c_0: 0 ═╩═", "           "]
-        )
+        # fmt: off
+        expected = "\n".join(["        ┌─┐",
+                              "q_0: |0>┤M├",
+                              "        └╥┘",
+                              " c_0: 0 ═╩═",
+                              "           "])
+        # fmt: on
         qr = QuantumRegister(1, "q")
         cr = ClassicalRegister(1, "c")
         circuit = QuantumCircuit(qr, cr)
@@ -1056,9 +1072,11 @@ class TestTextDrawerLabels(QiskitTestCase):
 
     def test_label(self):
         """Test a gate with a label."""
-        expected = "\n".join(
-            ["        ┌───────────┐", "q_0: |0>┤ an H gate ├", "        └───────────┘"]
-        )
+        # fmt: off
+        expected = "\n".join(["        ┌───────────┐",
+                              "q_0: |0>┤ an H gate ├",
+                              "        └───────────┘"])
+        # fmt: on
         circuit = QuantumCircuit(1)
         circuit.append(HGate(label="an H gate"), [0])
 
@@ -1273,8 +1291,11 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
     def test_kraus(self):
         """Test Kraus.
         See https://github.com/Qiskit/qiskit-terra/pull/2238#issuecomment-487630014"""
-        expected = "\n".join(["        ┌───────┐", "q_0: |0>┤ kraus ├", "        └───────┘"])
-
+        # fmt: off
+        expected = "\n".join(["        ┌───────┐",
+                              "q_0: |0>┤ kraus ├",
+                              "        └───────┘"])
+        # fmt: on
         error = SuperOp(0.75 * numpy.eye(4) + 0.25 * numpy.diag([1, -1, -1, 1]))
         qr = QuantumRegister(1, name="q")
         qc = QuantumCircuit(qr)
@@ -1516,10 +1537,11 @@ class TestTextDrawerParams(QiskitTestCase):
     def test_text_bound_parameters(self):
         """Bound parameters
         See: https://github.com/Qiskit/qiskit-terra/pull/3876"""
-        expected = "\n".join(
-            ["         ┌────────────┐", "qr_0: |0>┤ my_u2(π,π) ├", "         └────────────┘"]
-        )
-
+        # fmt: off
+        expected = "\n".join(["         ┌────────────┐",
+                              "qr_0: |0>┤ my_u2(π,π) ├",
+                              "         └────────────┘"])
+        # fmt: on
         my_u2_circuit = QuantumCircuit(1, name="my_u2")
         phi = Parameter("phi")
         lam = Parameter("lambda")
@@ -1549,8 +1571,11 @@ class TestTextDrawerParams(QiskitTestCase):
 
     def test_text_utf8(self):
         """Test that utf8 characters work in windows CI env."""
-        expected = "\n".join(["     ┌─────────┐", "q_0: ┤ U2(φ,λ) ├", "     └─────────┘"])
-
+        # fmt: off
+        expected = "\n".join(["     ┌─────────┐",
+                              "q_0: ┤ U2(φ,λ) ├",
+                              "     └─────────┘"])
+        # fmt: on
         phi, lam = Parameter("φ"), Parameter("λ")
         circuit = QuantumCircuit(1)
         circuit.u2(phi, lam, 0)
@@ -2238,7 +2263,11 @@ class TestTextIdleWires(QiskitTestCase):
 
     def test_text_h(self):
         """Remove QuWires."""
-        expected = "\n".join(["         ┌───┐", "q1_1: |0>┤ H ├", "         └───┘"])
+        # fmt: off
+        expected = "\n".join(["         ┌───┐",
+                              "q1_1: |0>┤ H ├",
+                              "         └───┘"])
+        # fmt: on
         qr1 = QuantumRegister(3, "q1")
         circuit = QuantumCircuit(qr1)
         circuit.h(qr1[1])
@@ -2276,7 +2305,11 @@ class TestTextIdleWires(QiskitTestCase):
     def test_text_barrier(self):
         """idle_wires should ignore barrier
         See https://github.com/Qiskit/qiskit-terra/issues/4391"""
-        expected = "\n".join(["         ┌───┐ ░ ", "qr_1: |0>┤ H ├─░─", "         └───┘ ░ "])
+        # fmt: off
+        expected = "\n".join(["         ┌───┐ ░ ",
+                              "qr_1: |0>┤ H ├─░─",
+                              "         └───┘ ░ "])
+        # fmt: on
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.h(qr[1])
@@ -2285,7 +2318,11 @@ class TestTextIdleWires(QiskitTestCase):
 
     def test_text_barrier_delay(self):
         """idle_wires should ignore delay"""
-        expected = "\n".join(["         ┌───┐ ░  ", "qr_1: |0>┤ H ├─░──", "         └───┘ ░  "])
+        # fmt: off
+        expected = "\n".join(["         ┌───┐ ░  ",
+                              "qr_1: |0>┤ H ├─░──",
+                              "         └───┘ ░  "])
+        # fmt: on
         qr = QuantumRegister(4, "qr")
         circuit = QuantumCircuit(qr)
         circuit.h(qr[1])
@@ -2986,9 +3023,13 @@ class TestTextOpenControlledGate(QiskitTestCase):
 
     def test_cz_bot(self):
         """Open controlled Z (bottom)"""
-        expected = "\n".join(
-            ["           ", "q_0: |0>─o─", "         │ ", "q_1: |0>─■─", "           "]
-        )
+        # fmt: off
+        expected = "\n".join(["           ",
+                              "q_0: |0>─o─",
+                              "         │ ",
+                              "q_1: |0>─■─",
+                              "           "])
+        # fmt: on
         qr = QuantumRegister(2, "q")
         circuit = QuantumCircuit(qr)
         circuit.append(ZGate().control(1, ctrl_state=0), [qr[0], qr[1]])
@@ -3791,10 +3832,11 @@ class TestTextHamiltonianGate(QiskitTestCase):
 
     def test_draw_hamiltonian_single(self):
         """Text Hamiltonian gate with single qubit."""
-        expected = "\n".join(
-            ["      ┌─────────────┐", "q0_0: ┤ Hamiltonian ├", "      └─────────────┘"]
-        )
-
+        # fmt: off
+        expected = "\n".join(["      ┌─────────────┐",
+                              "q0_0: ┤ Hamiltonian ├",
+                              "      └─────────────┘"])
+        # fmt: on
         qr = QuantumRegister(1, "q0")
         circuit = QuantumCircuit(qr)
         matrix = numpy.zeros((2, 2))
@@ -3850,8 +3892,14 @@ class TestTextPhase(QiskitTestCase):
 
     def test_empty(self):
         """Text empty circuit (two registers) with phase."""
-        expected = "\n".join(["global phase: 3", "     ", "q_0: ", "     ", "q_1: ", "     "])
-
+        # fmt: off
+        expected = "\n".join(["global phase: 3",
+                              "     ",
+                              "q_0: ",
+                              "     ",
+                              "q_1: ",
+                              "     "])
+        # fmt: on
         qr = QuantumRegister(2, "q")
         circuit = QuantumCircuit(qr)
         circuit.global_phase = 3
