@@ -27,12 +27,14 @@ from qiskit.algorithms import Shor
 class TestShor(QiskitAlgorithmsTestCase):
     """test Shor's algorithm"""
 
-    @idata([
-        [15, 'qasm_simulator', [3, 5]],
-    ])
+    @idata(
+        [
+            [15, "qasm_simulator", [3, 5]],
+        ]
+    )
     @unpack
     def test_shor_factoring(self, n_v, backend, factors):
-        """ shor factoring test """
+        """shor factoring test"""
         shor = Shor(quantum_instance=QuantumInstance(Aer.get_backend(backend), shots=1000))
         result = shor.factor(N=n_v)
         self.assertListEqual(result.factors[0], factors)
@@ -40,22 +42,24 @@ class TestShor(QiskitAlgorithmsTestCase):
 
     @data(5, 7)
     def test_shor_no_factors(self, n_v):
-        """ shor no factors test """
-        backend = Aer.get_backend('qasm_simulator')
+        """shor no factors test"""
+        backend = Aer.get_backend("qasm_simulator")
         shor = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
         result = shor.factor(N=n_v)
         self.assertTrue(result.factors == [])
         self.assertTrue(result.successful_counts == 0)
 
-    @idata([
-        [3, 5],
-        [5, 3],
-    ])
+    @idata(
+        [
+            [3, 5],
+            [5, 3],
+        ]
+    )
     @unpack
     def test_shor_power(self, base, power):
-        """ shor power test """
+        """shor power test"""
         n_v = int(math.pow(base, power))
-        backend = Aer.get_backend('qasm_simulator')
+        backend = Aer.get_backend("qasm_simulator")
         shor = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
         result = shor.factor(N=n_v)
         self.assertTrue(result.factors == [base])
@@ -63,17 +67,17 @@ class TestShor(QiskitAlgorithmsTestCase):
 
     @data(-1, 0, 1, 2, 4, 16)
     def test_shor_bad_input(self, n_v):
-        """ shor bad input test """
+        """shor bad input test"""
         with self.assertRaises(ValueError):
             _ = Shor().factor(N=n_v)
 
     @idata([[2, 15, 8], [4, 15, 4]])
     @unpack
     def test_shor_modinv(self, a_v, m_v, expected):
-        """ shor modular inverse test """
+        """shor modular inverse test"""
         modinv = Shor.modinv(a_v, m_v)
         self.assertTrue(modinv == expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

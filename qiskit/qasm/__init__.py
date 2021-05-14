@@ -13,3 +13,44 @@
 """DEPRECATED: The module qasm is now called qasm2."""
 
 from ..qasm2 import HAS_PYGMENTS, Qasm, QasmError, load, pi
+.. currentmodule:: qiskit.qasm
+
+QASM Routines
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Qasm
+   QasmError
+
+
+Pygments
+========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   OpenQASMLexer
+   QasmHTMLStyle
+   QasmTerminalStyle
+
+"""
+
+from numpy import pi
+
+from .qasm import Qasm
+from .exceptions import QasmError
+
+try:
+    import pygments
+
+    HAS_PYGMENTS = True
+except ImportError:
+    HAS_PYGMENTS = False
+
+if HAS_PYGMENTS:
+    try:
+        from .pygments import OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
+    except Exception:  # pylint: disable=broad-except
+        HAS_PYGMENTS = False

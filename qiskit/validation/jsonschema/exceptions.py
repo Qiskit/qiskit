@@ -17,6 +17,7 @@ from qiskit.exceptions import QiskitError
 
 class SchemaValidationError(QiskitError):
     """Represents an error during JSON Schema validation."""
+
     pass
 
 
@@ -39,7 +40,6 @@ class _SummaryValidationError(QiskitError):
     @staticmethod
     def _shorten_message(message):
         if len(message) > 1000:
-            return 'Original message too long to be useful: {}[...]'\
-                   ''.format(message[:1000])
+            return "Original message too long to be useful: {}[...]" "".format(message[:1000])
 
         return message
