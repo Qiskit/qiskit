@@ -52,8 +52,12 @@ class OR(QuantumCircuit):
 
     """
 
-    def __init__(self, num_variable_qubits: int, flags: Optional[List[int]] = None,
-                 mcx_mode: str = 'noancilla') -> None:
+    def __init__(
+        self,
+        num_variable_qubits: int,
+        flags: Optional[List[int]] = None,
+        mcx_mode: str = "noancilla",
+    ) -> None:
         """Create a new logical OR circuit.
 
         Args:

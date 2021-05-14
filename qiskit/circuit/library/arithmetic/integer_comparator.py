@@ -39,10 +39,13 @@ class IntegerComparator(BlueprintCircuit):
     (the results bit) is 1, the :math:`\geq` condition is ``True`` otherwise it is ``False``.
     """
 
-    def __init__(self, num_state_qubits: Optional[int] = None,
-                 value: Optional[int] = None,
-                 geq: bool = True,
-                 name: str = 'cmp') -> None:
+    def __init__(
+        self,
+        num_state_qubits: Optional[int] = None,
+        value: Optional[int] = None,
+        geq: bool = True,
+        name: str = "cmp",
+    ) -> None:
         """Create a new fixed value comparator circuit.
 
         Args:
@@ -101,9 +104,11 @@ class IntegerComparator(BlueprintCircuit):
     @property
     def num_ancilla_qubits(self):
         """Deprecated. Use num_ancillas instead."""
-        warnings.warn('The IntegerComparator.num_ancilla_qubits property is deprecated '
-                      'as of 0.16.0. It will be removed no earlier than 3 months after the release '
-                      'date. You should use the num_ancillas property instead.')
+        warnings.warn(
+            "The IntegerComparator.num_ancilla_qubits property is deprecated "
+            "as of 0.16.0. It will be removed no earlier than 3 months after the release "
+            "date. You should use the num_ancillas property instead."
+        )
         return self.num_ancillas
 
     @property
@@ -130,8 +135,8 @@ class IntegerComparator(BlueprintCircuit):
 
             if num_state_qubits is not None:
                 # set the new qubit registers
-                qr_state = QuantumRegister(num_state_qubits, name='state')
-                q_compare = QuantumRegister(1, name='compare')
+                qr_state = QuantumRegister(num_state_qubits, name="state")
+                q_compare = QuantumRegister(1, name="compare")
 
                 self.qregs = [qr_state, q_compare]
 
@@ -148,9 +153,10 @@ class IntegerComparator(BlueprintCircuit):
              The 2's complement of ``self.value``.
         """
         twos_complement = pow(2, self.num_state_qubits) - int(np.ceil(self.value))
-        twos_complement = '{:b}'.format(twos_complement).rjust(self.num_state_qubits, '0')
-        twos_complement = \
-            [1 if twos_complement[i] == '1' else 0 for i in reversed(range(len(twos_complement)))]
+        twos_complement = "{:b}".format(twos_complement).rjust(self.num_state_qubits, "0")
+        twos_complement = [
+            1 if twos_complement[i] == "1" else 0 for i in reversed(range(len(twos_complement)))
+        ]
         return twos_complement
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
@@ -160,18 +166,18 @@ class IntegerComparator(BlueprintCircuit):
         if self._num_state_qubits is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError('Number of state qubits is not set.')
+                raise AttributeError("Number of state qubits is not set.")
 
         if self._value is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError('No comparison value set.')
+                raise AttributeError("No comparison value set.")
 
         required_num_qubits = 2 * self.num_state_qubits
         if self.num_qubits != required_num_qubits:
             valid = False
             if raise_on_failure:
-                raise CircuitError('Number of qubits does not match required number of qubits.')
+                raise CircuitError("Number of qubits does not match required number of qubits.")
 
         return valid
 
@@ -179,9 +185,9 @@ class IntegerComparator(BlueprintCircuit):
         """Build the comparator circuit."""
         super()._build()
 
-        qr_state = self.qubits[:self.num_state_qubits]
+        qr_state = self.qubits[: self.num_state_qubits]
         q_compare = self.qubits[self.num_state_qubits]
-        qr_ancilla = self.qubits[self.num_state_qubits + 1:]
+        qr_ancilla = self.qubits[self.num_state_qubits + 1 :]
 
         if self.value <= 0:  # condition always satisfied for non-positive values
             if self._geq:  # otherwise the condition is never satisfied
@@ -197,16 +203,18 @@ class IntegerComparator(BlueprintCircuit):
                             self.cx(qr_state[i], qr_ancilla[i])
                     elif i < self.num_state_qubits - 1:
                         if twos[i] == 1:
-                            self.compose(OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]],
-                                         inplace=True)
+                            self.compose(
+                                OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]], inplace=True
+                            )
                         else:
                             self.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
                     else:
                         if twos[i] == 1:
                             # OR needs the result argument as qubit not register, thus
                             # access the index [0]
-                            self.compose(OR(2), [qr_state[i], qr_ancilla[i - 1], q_compare],
-                                         inplace=True)
+                            self.compose(
+                                OR(2), [qr_state[i], qr_ancilla[i - 1], q_compare], inplace=True
+                            )
                         else:
                             self.ccx(qr_state[i], qr_ancilla[i - 1], q_compare)
 
@@ -215,14 +223,15 @@ class IntegerComparator(BlueprintCircuit):
                     self.x(q_compare)
 
                 # uncompute ancillas state
-                for i in reversed(range(self.num_state_qubits-1)):
+                for i in reversed(range(self.num_state_qubits - 1)):
                     if i == 0:
                         if twos[i] == 1:
                             self.cx(qr_state[i], qr_ancilla[i])
                     else:
                         if twos[i] == 1:
-                            self.compose(OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]],
-                                         inplace=True)
+                            self.compose(
+                                OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]], inplace=True
+                            )
                         else:
                             self.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
             else:

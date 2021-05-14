@@ -19,8 +19,10 @@ import os
 
 from qiskit.providers.models import BackendProperties, QasmBackendConfiguration
 from qiskit.test.mock.fake_backend import FakeBackend, FakeLegacyBackend
-from qiskit.test.mock.utils.json_decoder import (decode_backend_configuration,
-                                                 decode_backend_properties)
+from qiskit.test.mock.utils.json_decoder import (
+    decode_backend_configuration,
+    decode_backend_properties,
+)
 from qiskit.exceptions import QiskitError
 
 

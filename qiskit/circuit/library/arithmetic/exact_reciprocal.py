@@ -25,7 +25,7 @@ class ExactReciprocal(QuantumCircuit):
         |x\rangle |0\rangle \mapsto \cos(1/x)|x\rangle|0\rangle + \sin(1/x)|x\rangle |1\rangle
     """
 
-    def __init__(self, num_state_qubits: int, scaling: float, name: str = '1/x') -> None:
+    def __init__(self, num_state_qubits: int, scaling: float, name: str = "1/x") -> None:
         r"""
         Args:
             num_state_qubits: The number of qubits representing the value to invert.

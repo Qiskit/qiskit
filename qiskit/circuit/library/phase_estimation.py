@@ -48,11 +48,13 @@ class PhaseEstimation(QuantumCircuit):
 
     """
 
-    def __init__(self,
-                 num_evaluation_qubits: int,
-                 unitary: QuantumCircuit,
-                 iqft: Optional[QuantumCircuit] = None,
-                 name: str = 'QPE') -> None:
+    def __init__(
+        self,
+        num_evaluation_qubits: int,
+        unitary: QuantumCircuit,
+        iqft: Optional[QuantumCircuit] = None,
+        name: str = "QPE",
+    ) -> None:
         """
         Args:
             num_evaluation_qubits: The number of evaluation qubits.

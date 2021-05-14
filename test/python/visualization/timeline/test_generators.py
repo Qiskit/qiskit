@@ -30,16 +30,16 @@ class TestGates(QiskitTestCase):
         self.qubit = list(qiskit.QuantumRegister(1))[0]
 
         self.u1 = types.ScheduledGate(
-            t0=100, operand=library.U1Gate(0),
-            duration=0, bits=[self.qubit], bit_position=0)
+            t0=100, operand=library.U1Gate(0), duration=0, bits=[self.qubit], bit_position=0
+        )
 
         self.u3 = types.ScheduledGate(
-            t0=100, operand=library.U3Gate(0, 0, 0),
-            duration=20, bits=[self.qubit], bit_position=0)
+            t0=100, operand=library.U3Gate(0, 0, 0), duration=20, bits=[self.qubit], bit_position=0
+        )
 
         self.delay = types.ScheduledGate(
-            t0=100, operand=Delay(20),
-            duration=20, bits=[self.qubit], bit_position=0)
+            t0=100, operand=Delay(20), duration=20, bits=[self.qubit], bit_position=0
+        )
 
         style = stylesheet.QiskitTimelineStyle()
         self.formatter = style.formatter
@@ -50,25 +50,27 @@ class TestGates(QiskitTestCase):
 
         self.assertEqual(drawing_obj.data_type, str(types.BoxType.SCHED_GATE.value))
         self.assertListEqual(list(drawing_obj.xvals), [100, 120])
-        self.assertListEqual(list(drawing_obj.yvals), [-0.5 * self.formatter['box_height.gate'],
-                                                       0.5 * self.formatter['box_height.gate']])
+        self.assertListEqual(
+            list(drawing_obj.yvals),
+            [-0.5 * self.formatter["box_height.gate"], 0.5 * self.formatter["box_height.gate"]],
+        )
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         ref_meta = {
-            'name': 'u3',
-            'label': 'n/a',
-            'bits': str(self.qubit.register.name),
-            't0': 100,
-            'duration': 20,
-            'unitary': '[[1.+0.j 0.-0.j]\n [0.+0.j 1.+0.j]]',
-            'parameters': '0, 0, 0'
+            "name": "u3",
+            "label": "n/a",
+            "bits": str(self.qubit.register.name),
+            "t0": 100,
+            "duration": 20,
+            "unitary": "[[1.+0.j 0.-0.j]\n [0.+0.j 1.+0.j]]",
+            "parameters": "0, 0, 0",
         }
         self.assertDictEqual(ref_meta, drawing_obj.meta)
 
         ref_styles = {
-            'zorder': self.formatter['layer.gate'],
-            'facecolor': self.formatter['color.gates']['u3'],
-            'alpha': self.formatter['alpha.gate'],
-            'linewidth': self.formatter['line_width.gate']
+            "zorder": self.formatter["layer.gate"],
+            "facecolor": self.formatter["color.gates"]["u3"],
+            "alpha": self.formatter["alpha.gate"],
+            "linewidth": self.formatter["line_width.gate"],
         }
         self.assertDictEqual(ref_styles, drawing_obj.styles)
 
@@ -80,15 +82,15 @@ class TestGates(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.xvals), [100])
         self.assertListEqual(list(drawing_obj.yvals), [0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
-        self.assertEqual(drawing_obj.text, self.formatter['unicode_symbol.frame_change'])
-        self.assertEqual(drawing_obj.latex, self.formatter['latex_symbol.frame_change'])
+        self.assertEqual(drawing_obj.text, self.formatter["unicode_symbol.frame_change"])
+        self.assertEqual(drawing_obj.latex, self.formatter["latex_symbol.frame_change"])
 
         ref_styles = {
-            'zorder': self.formatter['layer.frame_change'],
-            'color': self.formatter['color.gates']['u1'],
-            'size': self.formatter['text_size.frame_change'],
-            'va': 'center',
-            'ha': 'center'
+            "zorder": self.formatter["layer.frame_change"],
+            "color": self.formatter["color.gates"]["u1"],
+            "size": self.formatter["text_size.frame_change"],
+            "va": "center",
+            "ha": "center",
         }
         self.assertDictEqual(ref_styles, drawing_obj.styles)
 
@@ -103,20 +105,21 @@ class TestGates(QiskitTestCase):
         drawing_obj = generators.gen_full_gate_name(self.u3, self.formatter)[0]
 
         self.assertEqual(drawing_obj.data_type, str(types.LabelType.GATE_NAME.value))
-        self.assertListEqual(list(drawing_obj.xvals), [110.])
-        self.assertListEqual(list(drawing_obj.yvals), [0.])
+        self.assertListEqual(list(drawing_obj.xvals), [110.0])
+        self.assertListEqual(list(drawing_obj.yvals), [0.0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
-        self.assertEqual(drawing_obj.text, 'u3(0.00, 0.00, 0.00)[20]')
-        ref_latex = '{name}(0.00, 0.00, 0.00)[20]'.format(
-            name=self.formatter['latex_symbol.gates']['u3'])
+        self.assertEqual(drawing_obj.text, "u3(0.00, 0.00, 0.00)[20]")
+        ref_latex = "{name}(0.00, 0.00, 0.00)[20]".format(
+            name=self.formatter["latex_symbol.gates"]["u3"]
+        )
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
-            'zorder': self.formatter['layer.gate_name'],
-            'color': self.formatter['color.gate_name'],
-            'size': self.formatter['text_size.gate_name'],
-            'va': 'center',
-            'ha': 'center'
+            "zorder": self.formatter["layer.gate_name"],
+            "color": self.formatter["color.gate_name"],
+            "size": self.formatter["text_size.gate_name"],
+            "va": "center",
+            "ha": "center",
         }
         self.assertDictEqual(ref_styles, drawing_obj.styles)
 
@@ -125,20 +128,19 @@ class TestGates(QiskitTestCase):
         drawing_obj = generators.gen_full_gate_name(self.u1, self.formatter)[0]
 
         self.assertEqual(drawing_obj.data_type, str(types.LabelType.GATE_NAME.value))
-        self.assertListEqual(list(drawing_obj.xvals), [100.])
-        self.assertListEqual(list(drawing_obj.yvals),
-                             [self.formatter['label_offset.frame_change']])
+        self.assertListEqual(list(drawing_obj.xvals), [100.0])
+        self.assertListEqual(list(drawing_obj.yvals), [self.formatter["label_offset.frame_change"]])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
-        self.assertEqual(drawing_obj.text, 'u1(0.00)')
-        ref_latex = '{name}(0.00)'.format(name=self.formatter['latex_symbol.gates']['u1'])
+        self.assertEqual(drawing_obj.text, "u1(0.00)")
+        ref_latex = "{name}(0.00)".format(name=self.formatter["latex_symbol.gates"]["u1"])
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
-            'zorder': self.formatter['layer.gate_name'],
-            'color': self.formatter['color.gate_name'],
-            'size': self.formatter['text_size.gate_name'],
-            'va': 'bottom',
-            'ha': 'center'
+            "zorder": self.formatter["layer.gate_name"],
+            "color": self.formatter["color.gate_name"],
+            "size": self.formatter["text_size.gate_name"],
+            "va": "bottom",
+            "ha": "center",
         }
         self.assertDictEqual(ref_styles, drawing_obj.styles)
 
@@ -153,19 +155,19 @@ class TestGates(QiskitTestCase):
         drawing_obj = generators.gen_short_gate_name(self.u3, self.formatter)[0]
 
         self.assertEqual(drawing_obj.data_type, str(types.LabelType.GATE_NAME.value))
-        self.assertListEqual(list(drawing_obj.xvals), [110.])
-        self.assertListEqual(list(drawing_obj.yvals), [0.])
+        self.assertListEqual(list(drawing_obj.xvals), [110.0])
+        self.assertListEqual(list(drawing_obj.yvals), [0.0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
-        self.assertEqual(drawing_obj.text, 'u3')
-        ref_latex = '{name}'.format(name=self.formatter['latex_symbol.gates']['u3'])
+        self.assertEqual(drawing_obj.text, "u3")
+        ref_latex = "{name}".format(name=self.formatter["latex_symbol.gates"]["u3"])
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
-            'zorder': self.formatter['layer.gate_name'],
-            'color': self.formatter['color.gate_name'],
-            'size': self.formatter['text_size.gate_name'],
-            'va': 'center',
-            'ha': 'center'
+            "zorder": self.formatter["layer.gate_name"],
+            "color": self.formatter["color.gate_name"],
+            "size": self.formatter["text_size.gate_name"],
+            "va": "center",
+            "ha": "center",
         }
         self.assertDictEqual(ref_styles, drawing_obj.styles)
 
@@ -174,20 +176,19 @@ class TestGates(QiskitTestCase):
         drawing_obj = generators.gen_short_gate_name(self.u1, self.formatter)[0]
 
         self.assertEqual(drawing_obj.data_type, str(types.LabelType.GATE_NAME.value))
-        self.assertListEqual(list(drawing_obj.xvals), [100.])
-        self.assertListEqual(list(drawing_obj.yvals),
-                             [self.formatter['label_offset.frame_change']])
+        self.assertListEqual(list(drawing_obj.xvals), [100.0])
+        self.assertListEqual(list(drawing_obj.yvals), [self.formatter["label_offset.frame_change"]])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
-        self.assertEqual(drawing_obj.text, 'u1')
-        ref_latex = '{name}'.format(name=self.formatter['latex_symbol.gates']['u1'])
+        self.assertEqual(drawing_obj.text, "u1")
+        ref_latex = "{name}".format(name=self.formatter["latex_symbol.gates"]["u1"])
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
-            'zorder': self.formatter['layer.gate_name'],
-            'color': self.formatter['color.gate_name'],
-            'size': self.formatter['text_size.gate_name'],
-            'va': 'bottom',
-            'ha': 'center'
+            "zorder": self.formatter["layer.gate_name"],
+            "color": self.formatter["color.gate_name"],
+            "size": self.formatter["text_size.gate_name"],
+            "va": "bottom",
+            "ha": "center",
         }
         self.assertDictEqual(ref_styles, drawing_obj.styles)
 
@@ -215,18 +216,23 @@ class TestTimeslot(QiskitTestCase):
         drawing_obj = generators.gen_timeslot(self.qubit, self.formatter)[0]
 
         self.assertEqual(drawing_obj.data_type, str(types.BoxType.TIMELINE.value))
-        self.assertListEqual(list(drawing_obj.xvals), [types.AbstractCoordinate.LEFT,
-                                                       types.AbstractCoordinate.RIGHT])
-        self.assertListEqual(list(drawing_obj.yvals),
-                             [-0.5 * self.formatter['box_height.timeslot'],
-                              0.5 * self.formatter['box_height.timeslot']])
+        self.assertListEqual(
+            list(drawing_obj.xvals), [types.AbstractCoordinate.LEFT, types.AbstractCoordinate.RIGHT]
+        )
+        self.assertListEqual(
+            list(drawing_obj.yvals),
+            [
+                -0.5 * self.formatter["box_height.timeslot"],
+                0.5 * self.formatter["box_height.timeslot"],
+            ],
+        )
         self.assertListEqual(drawing_obj.bits, [self.qubit])
 
         ref_styles = {
-            'zorder': self.formatter['layer.timeslot'],
-            'alpha': self.formatter['alpha.timeslot'],
-            'linewidth': self.formatter['line_width.timeslot'],
-            'facecolor': self.formatter['color.timeslot']
+            "zorder": self.formatter["layer.timeslot"],
+            "alpha": self.formatter["alpha.timeslot"],
+            "linewidth": self.formatter["line_width.timeslot"],
+            "facecolor": self.formatter["color.timeslot"],
         }
         self.assertDictEqual(ref_styles, drawing_obj.styles)
 
@@ -239,16 +245,17 @@ class TestTimeslot(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.yvals), [0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, str(self.qubit.register.name))
-        ref_latex = r'{{\rm {register}}}_{{{index}}}'.format(register=self.qubit.register.prefix,
-                                                             index=self.qubit.index)
+        ref_latex = r"{{\rm {register}}}_{{{index}}}".format(
+            register=self.qubit.register.prefix, index=self.qubit.index
+        )
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
-            'zorder': self.formatter['layer.bit_name'],
-            'color': self.formatter['color.bit_name'],
-            'size': self.formatter['text_size.bit_name'],
-            'va': 'center',
-            'ha': 'right'
+            "zorder": self.formatter["layer.bit_name"],
+            "color": self.formatter["color.bit_name"],
+            "size": self.formatter["text_size.bit_name"],
+            "va": "center",
+            "ha": "right",
         }
         self.assertDictEqual(ref_styles, drawing_obj.styles)
 
@@ -276,11 +283,11 @@ class TestBarrier(QiskitTestCase):
         self.assertListEqual(drawing_obj.bits, [self.qubits[1]])
 
         ref_styles = {
-            'alpha': self.formatter['alpha.barrier'],
-            'zorder': self.formatter['layer.barrier'],
-            'linewidth': self.formatter['line_width.barrier'],
-            'linestyle': self.formatter['line_style.barrier'],
-            'color': self.formatter['color.barrier']
+            "alpha": self.formatter["alpha.barrier"],
+            "zorder": self.formatter["layer.barrier"],
+            "linewidth": self.formatter["line_width.barrier"],
+            "linestyle": self.formatter["line_style.barrier"],
+            "color": self.formatter["color.barrier"],
         }
         self.assertDictEqual(ref_styles, drawing_obj.styles)
 
@@ -293,7 +300,7 @@ class TestGateLink(QiskitTestCase):
         super().setUp()
 
         self.qubits = list(qiskit.QuantumRegister(2))
-        self.gate_link = types.GateLink(t0=100, opname='cx', bits=self.qubits)
+        self.gate_link = types.GateLink(t0=100, opname="cx", bits=self.qubits)
 
         style = stylesheet.QiskitTimelineStyle()
         self.formatter = style.formatter
@@ -308,10 +315,10 @@ class TestGateLink(QiskitTestCase):
         self.assertListEqual(drawing_obj.bits, self.qubits)
 
         ref_styles = {
-            'alpha': self.formatter['alpha.bit_link'],
-            'zorder': self.formatter['layer.bit_link'],
-            'linewidth': self.formatter['line_width.bit_link'],
-            'linestyle': self.formatter['line_style.bit_link'],
-            'color': self.formatter['color.gates']['cx']
+            "alpha": self.formatter["alpha.bit_link"],
+            "zorder": self.formatter["layer.bit_link"],
+            "linewidth": self.formatter["line_width.bit_link"],
+            "linestyle": self.formatter["line_style.bit_link"],
+            "color": self.formatter["color.gates"]["cx"],
         }
         self.assertDictEqual(ref_styles, drawing_obj.styles)

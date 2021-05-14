@@ -52,8 +52,12 @@ class AND(QuantumCircuit):
 
     """
 
-    def __init__(self, num_variable_qubits: int, flags: Optional[List[int]] = None,
-                 mcx_mode: str = 'noancilla') -> None:
+    def __init__(
+        self,
+        num_variable_qubits: int,
+        flags: Optional[List[int]] = None,
+        mcx_mode: str = "noancilla",
+    ) -> None:
         """Create a new logical AND circuit.
 
         Args:
@@ -66,8 +70,8 @@ class AND(QuantumCircuit):
         self.flags = flags
 
         # add registers
-        qr_variable = QuantumRegister(num_variable_qubits, name='variable')
-        qr_result = QuantumRegister(1, name='result')
+        qr_variable = QuantumRegister(num_variable_qubits, name="variable")
+        qr_result = QuantumRegister(1, name="result")
 
         inner = QuantumCircuit(qr_variable, qr_result, name='and')
 
