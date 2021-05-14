@@ -65,13 +65,10 @@ class AmplificationProblem:
         self._objective_qubits = objective_qubits
         if is_good_state is not None:
             self._is_good_state = is_good_state
-        elif hasattr(oracle, 'evaluate_bitstring'):
+        elif hasattr(oracle, "evaluate_bitstring"):
             self._is_good_state = oracle.evaluate_bitstring
         else:
-            raise TypeError(
-                "A is_good_state function is required with the "
-                "provided oracle"
-            )
+            raise TypeError("A is_good_state function is required with the " "provided oracle")
 
     @property
     def oracle(self) -> Union[QuantumCircuit, Statevector]:
