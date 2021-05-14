@@ -135,8 +135,13 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return self._bounds
 
     @property
-    def operators(self) -> List[Union["OperatorBase", QuantumCircuit]]:
-        """The operators that are evolved in this circuit."""
+    def operators(self):
+        """The operators that are evolved in this circuit.
+
+        Returns:
+             List[Union[OperatorBase, QuantumCircuit]]: The operators to be evolved (and circuits)
+                in this ansatz.
+        """
         return [self.cost_operator, self.mixer_operator]
 
     @property
