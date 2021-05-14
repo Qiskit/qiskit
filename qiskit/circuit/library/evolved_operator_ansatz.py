@@ -12,7 +12,7 @@
 
 """The evolved operator ansatz."""
 
-from typing import List, Union, Optional
+from typing import Optional
 
 import numpy as np
 
@@ -27,9 +27,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
 
     def __init__(
         self,
-        operators: Optional[
-            Union["OperatorBase", QuantumCircuit, List[Union["OperatorBase", QuantumCircuit]]]
-        ] = None,
+        operators=None,
         reps: int = 1,
         evolution: Optional["EvolutionBase"] = None,
         insert_barriers: bool = False,
@@ -38,7 +36,10 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
     ):
         """
         Args:
-            operators: The operators to evolve.
+            operators (Optional[Union[OperatorBase, QuantumCircuit,
+                List[Union[OperatorBase, QuantumCircuit]]]]): The operators to evolve. If a circuit
+                is passed, we assume it implements an already evolved operator and thus the circuit
+                is not evolved again.
             reps: The number of times to repeat the evolved operators.
             evolution: An opflow converter object to construct the evolution.
                 Defaults to Trotterization.
@@ -109,13 +110,23 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         self._initial_state = initial_state
 
     @property
-    def operators(self) -> List["OperatorBase"]:
-        """The operators that are evolved in this circuit."""
+    def operators(self):
+        """The operators that are evolved in this circuit.
+
+        Returns:
+            list: The operators to be evolved (and circuits) contained in this ansatz.
+        """
         return self._operators
 
     @operators.setter
-    def operators(self, operators: Union["OperatorBase", List["OperatorBase"]]) -> None:
-        """Set the operators to be evolved."""
+    def operators(self, operators=None) -> None:
+        """Set the operators to be evolved.
+
+        operators (Optional[Union[OperatorBase, QuantumCircuit,
+            List[Union[OperatorBase, QuantumCircuit]]]]): The operators to evolve. If a circuit
+            is passed, we assume it implements an already evolved operator and thus the circuit
+            is not evolved again.
+        """
         operators = _validate_operators(operators)
         self._invalidate()
         self._operators = operators
