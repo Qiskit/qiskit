@@ -21,4 +21,13 @@ Qasm (:mod:`qiskit.qasm`)
 
 """
 
-from ..qasm2 import HAS_PYGMENTS, Qasm, QasmError, load, pi, OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
+from ..qasm2 import (
+    HAS_PYGMENTS,
+    Qasm,
+    QasmError,
+    load,
+    pi,
+    OpenQASMLexer,
+    QasmHTMLStyle,
+    QasmTerminalStyle,
+)
