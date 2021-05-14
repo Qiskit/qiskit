@@ -10,13 +10,13 @@ ENV USER ${NB_USER}
 ENV HOME /home/${NB_USER}
 COPY . ${HOME}
 
-RUN adduser --disabled-password \
-    --gecos "Default user" \
-    --uid ${NB_UID} \
-    ${NB_USER} && \
-    apt-get update && \
-    apt-get install -f -y --no-install-recommends texlive-latex-base && \
-    apt-get install -f -y texlive-pictures && \
-    apt-get install -f -y vim
-WORKDIR ${HOME}
-USER ${USER}
+# RUN adduser --disabled-password \
+#     --gecos "Default user" \
+#     --uid ${NB_UID} \
+#     ${NB_USER} && \
+#     apt-get update && \
+#     apt-get install -f -y --no-install-recommends texlive-latex-base && \
+#     apt-get install -f -y texlive-pictures && \
+#     apt-get install -f -y vim
+# WORKDIR ${HOME}
+# USER ${USER}
