@@ -1,4 +1,7 @@
-FROM python:3.7-slim
+FROM rocker/binder:3.6.0
+
+USER root
+ENV PATH /opt/conda/bin:$PATH
 # install the notebook package
 RUN pip install --no-cache --upgrade pip && \
     pip install --no-cache notebook && \
@@ -14,9 +17,9 @@ ARG NB_UID
 USER root
 COPY . ${HOME}
 RUN chown -R ${NB_USER} ${HOME}
-# RUN chown -R ${NB_USER} /opt/conda
+RUN chown -R ${NB_USER} /opt/conda
 USER ${NB_USER}
-ENV PATH .:$PATH
+ENV PATH /opt/conda/bin:$PATH
 
 RUN adduser --disabled-password \
     --gecos "Default user" \
@@ -26,5 +29,3 @@ RUN adduser --disabled-password \
     apt-get install -f -y --no-install-recommends texlive-latex-base && \
     apt-get install -f -y texlive-pictures && \
     apt-get install -f -y vim
-WORKDIR ${HOME}
-USER ${USER}
