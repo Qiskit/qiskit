@@ -1,1 +1,1 @@
-texlive-base
+texlive-pictures
