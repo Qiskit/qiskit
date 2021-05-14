@@ -96,6 +96,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
         )
 
     def test_implicit_phase_oracle_is_good_state(self):
+        """Test implicit default for is_good_state with PhaseOracle."""
         grover = Grover(iterations=2, quantum_instance=self.statevector)
         oracle = PhaseOracle("x | x")
         problem = AmplificationProblem(oracle)
