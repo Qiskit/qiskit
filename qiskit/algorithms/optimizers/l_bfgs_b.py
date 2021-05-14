@@ -12,7 +12,9 @@
 
 """Limited-memory BFGS Bound optimizer."""
 
+import numpy as np
 from scipy import optimize as sciopt
+
 from .optimizer import Optimizer, OptimizerSupportLevel
 
 
@@ -102,12 +104,18 @@ class L_BFGS_B(Optimizer):  # pylint: disable=invalid-name
                 Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped)
             )
 
+        def wrapped_gradient(x):
+            gradient = gradient_function(x)
+            if isinstance(gradient, np.ndarray):
+                return gradient.tolist()
+            return gradient
+
         approx_grad = bool(gradient_function is None)
         sol, opt, info = sciopt.fmin_l_bfgs_b(
             objective_function,
             initial_point,
             bounds=variable_bounds,
-            fprime=gradient_function,
+            fprime=wrapped_gradient,
             approx_grad=approx_grad,
             **self._options,
         )

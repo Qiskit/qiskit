@@ -532,6 +532,22 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    def test_inst_with_cbits(self):
+        """Test custom instructions with classical bits"""
+
+        filename = self._get_resource_path("test_latex_inst_with_cbits.tex")
+        qinst = QuantumRegister(2, "q")
+        cinst = ClassicalRegister(2, "c")
+        inst = QuantumCircuit(qinst, cinst, name="instruction").to_instruction()
+
+        qr = QuantumRegister(4, "qr")
+        cr = ClassicalRegister(4, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(inst, [qr[1], qr[2]], [cr[2], cr[1]])
+        circuit_drawer(circuit, filename=filename, output="latex_source")
+
+        self.assertEqualToReference(filename)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
