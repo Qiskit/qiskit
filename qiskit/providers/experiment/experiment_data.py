@@ -24,6 +24,7 @@ from collections import OrderedDict, defaultdict
 from functools import wraps
 import traceback
 import contextlib
+import threading
 
 from qiskit.version import __qiskit_version__
 from qiskit.providers import Job, BaseJob, Backend, BaseBackend, Provider
@@ -135,7 +136,15 @@ class ExperimentDataV1(ExperimentData):
         self._data = []
         figure_names = figure_names or []
         self._figures = OrderedDict.fromkeys(figure_names)
-        self._analysis_results = []
+        self._analysis_results = OrderedDict()
+        # TODO make analysis result an ordered dict
+
+        self._data_lock = threading.Lock()
+        self._analysis_results_lock = threading.Lock()
+        self._figures_lock = threading.Lock()
+
+        self._deleted_figures = []
+        self._deleted_analysis_results = []
 
         # The ``add_data()`` method may spawn a new thread to wait for a job to
         # finish and invoke a postprocessing function. This postprocessing is
@@ -311,9 +320,8 @@ class ExperimentDataV1(ExperimentData):
             figure: Union[str, bytes],
             figure_name: Optional[str] = None,
             overwrite: bool = False,
-            save: bool = None,
             service: Optional['ExperimentServiceV1'] = None
-    ) -> Tuple[str, int]:
+    ) -> str:
         """Add the experiment figure.
 
         Args:
@@ -322,14 +330,11 @@ class ExperimentDataV1(ExperimentData):
                 given, or a generated name.
             overwrite: Whether to overwrite the figure if one already exists with
                 the same name.
-            save: Whether to save the figure in the database. If ``None``, the ``auto_save``
-                value is used.
-            service: Experiment service to be used to save the figure. If ``None``,
+            service: Experiment service to be used to update the database. If ``None``,
                 the default service is used.
 
         Returns:
-            A tuple of the name and size of the saved figure. Returned size
-            is 0 if there is no experiment service to use.
+            Figure name.
 
         Raises:
             ExperimentEntryExists: If the figure with the same name already exists,
@@ -341,27 +346,66 @@ class ExperimentDataV1(ExperimentData):
             else:
                 figure_name = f"figure_{self.experiment_id}_{len(self.figure_names)}"
 
-        existing_figure = figure_name in self._figure_names
-        if existing_figure and not overwrite:
-            raise ExperimentEntryExists(f"A figure with the name {figure_name} for this experiment "
-                                        f"already exists. Specify overwrite=True if you "
-                                        f"want to overwrite it.")
+        with self._figures_lock:
+            existing_figure = figure_name in self._figures
+            if existing_figure and not overwrite:
+                raise ExperimentEntryExists(
+                    f"A figure with the name {figure_name} for this experiment "
+                    f"already exists. Specify overwrite=True if you "
+                    f"want to overwrite it.")
+            if isinstance(figure, str):
+                with open(figure, 'rb') as file:
+                    figure = file.read()
+            self._figures[figure_name] = figure
 
-        out = [figure_name, 0]
         service = service or self._service
-        to_save = save or self.auto_save
-        if to_save and service:
+        if self.auto_save and service:
             data = {'experiment_id': self.experiment_id,
                     'figure': figure, 'figure_name': figure_name}
-            _, out = save_data(is_new=(not existing_figure),
-                               new_func=service.create_figure,
-                               update_func=service.update_figure,
-                               new_data={},
-                               update_data=data)
+            save_data(is_new=(not existing_figure),
+                      new_func=service.create_figure,
+                      update_func=service.update_figure,
+                      new_data={},
+                      update_data=data)
 
-        self._figures_queue.put_nowait((figure_name, figure))
-        self._figure_names.append(figure_name)
-        return out
+        return figure_name
+
+    @auto_save
+    def delete_figure(
+            self,
+            figure_key: Union[str, int],
+            service: Optional['ExperimentServiceV1'] = None
+    ) -> str:
+        """Add the experiment figure.
+
+        Args:
+            figure_key: Name or index of the figure.
+            service: Experiment service to be used to update the database. If ``None``,
+                the default service is used.
+
+        Returns:
+            Figure name.
+        """
+        with self._figures_lock:
+            if isinstance(figure_key, int):
+                figure_key = list(self._figures.keys())[figure_key]
+            elif figure_key not in self._figures:
+                raise ExperimentEntryNotFound(f"Figure {figure_key} not found.")
+
+            del self._figures[figure_key]
+            self._deleted_figures.append(figure_key)
+
+        service = service or self._service
+        if service and self.auto_save:
+            try:
+                self.service.delete_figure(experiment_id=self.experiment_id,
+                                           figure_name=figure_key)
+            except ExperimentEntryNotFound:
+                pass
+            with self._figures_lock:
+                self._deleted_figures.remove(figure_key)
+
+        return figure_key
 
     def figure(
             self,
@@ -380,28 +424,26 @@ class ExperimentDataV1(ExperimentData):
             content of the figure in bytes.
 
         Raises:
-            ExperimentDataNotFound: If the figure cannot be found.
+            ExperimentEntryNotFound: If the figure cannot be found.
         """
-        self._collect_from_queues()
+        with self._figures_lock:
+            if isinstance(figure_key, int):
+                figure_key = list(self._figures.keys())[figure_key]
 
-        # Convert index to name.
-        if isinstance(figure_key, int):
-            figure_key = list(self._figures.keys())[figure_key]
+            figure_data = self._figures.get(figure_key, None)
+            if figure_data is None and self.service:
+                figure_data = self.service.figure(experiment_id=self.experiment_id,
+                                                  figure_name=figure_key)
+                self._figures[figure_key] = figure_data
 
-        figure_data = self._figures.get(figure_key, None)
-        if figure_data is not None:
-            if isinstance(figure_data, str):
-                with open(figure_data, 'rb') as file:
-                    figure_data = file.read()
-            if file_name:
-                with open(file_name, 'wb') as output:
-                    num_bytes = output.write(figure_data)
-                    return num_bytes
-            return figure_data
-        elif self.service:
-            return self.service.figure(experiment_id=self.experiment_id,
-                                       figure_name=figure_key, file_name=file_name)
-        raise ExperimentEntryNotFound(f"Figure {figure_key} not found.")
+        if figure_data is None:
+            raise ExperimentEntryNotFound(f"Figure {figure_key} not found.")
+
+        if file_name:
+            with open(file_name, 'wb') as output:
+                num_bytes = output.write(figure_data)
+                return num_bytes
+        return figure_data
 
     @auto_save
     def add_analysis_result(
@@ -413,12 +455,54 @@ class ExperimentDataV1(ExperimentData):
 
         Args:
             result: Analysis result to be saved.
-            service: Experiment service to be used to save the data.
-                If ``None``, the default service is used.
+            service: Experiment service to be used to update the database. If ``None``,
+                the default service is used.
         """
-        self._analysis_results_queue.put_nowait(result)
-        if self.auto_save:
+        with self._analysis_results_lock:
+            self._analysis_results[result.result_id] = result
+
+        service = service or self.service
+        if self.auto_save and service:
             result.save(service=service)
+
+    @auto_save
+    def delete_analysis_result(
+            self,
+            result_key: Union[int, str],
+            service: 'ExperimentServiceV1' = None
+    ) -> str:
+        """Delete the analysis result.
+
+        Args:
+            result_key: ID or index of the analysis result to be delete.
+            service: Experiment service to be used to update the database. If ``None``,
+                the default service is used.
+
+        Returns:
+            Analysis result ID.
+
+        Raises:
+            ExperimentEntryNotFound: If the figure cannot be found.
+        """
+        with self._analysis_results_lock:
+            if isinstance(result_key, int):
+                result_key = list(self._analysis_results.keys())[result_key]
+            elif result_key not in self._analysis_results:
+                raise ExperimentEntryNotFound(f"Analysis result {result_key} not found.")
+
+            del self._analysis_results[result_key]
+            self._deleted_analysis_results.append(result_key)
+
+        service = service or self._service
+        if service and self.auto_save:
+            try:
+                self.service.delete_analysis_result(analysis_result_id=result_key)
+            except ExperimentEntryNotFound:
+                pass
+            with self._analysis_results_lock:
+                self._deleted_analysis_results.remove(result_key)
+
+        return result_key
 
     def analysis_result(
             self,
@@ -441,21 +525,20 @@ class ExperimentDataV1(ExperimentData):
         Returns:
             Analysis results for this experiment.
         """
-        self._collect_from_queues()
+        with self._analysis_results_lock:
+            if self.service and (not self._analysis_results or refresh):
+                self._analysis_results = self.service.analysis_results(
+                    experiment_id=self.experiment_id, limit=None)
 
-        if self.service and (not self._analysis_results or refresh):
-            self._analysis_results = self.service.analysis_results(
-                experiment_id=self.experiment_id, limit=None)
+            if index is None:
+                return self._analysis_results[:]
+            if isinstance(index, (int, slice)):
+                return (self._analysis_results.values())[index]
+            if isinstance(index, str):
+                if index not in self._analysis_results:
+                    raise QiskitError(f"Analysis result {index} not found.")
+                return self._analysis_results[index]
 
-        if index is None:
-            return self._analysis_results
-        if isinstance(index, (int, slice)):
-            return self._analysis_results[index]
-        if isinstance(index, str):
-            for res in self._analysis_results:
-                if res.result_id == index:
-                    return res
-            raise QiskitError(f"Analysis result {index} not found.")
         raise QiskitError(f"Invalid index type {type(index)}.")
 
     def save(
@@ -464,7 +547,13 @@ class ExperimentDataV1(ExperimentData):
     ) -> None:
         """Save this experiment in the database.
 
-        Note that this method does not save analysis results nor figures.
+        Note:
+            Not all experiment properties are saved.
+            See :meth:`qiskit.providers.experiment.ExperimentServiceV1.create_experiment`
+            for fields that are saved.
+
+        Note:
+            Note that this method does not save analysis results nor figures.
 
         Args:
             service: Experiment service to be used to save the data.
@@ -482,7 +571,6 @@ class ExperimentDataV1(ExperimentData):
             LOG.warning("Experiment cannot be saved because backend is missing.")
             return
 
-        self._collect_from_queues()
         metadata = json.loads(self._serialize_metadata())
         metadata.update(self._source)
 
@@ -498,8 +586,49 @@ class ExperimentDataV1(ExperimentData):
             update_func=service.update_experiment,
             new_data=new_data, update_data=update_data)
 
+    def save_all(
+            self,
+            service: Optional['ExperimentServiceV1'] = None
+    ) -> None:
+        """Save this experiment and its analysis results and figures in the database.
+
+        Note:
+            Depending on the amount of data, this operation could take a while.
+
+        Args:
+            service: Experiment service to be used to save the data.
+                If ``None``, the provider used to submit jobs will be used.
+
+        Raises:
+            ExperimentError: If the experiment contains invalid data.
+        """
+        # TODO - track changes
+        service = service or self._service
+        if not service:
+            LOG.warning("Experiment cannot be saved because no experiment service is available.")
+            return
+
+        self.save(service=service)
+        with self._analysis_results_lock:
+            for result in self._analysis_results:
+                result.save()
+
+        with self._figures_lock:
+            for name, figure in self._figures.items():
+                data = {'experiment_id': self.experiment_id,
+                        'figure': figure, 'figure_name': name}
+                save_data(is_new=True,
+                          new_func=service.create_figure,
+                          update_func=service.update_figure,
+                          new_data={},
+                          update_data=data)
+            for name in self._deleted_figures:
+                self.service.delete_figure(experiment_id=self.experiment_id,
+                                           figure_name=name)
+            self._deleted_figures = []
+
     def _serialize_metadata(self) -> str:
-        """Serialize experiment data into JSON string.
+        """Serialize experiment metadata into a JSON string.
 
         Returns:
             Serialized JSON string.
@@ -507,8 +636,8 @@ class ExperimentDataV1(ExperimentData):
         return json.dumps(self._metadata, cls=self._json_encoder)
 
     @abstractmethod
-    def deserialize_data(self, data: str) -> Any:
-        """Deserialize experiment from JSON string.
+    def deserialize_metadata(self, data: str) -> Any:
+        """Deserialize experiment metadata from a JSON string.
 
         Args:
             data: Data to be deserialized.
@@ -525,7 +654,7 @@ class ExperimentDataV1(ExperimentData):
                 try:
                     job.cancel()
                 except Exception as err:
-                    LOG.warning(f"Unable to cancel job {job.job_id()}: {err}")
+                    LOG.info(f"Unable to cancel job {job.job_id()}: {err}")
 
     def status(self) -> str:
         """Return the data processing status.

@@ -336,7 +336,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
             experiment_id: str,
             figure: Union[str, bytes],
             figure_name: str
-    ) -> Dict:
+    ) -> Tuple[str, int]:
         """Update an existing figure.
 
         Args:
@@ -345,7 +345,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
             figure_name: Name of the figure.
 
         Returns:
-            A dictionary with name and size of the uploaded figure.
+            A tuple of the name and size of the saved figure.
 
         Raises:
             ExperimentEntryNotFound: If the figure does not exist.
