@@ -21,7 +21,7 @@ from ddt import ddt, data
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms import Grover, AmplificationProblem
-from qiskit.circuit.library import GroverOperator
+from qiskit.circuit.library import GroverOperator, PhaseOracle
 from qiskit.quantum_info import Operator, Statevector
 
 
@@ -92,6 +92,13 @@ class TestGrover(QiskitAlgorithmsTestCase):
         self.qasm = QuantumInstance(
             BasicAer.get_backend("qasm_simulator"), seed_simulator=12, seed_transpiler=32
         )
+
+    def test_implicit_phase_oracle_is_good_state(self):
+        grover = Grover(iterations=2, quantum_instance=self.statevector)
+        oracle = PhaseOracle("x | x")
+        problem = AmplificationProblem(oracle)
+        result = grover.amplify(problem)
+        self.assertEqual(result.top_measurement, "0")
 
     def test_fixed_iterations(self):
         """Test the iterations argument"""
