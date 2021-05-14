@@ -331,19 +331,15 @@ class MatplotlibDrawer:
         # update figure size before doing any matplotlib drawing
         # for backward compatibility, need to scale by a default value equal to
         # self._fs * 3.01 / 72 / 0.65
-        base_fig_w = (xr - xl) * 0.83611111
-        base_fig_h = (yt - yb) * 0.83611111
+        base_fig_w = (xr - xl) * 0.8361111
+        base_fig_h = (yt - yb) * 0.8361111
         scale = self._scale
 
         # if user passes in an ax, this size takes priority over any other settings
         if self._user_ax:
+            # from stackoverflow #19306510, get the bbox size for the ax
             bbox = self._ax.get_window_extent().transformed(self._figure.dpi_scale_trans.inverted())
-            print(base_fig_w)
-            print(bbox.height, bbox.width)
-            adj_fig_w = self._figure.get_size_inches()[0]
-            scale = (bbox.width / base_fig_w)# / 0.8361111
-            #scale = 1.19
-            print('SCALE', scale)
+            scale = bbox.width / base_fig_w / 0.8361111
 
         # if scale not 1.0, use this scale factor 
         elif self._scale != 1.0:
