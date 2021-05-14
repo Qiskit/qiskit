@@ -432,7 +432,7 @@ def run_circuits(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         split_circuits = []
         count = 0
         while count < len(circuits):
-            some_circuits = circuits[count : count + max_circuits_per_job]
+            some_circuits = circuits[count: count + max_circuits_per_job]
             split_circuits.append(some_circuits)
             job, job_id = _safe_submit_circuits(
                 some_circuits,
