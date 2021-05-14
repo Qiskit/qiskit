@@ -66,7 +66,7 @@ class QNSPSA(SPSA):
 
             def loss(x):
                 bound = ansatz.bind_parameters(x)
-                return (StateFn(observable, is_measurement=True) @ StateFn(bound)).eval()
+                return np.real((StateFn(observable, is_measurement=True) @ StateFn(bound)).eval())
 
             fidelity = QNSPSA.get_fidelity(ansatz)
             qnspsa = QNSPSA(fidelity, maxiter=10)
