@@ -1,31 +1,22 @@
-FROM rocker/binder:3.6.0
-
-# add conda and other needed utilities based on https://hub.docker.com/r/continuumio/miniconda3/dockerfile and 
-# https://hub.docker.com/r/rocker/binder/dockerfile
-USER root
-ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
-ENV PATH /opt/conda/bin:$PATH
-
+FROM python:3.7-slim
+# install the notebook package
 RUN pip install --no-cache --upgrade pip && \
     pip install --no-cache notebook && \
     apt-get update
+# create user with a home directory
+ARG NB_USER
+ARG NB_UID
+ENV USER ${NB_USER}
+ENV HOME /home/${NB_USER}
+COPY . ${HOME}
 
-RUN apt-get update && \
-    apt-get install -y wget gzip bzip2 ca-certificates curl git && \
-    apt-get purge && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && \
+RUN adduser --disabled-password \
+    --gecos "Default user" \
+    --uid ${NB_UID} \
+    ${NB_USER} && \
+    apt-get update && \
     apt-get install -f -y --no-install-recommends texlive-latex-base && \
     apt-get install -f -y texlive-pictures && \
     apt-get install -f -y vim
-    
-# Copy repo into ${HOME}, make user own $HOME
-USER root
-COPY . ${HOME}
-RUN chown -R ${NB_USER} ${HOME}
-# RUN chown -R ${NB_USER} /opt/conda
-USER ${NB_USER}
-
-# ENV PATH /opt/conda/bin:$PATH
+WORKDIR ${HOME}
+USER ${USER}
