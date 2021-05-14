@@ -36,10 +36,10 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
     ):
         """
         Args:
-            operators (Optional[Union[OperatorBase, QuantumCircuit,
-                List[Union[OperatorBase, QuantumCircuit]]]]): The operators to evolve. If a circuit
-                is passed, we assume it implements an already evolved operator and thus the circuit
-                is not evolved again.
+            operators (Optional[Union[OperatorBase, QuantumCircuit, list]): The operators to evolve.
+                If a circuit is passed, we assume it implements an already evolved operator and thus
+                the circuit is not evolved again. Can be a single operator (circuit) or a list of
+                operators (and circuits).
             reps: The number of times to repeat the evolved operators.
             evolution (Optional[EvolutionBase]): An opflow converter object to construct the evolution.
                 Defaults to Trotterization.
@@ -130,10 +130,10 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
     def operators(self, operators=None) -> None:
         """Set the operators to be evolved.
 
-        operators (Optional[Union[OperatorBase, QuantumCircuit,
-            List[Union[OperatorBase, QuantumCircuit]]]]): The operators to evolve. If a circuit
-            is passed, we assume it implements an already evolved operator and thus the circuit
-            is not evolved again.
+        operators (Optional[Union[OperatorBase, QuantumCircuit, list]): The operators to evolve.
+            If a circuit is passed, we assume it implements an already evolved operator and thus
+            the circuit is not evolved again. Can be a single operator (circuit) or a list of
+            operators (and circuits).
         """
         operators = _validate_operators(operators)
         self._invalidate()
