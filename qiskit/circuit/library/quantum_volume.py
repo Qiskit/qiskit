@@ -84,8 +84,8 @@ class QuantumVolume(QuantumCircuit):
 
         # Parameters
         depth = depth or num_qubits  # how many layers of SU(4)
-        width = int(np.floor(num_qubits/2))  # how many SU(4)s fit in each layer
-        name = "quantum_volume_" + str([num_qubits, depth, seed]).replace(' ', '')
+        width = int(np.floor(num_qubits / 2))  # how many SU(4)s fit in each layer
+        name = "quantum_volume_" + str([num_qubits, depth, seed]).replace(" ", "")
 
         # Generator random unitary seeds in advance.
         # Note that this means we are constructing multiple new generator
@@ -111,7 +111,7 @@ class QuantumVolume(QuantumCircuit):
                     physical_qubits = int(perm[2 * w]), int(perm[2 * w + 1])
                     inner.compose(su4, [physical_qubits[0], physical_qubits[1]], inplace=True)
                 else:
-                    inner.compose(su4, [2*w, 2*w+1], inplace=True)
+                    inner.compose(su4, [2 * w, 2 * w + 1], inplace=True)
 
         super().__init__(*inner.qregs, name=inner.name)
         self.compose(inner.to_instruction(), qubits=self.qubits, inplace=True)

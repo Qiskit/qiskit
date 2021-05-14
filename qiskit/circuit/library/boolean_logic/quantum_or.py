@@ -70,9 +70,9 @@ class OR(QuantumCircuit):
         self.flags = flags
 
         # add registers
-        qr_variable = QuantumRegister(num_variable_qubits, name='variable')
-        qr_result = QuantumRegister(1, name='result')
-        inner = QuantumCircuit(qr_variable, qr_result, name='or')
+        qr_variable = QuantumRegister(num_variable_qubits, name="variable")
+        qr_result = QuantumRegister(1, name="result")
+        inner = QuantumCircuit(qr_variable, qr_result, name="or")
 
         # determine the control qubits: all that have a nonzero flag
         flags = flags or [1] * num_variable_qubits
@@ -84,7 +84,7 @@ class OR(QuantumCircuit):
         # determine the number of ancillas
         num_ancillas = MCXGate.get_num_ancilla_qubits(len(control_qubits), mode=mcx_mode)
         if num_ancillas > 0:
-            qr_ancilla = AncillaRegister(num_ancillas, 'ancilla')
+            qr_ancilla = AncillaRegister(num_ancillas, "ancilla")
             inner.add_register(qr_ancilla)
         else:
             qr_ancilla = []
@@ -96,5 +96,5 @@ class OR(QuantumCircuit):
         if len(flip_qubits) > 0:
             inner.x(flip_qubits)
 
-        super().__init__(*inner.qregs, name='or')
+        super().__init__(*inner.qregs, name="or")
         self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)

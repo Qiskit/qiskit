@@ -240,27 +240,35 @@ class GroverOperator(QuantumCircuit):
 
     def _build(self):
         num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
-        inner = QuantumCircuit(QuantumRegister(num_state_qubits, name='state'))
-        num_ancillas = numpy.max([self.oracle.num_ancillas,
-                                  self.zero_reflection.num_ancillas,
-                                  self.state_preparation.num_ancillas])
+        inner = QuantumCircuit(QuantumRegister(num_state_qubits, name="state"))
+        num_ancillas = numpy.max(
+            [
+                self.oracle.num_ancillas,
+                self.zero_reflection.num_ancillas,
+                self.state_preparation.num_ancillas,
+            ]
+        )
         if num_ancillas > 0:
-            inner.add_register(AncillaRegister(num_ancillas, name='ancilla'))
+            inner.add_register(AncillaRegister(num_ancillas, name="ancilla"))
 
         inner.compose(self.oracle, list(range(self.oracle.num_qubits)), inplace=True)
         if self._insert_barriers:
             inner.barrier()
-        inner.compose(self.state_preparation.inverse(),
-                      list(range(self.state_preparation.num_qubits)),
-                      inplace=True)
+        inner.compose(
+            self.state_preparation.inverse(),
+            list(range(self.state_preparation.num_qubits)),
+            inplace=True,
+        )
         if self._insert_barriers:
             inner.barrier()
-        inner.compose(self.zero_reflection, list(range(self.zero_reflection.num_qubits)),
-                      inplace=True)
+        inner.compose(
+            self.zero_reflection, list(range(self.zero_reflection.num_qubits)), inplace=True
+        )
         if self._insert_barriers:
             inner.barrier()
-        inner.compose(self.state_preparation, list(range(self.state_preparation.num_qubits)),
-                      inplace=True)
+        inner.compose(
+            self.state_preparation, list(range(self.state_preparation.num_qubits)), inplace=True
+        )
 
         # minus sign
         inner.global_phase = numpy.pi

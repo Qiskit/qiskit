@@ -35,8 +35,8 @@ class ExactReciprocal(QuantumCircuit):
         Note:
             It is assumed that the binary string x represents a number < 1.
         """
-        qr_state = QuantumRegister(num_state_qubits, 'state')
-        qr_flag = QuantumRegister(1, 'flag')
+        qr_state = QuantumRegister(num_state_qubits, "state")
+        qr_flag = QuantumRegister(1, "flag")
         inner = QuantumCircuit(qr_state, qr_flag, name=name)
 
         angles = [0.0]

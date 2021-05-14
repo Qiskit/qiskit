@@ -75,8 +75,7 @@ class TestGroverOperator(QiskitTestCase):
         oracle.z(3)
         grover_op = GroverOperator(oracle, reflection_qubits=[0, 3])
         dag = circuit_to_dag(grover_op.decompose())
-        self.assertEqual(set(dag.idle_wires()),
-                         {dag.qubits[1], dag.qubits[2]})
+        self.assertEqual(set(dag.idle_wires()), {dag.qubits[1], dag.qubits[2]})
 
     def test_custom_state_in(self):
         """Test passing a custom state_in operator."""

@@ -115,7 +115,7 @@ class QuadraticForm(QuantumCircuit):
 
         qr_input = QuantumRegister(num_input_qubits)
         qr_result = QuantumRegister(num_result_qubits)
-        inner = QuantumCircuit(qr_input, qr_result, name='Q(x)')
+        inner = QuantumCircuit(qr_input, qr_result, name="Q(x)")
 
         # set quadratic and linear again to None if they were None
         if len(quadratic) == 0:
@@ -159,7 +159,7 @@ class QuadraticForm(QuantumCircuit):
         iqft = QFT(num_result_qubits, do_swaps=False).inverse().reverse_bits()
         inner.compose(iqft, qubits=qr_result[:], inplace=True)
 
-        super().__init__(*inner.qregs, name='Q(x)')
+        super().__init__(*inner.qregs, name="Q(x)")
         self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)
 
     @staticmethod

@@ -81,8 +81,8 @@ class PhaseEstimation(QuantumCircuit):
                 circuit = PhaseEstimation(3, unitary)
                 %circuit_library_info circuit
         """
-        qr_eval = QuantumRegister(num_evaluation_qubits, 'eval')
-        qr_state = QuantumRegister(unitary.num_qubits, 'q')
+        qr_eval = QuantumRegister(num_evaluation_qubits, "eval")
+        qr_state = QuantumRegister(unitary.num_qubits, "q")
         inner = QuantumCircuit(qr_eval, qr_state, name=name)
 
         if iqft is None:
@@ -91,7 +91,7 @@ class PhaseEstimation(QuantumCircuit):
         inner.h(qr_eval)  # hadamards on evaluation qubits
 
         for j in range(num_evaluation_qubits):  # controlled powers
-            inner.compose(unitary.power(2**j).control(), qubits=[j] + qr_state[:], inplace=True)
+            inner.compose(unitary.power(2 ** j).control(), qubits=[j] + qr_state[:], inplace=True)
 
         inner.compose(iqft, qubits=qr_eval[:], inplace=True)  # final QFT
 
