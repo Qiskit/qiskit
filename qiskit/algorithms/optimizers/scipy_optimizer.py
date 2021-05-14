@@ -30,10 +30,24 @@ class SciPyOptimizer(Optimizer):
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
+    _bounds_support_methods = {"l-bfgs-b", "tnc", "slsqp", "powell", "trust-constr"}
+    _gradient_support_methods = {
+        "cg",
+        "bfgs",
+        "newton-cg",
+        "l-bfgs-b",
+        "tnc",
+        "slsqp",
+        "dogleg",
+        "trust-ncg",
+        "trust-krylov",
+        "trust-exact",
+        "trust-constr",
+    }
+
     def __init__(
         self,
         method: Union[str, Callable],
-        tol: Optional[float] = None,
         options: Optional[Dict[str, Any]] = None,
         max_evals_grouped: int = 1,
         **kwargs,
@@ -41,15 +55,23 @@ class SciPyOptimizer(Optimizer):
         """
         Args:
             method: Type of solver.
-            tol: Tolerance for termination.
             options: A dictionary of solver options.
             kwargs: additional kwargs for scipy.optimize.minimize.
             max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
         """
         # pylint: disable=super-init-not-called
         self._method = method.lower() if isinstance(method, str) else method
-        self._set_support_level()
-        self._tol = tol
+        # Set support level
+        if self._method in self._bounds_support_methods:
+            self._bounds_support_level = OptimizerSupportLevel.supported
+        else:
+            self._bounds_support_level = OptimizerSupportLevel.ignored
+        if self._method in self._gradient_support_methods:
+            self._gradient_support_level = OptimizerSupportLevel.supported
+        else:
+            self._gradient_support_level = OptimizerSupportLevel.ignored
+        self._initial_point_support_level = OptimizerSupportLevel.required
+
         self._options = options if options is not None else {}
         validate_min("max_evals_grouped", max_evals_grouped, 1)
         self._max_evals_grouped = max_evals_grouped
@@ -62,31 +84,6 @@ class SciPyOptimizer(Optimizer):
             "bounds": self._bounds_support_level,
             "initial_point": self._initial_point_support_level,
         }
-
-    def _set_support_level(self):
-        if self._method in {"l-bfgs-b", "tnc", "slsqp", "powell", "trust-constr"}:
-            self._bounds_support_level = OptimizerSupportLevel.supported
-        else:
-            self._bounds_support_level = OptimizerSupportLevel.ignored
-
-        if self._method in {
-            "cg",
-            "bfgs",
-            "newton-cg",
-            "l-bfgs-b",
-            "tnc",
-            "slsqp",
-            "dogleg",
-            "trust-ncg",
-            "trust-krylov",
-            "trust-exact",
-            "trust-constr",
-        }:
-            self._gradient_support_level = OptimizerSupportLevel.supported
-        else:
-            self._gradient_support_level = OptimizerSupportLevel.ignored
-
-        self._initial_point_support_level = OptimizerSupportLevel.required
 
     def optimize(
         self,
@@ -107,7 +104,7 @@ class SciPyOptimizer(Optimizer):
                 epsilon = self._options["eps"]
             else:
                 epsilon = (
-                    1e-8 if self._method in {"l_bfgs_b", "tnc"} else np.sqrt(np.finfo(float).eps)
+                    1e-8 if self._method in {"l-bfgs-b", "tnc"} else np.sqrt(np.finfo(float).eps)
                 )
             gradient_function = Optimizer.wrap_function(
                 Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped)
@@ -115,7 +112,7 @@ class SciPyOptimizer(Optimizer):
 
         # Workaround for L_BFGS_B because it does not accept np.ndarray.
         # See https://github.com/Qiskit/qiskit-terra/pull/6373.
-        if gradient_function is not None and self._method == "l_bfgs_b":
+        if gradient_function is not None and self._method == "l-bfgs-b":
             gradient_function = self._wrap_gradient(gradient_function)
 
         # Validate the input
@@ -133,7 +130,6 @@ class SciPyOptimizer(Optimizer):
             method=self._method,
             jac=gradient_function,
             bounds=variable_bounds,
-            tol=self._tol,
             options=self._options,
             **self._kwargs,
         )
@@ -144,7 +140,7 @@ class SciPyOptimizer(Optimizer):
         def wrapped_gradient(x):
             gradient = gradient_function(x)
             if isinstance(gradient, np.ndarray):
-                return list(gradient)
+                return gradient.tolist()
             return gradient
 
         return wrapped_gradient
