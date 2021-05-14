@@ -29,7 +29,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         self,
         operators=None,
         reps: int = 1,
-        evolution: Optional["EvolutionBase"] = None,
+        evolution=None,
         insert_barriers: bool = False,
         name: str = "EvolvedOps",
         initial_state: Optional[QuantumCircuit] = None,
@@ -41,7 +41,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
                 is passed, we assume it implements an already evolved operator and thus the circuit
                 is not evolved again.
             reps: The number of times to repeat the evolved operators.
-            evolution: An opflow converter object to construct the evolution.
+            evolution (Optional[EvolutionBase]): An opflow converter object to construct the evolution.
                 Defaults to Trotterization.
             insert_barriers: Whether to insert barriers in between each evolution.
             name: The name of the circuit.
@@ -88,13 +88,21 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         self._reps = r
 
     @property
-    def evolution(self) -> "EvolutionBase":
-        """The evolution converter used to compute the evolution."""
+    def evolution(self):
+        """The evolution converter used to compute the evolution.
+
+        Returns:
+            EvolutionBase: The evolution converter used to compute the evolution.
+        """
         return self._evolution
 
     @evolution.setter
-    def evolution(self, evol: "EvolutionBase"):
-        """Sets the evolution converter used to compute the evolution."""
+    def evolution(self, evol) -> None:
+        """Sets the evolution converter used to compute the evolution.
+
+        Args:
+            evol (EvolutionBase): An opflow converter object to construct the evolution.
+        """
         self._invalidate()
         self._evolution = evol
 
