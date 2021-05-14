@@ -1,4 +1,4 @@
 ---
 fixes:
   - |
-    Fix bug to allow setting breakpoints=None:
+    Fix bug in PiecewiseChebyshev so that the breakpoints parameter can be set by the user to None, therefore switching back to the default behaviour of approximating over the full interval.
