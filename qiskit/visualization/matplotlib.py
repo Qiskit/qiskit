@@ -792,7 +792,6 @@ class MatplotlibDrawer:
 
     def _get_coords(self):
         """Load all the coordinate info needed to place the gates on the drawing"""
-
         prev_anc = -1
         for i, layer in enumerate(self._nodes):
             layer_width = self._layer_widths[i]
@@ -845,10 +844,10 @@ class MatplotlibDrawer:
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
                 barrier_offset = -1 if all(node.op._directive for op in layer) else 0
-
             prev_anc = this_anc + layer_width + barrier_offset - 1
-            anchors = [self._q_anchors[ii].get_index() for ii in self._qubit_dict]
-            self._max_anc = max(anchors) if anchors else 0
+
+        anchors = [self._q_anchors[ii].get_index() for ii in self._qubit_dict]
+        self._max_anc = max(anchors) if anchors else 0
 
     def _get_text_width(self, text, fontsize, param=False):
         """Compute the width of a string in the default font"""
