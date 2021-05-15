@@ -31,13 +31,12 @@ from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
+from qiskit.tools.visualization import HAS_MATPLOTLIB
 
-try:
+if HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
-except ImportError:
-    raise ImportError(
-        "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
-    )
+else:
+    raise ImportError("Must have Matplotlib installed. To install, run " '"pip install matplotlib".')
 
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
