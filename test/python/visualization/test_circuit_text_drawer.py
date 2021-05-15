@@ -3834,23 +3834,11 @@ class TestTextHamiltonianGate(QiskitTestCase):
 
     def test_draw_hamiltonian_single(self):
         """Text Hamiltonian gate with single qubit."""
-<<<<<<< HEAD
-        expected = "\n".join(
-            ["      ┌─────────────┐", "q0_0: ┤ HAMILTONIAN ├", "      └─────────────┘"]
-        )
-
-||||||| merged common ancestors
-        expected = "\n".join(
-            ["      ┌─────────────┐", "q0_0: ┤ Hamiltonian ├", "      └─────────────┘"]
-        )
-
-=======
         # fmt: off
         expected = "\n".join(["      ┌─────────────┐",
-                              "q0_0: ┤ Hamiltonian ├",
+                              "q0_0: ┤ HAMILTONIAN ├",
                               "      └─────────────┘"])
         # fmt: on
->>>>>>> main
         qr = QuantumRegister(1, "q0")
         circuit = QuantumCircuit(qr)
         matrix = numpy.zeros((2, 2))
