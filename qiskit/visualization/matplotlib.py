@@ -325,7 +325,7 @@ class MatplotlibDrawer:
 
         xl = -self._style["margin"][0]
         xr = self._xmax + self._style["margin"][1]
-        yb = -self._ymax - self._style["margin"][2] + 0.5
+        yb = -self._ymax - self._style["margin"][2] + 1 - 0.5
         yt = self._style["margin"][3] + 0.5
         self._ax.set_xlim(xl, xr)
         self._ax.set_ylim(yb, yt)
@@ -368,6 +368,10 @@ class MatplotlibDrawer:
         self._draw_regs_wires(num_folds)
         self._draw_ops(verbose)
 
+        print(base_fig_w, base_fig_h)
+        print(self._scale)
+        print(xl, yt)
+        print(self._fs, self._sfs)
         if self._global_phase:
             self._plt_mod.text(
                 xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
@@ -664,7 +668,7 @@ class MatplotlibDrawer:
 
             if isinstance(node.op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
                 raw_gate_width = (
-                    self._get_text_width(gate_text + " ()", fontsize=self._sfs) + param_width
+                    self._get_text_width(gate_text + " ()", fontsize=self._sfs) + raw_param_width
                 )
                 gate_width = (raw_gate_width + 0.08) * 1.5
             else:

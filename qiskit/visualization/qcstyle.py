@@ -221,7 +221,7 @@ class DefaultStyle:
                 "rzx": "R_{ZX}",
                 "rzz": "ZZ",
                 "reset": "\\left|0\\right\\rangle",
-                "initialize": "|\\psi\\rangle",
+                "initialize": "$|\\psi\\rangle$",
             },
             "dispcol": {
                 "u1": (colors["basis"], colors["black"]),
