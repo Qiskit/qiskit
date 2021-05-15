@@ -18,7 +18,7 @@
 Visualization functions for quantum states.
 """
 
-from typing import Optional, List
+from typing import Optional, List, Union
 from functools import reduce
 import colorsys
 import numpy as np
@@ -26,6 +26,7 @@ import sympy
 from scipy import linalg
 from qiskit import user_config
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.visualization.array import array_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
@@ -1158,21 +1159,23 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
-def state_to_latex(state, dims=None, convention="ket", **args):
+def state_to_latex(
+    state: Union[Statevector, DensityMatrix], dims: bool = None, convention: str = "ket", **args
+) -> str:
     """Return a Latex representation of a state. Wrapper function
-    for `qiskit.visualization.array_to_latex` for convetion 'vector'.
+    for `qiskit.visualization.array_to_latex` for convention 'vector'.
     Adds dims if necessary.
     Intended for use within `state_drawer`.
 
     Args:
-        state (`Statevector` or `DensityMatrix`): State to be drawn
+        state: State to be drawn
         dims (bool): Whether to display the state's `dims`
         convention (str): Either 'vector' or 'ket'. For 'ket' plot the state in the ket-notation.
                 Otherwise plot as a vector
         **args: Arguments to be passed directly to `array_to_latex` for convention 'ket'
 
     Returns:
-        `str`: Latex representation of the state
+        Latex representation of the state
     """
     if dims is None:  # show dims if state is not only qubits
         if set(state.dims()) == {2}:
