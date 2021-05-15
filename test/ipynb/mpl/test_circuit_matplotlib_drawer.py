@@ -35,8 +35,9 @@ from qiskit.quantum_info.random import random_unitary
 try:
     from matplotlib.pyplot import close as mpl_close
 except ImportError:
-    raise ImportError('Must have Matplotlib installed. To install, run '
-                          '"pip install matplotlib".')
+    raise ImportError(
+        "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+    )
 
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
@@ -64,7 +65,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def tearDown(self):
         super().tearDown()
-        mpl_close('all')
+        mpl_close("all")
 
     @staticmethod
     def save_data_wrap(func, testname):
