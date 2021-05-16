@@ -166,12 +166,17 @@ from .algorithm_result import AlgorithmResult
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
 from .amplitude_estimators import (
-    AmplitudeEstimator, AmplitudeEstimatorResult,
-    AmplitudeEstimation, AmplitudeEstimationResult,
-    FasterAmplitudeEstimation, FasterAmplitudeEstimationResult,
-    IterativeAmplitudeEstimation, IterativeAmplitudeEstimationResult,
-    MaximumLikelihoodAmplitudeEstimation, MaximumLikelihoodAmplitudeEstimationResult,
-    EstimationProblem
+    AmplitudeEstimator,
+    AmplitudeEstimatorResult,
+    AmplitudeEstimation,
+    AmplitudeEstimationResult,
+    FasterAmplitudeEstimation,
+    FasterAmplitudeEstimationResult,
+    IterativeAmplitudeEstimation,
+    IterativeAmplitudeEstimationResult,
+    MaximumLikelihoodAmplitudeEstimation,
+    MaximumLikelihoodAmplitudeEstimationResult,
+    EstimationProblem,
 )
 from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
 from .factorizers import Shor, ShorResult
