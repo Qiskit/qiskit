@@ -352,7 +352,7 @@ def _cvxpy_check(name):
         raise MissingOptionalLibraryError(
             "CVXPY >= 1.0",
             "diamond_norm",
-            message="Incompatible CVXPY version {} found.".format(version),
+            msg="Incompatible CVXPY version {} found.".format(version),
         )
 
 

@@ -49,16 +49,13 @@ import time
 
 try:
     import ipywidgets as widgets
-except ImportError as ex:
-    from qiskit.exceptions import MissingOptionalLibraryError
-    raise MissingOptionalLibraryError(
-        libname="ipywidgets",
-        name="progress bar",
-        pip_install="pip install ipywidgets",
-    ) from ex
+    HAS_IPYWIDGETS = True
+except ImportError:
+    HAS_IPYWIDGETS = False
 from IPython.display import display
 
 from qiskit.tools.events.progressbar import BaseProgressBar
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
 class HTMLProgressBar(BaseProgressBar):
@@ -71,6 +68,12 @@ class HTMLProgressBar(BaseProgressBar):
         self.progress_bar = None
         self.label = None
         self.box = None
+        if not HAS_IPYWIDGETS:
+            raise MissingOptionalLibraryError(
+                libname="ipywidgets",
+                name="progress bar",
+                pip_install="pip install ipywidgets",
+            )
         self._init_subscriber()
 
     def _init_subscriber(self):
