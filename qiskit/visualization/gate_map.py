@@ -638,8 +638,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         ) from ex
     if not HAS_MATPLOTLIB:
         raise ImportError(
-            "Must have Matplotlib installed. To install, "
-            'run "pip install matplotlib".'
+            "Must have Matplotlib installed. To install, " 'run "pip install matplotlib".'
         )
     import matplotlib
     from matplotlib import get_backend

@@ -34,9 +34,7 @@ from qiskit.circuit.tools.pi_check import pi_check
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_state_hinton(
-    state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None
-):
+def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
     Args:
@@ -504,15 +502,11 @@ def plot_state_city(
             if min_dzi == 0:
                 ax2.set_zticks([0])
                 eps = 1e-9
-                ax2.axes.set_zlim3d(
-                    np.min(dzi), max(np.max(dzr) + 1e-9, np.max(dzi) + eps)
-                )
+                ax2.axes.set_zlim3d(np.min(dzi), max(np.max(dzr) + 1e-9, np.max(dzi) + eps))
             else:
                 ax2.axes.set_zlim3d(auto=True)
 
-        ax2.w_xaxis.set_ticklabels(
-            row_names, fontsize=14, rotation=45, ha="right", va="top"
-        )
+        ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
         ax2.w_yaxis.set_ticklabels(
             column_names, fontsize=14, rotation=-22.5, ha="left", va="center"
         )

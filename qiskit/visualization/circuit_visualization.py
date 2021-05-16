@@ -315,6 +315,8 @@ def _text_circuit_drawer(
         layout = None
     global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
     text_drawing = _text.TextDrawing(
+        qubits,
+        clbits,
         ops,
         layout=layout,
         initial_state=initial_state,

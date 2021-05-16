@@ -1487,13 +1487,6 @@ class MatplotlibDrawer:
                 # draw multi-qubit gate as final default
                 else:
                     self._multiqubit_gate(
-                        q_xy,
-                        fc=fc,
-                        ec=ec,
-                        gt=gt,
-                        sc=sc,
-                        text=gate_text,
-                        subtext="{}".format(param),
                         q_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext="{}".format(param)
                     )
 
