@@ -44,7 +44,7 @@ class Waveform(Pulse):
                 If any sample's norm exceeds unity by less than or equal to epsilon
                 it will be clipped to unit norm. If the sample
                 norm is greater than 1+epsilon an error will be raised.
-            limit_amplitude: If True, then limit the amplitude of the waveform to 1.
+            limit_amplitude: If ``True``, then limit the amplitude of the waveform to 1. The default value of ``None`` causes the flag value to be derived from :py:attr:`~limit_amplitude` which is ``True`` by default but may be set by the user to disable amplitude checks globally.
         """
 
         samples = np.asarray(samples, dtype=np.complex_)
