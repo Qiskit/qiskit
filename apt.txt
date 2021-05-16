@@ -5,7 +5,7 @@ ghostscript && cp /etc/apt/sources.list /etc/apt/sources.list.bak && echo "deb h
 # texlive-generic-recommended
 vim
 texlive-latex-base
-# texlive-latex-extra
+texlive-latex-extra
 # texlive-latex-recommended
 # texlive-publishers
 texlive-science
