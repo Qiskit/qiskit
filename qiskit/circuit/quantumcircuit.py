@@ -23,7 +23,7 @@ import multiprocessing as mp
 from collections import OrderedDict, defaultdict
 from typing import Union
 import numpy as np
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
@@ -1501,10 +1501,10 @@ class QuantumCircuit:
 
         if formatted:
             if not HAS_PYGMENTS:
-                raise ImportError(
-                    "To use the formatted output pygments>2.4 "
-                    "must be installed. To install pygments run "
-                    '"pip install pygments".'
+                raise MissingOptionalLibraryError(
+                    libname="pygments>2.4",
+                    name="formatted QASM output",
+                    pip_install="pip install pygments",
                 )
             code = pygments.highlight(
                 string_temp, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)

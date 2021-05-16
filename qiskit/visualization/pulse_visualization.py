@@ -17,6 +17,7 @@ import warnings
 
 from typing import Union, Callable, List, Dict, Tuple
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.pulse import Schedule, Instruction, Waveform
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
@@ -153,7 +154,11 @@ def pulse_drawer(
     )
 
     if not HAS_MATPLOTLIB:
-        raise ImportError("Must have Matplotlib installed.")
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="pulse_drawer",
+            pip_install="pip install matplotlib",
+        )
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
 

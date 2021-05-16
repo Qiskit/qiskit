@@ -28,6 +28,7 @@ from qiskit.pulse import Waveform, ParametricPulse, Schedule, ScheduleBlock
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
 def draw(
@@ -435,8 +436,11 @@ def draw(
         try:
             from qiskit.visualization.pulse_v2.plotters import Mpl2DPlotter
         except ImportError as ex:
-            raise ImportError("Must have Matplotlib installed.") from ex
-
+            raise MissingOptionalLibraryError(
+                libname="Matplotlib",
+                name="plot_histogram",
+                pip_install="pip install matplotlib",
+            ) from ex
         plotter_api = Mpl2DPlotter(canvas=canvas, axis=axis)
         plotter_api.draw()
     else:

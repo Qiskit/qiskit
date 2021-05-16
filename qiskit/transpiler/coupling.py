@@ -341,8 +341,10 @@ class CouplingMap:
             import pydot
             from PIL import Image
         except ImportError as ex:
-            raise ImportError(
-                "CouplingMap.draw requires pydot and pillow. " "Run 'pip install pydot pillow'."
+            raise MissingOptionalLibraryError(
+                libname="pillow",
+                name="coupling map drawer",
+                pip_install="pip install pillow",
             ) from ex
         dot_str = self.graph.to_dot()
         dot = pydot.graph_from_dot_data(dot_str)[0]

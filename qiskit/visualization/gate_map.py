@@ -632,13 +632,16 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     try:
         import seaborn as sns
     except ImportError as ex:
-        raise ImportError(
-            "Must have seaborn installed to use plot_error_map. "
-            'To install, run "pip install seaborn".'
+        raise MissingOptionalLibraryError(
+            libname="seaborn",
+            name="plot_error_map",
+            pip_install="pip install seaborn",
         ) from ex
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, " 'run "pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_error_map",
+            pip_install="pip install matplotlib",
         )
     import matplotlib
     from matplotlib import get_backend

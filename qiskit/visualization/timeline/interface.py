@@ -24,6 +24,7 @@ the configured canvas is passed to one of the plotter APIs to generate a visuali
 from typing import Optional, Dict, Any, List, Tuple
 
 from qiskit import circuit
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import types, core, stylesheet
 
@@ -395,8 +396,11 @@ def draw(
         try:
             from qiskit.visualization.timeline.plotters import MplPlotter
         except ImportError as ex:
-            raise ImportError("Must have Matplotlib installed.") from ex
-
+            raise MissingOptionalLibraryError(
+                libname="Matplotlib",
+                name="timeline drawer",
+                pip_install="pip install matplotlib",
+            )
         plotter_api = MplPlotter(canvas=canvas, axis=axis)
         plotter_api.draw()
     else:

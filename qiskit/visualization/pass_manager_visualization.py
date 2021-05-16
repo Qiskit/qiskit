@@ -117,7 +117,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
             libname="graphviz",
             name="pass_manager_drawer",
             pip_install="Graphviz can be installed using 'brew install graphviz' on Mac or by "
-                        "downloading it from the website.",
+            "downloading it from the website.",
         )
 
     passes = pass_manager.passes()
