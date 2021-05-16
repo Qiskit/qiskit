@@ -552,13 +552,14 @@ class TestGradients(QiskitOpflowTestCase):
                     grad_method=method, regularization=regularization
                 ).convert(operator=op)
                 values_dict = [{params[0]: np.pi / 4, params[1]: np.pi / 2}]
-                correct_values = [[-3.3,  1.6]] \
-                    if regularization == 'ridge' else [[-4.2, 0]]
+
+                # reference values obtained by classically computing the natural gradients
+                correct_values = [[-3.26, 1.63]] if regularization == "ridge" else [[-4.24, 0]]
+
                 for i, value_dict in enumerate(values_dict):
                     np.testing.assert_array_almost_equal(
-                        nat_grad.assign_parameters(value_dict).eval(),
-                        correct_values[i],
-                        decimal=1)
+                        nat_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+                    )
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
@@ -608,9 +609,9 @@ class TestGradients(QiskitOpflowTestCase):
             values_dict = [{a: np.pi / 4}]
             correct_values = [[0.0]] if regularization == "ridge" else [[-1.41421342]]
             for i, value_dict in enumerate(values_dict):
-                np.testing.assert_array_almost_equal(nat_grad.assign_parameters(value_dict).eval(),
-                                                     correct_values[i],
-                                                     decimal=3)
+                np.testing.assert_array_almost_equal(
+                    nat_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=3
+                )
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
