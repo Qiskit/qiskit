@@ -89,9 +89,9 @@ class Collect2qBlocks(AnalysisPass):
                     # If there are two, then we consider cases
                     elif len(pred) == 2:
                         # First, check if there is a relationship
-                        if pred[0] in dag.predecessors(pred[1]):
+                        if dag.is_predecessor(pred[1], pred[0]):
                             sorted_pred = [pred[1]]  # was [pred[1], pred[0]]
-                        elif pred[1] in dag.predecessors(pred[0]):
+                        elif dag.is_predecessor(pred[0], pred[1]):
                             sorted_pred = [pred[0]]  # was [pred[0], pred[1]]
                         else:
                             # We need to avoid accidentally adding a 2q gate on these_qubits
@@ -179,9 +179,9 @@ class Collect2qBlocks(AnalysisPass):
                     # If there are two, then we consider cases
                     elif len(succ) == 2:
                         # First, check if there is a relationship
-                        if succ[0] in dag.successors(succ[1]):
+                        if dag.is_successor(succ[1], succ[0]):
                             sorted_succ = [succ[1]]  # was [succ[1], succ[0]]
-                        elif succ[1] in dag.successors(succ[0]):
+                        elif dag.is_successor(succ[0], succ[1]):
                             sorted_succ = [succ[0]]  # was [succ[0], succ[1]]
                         else:
                             # We need to avoid accidentally adding a 2q gate on these_qubits
