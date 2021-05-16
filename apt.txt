@@ -3,7 +3,7 @@ ghostscript
 # texlive-fonts-recommended
 # texlive-fonts-extra
 # texlive-generic-recommended
-texlive-latex-base
+http://mirrors.edge.kernel.org/ubuntu/pool/universe/t/texlive-extra/texlive-latex-extra_2017.20180305-2_all.deb
 # texlive-latex-extra
 # texlive-latex-recommended
 # texlive-publishers
