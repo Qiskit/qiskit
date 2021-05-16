@@ -141,7 +141,7 @@ def pulse_drawer(
 
     Raises:
         VisualizationError: when invalid data is given
-        ImportError: when matplotlib is not installed
+        MissingOptionalLibraryError: when matplotlib is not installed
     """
     warnings.warn(
         "This legacy pulse drawer is deprecated and will be removed no earlier than "

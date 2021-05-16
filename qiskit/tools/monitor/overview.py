@@ -25,7 +25,7 @@ def get_unique_backends():
 
     Raises:
         QiskitError: No backends available.
-        ImportError: If qiskit-ibmq-provider is not installed
+        MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
     """
     try:
         from qiskit.providers.ibmq import IBMQ

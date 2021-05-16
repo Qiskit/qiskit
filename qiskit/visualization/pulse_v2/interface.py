@@ -372,7 +372,7 @@ def draw(
         without modifying the codebase.
 
     Raises:
-        ImportError: When required visualization package is not installed.
+        MissingOptionalLibraryError: When required visualization package is not installed.
         VisualizationError: When invalid plotter API or invalid time range is specified.
     """
     temp_style = stylesheet.QiskitPulseStyle()

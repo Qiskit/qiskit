@@ -335,7 +335,7 @@ class CouplingMap:
             PIL.Image: Drawn coupling map.
 
         Raises:
-            ImportError: when pydot or pillow are not installed.
+            MissingOptionalLibraryError: when pydot or pillow are not installed.
         """
 
         try:

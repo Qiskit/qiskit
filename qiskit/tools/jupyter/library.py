@@ -120,7 +120,7 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
         Output widget.
 
     Raises:
-        ImportError: If pygments is not installed
+        MissingOptionalLibraryError: If pygments is not installed
     """
     if not HAS_PYGMENTS:
         raise MissingOptionalLibraryError(
