@@ -1,5 +1,5 @@
 dvipng
-ghostscript && apt-get update && apt-get install --yes --no-install-recommends
+ghostscript && cp /etc/apt/sources.list /etc/apt/sources.list.bak && echo "deb http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse" | tee -a /etc/apt/sources.list && apt-get update && apt-get install --yes --no-install-recommends
 # texlive-fonts-recommended
 # texlive-fonts-extra
 # texlive-generic-recommended
