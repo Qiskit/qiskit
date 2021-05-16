@@ -1,5 +1,5 @@
 dvipng
-ghostscript && sudo apt-get update
+ghostscript && sudo apt-get update && apt-get install --yes --no-install-recommends
 # texlive-fonts-recommended
 # texlive-fonts-extra
 # texlive-generic-recommended
