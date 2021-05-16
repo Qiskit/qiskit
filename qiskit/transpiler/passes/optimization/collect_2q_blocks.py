@@ -58,11 +58,11 @@ class Collect2qBlocks(AnalysisPass):
             # Explore predecessors and successors of 2q gates
             if (  # pylint: disable=too-many-boolean-expressions
                 nd.type == "op"
-                and isinstance(nd.op, Gate)
+                and isinstance(nd._op, Gate)
                 and len(nd._qargs) == 2
                 and not nodes_seen[nd]
-                and nd.op.condition is None
-                and not nd.op.is_parameterized()
+                and nd._op.condition is None
+                and not nd._op.is_parameterized()
             ):
                 these_qubits = set(nd._qargs)
                 # Explore predecessors of the 2q node
@@ -75,10 +75,10 @@ class Collect2qBlocks(AnalysisPass):
                         pnd = pred[0]
                         if (
                             pnd.type == "op"
-                            and isinstance(pnd.op, Gate)
+                            and isinstance(pnd._op, Gate)
                             and len(pnd._qargs) <= 2
-                            and pnd.op.condition is None
-                            and not pnd.op.is_parameterized()
+                            and pnd._op.condition is None
+                            and not pnd._op.is_parameterized()
                         ):
                             if (len(pnd._qargs) == 2 and set(pnd._qargs) == these_qubits) or len(
                                 pnd._qargs
@@ -113,17 +113,17 @@ class Collect2qBlocks(AnalysisPass):
                         for pnd in sorted_pred:
                             if (
                                 pnd.type != "op"
-                                or not isinstance(pnd.op, Gate)
+                                or not isinstance(pnd._op, Gate)
                                 or len(pnd._qargs) > 2
-                                or pnd.op.condition is not None
-                                or pnd.op.is_parameterized()
+                                or pnd._op.condition is not None
+                                or pnd._op.is_parameterized()
                             ):
                                 # remove any qubits that are interrupted by a gate
                                 # e.g. a measure in the middle of the circuit
                                 these_qubits = list(set(these_qubits) - set(pnd._qargs))
                                 continue
                             # If a predecessor is a single qubit gate, add it
-                            if len(pnd._qargs) == 1 and not pnd.op.is_parameterized():
+                            if len(pnd._qargs) == 1 and not pnd._op.is_parameterized():
                                 if not nodes_seen[pnd]:
                                     group.append(pnd)
                                     nodes_seen[pnd] = True
@@ -133,8 +133,8 @@ class Collect2qBlocks(AnalysisPass):
                                 pred_qubits = set(pnd._qargs)
                                 if (
                                     pred_qubits == these_qubits
-                                    and pnd.op.condition is None
-                                    and not pnd.op.is_parameterized()
+                                    and pnd._op.condition is None
+                                    and not pnd._op.is_parameterized()
                                 ):
                                     # add if on same qubits
                                     if not nodes_seen[pnd]:
@@ -165,10 +165,10 @@ class Collect2qBlocks(AnalysisPass):
                         snd = succ[0]
                         if (
                             snd.type == "op"
-                            and isinstance(snd.op, Gate)
+                            and isinstance(snd._op, Gate)
                             and len(snd._qargs) <= 2
-                            and snd.op.condition is None
-                            and not snd.op.is_parameterized()
+                            and snd._op.condition is None
+                            and not snd._op.is_parameterized()
                         ):
                             if (len(snd._qargs) == 2 and set(snd._qargs) == these_qubits) or len(
                                 snd._qargs
@@ -203,10 +203,10 @@ class Collect2qBlocks(AnalysisPass):
                         for snd in sorted_succ:
                             if (
                                 snd.type != "op"
-                                or not isinstance(snd.op, Gate)
+                                or not isinstance(snd._op, Gate)
                                 or len(snd._qargs) > 2
-                                or snd.op.condition is not None
-                                or snd.op.is_parameterized()
+                                or snd._op.condition is not None
+                                or snd._op.is_parameterized()
                             ):
                                 # remove qubits from consideration if interrupted
                                 # by a gate e.g. a measure in the middle of the circuit
@@ -216,7 +216,7 @@ class Collect2qBlocks(AnalysisPass):
                             # If a successor is a single qubit gate, add it
                             # NB as we have eliminated all gates with names not in
                             # good_names, this check guarantees they are single qubit
-                            if len(snd._qargs) == 1 and not snd.op.is_parameterized():
+                            if len(snd._qargs) == 1 and not snd._op.is_parameterized():
                                 if not nodes_seen[snd]:
                                     group.append(snd)
                                     nodes_seen[snd] = True
@@ -226,8 +226,8 @@ class Collect2qBlocks(AnalysisPass):
                                 succ_qubits = set(snd._qargs)
                                 if (
                                     succ_qubits == these_qubits
-                                    and snd.op.condition is None
-                                    and not snd.op.is_parameterized()
+                                    and snd._op.condition is None
+                                    and not snd._op.is_parameterized()
                                 ):
                                     # add if on same qubits
                                     if not nodes_seen[snd]:
