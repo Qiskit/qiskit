@@ -49,6 +49,7 @@ import time
 
 try:
     import ipywidgets as widgets
+
     HAS_IPYWIDGETS = True
 except ImportError:
     HAS_IPYWIDGETS = False
