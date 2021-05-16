@@ -3,7 +3,7 @@ ghostscript && apt-get update && apt-get install --yes --no-install-recommends
 # texlive-fonts-recommended
 # texlive-fonts-extra
 # texlive-generic-recommended
-# http://mirrors.edge.kernel.org/ubuntu/pool/universe/t/texlive-extra/texlive-latex-extra_2017.20180305-2_all.deb
+vim
 texlive-latex-base
 # texlive-latex-extra
 # texlive-latex-recommended
