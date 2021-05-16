@@ -305,7 +305,7 @@ def _text_circuit_drawer(
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
     """
-    qregs, cregs, ops = utils._get_layered_instructions(
+    qubits, clbits, ops = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
 
@@ -315,14 +315,14 @@ def _text_circuit_drawer(
         layout = None
     global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
     text_drawing = _text.TextDrawing(
-        qregs,
-        cregs,
         ops,
         layout=layout,
         initial_state=initial_state,
         cregbundle=cregbundle,
         global_phase=global_phase,
         encoding=encoding,
+        qregs=circuit.qregs,
+        cregs=circuit.cregs,
     )
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
@@ -436,8 +436,7 @@ def _latex_circuit_drawer(
             try:
                 base = os.path.join(tmpdirname, tmpfilename)
                 subprocess.run(
-                    ["pdftocairo", "-singlefile", "-png", "-q", base + ".pdf", base],
-                    check=True,
+                    ["pdftocairo", "-singlefile", "-png", "-q", base + ".pdf", base], check=True
                 )
                 image = Image.open(base + ".png")
                 image = utils._trim(image)
@@ -489,7 +488,7 @@ def _generate_latex_source(
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    qregs, cregs, ops = utils._get_layered_instructions(
+    qubits, clbits, ops = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
     if with_layout:
@@ -499,8 +498,8 @@ def _generate_latex_source(
 
     global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
     qcimg = _latex.QCircuitImage(
-        qregs,
-        cregs,
+        qubits,
+        clbits,
         ops,
         scale,
         reverse_bits=reverse_bits,
@@ -509,6 +508,8 @@ def _generate_latex_source(
         initial_state=initial_state,
         cregbundle=cregbundle,
         global_phase=global_phase,
+        qregs=circuit.qregs,
+        cregs=circuit.cregs,
     )
     latex = qcimg.latex()
     if filename:
@@ -572,7 +573,7 @@ def _matplotlib_circuit_drawer(
             if the ``ax`` kwarg is not set.
     """
 
-    qregs, cregs, ops = utils._get_layered_instructions(
+    qubits, clbits, ops = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
     if with_layout:
@@ -585,8 +586,8 @@ def _matplotlib_circuit_drawer(
 
     global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
     qcd = _matplotlib.MatplotlibDrawer(
-        qregs,
-        cregs,
+        qubits,
+        clbits,
         ops,
         scale=scale,
         style=style,
@@ -597,5 +598,7 @@ def _matplotlib_circuit_drawer(
         initial_state=initial_state,
         cregbundle=cregbundle,
         global_phase=global_phase,
+        qregs=circuit.qregs,
+        cregs=circuit.cregs,
     )
     return qcd.draw(filename)

@@ -25,9 +25,13 @@ def dagdependency_to_circuit(dagdependency):
     """
 
     name = dagdependency.name or None
-    circuit = QuantumCircuit(dagdependency.qubits, dagdependency.clbits,
-                             *dagdependency.qregs.values(), *dagdependency.cregs.values(),
-                             name=name)
+    circuit = QuantumCircuit(
+        dagdependency.qubits,
+        dagdependency.clbits,
+        *dagdependency.qregs.values(),
+        *dagdependency.cregs.values(),
+        name=name,
+    )
     circuit.metadata = dagdependency.metadata
 
     circuit.calibrations = dagdependency.calibrations
@@ -35,7 +39,6 @@ def dagdependency_to_circuit(dagdependency):
     for node in dagdependency.get_nodes():
         # Get arguments for classical control (if any)
         inst = node.op.copy()
-        inst.condition = node.condition
         circuit._append(inst, node.qargs, node.cargs)
 
     return circuit

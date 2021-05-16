@@ -235,9 +235,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_bloch_multivector(
-    state, title="", figsize=None, *, rho=None, reverse_bits=False
-):
+def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_bits=False):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -282,9 +280,7 @@ def plot_bloch_multivector(
 
     # Data
     bloch_data = (
-        _bloch_multivector_data(state)[::-1]
-        if reverse_bits
-        else _bloch_multivector_data(state)
+        _bloch_multivector_data(state)[::-1] if reverse_bits else _bloch_multivector_data(state)
     )
     num = len(bloch_data)
     width, height = plt.figaspect(1 / num)
@@ -301,15 +297,7 @@ def plot_bloch_multivector(
 
 @deprecate_arguments({"rho": "state"})
 def plot_state_city(
-    state,
-    title="",
-    figsize=None,
-    color=None,
-    alpha=1,
-    ax_real=None,
-    ax_imag=None,
-    *,
-    rho=None,
+    state, title="", figsize=None, color=None, alpha=1, ax_real=None, ax_imag=None, *, rho=None
 ):
     """Plot the cityscape of quantum state.
 
@@ -470,9 +458,7 @@ def plot_state_city(
             else:
                 ax1.axes.set_zlim3d(auto=True)
         ax1.get_autoscalez_on()
-        ax1.w_xaxis.set_ticklabels(
-            row_names, fontsize=14, rotation=45, ha="right", va="top"
-        )
+        ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
         ax1.w_yaxis.set_ticklabels(
             column_names, fontsize=14, rotation=-22.5, ha="left", va="center"
         )
@@ -543,9 +529,7 @@ def plot_state_city(
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_state_paulivec(
-    state, title="", figsize=None, color=None, ax=None, *, rho=None
-):
+def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, rho=None):
     """Plot the paulivec representation of a quantum state.
 
     Plot a bargraph of the mixed state rho over the pauli matrices
@@ -642,9 +626,7 @@ def n_choose_k(n, k):
     """
     if n == 0:
         return 0
-    return reduce(
-        lambda x, y: x * y[0] / y[1], zip(range(n - k + 1, n + 1), range(1, k + 1)), 1
-    )
+    return reduce(lambda x, y: x * y[0] / y[1], zip(range(n - k + 1, n + 1), range(1, k + 1)), 1)
 
 
 def lex_index(n, k, lst):
@@ -750,27 +732,11 @@ def plot_state_qsphere(
             pip_install="pip install matplotlib",
         )
 
-    from mpl_toolkits.mplot3d import proj3d
-    from matplotlib.patches import FancyArrowPatch
     import matplotlib.gridspec as gridspec
     from matplotlib import pyplot as plt
     from matplotlib.patches import Circle
     from matplotlib import get_backend
-
-    class Arrow3D(FancyArrowPatch):
-        """Standard 3D arrow."""
-
-        def __init__(self, xs, ys, zs, *args, **kwargs):
-            """Create arrow."""
-            FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
-            self._verts3d = xs, ys, zs
-
-        def draw(self, renderer):
-            """Draw the arrow."""
-            xs3d, ys3d, zs3d = self._verts3d
-            xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-            self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-            FancyArrowPatch.draw(self, renderer)
+    from qiskit.visualization.bloch import Arrow3D
 
     try:
         import seaborn as sns
@@ -819,14 +785,7 @@ def plot_state_qsphere(
     y = np.outer(np.sin(u), np.sin(v))
     z = np.outer(np.ones(np.size(u)), np.cos(v))
     ax.plot_surface(
-        x,
-        y,
-        z,
-        rstride=1,
-        cstride=1,
-        color=plt.rcParams["grid.color"],
-        alpha=0.2,
-        linewidth=0,
+        x, y, z, rstride=1, cstride=1, color=plt.rcParams["grid.color"], alpha=0.2, linewidth=0
     )
 
     # Get rid of the panes
@@ -895,13 +854,9 @@ def plot_state_qsphere(
                     if show_state_phases:
                         element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
                         if use_degrees:
-                            element_text += "\n$%.1f^\\circ$" % (
-                                element_angle * 180 / np.pi
-                            )
+                            element_text += "\n$%.1f^\\circ$" % (element_angle * 180 / np.pi)
                         else:
-                            element_angle = pi_check(element_angle, ndigits=3).replace(
-                                "pi", "\\pi"
-                            )
+                            element_angle = pi_check(element_angle, ndigits=3).replace("pi", "\\pi")
                             element_text += "\n$%s$" % (element_angle)
                     ax.text(
                         xvalue_text,
@@ -964,9 +919,7 @@ def plot_state_qsphere(
 
     ax2 = fig.add_subplot(gs[2:, 2:])
     ax2.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
-    ax2.add_artist(
-        Circle((0, 0), 0.5, color=plt.rcParams["figure.facecolor"], zorder=1)
-    )
+    ax2.add_artist(Circle((0, 0), 0.5, color=plt.rcParams["figure.facecolor"], zorder=1))
     offset = 0.95  # since radius of sphere is one.
 
     if use_degrees:
@@ -974,45 +927,18 @@ def plot_state_qsphere(
     else:
         labels = ["Phase", "$0$", "$\\pi/2$", "$\\pi$", "$3\\pi/2$"]
 
+    ax2.text(0, 0, labels[0], horizontalalignment="center", verticalalignment="center", fontsize=14)
     ax2.text(
-        0,
-        0,
-        labels[0],
-        horizontalalignment="center",
-        verticalalignment="center",
-        fontsize=14,
+        offset, 0, labels[1], horizontalalignment="center", verticalalignment="center", fontsize=14
     )
     ax2.text(
-        offset,
-        0,
-        labels[1],
-        horizontalalignment="center",
-        verticalalignment="center",
-        fontsize=14,
+        0, offset, labels[2], horizontalalignment="center", verticalalignment="center", fontsize=14
     )
     ax2.text(
-        0,
-        offset,
-        labels[2],
-        horizontalalignment="center",
-        verticalalignment="center",
-        fontsize=14,
+        -offset, 0, labels[3], horizontalalignment="center", verticalalignment="center", fontsize=14
     )
     ax2.text(
-        -offset,
-        0,
-        labels[3],
-        horizontalalignment="center",
-        verticalalignment="center",
-        fontsize=14,
-    )
-    ax2.text(
-        0,
-        -offset,
-        labels[4],
-        horizontalalignment="center",
-        verticalalignment="center",
-        fontsize=14,
+        0, -offset, labels[4], horizontalalignment="center", verticalalignment="center", fontsize=14
     )
 
     if return_fig:
@@ -1184,10 +1110,7 @@ def _shade_colors(color, normals, lightsource=None):
         return np.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2)
 
     shade = np.array(
-        [
-            np.dot(n / mod(n), lightsource.direction) if mod(n) else np.nan
-            for n in normals
-        ]
+        [np.dot(n / mod(n), lightsource.direction) if mod(n) else np.nan for n in normals]
     )
     mask = ~np.isnan(shade)
 
@@ -1293,10 +1216,15 @@ def state_drawer(state, output=None, **drawer_args):
 
     **bloch**: Matplotlib figure, rendering of statevector using `plot_bloch_multivector()`.
 
+    **city**: Matplotlib figure, rendering of statevector using `plot_state_city()`.
+
+    **paulivec**: Matplotlib figure, rendering of statevector using `plot_state_paulivec()`.
+
     Args:
         output (str): Select the output method to use for drawing the
             circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
-            ``qsphere``, ``hinton``, or ``bloch``. Default is `'text`'.
+            ``qsphere``, ``hinton``, ``bloch``, ``city`` or ``paulivec``.
+            Default is `'text`'.
         drawer_args: Arguments to be passed to the relevant drawer. For
             'latex' and 'latex_source' see ``array_to_latex``
 
@@ -1325,6 +1253,8 @@ def state_drawer(state, output=None, **drawer_args):
         "qsphere": plot_state_qsphere,
         "hinton": plot_state_hinton,
         "bloch": plot_bloch_multivector,
+        "city": plot_state_city,
+        "paulivec": plot_state_paulivec,
     }
     if output == "latex":
         try:
@@ -1350,7 +1280,7 @@ def state_drawer(state, output=None, **drawer_args):
         raise ValueError(
             """'{}' is not a valid option for drawing {} objects. Please choose from:
             'text', 'latex', 'latex_source', 'qsphere', 'hinton',
-            'bloch' or 'auto'.""".format(
+            'bloch', 'city' or 'paulivec'.""".format(
                 output, type(state).__name__
             )
         ) from err

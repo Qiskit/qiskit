@@ -115,8 +115,8 @@ class MatplotlibDrawer:
 
     def __init__(
         self,
-        qregs,
-        cregs,
+        qubits,
+        clbits,
         ops,
         scale=None,
         style=None,
@@ -127,6 +127,8 @@ class MatplotlibDrawer:
         initial_state=False,
         cregbundle=True,
         global_phase=None,
+        qregs=None,
+        cregs=None,
     ):
 
         if not HAS_MATPLOTLIB:
@@ -147,11 +149,20 @@ class MatplotlibDrawer:
                 name="MatplotlibDrawer",
                 pip_install="pip install pylatexenc",
             )
-        self._creg = []
-        self._qreg = []
-        self._registers(cregs, qregs)
-        self._qreg_dict = collections.OrderedDict()
-        self._creg_dict = collections.OrderedDict()
+        self._clbit = []
+        self._qubit = []
+        self._registers(clbits, qubits)
+        self._bit_locations = {
+            bit: {"register": register, "index": index}
+            for register in cregs + qregs
+            for index, bit in enumerate(register)
+        }
+        for index, bit in list(enumerate(qubits)) + list(enumerate(clbits)):
+            if bit not in self._bit_locations:
+                self._bit_locations[bit] = {"register": None, "index": index}
+
+        self._qubit_dict = collections.OrderedDict()
+        self._clbit_dict = collections.OrderedDict()
         self._ops = ops
         self._scale = 1.0 if scale is None else scale
         self._style = self._load_style(style)
@@ -171,9 +182,7 @@ class MatplotlibDrawer:
             self._figure = ax.get_figure()
         self._ax.axis("off")
         self._ax.set_aspect("equal")
-        self._ax.tick_params(
-            labelbottom=False, labeltop=False, labelleft=False, labelright=False
-        )
+        self._ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
         self._initial_state = initial_state
         self._cregbundle = cregbundle
         self._global_phase = global_phase
@@ -297,13 +306,13 @@ class MatplotlibDrawer:
             "}": (0.1896, 0.1188),
         }
 
-    def _registers(self, creg, qreg):
-        self._creg = []
-        for r in creg:
-            self._creg.append(r)
-        self._qreg = []
-        for r in qreg:
-            self._qreg.append(r)
+    def _registers(self, clbit, qubit):
+        self._clbit = []
+        for r in clbit:
+            self._clbit.append(r)
+        self._qubit = []
+        for r in qubit:
+            self._qubit.append(r)
 
     @property
     def ast(self):
@@ -345,9 +354,7 @@ class MatplotlibDrawer:
                 config_path = config.get("circuit_mpl_style_path", "")
                 if config_path:
                     for path in config_path:
-                        style_path.append(
-                            os.path.normpath(os.path.join(path, style_name))
-                        )
+                        style_path.append(os.path.normpath(os.path.join(path, style_name)))
             style_path.append(os.path.normpath(os.path.join("", style_name)))
 
             for path in style_path:
@@ -360,9 +367,7 @@ class MatplotlibDrawer:
                         break
                     except json.JSONDecodeError as e:
                         warn(
-                            "Could not decode JSON in file '{}': {}. ".format(
-                                path, str(e)
-                            )
+                            "Could not decode JSON in file '{}': {}. ".format(path, str(e))
                             + "Will use default style.",
                             UserWarning,
                             2,
@@ -370,9 +375,7 @@ class MatplotlibDrawer:
                         break
                     except (OSError, FileNotFoundError):
                         warn(
-                            "Error loading JSON file '{}'. Will use default style.".format(
-                                path
-                            ),
+                            "Error loading JSON file '{}'. Will use default style.".format(path),
                             UserWarning,
                             2,
                         )
@@ -390,9 +393,7 @@ class MatplotlibDrawer:
 
         # If font/subfont ratio changes from default, have to scale width calculations for
         # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
-        self._subfont_factor = (
-            current_style["sfs"] * def_font_ratio / current_style["fs"]
-        )
+        self._subfont_factor = current_style["sfs"] * def_font_ratio / current_style["fs"]
 
         return current_style
 
@@ -468,9 +469,7 @@ class MatplotlibDrawer:
 
         if gate_text in self._style["disptex"]:
             gate_text = "{}".format(self._style["disptex"][gate_text])
-        elif gate_text in (op.name, base_name) and not isinstance(
-            op.op, (Gate, Instruction)
-        ):
+        elif gate_text in (op.name, base_name) and not isinstance(op.op, (Gate, Instruction)):
             gate_text = gate_text.capitalize()
 
         return gate_text, ctrl_text
@@ -511,9 +510,7 @@ class MatplotlibDrawer:
         sc = gt
         return fc, ec, gt, self._style["tc"], sc, lc
 
-    def _multiqubit_gate(
-        self, xy, fc=None, ec=None, gt=None, sc=None, text="", subtext=""
-    ):
+    def _multiqubit_gate(self, xy, fc=None, ec=None, gt=None, sc=None, text="", subtext=""):
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
@@ -728,9 +725,7 @@ class MatplotlibDrawer:
             zorder=PORDER_GATE,
         )
         # arrow
-        self._line(
-            qxy, [cx, cy + 0.35 * WID], lc=self._style["cc"], ls=self._style["cline"]
-        )
+        self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style["cc"], ls=self._style["cline"])
         arrowhead = self.patches_mod.Polygon(
             (
                 (cx - 0.20 * WID, cy + 0.35 * WID),
@@ -811,7 +806,7 @@ class MatplotlibDrawer:
     ):
         # place the control label at the top or bottom of controls
         if text:
-            qlist = [qubit.index for qubit in qargs]
+            qlist = [self._bit_locations[qubit]["index"] for qubit in qargs]
             ctbits = qlist[:num_ctrl_qubits]
             qubits = qlist[num_ctrl_qubits:]
             max_ctbit = max(ctbits)
@@ -828,9 +823,7 @@ class MatplotlibDrawer:
                     text_top = True
                 elif not top and qlist[i] == max_ctbit:
                     text_top = False
-            self._ctrl_qubit(
-                qbit[i], fc=fc_open_close, ec=ec, tc=tc, text=text, text_top=text_top
-            )
+            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec, tc=tc, text=text, text_top=text_top)
 
     def _x_tgt_qubit(self, xy, ec=None, ac=None):
         linewidth = self._lwidth2
@@ -924,9 +917,7 @@ class MatplotlibDrawer:
         )
         if self._global_phase:
             self.plt_mod.text(
-                _xl,
-                _yt,
-                "Global Phase: %s" % pi_check(self._global_phase, output="mpl"),
+                _xl, _yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
             )
 
         if filename:
@@ -950,85 +941,93 @@ class MatplotlibDrawer:
 
         def _fix_double_script(reg_name):
             words = reg_name.split(" ")
+            words = [word.replace("_", r"\_") if word.count("_") > 1 else word for word in words]
             words = [
-                word.replace("_", r"\_") if word.count("_") > 1 else word
-                for word in words
-            ]
-            words = [
-                word.replace("^", r"\^{\ }") if word.count("^") > 1 else word
-                for word in words
+                word.replace("^", r"\^{\ }") if word.count("^") > 1 else word for word in words
             ]
             reg_name = " ".join(words).replace(" ", "\\;")
             return reg_name
 
         # quantum register
         fs = self._style["fs"]
-        for ii, reg in enumerate(self._qreg):
-            if len(self._qreg) > 1:
+        for ii, reg in enumerate(self._qubit):
+            register = self._bit_locations[reg]["register"]
+            index = self._bit_locations[reg]["index"]
+
+            if len(self._qubit) > 1:
                 if self._layout is None:
-                    qreg_name = "${{{name}}}_{{{index}}}$".format(
-                        name=reg.register.name, index=reg.index
-                    )
+                    qubit_name = "${{{name}}}_{{{index}}}$".format(name=register.name, index=index)
                 else:
-                    if self._layout[reg.index]:
-                        qreg_name = (
-                            "${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$".format(
-                                name=self._layout[reg.index].register.name,
-                                index=self._layout[reg.index].index,
-                                physical=reg.index,
+                    if self._layout[index]:
+                        virt_bit = self._layout[index]
+                        try:
+                            virt_reg = next(
+                                reg for reg in self._layout.get_registers() if virt_bit in reg
                             )
-                        )
+                            qubit_name = "${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$".format(
+                                name=virt_reg.name,
+                                index=virt_reg[:].index(virt_bit),
+                                physical=index,
+                            )
+
+                        except StopIteration:
+                            qubit_name = "${{{name}}} \\mapsto {{{physical}}}$".format(
+                                name=virt_bit, physical=index
+                            )
                     else:
-                        qreg_name = "${{{physical}}}$".format(physical=reg.index)
+                        qubit_name = "${{{physical}}}$".format(physical=index)
             else:
-                qreg_name = "{name}".format(name=reg.register.name)
-            qreg_name = _fix_double_script(qreg_name) + initial_qbit
-            text_width = self._get_text_width(qreg_name, fs) * 1.15
+                qubit_name = "{name}".format(name=register.name)
+            qubit_name = _fix_double_script(qubit_name) + initial_qbit
+            text_width = self._get_text_width(qubit_name, fs) * 1.15
 
             if text_width > longest_reg_name_width:
                 longest_reg_name_width = text_width
             pos = -ii
-            self._qreg_dict[ii] = {
+            self._qubit_dict[ii] = {
                 "y": pos,
-                "reg_name": qreg_name,
-                "index": reg.index,
-                "group": reg.register,
+                "reg_name": qubit_name,
+                "index": index,
+                "group": register,
             }
             self._n_lines += 1
 
         # classical register
-        if self._creg:
-            n_creg = self._creg.copy()
-            n_creg.pop(0)
+        if self._clbit:
+            n_clbit = self._clbit.copy()
+            n_clbit.pop(0)
             idx = 0
-            y_off = -len(self._qreg)
-            for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._creg, n_creg)):
+            y_off = -len(self._qubit)
+            for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._clbit, n_clbit)):
                 pos = y_off - idx
+                register = self._bit_locations[reg]["register"]
+                index = self._bit_locations[reg]["index"]
+
                 if self._cregbundle:
-                    creg_name = "{}".format(reg.register.name)
-                    creg_name = _fix_double_script(creg_name) + initial_cbit
-                    text_width = self._get_text_width(reg.register.name, fs) * 1.15
+                    clbit_name = "{}".format(register.name)
+                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
+                    text_width = self._get_text_width(register.name, fs) * 1.15
                     if text_width > longest_reg_name_width:
                         longest_reg_name_width = text_width
-                    self._creg_dict[ii] = {
+                    self._clbit_dict[ii] = {
                         "y": pos,
-                        "reg_name": creg_name,
-                        "index": reg.index,
-                        "group": reg.register,
+                        "reg_name": clbit_name,
+                        "index": index,
+                        "group": register,
                     }
-                    if not (not nreg or reg.register != nreg.register):
+                    if not (not nreg or register != self._bit_locations[nreg]["register"]):
                         continue
                 else:
-                    creg_name = "${}_{{{}}}$".format(reg.register.name, reg.index)
-                    creg_name = _fix_double_script(creg_name) + initial_cbit
-                    text_width = self._get_text_width(reg.register.name, fs) * 1.15
+                    clbit_name = "${}_{{{}}}$".format(register.name, index)
+                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
+                    text_width = self._get_text_width(register.name, fs) * 1.15
                     if text_width > longest_reg_name_width:
                         longest_reg_name_width = text_width
-                    self._creg_dict[ii] = {
+                    self._clbit_dict[ii] = {
                         "y": pos,
-                        "reg_name": creg_name,
-                        "index": reg.index,
-                        "group": reg.register,
+                        "reg_name": clbit_name,
+                        "index": index,
+                        "group": register,
                     }
                 self._n_lines += 1
                 idx += 1
@@ -1039,13 +1038,13 @@ class MatplotlibDrawer:
     def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
         # quantum register
         fs = self._style["fs"]
-        for qreg in self._qreg_dict.values():
-            qreg_name = qreg["reg_name"]
-            y = qreg["y"] - n_fold * (self._n_lines + 1)
+        for qubit in self._qubit_dict.values():
+            qubit_name = qubit["reg_name"]
+            y = qubit["y"] - n_fold * (self._n_lines + 1)
             self._ax.text(
                 self._x_offset - 0.2,
                 y,
-                qreg_name,
+                qubit_name,
                 ha="right",
                 va="center",
                 fontsize=1.25 * fs,
@@ -1056,17 +1055,17 @@ class MatplotlibDrawer:
             self._line([self._x_offset, y], [self._xmax, y], zorder=PORDER_REGLINE)
 
         # classical register
-        this_creg_dict = {}
-        for creg in self._creg_dict.values():
-            creg_name = creg["reg_name"]
-            y = creg["y"] - n_fold * (self._n_lines + 1)
-            if y not in this_creg_dict.keys():
-                this_creg_dict[y] = {"val": 1, "reg_name": creg_name}
+        this_clbit_dict = {}
+        for clbit in self._clbit_dict.values():
+            clbit_name = clbit["reg_name"]
+            y = clbit["y"] - n_fold * (self._n_lines + 1)
+            if y not in this_clbit_dict.keys():
+                this_clbit_dict[y] = {"val": 1, "reg_name": clbit_name}
             else:
-                this_creg_dict[y]["val"] += 1
-        for y, this_creg in this_creg_dict.items():
+                this_clbit_dict[y]["val"] += 1
+        for y, this_clbit in this_clbit_dict.items():
             # cregbundle
-            if this_creg["val"] > 1:
+            if this_clbit["val"] > 1:
                 self._ax.plot(
                     [self._x_offset + 0.2, self._x_offset + 0.3],
                     [y - 0.1, y + 0.1],
@@ -1076,7 +1075,7 @@ class MatplotlibDrawer:
                 self._ax.text(
                     self._x_offset + 0.1,
                     y + 0.1,
-                    str(this_creg["val"]),
+                    str(this_clbit["val"]),
                     ha="left",
                     va="bottom",
                     fontsize=0.8 * fs,
@@ -1087,7 +1086,7 @@ class MatplotlibDrawer:
             self._ax.text(
                 self._x_offset - 0.2,
                 y,
-                this_creg["reg_name"],
+                this_clbit["reg_name"],
                 ha="right",
                 va="center",
                 fontsize=1.25 * fs,
@@ -1160,15 +1159,11 @@ class MatplotlibDrawer:
         # generate coordinate manager
         #
         q_anchors = {}
-        for key, qreg in self._qreg_dict.items():
-            q_anchors[key] = Anchor(
-                reg_num=self._n_lines, yind=qreg["y"], fold=self._fold
-            )
+        for key, qubit in self._qubit_dict.items():
+            q_anchors[key] = Anchor(reg_num=self._n_lines, yind=qubit["y"], fold=self._fold)
         c_anchors = {}
-        for key, creg in self._creg_dict.items():
-            c_anchors[key] = Anchor(
-                reg_num=self._n_lines, yind=creg["y"], fold=self._fold
-            )
+        for key, clbit in self._clbit_dict.items():
+            c_anchors[key] = Anchor(reg_num=self._n_lines, yind=clbit["y"], fold=self._fold)
         #
         # draw the ops
         #
@@ -1184,9 +1179,7 @@ class MatplotlibDrawer:
                 if op.op._directive or op.name == "measure":
                     continue
 
-                base_name = (
-                    None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
-                )
+                base_name = None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
                 gate_text, ctrl_text = self._get_gate_ctrl_text(op)
 
                 # if a standard_gate, no params, and no labels, layer_width is 1
@@ -1211,9 +1204,7 @@ class MatplotlibDrawer:
                     if op.name == "initialize":
                         param = "[%s]" % param
                     param = "${}$".format(param)
-                    param_width = (
-                        self._get_text_width(param, fontsize=sfs, param=True) + 0.08
-                    )
+                    param_width = self._get_text_width(param, fontsize=sfs, param=True) + 0.08
                 else:
                     param_width = 0.0
 
@@ -1230,10 +1221,7 @@ class MatplotlibDrawer:
                 else:
                     gate_width = self._get_text_width(gate_text, fontsize=fs) + 0.10
                     # add .21 for the qubit numbers on the left of the multibit gates
-                    if (
-                        op.name not in _standard_1q_gates
-                        and base_name not in _standard_1q_gates
-                    ):
+                    if op.name not in _standard_1q_gates and base_name not in _standard_1q_gates:
                         gate_width += 0.21
 
                 box_width = max(gate_width, ctrl_width, param_width, WID)
@@ -1246,25 +1234,29 @@ class MatplotlibDrawer:
             # draw the gates in this layer
             #
             for op in layer:
-                base_name = (
-                    None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
-                )
+                base_name = None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
                 gate_text, ctrl_text = self._get_gate_ctrl_text(op)
                 fc, ec, gt, tc, sc, lc = self._get_colors(op)
 
-                # get qreg index
+                # get qubit index
                 q_idxs = []
                 for qarg in op.qargs:
-                    for index, reg in self._qreg_dict.items():
-                        if reg["group"] == qarg.register and reg["index"] == qarg.index:
+                    for index, reg in self._qubit_dict.items():
+                        if (
+                            reg["group"] == self._bit_locations[qarg]["register"]
+                            and reg["index"] == self._bit_locations[qarg]["index"]
+                        ):
                             q_idxs.append(index)
                             break
 
-                # get creg index
+                # get clbit index
                 c_idxs = []
                 for carg in op.cargs:
-                    for index, reg in self._creg_dict.items():
-                        if reg["group"] == carg.register and reg["index"] == carg.index:
+                    for index, reg in self._clbit_dict.items():
+                        if (
+                            reg["group"] == self._bit_locations[carg]["register"]
+                            and reg["index"] == self._bit_locations[carg]["index"]
+                        ):
                             c_idxs.append(index)
                             break
 
@@ -1275,19 +1267,17 @@ class MatplotlibDrawer:
                     for ii in q_idxs:
                         q_anchors[ii].set_index(this_anc, layer_width)
 
-                # qreg coordinate
+                # qubit coordinate
                 q_xy = [
-                    q_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
-                    for ii in q_idxs
+                    q_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset) for ii in q_idxs
                 ]
-                # creg coordinate
+                # clbit coordinate
                 c_xy = [
-                    c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
-                    for ii in c_idxs
+                    c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset) for ii in c_idxs
                 ]
-                # bottom and top point of qreg
-                qreg_b = min(q_xy, key=lambda xy: xy[1])
-                qreg_t = max(q_xy, key=lambda xy: xy[1])
+                # bottom and top point of qubit
+                qubit_b = min(q_xy, key=lambda xy: xy[1])
+                qubit_t = max(q_xy, key=lambda xy: xy[1])
 
                 # update index based on the value from plotting
                 this_anc = q_anchors[q_idxs[0]].gate_anchor
@@ -1307,16 +1297,16 @@ class MatplotlibDrawer:
                     param = ""
 
                 # conditional gate
-                if op.condition:
+                if op.type == "op" and op.op.condition:
                     c_xy = [
                         c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
-                        for ii in self._creg_dict
+                        for ii in self._clbit_dict
                     ]
                     mask = 0
-                    for index, cbit in enumerate(self._creg):
-                        if cbit.register == op.condition[0]:
+                    for index, cbit in enumerate(self._clbit):
+                        if self._bit_locations[cbit]["register"] == op.op.condition[0]:
                             mask |= 1 << index
-                    val = op.condition[1]
+                    val = op.op.condition[1]
                     # cbit list to consider
                     fmt_c = "{{:0{}b}}".format(len(c_xy))
                     cmask = list(fmt_c.format(mask))[::-1]
@@ -1335,8 +1325,8 @@ class MatplotlibDrawer:
                                     self._conditional(xy, istrue=False)
                                 xy_plot.append(xy)
                             v_ind += 1
-                    creg_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
-                    xpos, ypos = creg_b
+                    clbit_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
+                    xpos, ypos = clbit_b
                     self._ax.text(
                         xpos,
                         ypos - 0.3 * HIG,
@@ -1348,20 +1338,18 @@ class MatplotlibDrawer:
                         clip_on=True,
                         zorder=PORDER_TEXT,
                     )
-                    self._line(
-                        qreg_t, creg_b, lc=self._style["cc"], ls=self._style["cline"]
-                    )
+                    self._line(qubit_t, clbit_b, lc=self._style["cc"], ls=self._style["cline"])
                 #
                 # draw special gates
                 #
                 if op.name == "measure":
-                    vv = self._creg_dict[c_idxs[0]]["index"]
+                    vv = self._clbit_dict[c_idxs[0]]["index"]
                     self._measure(q_xy[0], c_xy[0], vv, fc=fc, ec=ec, gt=gt, sc=sc)
 
                 elif op.op._directive:
                     _barriers = {"coord": [], "group": []}
                     for index, qbit in enumerate(q_idxs):
-                        q_group = self._qreg_dict[qbit]["group"]
+                        q_group = self._qubit_dict[qbit]["group"]
                         if q_group not in _barriers["group"]:
                             _barriers["group"].append(q_group)
                         _barriers["coord"].append(q_xy[index])
@@ -1371,56 +1359,30 @@ class MatplotlibDrawer:
                 elif op.name == "initialize":
                     vec = "$[{}]$".format(param.replace("$", ""))
                     if len(q_xy) == 1:
-                        self._gate(
-                            q_xy[0],
-                            fc=fc,
-                            ec=ec,
-                            gt=gt,
-                            sc=sc,
-                            text=gate_text,
-                            subtext=vec,
-                        )
+                        self._gate(q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec)
                     else:
                         self._multiqubit_gate(
-                            q_xy,
-                            fc=fc,
-                            ec=ec,
-                            gt=gt,
-                            sc=sc,
-                            text=gate_text,
-                            subtext=vec,
+                            q_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec
                         )
                 elif isinstance(op.op, Delay):
                     param_text = "(%s)" % param
                     if op.op.unit:
                         param_text += "[%s]" % op.op.unit
                     self._gate(
-                        q_xy[0],
-                        fc=fc,
-                        ec=ec,
-                        gt=gt,
-                        sc=sc,
-                        text=gate_text,
-                        subtext=param_text,
+                        q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=param_text
                     )
                 #
                 # draw single qubit gates
                 #
                 elif len(q_xy) == 1:
                     self._gate(
-                        q_xy[0],
-                        fc=fc,
-                        ec=ec,
-                        gt=gt,
-                        sc=sc,
-                        text=gate_text,
-                        subtext=str(param),
+                        q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=str(param)
                     )
                 #
                 # draw controlled and special gates
                 #
-                # cz gate
-                elif op.name == "cz":
+                # cz and mcz gates
+                elif op.name != "z" and base_name == "z":
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     self._set_ctrl_bits(
                         op.op.ctrl_state,
@@ -1431,8 +1393,8 @@ class MatplotlibDrawer:
                         text=ctrl_text,
                         qargs=op.qargs,
                     )
-                    self._ctrl_qubit(q_xy[1], fc=ec, ec=ec, tc=tc)
-                    self._line(qreg_b, qreg_t, lc=lc, zorder=PORDER_LINE + 1)
+                    self._ctrl_qubit(q_xy[-1], fc=ec, ec=ec, tc=tc)
+                    self._line(qubit_b, qubit_t, lc=lc, zorder=PORDER_LINE + 1)
 
                 # cu1, cp, rzz, and controlled rzz gates (sidetext gates)
                 elif op.name == "rzz" or base_name in ["u1", "p", "rzz"]:
@@ -1457,17 +1419,15 @@ class MatplotlibDrawer:
                     else:
                         stext = "ZZ"
                     self._sidetext(
-                        qreg_b,
-                        tc=tc,
-                        text="{}".format(stext) + " " + "({})".format(param),
+                        qubit_b, tc=tc, text="{}".format(stext) + " " + "({})".format(param)
                     )
-                    self._line(qreg_b, qreg_t, lc=lc)
+                    self._line(qubit_b, qubit_t, lc=lc)
 
                 # swap gate
                 elif op.name == "swap":
                     self._swap(q_xy[0], color=lc)
                     self._swap(q_xy[1], color=lc)
-                    self._line(qreg_b, qreg_t, lc=lc)
+                    self._line(qubit_b, qubit_t, lc=lc)
 
                 # cswap gate
                 elif op.name != "swap" and base_name == "swap":
@@ -1483,7 +1443,7 @@ class MatplotlibDrawer:
                     )
                     self._swap(q_xy[num_ctrl_qubits], color=lc)
                     self._swap(q_xy[num_ctrl_qubits + 1], color=lc)
-                    self._line(qreg_b, qreg_t, lc=lc)
+                    self._line(qubit_b, qubit_t, lc=lc)
 
                 # all other controlled gates
                 elif isinstance(op.op, ControlledGate):
@@ -1498,7 +1458,7 @@ class MatplotlibDrawer:
                         text=ctrl_text,
                         qargs=op.qargs,
                     )
-                    self._line(qreg_b, qreg_t, lc=lc)
+                    self._line(qubit_b, qubit_t, lc=lc)
                     if num_qargs == 1 and base_name == "x":
                         tgt_color = self._style["dispcol"]["target"]
                         tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
@@ -1534,6 +1494,7 @@ class MatplotlibDrawer:
                         sc=sc,
                         text=gate_text,
                         subtext="{}".format(param),
+                        q_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext="{}".format(param)
                     )
 
             # adjust the column if there have been barriers encountered, but not plotted
@@ -1546,7 +1507,7 @@ class MatplotlibDrawer:
         #
         # adjust window size and draw horizontal lines
         #
-        anchors = [q_anchors[ii].get_index() for ii in self._qreg_dict]
+        anchors = [q_anchors[ii].get_index() for ii in self._qubit_dict]
         max_anc = max(anchors) if anchors else 0
         n_fold = max(0, max_anc - 1) // self._fold if self._fold > 0 else 0
 

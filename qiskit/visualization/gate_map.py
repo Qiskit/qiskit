@@ -384,9 +384,7 @@ def plot_gate_map(
         qubit_labels = list(range(num_qubits))
     else:
         if len(qubit_labels) != num_qubits:
-            raise QiskitError(
-                "Length of qubit labels " "does not equal number " "of qubits."
-            )
+            raise QiskitError("Length of qubit labels " "does not equal number " "of qubits.")
 
     if num_qubits in mpl_data.keys():
         grid_data = mpl_data[num_qubits]
@@ -481,9 +479,7 @@ def plot_gate_map(
         _idx = [idx[1], -idx[0]]
         width = _GraphDist(qubit_size, ax, True)
         height = _GraphDist(qubit_size, ax, False)
-        ax.add_artist(
-            mpatches.Ellipse(_idx, width, height, color=qubit_color[var], zorder=1)
-        )
+        ax.add_artist(mpatches.Ellipse(_idx, width, height, color=qubit_color[var], zorder=1))
         if label_qubits:
             ax.text(
                 *_idx,
@@ -492,7 +488,7 @@ def plot_gate_map(
                 verticalalignment="center",
                 color=font_color,
                 size=font_size,
-                weight="bold"
+                weight="bold",
             )
     ax.set_xlim([-1, x_max + 1])
     ax.set_ylim([-(y_max + 1), 1])
@@ -550,24 +546,33 @@ def plot_circuit_layout(circuit, backend, view="virtual"):
             plot_circuit_layout(new_circ_lv3, backend)
     """
     if circuit._layout is None:
-        raise QiskitError(
-            "Circuit has no layout. " "Perhaps it has not been transpiled."
-        )
+        raise QiskitError("Circuit has no layout. " "Perhaps it has not been transpiled.")
 
     num_qubits = backend.configuration().n_qubits
 
     qubits = []
     qubit_labels = [None] * num_qubits
 
+    bit_locations = {
+        bit: {"register": register, "index": index}
+        for register in circuit._layout.get_registers()
+        for index, bit in enumerate(register)
+    }
+    for index, qubit in enumerate(circuit._layout.get_virtual_bits()):
+        if qubit not in bit_locations:
+            bit_locations[qubit] = {"register": None, "index": index}
+
     if view == "virtual":
         for key, val in circuit._layout.get_virtual_bits().items():
-            if key.register.name != "ancilla":
+            bit_register = bit_locations[key]["register"]
+            if bit_register is None or bit_register.name != "ancilla":
                 qubits.append(val)
-                qubit_labels[val] = key.index
+                qubit_labels[val] = bit_locations[key]["index"]
 
     elif view == "physical":
         for key, val in circuit._layout.get_physical_bits().items():
-            if val.register.name != "ancilla":
+            bit_register = bit_locations[val]["register"]
+            if bit_register is None or bit_register.name != "ancilla":
                 qubits.append(key)
                 qubit_labels[key] = key
 
@@ -586,9 +591,7 @@ def plot_circuit_layout(circuit, backend, view="virtual"):
         if edge[0] in qubits and edge[1] in qubits:
             lcolors[idx] = "k"
 
-    fig = plot_gate_map(
-        backend, qubit_color=qcolors, qubit_labels=qubit_labels, line_color=lcolors
-    )
+    fig = plot_gate_map(backend, qubit_color=qcolors, qubit_labels=qubit_labels, line_color=lcolors)
     return fig
 
 
@@ -712,10 +715,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     gridspec.GridSpec(nrows=2, ncols=3)
 
     grid_spec = gridspec.GridSpec(
-        12,
-        12,
-        height_ratios=[1] * 11 + [0.5],
-        width_ratios=[2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+        12, 12, height_ratios=[1] * 11 + [0.5], width_ratios=[2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2]
     )
 
     left_ax = plt.subplot(grid_spec[2:10, :1])
@@ -757,9 +757,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         tick_locator = ticker.MaxNLocator(nbins=5)
         cx_cb.locator = tick_locator
         cx_cb.update_ticks()
-        bright_ax.set_title(
-            "CNOT error rate (%) [Avg. = {}]".format(round(avg_cx_err, 3))
-        )
+        bright_ax.set_title("CNOT error rate (%) [Avg. = {}]".format(round(avg_cx_err, 3)))
 
     if num_qubits < 10:
         num_left = num_qubits
@@ -781,17 +779,12 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     if num_right:
         right_ax.barh(
-            range(num_left, num_qubits),
-            read_err[num_left:],
-            align="center",
-            color="#DDBBBA",
+            range(num_left, num_qubits), read_err[num_left:], align="center", color="#DDBBBA"
         )
         right_ax.axvline(avg_read_err, linestyle="--", color="#212121")
         right_ax.set_yticks(range(num_left, num_qubits))
         right_ax.set_xticks([0, round(avg_read_err, 2), round(max_read_err, 2)])
-        right_ax.set_yticklabels(
-            [str(kk) for kk in range(num_left, num_qubits)], fontsize=12
-        )
+        right_ax.set_yticklabels([str(kk) for kk in range(num_left, num_qubits)], fontsize=12)
         right_ax.invert_yaxis()
         right_ax.invert_xaxis()
         right_ax.yaxis.set_label_position("right")
