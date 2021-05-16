@@ -23,20 +23,40 @@ class FakeRueschlikon(FakeBackend):
 
     def __init__(self):
         """
-         1 →  2 →  3 →  4 ←  5 ←  6 →  7 ← 8
-         ↓    ↑    ↓    ↓    ↑    ↓    ↓   ↑
-         0 ← 15 → 14 ← 13 ← 12 → 11 → 10 ← 9
+        1 →  2 →  3 →  4 ←  5 ←  6 →  7 ← 8
+        ↓    ↑    ↓    ↓    ↑    ↓    ↓   ↑
+        0 ← 15 → 14 ← 13 ← 12 → 11 → 10 ← 9
         """
-        cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
-                [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10],
-                [11, 10], [12, 5], [12, 11], [12, 13], [13, 4],
-                [13, 14], [15, 0], [15, 2], [15, 14]]
+        cmap = [
+            [1, 0],
+            [1, 2],
+            [2, 3],
+            [3, 4],
+            [3, 14],
+            [5, 4],
+            [6, 5],
+            [6, 7],
+            [6, 11],
+            [7, 10],
+            [8, 7],
+            [9, 8],
+            [9, 10],
+            [11, 10],
+            [12, 5],
+            [12, 11],
+            [12, 13],
+            [13, 4],
+            [13, 14],
+            [15, 0],
+            [15, 2],
+            [15, 14],
+        ]
 
         configuration = QasmBackendConfiguration(
-            backend_name='fake_rueschlikon',
-            backend_version='0.0.0',
+            backend_name="fake_rueschlikon",
+            backend_version="0.0.0",
             n_qubits=16,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+            basis_gates=["u1", "u2", "u3", "cx", "id"],
             simulator=False,
             local=True,
             conditional=False,
@@ -44,7 +64,7 @@ class FakeRueschlikon(FakeBackend):
             memory=False,
             max_shots=65536,
             max_experiments=900,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            gates=[GateConfig(name="TODO", parameters=[], qasm_def="TODO")],
             coupling_map=cmap,
         )
 
@@ -56,20 +76,40 @@ class FakeLegacyRueschlikon(FakeLegacyBackend):
 
     def __init__(self):
         """
-         1 →  2 →  3 →  4 ←  5 ←  6 →  7 ← 8
-         ↓    ↑    ↓    ↓    ↑    ↓    ↓   ↑
-         0 ← 15 → 14 ← 13 ← 12 → 11 → 10 ← 9
+        1 →  2 →  3 →  4 ←  5 ←  6 →  7 ← 8
+        ↓    ↑    ↓    ↓    ↑    ↓    ↓   ↑
+        0 ← 15 → 14 ← 13 ← 12 → 11 → 10 ← 9
         """
-        cmap = [[1, 0], [1, 2], [2, 3], [3, 4], [3, 14], [5, 4], [6, 5],
-                [6, 7], [6, 11], [7, 10], [8, 7], [9, 8], [9, 10],
-                [11, 10], [12, 5], [12, 11], [12, 13], [13, 4],
-                [13, 14], [15, 0], [15, 2], [15, 14]]
+        cmap = [
+            [1, 0],
+            [1, 2],
+            [2, 3],
+            [3, 4],
+            [3, 14],
+            [5, 4],
+            [6, 5],
+            [6, 7],
+            [6, 11],
+            [7, 10],
+            [8, 7],
+            [9, 8],
+            [9, 10],
+            [11, 10],
+            [12, 5],
+            [12, 11],
+            [12, 13],
+            [13, 4],
+            [13, 14],
+            [15, 0],
+            [15, 2],
+            [15, 14],
+        ]
 
         configuration = QasmBackendConfiguration(
-            backend_name='fake_rueschlikon',
-            backend_version='0.0.0',
+            backend_name="fake_rueschlikon",
+            backend_version="0.0.0",
             n_qubits=16,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+            basis_gates=["u1", "u2", "u3", "cx", "id"],
             simulator=False,
             local=True,
             conditional=False,
@@ -77,7 +117,7 @@ class FakeLegacyRueschlikon(FakeLegacyBackend):
             memory=False,
             max_shots=65536,
             max_experiments=900,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            gates=[GateConfig(name="TODO", parameters=[], qasm_def="TODO")],
             coupling_map=cmap,
         )
 

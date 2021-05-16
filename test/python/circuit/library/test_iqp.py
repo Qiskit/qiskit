@@ -30,12 +30,12 @@ class TestIQPLibrary(QiskitTestCase):
         circuit = IQP(interactions=np.array([[6, 5, 1], [5, 4, 3], [1, 3, 2]]))
         expected = QuantumCircuit(3)
         expected.h([0, 1, 2])
-        expected.cp(5*np.pi/2, 0, 1)
-        expected.cp(3*np.pi/2, 1, 2)
-        expected.cp(1*np.pi/2, 0, 2)
-        expected.p(6*np.pi/8, 0)
-        expected.p(4*np.pi/8, 1)
-        expected.p(2*np.pi/8, 2)
+        expected.cp(5 * np.pi / 2, 0, 1)
+        expected.cp(3 * np.pi / 2, 1, 2)
+        expected.cp(1 * np.pi / 2, 0, 2)
+        expected.p(6 * np.pi / 8, 0)
+        expected.p(4 * np.pi / 8, 1)
+        expected.p(2 * np.pi / 8, 2)
         expected.h([0, 1, 2])
         expected = Operator(expected)
         simulated = Operator(circuit)
@@ -46,5 +46,5 @@ class TestIQPLibrary(QiskitTestCase):
         self.assertRaises(CircuitError, IQP, [[6, 5], [2, 4]])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

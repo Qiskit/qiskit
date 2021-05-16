@@ -21,9 +21,9 @@ from qiskit.test.mock import fake_qasm_backend
 class FakeBurlington(fake_qasm_backend.FakeQasmBackend):
     """A fake 5 qubit backend.
 
-     0 ↔ 1 ↔ 3 ↔ 4
-         ↕
-         2
+    0 ↔ 1 ↔ 3 ↔ 4
+        ↕
+        2
     """
 
     dirname = os.path.dirname(__file__)
@@ -35,9 +35,9 @@ class FakeBurlington(fake_qasm_backend.FakeQasmBackend):
 class FakeLegacyBurlington(fake_qasm_backend.FakeQasmLegacyBackend):
     """A fake 5 qubit backend.
 
-     0 ↔ 1 ↔ 3 ↔ 4
-         ↕
-         2
+    0 ↔ 1 ↔ 3 ↔ 4
+        ↕
+        2
     """
 
     dirname = os.path.dirname(__file__)
