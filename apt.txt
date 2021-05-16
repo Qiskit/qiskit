@@ -1,9 +1,10 @@
 dvipng
-ghostscript
+ghostscript && sudo apt-get update
 # texlive-fonts-recommended
 # texlive-fonts-extra
 # texlive-generic-recommended
-http://mirrors.edge.kernel.org/ubuntu/pool/universe/t/texlive-extra/texlive-latex-extra_2017.20180305-2_all.deb
+# http://mirrors.edge.kernel.org/ubuntu/pool/universe/t/texlive-extra/texlive-latex-extra_2017.20180305-2_all.deb
+texlive-latex-base
 # texlive-latex-extra
 # texlive-latex-recommended
 # texlive-publishers
