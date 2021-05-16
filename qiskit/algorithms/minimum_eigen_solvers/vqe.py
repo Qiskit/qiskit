@@ -38,6 +38,7 @@ from qiskit.opflow import (
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
+from qiskit.utils.deprecation import deprecate_function
 from qiskit.utils import QuantumInstance, algorithm_globals
 from ..optimizers import Optimizer, SLSQP
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
@@ -535,6 +536,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return energy_evaluation
 
+    @deprecate_function("""
+The VQE.get_optimal_cost method is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate.
+This information is part of the returned result object and can be
+queried as VQEResult.eigenvalue.""")
     def get_optimal_cost(self) -> float:
         """Get the minimal cost or energy found by the VQE."""
         if self._ret.optimal_point is None:
@@ -543,6 +549,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             )
         return self._ret.optimal_value
 
+    @deprecate_function("""
+The VQE.get_optimal_circuit method is deprecated as of Qiskit Terra
+0.18.0 and will be removed no sooner than 3 months after the releasedate.
+This information is part of the returned result object and can be
+queried as VQEResult.ansatz.bind_parameters(VQEResult.optimal_point).""")
     def get_optimal_circuit(self) -> QuantumCircuit:
         """Get the circuit with the optimal parameters."""
         if self._ret.optimal_point is None:
@@ -552,6 +563,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             )
         return self.ansatz.assign_parameters(self._ret.optimal_parameters)
 
+    @deprecate_function("""
+The VQE.get_optimal_cost method is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate.
+This information is part of the returned result object and can be
+queried as VQEResult.eigenvector.""")
     def get_optimal_vector(self) -> Union[List[float], Dict[str, int]]:
         """Get the simulation outcome of the optimal circuit."""
         if self._ret.optimal_parameters is None:
@@ -584,6 +600,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return min_vector
 
+    @deprecate_function("""
+The VQE.optimal_params property is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate.
+This information is part of the returned result object and can be
+queried as VQEResult.optimal_point.""")
     @property
     def optimal_params(self) -> List[float]:
         """The optimal parameters for the ansatz."""
@@ -625,24 +646,26 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
 def _validate_initial_point(point, ansatz):
     expected_size = ansatz.num_parameters
 
+    # try getting the initial point from the ansatz
+    if point is None and hasattr(ansatz, "preferred_init_points"):
+        point = ansatz.preferred_init_points
     # if the point is None choose a random initial point
+
     if point is None:
-        if hasattr(ansatz, "preferred_init_points"):
-            point = ansatz.preferred_init_points
-        else:
-            # get bounds if ansatz has them set, otherwise use [-2pi, 2pi] for each parameter
-            default_bounds = [(-2 * np.pi, 2 * np.pi)] * expected_size
-            bounds = getattr(ansatz, "parameter_bounds", default_bounds)
+        # get bounds if ansatz has them set, otherwise use [-2pi, 2pi] for each parameter
+        bounds = getattr(ansatz, "parameter_bounds", None)
+        if bounds is None:
+            bounds = [(-2 * np.pi, 2 * np.pi)] * expected_size
 
-            # replace all Nones by [-2pi, 2pi]
-            lower_bounds = []
-            upper_bounds = []
-            for lower, upper in bounds:
-                lower_bounds.append(lower if lower is not None else -2 * np.pi)
-                upper_bounds.append(upper if upper is not None else 2 * np.pi)
+        # replace all Nones by [-2pi, 2pi]
+        lower_bounds = []
+        upper_bounds = []
+        for lower, upper in bounds:
+            lower_bounds.append(lower if lower is not None else -2 * np.pi)
+            upper_bounds.append(upper if upper is not None else 2 * np.pi)
 
-            # sample from within bounds
-            point = algorithm_globals.random.uniform(lower_bounds, upper_bounds)
+        # sample from within bounds
+        point = algorithm_globals.random.uniform(lower_bounds, upper_bounds)
 
     elif len(point) != expected_size:
         raise ValueError(f'The dimension of the initial point ({len(point)}) does not match the '
