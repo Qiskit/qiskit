@@ -146,7 +146,7 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
             after the GUI is closed.
 
     Raises:
-        ImportError: Must have Matplotlib (and/or IPython) installed.
+        MissingOptionalLibraryError: Must have Matplotlib (and/or IPython) installed.
         VisualizationError: Given gate(s) are not supported.
 
     """

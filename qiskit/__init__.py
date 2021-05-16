@@ -91,7 +91,7 @@ class AerWrapper:
                 from qiskit.providers import aer
 
                 self.aer = aer.Aer
-            except ImportError as exc:
+            except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     "qiskit-aer", "Aer provider", "pip install qiskit-aer"
                 ) from ex

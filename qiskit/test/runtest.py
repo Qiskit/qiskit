@@ -80,7 +80,7 @@ class RunTest:
                 raised - aborting the test run as this is inside the runner
                 machinery rather than the confined context of the test.
         Raises:
-            ImportError: If test requirements aren't installed
+            MissingOptionalLibraryError: If test requirements aren't installed
         """
         if not HAS_TESTTOOLS:
             raise MissingOptionalLibraryError(

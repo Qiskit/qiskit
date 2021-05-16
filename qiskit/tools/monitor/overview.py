@@ -57,7 +57,7 @@ def backend_monitor(backend):
         backend (IBMQBackend): Backend to monitor.
     Raises:
         QiskitError: Input is not a IBMQ backend.
-        ImportError: If qiskit-ibmq-provider is not installed
+        MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
     """
     try:
         from qiskit.providers.ibmq import IBMQBackend

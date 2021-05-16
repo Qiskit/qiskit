@@ -308,7 +308,7 @@ class WaveformDrawer:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
 
         Raises:
-            ImportError: If matplotlib is not installed
+            MissingOptionalLibraryError: If matplotlib is not installed
         """
         # If these self.style.dpi or self.style.figsize are None, they will
         # revert back to their default rcParam keys.
@@ -385,7 +385,7 @@ class ScheduleDrawer:
         Args:
             style: Style sheet for pulse schedule visualization.
         Raises:
-            ImportError: If matplotlib is not installed
+            MissingOptionalLibraryError: If matplotlib is not installed
         """
         if not HAS_MATPLOTLIB:
             raise MissingOptionalLibraryError(

@@ -224,7 +224,7 @@ def array_to_latex(array, precision=5, prefix="", source=False, max_size=8):
     Raises:
         TypeError: If array can not be interpreted as a numerical numpy array.
         ValueError: If the dimension of array is not 1 or 2.
-        ImportError: If ``source`` is ``False`` and ``IPython.display.Latex`` cannot be
+        MissingOptionalLibraryError: If ``source`` is ``False`` and ``IPython.display.Latex`` cannot be
                      imported.
     """
     try:

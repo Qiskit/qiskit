@@ -24,6 +24,7 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 import retworkx as rx
 from qiskit.transpiler.exceptions import CouplingError
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
 class CouplingMap:

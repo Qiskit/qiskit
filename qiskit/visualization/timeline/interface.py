@@ -400,7 +400,7 @@ def draw(
                 libname="Matplotlib",
                 name="timeline drawer",
                 pip_install="pip install matplotlib",
-            )
+            ) from ex
         plotter_api = MplPlotter(canvas=canvas, axis=axis)
         plotter_api.draw()
     else:

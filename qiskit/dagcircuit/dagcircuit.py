@@ -122,7 +122,7 @@ class DAGCircuit:
             DAGCircuit: The dagcircuit object created from the networkx
                 MultiDiGraph.
         Raises:
-            ImportError: If networkx is not installed
+            MissingOptionalLibraryError: If networkx is not installed
             DAGCircuitError: If input networkx graph is malformed
         """
         try:

@@ -1342,7 +1342,7 @@ class QuantumCircuit:
             str: If formatted=False.
 
         Raises:
-            ImportError: If pygments is not installed and ``formatted`` is
+            MissingOptionalLibraryError: If pygments is not installed and ``formatted`` is
                 ``True``.
             QasmError: If circuit has free parameters.
         """

@@ -57,7 +57,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
     Raises:
         VisualizationError: when style is not recognized.
-        ImportError: when pydot or pillow are not installed.
+        MissingOptionalLibraryError: when pydot or pillow are not installed.
 
     Example:
         .. jupyter-execute::

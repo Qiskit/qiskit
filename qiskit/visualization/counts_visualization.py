@@ -82,7 +82,7 @@ def plot_histogram(
             kwarg is not set.
 
     Raises:
-        ImportError: Matplotlib not available.
+        MissingOptionalLibraryError: Matplotlib not available.
         VisualizationError: When legend is provided and the length doesn't
             match the input data.
 

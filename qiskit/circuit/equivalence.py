@@ -148,7 +148,7 @@ class EquivalenceLibrary:
                 IPython SVG if in a jupyter notebook, or as a PIL.Image otherwise.
 
         Raises:
-            ImportError: when pydot or pillow are not installed.
+            MissingOptionalLibraryError: when pydot or pillow are not installed.
         """
         try:
             import pydot
