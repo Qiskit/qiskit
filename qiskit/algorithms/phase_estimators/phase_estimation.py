@@ -185,10 +185,9 @@ class PhaseEstimation(PhaseEstimator):
 
         return phases
 
-    def estimate_from_pe_circuit(self,
-                                 pe_circuit: QuantumCircuit,
-                                 num_unitary_qubits: int
-                                 ) -> PhaseEstimationResult:
+    def estimate_from_pe_circuit(
+        self, pe_circuit: QuantumCircuit, num_unitary_qubits: int
+    ) -> PhaseEstimationResult:
         """Run the the phase estimation algorithm on a phase estimation circuit
 
         Args:
@@ -201,16 +200,19 @@ class PhaseEstimation(PhaseEstimator):
         self._add_measurement_if_required(pe_circuit)
         circuit_result = self._quantum_instance.execute(pe_circuit)
         phases = self._compute_phases(num_unitary_qubits, circuit_result)
-        return PhaseEstimationResult(self._num_evaluation_qubits, circuit_result=circuit_result,
-                                     phases=phases)
+        return PhaseEstimationResult(
+            self._num_evaluation_qubits, circuit_result=circuit_result, phases=phases
+        )
 
     # pylint: disable=missing-raises-doc
     # pylint: disable=missing-param-doc
-    def estimate(self,
-                 unitary: Optional[QuantumCircuit] = None,
-                 state_preparation: Optional[QuantumCircuit] = None,
-                 pe_circuit: Optional[QuantumCircuit] = None,
-                 num_unitary_qubits: Optional[int] = None) -> PhaseEstimationResult:
+    def estimate(
+        self,
+        unitary: Optional[QuantumCircuit] = None,
+        state_preparation: Optional[QuantumCircuit] = None,
+        pe_circuit: Optional[QuantumCircuit] = None,
+        num_unitary_qubits: Optional[int] = None,
+    ) -> PhaseEstimationResult:
         """Build a phase estimation circuit and run the corresponding algorithm.
 
         Args:
@@ -231,11 +233,15 @@ class PhaseEstimation(PhaseEstimator):
             num_unitary_qubits = unitary.num_qubits
 
         elif pe_circuit is not None:
-            warnings.warn('Passing `pe_circuit` to the PhaseEstimation.estimate() method '
-                          'is deprecated as of 0.18, and will be removed no earlier than '
-                          '3 months after that release date. '
-                          'You should use the PhaseEstimation.estimate_from_pe_circuit() method '
-                          'instead.', DeprecationWarning, stacklevel=2)
+            warnings.warn(
+                "Passing `pe_circuit` to the PhaseEstimation.estimate() method "
+                "is deprecated as of 0.18, and will be removed no earlier than "
+                "3 months after that release date. "
+                "You should use the PhaseEstimation.estimate_from_pe_circuit() method "
+                "instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         else:
             raise ValueError("One of `pe_circuit` and `unitary` must be passed.")
