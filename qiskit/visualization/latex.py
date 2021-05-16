@@ -133,13 +133,21 @@ class QCircuitImage:
             if bit not in self.bit_locations:
                 self.bit_locations[bit] = {"register": None, "index": index}
 
+        self.cregbundle = cregbundle
+        # If there is any custom instruction that uses clasiscal bits
+        # then cregbundle is forced to be False.
+        for layer in self.ops:
+            for op in layer:
+                if op.name not in {"measure"} and op.cargs:
+                    self.cregbundle = False
+
         self.cregs_bits = [self.bit_locations[bit]["register"] for bit in clbits]
         self.img_regs = {bit: ind for ind, bit in enumerate(self.ordered_bits)}
-        if cregbundle:
+
+        if self.cregbundle:
             self.img_width = len(qubits) + len(self.cregs)
         else:
             self.img_width = len(self.img_regs)
-        self.cregbundle = cregbundle
         self.global_phase = global_phase
 
         self._style = DefaultStyle().style
@@ -463,30 +471,39 @@ class QCircuitImage:
                     gate_text = self._add_params_to_gate_text(op, gate_text)
                     gate_text = generate_latex_label(gate_text)
                     wire_list = [self.img_regs[qarg] for qarg in op.qargs]
+                    if op.cargs:
+                        cwire_list = [self.img_regs[carg] for carg in op.cargs]
+                    else:
+                        cwire_list = []
 
                     if op.op.condition:
                         self._add_condition(op, wire_list, column)
 
-                    if len(wire_list) == 1:
+                    if len(wire_list) == 1 and not op.cargs:
                         self._latex[wire_list[0]][column] = "\\gate{%s}" % gate_text
 
                     elif isinstance(op.op, ControlledGate):
                         num_cols_op = self._build_ctrl_gate(op, gate_text, wire_list, column)
                     else:
-                        num_cols_op = self._build_multi_gate(op, gate_text, wire_list, column)
+                        num_cols_op = self._build_multi_gate(
+                            op, gate_text, wire_list, cwire_list, column
+                        )
 
                 num_cols_layer = max(num_cols_layer, num_cols_op)
 
             column += num_cols_layer
 
-    def _build_multi_gate(self, op, gate_text, wire_list, col):
+    def _build_multi_gate(self, op, gate_text, wire_list, cwire_list, col):
         """Add a multiple wire gate to the _latex list"""
+        cwire_start = len(self.qubit_list)
         num_cols_op = 1
         if isinstance(op.op, (SwapGate, RZZGate)):
             num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
         else:
             wire_min = min(wire_list)
             wire_max = max(wire_list)
+            if cwire_list and not self.cregbundle:
+                wire_max = max(cwire_list)
             wire_ind = wire_list.index(wire_min)
             self._latex[wire_min][col] = (
                 "\\multigate{%s}{%s}_" % (wire_max - wire_min, gate_text)
@@ -494,15 +511,20 @@ class QCircuitImage:
                 + "{%s}" % wire_ind
             )
             for wire in range(wire_min + 1, wire_max + 1):
-                if wire in wire_list:
-                    wire_ind = wire_list.index(wire)
+                if wire < cwire_start:
+                    ghost_box = "\\ghost{%s}" % gate_text
+                    if wire in wire_list:
+                        wire_ind = wire_list.index(wire)
+                else:
+                    ghost_box = "\\cghost{%s}" % gate_text
+                    if wire in cwire_list:
+                        wire_ind = cwire_list.index(wire)
+                if wire in wire_list + cwire_list:
                     self._latex[wire][col] = (
-                        "\\ghost{%s}_" % gate_text
-                        + "<" * (len(str(wire_ind)) + 2)
-                        + "{%s}" % wire_ind
+                        ghost_box + "_" + "<" * (len(str(wire_ind)) + 2) + "{%s}" % wire_ind
                     )
                 else:
-                    self._latex[wire][col] = "\\ghost{%s}" % gate_text
+                    self._latex[wire][col] = ghost_box
         return num_cols_op
 
     def _build_ctrl_gate(self, op, gate_text, wire_list, col):
@@ -543,7 +565,7 @@ class QCircuitImage:
                 else:
                     self._add_controls(wire_list, ctrlqargs, ctrl_state, col)
 
-                self._build_multi_gate(op, gate_text, wireqargs, col)
+                self._build_multi_gate(op, gate_text, wireqargs, [], col)
         return num_cols_op
 
     def _build_symmetric_gate(self, op, gate_text, wire_list, col):
