@@ -107,13 +107,18 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
         )
     try:
         import pydot
-            raise ImportError
     except ImportError as ex:
         raise MissingOptionalLibraryError(
             libname="pydot", name="pass_manager_drawer", pip_install="pip install pydot"
+        ) from ex
 
     if not HAS_GRAPHVIZ:
-        raise MissingOptionalLibraryError(libname="graphviz", name="pass_manager_drawer", pip_install="Graphviz can be installed using 'brew install graphviz' on Mac or by downloading it from the website.")
+        raise MissingOptionalLibraryError(
+            libname="graphviz",
+            name="pass_manager_drawer",
+            pip_install="Graphviz can be installed using 'brew install graphviz' on Mac or by "
+                        "downloading it from the website.",
+        )
 
     passes = pass_manager.passes()
 

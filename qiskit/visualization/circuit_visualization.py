@@ -39,7 +39,8 @@ except ImportError:
     HAS_PIL = False
 
 from qiskit import user_config
-from qiskit.visualization import exceptions
+from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization import latex as _latex
 from qiskit.visualization import text as _text
 from qiskit.visualization import utils
@@ -248,7 +249,7 @@ def circuit_drawer(
             cregbundle=cregbundle,
         )
     else:
-        raise exceptions.VisualizationError(
+        raise VisualizationError(
             "Invalid output type %s selected. The only valid choices "
             "are text, latex, latex_source, and mpl" % output
         )
@@ -430,7 +431,7 @@ def _latex_circuit_drawer(
             raise
         else:
             if not HAS_PIL:
-                raise exceptions.MissingOptionalLibraryError(
+                raise MissingOptionalLibraryError(
                     libname="pillow",
                     name="latex drawer",
                     pip_install="pip install pillow",
