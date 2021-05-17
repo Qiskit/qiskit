@@ -137,7 +137,7 @@ while others do not.  The Hadamand (:math:`H`) gate, along with the parameterize
 while gates such as :math:`Z`, :math:`rZ(\theta)`, :math:`S`, and :math:`T` impart phases that
 can be used for interference.  Two-qubit gates like the :math:`CX` gate are used
 to generate entanglement between pairs of qubits, or to "kick" the phase from
-one qubit ot another.   In contrast to gates, operations like "measurement", represented by
+one qubit to another.   In contrast to gates, operations like "measurement", represented by
 the meter symbol in a box with a line connecting to a "target" wire, extract partial
 information about a qubit's state, often losing the phase, to be able to represent it as
 a classical bit and write that classical bit onto the target wire (often a fully classical
