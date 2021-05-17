@@ -47,13 +47,12 @@ class QNSPSA(SPSA):
     increasing the number of ``resamplings``. This leads to a Monte Carlo-style convergence to
     the exact, analytic value.
 
-    Example:
+    Examples:
 
         This short example runs QN-SPSA for the ground state calculation of the ``Z ^ Z``
-        observable where the ansatz is a ``PauliTwoDesign`` circuit. For a real experiment,
-        the number of iterations (here 10) should be increased to several hundred steps.
+        observable where the ansatz is a ``PauliTwoDesign`` circuit.
 
-        .. jupyter-execute::
+        .. code-block:: python
 
             import numpy as np
             from qiskit.algorithms.optimizers import QNSPSA
@@ -69,9 +68,14 @@ class QNSPSA(SPSA):
                 return np.real((StateFn(observable, is_measurement=True) @ StateFn(bound)).eval())
 
             fidelity = QNSPSA.get_fidelity(ansatz)
-            qnspsa = QNSPSA(fidelity, maxiter=10)
+            qnspsa = QNSPSA(fidelity, maxiter=300)
             result = qnspsa.optimize(ansatz.num_parameters, loss, initial_point=initial_point)
 
+
+    References:
+
+        [1] J. Gacon et al, "Simultaneous Perturbation Stochastic Approximation of the Quantum
+        Fisher Information", `arXiv:2103.09232 <https://arxiv.org/abs/2103.09232>`_
 
     """
 

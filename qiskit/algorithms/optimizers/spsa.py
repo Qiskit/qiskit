@@ -70,6 +70,39 @@ class SPSA(Optimizer):
     (Note that either both or none must be set.) For further details on the automatic calibration,
     please refer to the supplementary information section IV. of [3].
 
+
+    Examples:
+
+        This short example runs SPSA for the ground state calculation of the ``Z ^ Z``
+        observable where the ansatz is a ``PauliTwoDesign`` circuit.
+
+        .. code-block:: python
+
+            import numpy as np
+            from qiskit.algorithms.optimizers import SPSA
+            from qiskit.circuit.library import PauliTwoDesign
+            from qiskit.opflow import Z, StateFn
+
+            ansatz = PauliTwoDesign(2, reps=1, seed=2)
+            observable = Z ^ Z
+            initial_point = np.random.random(ansatz.num_parameters)
+
+            def loss(x):
+                bound = ansatz.bind_parameters(x)
+                return np.real((StateFn(observable, is_measurement=True) @ StateFn(bound)).eval())
+
+            spsa = SPSA(maxiter=300)
+            result = spsa.optimize(ansatz.num_parameters, loss, initial_point=initial_point)
+
+        To use the Hessian information, i.e. 2-SPSA, you can add `second_order=True` to the
+        initializer of the `SPSA` class, the rest of the code remains the same.
+
+        .. code-block:: python
+
+            two_spsa = SPSA(maxiter=300, second_order=True)
+            result = two_spsa.optimize(ansatz.num_parameters, loss, initial_point=initial_point)
+
+
     References:
 
         [1]: J. C. Spall (1998). An Overview of the Simultaneous Perturbation Method for Efficient
