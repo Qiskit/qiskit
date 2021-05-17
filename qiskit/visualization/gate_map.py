@@ -514,7 +514,7 @@ def _color_faulty_backend(
         return
 
     cmap = backend.configuration().coupling_map
-    from qiskit.compiler.transpiler import _connected_working_qubits
+    from qiskit.compiler.transpiler import _connected_working_qubits   # pylint: disable=cyclic-import
 
     connected_working_qubits = _connected_working_qubits(backend)
 
@@ -525,7 +525,7 @@ def _color_faulty_backend(
             qubit_color[qubit] = faulty_color
 
     for idx, edge in enumerate(cmap):
-        if any([node not in connected_working_qubits for node in edge]):
+        if any(node not in connected_working_qubits for node in edge):
             line_color[idx] = disabled_color
         if edge in faulty_edges:
             line_color[idx] = faulty_color
