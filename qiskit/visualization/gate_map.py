@@ -514,7 +514,9 @@ def _color_faulty_backend(
         return
 
     cmap = backend.configuration().coupling_map
-    from qiskit.compiler.transpiler import _connected_working_qubits   # pylint: disable=cyclic-import
+    from qiskit.compiler.transpiler import (
+        _connected_working_qubits,
+    )  # pylint: disable=cyclic-import
 
     connected_working_qubits = _connected_working_qubits(backend)
 
