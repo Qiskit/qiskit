@@ -20,10 +20,10 @@ from .hamiltonian_phase_estimation import HamiltonianPhaseEstimation
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
 
 __all__ = [
-    'PhaseEstimator',
-    'PhaseEstimation',
-    'PhaseEstimationResult',
-    'PhaseEstimationScale',
-    'HamiltonianPhaseEstimation',
-    'HamiltonianPhaseEstimationResult'
+    "PhaseEstimator",
+    "PhaseEstimation",
+    "PhaseEstimationResult",
+    "PhaseEstimationScale",
+    "HamiltonianPhaseEstimation",
+    "HamiltonianPhaseEstimationResult",
 ]

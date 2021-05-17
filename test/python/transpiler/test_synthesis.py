@@ -55,18 +55,20 @@ class TestGraySynth(QiskitTestCase):
         q_5: |0>──────────────────────────────────────────■────────────────────────■────────────
 
         """
-        cnots = [[0, 1, 1, 0, 1, 1],
-                 [0, 1, 1, 0, 1, 0],
-                 [0, 0, 0, 1, 1, 0],
-                 [1, 0, 0, 1, 1, 1],
-                 [0, 1, 0, 0, 1, 0],
-                 [0, 1, 0, 0, 1, 0]]
-        angles = ['s', 't', 'z', 's', 't', 't']
+        cnots = [
+            [0, 1, 1, 0, 1, 1],
+            [0, 1, 1, 0, 1, 0],
+            [0, 0, 0, 1, 1, 0],
+            [1, 0, 0, 1, 1, 1],
+            [0, 1, 0, 0, 1, 0],
+            [0, 1, 0, 0, 1, 0],
+        ]
+        angles = ["s", "t", "z", "s", "t", "t"]
         c_gray = graysynth(cnots, angles)
         unitary_gray = UnitaryGate(Operator(c_gray))
 
         # Create the circuit displayed above:
-        q = QuantumRegister(6, 'q')
+        q = QuantumRegister(6, "q")
         c_compare = QuantumCircuit(q)
         c_compare.s(q[3])
         c_compare.cx(q[2], q[3])
@@ -117,16 +119,13 @@ class TestGraySynth(QiskitTestCase):
                        │                   │                   │                   │
         q_3: |0>───────■───────────────────■───────────────────■───────────────────■──
         """
-        cnots = [[0, 1, 1, 1, 1, 1],
-                 [1, 0, 0, 1, 1, 1],
-                 [1, 0, 0, 1, 0, 0],
-                 [0, 0, 1, 0, 1, 0]]
-        angles = ['t'] * 6
+        cnots = [[0, 1, 1, 1, 1, 1], [1, 0, 0, 1, 1, 1], [1, 0, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0]]
+        angles = ["t"] * 6
         c_gray = graysynth(cnots, angles)
         unitary_gray = UnitaryGate(Operator(c_gray))
 
         # Create the circuit displayed above:
-        q = QuantumRegister(4, 'q')
+        q = QuantumRegister(4, "q")
         c_compare = QuantumCircuit(q)
         c_compare.t(q[0])
         c_compare.cx(q[2], q[1])
@@ -172,15 +171,13 @@ class TestGraySynth(QiskitTestCase):
         q_2: |0>────────────────────┤ T ├┤ X ├┤ T*├┤ X ├┤ T*├┤ X ├┤ T ├┤ X ├─────
                                     └───┘└───┘└───┘└───┘└───┘└───┘└───┘└───┘
         """
-        cnots = [[1, 0, 0, 1, 1, 0, 1],
-                 [0, 1, 0, 1, 0, 1, 1],
-                 [0, 0, 1, 0, 1, 1, 1]]
-        angles = ['t', 't', 't', 'tdg', 'tdg', 'tdg', 't']
+        cnots = [[1, 0, 0, 1, 1, 0, 1], [0, 1, 0, 1, 0, 1, 1], [0, 0, 1, 0, 1, 1, 1]]
+        angles = ["t", "t", "t", "tdg", "tdg", "tdg", "t"]
         c_gray = graysynth(cnots, angles)
         unitary_gray = UnitaryGate(Operator(c_gray))
 
         # Create the circuit displayed above:
-        q = QuantumRegister(3, 'q')
+        q = QuantumRegister(3, "q")
         c_compare = QuantumCircuit(q)
         c_compare.t(q[0])
         c_compare.t(q[1])
@@ -232,17 +229,19 @@ class TestPatelMarkovHayes(QiskitTestCase):
         q_5: |0>───────■────────────────────────■───────┤ X ├─────────────────────────
                                                         └───┘
         """
-        state = [[1, 1, 0, 0, 0, 0],
-                 [1, 0, 0, 1, 1, 0],
-                 [0, 1, 0, 0, 1, 0],
-                 [1, 1, 1, 1, 1, 1],
-                 [1, 1, 0, 1, 1, 1],
-                 [0, 0, 1, 1, 1, 0]]
+        state = [
+            [1, 1, 0, 0, 0, 0],
+            [1, 0, 0, 1, 1, 0],
+            [0, 1, 0, 0, 1, 0],
+            [1, 1, 1, 1, 1, 1],
+            [1, 1, 0, 1, 1, 1],
+            [0, 0, 1, 1, 1, 0],
+        ]
         c_patel = cnot_synth(state)
         unitary_patel = UnitaryGate(Operator(c_patel))
 
         # Create the circuit displayed above:
-        q = QuantumRegister(6, 'q')
+        q = QuantumRegister(6, "q")
         c_compare = QuantumCircuit(q)
         c_compare.cx(q[4], q[3])
         c_compare.cx(q[5], q[2])

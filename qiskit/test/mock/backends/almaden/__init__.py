@@ -13,3 +13,4 @@
 """Mock almaden backend"""
 
 from .fake_almaden import FakeAlmaden
+from .fake_almaden import FakeLegacyAlmaden
