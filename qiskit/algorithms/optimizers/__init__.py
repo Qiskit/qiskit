@@ -97,28 +97,29 @@ The global optimizers are as follows:
 
 """
 
-from .optimizer import OptimizerSupportLevel, Optimizer
 from .adam_amsgrad import ADAM
+from .aqgd import AQGD
+from .bobyqa import BOBYQA
 from .cg import CG
 from .cobyla import COBYLA
-from .l_bfgs_b import L_BFGS_B
 from .gsls import GSLS
+from .imfil import IMFIL
+from .l_bfgs_b import L_BFGS_B
 from .nelder_mead import NELDER_MEAD
-from .p_bfgs import P_BFGS
-from .powell import POWELL
-from .slsqp import SLSQP
-from .spsa import SPSA
-from .tnc import TNC
-from .aqgd import AQGD
 from .nft import NFT
 from .nlopts.crs import CRS
 from .nlopts.direct_l import DIRECT_L
 from .nlopts.direct_l_rand import DIRECT_L_RAND
 from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
+from .optimizer import Optimizer, OptimizerSupportLevel
+from .p_bfgs import P_BFGS
+from .powell import POWELL
+from .scipy_optimizer import SciPyOptimizer
+from .slsqp import SLSQP
 from .snobfit import SNOBFIT
-from .bobyqa import BOBYQA
-from .imfil import IMFIL
+from .spsa import SPSA
+from .tnc import TNC
 
 __all__ = [
     "Optimizer",
@@ -133,6 +134,7 @@ __all__ = [
     "NFT",
     "P_BFGS",
     "POWELL",
+    "SciPyOptimizer",
     "SLSQP",
     "SPSA",
     "TNC",
