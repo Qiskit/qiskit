@@ -503,6 +503,9 @@ def plot_gate_map(
 def _color_faulty_backend(
     backend, qubit_color, line_color, faulty_color="#f24b4b", disabled_color="#b59696"
 ):
+    """Changes in place the colors in qubit_color and line_color with faulty_color for the gates/qubits
+    that are not operational and disabled_color with the gates/qubits that are going to be disabled
+    as a consequence"""
     faulty_qubits = backend.properties().faulty_qubits()
     faulty_gates = backend.properties().faulty_gates()
     faulty_edges = [gates.qubits for gates in backend.properties().faulty_gates()]

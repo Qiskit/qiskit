@@ -558,6 +558,8 @@ def _create_faulty_qubits_map(backend):
 
 
 def _connected_working_qubits(backend):
+    """Returns the largest connected component in the coupling map. This is, a list of nodes that are
+    operational and available to communicate with each other."""
     configuration = backend.configuration()
     full_coupling_map = configuration.coupling_map
     faulty_qubits = backend.properties().faulty_qubits()
