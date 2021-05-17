@@ -1,2 +1,2 @@
 texlive-pictures
-texlive-latex-recommende
+texlive-latex-recommended
