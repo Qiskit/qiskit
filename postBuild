@@ -12,7 +12,7 @@ pip install .
 
 # Install QCircuit for LaTeX drawer
 mkdir -p $(kpsewhich -var-value=TEXMFHOME)/tex/latex/qcircuit/
-wget http://mirrors.ctan.org/graphics/qcircuit/qcircuit.sty -P $(kpsewhich -var-value=TEXMFHOME)/tex/latex/qcircuit/
+wget https://mirrors.ctan.org/graphics/qcircuit/qcircuit.sty -P $(kpsewhich -var-value=TEXMFHOME)/tex/latex/qcircuit/
 
 
 # Activation of appmode extension
