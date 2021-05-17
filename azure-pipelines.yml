@@ -821,3 +821,5 @@ stages:
           displayName: 'Install dependencies'
         - bash: python -m unittest discover -v test/ipynb
           displayName: 'Run image test'
+        - bash: python test/ipynb/results.py
+          displayName: 'Compare images'

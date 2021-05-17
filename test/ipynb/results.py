@@ -13,6 +13,7 @@
 """Result object to analyse image comparisons"""
 
 import os
+import sys
 import json
 import zipfile
 from PIL import Image, ImageChops, ImageDraw
@@ -191,11 +192,18 @@ class Results:
         ret += "</div>"
         return ret
 
+    def exit(self):
+        messagge = "OK"
+        print(os.environ['BUILD_SOURCEBRANCH'])
+        error = len(self.mismatch) + len(self.missing)
+        sys.exit(error, messagge)
+
 
 if __name__ == "__main__":
     RESULT_FILES = []
     for file in os.listdir(os.path.join(SWD, "mpl")):
         if file.endswith(".png") and not file.endswith(".diff.png"):
             RESULT_FILES.append(file)
-    RESULTS = Results(sorted(RESULT_FILES), "mpl")
+    RESULTS = Results(sorted(RESULT_FILES), os.path.join(SWD, "mpl"))
     RESULTS.diff_images()
+    RESULTS.exit()
