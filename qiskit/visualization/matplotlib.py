@@ -325,11 +325,13 @@ class MatplotlibDrawer:
         xr = self._xmax + self._style["margin"][1]
         yb = -self._ymax - self._style["margin"][2] + 1 - 0.5
         yt = self._style["margin"][3] + 0.5
+        self._ax.set_xlim(xl, xr)
+        self._ax.set_ylim(yb, yt)
 
         # update figure size and for backward compatibility,
         # need to scale by a default value equal to (self._fs * 3.01 / 72 / 0.65)
-        base_fig_w = (xr - xl)# * self._fs * 3.01 / 72 / WID#* 0.8361111
-        base_fig_h = (yt - yb)# * self._fs * 3.01 / 72 / WID#0.8361111
+        base_fig_w = (xr - xl) * 0.8361111
+        base_fig_h = (yt - yb) * 0.8361111
         scale = self._scale
 
         # if user passes in an ax, this size takes priority over any other settings
@@ -350,8 +352,8 @@ class MatplotlibDrawer:
             scale = adj_fig_w / base_fig_w
 
         # otherwise, display default size
-        #else:
-        #    self._figure.set_size_inches(base_fig_w, base_fig_h)
+        else:
+            self._figure.set_size_inches(base_fig_w, base_fig_h)
 
         # drawing scales with 'set_size_inches', but fonts and linewidths do not
         self._fs *= scale
@@ -364,18 +366,6 @@ class MatplotlibDrawer:
         self._draw_regs_wires(num_folds)
         self._draw_ops(verbose)
 
-        self._ax.set_xlim(xl, xr)
-        self._ax.set_ylim(yb, yt)
-        self._style["figwidth"] = base_fig_w  * self._fs * 3.01 / 72 / WID#0.8361111
-        self._figure.set_size_inches(self._style["figwidth"], self._style["figwidth"] * base_fig_h / base_fig_w)
-        #self._figure.set_size_inches(base_fig_w, base_fig_h)
-        """fig_w = xr - xl
-        fig_h = yt - yb
-        if self._style["figwidth"] < 0.0:
-            self._style["figwidth"] = fig_w * BASE_SIZE * self._style["fs"] / 72 / WID
-        self._figure.set_size_inches(
-            self._style["figwidth"], self._style["figwidth"] * fig_h / fig_w
-        )"""
         if self._global_phase:
             self._plt_mod.text(
                 xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")

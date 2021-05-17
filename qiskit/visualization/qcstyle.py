@@ -210,8 +210,6 @@ class DefaultStyle:
                 "sx": "\\sqrt{X}",
                 "sxdg": "\\sqrt{X}^\\dagger",
                 "tdg": "T^\\dagger",
-                #"dcx": "Dcx",
-                #"iswap": "Iswap",
                 "ms": "MS",
                 "rx": "R_X",
                 "ry": "R_Y",

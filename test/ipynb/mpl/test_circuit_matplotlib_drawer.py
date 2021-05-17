@@ -563,9 +563,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.cx(0,1)
         circuit.h(1)
         circuit.cx(1, 2)
+        plt.close(fig)
         self.circuit_drawer(circuit, ax=ax2, filename="user_ax.png")
 
-    def test_user_ax_subplot(self):
+    def test_figwidth(self):
         """Test style dict 'figwidth' """
         circuit = QuantumCircuit(3)
         circuit.h(0)
