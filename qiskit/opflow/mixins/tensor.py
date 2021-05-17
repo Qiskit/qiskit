@@ -42,22 +42,8 @@ class TensorMixin(ABC):
 
     @abstractmethod
     def tensor(self, other):
-        r"""Return tensor product between self and other, overloaded by ``^``.
-
-        Args:
-            other: The operator to tensor product with self.
-
-        Returns:
-            An operator equivalent to the tensor product of self and other.
-        """
+        r"""Return tensor product between self and other, overloaded by ``^``."""
 
     @abstractmethod
     def tensorpower(self, other: int):
-        r"""Return tensor product with self multiple times, overloaded by ``^``.
-
-        Args:
-            other: The int number of times to tensor product self with itself via ``tensorpower``.
-
-        Returns:
-            An operator equivalent to the tensorpower of self by other.
-        """
+        r"""Return tensor product with self multiple times, overloaded by ``^``."""
