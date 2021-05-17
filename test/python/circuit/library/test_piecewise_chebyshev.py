@@ -61,7 +61,7 @@ class TestPiecewiseChebyshev(QiskitTestCase):
 
     @ data((lambda x: np.arcsin(1 / x), 2, [2, 4], 2),
            (lambda x: x / 8, 1, [1, 8], 3),
-           (lambda x: np.sqrt(x), 2, None, 2)
+           (np.sqrt(), 2, None, 2)
            )
     @ unpack
     def test_piecewise_chebyshev(self, f_x, degree, breakpoints, num_state_qubits):
