@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The previously deprecated ``condition`` kwarg for
+    :class:`qiskit.dagcircuit.DAGNode` constructor has been removed.
+    It was deprecated in the 0.15.0 release. Instead you should now be setting
+    the classical condition on the :class:`~qiskit.circuit.Instruction` object
+    passed into the :class:`~qiskit.dagcircuit.DAGNode` constructor when
+    creating a new ``op`` node.

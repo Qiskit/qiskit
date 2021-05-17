@@ -17,6 +17,13 @@ from uuid import uuid4
 
 from .parameterexpression import ParameterExpression
 
+try:
+    import symengine
+
+    HAS_SYMENGINE = True
+except ImportError:
+    HAS_SYMENGINE = False
+
 
 class Parameter(ParameterExpression):
     """Parameter Class for variable parameters."""
@@ -49,9 +56,12 @@ class Parameter(ParameterExpression):
                 be any unicode string, e.g. "ϕ".
         """
         self._name = name
+        if not HAS_SYMENGINE:
+            from sympy import Symbol
 
-        from sympy import Symbol
-        symbol = Symbol(name)
+            symbol = Symbol(name)
+        else:
+            symbol = symengine.Symbol(name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)
 
     def subs(self, parameter_map: dict):
@@ -73,7 +83,7 @@ class Parameter(ParameterExpression):
         return self
 
     def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__, self.name)
+        return "{}({})".format(self.__class__.__name__, self.name)
 
     def __eq__(self, other):
         if isinstance(other, Parameter):
@@ -86,13 +96,26 @@ class Parameter(ParameterExpression):
     def __hash__(self):
         return self._hash
 
+    def __getstate__(self):
+        return {"name": self._name}
 
-def sympy_to_parameter_expression(expr):
+    def __setstate__(self, state):
+        self._name = state["name"]
+        if not HAS_SYMENGINE:
+            from sympy import Symbol
+
+            symbol = Symbol(self._name)
+        else:
+            symbol = symengine.Symbol(self._name)
+        super().__init__(symbol_map={self: symbol}, expr=symbol)
+
+def sympy_to_parameter_expression(expr, uuid_dict=None):
     """
     Convert simple sympy expressions to ParameterExpression.
 
     Args:
         expr (sympy.Expr): sympy expression.
+        uuid_dict (None, dict): dictionary mapping symbol name to uuid.
 
     Returns:
         ParameterExpression: converted expression
@@ -107,5 +130,17 @@ def sympy_to_parameter_expression(expr):
     if not isinstance(expr, Expr):
         raise TypeError('expression of type "{0}" '
                         'is not a sympy expression'.format(expr))
-    symbol_map = {Parameter(param.name): param for param in expr.free_symbols}
+    breakpoint()
+    symbol_map = {}
+    if uuid_dict:
+        for param in expr.free_symbols:
+            if param.name in uuid_dict:
+                uuid = uuid_dict[param.name]
+            else:
+                uuid = None
+            
+            symbol_map[Parameter(param.name, uuid)] = param
+    else:
+        symbol_map[Parameter(param.name, uuid)] = param
+    #symbol_map = {Parameter(param.name): param for param in expr.free_symbols}
     return ParameterExpression(symbol_map, expr)

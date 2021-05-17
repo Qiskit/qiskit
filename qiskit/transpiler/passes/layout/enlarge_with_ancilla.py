@@ -36,13 +36,14 @@ class EnlargeWithAncilla(TransformationPass):
         Raises:
             TranspilerError: If there is not layout in the property set or not set at init time.
         """
-        layout = self.property_set['layout']
+        layout = self.property_set["layout"]
 
         if layout is None:
             raise TranspilerError('EnlargeWithAncilla requires property_set["layout"]')
 
-        new_qreg = self.property_set['layout_ancilla_register']
-        if new_qreg:
-            dag.add_qreg(new_qreg)
+        new_qregs = {reg for reg in layout.get_registers() if reg not in dag.qregs.values()}
+
+        for qreg in new_qregs:
+            dag.add_qreg(qreg)
 
         return dag
