@@ -194,7 +194,7 @@ class Results:
 
     def exit(self):
         messagge = "OK"
-        print(os.environ['BUILD_SOURCEBRANCH'])
+        print(os.environ["BUILD_SOURCEBRANCH"])
         error = len(self.mismatch) + len(self.missing)
         sys.exit(error, messagge)
 
