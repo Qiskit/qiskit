@@ -11,7 +11,7 @@ pip install matplotlib pylatexenc pillow appmode
 pip install .
 
 # Install QCircuit for LaTeX drawer
-QCIRCUITDIR = $(kpsewhich -var-value=TEXMFHOME)/tex/latex/qcircuit/)
+QCIRCUITDIR = $(kpsewhich -var-value=TEXMFHOME)/tex/latex/qcircuit/
 mkdir -p $QCIRCUITDIR
 wget http://mirrors.ctan.org/graphics/qcircuit/qcircuit.sty -P $QCIRCUITDIR
 
