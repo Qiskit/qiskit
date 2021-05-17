@@ -80,6 +80,20 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
 
+    def test_run_circuit_oracle_single_experiment_backend(self):
+        """Test execution with a quantum circuit oracle"""
+        oracle = QuantumCircuit(2)
+        oracle.cz(0, 1)
+        problem = AmplificationProblem(oracle, is_good_state=["11"])
+        backend = self._provider.get_backend("fake_yorktown")
+        backend._configuration.max_experiments = 1
+        qi = QuantumInstance(
+            self._provider.get_backend("fake_yorktown"), seed_simulator=12, seed_transpiler=32
+        )
+        grover = Grover(quantum_instance=qi)
+        result = grover.amplify(problem)
+        self.assertIn(result.top_measurement, ["11"])
+
     def test_measurement_error_mitigation_with_vqe(self):
         """measurement error mitigation test with vqe"""
         try:

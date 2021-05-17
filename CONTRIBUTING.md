@@ -368,7 +368,7 @@ Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some 
 Qiskit Terra uses 2 tools for verify code formatting and lint checking. The
 first tool is [black](https://github.com/psf/black) which is a code formatting
 tool that will automatically update the code formatting to a consistent style.
-The second tool is [pylint]https://www.pylint.org/) which is a code linter
+The second tool is [pylint](https://www.pylint.org/) which is a code linter
 which does a deeper analysis of the Python code to find both style issues and
 potential bugs and other common issues in Python.
 
