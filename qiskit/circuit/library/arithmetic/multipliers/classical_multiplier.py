@@ -13,8 +13,7 @@
 """Compute the product of two qubit registers using classical multiplication approach."""
 
 from typing import Optional
-from qiskit.circuit import QuantumRegister, AncillaRegister
-from qiskit.circuit.library.arithmetic.adders.adder import Adder
+from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
 
 from .multiplier import Multiplier
 
@@ -61,7 +60,7 @@ class ClassicalMultiplier(Multiplier):
     def __init__(
         self,
         num_state_qubits: int,
-        adder: Optional[Adder] = None,
+        adder: Optional[QuantumCircuit] = None,
         name: str = "ClassicalMultiplier",
     ) -> None:
         r"""
@@ -86,8 +85,6 @@ class ClassicalMultiplier(Multiplier):
             from qiskit.circuit.library import CDKMRippleCarryAdder
 
             adder = CDKMRippleCarryAdder(num_state_qubits)
-        else:
-            adder = adder(num_state_qubits)
         controlled_adder = adder.to_gate().control(1)
 
         # get the number of helper qubits needed
