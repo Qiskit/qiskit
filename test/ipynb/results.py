@@ -193,6 +193,7 @@ class Results:
         return ret
 
     def exit(self):
+        """Exit status method"""
         messagge = "OK"
         print(os.getenv("BUILD_SOURCEBRANCH", "dummy_branch"))
         error = len(self.mismatch) + len(self.missing)
@@ -201,7 +202,11 @@ class Results:
             github_user = ""
             repo = ""
             branch = ""
-            messagge = f"Visit https://mybinder.org/v2/gh/{github_user}/{repo}/{branch}>?urlpath=apps/test/ipynb/mpl_tester.ipynb to check what went wrong. Mismatches {self.mismatch}; Missing {self.missing}"
+            messagge = (
+                f"Visit https://mybinder.org/v2/gh/{github_user}/{repo}/{branch}>?"
+                "urlpath=apps/test/ipynb/mpl_tester.ipynb to check what went wrong. "
+                f"Mismatches {self.mismatch}; Missing {self.missing}"
+            )
         sys.exit(error, messagge)
 
 
