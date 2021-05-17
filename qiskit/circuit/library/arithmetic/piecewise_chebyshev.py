@@ -232,9 +232,9 @@ class PiecewiseChebyshev(BlueprintCircuit):
         polynomials = []
         for i in range(0, num_intervals - 1):
             # Calculate the polynomial approximating the function on the current interval
-            poly = Chebyshev.interpolate(self.f_x, self.degree,
-                                         domain=[breakpoints[i],
-                                                 breakpoints[i + 1]])
+            poly = Chebyshev.interpolate(
+                self.f_x, self.degree, domain=[breakpoints[i], breakpoints[i + 1]]
+            )
             # Convert polynomial to the standard basis and rescale it for the rotation gates
             poly = 2 * poly.convert(kind=np.polynomial.Polynomial).coef
             # Convert to list and append
