@@ -302,15 +302,13 @@ class MatplotlibDrawer:
     def draw(self, filename=None, verbose=False):
         """Draw method called from circuit_drawer"""
 
-        # get layer widths and compute number of folds
-        for layer in self._nodes:
-            layer_width = self._get_layer_width(layer)
-            self._layer_widths.append(layer_width)
+        # get layer widths
+        self._get_layer_widths()
 
         # load the _qubit_dict and _clbit_dict with register info
         self._get_reg_names_and_numbers()
 
-        # load the coordinates for each gate
+        # load the coordinates for each gate and compute number of folds
         self._get_coords()
         num_folds = max(0, self._max_anc - 1) // self._fold if self._fold > 0 else 0
 
@@ -327,13 +325,11 @@ class MatplotlibDrawer:
         xr = self._xmax + self._style["margin"][1]
         yb = -self._ymax - self._style["margin"][2] + 1 - 0.5
         yt = self._style["margin"][3] + 0.5
-        self._ax.set_xlim(xl, xr)
-        self._ax.set_ylim(yb, yt)
 
         # update figure size and for backward compatibility,
         # need to scale by a default value equal to (self._fs * 3.01 / 72 / 0.65)
-        base_fig_w = (xr - xl) * 0.8361111
-        base_fig_h = (yt - yb) * 0.8361111
+        base_fig_w = (xr - xl)# * self._fs * 3.01 / 72 / WID#* 0.8361111
+        base_fig_h = (yt - yb)# * self._fs * 3.01 / 72 / WID#0.8361111
         scale = self._scale
 
         # if user passes in an ax, this size takes priority over any other settings
@@ -354,8 +350,8 @@ class MatplotlibDrawer:
             scale = adj_fig_w / base_fig_w
 
         # otherwise, display default size
-        else:
-            self._figure.set_size_inches(base_fig_w, base_fig_h)
+        #else:
+        #    self._figure.set_size_inches(base_fig_w, base_fig_h)
 
         # drawing scales with 'set_size_inches', but fonts and linewidths do not
         self._fs *= scale
@@ -368,10 +364,18 @@ class MatplotlibDrawer:
         self._draw_regs_wires(num_folds)
         self._draw_ops(verbose)
 
-        print(base_fig_w, base_fig_h)
-        print(self._scale)
-        print(xl, yt)
-        print(self._fs, self._sfs)
+        self._ax.set_xlim(xl, xr)
+        self._ax.set_ylim(yb, yt)
+        self._style["figwidth"] = base_fig_w  * self._fs * 3.01 / 72 / WID#0.8361111
+        self._figure.set_size_inches(self._style["figwidth"], self._style["figwidth"] * base_fig_h / base_fig_w)
+        #self._figure.set_size_inches(base_fig_w, base_fig_h)
+        """fig_w = xr - xl
+        fig_h = yt - yb
+        if self._style["figwidth"] < 0.0:
+            self._style["figwidth"] = fig_w * BASE_SIZE * self._style["fs"] / 72 / WID
+        self._figure.set_size_inches(
+            self._style["figwidth"], self._style["figwidth"] * fig_h / fig_w
+        )"""
         if self._global_phase:
             self._plt_mod.text(
                 xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
@@ -619,71 +623,74 @@ class MatplotlibDrawer:
 
             prev_anc = this_anc + layer_width + barrier_offset - 1
 
-    def _get_layer_width(self, layer):
-        """Compute the layer_width for this layer"""
-        widest_box = WID
-        for node in layer:
-            self._data[node] = {}
-            self._data[node]["width"] = WID
-            num_ctrl_qubits = (
-                0 if not hasattr(node.op, "num_ctrl_qubits") else node.op.num_ctrl_qubits
-            )
-
-            if node.op._directive or isinstance(node.op, Measure):
-                continue
-
-            base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
-            gate_text, ctrl_text, _ = get_gate_ctrl_text(node, "mpl", style=self._style)
-
-            # if single qubit, no params, and no labels, layer_width is 1
-            if (
-                (
-                    (len(node.qargs) - num_ctrl_qubits) == 1
-                    and len(gate_text) < 3
-                    and (not hasattr(node.op, "params") or len(node.op.params) == 0)
-                    and ctrl_text is None
+    def _get_layer_widths(self):
+        """Compute the layer_widths for the layers"""
+        for layer in self._nodes:
+            widest_box = WID
+            for node in layer:
+                self._data[node] = {}
+                self._data[node]["width"] = WID
+                num_ctrl_qubits = (
+                    0 if not hasattr(node.op, "num_ctrl_qubits") else node.op.num_ctrl_qubits
                 )
-                or isinstance(node.op, SwapGate)
-                or isinstance(base_type, SwapGate)
-            ):
-                continue
 
-            # small increments at end of the 3 _get_text_width calls are for small
-            # spacing adjustments between gates
-            ctrl_width = self._get_text_width(ctrl_text, fontsize=self._sfs) - 0.05
+                if node.op._directive or isinstance(node.op, Measure):
+                    continue
 
-            # get param_width, but 0 for gates with array params
-            if (
-                hasattr(node.op, "params")
-                and len(node.op.params) > 0
-                and not any(isinstance(param, np.ndarray) for param in node.op.params)
-            ):
-                param = get_param_str(node, "mpl", ndigits=3)
-                if isinstance(node.op, Initialize):
-                    param = "[%s]" % param
-                raw_param_width = self._get_text_width(param, fontsize=self._sfs, param=True)
-                param_width = raw_param_width + 0.08
-            else:
-                param_width = raw_param_width = 0.0
+                base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
+                gate_text, ctrl_text, _ = get_gate_ctrl_text(node, "mpl", style=self._style)
 
-            if isinstance(node.op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
-                raw_gate_width = (
-                    self._get_text_width(gate_text + " ()", fontsize=self._sfs) + raw_param_width
-                )
-                gate_width = (raw_gate_width + 0.08) * 1.5
-            else:
-                raw_gate_width = self._get_text_width(gate_text, fontsize=self._fs)
-                gate_width = raw_gate_width + 0.10
-                # add .21 for the qubit numbers on the left of the multibit gates
-                if len(node.qargs) - num_ctrl_qubits > 1:
-                    gate_width += 0.21
+                # if single qubit, no params, and no labels, layer_width is 1
+                if (
+                    (
+                        (len(node.qargs) - num_ctrl_qubits) == 1
+                        and len(gate_text) < 3
+                        and (not hasattr(node.op, "params") or len(node.op.params) == 0)
+                        and ctrl_text is None
+                    )
+                    or isinstance(node.op, SwapGate)
+                    or isinstance(base_type, SwapGate)
+                ):
+                    continue
 
-            box_width = max(gate_width, ctrl_width, param_width, WID)
-            if box_width > widest_box:
-                widest_box = box_width
-            self._data[node]["width"] = max(raw_gate_width, raw_param_width)
+                # small increments at end of the 3 _get_text_width calls are for small
+                # spacing adjustments between gates
+                ctrl_width = self._get_text_width(ctrl_text, fontsize=self._sfs) - 0.05
 
-        return int(widest_box) + 1
+                # get param_width, but 0 for gates with array params
+                if (
+                    hasattr(node.op, "params")
+                    and len(node.op.params) > 0
+                    and not any(isinstance(param, np.ndarray) for param in node.op.params)
+                ):
+                    param = get_param_str(node, "mpl", ndigits=3)
+                    if isinstance(node.op, Initialize):
+                        param = "[%s]" % param
+                    raw_param_width = self._get_text_width(param, fontsize=self._sfs, param=True)
+                    param_width = raw_param_width + 0.08
+                else:
+                    param_width = raw_param_width = 0.0
+
+                if isinstance(node.op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
+                    if isinstance(base_type, PhaseGate):
+                        gate_text = "P"
+                    raw_gate_width = (
+                        self._get_text_width(gate_text + " ()", fontsize=self._sfs) + raw_param_width
+                    )
+                    gate_width = (raw_gate_width + 0.08) * 1.5
+                else:
+                    raw_gate_width = self._get_text_width(gate_text, fontsize=self._fs)
+                    gate_width = raw_gate_width + 0.10
+                    # add .21 for the qubit numbers on the left of the multibit gates
+                    if len(node.qargs) - num_ctrl_qubits > 1:
+                        gate_width += 0.21
+
+                box_width = max(gate_width, ctrl_width, param_width, WID)
+                if box_width > widest_box:
+                    widest_box = box_width
+                self._data[node]["width"] = max(raw_gate_width, raw_param_width)
+
+            self._layer_widths.append(int(widest_box) + 1)
 
     def _get_reg_names_and_numbers(self):
         """Get all the info for drawing reg names and numbers"""
@@ -1382,7 +1389,7 @@ class MatplotlibDrawer:
         ctrl_text="",
         param="",
     ):
-        """Draw symmetric gates for cz, cu1, cp, cswap, and rzz"""
+        """Draw symmetric gates for cz, cu1, cp, and rzz"""
         qubit_b = min(xy, key=lambda xy: xy[1])
         qubit_t = max(xy, key=lambda xy: xy[1])
         base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
@@ -1396,6 +1403,8 @@ class MatplotlibDrawer:
         # cu1, cp, rzz, and controlled rzz gates (sidetext gates)
         elif isinstance(node.op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
             num_ctrl_qubits = 0 if isinstance(node.op, RZZGate) else node.op.num_ctrl_qubits
+            if isinstance(base_type, PhaseGate):
+                gate_text = "P"
             self._ctrl_qubit(xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
             if not isinstance(base_type, (U1Gate, PhaseGate)):
                 self._ctrl_qubit(xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
