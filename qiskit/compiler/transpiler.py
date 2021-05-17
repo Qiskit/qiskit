@@ -539,30 +539,35 @@ def _create_faulty_qubits_map(backend):
     if backend is not None:
         if backend.properties():
             faulty_qubits = backend.properties().faulty_qubits()
-            faulty_edges = [gates.qubits for gates in backend.properties().faulty_gates()]
+            faulty_gates = backend.properties().faulty_gates()
         else:
             faulty_qubits = []
-            faulty_edges = []
+            faulty_gates = []
 
-        if faulty_qubits or faulty_edges:
+        if faulty_qubits or faulty_gates:
             faulty_qubits_map = {}
-            configuration = backend.configuration()
-            full_coupling_map = configuration.coupling_map
-            functional_cm_list = [
-                edge
-                for edge in full_coupling_map
-                if (set(edge).isdisjoint(faulty_qubits) and edge not in faulty_edges)
-            ]
-
-            connected_working_qubits = CouplingMap(functional_cm_list).largest_connected_component()
+            connected_working_qubits = _connected_working_qubits(backend)
             dummy_qubit_counter = 0
-            for qubit in range(configuration.n_qubits):
+            for qubit in range(backend.configuration().n_qubits):
                 if qubit in connected_working_qubits:
                     faulty_qubits_map[qubit] = dummy_qubit_counter
                     dummy_qubit_counter += 1
                 else:
                     faulty_qubits_map[qubit] = None
     return faulty_qubits_map
+
+
+def _connected_working_qubits(backend):
+    configuration = backend.configuration()
+    full_coupling_map = configuration.coupling_map
+    faulty_qubits = backend.properties().faulty_qubits()
+    faulty_edges = [gates.qubits for gates in backend.properties().faulty_gates()]
+    functional_cm_list = [
+        edge
+        for edge in full_coupling_map
+        if (set(edge).isdisjoint(faulty_qubits) and edge not in faulty_edges)
+    ]
+    return CouplingMap(functional_cm_list).largest_connected_component()
 
 
 def _parse_basis_gates(basis_gates, backend, circuits):
