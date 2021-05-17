@@ -37,9 +37,7 @@ class QFTMultiplier(Multiplier):
 
     """
 
-    def __init__(self,
-                 num_state_qubits: int,
-                 name: str = 'QFTMultiplier') -> None:
+    def __init__(self, num_state_qubits: int, name: str = "QFTMultiplier") -> None:
         r"""
         Args:
             num_state_qubits: The number of qubits in either input register for
@@ -51,9 +49,9 @@ class QFTMultiplier(Multiplier):
         super().__init__(num_state_qubits, name=name)
 
         # define the registers
-        qr_a = QuantumRegister(num_state_qubits, name='a')
-        qr_b = QuantumRegister(num_state_qubits, name='b')
-        qr_out = QuantumRegister(2 * num_state_qubits, name='out')
+        qr_a = QuantumRegister(num_state_qubits, name="a")
+        qr_b = QuantumRegister(num_state_qubits, name="b")
+        qr_out = QuantumRegister(2 * num_state_qubits, name="out")
         self.add_register(qr_a, qr_b, qr_out)
 
         # build multiplication circuit
@@ -65,7 +63,7 @@ class QFTMultiplier(Multiplier):
                     lam = (2 * np.pi) / (2 ** (i + j + k - 2 * num_state_qubits))
                     self.append(
                         RZGate(lam).control(2),
-                        [qr_a[num_state_qubits - j], qr_b[num_state_qubits - i], qr_out[k - 1]]
+                        [qr_a[num_state_qubits - j], qr_b[num_state_qubits - i], qr_out[k - 1]],
                     )
 
         self.append(QFT(2 * num_state_qubits, do_swaps=False).inverse().to_gate(), qr_out[:])

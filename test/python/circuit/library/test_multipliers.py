@@ -32,9 +32,7 @@ from qiskit.circuit.library import (
 class TestMultiplier(QiskitTestCase):
     """Test the multiplier circuits."""
 
-    def assertMultiplicationIsCorrect(self,
-                                      num_state_qubits: int,
-                                      multiplier: QuantumCircuit):
+    def assertMultiplicationIsCorrect(self, num_state_qubits: int, multiplier: QuantumCircuit):
         """Assert that multiplier correctly implements the product.
 
         Args:
@@ -54,7 +52,7 @@ class TestMultiplier(QiskitTestCase):
         # as we verify that all ancilla qubits have been uncomputed to state 0 again
         statevector = Statevector(circuit)
         probabilities = statevector.probabilities()
-        pad = '0' * circuit.num_ancillas  # state of the ancillas
+        pad = "0" * circuit.num_ancillas  # state of the ancillas
 
         # compute the expected results
         expectations = np.zeros_like(probabilities)
@@ -99,5 +97,5 @@ class TestMultiplier(QiskitTestCase):
             _ = adder(-1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

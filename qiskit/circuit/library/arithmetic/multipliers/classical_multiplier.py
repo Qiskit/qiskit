@@ -58,10 +58,12 @@ class ClassicalMultiplier(Multiplier):
 
     """
 
-    def __init__(self,
-                 num_state_qubits: int,
-                 adder: Optional[Adder] = None,
-                 name: str = 'ClassicalMultiplier') -> None:
+    def __init__(
+        self,
+        num_state_qubits: int,
+        adder: Optional[Adder] = None,
+        name: str = "ClassicalMultiplier",
+    ) -> None:
         r"""
         Args:
             num_state_qubits: The number of qubits in either input register for
@@ -74,14 +76,15 @@ class ClassicalMultiplier(Multiplier):
         super().__init__(num_state_qubits, name=name)
 
         # define the registers
-        qr_a = QuantumRegister(num_state_qubits, name='a')
-        qr_b = QuantumRegister(num_state_qubits, name='b')
-        qr_out = QuantumRegister(2 * num_state_qubits, name='out')
+        qr_a = QuantumRegister(num_state_qubits, name="a")
+        qr_b = QuantumRegister(num_state_qubits, name="b")
+        qr_out = QuantumRegister(2 * num_state_qubits, name="out")
         self.add_register(qr_a, qr_b, qr_out)
 
         # prepare adder as controlled gate
         if adder is None:
             from qiskit.circuit.library import CDKMRippleCarryAdder
+
             adder = CDKMRippleCarryAdder(num_state_qubits)
         else:
             adder = adder(num_state_qubits)
@@ -97,7 +100,7 @@ class ClassicalMultiplier(Multiplier):
 
         # build multiplication circuit
         for i in range(num_state_qubits):
-            qr_list = [qr_a[i]] + qr_b[:] + qr_out[i:num_state_qubits+i+1]
+            qr_list = [qr_a[i]] + qr_b[:] + qr_out[i : num_state_qubits + i + 1]
             if num_helper_qubits > 0:
                 qr_list.extend(qr_h[:])
             self.append(controlled_adder, qr_list)
