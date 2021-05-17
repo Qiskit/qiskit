@@ -107,6 +107,7 @@ class GateDirection(TransformationPass):
                     "The circuit requires a connection between physical "
                     "qubits %s and %s" % (physical_q0, physical_q1)
                 )
+
             if (physical_q0, physical_q1) not in cmap_edges:
                 if node.name == "cx":
                     dag.substitute_node_with_dag(node, self._cx_dag)
