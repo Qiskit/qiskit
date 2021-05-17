@@ -3,7 +3,7 @@ ghostscript
 poppler-utils && 
 cp /etc/apt/sources.list /etc/apt/sources.list.bak && 
 echo "deb http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse" | tee -a /etc/apt/sources.list &&
-apt-get update && 
+apt-get -q update && 
 apt-get install --yes --no-install-recommends
 texlive-latex-base
 texlive-latex-extra
