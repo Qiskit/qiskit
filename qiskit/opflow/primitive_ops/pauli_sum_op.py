@@ -37,10 +37,10 @@ class PauliSumOp(PrimitiveOp):
     primitive: SparsePauliOp
 
     def __init__(
-            self,
-            primitive: SparsePauliOp,
-            coeff: Union[complex, ParameterExpression] = 1.0,
-            grouping_type: str = "None",
+        self,
+        primitive: SparsePauliOp,
+        coeff: Union[complex, ParameterExpression] = 1.0,
+        grouping_type: str = "None",
     ) -> None:
         """
         Args:
@@ -140,7 +140,7 @@ class PauliSumOp(PrimitiveOp):
             return False
 
         if isinstance(self_reduced.coeff, ParameterExpression) or isinstance(
-                other_reduced.coeff, ParameterExpression
+            other_reduced.coeff, ParameterExpression
         ):
             return (
                 self_reduced.coeff == other_reduced.coeff
@@ -198,10 +198,10 @@ class PauliSumOp(PrimitiveOp):
         return PauliSumOp(spop, self.coeff)
 
     def compose(
-            self,
-            other: OperatorBase,
-            permutation: Optional[List[int]] = None,
-            front: bool = False,
+        self,
+        other: OperatorBase,
+        permutation: Optional[List[int]] = None,
+        front: bool = False,
     ) -> OperatorBase:
 
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
@@ -275,8 +275,11 @@ class PauliSumOp(PrimitiveOp):
             PauliSumOp: PauliSumOp object.
         """
         record = json.loads(json_string, object_hook=_as_qiskit_type)
-        return PauliSumOp(primitive=SparsePauliOp.from_json(record['primitive']),
-                          coeff=record['coeff'], grouping_type=record['grouping_type'])
+        return PauliSumOp(
+            primitive=SparsePauliOp.from_json(record["primitive"]),
+            coeff=record["coeff"],
+            grouping_type=record["grouping_type"],
+        )
 
     def to_json(self):
         """Convert PauliSumOp to json.
@@ -284,33 +287,37 @@ class PauliSumOp(PrimitiveOp):
         Returns:
             str: PauliSumOp as JSON string.
         """
+
         class PauliSumOpJSONEncoder(json.JSONEncoder):
             """A JSON encoder for PauliSumOp"""
+
             def default(self, obj):  # pylint: disable=method-hidden,arguments-differ
                 if isinstance(obj, complex):
-                    return {'__complex__': True,
-                            'real': obj.real,
-                            'imag': obj.imag}
+                    return {"__complex__": True, "real": obj.real, "imag": obj.imag}
                 elif isinstance(obj, ParameterExpression):
                     from sympy import srepr, sympify
+
                     expr_str = srepr(sympify(obj._symbol_expr))
-                    param_uids = {param.name: param._uuid.urn
-                                  for param in obj.parameters}
-                    return {'__parameter_expression__': True,
-                            'parameters': param_uids,
-                            'expr': expr_str}
+                    param_uids = {param.name: param._uuid.urn for param in obj.parameters}
+                    return {
+                        "__parameter_expression__": True,
+                        "parameters": param_uids,
+                        "expr": expr_str,
+                    }
                 return json.JSONEncoder.default(self, obj)
 
-        record = {'coeff': self.coeff,
-                  'primitive': self.primitive.to_json(),
-                  'grouping_type': self.grouping_type}
+        record = {
+            "coeff": self.coeff,
+            "primitive": self.primitive.to_json(),
+            "grouping_type": self.grouping_type,
+        }
         return json.dumps(record, cls=PauliSumOpJSONEncoder)
 
     def eval(
-            self,
-            front: Optional[
-                Union[str, Dict[str, complex], np.ndarray, OperatorBase, Statevector]
-            ] = None,
+        self,
+        front: Optional[
+            Union[str, Dict[str, complex], np.ndarray, OperatorBase, Statevector]
+        ] = None,
     ) -> Union[OperatorBase, complex]:
         if front is None:
             return self.to_matrix_op()
@@ -452,9 +459,9 @@ class PauliSumOp(PrimitiveOp):
 
     @classmethod
     def from_list(
-            cls,
-            pauli_list: List[Tuple[str, Union[complex]]],
-            coeff: Union[complex, ParameterExpression] = 1.0,
+        cls,
+        pauli_list: List[Tuple[str, Union[complex]]],
+        coeff: Union[complex, ParameterExpression] = 1.0,
     ) -> "PauliSumOp":
         """Construct from a pauli_list with the form [(pauli_str, coeffs)]
 
@@ -478,19 +485,33 @@ class PauliSumOp(PrimitiveOp):
 
 def _as_qiskit_type(dct):
     """JSON decoder hook for PauliSumOp"""
-    if '__complex__' in dct:
-        return complex(dct['real'], dct['imag'])
-    elif '__parameter_expression__' in dct:
+    if "__complex__" in dct:
+        return complex(dct["real"], dct["imag"])
+    elif "__parameter_expression__" in dct:
         import sympy
         from sympy.parsing.sympy_parser import parse_expr
         import qiskit.circuit.parameter as parameter
+
         # restrict function primitives for security
-        pe_funcs = ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'exp',
-                    'log', 'Symbol', 'Integer', 'Add', 'Mul', 'Pow',
-                    'Rational']
+        pe_funcs = [
+            "sin",
+            "cos",
+            "tan",
+            "asin",
+            "acos",
+            "atan",
+            "exp",
+            "log",
+            "Symbol",
+            "Integer",
+            "Add",
+            "Mul",
+            "Pow",
+            "Rational",
+        ]
         pd_dict = dict()
         for fn in pe_funcs:
             pd_dict[fn] = getattr(sympy, fn)
-        sexpr = parse_expr(dct['expr'], global_dict=pd_dict)
-        return parameter.sympy_to_parameter_expression(sexpr, uuid_dict=dct['parameters'])
+        sexpr = parse_expr(dct["expr"], global_dict=pd_dict)
+        return parameter.sympy_to_parameter_expression(sexpr, uuid_dict=dct["parameters"])
     return dct

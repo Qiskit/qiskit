@@ -111,6 +111,7 @@ class Parameter(ParameterExpression):
             symbol = symengine.Symbol(self._name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)
 
+
 def sympy_to_parameter_expression(expr, uuid_dict=None):
     """
     Convert simple sympy expressions to ParameterExpression.
@@ -129,9 +130,9 @@ def sympy_to_parameter_expression(expr, uuid_dict=None):
     # Putting this fn here instead of parameter_expression.py avoids
     # cyclic import.
     from sympy import Expr
+
     if not isinstance(expr, Expr):
-        raise TypeError('expression of type "{0}" '
-                        'is not a sympy expression'.format(expr))
+        raise TypeError('expression of type "{0}" ' "is not a sympy expression".format(expr))
     symbol_map = {}
     if uuid_dict:
         for param in expr.free_symbols:

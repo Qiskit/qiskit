@@ -426,13 +426,13 @@ class SparsePauliOp(LinearOp):
 
     def to_json(self):
         """Convert to JSON."""
+
         class SparsePauliOpJSONEncoder(json.JSONEncoder):
             """A JSON encoder for qobj"""
+
             def default(self, obj):  # pylint: disable=method-hidden,arguments-differ
                 if isinstance(obj, complex):
-                    return {'__complex__': True,
-                            'real': obj.real,
-                            'imag': obj.imag}
+                    return {"__complex__": True, "real": obj.real, "imag": obj.imag}
                 return json.JSONEncoder.default(self, obj)
 
         return json.dumps(self.to_list(), cls=SparsePauliOpJSONEncoder)
@@ -519,8 +519,8 @@ class SparsePauliOp(LinearOp):
 
 
 def _as_qiskit_type(dct):
-    if '__complex__' in dct:
-        return complex(dct['real'], dct['imag'])
+    if "__complex__" in dct:
+        return complex(dct["real"], dct["imag"])
     return dct
 
 
