@@ -26,14 +26,11 @@ class Waveform(Pulse):
     duration of the backend cycle-time, dt.
     """
 
-    limit_amplitude = True
-
     def __init__(
         self,
         samples: Union[np.ndarray, List[complex]],
         name: Optional[str] = None,
         epsilon: float = 1e-7,
-        limit_amplitude: Optional[bool] = None,
     ):
         """Create new sample pulse command.
 
@@ -44,12 +41,9 @@ class Waveform(Pulse):
                 If any sample's norm exceeds unity by less than or equal to epsilon
                 it will be clipped to unit norm. If the sample
                 norm is greater than 1+epsilon an error will be raised.
-            limit_amplitude: If ``True``, then limit the amplitude of the waveform to 1. The default value of ``None`` causes the flag value to be derived from :py:attr:`~limit_amplitude` which is ``True`` by default but may be set by the user to disable amplitude checks globally.
         """
 
         samples = np.asarray(samples, dtype=np.complex_)
-        if limit_amplitude is not None:
-            self.limit_amplitude = limit_amplitude
         self.epsilon = epsilon
         self._samples = self._clip(samples, epsilon=epsilon)
         super().__init__(duration=len(samples), name=name)
