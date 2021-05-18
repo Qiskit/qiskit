@@ -23,6 +23,9 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import Layout
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
+if HAS_MATPLOTLIB:
+    import matplotlib.pyplot as plt
+
 
 @ddt
 class TestGateMap(QiskitVisualizationTestCase):
