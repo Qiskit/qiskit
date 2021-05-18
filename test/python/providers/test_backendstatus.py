@@ -30,7 +30,6 @@ class TestBackendConfiguration(QiskitTestCase):
         self.assertIsInstance(self.backend_status.__repr__(), str)
         repr_html = self.backend_status._repr_html_()
         self.assertIsInstance(repr_html, str)
-        self.assertIn(f"0x{id(self.backend_status):016X}", repr_html)
         self.assertIn(self.backend_status.backend_name, repr_html)
 
     def test_fake_backend_status(self):
