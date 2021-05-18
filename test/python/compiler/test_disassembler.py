@@ -306,7 +306,7 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         backend = FakeOpenPulse2Q()
         backend.configuration().parametric_pulses = ["drag"]
 
-        qobj = assemble(qc, FakeOpenPulse2Q())
+        qobj = assemble(qc, backend)
         output_circuits, _, _ = disassemble(qobj)
 
         self.assertCircuitCalibrationsEqual([qc], output_circuits)
