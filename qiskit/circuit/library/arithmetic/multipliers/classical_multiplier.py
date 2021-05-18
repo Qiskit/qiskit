@@ -22,29 +22,37 @@ class ClassicalMultiplier(Multiplier):
     r"""A multiplication circuit to store product of two input registers out-of-place.
 
     Circuit uses the approach from [1]. As an example, a multiplier circuit that
-    performs multiplication on two 2-qubit sized registers with the default adder
+    performs multiplication on two 3-qubit sized registers with the default adder
     is as follows:
 
     .. parsed-literal::
 
-          a_0: ──────────■────────────────────────────────────────
-                         │
-          a_1: ──────────┼─────────────────────────■──────────────
-               ┌─────────┴──────────────┐┌─────────┴─────────────┐
-          b_0: ┤0                       ├┤0                      ├
-               │                        ││                       │
-          b_1: ┤1                       ├┤1                      ├
-               │                        ││                       │
-        out_0: ┤2                       ├┤                       ├
-               │                        ││                       │
-        out_1: ┤3 CDKMRippleCarryAdder  ├┤2 CDKMRippleCarryAdder ├
-               │                        ││                       │
-        out_2: ┤4                       ├┤3                      ├
-               │                        ││                       │
-        out_3: ┤                        ├┤4                      ├
-               │                        ││                       │
-        aux_0: ┤5                       ├┤5                      ├
-               └────────────────────────┘└───────────────────────┘
+          a_0: ────■─────────────────────────
+                   │
+          a_1: ────┼─────────■───────────────
+                   │         │
+          a_2: ────┼─────────┼─────────■─────
+               ┌───┴────┐┌───┴────┐┌───┴────┐
+          b_0: ┤0       ├┤0       ├┤0       ├
+               │        ││        ││        │
+          b_1: ┤1       ├┤1       ├┤1       ├
+               │        ││        ││        │
+          b_2: ┤2       ├┤2       ├┤2       ├
+               │        ││        ││        │
+        out_0: ┤3       ├┤        ├┤        ├
+               │        ││        ││        │
+        out_1: ┤4       ├┤3       ├┤        ├
+               │  Adder ││  Adder ││  Adder │
+        out_2: ┤5       ├┤4       ├┤3       ├
+               │        ││        ││        │
+        out_3: ┤6       ├┤5       ├┤4       ├
+               │        ││        ││        │
+        out_4: ┤        ├┤6       ├┤5       ├
+               │        ││        ││        │
+        out_5: ┤        ├┤        ├┤6       ├
+               │        ││        ││        │
+        aux_0: ┤7       ├┤7       ├┤7       ├
+               └────────┘└────────┘└────────┘
 
     Multiplication in this circuit is implemented in a classical approach by performing
     a series of shifted additions using one of the input registers while the qubits
@@ -92,7 +100,7 @@ class ClassicalMultiplier(Multiplier):
 
         # add helper qubits if required
         if num_helper_qubits > 0:
-            qr_h = AncillaRegister(num_helper_qubits)  # helper/ancilla qubits
+            qr_h = AncillaRegister(num_helper_qubits, name='aux')  # helper/ancilla qubits
             self.add_register(qr_h)
 
         # build multiplication circuit
