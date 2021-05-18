@@ -69,7 +69,7 @@ with open(README_PATH) as readme_file:
 
 setup(
     name="qiskit-terra",
-    version="0.17.3",
+    version="0.17.4",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type='text/markdown',
