@@ -28,7 +28,7 @@ np.random.seed = 11
 # Evolution time
 t = 1
 
-num_time_steps = [60]
+num_time_steps = [100]
 depths = [1]
 
 
@@ -43,19 +43,20 @@ ode_solvers_names = ['ForwardEuler', 'RK45']
 #
 # ode_solvers = [RK45]
 # ode_solvers_names = ['RK45']
-regs = ['ridge', 'perturb_diag', None]
-reg_names = ['ridge', 'perturb_diag', 'lstsq']
-# regs = [ None]
-# reg_names = ['lstsq']
+# regs = ['ridge', 'perturb_diag', None]
+# reg_names = ['ridge', 'perturb_diag', 'lstsq']
+regs = [ None]
+reg_names = ['lstsq']
 # regs = ['perturb_diag']
 # reg_names = ['perturb_diag']
 # for nts in num_time_steps:
 # nts = num_time_steps[1]
 # output_dirs = [ 'illustrative', 'illustrative_reverse', 'transverse_ising',
 #                'MaxCut/output_maxcut_superposition', 'MaxCut/output_maxcut_pretrained']
-output_dirs = ['illustrative', 'illustrative_reverse']
+output_dirs = ['illustrative']
 # output_dirs = ['illustrative']
-output_dir = '/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output'
+output_dir = '../'
+# output_dir = '/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output'
 for dir in output_dirs:
     for nts in num_time_steps:
         for k, ode_solver in enumerate(ode_solvers):
@@ -78,6 +79,8 @@ for dir in output_dirs:
                     init_param_values = np.zeros(len(ansatz.ordered_parameters))
                     for i in range(ansatz.num_qubits):
                         init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2
+
+                    print('print initial values ', init_param_values)
                     # initial_point = [np.pi/3, -np.pi/3, np.pi/2., np.pi/3.]
                     # initial_point = np.zeros(len(parameters))
                     # for i in range(ansatz.num_qubits):
@@ -114,10 +117,10 @@ for dir in output_dirs:
                                       regularization=reg,
                                       error_based_ode=False,
                                       snapshot_dir=varqite_snapshot_dir)
-                    """
+
                     approx_time_evolved_state_imag = varqite.convert(op)
-                    """
-                    varqite._operator = op
+
+                    # varqite._operator = op
 
                     # varqite_error_bounds, varqite_reverse_error_bounds = varqite.error_bound(
                     #     varqite_snapshot_dir, imag_reverse_bound=True, H=observable.to_matrix(

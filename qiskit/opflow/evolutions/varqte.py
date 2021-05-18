@@ -169,6 +169,7 @@ class VarQTE(EvolutionBase):
             self._operator_circ_sampler = CircuitSampler(self._backend)
             self._state_circ_sampler = CircuitSampler(self._backend)
             self._h_squared_circ_sampler = CircuitSampler(self._backend)
+            self._h_trip_circ_sampler = CircuitSampler(self._backend)
             self._grad_circ_sampler = CircuitSampler(self._backend)
             self._metric_circ_sampler = CircuitSampler(self._backend)
             if not faster:
@@ -188,7 +189,7 @@ class VarQTE(EvolutionBase):
                                   'error_grad', 'resid', 'fidelity', 'true_error',
                                   'phase_agnostic_true_error',
                                   'true_to_euler_error', 'trained_to_euler_error', 'target_energy',
-                                  'trained_energy', 'energy_error', 'h_norm', 'h_squared',
+                                  'trained_energy', 'energy_error', 'h_norm', 'h_squared', 'h_trip',
                                   'variance', 'dtdt_trained', 're_im_grad']
                     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                     writer.writeheader()
@@ -282,7 +283,7 @@ class VarQTE(EvolutionBase):
                           'error_grad', 'resid', 'fidelity', 'true_error',
                           'phase_agnostic_true_error',
                           'true_to_euler_error', 'trained_to_euler_error', 'target_energy',
-                          'trained_energy', 'energy_error', 'h_norm', 'h_squared',
+                          'trained_energy', 'energy_error', 'h_norm', 'h_squared', 'h_trip',
                           'variance', 'dtdt_trained', 're_im_grad']
             reader = csv.DictReader(csv_file, fieldnames=fieldnames)
             first = True
@@ -291,6 +292,7 @@ class VarQTE(EvolutionBase):
             time = []
             # time_steps = []
             h_squareds = []
+            h_trips = []
             stddevs = []
 
             for line in reader:
@@ -304,6 +306,8 @@ class VarQTE(EvolutionBase):
                 grad_errors.append(float(line['error_grad']))
                 energies.append(float(line['trained_energy']))
                 h_squareds.append(float(line['h_squared']))
+                if not line['h_trip'] is None:
+                    h_trips.append(float(line['h_trip']))
                 stddevs.append(np.sqrt(float(line['variance'])))
 
         if not np.iscomplex(self._operator.coeff):
@@ -326,7 +330,7 @@ class VarQTE(EvolutionBase):
             # VarQITE
             time, grad_errors, energies, h_squareds, stddevs = \
                 [list(multiple) for multiple in multiples]
-            e_bound = self._get_error_bound(grad_errors, time, stddevs, h_squareds, H,
+            e_bound = self._get_error_bound(grad_errors, time, stddevs, h_squareds, h_trips, H,
                                             energies, imag_reverse_bound)
 
         else:
@@ -356,6 +360,9 @@ class VarQTE(EvolutionBase):
         h_squared = self._h ** 2
         self._h_squared = ComposedOp([~StateFn(h_squared.reduce()), self._state])
         self._h_squared = PauliExpectation().convert(self._h_squared)
+        h_trip = self._h ** 3
+        self._h_trip = ComposedOp([~StateFn(h_trip.reduce()), self._state])
+        self._h_trip = PauliExpectation().convert(self._h_trip)
 
         if not self._faster:
             # VarQRTE
@@ -449,12 +456,18 @@ class VarQTE(EvolutionBase):
                     if np.iscomplex(self._operator.coeff):
                         # VarQRTE
                         resid = np.linalg.norm(np.matmul(metric_res, dt_params) - grad_res * 0.5)
+                        et, h_squared, dtdt_state, reimgrad = self._error_t(params, dt_params,
+                                                                            grad_res,
+                                                                            metric_res)
+                        h_trip = None
                     else:
                         # VarQITE
                         resid = np.linalg.norm(np.matmul(metric_res, dt_params) + grad_res * 0.5)
-                    # Get the error for the current step
-                    et, h_squared, dtdt_state, reimgrad = self._error_t(params, dt_params, grad_res,
-                                                                        metric_res)[:4]
+                        # Get the error for the current step
+                        et, h_squared, dtdt_state, reimgrad, h_trip = self._error_t(params,
+                                                                                    dt_params,
+                                                                                    grad_res,
+                                                                                    metric_res)
                     print('returned et', et)
                     try:
                         if et < 0:
@@ -472,7 +485,8 @@ class VarQTE(EvolutionBase):
                     self._store_params(t, params, None, None, et,
                                        resid, f, true_error, phase_agnostic_true_error, None,
                                        None, true_energy,
-                                       trained_energy, None, h_squared, dtdt_state, reimgrad)
+                                       trained_energy, None, h_squared, h_trip, dtdt_state,
+                                       reimgrad)
             return dt_params
 
         if issubclass(self._ode_solver, OdeSolver):
@@ -549,6 +563,7 @@ class VarQTE(EvolutionBase):
                       trained_energy: Optional[float] = None,
                       h_norm: Optional[float] = None,
                       h_squared: Optional[float] = None,
+                      h_trip: Optional[float] = None,
                       dtdt_trained: Optional[float] = None,
                       re_im_grad: Optional[float] = None):
         """
@@ -567,6 +582,7 @@ class VarQTE(EvolutionBase):
             trained_energy: <trained|H|trained>
             h_norm: ||H||_2
             h_squared: <trained|H^2|trained>
+            h_trip: <trained|H^3|trained>
             dtdt_trained: <dt_trained|dt_trained>
             re_im_grad: Re(<dt_trained|H|trained>) for VarQITE resp.
                         Im(<dt_trained|H|trained>) for VarQRTE
@@ -583,7 +599,7 @@ class VarQTE(EvolutionBase):
                           'error_grad', 'resid', 'fidelity', 'true_error',
                           'phase_agnostic_true_error', 'true_to_euler_error',
                           'trained_to_euler_error', 'target_energy', 'trained_energy',
-                          'energy_error', 'h_norm', 'h_squared', 'variance',
+                          'energy_error', 'h_norm', 'h_squared', 'h_trip', 'variance',
                           'dtdt_trained', 're_im_grad']
 
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
@@ -609,6 +625,7 @@ class VarQTE(EvolutionBase):
                              'energy_error': np.round(trained_energy - target_energy, 8),
                              'h_norm': h_norm,
                              'h_squared': h_squared,
+                             'h_trip': h_trip,
                              'variance': variance,
                              'dtdt_trained': dtdt_trained,
                              're_im_grad': re_im_grad
@@ -773,7 +790,7 @@ class VarQTE(EvolutionBase):
                               'error_grad', 'resid', 'fidelity', 'true_error',
                               'phase_agnostic_true_error',
                               'true_to_euler_error', 'trained_to_euler_error', 'target_energy',
-                              'trained_energy', 'energy_error', 'h_norm', 'h_squared',
+                              'trained_energy', 'energy_error', 'h_norm', 'h_squared', 'h_trip',
                               'variance', 'dtdt_trained', 're_im_grad']
                 reader = csv.DictReader(csv_file, fieldnames=fieldnames)
                 first = True
