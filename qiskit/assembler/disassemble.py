@@ -62,19 +62,21 @@ def _disassemble_circuit(qobj) -> CircuitModule:
 
 
 def _qobj_to_circuit_cals(qobj, pulse_lib, param_pulses):
-    qobj_cals = qobj.config.calibrations.to_dict()['gates']
+    qobj_cals = qobj.config.calibrations.to_dict()["gates"]
     converter = QobjToInstructionConverter(pulse_lib)
 
     qc_cals = {}
     for gate in qobj_cals:
-        config = (tuple(gate['qubits']), tuple(gate['params']))
+        config = (tuple(gate["qubits"]), tuple(gate["params"]))
         cal = {config: pulse.Schedule()}
-        for instruction in gate['instructions']:
-            schedule = converter.convert_parametric(
-                PulseQobjInstruction.from_dict(instruction)
-            ) if param_pulses else converter(PulseQobjInstruction.from_dict(instruction))
+        for instruction in gate["instructions"]:
+            schedule = (
+                converter.convert_parametric(PulseQobjInstruction.from_dict(instruction))
+                if param_pulses
+                else converter(PulseQobjInstruction.from_dict(instruction))
+            )
             cal[config] = cal[config].insert(schedule.ch_start_time(), schedule)
-        qc_cals.setdefault(gate['name'], cal).update(cal)
+        qc_cals.setdefault(gate["name"], cal).update(cal)
 
     return qc_cals
 
@@ -172,15 +174,18 @@ def _experiments_to_circuits(qobj):
             if conditional and name != "bfunc":
                 _inst.c_if(conditional["register"], conditional["value"])
                 conditional = {}
-        pulse_lib = qobj.config.pulse_library if hasattr(qobj.config, 'pulse_library') else []
-        parametric_pulses = qobj.config.parametric_pulses if hasattr(qobj.config,
-                                                                     'parametric_pulses') else []
-        if hasattr(qobj.config, 'calibrations'):
-            circuit.calibrations = dict(**circuit.calibrations,
-                                        **_qobj_to_circuit_cals(qobj, pulse_lib, parametric_pulses))
-        if hasattr(exp.config, 'calibrations'):
-            circuit.calibrations = dict(**circuit.calibrations,
-                                        **_qobj_to_circuit_cals(exp, pulse_lib, parametric_pulses))
+        pulse_lib = qobj.config.pulse_library if hasattr(qobj.config, "pulse_library") else []
+        parametric_pulses = (
+            qobj.config.parametric_pulses if hasattr(qobj.config, "parametric_pulses") else []
+        )
+        if hasattr(qobj.config, "calibrations"):
+            circuit.calibrations = dict(
+                **circuit.calibrations, **_qobj_to_circuit_cals(qobj, pulse_lib, parametric_pulses)
+            )
+        if hasattr(exp.config, "calibrations"):
+            circuit.calibrations = dict(
+                **circuit.calibrations, **_qobj_to_circuit_cals(exp, pulse_lib, parametric_pulses)
+            )
         circuits.append(circuit)
     return circuits
 
