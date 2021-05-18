@@ -13,8 +13,10 @@
 """Unit tests for pulse waveforms."""
 
 import unittest
+from unittest.mock import patch
 import numpy as np
 
+import qiskit
 from qiskit.pulse.library import (
     Waveform,
     Constant,
@@ -201,6 +203,13 @@ class TestParametricPulses(QiskitTestCase):
         const = Constant(duration=150, amp=0.1 + 0.4j)
         self.assertEqual(const.get_waveform().samples[0], 0.1 + 0.4j)
         self.assertEqual(len(const.get_waveform().samples), 150)
+
+        with self.assertRaises(PulseError):
+            const = Constant(duration=150, amp=1.1 + 0.4j)
+
+        with patch("qiskit.pulse.library.parametric_pulses.Pulse.limit_amplitude", new=False):
+            const = qiskit.pulse.library.parametric_pulses.Constant(duration=150, amp=0.1 + 0.4j)
+            print(const.limit_amplitude)
 
     def test_parameters(self):
         """Test that the parameters can be extracted as a dict through the `parameters`

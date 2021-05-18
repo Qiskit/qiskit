@@ -33,9 +33,9 @@ class Pulse(ABC):
         self,
         duration: Union[int, ParameterExpression],
         name: Optional[str] = None,
-        limit_amplitude: Optional[bool] = True,
+        limit_amplitude: Optional[bool] = None,
     ):
-        """
+        """Abstract base class for pulses
         Args:
             duration: Duration of the pulse
             name: Optional name for the pulse

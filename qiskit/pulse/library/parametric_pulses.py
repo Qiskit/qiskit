@@ -171,8 +171,12 @@ class Gaussian(ParametricPulse):
         return gaussian(duration=self.duration, amp=self.amp, sigma=self.sigma, zero_ends=True)
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0:
-            raise PulseError("The amplitude norm must be <= 1, " "found: {}".format(abs(self.amp)))
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+            raise PulseError(
+                "The amplitude norm must be <= 1, "
+                "found: {}".format(abs(self.amp))
+                + "This can be overruled by setting Pulse.limit_amplitude."
+            )
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
 
@@ -256,8 +260,12 @@ class GaussianSquare(ParametricPulse):
         )
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0:
-            raise PulseError("The amplitude norm must be <= 1, " "found: {}".format(abs(self.amp)))
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+            raise PulseError(
+                "The amplitude norm must be <= 1, "
+                "found: {}".format(abs(self.amp))
+                + "This can be overruled by setting Pulse.limit_amplitude."
+            )
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
         if not _is_parameterized(self.width) and (self.width < 0 or self.width >= self.duration):
@@ -453,8 +461,12 @@ class Constant(ParametricPulse):
         return constant(duration=self.duration, amp=self.amp)
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0:
-            raise PulseError("The amplitude norm must be <= 1, " "found: {}".format(abs(self.amp)))
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+            raise PulseError(
+                "The amplitude norm must be <= 1, "
+                "found: {}".format(abs(self.amp))
+                + "This can be overruled by setting Pulse.limit_amplitude."
+            )
 
     @property
     def parameters(self) -> Dict[str, Any]:
