@@ -229,33 +229,33 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         theta = Parameter('theta')
         qc = QuantumCircuit(2)
         qc.h(0)
-        qc.append(RXGate(np.pi), [0])
-        qc.append(RXGate(theta), [1])
+        qc.rx(np.pi, 0)
+        qc.rx(theta, 1)
         qc = qc.assign_parameters({theta: np.pi})
 
         with pulse.build() as h_sched:
             pulse.play(pulse.library.Drag(1, 0.15, 4, 2), pulse.DriveChannel(0))
 
         with pulse.build() as x180:
-            pulse.play(pulse.library.Gaussian(1, 0.2, 5), pulse.DriveChannel(1))
+            pulse.play(pulse.library.Gaussian(1, 0.2, 5), pulse.DriveChannel(0))
 
         qc.add_calibration('h', [0], h_sched)
         qc.add_calibration(RXGate(np.pi), [0], x180)
-        qc.add_calibration(RXGate(np.pi), [1], x180)
 
         qobj = assemble(qc, FakeOpenPulse2Q())
-        dasm_circuits, _, _ = disassemble(qobj)
+        circuits, _, _ = disassemble(qobj)
+        output_circ = circuits[0]
 
-        self.assertEqual(len(qc.calibrations), len(dasm_circuits[0].calibrations))
-        self.assertEqual(qc.calibrations.keys(), dasm_circuits[0].calibrations.keys())
+        self.assertEqual(len(qc.calibrations), len(output_circ.calibrations))
+        self.assertEqual(qc.calibrations.keys(), output_circ.calibrations.keys())
         self.assertEqual(all([
             qc_cal.keys() == dasm_qc_cal.keys()
             for qc_cal, dasm_qc_cal in
-            zip(qc.calibrations.values(), dasm_circuits[0].calibrations.values())]), True)
+            zip(qc.calibrations.values(), output_circ.calibrations.values())]), True)
         self.assertEqual(all([
             _parametric_to_waveforms(qc_sched) == _parametric_to_waveforms(dasm_qc_sched)
             for (_, qc_gate), (_, dasm_qc_gate) in
-            zip(qc.calibrations.items(), dasm_circuits[0].calibrations.items())
+            zip(qc.calibrations.items(), output_circ.calibrations.items())
             for qc_sched, dasm_qc_sched in zip(qc_gate.values(), dasm_qc_gate.values())]), True)
 
     def test_parametric_pulse_circuit_calibrations(self):
