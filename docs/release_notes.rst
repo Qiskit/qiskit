@@ -22,6 +22,47 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.26.1
+*************
+
+.. _Release Notes_0.17.4:
+
+Terra 0.17.4
+============
+
+.. _Release Notes_0.17.4_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixed an issue with the :class:`~qiskit.utils.QuantumInstance` with
+  :class:`~qiskit.providers.BackendV1` backends with the
+  :attr:`~qiskit.providers.models.BackendConfiguration.`max_experiments`
+  attribute set to a value less than the number of circuits to run. Previously
+  the :class:`~qiskit.utils.QuantumInstance` would not correctly split the
+  circuits to run into separate jobs, which has been corrected.
+
+Aer 0.8.2
+=========
+
+No change
+
+Ignis 0.6.0
+===========
+
+No change
+
+Aqua 0.9.1
+==========
+
+No change
+
+IBM Q Provider 0.13.1
+=====================
+
+No change
+
+*************
 Qiskit 0.26.0
 *************
 
