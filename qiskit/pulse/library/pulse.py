@@ -39,10 +39,11 @@ class Pulse(ABC):
         Args:
             duration: Duration of the pulse
             name: Optional name for the pulse
-            limit_amplitude: If ``True``, then limit the amplitude of the waveform to 1. The default value
-                             of ``None`` causes the flag value to be derived from :py:attr:`~limit_amplitude`
-                             which is ``True`` by default but may be set by the user to disable
-                             amplitude checks globally.
+            limit_amplitude: If ``True``, then limit the amplitude of the waveform to 1.
+                             The default value of ``None`` causes the flag value to be
+                             derived from :py:attr:`~limit_amplitude` which is ``True``
+                             by default but may be set by the user to disable amplitude
+                             checks globally.
         """
 
         self.duration = duration
