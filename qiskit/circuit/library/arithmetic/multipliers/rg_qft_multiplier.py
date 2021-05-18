@@ -21,7 +21,7 @@ from qiskit.circuit.library.basis_change import QFT
 from .multiplier import Multiplier
 
 
-class QFTMultiplier(Multiplier):
+class RGQFTMultiplier(Multiplier):
     r"""A QFT multiplication circuit to store product of two input registers out-of-place.
 
     Multiplication in this circuit is implemented using the procedure of Fig. 3 in [1], where
@@ -37,7 +37,7 @@ class QFTMultiplier(Multiplier):
 
     """
 
-    def __init__(self, num_state_qubits: int, name: str = "QFTMultiplier") -> None:
+    def __init__(self, num_state_qubits: int, name: str = "RGQFTMultiplier") -> None:
         r"""
         Args:
             num_state_qubits: The number of qubits in either input register for

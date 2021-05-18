@@ -157,7 +157,8 @@ Multipliers
 .. autosummary::
    :toctree: ../stubs/
 
-   ClassicalMultiplier
+   HRSCumulativeMultiplier
+   RGQFTMultiplier
 
 Comparators
 +++++++++++
@@ -369,8 +370,8 @@ from .arithmetic import (
     CDKMRippleCarryAdder,
     DraperQFTAdder,
     PiecewiseChebyshev,
-    ClassicalMultiplier,
-    QFTMultiplier,
+    HRSCumulativeMultiplier,
+    RGQFTMultiplier,
 )
 
 from .n_local import (

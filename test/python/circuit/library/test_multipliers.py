@@ -20,8 +20,8 @@ from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector
 from qiskit.circuit.library import (
-    QFTMultiplier,
-    ClassicalMultiplier,
+    RGQFTMultiplier,
+    HRSCumulativeMultiplier,
     CDKMRippleCarryAdder,
     DraperQFTAdder,
     VBERippleCarryAdder,
@@ -72,11 +72,11 @@ class TestMultiplier(QiskitTestCase):
         np.testing.assert_array_almost_equal(expectations, probabilities)
 
     @data(
-        (3, QFTMultiplier),
-        (3, ClassicalMultiplier),
-        (3, ClassicalMultiplier, CDKMRippleCarryAdder),
-        (3, ClassicalMultiplier, DraperQFTAdder),
-        (3, ClassicalMultiplier, VBERippleCarryAdder),
+        (3, RGQFTMultiplier),
+        (3, HRSCumulativeMultiplier),
+        (3, HRSCumulativeMultiplier, CDKMRippleCarryAdder),
+        (3, HRSCumulativeMultiplier, DraperQFTAdder),
+        (3, HRSCumulativeMultiplier, VBERippleCarryAdder),
     )
     @unpack
     def test_multiplication(self, num_state_qubits, multiplier, adder=None):
@@ -89,8 +89,8 @@ class TestMultiplier(QiskitTestCase):
         self.assertMultiplicationIsCorrect(num_state_qubits, multiplier)
 
     @data(
-        QFTMultiplier,
-        ClassicalMultiplier,
+        RGQFTMultiplier,
+        HRSCumulativeMultiplier,
     )
     def test_raises_on_wrong_num_bits(self, adder):
         """Test an error is raised for a bad number of qubits."""

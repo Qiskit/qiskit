@@ -18,7 +18,7 @@ from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
 from .multiplier import Multiplier
 
 
-class ClassicalMultiplier(Multiplier):
+class HRSCumulativeMultiplier(Multiplier):
     r"""A multiplication circuit to store product of two input registers out-of-place.
 
     Circuit uses the approach from [1]. As an example, a multiplier circuit that
@@ -69,7 +69,7 @@ class ClassicalMultiplier(Multiplier):
         self,
         num_state_qubits: int,
         adder: Optional[QuantumCircuit] = None,
-        name: str = "ClassicalMultiplier",
+        name: str = "HRSCumulativeMultiplier",
     ) -> None:
         r"""
         Args:
