@@ -68,11 +68,15 @@ def _qobj_to_circuit_cals(qobj, pulse_lib, param_pulses):
     qc_cals = {}
     for gate in qobj_cals:
         config = (tuple(gate["qubits"]), tuple(gate["params"]))
-        cal = {config: pulse.Schedule()}
+        cal = {
+            config: pulse.Schedule(
+                name="%s %s %s" % (gate["name"], str(gate["params"]), str(gate["qubits"]))
+            )
+        }
         for instruction in gate["instructions"]:
             schedule = (
                 converter.convert_parametric(PulseQobjInstruction.from_dict(instruction))
-                if instruction["pulse_shape"] in param_pulses
+                if "pulse_shape" in instruction and instruction["pulse_shape"] in param_pulses
                 else converter(PulseQobjInstruction.from_dict(instruction))
             )
             cal[config] = cal[config].insert(schedule.ch_start_time(), schedule)
