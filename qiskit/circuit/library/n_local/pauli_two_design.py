@@ -66,8 +66,15 @@ class PauliTwoDesign(TwoLocal):
              `arXiv:1803.11173 <https://arxiv.org/pdf/1803.11173.pdf>`_
     """
 
-    def __init__(self, num_qubits: Optional[int] = None, reps: int = 3,
-                 seed: Optional[int] = None, insert_barriers: bool = False):
+    def __init__(
+        self,
+        num_qubits: Optional[int] = None,
+        reps: int = 3,
+        seed: Optional[int] = None,
+        insert_barriers: bool = False,
+    ):
+        from qiskit.circuit.library import RYGate  # pylint: disable=cyclic-import
+
         # store a random number generator
         self._seed = seed
         self._rng = np.random.default_rng(seed)
@@ -75,8 +82,17 @@ class PauliTwoDesign(TwoLocal):
         # store a dict to keep track of the random gates
         self._gates = dict()
 
-        super().__init__(num_qubits, reps=reps, entanglement_blocks='cz', entanglement='pairwise',
-                         insert_barriers=insert_barriers)
+        super().__init__(
+            num_qubits,
+            reps=reps,
+            entanglement_blocks="cz",
+            entanglement="pairwise",
+            insert_barriers=insert_barriers,
+        )
+
+        # set the initial layer
+        self._prepended_blocks = [RYGate(np.pi / 4)]
+        self._prepended_entanglement = ["linear"]
 
     def _invalidate(self):
         self._rng = np.random.default_rng(self._seed)  # reset number generator
@@ -89,11 +105,11 @@ class PauliTwoDesign(TwoLocal):
 
         # if no gates for this layer were generated, generate them
         if i not in self._gates.keys():
-            self._gates[i] = list(self._rng.choice(['rx', 'ry', 'rz'], self.num_qubits))
+            self._gates[i] = list(self._rng.choice(["rx", "ry", "rz"], self.num_qubits))
         # if not enough gates exist, add more
         elif len(self._gates[i]) < self.num_qubits:
             num_missing = self.num_qubits - len(self._gates[i])
-            self._gates[i] += list(self._rng.choice(['rx', 'ry', 'rz'], num_missing))
+            self._gates[i] += list(self._rng.choice(["rx", "ry", "rz"], num_missing))
 
         for j in qubits:
             getattr(layer, self._gates[i][j])(next(param_iter), j)
@@ -109,10 +125,3 @@ class PauliTwoDesign(TwoLocal):
             The number of possibly distinct parameters.
         """
         return (self.reps + 1) * self.num_qubits
-
-    def _build(self):
-        super()._build()
-        initial_layer = QuantumCircuit(self.num_qubits)
-        initial_layer.ry(np.pi / 4, range(self.num_qubits))
-
-        self.compose(initial_layer, front=True, inplace=True)

@@ -24,34 +24,34 @@ from qiskit.transpiler.exceptions import TranspilerError
 class NoiseAdaptiveLayout(AnalysisPass):
     """Choose a noise-adaptive Layout based on current calibration data for the backend.
 
-    This pass associates a physical qubit (int) to each virtual qubit
-    of the circuit (Qubit), using calibration data.
+     This pass associates a physical qubit (int) to each virtual qubit
+     of the circuit (Qubit), using calibration data.
 
-    The pass implements the qubit mapping method from:
-    Noise-Adaptive Compiler Mappings for Noisy Intermediate-Scale Quantum Computers
-    Prakash Murali, Jonathan M. Baker, Ali Javadi-Abhari, Frederic T. Chong, Margaret R. Martonosi
-    ASPLOS 2019 (arXiv:1901.11054).
+     The pass implements the qubit mapping method from:
+     Noise-Adaptive Compiler Mappings for Noisy Intermediate-Scale Quantum Computers
+     Prakash Murali, Jonathan M. Baker, Ali Javadi-Abhari, Frederic T. Chong, Margaret R. Martonosi
+     ASPLOS 2019 (arXiv:1901.11054).
 
-   Methods:
+    Methods:
 
-    Ordering of edges:
-    Map qubits edge-by-edge in the order of decreasing frequency of occurrence in the program dag.
+     Ordering of edges:
+     Map qubits edge-by-edge in the order of decreasing frequency of occurrence in the program dag.
 
-    Initialization:
-    If an edge exists with both endpoints unmapped,
-    pick the best available hardware cx to execute this edge.
-    Iterative step:
-    When an edge exists with one endpoint unmapped,
-    map that endpoint to a location which allows
-    maximum reliability for CNOTs with previously mapped qubits.
-    In the end if there are unmapped qubits (which don't
-    participate in any CNOT), map them to any available
-    hardware qubit.
+     Initialization:
+     If an edge exists with both endpoints unmapped,
+     pick the best available hardware cx to execute this edge.
+     Iterative step:
+     When an edge exists with one endpoint unmapped,
+     map that endpoint to a location which allows
+     maximum reliability for CNOTs with previously mapped qubits.
+     In the end if there are unmapped qubits (which don't
+     participate in any CNOT), map them to any available
+     hardware qubit.
 
-    Notes:
-        even though a `layout` is not strictly a property of the DAG,
-        in the transpiler architecture it is best passed around between passes
-        by being set in `property_set`.
+     Notes:
+         even though a `layout` is not strictly a property of the DAG,
+         in the transpiler architecture it is best passed around between passes
+         by being set in `property_set`.
     """
 
     def __init__(self, backend_prop):
@@ -83,9 +83,9 @@ class NoiseAdaptiveLayout(AnalysisPass):
         backend_prop = self.backend_prop
         edge_list = []
         for ginfo in backend_prop.gates:
-            if ginfo.gate == 'cx':
+            if ginfo.gate == "cx":
                 for item in ginfo.parameters:
-                    if item.name == 'gate_error':
+                    if item.name == "gate_error":
                         g_reliab = 1.0 - item.value
                         break
                     g_reliab = 1.0
@@ -101,17 +101,18 @@ class NoiseAdaptiveLayout(AnalysisPass):
         idx = 0
         for q in backend_prop.qubits:
             for nduv in q:
-                if nduv.name == 'readout_error':
+                if nduv.name == "readout_error":
                     self.readout_reliability[idx] = 1.0 - nduv.value
                     self.available_hw_qubits.append(idx)
             idx += 1
         for edge in self.cx_reliability:
-            self.gate_reliability[edge] = self.cx_reliability[edge] * \
-                                          self.readout_reliability[edge[0]] * \
-                                          self.readout_reliability[edge[1]]
+            self.gate_reliability[edge] = (
+                self.cx_reliability[edge]
+                * self.readout_reliability[edge[0]]
+                * self.readout_reliability[edge[1]]
+            )
 
-        swap_reliabs_ro = rx.digraph_floyd_warshall_numpy(self.swap_graph,
-                                                          lambda weight: weight)
+        swap_reliabs_ro = rx.digraph_floyd_warshall_numpy(self.swap_graph, lambda weight: weight)
         for i in range(swap_reliabs_ro.shape[0]):
             self.swap_reliabs[i] = {}
             for j in range(swap_reliabs_ro.shape[1]):
@@ -123,16 +124,16 @@ class NoiseAdaptiveLayout(AnalysisPass):
                     best_reliab = 0.0
                     for n in self.swap_graph.neighbors(j):
                         if (n, j) in self.cx_reliability:
-                            reliab = math.exp(-swap_reliabs_ro[i][n])*self.cx_reliability[(n, j)]
+                            reliab = math.exp(-swap_reliabs_ro[i][n]) * self.cx_reliability[(n, j)]
                         else:
-                            reliab = math.exp(-swap_reliabs_ro[i][n])*self.cx_reliability[(j, n)]
+                            reliab = math.exp(-swap_reliabs_ro[i][n]) * self.cx_reliability[(j, n)]
                         if reliab > best_reliab:
                             best_reliab = reliab
                     self.swap_reliabs[i][j] = best_reliab
 
     def _qarg_to_id(self, qubit):
         """Convert qarg with name and value to an integer id."""
-        return self.qarg_to_id[qubit.register.name + str(qubit.index)]
+        return self.qarg_to_id[qubit]
 
     def _create_program_graph(self, dag):
         """Program graph has virtual qubits as nodes.
@@ -143,7 +144,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         """
         idx = 0
         for q in dag.qubits:
-            self.qarg_to_id[q.register.name + str(q.index)] = idx
+            self.qarg_to_id[q] = idx
             idx += 1
         edge_list = []
         for gate in dag.two_qubit_ops():
@@ -153,7 +154,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
             max_q = max(qid1, qid2)
             edge_weight = 1
             if self.prog_graph.has_edge(min_q, max_q):
-                edge_weight = self.prog_graph[min_q][max_q]['weight'] + 1
+                edge_weight = self.prog_graph[min_q][max_q]["weight"] + 1
             edge_list.append((min_q, max_q, edge_weight))
         self.prog_graph.extend_from_weighted_edge_list(edge_list)
         return idx
@@ -226,13 +227,13 @@ class NoiseAdaptiveLayout(AnalysisPass):
         self._initialize_backend_prop()
         num_qubits = self._create_program_graph(dag)
         if num_qubits > len(self.swap_graph):
-            raise TranspilerError('Number of qubits greater than device.')
+            raise TranspilerError("Number of qubits greater than device.")
 
         # sort by weight, then edge name for determinism (since networkx on python 3.5 returns
         # different order of edges)
-        self.pending_program_edges = sorted(self.prog_graph.weighted_edge_list(),
-                                            key=lambda x: [x[2], -x[0], -x[1]],
-                                            reverse=True)
+        self.pending_program_edges = sorted(
+            self.prog_graph.weighted_edge_list(), key=lambda x: [x[2], -x[0], -x[1]], reverse=True
+        )
 
         while self.pending_program_edges:
             edge = self._select_next_edge()
@@ -241,8 +242,10 @@ class NoiseAdaptiveLayout(AnalysisPass):
             if (not q1_mapped) and (not q2_mapped):
                 best_hw_edge = self._select_best_remaining_cx()
                 if best_hw_edge is None:
-                    raise TranspilerError("CNOT({}, {}) could not be placed "
-                                          "in selected device.".format(edge[0], edge[1]))
+                    raise TranspilerError(
+                        "CNOT({}, {}) could not be placed "
+                        "in selected device.".format(edge[0], edge[1])
+                    )
                 self.prog2hw[edge[0]] = best_hw_edge[0]
                 self.prog2hw[edge[1]] = best_hw_edge[1]
                 self.available_hw_qubits.remove(best_hw_edge[0])
@@ -252,7 +255,8 @@ class NoiseAdaptiveLayout(AnalysisPass):
                 if best_hw_qubit is None:
                     raise TranspilerError(
                         "CNOT({}, {}) could not be placed in selected device. "
-                        "No qubit near qr[{}] available".format(edge[0], edge[1], edge[0]))
+                        "No qubit near qr[{}] available".format(edge[0], edge[1], edge[0])
+                    )
                 self.prog2hw[edge[0]] = best_hw_qubit
                 self.available_hw_qubits.remove(best_hw_qubit)
             else:
@@ -260,11 +264,15 @@ class NoiseAdaptiveLayout(AnalysisPass):
                 if best_hw_qubit is None:
                     raise TranspilerError(
                         "CNOT({}, {}) could not be placed in selected device. "
-                        "No qubit near qr[{}] available".format(edge[0], edge[1], edge[1]))
+                        "No qubit near qr[{}] available".format(edge[0], edge[1], edge[1])
+                    )
                 self.prog2hw[edge[1]] = best_hw_qubit
                 self.available_hw_qubits.remove(best_hw_qubit)
-            new_edges = [x for x in self.pending_program_edges
-                         if not (x[0] in self.prog2hw and x[1] in self.prog2hw)]
+            new_edges = [
+                x
+                for x in self.pending_program_edges
+                if not (x[0] in self.prog2hw and x[1] in self.prog2hw)
+            ]
             self.pending_program_edges = new_edges
         for qid in self.qarg_to_id.values():
             if qid not in self.prog2hw:
@@ -275,4 +283,6 @@ class NoiseAdaptiveLayout(AnalysisPass):
             pid = self._qarg_to_id(q)
             hwid = self.prog2hw[pid]
             layout[q] = hwid
-        self.property_set['layout'] = layout
+        for qreg in dag.qregs.values():
+            layout.add_register(qreg)
+        self.property_set["layout"] = layout

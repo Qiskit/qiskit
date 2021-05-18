@@ -12,25 +12,26 @@
 
 """ PauliTrotterEvolution Class """
 
-from typing import Optional, Union, cast
 import logging
+from typing import Optional, Union, cast
+
 import numpy as np
 
-from ..operator_base import OperatorBase
-from ..operator_globals import Z, I
-from .evolution_base import EvolutionBase
-from ..list_ops.list_op import ListOp
-from ..list_ops.summed_op import SummedOp
-from ..primitive_ops.pauli_op import PauliOp
-from ..primitive_ops.pauli_sum_op import PauliSumOp
-from ..primitive_ops.primitive_op import PrimitiveOp
-from ..converters.pauli_basis_change import PauliBasisChange
-# TODO uncomment when we implement Abelian grouped evolution.
-# from ..converters.abelian_grouper import AbelianGrouper
-from .evolved_op import EvolvedOp
-from .trotterizations.trotterization_base import TrotterizationBase
-from .trotterizations.trotterization_factory import TrotterizationFactory
+from qiskit.opflow.converters.pauli_basis_change import PauliBasisChange
+from qiskit.opflow.evolutions.evolution_base import EvolutionBase
+from qiskit.opflow.evolutions.evolved_op import EvolvedOp
+from qiskit.opflow.evolutions.trotterizations.trotterization_base import TrotterizationBase
+from qiskit.opflow.evolutions.trotterizations.trotterization_factory import TrotterizationFactory
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.operator_globals import I, Z
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 
+# TODO uncomment when we implement Abelian grouped evolution.
+# from qiskit.opflow.converters.abelian_grouper import AbelianGrouper
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ logger = logging.getLogger(__name__)
 class PauliTrotterEvolution(EvolutionBase):
     r"""
     An Evolution algorithm replacing exponentiated sums of Paulis by changing them each to the
-    Z basis, rotating with an rZ, changing back, and trotterizing.
+    Z basis, rotating with an rZ, changing back, and Trotterizing.
 
     More specifically, we compute basis change circuits for each Pauli into a single-qubit Z,
     evolve the Z by the desired evolution time with an rZ gate, and change the basis back using
@@ -46,12 +47,13 @@ class PauliTrotterEvolution(EvolutionBase):
     evolution circuits are composed together by Trotterization scheme.
     """
 
-    def __init__(self,
-                 trotter_mode: Optional[Union[str, TrotterizationBase]] = 'trotter',
-                 reps: Optional[int] = 1,
-                 # TODO uncomment when we implement Abelian grouped evolution.
-                 # group_paulis: Optional[bool] = False
-                 ) -> None:
+    def __init__(
+        self,
+        trotter_mode: Optional[Union[str, TrotterizationBase]] = "trotter",
+        reps: Optional[int] = 1,
+        # TODO uncomment when we implement Abelian grouped evolution.
+        # group_paulis: Optional[bool] = False
+    ) -> None:
         """
         Args:
             trotter_mode: A string ('trotter', 'suzuki', or 'qdrift') to pass to the
@@ -75,18 +77,18 @@ class PauliTrotterEvolution(EvolutionBase):
 
     @property
     def trotter(self) -> TrotterizationBase:
-        """ TrotterizationBase used to evolve SummedOps. """
+        """TrotterizationBase used to evolve SummedOps."""
         return self._trotter
 
     @trotter.setter
     def trotter(self, trotter: TrotterizationBase) -> None:
-        """ Set TrotterizationBase used to evolve SummedOps. """
+        """Set TrotterizationBase used to evolve SummedOps."""
         self._trotter = trotter
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
         r"""
         Traverse the operator, replacing ``EvolvedOps`` with ``CircuitOps`` containing
-        trotterized evolutions equalling the exponentiation of -i * operator.
+        Trotterized evolutions equalling the exponentiation of -i * operator.
 
         Args:
             operator: The Operator to convert.
@@ -104,13 +106,15 @@ class PauliTrotterEvolution(EvolutionBase):
         if isinstance(operator, EvolvedOp):
             if isinstance(operator.primitive, PauliSumOp):
                 operator = EvolvedOp(operator.primitive.to_pauli_op(), coeff=operator.coeff)
-            if not {'Pauli'} == operator.primitive_strings():
-                logger.warning('Evolved Hamiltonian is not composed of only Paulis, converting to '
-                               'Pauli representation, which can be expensive.')
+            if not {"Pauli"} == operator.primitive_strings():
+                logger.warning(
+                    "Evolved Hamiltonian is not composed of only Paulis, converting to "
+                    "Pauli representation, which can be expensive."
+                )
                 # Setting massive=False because this conversion is implicit. User can perform this
                 # action on the Hamiltonian with massive=True explicitly if they so choose.
                 # TODO explore performance to see whether we should avoid doing this repeatedly
-                pauli_ham = operator.primitive.to_pauli_op(massive=False)  # type: ignore
+                pauli_ham = operator.primitive.to_pauli_op(massive=False)
                 operator = EvolvedOp(pauli_ham, coeff=operator.coeff)
 
             if isinstance(operator.primitive, SummedOp):
@@ -119,12 +123,18 @@ class PauliTrotterEvolution(EvolutionBase):
                 #     return self.evolution_for_abelian_paulisum(operator.primitive)
                 # else:
                 # Collect terms that are not the identity.
-                oplist = [x for x in operator.primitive if not isinstance(x, PauliOp)
-                          or sum(x.primitive.x + x.primitive.z) != 0]  # type: ignore
+                oplist = [
+                    x
+                    for x in operator.primitive
+                    if not isinstance(x, PauliOp) or sum(x.primitive.x + x.primitive.z) != 0
+                ]
                 # Collect the coefficients of any identity terms,
                 # which become global phases when exponentiated.
-                identity_phases = [x.coeff for x in operator.primitive if isinstance(x, PauliOp)
-                                   and sum(x.primitive.x + x.primitive.z) == 0]  # type: ignore
+                identity_phases = [
+                    x.coeff
+                    for x in operator.primitive
+                    if isinstance(x, PauliOp) and sum(x.primitive.x + x.primitive.z) == 0
+                ]
                 # Construct sum without the identity operators.
                 new_primitive = SummedOp(oplist, coeff=operator.primitive.coeff)
                 trotterized = self.trotter.convert(new_primitive)
@@ -163,7 +173,7 @@ class PauliTrotterEvolution(EvolutionBase):
 
         # Note: PauliBasisChange will pad destination with identities
         # to produce correct CoB circuit
-        sig_bits = np.logical_or(pauli_op.primitive.z, pauli_op.primitive.x)  # type: ignore
+        sig_bits = np.logical_or(pauli_op.primitive.z, pauli_op.primitive.x)
         a_sig_bit = int(max(np.extract(sig_bits, np.arange(pauli_op.num_qubits)[::-1])))
         destination = (I.tensorpower(a_sig_bit)) ^ (Z * pauli_op.coeff)
         cob = PauliBasisChange(destination_basis=destination, replacement_fn=replacement_fn)
@@ -171,5 +181,5 @@ class PauliTrotterEvolution(EvolutionBase):
 
     # TODO implement Abelian grouped evolution.
     def evolution_for_abelian_paulisum(self, op_sum: SummedOp) -> PrimitiveOp:
-        """ Evolution for abelian pauli sum """
+        """Evolution for abelian pauli sum"""
         raise NotImplementedError

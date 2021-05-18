@@ -28,7 +28,7 @@ class TestPauliTwoDesign(QiskitTestCase):
         """Test the Random Pauli circuit."""
         circuit = PauliTwoDesign(4, seed=12, reps=1)
 
-        qr = QuantumRegister(4, 'q')
+        qr = QuantumRegister(4, "q")
         params = circuit.ordered_parameters
 
         # expected circuit for the random seed 12
@@ -62,7 +62,7 @@ class TestPauliTwoDesign(QiskitTestCase):
         top_gates = [op.name for op, _, _ in circuit.data]
 
         circuit.num_qubits = 3
-        with self.subTest('assert existing gates remain'):
+        with self.subTest("assert existing gates remain"):
             new_top_gates = []
             for op, qargs, _ in circuit:
                 if qargs == [circuit.qubits[0]]:  # if top qubit
@@ -70,6 +70,18 @@ class TestPauliTwoDesign(QiskitTestCase):
 
             self.assertEqual(top_gates, new_top_gates)
 
+    def test_assign_keeps_one_initial_layer(self):
+        """Test assigning parameters does not add an additional initial layer."""
+        circuit = PauliTwoDesign(2)
+        values = list(range(circuit.num_parameters))
 
-if __name__ == '__main__':
+        bound0 = circuit.assign_parameters(values)
+        bound1 = circuit.assign_parameters(values)
+        bound2 = circuit.assign_parameters(values)
+
+        self.assertEqual(bound0, bound1)
+        self.assertEqual(bound0, bound2)
+
+
+if __name__ == "__main__":
     unittest.main()

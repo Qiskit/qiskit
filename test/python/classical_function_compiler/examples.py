@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name, missing-function-docstring
+# pylint: disable=missing-function-docstring
 
 """These examples should be handle by the classicalfunction compiler"""
 

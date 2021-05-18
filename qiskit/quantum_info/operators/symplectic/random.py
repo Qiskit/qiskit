@@ -42,8 +42,8 @@ def random_pauli(num_qubits, group_phase=False, seed=None):
         rng = seed
     else:
         rng = default_rng(seed)
-    z = rng.integers(2, size=num_qubits, dtype=np.bool)
-    x = rng.integers(2, size=num_qubits, dtype=np.bool)
+    z = rng.integers(2, size=num_qubits, dtype=bool)
+    x = rng.integers(2, size=num_qubits, dtype=bool)
     phase = rng.integers(4) if group_phase else 0
     pauli = Pauli((z, x, phase))
     return pauli
@@ -68,7 +68,7 @@ def random_pauli_table(num_qubits, size=1, seed=None):
     else:
         rng = default_rng(seed)
 
-    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(np.bool)
+    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(bool)
     return PauliTable(table)
 
 
@@ -91,8 +91,8 @@ def random_stabilizer_table(num_qubits, size=1, seed=None):
     else:
         rng = default_rng(seed)
 
-    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(np.bool)
-    phase = rng.integers(2, size=size).astype(np.bool)
+    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(bool)
+    phase = rng.integers(2, size=size).astype(bool)
     return StabilizerTable(table, phase)
 
 
@@ -159,10 +159,10 @@ def random_clifford(num_qubits, seed=None):
     table[lhs_inds, :] = table[rhs_inds, :]
 
     # Apply table
-    table = np.mod(np.matmul(table1, table), 2).astype(np.bool)
+    table = np.mod(np.matmul(table1, table), 2).astype(bool)
 
     # Generate random phases
-    phase = rng.integers(2, size=2 * num_qubits).astype(np.bool)
+    phase = rng.integers(2, size=2 * num_qubits).astype(bool)
     return Clifford(StabilizerTable(table, phase))
 
 
@@ -173,7 +173,7 @@ def _sample_qmallows(n, rng=None):
         rng = np.random.default_rng()
 
     # Hadmard layer
-    had = np.zeros(n, dtype=np.bool)
+    had = np.zeros(n, dtype=bool)
 
     # Permutation layer
     perm = np.zeros(n, dtype=int)
@@ -239,15 +239,19 @@ def _inverse_tril(mat, block_inverse_threshold):
 
     if dim <= 5:
         inv = mat.copy()
-        inv[2, 0] = (mat[2, 0] ^ (mat[1, 0] & mat[2, 1]))
+        inv[2, 0] = mat[2, 0] ^ (mat[1, 0] & mat[2, 1])
         if dim > 3:
-            inv[3, 1] = (mat[3, 1] ^ (mat[2, 1] & mat[3, 2]))
+            inv[3, 1] = mat[3, 1] ^ (mat[2, 1] & mat[3, 2])
             inv[3, 0] = mat[3, 0] ^ (mat[3, 2] & mat[2, 0]) ^ (mat[1, 0] & inv[3, 1])
         if dim > 4:
             inv[4, 2] = (mat[4, 2] ^ (mat[3, 2] & mat[4, 3])) & 1
             inv[4, 1] = mat[4, 1] ^ (mat[4, 3] & mat[3, 1]) ^ (mat[2, 1] & inv[4, 2])
-            inv[4, 0] = mat[4, 0] ^ (mat[1, 0] & inv[4, 1]) ^ (
-                mat[2, 0] & inv[4, 2]) ^ (mat[3, 0] & mat[4, 3])
+            inv[4, 0] = (
+                mat[4, 0]
+                ^ (mat[1, 0] & inv[4, 1])
+                ^ (mat[2, 0] & inv[4, 2])
+                ^ (mat[3, 0] & mat[4, 3])
+            )
         return inv % 2
 
     # For higher dimensions we use Numpy's inverse function

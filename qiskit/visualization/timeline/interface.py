@@ -28,18 +28,20 @@ from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import types, core, stylesheet
 
 
-def draw(program: circuit.QuantumCircuit,
-         style: Optional[Dict[str, Any]] = None,
-         time_range: Tuple[int, int] = None,
-         disable_bits: List[types.Bits] = None,
-         show_clbits: Optional[bool] = None,
-         show_idle: Optional[bool] = None,
-         show_barriers: Optional[bool] = None,
-         show_delays: Optional[bool] = None,
-         show_labels: bool = True,
-         plotter: Optional[str] = types.Plotter.MPL.value,
-         axis: Optional[Any] = None,
-         filename: Optional[str] = None):
+def draw(
+    program: circuit.QuantumCircuit,
+    style: Optional[Dict[str, Any]] = None,
+    time_range: Tuple[int, int] = None,
+    disable_bits: List[types.Bits] = None,
+    show_clbits: Optional[bool] = None,
+    show_idle: Optional[bool] = None,
+    show_barriers: Optional[bool] = None,
+    show_delays: Optional[bool] = None,
+    show_labels: bool = True,
+    plotter: Optional[str] = types.Plotter.MPL.value,
+    axis: Optional[Any] = None,
+    filename: Optional[str] = None,
+):
     r"""Generate visualization data for scheduled circuit programs.
 
     Args:
@@ -112,10 +114,10 @@ def draw(program: circuit.QuantumCircuit,
             the right limit of the horizontal axis. The value is in units of percentage of
             the whole program duration. If the duration is 100 and the value of 0.5 is set,
             this keeps right margin of 5 (default `0.02`).
-        formatter.margin.link_interval_dt: Allowed overlap of gate links.
+        formatter.margin.link_interval_percent: Allowed overlap of gate links.
             If multiple gate links are drawing within this range, links are horizontally
-            shifted not to overlap with each other. This value is in units of
-            the system cycle time dt (default `20`).
+            shifted not to overlap with each other. The value is in units of percentage of
+            the whole program duration (default `0.01`).
         formatter.time_bucket.edge_dt: The length of round edge of gate boxes. Gate boxes are
             smoothly faded in and out from the zero line. This value is in units of
             the system cycle time dt (default `10`).
@@ -138,6 +140,8 @@ def draw(program: circuit.QuantumCircuit,
                     'u2': '#FA74A6',
                     'u3': '#FA74A6',
                     'id': '#05BAB6',
+                    'sx': '#FA74A6',
+                    'sxdg': '#FA74A6',
                     'x': '#05BAB6',
                     'y': '#05BAB6',
                     'z': '#05BAB6',
@@ -155,7 +159,7 @@ def draw(program: circuit.QuantumCircuit,
                     'r': '#BB8BFF',
                     'rx': '#BB8BFF',
                     'ry': '#BB8BFF',
-                    'rz': '#BB8BFF',
+                    'rz': '#000000',
                     'reset': '#808080',
                     'measure': '#808080'
                 }
@@ -185,6 +189,8 @@ def draw(program: circuit.QuantumCircuit,
                     'swap': r'{\rm SWAP}',
                     's': r'{\rm S}',
                     'sdg': r'{\rm S}^\dagger',
+                    'sx': r'{\rm √X}',
+                    'sxdg': r'{\rm √X}^\dagger',
                     'dcx': r'{\rm DCX}',
                     'iswap': r'{\rm iSWAP}',
                     't': r'{\rm T}',
@@ -345,16 +351,16 @@ def draw(program: circuit.QuantumCircuit,
 
     # update control properties
     if show_idle is not None:
-        temp_style['formatter.control.show_idle'] = show_idle
+        temp_style["formatter.control.show_idle"] = show_idle
 
     if show_clbits is not None:
-        temp_style['formatter.control.show_clbits'] = show_clbits
+        temp_style["formatter.control.show_clbits"] = show_clbits
 
     if show_barriers is not None:
-        temp_style['formatter.control.show_barriers'] = show_barriers
+        temp_style["formatter.control.show_barriers"] = show_barriers
 
     if show_delays is not None:
-        temp_style['formatter.control.show_delays'] = show_delays
+        temp_style["formatter.control.show_delays"] = show_delays
 
     # create empty canvas and load program
     canvas = core.DrawerCanvas(stylesheet=temp_style)
@@ -375,9 +381,7 @@ def draw(program: circuit.QuantumCircuit,
 
     # show labels
     if not show_labels:
-        labels = [types.LabelType.DELAY,
-                  types.LabelType.GATE_PARAM,
-                  types.LabelType.GATE_NAME]
+        labels = [types.LabelType.DELAY, types.LabelType.GATE_PARAM, types.LabelType.GATE_NAME]
         for label in labels:
             canvas.set_disable_type(label, remove=True)
 
@@ -390,13 +394,13 @@ def draw(program: circuit.QuantumCircuit,
     if plotter == types.Plotter.MPL.value:
         try:
             from qiskit.visualization.timeline.plotters import MplPlotter
-        except ImportError:
-            raise ImportError('Must have Matplotlib installed.')
+        except ImportError as ex:
+            raise ImportError("Must have Matplotlib installed.") from ex
 
         plotter_api = MplPlotter(canvas=canvas, axis=axis)
         plotter_api.draw()
     else:
-        raise VisualizationError('Plotter API {name} is not supported.'.format(name=plotter))
+        raise VisualizationError("Plotter API {name} is not supported.".format(name=plotter))
 
     # save figure
     if filename:

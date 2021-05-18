@@ -51,7 +51,6 @@ def is_power(num, return_decomposition=False):
     """
     Check if num is a perfect power in O(n^3) time, n=ceil(logN)
     """
-    # pylint: disable=invalid-name
     b = 2
     while (2 ** b) <= num:
         a = 1
@@ -128,7 +127,7 @@ def transpositions(permutation: List[int]) -> List[Tuple[int, int]]:
             res.append((x[0], x[1]))
         elif len_x > 2:
             first = x[0]
-            for y in x[len_x - 1:0:-1]:
+            for y in x[len_x - 1 : 0 : -1]:
                 res.append((first, y))
     return res
 
