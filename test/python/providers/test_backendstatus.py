@@ -20,19 +20,22 @@ from qiskit.providers.models import BackendStatus
 
 
 class TestBackendConfiguration(QiskitTestCase):
-    """Test the methods on the BackendConfiguration class."""
+    """Test the BackendStatus class."""
 
     def setUp(self):
+        """Test backend status for one of the fake backends"""
         super().setUp()
         self.backend_status = BackendStatus("my_backend", "1.0", True, 2, "online")
 
     def test_repr(self):
+        """Test representation methods of BackendStatus"""
         self.assertIsInstance(self.backend_status.__repr__(), str)
         repr_html = self.backend_status._repr_html_()
         self.assertIsInstance(repr_html, str)
         self.assertIn(self.backend_status.backend_name, repr_html)
 
     def test_fake_backend_status(self):
+        """Test backend status for one of the fake backends"""
         fake_backend = FakeLondon()
         backend_status = fake_backend.status()
         self.assertIsInstance(backend_status, BackendStatus)
