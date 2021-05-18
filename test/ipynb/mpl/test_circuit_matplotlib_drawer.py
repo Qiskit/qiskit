@@ -553,24 +553,24 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test for when user supplies ax for a subplot"""
         import matplotlib.pyplot as plt
 
-        fig=plt.figure(1, figsize=(6, 4))
-        fig.patch.set_facecolor('white')
-        ax1=fig.add_subplot(1,2,1)
-        ax2=fig.add_subplot(1,2,2)
+        fig = plt.figure(1, figsize=(6, 4))
+        fig.patch.set_facecolor("white")
+        fig.add_subplot(1, 2, 1)
+        ax2 = fig.add_subplot(1, 2, 2)
 
         circuit = QuantumCircuit(4)
         circuit.h(0)
-        circuit.cx(0,1)
+        circuit.cx(0, 1)
         circuit.h(1)
         circuit.cx(1, 2)
         plt.close(fig)
         self.circuit_drawer(circuit, ax=ax2, filename="user_ax.png")
 
     def test_figwidth(self):
-        """Test style dict 'figwidth' """
+        """Test style dict 'figwidth'"""
         circuit = QuantumCircuit(3)
         circuit.h(0)
-        circuit.cx(0,1)
+        circuit.cx(0, 1)
         circuit.x(1)
         circuit.cx(1, 2)
         circuit.x(2)

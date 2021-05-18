@@ -24,7 +24,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate
 from qiskit.extensions import HamiltonianGate
-from qiskit.circuit import Parameter, BooleanExpression
+from qiskit.circuit import Parameter
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
 from .visualization import QiskitVisualizationTestCase

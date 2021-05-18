@@ -28,14 +28,13 @@ except ImportError:
     HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate, Gate
-from qiskit.circuit.library import (
-    Measure,
+from qiskit.circuit import Measure
+from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
     U1Gate,
     PhaseGate,
     XGate,
-    DCXGate,
     ZGate,
 )
 from qiskit.extensions import Initialize
@@ -197,11 +196,18 @@ class MatplotlibDrawer:
 
         self._fs = self._style["fs"]
         self._sfs = self._style["sfs"]
+        self._lwidth1 = 1.0
+        self._lwidth15 = 1.5
+        self._lwidth2 = 2.0
+        self._x_offset = 0.0
+
+        # _data per node with 'width', 'q_xy', 'c_xy', and 'c_indxs'
         self._data = {}
         self._layer_widths = []
+        self._q_anchors = {}
+        self._c_anchors = {}
 
-        # these char arrays are for finding text_width when not
-        # using get_renderer method for the matplotlib backend
+        # _char_list for finding text_width of names, labels, and params
         self._char_list = {
             " ": (0.0958, 0.0583),
             "!": (0.1208, 0.0729),
@@ -306,24 +312,24 @@ class MatplotlibDrawer:
         self._get_layer_widths()
 
         # load the _qubit_dict and _clbit_dict with register info
-        self._get_reg_names_and_numbers()
+        n_lines = self._get_reg_names_and_numbers()
 
         # load the coordinates for each gate and compute number of folds
-        self._get_coords()
-        num_folds = max(0, self._max_anc - 1) // self._fold if self._fold > 0 else 0
+        max_anc = self._get_coords(n_lines)
+        num_folds = max(0, max_anc - 1) // self._fold if self._fold > 0 else 0
 
         # compute the window size
-        if self._max_anc > self._fold > 0:
-            self._xmax = self._fold + self._x_offset + 0.1
-            self._ymax = (num_folds + 1) * (self._n_lines + 1) - 1
+        if max_anc > self._fold > 0:
+            xmax = self._fold + self._x_offset + 0.1
+            ymax = (num_folds + 1) * (n_lines + 1) - 1
         else:
             x_incr = 0.4 if not self._nodes else 0.9
-            self._xmax = self._max_anc + 1 + self._x_offset - x_incr
-            self._ymax = self._n_lines
+            xmax = max_anc + 1 + self._x_offset - x_incr
+            ymax = n_lines
 
         xl = -self._style["margin"][0]
-        xr = self._xmax + self._style["margin"][1]
-        yb = -self._ymax - self._style["margin"][2] + 1 - 0.5
+        xr = xmax + self._style["margin"][1]
+        yb = -ymax - self._style["margin"][2] + 1 - 0.5
         yt = self._style["margin"][3] + 0.5
         self._ax.set_xlim(xl, xr)
         self._ax.set_ylim(yb, yt)
@@ -355,21 +361,21 @@ class MatplotlibDrawer:
         else:
             self._figure.set_size_inches(base_fig_w, base_fig_h)
 
-        # drawing scales with 'set_size_inches', but fonts and linewidths do not
-        self._fs *= scale
-        self._sfs *= scale
-        self._lwidth1 = 1.0 * scale
-        self._lwidth15 = 1.5 * scale
-        self._lwidth2 = 2.0 * scale
+        # drawing will scale with 'set_size_inches', but fonts and linewidths do not
+        if scale != 1.0:
+            self._fs *= scale
+            self._sfs *= scale
+            self._lwidth1 = 1.0 * scale
+            self._lwidth15 = 1.5 * scale
+            self._lwidth2 = 2.0 * scale
 
-        # now draw the register names and numbers, the wires, and place gates on drawing
-        self._draw_regs_wires(num_folds)
-        self._draw_ops(verbose)
-
+        # now draw global phase, register names and numbers, wires, and gates
         if self._global_phase:
             self._plt_mod.text(
                 xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
             )
+        self._draw_regs_wires(num_folds, xmax, n_lines, max_anc)
+        self._draw_ops(verbose)
 
         if filename:
             self._figure.savefig(
@@ -385,14 +391,14 @@ class MatplotlibDrawer:
                 self._plt_mod.close(self._figure)
             return self._figure
 
-    def _draw_regs_wires(self, num_folds):
+    def _draw_regs_wires(self, num_folds, xmax, n_lines, max_anc):
         """Draw the register names and numbers, wires, and vertical lines at the ends"""
 
         for fold_num in range(num_folds + 1):
             # quantum register
             for qubit in self._qubit_dict.values():
                 qubit_name = qubit["reg_name"]
-                y = qubit["y"] - fold_num * (self._n_lines + 1)
+                y = qubit["y"] - fold_num * (n_lines + 1)
                 self._ax.text(
                     self._x_offset - 0.2,
                     y,
@@ -405,13 +411,13 @@ class MatplotlibDrawer:
                     zorder=PORDER_TEXT,
                 )
                 # draw the qubit wire
-                self._line([self._x_offset, y], [self._xmax, y], zorder=PORDER_REGLINE)
+                self._line([self._x_offset, y], [xmax, y], zorder=PORDER_REGLINE)
 
             # classical register
             this_clbit_dict = {}
             for clbit in self._clbit_dict.values():
                 clbit_name = clbit["reg_name"]
-                y = clbit["y"] - fold_num * (self._n_lines + 1)
+                y = clbit["y"] - fold_num * (n_lines + 1)
                 if y not in this_clbit_dict.keys():
                     this_clbit_dict[y] = {"val": 1, "reg_name": clbit_name}
                 else:
@@ -451,7 +457,7 @@ class MatplotlibDrawer:
                 # draw the clbit wire
                 self._line(
                     [self._x_offset, y],
-                    [self._xmax, y],
+                    [xmax, y],
                     lc=self._style["cc"],
                     ls=self._style["cline"],
                     zorder=PORDER_REGLINE,
@@ -463,8 +469,8 @@ class MatplotlibDrawer:
             if feedline_l or feedline_r:
                 xpos_l = self._x_offset - 0.01
                 xpos_r = self._fold + self._x_offset + 0.1
-                ypos1 = -fold_num * (self._n_lines + 1)
-                ypos2 = -(fold_num + 1) * (self._n_lines) - fold_num + 1
+                ypos1 = -fold_num * (n_lines + 1)
+                ypos2 = -(fold_num + 1) * (n_lines) - fold_num + 1
                 if feedline_l:
                     self._ax.plot(
                         [xpos_l, xpos_l],
@@ -484,10 +490,10 @@ class MatplotlibDrawer:
 
         # draw anchor index number
         if self._style["index"]:
-            for layer_num in range(self._max_anc):
+            for layer_num in range(max_anc):
                 if self._fold > 0:
                     x_coord = layer_num % self._fold + self._x_offset + 0.53
-                    y_coord = -(layer_num // self._fold) * (self._n_lines + 1) + 0.7
+                    y_coord = -(layer_num // self._fold) * (n_lines + 1) + 0.7
                 else:
                     x_coord = layer_num + self._x_offset + 0.53
                     y_coord = 0.7
@@ -549,7 +555,7 @@ class MatplotlibDrawer:
                         node,
                         self._data[node]["q_xy"][0],
                         self._data[node]["c_xy"][0],
-                        self._data[node]["c_idxs"],
+                        self._data[node]["c_indxs"],
                         fc=fc,
                         ec=ec,
                         gt=gt,
@@ -609,7 +615,7 @@ class MatplotlibDrawer:
             barrier_offset = 0
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
-                barrier_offset = -1 if all(node.op._directive for op in layer) else 0
+                barrier_offset = -1 if all(nd.op._directive for nd in layer) else 0
 
             prev_anc = this_anc + layer_width + barrier_offset - 1
 
@@ -661,13 +667,19 @@ class MatplotlibDrawer:
                 else:
                     param_width = raw_param_width = 0.0
 
-                if isinstance(node.op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
+                # get gate_width for sidetext symmetric gates
+                if isinstance(node.op, RZZGate) or isinstance(
+                    base_type, (U1Gate, PhaseGate, RZZGate)
+                ):
                     if isinstance(base_type, PhaseGate):
                         gate_text = "P"
                     raw_gate_width = (
-                        self._get_text_width(gate_text + " ()", fontsize=self._sfs) + raw_param_width
+                        self._get_text_width(gate_text + " ()", fontsize=self._sfs)
+                        + raw_param_width
                     )
                     gate_width = (raw_gate_width + 0.08) * 1.5
+
+                # otherwise, standard gate or multiqubit gate
                 else:
                     raw_gate_width = self._get_text_width(gate_text, fontsize=self._fs)
                     gate_width = raw_gate_width + 0.10
@@ -685,7 +697,7 @@ class MatplotlibDrawer:
     def _get_reg_names_and_numbers(self):
         """Get all the info for drawing reg names and numbers"""
         longest_reg_name_width = 0
-        self._n_lines = 0
+        n_lines = 0
         initial_qbit = " |0>" if self._initial_state else ""
         initial_cbit = " 0" if self._initial_state else ""
 
@@ -739,7 +751,7 @@ class MatplotlibDrawer:
                 "index": index,
                 "group": register,
             }
-            self._n_lines += 1
+            n_lines += 1
 
         # classical register
         if self._clbit:
@@ -778,77 +790,77 @@ class MatplotlibDrawer:
                         "index": index,
                         "group": register,
                     }
-                self._n_lines += 1
+                n_lines += 1
                 idx += 1
 
         self._x_offset = -1.2 + longest_reg_name_width
+        return n_lines
 
-        # generate coordinate manager
-        self._q_anchors = {}
-        for key, qubit in self._qubit_dict.items():
-            self._q_anchors[key] = Anchor(reg_num=self._n_lines, yind=qubit["y"], fold=self._fold)
-        self._c_anchors = {}
-        for key, clbit in self._clbit_dict.items():
-            self._c_anchors[key] = Anchor(reg_num=self._n_lines, yind=clbit["y"], fold=self._fold)
-
-    def _get_coords(self):
+    def _get_coords(self, n_lines):
         """Load all the coordinate info needed to place the gates on the drawing"""
+
+        # create the anchor arrays
+        for key, qubit in self._qubit_dict.items():
+            self._q_anchors[key] = Anchor(reg_num=n_lines, yind=qubit["y"], fold=self._fold)
+        for key, clbit in self._clbit_dict.items():
+            self._c_anchors[key] = Anchor(reg_num=n_lines, yind=clbit["y"], fold=self._fold)
+
+        # get all the necessary coordinates for placing gates on the wires
         prev_anc = -1
         for i, layer in enumerate(self._nodes):
             layer_width = self._layer_widths[i]
             this_anc = prev_anc + 1
             for node in layer:
                 # get qubit index
-                q_idxs = []
+                q_indxs = []
                 for qarg in node.qargs:
                     for index, reg in self._qubit_dict.items():
                         if (
                             reg["group"] == self._bit_locations[qarg]["register"]
                             and reg["index"] == self._bit_locations[qarg]["index"]
                         ):
-                            q_idxs.append(index)
+                            q_indxs.append(index)
                             break
 
                 # get clbit index
-                c_idxs = []
+                c_indxs = []
                 for carg in node.cargs:
                     for index, reg in self._clbit_dict.items():
                         if (
                             reg["group"] == self._bit_locations[carg]["register"]
                             and reg["index"] == self._bit_locations[carg]["index"]
                         ):
-                            c_idxs.append(index)
+                            c_indxs.append(index)
                             break
 
                 # only add the gate to the anchors if it is going to be plotted.
                 if self._plot_barriers or not node.op._directive:
-                    for ii in q_idxs:
+                    for ii in q_indxs:
                         self._q_anchors[ii].set_index(this_anc, layer_width)
 
                 # qubit coordinate
                 self._data[node]["q_xy"] = [
                     self._q_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
-                    for ii in q_idxs
+                    for ii in q_indxs
                 ]
                 # clbit coordinate
                 self._data[node]["c_xy"] = [
                     self._c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
-                    for ii in c_idxs
+                    for ii in c_indxs
                 ]
                 # update index based on the value from plotting
-                this_anc = self._q_anchors[q_idxs[0]].gate_anchor
-                self._data[node]["anchor"] = this_anc
-                self._data[node]["c_idxs"] = c_idxs
+                this_anc = self._q_anchors[q_indxs[0]].gate_anchor
+                self._data[node]["c_indxs"] = c_indxs
 
             # adjust the column if there have been barriers encountered, but not plotted
             barrier_offset = 0
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
-                barrier_offset = -1 if all(node.op._directive for op in layer) else 0
+                barrier_offset = -1 if all(nd.op._directive for nd in layer) else 0
             prev_anc = this_anc + layer_width + barrier_offset - 1
 
         anchors = [self._q_anchors[ii].get_index() for ii in self._qubit_dict]
-        self._max_anc = max(anchors) if anchors else 0
+        return max(anchors) if anchors else 0
 
     def _get_text_width(self, text, fontsize, param=False):
         """Compute the width of a string in the default font"""
@@ -925,10 +937,10 @@ class MatplotlibDrawer:
         sc = gt
         return fc, ec, gt, self._style["tc"], sc, lc
 
-    def _condition(self, node, xy, cond_xy):
+    def _condition(self, node, q_xy, cond_xy):
         """Add a conditional to a gate"""
         mask = 0
-        qubit_b = min(xy, key=lambda xy: xy[1])
+        qubit_b = min(q_xy, key=lambda xy: xy[1])
         for index, cbit in enumerate(self._clbit):
             if self._bit_locations[cbit]["register"] == node.op.condition[0]:
                 mask |= 1 << index
@@ -980,11 +992,11 @@ class MatplotlibDrawer:
         )
         self._line(qubit_b, clbit_b, lc=self._style["cc"], ls=self._style["cline"])
 
-    def _measure(self, node, qxy, cxy, c_idxs, fc=None, ec=None, gt=None, sc=None):
+    def _measure(self, node, qxy, cxy, c_indxs, fc=None, ec=None, gt=None, sc=None):
         """Draw the measure symbol and the line to the clbit"""
         qx, qy = qxy
         cx, cy = cxy
-        cid = self._clbit_dict[c_idxs[0]]["index"]
+        cid = self._clbit_dict[c_indxs[0]]["index"]
 
         # draw gate box
         self._gate(node, qxy, fc=fc, ec=ec, gt=gt, sc=sc)
@@ -1128,14 +1140,10 @@ class MatplotlibDrawer:
                 node,
                 RZZGate,
                 xy,
-                fc=fc,
                 ec=ec,
-                gt=gt,
-                sc=sc,
                 tc=tc,
                 lc=lc,
                 gate_text=text,
-                ctrl_text=None,
                 param=subtext,
             )
             return
@@ -1242,14 +1250,10 @@ class MatplotlibDrawer:
                 node,
                 base_type,
                 xy,
-                fc=fc,
                 ec=ec,
                 tc=tc,
-                gt=gt,
-                sc=sc,
                 lc=lc,
                 gate_text=text,
-                ctrl_text=ctrl_text,
                 param=subtext,
             )
         elif num_qargs == 1 and isinstance(base_type, XGate):
@@ -1369,14 +1373,10 @@ class MatplotlibDrawer:
         node,
         base_type,
         xy,
-        fc=None,
         ec=None,
         tc=None,
-        gt=None,
-        sc=None,
         lc=None,
         gate_text="",
-        ctrl_text="",
         param="",
     ):
         """Draw symmetric gates for cz, cu1, cp, and rzz"""
