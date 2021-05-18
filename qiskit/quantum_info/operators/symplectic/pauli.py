@@ -575,11 +575,15 @@ class Pauli(BasePauli):
         if qargs is not None and len(qargs) != other.num_qubits:
             raise QiskitError(
                 "Incorrect number of qubits for Clifford ({} != {}).".format(
-                    other.num_qubits, len(qargs)))
+                    other.num_qubits, len(qargs)
+                )
+            )
         if qargs is None and self.num_qubits != other.num_qubits:
             raise QiskitError(
                 "Incorrect number of qubits for Clifford ({} != {}).".format(
-                    other.num_qubits, self.num_qubits))
+                    other.num_qubits, self.num_qubits
+                )
+            )
 
         if qargs is None:
             idx = slice(None)
