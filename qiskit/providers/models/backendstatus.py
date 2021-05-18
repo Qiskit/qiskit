@@ -76,7 +76,12 @@ class BackendStatus:
         return False
 
     def _repr_html_(self) -> str:
-        """Return html representation of the object"""
+        """Return html representation of the object
+
+        Returns:
+            Representation used in Jupyter notebook and other IDE's that call the method
+
+        """
         rpr = self.__repr__()
         html_code = (
             f"<pre>{html.escape(rpr)}</pre>"
