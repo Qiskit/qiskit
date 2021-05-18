@@ -13,9 +13,6 @@
 Optimized list of Pauli operators
 """
 
-import re
-
-from qiskit.quantum_info.operators.symplectic.stabilizer_table import StabilizerTable
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -35,73 +32,21 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     returning a :class:`Pauli` for integer indexes or a
     :class:`PauliList` for slice or list indices.
 
-    **Symplectic Representation**
-
-    The symplectic representation of a single-qubit Pauli matrix
-    is a pair of boolean values :math:`[x, z]` such that the Pauli matrix
-    is given by :math:`P = (-i)^{z * x} \sigma_z^z.\sigma_x^x`.
-    The correspondence between labels, symplectic representation,
-    and matrices for single-qubit Paulis are shown in Table 1.
-
-    .. list-table:: Pauli Representations
-        :header-rows: 1
-
-        * - Label
-          - Symplectic
-          - Matrix
-        * - ``"I"``
-          - :math:`[0, 0]`
-          - :math:`\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}`
-        * - ``"X"``
-          - :math:`[1, 0]`
-          - :math:`\begin{bmatrix} 0 & 1 \\ 1 & 0  \end{bmatrix}`
-        * - ``"Y"``
-          - :math:`[1, 1]`
-          - :math:`\begin{bmatrix} 0 & -i \\ i & 0  \end{bmatrix}`
-        * - ``"Z"``
-          - :math:`[0, 1]`
-          - :math:`\begin{bmatrix} 1 & 0 \\ 0 & -1  \end{bmatrix}`
-
-    The full Pauli table is a M x 2N boolean matrix:
-
-    .. math::
-
-        \left(\begin{array}{ccc|ccc}
-            x_{0,0} & ... & x_{0,N-1} & z_{0,0} & ... & z_{0,N-1}  \\
-            x_{1,0} & ... & x_{1,N-1} & z_{1,0} & ... & z_{1,N-1}  \\
-            \vdots & \ddots & \vdots & \vdots & \ddots & \vdots  \\
-            x_{M-1,0} & ... & x_{M-1,N-1} & z_{M-1,0} & ... & z_{M-1,N-1}
-        \end{array}\right)
-
-    where each row is a block vector :math:`[X_i, Z_i]` with
-    :math:`X = [x_{i,0}, ..., x_{i,N-1}]`, :math:`Z = [z_{i,0}, ..., z_{i,N-1}]`
-    is the symplectic representation of an `N`-qubit Pauli.
-    This representation is based on reference [1].
-
-    # TODO: deprecate from_labels
-    PauliList's can be created from a list of labels using :meth:`from_labels`,
-    and converted to a list of labels or a list of matrices using
-    :meth:`to_labels` and :meth:`to_matrix` respectively.
-
     **Group Product**
 
-    The Pauli's in the Pauli table do not represent the full Pauli as they are
-    restricted to having `+1` phase. The dot-product for the Pauli's is defined
-    to discard any phase obtained from matrix multiplication so that we have
-    :math:`X.z = Z.x = Y`, etc. This means that for the PauliList class the
-    operator methods :meth:`compose` and :meth:`dot` are equivalent.
+    The matrix multiplication is defined as usual.
 
-    +-------+---+---+---+---+
-    | A.B   | I | X | Y | Z |
-    +=======+===+===+===+===+
-    | **I** | I | X | Y | Z |
-    +-------+---+---+---+---+
-    | **X** | X | I | Z | Y |
-    +-------+---+---+---+---+
-    | **Y** | Y | Z | I | X |
-    +-------+---+---+---+---+
-    | **Z** | Z | Y | X | I |
-    +-------+---+---+---+---+
+    +-------+---+-----+-----+-----+
+    | A.B   | I |   X |   Y |   Z |
+    +=======+===+=====+=====+=====+
+    | **I** | I |   X |   Y |   Z |
+    +-------+---+-----+-----+-----+
+    | **X** | X |   I |  iZ | -iY |
+    +-------+---+-----+-----+-----+
+    | **Y** | Y | -iZ |   I |  iX |
+    +-------+---+-----+-----+-----+
+    | **Z** | Z |  iY | -iX |   I |
+    +-------+---+-----+-----+-----+
 
     **Qubit Ordering**
 
@@ -126,11 +71,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     Rows in the Pauli table can be iterated over like a list. Iteration can
     also be done using the label or matrix representation of each row using the
     :meth:`label_iter` and :meth:`matrix_iter` methods.
-
-    References:
-        1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
-           Phys. Rev. A 70, 052328 (2004).
-           `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
     # Set the max number of qubits * paulis before string truncation
@@ -404,8 +344,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                 )
             z = np.delete(self._z, ind, axis=0)
             x = np.delete(self._x, ind, axis=0)
+            phase = np.delete(self._phase, ind)
 
-            return PauliList(BasePauli(z, x, self._phase))
+            return PauliList(BasePauli(z, x, phase))
 
         # Column (qubit) deletion
         if max(ind) >= self.num_qubits:
@@ -479,8 +420,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                 " ({}).".format(size)
             )
         # Build new array by blocks
-        z = np.hstack([self.z[:, :ind], value_z])
-        x = np.hstack([self.x[:, :ind], value_x])
+        z = np.hstack([self.z[:, :ind], value_z, self.z[:, ind:]])
+        x = np.hstack([self.x[:, :ind], value_x, self.x[:, ind:]])
 
         return PauliList((z, x, self.phase))
 
@@ -703,7 +644,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             )
         return PauliList(super().expand(other))
 
-    def compose(self, other, qargs=None, front=True, inplace=False):
+    def compose(self, other, qargs=None, front=False, inplace=False):
         """Return the composition self∘other for each Pauli in the list.
 
         Args:
@@ -784,7 +725,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             padded = BasePauli(
                 np.zeros((self.size, self.num_qubits), dtype=bool),
                 np.zeros((self.size, self.num_qubits), dtype=bool),
-                np.zeros(self.num_qubits, dtype=int),
+                np.zeros(self.size, dtype=int),
             )
             padded = padded.compose(other, qargs=qargs, inplace=True)
             base_z = np.vstack([self._z, padded._z])
@@ -852,7 +793,61 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Returns:
             bool: True if Pauli's anticommute, False if they commute.
         """
-        return np.logical_not(self.anticommutes(other, qargs=qargs))
+        return np.logical_not(self.commutes(other, qargs=qargs))
+
+    def commutes_with_all(self, other):
+        """Return indexes of rows that commute other.
+
+        If other is a multi-row Pauli list the returned vector indexes rows
+        of the current PauliList that commute with *all* Pauli's in other.
+        If no rows satisfy the condition the returned array will be empty.
+
+        Args:
+            other (PauliList): a single Pauli or multi-row PauliList.
+
+        Returns:
+            array: index array of the commuting rows.
+        """
+        return self._commutes_with_all(other)
+
+    def anticommutes_with_all(self, other):
+        """Return indexes of rows that commute other.
+
+        If other is a multi-row Pauli list the returned vector indexes rows
+        of the current PauliList that anti-commute with *all* Pauli's in other.
+        If no rows satisfy the condition the returned array will be empty.
+
+        Args:
+            other (PauliList): a single Pauli or multi-row PauliList.
+
+        Returns:
+            array: index array of the anti-commuting rows.
+        """
+        return self._commutes_with_all(other, anti=True)
+
+    def _commutes_with_all(self, other, anti=False):
+        """Return row indexes that commute with all rows in another PauliList.
+
+        Args:
+            other (PauliList): a PauliList.
+            anti (bool): if True return rows that anti-commute, otherwise
+                         return rows that commute (Default: False).
+
+        Returns:
+            array: index array of commuting or anti-commuting row.
+        """
+        if not isinstance(other, PauliList):
+            other = PauliList(other)
+        comms = self.commutes(other[0])
+        (inds,) = np.where(comms == int(not anti))
+        for pauli in other[1:]:
+            comms = self[inds].commutes(pauli)
+            (new_inds,) = np.where(comms == int(not anti))
+            if new_inds.size == 0:
+                # No commuting rows
+                return new_inds
+            inds = inds[new_inds]
+        return inds
 
     def evolve(self, other, qargs=None):
         r"""Evolve the Pauli by a Clifford.
@@ -929,7 +924,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     def to_matrix(self, sparse=False, array=False):
         r"""Convert to a list or array of Pauli matrices.
 
-        For large PauliTables converting using the ``array=True``
+        For large PauliLists converting using the ``array=True``
         kwarg will be more efficient since it allocates memory a full
         rank-3 Numpy array of matrices in advance.
 
@@ -965,7 +960,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         if not array:
             # We return a list of Numpy array matrices
-            return [mat for mat in self.matrix_iter(sparse=sparse)]
+            return list(self.matrix_iter(sparse=sparse))
         # For efficiency we also allow returning a single rank-3
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
@@ -975,76 +970,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         for i in range(self.size):
             ret[i] = next(iterator)
         return ret
-
-    # ---------------------------------------------------------------------
-    # Initialization helper functions
-    # ---------------------------------------------------------------------
-
-    @classmethod
-    def _from_labels(cls, labels):
-        """Construct a PauliTable from a list of Pauli strings.
-
-        Args:
-            labels (list): Pauli string label(es).
-
-        Returns:
-            PauliTable: the constructed PauliTable.
-
-        Raises:
-            QiskitError: If the input list is empty or contains invalid
-            Pauli strings.
-        """
-        raise NotImplementedError
-        n_paulis = len(labels)
-        if n_paulis == 0:
-            raise QiskitError("Input Pauli list is empty.")
-        # Get size from first Pauli
-        first = cls._from_label(labels[0])
-        array = np.zeros((n_paulis, len(first)), dtype=bool)
-        array[0] = first
-        for i in range(1, n_paulis):
-            array[i] = cls._from_label(labels[i])
-        return cls(array)
-
-    @staticmethod
-    def _from_label(label):
-        """Return the symplectic representation of Pauli string.
-
-        Args:
-            label (list[str]): the Pauli string label.
-
-        Returns:
-            BasePauli: the BasePauli corresponding to the label.
-
-        Raises:
-            QiskitError: if Pauli string is not valid.
-        """
-        # TODO: use Pauli._from_label?
-        # Split string into coefficient and Pauli
-        span = re.search(r"[IXYZ]+", label).span()
-        pauli, coeff = _split_pauli_label(label)
-        coeff = label[: span[0]]
-
-        # Convert coefficient to phase
-        phase = 0 if not coeff else _phase_from_label(coeff)
-        if phase is None:
-            raise QiskitError("Pauli string is not valid.")
-
-        # Convert to Symplectic representation
-        num_qubits = len(pauli)
-        base_z = np.zeros((1, num_qubits), dtype=bool)
-        base_x = np.zeros((1, num_qubits), dtype=bool)
-        base_phase = np.array([phase], dtype=int)
-        for i, char in enumerate(pauli):
-            if char == "X":
-                base_x[0, num_qubits - 1 - i] = True
-            elif char == "Z":
-                base_z[0, num_qubits - 1 - i] = True
-            elif char == "Y":
-                base_x[0, num_qubits - 1 - i] = True
-                base_z[0, num_qubits - 1 - i] = True
-                base_phase += 1
-        return base_z, base_x, base_phase % 4
 
     # ---------------------------------------------------------------------
     # Custom Iterators
