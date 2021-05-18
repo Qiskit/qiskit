@@ -18,7 +18,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from qiskit import pulse
-from qiskit.compiler.assemble import assemble
+from qiskit.compiler import assemble
 from qiskit.assembler.disassemble import disassemble
 from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
