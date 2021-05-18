@@ -14,8 +14,9 @@
 
 import unittest
 from itertools import product
-from test.python.opflow import QiskitOpflowTestCase
+import uuid
 
+from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
 from scipy.sparse import csr_matrix
 
@@ -302,8 +303,8 @@ class TestPauliSumOp(QiskitOpflowTestCase):
 
     def test_json_same_name_different_instance(self):
         """Test two parameter instances of same name"""
-        x = Parameter('a')+1
-        y = Parameter('a')
+        x = Parameter('a') + 1
+        y = Parameter('a') + 1
         pauli_sum_x = PauliSumOp(SparsePauliOp(Pauli("XYZX"),
                                                coeffs=[1]),
                                  coeff=x)
@@ -311,13 +312,12 @@ class TestPauliSumOp(QiskitOpflowTestCase):
                                                coeffs=[1]),
                                  coeff=y)
         json_string_x = pauli_sum_x.to_json()
-        json_string_y = pauli_sum_y.to_json()        
+        json_string_y = pauli_sum_y.to_json()
         decoded_pauli_sum_x = PauliSumOp.from_json(json_string_x)
-        breakpoint()
-        self.assertEqual(pauli_sum.assign_parameters({x: 2}),
-                         decoded_pauli_sum.assign_parameters(
-                             {decoded_pauli_sum.parameters.pop(): 2}))
-
+        decoded_pauli_sum_y = PauliSumOp.from_json(json_string_y)
+        self.assertEqual(pauli_sum_x, decoded_pauli_sum_x)
+        self.assertEqual(pauli_sum_y, decoded_pauli_sum_y)
+        self.assertNotEqual(decoded_pauli_sum_x, decoded_pauli_sum_y)
 
     def test_json_complex(self):
         """Test json serializer for PauliSumOp"""
@@ -387,6 +387,7 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         """test allowed sin in JSON expression"""
         from qiskit.opflow.primitive_ops.pauli_sum_op import _as_qiskit_type
         bad_string = {'__parameter_expression__': True,
+                      'parameters': {'a': uuid.uuid4().urn},
                       'expr': 'sin(2*a)+1'}
         expr = _as_qiskit_type(bad_string)
         self.assertEqual(str(expr), 'sin(2*a) + 1')

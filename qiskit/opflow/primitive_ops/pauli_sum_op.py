@@ -292,9 +292,13 @@ class PauliSumOp(PrimitiveOp):
                             'real': obj.real,
                             'imag': obj.imag}
                 elif isinstance(obj, ParameterExpression):
-                    breakpoint()
+                    from sympy import srepr, sympify
+                    expr_str = srepr(sympify(obj._symbol_expr))
+                    param_uids = {param.name: param._uuid.urn
+                                  for param in obj.parameters}
                     return {'__parameter_expression__': True,
-                            'expr': str(obj)}
+                            'parameters': param_uids,
+                            'expr': expr_str}
                 return json.JSONEncoder.default(self, obj)
 
         record = {'coeff': self.coeff,
@@ -480,11 +484,13 @@ def _as_qiskit_type(dct):
         import sympy
         from sympy.parsing.sympy_parser import parse_expr
         import qiskit.circuit.parameter as parameter
+        # restrict function primitives for security
         pe_funcs = ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'exp',
-                    'log', 'Symbol', 'Integer']
+                    'log', 'Symbol', 'Integer', 'Add', 'Mul', 'Pow',
+                    'Rational']
         pd_dict = dict()
         for fn in pe_funcs:
             pd_dict[fn] = getattr(sympy, fn)
         sexpr = parse_expr(dct['expr'], global_dict=pd_dict)
-        return parameter.sympy_to_parameter_expression(sexpr)
+        return parameter.sympy_to_parameter_expression(sexpr, uuid_dict=dct['parameters'])
     return dct

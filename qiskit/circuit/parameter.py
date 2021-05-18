@@ -13,6 +13,7 @@
 Parameter Class for variable parameters.
 """
 
+import uuid
 from uuid import uuid4
 
 from .parameterexpression import ParameterExpression
@@ -39,6 +40,7 @@ class Parameter(ParameterExpression):
         else:
             obj._uuid = uuid
 
+        obj._name = name
         obj._hash = hash(obj._uuid)
         return obj
 
@@ -130,17 +132,16 @@ def sympy_to_parameter_expression(expr, uuid_dict=None):
     if not isinstance(expr, Expr):
         raise TypeError('expression of type "{0}" '
                         'is not a sympy expression'.format(expr))
-    breakpoint()
     symbol_map = {}
     if uuid_dict:
         for param in expr.free_symbols:
             if param.name in uuid_dict:
-                uuid = uuid_dict[param.name]
+                param_uuid = uuid.UUID(uuid_dict[param.name])
             else:
-                uuid = None
-            
-            symbol_map[Parameter(param.name, uuid)] = param
+                param_uuid = None
+            param_name = param.name
+            new_param = Parameter.__new__(Parameter, param_name, uuid=param_uuid)
+            symbol_map[new_param] = param
     else:
-        symbol_map[Parameter(param.name, uuid)] = param
-    #symbol_map = {Parameter(param.name): param for param in expr.free_symbols}
+        symbol_map = {Parameter(param.name): param for param in expr.free_symbols}
     return ParameterExpression(symbol_map, expr)
