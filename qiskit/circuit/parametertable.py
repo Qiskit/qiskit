@@ -290,5 +290,4 @@ class ParameterView(MappingView):
         return x in self.data
 
     __hash__: None  # type: ignore
-    __rand__ = __and__
     __ror__ = __or__
