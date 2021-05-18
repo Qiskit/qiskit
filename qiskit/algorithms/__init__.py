@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -97,6 +97,19 @@ Algorithms to find factors of a number.
    Shor
    ShorResult
 
+Linear Solvers
+++++++++++++++
+Algorithms to solve linear systems of equations.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   HHL
+   NumPyLinearSolver
+   LinearSolver
+   LinearSolverResult
+
 Minimum Eigensolvers
 ++++++++++++++++++++
 Algorithms that can find the minimum eigenvalue of an operator.
@@ -116,6 +129,15 @@ Algorithms that can find the minimum eigenvalue of an operator.
    QAOA
    VQE
 
+Optimizers
+++++++++++
+Classical optimizers for use by quantum variational algorithms.
+
+.. autosummary::
+   :toctree:
+
+   optimizers
+
 Phase Estimators
 ++++++++++++++++
 Algorithms that estimate the phases of eigenstates of a unitary.
@@ -129,6 +151,7 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    PhaseEstimationScale
    PhaseEstimation
    PhaseEstimationResult
+   IterativePhaseEstimation
 
 Exceptions
 ==========
@@ -143,55 +166,77 @@ from .algorithm_result import AlgorithmResult
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
 from .amplitude_estimators import (
-    AmplitudeEstimator, AmplitudeEstimatorResult,
-    AmplitudeEstimation, AmplitudeEstimationResult,
-    FasterAmplitudeEstimation, FasterAmplitudeEstimationResult,
-    IterativeAmplitudeEstimation, IterativeAmplitudeEstimationResult,
-    MaximumLikelihoodAmplitudeEstimation, MaximumLikelihoodAmplitudeEstimationResult,
-    EstimationProblem
+    AmplitudeEstimator,
+    AmplitudeEstimatorResult,
+    AmplitudeEstimation,
+    AmplitudeEstimationResult,
+    FasterAmplitudeEstimation,
+    FasterAmplitudeEstimationResult,
+    IterativeAmplitudeEstimation,
+    IterativeAmplitudeEstimationResult,
+    MaximumLikelihoodAmplitudeEstimation,
+    MaximumLikelihoodAmplitudeEstimationResult,
+    EstimationProblem,
 )
 from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
 from .factorizers import Shor, ShorResult
-from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
-                                    NumPyMinimumEigensolver,
-                                    MinimumEigensolver, MinimumEigensolverResult)
-from .phase_estimators import (HamiltonianPhaseEstimation, HamiltonianPhaseEstimationResult,
-                               PhaseEstimationScale, PhaseEstimation, PhaseEstimationResult)
+from .linear_solvers import HHL, LinearSolver, NumPyLinearSolver, LinearSolverResult
+from .minimum_eigen_solvers import (
+    VQE,
+    VQEResult,
+    QAOA,
+    NumPyMinimumEigensolver,
+    MinimumEigensolver,
+    MinimumEigensolverResult,
+)
+from .phase_estimators import (
+    HamiltonianPhaseEstimation,
+    HamiltonianPhaseEstimationResult,
+    PhaseEstimationScale,
+    PhaseEstimation,
+    PhaseEstimationResult,
+    IterativePhaseEstimation,
+)
 from .exceptions import AlgorithmError
 
 __all__ = [
-    'AlgorithmResult',
-    'VariationalAlgorithm',
-    'VariationalResult',
-    'AmplificationProblem',
-    'Grover',
-    'GroverResult',
-    'AmplitudeEstimator',
-    'AmplitudeEstimatorResult',
-    'AmplitudeEstimation',
-    'AmplitudeEstimationResult',
-    'FasterAmplitudeEstimation',
-    'FasterAmplitudeEstimationResult',
-    'IterativeAmplitudeEstimation',
-    'IterativeAmplitudeEstimationResult',
-    'MaximumLikelihoodAmplitudeEstimation',
-    'MaximumLikelihoodAmplitudeEstimationResult',
-    'EstimationProblem',
-    'NumPyEigensolver',
-    'Eigensolver',
-    'EigensolverResult',
-    'Shor',
-    'ShorResult',
-    'VQE',
-    'VQEResult',
-    'QAOA',
-    'NumPyMinimumEigensolver',
-    'MinimumEigensolver',
-    'MinimumEigensolverResult',
-    'HamiltonianPhaseEstimation',
-    'HamiltonianPhaseEstimationResult',
-    'PhaseEstimationScale',
-    'PhaseEstimation',
-    'PhaseEstimationResult',
-    'AlgorithmError',
+    "AlgorithmResult",
+    "VariationalAlgorithm",
+    "VariationalResult",
+    "AmplificationProblem",
+    "Grover",
+    "GroverResult",
+    "AmplitudeEstimator",
+    "AmplitudeEstimatorResult",
+    "AmplitudeEstimation",
+    "AmplitudeEstimationResult",
+    "FasterAmplitudeEstimation",
+    "FasterAmplitudeEstimationResult",
+    "IterativeAmplitudeEstimation",
+    "IterativeAmplitudeEstimationResult",
+    "MaximumLikelihoodAmplitudeEstimation",
+    "MaximumLikelihoodAmplitudeEstimationResult",
+    "EstimationProblem",
+    "NumPyEigensolver",
+    "LinearSolverResult",
+    "Eigensolver",
+    "EigensolverResult",
+    "Shor",
+    "ShorResult",
+    "VQE",
+    "VQEResult",
+    "QAOA",
+    "LinearSolver",
+    "HHL",
+    "NumPyLinearSolver",
+    "NumPyMinimumEigensolver",
+    "MinimumEigensolver",
+    "MinimumEigensolverResult",
+    "HamiltonianPhaseEstimation",
+    "HamiltonianPhaseEstimationResult",
+    "PhaseEstimationScale",
+    "PhaseEstimation",
+    "PhaseEstimationResult",
+    "IterativePhaseEstimation",
+    "AlgorithmError",
 ]

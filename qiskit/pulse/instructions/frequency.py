@@ -13,7 +13,7 @@
 """Frequency instructions module. These instructions allow the user to manipulate
 the frequency of a channel.
 """
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
@@ -34,9 +34,12 @@ class SetFrequency(Instruction):
     The duration of SetFrequency is 0.
     """
 
-    def __init__(self, frequency: Union[float, ParameterExpression],
-                 channel: PulseChannel,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        frequency: Union[float, ParameterExpression],
+        channel: PulseChannel,
+        name: Optional[str] = None,
+    ):
         """Creates a new set channel frequency instruction.
 
         Args:
@@ -46,7 +49,7 @@ class SetFrequency(Instruction):
         """
         if not isinstance(frequency, ParameterExpression):
             frequency = float(frequency)
-        super().__init__((frequency, channel), None, (channel,), name=name)
+        super().__init__(operands=(frequency, channel), name=name)
 
     @property
     def frequency(self) -> Union[float, ParameterExpression]:
@@ -61,18 +64,29 @@ class SetFrequency(Instruction):
         return self.operands[1]
 
     @property
+    def channels(self) -> Tuple[PulseChannel]:
+        """Returns the channels that this schedule uses."""
+        return (self.channel,)
+
+    @property
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return isinstance(self.frequency, ParameterExpression) or super().is_parameterized()
 
 
 class ShiftFrequency(Instruction):
     """Shift the channel frequency away from the current frequency."""
 
-    def __init__(self,
-                 frequency: Union[float, ParameterExpression],
-                 channel: PulseChannel,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        frequency: Union[float, ParameterExpression],
+        channel: PulseChannel,
+        name: Optional[str] = None,
+    ):
         """Creates a new shift frequency instruction.
 
         Args:
@@ -82,7 +96,7 @@ class ShiftFrequency(Instruction):
         """
         if not isinstance(frequency, ParameterExpression):
             frequency = float(frequency)
-        super().__init__((frequency, channel), None, (channel,), name=name)
+        super().__init__(operands=(frequency, channel), name=name)
 
     @property
     def frequency(self) -> Union[float, ParameterExpression]:
@@ -97,6 +111,15 @@ class ShiftFrequency(Instruction):
         return self.operands[1]
 
     @property
+    def channels(self) -> Tuple[PulseChannel]:
+        """Returns the channels that this schedule uses."""
+        return (self.channel,)
+
+    @property
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return isinstance(self.frequency, ParameterExpression) or super().is_parameterized()

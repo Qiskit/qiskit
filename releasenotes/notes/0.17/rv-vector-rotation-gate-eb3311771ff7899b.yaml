@@ -1,0 +1,26 @@
+---
+features:
+  - |
+    A new gate class, :class:`~qiskit.circuit.library.RVGate`, was added to
+    the :mod:`qiskit.circuit.library` module along with the corresponding
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.rv`. The
+    :class:`~qiskit.circuit.library.RVGate` is a general rotation gate, similar
+    to the :class:`~qiskit.circuit.library.UGate`, but instead of specifying
+    Euler angles the three components of a rotation vector are specified where
+    the direction of the vector specifies the rotation axis and the magnitude
+    specifies the rotation angle about the axis in radians. For example::
+
+      import math
+    
+      import np
+
+      from qiskit.circuit import QuantumCircuit
+
+      qc = QuantumCircuit(1)
+      theta = math.pi / 5
+      phi = math.pi / 3
+      # RGate axis:
+      axis = np.array([math.cos(phi), math.sin(phi)])
+      rotation_vector = theta * axis
+      qc.rv(*rotation_vector, 0)
