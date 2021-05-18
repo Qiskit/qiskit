@@ -28,13 +28,12 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     """Test measurement error mitigation."""
 
     def test_measurement_error_mitigation_with_diff_qubit_order(self):
-        """ measurement error mitigation with different qubit order"""
-        # pylint: disable=import-outside-toplevel
+        """measurement error mitigation with different qubit order"""
         try:
             from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
             from qiskit import Aer
             from qiskit.providers.aer import noise
-        except ImportError as ex:  # pylint: disable=broad-except
+        except ImportError as ex:
             self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
@@ -45,14 +44,16 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
         noise_model.add_all_qubit_readout_error(read_err)
 
-        backend = Aer.get_backend('qasm_simulator')
-        quantum_instance = QuantumInstance(backend=backend,
-                                           seed_simulator=1679,
-                                           seed_transpiler=167,
-                                           shots=1000,
-                                           noise_model=noise_model,
-                                           measurement_error_mitigation_cls=CompleteMeasFitter,
-                                           cals_matrix_refresh_period=0)
+        backend = Aer.get_backend("qasm_simulator")
+        quantum_instance = QuantumInstance(
+            backend=backend,
+            seed_simulator=1679,
+            seed_transpiler=167,
+            shots=1000,
+            noise_model=noise_model,
+            measurement_error_mitigation_cls=CompleteMeasFitter,
+            cals_matrix_refresh_period=0,
+        )
         # circuit
         qc1 = QuantumCircuit(2, 2)
         qc1.h(0)
@@ -67,7 +68,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
         # this should run smoothly
         quantum_instance.execute([qc1, qc2])
-        self.assertGreater(quantum_instance.time_taken, 0.)
+        self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
 
         # failure case
@@ -80,13 +81,12 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         self.assertRaises(QiskitError, quantum_instance.execute, [qc1, qc3])
 
     def test_measurement_error_mitigation_with_vqe(self):
-        """ measurement error mitigation test with vqe """
+        """measurement error mitigation test with vqe"""
         try:
-            # pylint: disable=import-outside-toplevel
             from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
             from qiskit import Aer
             from qiskit.providers.aer import noise
-        except ImportError as ex:  # pylint: disable=broad-except
+        except ImportError as ex:
             self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
@@ -97,34 +97,32 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
         noise_model.add_all_qubit_readout_error(read_err)
 
-        backend = Aer.get_backend('qasm_simulator')
+        backend = Aer.get_backend("qasm_simulator")
 
         quantum_instance = QuantumInstance(
             backend=backend,
             seed_simulator=167,
             seed_transpiler=167,
             noise_model=noise_model,
-            measurement_error_mitigation_cls=CompleteMeasFitter
+            measurement_error_mitigation_cls=CompleteMeasFitter,
         )
 
-        h2_hamiltonian = -1.052373245772859 * (I ^ I) \
-            + 0.39793742484318045 * (I ^ Z) \
-            - 0.39793742484318045 * (Z ^ I) \
-            - 0.01128010425623538 * (Z ^ Z) \
+        h2_hamiltonian = (
+            -1.052373245772859 * (I ^ I)
+            + 0.39793742484318045 * (I ^ Z)
+            - 0.39793742484318045 * (Z ^ I)
+            - 0.01128010425623538 * (Z ^ Z)
             + 0.18093119978423156 * (X ^ X)
-        optimizer = SPSA(maxiter=200)
-        var_form = EfficientSU2(2, reps=1)
-
-        vqe = VQE(
-            var_form=var_form,
-            optimizer=optimizer,
-            quantum_instance=quantum_instance
         )
+        optimizer = SPSA(maxiter=200)
+        ansatz = EfficientSU2(2, reps=1)
+
+        vqe = VQE(ansatz=ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
-        self.assertGreater(quantum_instance.time_taken, 0.)
+        self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
-        self.assertAlmostEqual(result.eigenvalue.real, -1.86, places=2)
+        self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

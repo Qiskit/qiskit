@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    The :attr:`~qiskit.circuit.Register.name` setter method of class
+    :class:`~qiskit.circuit.Register` (which is the parent class of
+    :class:`~qiskit.circuit.QuantumRegister` and
+    :class:`~qiskit.circuit.ClassicalRegister`) previously did not check if
+    the assigned string was a valid register name as per the  
+    `OpenQASM specification <https://arxiv.org/pdf/1707.03429v2.pdf>`__. 
+    This check was previously only performed when the name was specified in the
+    constructor, this has now been fixed so that setting the ``name``
+    attribute directly with an invalid value will now also raise an
+    exception.
+    Fixed `#5461 <https://github.com/Qiskit/qiskit-terra/issues/5461>`__

@@ -12,6 +12,7 @@
 
 """The uniform probability distribution circuit."""
 
+import warnings
 from qiskit.circuit import QuantumCircuit
 
 
@@ -46,12 +47,20 @@ class UniformDistribution(QuantumCircuit):
 
     """
 
-    def __init__(self, num_qubits: int, name: str = 'P(X)') -> None:
+    def __init__(self, num_qubits: int, name: str = "P(X)") -> None:
         """
         Args:
             num_qubits: The number of qubits in the circuit, the distribution is uniform over
                 ``2 ** num_qubits`` values.
             name: The name of the circuit.
         """
+        warnings.warn(
+            "`UniformDistribution` is deprecated as of version 0.17.0 and will be "
+            "removed no earlier than 3 months after the release date. "
+            "It moved to qiskit_finance.circuit.library.UniformDistribution.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         super().__init__(num_qubits, name=name)
         self.h(self.qubits)
