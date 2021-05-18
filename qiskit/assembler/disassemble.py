@@ -72,7 +72,7 @@ def _qobj_to_circuit_cals(qobj, pulse_lib, param_pulses):
         for instruction in gate["instructions"]:
             schedule = (
                 converter.convert_parametric(PulseQobjInstruction.from_dict(instruction))
-                if instruction['pulse_shape'] in param_pulses
+                if instruction["pulse_shape"] in param_pulses
                 else converter(PulseQobjInstruction.from_dict(instruction))
             )
             cal[config] = cal[config].insert(schedule.ch_start_time(), schedule)
