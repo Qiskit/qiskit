@@ -62,6 +62,7 @@ def _disassemble_circuit(qobj) -> CircuitModule:
 
 
 def _qobj_to_circuit_cals(qobj, pulse_lib, param_pulses):
+    """Return circuit calibrations dictionary from qobj/exp config calibrations."""
     qobj_cals = qobj.config.calibrations.to_dict()["gates"]
     converter = QobjToInstructionConverter(pulse_lib)
 
