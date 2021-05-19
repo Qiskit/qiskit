@@ -13,8 +13,7 @@
 Parameter Class for variable parameters.
 """
 
-import uuid
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 from .parameterexpression import ParameterExpression
 
@@ -137,7 +136,7 @@ def sympy_to_parameter_expression(expr, uuid_dict=None):
     if uuid_dict:
         for param in expr.free_symbols:
             if param.name in uuid_dict:
-                param_uuid = uuid.UUID(uuid_dict[param.name])
+                param_uuid = UUID(uuid_dict[param.name])
             else:
                 param_uuid = None
             param_name = param.name
