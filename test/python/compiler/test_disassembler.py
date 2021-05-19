@@ -239,8 +239,8 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         """Verify circuit calibrations are equivalent pre-assembly and post-disassembly"""
         self.assertTrue(
             all(
-                len(qc.calibrations) == len(out_qc.calibrations)
-                for qc, out_qc in zip(circuits, output_circuits)
+                len(circuit.calibrations) == len(out_qc.calibrations)
+                for circuit, out_qc in zip(circuits, output_circuits)
             ),
         )
         self.assertTrue(
