@@ -10,5 +10,5 @@ upgrade:
     if calibrations were assigned.
 fixes:
   - |
-    Fixed `#5348 <https://github.com/Qiskit/qiskit-terra/issues/5348>`__
+    Fixed `#5348 <https://github.com/Qiskit/qiskit-terra/issues/5348>`
 
