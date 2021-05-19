@@ -13,20 +13,31 @@
 """Analysis result abstract interface."""
 
 import logging
-from typing import Optional, List, Union, Dict
+from typing import Optional, List, Union, Dict, Callable, Any
 import uuid
 from datetime import datetime
 import json
-
-from qiskit.version import __qiskit_version__
+import copy
+from functools import wraps
 
 from .constants import ResultQuality
 from .json import NumpyEncoder, NumpyDecoder
-from .utils import save_data
+from .utils import save_data, qiskit_version, parse_timestamp, utc_to_local
 from .exceptions import ExperimentError
 from .device_component import DeviceComponent, to_component
 
 LOG = logging.getLogger(__name__)
+
+
+def auto_save(func: Callable):
+    """Decorate the input function to auto save data."""
+    @wraps(func)
+    def _wrapped(self, *args, **kwargs):
+        return_val = func(self, *args, **kwargs)
+        if self.auto_save:
+            self.save()
+        return return_val
+    return _wrapped
 
 
 class AnalysisResult:
@@ -54,7 +65,7 @@ class AnalysisResultV1(AnalysisResult):
     def __init__(
             self,
             result_data: Dict,
-            analysis_type: str,
+            result_type: str,
             device_components: List[Union[DeviceComponent, str]],
             experiment_id: str,
             result_id: Optional[str] = None,
@@ -62,13 +73,14 @@ class AnalysisResultV1(AnalysisResult):
             verified: bool = False,
             tags: Optional[List[str]] = None,
             service: Optional['ExperimentServiceV1'] = None,
+            creation_date: Optional[Union[str, datetime]] = None,
             **kwargs
     ):
         """AnalysisResult constructor.
 
         Args:
             result_data: Analysis result data.
-            analysis_type: Analysis type.
+            result_type: Analysis result type.
             device_components: Target device components this analysis is for.
             experiment_id: ID of the experiment.
             result_id: Result ID. If ``None``, one is generated.
@@ -76,33 +88,36 @@ class AnalysisResultV1(AnalysisResult):
             verified: Whether the result quality has been verified.
             tags: Tags for this analysis result.
             service: Experiment service to be used to store result in database.
+            creation_date: Timestamp for when the analysis result is created
+                in the database in UTC.
             **kwargs: Additional analysis result attributes.
-
-        Raises:
-            ExperimentError: If an input argument is invalid.
         """
-        self._source = result_data.pop(
+        result_data = result_data or {}
+        self._result_data = copy.deepcopy(result_data)
+        self._source = self._result_data.pop(
             "_source",
             {"class": f"{self.__class__.__module__}.{self.__class__.__name__}",
              "data_version": self._data_version,
-             "_qiskit_version": __qiskit_version__})
+             "qiskit_version": qiskit_version()})
 
         # Data to be stored in DB.
         self._experiment_id = experiment_id
         self._id = result_id or str(uuid.uuid4())
-        self._type = analysis_type
+        self._type = result_type
         self._device_components = []
         for comp in device_components:
             if isinstance(comp, str):
                 comp = to_component(comp)
             self._device_components.append(comp)
-        self._result_data = result_data
+
         if isinstance(quality, str):
             quality = ResultQuality(quality.upper())
         self._quality = quality
         self._quality_verified = verified
         self._tags = tags or []
-        self._creation_date = datetime.now()
+        self._creation_date = None
+        if creation_date:
+            self._creation_date = parse_timestamp(creation_date)
 
         # Other attributes.
         self._service = service
@@ -113,7 +128,7 @@ class AnalysisResultV1(AnalysisResult):
                 self.auto_save = self._service.option('auto_save')
             except AttributeError:
                 pass
-        self._extra_data.update(kwargs)
+        self._extra_data = kwargs
 
     def _serialize_data(self) -> str:
         """Serialize result data into JSON string.
@@ -135,6 +150,8 @@ class AnalysisResultV1(AnalysisResult):
         """
         return json.loads(data, cls=cls._json_decoder)
 
+    # TODO - from_data() ?
+
     def save(
             self,
             service: Optional['ExperimentServiceV1'] = None
@@ -148,20 +165,23 @@ class AnalysisResultV1(AnalysisResult):
         Raises:
             ExperimentError: If the analysis result contains invalid data.
         """
-        _result_data = json.loads(self._serialize_data())
-        _result_data['_source'] = self._source
+        service = service or self._service
+        if not service:
+            LOG.warning("Experiment cannot be saved because no experiment service is available.")
+            return
 
-        new_data = {'experiment_id': self._experiment_id, 'result_type': self._type}
+        _result_data = json.loads(self._serialize_data())
+        _result_data.update(self._source)
+
+        new_data = {'experiment_id': self._experiment_id, 'result_type': self.result_type}
         update_data = {'result_id': self.result_id, 'data': _result_data,
                        'tags': self.tags, 'quality': self.quality}
 
-        service = service or self._service
-        if service:
-            self._created_in_db, _ = save_data(
-                is_new=self._created_in_db,
-                new_func=service.create_analysis_result,
-                update_func=service.update_analysis_result,
-                new_data=new_data, update_data=update_data)
+        self._created_in_db, _ = save_data(
+            is_new=(not self._created_in_db),
+            new_func=service.create_analysis_result,
+            update_func=service.update_analysis_result,
+            new_data=new_data, update_data=update_data)
 
     def data(self) -> Dict:
         """Return analysis result data.
@@ -171,6 +191,7 @@ class AnalysisResultV1(AnalysisResult):
         """
         return self._result_data
 
+    @auto_save
     def update_data(self, new_data: Dict) -> None:
         """Update result data.
 
@@ -178,13 +199,12 @@ class AnalysisResultV1(AnalysisResult):
             new_data: New analysis result data.
         """
         self._result_data = new_data
-        if self.auto_save:
-            self.save()
 
     def tags(self):
         """Return tags associated with this result."""
         return self._tags
 
+    @auto_save
     def update_tags(self, new_tags: List[str]) -> None:
         """Set tags for this result.
 
@@ -192,8 +212,6 @@ class AnalysisResultV1(AnalysisResult):
             new_tags: New tags for the result.
         """
         self._tags = new_tags
-        if self.auto_save:
-            self.save()
 
     @property
     def result_id(self):
@@ -228,20 +246,37 @@ class AnalysisResultV1(AnalysisResult):
         return self._quality
 
     @quality.setter
-    def quality(
-            self,
-            new_quality: Union[ResultQuality, str],
-            verified: bool = True
-    ) -> None:
+    def quality(self, new_quality: Union[ResultQuality, str]) -> None:
         """Set the quality of this analysis.
 
         Args:
             new_quality: New analysis quality.
-            verified: Whether the quality is verified.
         """
         if isinstance(new_quality, str):
             new_quality = ResultQuality(new_quality.upper())
         self._quality = new_quality
+        if self.auto_save:
+            self.save()
+
+    @property
+    def verified(self) -> bool:
+        """Return the verified flag.
+
+        The ``verified`` flag is intended to indicate whether the quality
+        value has been verified by a human.
+
+        Returns:
+            Whether the quality has been verified.
+        """
+        return self._quality_verified
+
+    @verified.setter
+    def verified(self, verified: bool) -> None:
+        """Set the verified flag.
+
+        Args:
+            verified: Whether the quality is verified.
+        """
         self._quality_verified = verified
         if self.auto_save:
             self.save()
@@ -256,12 +291,17 @@ class AnalysisResultV1(AnalysisResult):
         return self._experiment_id
 
     @property
-    def creation_date(self) -> datetime:
-        """Return analysis result creation date.
+    def creation_date(self) -> Optional[datetime]:
+        """Return the timestamp for when the analysis result is created in the database.
+
+        Note:
+            The returned timestamp is in local timezone.
 
         Returns:
-            Analysis result creation date in local timezone.
+            Analysis result creation date in local timezone, or ``None`` if unknown.
         """
+        if self._creation_date:
+            return utc_to_local(self._creation_date)
         return self._creation_date
 
     @property
@@ -297,7 +337,7 @@ class AnalysisResultV1(AnalysisResult):
         """
         return self._device_components
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         try:
             return self._extra_data[name]
         except KeyError:

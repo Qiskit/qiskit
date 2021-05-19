@@ -11,12 +11,62 @@
 # that they have been altered from the originals.
 
 import logging
-from typing import Callable, Optional, Tuple, Dict, Any
+from typing import Callable, Optional, Tuple, Dict, Any, Union, List
 from functools import wraps
+import pkg_resources
+from datetime import datetime, timezone
+import threading
+from collections import OrderedDict
+
+import dateutil.parser
+from dateutil import tz
+
+from qiskit.version import __version__ as terra_version
 
 from .exceptions import ExperimentEntryNotFound, ExperimentEntryExists, ExperimentError
 
 LOG = logging.getLogger(__name__)
+
+
+def qiskit_version():
+    """Return the Qiskit version."""
+    try:
+        return pkg_resources.get_distribution('qiskit').version
+    except Exception:  # pylint: disable=broad-except
+        return {'qiskit-terra': terra_version}
+
+
+def parse_timestamp(utc_dt: Union[datetime, str]) -> datetime:
+    """Parse a UTC ``datetime`` object or string.
+
+    Args:
+        utc_dt: Input UTC `datetime` or string.
+
+    Returns:
+        A ``datetime`` with the UTC timezone.
+
+    Raises:
+        TypeError: If the input parameter value is not valid.
+    """
+    if isinstance(utc_dt, str):
+        utc_dt = dateutil.parser.parse(utc_dt)
+    if not isinstance(utc_dt, datetime):
+        raise TypeError('Input `utc_dt` is not string or datetime.')
+    utc_dt = utc_dt.replace(tzinfo=timezone.utc)
+    return utc_dt
+
+
+def utc_to_local(utc_dt: datetime) -> datetime:
+    """Convert input UTC timestamp to local timezone.
+
+    Args:
+        utc_dt: Input UTC timestamp.
+
+    Returns:
+        A ``datetime`` with the local timezone.
+    """
+    local_dt = utc_dt.astimezone(tz.tzlocal())
+    return local_dt
 
 
 def save_data(
@@ -144,3 +194,31 @@ class MonitoredDict(dict):
             if key in monitored:
                 setattr(cls, key, decorate_func(value, callback))
         return obj
+
+
+class ThreadSafeOrderedDict:
+
+    def __init__(self, init_keys: Optional[List] = None):
+        self._lock = threading.Lock()
+        init_keys = init_keys or []
+        self._dict = OrderedDict.fromkeys(init_keys)
+
+    def set_item(self, key: Any, val: Any):
+        with self._lock:
+            self._dict[key] = val
+
+    def del_item(self, key: Any):
+        with self._lock:
+            del self._dict[key]
+
+    def item(self, key: Any) -> Any:
+        with self._lock:
+            return self._dict[key]
+
+    def keys(self):
+        with self._lock:
+            return list(self._dict.keys())
+
+    def values(self) -> List:
+        with self._lock:
+            return list(self._dict.values())

@@ -13,7 +13,7 @@
 """Experiment service abstract interface."""
 
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, List, Any, Union, Tuple
+from typing import Optional, Dict, List, Any, Union, Tuple, Type
 
 from .experiment_data import ExperimentDataV1 as ExperimentData
 from .analysis_result import AnalysisResultV1 as AnalysisResult
@@ -117,11 +117,18 @@ class ExperimentServiceV1(ExperimentService, ABC):
         pass
 
     @abstractmethod
-    def experiment(self, experiment_id: str) -> ExperimentData:
+    def experiment(
+            self,
+            experiment_id: str,
+            experiment_class: Type[ExperimentData] = ExperimentData
+    ) -> ExperimentData:
         """Retrieve a previously stored experiment.
 
         Args:
             experiment_id: Experiment ID.
+            experiment_class: An ``ExperimentData`` class used to instantiate the
+                return data objects. The class's ``from_data()`` method is
+                invoked to recreate the object.
 
         Returns:
             Retrieved experiment.
