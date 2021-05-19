@@ -638,7 +638,7 @@ class TestCliffordOperators(QiskitTestCase):
             cliff1 = Clifford(circ1)
             cliff2 = Clifford(circ2)
             value = cliff1.compose(cliff2)
-            target = Clifford(circ1.extend(circ2))
+            target = Clifford(circ1.compose(circ2))
             self.assertEqual(target, value)
 
     @combine(num_qubits=[1, 2, 3])
@@ -656,7 +656,7 @@ class TestCliffordOperators(QiskitTestCase):
             cliff1 = Clifford(circ1)
             cliff2 = Clifford(circ2)
             value = cliff1.dot(cliff2)
-            target = Clifford(circ2.extend(circ1))
+            target = Clifford(circ2.compose(circ1))
             self.assertEqual(target, value)
 
     @combine(num_qubits_1=[1, 2, 3], num_qubits_2=[1, 2, 3])
@@ -815,10 +815,11 @@ class TestCliffordOperators(QiskitTestCase):
         target = CI.tensor(CX).tensor(CY).tensor(CZ).tensor(CH).tensor(CS)
         self.assertEqual(Clifford.from_label(label), target)
 
-    def test_instruction_name(self):
+    @combine(num_qubits=[1, 2, 3, 4, 5])
+    def test_instruction_name(self, num_qubits):
         """Test to verify the correct clifford name is maintained
         after converting to instruction"""
-        clifford = random_clifford(2, seed=777)
+        clifford = random_clifford(num_qubits, seed=777)
         self.assertEqual(clifford.to_instruction().name, str(clifford))
 
 
