@@ -237,19 +237,17 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
 
     def assertCircuitCalibrationsEqual(self, circuits, output_circuits):
         """Verify circuit calibrations are equivalent pre-assembly and post-disassembly"""
-        self.assertEqual(
+        self.assertTrue(
             all(
                 len(qc.calibrations) == len(out_qc.calibrations)
                 for qc, out_qc in zip(circuits, output_circuits)
             ),
-            True,
         )
-        self.assertEqual(
+        self.assertTrue(
             all(
                 circuit.calibrations.keys() == out_qc.calibrations.keys()
                 for circuit, out_qc in zip(circuits, output_circuits)
             ),
-            True,
         )
         self.assertEqual(
             {tuple(qc_cal.keys()) for qc in circuits for qc_cal in qc.calibrations.values()},
@@ -259,7 +257,7 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
                 for out_qc_cal in out_qc.calibrations.values()
             },
         )
-        self.assertEqual(
+        self.assertTrue(
             all(
                 _parametric_to_waveforms(qc_sched) == _parametric_to_waveforms(out_qc_sched)
                 for qc, out_qc in zip(circuits, output_circuits)
@@ -268,7 +266,6 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
                 )
                 for qc_sched, out_qc_sched in zip(qc_gate.values(), out_qc_gate.values())
             ),
-            True,
         )
 
     def test_single_circuit_calibrations(self):
@@ -367,14 +364,13 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
 
         self.assertEqual(len(qc.calibrations), len(output_circuits[0].calibrations))
         self.assertEqual(qc.calibrations.keys(), output_circuits[0].calibrations.keys())
-        self.assertEqual(
+        self.assertTrue(
             all(
                 qc_cal.keys() == out_qc_cal.keys()
                 for qc_cal, out_qc_cal in zip(
                     qc.calibrations.values(), output_circuits[0].calibrations.values()
                 )
-            ),
-            True,
+            )
         )
         self.assertEqual(
             qc.calibrations["test"][((0,), ())], output_circuits[0].calibrations["test"][((0,), ())]
