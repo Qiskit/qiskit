@@ -580,7 +580,7 @@ class MatplotlibDrawer:
                 )
 
                 if node.op._directive or isinstance(node.op, Measure):
-                    self._data[node]["raw_gate_text"] = ""
+                    self._data[node]["raw_gate_text"] = node.op.name
                     continue
 
                 base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
@@ -615,7 +615,7 @@ class MatplotlibDrawer:
                 ):
                     param = get_param_str(node, "mpl", ndigits=3)
                     if isinstance(node.op, Initialize):
-                        param = "[%s]" % param
+                        param = "$[{}]$".format(param.replace("$", ""))
                     self._data[node]["param"] = param
                     raw_param_width = self._get_text_width(param, fontsize=self._sfs, param=True)
                     param_width = raw_param_width + 0.08

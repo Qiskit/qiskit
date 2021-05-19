@@ -549,6 +549,14 @@ class TestMatplotlibDrawer(QiskitTestCase):
             filename="6095.png",
         )
 
+    def test_overwide_gates(self):
+        """Test gates don't exceed width of default fold"""
+        circuit = QuantumCircuit(5)
+        initial_state = np.zeros(2 ** 5)
+        initial_state[5] = 1
+        circuit.initialize(initial_state)
+        self.circuit_drawer(circuit, filename="wide_params.png")
+
     def test_user_ax_subplot(self):
         """Test for when user supplies ax for a subplot"""
         import matplotlib.pyplot as plt
