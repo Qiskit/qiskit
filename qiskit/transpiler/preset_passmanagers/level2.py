@@ -161,7 +161,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # 3. Unroll to 1q or 2q gates
     _unroll3q = [
         # Use unitary synthesis for basis aware decomposition of UnitaryGates
-        UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
+        UnitarySynthesis(basis_gates, approximation_degree=approximation_degree, min_qubits=3),
         Unroll3qOrMore(),
     ]
 

@@ -57,7 +57,9 @@ def _choose_euler_basis(basis_gates):
 class UnitarySynthesis(TransformationPass):
     """Synthesize gates according to their basis gates."""
 
-    def __init__(self, basis_gates: List[str], approximation_degree: float = 1):
+    def __init__(
+        self, basis_gates: List[str], approximation_degree: float = 1, min_qubits: int = None
+    ):
         """
         Synthesize unitaries over some basis gates.
 
@@ -68,10 +70,14 @@ class UnitarySynthesis(TransformationPass):
         Args:
             basis_gates: List of gate names to target.
             approximation_degree: closeness of approximation (0: lowest, 1: highest).
+            min_qubits: The minimum number of qubits in the unitary to synthesize. If this is set
+                and the unitary is less than the specified number of qubits it will not be
+                synthesized.
         """
         super().__init__()
         self._basis_gates = basis_gates
         self._approximation_degree = approximation_degree
+        self._min_qubits = min_qubits
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the UnitarySynthesis pass on `dag`.
@@ -92,6 +98,8 @@ class UnitarySynthesis(TransformationPass):
             decomposer2q = TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis)
 
         for node in dag.named_nodes("unitary"):
+            if self._min_qubits is not None and len(node.qargs) < self._min_qubits:
+                continue
 
             synth_dag = None
             if len(node.qargs) == 1:
