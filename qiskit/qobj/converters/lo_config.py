@@ -18,13 +18,20 @@ from qiskit.exceptions import QiskitError
 
 
 class LoConfigConverter:
-    """ This class supports to convert LoConfig into ~ ``lo_freq`` attribute of configs.
+    """This class supports to convert LoConfig into ~`lo_freq` attribute of configs.
     The format of LO frequency setup can be easily modified by replacing
     ``get_qubit_los`` and ``get_meas_los`` to align with your backend.
     """
 
-    def __init__(self, qobj_model, qubit_lo_freq=None, meas_lo_freq=None,
-                 qubit_lo_range=None, meas_lo_range=None, **run_config):
+    def __init__(
+        self,
+        qobj_model,
+        qubit_lo_freq=None,
+        meas_lo_freq=None,
+        qubit_lo_range=None,
+        meas_lo_range=None,
+        **run_config,
+    ):
         """Create new converter.
 
         Args:
@@ -68,11 +75,11 @@ class LoConfigConverter:
 
         q_los = self.get_qubit_los(user_lo_config)
         if q_los:
-            lo_config['qubit_lo_freq'] = [freq/1e9 for freq in q_los]
+            lo_config["qubit_lo_freq"] = [freq / 1e9 for freq in q_los]
 
         m_los = self.get_meas_los(user_lo_config)
         if m_los:
-            lo_config['meas_lo_freq'] = [freq/1e9 for freq in m_los]
+            lo_config["meas_lo_freq"] = [freq / 1e9 for freq in m_los]
 
         return self.qobj_model(**lo_config)
 

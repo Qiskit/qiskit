@@ -18,8 +18,7 @@ from warnings import warn
 
 from qiskit import exceptions
 
-DEFAULT_FILENAME = os.path.join(os.path.expanduser("~"),
-                                '.qiskit', 'settings.conf')
+DEFAULT_FILENAME = os.path.join(os.path.expanduser("~"), ".qiskit", "settings.conf")
 
 
 class UserConfig:
@@ -36,6 +35,7 @@ class UserConfig:
     num_processes = 4
 
     """
+
     def __init__(self, filename=None):
         """Create a UserConfig
 
@@ -55,86 +55,92 @@ class UserConfig:
         if not os.path.isfile(self.filename):
             return
         self.config_parser.read(self.filename)
-        if 'default' in self.config_parser.sections():
+        if "default" in self.config_parser.sections():
             # Parse circuit_drawer
-            circuit_drawer = self.config_parser.get('default',
-                                                    'circuit_drawer',
-                                                    fallback=None)
+            circuit_drawer = self.config_parser.get("default", "circuit_drawer", fallback=None)
             if circuit_drawer:
-                if circuit_drawer not in ['text', 'mpl', 'latex',
-                                          'latex_source', 'auto']:
+                if circuit_drawer not in ["text", "mpl", "latex", "latex_source", "auto"]:
                     raise exceptions.QiskitUserConfigError(
                         "%s is not a valid circuit drawer backend. Must be "
                         "either 'text', 'mpl', 'latex', 'latex_source', or "
-                        "'auto'."
-                        % circuit_drawer)
-                self.settings['circuit_drawer'] = circuit_drawer
+                        "'auto'." % circuit_drawer
+                    )
+                self.settings["circuit_drawer"] = circuit_drawer
 
             # Parse state_drawer
-            state_drawer = self.config_parser.get('default',
-                                                  'state_drawer',
-                                                  fallback=None)
+            state_drawer = self.config_parser.get("default", "state_drawer", fallback=None)
             if state_drawer:
-                valid_state_drawers = ['repr', 'text', 'latex', 'latex_source',
-                                       'qsphere', 'hinton', 'bloch']
+                valid_state_drawers = [
+                    "repr",
+                    "text",
+                    "latex",
+                    "latex_source",
+                    "qsphere",
+                    "hinton",
+                    "bloch",
+                ]
                 if state_drawer not in valid_state_drawers:
                     valid_choices_string = "', '".join(c for c in valid_state_drawers)
                     raise exceptions.QiskitUserConfigError(
                         f"'{state_drawer}' is not a valid state drawer backend. "
-                        f"Choose from: '{valid_choices_string}'")
-                self.settings['state_drawer'] = state_drawer
+                        f"Choose from: '{valid_choices_string}'"
+                    )
+                self.settings["state_drawer"] = state_drawer
 
             # Parse circuit_mpl_style
-            circuit_mpl_style = self.config_parser.get('default',
-                                                       'circuit_mpl_style',
-                                                       fallback=None)
+            circuit_mpl_style = self.config_parser.get(
+                "default", "circuit_mpl_style", fallback=None
+            )
             if circuit_mpl_style:
                 if not isinstance(circuit_mpl_style, str):
-                    warn("%s is not a valid mpl circuit style. Must be "
-                         "a text string. Will not load style."
-                         % circuit_mpl_style, UserWarning, 2)
-                self.settings['circuit_mpl_style'] = circuit_mpl_style
+                    warn(
+                        "%s is not a valid mpl circuit style. Must be "
+                        "a text string. Will not load style." % circuit_mpl_style,
+                        UserWarning,
+                        2,
+                    )
+                self.settings["circuit_mpl_style"] = circuit_mpl_style
 
             # Parse circuit_mpl_style_path
-            circuit_mpl_style_path = self.config_parser.get('default',
-                                                            'circuit_mpl_style_path',
-                                                            fallback=None)
+            circuit_mpl_style_path = self.config_parser.get(
+                "default", "circuit_mpl_style_path", fallback=None
+            )
             if circuit_mpl_style_path:
-                cpath_list = circuit_mpl_style_path.split(':')
+                cpath_list = circuit_mpl_style_path.split(":")
                 for path in cpath_list:
                     if not os.path.exists(os.path.expanduser(path)):
-                        warn("%s is not a valid circuit mpl style path."
-                             " Correct the path in ~/.qiskit/settings.conf."
-                             % path, UserWarning, 2)
-                self.settings['circuit_mpl_style_path'] = cpath_list
+                        warn(
+                            "%s is not a valid circuit mpl style path."
+                            " Correct the path in ~/.qiskit/settings.conf." % path,
+                            UserWarning,
+                            2,
+                        )
+                self.settings["circuit_mpl_style_path"] = cpath_list
 
             # Parse transpile_optimization_level
             transpile_optimization_level = self.config_parser.getint(
-                'default', 'transpile_optimization_level', fallback=-1)
+                "default", "transpile_optimization_level", fallback=-1
+            )
             if transpile_optimization_level != -1:
-                if (transpile_optimization_level < 0 or
-                        transpile_optimization_level > 3):
+                if transpile_optimization_level < 0 or transpile_optimization_level > 3:
                     raise exceptions.QiskitUserConfigError(
-                        "%s is not a valid optimization level. Must be "
-                        "0, 1, 2, or 3.")
-                self.settings['transpile_optimization_level'] = (
-                    transpile_optimization_level)
+                        "%s is not a valid optimization level. Must be " "0, 1, 2, or 3."
+                    )
+                self.settings["transpile_optimization_level"] = transpile_optimization_level
 
             # Parse parallel
-            parallel_enabled = self.config_parser.getboolean(
-                'default', 'parallel', fallback=None)
+            parallel_enabled = self.config_parser.getboolean("default", "parallel", fallback=None)
             if parallel_enabled is not None:
-                self.settings['parallel_enabled'] = parallel_enabled
+                self.settings["parallel_enabled"] = parallel_enabled
 
             # Parse num_processes
-            num_processes = self.config_parser.getint(
-                'default', 'num_processes', fallback=-1)
+            num_processes = self.config_parser.getint("default", "num_processes", fallback=-1)
             if num_processes != -1:
                 if num_processes <= 0:
                     raise exceptions.QiskitUserConfigError(
-                        "%s is not a valid number of processes. Must be "
-                        "greater than 0")
-                self.settings['num_processes'] = num_processes
+                        "%s is not a valid number of processes. Must be " "greater than 0"
+                    )
+                self.settings["num_processes"] = num_processes
 
 
 def get_config():
@@ -147,7 +153,7 @@ def get_config():
     Returns:
         dict: The settings dict from the parsed config file.
     """
-    filename = os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
+    filename = os.getenv("QISKIT_SETTINGS", DEFAULT_FILENAME)
     if not os.path.isfile(filename):
         return {}
     user_config = UserConfig(filename)

@@ -126,13 +126,15 @@ class NormalDistribution(QuantumCircuit):
 
     """
 
-    def __init__(self,
-                 num_qubits: Union[int, List[int]],
-                 mu: Optional[Union[float, List[float]]] = None,
-                 sigma: Optional[Union[float, List[float]]] = None,
-                 bounds: Optional[Union[Tuple[float, float], List[Tuple[float, float]]]] = None,
-                 upto_diag: bool = False,
-                 name: str = 'P(X)') -> None:
+    def __init__(
+        self,
+        num_qubits: Union[int, List[int]],
+        mu: Optional[Union[float, List[float]]] = None,
+        sigma: Optional[Union[float, List[float]]] = None,
+        bounds: Optional[Union[Tuple[float, float], List[Tuple[float, float]]]] = None,
+        upto_diag: bool = False,
+        name: str = "P(X)",
+    ) -> None:
         r"""
         Args:
             num_qubits: The number of qubits used to discretize the random variable. For a 1d
@@ -150,10 +152,13 @@ class NormalDistribution(QuantumCircuit):
                 with a diagonal for a more efficient circuit.
             name: The name of the circuit.
         """
-        warnings.warn('`NormalDistribution` is deprecated as of version 0.17.0 and will be '
-                      'removed no earlier than 3 months after the release date. '
-                      'It moved to qiskit_finance.circuit.library.NormalDistribution.',
-                      DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "`NormalDistribution` is deprecated as of version 0.17.0 and will be "
+            "removed no earlier than 3 months after the release date. "
+            "It moved to qiskit_finance.circuit.library.NormalDistribution.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         _check_dimensions_match(num_qubits, mu, sigma, bounds)
         _check_bounds_valid(bounds)
@@ -172,14 +177,19 @@ class NormalDistribution(QuantumCircuit):
         if not isinstance(num_qubits, list):  # univariate case
             super().__init__(num_qubits, name=name)
 
-            x = np.linspace(bounds[0], bounds[1], num=2**num_qubits)
+            x = np.linspace(bounds[0], bounds[1], num=2 ** num_qubits)
         else:  # multivariate case
             super().__init__(sum(num_qubits), name=name)
 
             # compute the evaluation points using numpy's meshgrid
             # indexing 'ij' yields the "column-based" indexing
-            meshgrid = np.meshgrid(*[np.linspace(bound[0], bound[1], num=2**num_qubits[i])
-                                     for i, bound in enumerate(bounds)], indexing='ij')
+            meshgrid = np.meshgrid(
+                *[
+                    np.linspace(bound[0], bound[1], num=2 ** num_qubits[i])
+                    for i, bound in enumerate(bounds)
+                ],
+                indexing="ij",
+            )
             # flatten into a list of points
             x = list(zip(*[grid.flatten() for grid in meshgrid]))
 
@@ -200,6 +210,7 @@ class NormalDistribution(QuantumCircuit):
             self.isometry(np.sqrt(normalized_probabilities), self.qubits, None)
         else:
             from qiskit.extensions import Initialize  # pylint: disable=cyclic-import
+
             initialize = Initialize(np.sqrt(normalized_probabilities))
             circuit = initialize.gates_to_uncompute().inverse()
             self.compose(circuit, inplace=True)
@@ -227,25 +238,31 @@ def _check_dimensions_match(num_qubits, mu, sigma, bounds):
     if mu is not None:
         mu = [mu] if not isinstance(mu, (list, np.ndarray)) else mu
         if len(mu) != dim:
-            raise ValueError('Dimension of mu ({}) does not match the dimension of the '
-                             'random variable specified by the number of qubits ({})'
-                             ''.format(len(mu), dim))
+            raise ValueError(
+                "Dimension of mu ({}) does not match the dimension of the "
+                "random variable specified by the number of qubits ({})"
+                "".format(len(mu), dim)
+            )
 
     if sigma is not None:
         sigma = [[sigma]] if not isinstance(sigma, (list, np.ndarray)) else sigma
         if len(sigma) != dim or len(sigma[0]) != dim:
-            raise ValueError('Dimension of sigma ({} x {}) does not match the dimension of '
-                             'the random variable specified by the number of qubits ({})'
-                             ''.format(len(sigma), len(sigma[0]), dim))
+            raise ValueError(
+                "Dimension of sigma ({} x {}) does not match the dimension of "
+                "the random variable specified by the number of qubits ({})"
+                "".format(len(sigma), len(sigma[0]), dim)
+            )
 
     if bounds is not None:
         # bit differently to cover the case the users might pass `bounds` as a single list,
         # e.g. [0, 1], instead of a tuple
         bounds = [bounds] if not isinstance(bounds[0], tuple) else bounds
         if len(bounds) != dim:
-            raise ValueError('Dimension of bounds ({}) does not match the dimension of the '
-                             'random variable specified by the number of qubits ({})'
-                             ''.format(len(bounds), dim))
+            raise ValueError(
+                "Dimension of bounds ({}) does not match the dimension of the "
+                "random variable specified by the number of qubits ({})"
+                "".format(len(bounds), dim)
+            )
 
 
 def _check_bounds_valid(bounds):
@@ -256,6 +273,8 @@ def _check_bounds_valid(bounds):
 
     for i, bound in enumerate(bounds):
         if not bound[1] - bound[0] > 0:
-            raise ValueError('Dimension {} of the bounds are invalid, must be a non-empty '
-                             'interval where the lower bounds is smaller than the upper bound.'
-                             ''.format(i))
+            raise ValueError(
+                "Dimension {} of the bounds are invalid, must be a non-empty "
+                "interval where the lower bounds is smaller than the upper bound."
+                "".format(i)
+            )
