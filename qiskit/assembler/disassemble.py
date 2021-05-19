@@ -80,7 +80,7 @@ def _qobj_to_circuit_cals(qobj, pulse_lib, param_pulses):
                 else converter(PulseQobjInstruction.from_dict(instruction))
             )
             cal[config] = cal[config].insert(schedule.ch_start_time(), schedule)
-        qc_cals.setdefault(gate["name"], cal).update(cal)
+        qc_cals.setdefault(gate["name"], cal)
 
     return qc_cals
 
