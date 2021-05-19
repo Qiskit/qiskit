@@ -1,11 +1,5 @@
 ---
-upgrade:
-  - |
-    Disassembled circuits now inherit calibrations from assembled qobj and experiment.
-    :func:`~_qobj_to_circuit_cals(qobj_cals)` parses qobj and experiment calibrations
-    into the circuit calibration dict structure. :func:`~_experiments_to_circuits`
-    sets circuit calibrations, first from qobj-level and second from experiment-level
-    if calibrations were assigned.
 fixes:
   - |
-    Fixed `#5348 <https://github.com/Qiskit/qiskit-terra/issues/5348>`
+    Disassembled circuits now inherit calibrations from assembled qobj and experiment.
+    Fixes `#5348 <https://github.com/Qiskit/qiskit-terra/issues/5348>`
