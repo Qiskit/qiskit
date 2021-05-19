@@ -27,6 +27,7 @@ from qiskit.providers import Job, BaseJob, Backend, BaseBackend, Provider
 from qiskit.result import Result
 from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.providers import experiment  # pylint: disable=unused-import
+from qiskit.providers.exceptions import JobError
 
 from .exceptions import ExperimentError, ExperimentEntryNotFound, ExperimentEntryExists
 from .analysis_result import AnalysisResultV1 as AnalysisResult
@@ -191,7 +192,7 @@ class ExperimentDataV1(ExperimentData):
         elif isinstance(data, (Job, BaseJob)):
             if self.backend and self.backend != data.backend():
                 LOG.warning(
-                    "Adding a job from a backend %s that is different "
+                    "Adding a job from a backend (%s) that is different "
                     "than the current ExperimentData backend (%s). "
                     "The new backend will be used, but "
                     "service is not changed if one already exists.",
@@ -225,7 +226,11 @@ class ExperimentDataV1(ExperimentData):
             job_done_callback: Callback function to invoke when job finishes.
         """
         LOG.debug("Waiting for job %s to finish.", job.job_id())
-        self._add_result_data(job.result())
+        try:
+            self._add_result_data(job.result())
+        except JobError as err:
+            LOG.warning("Job %s failed: %s", job.job_id(), str(err))
+            return
         if job_done_callback:
             job_done_callback(self)
 
@@ -676,7 +681,10 @@ class ExperimentDataV1(ExperimentData):
                 job_status = job.status()
                 statuses.add(job_status)
                 if job_status == JobStatus.ERROR:
-                    self._errors.append(f"Job {job.job_id()} failed.")
+                    job_err = "."
+                    if hasattr(job, 'error_message'):
+                        job_err = ": " + job.error_message()
+                    self._errors.append(f"Job {job.job_id()} failed{job_err}")
 
                 if fut.done():
                     self._job_futures[idx] = None
@@ -712,6 +720,7 @@ class ExperimentDataV1(ExperimentData):
         Returns:
             Experiment errors.
         """
+        self.status()  # Collect new errors.
         return "\n".join(self._errors)
 
     def tags(self) -> List[str]:

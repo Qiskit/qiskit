@@ -34,19 +34,17 @@ class TestAnalysisResult(QiskitTestCase):
 
     def test_analysis_result_attributes(self):
         """Test analysis result attributes."""
-        attrs = {"result_type": 'my_type',
-                 "device_components": [Qubit(1), Qubit(2)],
-                 "experiment_id": "1234",
-                 "result_id": "5678",
-                 "quality": ResultQuality.GOOD,
-                 "verified": False}
-        result = AnalysisResult(
-            result_data={'foo': 'bar'},
-            tags=['tag1', 'tag2'],
-            **attrs
-        )
-        self.assertEqual({'foo': 'bar'}, result.data())
-        self.assertEqual(['tag1', 'tag2'], result.tags())
+        attrs = {
+            "result_type": "my_type",
+            "device_components": [Qubit(1), Qubit(2)],
+            "experiment_id": "1234",
+            "result_id": "5678",
+            "quality": ResultQuality.GOOD,
+            "verified": False,
+        }
+        result = AnalysisResult(result_data={"foo": "bar"}, tags=["tag1", "tag2"], **attrs)
+        self.assertEqual({"foo": "bar"}, result.data())
+        self.assertEqual(["tag1", "tag2"], result.tags())
         for key, val in attrs.items():
             self.assertEqual(val, getattr(result, key))
 
@@ -66,10 +64,10 @@ class TestAnalysisResult(QiskitTestCase):
 
         subtests = [
             # update function, update parameters, service called
-            (result.update_tags, (['foo'],)),
-            (result.update_data, ({'foo': 'bar'},)),
-            (setattr, (result, 'quality', 'GOOD')),
-            (setattr, (result, 'verified', True))
+            (result.update_tags, (["foo"],)),
+            (result.update_data, ({"foo": "bar"},)),
+            (setattr, (result, "quality", "GOOD")),
+            (setattr, (result, "verified", True)),
         ]
 
         for func, params in subtests:
@@ -106,19 +104,19 @@ class TestAnalysisResult(QiskitTestCase):
     def test_update_data(self):
         """Test updating data."""
         result = self._new_analysis_result()
-        result.update_data({'foo': 'new data'})
-        self.assertEqual({'foo': 'new data'}, result.data())
+        result.update_data({"foo": "new data"})
+        self.assertEqual({"foo": "new data"}, result.data())
 
     def test_update_tags(self):
         """Test updating tags."""
         result = self._new_analysis_result()
-        result.update_tags(['new_tag'])
-        self.assertEqual(['new_tag'], result.tags())
+        result.update_tags(["new_tag"])
+        self.assertEqual(["new_tag"], result.tags())
 
     def test_update_quality(self):
         """Test updating quality."""
-        result = self._new_analysis_result(quality='BAD')
-        result.quality = 'GOOD'
+        result = self._new_analysis_result(quality="BAD")
+        result.quality = "GOOD"
         self.assertEqual(ResultQuality.GOOD, result.quality)
 
     def test_update_verified(self):
@@ -129,13 +127,12 @@ class TestAnalysisResult(QiskitTestCase):
 
     def test_additional_attr(self):
         """Test additional attributes."""
-        result = self._new_analysis_result(foo='bar')
-        self.assertEqual('bar', result.foo)
+        result = self._new_analysis_result(foo="bar")
+        self.assertEqual("bar", result.foo)
 
     def test_data_serialization(self):
         """Test result data serialization."""
-        result = self._new_analysis_result(result_data={'complex': 2+3j,
-                                                        'numpy': np.zeros(2)})
+        result = self._new_analysis_result(result_data={"complex": 2 + 3j, "numpy": np.zeros(2)})
         serialized = result._serialize_data()
         self.assertIsInstance(serialized, str)
         self.assertTrue(json.loads(serialized))
@@ -149,16 +146,18 @@ class TestAnalysisResult(QiskitTestCase):
     def test_source(self):
         """Test getting analysis result source."""
         result = self._new_analysis_result()
-        source_vals = '\n'.join([str(val) for val in result.source.values()])
-        self.assertIn('AnalysisResultV1', source_vals)
-        self.assertIn('qiskit-terra', source_vals)
+        source_vals = "\n".join([str(val) for val in result.source.values()])
+        self.assertIn("AnalysisResultV1", source_vals)
+        self.assertIn("qiskit-terra", source_vals)
 
     def _new_analysis_result(self, **kwargs):
         """Return a new analysis result."""
-        values = {'result_data': {'foo': 'bar'},
-                  'result_type': 'some_type',
-                  'device_components': ['Q1', 'Q1'],
-                  'experiment_id': '1234'}
+        values = {
+            "result_data": {"foo": "bar"},
+            "result_type": "some_type",
+            "device_components": ["Q1", "Q1"],
+            "experiment_id": "1234",
+        }
         values.update(kwargs)
         return AnalysisResult(**values)
 
@@ -170,14 +169,14 @@ class TestDeviceComponent(QiskitTestCase):
         """Test string representation."""
         q1 = Qubit(1)
         r1 = Resonator(1)
-        self.assertEqual('Q1', str(q1))
-        self.assertEqual('R1', str(r1))
+        self.assertEqual("Q1", str(q1))
+        self.assertEqual("R1", str(r1))
 
     def test_to_component(self):
         """Test converting string to component object."""
-        q1 = to_component('Q1')
+        q1 = to_component("Q1")
         self.assertIsInstance(q1, Qubit)
-        self.assertEqual('Q1', str(q1))
-        r1 = to_component('R1')
+        self.assertEqual("Q1", str(q1))
+        r1 = to_component("R1")
         self.assertIsInstance(r1, Resonator)
-        self.assertEqual('R1', str(r1))
+        self.assertEqual("R1", str(r1))
