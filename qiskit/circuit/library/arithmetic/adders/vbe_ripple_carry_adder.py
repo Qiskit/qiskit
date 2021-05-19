@@ -58,13 +58,15 @@ class VBERippleCarryAdder(Adder):
     """
 
     def __init__(
-        self, num_state_qubits: int, fixed_point: bool = False, name: str = "VBERippleCarryAdder"
+        self, num_state_qubits: int, kind: str = 'full', name: str = "VBERippleCarryAdder"
     ) -> None:
         """
         Args:
             num_state_qubits: The size of the register.
-            fixed_point: If True, perform addition modulo ``2 ** num_state_qubits``. This needs
-                one less qubit (namely no ``cout`` qubit).
+            kind: The kind of adder, can be ``'full'`` for a full adder, ``'half'`` for a half
+                adder, or ``'fixed'`` for a fixed-point adder. A full adder includes both carry-in
+                and carry-out, a half only carry-out, and a fixed-point adder neither carry-in
+                nor carry-out.
             name: The name of the circuit.
 
         Raises:
@@ -76,52 +78,82 @@ class VBERippleCarryAdder(Adder):
         super().__init__(num_state_qubits, name=name)
 
         # define the input registers
+        registers = []
+        if kind == 'full':
+            qr_cin = QuantumRegister(1, name='cin')
+            registers.append(qr_cin)
+        else:
+            qr_cin = []
+
         qr_a = QuantumRegister(num_state_qubits, name="a")
         qr_b = QuantumRegister(num_state_qubits, name="b")
-        self.add_register(qr_a, qr_b)
 
-        if not fixed_point:
-            qr_cout = QuantumRegister(1, name="cout")
-            self.add_register(qr_cout)
+        registers += [qr_a, qr_b]
 
-        qr_cin = AncillaRegister(num_state_qubits, name="cin")
-        self.add_register(qr_cin)
+        if kind in ['half', 'full']:
+            qr_cout = QuantumRegister(1, name='cout')
+            registers.append(qr_cout)
+        else:
+            qr_cout = []
+
+        self.add_register(*registers)
+
+        if num_state_qubits > 1:
+            qr_help = AncillaRegister(num_state_qubits - 1, name="helper")
+            self.add_register(qr_help)
+        else:
+            qr_help = []
+
+        # the code is simplified a lot if we create a list of all carries and helpers
+        carries = qr_cin[:] + qr_help[:] + qr_cout[:]
 
         # corresponds to Carry gate in [1]
         qc_carry = QuantumCircuit(4, name="Carry")
         qc_carry.ccx(1, 2, 3)
         qc_carry.cx(1, 2)
         qc_carry.ccx(0, 2, 3)
-        qc_instruction_carry = qc_carry.to_gate()
+        carry_gate = qc_carry.to_gate()
+        carry_gate_dg = carry_gate.inverse()
 
         # corresponds to Sum gate in [1]
         qc_sum = QuantumCircuit(3, name="Sum")
         qc_sum.cx(1, 2)
         qc_sum.cx(0, 2)
-        qc_instruction_sum = qc_sum.to_gate()
+        sum_gate = qc_sum.to_gate()
 
-        for j in range(num_state_qubits - 1):
-            self.append(qc_instruction_carry, [qr_cin[j], qr_a[j], qr_b[j], qr_cin[j + 1]])
+        # handle all cases for the first qubits, depending on whether cin is available
+        i = 0
+        if kind == 'half':
+            i += 1
+            self.ccx(qr_a[0], qr_b[0], carries[0])
+        elif kind == 'fixed':
+            i += 1
+            if num_state_qubits == 1:
+                self.cx(qr_a[0], qr_b[0])
+            else:
+                self.ccx(qr_a[0], qr_b[0], carries[0])
 
-        if not fixed_point:
-            self.append(
-                qc_instruction_carry,
-                [
-                    qr_cin[num_state_qubits - 1],
-                    qr_a[num_state_qubits - 1],
-                    qr_b[num_state_qubits - 1],
-                    qr_cout,
-                ],
-            )
-            self.cx(qr_a[num_state_qubits - 1], qr_b[num_state_qubits - 1])
+        for inp, out in zip(carries[:-1], carries[1:]):
+            self.append(carry_gate, [inp, qr_a[i], qr_b[i], out])
+            i += 1
 
-        self.append(
-            qc_instruction_sum,
-            [qr_cin[num_state_qubits - 1], qr_a[num_state_qubits - 1], qr_b[num_state_qubits - 1]],
-        )
+        if kind in ['full', 'half']:  # final CX (cancels for the 'fixed' case)
+            self.cx(qr_a[-1], qr_b[-1])
 
-        for j in reversed(range(num_state_qubits - 1)):
-            self.append(
-                qc_instruction_carry.inverse(), [qr_cin[j], qr_a[j], qr_b[j], qr_cin[j + 1]]
-            )
-            self.append(qc_instruction_sum, [qr_cin[j], qr_a[j], qr_b[j]])
+        if len(qr_help) > 0:
+            self.append(sum_gate, [qr_help[-1], qr_a[-1], qr_b[-1]])
+
+        i -= 2
+        for j, (inp, out) in enumerate(zip(reversed(carries[:-1]), reversed(carries[1:]))):
+            if j == 0:
+                if kind == 'fixed':
+                    i += 1
+                else:
+                    continue
+            self.append(carry_gate_dg, [inp, qr_a[i], qr_b[i], out])
+            self.append(sum_gate, [inp, qr_a[i], qr_b[i]])
+            i -= 1
+
+        if kind in ['half', 'fixed'] and num_state_qubits > 1:
+            self.ccx(qr_a[0], qr_b[0], carries[0])
+            self.cx(qr_a[0], qr_b[0])

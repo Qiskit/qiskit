@@ -60,13 +60,17 @@ class CDKMRippleCarryAdder(Adder):
     """
 
     def __init__(
-        self, num_state_qubits: int, fixed_point: bool = False, name: str = "CDKMRippleCarryAdder"
+        self, num_state_qubits: int, kind: str = 'full', name: str = "CDKMRippleCarryAdder"
     ) -> None:
         r"""
         Args:
             num_state_qubits: The number of qubits in either input register for
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
+            kind: The kind of adder, can be ``'full'`` for a full adder, ``'half'`` for a half
+                adder, or ``'fixed'`` for a fixed-point adder. A full adder includes both carry-in
+                and carry-out, a half only carry-out, and a fixed-point adder neither carry-in
+                nor carry-out.
             name: The name of the circuit object.
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
@@ -76,17 +80,22 @@ class CDKMRippleCarryAdder(Adder):
 
         super().__init__(num_state_qubits, name=name)
 
+        if kind == 'full':
+            qr_c = QuantumRegister(1, name="cin")
+            self.add_register(qr_c)
+        else:
+            qr_c = AncillaRegister(1, name="help")
+
         qr_a = QuantumRegister(num_state_qubits, name="a")
         qr_b = QuantumRegister(num_state_qubits, name="b")
-        qr_c = AncillaRegister(1, name="cin")
-
-        # initialize quantum circuit with register list
         self.add_register(qr_a, qr_b)
-        if not fixed_point:
+
+        if kind in ['full', 'half']:
             qr_z = QuantumRegister(1, name="cout")
             self.add_register(qr_z)
 
-        self.add_register(qr_c)
+        if kind != 'full':
+            self.add_register(qr_c)
 
         # build carry circuit for majority of 3 bits in-place
         # corresponds to MAJ gate in [1]
@@ -94,7 +103,7 @@ class CDKMRippleCarryAdder(Adder):
         qc_maj.cx(0, 1)
         qc_maj.cx(0, 2)
         qc_maj.ccx(2, 1, 0)
-        qc_instruction_mac = qc_maj.to_gate()
+        maj_gate = qc_maj.to_gate()
 
         # build circuit for reversing carry operation
         # corresponds to UMA gate in [1]
@@ -102,18 +111,18 @@ class CDKMRippleCarryAdder(Adder):
         qc_uma.ccx(2, 1, 0)
         qc_uma.cx(0, 2)
         qc_uma.cx(2, 1)
-        qc_instruction_uma = qc_uma.to_gate()
+        uma_gate = qc_uma.to_gate()
 
         # build ripple-carry adder circuit
-        self.append(qc_instruction_mac, [qr_a[0], qr_b[0], qr_c[0]])
+        self.append(maj_gate, [qr_a[0], qr_b[0], qr_c[0]])
 
         for i in range(num_state_qubits - 1):
-            self.append(qc_instruction_mac, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
+            self.append(maj_gate, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
 
-        if not fixed_point:
+        if kind in ['full', 'half']:
             self.cx(qr_a[-1], qr_z[0])
 
         for i in reversed(range(num_state_qubits - 1)):
-            self.append(qc_instruction_uma, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
+            self.append(uma_gate, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
 
-        self.append(qc_instruction_uma, [qr_a[0], qr_b[0], qr_c[0]])
+        self.append(uma_gate, [qr_a[0], qr_b[0], qr_c[0]])
