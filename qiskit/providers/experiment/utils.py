@@ -10,13 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Experiment utility functions."""
+
 import logging
-from typing import Callable, Optional, Tuple, Dict, Any, Union, List
+from typing import Callable, Tuple, Dict, Any, Union
 from functools import wraps
-import pkg_resources
 from datetime import datetime, timezone
 import threading
 from collections import OrderedDict
+from abc import ABC
+from abc import abstractmethod
+import pkg_resources
 
 import dateutil.parser
 from dateutil import tz
@@ -88,6 +92,9 @@ def save_data(
 
     Returns:
         A tuple of whether the data was saved and the function return value.
+
+    Raises:
+        ExperimentError: If unable to determine whether the entry exists.
     """
     attempts = 0
     try:
@@ -107,9 +114,9 @@ def save_data(
                 except ExperimentEntryNotFound:
                     is_new = True
         raise ExperimentError("Unable to determine the existence of the entry.")
-    except Exception as ex:
+    except Exception as ex:  # pylint: disable=broad-except
         # Don't fail the experiment just because its data cannot be saved.
-        LOG.error(f"Unable to save the experiment data: {str(ex)}")
+        LOG.error("Unable to save the experiment data: %s", str(ex))
         return False, None
 
 
@@ -123,102 +130,85 @@ def decorate_func(func: Callable, callback: Callable):
     return _wrapped
 
 
-class MonitoredList(list):
-    """A list class with a callback function.
+class ThreadSafeContainer(ABC):
+    """Base class for thread safe container."""
 
-    Use :meth:`create_with_callback` method to create an instance of
-    this class. The callback function is invoked when the data inside the
-    list changes.
-    """
+    def __init__(self, init_values=None):
+        """ThreadSafeContainer constructor."""
+        self._lock = threading.RLock()
+        self._container = self._init_container(init_values)
 
-    @classmethod
-    def create_with_callback(
-            cls,
-            callback: Callable,
-            init_data: Optional[list] = None
-    ) -> 'MonitoredList':
-        """Create an instance with a callback function.
+    @abstractmethod
+    def _init_container(self, init_values):
+        """Initialize the container."""
+        pass
 
-        Args:
-            callback: The callback function to invoke when data inside this
-                list changes.
-            init_data: Initial data used to populate the list.
-
-        Returns:
-            An instance of this class.
-        """
-        obj = cls()
-        if init_data:
-            obj.append(init_data)
-
-        monitored = ['__setitem__', '__delitem__', '__add__', 'clear', 'append',
-                     'insert', 'extend', 'pop', 'remove']
-        for key, value in list.__dict__.items():
-            if key in monitored:
-                setattr(cls, key, decorate_func(value, callback))
-
-        return obj
-
-
-class MonitoredDict(dict):
-    """A dictionary class with a callback function.
-
-    Use :meth:`create_with_callback` method to create an instance of
-    this class. The callback function is invoked when the data inside the
-    dictionary changes.
-    """
-
-    @classmethod
-    def create_with_callback(
-            cls,
-            callback: Callable,
-            init_data: Optional[dict] = None
-    ) -> 'MonitoredDict':
-        """Create an instance with a callback function.
-
-        Args:
-            callback: The callback function to invoke when data inside this
-                dictionary changes.
-            init_data: Initial data used to populate the dictionary.
-
-        Returns:
-            An instance of this class.
-        """
-        obj = cls()
-        if init_data:
-            obj.update(init_data)
-
-        monitored = ['__setitem__', '__delitem__', 'setdefault', 'pop', 'popitem',
-                     'update', 'clear']
-        for key, value in dict.__dict__.items():
-            if key in monitored:
-                setattr(cls, key, decorate_func(value, callback))
-        return obj
-
-
-class ThreadSafeOrderedDict:
-
-    def __init__(self, init_keys: Optional[List] = None):
-        self._lock = threading.Lock()
-        init_keys = init_keys or []
-        self._dict = OrderedDict.fromkeys(init_keys)
-
-    def set_item(self, key: Any, val: Any):
+    def __getitem__(self, key):
         with self._lock:
-            self._dict[key] = val
+            return self._container[key]
 
-    def del_item(self, key: Any):
+    def __setitem__(self, key, value):
         with self._lock:
-            del self._dict[key]
+            self._container[key] = value
 
-    def item(self, key: Any) -> Any:
+    def __delitem__(self, key):
         with self._lock:
-            return self._dict[key]
+            del self._container[key]
+
+    def __contains__(self, item):
+        with self._lock:
+            return item in self._container
+
+    def __len__(self):
+        with self._lock:
+            return len(self._container)
+
+    @property
+    def lock(self):
+        """Return lock used for this container."""
+        return self._lock
+
+
+class ThreadSafeOrderedDict(ThreadSafeContainer):
+    """Thread safe OrderedDict."""
+
+    def _init_container(self, init_values):
+        """Initialize the container."""
+        return OrderedDict.fromkeys(init_values or [])
+
+    def get(self, key, default):
+        """Return the value of the given key."""
+        with self._lock:
+            return self._container.get(key, default)
 
     def keys(self):
+        """Return all key values."""
         with self._lock:
-            return list(self._dict.keys())
+            return list(self._container.keys())
 
-    def values(self) -> List:
+    def values(self):
+        """Return all values."""
         with self._lock:
-            return list(self._dict.values())
+            return list(self._container.values())
+
+    def items(self):
+        """Return the key value pairs."""
+        return self._container.items()
+
+
+class ThreadSafeList(ThreadSafeContainer):
+    """Thread safe list."""
+
+    def _init_container(self, init_values):
+        """Initialize the container."""
+        return init_values or []
+
+    def append(self, value):
+        """Append to the list."""
+        with self._lock:
+            self._container.append(value)
+
+    def copy(self):
+        """Returns a copy of the list."""
+        with self.lock:
+            return self._container.copy()

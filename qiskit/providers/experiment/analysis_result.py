@@ -214,7 +214,7 @@ class AnalysisResultV1(AnalysisResult):
         self._tags = new_tags
 
     @property
-    def result_id(self):
+    def result_id(self) -> str:
         """Return analysis result ID.
 
         Returns:
@@ -342,3 +342,11 @@ class AnalysisResultV1(AnalysisResult):
             return self._extra_data[name]
         except KeyError:
             raise AttributeError('Attribute %s is not defined' % name)
+
+    def __str__(self):
+        ret = f'\nAnalysis Result: {self.result_type}'
+        ret += f'\nAnalysis Result ID: {self.result_id}'
+        ret += f'\nExperiment ID: {self.experiment_id}'
+        ret += f'\nDevice Components: {self.device_components}'
+        ret += f'\nQuality: {self.quality}'
+        return ret

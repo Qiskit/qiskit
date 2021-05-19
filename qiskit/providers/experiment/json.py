@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Experiment serialization methods."""
+
 import json
 from typing import Any
 
@@ -19,7 +21,7 @@ import numpy as np
 class NumpyEncoder(json.JSONEncoder):
     """JSON Encoder for Numpy arrays and complex numbers."""
 
-    def default(self, obj: Any) -> Any:
+    def default(self, obj: Any) -> Any:  # pylint: disable=arguments-differ
         if hasattr(obj, 'tolist'):
             return {'type': 'array', 'value': obj.tolist()}
         if isinstance(obj, complex):
@@ -34,6 +36,7 @@ class NumpyDecoder(json.JSONDecoder):
         super().__init__(object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, obj):
+        """Object hook."""
         if 'type' in obj:
             if obj['type'] == 'complex':
                 val = obj['value']

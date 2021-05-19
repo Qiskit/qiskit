@@ -425,6 +425,9 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
         Returns:
             Option value.
+
+        Raises:
+            AttributeError: If the input field is not valid for the service.
         """
         if field not in self._options:
             raise AttributeError(

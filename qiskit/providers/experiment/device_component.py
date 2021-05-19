@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Device component classes."""
+
 from abc import ABC, abstractmethod
 
 
@@ -50,6 +52,9 @@ def to_component(string: str) -> DeviceComponent:
 
     Returns:
         A ``DeviceComponent`` instance.
+
+    Raises:
+        ValueError: If input string is not a valid device component.
     """
     if string.startswith('Q'):
         return Qubit(int(string[1:]))

@@ -12,10 +12,9 @@
 
 # pylint: disable=missing-docstring
 
-"""Test experiment methods."""
+"""Test ExperimentData."""
 
 import os
-import unittest
 from unittest import mock
 import copy
 from random import randrange
@@ -23,10 +22,8 @@ import time
 import threading
 import json
 import re
-from datetime import datetime
 
 import numpy as np
-from dateutil import tz
 
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne
@@ -34,16 +31,12 @@ from qiskit.result import Result
 from qiskit.providers import JobV1 as Job
 from qiskit.providers import JobStatus
 from qiskit.providers.experiment.experiment_data import ExperimentDataV1 as ExperimentData
-from qiskit.providers.experiment.analysis_result import AnalysisResultV1 as AnalysisResult
-from qiskit.providers.experiment.device_component import Qubit
-from qiskit.providers.experiment.constants import ResultQuality
 from qiskit.providers.experiment.exceptions import ExperimentEntryExists
 from qiskit.providers.experiment.experiment_service import ExperimentServiceV1
 from qiskit.providers.experiment.exceptions import ExperimentError, ExperimentEntryNotFound
-from qiskit.providers.experiment.json import NumpyEncoder
 
 
-class TestExperimentData(unittest.TestCase):  # TODO
+class TestExperimentData(QiskitTestCase):
     """Test the ExperimentData class."""
 
     def setUp(self):
@@ -485,30 +478,20 @@ class TestExperimentData(unittest.TestCase):  # TODO
 
     def test_metadata_serialization(self):
         """Test experiment metadata serialization."""
+        metadata = {'complex': 2+3j, 'numpy': np.zeros(2)}
         exp_data = ExperimentData(experiment_type='my_type',
-                                  metadata={'complex': 2+3j,
-                                            'numpy': np.zeros(2)})
+                                  metadata=metadata)
         serialized = exp_data._serialize_metadata()
         self.assertIsInstance(serialized, str)
         self.assertTrue(json.loads(serialized))
 
-    def test_from_data(self):
-        """Test loading experiment data."""
-        metadata = {'complex': 2+3j, 'numpy': np.zeros(2)}
-        serialized = json.dumps(metadata, cls=NumpyEncoder)
-        data = {'experiment_type': 'my_type',
-                'experiment_id': '1234',
-                'metadata': serialized
-                }
-        exp_data = ExperimentData.from_data(**data)
-        self.assertEqual(data['experiment_type'], exp_data.experiment_type)
-        self.assertEqual(data['experiment_id'], exp_data.experiment_id)
-        self.assertEqual(metadata['complex'], exp_data.metadata()['complex'])
-        self.assertEqual(metadata['numpy'].all(), exp_data.metadata()['numpy'].all())
+        deserialized = ExperimentData.deserialize_metadata(serialized)
+        self.assertEqual(metadata['complex'], deserialized['complex'])
+        self.assertEqual(metadata['numpy'].all(), deserialized['numpy'].all())
 
     def test_errors(self):
         """Test getting experiment error message."""
-        def _post_processing(*args, **kwargs):
+        def _post_processing(*args, **kwargs):  # pylint: disable=unused-argument
             raise ValueError("Kaboom!")
 
         job1 = mock.create_autospec(Job, instance=True)
@@ -534,7 +517,7 @@ class TestExperimentData(unittest.TestCase):  # TODO
 
     def test_block_for_jobs(self):
         """Test blocking for jobs."""
-        def _sleeper(*args, **kwargs):
+        def _sleeper(*args, **kwargs):  # pylint: disable=unused-argument
             time.sleep(2)
             nonlocal sleep_count
             sleep_count += 1
@@ -553,6 +536,17 @@ class TestExperimentData(unittest.TestCase):  # TODO
         exp_data = ExperimentData(experiment_type='my_type', foo='foo')
         self.assertEqual('foo', exp_data.foo)
 
+    def test_str(self):
+        """Test the string representation."""
+        exp_data = ExperimentData(experiment_type='my_type')
+        exp_data.add_data(self._get_job_result(1))
+        result = mock.MagicMock()
+        exp_data.add_analysis_result(result)
+        exp_data_str = str(exp_data)
+        self.assertIn(exp_data.experiment_type, exp_data_str)
+        self.assertIn(exp_data.experiment_id, exp_data_str)
+        self.assertIn(str(result), exp_data_str)
+
     def _get_job_result(self, circ_count, has_metadata=False):
         """Return a job result with random counts."""
         job_result = {
@@ -568,7 +562,7 @@ class TestExperimentData(unittest.TestCase):  # TODO
             'data': {}
         }
 
-        for i in range(circ_count):
+        for _ in range(circ_count):
             counts = randrange(1024)
             circ_result = copy.copy(circ_result_template)
             circ_result['data'] = {'counts': {'0x0': counts, '0x3': 1024-counts}}
@@ -585,145 +579,3 @@ class TestExperimentData(unittest.TestCase):  # TODO
         mock_service = mock.create_autospec(ExperimentServiceV1, instance=True)
         mock_provider.service.return_value = mock_service
         return mock_service
-
-
-# class TestAnalysisResult(QiskitTestCase):
-class TestAnalysisResult(unittest.TestCase):
-    """Test the AnalysisResult class."""
-
-    def setUp(self):
-        super().setUp()
-        self.backend = FakeMelbourne()
-
-    def test_analysis_result_attributes(self):
-        """Test analysis result attributes."""
-        attrs = {"result_type": 'my_type',
-                 "device_components": [Qubit(1), Qubit(2)],
-                 "experiment_id": "1234",
-                 "result_id": "5678",
-                 "quality": ResultQuality.GOOD,
-                 "verified": False}
-        result = AnalysisResult(
-            result_data={'foo': 'bar'},
-            tags=['tag1', 'tag2'],
-            **attrs
-        )
-        self.assertEqual({'foo': 'bar'}, result.data())
-        self.assertEqual(['tag1', 'tag2'], result.tags())
-        for key, val in attrs.items():
-            self.assertEqual(val, getattr(result, key))
-
-    def test_save(self):
-        """Test saving analysis result."""
-        mock_service = mock.create_autospec(ExperimentServiceV1)
-        result = self._new_analysis_result()
-        result.save(service=mock_service)
-        mock_service.create_analysis_result.assert_called_once()
-
-    def test_auto_save(self):
-        """Test auto saving."""
-        mock_service = mock.create_autospec(ExperimentServiceV1)
-        result = self._new_analysis_result(service=mock_service)
-        result.auto_save = True
-        result.save()
-
-        subtests = [
-            # update function, update parameters, service called
-            (result.update_tags, (['foo'],)),
-            (result.update_data, ({'foo': 'bar'},)),
-            (setattr, (result, 'quality', 'GOOD')),
-            (setattr, (result, 'verified', True))
-        ]
-
-        for func, params in subtests:
-            with self.subTest(func=func):
-                func(*params)
-                mock_service.update_analysis_result.assert_called_once()
-                mock_service.reset_mock()
-
-    def test_set_service_init(self):
-        """Test setting service in init."""
-        mock_service = mock.create_autospec(ExperimentServiceV1)
-        result = self._new_analysis_result(service=mock_service)
-        self.assertEqual(mock_service, result.service)
-
-    def test_set_service_direct(self):
-        """Test setting service directly."""
-        mock_service = mock.create_autospec(ExperimentServiceV1)
-        result = self._new_analysis_result()
-        result.service = mock_service
-        self.assertEqual(mock_service, result.service)
-
-        with self.assertRaises(ExperimentError):
-            result.service = mock_service
-
-    def test_set_service_save(self):
-        """Test setting service when saving."""
-        orig_service = mock.create_autospec(ExperimentServiceV1)
-        result = self._new_analysis_result(service=orig_service)
-        new_service = mock.create_autospec(ExperimentServiceV1)
-        result.save(service=new_service)
-        new_service.create_analysis_result.assert_called()
-        orig_service.create_analysis_result.assert_not_called()
-
-    def test_update_data(self):
-        """Test updating data."""
-        result = self._new_analysis_result()
-        result.update_data({'foo': 'new data'})
-        self.assertEqual({'foo': 'new data'}, result.data())
-
-    def test_update_tags(self):
-        """Test updating tags."""
-        result = self._new_analysis_result()
-        result.update_tags(['new_tag'])
-        self.assertEqual(['new_tag'], result.tags())
-
-    def test_update_quality(self):
-        """Test updating quality."""
-        result = self._new_analysis_result(quality='BAD')
-        result.quality = 'GOOD'
-        self.assertEqual(ResultQuality.GOOD, result.quality)
-
-    def test_update_verified(self):
-        """Test updating verified."""
-        result = self._new_analysis_result(verified=False)
-        result.verified = True
-        self.assertTrue(result.verified)
-
-    def test_additional_attr(self):
-        """Test additional attributes."""
-        result = self._new_analysis_result(foo='bar')
-        self.assertEqual('bar', result.foo)
-
-    def test_data_serialization(self):
-        """Test result data serialization."""
-        result = self._new_analysis_result(result_data={'complex': 2+3j,
-                                                        'numpy': np.zeros(2)})
-        serialized = result._serialize_data()
-        self.assertIsInstance(serialized, str)
-        self.assertTrue(json.loads(serialized))
-
-    def test_creation_date(self):
-        """Test creation date."""
-        local_dt = datetime.now(tz=tz.tzlocal())
-        result = self._new_analysis_result(creation_date=local_dt.astimezone(tz.UTC).isoformat())
-        self.assertEqual(local_dt, result.creation_date)
-
-    def test_source(self):
-        """Test getting analysis result source."""
-        result = self._new_analysis_result()
-        source_vals = '\n'.join([str(val) for val in result.source.values()])
-        self.assertIn('AnalysisResultV1', source_vals)
-        self.assertIn('qiskit-terra', source_vals)
-
-    def test_from_data(self):
-        pass
-
-    def _new_analysis_result(self, **kwargs):
-        """Return a new analysis result."""
-        values = {'result_data': {'foo': 'bar'},
-                  'result_type': 'some_type',
-                  'device_components': ['Q1', 'Q1'],
-                  'experiment_id': '1234'}
-        values.update(kwargs)
-        return AnalysisResult(**values)
