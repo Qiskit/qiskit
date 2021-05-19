@@ -36,9 +36,7 @@ def _parametric_to_waveforms(schedule):
     for i, time_instruction_tuple in enumerate(schedule.instructions):
         time, instruction = time_instruction_tuple
         if not isinstance(instruction.pulse, pulse.library.Waveform):
-            new_inst = pulse.Play(
-                instruction.pulse.get_waveform(), instruction.channel
-            )
+            new_inst = pulse.Play(instruction.pulse.get_waveform(), instruction.channel)
             instructions[i] = (time, new_inst)
     return tuple(instructions)
 
@@ -373,8 +371,7 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
             )
         )
         self.assertEqual(
-            qc.calibrations["test"][((0,), ())],
-            output_circuits[0].calibrations["test"][((0,), ())]
+            qc.calibrations["test"][((0,), ())], output_circuits[0].calibrations["test"][((0,), ())]
         )
 
 
