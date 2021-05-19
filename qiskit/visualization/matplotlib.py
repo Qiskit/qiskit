@@ -440,7 +440,7 @@ class MatplotlibDrawer:
         param_parts = []
         for i, param in enumerate(params):
             if i > 16:
-                param_parts.append('...')
+                param_parts.append("...")
                 break
             try:
                 param_parts.append(pi_check(param, output="mpl", ndigits=3))
