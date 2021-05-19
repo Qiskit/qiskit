@@ -82,11 +82,13 @@ def get_gate_ctrl_text(op, drawer, style=None):
         ):
             gate_text = gate_text.replace("~", "$\\neg$").replace("&", "\\&")
             gate_text = f"$\\texttt{{{gate_text}}}$"
+
         # Capitalize if not a user-created gate or instruction
         elif (gate_text == op.name and op_type not in (Gate, Instruction)) or (
             gate_text == base_name and base_type not in (Gate, Instruction)
         ):
             gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
+
         else:
             gate_text = f"$\\mathrm{{{gate_text}}}$"
             # Remove mathmode _, ^, and - formatting from user names and labels
@@ -117,9 +119,9 @@ def get_param_str(op, drawer, ndigits=3):
     else:
         param_list = []
         for count, param in enumerate(op.op.params):
-            # Latex drawer will cause an xy-pic error if param string
-            # is too long, so we limit it to 4 params.
-            if drawer == "latex" and count > 3:
+            # Latex drawer will cause an xy-pic error and mpl drawer will overrun the wires
+            # if param string is too long, so we limit the number of params.
+            if (drawer == "latex" and count > 3) or (drawer == 'mpl' and count > 16):
                 param_list.append("...")
                 break
             try:
