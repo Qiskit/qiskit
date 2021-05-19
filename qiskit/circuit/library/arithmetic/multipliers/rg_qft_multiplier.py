@@ -37,33 +37,45 @@ class RGQFTMultiplier(Multiplier):
 
     """
 
-    def __init__(self, num_state_qubits: int, name: str = "RGQFTMultiplier") -> None:
+    def __init__(
+            self,
+            num_state_qubits: int,
+            num_result_qubits: int = None,
+            name: str = "RGQFTMultiplier"
+    ) -> None:
         r"""
         Args:
             num_state_qubits: The number of qubits in either input register for
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
+            num_result_qubits: The number of result qubits to limit the output to.
+                If number of result qubits is `n`, modulo :math:`2^n` is performed
+                to limit the output to the specified number of qubits. Default
+                value is ``2 * num_state_qubits``.
             name: The name of the circuit object.
 
         """
         super().__init__(num_state_qubits, name=name)
 
+        if num_result_qubits is None:
+            num_result_qubits = 2 * num_state_qubits
+
         # define the registers
         qr_a = QuantumRegister(num_state_qubits, name="a")
         qr_b = QuantumRegister(num_state_qubits, name="b")
-        qr_out = QuantumRegister(2 * num_state_qubits, name="out")
+        qr_out = QuantumRegister(num_result_qubits, name="out")
         self.add_register(qr_a, qr_b, qr_out)
 
         # build multiplication circuit
-        self.append(QFT(2 * num_state_qubits, do_swaps=False).to_gate(), qr_out[:])
+        self.append(QFT(num_result_qubits, do_swaps=False).to_gate(), qr_out[:])
 
         for j in range(1, num_state_qubits + 1):
             for i in range(1, num_state_qubits + 1):
-                for k in range(1, 2 * num_state_qubits + 1):
+                for k in range(1, num_result_qubits + 1):
                     lam = (2 * np.pi) / (2 ** (i + j + k - 2 * num_state_qubits))
                     self.append(
                         PhaseGate(lam).control(2),
                         [qr_a[num_state_qubits - j], qr_b[num_state_qubits - i], qr_out[k - 1]],
                     )
 
-        self.append(QFT(2 * num_state_qubits, do_swaps=False).inverse().to_gate(), qr_out[:])
+        self.append(QFT(num_result_qubits, do_swaps=False).inverse().to_gate(), qr_out[:])
