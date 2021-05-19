@@ -33,13 +33,13 @@ import qiskit.quantum_info as qi
 
 def _parametric_to_waveforms(schedule):
     instructions = list(schedule.instructions)
-    for i, instruction in enumerate(instructions):
-        if not isinstance(instruction[1].pulse, pulse.library.waveform.Waveform):
-            instructions[i] = list(instruction)
-            instructions[i][1] = pulse.Play(
-                instruction[1].pulse.get_waveform(), instruction[1].channel
+    for i, time_instruction_tuple in enumerate(schedule.instructions):
+        time, instruction = time_instruction_tuple
+        if not isinstance(instruction.pulse, pulse.library.Waveform):
+            new_inst = pulse.Play(
+                instruction.pulse.get_waveform(), instruction.channel
             )
-            instructions[i] = tuple(instructions[i])
+            instructions[i] = (time, new_inst)
     return tuple(instructions)
 
 
