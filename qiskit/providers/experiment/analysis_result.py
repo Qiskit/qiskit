@@ -31,12 +31,14 @@ LOG = logging.getLogger(__name__)
 
 def auto_save(func: Callable):
     """Decorate the input function to auto save data."""
+
     @wraps(func)
     def _wrapped(self, *args, **kwargs):
         return_val = func(self, *args, **kwargs)
         if self.auto_save:
             self.save()
         return return_val
+
     return _wrapped
 
 
@@ -48,6 +50,7 @@ class AnalysisResult:
     the versioned abstract classes as the parent class and not this class
     directly.
     """
+
     version = 0
 
 
@@ -63,18 +66,18 @@ class AnalysisResultV1(AnalysisResult):
     _extra_data = {}
 
     def __init__(
-            self,
-            result_data: Dict,
-            result_type: str,
-            device_components: List[Union[DeviceComponent, str]],
-            experiment_id: str,
-            result_id: Optional[str] = None,
-            quality: Union[ResultQuality, str] = ResultQuality.UNKNOWN,
-            verified: bool = False,
-            tags: Optional[List[str]] = None,
-            service: Optional['ExperimentServiceV1'] = None,
-            creation_date: Optional[Union[str, datetime]] = None,
-            **kwargs
+        self,
+        result_data: Dict,
+        result_type: str,
+        device_components: List[Union[DeviceComponent, str]],
+        experiment_id: str,
+        result_id: Optional[str] = None,
+        quality: Union[ResultQuality, str] = ResultQuality.UNKNOWN,
+        verified: bool = False,
+        tags: Optional[List[str]] = None,
+        service: Optional["ExperimentServiceV1"] = None,
+        creation_date: Optional[Union[str, datetime]] = None,
+        **kwargs,
     ):
         """AnalysisResult constructor.
 
@@ -96,9 +99,12 @@ class AnalysisResultV1(AnalysisResult):
         self._result_data = copy.deepcopy(result_data)
         self._source = self._result_data.pop(
             "_source",
-            {"class": f"{self.__class__.__module__}.{self.__class__.__name__}",
-             "data_version": self._data_version,
-             "qiskit_version": qiskit_version()})
+            {
+                "class": f"{self.__class__.__module__}.{self.__class__.__name__}",
+                "data_version": self._data_version,
+                "qiskit_version": qiskit_version(),
+            },
+        )
 
         # Data to be stored in DB.
         self._experiment_id = experiment_id
@@ -125,7 +131,7 @@ class AnalysisResultV1(AnalysisResult):
         self.auto_save = False
         if self._service:
             try:
-                self.auto_save = self._service.option('auto_save')
+                self.auto_save = self._service.option("auto_save")
             except AttributeError:
                 pass
         self._extra_data = kwargs
@@ -152,10 +158,7 @@ class AnalysisResultV1(AnalysisResult):
 
     # TODO - from_data() ?
 
-    def save(
-            self,
-            service: Optional['ExperimentServiceV1'] = None
-    ) -> None:
+    def save(self, service: Optional["ExperimentServiceV1"] = None) -> None:
         """Save this analysis result in the database.
 
         Args:
@@ -173,15 +176,21 @@ class AnalysisResultV1(AnalysisResult):
         _result_data = json.loads(self._serialize_data())
         _result_data.update(self._source)
 
-        new_data = {'experiment_id': self._experiment_id, 'result_type': self.result_type}
-        update_data = {'result_id': self.result_id, 'data': _result_data,
-                       'tags': self.tags, 'quality': self.quality}
+        new_data = {"experiment_id": self._experiment_id, "result_type": self.result_type}
+        update_data = {
+            "result_id": self.result_id,
+            "data": _result_data,
+            "tags": self.tags,
+            "quality": self.quality,
+        }
 
         self._created_in_db, _ = save_data(
             is_new=(not self._created_in_db),
             new_func=service.create_analysis_result,
             update_func=service.update_analysis_result,
-            new_data=new_data, update_data=update_data)
+            new_data=new_data,
+            update_data=update_data,
+        )
 
     def data(self) -> Dict:
         """Return analysis result data.
@@ -305,7 +314,7 @@ class AnalysisResultV1(AnalysisResult):
         return self._creation_date
 
     @property
-    def service(self) -> Optional['ExperimentServiceV1']:
+    def service(self) -> Optional["ExperimentServiceV1"]:
         """Return the database service.
 
         Returns:
@@ -315,7 +324,7 @@ class AnalysisResultV1(AnalysisResult):
         return self._service
 
     @service.setter
-    def service(self, service: 'ExperimentServiceV1') -> None:
+    def service(self, service: "ExperimentServiceV1") -> None:
         """Set the service to be used for storing result data in a database.
 
         Args:
@@ -341,12 +350,12 @@ class AnalysisResultV1(AnalysisResult):
         try:
             return self._extra_data[name]
         except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
+            raise AttributeError("Attribute %s is not defined" % name)
 
     def __str__(self):
-        ret = f'\nAnalysis Result: {self.result_type}'
-        ret += f'\nAnalysis Result ID: {self.result_id}'
-        ret += f'\nExperiment ID: {self.experiment_id}'
-        ret += f'\nDevice Components: {self.device_components}'
-        ret += f'\nQuality: {self.quality}'
+        ret = f"\nAnalysis Result: {self.result_type}"
+        ret += f"\nAnalysis Result ID: {self.result_id}"
+        ret += f"\nExperiment ID: {self.experiment_id}"
+        ret += f"\nDevice Components: {self.device_components}"
+        ret += f"\nQuality: {self.quality}"
         return ret

@@ -28,6 +28,7 @@ class DeviceComponent(ABC):
 
 class Qubit(DeviceComponent):
     """Class representing a qubit device component."""
+
     def __init__(self, index: int):
         self._index = index
 
@@ -37,6 +38,7 @@ class Qubit(DeviceComponent):
 
 class Resonator(DeviceComponent):
     """Class representing a resonator device component."""
+
     def __init__(self, index: int):
         self._index = index
 
@@ -56,9 +58,9 @@ def to_component(string: str) -> DeviceComponent:
     Raises:
         ValueError: If input string is not a valid device component.
     """
-    if string.startswith('Q'):
+    if string.startswith("Q"):
         return Qubit(int(string[1:]))
-    elif string.startswith('R'):
+    elif string.startswith("R"):
         return Resonator(int(string[1:]))
     else:
         raise ValueError(f"Input string {string} is not a valid device component.")

@@ -35,9 +35,9 @@ LOG = logging.getLogger(__name__)
 def qiskit_version():
     """Return the Qiskit version."""
     try:
-        return pkg_resources.get_distribution('qiskit').version
+        return pkg_resources.get_distribution("qiskit").version
     except Exception:  # pylint: disable=broad-except
-        return {'qiskit-terra': terra_version}
+        return {"qiskit-terra": terra_version}
 
 
 def parse_timestamp(utc_dt: Union[datetime, str]) -> datetime:
@@ -55,7 +55,7 @@ def parse_timestamp(utc_dt: Union[datetime, str]) -> datetime:
     if isinstance(utc_dt, str):
         utc_dt = dateutil.parser.parse(utc_dt)
     if not isinstance(utc_dt, datetime):
-        raise TypeError('Input `utc_dt` is not string or datetime.')
+        raise TypeError("Input `utc_dt` is not string or datetime.")
     utc_dt = utc_dt.replace(tzinfo=timezone.utc)
     return utc_dt
 
@@ -74,11 +74,7 @@ def utc_to_local(utc_dt: datetime) -> datetime:
 
 
 def save_data(
-        is_new: bool,
-        new_func: Callable,
-        update_func: Callable,
-        new_data: Dict,
-        update_data: Dict
+    is_new: bool, new_func: Callable, update_func: Callable, new_data: Dict, update_data: Dict
 ) -> Tuple[bool, Any]:
     """Save data in the database.
 
@@ -122,11 +118,13 @@ def save_data(
 
 def decorate_func(func: Callable, callback: Callable):
     """Decorate the input function."""
+
     @wraps(func)
     def _wrapped(*args, **kwargs):
         return_val = func(*args, **kwargs)
         callback()
         return return_val
+
     return _wrapped
 
 

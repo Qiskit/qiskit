@@ -22,10 +22,10 @@ class NumpyEncoder(json.JSONEncoder):
     """JSON Encoder for Numpy arrays and complex numbers."""
 
     def default(self, obj: Any) -> Any:  # pylint: disable=arguments-differ
-        if hasattr(obj, 'tolist'):
-            return {'type': 'array', 'value': obj.tolist()}
+        if hasattr(obj, "tolist"):
+            return {"type": "array", "value": obj.tolist()}
         if isinstance(obj, complex):
-            return {'type': 'complex', 'value': [obj.real, obj.imag]}
+            return {"type": "complex", "value": [obj.real, obj.imag]}
         return super().default(obj)
 
 
@@ -37,10 +37,10 @@ class NumpyDecoder(json.JSONDecoder):
 
     def object_hook(self, obj):
         """Object hook."""
-        if 'type' in obj:
-            if obj['type'] == 'complex':
-                val = obj['value']
+        if "type" in obj:
+            if obj["type"] == "complex":
+                val = obj["value"]
                 return val[0] + 1j * val[1]
-            if obj['type'] == 'array':
-                return np.array(obj['value'])
+            if obj["type"] == "array":
+                return np.array(obj["value"])
         return obj

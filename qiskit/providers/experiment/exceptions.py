@@ -17,14 +17,17 @@ from qiskit.exceptions import QiskitError
 
 class ExperimentError(QiskitError):
     """Base class for errors raised while handling experiments."""
+
     pass
 
 
 class ExperimentEntryNotFound(ExperimentError):
     """Errors raised when an experiment entry cannot be found."""
+
     pass
 
 
 class ExperimentEntryExists(ExperimentError):
     """Errors raised when an experiment entry already exists."""
+
     pass

@@ -29,6 +29,7 @@ class ExperimentService:
     the versioned abstract classes as the parent class and not this class
     directly.
     """
+
     version = 0
 
 
@@ -42,6 +43,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
     Each implementation of this service may use different data structure and
     should issue a warning on unsupported keywords.
     """
+
     version = 1
 
     def __init__(self):
@@ -60,15 +62,15 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
     @abstractmethod
     def create_experiment(
-            self,
-            experiment_type: str,
-            backend_name: str,
-            metadata: Optional[Dict] = None,
-            experiment_id: Optional[str] = None,
-            job_ids: Optional[List[str]] = None,
-            tags: Optional[List[str]] = None,
-            notes: Optional[str] = None,
-            **kwargs: Any
+        self,
+        experiment_type: str,
+        backend_name: str,
+        metadata: Optional[Dict] = None,
+        experiment_id: Optional[str] = None,
+        job_ids: Optional[List[str]] = None,
+        tags: Optional[List[str]] = None,
+        notes: Optional[str] = None,
+        **kwargs: Any,
     ) -> str:
         """Create a new experiment in the database.
 
@@ -93,13 +95,13 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
     @abstractmethod
     def update_experiment(
-            self,
-            experiment_id: str,
-            metadata: Optional[Dict] = None,
-            job_ids: Optional[List[str]] = None,
-            notes: Optional[str] = None,
-            tags: Optional[List[str]] = None,
-            **kwargs: Any
+        self,
+        experiment_id: str,
+        metadata: Optional[Dict] = None,
+        job_ids: Optional[List[str]] = None,
+        notes: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        **kwargs: Any,
     ) -> None:
         """Update an existing experiment.
 
@@ -118,9 +120,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
     @abstractmethod
     def experiment(
-            self,
-            experiment_id: str,
-            experiment_class: Type[ExperimentData] = ExperimentData
+        self, experiment_id: str, experiment_class: Type[ExperimentData] = ExperimentData
     ) -> ExperimentData:
         """Retrieve a previously stored experiment.
 
@@ -140,14 +140,15 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
     @abstractmethod
     def experiments(
-            self,
-            limit: Optional[int] = 10,
-            device_components: Optional[Union[str, DeviceComponent]] = None,
-            experiment_type: Optional[str] = None,
-            backend_name: Optional[str] = None,
-            tags: Optional[List[str]] = None,
-            tags_operator: Optional[str] = "OR",
-            **filters: Any) -> List[ExperimentData]:
+        self,
+        limit: Optional[int] = 10,
+        device_components: Optional[Union[str, DeviceComponent]] = None,
+        experiment_type: Optional[str] = None,
+        backend_name: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        tags_operator: Optional[str] = "OR",
+        **filters: Any,
+    ) -> List[ExperimentData]:
         """Retrieve all experiment data, with optional filtering.
 
         Args:
@@ -187,16 +188,16 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
     @abstractmethod
     def create_analysis_result(
-            self,
-            experiment_id: str,
-            data: Dict,
-            result_type: str,
-            device_components: Optional[Union[str, DeviceComponent]] = None,
-            tags: Optional[List[str]] = None,
-            quality: Union[ResultQuality, str] = ResultQuality.UNKNOWN,
-            verified: bool = False,
-            result_id: Optional[str] = None,
-            **kwargs: Any
+        self,
+        experiment_id: str,
+        data: Dict,
+        result_type: str,
+        device_components: Optional[Union[str, DeviceComponent]] = None,
+        tags: Optional[List[str]] = None,
+        quality: Union[ResultQuality, str] = ResultQuality.UNKNOWN,
+        verified: bool = False,
+        result_id: Optional[str] = None,
+        **kwargs: Any,
     ) -> str:
         """Create a new analysis result in the database.
 
@@ -222,13 +223,13 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
     @abstractmethod
     def update_analysis_result(
-            self,
-            result_id: str,
-            data: Optional[Dict] = None,
-            tags: Optional[List[str]] = None,
-            quality: Union[ResultQuality, str] = ResultQuality.UNKNOWN,
-            verified: bool = False,
-            **kwargs: Any
+        self,
+        result_id: str,
+        data: Optional[Dict] = None,
+        tags: Optional[List[str]] = None,
+        quality: Union[ResultQuality, str] = ResultQuality.UNKNOWN,
+        verified: bool = False,
+        **kwargs: Any,
     ) -> None:
         """Update an existing analysis result.
 
@@ -262,17 +263,17 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
     @abstractmethod
     def analysis_results(
-            self,
-            limit: Optional[int] = 10,
-            device_components: Optional[Union[str, DeviceComponent]] = None,
-            experiment_id: Optional[str] = None,
-            result_type: Optional[str] = None,
-            backend_name: Optional[str] = None,
-            quality: Optional[Union[ResultQuality, str]] = None,
-            verified: Optional[bool] = None,
-            tags: Optional[List[str]] = None,
-            tags_operator: Optional[str] = "OR",
-            **filters: Any
+        self,
+        limit: Optional[int] = 10,
+        device_components: Optional[Union[str, DeviceComponent]] = None,
+        experiment_id: Optional[str] = None,
+        result_type: Optional[str] = None,
+        backend_name: Optional[str] = None,
+        quality: Optional[Union[ResultQuality, str]] = None,
+        verified: Optional[bool] = None,
+        tags: Optional[List[str]] = None,
+        tags_operator: Optional[str] = "OR",
+        **filters: Any,
     ) -> List[AnalysisResult]:
         """Retrieve all analysis results, with optional filtering.
 
@@ -316,10 +317,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
     @abstractmethod
     def create_figure(
-            self,
-            experiment_id: str,
-            figure: Union[str, bytes],
-            figure_name: Optional[str]
+        self, experiment_id: str, figure: Union[str, bytes], figure_name: Optional[str]
     ) -> Tuple[str, int]:
         """Store a new figure in the database.
 
@@ -339,10 +337,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
     @abstractmethod
     def update_figure(
-            self,
-            experiment_id: str,
-            figure: Union[str, bytes],
-            figure_name: str
+        self, experiment_id: str, figure: Union[str, bytes], figure_name: str
     ) -> Tuple[str, int]:
         """Update an existing figure.
 
@@ -361,10 +356,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
     @abstractmethod
     def figure(
-            self,
-            experiment_id: str,
-            figure_name: str,
-            file_name: Optional[str] = None
+        self, experiment_id: str, figure_name: str, file_name: Optional[str] = None
     ) -> Union[int, bytes]:
         """Retrieve an existing figure.
 
@@ -385,9 +377,9 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
     @abstractmethod
     def delete_figure(
-            self,
-            experiment_id: str,
-            figure_name: str,
+        self,
+        experiment_id: str,
+        figure_name: str,
     ) -> None:
         """Delete an existing figure.
 
@@ -412,9 +404,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
         """
         for field in fields:
             if field not in self._options:
-                raise AttributeError(
-                    "Options field %s is not valid for this "
-                    "service." % field)
+                raise AttributeError("Options field %s is not valid for this " "service." % field)
         self._options.update(**fields)
 
     def option(self, field: str) -> Any:
@@ -430,6 +420,5 @@ class ExperimentServiceV1(ExperimentService, ABC):
             AttributeError: If the input field is not valid for the service.
         """
         if field not in self._options:
-            raise AttributeError(
-                f"Options field {field} is not valid for this service.")
+            raise AttributeError(f"Options field {field} is not valid for this service.")
         return self._options[field]

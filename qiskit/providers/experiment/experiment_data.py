@@ -38,12 +38,14 @@ LOG = logging.getLogger(__name__)
 
 def auto_save(func: Callable):
     """Decorate the input function to auto save data."""
+
     @wraps(func)
     def _wrapped(self, *args, **kwargs):
         return_val = func(self, *args, **kwargs)
         if self.auto_save:
             self.save()
         return return_val
+
     return _wrapped
 
 
@@ -55,6 +57,7 @@ class ExperimentData:
     the versioned abstract classes as the parent class and not this class
     directly.
     """
+
     version = 0
 
 
@@ -76,17 +79,17 @@ class ExperimentDataV1(ExperimentData):
     _json_decoder = NumpyDecoder
 
     def __init__(
-            self,
-            experiment_type: str,
-            backend: Optional[Union[Backend, BaseBackend]] = None,
-            experiment_id: Optional[str] = None,
-            tags: Optional[List[str]] = None,
-            job_ids: Optional[List[str]] = None,
-            share_level: Optional[str] = None,
-            metadata: Optional[Dict] = None,
-            figure_names: Optional[List[str]] = None,
-            notes: Optional[str] = None,
-            **kwargs
+        self,
+        experiment_type: str,
+        backend: Optional[Union[Backend, BaseBackend]] = None,
+        experiment_id: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        job_ids: Optional[List[str]] = None,
+        share_level: Optional[str] = None,
+        metadata: Optional[Dict] = None,
+        figure_names: Optional[List[str]] = None,
+        notes: Optional[str] = None,
+        **kwargs,
     ):
         """Initializes the experiment data.
 
@@ -111,9 +114,12 @@ class ExperimentDataV1(ExperimentData):
         self._metadata = copy.deepcopy(metadata)
         self._source = self._metadata.pop(
             "_source",
-            {"class": f"{self.__class__.__module__}.{self.__class__.__name__}",
-             "metadata_version": self._metadata_version,
-             "qiskit_version": qiskit_version()})
+            {
+                "class": f"{self.__class__.__module__}.{self.__class__.__name__}",
+                "metadata_version": self._metadata_version,
+                "qiskit_version": qiskit_version(),
+            },
+        )
 
         self._service = None
         self._backend = backend
@@ -147,14 +153,14 @@ class ExperimentDataV1(ExperimentData):
             backend: Backend whose provider may offer experiment service.
         """
         with contextlib.suppress(Exception):
-            self._service = backend.provider().service('experiment')
+            self._service = backend.provider().service("experiment")
         with contextlib.suppress(Exception):
-            self.auto_save = self._service.option('auto_save')
+            self.auto_save = self._service.option("auto_save")
 
     def add_data(
-            self,
-            data: Union[Result, List[Result], Job, List[Job], Dict, List[Dict]],
-            post_processing_callback: Optional[Callable] = None
+        self,
+        data: Union[Result, List[Result], Job, List[Job], Dict, List[Dict]],
+        post_processing_callback: Optional[Callable] = None,
     ):
         """Add experiment data.
 
@@ -184,18 +190,22 @@ class ExperimentDataV1(ExperimentData):
             self._add_result_data(data)
         elif isinstance(data, (Job, BaseJob)):
             if self.backend and self.backend != data.backend():
-                LOG.warning("Adding a job from a backend %s that is different "
-                            "than the current ExperimentData backend (%s). "
-                            "The new backend will be used, but "
-                            "service is not changed if one already exists.",
-                            data.backend(), self.backend)
+                LOG.warning(
+                    "Adding a job from a backend %s that is different "
+                    "than the current ExperimentData backend (%s). "
+                    "The new backend will be used, but "
+                    "service is not changed if one already exists.",
+                    data.backend(),
+                    self.backend,
+                )
             self._backend = data.backend()
             if not self._service:
                 self._set_service_from_backend(self._backend)
 
             self._jobs[data.job_id()] = data
             self._job_futures.append(
-                (data, self._executor.submit(self._wait_for_job, data, post_processing_callback)))
+                (data, self._executor.submit(self._wait_for_job, data, post_processing_callback))
+            )
             if self.auto_save:
                 self.save()
         elif isinstance(data, list):
@@ -206,8 +216,7 @@ class ExperimentDataV1(ExperimentData):
             raise TypeError(f"Invalid data type {type(data)}.")
 
     def _wait_for_job(
-            self, job: Union[Job, BaseJob],
-            job_done_callback: Optional[Callable] = None
+        self, job: Union[Job, BaseJob], job_done_callback: Optional[Callable] = None
     ) -> None:
         """Wait for a job to finish.
 
@@ -228,13 +237,13 @@ class ExperimentDataV1(ExperimentData):
         """
         for i in range(len(result.results)):
             data = result.data(i)
-            data['job_id'] = result.job_id
-            if 'counts' in data:
+            data["job_id"] = result.job_id
+            if "counts" in data:
                 # Format to Counts object rather than hex dict
-                data['counts'] = result.get_counts(i)
+                data["counts"] = result.get_counts(i)
             expr_result = result.results[i]
-            if hasattr(expr_result, 'header') and hasattr(expr_result.header, 'metadata'):
-                data['metadata'] = expr_result.header.metadata
+            if hasattr(expr_result, "header") and hasattr(expr_result.header, "metadata"):
+                data["metadata"] = expr_result.header.metadata
             self._add_single_data(data)
 
     def _add_single_data(self, data: Dict[str, any]) -> None:
@@ -245,10 +254,7 @@ class ExperimentDataV1(ExperimentData):
         """
         self._data.append(data)
 
-    def data(
-            self,
-            index: Optional[Union[int, slice, str]] = None
-    ) -> Union[Dict, List[Dict]]:
+    def data(self, index: Optional[Union[int, slice, str]] = None) -> Union[Dict, List[Dict]]:
         """Return the experiment data at the specified index.
 
         Args:
@@ -288,11 +294,11 @@ class ExperimentDataV1(ExperimentData):
 
     @auto_save
     def add_figure(
-            self,
-            figure: Union[str, bytes],
-            figure_name: Optional[str] = None,
-            overwrite: bool = False,
-            service: Optional['experiment.ExperimentServiceV1'] = None
+        self,
+        figure: Union[str, bytes],
+        figure_name: Optional[str] = None,
+        overwrite: bool = False,
+        service: Optional["experiment.ExperimentServiceV1"] = None,
     ) -> str:
         """Add the experiment figure.
 
@@ -323,29 +329,35 @@ class ExperimentDataV1(ExperimentData):
             raise ExperimentEntryExists(
                 f"A figure with the name {figure_name} for this experiment "
                 f"already exists. Specify overwrite=True if you "
-                f"want to overwrite it.")
+                f"want to overwrite it."
+            )
         if isinstance(figure, str):
-            with open(figure, 'rb') as file:
+            with open(figure, "rb") as file:
                 figure = file.read()
         self._figures[figure_name] = figure
 
         service = service or self._service
         if self.auto_save and service:
-            data = {'experiment_id': self.experiment_id,
-                    'figure': figure, 'figure_name': figure_name}
-            save_data(is_new=(not existing_figure),
-                      new_func=service.create_figure,
-                      update_func=service.update_figure,
-                      new_data={},
-                      update_data=data)
+            data = {
+                "experiment_id": self.experiment_id,
+                "figure": figure,
+                "figure_name": figure_name,
+            }
+            save_data(
+                is_new=(not existing_figure),
+                new_func=service.create_figure,
+                update_func=service.update_figure,
+                new_data={},
+                update_data=data,
+            )
 
         return figure_name
 
     @auto_save
     def delete_figure(
-            self,
-            figure_key: Union[str, int],
-            service: Optional['experiment.ExperimentServiceV1'] = None
+        self,
+        figure_key: Union[str, int],
+        service: Optional["experiment.ExperimentServiceV1"] = None,
     ) -> str:
         """Add the experiment figure.
 
@@ -371,16 +383,13 @@ class ExperimentDataV1(ExperimentData):
         service = service or self._service
         if service and self.auto_save:
             with contextlib.suppress(ExperimentEntryNotFound):
-                self.service.delete_figure(experiment_id=self.experiment_id,
-                                           figure_name=figure_key)
+                self.service.delete_figure(experiment_id=self.experiment_id, figure_name=figure_key)
             self._deleted_figures.remove(figure_key)
 
         return figure_key
 
     def figure(
-            self,
-            figure_key: Union[str, int],
-            file_name: Optional[str] = None
+        self, figure_key: Union[str, int], file_name: Optional[str] = None
     ) -> Union[int, bytes]:
         """Retrieve the specified experiment figure.
 
@@ -401,24 +410,23 @@ class ExperimentDataV1(ExperimentData):
 
         figure_data = self._figures.get(figure_key, None)
         if figure_data is None and self.service:
-            figure_data = self.service.figure(experiment_id=self.experiment_id,
-                                              figure_name=figure_key)
+            figure_data = self.service.figure(
+                experiment_id=self.experiment_id, figure_name=figure_key
+            )
             self._figures[figure_key] = figure_data
 
         if figure_data is None:
             raise ExperimentEntryNotFound(f"Figure {figure_key} not found.")
 
         if file_name:
-            with open(file_name, 'wb') as output:
+            with open(file_name, "wb") as output:
                 num_bytes = output.write(figure_data)
                 return num_bytes
         return figure_data
 
     @auto_save
     def add_analysis_result(
-            self,
-            result: AnalysisResult,
-            service: 'experiment.ExperimentServiceV1' = None
+        self, result: AnalysisResult, service: "experiment.ExperimentServiceV1" = None
     ) -> None:
         """Save the analysis result.
 
@@ -438,9 +446,7 @@ class ExperimentDataV1(ExperimentData):
 
     @auto_save
     def delete_analysis_result(
-            self,
-            result_key: Union[int, str],
-            service: 'experiment.ExperimentServiceV1' = None
+        self, result_key: Union[int, str], service: "experiment.ExperimentServiceV1" = None
     ) -> str:
         """Delete the analysis result.
 
@@ -472,9 +478,7 @@ class ExperimentDataV1(ExperimentData):
         return result_key
 
     def analysis_result(
-            self,
-            index: Optional[Union[int, slice, str]] = None,
-            refresh: bool = False
+        self, index: Optional[Union[int, slice, str]] = None, refresh: bool = False
     ) -> Union[AnalysisResult, List[AnalysisResult]]:
         """Return analysis results associated with this experiment.
 
@@ -498,7 +502,8 @@ class ExperimentDataV1(ExperimentData):
         """
         if self.service and (not self._analysis_results or refresh):
             retrieved_results = self.service.analysis_results(
-                experiment_id=self.experiment_id, limit=None)
+                experiment_id=self.experiment_id, limit=None
+            )
             for result in retrieved_results:
                 self._analysis_results[result.result_id] = result
 
@@ -513,10 +518,7 @@ class ExperimentDataV1(ExperimentData):
 
         raise TypeError(f"Invalid index type {type(index)}.")
 
-    def save(
-            self,
-            service: Optional['experiment.ExperimentServiceV1'] = None
-    ) -> None:
+    def save(self, service: Optional["experiment.ExperimentServiceV1"] = None) -> None:
         """Save this experiment in the database.
 
         Note:
@@ -547,22 +549,25 @@ class ExperimentDataV1(ExperimentData):
         metadata = json.loads(self._serialize_metadata())
         metadata.update(self._source)
 
-        update_data = {'experiment_id': self._id, 'metadata': metadata,
-                       'job_ids': self.job_ids, 'tags': self.tags}
-        new_data = {'experiment_type': self._type, 'backend_name': self._backend.name()}
+        update_data = {
+            "experiment_id": self._id,
+            "metadata": metadata,
+            "job_ids": self.job_ids,
+            "tags": self.tags,
+        }
+        new_data = {"experiment_type": self._type, "backend_name": self._backend.name()}
         if self.share_level:
-            update_data['share_level'] = self.share_level
+            update_data["share_level"] = self.share_level
 
         self._created_in_db, _ = save_data(
             is_new=(not self._created_in_db),
             new_func=service.create_experiment,
             update_func=service.update_experiment,
-            new_data=new_data, update_data=update_data)
+            new_data=new_data,
+            update_data=update_data,
+        )
 
-    def save_all(
-            self,
-            service: Optional['experiment.ExperimentServiceV1'] = None
-    ) -> None:
+    def save_all(self, service: Optional["experiment.ExperimentServiceV1"] = None) -> None:
         """Save this experiment and its analysis results and figures in the database.
 
         Note:
@@ -594,18 +599,18 @@ class ExperimentDataV1(ExperimentData):
 
         with self._figures.lock:
             for name, figure in self._figures.items():
-                data = {'experiment_id': self.experiment_id,
-                        'figure': figure, 'figure_name': name}
-                save_data(is_new=True,
-                          new_func=use_service.create_figure,
-                          update_func=use_service.update_figure,
-                          new_data={},
-                          update_data=data)
+                data = {"experiment_id": self.experiment_id, "figure": figure, "figure_name": name}
+                save_data(
+                    is_new=True,
+                    new_func=use_service.create_figure,
+                    update_func=use_service.update_figure,
+                    new_data={},
+                    update_data=data,
+                )
 
         for name in self._deleted_figures.copy():
             try:
-                use_service.delete_figure(experiment_id=self.experiment_id,
-                                          figure_name=name)
+                use_service.delete_figure(experiment_id=self.experiment_id, figure_name=name)
             except ExperimentEntryNotFound:
                 pass
             self._deleted_figures.remove(name)
@@ -678,14 +683,21 @@ class ExperimentDataV1(ExperimentData):
                     ex = fut.exception()
                     if ex:
                         self._errors.append(
-                            f"Post processing for job {job.job_id()} failed: \n" +
-                            ''.join(traceback.format_exception(type(ex), ex, ex.__traceback__)))
+                            f"Post processing for job {job.job_id()} failed: \n"
+                            + "".join(traceback.format_exception(type(ex), ex, ex.__traceback__))
+                        )
                         statuses.add(JobStatus.ERROR)
 
             self._job_futures = ThreadSafeList(list(filter(None, self._job_futures)))
 
-        for stat in [JobStatus.INITIALIZING, JobStatus.VALIDATING, JobStatus.QUEUED,
-                     JobStatus.RUNNING, JobStatus.ERROR, JobStatus.CANCELLED]:
+        for stat in [
+            JobStatus.INITIALIZING,
+            JobStatus.VALIDATING,
+            JobStatus.QUEUED,
+            JobStatus.RUNNING,
+            JobStatus.ERROR,
+            JobStatus.CANCELLED,
+        ]:
             if stat in statuses:
                 return stat.name
 
@@ -835,7 +847,7 @@ class ExperimentDataV1(ExperimentData):
             self.save()
 
     @property
-    def service(self) -> Optional['experiment.ExperimentServiceV1']:
+    def service(self) -> Optional["experiment.ExperimentServiceV1"]:
         """Return the database service.
 
         Returns:
@@ -844,7 +856,7 @@ class ExperimentDataV1(ExperimentData):
         return self._service
 
     @service.setter
-    def service(self, service: 'experiment.ExperimentServiceV1') -> None:
+    def service(self, service: "experiment.ExperimentServiceV1") -> None:
         """Set the service to be used for storing experiment data remotely.
 
         Args:
@@ -857,7 +869,7 @@ class ExperimentDataV1(ExperimentData):
             raise ExperimentError("An experiment service is already being used.")
         self._service = service
         with contextlib.suppress(Exception):
-            self.auto_save = self._service.option('auto_save')
+            self.auto_save = self._service.option("auto_save")
 
     @property
     def source(self) -> Dict:
@@ -865,25 +877,25 @@ class ExperimentDataV1(ExperimentData):
         return self._source
 
     def __str__(self):
-        line = 51 * '-'
+        line = 51 * "-"
         n_res = len(self._analysis_results)
         status = self.status()
         ret = line
-        ret += f'\nExperiment: {self.experiment_type}'
-        ret += f'\nExperiment ID: {self.experiment_id}'
-        ret += f'\nStatus: {status}'
+        ret += f"\nExperiment: {self.experiment_type}"
+        ret += f"\nExperiment ID: {self.experiment_id}"
+        ret += f"\nStatus: {status}"
         if status == "ERROR":
             ret += "\n".join(self._errors)
-        ret += f'\nData: {len(self._data)}'
-        ret += f'\nAnalysis Results: {n_res}'
-        ret += '\n' + line
+        ret += f"\nData: {len(self._data)}"
+        ret += f"\nAnalysis Results: {n_res}"
+        ret += "\n" + line
         if n_res:
-            ret += '\nLast Analysis Result:'
-            ret += f'\n{str(self._analysis_results.values()[-1])}'
+            ret += "\nLast Analysis Result:"
+            ret += f"\n{str(self._analysis_results.values()[-1])}"
         return ret
 
     def __getattr__(self, name: str) -> Any:
         try:
             return self._extra_data[name]
         except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
+            raise AttributeError("Attribute %s is not defined" % name)
