@@ -1,11 +1,11 @@
-
 """The base interface for Opflow's gradient."""
 
-from functools import partial
+from functools import partial, cmp_to_key
 from typing import Union, List, Optional
 
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterExpression, ParameterVector
 from .gradient import Gradient
 from .hessian import Hessian
@@ -15,6 +15,7 @@ from ..operator_globals import Zero
 
 try:
     from jax import grad, jit
+
     _HAS_JAX = True
 except ImportError:
     _HAS_JAX = False
@@ -32,6 +33,14 @@ class SAMGradient(Gradient):
                 params: Optional[
                     Union[ParameterVector, ParameterExpression, List[ParameterExpression]]] = None
                 ) -> OperatorBase:
+        # todo check if operator is exactly the ListOp and combo_fn is identity (lambda x: x)
+        # checkout traverse method for inspiration
+
+        if params is None:
+            params = sorted(operator.parameters, key=cmp_to_key(_compare_parameters))
+
+        if type(operator) == ListOp and operator.combo_fn == (lambda x: x):
+            return ListOp([self.convert(op, params) for op in operator])
 
         params_op = ListOp([param * (~Zero @ Zero) for param in params])
 
