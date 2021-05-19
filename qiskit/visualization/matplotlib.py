@@ -54,57 +54,6 @@ PORDER_GRAY = 3
 PORDER_TEXT = 6
 
 
-class Anchor:
-    """Locate the anchors for the gates"""
-
-    def __init__(self, reg_num, yind, fold):
-        self._yind = yind
-        self._fold = fold
-        self._reg_num = reg_num
-        self._gate_placed = []
-        self.nxt_anchor_idx = 0
-        self.gate_anchor = 0
-
-    def plot_coord(self, index, gate_width, x_offset):
-        """Set the coord positions for an index"""
-        h_pos = index % self._fold + 1
-        # check folding
-        if self._fold > 0:
-            if h_pos + (gate_width - 1) > self._fold:
-                index += self._fold - (h_pos - 1)
-            x_pos = index % self._fold + 0.5 * gate_width + 0.04
-            y_pos = self._yind - (index // self._fold) * (self._reg_num + 1)
-        else:
-            x_pos = index + 0.5 * gate_width + 0.04
-            y_pos = self._yind
-
-        # could have been updated, so need to store
-        self.gate_anchor = index
-        return x_pos + x_offset, y_pos
-
-    def set_index(self, index, layer_width):
-        """Set the index for a gate"""
-        if self._fold < 2:
-            _index = index
-        else:
-            h_pos = index % self._fold + 1
-            if h_pos + (layer_width - 1) > self._fold:
-                _index = index + self._fold - (h_pos - 1) + 1
-            else:
-                _index = index
-        for ii in range(layer_width):
-            idx = _index + ii
-            if idx not in self._gate_placed:
-                self._gate_placed.append(idx)
-                self.nxt_anchor_idx = idx + 1
-
-    def get_index(self):
-        """Getter for the index"""
-        if self._gate_placed:
-            return self._gate_placed[-1] + 1
-        return 0
-
-
 class MatplotlibDrawer:
     """Matplotlib drawer class called from circuit_drawer"""
 
@@ -521,15 +470,15 @@ class MatplotlibDrawer:
             # draw the gates in this layer
             for node in layer:
                 # get display text and colors
-                gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
+                """gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
                     node, "mpl", style=self._style
-                )
-                fc, ec, gt, tc, sc, lc = self._get_colors(node, raw_gate_text)
+                )"""
+                fc, ec, gt, tc, sc, lc = self._get_colors(node, self._data[node]["raw_gate_text"])
 
                 if verbose:
                     print(node.op)
 
-                # load param
+                """# load param
                 param = ""
                 if (
                     node.type == "op"
@@ -539,7 +488,7 @@ class MatplotlibDrawer:
                 ):
                     param = "{}".format(get_param_str(node, "mpl", ndigits=3))
                     if isinstance(node.op, Initialize):
-                        param = "$[{}]$".format(param.replace("$", ""))
+                        param = "$[{}]$".format(param.replace("$", ""))"""
 
                 # add conditional
                 if node.op.condition:
@@ -576,8 +525,8 @@ class MatplotlibDrawer:
                         ec=ec,
                         gt=gt,
                         sc=sc,
-                        text=gate_text,
-                        subtext=str(param),
+                        text=self._data[node]["gate_text"],
+                        subtext=self._data[node]["param"],
                     )
 
                 # draw controlled gates
@@ -591,9 +540,9 @@ class MatplotlibDrawer:
                         sc=sc,
                         tc=tc,
                         lc=lc,
-                        text=gate_text,
-                        subtext=str(param),
-                        ctrl_text=ctrl_text,
+                        text=self._data[node]["gate_text"],
+                        subtext=self._data[node]["param"],
+                        ctrl_text=self._data[node]["ctrl_text"],
                     )
 
                 # draw multi-qubit gate as final default
@@ -607,8 +556,8 @@ class MatplotlibDrawer:
                         sc=sc,
                         tc=tc,
                         lc=lc,
-                        text=gate_text,
-                        subtext=str(param),
+                        text=self._data[node]["gate_text"],
+                        subtext=self._data[node]["param"],
                     )
 
             # adjust the column if there have been barriers encountered, but not plotted
@@ -631,10 +580,15 @@ class MatplotlibDrawer:
                 )
 
                 if node.op._directive or isinstance(node.op, Measure):
+                    self._data[node]["raw_gate_text"] = ""
                     continue
 
                 base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
-                gate_text, ctrl_text, _ = get_gate_ctrl_text(node, "mpl", style=self._style)
+                gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(node, "mpl", style=self._style)
+                self._data[node]["gate_text"] = gate_text
+                self._data[node]["ctrl_text"] = ctrl_text
+                self._data[node]["raw_gate_text"] = raw_gate_text
+                self._data[node]["param"] = ""
 
                 # if single qubit, no params, and no labels, layer_width is 1
                 if (
@@ -662,6 +616,7 @@ class MatplotlibDrawer:
                     param = get_param_str(node, "mpl", ndigits=3)
                     if isinstance(node.op, Initialize):
                         param = "[%s]" % param
+                    self._data[node]["param"] = param
                     raw_param_width = self._get_text_width(param, fontsize=self._sfs, param=True)
                     param_width = raw_param_width + 0.08
                 else:
@@ -1482,6 +1437,57 @@ class MatplotlibDrawer:
                 linestyle=linestyle,
                 zorder=zorder,
             )
+
+
+class Anchor:
+    """Locate the anchors for the gates"""
+
+    def __init__(self, reg_num, yind, fold):
+        self._yind = yind
+        self._fold = fold
+        self._reg_num = reg_num
+        self._gate_placed = []
+        self.nxt_anchor_idx = 0
+        self.gate_anchor = 0
+
+    def plot_coord(self, index, gate_width, x_offset):
+        """Set the coord positions for an index"""
+        h_pos = index % self._fold + 1
+        # check folding
+        if self._fold > 0:
+            if h_pos + (gate_width - 1) > self._fold:
+                index += self._fold - (h_pos - 1)
+            x_pos = index % self._fold + 0.5 * gate_width + 0.04
+            y_pos = self._yind - (index // self._fold) * (self._reg_num + 1)
+        else:
+            x_pos = index + 0.5 * gate_width + 0.04
+            y_pos = self._yind
+
+        # could have been updated, so need to store
+        self.gate_anchor = index
+        return x_pos + x_offset, y_pos
+
+    def set_index(self, index, layer_width):
+        """Set the index for a gate"""
+        if self._fold < 2:
+            _index = index
+        else:
+            h_pos = index % self._fold + 1
+            if h_pos + (layer_width - 1) > self._fold:
+                _index = index + self._fold - (h_pos - 1) + 1
+            else:
+                _index = index
+        for ii in range(layer_width):
+            idx = _index + ii
+            if idx not in self._gate_placed:
+                self._gate_placed.append(idx)
+                self.nxt_anchor_idx = idx + 1
+
+    def get_index(self):
+        """Getter for the index"""
+        if self._gate_placed:
+            return self._gate_placed[-1] + 1
+        return 0
 
 
 class HasMatplotlibWrapper:
