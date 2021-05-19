@@ -477,11 +477,11 @@ def decompose_clifford_greedy(clifford):
         list_greedy_cost = []
         for qubit in qubit_list:
             pauli_x = Pauli(num_qubits * "I")
-            pauli_x[qubit] = 'X'
+            pauli_x[qubit] = "X"
             pauli_x = pauli_x.evolve(clifford_cpy)
 
             pauli_z = Pauli(num_qubits * "I")
-            pauli_z[qubit] = 'Z'
+            pauli_z[qubit] = "Z"
             pauli_z = pauli_z.evolve(clifford_cpy)
             list_pairs = []
             pauli_count = 0
@@ -498,11 +498,11 @@ def decompose_clifford_greedy(clifford):
 
         # Gaussian elimination step for the qubit with minimal CNOT cost
         pauli_x = Pauli(num_qubits * "I")
-        pauli_x[min_qubit] = 'X'
+        pauli_x[min_qubit] = "X"
         pauli_x = pauli_x.evolve(clifford_cpy)
 
         pauli_z = Pauli(num_qubits * "I")
-        pauli_z[min_qubit] = 'Z'
+        pauli_z[min_qubit] = "Z"
         pauli_z = pauli_z.evolve(clifford_cpy)
 
         # Compute the decoupling operator of cliff_ox and cliff_oz
