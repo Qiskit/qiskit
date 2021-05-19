@@ -1276,8 +1276,6 @@ class Layer:
         controlled_edge=None,
     ):
         if qubits is not None and clbits is not None:
-            qubits = list(qubits)
-            clbits = list(clbits)
             cbit_index = sorted([i for i, x in enumerate(self.clbits) if x in clbits])
             qbit_index = sorted([i for i, x in enumerate(self.qubits) if x in qubits])
 
@@ -1294,6 +1292,9 @@ class Layer:
                 for cbit in self.clbits
                 if cbit in clbits
             ]
+
+            qubits = sorted(qubits, key=self.qubits.index)
+            clbits = sorted(clbits, key=self.clbits.index)
 
             box_height = len(self.qubits) - min(qbit_index) + max(cbit_index) + 1
 
