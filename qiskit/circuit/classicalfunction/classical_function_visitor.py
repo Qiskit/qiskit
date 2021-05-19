@@ -67,10 +67,10 @@ class ClassicalFunctionVisitor(ast.NodeVisitor):
             )
         if node.returns is None:
             raise ClassicalFunctionParseError("return type is needed")
-        scope = {"return": (node.returns.result_id, None), node.returns.result_id: ("type", None)}
+        scope = {"return": (node.returns.id, None), node.returns.id: ("type", None)}
 
         # Extend scope with the decorator's names
-        scope.update({decorator.result_id: ("decorator", None) for decorator in node.decorator_list})
+        scope.update({decorator.id: ("decorator", None) for decorator in node.decorator_list})
 
         self.scopes.append(scope)
         self._network = LogicNetwork()
@@ -88,7 +88,7 @@ class ClassicalFunctionVisitor(ast.NodeVisitor):
         """When assign, the scope needs to be updated with the right type"""
         type_value, signal_value = self.visit(node.value)
         for target in node.targets:
-            self.scopes[-1][target.result_id] = (type_value, signal_value)
+            self.scopes[-1][target.id] = (type_value, signal_value)
         return (type_value, signal_value)
 
     def bit_binop(self, op, values):
@@ -163,5 +163,5 @@ class ClassicalFunctionVisitor(ast.NodeVisitor):
             if arg.annotation is None:
                 raise ClassicalFunctionParseError("argument type is needed")
             self.args.append(arg.arg)
-            self.scopes[-1][arg.annotation.result_id] = ("type", None)
-            self.scopes[-1][arg.arg] = (arg.annotation.result_id, self._network.create_pi())
+            self.scopes[-1][arg.annotation.id] = ("type", None)
+            self.scopes[-1][arg.arg] = (arg.annotation.id, self._network.create_pi())

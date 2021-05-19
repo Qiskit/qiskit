@@ -355,7 +355,7 @@ def get_pulse_ids(schedules: List[Schedule]) -> Set[int]:
     ids = set()
     for schedule in schedules:
         for _, inst in schedule.instructions:
-            ids.add(inst.pulse.result_id)
+            ids.add(inst.pulse.id)
     return ids
 
 
