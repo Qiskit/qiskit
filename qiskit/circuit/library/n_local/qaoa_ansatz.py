@@ -12,7 +12,7 @@
 
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 # pylint: disable=cyclic-import
-from typing import Optional, Set, List, Tuple, Union
+from typing import Optional, Set, List, Tuple
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.quantumcircuit import QuantumCircuit
