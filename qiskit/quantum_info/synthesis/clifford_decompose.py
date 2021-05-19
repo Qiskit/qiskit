@@ -18,7 +18,7 @@ from itertools import product
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
-from qiskit.quantum_info.operators.symplectic import Pauli
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_z,
     _append_x,
