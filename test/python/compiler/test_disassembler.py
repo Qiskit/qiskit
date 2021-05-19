@@ -373,7 +373,8 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
             )
         )
         self.assertEqual(
-            qc.calibrations["test"][((0,), ())], output_circuits[0].calibrations["test"][((0,), ())]
+            qc.calibrations["test"][((0,), ())],
+            output_circuits[0].calibrations["test"][((0,), ())]
         )
 
 
