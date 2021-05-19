@@ -322,11 +322,11 @@ def _parse_common_args(
                 RuntimeWarning,
             )
 
-    qubit_lo_freq = qubit_lo_freq or getattr(backend_defaults, 'qubit_freq_est', None)
-    meas_lo_freq = meas_lo_freq or getattr(backend_defaults, 'meas_freq_est', None)
+    qubit_lo_freq = qubit_lo_freq or getattr(backend_defaults, "qubit_freq_est", None)
+    meas_lo_freq = meas_lo_freq or getattr(backend_defaults, "meas_freq_est", None)
 
-    qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
-    meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
+    qubit_lo_range = qubit_lo_range or getattr(backend_config, "qubit_lo_range", None)
+    meas_lo_range = meas_lo_range or getattr(backend_config, "meas_lo_range", None)
 
     # check that LO frequencies are in the perscribed range
     _check_lo_freqs(qubit_lo_freq, qubit_lo_range, "qubit")
@@ -338,8 +338,10 @@ def _parse_common_args(
         schedule_los = [schedule_los]
 
     # Convert to LoConfig if LO configuration supplied as dictionary
-    schedule_los = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
-                    for lo_config in schedule_los]
+    schedule_los = [
+        lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
+        for lo_config in schedule_los
+    ]
 
     # create run configuration and populate
     run_config_dict = dict(
@@ -387,9 +389,7 @@ def _check_lo_freqs(
         for i, freq in enumerate(lo_freq):
             freq_range = lo_range[i]
             if not (isinstance(freq_range, list) and len(freq_range) == 2):
-                raise QiskitError(
-                    "Each element of {} LO range must be a 2d list.".format(lo_type)
-                )
+                raise QiskitError("Each element of {} LO range must be a 2d list.".format(lo_type))
             if freq < freq_range[0] or freq > freq_range[1]:
                 raise QiskitError(
                     "Qubit {} {} LO frequency is {}. The range is [{}, {}].".format(

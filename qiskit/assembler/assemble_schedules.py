@@ -313,8 +313,8 @@ def _assemble_config(
         qobj_config["meas_level"] = meas_level.value
 
     # convert LO frequencies to GHz
-    qobj_config["qubit_lo_freq"] = [freq / 1e9 for freq in qobj_config['qubit_lo_freq']]
-    qobj_config["meas_lo_freq"] = [freq / 1e9 for freq in qobj_config['meas_lo_freq']]
+    qobj_config["qubit_lo_freq"] = [freq / 1e9 for freq in qobj_config["qubit_lo_freq"]]
+    qobj_config["meas_lo_freq"] = [freq / 1e9 for freq in qobj_config["meas_lo_freq"]]
 
     # override defaults if single entry for ``schedule_los``
     schedule_los = qobj_config.pop("schedule_los", [])

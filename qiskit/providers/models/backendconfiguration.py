@@ -454,14 +454,14 @@ class QasmBackendConfiguration:
         # Use GHz in dict
         if "qubit_lo_range" in out_dict:
             out_dict["qubit_lo_range"] = [
-                [min_range * 1e-9, max_range * 1e-9] for
-                (min_range, max_range) in out_dict["qubit_lo_range"]
+                [min_range * 1e-9, max_range * 1e-9]
+                for (min_range, max_range) in out_dict["qubit_lo_range"]
             ]
 
         if "meas_lo_range" in out_dict:
             out_dict["meas_lo_range"] = [
-                [min_range * 1e-9, max_range * 1e-9] for
-                (min_range, max_range) in out_dict["meas_lo_range"]
+                [min_range * 1e-9, max_range * 1e-9]
+                for (min_range, max_range) in out_dict["meas_lo_range"]
             ]
 
         return out_dict

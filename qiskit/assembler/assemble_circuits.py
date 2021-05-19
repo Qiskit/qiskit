@@ -260,9 +260,7 @@ def _configure_experiment_los(
     run_config: RunConfig,
 ):
     # get per experiment los
-    freq_configs = [
-        lo_converter(lo_dict) for lo_dict in getattr(run_config, "schedule_los", [])
-    ]
+    freq_configs = [lo_converter(lo_dict) for lo_dict in getattr(run_config, "schedule_los", [])]
 
     if len(experiments) > 1 and len(freq_configs) not in [0, 1, len(experiments)]:
         raise QiskitError(
@@ -284,10 +282,11 @@ def _configure_experiment_los(
                 expt_config = copy.deepcopy(expt.config)
                 expt_config.qubit_lo_freq = freq_config.qubit_lo_freq
                 expt_config.meas_lo_freq = freq_config.meas_lo_freq
-                experiments.append(QasmQobjExperiment(
-                    header=expt.header,
-                    instructions=expt.instructions,
-                    config=expt_config))
+                experiments.append(
+                    QasmQobjExperiment(
+                        header=expt.header, instructions=expt.instructions, config=expt_config
+                    )
+                )
 
     return experiments
 
@@ -319,8 +318,7 @@ def assemble_circuits(
     experiments, calibrations = _extract_common_calibrations(experiments)
 
     # configure LO freqs per circuit
-    lo_converter = converters.LoConfigConverter(QasmQobjExperimentConfig,
-                                                **run_config.to_dict())
+    lo_converter = converters.LoConfigConverter(QasmQobjExperimentConfig, **run_config.to_dict())
     experiments = _configure_experiment_los(experiments, lo_converter, run_config)
 
     qobj_config = QasmQobjConfig()

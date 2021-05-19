@@ -67,8 +67,12 @@ class TestCircuitAssembler(QiskitTestCase):
         # lo test values
         self.default_qubit_lo_freq = [5e9 for _ in range(self.num_qubits)]
         self.default_meas_lo_freq = [6.7e9 for _ in range(self.num_qubits)]
-        self.user_lo_config_dict = {pulse.DriveChannel(0): 5.55e9, pulse.MeasureChannel(0): 6.64e9,
-                                    pulse.DriveChannel(3): 4.91e9, pulse.MeasureChannel(4): 6.1e9}
+        self.user_lo_config_dict = {
+            pulse.DriveChannel(0): 5.55e9,
+            pulse.MeasureChannel(0): 6.64e9,
+            pulse.DriveChannel(3): 4.91e9,
+            pulse.MeasureChannel(4): 6.1e9,
+        }
         self.user_lo_config = pulse.LoConfig(self.user_lo_config_dict)
 
     def test_assemble_single_circuit(self):
@@ -752,14 +756,10 @@ class TestCircuitAssembler(QiskitTestCase):
 
         # experiment 0 los
         self.assertEqual(qobj.experiments[0].config.qubit_lo_freq, [5.55, 5, 5, 4.91, 5])
-        self.assertEqual(
-            qobj.experiments[0].config.meas_lo_freq, [6.64, 6.7, 6.7, 6.7, 6.1]
-        )
+        self.assertEqual(qobj.experiments[0].config.meas_lo_freq, [6.64, 6.7, 6.7, 6.7, 6.1])
         # experiment 1 los
         self.assertEqual(qobj.experiments[1].config.qubit_lo_freq, [5, 5.55, 5, 5, 4.91])
-        self.assertEqual(
-            qobj.experiments[1].config.meas_lo_freq, [6.7, 6.64, 6.7, 6.1, 6.7]
-        )
+        self.assertEqual(qobj.experiments[1].config.meas_lo_freq, [6.7, 6.64, 6.7, 6.1, 6.7])
 
     def test_assemble_multi_circ_multi_lo_config(self):
         """Test assembling circuits, with the same number of experiment level lo configs (n:n
@@ -788,14 +788,10 @@ class TestCircuitAssembler(QiskitTestCase):
 
         # experiment 0 los
         self.assertEqual(qobj.experiments[0].config.qubit_lo_freq, [5.55, 5, 5, 4.91, 5])
-        self.assertEqual(
-            qobj.experiments[0].config.meas_lo_freq, [6.64, 6.7, 6.7, 6.7, 6.1]
-        )
+        self.assertEqual(qobj.experiments[0].config.meas_lo_freq, [6.64, 6.7, 6.7, 6.7, 6.1])
         # experiment 1 los
         self.assertEqual(qobj.experiments[1].config.qubit_lo_freq, [5, 5.55, 5, 5, 4.91])
-        self.assertEqual(
-            qobj.experiments[1].config.meas_lo_freq, [6.7, 6.64, 6.7, 6.1, 6.7]
-        )
+        self.assertEqual(qobj.experiments[1].config.meas_lo_freq, [6.7, 6.64, 6.7, 6.1, 6.7])
 
     def test_assemble_multi_circ_single_lo_config(self):
         """Test assembling multiple circuits, with a single experiment level lo config (should
@@ -855,17 +851,13 @@ class TestCircuitAssembler(QiskitTestCase):
         missing_drive_lo_config_dict = copy.deepcopy(full_lo_config_dict)
         missing_drive_lo_config_dict.pop(pulse.DriveChannel(0))
         with self.assertRaises(QiskitError):
-            qobj = assemble(
-                self.circ, self.backend, schedule_los=missing_drive_lo_config_dict
-            )
+            qobj = assemble(self.circ, self.backend, schedule_los=missing_drive_lo_config_dict)
 
         # no defaults and missing experiment level meas lo raises
         missing_meas_lo_config_dict = copy.deepcopy(full_lo_config_dict)
         missing_meas_lo_config_dict.pop(pulse.MeasureChannel(0))
         with self.assertRaises(QiskitError):
-            qobj = assemble(
-                self.circ, self.backend, schedule_los=missing_meas_lo_config_dict
-            )
+            qobj = assemble(self.circ, self.backend, schedule_los=missing_meas_lo_config_dict)
 
         # verify lo ranges are checked at experiment level
         lo_values = list(full_lo_config_dict.values())
@@ -879,7 +871,7 @@ class TestCircuitAssembler(QiskitTestCase):
                 self.circ,
                 self.backend,
                 qubit_lo_range=qubit_lo_range,
-                schedule_los=full_lo_config_dict
+                schedule_los=full_lo_config_dict,
             )
         full_lo_config_dict[pulse.DriveChannel(0)] += 5.5e6  # reset drive value
 
@@ -890,7 +882,7 @@ class TestCircuitAssembler(QiskitTestCase):
                 self.circ,
                 self.backend,
                 meas_lo_range=meas_lo_range,
-                schedule_los=full_lo_config_dict
+                schedule_los=full_lo_config_dict,
             )
 
 

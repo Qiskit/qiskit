@@ -119,8 +119,10 @@ class LoConfigConverter:
             # if ``None`` remains in LO's, indicates default not provided and user value is missing
             # raise error
             if None in _q_los:
-                raise QiskitError("Invalid experiment level qubit LO's. Must either pass values "
-                                  "for all drive channels or pass 'default_qubit_los'.")
+                raise QiskitError(
+                    "Invalid experiment level qubit LO's. Must either pass values "
+                    "for all drive channels or pass 'default_qubit_los'."
+                )
 
         return _q_los
 
@@ -158,7 +160,9 @@ class LoConfigConverter:
             # if ``None`` remains in LO's, indicates default not provided and user value is missing
             # raise error
             if None in _m_los:
-                raise QiskitError("Invalid experiment level measurement LO's. Must either pass "
-                                  "values for all measurement channels or pass 'default_meas_los'.")
+                raise QiskitError(
+                    "Invalid experiment level measurement LO's. Must either pass "
+                    "values for all measurement channels or pass 'default_meas_los'."
+                )
 
         return _m_los
