@@ -941,8 +941,7 @@ def load(file_obj):
             "file, %s, is newer than the current qiskit version %s. "
             "This may result in an error if the QPY file uses "
             "instructions not present in this current qiskit "
-            "version" % (".".join([str(x) for x in header_version_parts]),
-                         __version__)
+            "version" % (".".join([str(x) for x in header_version_parts]), __version__)
         )
     circuits = []
     for _ in range(file_header[5]):
