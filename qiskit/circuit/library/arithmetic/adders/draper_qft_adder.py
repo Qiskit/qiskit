@@ -57,7 +57,7 @@ class DraperQFTAdder(Adder):
     """
 
     def __init__(
-        self, num_state_qubits: int, kind: str = 'fixed', name: str = "DraperQFTAdder"
+        self, num_state_qubits: int, kind: str = "fixed", name: str = "DraperQFTAdder"
     ) -> None:
         r"""
         Args:
@@ -81,7 +81,7 @@ class DraperQFTAdder(Adder):
         qr_b = QuantumRegister(num_state_qubits, name="b")
         qr_list = [qr_a, qr_b]
 
-        if kind == 'half':
+        if kind == "half":
             qr_z = QuantumRegister(1, name="cout")
             qr_list.append(qr_z)
 
@@ -89,8 +89,8 @@ class DraperQFTAdder(Adder):
         self.add_register(*qr_list)
 
         # define register containing the sum and number of qubits for QFT circuit
-        qr_sum = qr_b[:] if kind == 'fixed' else qr_b[:] + qr_z[:]
-        num_qubits_qft = num_state_qubits if kind == 'fixed' else num_state_qubits + 1
+        qr_sum = qr_b[:] if kind == "fixed" else qr_b[:] + qr_z[:]
+        num_qubits_qft = num_state_qubits if kind == "fixed" else num_state_qubits + 1
 
         # build QFT adder circuit
         self.append(QFT(num_qubits_qft, do_swaps=False).to_gate(), qr_sum[:])
@@ -100,7 +100,7 @@ class DraperQFTAdder(Adder):
                 lam = np.pi / (2 ** k)
                 self.cp(lam, qr_a[j], qr_b[j + k])
 
-        if kind == 'half':
+        if kind == "half":
             for j in range(num_state_qubits):
                 lam = np.pi / (2 ** (j + 1))
                 self.cp(lam, qr_a[num_state_qubits - j - 1], qr_z[0])

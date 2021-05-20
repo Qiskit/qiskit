@@ -58,7 +58,7 @@ class VBERippleCarryAdder(Adder):
     """
 
     def __init__(
-        self, num_state_qubits: int, kind: str = 'full', name: str = "VBERippleCarryAdder"
+        self, num_state_qubits: int, kind: str = "full", name: str = "VBERippleCarryAdder"
     ) -> None:
         """
         Args:
@@ -79,8 +79,8 @@ class VBERippleCarryAdder(Adder):
 
         # define the input registers
         registers = []
-        if kind == 'full':
-            qr_cin = QuantumRegister(1, name='cin')
+        if kind == "full":
+            qr_cin = QuantumRegister(1, name="cin")
             registers.append(qr_cin)
         else:
             qr_cin = []
@@ -90,8 +90,8 @@ class VBERippleCarryAdder(Adder):
 
         registers += [qr_a, qr_b]
 
-        if kind in ['half', 'full']:
-            qr_cout = QuantumRegister(1, name='cout')
+        if kind in ["half", "full"]:
+            qr_cout = QuantumRegister(1, name="cout")
             registers.append(qr_cout)
         else:
             qr_cout = []
@@ -123,10 +123,10 @@ class VBERippleCarryAdder(Adder):
 
         # handle all cases for the first qubits, depending on whether cin is available
         i = 0
-        if kind == 'half':
+        if kind == "half":
             i += 1
             self.ccx(qr_a[0], qr_b[0], carries[0])
-        elif kind == 'fixed':
+        elif kind == "fixed":
             i += 1
             if num_state_qubits == 1:
                 self.cx(qr_a[0], qr_b[0])
@@ -137,16 +137,16 @@ class VBERippleCarryAdder(Adder):
             self.append(carry_gate, [inp, qr_a[i], qr_b[i], out])
             i += 1
 
-        if kind in ['full', 'half']:  # final CX (cancels for the 'fixed' case)
+        if kind in ["full", "half"]:  # final CX (cancels for the 'fixed' case)
             self.cx(qr_a[-1], qr_b[-1])
 
-        if len(qr_help) > 0:
-            self.append(sum_gate, [qr_help[-1], qr_a[-1], qr_b[-1]])
+        if len(carries) > 1:
+            self.append(sum_gate, [carries[-2], qr_a[-1], qr_b[-1]])
 
         i -= 2
         for j, (inp, out) in enumerate(zip(reversed(carries[:-1]), reversed(carries[1:]))):
             if j == 0:
-                if kind == 'fixed':
+                if kind == "fixed":
                     i += 1
                 else:
                     continue
@@ -154,6 +154,6 @@ class VBERippleCarryAdder(Adder):
             self.append(sum_gate, [inp, qr_a[i], qr_b[i]])
             i -= 1
 
-        if kind in ['half', 'fixed'] and num_state_qubits > 1:
+        if kind in ["half", "fixed"] and num_state_qubits > 1:
             self.ccx(qr_a[0], qr_b[0], carries[0])
             self.cx(qr_a[0], qr_b[0])

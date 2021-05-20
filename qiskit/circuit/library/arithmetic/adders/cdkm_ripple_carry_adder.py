@@ -60,7 +60,7 @@ class CDKMRippleCarryAdder(Adder):
     """
 
     def __init__(
-        self, num_state_qubits: int, kind: str = 'full', name: str = "CDKMRippleCarryAdder"
+        self, num_state_qubits: int, kind: str = "full", name: str = "CDKMRippleCarryAdder"
     ) -> None:
         r"""
         Args:
@@ -80,7 +80,7 @@ class CDKMRippleCarryAdder(Adder):
 
         super().__init__(num_state_qubits, name=name)
 
-        if kind == 'full':
+        if kind == "full":
             qr_c = QuantumRegister(1, name="cin")
             self.add_register(qr_c)
         else:
@@ -90,11 +90,11 @@ class CDKMRippleCarryAdder(Adder):
         qr_b = QuantumRegister(num_state_qubits, name="b")
         self.add_register(qr_a, qr_b)
 
-        if kind in ['full', 'half']:
+        if kind in ["full", "half"]:
             qr_z = QuantumRegister(1, name="cout")
             self.add_register(qr_z)
 
-        if kind != 'full':
+        if kind != "full":
             self.add_register(qr_c)
 
         # build carry circuit for majority of 3 bits in-place
@@ -119,7 +119,7 @@ class CDKMRippleCarryAdder(Adder):
         for i in range(num_state_qubits - 1):
             self.append(maj_gate, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
 
-        if kind in ['full', 'half']:
+        if kind in ["full", "half"]:
             self.cx(qr_a[-1], qr_z[0])
 
         for i in reversed(range(num_state_qubits - 1)):
