@@ -21,26 +21,26 @@ class VBERippleCarryAdder(Adder):
     r"""The VBE ripple carry adder [1].
 
     This circuit performs inplace addition of two equally-sized quantum registers.
-    As an example, a classical adder circuit that performs addition on two 2-qubit sized
-    registers is as follows:
+    As an example, a classical adder circuit that performs full addition (i.e. including
+    a carry-in bit) on two 2-qubit sized registers is as follows:
 
     .. parsed-literal::
 
-                ┌────────┐                       ┌───────────┐┌──────┐
-           a_0: ┤1       ├───────────────────────┤1          ├┤1     ├
-                │        │┌────────┐     ┌──────┐│           ││      │
-           a_1: ┤        ├┤1       ├──■──┤1     ├┤           ├┤      ├
-                │        ││        │  │  │      ││           ││      │
-           b_0: ┤2       ├┤        ├──┼──┤      ├┤2          ├┤2     ├
-                │        ││        │┌─┴─┐│      ││           ││  Sum │
-           b_1: ┤  Carry ├┤2       ├┤ X ├┤2     ├┤  Carry_dg ├┤      ├
-                │        ││  Carry │└───┘│  Sum ││           ││      │
-        cout_0: ┤        ├┤3       ├─────┤      ├┤           ├┤      ├
-                │        ││        │     │      ││           ││      │
-         cin_0: ┤0       ├┤        ├─────┤      ├┤0          ├┤0     ├
-                │        ││        │     │      ││           │└──────┘
-         cin_1: ┤3       ├┤0       ├─────┤0     ├┤3          ├────────
-                └────────┘└────────┘     └──────┘└───────────┘
+                  ┌────────┐                       ┌───────────┐┌──────┐
+           cin_0: ┤0       ├───────────────────────┤0          ├┤0     ├
+                  │        │                       │           ││      │
+             a_0: ┤1       ├───────────────────────┤1          ├┤1     ├
+                  │        │┌────────┐     ┌──────┐│           ││  Sum │
+             a_1: ┤        ├┤1       ├──■──┤1     ├┤           ├┤      ├
+                  │        ││        │  │  │      ││           ││      │
+             b_0: ┤2 Carry ├┤        ├──┼──┤      ├┤2 Carry_dg ├┤2     ├
+                  │        ││        │┌─┴─┐│      ││           │└──────┘
+             b_1: ┤        ├┤2 Carry ├┤ X ├┤2 Sum ├┤           ├────────
+                  │        ││        │└───┘│      ││           │
+          cout_0: ┤        ├┤3       ├─────┤      ├┤           ├────────
+                  │        ││        │     │      ││           │
+        helper_0: ┤3       ├┤0       ├─────┤0     ├┤3          ├────────
+                  └────────┘└────────┘     └──────┘└───────────┘
 
 
     Here *Carry* and *Sum* gates correspond to the gates introduced in [1].

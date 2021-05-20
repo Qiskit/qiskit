@@ -24,8 +24,8 @@ class DraperQFTAdder(Adder):
     r"""A circuit that uses QFT to perform in-place addition on two qubit registers.
 
     For registers with :math:`n` qubits, the QFT adder can perform addition modulo
-    :math:`2^n` (with `fixed_point=True`) or ordinary addition by adding a carry qubits (with
-    `fixed_point=False`).
+    :math:`2^n` (with ``kind="fixed"``) or ordinary addition by adding a carry qubits (with
+    ``kind="half"``).
 
     As an example, a non-fixed_point QFT adder circuit that performs addition on two 2-qubit sized
     registers is as follows:
@@ -72,6 +72,9 @@ class DraperQFTAdder(Adder):
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
         """
+        if kind == "full":
+            raise ValueError("The DraperQFTAdder only supports 'half' and 'fixed' as ``kind``.")
+
         if num_state_qubits < 1:
             raise ValueError("The number of qubits must be at least 1.")
 
