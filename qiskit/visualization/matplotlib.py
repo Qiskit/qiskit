@@ -954,7 +954,8 @@ class MatplotlibDrawer:
             register = self._bit_locations[reg]["register"]
             index = self._bit_locations[reg]["index"]
 
-            if len(self._qubit) > 1:
+            # show register name and number if more than 1 register
+            if register.size > 1:
                 if self._layout is None:
                     qubit_name = "${{{name}}}_{{{index}}}$".format(name=register.name, index=index)
                 else:
@@ -976,8 +977,11 @@ class MatplotlibDrawer:
                             )
                     else:
                         qubit_name = "${{{physical}}}$".format(physical=index)
+
+            # if only 1 register, just show the register name
             else:
                 qubit_name = "{name}".format(name=register.name)
+
             qubit_name = _fix_double_script(qubit_name) + initial_qbit
             text_width = self._get_text_width(qubit_name, fs) * 1.15
 
@@ -1003,32 +1007,30 @@ class MatplotlibDrawer:
                 register = self._bit_locations[reg]["register"]
                 index = self._bit_locations[reg]["index"]
 
+                print('C', register, index, register.size)
+                # if cregbundle show non-math reg name, if only 1 clbit, show math name
+                # else math name and number
                 if self._cregbundle:
                     clbit_name = "{}".format(register.name)
-                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
-                    text_width = self._get_text_width(register.name, fs) * 1.15
-                    if text_width > longest_reg_name_width:
-                        longest_reg_name_width = text_width
-                    self._clbit_dict[ii] = {
-                        "y": pos,
-                        "reg_name": clbit_name,
-                        "index": index,
-                        "group": register,
-                    }
-                    if not (not nreg or register != self._bit_locations[nreg]["register"]):
-                        continue
+                elif register.size == 1:
+                    clbit_name = "${}$".format(register.name)
                 else:
                     clbit_name = "${}_{{{}}}$".format(register.name, index)
-                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
-                    text_width = self._get_text_width(register.name, fs) * 1.15
-                    if text_width > longest_reg_name_width:
-                        longest_reg_name_width = text_width
-                    self._clbit_dict[ii] = {
-                        "y": pos,
-                        "reg_name": clbit_name,
-                        "index": index,
-                        "group": register,
-                    }
+                clbit_name = _fix_double_script(clbit_name) + initial_cbit
+                text_width = self._get_text_width(register.name, fs) * 1.15
+                if text_width > longest_reg_name_width:
+                    longest_reg_name_width = text_width
+                self._clbit_dict[ii] = {
+                    "y": pos,
+                    "reg_name": clbit_name,
+                    "index": index,
+                    "group": register,
+                }
+                if self._cregbundle and not (
+                    not nreg or register != self._bit_locations[nreg]["register"]
+                ):
+                    continue
+
                 self._n_lines += 1
                 idx += 1
 

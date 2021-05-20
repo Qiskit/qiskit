@@ -225,6 +225,7 @@ class QCircuitImage:
         if self.cregbundle:
             offset = 0
         for i in range(self.img_width):
+            register = self.bit_locations[self.ordered_bits[i]]["register"]
             if isinstance(self.ordered_bits[i], Clbit):
                 if self.cregbundle:
                     reg = self.bit_locations[self.ordered_bits[i + offset]]["register"]
@@ -232,7 +233,8 @@ class QCircuitImage:
                     clbitsize = self.cregs[reg]
                     self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
                     offset += clbitsize - 1
-                else:
+
+                elif register.size > 1:
                     self._latex[i][0] = (
                         "\\lstick{"
                         + self.bit_locations[self.ordered_bits[i]]["register"].name
@@ -240,15 +242,26 @@ class QCircuitImage:
                         + str(self.bit_locations[self.ordered_bits[i]]["index"])
                         + "}:"
                     )
+                else:
+                    self._latex[i][0] = (
+                        "\\lstick{"
+                        + self.bit_locations[self.ordered_bits[i]]["register"].name
+                        + " :"
+                    )
                 if self.initial_state:
                     self._latex[i][0] += "0"
                 self._latex[i][0] += "}"
             else:
                 if self.layout is None:
-                    label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
-                        self.bit_locations[self.ordered_bits[i]]["register"].name,
-                        self.bit_locations[self.ordered_bits[i]]["index"],
-                    )
+                    if register.size > 1:
+                        label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
+                            self.bit_locations[self.ordered_bits[i]]["register"].name,
+                            self.bit_locations[self.ordered_bits[i]]["index"],
+                        )
+                    else:
+                        label = "\\lstick{{ {{{}}} : ".format(
+                            self.bit_locations[self.ordered_bits[i]]["register"].name,
+                        )
                 else:
                     bit_location = self.bit_locations[self.ordered_bits[i]]
                     if bit_location and self.layout[bit_location["index"]]:
@@ -262,7 +275,7 @@ class QCircuitImage:
                             )
                         except StopIteration:
                             label = "\\lstick{{ {{{}}} : ".format(bit_location["index"])
-                    else:
+                    elif len(self.qubit_list) > 1:
                         label = "\\lstick{{ {{{}}} : ".format(bit_location["index"])
                 if self.initial_state:
                     label += "\\ket{{0}}"
