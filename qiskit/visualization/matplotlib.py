@@ -344,7 +344,7 @@ class MatplotlibDrawer:
         """Draw the register names and numbers, wires, and vertical lines at the ends"""
 
         for fold_num in range(num_folds + 1):
-            # quantum register
+            # quantum registers
             for qubit in self._qubit_dict.values():
                 qubit_name = qubit["reg_name"]
                 y = qubit["y"] - fold_num * (n_lines + 1)
@@ -362,7 +362,7 @@ class MatplotlibDrawer:
                 # draw the qubit wire
                 self._line([self._x_offset, y], [xmax, y], zorder=PORDER_REGLINE)
 
-            # classical register
+            # classical registers
             this_clbit_dict = {}
             for clbit in self._clbit_dict.values():
                 clbit_name = clbit["reg_name"]
@@ -460,8 +460,6 @@ class MatplotlibDrawer:
 
     def _draw_ops(self, verbose=False):
         """Draw the gates in the circuit"""
-
-        # draw the ops
         prev_anc = -1
         for i, layer in enumerate(self._nodes):
             layer_width = self._layer_widths[i]
@@ -469,26 +467,10 @@ class MatplotlibDrawer:
 
             # draw the gates in this layer
             for node in layer:
-                # get display text and colors
-                """gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
-                    node, "mpl", style=self._style
-                )"""
                 fc, ec, gt, tc, sc, lc = self._get_colors(node, self._data[node]["raw_gate_text"])
 
                 if verbose:
                     print(node.op)
-
-                """# load param
-                param = ""
-                if (
-                    node.type == "op"
-                    and hasattr(node.op, "params")
-                    and len(node.op.params) > 0
-                    and not any(isinstance(param, np.ndarray) for param in node.op.params)
-                ):
-                    param = "{}".format(get_param_str(node, "mpl", ndigits=3))
-                    if isinstance(node.op, Initialize):
-                        param = "$[{}]$".format(param.replace("$", ""))"""
 
                 # add conditional
                 if node.op.condition:
@@ -578,13 +560,14 @@ class MatplotlibDrawer:
                 num_ctrl_qubits = (
                     0 if not hasattr(node.op, "num_ctrl_qubits") else node.op.num_ctrl_qubits
                 )
-
                 if node.op._directive or isinstance(node.op, Measure):
                     self._data[node]["raw_gate_text"] = node.op.name
                     continue
 
                 base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
-                gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(node, "mpl", style=self._style)
+                gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
+                    node, "mpl", style=self._style
+                )
                 self._data[node]["gate_text"] = gate_text
                 self._data[node]["ctrl_text"] = ctrl_text
                 self._data[node]["raw_gate_text"] = raw_gate_text
@@ -670,7 +653,8 @@ class MatplotlibDrawer:
             register = self._bit_locations[reg]["register"]
             index = self._bit_locations[reg]["index"]
 
-            if len(self._qubit) > 1:
+            # show register name and number if more than 1 register
+            if register.size > 1:
                 if self._layout is None:
                     qubit_name = "${{{name}}}_{{{index}}}$".format(name=register.name, index=index)
                 else:
@@ -692,8 +676,11 @@ class MatplotlibDrawer:
                             )
                     else:
                         qubit_name = "${{{physical}}}$".format(physical=index)
+
+            # if only 1 register, just show the register name
             else:
                 qubit_name = "{name}".format(name=register.name)
+
             qubit_name = _fix_double_script(qubit_name) + initial_qbit
             text_width = self._get_text_width(qubit_name, self._fs) * 1.15
 
@@ -719,32 +706,29 @@ class MatplotlibDrawer:
                 register = self._bit_locations[reg]["register"]
                 index = self._bit_locations[reg]["index"]
 
+                # if cregbundle show non-math reg name, if only 1 clbit, show math name
+                # else math name and number
                 if self._cregbundle:
                     clbit_name = "{}".format(register.name)
-                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
-                    text_width = self._get_text_width(register.name, self._fs) * 1.15
-                    if text_width > longest_reg_name_width:
-                        longest_reg_name_width = text_width
-                    self._clbit_dict[ii] = {
-                        "y": pos,
-                        "reg_name": clbit_name,
-                        "index": index,
-                        "group": register,
-                    }
-                    if not (not nreg or register != self._bit_locations[nreg]["register"]):
-                        continue
+                elif register.size == 1:
+                    clbit_name = "${}$".format(register.name)
                 else:
                     clbit_name = "${}_{{{}}}$".format(register.name, index)
-                    clbit_name = _fix_double_script(clbit_name) + initial_cbit
-                    text_width = self._get_text_width(register.name, self._fs) * 1.15
-                    if text_width > longest_reg_name_width:
-                        longest_reg_name_width = text_width
-                    self._clbit_dict[ii] = {
-                        "y": pos,
-                        "reg_name": clbit_name,
-                        "index": index,
-                        "group": register,
-                    }
+                clbit_name = _fix_double_script(clbit_name) + initial_cbit
+                text_width = self._get_text_width(register.name, self._fs) * 1.15
+                if text_width > longest_reg_name_width:
+                    longest_reg_name_width = text_width
+                self._clbit_dict[ii] = {
+                    "y": pos,
+                    "reg_name": clbit_name,
+                    "index": index,
+                    "group": register,
+                }
+                if self._cregbundle and not (
+                    not nreg or register != self._bit_locations[nreg]["register"]
+                ):
+                    continue
+
                 n_lines += 1
                 idx += 1
 
