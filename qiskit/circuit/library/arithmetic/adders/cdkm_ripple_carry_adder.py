@@ -47,9 +47,10 @@ class CDKMRippleCarryAdder(Adder):
     in this implementation the input register qubits are ordered as all qubits from
     the first input register, followed by all qubits from the second input register.
 
-    Two different ``kind``s of adders are supported, a half-adder, which doesn't have a carry-in,
-    and a fixed-point-adder, which has neither carry-in nor carry-out, and thus acts on
-    fixed register sizes. Unlike the full-adder, these circuits need one additional helper qubit.
+    Two different kinds of adders are supported. By setting the ``kind`` argument, you can also
+    choose a half-adder, which doesn't have a carry-in, and a fixed-sized-adder, which has neither
+    carry-in nor carry-out, and thus acts on fixed register sizes. Unlike the full-adder,
+    these circuits need one additional helper qubit.
 
     The circuit diagram for the fixed-point adder (``kind="fixed"``) on 3-qubit sized inputs is
 
