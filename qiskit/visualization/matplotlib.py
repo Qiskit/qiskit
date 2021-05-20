@@ -1007,7 +1007,6 @@ class MatplotlibDrawer:
                 register = self._bit_locations[reg]["register"]
                 index = self._bit_locations[reg]["index"]
 
-                print('C', register, index, register.size)
                 # if cregbundle show non-math reg name, if only 1 clbit, show math name
                 # else math name and number
                 if self._cregbundle:

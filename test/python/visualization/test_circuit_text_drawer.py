@@ -1102,11 +1102,11 @@ class TestTextDrawerLabels(QiskitTestCase):
         """Test a controlled gate with a label (as a as a whole)."""
         expected = "\n".join(
             [
-                "         a controlled H gate ",
-                "q_0: |0>──────────■──────────",
-                "                ┌─┴─┐        ",
-                "q_1: |0>────────┤ H ├────────",
-                "                └───┘        ",
+                "        ┌──────────────────────┐",
+                "q_0: |0>┤0                     ├",
+                "        │  a controlled H gate │",
+                "q_1: |0>┤1                     ├",
+                "        └──────────────────────┘",
             ]
         )
 
@@ -1351,11 +1351,11 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/2286"""
         expected = "\n".join(
             [
-                "            cz label ",
-                "q_0: |0>─■─────■─────",
-                "         │     │     ",
-                "q_1: |0>─■─────■─────",
-                "                     ",
+                "           ┌───────────┐",
+                "q_0: |0>─■─┤0          ├",
+                "         │ │  cz label │",
+                "q_1: |0>─■─┤1          ├",
+                "           └───────────┘",
             ]
         )
         qr = QuantumRegister(2, "q")
@@ -3018,9 +3018,15 @@ class TestTextOpenControlledGate(QiskitTestCase):
 
     def test_ch_bot(self):
         """Open controlled H (bottom)"""
+        #fmt: off
         expected = "\n".join(
-            ["             ", "q_0: |0>──o──", "        ┌─┴─┐", "q_1: |0>┤ H ├", "        └───┘"]
+            ["             ",
+             "q_0: |0>──o──",
+             "        ┌─┴─┐",
+             "q_1: |0>┤ H ├",
+             "        └───┘"]
         )
+        #fmt: on
         qr = QuantumRegister(2, "q")
         circuit = QuantumCircuit(qr)
         circuit.append(HGate().control(1, ctrl_state=0), [qr[0], qr[1]])
