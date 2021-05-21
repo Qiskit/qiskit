@@ -74,8 +74,8 @@ def random_pauli_list(num_qubits, size=1, seed=None, phase=True):
     x = rng.integers(2, size=(size, num_qubits)).astype(bool)
     if phase:
         _phase = rng.integers(4, size=(size))
-        return PauliList(BasePauli(z, x, _phase))
-    return PauliList((z, x))
+        return PauliList.from_symplectic(z, x, _phase)
+    return PauliList.from_symplectic(z, x)
 
 
 def random_pauli_table(num_qubits, size=1, seed=None):

@@ -32,39 +32,60 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     returning a :class:`Pauli` for integer indexes or a
     :class:`PauliList` for slice or list indices.
 
-    **Group Product**
+    **Initialization**
 
-    The matrix multiplication is defined as usual.
+    A PauliList object can be initialized in several ways.
 
-    +-------+---+-----+-----+-----+
-    | A.B   | I |   X |   Y |   Z |
-    +=======+===+=====+=====+=====+
-    | **I** | I |   X |   Y |   Z |
-    +-------+---+-----+-----+-----+
-    | **X** | X |   I |  iZ | -iY |
-    +-------+---+-----+-----+-----+
-    | **Y** | Y | -iZ |   I |  iX |
-    +-------+---+-----+-----+-----+
-    | **Z** | Z |  iY | -iX |   I |
-    +-------+---+-----+-----+-----+
+        ``PauliList(list[str])``
+            where strings are same representation with :class:`~qiskit.quantum_info.Pauli`.
 
-    **Qubit Ordering**
+        ``PauliList(Pauli) and PauliList(list[Pauli])``
+            where Pauli is :class:`~qiskit.quantum_info.Pauli`.
 
-    The qubits are ordered in the table such the least significant qubit
-    `[x_{i, 0}, z_{i, 0}]` is the first element of each of the :math:`X_i, Z_i`
-    vector blocks. This is the opposite order to position in string labels or
-    matrix tensor products where the least significant qubit is the right-most
-    string character. For example Pauli ``"ZX"`` has ``"X"`` on qubit-0
-    and ``"Z"`` on qubit 1, and would have symplectic vectors :math:`x=[1, 0]`,
-    :math:`z=[0, 1]`.
+        ``PauliList.from_symplectic(z, x, phase)``
+            where ``z`` and ``x`` are 2 dimensional boolean ``numpy.ndarrays`` and ``phase`` is
+            an integer in ``[0, 1, 2, 3]``.
+
+    For example,
+
+    .. jupyter-execute::
+
+        import numpy as np
+
+        from qiskit.quantum_info import Pauli, PauliList
+
+        # 1. init from list[str]
+        pauli_list = PauliList(["II", "+ZI", "-iYY"])
+        print("1. ", pauli_list)
+
+        pauli1 = Pauli("iXI")
+        pauli2 = Pauli("iZZ")
+
+        # 2. init from Pauli
+        print("2. ", PauliList(pauli1))
+
+        # 3. init from list[Pauli]
+        print("3. ", PauliList([pauli1, pauli2]))
+
+        # 4. init from np.ndarray
+        z = np.array([[True, True], [False, False]])
+        x = np.array([[False, True], [True, False]])
+        phase = np.array([0, 1])
+        pauli_list = PauliList.from_symplectic(z, x)
+        print("4. ", pauli_list)
 
     **Data Access**
 
-    Subsets of rows can be accessed using the list access ``[]`` operator and
-    will return a table view of part of the PauliList. The underlying Numpy
-    array can be directly accessed using the :attr:`array` property, and the
-    sub-arrays for only the `X` or `Z` blocks can be accessed using the
-    :attr:`X` and :attr:`Z` properties respectively.
+    The individual Paulis can be accessed and updated using the ``[]``
+    operator which accepts integer, lists, or slices for selecting subsets
+    of PauliList. If integer is given, it returns Pauli not PauliList.
+
+    .. jupyter-execute::
+
+        pauli_list = PauliList(["XX", "ZZ", "IZ"])
+        print("Integer: ", repr(pauli_list[1]))
+        print("List: ", repr(pauli_list[[0, 2]]))
+        print("Slice: ", repr(pauli_list[0:2]))
 
     **Iteration**
 
@@ -80,11 +101,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """Initialize the PauliList.
 
         Args:
-            data (Pauli or list or tuple): input data for Paulis. If input is
-                a tuple it must be of the form ``(z, x)`` or (z, x, phase)`` where
-                ``z`` and ``x`` are 2D boolean Numpy arrays, and phase 1D integer
-                array from Z_4. If input is a list each item in the list must be
-                a Pauli object or Pauli str.
+            data (Pauli or list): input data for Paulis. If input is a list each item in the list
+                                  must be a Pauli object or Pauli str.
 
         Raises:
             QiskitError: if input array is invalid shape.
@@ -95,13 +113,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         if isinstance(data, BasePauli):
             base_z, base_x, base_phase = data._z, data._x, data._phase
-        elif isinstance(data, tuple):
-            if len(data) not in [2, 3]:
-                raise QiskitError(
-                    "Invalid input tuple for Pauli, input tuple must be"
-                    " `(z, x, phase)` or `(z, x)`"
-                )
-            base_z, base_x, base_phase = self._from_array(*data)
         elif isinstance(data, StabilizerTable):
             # Conversion from legacy StabilizerTable
             base_z, base_x, base_phase = self._from_array(data.Z, data.X, 2 * data.phase)
@@ -358,7 +369,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         x = np.delete(self._x, ind, axis=1)
         # Use self.phase, not self._phase as deleting qubits can change the
         # ZX phase convention
-        return PauliList((z, x, self.phase))
+        return PauliList.from_symplectic(z, x, self.phase)
 
     def insert(self, ind, value, qubit=False):
         """Insert Pauli's into the table.
@@ -423,7 +434,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         z = np.hstack([self.z[:, :ind], value_z, self.z[:, ind:]])
         x = np.hstack([self.x[:, :ind], value_x, self.x[:, ind:]])
 
-        return PauliList((z, x, self.phase))
+        return PauliList.from_symplectic(z, x, self.phase)
 
     def argsort(self, weight=False, phase=False):
         """Return indices for sorting the rows of the table.
@@ -1025,3 +1036,22 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                 )
 
         return MatrixIterator(self)
+
+    # ---------------------------------------------------------------------
+    # Class methods
+    # ---------------------------------------------------------------------
+
+    @classmethod
+    def from_symplectic(cls, z, x, phase=0):
+        """Construct a PauliList from a symplectic data.
+
+        Args:
+            z (np.ndarray): 2D boolean Numpy array.
+            x (np.ndarray): 2D boolean Numpy array.
+            phase (np.ndarray or None): Optional, 1D integer array from Z_4.
+
+        Returns:
+            PauliList: the constructed PauliList.
+        """
+        base_z, base_x, base_phase = cls._from_array(z, x, phase)
+        return cls(BasePauli(base_z, base_x, base_phase))

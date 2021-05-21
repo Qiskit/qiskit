@@ -33,7 +33,7 @@ from qiskit.circuit.library import (
     YGate,
     ZGate,
 )
-from qiskit.quantum_info.operators import Operator, PauliList, PauliTable
+from qiskit.quantum_info.operators import Operator, PauliList, PauliTable, StabilizerTable
 from qiskit.quantum_info.random import random_clifford, random_pauli_list
 from qiskit.test import QiskitTestCase
 
@@ -64,68 +64,78 @@ class TestPauliListInit(QiskitTestCase):
         """Test array initialization."""
         # Matrix array initialization
         with self.subTest(msg="bool array"):
-            target = (np.array([[False], [True]]), np.array([[False], [True]]))
-            pauli_list = PauliList(target)
-            value = (pauli_list.z, pauli_list.x)
-            self.assertTupleEqual(value, target)
+            z = np.array([[False], [True]])
+            x = np.array([[False], [True]])
+            pauli_list = PauliList.from_symplectic(z, x)
+            np.testing.assert_equal(pauli_list.z, z)
+            np.testing.assert_equal(pauli_list.x, x)
 
         with self.subTest(msg="bool array no copy"):
-            target = (np.array([[False], [True]]), np.array([[True], [True]]))
-            pauli_list = PauliList(target)
-            value = (pauli_list.z, pauli_list.x)
-            value[0][0, 0] = not value[0][0, 0]
-            self.assertTupleEqual(value, target)
+            z = np.array([[False], [True]])
+            x = np.array([[True], [True]])
+            pauli_list = PauliList.from_symplectic(z, x)
+            z[0, 0] = not z[0, 0]
+            np.testing.assert_equal(pauli_list.z, z)
+            np.testing.assert_equal(pauli_list.x, x)
 
     def test_string_init(self):
         """Test string initialization."""
         # String initialization
         with self.subTest(msg='str init "I"'):
             pauli_list = PauliList("I")
-            target = (np.array([[False]]), np.array([[False]]))
-            np.testing.assert_equal(pauli_list.z, target[0])
-            np.testing.assert_equal(pauli_list.x, target[1])
+            z = np.array([[False]])
+            x = np.array([[False]])
+            np.testing.assert_equal(pauli_list.z, z)
+            np.testing.assert_equal(pauli_list.x, x)
 
         with self.subTest(msg='str init "X"'):
             pauli_list = PauliList("X")
-            target = (np.array([[False]]), np.array([[True]]))
-            np.testing.assert_equal(pauli_list.z, target[0])
-            np.testing.assert_equal(pauli_list.x, target[1])
+            z = np.array([[False]])
+            x = np.array([[True]])
+            np.testing.assert_equal(pauli_list.z, z)
+            np.testing.assert_equal(pauli_list.x, x)
 
         with self.subTest(msg='str init "Y"'):
             pauli_list = PauliList("Y")
-            target = (np.array([[True]]), np.array([[True]]))
-            np.testing.assert_equal(pauli_list.z, target[0])
-            np.testing.assert_equal(pauli_list.x, target[1])
+            z = np.array([[True]])
+            x = np.array([[True]])
+            np.testing.assert_equal(pauli_list.z, z)
+            np.testing.assert_equal(pauli_list.x, x)
 
         with self.subTest(msg='str init "Z"'):
             pauli_list = PauliList("Z")
-            target = (np.array([[True]]), np.array([[False]]))
-            np.testing.assert_equal(pauli_list.z, target[0])
-            np.testing.assert_equal(pauli_list.x, target[1])
+            z = np.array([[True]])
+            x = np.array([[False]])
+            np.testing.assert_equal(pauli_list.z, z)
+            np.testing.assert_equal(pauli_list.x, x)
 
         with self.subTest(msg='str init "IX"'):
             pauli_list = PauliList("IX")
-            target = (np.array([[False, False]]), np.array([[True, False]]))
-            np.testing.assert_equal(pauli_list.z, target[0])
-            np.testing.assert_equal(pauli_list.x, target[1])
+            z = np.array([[False, False]])
+            x = np.array([[True, False]])
+            np.testing.assert_equal(pauli_list.z, z)
+            np.testing.assert_equal(pauli_list.x, x)
 
         with self.subTest(msg='str init "XI"'):
             pauli_list = PauliList("XI")
-            target = (np.array([[False, False]]), np.array([[False, True]]))
-            np.testing.assert_equal(pauli_list.z, target[0])
-            np.testing.assert_equal(pauli_list.x, target[1])
+            z = np.array([[False, False]])
+            x = np.array([[False, True]])
+            np.testing.assert_equal(pauli_list.z, z)
+            np.testing.assert_equal(pauli_list.x, x)
 
         with self.subTest(msg='str init "YZ"'):
             pauli_list = PauliList("YZ")
-            target = (np.array([[True, True]]), np.array([[False, True]]))
-            np.testing.assert_equal(pauli_list.z, target[0])
-            np.testing.assert_equal(pauli_list.x, target[1])
+            z = np.array([[True, True]])
+            x = np.array([[False, True]])
+            np.testing.assert_equal(pauli_list.z, z)
+            np.testing.assert_equal(pauli_list.x, x)
 
         with self.subTest(msg='str init "XIZ"'):
             pauli_list = PauliList("XIZ")
-            target = (np.array([[True, False, False]]), np.array([[False, False, True]]))
-            np.testing.assert_equal(pauli_list.z, target[0])
-            np.testing.assert_equal(pauli_list.x, target[1])
+            z = np.array([[True, False, False]])
+            x = np.array([[False, False, True]])
+            np.testing.assert_equal(pauli_list.z, z)
+            np.testing.assert_equal(pauli_list.x, x)
 
     def test_list_init(self):
         """Test list initialization."""
@@ -140,7 +150,7 @@ class TestPauliListInit(QiskitTestCase):
             value[0] = "II"
             self.assertEqual(value, target)
 
-    def test_table_init(self):
+    def test_pauli_table_init(self):
         """Test table initialization."""
         with self.subTest(msg="PauliTable"):
             target = PauliTable.from_labels(["XI", "IX", "IZ"])
@@ -149,6 +159,19 @@ class TestPauliListInit(QiskitTestCase):
 
         with self.subTest(msg="PauliTable no copy"):
             target = PauliTable.from_labels(["XI", "IX", "IZ"])
+            value = PauliList(target)
+            value[0] = "II"
+            self.assertEqual(value, target)
+
+    def test_stabilizer_table_init(self):
+        """Test table initialization."""
+        with self.subTest(msg="PauliTable"):
+            target = StabilizerTable.from_labels(["+II", "-XZ"])
+            value = PauliList(target)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="PauliTable no copy"):
+            target = StabilizerTable.from_labels(["+YY", "-XZ", "XI"])
             value = PauliList(target)
             value[0] = "II"
             self.assertEqual(value, target)
@@ -172,14 +195,10 @@ class TestPauliListProperties(QiskitTestCase):
             self.assertEqual(pauli, PauliList(["II", "iXY"]))
 
         with self.subTest(msg="set X raises"):
-
-            def set_x():
+            with self.assertRaises(Exception):
                 pauli = PauliList(["XI", "IZ"])
                 val = np.array([[False, False, False], [True, True, True]], dtype=bool)
                 pauli.x = val
-                return pauli
-
-            self.assertRaises(Exception, set_x)
 
     def test_z_property(self):
         """Test Z property"""
@@ -195,37 +214,48 @@ class TestPauliListProperties(QiskitTestCase):
             self.assertEqual(pauli, PauliList(["XI", "ZZ"]))
 
         with self.subTest(msg="set Z raises"):
-
-            def set_z():
+            with self.assertRaises(Exception):
                 pauli = PauliList(["XI", "IZ"])
                 val = np.array([[False, False, False], [True, True, True]], dtype=bool)
                 pauli.z = val
-                return pauli
-
-            self.assertRaises(Exception, set_z)
 
     def test_phase_property(self):
         """Test phase property"""
-        pass
+        with self.subTest(msg="phase"):
+            pauli = PauliList(["XI", "IZ", "YY", "YI"])
+            array = np.array([0, 0, 0, 0], dtype=int)
+            np.testing.assert_equal(pauli.phase, array)
+
+        with self.subTest(msg="set phase"):
+            pauli = PauliList(["XI", "IZ"])
+            val = np.array([2, 3], dtype=int)
+            pauli.phase = val
+            self.assertEqual(pauli, PauliList(["-XI", "iIZ"]))
+
+        with self.subTest(msg="set Z raises"):
+            with self.assertRaises(Exception):
+                pauli = PauliList(["XI", "IZ"])
+                val = np.array([1, 2, 3], dtype=int)
+                pauli.phase = val
 
     def test_shape_property(self):
         """Test shape property"""
         shape = (3, 4)
-        pauli = PauliList((np.zeros(shape), np.zeros(shape)))
+        pauli = PauliList.from_symplectic(np.zeros(shape), np.zeros(shape))
         self.assertEqual(pauli.shape, shape)
 
     @combine(j=range(1, 10))
     def test_size_property(self, j):
         """Test size property"""
         shape = (j, 4)
-        pauli = PauliList((np.zeros(shape), np.zeros(shape)))
+        pauli = PauliList.from_symplectic(np.zeros(shape), np.zeros(shape))
         self.assertEqual(len(pauli), j)
 
     @combine(j=range(1, 10))
     def test_n_qubit_property(self, j):
         """Test n_qubit property"""
         shape = (5, j)
-        pauli = PauliList((np.zeros(shape), np.zeros(shape)))
+        pauli = PauliList.from_symplectic(np.zeros(shape), np.zeros(shape))
         self.assertEqual(pauli.num_qubits, j)
 
     def test_eq(self):
@@ -304,11 +334,9 @@ class TestPauliListProperties(QiskitTestCase):
             pauli[1] = "XX"
             self.assertEqual(pauli[1], PauliList("XX"))
 
-            def raises_single():
+            with self.assertRaises(Exception):
                 # Wrong size Pauli
                 pauli[0] = "XXX"
-
-            self.assertRaises(Exception, raises_single)
 
         with self.subTest(msg="__setitem__ array"):
             labels = np.array(["XI", "IY", "IZ"])
@@ -318,10 +346,8 @@ class TestPauliListProperties(QiskitTestCase):
             pauli[inds] = target
             self.assertEqual(pauli[inds], target)
 
-            def raises_array():
+            with self.assertRaises(Exception):
                 pauli[inds] = PauliList(["YY", "ZZ", "XX"])
-
-            self.assertRaises(Exception, raises_array)
 
         with self.subTest(msg="__setitem__ slice"):
             labels = np.array(5 * ["III"])
@@ -344,7 +370,7 @@ class TestPauliListLabels(QiskitTestCase):
             np.array([[False], [True], [True], [False], [True]]),
             np.array([[False], [False], [False], [True], [True]]),
         )
-        target = PauliList(array)
+        target = PauliList.from_symplectic(*array)
         value = PauliList(labels)
         self.assertEqual(target, value)
 
@@ -355,7 +381,7 @@ class TestPauliListLabels(QiskitTestCase):
             np.array([[False, False], [True, True], [True, False]]),
             np.array([[False, False], [True, True], [False, True]]),
         )
-        target = PauliList(array)
+        target = PauliList.from_symplectic(*array)
         value = PauliList(labels)
         self.assertEqual(target, value)
 
@@ -370,17 +396,15 @@ class TestPauliListLabels(QiskitTestCase):
             np.array([[False] * 5, [False] * 5, [True] * 5, [True] * 5]),
             np.array([[False] * 5, [True] * 5, [True] * 5, [False] * 5]),
         )
-        target = PauliList(array)
+        target = PauliList.from_symplectic(*array)
         value = PauliList(labels)
         self.assertEqual(target, value)
 
     def test_to_labels_1q(self):
         """Test 1-qubit to_labels method."""
-        pauli = PauliList(
-            (
-                np.array([[False], [True], [True], [False], [True]]),
-                np.array([[False], [False], [False], [True], [True]]),
-            )
+        pauli = PauliList.from_symplectic(
+            np.array([[False], [True], [True], [False], [True]]),
+            np.array([[False], [False], [False], [True], [True]]),
         )
         target = ["I", "Z", "Z", "X", "Y"]
         value = pauli.to_labels()
@@ -388,11 +412,9 @@ class TestPauliListLabels(QiskitTestCase):
 
     def test_to_labels_1q_array(self):
         """Test 1-qubit to_labels method w/ array=True."""
-        pauli = PauliList(
-            (
-                np.array([[False], [True], [True], [False], [True]]),
-                np.array([[False], [False], [False], [True], [True]]),
-            )
+        pauli = PauliList.from_symplectic(
+            np.array([[False], [True], [True], [False], [True]]),
+            np.array([[False], [False], [False], [True], [True]]),
         )
         target = np.array(["I", "Z", "Z", "X", "Y"])
         value = pauli.to_labels(array=True)

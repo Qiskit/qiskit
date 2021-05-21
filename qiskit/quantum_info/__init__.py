@@ -28,6 +28,7 @@ Operators
    ScalarOp
    SparsePauliOp
    CNOTDihedral
+   PauliList
    PauliTable
    StabilizerTable
    pauli_basis
