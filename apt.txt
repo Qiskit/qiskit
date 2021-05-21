@@ -3,5 +3,5 @@ texlive-latex-recommended
 texlive-latex-extra
 texlive-fonts-recommended
 poppler-utils
-dvipng
-ghostscript
+# dvipng
+# ghostscript
