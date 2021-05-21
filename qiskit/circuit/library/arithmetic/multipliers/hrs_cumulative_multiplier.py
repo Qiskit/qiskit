@@ -92,7 +92,7 @@ class HRSCumulativeMultiplier(Multiplier):
         if adder is None:
             from qiskit.circuit.library import CDKMRippleCarryAdder
 
-            adder = CDKMRippleCarryAdder(num_state_qubits)
+            adder = CDKMRippleCarryAdder(num_state_qubits, kind='half')
         controlled_adder = adder.to_gate().control(1)
 
         # get the number of helper qubits needed

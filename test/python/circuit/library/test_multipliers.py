@@ -82,7 +82,7 @@ class TestMultiplier(QiskitTestCase):
     def test_multiplication(self, num_state_qubits, multiplier, adder=None):
         """Test multiplication for all implemented multipliers."""
         if adder is not None:
-            adder = adder(num_state_qubits)
+            adder = adder(num_state_qubits, kind='half')
             multiplier = multiplier(num_state_qubits, adder=adder)
         else:
             multiplier = multiplier(num_state_qubits)
