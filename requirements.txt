@@ -1,6 +1,6 @@
 contextvars>=2.4;python_version<'3.7'
 jsonschema>=2.6
-retworkx @ git+https://github.com/IvanIsCoding/retworkx@filtered_successors
+retworkx @ git+https://github.com/Qiskit/retworkx@main
 numpy>=1.17
 ply>=3.10
 psutil>=5
