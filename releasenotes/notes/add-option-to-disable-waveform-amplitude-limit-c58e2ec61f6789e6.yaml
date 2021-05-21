@@ -1,0 +1,24 @@
+---
+prelude: >
+    The Qiskit Waveform class does not allow amplitudes larger than 1. This is
+    enforced several subclasses such as Gaussian and Constant.
+    An option `limit_amplitude` is added to the Pulse class that allows
+    disabling the limit on the amplitude.
+features:
+  - |
+    Add option to the Pulse class to enable or disable the limit of 1 on the waveform amplitude.
+    Fixes #6012
+issues:
+  - |
+upgrade:
+  - |
+deprecations:
+  - |
+critical:
+  - |
+security:
+  - |
+fixes:
+  - |
+other:
+  - |
