@@ -18,6 +18,8 @@ from qiskit.transpiler.basepasses import TransformationPass
 class RemoveBarriers(TransformationPass):
     """Return a circuit with any barrier removed.
 
+    This transfomration is not semantics preserving.
+
     Example:
 
         .. jupyter-execute::
