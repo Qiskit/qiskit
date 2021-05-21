@@ -589,6 +589,14 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(inst, [qr[3], qr[1], qr[2]], [cr3[1], cr[1], cr3[0]])
         self.circuit_drawer(circuit, filename="instruction_3q_3c_circ3.png")
 
+    def test_overwide_gates(self):
+        """Test gates don't exceed width of default fold"""
+        circuit = QuantumCircuit(5)
+        initial_state = np.zeros(2 ** 5)
+        initial_state[5] = 1
+        circuit.initialize(initial_state)
+        self.circuit_drawer(circuit, filename="wide_params.png")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
