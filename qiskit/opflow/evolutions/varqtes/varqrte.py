@@ -159,6 +159,8 @@ class VarQRTE(VarQTE):
         # print('imgrad 2', imgrad2)
         eps_squared -= imgrad2
         # print('eps squared', eps_squared)
+        if eps_squared < 0:
+            print(eps_squared)
         return np.real(eps_squared), h_squared, dtdt_state, imgrad2 * 0.5
 
     def _grad_error_t(self,

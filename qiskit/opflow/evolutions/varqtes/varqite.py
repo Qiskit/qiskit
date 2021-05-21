@@ -179,10 +179,12 @@ class VarQITE(VarQTE):
             gradient_errors: Error of the state propagation gradient for each t in times
             times: List of all points in time considered throughout the simulation
             stddevs: Standard deviations for times sqrt(⟨ψ(ω)|H^2| ψ(ω)〉- ⟨ψ(ω)|H| ψ(ω)〉^2)
-            h_squareds: ⟨ψ(ω)|H| ψ(ω)〉^2 for all times
-            imag_reverse_bound: If True compute the reverse error bound
+            h_squareds: ⟨ψ(ω)|H^2| ψ(ω) for all times
+            h_trips: ⟨ψ(ω)|H^3| ψ(ω)〉for all times
             H: If imag_reverse_bound find the first and second Eigenvalue of H to compute the
                reverse bound
+            energies: ⟨ψ(ω)|H| ψ(ω) for all times
+            imag_reverse_bound: If True compute the reverse error bound
 
         Returns:
             List of the error upper bound for all times
@@ -195,7 +197,6 @@ class VarQITE(VarQTE):
             raise Warning('The number of the gradient errors is incompatible with the number of '
                           'the time steps.')
 
-
         def optimization(eps: float,
                          e: float,
                          h_squared: float,
@@ -206,21 +207,58 @@ class VarQITE(VarQTE):
 
             c_alpha = lambda a: np.sqrt((1-a)**2 + 2*a *(1-a)*e + a**2*h_squared)
 
+            e_star = lambda a: ((1 - a) ** 2 * e + 2 * (a - a ** 2) * h_squared +
+                               a ** 2 * h_trip) / c_alpha(a) ** 2
+
+            abs_value = lambda a: (1 - a) * (1 + delta_t * (e_star(a) - e)) + \
+                        a * (e + delta_t * (e * (e + e_star(a)) - 2 * h_squared))
+
+            """
+                abs_value = lambda a: (1 - a) * (1 + delta_t * (e_star(a) - e)) + \
+                a * (e + delta_t * (e * (e + e_star(a)) - 2 * h_squared)) + \
+                delta_t**2 * ((1-a)*(h_squared - e**2) + a * (e**2*e_star(a) - (e +
+                                                                                e_star(a))
+                                                              * h_squared + a * h_trip))
+            """
+
             def optimization_fun(alpha: Iterable[float]) -> float:
-                print('e ', e)
+                # print('e ', e)
                 alpha = alpha[0]
 
-                e_star = ((1 - alpha)**2 * e + 2* (alpha - alpha**2) * h_squared + alpha **2 *
-                          h_trip) / c_alpha(alpha) ** 2
+                abs_val = np.abs(abs_value(alpha) / c_alpha(alpha))
 
-                abs_value = (1 - alpha) * (1 + delta_t * (e_star - e)) + \
-                            alpha * (e + delta_t * (e * (e + e_star) - 2 * h_squared))
+                """
+                # v = (1 + delta_t * (E_t - H))|psi_t>
+                v_norm = 1 + delta_t**2 * (h_squared - e**2)
 
-                abs_value = np.abs(abs_value / c_alpha(alpha))
+                # w = (1 + delta_t * (E^*_t - H))|psi^*_t>
+                w_norm = 1 + delta_t**2 * ((1 - alpha)**2 * h_squared + 2*alpha * (1 - alpha)*
+                                           h_trip) / c_alpha(alpha)**2
+                
+                # TODO use this to be actually correct
+                # w_norm = 1 + delta_t**2 * ((1 - alpha)**2 * h_squared +
+                #                            2*alpha * (1 - alpha)* h_trip +
+                #                            alpha**2 * h_fourth) / c_alpha(alpha)**2
 
-                print('abs value ', abs_value)
-                return_val = np.sqrt(2)*np.sqrt(1 - abs_value)
+                if 0.5 * (v_norm + w_norm) - abs_val < 0:
+                
+                
+                return np.sqrt(2) * np.sqrt(0.5 * (v_norm + w_norm) - abs_val)
+                """
+                if 1 - abs_val < 0:
+                    # # print('1 - abs value ', 1 - abs_val)
+                    # if 1 - abs_val < -1e-6:
+                    #     abs_val = 1
+                    # else:
+                    return math.nan
+
+                return_val = np.sqrt(2)*np.sqrt(1 - abs_val)
+
                 return return_val
+
+            def constraint0(alpha: Iterable[float]) -> float:
+                alpha = alpha[0]
+                return 1 - abs_value(alpha)
 
             def constraint1(alpha: Iterable[float]) -> float:
                 alpha = alpha[0]
@@ -233,36 +271,50 @@ class VarQITE(VarQTE):
             def constraint3(alpha: Iterable[float]) -> float:
                 # Constraint alpha <= 1
                 return 1 - alpha[0]
-            # alpha_opt = fmin_cobyla(func=optimization_fun, x0=[0.5], rhobeg=0.01,
-            #                         rhoend=1e-8, cons=[constraint2, constraint3, constraint1],
-            #                         catol=1e-16)[0]
-            alpha_opt_list = []
-            objective_list = []
-            # constraint0_list = []
-            constraint1_list = []
-            for a in np.linspace(0, 1, 1000):
-                opt_fun = optimization_fun([a])
-                # print('optimization function ', opt_fun)
-                # print('alpha ', a)
-                if math.isnan(opt_fun):
-                    pass
-                elif constraint1([a]) < 0:
-                    pass
-                else:
-                    objective_list.append(opt_fun)
-                    # constraint0_list.append(constraint0([a]))
-                    # constraint1_list.append()
-                    alpha_opt_list.append([a])
-            if len(objective_list) == 0:
-                print('No suitable alpha found')
 
-            import matplotlib.pyplot as plt
-            plt.figure(1)
-            plt.plot(alpha_opt_list, objective_list)
-            plt.ylabel('objective value')
-            plt.xlabel(r'$\alpha$')
-            plt.savefig(self._snapshot_dir + '/objective_values.png')
-            plt.close()
+            # alpha_opt = fmin_cobyla(func=lambda x: (-1) * optimization_fun(x), x0=[0.001],
+            #                         rhobeg=0.1, catol=1e-16, maxfun=100000,
+            #                         rhoend=1e-16, cons=[constraint0, constraint2, constraint3,
+            #                                             constraint1])[0]
+
+            for j in range(4):
+                alpha_opt_list = []
+                objective_list = []
+                for a in np.linspace(0, 10**(-1*j), 1000):
+                    opt_fun = optimization_fun([a])
+
+                    if math.isnan(opt_fun):
+                        # print('optimization fun is nan')
+                        pass
+                    elif constraint1([a]) < 0:
+                        # print('constraint 1 ', constraint1([a]) )
+                        pass
+                    else:
+                        objective_list.append(opt_fun)
+
+                        alpha_opt_list.append(a)
+                if len(objective_list) == 0:
+                    print('No suitable alpha found')
+                # if len(objective_list) > 3:
+                #     break
+
+            # if len(objective_list) == 1:
+            #     if eps != 0:
+            #         for i in range(6, 10):
+            #             if constraint1([1/10**i]) >= 0:
+            #                 opt_fun = optimization_fun([1 / 10 ** i])
+            #                 if not math.isnan(opt_fun):
+            #                     objective_list.append(opt_fun)
+            #                     alpha_opt_list.append(1/10**i)
+
+
+            # import matplotlib.pyplot as plt
+            # plt.figure(1)
+            # plt.plot(alpha_opt_list, objective_list)
+            # plt.ylabel('objective value')
+            # plt.xlabel(r'$\alpha$')
+            # plt.savefig(self._snapshot_dir + '/objective_values.png')
+            # plt.close()
 
             # plt.figure(2)
             # plt.scatter(alpha_opt_list, constraint1_list)
@@ -271,19 +323,23 @@ class VarQITE(VarQTE):
             # plt.savefig(self._snapshot_dir + '/constraint_values.png')
             # plt.close()
 
-            print('be careful maximization happening')
-            # index = objective_list.index(max(objective_list))
+            print('maximization happening')
             index = objective_list.index(max(objective_list))
             alpha_opt = alpha_opt_list[index]
+
             print('alpha_opt ', alpha_opt)
-            print('Y(alpha_opt) ', optimization_fun(alpha_opt))
-            return optimization_fun(alpha_opt)
+            print('Y(alpha_opt) ', optimization_fun([alpha_opt]))
+            print('alpha list ', alpha_opt_list)
+            print('objective list', objective_list)
+            return optimization_fun([alpha_opt])
 
         error_bounds = [0]
 
         for j in range(len(times)):
             if j == 0:
                 continue
+            if j == 9:
+                print('stop')
             delta_t = times[j]-times[j-1]
             y = optimization(error_bounds[j-1], energies[j-1], h_squareds[j-1],
                              h_trips[j-1], delta_t)

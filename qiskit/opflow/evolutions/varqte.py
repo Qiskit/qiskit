@@ -306,8 +306,10 @@ class VarQTE(EvolutionBase):
                 grad_errors.append(float(line['error_grad']))
                 energies.append(float(line['trained_energy']))
                 h_squareds.append(float(line['h_squared']))
-                if not line['h_trip'] is None:
+                try:
                     h_trips.append(float(line['h_trip']))
+                except Exception:
+                    pass
                 stddevs.append(np.sqrt(float(line['variance'])))
 
         if not np.iscomplex(self._operator.coeff):
@@ -708,23 +710,23 @@ class VarQTE(EvolutionBase):
 
         return np.real(nat_grad_result), grad_res, metric_res
 
-    def _l2_norm_phase_agnostic(self,
-                                target_state: Union[List, np.ndarray],
-                                trained_state: Union[List, np.ndarray]) -> float:
+    def _bures_distance(self,
+                        state1: Union[List, np.ndarray],
+                        state2: Union[List, np.ndarray]) -> float:
         """
-        Find a global phase agnostic l2 norm between the target and trained state
+        Find the Bures metric between two normalized pure states
         Args:
-            target_state: Target state
-            trained_state: Trained state with potential phase mismatch
+            state1: Target state
+            state2: Trained state with potential phase mismatch
 
         Returns:
             global phase agnostic l2 norm value
 
         """
-        def phase_agnostic(phi):
-            return np.linalg.norm(np.subtract(target_state, np.exp(1j*phi) * trained_state), ord=2)
-        l2_norm_pa = minimize(fun=phase_agnostic, x0=np.array([0]), method='COBYLA', tol=1e-6)
-        return l2_norm_pa.fun
+        def bures_dist(phi):
+            return np.linalg.norm(np.subtract(state1, np.exp(1j * phi) * state2), ord=2)
+        bures_distance = minimize(fun=bures_dist, x0=np.array([0]), method='COBYLA', tol=1e-6)
+        return bures_distance.fun
 
     def _distance_energy(self,
                          time: Union[float, complex],
@@ -753,7 +755,7 @@ class VarQTE(EvolutionBase):
         f = state_fidelity(target_state, trained_state)
         # Actual error
         act_err = np.linalg.norm(np.subtract(target_state, trained_state), ord=2)
-        phase_agnostic_act_err = self._l2_norm_phase_agnostic(target_state, trained_state)
+        phase_agnostic_act_err = self._bures_distance(target_state, trained_state)
         # Target Energy
         act_en = self._inner_prod(target_state, np.dot(self._h_matrix, target_state))
         # Trained Energy
@@ -962,7 +964,7 @@ class VarQTE(EvolutionBase):
             # plt.ylim((0.9, 1.003))
             # plt.yticks(np.linspace(0.9, 1, 6))
             plt.ylim((0, 1.03))
-            plt.autoscale(enable=True)
+            # plt.autoscale(enable=True)
             plt.yticks(np.linspace(0, 1, 11))
             plt.legend(loc='best')
             plt.savefig(os.path.join(data_dir, 'fidelity.png'))
