@@ -60,7 +60,7 @@ class Nduv:
         return cls(**data)
 
     def to_dict(self):
-        """Return a dictionary format representation of the BackendStatus.
+        """Return a dictionary format representation of the object.
 
         Returns:
             dict: The dictionary form of the Nduv.
