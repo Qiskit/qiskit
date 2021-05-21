@@ -10,10 +10,9 @@
 pip install matplotlib pylatexenc pillow appmode
 pip install .
 
-# Dependencies
-# - pdflatex: for LaTex drawer
-jupyter labextension install @jupyterlab/latex
-pip install pdflatex
+# Install QCircuit for LaTeX drawer
+mkdir -p $(kpsewhich -var-value=TEXMFHOME)/tex/latex/qcircuit/
+wget https://mirrors.ctan.org/graphics/qcircuit/qcircuit.sty -P $(kpsewhich -var-value=TEXMFHOME)/tex/latex/qcircuit/
 
 # Activation of appmode extension
 jupyter nbextension     enable --py --sys-prefix appmode
