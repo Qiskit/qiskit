@@ -3018,9 +3018,15 @@ class TestTextOpenControlledGate(QiskitTestCase):
 
     def test_ch_bot(self):
         """Open controlled H (bottom)"""
+        #fmt: off
         expected = "\n".join(
-            ["             ", "q_0: |0>──o──", "        ┌─┴─┐", "q_1: |0>┤ H ├", "        └───┘"]
+            ["             ",
+             "q_0: |0>──o──",
+             "        ┌─┴─┐",
+             "q_1: |0>┤ H ├",
+             "        └───┘"]
         )
+        #fmt: on
         qr = QuantumRegister(2, "q")
         circuit = QuantumCircuit(qr)
         circuit.append(HGate().control(1, ctrl_state=0), [qr[0], qr[1]])
@@ -3838,9 +3844,19 @@ class TestTextHamiltonianGate(QiskitTestCase):
     def test_draw_hamiltonian_single(self):
         """Text Hamiltonian gate with single qubit."""
         # fmt: off
+<<<<<<< HEAD
         expected = "\n".join(["    ┌─────────────┐",
                               "q0: ┤ HAMILTONIAN ├",
                               "    └─────────────┘"])
+||||||| merged common ancestors
+        expected = "\n".join(["      ┌─────────────┐",
+                              "q0_0: ┤ Hamiltonian ├",
+                              "      └─────────────┘"])
+=======
+        expected = "\n".join(["    ┌─────────────┐",
+                              "q0: ┤ Hamiltonian ├",
+                              "    └─────────────┘"])
+>>>>>>> one_bit_reg_display_5784
         # fmt: on
         qr = QuantumRegister(1, "q0")
         circuit = QuantumCircuit(qr)

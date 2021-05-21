@@ -679,7 +679,7 @@ class MatplotlibDrawer:
 
             # if only 1 register, just show the register name
             else:
-                qubit_name = "{name}".format(name=register.name)
+                qubit_name = "${{{name}}}$".format(name=register.name)
 
             qubit_name = _fix_double_script(qubit_name) + initial_qbit
             text_width = self._get_text_width(qubit_name, self._fs) * 1.15
