@@ -27,7 +27,7 @@ class TestAdder(QiskitTestCase):
     """Test the adder circuits."""
 
     def assertAdditionIsCorrect(
-        self, num_state_qubits: int, adder: QuantumCircuit, inplace: bool, fixed_point: bool
+        self, num_state_qubits: int, adder: QuantumCircuit, inplace: bool, kind: str
     ):
         """Assert that adder correctly implements the summation.
 
@@ -42,13 +42,16 @@ class TestAdder(QiskitTestCase):
             inplace: If True, compare against an inplace addition where the result is written into
                 the second register plus carry qubit. If False, assume that the result is written
                 into a third register of appropriate size.
-            fixed_point: If True, omit the carry qubit to obtain an addition modulo
-                ``2^num_state_qubits``.
+            kind: TODO
         """
         circuit = QuantumCircuit(*adder.qregs)
 
         # create equal superposition
-        circuit.h(range(2 * num_state_qubits))
+        if kind == "full":
+            num_superpos_qubits = 2 * num_state_qubits + 1
+        else:
+            num_superpos_qubits = 2 * num_state_qubits
+        circuit.h(range(num_superpos_qubits))
 
         # apply adder circuit
         circuit.compose(adder, inplace=True)
@@ -66,34 +69,63 @@ class TestAdder(QiskitTestCase):
         for x in range(2 ** num_state_qubits):
             for y in range(2 ** num_state_qubits):
                 # compute the sum
-                addition = (x + y) % (2 ** num_state_qubits) if fixed_point else x + y
+                if kind == "full":
+                    additions = [x + y, 1 + x + y]
+                elif kind == "half":
+                    additions = [x + y]
+                else:
+                    additions = [(x + y) % (2 ** num_state_qubits)]
+
                 # compute correct index in statevector
                 bin_x = bin(x)[2:].zfill(num_state_qubits)
                 bin_y = bin(y)[2:].zfill(num_state_qubits)
-                bin_res = bin(addition)[2:].zfill(num_bits_sum)
-                bin_index = pad + bin_res + bin_x if inplace else pad + bin_res + bin_y + bin_x
-                index = int(bin_index, 2)
-                expectations[index] += 1 / 2 ** (2 * num_state_qubits)
+
+                for i, addition in enumerate(additions):
+                    bin_res = bin(addition)[2:].zfill(num_bits_sum)
+                    if kind == "full":
+                        cin = str(i)
+                        bin_index = (
+                            pad + bin_res + bin_x + cin
+                            if inplace
+                            else pad + bin_res + bin_y + bin_x + cin
+                        )
+                    else:
+                        bin_index = (
+                            pad + bin_res + bin_x if inplace else pad + bin_res + bin_y + bin_x
+                        )
+
+                    index = int(bin_index, 2)
+                    expectations[index] += 1 / 2 ** num_superpos_qubits
+
         np.testing.assert_array_almost_equal(expectations, probabilities)
 
     @data(
         (3, CDKMRippleCarryAdder, True),
         (5, CDKMRippleCarryAdder, True),
-        (3, CDKMRippleCarryAdder, True, True),
-        (5, CDKMRippleCarryAdder, True, True),
+        (3, CDKMRippleCarryAdder, True, "fixed"),
+        (5, CDKMRippleCarryAdder, True, "fixed"),
+        (1, CDKMRippleCarryAdder, True, "full"),
+        (3, CDKMRippleCarryAdder, True, "full"),
+        (5, CDKMRippleCarryAdder, True, "full"),
         (3, DraperQFTAdder, True),
         (5, DraperQFTAdder, True),
-        (3, DraperQFTAdder, True, True),
-        (5, DraperQFTAdder, True, True),
+        (3, DraperQFTAdder, True, "fixed"),
+        (5, DraperQFTAdder, True, "fixed"),
+        (1, VBERippleCarryAdder, True, "full"),
+        (3, VBERippleCarryAdder, True, "full"),
+        (5, VBERippleCarryAdder, True, "full"),
+        (1, VBERippleCarryAdder, True),
+        (2, VBERippleCarryAdder, True),
         (5, VBERippleCarryAdder, True),
-        (3, VBERippleCarryAdder, True, True),
-        (5, VBERippleCarryAdder, True, True),
+        (1, VBERippleCarryAdder, True, "fixed"),
+        (2, VBERippleCarryAdder, True, "fixed"),
+        (4, VBERippleCarryAdder, True, "fixed"),
     )
     @unpack
-    def test_summation(self, num_state_qubits, adder, inplace, fixed_point=False):
+    def test_summation(self, num_state_qubits, adder, inplace, kind="half"):
         """Test summation for all implemented adders."""
-        adder = adder(num_state_qubits, fixed_point=fixed_point)
-        self.assertAdditionIsCorrect(num_state_qubits, adder, inplace, fixed_point)
+        adder = adder(num_state_qubits, kind=kind)
+        self.assertAdditionIsCorrect(num_state_qubits, adder, inplace, kind)
 
     @data(CDKMRippleCarryAdder, DraperQFTAdder, VBERippleCarryAdder)
     def test_raises_on_wrong_num_bits(self, adder):

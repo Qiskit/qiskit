@@ -21,33 +21,60 @@ class CDKMRippleCarryAdder(Adder):
     r"""A ripple-carry circuit to perform in-place addition on two qubit registers.
 
     As an example, a ripple-carry adder circuit that performs addition on two 3-qubit sized
-    registers is as follows:
+    registers with a carry-in bit (``kind="full"``) is as follows:
 
     .. parsed-literal::
 
-                ┌──────┐┌──────┐                     ┌──────┐┌──────┐
+                ┌──────┐                                     ┌──────┐
+         cin_0: ┤2     ├─────────────────────────────────────┤2     ├
+                │      │┌──────┐                     ┌──────┐│      │
            a_0: ┤0     ├┤2     ├─────────────────────┤2     ├┤0     ├
                 │      ││      │┌──────┐     ┌──────┐│      ││      │
-           a_1: ┤      ├┤0     ├┤2     ├─────┤2     ├┤0     ├┤      ├
+           a_1: ┤  MAJ ├┤0     ├┤2     ├─────┤2     ├┤0     ├┤  UMA ├
                 │      ││      ││      │     │      ││      ││      │
            a_2: ┤      ├┤  MAJ ├┤0     ├──■──┤0     ├┤  UMA ├┤      ├
                 │      ││      ││      │  │  │      ││      ││      │
-           b_0: ┤1 MAJ ├┤      ├┤  MAJ ├──┼──┤  UMA ├┤      ├┤1 UMA ├
-                │      ││      ││      │  │  │      ││      ││      │
-           b_1: ┤      ├┤1     ├┤      ├──┼──┤      ├┤1     ├┤      ├
-                │      │└──────┘│      │  │  │      │└──────┘│      │
-           b_2: ┤      ├────────┤1     ├──┼──┤1     ├────────┤      ├
-                │      │        └──────┘  │  └──────┘        │      │
-         cin_0: ┤2     ├──────────────────┼──────────────────┤2     ├
-                └──────┘                ┌─┴─┐                └──────┘
+           b_0: ┤1     ├┤      ├┤  MAJ ├──┼──┤  UMA ├┤      ├┤1     ├
+                └──────┘│      ││      │  │  │      ││      │└──────┘
+           b_1: ────────┤1     ├┤      ├──┼──┤      ├┤1     ├────────
+                        └──────┘│      │  │  │      │└──────┘
+           b_2: ────────────────┤1     ├──┼──┤1     ├────────────────
+                                └──────┘┌─┴─┐└──────┘
         cout_0: ────────────────────────┤ X ├────────────────────────
                                         └───┘
 
     Here *MAJ* and *UMA* gates correspond to the gates introduced in [1]. Note that
     in this implementation the input register qubits are ordered as all qubits from
     the first input register, followed by all qubits from the second input register.
-    This is different ordering as compared to Figure 4 in [1], which leads to a different
-    drawing of the circuit.
+
+    Two different kinds of adders are supported. By setting the ``kind`` argument, you can also
+    choose a half-adder, which doesn't have a carry-in, and a fixed-sized-adder, which has neither
+    carry-in nor carry-out, and thus acts on fixed register sizes. Unlike the full-adder,
+    these circuits need one additional helper qubit.
+
+    The circuit diagram for the fixed-point adder (``kind="fixed"``) on 3-qubit sized inputs is
+
+    .. parsed-literal::
+
+                ┌──────┐┌──────┐                ┌──────┐┌──────┐
+           a_0: ┤0     ├┤2     ├────────────────┤2     ├┤0     ├
+                │      ││      │┌──────┐┌──────┐│      ││      │
+           a_1: ┤      ├┤0     ├┤2     ├┤2     ├┤0     ├┤      ├
+                │      ││      ││      ││      ││      ││      │
+           a_2: ┤      ├┤  MAJ ├┤0     ├┤0     ├┤  UMA ├┤      ├
+                │      ││      ││      ││      ││      ││      │
+           b_0: ┤1 MAJ ├┤      ├┤  MAJ ├┤  UMA ├┤      ├┤1 UMA ├
+                │      ││      ││      ││      ││      ││      │
+           b_1: ┤      ├┤1     ├┤      ├┤      ├┤1     ├┤      ├
+                │      │└──────┘│      ││      │└──────┘│      │
+           b_2: ┤      ├────────┤1     ├┤1     ├────────┤      ├
+                │      │        └──────┘└──────┘        │      │
+        help_0: ┤2     ├────────────────────────────────┤2     ├
+                └──────┘                                └──────┘
+
+    It has one less qubit than the full-adder since it doesn't have the carry-out, but uses
+    a helper qubit instead of the carry-in, so it only has one less qubit, not two.
+
 
     **References:**
 
@@ -60,13 +87,17 @@ class CDKMRippleCarryAdder(Adder):
     """
 
     def __init__(
-        self, num_state_qubits: int, fixed_point: bool = False, name: str = "CDKMRippleCarryAdder"
+        self, num_state_qubits: int, kind: str = "full", name: str = "CDKMRippleCarryAdder"
     ) -> None:
         r"""
         Args:
             num_state_qubits: The number of qubits in either input register for
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
+            kind: The kind of adder, can be ``'full'`` for a full adder, ``'half'`` for a half
+                adder, or ``'fixed'`` for a fixed-sized adder. A full adder includes both carry-in
+                and carry-out, a half only carry-out, and a fixed-sized adder neither carry-in
+                nor carry-out.
             name: The name of the circuit object.
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
@@ -76,17 +107,22 @@ class CDKMRippleCarryAdder(Adder):
 
         super().__init__(num_state_qubits, name=name)
 
+        if kind == "full":
+            qr_c = QuantumRegister(1, name="cin")
+            self.add_register(qr_c)
+        else:
+            qr_c = AncillaRegister(1, name="help")
+
         qr_a = QuantumRegister(num_state_qubits, name="a")
         qr_b = QuantumRegister(num_state_qubits, name="b")
-        qr_c = AncillaRegister(1, name="cin")
-
-        # initialize quantum circuit with register list
         self.add_register(qr_a, qr_b)
-        if not fixed_point:
+
+        if kind in ["full", "half"]:
             qr_z = QuantumRegister(1, name="cout")
             self.add_register(qr_z)
 
-        self.add_register(qr_c)
+        if kind != "full":
+            self.add_register(qr_c)
 
         # build carry circuit for majority of 3 bits in-place
         # corresponds to MAJ gate in [1]
@@ -94,7 +130,7 @@ class CDKMRippleCarryAdder(Adder):
         qc_maj.cx(0, 1)
         qc_maj.cx(0, 2)
         qc_maj.ccx(2, 1, 0)
-        qc_instruction_mac = qc_maj.to_gate()
+        maj_gate = qc_maj.to_gate()
 
         # build circuit for reversing carry operation
         # corresponds to UMA gate in [1]
@@ -102,18 +138,18 @@ class CDKMRippleCarryAdder(Adder):
         qc_uma.ccx(2, 1, 0)
         qc_uma.cx(0, 2)
         qc_uma.cx(2, 1)
-        qc_instruction_uma = qc_uma.to_gate()
+        uma_gate = qc_uma.to_gate()
 
         # build ripple-carry adder circuit
-        self.append(qc_instruction_mac, [qr_a[0], qr_b[0], qr_c[0]])
+        self.append(maj_gate, [qr_a[0], qr_b[0], qr_c[0]])
 
         for i in range(num_state_qubits - 1):
-            self.append(qc_instruction_mac, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
+            self.append(maj_gate, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
 
-        if not fixed_point:
+        if kind in ["full", "half"]:
             self.cx(qr_a[-1], qr_z[0])
 
         for i in reversed(range(num_state_qubits - 1)):
-            self.append(qc_instruction_uma, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
+            self.append(uma_gate, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
 
-        self.append(qc_instruction_uma, [qr_a[0], qr_b[0], qr_c[0]])
+        self.append(uma_gate, [qr_a[0], qr_b[0], qr_c[0]])

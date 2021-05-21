@@ -24,8 +24,8 @@ class DraperQFTAdder(Adder):
     r"""A circuit that uses QFT to perform in-place addition on two qubit registers.
 
     For registers with :math:`n` qubits, the QFT adder can perform addition modulo
-    :math:`2^n` (with `fixed_point=True`) or ordinary addition by adding a carry qubits (with
-    `fixed_point=False`).
+    :math:`2^n` (with ``kind="fixed"``) or ordinary addition by adding a carry qubits (with
+    ``kind="half"``).
 
     As an example, a non-fixed_point QFT adder circuit that performs addition on two 2-qubit sized
     registers is as follows:
@@ -57,20 +57,24 @@ class DraperQFTAdder(Adder):
     """
 
     def __init__(
-        self, num_state_qubits: int, fixed_point: bool = False, name: str = "DraperQFTAdder"
+        self, num_state_qubits: int, kind: str = "fixed", name: str = "DraperQFTAdder"
     ) -> None:
         r"""
         Args:
             num_state_qubits: The number of qubits in either input register for
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
-            fixed_point: Whether addition is fixed_point with mod :math:`2^n`.
-                Additional qubit is attached in case of non-fixed_point addition
-                to carry the most significant qubit of the sum.
+            kind: The kind of adder, can be ``'half'`` for a half adder or
+                ``'fixed'`` for a fixed-sized adder. A half adder contains a carry-out to represent
+                the most-significant bit, but the fixed-sized adder doesn't and hence performs
+                addition modulo ``2 ** num_state_qubits``.
             name: The name of the circuit object.
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
         """
+        if kind == "full":
+            raise ValueError("The DraperQFTAdder only supports 'half' and 'fixed' as ``kind``.")
+
         if num_state_qubits < 1:
             raise ValueError("The number of qubits must be at least 1.")
 
@@ -80,7 +84,7 @@ class DraperQFTAdder(Adder):
         qr_b = QuantumRegister(num_state_qubits, name="b")
         qr_list = [qr_a, qr_b]
 
-        if not fixed_point:
+        if kind == "half":
             qr_z = QuantumRegister(1, name="cout")
             qr_list.append(qr_z)
 
@@ -88,8 +92,8 @@ class DraperQFTAdder(Adder):
         self.add_register(*qr_list)
 
         # define register containing the sum and number of qubits for QFT circuit
-        qr_sum = qr_b[:] if fixed_point else qr_b[:] + qr_z[:]
-        num_qubits_qft = num_state_qubits if fixed_point else num_state_qubits + 1
+        qr_sum = qr_b[:] if kind == "fixed" else qr_b[:] + qr_z[:]
+        num_qubits_qft = num_state_qubits if kind == "fixed" else num_state_qubits + 1
 
         # build QFT adder circuit
         self.append(QFT(num_qubits_qft, do_swaps=False).to_gate(), qr_sum[:])
@@ -99,7 +103,7 @@ class DraperQFTAdder(Adder):
                 lam = np.pi / (2 ** k)
                 self.cp(lam, qr_a[j], qr_b[j + k])
 
-        if not fixed_point:
+        if kind == "half":
             for j in range(num_state_qubits):
                 lam = np.pi / (2 ** (j + 1))
                 self.cp(lam, qr_a[num_state_qubits - j - 1], qr_z[0])
