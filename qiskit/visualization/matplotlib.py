@@ -436,13 +436,16 @@ class MatplotlibDrawer:
                 sum_text *= self._subfont_factor
             return sum_text
 
-    def _param_parse(self, v):
-        param_parts = [None] * len(v)
-        for i, e in enumerate(v):
+    def _param_parse(self, params):
+        param_parts = []
+        for i, param in enumerate(params):
+            if i > 16:
+                param_parts.append("...")
+                break
             try:
-                param_parts[i] = pi_check(e, output="mpl", ndigits=3)
+                param_parts.append(pi_check(param, output="mpl", ndigits=3))
             except TypeError:
-                param_parts[i] = str(e)
+                param_parts.append(str(param))
         param_parts = ", ".join(param_parts).replace("-", "$-$")
         return param_parts
 
