@@ -15,14 +15,13 @@
 import logging
 from typing import Optional, List, Union, Dict, Callable, Any
 import uuid
-from datetime import datetime
 import json
 import copy
 from functools import wraps
 
 from .constants import ResultQuality
 from .json import NumpyEncoder, NumpyDecoder
-from .utils import save_data, qiskit_version, parse_timestamp, utc_to_local
+from .utils import save_data, qiskit_version
 from .exceptions import ExperimentError
 from .device_component import DeviceComponent, to_component
 
@@ -76,7 +75,6 @@ class AnalysisResultV1(AnalysisResult):
         verified: bool = False,
         tags: Optional[List[str]] = None,
         service: Optional["ExperimentServiceV1"] = None,
-        creation_date: Optional[Union[str, datetime]] = None,
         **kwargs,
     ):
         """AnalysisResult constructor.
@@ -91,8 +89,6 @@ class AnalysisResultV1(AnalysisResult):
             verified: Whether the result quality has been verified.
             tags: Tags for this analysis result.
             service: Experiment service to be used to store result in database.
-            creation_date: Timestamp for when the analysis result is created
-                in the database in UTC.
             **kwargs: Additional analysis result attributes.
         """
         result_data = result_data or {}
@@ -121,9 +117,6 @@ class AnalysisResultV1(AnalysisResult):
         self._quality = quality
         self._quality_verified = verified
         self._tags = tags or []
-        self._creation_date = None
-        if creation_date:
-            self._creation_date = parse_timestamp(creation_date)
 
         # Other attributes.
         self._service = service
@@ -298,20 +291,6 @@ class AnalysisResultV1(AnalysisResult):
             ID of experiment associated with this analysis result.
         """
         return self._experiment_id
-
-    @property
-    def creation_date(self) -> Optional[datetime]:
-        """Return the timestamp for when the analysis result is created in the database.
-
-        Note:
-            The returned timestamp is in local timezone.
-
-        Returns:
-            Analysis result creation date in local timezone, or ``None`` if unknown.
-        """
-        if self._creation_date:
-            return utc_to_local(self._creation_date)
-        return self._creation_date
 
     @property
     def service(self) -> Optional["ExperimentServiceV1"]:

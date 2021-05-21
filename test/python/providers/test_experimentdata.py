@@ -53,14 +53,14 @@ class TestExperimentData(QiskitTestCase):
         }
         exp_data = ExperimentData(
             backend=self.backend,
-            experiment_type="my_type",
+            experiment_type="qiskit_test",
             experiment_id="1234",
             tags=["tag1", "tag2"],
             metadata={"foo": "bar"},
             **attrs,
         )
         self.assertEqual(exp_data.backend.name(), self.backend.name())
-        self.assertEqual(exp_data.experiment_type, "my_type")
+        self.assertEqual(exp_data.experiment_type, "qiskit_test")
         self.assertEqual(exp_data.experiment_id, "1234")
         self.assertEqual(exp_data.tags(), ["tag1", "tag2"])
         self.assertEqual(exp_data.metadata(), {"foo": "bar"})
@@ -69,7 +69,7 @@ class TestExperimentData(QiskitTestCase):
 
     def test_add_data_dict(self):
         """Test add data in dictionary."""
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         a_dict = {"counts": {"01": 518}}
         dicts = [{"counts": {"00": 284}}, {"counts": {"00": 14}}]
 
@@ -79,7 +79,7 @@ class TestExperimentData(QiskitTestCase):
 
     def test_add_data_result(self):
         """Test add result data."""
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         a_result = self._get_job_result(1)
         results = [self._get_job_result(2), self._get_job_result(3)]
 
@@ -93,7 +93,7 @@ class TestExperimentData(QiskitTestCase):
 
     def test_add_data_result_metadata(self):
         """Test add result metadata."""
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         result1 = self._get_job_result(1, has_metadata=False)
         result2 = self._get_job_result(1, has_metadata=True)
 
@@ -116,7 +116,7 @@ class TestExperimentData(QiskitTestCase):
         for job in jobs:
             expected.extend(job.result().get_counts())
 
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         exp_data.add_data(a_job)
         exp_data.add_data(jobs)
         exp_data.block_for_jobs()
@@ -137,7 +137,7 @@ class TestExperimentData(QiskitTestCase):
         a_job.result.return_value = self._get_job_result(2)
 
         called_back = False
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         exp_data.add_data(a_job, post_processing_callback=_callback)
         exp_data.block_for_jobs()
         self.assertTrue(called_back)
@@ -149,7 +149,7 @@ class TestExperimentData(QiskitTestCase):
             data1.append({"counts": {"00": randrange(1024)}})
         results = self._get_job_result(3)
 
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data(data1)
         exp_data.add_data(results)
         self.assertEqual(data1[1], exp_data.data(1))
@@ -174,7 +174,7 @@ class TestExperimentData(QiskitTestCase):
 
         for name, figure, figure_name in sub_tests:
             with self.subTest(name=name):
-                exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+                exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
                 fn = exp_data.add_figure(figure, figure_name)
                 self.assertEqual(hello_bytes, exp_data.figure(fn))
 
@@ -183,7 +183,7 @@ class TestExperimentData(QiskitTestCase):
         hello_bytes = str.encode("hello world")
         friend_bytes = str.encode("hello friend!")
 
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         fn = exp_data.add_figure(hello_bytes)
         with self.assertRaises(ExperimentEntryExists):
             exp_data.add_figure(friend_bytes, fn)
@@ -193,7 +193,7 @@ class TestExperimentData(QiskitTestCase):
 
     def test_get_figure(self):
         """Test getting figure."""
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         figure_template = "hello world {}"
         name_template = "figure_{}"
         for idx in range(3):
@@ -213,7 +213,7 @@ class TestExperimentData(QiskitTestCase):
 
     def test_delete_figure(self):
         """Test deleting a figure."""
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         id_template = "figure_{}"
         for idx in range(3):
             exp_data.add_figure(str.encode("hello world"), id_template.format(idx))
@@ -227,7 +227,7 @@ class TestExperimentData(QiskitTestCase):
 
     def test_delayed_backend(self):
         """Test initializing experiment data without a backend."""
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         self.assertIsNone(exp_data.backend)
         self.assertIsNone(exp_data.service)
         exp_data.save()
@@ -238,7 +238,7 @@ class TestExperimentData(QiskitTestCase):
 
     def test_different_backend(self):
         """Test setting a different backend."""
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         a_job = mock.create_autospec(Job, instance=True)
         self.assertNotEqual(exp_data.backend, a_job.backend())
         with self.assertLogs("qiskit.providers.experiment", "WARNING"):
@@ -246,7 +246,7 @@ class TestExperimentData(QiskitTestCase):
 
     def test_add_get_analysis_result(self):
         """Test adding and getting analysis results."""
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         results = []
         for idx in range(5):
             res = mock.MagicMock()
@@ -261,7 +261,7 @@ class TestExperimentData(QiskitTestCase):
 
     def test_delete_analysis_result(self):
         """Test deleting analysis result."""
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         id_template = "result_{}"
         for idx in range(3):
             res = mock.MagicMock()
@@ -276,22 +276,20 @@ class TestExperimentData(QiskitTestCase):
 
     def test_save(self):
         """Test saving experiment data."""
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         service = mock.create_autospec(ExperimentServiceV1, instance=True)
         exp_data.save(service=service)
         service.create_experiment.assert_called_once()
-        self.assertEqual(
-            exp_data.experiment_id, service.create_experiment.call_args.kwargs["experiment_id"]
-        )
+        _, kwargs = service.create_experiment.call_args
+        self.assertEqual(exp_data.experiment_id, kwargs["experiment_id"])
         exp_data.save(service=service)
         service.update_experiment.assert_called_once()
-        self.assertEqual(
-            exp_data.experiment_id, service.update_experiment.call_args.kwargs["experiment_id"]
-        )
+        _, kwargs = service.update_experiment.call_args
+        self.assertEqual(exp_data.experiment_id, kwargs["experiment_id"])
 
     def test_save_all(self):
         """Test saving all experiment related data."""
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         service = mock.create_autospec(ExperimentServiceV1, instance=True)
         exp_data.add_figure(str.encode("hello world"))
         analysis_result = mock.MagicMock()
@@ -303,7 +301,7 @@ class TestExperimentData(QiskitTestCase):
 
     def test_save_all_delete(self):
         """Test saving all deletion."""
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         service = mock.create_autospec(ExperimentServiceV1, instance=True)
         exp_data.add_figure(str.encode("hello world"))
         exp_data.add_analysis_result(mock.MagicMock())
@@ -318,7 +316,7 @@ class TestExperimentData(QiskitTestCase):
     def test_set_service_backend(self):
         """Test setting service via backend."""
         mock_service = self._set_mock_service()
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         self.assertEqual(mock_service, exp_data.service)
 
     def test_set_service_job(self):
@@ -326,14 +324,14 @@ class TestExperimentData(QiskitTestCase):
         mock_service = self._set_mock_service()
         job = mock.create_autospec(Job, instance=True)
         job.backend.return_value = self.backend
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         self.assertIsNone(exp_data.service)
         exp_data.add_data(job)
         self.assertEqual(mock_service, exp_data.service)
 
     def test_set_service_direct(self):
         """Test setting service directly."""
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         self.assertIsNone(exp_data.service)
         mock_service = mock.MagicMock()
         exp_data.service = mock_service
@@ -345,7 +343,7 @@ class TestExperimentData(QiskitTestCase):
     def test_set_service_save(self):
         """Test setting service when saving."""
         orig_service = self._set_mock_service()
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         new_service = mock.create_autospec(ExperimentServiceV1, instance=True)
         exp_data.save(service=new_service)
         new_service.create_experiment.assert_called()
@@ -354,7 +352,7 @@ class TestExperimentData(QiskitTestCase):
     def test_new_backend_has_service(self):
         """Test changing backend doesn't change existing service."""
         orig_service = self._set_mock_service()
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         self.assertEqual(orig_service, exp_data.service)
 
         job = mock.create_autospec(Job, instance=True)
@@ -367,7 +365,7 @@ class TestExperimentData(QiskitTestCase):
     def test_auto_save(self):
         """Test auto save."""
         service = self._set_mock_service()
-        exp_data = ExperimentData(backend=self.backend, experiment_type="my_type")
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         exp_data.auto_save = True
 
         mock_result = mock.MagicMock()
@@ -382,6 +380,7 @@ class TestExperimentData(QiskitTestCase):
             (exp_data.update_tags, (["foo"],), None),
             (exp_data.update_metadata, ({"foo": "bar"},), None),
             (setattr, (exp_data, "notes", "foo"), None),
+            (setattr, (exp_data, "share_level", "hub"), None),
         ]
 
         for func, params, called in subtests:
@@ -404,7 +403,7 @@ class TestExperimentData(QiskitTestCase):
         job2.status.return_value = JobStatus.RUNNING
         self.addCleanup(event.set)
 
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data(job1)
         exp_data.add_data(job2, lambda *args, **kwargs: event.wait())
         self.assertEqual("RUNNING", exp_data.status())
@@ -418,7 +417,7 @@ class TestExperimentData(QiskitTestCase):
         job2 = mock.create_autospec(Job, instance=True)
         job2.status.return_value = JobStatus.ERROR
 
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data([job1, job2])
         self.assertEqual("ERROR", exp_data.status())
 
@@ -430,7 +429,7 @@ class TestExperimentData(QiskitTestCase):
         event = threading.Event()
         self.addCleanup(event.set)
 
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data(job)
         exp_data.add_data(job, lambda *args, **kwargs: event.wait())
         self.assertEqual("POST_PROCESSING", exp_data.status())
@@ -444,7 +443,7 @@ class TestExperimentData(QiskitTestCase):
         job = mock.create_autospec(Job, instance=True)
         job.result.return_value = self._get_job_result(3)
 
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data(job)
         exp_data.add_data(job, _post_processing)
         exp_data.block_for_jobs()
@@ -454,7 +453,7 @@ class TestExperimentData(QiskitTestCase):
         """Test experiment status when all jobs are done."""
         job = mock.create_autospec(Job, instance=True)
         job.result.return_value = self._get_job_result(3)
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data(job)
         exp_data.add_data(job, lambda *args, **kwargs: time.sleep(1))
         exp_data.block_for_jobs()
@@ -462,21 +461,21 @@ class TestExperimentData(QiskitTestCase):
 
     def test_update_tags(self):
         """Test updating experiment tags."""
-        exp_data = ExperimentData(experiment_type="my_type", tags=["foo"])
+        exp_data = ExperimentData(experiment_type="qiskit_test", tags=["foo"])
         self.assertEqual(["foo"], exp_data.tags())
         exp_data.update_tags(["bar"])
         self.assertEqual(["bar"], exp_data.tags())
 
     def test_update_metadata(self):
         """Test updating experiment metadata."""
-        exp_data = ExperimentData(experiment_type="my_type", metadata={"foo": "bar"})
+        exp_data = ExperimentData(experiment_type="qiskit_test", metadata={"foo": "bar"})
         self.assertEqual({"foo": "bar"}, exp_data.metadata())
         exp_data.update_metadata({"bar": "foo"})
         self.assertEqual({"bar": "foo"}, exp_data.metadata())
 
     def test_cancel_jobs(self):
         """Test canceling experiment jobs."""
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         event = threading.Event()
         self.addCleanup(event.set)
         job = mock.create_autospec(Job, instance=True)
@@ -488,7 +487,7 @@ class TestExperimentData(QiskitTestCase):
     def test_metadata_serialization(self):
         """Test experiment metadata serialization."""
         metadata = {"complex": 2 + 3j, "numpy": np.zeros(2)}
-        exp_data = ExperimentData(experiment_type="my_type", metadata=metadata)
+        exp_data = ExperimentData(experiment_type="qiskit_test", metadata=metadata)
         serialized = exp_data._serialize_metadata()
         self.assertIsInstance(serialized, str)
         self.assertTrue(json.loads(serialized))
@@ -510,7 +509,7 @@ class TestExperimentData(QiskitTestCase):
         job2.status.return_value = JobStatus.ERROR
         job2.job_id.return_value = "5678"
 
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data(job1, _post_processing)
         exp_data.add_data(job2)
         exp_data.block_for_jobs()
@@ -519,7 +518,7 @@ class TestExperimentData(QiskitTestCase):
 
     def test_source(self):
         """Test getting experiment source."""
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         source_vals = "\n".join([str(val) for val in exp_data.source.values()])
         self.assertIn("ExperimentDataV1", source_vals)
         self.assertIn("qiskit-terra", source_vals)
@@ -536,19 +535,19 @@ class TestExperimentData(QiskitTestCase):
         sleep_count = 0
         job = mock.create_autospec(Job, instance=True)
         job.result = _sleeper
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data(job, _sleeper)
         exp_data.block_for_jobs()
         self.assertEqual(2, sleep_count)
 
     def test_additional_attr(self):
         """Test additional experiment attributes."""
-        exp_data = ExperimentData(experiment_type="my_type", foo="foo")
+        exp_data = ExperimentData(experiment_type="qiskit_test", foo="foo")
         self.assertEqual("foo", exp_data.foo)
 
     def test_str(self):
         """Test the string representation."""
-        exp_data = ExperimentData(experiment_type="my_type")
+        exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data(self._get_job_result(1))
         result = mock.MagicMock()
         exp_data.add_analysis_result(result)

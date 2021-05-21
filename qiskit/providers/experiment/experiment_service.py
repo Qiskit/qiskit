@@ -127,8 +127,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
         Args:
             experiment_id: Experiment ID.
             experiment_class: An ``ExperimentData`` class used to instantiate the
-                return data objects. The class's ``from_data()`` method is
-                invoked to recreate the object.
+                return data objects.
 
         Returns:
             Retrieved experiment.
@@ -142,6 +141,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
     def experiments(
         self,
         limit: Optional[int] = 10,
+        experiment_class: Type[ExperimentData] = ExperimentData,
         device_components: Optional[Union[str, DeviceComponent]] = None,
         experiment_type: Optional[str] = None,
         backend_name: Optional[str] = None,
@@ -153,6 +153,8 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
         Args:
             limit: Number of experiments to retrieve. ``None`` means no limit.
+            experiment_class: An ``ExperimentData`` class used to instantiate the
+                return data objects.
             device_components: Filter by device components. An experiment must have analysis
                 results with device components matching the given list exactly to be included.
             experiment_type: Experiment type used for filtering.
@@ -180,9 +182,6 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
         Args:
             experiment_id: Experiment ID.
-
-        Raises:
-            ExperimentEntryNotFound: If the experiment does not exist.
         """
         pass
 
@@ -227,8 +226,8 @@ class ExperimentServiceV1(ExperimentService, ABC):
         result_id: str,
         data: Optional[Dict] = None,
         tags: Optional[List[str]] = None,
-        quality: Union[ResultQuality, str] = ResultQuality.UNKNOWN,
-        verified: bool = False,
+        quality: Union[ResultQuality, str] = None,
+        verified: bool = None,
         **kwargs: Any,
     ) -> None:
         """Update an existing analysis result.
@@ -247,11 +246,15 @@ class ExperimentServiceV1(ExperimentService, ABC):
         pass
 
     @abstractmethod
-    def analysis_result(self, analysis_result_id: str) -> AnalysisResult:
+    def analysis_result(
+        self, result_id: str, result_class: Type[AnalysisResult] = AnalysisResult
+    ) -> AnalysisResult:
         """Retrieve a previously stored experiment.
 
         Args:
-            analysis_result_id: Analysis result ID.
+            result_id: Analysis result ID.
+            result_class: An ``AnalysisResult`` class used to instantiate the
+                return data objects.
 
         Returns:
             Retrieved analysis result.
@@ -265,6 +268,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
     def analysis_results(
         self,
         limit: Optional[int] = 10,
+        result_class: Type[AnalysisResult] = AnalysisResult,
         device_components: Optional[Union[str, DeviceComponent]] = None,
         experiment_id: Optional[str] = None,
         result_type: Optional[str] = None,
@@ -279,6 +283,8 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
         Args:
             limit: Number of analysis results to retrieve. ``None`` means no limit.
+            result_class: An ``AnalysisResult`` class used to instantiate the
+                return data objects.
             device_components: Target device components, such as qubits.
             experiment_id: Experiment ID used for filtering.
             result_type: Analysis result type used for filtering.
@@ -304,14 +310,11 @@ class ExperimentServiceV1(ExperimentService, ABC):
         pass
 
     @abstractmethod
-    def delete_analysis_result(self, analysis_result_id: str) -> None:
+    def delete_analysis_result(self, result_id: str) -> None:
         """Delete an analysis result.
 
         Args:
-            analysis_result_id: Analysis result ID.
-
-        Raises:
-            ExperimentEntryNotFound: If the analysis result does not exist.
+            result_id: Analysis result ID.
         """
         pass
 
@@ -386,9 +389,6 @@ class ExperimentServiceV1(ExperimentService, ABC):
         Args:
             experiment_id: Experiment ID.
             figure_name: Name of the figure.
-
-        Raises:
-            ExperimentEntryNotFound: If the figure does not exist.
         """
         pass
 

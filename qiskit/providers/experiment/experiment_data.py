@@ -682,7 +682,7 @@ class ExperimentDataV1(ExperimentData):
                 statuses.add(job_status)
                 if job_status == JobStatus.ERROR:
                     job_err = "."
-                    if hasattr(job, 'error_message'):
+                    if hasattr(job, "error_message"):
                         job_err = ": " + job.error_message()
                     self._errors.append(f"Job {job.job_id()} failed{job_err}")
 
