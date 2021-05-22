@@ -117,9 +117,9 @@ def get_param_str(op, drawer, ndigits=3):
     else:
         param_list = []
         for count, param in enumerate(op.op.params):
-            # Latex drawer will cause an xy-pic error if param string
-            # is too long, so we limit it to 4 params.
-            if drawer == "latex" and count > 3:
+            # Latex drawer will cause an xy-pic error and mpl drawer will overwrite
+            # the right edge if param string too long, so limit params.
+            if (drawer == "latex" and count > 3) or (drawer == "mpl" and count > 16):
                 param_list.append("...")
                 break
             try:
