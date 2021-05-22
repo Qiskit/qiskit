@@ -198,7 +198,7 @@ class Results:
         print(os.getenv("BUILD_SOURCEBRANCH", "dummy_branch"))
         error = len(self.mismatch) + len(self.missing)
         if error:
-            print(os.getenv("BUILD_SOURCEBRANCH", "dummy_branch"))
+            print(os.getenv("SYSTEM_PULLREQUEST_SOURCEBRANCH", "dummy_branch"))
             github_user = ""
             repo = ""
             branch = ""
