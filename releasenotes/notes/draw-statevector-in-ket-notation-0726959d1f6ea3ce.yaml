@@ -1,24 +1,7 @@
 ---
-prelude: >
-    The StateVector object can be drawn in various modes. This PR changes the 
-    latex output mode from vector to ket notation. The old notation is still available
-    as an option.
 features:
   - |
     Allow drawing of a Statevector in latex both in vector and ket notation.
     In ket notation the entries of the statevector are processed such that 
-    exact factors like fractions or sqrt(2) are draw as such.
-issues:
-  - |
-upgrade:
-  - |
-deprecations:
-  - |
-critical:
-  - |
-security:
-  - |
-fixes:
-  - |
-other:
-  - |
+    exact factors like fractions or sqrt of two are drawn as such.
+    The old notation is still available as an option.
