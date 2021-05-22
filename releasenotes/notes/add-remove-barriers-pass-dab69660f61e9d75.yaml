@@ -1,19 +1,4 @@
 ---
-prelude: >
-    Add pass RemoveBarriers to remove all barriers in a circuit.
 features:
   - |
-issues:
-  - |
-upgrade:
-  - |
-deprecations:
-  - |
-critical:
-  - |
-security:
-  - |
-fixes:
-  - |
-other:
-  - |
+    Add pass RemoveBarriers to remove all barriers in a circuit.
