@@ -150,7 +150,8 @@ class MatplotlibDrawer:
         self._lwidth2 = 2.0
         self._x_offset = 0.0
 
-        # _data per node with 'width', 'q_xy', 'c_xy', and 'c_indxs'
+        # _data per node with 'width', 'gate_text', 'raw_gate_text',
+        # 'ctrl_text', 'param', q_xy', 'c_xy', and 'c_indxs'
         self._data = {}
         self._layer_widths = []
         self._q_anchors = {}
