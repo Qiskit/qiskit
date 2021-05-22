@@ -146,6 +146,9 @@ Adders
 .. autosummary::
    :toctree: ../stubs/
 
+   DraperQFTAdder
+   CDKMRippleCarryAdder
+   VBERippleCarryAdder
    WeightedAdder
 
 Comparators
@@ -355,8 +358,12 @@ from .arithmetic import (
     WeightedAdder,
     QuadraticForm,
     LinearAmplitudeFunction,
+    VBERippleCarryAdder,
+    CDKMRippleCarryAdder,
+    DraperQFTAdder,
     PiecewiseChebyshev,
 )
+
 from .n_local import (
     NLocal,
     TwoLocal,
