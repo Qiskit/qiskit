@@ -203,7 +203,10 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 
     if not config["simulator"]:
         with image_widget:
-            gate_map = plot_gate_map(backend)
+            qubit_size = 24
+            if config["n_qubits"] > 20:
+                qubit_size = 34
+            gate_map = plot_gate_map(backend, qubit_size=qubit_size)
             display(gate_map)
         plt.close(gate_map)
 

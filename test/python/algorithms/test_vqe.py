@@ -16,27 +16,40 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+
 import numpy as np
-from ddt import ddt, unpack, data
+from ddt import data, ddt, unpack
 
 from qiskit import BasicAer, QuantumCircuit
-from qiskit.circuit.library import TwoLocal, EfficientSU2
-from qiskit.utils import QuantumInstance, algorithm_globals
+from qiskit.algorithms import VQE, AlgorithmError
+from qiskit.algorithms.optimizers import (
+    CG,
+    COBYLA,
+    L_BFGS_B,
+    P_BFGS,
+    SLSQP,
+    SPSA,
+    TNC,
+)
+from qiskit.circuit.library import EfficientSU2, TwoLocal
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import (
+    AerPauliExpectation,
+    ExpectationBase,
+    Gradient,
+    I,
+    MatrixExpectation,
+    PauliExpectation,
+    PauliSumOp,
     PrimitiveOp,
+    TwoQubitReduction,
     X,
     Z,
-    I,
-    PauliSumOp,
-    AerPauliExpectation,
-    PauliExpectation,
-    MatrixExpectation,
-    ExpectationBase,
-    TwoQubitReduction,
 )
-from qiskit.algorithms.optimizers import L_BFGS_B, COBYLA, SPSA, SLSQP
-from qiskit.algorithms import VQE, AlgorithmError
+from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
+
+if has_aer():
+    from qiskit import Aer
 
 
 @ddt
@@ -196,13 +209,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
         optimal_vector = vqe.get_optimal_vector()
         self.assertAlmostEqual(sum([v ** 2 for v in optimal_vector.values()]), 1.0, places=4)
 
+    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_with_aer_statevector(self):
         """Test VQE with Aer's statevector_simulator."""
-        try:
-            from qiskit.providers.aer import Aer
-        except Exception as ex:  # pylint: disable=broad-except
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
-            return
         backend = Aer.get_backend("statevector_simulator")
         wavefunction = self.ry_wavefunction
         optimizer = L_BFGS_B()
@@ -222,13 +231,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
 
+    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_with_aer_qasm(self):
         """Test VQE with Aer's qasm_simulator."""
-        try:
-            from qiskit.providers.aer import Aer
-        except Exception as ex:  # pylint: disable=broad-except
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
-            return
         backend = Aer.get_backend("qasm_simulator")
         optimizer = SPSA(maxiter=200, last_avg=5)
         wavefunction = self.ry_wavefunction
@@ -250,13 +255,10 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         self.assertAlmostEqual(result.eigenvalue.real, -1.86305, places=2)
 
+    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_with_aer_qasm_snapshot_mode(self):
         """Test the VQE using Aer's qasm_simulator snapshot mode."""
-        try:
-            from qiskit.providers.aer import Aer
-        except Exception as ex:  # pylint: disable=broad-except
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
-            return
+
         backend = Aer.get_backend("qasm_simulator")
         optimizer = L_BFGS_B()
         wavefunction = self.ry_wavefunction
@@ -276,6 +278,32 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+
+    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    @data(
+        CG(maxiter=1),
+        L_BFGS_B(maxfun=1),
+        P_BFGS(maxfun=1, max_processes=0),
+        SLSQP(maxiter=1),
+        TNC(maxiter=1),
+    )
+    def test_with_gradient(self, optimizer):
+        """Test VQE using Gradient()."""
+        quantum_instance = QuantumInstance(
+            backend=Aer.get_backend("qasm_simulator"),
+            shots=1,
+            seed_simulator=algorithm_globals.random_seed,
+            seed_transpiler=algorithm_globals.random_seed,
+        )
+        vqe = VQE(
+            ansatz=self.ry_wavefunction,
+            optimizer=optimizer,
+            gradient=Gradient(),
+            expectation=AerPauliExpectation(),
+            quantum_instance=quantum_instance,
+            max_evals_grouped=1000,
+        )
+        vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
     def test_with_two_qubit_reduction(self):
         """Test the VQE using TwoQubitReduction."""
@@ -381,13 +409,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
             vqe.optimizer = L_BFGS_B()
             run_check()
 
+    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_vqe_expectation_select(self):
         """Test expectation selection with Aer's qasm_simulator."""
-        try:
-            from qiskit.providers.aer import Aer
-        except Exception as ex:  # pylint: disable=broad-except
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
-            return
         backend = Aer.get_backend("qasm_simulator")
 
         with self.subTest("Defaults"):
