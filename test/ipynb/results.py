@@ -195,10 +195,21 @@ class Results:
     def exit(self):
         """Exit status method"""
         messagge = "OK"
-        print(os.getenv("BUILD_SOURCEBRANCH", "dummy_branch"))
+        print(
+            "SYSTEM_PULLREQUEST_SOURCEBRANCH",
+            os.getenv("SYSTEM_PULLREQUEST_SOURCEBRANCH", "0"),
+        )
+        print(
+            "SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI",
+            os.getenv("SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI", "1"),
+        )
+
+        print(
+            "BUILD_REPOSITORY_NAME",
+            os.getenv("BUILD_REPOSITORY_NAME", "2"),
+        )
         error = len(self.mismatch) + len(self.missing)
         if error:
-            print(os.getenv("SYSTEM_PULLREQUEST_SOURCEBRANCH", "dummy_branch"))
             github_user = ""
             repo = ""
             branch = ""
