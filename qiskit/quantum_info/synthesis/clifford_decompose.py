@@ -67,7 +67,7 @@ def decompose_clifford(clifford, method=None):
     """
     num_qubits = clifford.num_qubits
 
-    #if num_qubits == 2:
+    # if num_qubits == 2:
     #    decompose_clifford_2q(clifford)
 
     if method == "AG":
@@ -90,10 +90,10 @@ def decompose_clifford(clifford, method=None):
 def decompose_clifford_2q(clifford):
     """Decompose a clifford"""
     num_qubits = clifford.num_qubits
-    if (num_qubits != 2):
+    if num_qubits != 2:
         raise QiskitError("Clifford is not on two qubits.")
 
-    print (clifford)
+    print(clifford)
 
 
 # ---------------------------------------------------------------------
