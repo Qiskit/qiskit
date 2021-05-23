@@ -35,9 +35,9 @@ def decompose_clifford(clifford, method=None):
     """Decompose a Clifford operator into a QuantumCircuit.
 
     For N <= 3 qubits this is based on optimal CX cost decomposition
-    from reference [1]. For N > 3 qubits this is done using the general
-    non-optimal greedy compilation routine from reference [3],
-    which typically yields better CX cost compared to the AG method in [2].
+    from references [1, 2]. For N > 3 qubits this is done using the general
+    non-optimal greedy compilation routine from reference [4],
+    which typically yields better CX cost compared to the AG method in [3].
 
     Args:
         clifford (Clifford): a clifford operator.
@@ -48,7 +48,13 @@ def decompose_clifford(clifford, method=None):
         QuantumCircuit: a circuit implementation of the Clifford.
 
     References:
-        1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
+        1. A. D. C'orcoles , Jay M. Gambetta, Jerry M. Chow, John A. Smolin, Matthew Ware,
+        J. D. Strand, B. L. T. Plourde, and M. Steffen, Supplementary material for
+        *Process verification of two qubit quantum gates by randomized benchmarking*,
+        Phys. Rev. A 87(030301(R)), 2013.
+        `arXiv:1210.7011 [quant-ph] <https://arxiv.org/abs/1210.7011>`_
+
+        2. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
 
@@ -60,6 +66,9 @@ def decompose_clifford(clifford, method=None):
            *Clifford Circuit Optimization with Templates and Symbolic Pauli Gates*
     """
     num_qubits = clifford.num_qubits
+
+    #if num_qubits == 2:
+    #    decompose_clifford_2q(clifford)
 
     if method == "AG":
         return decompose_clifford_ag(clifford)
@@ -74,6 +83,20 @@ def decompose_clifford(clifford, method=None):
 
 
 # ---------------------------------------------------------------------
+# 2-qubit Clifford decomposition
+# ---------------------------------------------------------------------
+
+
+def decompose_clifford_2q(clifford):
+    """Decompose a clifford"""
+    num_qubits = clifford.num_qubits
+    if (num_qubits != 2):
+        raise QiskitError("Clifford is not on two qubits.")
+
+    print (clifford)
+
+
+# ---------------------------------------------------------------------
 # Synthesis based on Bravyi & Maslov decomposition
 # ---------------------------------------------------------------------
 
@@ -81,10 +104,11 @@ def decompose_clifford(clifford, method=None):
 def decompose_clifford_bm(clifford):
     """Decompose a clifford"""
     num_qubits = clifford.num_qubits
-    clifford_name = str(clifford)
 
     if num_qubits == 1:
         return _decompose_clifford_1q(clifford.table.array, clifford.table.phase)
+
+    clifford_name = str(clifford)
 
     # Inverse of final decomposed circuit
     inv_circuit = QuantumCircuit(num_qubits, name="inv_circ")
@@ -109,6 +133,7 @@ def decompose_clifford_bm(clifford):
     # Add the inverse of the 2-qubit reductions circuit
     if len(inv_circuit) > 0:
         ret_circ.append(inv_circuit.inverse(), range(num_qubits))
+
     return ret_circ.decompose()
 
 
