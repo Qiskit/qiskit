@@ -349,10 +349,13 @@ class StabilizerState(QuantumState):
         if qargs is None:
             return StabilizerState(Clifford((np.eye(2 * self.clifford.num_qubits))))
 
+        randbits = self._rng.integers(2, size=len(qargs))
         ret = self.copy()
+        bit = 0
         for qubit in qargs:
             # Apply measurement and get classical outcome
-            outcome = ret._measure_and_update(qubit, 0)
+            outcome = ret._measure_and_update(qubit, randbits[bit])
+            bit += 1
 
             # Use the outcome to apply X gate to any qubits left in the
             # |1> state after measure, then discard outcome.
@@ -382,11 +385,13 @@ class StabilizerState(QuantumState):
         if qargs is None:
             qargs = range(self.clifford.num_qubits)
 
+        randbits = self._rng.integers(2, size=len(qargs))
         ret = self.copy()
+        bit = 0
         outcome = ""
         for qubit in qargs:
-            randbit = ret._rng.randint(2)
-            outcome = str(ret._measure_and_update(qubit, randbit)) + outcome
+            outcome = str(ret._measure_and_update(qubit, randbits[bit])) + outcome
+            bit += 1
         return outcome, ret
 
     def sample_memory(self, shots, qargs=None):
