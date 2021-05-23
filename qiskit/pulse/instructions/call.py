@@ -222,3 +222,6 @@ class Call(instruction.Instruction):
             return False
 
         return True
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.assigned_subroutine()}, name='{self.name}')"
