@@ -748,6 +748,31 @@ class TestStabilizerState(QiskitTestCase):
             target = Statevector(qc).expectation_value(op, qargs)
             self.assertAlmostEqual(exp_val, target)
 
+    def test_sample_counts_reset_bell(self):
+        """Test sample_counts after reset for Bell state"""
+
+        num_qubits = 2
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        qc.cx(0, 1)
+        stab = StabilizerState(qc)
+
+        target = {"00": self.shots / 2, "10": self.shots / 2}
+        counts = {"00": 0, "10": 0}
+        for _ in range(self.shots):
+            res = stab.reset([0])
+            value = res.measure()[0]
+            counts[value] += 1
+        self.assertDictAlmostEqual(counts, target, self.threshold)
+
+        target = {"00": self.shots / 2, "01": self.shots / 2}
+        counts = {"00": 0, "01": 0}
+        for _ in range(self.shots):
+            res = stab.reset([1])
+            value = res.measure()[0]
+            counts[value] += 1
+        self.assertDictAlmostEqual(counts, target, self.threshold)
+
     def test_sample_counts_memory_ghz(self):
         """Test sample_counts and sample_memory method for GHZ state"""
 
