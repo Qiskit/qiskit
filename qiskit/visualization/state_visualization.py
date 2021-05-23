@@ -220,19 +220,31 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     if len(bloch) == 2:
         if coord_type not in ["wave"]:
             coord_type = "wave"
-            warn("""found bloch[] with size 2, with unsupported coord_type:{},
-                    reverting to default coord_type 'wave'""".format(coord_type),
-                 UserWarning, 2)
+            warn(
+                """found bloch[] with size 2, with unsupported coord_type:{},
+                    reverting to default coord_type 'wave'""".format(
+                    coord_type
+                ),
+                UserWarning,
+                2,
+            )
     elif len(bloch) == 3:
         if coord_type not in ["cartesian", "spherical"]:
             coord_type = "cartesian"
-            warn("""found bloch[] with size 3, with unsupported coord_type:{},
-                    reverting to default coord_type 'cartesian'""".format(coord_type),
-                 UserWarning, 2)
+            warn(
+                """found bloch[] with size 3, with unsupported coord_type:{},
+                    reverting to default coord_type 'cartesian'""".format(
+                    coord_type
+                ),
+                UserWarning,
+                2,
+            )
     else:
-        raise TypeError('Wrong number of elements. '
-                        'Make sure the first parameter is a list with 2 or 3 elements.'
-                        'Supplied {} Arguments.'.format(len(bloch)))
+        raise TypeError(
+            "Wrong number of elements. "
+            "Make sure the first parameter is a list with 2 or 3 elements."
+            "Supplied {} Arguments.".format(len(bloch))
+        )
 
     if figsize is None:
         figsize = (5, 5)
@@ -240,8 +252,8 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     if coord_type == "wave":
         n1 = bloch[0]
         n2 = bloch[1]
-        bloch[0] = np.sqrt(abs(n1)**2 + abs(n2)**2)
-        bloch[1] = 2 * np.arccos(abs(n1)/bloch[0])
+        bloch[0] = np.sqrt(abs(n1) ** 2 + abs(n2) ** 2)
+        bloch[1] = 2 * np.arccos(abs(n1) / bloch[0])
         bloch.append(np.angle(n2) - np.angle(n1))
         coord_type = "spherical"
     if coord_type == "spherical":
