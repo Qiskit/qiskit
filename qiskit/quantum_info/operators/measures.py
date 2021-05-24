@@ -42,10 +42,10 @@ def process_fidelity(channel, target=None, require_cp=True, require_tp=True):
     r"""Return the process fidelity of a noisy quantum channel.
 
 
-    The process fidelity :math:`F_{\text{pro}}(\mathcal{E}, \methcal{F})`
+    The process fidelity :math:`F_{\text{pro}}(\mathcal{E}, \mathcal{F})`
     between two quantum channels :math:`\mathcal{E}, \mathcal{F}` is given by
 
-    .. math:
+    .. math::
         F_{\text{pro}}(\mathcal{E}, \mathcal{F})
             = F(\rho_{\mathcal{E}}, \rho_{\mathcal{F}})
 
