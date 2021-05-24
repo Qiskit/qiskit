@@ -1210,6 +1210,7 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
     import sympy  # runtime import
 
     raw_value = complex(np.real_if_close(raw_value))
+    raw_value = -1j * np.real_if_close(raw_value * 1j)
 
     value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
     real_value = float(sympy.re(value))
@@ -1220,6 +1221,7 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
         latex_element = sympy.latex(value, full_prec=False)
         two_term = real_value != 0 and imag_value != 0
         if isinstance(value, sympy.core.Add):
+            # can happen for expressions like 1 + sqrt(2)
             two_term = True
         if two_term:
             if first_term:
