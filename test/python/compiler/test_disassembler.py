@@ -305,6 +305,16 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         output_circuits, _, _ = disassemble(qobj)
 
         self.assertCircuitCalibrationsEqual([qc], output_circuits)
+        self.assertTrue(
+            all(
+                qc_sched == out_qc_sched
+                for qc, out_qc in zip(circuits, output_circuits)
+                for (_, qc_gate), (_, out_qc_gate) in zip(
+                    qc.calibrations.items(), out_qc.calibrations.items()
+                )
+                for qc_sched, out_qc_sched in zip(qc_gate.values(), out_qc_gate.values())
+            ),
+        )
 
     def test_multi_circuit_uncommon_calibrations(self):
         """Test that disassembler parses uncommon calibrations (stored at QOBJ experiment-level)."""

@@ -81,7 +81,7 @@ def _qobj_to_circuit_cals(qobj, pulse_lib, param_pulses):
                 else converter(PulseQobjInstruction.from_dict(instruction))
             )
             cal[config] = cal[config].insert(schedule.ch_start_time(), schedule)
-        qc_cals.setdefault(gate["name"], cal)
+        qc_cals.setdefault(gate["name"], cal).update(cal)
 
     return qc_cals
 
@@ -183,6 +183,7 @@ def _experiments_to_circuits(qobj):
         parametric_pulses = (
             qobj.config.parametric_pulses if hasattr(qobj.config, "parametric_pulses") else []
         )
+        # The dict update method did not work here; could investigate in the future
         if hasattr(qobj.config, "calibrations"):
             circuit.calibrations = dict(
                 **circuit.calibrations, **_qobj_to_circuit_cals(qobj, pulse_lib, parametric_pulses)
