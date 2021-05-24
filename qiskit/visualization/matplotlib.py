@@ -599,7 +599,7 @@ class MatplotlibDrawer:
                 ):
                     param = get_param_str(node, "mpl", ndigits=3)
                     if isinstance(node.op, Initialize):
-                        param = "$[{}]$".format(param.replace("$", ""))
+                        param = f"$[{param.replace('$', '')}]$"
                     self._data[node]["param"] = param
                     raw_param_width = self._get_text_width(param, fontsize=self._sfs, param=True)
                     param_width = raw_param_width + 0.08
@@ -657,7 +657,7 @@ class MatplotlibDrawer:
             # show register name and number if more than 1 register
             if register.size > 1:
                 if self._layout is None:
-                    qubit_name = "${{{name}}}_{{{index}}}$".format(name=register.name, index=index)
+                    qubit_name = f"${register.name}_{index}$"
                 else:
                     if self._layout[index]:
                         virt_bit = self._layout[index]
@@ -665,22 +665,18 @@ class MatplotlibDrawer:
                             virt_reg = next(
                                 reg for reg in self._layout.get_registers() if virt_bit in reg
                             )
-                            qubit_name = "${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$".format(
-                                name=virt_reg.name,
-                                index=virt_reg[:].index(virt_bit),
-                                physical=index,
+                            qubit_name = (
+                                f"${virt_reg.name}_{virt_reg[:].index(virt_bit)}"
+                                f" \\mapsto {index}$"
                             )
-
                         except StopIteration:
-                            qubit_name = "${{{name}}} \\mapsto {{{physical}}}$".format(
-                                name=virt_bit, physical=index
-                            )
+                            qubit_name = f"${virt_bit} \\mapsto {index}$"
                     else:
-                        qubit_name = "${{{physical}}}$".format(physical=index)
+                        qubit_name = f"${index}$"
 
             # if only 1 register, just show the register name
             else:
-                qubit_name = "${{{name}}}$".format(name=register.name)
+                qubit_name = f"${register.name}$"
 
             qubit_name = _fix_double_script(qubit_name) + initial_qbit
             text_width = self._get_text_width(qubit_name, self._fs) * 1.15
@@ -710,11 +706,11 @@ class MatplotlibDrawer:
                 # if cregbundle show non-math reg name, if only 1 clbit, show math name
                 # else math name and number
                 if self._cregbundle:
-                    clbit_name = "{}".format(register.name)
+                    clbit_name = f"{register.name}"
                 elif register.size == 1:
-                    clbit_name = "${}$".format(register.name)
+                    clbit_name = f"${register.name}$"
                 else:
-                    clbit_name = "${}_{{{}}}$".format(register.name, index)
+                    clbit_name = f"${register.name}_{index}$"
                 clbit_name = _fix_double_script(clbit_name) + initial_cbit
                 text_width = self._get_text_width(register.name, self._fs) * 1.15
                 if text_width > longest_reg_name_width:
@@ -887,11 +883,11 @@ class MatplotlibDrawer:
         val = node.op.condition[1]
 
         # cbit list to consider
-        fmt_c = "{{:0{}b}}".format(len(cond_xy))
+        fmt_c = f"{{:0{len(cond_xy)}b}}"
         cmask = list(fmt_c.format(mask))[::-1]
 
         # value
-        fmt_v = "{{:0{}b}}".format(cmask.count("1"))
+        fmt_v = f"{{:0{cmask.count('1')}b}}"
         vlist = list(fmt_v.format(val))
         if not self._reverse_bits:
             vlist = vlist[::-1]
@@ -1228,7 +1224,7 @@ class MatplotlibDrawer:
             top = min(qubits) > min_ctbit
 
         # display the control qubits as open or closed based on ctrl_state
-        cstate = "{:b}".format(ctrl_state).rjust(num_ctrl_qubits, "0")[::-1]
+        cstate = f"{ctrl_state:b}".rjust(num_ctrl_qubits, '0')[::-1]
         for i in range(num_ctrl_qubits):
             fc_open_close = ec if cstate[i] == "1" else self._style["bg"]
             text_top = None
@@ -1339,7 +1335,7 @@ class MatplotlibDrawer:
             if not isinstance(base_type, (U1Gate, PhaseGate)):
                 self._ctrl_qubit(xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
             self._sidetext(
-                node, qubit_b, tc=tc, text="{}".format(gate_text) + " " + "({})".format(param)
+                node, qubit_b, tc=tc, text=f"{gate_text} ({param})"
             )
             self._line(qubit_b, qubit_t, lc=lc)
 
