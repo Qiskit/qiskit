@@ -308,7 +308,7 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertCircuitCalibrationsEqual([qc], output_circuits)
         self.assertTrue(
             all(
-                qc_sched == out_qc_sched
+                qc_sched.instructions == out_qc_sched.instructions
                 for (_, qc_gate), (_, out_qc_gate) in zip(
                     qc.calibrations.items(), out_qc.calibrations.items()
                 )
