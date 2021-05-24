@@ -99,9 +99,9 @@ class TestStabilizerState(QiskitTestCase):
     def test_conjugate(self, num_qubits):
         """Test conjugate method."""
         for _ in range(self.samples):
-            stab = StabilizerState(random_clifford(num_qubits, seed=self.rng))
-            target = StabilizerState(stab.conjugate())
-            state = StabilizerState(stab).conjugate()
+            cliff = random_clifford(num_qubits, seed=self.rng)
+            target = StabilizerState(cliff.conjugate())
+            state = StabilizerState(cliff).conjugate()
             self.assertEqual(state, target)
 
     def test_tensor(self):
