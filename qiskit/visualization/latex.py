@@ -275,7 +275,7 @@ class QCircuitImage:
                             )
                         except StopIteration:
                             label = "\\lstick{{ {{{}}} : ".format(bit_location["index"])
-                    elif len(self.qubit_list) > 1:
+                    elif register.size > 1:
                         label = "\\lstick{{ {{{}}} : ".format(bit_location["index"])
                 if self.initial_state:
                     label += "\\ket{{0}}"

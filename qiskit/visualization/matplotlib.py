@@ -333,8 +333,10 @@ class MatplotlibDrawer:
                 style_name = config.get("circuit_mpl_style", "default")
             elif not isinstance(style, (str, dict)):
                 warn(
-                    "style parameter '{}' must be a str or a dictionary."
-                    " Will use default style.".format(style),
+                    (
+                        f"style parameter '{style}' must be a str or a dictionary. "
+                        "Will use default style."
+                    ),
                     UserWarning,
                     2,
                 )
@@ -364,23 +366,27 @@ class MatplotlibDrawer:
                         break
                     except json.JSONDecodeError as e:
                         warn(
-                            "Could not decode JSON in file '{}': {}. ".format(path, str(e))
-                            + "Will use default style.",
+                            (
+                                f"Could not decode JSON in file '{path}': {str(e)}. "
+                                "Will use default style."
+                            ),
                             UserWarning,
                             2,
                         )
                         break
                     except (OSError, FileNotFoundError):
                         warn(
-                            "Error loading JSON file '{}'. Will use default style.".format(path),
+                            "Error loading JSON file '{path}'. Will use default style.",
                             UserWarning,
                             2,
                         )
                         break
             else:
                 warn(
-                    "Style JSON file '{}' not found in any of these locations: {}. Will use"
-                    " default style.".format(style_name, ", ".join(style_path)),
+                    (
+                        f"Style JSON file '{style.name}' not found in any of these locations: "
+                        f"{', '.join(style_path)}. Will use default style."
+                    ),
                     UserWarning,
                     2,
                 )
@@ -468,7 +474,7 @@ class MatplotlibDrawer:
             gate_text = op.name
 
         if gate_text in self._style["disptex"]:
-            gate_text = "{}".format(self._style["disptex"][gate_text])
+            gate_text = f"{self._style['disptex'][gate_text]}"
         elif gate_text in (op.name, base_name) and not isinstance(op.op, (Gate, Instruction)):
             gate_text = gate_text.capitalize()
 
@@ -954,10 +960,10 @@ class MatplotlibDrawer:
             register = self._bit_locations[reg]["register"]
             index = self._bit_locations[reg]["index"]
 
-            # show register name and number if more than 1 register
+            # show register name and number if more than 1 bit in register
             if register.size > 1:
                 if self._layout is None:
-                    qubit_name = "${{{name}}}_{{{index}}}$".format(name=register.name, index=index)
+                    qubit_name = f"${register.name}_{index}$"
                 else:
                     if self._layout[index]:
                         virt_bit = self._layout[index]
@@ -965,22 +971,18 @@ class MatplotlibDrawer:
                             virt_reg = next(
                                 reg for reg in self._layout.get_registers() if virt_bit in reg
                             )
-                            qubit_name = "${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$".format(
-                                name=virt_reg.name,
-                                index=virt_reg[:].index(virt_bit),
-                                physical=index,
+                            qubit_name = (
+                                f"${virt_reg.name}_{virt_reg[:].index(virt_bit)}"
+                                f" \\mapsto {index}$"
                             )
-
                         except StopIteration:
-                            qubit_name = "${{{name}}} \\mapsto {{{physical}}}$".format(
-                                name=virt_bit, physical=index
-                            )
+                            qubit_name = f"${virt_bit} \\mapsto {index}$"
                     else:
-                        qubit_name = "${{{physical}}}$".format(physical=index)
+                        qubit_name = f"${index}$"
 
-            # if only 1 register, just show the register name
+            # if only 1 bit, just show the register name
             else:
-                qubit_name = "${{{name}}}$".format(name=register.name)
+                qubit_name = f"${register.name}$"
 
             qubit_name = _fix_double_script(qubit_name) + initial_qbit
             text_width = self._get_text_width(qubit_name, fs) * 1.15
@@ -1010,11 +1012,11 @@ class MatplotlibDrawer:
                 # if cregbundle show non-math reg name, if only 1 clbit, show math name
                 # else math name and number
                 if self._cregbundle:
-                    clbit_name = "{}".format(register.name)
+                    clbit_name = f"{register.name}"
                 elif register.size == 1:
-                    clbit_name = "${}$".format(register.name)
+                    clbit_name = f"${register.name}$"
                 else:
-                    clbit_name = "${}_{{{}}}$".format(register.name, index)
+                    clbit_name = f"${register.name}_{index}$"
                 clbit_name = _fix_double_script(clbit_name) + initial_cbit
                 text_width = self._get_text_width(register.name, fs) * 1.15
                 if text_width > longest_reg_name_width:
@@ -1203,8 +1205,8 @@ class MatplotlibDrawer:
                 ):
                     param = self._param_parse(op.op.params)
                     if op.name == "initialize":
-                        param = "[%s]" % param
-                    param = "${}$".format(param)
+                        param = f"[{param}]"
+                    param = f"${param}$"
                     param_width = self._get_text_width(param, fontsize=sfs, param=True) + 0.08
                 else:
                     param_width = 0.0
@@ -1293,7 +1295,7 @@ class MatplotlibDrawer:
                     and len(op.op.params) > 0
                     and not any(isinstance(param, np.ndarray) for param in op.op.params)
                 ):
-                    param = "{}".format(self._param_parse(op.op.params))
+                    param = f"{self._param_parse(op.op.params)}"
                 else:
                     param = ""
 
@@ -1358,7 +1360,7 @@ class MatplotlibDrawer:
                         self._barrier(_barriers)
 
                 elif op.name == "initialize":
-                    vec = "$[{}]$".format(param.replace("$", ""))
+                    vec = f"$[{param.replace('$', '')}]$"
                     if len(q_xy) == 1:
                         self._gate(q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec)
                     else:
@@ -1419,9 +1421,7 @@ class MatplotlibDrawer:
                         stext = "P"
                     else:
                         stext = "ZZ"
-                    self._sidetext(
-                        qubit_b, tc=tc, text="{}".format(stext) + " " + "({})".format(param)
-                    )
+                    self._sidetext(qubit_b, tc=tc, text=f"{stext} ({param})")
                     self._line(qubit_b, qubit_t, lc=lc)
 
                 # swap gate
@@ -1472,7 +1472,7 @@ class MatplotlibDrawer:
                             gt=gt,
                             sc=sc,
                             text=gate_text,
-                            subtext="{}".format(param),
+                            subtext=f"{param}",
                         )
                     else:
                         self._multiqubit_gate(
@@ -1482,13 +1482,19 @@ class MatplotlibDrawer:
                             gt=gt,
                             sc=sc,
                             text=gate_text,
-                            subtext="{}".format(param),
+                            subtext=f"{param}",
                         )
 
                 # draw multi-qubit gate as final default
                 else:
                     self._multiqubit_gate(
-                        q_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext="{}".format(param)
+                        q_xy,
+                        fc=fc,
+                        ec=ec,
+                        gt=gt,
+                        sc=sc,
+                        text=gate_text,
+                        subtext=f"{param}",
                     )
 
             # adjust the column if there have been barriers encountered, but not plotted
