@@ -1068,7 +1068,7 @@ class MatplotlibDrawer:
                 this_clbit_dict[y]["val"] += 1
         for y, this_clbit in this_clbit_dict.items():
             # cregbundle
-            if this_clbit["val"] > 1:
+            if self._cregbundle:
                 self._ax.plot(
                     [self._x_offset + 0.2, self._x_offset + 0.3],
                     [y - 0.1, y + 0.1],
