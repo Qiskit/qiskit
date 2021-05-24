@@ -817,6 +817,7 @@ stages:
             pip install -U "matplotlib<3.3.0" pylatexenc pillow
             python setup.py build_ext --inplace
             sudo apt install -y graphviz pandoc
+            sudo apt-get -y install $(cat apt.txt)
             pip check
           displayName: 'Install dependencies'
         - bash: python -m unittest discover -v test/ipynb
