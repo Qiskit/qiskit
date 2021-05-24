@@ -22,7 +22,6 @@ from typing import Optional, List, Union
 from functools import reduce
 import colorsys
 import numpy as np
-import sympy
 from scipy import linalg
 from qiskit import user_config
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -1208,6 +1207,8 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
     Returns:
         String with latex code or None if no term is required
     """
+    import sympy  # runtime import
+
     raw_value = complex(np.real_if_close(raw_value))
 
     value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
