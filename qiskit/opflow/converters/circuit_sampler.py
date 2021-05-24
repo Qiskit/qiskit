@@ -58,6 +58,7 @@ class CircuitSampler(ConverterBase):
         param_qobj: bool = False,
         attach_results: bool = False,
         caching: str = "last",
+        skip_transpile: bool = False,
     ) -> None:
         """
         Args:
@@ -97,6 +98,7 @@ class CircuitSampler(ConverterBase):
         self._transpiled_circ_cache: Optional[List[Any]] = None
         self._transpiled_circ_templates: Optional[List[Any]] = None
         self._transpile_before_bind = True
+        self._skip_transpile = skip_transpile
 
     def _check_quantum_instance_and_modes_consistent(self) -> None:
         """Checks whether the statevector and param_qobj settings are compatible with the
@@ -294,7 +296,10 @@ class CircuitSampler(ConverterBase):
                 circuits = [op_c.to_circuit(meas=True) for op_c in circuit_sfns]
 
             try:
-                self._transpiled_circ_cache = self.quantum_instance.transpile(circuits)
+                if self._skip_transpile:
+                    self._transpiled_circ_cache = circuits
+                else:
+                    self._transpiled_circ_cache = self.quantum_instance.transpile(circuits)
             except QiskitError:
                 logger.debug(
                     r"CircuitSampler failed to transpile circuits with unbound "

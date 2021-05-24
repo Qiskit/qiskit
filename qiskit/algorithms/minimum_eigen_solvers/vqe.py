@@ -104,6 +104,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
         quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        split_transpile: bool = False,
     ) -> None:
         """
 
@@ -139,6 +140,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 These are: the evaluation count, the optimizer parameters for the
                 ansatz, the evaluated mean and the evaluated standard deviation.`
             quantum_instance: Quantum Instance or Backend
+            split_transpile: ``True`` allows transpiling circuits for ansatz and expectation
+                separately.
         """
         validate_min("max_evals_grouped", max_evals_grouped, 1)
         if ansatz is None:
@@ -156,6 +159,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._expectation = expectation
         self._user_valid_expectation = self._expectation is not None
         self._include_custom = include_custom
+        self._split_transpile = split_transpile
         self._expect_op = None
 
         super().__init__(
@@ -197,7 +201,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         super(VQE, self.__class__).quantum_instance.__set__(self, quantum_instance)
 
         self._circuit_sampler = CircuitSampler(
-            self._quantum_instance, param_qobj=is_aer_provider(self._quantum_instance.backend)
+            self._quantum_instance, param_qobj=is_aer_provider(self._quantum_instance.backend),
+            skip_transpile=self._split_transpile
         )
 
     @property
@@ -317,7 +322,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             )
 
         observable_meas = self.expectation.convert(StateFn(operator, is_measurement=True))
-        ansatz_circuit_op = CircuitStateFn(wave_function)
+        if self._split_transpile:
+            ansatz_circuit_op = CircuitStateFn(self.quantum_instance.transpile(wave_function)[0])
+        else:
+            ansatz_circuit_op = CircuitStateFn(wave_function)
         return observable_meas.compose(ansatz_circuit_op).reduce()
 
     def construct_circuit(
