@@ -18,7 +18,15 @@ from test import combine
 import numpy as np
 from ddt import ddt
 
-from qiskit.quantum_info import Choi, Clifford, Operator, PauliTable, StabilizerTable, Stinespring
+from qiskit.quantum_info import (
+    Choi,
+    Clifford,
+    Operator,
+    PauliList,
+    PauliTable,
+    StabilizerTable,
+    Stinespring,
+)
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.random import (
     random_clifford,
@@ -222,6 +230,52 @@ class TestPauliTwoDesignTable(QiskitTestCase):
         random_pauli_table(10, size=10, seed=seed)
         rng_before = np.random.randint(1000, size=test_cases)
         random_pauli_table(10, seed=seed)
+        rng_after = np.random.randint(1000, size=test_cases)
+        self.assertFalse(np.all(rng_before == rng_after))
+
+
+@ddt
+class TestRandomPauliList(QiskitTestCase):
+    """Testing random_pauli_table function."""
+
+    @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 200, 250], size=[1, 10, 100])
+    def test_valid(self, num_qubits, size):
+        """Test random_pauli_list {num_qubits}-qubits, size {size}."""
+        value = random_pauli_list(num_qubits, size=size)
+        with self.subTest(msg="Test type"):
+            self.assertIsInstance(value, PauliList)
+        with self.subTest(msg="Test num_qubits"):
+            self.assertEqual(value.num_qubits, num_qubits)
+        with self.subTest(msg="Test type"):
+            self.assertEqual(len(value), size)
+
+    @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 200, 250], size=[1, 10, 100])
+    def test_valid_no_phase(self, num_qubits, size):
+        """Test random_pauli_list {num_qubits}-qubits, size {size} without phase."""
+        value = random_pauli_list(num_qubits, size=size, phase=False)
+        with self.subTest(msg="Test type"):
+            self.assertIsInstance(value, PauliList)
+        with self.subTest(msg="Test num_qubits"):
+            self.assertEqual(value.num_qubits, num_qubits)
+        with self.subTest(msg="Test type"):
+            self.assertEqual(len(value), size)
+        with self.subTest(msg="Test phase"):
+            self.assertFalse(value.phase.any())
+
+    def test_fixed_seed(self):
+        """Test fixing seed fixes output"""
+        seed = 1532
+        value1 = random_pauli_list(10, size=10, seed=seed)
+        value2 = random_pauli_list(10, size=10, seed=seed)
+        self.assertEqual(value1, value2)
+
+    def test_not_global_seed(self):
+        """Test fixing random_hermitian seed is locally scoped."""
+        seed = 314159
+        test_cases = 100
+        random_pauli_list(10, size=10, seed=seed)
+        rng_before = np.random.randint(1000, size=test_cases)
+        random_pauli_list(10, seed=seed)
         rng_after = np.random.randint(1000, size=test_cases)
         self.assertFalse(np.all(rng_before == rng_after))
 

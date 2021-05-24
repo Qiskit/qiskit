@@ -18,7 +18,7 @@ from numpy.random import default_rng
 
 from .clifford import Clifford
 from .pauli import Pauli
-from .pauli_list import PauliList, BasePauli
+from .pauli_list import PauliList
 from .pauli_table import PauliTable
 from .stabilizer_table import StabilizerTable
 
