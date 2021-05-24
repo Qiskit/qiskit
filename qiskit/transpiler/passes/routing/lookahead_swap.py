@@ -93,7 +93,7 @@ class LookaheadSwap(TransformationPass):
         if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError(
                 f"The layout ({len(self.coupling_map.physical_qubits)}) does not match"
-                f" the amount of qubits in the DAG {len(dag.qubits)}"
+                f" the amount of qubits in the DAG ({len(dag.qubits)})"
             )
 
         canonical_register = dag.qregs["q"]
