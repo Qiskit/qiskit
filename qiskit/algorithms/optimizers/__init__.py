@@ -106,6 +106,7 @@ from .cobyla import COBYLA
 from .gsls import GSLS
 from .imfil import IMFIL
 from .l_bfgs_b import L_BFGS_B
+from .gradient_descent import GradientDescent
 from .nelder_mead import NELDER_MEAD
 from .nft import NFT
 from .nlopts.crs import CRS

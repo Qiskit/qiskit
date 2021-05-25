@@ -14,9 +14,8 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-
 import numpy as np
-from scipy.optimize import rosen
+from scipy.optimize import rosen, rosen_der
 
 from qiskit.algorithms.optimizers import (
     ADAM,
@@ -31,6 +30,8 @@ from qiskit.algorithms.optimizers import (
     SPSA,
     TNC,
     SciPyOptimizer,
+    GSLS,
+    GradientDescent,
 )
 from qiskit.utils import algorithm_globals
 
@@ -42,9 +43,14 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         super().setUp()
         algorithm_globals.random_seed = 52
 
-    def _optimize(self, optimizer):
+    def _optimize(self, optimizer, grad=False):
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
-        res = optimizer.optimize(len(x_0), rosen, initial_point=x_0)
+        if grad:
+            res = optimizer.optimize(
+                len(x_0), rosen, gradient_function=rosen_der, initial_point=x_0
+            )
+        else:
+            res = optimizer.optimize(len(x_0), rosen, initial_point=x_0)
         np.testing.assert_array_almost_equal(res[0], [1.0] * len(x_0), decimal=2)
         return res
 
@@ -59,6 +65,12 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         optimizer = CG(maxiter=1000, tol=1e-06)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
+
+    def test_gradient_descent(self):
+        """cg test"""
+        optimizer = GradientDescent(maxiter=100000, tol=1e-06, learning_rate=1e-3)
+        res = self._optimize(optimizer, grad=True)
+        self.assertLessEqual(res[2], 100000)
 
     def test_cobyla(self):
         """cobyla test"""
