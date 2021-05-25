@@ -293,17 +293,25 @@ class GaussianSquare(ParametricPulse):
                 "Either the pulse width or the risefall_to_sigma parameter has to be specified."
             )
         elif self.width is not None:
-            if not _is_parameterized(self.width) and (
-                self.width < 0 or self.width >= self.duration
+            if not _is_parameterized(self.width) and self.width < 0:
+                raise PulseError("The pulse width must be at least 0.")
+            if (
+                not (_is_parameterized(self.width) or _is_parameterized(self.duration))
+                and self.width >= self.duration
             ):
-                raise PulseError("The pulse width must be at least 0 and less than its duration.")
+                raise PulseError("The pulse width must be less than its duration.")
+            self._risefall_to_sigma = (self.duration - self.width) / (2.0 * self.sigma)
+
         else:
-            if not _is_parameterized(self.risefall_to_sigma) and (
-                self.risefall_to_sigma <= 0
-                or self.risefall_to_sigma >= self.duration / (2.0 * self.sigma)
-            ):
+            if not _is_parameterized(self.risefall_to_sigma) and self.risefall_to_sigma <= 0:
+                raise PulseError("The parameter risefall_to_sigma must be greater than 0.")
+            if not (
+                _is_parameterized(self.risefall_to_sigma)
+                or _is_parameterized(self.duration)
+                or _is_parameterized(self.sigma)
+            ) and self.risefall_to_sigma >= self.duration / (2.0 * self.sigma):
                 raise PulseError(
-                    "The parameter risefall_to_sigma must be greater than 0 and less than duration/("
+                    "The parameter risefall_to_sigma must be less than duration/("
                     "2*sigma)={}.".format(self.duration / (2.0 * self.sigma))
                 )
             self._width = self.duration - 2.0 * self.risefall_to_sigma * self.sigma
