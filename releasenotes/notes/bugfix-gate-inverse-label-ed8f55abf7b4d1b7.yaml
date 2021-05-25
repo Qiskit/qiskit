@@ -4,5 +4,5 @@ fixes:
     Fixed bugs related to `label` and `name` attribute of :class:`~qiskit.circuit.Gate` 
     when calling the ``inverse()`` function (inherited from :class:`~qiskit.circuit.Instruction`).
     Earlier, the inverse() function returned a gate with label None. Now the label of 
-    inverse is built using the label calling it.
+    inverse is built using the label of the gate calling it.
     `#6404 <https://github.com/Qiskit/qiskit-terra/pull/6404>` for more details.
