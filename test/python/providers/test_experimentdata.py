@@ -503,7 +503,7 @@ class TestExperimentData(QiskitTestCase):
         """Test experiment metadata serialization."""
         metadata = {"complex": 2 + 3j, "numpy": np.zeros(2)}
         exp_data = ExperimentData(experiment_type="qiskit_test", metadata=metadata)
-        serialized = exp_data._serialize_metadata()
+        serialized = exp_data.serialize_metadata()
         self.assertIsInstance(serialized, str)
         self.assertTrue(json.loads(serialized))
 

@@ -365,6 +365,7 @@ class AnalysisResultV1(AnalysisResult):
         try:
             return self._extra_data[name]
         except KeyError:
+            # pylint: disable=raise-missing-from
             raise AttributeError("Attribute %s is not defined" % name)
 
     def __str__(self):

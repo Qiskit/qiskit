@@ -944,4 +944,5 @@ class ExperimentDataV1(ExperimentData):
         try:
             return self._extra_data[name]
         except KeyError:
+            # pylint: disable=raise-missing-from
             raise AttributeError("Attribute %s is not defined" % name)

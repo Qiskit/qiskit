@@ -14,12 +14,10 @@
 
 """Test AnalysisResult."""
 
-from datetime import datetime
 from unittest import mock
 import json
 
 import numpy as np
-from dateutil import tz
 
 from qiskit.test import QiskitTestCase
 from qiskit.providers.experiment.analysis_result import AnalysisResultV1 as AnalysisResult
@@ -133,15 +131,9 @@ class TestAnalysisResult(QiskitTestCase):
     def test_data_serialization(self):
         """Test result data serialization."""
         result = self._new_analysis_result(result_data={"complex": 2 + 3j, "numpy": np.zeros(2)})
-        serialized = result._serialize_data()
+        serialized = result.serialize_data()
         self.assertIsInstance(serialized, str)
         self.assertTrue(json.loads(serialized))
-
-    def test_creation_date(self):
-        """Test creation date."""
-        local_dt = datetime.now(tz=tz.tzlocal())
-        result = self._new_analysis_result(creation_date=local_dt.astimezone(tz.UTC).isoformat())
-        self.assertEqual(local_dt, result.creation_date)
 
     def test_source(self):
         """Test getting analysis result source."""

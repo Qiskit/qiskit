@@ -18,10 +18,9 @@ from functools import wraps
 from datetime import datetime, timezone
 import threading
 from collections import OrderedDict
-from abc import ABC
-from abc import abstractmethod
-import pkg_resources
+from abc import ABC, abstractmethod
 import traceback
+import pkg_resources
 
 import dateutil.parser
 from dateutil import tz
@@ -111,7 +110,7 @@ def save_data(
                 except ExperimentEntryNotFound:
                     is_new = True
         raise ExperimentError("Unable to determine the existence of the entry.")
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception:  # pylint: disable=broad-except
         # Don't fail the experiment just because its data cannot be saved.
         LOG.error("Unable to save the experiment data: %s", traceback.format_exc())
         return False, None
