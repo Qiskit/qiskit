@@ -231,6 +231,12 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
+    # Overwrite some passes
+    from qiskit.transpiler.passes.routing import MIPMapping
+    _swap = MIPMapping(coupling_map,
+                       silent=False,
+                       basis_fidelity=1-6.4e-3)
+
     # Build pass manager
     pm3 = PassManager()
     pm3.append(_unroll3q)
