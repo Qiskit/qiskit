@@ -230,8 +230,8 @@ class GaussianSquare(ParametricPulse):
         duration: Union[int, ParameterExpression],
         amp: Union[complex, ParameterExpression],
         sigma: Union[float, ParameterExpression],
-        risefall_to_sigma: Union[float, ParameterExpression] = None,
         width: Union[float, ParameterExpression] = None,
+        risefall_to_sigma: Union[float, ParameterExpression] = None,
         name: Optional[str] = None,
     ):
         """Initialize the gaussian square pulse.
