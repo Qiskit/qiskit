@@ -195,30 +195,16 @@ class Results:
     def exit(self):
         """Exit status method"""
         messagge = "OK"
-        print(
-            "SYSTEM_PULLREQUEST_SOURCEBRANCH",
-            os.getenv("SYSTEM_PULLREQUEST_SOURCEBRANCH", "0"),
-        )
-        print(
-            "SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI",
-            os.getenv("SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI", "1"),
-        )
-
-        print(
-            "BUILD_REPOSITORY_NAME",
-            os.getenv("BUILD_REPOSITORY_NAME", "2"),
-        )
         error = len(self.mismatch) + len(self.missing)
         if error:
-            github_user = ""
-            repo = ""
-            branch = ""
+            sourcebranch = os.getenv("SYSTEM_PULLREQUEST_SOURCEBRANCH", "<branch>")
             messagge = (
-                f"Visit https://mybinder.org/v2/gh/{github_user}/{repo}/{branch}>?"
+                f"Visit https://mybinder.org/v2/gh/<github_user>>/<repo>/{sourcebranch}>?"
                 "urlpath=apps/test/ipynb/mpl_tester.ipynb to check what went wrong. "
                 f"Mismatches {self.mismatch}; Missing {self.missing}"
             )
-        sys.exit(error, messagge)
+        print(messagge)
+        sys.exit(error)
 
 
 if __name__ == "__main__":
