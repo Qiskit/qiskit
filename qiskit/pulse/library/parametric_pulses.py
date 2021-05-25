@@ -88,7 +88,7 @@ class ParametricPulse(Pulse):
 
     @deprecated_functionality
     def assign(
-        self, parameter: ParameterExpression, value: ParameterValueType
+            self, parameter: ParameterExpression, value: ParameterValueType
     ) -> "ParametricPulse":
         """Assign one parameter to a value, which can either be numeric or another parameter
         expression.
@@ -97,7 +97,7 @@ class ParametricPulse(Pulse):
 
     @deprecated_functionality
     def assign_parameters(
-        self, value_dict: Dict[ParameterExpression, ParameterValueType]
+            self, value_dict: Dict[ParameterExpression, ParameterValueType]
     ) -> "ParametricPulse":
         """Return a new ParametricPulse with parameters assigned.
 
@@ -136,11 +136,11 @@ class Gaussian(ParametricPulse):
     """
 
     def __init__(
-        self,
-        duration: Union[int, ParameterExpression],
-        amp: Union[complex, ParameterExpression],
-        sigma: Union[float, ParameterExpression],
-        name: Optional[str] = None,
+            self,
+            duration: Union[int, ParameterExpression],
+            amp: Union[complex, ParameterExpression],
+            sigma: Union[float, ParameterExpression],
+            name: Optional[str] = None,
     ):
         """Initialize the gaussian pulse.
 
@@ -225,13 +225,13 @@ class GaussianSquare(ParametricPulse):
     """
 
     def __init__(
-        self,
-        duration: Union[int, ParameterExpression],
-        amp: Union[complex, ParameterExpression],
-        sigma: Union[float, ParameterExpression],
-        risefall_to_sigma: Union[float, ParameterExpression] = None,
-        width: Union[float, ParameterExpression] = None,
-        name: Optional[str] = None,
+            self,
+            duration: Union[int, ParameterExpression],
+            amp: Union[complex, ParameterExpression],
+            sigma: Union[float, ParameterExpression],
+            risefall_to_sigma: Union[float, ParameterExpression] = None,
+            width: Union[float, ParameterExpression] = None,
+            name: Optional[str] = None,
     ):
         """Initialize the gaussian square pulse.
 
@@ -283,19 +283,19 @@ class GaussianSquare(ParametricPulse):
             raise PulseError("The amplitude norm must be <= 1, " "found: {}".format(abs(self.amp)))
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
-        if not (self.width == None or self.risefall_to_sigma == None):
-            raise PulseError("Ether the pulse width or the risefall_to_sigma parameter can be specified.")
-        elif (self.width == None and self.risefall_to_sigma == None):
+        if self.width is not None and self.risefall_to_sigma is not None:
+            raise PulseError("Either the pulse width or the risefall_to_sigma parameter can be specified.")
+        elif self.width is None and self.risefall_to_sigma is None:
             raise PulseError("Either the pulse width or the risefall_to_sigma parameter has to be specified.")
-        elif not self.width == None:
+        elif self.width is not None:
             if not _is_parameterized(self.width) and (self.width < 0 or self.width >= self.duration):
                 raise PulseError("The pulse width must be at least 0 and less than its duration.")
         else:
-            if not _is_parameterized(self.risefall_to_sigma) and (self.risefall_to_sigma <= 0 or self.risefall_to_sigma >= self.duration/(2.0*self.sigma)):
-                raise PulseError("The parameter risefall_to_sigma must be greater than 0 and less than duration/(2*sigma)={}.".format(self.duration/(2.0*self.sigma)))
-            self._width=self.duration-2.0*self.risefall_to_sigma*self.sigma
-
-
+            if not _is_parameterized(self.risefall_to_sigma) and (self.risefall_to_sigma <= 0 or self.risefall_to_sigma
+                                                                  >= self.duration / (2.0 * self.sigma)):
+                raise PulseError("The parameter risefall_to_sigma must be greater than 0 and less than duration/("
+                                 "2*sigma)={}.".format(self.duration / (2.0 * self.sigma)))
+            self._width = self.duration - 2.0 * self.risefall_to_sigma * self.sigma
 
     @property
     def parameters(self) -> Dict[str, Any]:
@@ -352,12 +352,12 @@ class Drag(ParametricPulse):
     """
 
     def __init__(
-        self,
-        duration: Union[int, ParameterExpression],
-        amp: Union[complex, ParameterExpression],
-        sigma: Union[float, ParameterExpression],
-        beta: Union[float, ParameterExpression],
-        name: Optional[str] = None,
+            self,
+            duration: Union[int, ParameterExpression],
+            amp: Union[complex, ParameterExpression],
+            sigma: Union[float, ParameterExpression],
+            beta: Union[float, ParameterExpression],
+            name: Optional[str] = None,
     ):
         """Initialize the drag pulse.
 
@@ -405,9 +405,9 @@ class Drag(ParametricPulse):
             raise PulseError("Beta must be real.")
         # Check if beta is too large: the amplitude norm must be <=1 for all points
         if (
-            not _is_parameterized(self.beta)
-            and not _is_parameterized(self.sigma)
-            and self.beta > self.sigma
+                not _is_parameterized(self.beta)
+                and not _is_parameterized(self.sigma)
+                and self.beta > self.sigma
         ):
             # If beta <= sigma, then the maximum amplitude is at duration / 2, which is
             # already constrainted by self.amp <= 1
@@ -460,10 +460,10 @@ class Constant(ParametricPulse):
     """
 
     def __init__(
-        self,
-        duration: Union[int, ParameterExpression],
-        amp: Union[complex, ParameterExpression],
-        name: Optional[str] = None,
+            self,
+            duration: Union[int, ParameterExpression],
+            amp: Union[complex, ParameterExpression],
+            name: Optional[str] = None,
     ):
         """
         Initialize the constant-valued pulse.
