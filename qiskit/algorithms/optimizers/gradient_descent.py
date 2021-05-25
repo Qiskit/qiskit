@@ -1,4 +1,4 @@
-"""A generalized SPSA optimizer including support for Hessians."""
+"""A standard gradient descent optimizer."""
 
 from typing import Iterator, Optional, Union, Callable
 from functools import partial

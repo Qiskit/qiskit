@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for the SPSA optimizer."""
+"""Tests for the Gradient Descent optimizer."""
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
