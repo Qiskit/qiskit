@@ -35,9 +35,9 @@ def decompose_clifford(clifford, method=None):
     """Decompose a Clifford operator into a QuantumCircuit.
 
     For N <= 3 qubits this is based on optimal CX cost decomposition
-    from references [1, 2]. For N > 3 qubits this is done using the general
-    non-optimal greedy compilation routine from reference [4],
-    which typically yields better CX cost compared to the AG method in [3].
+    from reference [1]. For N > 3 qubits this is done using the general
+    non-optimal greedy compilation routine from reference [3],
+    which typically yields better CX cost compared to the AG method in [2].
 
     Args:
         clifford (Clifford): a clifford operator.
@@ -48,13 +48,7 @@ def decompose_clifford(clifford, method=None):
         QuantumCircuit: a circuit implementation of the Clifford.
 
     References:
-        1. A. D. C'orcoles , Jay M. Gambetta, Jerry M. Chow, John A. Smolin, Matthew Ware,
-        J. D. Strand, B. L. T. Plourde, and M. Steffen, Supplementary material for
-        *Process verification of two qubit quantum gates by randomized benchmarking*,
-        Phys. Rev. A 87(030301(R)), 2013.
-        `arXiv:1210.7011 [quant-ph] <https://arxiv.org/abs/1210.7011>`_
-
-        2. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
+        1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
 
@@ -63,12 +57,10 @@ def decompose_clifford(clifford, method=None):
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
 
         3. Sergey Bravyi, Shaohan Hu, Dmitri Maslov, Ruslan Shaydulin,
-           *Clifford Circuit Optimization with Templates and Symbolic Pauli Gates*
+           *Clifford Circuit Optimization with Templates and Symbolic Pauli Gates*,
+           `arXiv:2105.02291 [quant-ph] <https://arxiv.org/abs/2105.02291>`_
     """
     num_qubits = clifford.num_qubits
-
-    # if num_qubits == 2:
-    #    decompose_clifford_2q(clifford)
 
     if method == "AG":
         return decompose_clifford_ag(clifford)
@@ -80,20 +72,6 @@ def decompose_clifford(clifford, method=None):
         return decompose_clifford_bm(clifford)
 
     return decompose_clifford_greedy(clifford)
-
-
-# ---------------------------------------------------------------------
-# 2-qubit Clifford decomposition
-# ---------------------------------------------------------------------
-
-
-def decompose_clifford_2q(clifford):
-    """Decompose a clifford"""
-    num_qubits = clifford.num_qubits
-    if num_qubits != 2:
-        raise QiskitError("Clifford is not on two qubits.")
-
-    print(clifford)
 
 
 # ---------------------------------------------------------------------
