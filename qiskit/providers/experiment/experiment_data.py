@@ -27,7 +27,6 @@ from datetime import datetime
 from qiskit.providers import Job, BaseJob, Backend, BaseBackend, Provider
 from qiskit.result import Result
 from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
-from qiskit.providers import experiment  # pylint: disable=unused-import
 from qiskit.providers.exceptions import JobError
 
 from .exceptions import ExperimentError, ExperimentEntryNotFound, ExperimentEntryExists
@@ -163,6 +162,8 @@ class ExperimentDataV1(ExperimentData):
         self,
         data: Union[Result, List[Result], Job, List[Job], Dict, List[Dict]],
         post_processing_callback: Optional[Callable] = None,
+        *args: Any,
+        **kwargs: Any,
     ):
         """Add experiment data.
 
@@ -183,6 +184,8 @@ class ExperimentDataV1(ExperimentData):
             post_processing_callback: Callback function invoked when all pending
                 jobs finish. This ``ExperimentData`` object is the only argument
                 to be passed to the callback function.
+            *args: Positional arguments to be passed to the callback function.
+            **kwargs: Keyword arguments to be passed to the callback function.
         Raises:
             TypeError: If the input data type is invalid.
         """
@@ -206,7 +209,12 @@ class ExperimentDataV1(ExperimentData):
 
             self._jobs[data.job_id()] = data
             self._job_futures.append(
-                (data, self._executor.submit(self._wait_for_job, data, post_processing_callback))
+                (
+                    data,
+                    self._executor.submit(
+                        self._wait_for_job, data, post_processing_callback, *args, **kwargs
+                    ),
+                )
             )
             if self.auto_save:
                 self.save()
@@ -218,13 +226,19 @@ class ExperimentDataV1(ExperimentData):
             raise TypeError(f"Invalid data type {type(data)}.")
 
     def _wait_for_job(
-        self, job: Union[Job, BaseJob], job_done_callback: Optional[Callable] = None
+        self,
+        job: Union[Job, BaseJob],
+        job_done_callback: Optional[Callable] = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         """Wait for a job to finish.
 
         Args:
             job: Job to wait for.
             job_done_callback: Callback function to invoke when job finishes.
+            *args: Positional arguments to be passed to the callback function.
+            **kwargs: Keyword arguments to be passed to the callback function.
         """
         LOG.debug("Waiting for job %s to finish.", job.job_id())
         try:
@@ -233,7 +247,7 @@ class ExperimentDataV1(ExperimentData):
             LOG.warning("Job %s failed: %s", job.job_id(), str(err))
             return
         if job_done_callback:
-            job_done_callback(self)
+            job_done_callback(self, *args, **kwargs)
 
     def _add_result_data(self, result: Result) -> None:
         """Add data from a Result object
@@ -307,7 +321,7 @@ class ExperimentDataV1(ExperimentData):
         figure_name: Optional[str] = None,
         overwrite: bool = False,
         save_figure: Optional[bool] = None,
-        service: Optional["experiment.ExperimentServiceV1"] = None,
+        service: Optional["ExperimentServiceV1"] = None,
     ) -> str:
         """Add the experiment figure.
 
@@ -369,7 +383,7 @@ class ExperimentDataV1(ExperimentData):
     def delete_figure(
         self,
         figure_key: Union[str, int],
-        service: Optional["experiment.ExperimentServiceV1"] = None,
+        service: Optional["ExperimentServiceV1"] = None,
     ) -> str:
         """Add the experiment figure.
 
@@ -438,7 +452,7 @@ class ExperimentDataV1(ExperimentData):
 
     @auto_save
     def add_analysis_result(
-        self, result: AnalysisResult, service: "experiment.ExperimentServiceV1" = None
+        self, result: AnalysisResult, service: "ExperimentServiceV1" = None
     ) -> None:
         """Save the analysis result.
 
@@ -459,7 +473,7 @@ class ExperimentDataV1(ExperimentData):
 
     @auto_save
     def delete_analysis_result(
-        self, result_key: Union[int, str], service: "experiment.ExperimentServiceV1" = None
+        self, result_key: Union[int, str], service: "ExperimentServiceV1" = None
     ) -> str:
         """Delete the analysis result.
 
@@ -531,7 +545,7 @@ class ExperimentDataV1(ExperimentData):
 
         raise TypeError(f"Invalid index type {type(index)}.")
 
-    def save(self, service: Optional["experiment.ExperimentServiceV1"] = None) -> None:
+    def save(self, service: Optional["ExperimentServiceV1"] = None) -> None:
         """Save this experiment in the database.
 
         Note:
@@ -581,7 +595,7 @@ class ExperimentDataV1(ExperimentData):
             update_data=update_data,
         )
 
-    def save_all(self, service: Optional["experiment.ExperimentServiceV1"] = None) -> None:
+    def save_all(self, service: Optional["ExperimentServiceV1"] = None) -> None:
         """Save this experiment and its analysis results and figures in the database.
 
         Note:
@@ -893,7 +907,7 @@ class ExperimentDataV1(ExperimentData):
             self.save()
 
     @property
-    def service(self) -> Optional["experiment.ExperimentServiceV1"]:
+    def service(self) -> Optional["ExperimentServiceV1"]:
         """Return the database service.
 
         Returns:
@@ -902,7 +916,7 @@ class ExperimentDataV1(ExperimentData):
         return self._service
 
     @service.setter
-    def service(self, service: "experiment.ExperimentServiceV1") -> None:
+    def service(self, service: "ExperimentServiceV1") -> None:
         """Set the service to be used for storing experiment data remotely.
 
         Args:

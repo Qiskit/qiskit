@@ -146,6 +146,27 @@ class TestExperimentData(QiskitTestCase):
         exp_data.block_for_jobs()
         self.assertTrue(called_back)
 
+    def test_add_data_job_callback_args(self):
+        """Test add job data with callback and additional arguments."""
+
+        def _callback(_exp_data, *args, **kwargs):
+            self.assertIsInstance(_exp_data, ExperimentData)
+            self.assertEqual((callback_arg,), args)
+            self.assertEqual({"bar": callback_kwargs}, kwargs)
+            nonlocal called_back
+            called_back = True
+
+        a_job = mock.create_autospec(Job, instance=True)
+        a_job.result.return_value = self._get_job_result(2)
+
+        called_back = False
+        callback_arg = "foo"
+        callback_kwargs = "bar"
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
+        exp_data.add_data(a_job, _callback, callback_arg, bar=callback_kwargs)
+        exp_data.block_for_jobs()
+        self.assertTrue(called_back)
+
     def test_get_data(self):
         """Test getting data."""
         data1 = []
