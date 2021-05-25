@@ -199,7 +199,7 @@ class Results:
         if error:
             sourcebranch = os.getenv("SYSTEM_PULLREQUEST_SOURCEBRANCH", "<branch>")
             messagge = (
-                f"Visit https://mybinder.org/v2/gh/<github_user>>/<repo>/{sourcebranch}>?"
+                f"Visit https://mybinder.org/v2/gh/<github_user>/<repo>/{sourcebranch}?"
                 "urlpath=apps/test/ipynb/mpl_tester.ipynb to check what went wrong. "
                 f"Mismatches {self.mismatch}; Missing {self.missing}"
             )
