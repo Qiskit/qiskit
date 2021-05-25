@@ -191,24 +191,24 @@ class Gaussian(ParametricPulse):
 
 
 class GaussianSquare(ParametricPulse):
-    """A square pulse with a Gaussian shaped risefall on either side. Either risefall_to_sigma or width parameter has
-    to be specified.
+    """A square pulse with a Gaussian shaped risefall on both sides. Either risefall_to_sigma or width parameter has to be specified.
 
-     If risefall_to_sigma is not None and width is None:
+    If risefall_to_sigma is not None and width is None:
 
-     .. math::
+    .. math::
 
-        risefall = risefall_to_sigma *  sigma
+        risefall = risefall\_to\_sigma *  sigma
 
         width = duration - 2 * risefall
 
-    If width is not None and risefall_to_sigma is None::
+    If width is not None and risefall_to_sigma is None:
 
     .. math::
 
         risefall = (duration - width) / 2
 
     In both cases, the pulse is defined as:
+
     .. math::
 
         0 <= x < risefall
@@ -222,6 +222,7 @@ class GaussianSquare(ParametricPulse):
         risefall + width <= x < duration
 
         f(x) = amp * exp( -(1/2) * (x - (risefall + width)/2)^2 / sigma^2) )
+
     """
 
     def __init__(
