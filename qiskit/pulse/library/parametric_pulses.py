@@ -191,11 +191,25 @@ class Gaussian(ParametricPulse):
 
 
 class GaussianSquare(ParametricPulse):
-    """A square pulse with a Gaussian shaped risefall on either side:
+    """A square pulse with a Gaussian shaped risefall on either side. Either risefall_to_sigma or width parameter has
+    to be specified.
+
+     If risefall_to_sigma is not None and width is None:
+
+     .. math::
+
+        risefall = risefall_to_sigma *  sigma
+
+        width = duration - 2 * risefall
+
+    If width is not None and risefall_to_sigma is None::
 
     .. math::
 
         risefall = (duration - width) / 2
+
+    In both cases, the pulse is defined as:
+    .. math::
 
         0 <= x < risefall
 
@@ -215,7 +229,8 @@ class GaussianSquare(ParametricPulse):
         duration: Union[int, ParameterExpression],
         amp: Union[complex, ParameterExpression],
         sigma: Union[float, ParameterExpression],
-        width: Union[float, ParameterExpression],
+        risefall_to_sigma: Union[float, ParameterExpression] = None,
+        width: Union[float, ParameterExpression] = None,
         name: Optional[str] = None,
     ):
         """Initialize the gaussian square pulse.
@@ -225,6 +240,7 @@ class GaussianSquare(ParametricPulse):
             amp: The amplitude of the Gaussian and of the square pulse.
             sigma: A measure of how wide or narrow the Gaussian risefall is; see the class
                    docstring for more details.
+            risefall_to_sigma: The ratio of each risefall duration to sigma.
             width: The duration of the embedded square pulse.
             name: Display name for this pulse envelope.
         """
@@ -232,6 +248,7 @@ class GaussianSquare(ParametricPulse):
             amp = complex(amp)
         self._amp = amp
         self._sigma = sigma
+        self._risefall_to_sigma = risefall_to_sigma
         self._width = width
         super().__init__(duration=duration, name=name)
 
@@ -246,6 +263,11 @@ class GaussianSquare(ParametricPulse):
         return self._sigma
 
     @property
+    def risefall_to_sigma(self) -> Union[float, ParameterExpression]:
+        """The duration of each risefall in terms of sigma."""
+        return self._risefall_to_sigma
+
+    @property
     def width(self) -> Union[float, ParameterExpression]:
         """The width of the square portion of the pulse."""
         return self._width
@@ -256,12 +278,24 @@ class GaussianSquare(ParametricPulse):
         )
 
     def validate_parameters(self) -> None:
+
         if not _is_parameterized(self.amp) and abs(self.amp) > 1.0:
             raise PulseError("The amplitude norm must be <= 1, " "found: {}".format(abs(self.amp)))
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
-        if not _is_parameterized(self.width) and (self.width < 0 or self.width >= self.duration):
-            raise PulseError("The pulse width must be at least 0 and less than its duration.")
+        if not (self.width == None or self.risefall_to_sigma == None):
+            raise PulseError("Ether the pulse width or the risefall_to_sigma parameter can be specified.")
+        elif (self.width == None and self.risefall_to_sigma == None):
+            raise PulseError("Either the pulse width or the risefall_to_sigma parameter has to be specified.")
+        elif not self.width == None:
+            if not _is_parameterized(self.width) and (self.width < 0 or self.width >= self.duration):
+                raise PulseError("The pulse width must be at least 0 and less than its duration.")
+        else:
+            if not _is_parameterized(self.risefall_to_sigma) and (self.risefall_to_sigma <= 0 or self.risefall_to_sigma >= self.duration/(2.0*self.sigma)):
+                raise PulseError("The parameter risefall_to_sigma must be greater than 0 and less than duration/(2*sigma)={}.".format(self.duration/(2.0*self.sigma)))
+            self._width=self.duration-2.0*self.risefall_to_sigma*self.sigma
+
+
 
     @property
     def parameters(self) -> Dict[str, Any]:
