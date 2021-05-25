@@ -46,6 +46,16 @@ class Resonator(DeviceComponent):
         return f"R{self._index}"
 
 
+class UnknownComponent(DeviceComponent):
+    """Class representing unknown device component."""
+
+    def __init__(self, component: str):
+        self._component = component
+
+    def __str__(self):
+        return self._component
+
+
 def to_component(string: str) -> DeviceComponent:
     """Convert the input string to a ``DeviceComponent`` instance.
 
@@ -63,4 +73,4 @@ def to_component(string: str) -> DeviceComponent:
     elif string.startswith("R"):
         return Resonator(int(string[1:]))
     else:
-        raise ValueError(f"Input string {string} is not a valid device component.")
+        return UnknownComponent(string)

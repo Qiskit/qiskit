@@ -90,6 +90,7 @@ class TestExperimentData(QiskitTestCase):
         exp_data.add_data(a_result)
         exp_data.add_data(results)
         self.assertEqual(expected, [sdata["counts"] for sdata in exp_data.data()])
+        self.assertIn(a_result.job_id, exp_data.job_ids)
 
     def test_add_data_result_metadata(self):
         """Test add result metadata."""
@@ -121,6 +122,7 @@ class TestExperimentData(QiskitTestCase):
         exp_data.add_data(jobs)
         exp_data.block_for_jobs()
         self.assertEqual(expected, [sdata["counts"] for sdata in exp_data.data()])
+        self.assertIn(a_job.job_id(), exp_data.job_ids)
 
     def test_add_data_job_callback(self):
         """Test add job data with callback."""
@@ -130,6 +132,8 @@ class TestExperimentData(QiskitTestCase):
             self.assertEqual(
                 [dat["counts"] for dat in _exp_data.data()], a_job.result().get_counts()
             )
+            exp_data.add_figure(str.encode("hello world"))
+            exp_data.add_analysis_result(mock.MagicMock())
             nonlocal called_back
             called_back = True
 
@@ -190,6 +194,17 @@ class TestExperimentData(QiskitTestCase):
 
         exp_data.add_figure(friend_bytes, fn, overwrite=True)
         self.assertEqual(friend_bytes, exp_data.figure(fn))
+
+    def test_add_figure_save(self):
+        """Test saving a figure in the database."""
+        hello_bytes = str.encode("hello world")
+        service = self._set_mock_service()
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
+        exp_data.add_figure(hello_bytes, save_figure=True)
+        service.create_figure.assert_called_once()
+        _, kwargs = service.create_figure.call_args
+        self.assertEqual(kwargs["figure"], hello_bytes)
+        self.assertEqual(kwargs["experiment_id"], exp_data.experiment_id)
 
     def test_get_figure(self):
         """Test getting figure."""

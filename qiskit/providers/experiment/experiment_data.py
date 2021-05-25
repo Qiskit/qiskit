@@ -22,6 +22,7 @@ from functools import wraps
 import traceback
 import contextlib
 from collections import deque
+from datetime import datetime
 
 from qiskit.providers import Job, BaseJob, Backend, BaseBackend, Provider
 from qiskit.result import Result
@@ -240,6 +241,8 @@ class ExperimentDataV1(ExperimentData):
         Args:
             result: Result object containing data to be added.
         """
+        if result.job_id not in self._jobs:
+            self._jobs[result.job_id] = None
         for i in range(len(result.results)):
             data = result.data(i)
             data["job_id"] = result.job_id
@@ -303,6 +306,7 @@ class ExperimentDataV1(ExperimentData):
         figure: Union[str, bytes],
         figure_name: Optional[str] = None,
         overwrite: bool = False,
+        save_figure: Optional[bool] = None,
         service: Optional["experiment.ExperimentServiceV1"] = None,
     ) -> str:
         """Add the experiment figure.
@@ -313,8 +317,10 @@ class ExperimentDataV1(ExperimentData):
                 given, or a generated name.
             overwrite: Whether to overwrite the figure if one already exists with
                 the same name.
-            service: Experiment service to be used to update the database. If ``None``,
-                the default service is used.
+            save_figure: Whether to save the figure in the database. If ``None``,
+                the ``auto-save`` attribute is used.
+            service: Experiment service to be used to update the database, if
+                the figure is to be uploaded. If ``None``, the default service is used.
 
         Returns:
             Figure name.
@@ -327,7 +333,7 @@ class ExperimentDataV1(ExperimentData):
             if isinstance(figure, str):
                 figure_name = figure
             else:
-                figure_name = f"figure_{self.experiment_id}_{len(self.figure_names)}"
+                figure_name = f"figure_{self.experiment_id}_{datetime.now().isoformat()}"
 
         existing_figure = figure_name in self._figures
         if existing_figure and not overwrite:
@@ -342,7 +348,8 @@ class ExperimentDataV1(ExperimentData):
         self._figures[figure_name] = figure
 
         service = service or self._service
-        if self.auto_save and service:
+        save = save_figure if save_figure is not None else self.auto_save
+        if save and service:
             data = {
                 "experiment_id": self.experiment_id,
                 "figure": figure,
@@ -444,6 +451,7 @@ class ExperimentDataV1(ExperimentData):
 
         with contextlib.suppress(ExperimentError):
             result.service = self.service
+            result.auto_save = self.auto_save
 
         use_service = service or self.service
         if self.auto_save and use_service:
@@ -477,7 +485,7 @@ class ExperimentDataV1(ExperimentData):
         service = service or self._service
         if service and self.auto_save:
             with contextlib.suppress(ExperimentEntryNotFound):
-                self.service.delete_analysis_result(analysis_result_id=result_key)
+                self.service.delete_analysis_result(result_id=result_key)
             self._deleted_analysis_results.remove(result_key)
 
         return result_key
@@ -551,14 +559,15 @@ class ExperimentDataV1(ExperimentData):
             LOG.warning("Experiment cannot be saved because backend is missing.")
             return
 
-        metadata = json.loads(self._serialize_metadata())
-        metadata.update(self._source)
+        metadata = json.loads(self.serialize_metadata())
+        metadata["_source"] = self._source
 
         update_data = {
             "experiment_id": self._id,
             "metadata": metadata,
             "job_ids": self.job_ids,
-            "tags": self.tags,
+            "tags": self.tags(),
+            "notes": self.notes,
         }
         new_data = {"experiment_type": self._type, "backend_name": self._backend.name()}
         if self.share_level:
@@ -597,7 +606,7 @@ class ExperimentDataV1(ExperimentData):
 
         for result in self._deleted_analysis_results.copy():
             try:
-                use_service.delete_analysis_result(analysis_result_id=result)
+                use_service.delete_analysis_result(result_id=result)
             except ExperimentEntryNotFound:
                 pass
             self._deleted_analysis_results.remove(result)
@@ -620,7 +629,7 @@ class ExperimentDataV1(ExperimentData):
                 pass
             self._deleted_figures.remove(name)
 
-    def _serialize_metadata(self) -> str:
+    def serialize_metadata(self) -> str:
         """Serialize experiment metadata into a JSON string.
 
         Returns:
@@ -639,6 +648,34 @@ class ExperimentDataV1(ExperimentData):
             Deserialized data.
         """
         return json.loads(data, cls=cls._json_decoder)
+
+    @classmethod
+    def from_data(
+        cls,
+        experiment_type: str,
+        experiment_id: str,
+        metadata: Optional[Dict] = None,
+        **kwargs,
+    ) -> "ExperimentDataV1":
+        """Reconstruct an ExperimentData using the input data.
+
+        Args:
+            experiment_type: Experiment type.
+            experiment_id: Experiment ID. One will be generated if not supplied.
+            metadata: Additional experiment metadata.
+            **kwargs: Additional experiment attributes.
+
+        Returns:
+            An ExperimentData instance.
+        """
+        if metadata:
+            metadata = cls.deserialize_metadata(json.dumps(metadata))
+        return cls(
+            experiment_type=experiment_type,
+            experiment_id=experiment_id,
+            metadata=metadata,
+            **kwargs,
+        )
 
     def cancel_jobs(self) -> None:
         """Cancel any running jobs."""

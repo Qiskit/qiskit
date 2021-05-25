@@ -129,7 +129,7 @@ class AnalysisResultV1(AnalysisResult):
                 pass
         self._extra_data = kwargs
 
-    def _serialize_data(self) -> str:
+    def serialize_data(self) -> str:
         """Serialize result data into JSON string.
 
         Returns:
@@ -149,7 +149,36 @@ class AnalysisResultV1(AnalysisResult):
         """
         return json.loads(data, cls=cls._json_decoder)
 
-    # TODO - from_data() ?
+    @classmethod
+    def from_data(
+        cls,
+        result_data: Dict,
+        result_type: str,
+        device_components: List[Union[DeviceComponent, str]],
+        experiment_id: str,
+        **kwargs,
+    ) -> "AnalysisResultV1":
+        """Reconstruct the analysis result from input data.
+
+        Args:
+            result_data: Analysis result data.
+            result_type: Analysis result type.
+            device_components: Target device components this analysis is for.
+            experiment_id: ID of the experiment.
+            **kwargs: Additional analysis result attributes.
+
+        Returns:
+            Reconstructed analysis result.
+        """
+        if result_data:
+            result_data = cls.deserialize_data(json.dumps(result_data))
+        return cls(
+            result_data=result_data,
+            result_type=result_type,
+            device_components=device_components,
+            experiment_id=experiment_id,
+            **kwargs,
+        )
 
     def save(self, service: Optional["ExperimentServiceV1"] = None) -> None:
         """Save this analysis result in the database.
@@ -163,18 +192,25 @@ class AnalysisResultV1(AnalysisResult):
         """
         service = service or self._service
         if not service:
-            LOG.warning("Experiment cannot be saved because no experiment service is available.")
+            LOG.warning(
+                "Analysis result cannot be saved because no " "experiment service is available."
+            )
             return
 
-        _result_data = json.loads(self._serialize_data())
-        _result_data.update(self._source)
+        _result_data = json.loads(self.serialize_data())
+        _result_data["_source"] = self._source
 
-        new_data = {"experiment_id": self._experiment_id, "result_type": self.result_type}
+        new_data = {
+            "experiment_id": self._experiment_id,
+            "result_type": self.result_type,
+            "device_components": self.device_components,
+        }
         update_data = {
             "result_id": self.result_id,
             "data": _result_data,
-            "tags": self.tags,
+            "tags": self.tags(),
             "quality": self.quality,
+            "verified": self.verified,
         }
 
         self._created_in_db, _ = save_data(

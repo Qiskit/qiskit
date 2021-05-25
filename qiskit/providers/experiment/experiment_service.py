@@ -127,7 +127,8 @@ class ExperimentServiceV1(ExperimentService, ABC):
         Args:
             experiment_id: Experiment ID.
             experiment_class: An ``ExperimentData`` class used to instantiate the
-                return data objects.
+                return data objects. The ``from_data()`` class method is invoked
+                to reconstruct the ``ExperimentData``.
 
         Returns:
             Retrieved experiment.
@@ -154,7 +155,8 @@ class ExperimentServiceV1(ExperimentService, ABC):
         Args:
             limit: Number of experiments to retrieve. ``None`` means no limit.
             experiment_class: An ``ExperimentData`` class used to instantiate the
-                return data objects.
+                return data objects. The ``from_data()`` class method is invoked
+                to reconstruct the ``ExperimentData``.
             device_components: Filter by device components. An experiment must have analysis
                 results with device components matching the given list exactly to be included.
             experiment_type: Experiment type used for filtering.
@@ -254,7 +256,8 @@ class ExperimentServiceV1(ExperimentService, ABC):
         Args:
             result_id: Analysis result ID.
             result_class: An ``AnalysisResult`` class used to instantiate the
-                return data objects.
+                return data objects. The ``from_data()`` class method is invoked
+                to reconstruct the ``AnalysisResult``.
 
         Returns:
             Retrieved analysis result.
@@ -284,7 +287,8 @@ class ExperimentServiceV1(ExperimentService, ABC):
         Args:
             limit: Number of analysis results to retrieve. ``None`` means no limit.
             result_class: An ``AnalysisResult`` class used to instantiate the
-                return data objects.
+                return data objects. The ``from_data()`` class method is invoked
+                to reconstruct the ``AnalysisResult``.
             device_components: Target device components, such as qubits.
             experiment_id: Experiment ID used for filtering.
             result_type: Analysis result type used for filtering.

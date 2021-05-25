@@ -21,6 +21,7 @@ from collections import OrderedDict
 from abc import ABC
 from abc import abstractmethod
 import pkg_resources
+import traceback
 
 import dateutil.parser
 from dateutil import tz
@@ -112,7 +113,7 @@ def save_data(
         raise ExperimentError("Unable to determine the existence of the entry.")
     except Exception as ex:  # pylint: disable=broad-except
         # Don't fail the experiment just because its data cannot be saved.
-        LOG.error("Unable to save the experiment data: %s", str(ex))
+        LOG.error("Unable to save the experiment data: %s", traceback.format_exc())
         return False, None
 
 
