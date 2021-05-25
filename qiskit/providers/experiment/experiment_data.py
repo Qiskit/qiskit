@@ -162,7 +162,6 @@ class ExperimentDataV1(ExperimentData):
         self,
         data: Union[Result, List[Result], Job, List[Job], Dict, List[Dict]],
         post_processing_callback: Optional[Callable] = None,
-        *args: Any,
         **kwargs: Any,
     ):
         """Add experiment data.
@@ -184,7 +183,6 @@ class ExperimentDataV1(ExperimentData):
             post_processing_callback: Callback function invoked when all pending
                 jobs finish. This ``ExperimentData`` object is the only argument
                 to be passed to the callback function.
-            *args: Positional arguments to be passed to the callback function.
             **kwargs: Keyword arguments to be passed to the callback function.
         Raises:
             TypeError: If the input data type is invalid.
@@ -212,7 +210,7 @@ class ExperimentDataV1(ExperimentData):
                 (
                     data,
                     self._executor.submit(
-                        self._wait_for_job, data, post_processing_callback, *args, **kwargs
+                        self._wait_for_job, data, post_processing_callback, **kwargs
                     ),
                 )
             )
@@ -229,7 +227,6 @@ class ExperimentDataV1(ExperimentData):
         self,
         job: Union[Job, BaseJob],
         job_done_callback: Optional[Callable] = None,
-        *args: Any,
         **kwargs: Any,
     ) -> None:
         """Wait for a job to finish.
@@ -237,7 +234,6 @@ class ExperimentDataV1(ExperimentData):
         Args:
             job: Job to wait for.
             job_done_callback: Callback function to invoke when job finishes.
-            *args: Positional arguments to be passed to the callback function.
             **kwargs: Keyword arguments to be passed to the callback function.
         """
         LOG.debug("Waiting for job %s to finish.", job.job_id())
@@ -247,7 +243,7 @@ class ExperimentDataV1(ExperimentData):
             LOG.warning("Job %s failed: %s", job.job_id(), str(err))
             return
         if job_done_callback:
-            job_done_callback(self, *args, **kwargs)
+            job_done_callback(self, **kwargs)
 
     def _add_result_data(self, result: Result) -> None:
         """Add data from a Result object
