@@ -351,11 +351,10 @@ class StabilizerState(QuantumState):
 
         randbits = self._rng.integers(2, size=len(qargs))
         ret = self.copy()
-        bit = 0
-        for qubit in qargs:
+
+        for bit, qubit in enumerate(qargs):
             # Apply measurement and get classical outcome
             outcome = ret._measure_and_update(qubit, randbits[bit])
-            bit += 1
 
             # Use the outcome to apply X gate to any qubits left in the
             # |1> state after measure, then discard outcome.
@@ -387,11 +386,11 @@ class StabilizerState(QuantumState):
 
         randbits = self._rng.integers(2, size=len(qargs))
         ret = self.copy()
-        bit = 0
+
         outcome = ""
-        for qubit in qargs:
+        for bit, qubit in enumerate(qargs):
             outcome = str(ret._measure_and_update(qubit, randbits[bit])) + outcome
-            bit += 1
+
         return outcome, ret
 
     def sample_memory(self, shots, qargs=None):
