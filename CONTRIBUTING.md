@@ -439,8 +439,8 @@ Deprecating `method1` means that `Obj.method1()` now raises a warning. If that w
 
 ```python
 def test_method1_deprecated(self):
-	with self.assertWarns(DeprecationWarning):
-	    result = Obj.method1()
+   with self.assertWarns(DeprecationWarning):
+       result = Obj.method1()
    self.assertEqual(result, <expected>)
 
 def test_method(self):
@@ -448,7 +448,7 @@ def test_method(self):
    self.assertEqual(result, <expected>)
 ```
 
-The first test can be removed after `Obj.method1` is removed (following the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy))
+The first test can be removed after `Obj.method1` is removed (following the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy)).
 
 ## Dealing with the git blame ignore list
 
