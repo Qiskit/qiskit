@@ -424,9 +424,31 @@ The `stable/*` branches should only receive changes in the form of bug
 fixes.
 
 ## Adding deprecation warnings
-The qiskit-terra code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy) fully applies here. Additionally, qiskit-terra does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, considering adapting the test to use the new/non-deprecated method or, in case you want to still check that the deprecated method works as expected, [use `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
+The qiskit-terra code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy) fully applies here. Additionally, qiskit-terra does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and, in case you want to still check that the deprecated method works as expected, [use `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
 
-In any case, make sure that there are enough tests to cover deprecated and non-deprecated functionality. This is specially important if the deprecated method is not calling the non-deprecated method. If you already notice that some of the tests are going to be removed when the deprecated code is removed, add comment on them would be nice.
+For example, if the the `Obj.method1` is being deprecated in favour of `Obj.method2`, the test (or tests) related with `method1` might look like this:
+
+```python
+def test_method1(self):
+   result = Obj.method1()
+   self.assertEqual(result, <expected>)
+```
+
+Deprecating `method1` means that `Obj.method1()` now raises a warning. If that warning is not being capture, the test will not pass. Thereafter, this test can be unfolded in these two tests:
+
+
+```python
+def test_method1_deprecated(self):
+	with self.assertWarns(DeprecationWarning):
+	    result = Obj.method1()
+   self.assertEqual(result, <expected>)
+
+def test_method(self):
+   result = Obj.method2()
+   self.assertEqual(result, <expected>)
+```
+
+The first test can be removed after `Obj.method1` is removed (following the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy))
 
 ## Dealing with the git blame ignore list
 
