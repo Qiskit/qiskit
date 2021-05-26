@@ -247,10 +247,10 @@ class VarQITE(VarQTE):
                 """
                 if 1 - abs_val < 0:
                     # # print('1 - abs value ', 1 - abs_val)
-                    # if 1 - abs_val < -1e-6:
-                    #     abs_val = 1
-                    # else:
-                    return math.nan
+                    if 1 - abs_val < -1e-6:
+                        abs_val = 1
+                    else:
+                        return math.nan
 
                 return_val = np.sqrt(2)*np.sqrt(1 - abs_val)
 
@@ -277,24 +277,40 @@ class VarQITE(VarQTE):
             #                         rhoend=1e-16, cons=[constraint0, constraint2, constraint3,
             #                                             constraint1])[0]
 
-            for j in range(4):
-                alpha_opt_list = []
-                objective_list = []
-                for a in np.linspace(0, 10**(-1*j), 1000):
-                    opt_fun = optimization_fun([a])
+            alpha_opt_list = []
+            objective_list = []
+            for a in np.linspace(0, 1, 10**6):
+                opt_fun = optimization_fun([a])
 
-                    if math.isnan(opt_fun):
-                        # print('optimization fun is nan')
-                        pass
-                    elif constraint1([a]) < 0:
-                        # print('constraint 1 ', constraint1([a]) )
-                        pass
-                    else:
-                        objective_list.append(opt_fun)
+                if math.isnan(opt_fun):
+                    # print('optimization fun is nan')
+                    pass
+                elif constraint1([a]) < 0:
+                    # print('constraint 1 ', constraint1([a]) )
+                    pass
+                else:
+                    objective_list.append(opt_fun)
 
-                        alpha_opt_list.append(a)
-                if len(objective_list) == 0:
-                    print('No suitable alpha found')
+                    alpha_opt_list.append(a)
+
+            # alpha_opt_list = []
+            # objective_list = []
+            # for j in range(6):
+            #     for a in np.linspace(0, 10**(-1*j), 1000):
+            #         opt_fun = optimization_fun([a])
+            #
+            #         if math.isnan(opt_fun):
+            #             # print('optimization fun is nan')
+            #             pass
+            #         elif constraint1([a]) < 0:
+            #             # print('constraint 1 ', constraint1([a]) )
+            #             pass
+            #         else:
+            #             objective_list.append(opt_fun)
+            #
+            #             alpha_opt_list.append(a)
+            #     if len(objective_list) == 0:
+            #         print('No suitable alpha found')
                 # if len(objective_list) > 3:
                 #     break
 
@@ -338,8 +354,8 @@ class VarQITE(VarQTE):
         for j in range(len(times)):
             if j == 0:
                 continue
-            if j == 9:
-                print('stop')
+            # if j == 9:
+            #     print('stop')
             delta_t = times[j]-times[j-1]
             y = optimization(error_bounds[j-1], energies[j-1], h_squareds[j-1],
                              h_trips[j-1], delta_t)
