@@ -119,11 +119,6 @@ class StarAlgebraMixin(MultiplyMixin, ABC):
             An operator equivalent to self's adjoit.
         """
 
-    @property
-    def dagger(self):
-        """Alias of :meth:`adjoint()`"""
-        return self.adjoint()
-
     def __invert__(self):
         """Overload unary `~` to return Operator adjoint."""
         return self.adjoint()
