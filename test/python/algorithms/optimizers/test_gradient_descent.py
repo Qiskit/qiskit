@@ -19,6 +19,7 @@ import numpy as np
 from qiskit.algorithms.optimizers import GradientDescent
 from qiskit.circuit.library import PauliTwoDesign
 from qiskit.opflow import I, Z, StateFn
+from qiskit.test.decorators import slow_test
 
 
 class TestGradientDescent(QiskitAlgorithmsTestCase):
@@ -28,6 +29,7 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
         super().setUp()
         np.random.seed(12)
 
+    @slow_test
     def test_pauli_two_design(self):
         """Test SPSA on the Pauli two-design example."""
         circuit = PauliTwoDesign(3, reps=3, seed=2)
@@ -61,3 +63,23 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
 
         self.assertLess(result[1], -0.95)  # final loss
         self.assertEqual(result[2], 100)  # function evaluations
+
+    def test_callback(self):
+        """Test the callback."""
+
+        history = []
+
+        def callback(*args):
+            history.append(args)
+
+        optimizer = GradientDescent(maxiter=1, callback=callback)
+
+        def objective(x):
+            return np.linalg.norm(x)
+
+        _ = optimizer.optimize(2, objective, initial_point=np.array([1, -1]))
+
+        self.assertEqual(len(history), 1)
+        self.assertIsInstance(history[0][0], int)  # nfevs
+        self.assertIsInstance(history[0][1], np.ndarray)  # parameters
+        self.assertIsInstance(history[0][2], float)  # function value
