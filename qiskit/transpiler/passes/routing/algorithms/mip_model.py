@@ -222,7 +222,7 @@ class IndexCalculator:
         self.num_lqubits = self.ht.num_qubits
         # Number of physical qubits
         self.num_pqubits = self.ht.num_qubits        
-        self.depth = self.qc.depth
+        self.depth = self.qc.depth        
         self.num_gates = sum(len(self.qc.gates[t])
                              for t in range(self.qc.depth))
         logger.info('Num gates:', self.num_gates)
@@ -235,6 +235,7 @@ class IndexCalculator:
         self.x_start = self.y_start + self.num_y_vars
         self.num_x_vars = ((self.depth-1)*self.num_lqubits*
                            (self.ht.num_arcs + self.num_pqubits))
+        # Createmapping for x (flow) variables
         var_index = 0
         self.x_var_mapping = [dict() for i in range(self.num_pqubits)]
         for i in range(self.num_pqubits):
@@ -366,7 +367,9 @@ class IndexCalculator:
 # -- end class
 
 def add_dummy_time_steps(quantum_circuit, dummy_time_steps):
-    """Add dummy time steps to a circuit.
+    """Add dummy time steps to a circuit. 
+
+    Dummy time steps can only contain SWAPs.
 
     Parameters
     ----------
@@ -427,6 +430,14 @@ def create_cpx_model(quantum_circuit, hardware_topology, dummy_time_steps,
 
     max_total_dummy : int
         Maximum allowed number of nonempty dummy time steps
+
+    line_symm : bool
+        Use symmetry breaking constrainst for line topology. Should
+        only be True if the hardware graph is a chain/line/path.
+
+    cycle_symm : bool
+        Use symmetry breaking constrainst for loop. Should only be
+        True if the hardware graph is a cycle/loop/ring.
 
     Returns
     -------
@@ -630,9 +641,9 @@ def create_cpx_model(quantum_circuit, hardware_topology, dummy_time_steps,
                     val=[1 for p in range(ic.num_lqubits)])],
                 senses=['G'], rhs=[1],
                 names=['sym_break_line_{:d}'.format(h)])
+    # Symmetry breaking on the cycle -- only works on cycle topology!
     if (cycle_symm):
         prob.variables.set_lower_bounds(ic.w_index(0, 0, 0), 1)        
-            
     # Logical qubit flow constraints
     for t in range(ic.depth):
         for q in range(ic.num_lqubits):
@@ -678,7 +689,6 @@ def create_cpx_model(quantum_circuit, hardware_topology, dummy_time_steps,
                 index = ic.ht.edge_to_index((i, j))
                 if (not used_qubit[q] and ic.x_index(q, i, j, t) not in edge_representation[index]):
                     edge_representation[index].append(ic.x_index(q, i, j, t))
-#                        edge_representation[index].append(ic.x_index(q, j, i, t))
         for (k, (i, j)) in enumerate(ic.ht.edges):
             prob.linear_constraints.add(
                 lin_expr=[SparsePair(
@@ -1186,10 +1196,10 @@ def solve_cpx_model(problem, index_calculator, time_limit=300,
     """
     problem.parameters.timelimit.set(time_limit)
     problem.parameters.preprocessing.qtolin.set(1)
-    problem.parameters.threads.set(32)
-    #problem.parameters.preprocessing.symmetry.set(4)
+    # This sets the number of threads; by default Cplex uses everything!
+    # problem.parameters.threads.set(8)
     if (heuristic_emphasis):
-        problem.parameters.emphasis.mip.set(4)
+        problem.parameters.emphasis.mip.set(5)
     if (silent):
         problem.set_log_stream(None)
         problem.set_error_stream(None)
@@ -1198,6 +1208,8 @@ def solve_cpx_model(problem, index_calculator, time_limit=300,
     problem.solve()
     if (silent):
         return
+    # Everything below is just for display purposes; could be
+    # eliminated
     print()
     print('Time steps that can be eliminated:')
     for t in range(index_calculator.depth):
