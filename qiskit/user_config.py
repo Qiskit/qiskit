@@ -167,23 +167,24 @@ def set_config(key, value, section=None, file_path=None):
     Raises:
         QiskitUserConfigError: if the config is invalid
     """
-    filename = file_path or os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
-    section = 'default' if section is None else section
+    filename = file_path or os.getenv("QISKIT_SETTINGS", DEFAULT_FILENAME)
+    section = "default" if section is None else section
 
     if not isinstance(key, str):
-        raise exceptions.QiskitUserConfigError('Key must be string type')
+        raise exceptions.QiskitUserConfigError("Key must be string type")
 
-    valid_config = {'circuit_drawer',
-                    'circuit_mpl_style',
-                    'circuit_mpl_style_path',
-                    'transpile_optimization_level',
-                    'parallel',
-                    'num_processes'}
+    valid_config = {
+        "circuit_drawer",
+        "circuit_mpl_style",
+        "circuit_mpl_style_path",
+        "transpile_optimization_level",
+        "parallel",
+        "num_processes",
+    }
 
-    if section in [None, 'default']:
+    if section in [None, "default"]:
         if key not in valid_config:
-            raise exceptions.QiskitUserConfigError(
-                "{} is not a valid user config.".format(key))
+            raise exceptions.QiskitUserConfigError("{} is not a valid user config.".format(key))
 
     config = configparser.ConfigParser()
     config.read(filename)
@@ -194,12 +195,12 @@ def set_config(key, value, section=None, file_path=None):
     config.set(section, key, str(value))
 
     try:
-        with open(filename, 'w') as cfgfile:
+        with open(filename, "w") as cfgfile:
             config.write(cfgfile)
     except OSError as ex:
         raise exceptions.QiskitUserConfigError(
-            "Unable to load the config file {}. Error: '{}'".format(
-                filename, str(ex)))
+            "Unable to load the config file {}. Error: '{}'".format(filename, str(ex))
+        )
 
     # validates config
     user_config = UserConfig(filename)
