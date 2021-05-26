@@ -337,9 +337,16 @@ class CouplingMap:
         Raises:
             MissingOptionalLibraryError: when pydot or pillow are not installed.
         """
-
         try:
             import pydot
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="pydot",
+                name="coupling map drawer",
+                pip_install="pip install pydot",
+            ) from ex
+
+        try:
             from PIL import Image
         except ImportError as ex:
             raise MissingOptionalLibraryError(
