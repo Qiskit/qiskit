@@ -10,9 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wildcard-import,unused-wildcard-import
-
 """Common utilities for Qiskit."""
 
 # Deprecated: for backwards compatibility to be removed in a future release
-from qiskit.utils import *
+from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.multiprocessing import is_main_process
+from qiskit.utils.multiprocessing import local_hardware_info
+from qiskit.utils.units import apply_prefix
+
+
+__all__ = [
+    "deprecate_arguments",
+    "deprecate_function",
+    "is_main_process",
+    "local_hardware_info",
+    "apply_prefix",
+]

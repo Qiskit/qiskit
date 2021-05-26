@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
+
 """Tests for pass cancelling 2 consecutive CNOTs on the same qubits."""
 
 from qiskit import QuantumRegister, QuantumCircuit
@@ -42,4 +44,4 @@ class TestCXCancellation(QiskitTestCase):
         out_circuit = pass_manager.run(circuit)
         resources_after = out_circuit.count_ops()
 
-        self.assertNotIn('cx', resources_after)
+        self.assertNotIn("cx", resources_after)

@@ -1,0 +1,27 @@
+% \documentclass[preview]{standalone}
+% If the image is too large to fit on this documentclass use
+\documentclass[draft]{beamer}
+% img_width = 5, img_depth = 3
+\usepackage[size=custom,height=10,width=10,scale=0.5]{beamerposter}
+% instead and customize the height and width (in cm) to fit.
+% Large images may run out of memory quickly.
+% To fix this use the LuaLaTeX compiler, which dynamically
+% allocates memory.
+\usepackage[braket, qm]{qcircuit}
+\usepackage{amsmath}
+\pdfmapfile{+sansmathaccent.map}
+% \usepackage[landscape]{geometry}
+% Comment out the above line if using the beamer documentclass.
+\begin{document}
+
+\begin{equation*}
+    \Qcircuit @C=1.0em @R=1.0em @!R {
+	 	\lstick{ {q}_{0} :  } & \multigate{4}{\mathrm{Unitary}}_<<<{0} & \qw & \qw\\
+	 	\lstick{ {q}_{1} :  } & \ghost{\mathrm{Unitary}}_<<<{1} & \qw & \qw\\
+	 	\lstick{ {q}_{2} :  } & \ghost{\mathrm{Unitary}}_<<<{2} & \qw & \qw\\
+	 	\lstick{ {q}_{3} :  } & \ghost{\mathrm{Unitary}}_<<<{3} & \qw & \qw\\
+	 	\lstick{ {q}_{4} :  } & \ghost{\mathrm{Unitary}}_<<<{4} & \qw & \qw\\
+	 }
+\end{equation*}
+
+\end{document}

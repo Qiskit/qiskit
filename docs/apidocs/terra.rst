@@ -23,6 +23,7 @@ Qiskit Terra API Reference
    scheduler
    qasm
    qobj
+   qpy
    quantum_info
    result
    tools
@@ -33,3 +34,5 @@ Qiskit Terra API Reference
    utils
    validation
    visualization
+   opflow
+   algorithms

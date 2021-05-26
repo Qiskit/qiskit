@@ -45,6 +45,21 @@ class TestCircuitToDagDependency(QiskitTestCase):
 
         self.assertEqual(dag_out, dag_in)
 
+    def test_metadata(self):
+        """Test circuit metadata is preservered through conversion."""
+        meta_dict = dict(experiment_id="1234", execution_number=4)
+        qr = QuantumRegister(2)
+        circuit_in = QuantumCircuit(qr, metadata=meta_dict)
+        circuit_in.h(qr[0])
+        circuit_in.cx(qr[0], qr[1])
+        circuit_in.measure_all()
+        dag = circuit_to_dag(circuit_in)
+        self.assertEqual(dag.metadata, meta_dict)
+        dag_dependency = dag_to_dagdependency(dag)
+        self.assertEqual(dag_dependency.metadata, meta_dict)
+        dag_out = dagdependency_to_dag(dag_dependency)
+        self.assertEqual(dag_out.metadata, meta_dict)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main(verbosity=2)

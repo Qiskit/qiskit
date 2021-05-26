@@ -1,0 +1,29 @@
+% \documentclass[preview]{standalone}
+% If the image is too large to fit on this documentclass use
+\documentclass[draft]{beamer}
+% img_width = 7, img_depth = 15
+\usepackage[size=custom,height=10,width=39,scale=0.7]{beamerposter}
+% instead and customize the height and width (in cm) to fit.
+% Large images may run out of memory quickly.
+% To fix this use the LuaLaTeX compiler, which dynamically
+% allocates memory.
+\usepackage[braket, qm]{qcircuit}
+\usepackage{amsmath}
+\pdfmapfile{+sansmathaccent.map}
+% \usepackage[landscape]{geometry}
+% Comment out the above line if using the beamer documentclass.
+\begin{document}
+
+\begin{equation*}
+    \Qcircuit @C=1.0em @R=0.2em @!R {
+	 	\lstick{ {q}_{0} :  } & \gate{\mathrm{H}} & \gate{\mathrm{X}} & \qw & \qw & \qw & \ctrl{1} & \ctrl{1} & \qswap & \ctrl{1} & \ctrl{1} & \multigate{1}{\mathrm{Dcx}}_<<<{0} & \ctrl{1} & \ctrl{1} & \qw & \qw\\
+	 	\lstick{ {q}_{1} :  } & \qw & \qw & \qw & \qw & \qw & \targ & \ctrl{1} & \qswap \qwx[-1] & \qswap & \ctrl{1} & \ghost{\mathrm{Dcx}}_<<<{1} & \multigate{1}{\mathrm{Dcx}}_<<<{0} & \ctrl{1} & \qw & \qw\\
+	 	\lstick{ {q}_{2} :  } & \qw & \qw & \qw & \qw & \qw & \qw & \targ & \qw & \qswap \qwx[-1] & \qswap & \qw & \ghost{\mathrm{Dcx}}_<<<{1} & \multigate{1}{\mathrm{Dcx}}_<<<{0} & \qw & \qw\\
+	 	\lstick{ {q}_{3} :  } & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qw & \qswap \qwx[-1] & \qw & \qw & \ghost{\mathrm{Dcx}}_<<<{1} & \qw & \qw\\
+	 	\lstick{ {q}_{4} :  } & \gate{\mathrm{Z}} & \gate{\mathrm{S}} & \qw & \qw & \qw & \gate{\mathrm{S}^\dagger} & \gate{\mathrm{T}} & \gate{\mathrm{T}^\dagger} & \gate{\mathrm{P}\,\mathrm{(}\mathrm{\frac{\pi}{2}}\mathrm{)}} & \gate{\mathrm{U}_1\,\mathrm{(}\mathrm{\frac{\pi}{2}}\mathrm{)}} & \qw & \qw & \qw & \qw & \qw\\
+	 	\lstick{ {q}_{5} :  } & \ctrl{1} & \ctrl{1} & \dstick{\hspace{2.0em}\mathrm{U}_1\,\mathrm{(}\mathrm{\frac{\pi}{2}}\mathrm{)}} \qw & \qw & \qw & \gate{\mathrm{Y}} & \gate{\mathrm{R}_\mathrm{X}\,\mathrm{(}\mathrm{\frac{\pi}{3}}\mathrm{)}} & \multigate{1}{\mathrm{R}_{\mathrm{ZX}}\,\mathrm{(}\mathrm{\frac{\pi}{2}}\mathrm{)}}_<<<{0} & \gate{\mathrm{U}_2\,\mathrm{(}\mathrm{\frac{\pi}{2}},\mathrm{\frac{\pi}{2}}\mathrm{)}} \barrier[0em]{1} & \qw & \gate{\left|0\right\rangle} & \qw & \qw & \qw & \qw\\
+	 	\lstick{ {q}_{6} :  } & \control\qw & \control \qw & \qw & \qw & \qw & \qw & \qw & \ghost{\mathrm{R}_{\mathrm{ZX}}\,\mathrm{(}\mathrm{\frac{\pi}{2}}\mathrm{)}}_<<<{1} & \qw & \qw & \qw & \qw & \qw & \qw & \qw\\
+	 }
+\end{equation*}
+
+\end{document}

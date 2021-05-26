@@ -44,7 +44,7 @@ author = 'Qiskit Development Team'
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '0.17.0'
+release = '0.18.0'
 
 # -- General configuration ---------------------------------------------------
 
@@ -76,6 +76,7 @@ html_css_files = []
 # -----------------------------------------------------------------------------
 
 autosummary_generate = True
+autosummary_generate_overwrite = False
 
 # -----------------------------------------------------------------------------
 # Autodoc

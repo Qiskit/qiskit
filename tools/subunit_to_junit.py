@@ -24,9 +24,15 @@ from subunit.filters import run_tests_from_stream
 from testtools import StreamToExtendedDecorator
 
 
-def filter_by_result(result_factory, output_path, passthrough, forward,
-                     input_stream=sys.stdin, protocol_version=1,
-                     passthrough_subunit=True):
+def filter_by_result(
+    result_factory,
+    output_path,
+    passthrough,
+    forward,
+    input_stream=sys.stdin,
+    protocol_version=1,
+    passthrough_subunit=True,
+):
     """Filter an input stream using a test result.
 
     :param result_factory: A callable that when passed an output stream
@@ -45,7 +51,7 @@ def filter_by_result(result_factory, output_path, passthrough, forward,
     :return: A test result with the results of the run.
     """
     if protocol_version == 1:
-        sys.stderr.write('Subunit protocol version 2 must be used')
+        sys.stderr.write("Subunit protocol version 2 must be used")
         sys.exit(1)
 
     if passthrough:
@@ -61,22 +67,27 @@ def filter_by_result(result_factory, output_path, passthrough, forward,
     if output_path is None:
         output_to = sys.stdout
     else:
-        output_to = open(output_path, 'w')
+        output_to = open(output_path, "w")
 
     try:
         result = result_factory(output_to)
         run_tests_from_stream(
-            input_stream, result, passthrough_stream, forward_stream,
+            input_stream,
+            result,
+            passthrough_stream,
+            forward_stream,
             protocol_version=protocol_version,
-            passthrough_subunit=passthrough_subunit)
+            passthrough_subunit=passthrough_subunit,
+        )
     finally:
         if output_path:
             output_to.close()
     return result
 
 
-def run_filter_script(result_factory, description, post_run_hook=None,
-                      protocol_version=1, passthrough_subunit=True):
+def run_filter_script(
+    result_factory, description, post_run_hook=None, protocol_version=1, passthrough_subunit=True
+):
     """Main function for simple subunit filter scripts.
 
     Many subunit filter scripts take a stream of subunit input and use a
@@ -91,31 +102,46 @@ def run_filter_script(result_factory, description, post_run_hook=None,
     :param passthrough_subunit: If True, passthrough should be as subunit.
     """
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("--no-passthrough", action="store_true",
-                        help="Hide all non subunit input.", default=False,
-                        dest="no_passthrough")
-    parser.add_argument("-o", "--output-to",
-                        help="Send the output to this path rather than stdout")
-    parser.add_argument("-f", "--forward", action="store_true", default=False,
-                        help="Forward subunit stream on stdout. When set, "
-                             "received non-subunit output will be encapsulated"
-                             " in subunit.")
+    parser.add_argument(
+        "--no-passthrough",
+        action="store_true",
+        help="Hide all non subunit input.",
+        default=False,
+        dest="no_passthrough",
+    )
+    parser.add_argument("-o", "--output-to", help="Send the output to this path rather than stdout")
+    parser.add_argument(
+        "-f",
+        "--forward",
+        action="store_true",
+        default=False,
+        help="Forward subunit stream on stdout. When set, "
+        "received non-subunit output will be encapsulated"
+        " in subunit.",
+    )
     args = parser.parse_args()
     result = filter_by_result(
-        result_factory, args.output_to, not args.no_passthrough,
-        args.forward, protocol_version=protocol_version,
+        result_factory,
+        args.output_to,
+        not args.no_passthrough,
+        args.forward,
+        protocol_version=protocol_version,
         passthrough_subunit=passthrough_subunit,
-        input_stream=sys.stdin)
+        input_stream=sys.stdin,
+    )
     if post_run_hook:
         post_run_hook(result)
-    if not hasattr(result, 'wasSuccessful'):
+    if not hasattr(result, "wasSuccessful"):
         result = result.decorated
 
 
 def main():
     run_filter_script(
-        lambda output: StreamToExtendedDecorator(
-            JUnitXmlResult(output)), "Convert to junitxml", protocol_version=2)
+        lambda output: StreamToExtendedDecorator(JUnitXmlResult(output)),
+        "Convert to junitxml",
+        protocol_version=2,
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

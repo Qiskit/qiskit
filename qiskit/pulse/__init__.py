@@ -43,6 +43,7 @@ Instructions (:mod:`qiskit.pulse.instructions`)
    ~qiskit.pulse.instructions
 
    Acquire
+   Call
    Delay
    Play
    SetFrequency
@@ -101,6 +102,7 @@ Schedules are Pulse programs. They describe instruction sequences for the contro
    :toctree: ../stubs/
 
    Schedule
+   ScheduleBlock
    Instruction
 
 
@@ -116,7 +118,7 @@ Configuration
 Schedule Transforms
 ===================
 
-These functions take :class:`Schedule` s as input and return modified
+Schedule transforms take :class:`Schedule` s as input and return modified
 :class:`Schedule` s.
 
 .. autosummary::
@@ -125,7 +127,6 @@ These functions take :class:`Schedule` s as input and return modified
    transforms.align_measures
    transforms.add_implicit_acquires
    transforms.pad
-
 
 Exceptions
 ==========
@@ -153,7 +154,6 @@ execution. For example to play a series of pulses on channels is as simple as:
 .. jupyter-execute::
 
     from qiskit import pulse
-    from qiskit.visualization import SchedStyle
 
     dc = pulse.DriveChannel
     d0, d1, d2, d3, d4 = dc(0), dc(1), dc(2), dc(3), dc(4)
@@ -165,8 +165,7 @@ execution. For example to play a series of pulses on channels is as simple as:
         pulse.play([1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0], d3)
         pulse.play([1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0], d4)
 
-    style = SchedStyle(figsize=(3, 2), title_font_size=10, axis_font_size=8)
-    pulse_prog.draw(style=style)
+    pulse_prog.draw()
 
 
 In the future the pulse builder will be coupled to the
@@ -212,7 +211,6 @@ Pulse instructions are available within the builder interface. Here's an example
 
     from qiskit import pulse
     from qiskit.test.mock import FakeArmonk
-    from qiskit.visualization import SchedStyle
 
     backend = FakeArmonk()
 
@@ -234,8 +232,7 @@ Pulse instructions are available within the builder interface. Here's an example
         pulse.call(temp_sched)
         pulse.acquire(30, a0, pulse.MemorySlot(0))
 
-    style = SchedStyle(figsize=(3, 2), title_font_size=10, axis_font_size=8)
-    drive_sched.draw(style=style)
+    drive_sched.draw()
 
 
 .. autosummary::
@@ -262,7 +259,6 @@ be used to align all pulses as late as possible in a pulse program.
 .. jupyter-execute::
 
     from qiskit import pulse
-    from qiskit.visualization import SchedStyle
 
     d0 = pulse.DriveChannel(0)
     d1 = pulse.DriveChannel(1)
@@ -274,8 +270,7 @@ be used to align all pulses as late as possible in a pulse program.
             # this pulse will start at t=80
             pulse.play(pulse.Constant(20, 1.0), d1)
 
-    style = SchedStyle(figsize=(3, 2), title_font_size=10, axis_font_size=8)
-    pulse_prog.draw(style=style)
+    pulse_prog.draw()
 
 .. autosummary::
     :toctree: ../stubs/
@@ -426,6 +421,7 @@ from qiskit.pulse.builder import (
     phase_offset,
     transpiler_settings,
     # Macros.
+    macro,
     measure,
     measure_all,
     delay_qubits,
@@ -454,6 +450,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import (
     Acquire,
+    Call,
     Delay,
     Instruction,
     Play,
@@ -463,16 +460,13 @@ from qiskit.pulse.instructions import (
     ShiftPhase,
     Snapshot,
 )
-from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.library import (
     Constant,
-    ConstantPulse,
     Drag,
     Gaussian,
     GaussianSquare,
     ParametricPulse,
     Waveform,
-    SamplePulse,
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse
-from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.schedule import Schedule, ScheduleBlock
