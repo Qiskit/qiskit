@@ -116,7 +116,7 @@ class StarAlgebraMixin(MultiplyMixin, ABC):
         """Returns the complex conjugate transpose (dagger) of self.adjoint
 
         Returns:
-            An operator equivalent to self's adjoit.
+            An operator equivalent to self's adjoint.
         """
 
     def __invert__(self):
