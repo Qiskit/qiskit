@@ -55,14 +55,6 @@ class MIPMapping(TransformationPass):
         self.initial_layout = initial_layout
         self.dummy_steps = dummy_steps
         self.max_total_dummy = max_total_dummy
-        # The failure rate is taken from QV64 paper
-        self.topo = qomp._HardwareTopology(
-            coupling_map.size(),
-            [list(coupling_map.neighbors(i))
-             for i in range(coupling_map.size())],
-            [[basis_fidelity
-              for _ in coupling_map.neighbors(i)]
-             for i in range(coupling_map.size())])
         self.silent = silent
         self.basis_fidelity = basis_fidelity
         self.time_limit_er = time_limit_er
@@ -139,8 +131,20 @@ class MIPMapping(TransformationPass):
             gates = [[]] + gates
             gate_fidelity = [[]] + gate_fidelity
             gate_mfidelity = [[]] + gate_mfidelity
-        circ = qomp._CircuitModel(len(dag.qubits), len(gates), gates, gate_fidelity, gate_mfidelity)
-        problem, ic = qomp.create_cpx_model(circ, self.topo, self.dummy_steps,
+        circ = qomp._CircuitModel(
+            num_qubits=len(dag.qubits),
+            depth=len(gates),
+            gates=gates,
+            gate_fidelity=gate_fidelity,
+            gate_mfidelity=gate_mfidelity)
+        topo = qomp._HardwareTopology(
+            num_qubits=self.coupling_map.size(),
+            connectivity=[list(self.coupling_map.neighbors(i))
+                          for i in range(self.coupling_map.size())],
+            basis_fidelity=[[self.basis_fidelity
+                             for _ in self.coupling_map.neighbors(i)]
+                            for i in range(self.coupling_map.size())])
+        problem, ic = qomp.create_cpx_model(circ, topo, self.dummy_steps,
                                             self.max_total_dummy, self.line_symm, self.cycle_symm)
         if (self.initial_layout is not None):
             layout = [0 for i in range(ic.num_lqubits)]
