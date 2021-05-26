@@ -83,3 +83,33 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
         self.assertIsInstance(history[0][0], int)  # nfevs
         self.assertIsInstance(history[0][1], np.ndarray)  # parameters
         self.assertIsInstance(history[0][2], float)  # function value
+
+    def test_iterator_learning_rate(self):
+        """Test setting the learning rate as iterator."""
+
+        def learning_rate():
+            power = 0.6
+            constant_coeff = 0.1
+
+            def powerlaw():
+                n = 0
+                while True:
+                    yield constant_coeff * (n ** power)
+                    n += 1
+
+            return powerlaw()
+
+        def objective(x):
+            return (np.linalg.norm(x) - 1) ** 2
+
+        def grad(x):
+            return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
+
+        initial_point = np.array([1, 0.5, -2])
+
+        optimizer = GradientDescent(maxiter=20, learning_rate=learning_rate)
+        _, fx_opt, _ = optimizer.optimize(
+            initial_point.size, objective, gradient_function=grad, initial_point=initial_point
+        )
+
+        self.assertLess(fx_opt, 1e-5)
