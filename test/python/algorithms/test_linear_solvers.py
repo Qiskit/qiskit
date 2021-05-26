@@ -236,7 +236,9 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         """Test the HHL class."""
         if isinstance(matrix, QuantumCircuit):
             num_qubits = matrix.num_state_qubits
-        elif isinstance(matrix, np.ndarray):
+        elif isinstance(matrix, (list, np.ndarray)):
+            if isinstance(matrix, list):
+                matrix = np.array(matrix)
             num_qubits = int(np.log2(matrix.shape[0]))
 
         rhs = right_hand_side / np.linalg.norm(right_hand_side)
@@ -252,7 +254,9 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         # Calculate analytical value
         if isinstance(matrix, QuantumCircuit):
             exact_x = np.dot(np.linalg.inv(matrix.matrix), rhs)
-        elif isinstance(matrix, np.ndarray):
+        elif isinstance(matrix, (list, np.ndarray)):
+            if isinstance(matrix, list):
+                matrix = np.array(matrix)
             exact_x = np.dot(np.linalg.inv(matrix), rhs)
         exact_result = observable.evaluate_classically(exact_x)
 
