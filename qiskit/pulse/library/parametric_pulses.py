@@ -191,15 +191,14 @@ class Gaussian(ParametricPulse):
 
 
 class GaussianSquare(ParametricPulse):
-    """A square pulse with a Gaussian shaped risefall on both sides. Either risefall_to_sigma or width parameter has to be specified.
+    """A square pulse with a Gaussian shaped risefall on both sides. Either risefall_to_sigma
+     or width parameter has to be specified.
 
     If risefall_to_sigma is not None and width is None:
 
-    .. math::
+    :math:`risefall = risefall` _ :math:`to` _ :math:`sigma * sigma`
 
-        risefall = risefall\_to\_sigma *  sigma
-
-        width = duration - 2 * risefall
+    :math:`width = duration - 2 * risefall`
 
     If width is not None and risefall_to_sigma is None:
 
@@ -288,11 +287,11 @@ class GaussianSquare(ParametricPulse):
             raise PulseError(
                 "Either the pulse width or the risefall_to_sigma parameter can be specified."
             )
-        elif self.width is None and self.risefall_to_sigma is None:
+        if self.width is None and self.risefall_to_sigma is None:
             raise PulseError(
                 "Either the pulse width or the risefall_to_sigma parameter has to be specified."
             )
-        elif self.width is not None:
+        if self.width is not None:
             if not _is_parameterized(self.width) and self.width < 0:
                 raise PulseError("The pulse width must be at least 0.")
             if (
