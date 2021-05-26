@@ -423,6 +423,11 @@ the following steps:
 The `stable/*` branches should only receive changes in the form of bug
 fixes.
 
+## Adding deprecation warnings
+The qiskit-terra code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy) fully applies here. Additionally, qiskit-terra does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, considering adapting the test to use the new/non-deprecated method or, in case you want to still check that the deprecated method works as expected, [use `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
+
+In any case, make sure that there are enough tests to cover deprecated and non-deprecated functionality. This is specially important if the deprecated method is not calling the non-deprecated method. If you already notice that some of the tests are going to be removed when the deprecated code is removed, add comment on them would be nice.
+
 ## Dealing with the git blame ignore list
 
 In the qiskit-terra repository we maintain a list of commits for git blame
