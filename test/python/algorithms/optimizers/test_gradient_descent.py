@@ -83,6 +83,7 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
         self.assertIsInstance(history[0][0], int)  # nfevs
         self.assertIsInstance(history[0][1], np.ndarray)  # parameters
         self.assertIsInstance(history[0][2], float)  # function value
+        self.assertIsInstance(history[0][3], float)  # norm of the gradient
 
     def test_iterator_learning_rate(self):
         """Test setting the learning rate as iterator."""

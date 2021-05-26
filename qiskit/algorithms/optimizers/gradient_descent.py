@@ -7,7 +7,7 @@ import numpy as np
 
 from .optimizer import Optimizer, OptimizerSupportLevel
 
-CALLBACK = Callable[[int, np.ndarray, float], None]
+CALLBACK = Callable[[int, np.ndarray, float, float], None]
 
 
 class GradientDescent(Optimizer):
@@ -27,6 +27,11 @@ class GradientDescent(Optimizer):
     in the ``optimize`` method, or, if you do not provide it, use a finite difference approximation
     of the gradient. To adapt the size of the perturbation in the finite difference gradients,
     set the ``perturbation`` property in the initializer.
+
+    This optimizer supports a callback function. If provided in the initializer, the optimizer
+    will call the callback in each iteration with the following information in this order:
+    current number of function values, current parameters, current function value, norm of current
+    gradient.
 
     Examples:
 
@@ -144,14 +149,15 @@ class GradientDescent(Optimizer):
             x_next = x - next(eta) * update
 
             # send information to callback
+            stepsize = np.linalg.norm(update)
             if self.callback is not None:
-                self.callback(nfevs, x_next, loss(x_next))
+                self.callback(nfevs, x_next, loss(x_next), stepsize)
 
             # update parameters
             x = x_next
 
             # check termination
-            if np.linalg.norm(update) < self.tol:
+            if stepsize < self.tol:
                 break
 
         return x, loss(x), nfevs
