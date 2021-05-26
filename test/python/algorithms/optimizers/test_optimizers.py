@@ -22,6 +22,7 @@ from qiskit.algorithms.optimizers import (
     CG,
     COBYLA,
     GSLS,
+    GradientDescent,
     L_BFGS_B,
     NELDER_MEAD,
     P_BFGS,
@@ -30,8 +31,6 @@ from qiskit.algorithms.optimizers import (
     SPSA,
     TNC,
     SciPyOptimizer,
-    GSLS,
-    GradientDescent,
 )
 from qiskit.utils import algorithm_globals
 
