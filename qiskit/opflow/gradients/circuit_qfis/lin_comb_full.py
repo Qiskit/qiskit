@@ -35,10 +35,11 @@ class LinCombFull(CircuitQFI):
     See also :class:`~qiskit.opflow.QFI`.
     """
 
-    def convert(self,
-                operator: CircuitStateFn,
-                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
-                ) -> ListOp:
+    def convert(
+        self,
+        operator: CircuitStateFn,
+        params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]],
+    ) -> ListOp:
         r"""
         Args:
             operator: The operator corresponding to the quantum state :math:`|\psi(\omega)\rangle`
@@ -60,8 +61,10 @@ class LinCombFull(CircuitQFI):
 
         # Check if the given operator corresponds to a quantum state given as a circuit.
         if not isinstance(operator, CircuitStateFn):
-            raise TypeError('LinCombFull is only compatible with states that are given as '
-                            f'CircuitStateFn, not {type(operator)}')
+            raise TypeError(
+                "LinCombFull is only compatible with states that are given as "
+                f"CircuitStateFn, not {type(operator)}"
+            )
 
         # If a single parameter is given wrap it into a list.
         if isinstance(params, ParameterExpression):
@@ -84,7 +87,7 @@ class LinCombFull(CircuitQFI):
         # Get  4 * Re[〈∂kψ|∂lψ]
         qfi_operators = []
         # Add a working qubit
-        qr_work = QuantumRegister(1, 'work_qubit')
+        qr_work = QuantumRegister(1, "work_qubit")
         state_qc = QuantumCircuit(*operator.primitive.qregs, qr_work)
         state_qc.h(qr_work)
         state_qc.compose(operator.primitive, inplace=True)
@@ -124,14 +127,26 @@ class LinCombFull(CircuitQFI):
 
                                 grad_coeff_ij = np.conj(grad_coeff_i) * grad_coeff_j
                                 qfi_circuit = LinComb.apply_grad_gate(
-                                    state_qc, gate_i, idx_i, grad_gate_i, grad_coeff_ij, qr_work,
-                                    open_ctrl=True, trim_after_grad_gate=(location_j < location_i)
+                                    state_qc,
+                                    gate_i,
+                                    idx_i,
+                                    grad_gate_i,
+                                    grad_coeff_ij,
+                                    qr_work,
+                                    open_ctrl=True,
+                                    trim_after_grad_gate=(location_j < location_i),
                                 )
 
                                 # create a copy of the original circuit with the same registers
                                 qfi_circuit = LinComb.apply_grad_gate(
-                                    qfi_circuit, gate_j, idx_j, grad_gate_j, 1, qr_work,
-                                    open_ctrl=False, trim_after_grad_gate=(location_j >= location_i)
+                                    qfi_circuit,
+                                    gate_j,
+                                    idx_j,
+                                    grad_gate_j,
+                                    1,
+                                    qr_work,
+                                    open_ctrl=False,
+                                    trim_after_grad_gate=(location_j >= location_i),
                                 )
 
                                 qfi_circuit.h(qr_work)
@@ -143,7 +158,7 @@ class LinCombFull(CircuitQFI):
 
                                 param_grad = 1
                                 for gate, idx, param in zip(
-                                        [gate_i, gate_j], [idx_i, idx_j], [param_i, param_j]
+                                    [gate_i, gate_j], [idx_i, idx_j], [param_i, param_j]
                                 ):
                                     param_expression = gate.params[idx]
                                     param_grad *= param_expression.gradient(param)
@@ -157,8 +172,9 @@ class LinCombFull(CircuitQFI):
                 def phase_fix_combo_fn(x):
                     return -4 * np.real(x[0] * np.conjugate(x[1]))
 
-                phase_fix = ListOp([phase_fix_states[i], phase_fix_states[j]],
-                                   combo_fn=phase_fix_combo_fn)
+                phase_fix = ListOp(
+                    [phase_fix_states[i], phase_fix_states[j]], combo_fn=phase_fix_combo_fn
+                )
                 # Add the phase fix quantities to the entries of the QFI
                 # Get 4 * Re[〈∂kψ|∂lψ〉−〈∂kψ|ψ〉〈ψ|∂lψ〉]
                 qfi_ops += [SummedOp(qfi_op) + phase_fix]
