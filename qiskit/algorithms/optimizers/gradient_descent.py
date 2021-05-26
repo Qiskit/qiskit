@@ -11,7 +11,81 @@ CALLBACK = Callable[[int, np.ndarray, float], None]
 
 
 class GradientDescent(Optimizer):
-    """The gradient descent minimization routine."""
+    r"""The gradient descent minimization routine.
+
+    For a function :math:`f` and an initial point :math:`\vec\theta_0`, the standard (or "vanilla")
+    gradient descent method is an iterative scheme to find the minimum :math:`\vec\theta^*` of
+    :math:`f` by updating the parameters in the direction of the negative gradient of :math:`f`
+
+    .. math::
+
+        \vec\theta_{n+1} = \vec\theta_{n} - \vec\eta\nabla f(\vec\theta_{n}),
+
+    for a small learning rate :math:`\eta > 0`.
+
+    You can either provide the analytic gradient :math:`\vec\nabla f` as ``gradient_function``
+    in the ``optimize`` method, or, if you do not provide it, use a finite difference approximation
+    of the gradient. To adapt the size of the perturbation in the finite difference gradients,
+    set the ``perturbation`` property in the initializer.
+
+    Examples:
+
+        A minimum example that will use finite difference gradients with a default perturbation
+        of 0.01 and a default learning rate of 0.01.
+
+        .. code-block::python
+
+            from qiskit.algorithms.optimizers import GradientDescent
+
+            def f(x):
+                return (np.linalg.norm(x) - 1) ** 2
+
+            initial_point = np.array([1, 0.5, -0.2])
+
+            optimizer = GradientDescent(maxiter=100)
+            x_opt, fx_opt, nfevs = optimizer.optimize(initial_point.size,
+                                                      f,
+                                                      initial_point=initial_point)
+
+            print(f"Found minimum {x_opt} at a value of {fx_opt} using {nfevs} evaluations.")
+
+        An example where the learning rate is an iterator and we supply the analytic gradient.
+        Note how much faster this convergences (i.e. less ``nfevs``) compared to the previous
+        example.
+
+        .. code-block::python
+
+            from qiskit.algorithms.optimizers import GradientDescent
+
+            def learning_rate():
+                power = 0.6
+                constant_coeff = 0.1
+
+                def powerlaw():
+                    n = 0
+                    while True:
+                        yield constant_coeff * (n ** power)
+                        n += 1
+
+                return powerlaw()
+
+            def f(x):
+                return (np.linalg.norm(x) - 1) ** 2
+
+            def grad_f(x):
+                return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
+
+            initial_point = np.array([1, 0.5, -0.2])
+
+            optimizer = GradientDescent(maxiter=100, learning_rate=learning_rate)
+            x_opt, fx_opt, nfevs = optimizer.optimize(initial_point.size,
+                                                      f,
+                                                      gradient_function=grad_f,
+                                                      initial_point=initial_point)
+
+            print(f"Found minimum {x_opt} at a value of {fx_opt} using {nfevs} evaluations.")
+
+    """
 
     def __init__(
         self,
@@ -25,7 +99,7 @@ class GradientDescent(Optimizer):
         Args:
             maxiter: The maximum number of iterations.
             learning_rate: A constant or generator yielding learning rates for the parameter
-                updates.
+                updates. See the docstring for an example.
             tol: If the norm of the parameter update is smaller than this threshold, the
                 optimizer is converged.
             perturbation: If no gradient is passed to ``GradientDescent.optimize`` the gradient is
@@ -67,8 +141,7 @@ class GradientDescent(Optimizer):
             nfevs += 1
 
             # compute next parameter value
-            update = update * next(eta)
-            x_next = x - update
+            x_next = x - next(eta) * update
 
             # send information to callback
             if self.callback is not None:
