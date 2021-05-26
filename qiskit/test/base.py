@@ -432,6 +432,7 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             "qiskit.pulse.instructions.play",
             "qiskit.pulse.library.parametric_pulses",
             "qiskit.quantum_info.operators.symplectic.pauli",
+            "test.python.dagcircuit.test_dagcircuit",
             "test.python.quantum_info.operators.test_operator",
             "test.python.quantum_info.operators.test_scalar_op",
             "test.python.quantum_info.operators.test_superop",
