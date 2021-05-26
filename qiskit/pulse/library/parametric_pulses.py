@@ -240,8 +240,8 @@ class GaussianSquare(ParametricPulse):
             amp: The amplitude of the Gaussian and of the square pulse.
             sigma: A measure of how wide or narrow the Gaussian risefall is; see the class
                    docstring for more details.
-            risefall_to_sigma: The ratio of each risefall duration to sigma.
             width: The duration of the embedded square pulse.
+            risefall_to_sigma: The ratio of each risefall duration to sigma.
             name: Display name for this pulse envelope.
         """
         if not _is_parameterized(amp):
