@@ -32,11 +32,14 @@ from qiskit.circuit.library import (
 class TestMultiplier(QiskitTestCase):
     """Test the multiplier circuits."""
 
-    def assertMultiplicationIsCorrect(self, num_state_qubits: int, num_result_qubits: int, multiplier: QuantumCircuit):
+    def assertMultiplicationIsCorrect(
+        self, num_state_qubits: int, num_result_qubits: int, multiplier: QuantumCircuit
+    ):
         """Assert that multiplier correctly implements the product.
 
         Args:
             num_state_qubits: The number of bits in the numbers that are multiplied.
+            num_result_qubits: The number of qubits to limit the output to with modulo.
             multiplier: The circuit performing the multiplication of two numbers with
                 ``num_state_qubits`` bits.
         """
@@ -90,7 +93,7 @@ class TestMultiplier(QiskitTestCase):
         if num_result_qubits is None:
             num_result_qubits = 2 * num_state_qubits
         if adder is not None:
-            adder = adder(num_state_qubits, kind='half')
+            adder = adder(num_state_qubits, kind="half")
             multiplier = multiplier(num_state_qubits, num_result_qubits, adder=adder)
         else:
             multiplier = multiplier(num_state_qubits, num_result_qubits)

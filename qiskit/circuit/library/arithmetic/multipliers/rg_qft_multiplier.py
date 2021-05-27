@@ -12,8 +12,8 @@
 
 """Compute the product of two qubit registers using QFT."""
 
-import numpy as np
 from typing import Optional
+import numpy as np
 
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library import PhaseGate
@@ -39,10 +39,10 @@ class RGQFTMultiplier(Multiplier):
     """
 
     def __init__(
-            self,
-            num_state_qubits: int,
-            num_result_qubits: Optional[int] = None,
-            name: str = "RGQFTMultiplier"
+        self,
+        num_state_qubits: int,
+        num_result_qubits: Optional[int] = None,
+        name: str = "RGQFTMultiplier",
     ) -> None:
         r"""
         Args:

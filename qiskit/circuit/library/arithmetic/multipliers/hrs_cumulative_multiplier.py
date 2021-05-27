@@ -105,14 +105,14 @@ class HRSCumulativeMultiplier(Multiplier):
         if adder is None:
             from qiskit.circuit.library import CDKMRippleCarryAdder
 
-            adder = CDKMRippleCarryAdder(num_state_qubits, kind='half')
+            adder = CDKMRippleCarryAdder(num_state_qubits, kind="half")
 
         # get the number of helper qubits needed
         num_helper_qubits = adder.num_ancillas
 
         # add helper qubits if required
         if num_helper_qubits > 0:
-            qr_h = AncillaRegister(num_helper_qubits, name='aux')  # helper/ancilla qubits
+            qr_h = AncillaRegister(num_helper_qubits, name="aux")  # helper/ancilla qubits
             self.add_register(qr_h)
 
         # build multiplication circuit
@@ -123,9 +123,13 @@ class HRSCumulativeMultiplier(Multiplier):
                 adder_for_current_step = adder
             else:
                 num_adder_qubits = num_state_qubits - excess_qubits + 1
-                adder_for_current_step = CDKMRippleCarryAdder(num_adder_qubits, kind='fixed')
+                adder_for_current_step = CDKMRippleCarryAdder(num_adder_qubits, kind="fixed")
             controlled_adder = adder_for_current_step.to_gate().control(1)
-            qr_list = [qr_a[i]] + qr_b[:num_adder_qubits] + qr_out[i: num_state_qubits + i + 1 - excess_qubits]
+            qr_list = (
+                [qr_a[i]]
+                + qr_b[:num_adder_qubits]
+                + qr_out[i : num_state_qubits + i + 1 - excess_qubits]
+            )
             if num_helper_qubits > 0:
                 qr_list.extend(qr_h[:])
             self.append(controlled_adder, qr_list)
