@@ -12,6 +12,7 @@
 
 """Remove all barriers in a circuit"""
 
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -39,8 +40,8 @@ class RemoveBarriers(TransformationPass):
 
     """
 
-    def run(self, dag):
-        """Run the MergeAdjacentBarriers pass on `dag`."""
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        """Run the RemoveBarriers pass on `dag`."""
 
         # add the merged barriers to a new DAG
         new_dag = dag._copy_circuit_metadata()
