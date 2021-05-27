@@ -246,10 +246,10 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         """Test the HHL class."""
         if isinstance(matrix, QuantumCircuit):
             num_qubits = matrix.num_state_qubits
-        elif isinstance(matrix, (list, np.ndarray)):
-            if isinstance(matrix, list):
-                matrix = np.array(matrix)
+        elif isinstance(matrix, (np.ndarray)):
             num_qubits = int(np.log2(matrix.shape[0]))
+        elif isinstance(matrix, list):
+            num_qubits = int(np.log2(len(matrix)))
 
         rhs = right_hand_side / np.linalg.norm(right_hand_side)
 
