@@ -25,8 +25,8 @@ class InnerProduct(QuantumCircuit):
 
     .. math::
 
-        \mathcal{IP}_2n : F_2^{2n} \rightarrow {-1, 1}
-        \mathcal{IP}_2n(x_1, \cdots, x_n, y_1, \cdots, y_n) = (-1)^{x.y}
+        \mathcal{IP}_{2n} : F_2^{2n} \rightarrow {-1, 1}
+        \mathcal{IP}_{2n}(x_1, \cdots, x_n, y_1, \cdots, y_n) = (-1)^{x.y}
 
     The corresponding unitary is a diagonal, which induces a -1 phase on any inputs
     where the inner product of the top and bottom registers is 1. Otherwise it keeps
