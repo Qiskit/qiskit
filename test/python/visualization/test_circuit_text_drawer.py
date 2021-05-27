@@ -28,6 +28,7 @@ from qiskit.transpiler import Layout
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
 from qiskit.extensions import UnitaryGate, HamiltonianGate
+from qiskit.extensions.quantum_initializer import UCGate
 from qiskit.circuit.library import (
     HGate,
     U2Gate,
@@ -1313,13 +1314,13 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
             [
                 "        ┌──────────────┐",
                 "q_0: |0>┤0             ├",
-                "        │  multiplexer │",
+                "        │  MULTIPLEXER │",
                 "q_1: |0>┤1             ├",
                 "        └──────────────┘",
             ]
         )
 
-        cx_multiplexer = Gate("multiplexer", 2, [numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
+        cx_multiplexer = UCGate([numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
 
         qr = QuantumRegister(2, name="q")
         qc = QuantumCircuit(qr)
@@ -2210,7 +2211,7 @@ class TestTextConditional(QiskitTestCase):
 
     def test_conditional_multiplexer(self):
         """Test Multiplexer."""
-        cx_multiplexer = Gate("multiplexer", 2, [numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
+        cx_multiplexer = UCGate([numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
         qr = QuantumRegister(3, name="qr")
         cr = ClassicalRegister(1, "cr")
         qc = QuantumCircuit(qr, cr)
@@ -2220,7 +2221,7 @@ class TestTextConditional(QiskitTestCase):
             [
                 "         ┌──────────────┐",
                 "qr_0: |0>┤0             ├",
-                "         │  multiplexer │",
+                "         │  MULTIPLEXER │",
                 "qr_1: |0>┤1             ├",
                 "         └──────╥───────┘",
                 "qr_2: |0>───────╫────────",
