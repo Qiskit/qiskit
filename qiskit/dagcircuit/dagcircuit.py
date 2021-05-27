@@ -29,6 +29,7 @@ import math
 import numpy as np
 import retworkx as rx
 
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
@@ -318,13 +319,16 @@ class DAGCircuit:
 
         Args:
             name (string): used for error reporting
-            condition (tuple or None): a condition tuple (ClassicalRegister,int)
+            condition (tuple or None): a condition tuple (ClassicalRegister, int) or (Clbit, bool)
 
         Raises:
             DAGCircuitError: if conditioning on an invalid register
         """
-        # Verify creg exists
-        if condition is not None and condition[0].name not in self.cregs:
+        if (
+            condition is not None
+            and condition[0] not in self.clbits
+            and condition[0].name not in self.cregs
+        ):
             raise DAGCircuitError("invalid creg in condition for %s" % name)
 
     def _check_bits(self, args, amap):
@@ -348,12 +352,24 @@ class DAGCircuit:
         """Return a list of bits in the given condition.
 
         Args:
-            cond (tuple or None): optional condition (ClassicalRegister, int)
+            cond (tuple or None): optional condition (ClassicalRegister, int) or (Clbit, bool)
 
         Returns:
             list[Clbit]: list of classical bits
+
+        Raises:
+            CircuitError: if cond[0] is not ClassicalRegister or Clbit
         """
-        return [] if cond is None else list(cond[0])
+        if cond is None:
+            return []
+        elif isinstance(cond[0], ClassicalRegister):
+            # Returns a list of all the cbits in the given creg cond[0].
+            return cond[0][:]
+        elif isinstance(cond[0], Clbit):
+            # Returns a singleton list of the conditional cbit.
+            return [cond[0]]
+        else:
+            raise CircuitError("Condition must be used with ClassicalRegister or Clbit.")
 
     def _add_op_node(self, op, qargs, cargs):
         """Add a new operation node to the graph and assign properties.
@@ -561,12 +577,18 @@ class DAGCircuit:
         else:
             # if there is a condition, map the condition bits to the
             # composed cregs based on the wire_map
-            cond_creg = condition[0]
+            is_reg = False
+            if isinstance(condition[0], Clbit):
+                cond_creg = [condition[0]]
+            else:
+                cond_creg = condition[0]
+                is_reg = True
             cond_val = condition[1]
             new_cond_val = 0
             new_creg = None
-            for bit in wire_map:
-                if bit in cond_creg:
+            bits_in_condcreg = [bit for bit in wire_map if bit in cond_creg]
+            for bit in bits_in_condcreg:
+                if is_reg:
                     try:
                         candidate_creg = next(
                             creg for creg in target_cregs if wire_map[bit] in creg
@@ -575,18 +597,29 @@ class DAGCircuit:
                         raise DAGCircuitError(
                             "Did not find creg containing " "mapped clbit in conditional."
                         ) from ex
+                else:
+                    # If cond is on a single Clbit then the candidate_creg is
+                    # the target Clbit to which 'bit' is mapped to.
+                    candidate_creg = wire_map[bit]
 
-                    if new_creg is None:
-                        new_creg = candidate_creg
-                    elif new_creg != candidate_creg:
-                        # Raise if wire_map maps condition creg on to more than one
-                        # creg in target DAG.
-                        raise DAGCircuitError(
-                            "wire_map maps conditional " "register onto more than one creg."
-                        )
+                if new_creg is None:
+                    new_creg = candidate_creg
+                elif new_creg != candidate_creg:
+                    # Raise if wire_map maps condition creg on to more than one
+                    # creg in target DAG.
+                    raise DAGCircuitError(
+                        "wire_map maps conditional " "register onto more than one creg."
+                    )
 
-                    if 2 ** (cond_creg[:].index(bit)) & cond_val:
-                        new_cond_val += 2 ** (new_creg[:].index(wire_map[bit]))
+                if not is_reg:
+                    # If the cond is on a single Clbit then the new_cond_val is the
+                    # same as the cond_val since the new_creg is also a single Clbit.
+                    new_cond_val = cond_val
+                elif 2 ** (cond_creg[:].index(bit)) & cond_val:
+                    # If the conditional values of the Clbit 'bit' is 1 then the new_cond_val
+                    # is updated such that the conditional value of the Clbit to which 'bit'
+                    # is mapped to in new_creg is 1.
+                    new_cond_val += 2 ** (new_creg[:].index(wire_map[bit]))
             if new_creg is None:
                 raise DAGCircuitError("Condition registers not found in wire_map.")
             new_condition = (new_creg, new_cond_val)
