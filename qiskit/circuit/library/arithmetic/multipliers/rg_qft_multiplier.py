@@ -16,7 +16,7 @@ from typing import Optional
 import numpy as np
 
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.library import PhaseGate
+from qiskit.circuit.library.standard_gates import PhaseGate
 from qiskit.circuit.library.basis_change import QFT
 
 from .multiplier import Multiplier
