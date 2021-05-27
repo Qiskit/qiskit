@@ -32,7 +32,7 @@ from qiskit.circuit.library import (
 class TestMultiplier(QiskitTestCase):
     """Test the multiplier circuits."""
 
-    def assertMultiplicationIsCorrect(self, num_state_qubits: int, multiplier: QuantumCircuit):
+    def assertMultiplicationIsCorrect(self, num_state_qubits: int, num_result_qubits: int, multiplier: QuantumCircuit):
         """Assert that multiplier correctly implements the product.
 
         Args:
@@ -61,7 +61,7 @@ class TestMultiplier(QiskitTestCase):
         for x in range(2 ** num_state_qubits):
             for y in range(2 ** num_state_qubits):
                 # compute the product
-                product = x * y
+                product = x * y % (2 ** num_result_qubits)
                 # compute correct index in statevector
                 bin_x = bin(x)[2:].zfill(num_state_qubits)
                 bin_y = bin(y)[2:].zfill(num_state_qubits)
@@ -73,20 +73,28 @@ class TestMultiplier(QiskitTestCase):
 
     @data(
         (3, RGQFTMultiplier),
+        (3, RGQFTMultiplier, 5),
+        (3, RGQFTMultiplier, 4),
+        (3, RGQFTMultiplier, 3),
         (3, HRSCumulativeMultiplier),
-        (3, HRSCumulativeMultiplier, CDKMRippleCarryAdder),
-        (3, HRSCumulativeMultiplier, DraperQFTAdder),
-        (3, HRSCumulativeMultiplier, VBERippleCarryAdder),
+        (3, HRSCumulativeMultiplier, 5),
+        (3, HRSCumulativeMultiplier, 4),
+        (3, HRSCumulativeMultiplier, 3),
+        (3, HRSCumulativeMultiplier, None, CDKMRippleCarryAdder),
+        (3, HRSCumulativeMultiplier, None, DraperQFTAdder),
+        (3, HRSCumulativeMultiplier, None, VBERippleCarryAdder),
     )
     @unpack
-    def test_multiplication(self, num_state_qubits, multiplier, adder=None):
+    def test_multiplication(self, num_state_qubits, multiplier, num_result_qubits=None, adder=None):
         """Test multiplication for all implemented multipliers."""
+        if num_result_qubits is None:
+            num_result_qubits = 2 * num_state_qubits
         if adder is not None:
             adder = adder(num_state_qubits, kind='half')
-            multiplier = multiplier(num_state_qubits, adder=adder)
+            multiplier = multiplier(num_state_qubits, num_result_qubits, adder=adder)
         else:
-            multiplier = multiplier(num_state_qubits)
-        self.assertMultiplicationIsCorrect(num_state_qubits, multiplier)
+            multiplier = multiplier(num_state_qubits, num_result_qubits)
+        self.assertMultiplicationIsCorrect(num_state_qubits, num_result_qubits, multiplier)
 
     @data(
         RGQFTMultiplier,
