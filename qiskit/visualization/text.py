@@ -1402,9 +1402,9 @@ class Layer:
         """
         if self.cregbundle:
             if isinstance(creg, Clbit):
-                bit_reg = self._clbit_locations[creg]['register']
-                bit_index = self._clbit_locations[creg]['index']
-                label_bool = '= T' if label == '= 1' else '= F'
+                bit_reg = self._clbit_locations[creg]["register"]
+                bit_index = self._clbit_locations[creg]["index"]
+                label_bool = "= T" if label == "= True" else "= F"
                 label = "%s_%s %s" % (bit_reg.name, bit_index, label_bool)
                 self.set_clbit(creg, BoxOnClWire(label=label, top_connect=top_connect))
             else:
@@ -1412,11 +1412,12 @@ class Layer:
         else:
             if isinstance(creg, Clbit):
                 clbit = [creg]
-                label_bool = '= T' if label == '= 1' else '= F'
+                label_bool = "= T" if label == "= True" else "= F"
                 self._set_multibox(label_bool, clbits=clbit, top_connect=top_connect)
             else:
-                clbit = [bit for bit in self.clbits
-                         if self._clbit_locations[bit]['register'] == creg]
+                clbit = [
+                    bit for bit in self.clbits if self._clbit_locations[bit]["register"] == creg
+                ]
                 self._set_multibox(label, clbits=clbit, top_connect=top_connect)
 
     def set_qu_multibox(

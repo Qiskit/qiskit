@@ -352,11 +352,7 @@ class DAGCircuit:
         """Return a list of bits in the given condition.
 
         Args:
-<<<<<<< HEAD
-            cond (tuple or None): optional condition (ClassicalRegister, int) or (Clbit, int)
-=======
             cond (tuple or None): optional condition (ClassicalRegister, int) or (Clbit, bool)
->>>>>>> eda331ae0c4c7c43e340ae2655c108b75c68ae98
 
         Returns:
             list[Clbit]: list of classical bits
