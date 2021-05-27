@@ -21,10 +21,14 @@ from qiskit.transpiler.basepasses import TransformationPass
 
 
 class RemoveZeroRotations(TransformationPass):
-    """Return a circuit with any zero rotation removed."""
+    """Return a circuit with small rotation gates removed."""
 
-    def __init__(self, epsilon=0):
-        """Remove all zero rotations from a circuit"""
+    def __init__(self, epsilon: float = 0):
+        """Remove all zero rotations from a circuit
+
+        Args:
+            epsilon: Threshold for rotation angle to be removed
+        """
         super().__init__()
 
         self.epsilon = 0
@@ -32,13 +36,13 @@ class RemoveZeroRotations(TransformationPass):
         self._empty_dag2 = circuit_to_dag(QuantumCircuit(2))
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the Decompose pass on `dag`.
+        """Run the pass on `dag`.
 
         Args:
             dag: input dag.
 
         Returns:
-            Output dag with zero rotations removed
+            Output dag with small rotations removed
         """
         for node in dag.op_nodes():
             if isinstance(node.op, (PhaseGate, RXGate, RYGate, RZGate)):
