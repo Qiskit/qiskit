@@ -100,10 +100,10 @@ class TestMultiplier(QiskitTestCase):
         RGQFTMultiplier,
         HRSCumulativeMultiplier,
     )
-    def test_raises_on_wrong_num_bits(self, adder):
+    def test_raises_on_wrong_num_bits(self, multiplier):
         """Test an error is raised for a bad number of qubits."""
         with self.assertRaises(ValueError):
-            _ = adder(-1)
+            _ = multiplier(-1)
 
 
 if __name__ == "__main__":
