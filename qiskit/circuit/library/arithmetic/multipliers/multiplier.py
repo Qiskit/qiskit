@@ -40,19 +40,27 @@ class Multiplier(QuantumCircuit):
 
     """
 
-    def __init__(self, num_state_qubits: int, name: str = "Multiplier") -> None:
+    def __init__(self, num_state_qubits: int, num_result_qubits: int, name: str = "Multiplier") -> None:
         """
         Args:
             num_state_qubits: The number of qubits in each of the input registers.
+            num_result_qubits: The number of result qubits to limit the output to.
             name: The name of the circuit.
         Raises:
             ValueError: If ``num_state_qubits`` is smaller than 1.
+            ValueError: If ``num_result_qubits`` is smaller than ``num_state_qubits``.
+            ValueError: If ``num_result_qubits`` is larger than ``2 * num_state_qubits``.
         """
         if num_state_qubits < 1:
             raise ValueError("The number of qubits must be at least 1.")
+        if num_result_qubits < num_state_qubits:
+            raise ValueError("Number of result qubits is smaller than number of input state qubits.")
+        if num_result_qubits > 2 * num_state_qubits:
+            raise ValueError("Number of result qubits is larger than twice the number of input state qubits.")
 
         super().__init__(name=name)
         self._num_state_qubits = num_state_qubits
+        self._num_result_qubits = num_result_qubits
 
     @property
     def num_state_qubits(self) -> int:
@@ -62,3 +70,12 @@ class Multiplier(QuantumCircuit):
             The number of state qubits.
         """
         return self._num_state_qubits
+
+    @property
+    def num_result_qubits(self) -> int:
+        """The number of result qubits to limit the output to/
+
+        Returns:
+            The number of result qubits.
+        """
+        return self._num_result_qubits

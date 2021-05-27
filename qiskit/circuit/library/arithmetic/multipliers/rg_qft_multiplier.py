@@ -56,10 +56,10 @@ class RGQFTMultiplier(Multiplier):
             name: The name of the circuit object.
 
         """
-        super().__init__(num_state_qubits, name=name)
-
         if num_result_qubits is None:
             num_result_qubits = 2 * num_state_qubits
+
+        super().__init__(num_state_qubits, num_result_qubits, name=name)
 
         # define the registers
         qr_a = QuantumRegister(num_state_qubits, name="a")

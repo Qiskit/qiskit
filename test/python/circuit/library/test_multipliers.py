@@ -97,13 +97,23 @@ class TestMultiplier(QiskitTestCase):
         self.assertMultiplicationIsCorrect(num_state_qubits, num_result_qubits, multiplier)
 
     @data(
-        RGQFTMultiplier,
-        HRSCumulativeMultiplier,
+        (RGQFTMultiplier, -1),
+        (HRSCumulativeMultiplier, -1),
+        (RGQFTMultiplier, 3, 2),
+        (HRSCumulativeMultiplier, 3, 2),
+        (RGQFTMultiplier, 3, 7),
+        (HRSCumulativeMultiplier, 3, 7),
     )
-    def test_raises_on_wrong_num_bits(self, multiplier):
-        """Test an error is raised for a bad number of qubits."""
+    @unpack
+    def test_raises_on_wrong_num_bits(self, multiplier, num_state_qubits, num_result_qubits=None):
+        """Test an error is raised for a bad number of state or result qubits."""
         with self.assertRaises(ValueError):
-            _ = multiplier(-1)
+            _ = multiplier(num_state_qubits, num_result_qubits)
+
+    def test_modular_cumulative_multiplier_custom_adder(self):
+        """Test an error is raised when a custom adder is used with modular cumulative multiplier."""
+        with self.assertRaises(ValueError):
+            _ = HRSCumulativeMultiplier(3, 3, adder=VBERippleCarryAdder(3))
 
 
 if __name__ == "__main__":

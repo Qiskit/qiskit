@@ -93,7 +93,7 @@ class HRSCumulativeMultiplier(Multiplier):
         if num_result_qubits != 2 * num_state_qubits and adder is not None:
             raise ValueError("Only default adder is supported for modular multiplication.")
 
-        super().__init__(num_state_qubits, name=name)
+        super().__init__(num_state_qubits, num_result_qubits, name=name)
 
         # define the registers
         qr_a = QuantumRegister(num_state_qubits, name="a")
