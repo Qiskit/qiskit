@@ -225,6 +225,16 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
                 MatrixFunctional(1, 1 / 2),
             ],
             [
+                [
+                    [1 / 2, 1 / 6, 0, 0],
+                    [1 / 6, 1 / 2, 1 / 6, 0],
+                    [0, 1 / 6, 1 / 2, 1 / 6],
+                    [0, 0, 1 / 6, 1 / 2],
+                ],
+                [1.0, -2.1, 3.2, -4.3],
+                MatrixFunctional(1, 1 / 2),
+            ],
+            [
                 TridiagonalToeplitz(3, 1, -1 / 2, trotter_steps=2),
                 [-9 / 4, -0.3, 8 / 7, 10, -5, 11.1, 13 / 11, -27 / 12],
                 AbsoluteAverage(),
