@@ -20,7 +20,7 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 
 
-class RemoveZeroRotations(TransformationPass):
+class RemoveSmallRotations(TransformationPass):
     """Return a circuit with small rotation gates removed."""
 
     def __init__(self, epsilon: float = 0):
@@ -31,7 +31,7 @@ class RemoveZeroRotations(TransformationPass):
         """
         super().__init__()
 
-        self.epsilon = 0
+        self.epsilon = epsilon
         self._empty_dag1 = circuit_to_dag(QuantumCircuit(1))
         self._empty_dag2 = circuit_to_dag(QuantumCircuit(2))
 

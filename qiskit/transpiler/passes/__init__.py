@@ -74,6 +74,7 @@ Optimizations
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
    TemplateOptimization
+   RemoveSmallRotations
 
 Scheduling
 =============
@@ -165,6 +166,8 @@ from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
+from .optimization import RemoveSmallRotations
+
 
 # circuit analysis
 from .analysis import ResourceEstimation

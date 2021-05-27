@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added pass `RemoveSmallRotations` to remove all rotations with a small
+    angle from a quantum circuit.
