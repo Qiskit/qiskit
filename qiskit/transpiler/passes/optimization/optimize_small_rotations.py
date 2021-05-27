@@ -11,9 +11,11 @@
 # that they have been altered from the originals.
 
 """Optimize by removing small rotations """
-
+import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import CRXGate, CRYGate, CRZGate, PhaseGate, RXGate, RYGate, RZGate
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.converters.circuit_to_dag import circuit_to_dag
 
 from qiskit.transpiler.basepasses import TransformationPass
 
