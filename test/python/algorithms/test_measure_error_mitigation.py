@@ -44,7 +44,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
         noise_model.add_all_qubit_readout_error(read_err)
 
-        backend = Aer.get_backend("qasm_simulator")
+        backend = Aer.get_backend("aer_simulator")
         quantum_instance = QuantumInstance(
             backend=backend,
             seed_simulator=1679,
@@ -97,7 +97,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
         noise_model.add_all_qubit_readout_error(read_err)
 
-        backend = Aer.get_backend("qasm_simulator")
+        backend = Aer.get_backend("aer_simulator")
 
         quantum_instance = QuantumInstance(
             backend=backend,
