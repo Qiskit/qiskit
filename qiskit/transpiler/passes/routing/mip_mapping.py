@@ -95,6 +95,7 @@ class MIPMapping(TransformationPass):
         gate_mfidelity = []
         gateslookup = {}
         meas = []
+        # Generate data structures for the optimization problem
         for t, lay in enumerate(dag.layers()):
             laygates = []
             layfidelity = []
@@ -145,7 +146,9 @@ class MIPMapping(TransformationPass):
                              for _ in self.coupling_map.neighbors(i)]
                             for i in range(self.coupling_map.size())])
         problem, ic = qomp.create_cpx_model(circ, topo, self.dummy_steps,
-                                            self.max_total_dummy, self.line_symm, self.cycle_symm)
+                                            self.max_total_dummy,
+                                            (self.line_symm and self.initial_layout is None),
+                                            self.cycle_symm)
         if (self.initial_layout is not None):
             layout = [0 for i in range(ic.num_lqubits)]
             for logical in self.initial_layout._v2p.keys():
@@ -154,10 +157,6 @@ class MIPMapping(TransformationPass):
             # Fix initial layout variables
             for i in range(ic.num_lqubits):
                 problem.variables.set_lower_bounds(ic.w_index(i, layout[i], 0), 1)
-            # Remove symmetry breaking, since the initial layout may
-            # not satisfy it
-            for h in range(1, ic.num_lqubits):
-                problem.linear_constraints.delete(['sym_break_line_{:d}'.format(h)])
 
         qomp.set_error_rate_obj(problem, ic)
 
@@ -178,10 +177,8 @@ class MIPMapping(TransformationPass):
             print('OBJ2 Error rate:', qomp.evaluate_error_rate_obj(problem, ic),
                   'depth:', qomp.evaluate_depth_obj(problem, ic),
                   'cross-talk:', qomp.evaluate_cross_talk_obj(problem, ic))
-        # qomp.set_depth_constraint(problem, ic,
-        #                           problem.solution.get_objective_value())
-        # qomp.unset_depth_obj(problem, ic)
 
+        # Construct the circuit that includes routing
         for t in range(ic.depth):
             # If we use a fixed layout, the first layer of gates
             # is empty to allow swaps, therefore we shift all
@@ -203,6 +200,8 @@ class MIPMapping(TransformationPass):
                             swap_node = DAGNode(op=SwapGate(), qargs=[dag.qubits[i], dag.qubits[j]],
                                                 type='op')
                             mapped_dag.apply_operation_back(swap_node.op, swap_node.qargs)
+        # Reconstruct the qubit map after the final layer: the qubits
+        # could be permuted compared to the initial permutation.
         inmap = {}
         outmap = {}
         outmeas = [-1 for i in range(len(dag.qubits))]
@@ -217,11 +216,13 @@ class MIPMapping(TransformationPass):
                     outmeas[l] = p
             inmap[dag.qubits[l]] = inpos
             outmap[dag.qubits[l]] = outpos
+        # These are saved, but not sure if used anywhere
         self.property_set['layout'] = Layout(inmap)
         self.property_set['layout_in'] = Layout(inmap)
         self.property_set['final_layout'] = Layout(outmap)
         self.property_set['layout_out'] = Layout(outmap)
 
+        # Remap measurements
         for m in meas:
             mapped_meas = copy.deepcopy(m)
             m.qargs = [m.qargs[0].register[outmeas[m.qargs[0].index]]]
