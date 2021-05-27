@@ -25,8 +25,8 @@ class InnerProduct(QuantumCircuit):
 
     .. math::
 
-        \mathcal{IP_2n} : F_2^{2n} \rightarrow {-1, 1}
-        \mathcal{IP_2n}(x_1, \cdots, x_n, y_1, \cdots, y_n) = (-1)^{x.y}
+        \mathcal{IP}_2n : F_2^{2n} \rightarrow {-1, 1}
+        \mathcal{IP}_2n(x_1, \cdots, x_n, y_1, \cdots, y_n) = (-1)^{x.y}
 
     The corresponding unitary is a diagonal, which induces a -1 phase on any inputs
     where the inner product of the top and bottom registers is 1. Otherwise it keeps
@@ -51,8 +51,6 @@ class InnerProduct(QuantumCircuit):
                         │
         q1_3: ──────────■─
 
-    Args:
-        num_qubits: width of top and bottom registers (half total circuit width)
 
     Reference Circuit:
         .. jupyter-execute::
@@ -65,7 +63,11 @@ class InnerProduct(QuantumCircuit):
     """
 
     def __init__(self, num_qubits: int) -> None:
-        """Return a circuit to compute the inner product of 2 n-qubit registers."""
+        """Return a circuit to compute the inner product of 2 n-qubit registers.
+
+        Args:
+            num_qubits: width of top and bottom registers (half total circuit width)
+        """
         qr_a = QuantumRegister(num_qubits)
         qr_b = QuantumRegister(num_qubits)
         super().__init__(qr_a, qr_b, name="inner_product")
