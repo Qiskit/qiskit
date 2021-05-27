@@ -22,8 +22,8 @@ class HRSCumulativeMultiplier(Multiplier):
     r"""A multiplication circuit to store product of two input registers out-of-place.
 
     Circuit uses the approach from [1]. As an example, a multiplier circuit that
-    performs multiplication on two 3-qubit sized registers with the default adder
-    is as follows:
+    performs a non-modular multiplication on two 3-qubit sized registers with
+    the default adder is as follows:
 
     .. parsed-literal::
 
@@ -68,6 +68,7 @@ class HRSCumulativeMultiplier(Multiplier):
     def __init__(
         self,
         num_state_qubits: int,
+        num_result_qubits: Optional[int] = None,
         adder: Optional[QuantumCircuit] = None,
         name: str = "HRSCumulativeMultiplier",
     ) -> None:
@@ -76,16 +77,28 @@ class HRSCumulativeMultiplier(Multiplier):
             num_state_qubits: The number of qubits in either input register for
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
-            adder: adder circuit to be used for performing multiplication. The
+            num_result_qubits: The number of result qubits to limit the output to.
+                If number of result qubits is `n`, modulo :math:`2^n` is performed
+                to limit the output to the specified number of qubits. Default
+                value is ``2 * num_state_qubits``.
+            adder: Half adder circuit to be used for performing multiplication. The
                 CDKMRippleCarryAdder is used as default if no adder is provided.
             name: The name of the circuit object.
+        Raises:
+            ValueError: If ``num_result_qubits`` is not default and a custom adder is provided.
         """
+        if num_result_qubits is None:
+            num_result_qubits = 2 * num_state_qubits
+
+        if num_result_qubits != 2 * num_state_qubits and adder is not None:
+            raise ValueError("Only default adder is supported for modular multiplication.")
+
         super().__init__(num_state_qubits, name=name)
 
         # define the registers
         qr_a = QuantumRegister(num_state_qubits, name="a")
         qr_b = QuantumRegister(num_state_qubits, name="b")
-        qr_out = QuantumRegister(2 * num_state_qubits, name="out")
+        qr_out = QuantumRegister(num_result_qubits, name="out")
         self.add_register(qr_a, qr_b, qr_out)
 
         # prepare adder as controlled gate
@@ -93,7 +106,6 @@ class HRSCumulativeMultiplier(Multiplier):
             from qiskit.circuit.library import CDKMRippleCarryAdder
 
             adder = CDKMRippleCarryAdder(num_state_qubits, kind='half')
-        controlled_adder = adder.to_gate().control(1)
 
         # get the number of helper qubits needed
         num_helper_qubits = adder.num_ancillas
@@ -105,7 +117,15 @@ class HRSCumulativeMultiplier(Multiplier):
 
         # build multiplication circuit
         for i in range(num_state_qubits):
-            qr_list = [qr_a[i]] + qr_b[:] + qr_out[i : num_state_qubits + i + 1]
+            excess_qubits = max(0, num_state_qubits + i + 1 - num_result_qubits)
+            if excess_qubits == 0:
+                num_adder_qubits = num_state_qubits
+                adder_for_current_step = adder
+            else:
+                num_adder_qubits = num_state_qubits - excess_qubits + 1
+                adder_for_current_step = CDKMRippleCarryAdder(num_adder_qubits, kind='fixed')
+            controlled_adder = adder_for_current_step.to_gate().control(1)
+            qr_list = [qr_a[i]] + qr_b[:num_adder_qubits] + qr_out[i: num_state_qubits + i + 1 - excess_qubits]
             if num_helper_qubits > 0:
                 qr_list.extend(qr_h[:])
             self.append(controlled_adder, qr_list)
