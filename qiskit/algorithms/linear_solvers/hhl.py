@@ -308,8 +308,8 @@ class HHL(LinearSolver):
 
     def construct_circuit(
         self,
-        matrix: Union[list, np.ndarray, QuantumCircuit],
-        vector: Union[list, np.ndarray, QuantumCircuit],
+        matrix: Union[List, np.ndarray, QuantumCircuit],
+        vector: Union[List, np.ndarray, QuantumCircuit],
     ) -> QuantumCircuit:
         """Construct the HHL circuit.
 
@@ -473,8 +473,8 @@ class HHL(LinearSolver):
 
     def solve(
         self,
-        matrix: Union[list, np.ndarray, QuantumCircuit],
-        vector: Union[list, np.ndarray, QuantumCircuit],
+        matrix: Union[List, np.ndarray, QuantumCircuit],
+        vector: Union[List, np.ndarray, QuantumCircuit],
         observable: Optional[
             Union[
                 LinearSystemObservable,
