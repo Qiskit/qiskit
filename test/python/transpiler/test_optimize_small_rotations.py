@@ -34,12 +34,10 @@ class TesROptimizeSmallRotations(QiskitTestCase):
 
         pm = PassManager(RemoveSmallRotations())
         c = pm.run(c)
-        c.draw()
-
         self.assertEqual(len(c), 2)
+
         pm = PassManager(RemoveSmallRotations(epsilon=2e-16))
         c = pm.run(c)
-        c.draw()
         self.assertEqual(len(c), 1)
 
 
