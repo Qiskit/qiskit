@@ -19,10 +19,20 @@ from qiskit.assembler.assemble_schedules import _assemble_instructions as _assem
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.exceptions import QiskitError
-from qiskit.qobj import (QasmQobj, QobjExperimentHeader,
-                         QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
-                         QasmQobjConfig, QasmExperimentCalibrations, GateCalibration,
-                         PulseQobjInstruction, PulseLibraryItem, converters, QobjHeader)
+from qiskit.qobj import (
+    QasmQobj,
+    QobjExperimentHeader,
+    QasmQobjInstruction,
+    QasmQobjExperimentConfig,
+    QasmQobjExperiment,
+    QasmQobjConfig,
+    QasmExperimentCalibrations,
+    GateCalibration,
+    PulseQobjInstruction,
+    PulseLibraryItem,
+    converters,
+    QobjHeader,
+)
 from qiskit.tools.parallel import parallel_map
 
 
@@ -30,8 +40,7 @@ PulseLibrary = Dict[str, List[complex]]
 
 
 def _assemble_circuit(
-        circuit: QuantumCircuit,
-        run_config: RunConfig
+    circuit: QuantumCircuit, run_config: RunConfig
 ) -> Tuple[QasmQobjExperiment, Optional[PulseLibrary]]:
     """Assemble one circuit.
 
@@ -45,9 +54,10 @@ def _assemble_circuit(
     Raises:
         QiskitError: when the circuit has unit other than 'dt'.
     """
-    if circuit.unit != 'dt':
-        raise QiskitError("Unable to assemble circuit with unit '{}', which must be 'dt'."
-                          .format(circuit.unit))
+    if circuit.unit != "dt":
+        raise QiskitError(
+            "Unable to assemble circuit with unit '{}', which must be 'dt'.".format(circuit.unit)
+        )
 
     # header data
     num_qubits = 0
@@ -76,15 +86,17 @@ def _assemble_circuit(
     metadata = circuit.metadata
     if metadata is None:
         metadata = {}
-    header = QobjExperimentHeader(qubit_labels=qubit_labels,
-                                  n_qubits=num_qubits,
-                                  qreg_sizes=qreg_sizes,
-                                  clbit_labels=clbit_labels,
-                                  memory_slots=memory_slots,
-                                  creg_sizes=creg_sizes,
-                                  name=circuit.name,
-                                  global_phase=float(circuit.global_phase),
-                                  metadata=metadata)
+    header = QobjExperimentHeader(
+        qubit_labels=qubit_labels,
+        n_qubits=num_qubits,
+        qreg_sizes=qreg_sizes,
+        clbit_labels=clbit_labels,
+        memory_slots=memory_slots,
+        creg_sizes=creg_sizes,
+        name=circuit.name,
+        global_phase=float(circuit.global_phase),
+        metadata=metadata,
+    )
 
     # TODO: why do we need n_qubits and memory_slots in both the header and the config
     config = QasmQobjExperimentConfig(n_qubits=num_qubits, memory_slots=memory_slots)
@@ -121,27 +133,29 @@ def _assemble_circuit(
         # To convert to a qobj-style conditional, insert a bfunc prior
         # to the conditional instruction to map the creg ?= val condition
         # onto a gating register bit.
-        if hasattr(instruction, '_condition'):
+        if hasattr(instruction, "_condition"):
             ctrl_reg, ctrl_val = instruction._condition
             mask = 0
             val = 0
             if isinstance(ctrl_reg, Clbit):
-                for clbit in clbit_labels:
-                    if clbit == [ctrl_reg.register.name, ctrl_reg.index]:
-                        mask = (1 << clbit_labels.index(clbit))
-                        val = (ctrl_val & 1) << clbit_labels.index(clbit)
+                mask = 1 << clbit_indices[ctrl_reg]
+                val = (ctrl_val & 1) << clbit_indices[ctrl_reg]
             else:
-                for clbit in clbit_labels:
-                    if clbit[0] == ctrl_reg.name:
-                        mask |= (1 << clbit_labels.index(clbit))
-                        val |= (((ctrl_val >> clbit[1]) & 1) << clbit_labels.index(clbit))
+                for clbit in clbit_indices:
+                    if clbit in ctrl_reg:
+                        mask |= 1 << clbit_indices[clbit]
+                        val |= ((ctrl_val >> list(ctrl_reg).index(clbit)) & 1) << clbit_indices[
+                            clbit
+                        ]
 
             conditional_reg_idx = memory_slots + max_conditional_idx
-            conversion_bfunc = QasmQobjInstruction(name='bfunc',
-                                                   mask="0x%X" % mask,
-                                                   relation='==',
-                                                   val="0x%X" % val,
-                                                   register=conditional_reg_idx)
+            conversion_bfunc = QasmQobjInstruction(
+                name="bfunc",
+                mask="0x%X" % mask,
+                relation="==",
+                val="0x%X" % val,
+                register=conditional_reg_idx,
+            )
             instructions.append(conversion_bfunc)
             instruction.conditional = conditional_reg_idx
             max_conditional_idx += 1
@@ -150,13 +164,14 @@ def _assemble_circuit(
             del instruction._condition
 
         instructions.append(instruction)
-    return (QasmQobjExperiment(instructions=instructions, header=header, config=config),
-            pulse_library)
+    return (
+        QasmQobjExperiment(instructions=instructions, header=header, config=config),
+        pulse_library,
+    )
 
 
 def _assemble_pulse_gates(
-        circuit: QuantumCircuit,
-        run_config: RunConfig
+    circuit: QuantumCircuit, run_config: RunConfig
 ) -> Tuple[Optional[QasmExperimentCalibrations], Optional[PulseLibrary]]:
     """Assemble and return the circuit calibrations and associated pulse library, if there are any.
     The calibrations themselves may reference the pulse library which is returned as a dict.
@@ -170,7 +185,7 @@ def _assemble_pulse_gates(
     """
     if not circuit.calibrations:
         return None, None
-    if not hasattr(run_config, 'parametric_pulses'):
+    if not hasattr(run_config, "parametric_pulses"):
         run_config.parametric_pulses = []
     calibrations = []
     pulse_library = {}
@@ -180,14 +195,16 @@ def _assemble_pulse_gates(
                 schedule,
                 converters.InstructionToQobjConverter(PulseQobjInstruction),
                 run_config,
-                pulse_library)
+                pulse_library,
+            )
             calibrations.append(
-                GateCalibration(str(gate), list(qubits), list(params), qobj_instructions))
+                GateCalibration(str(gate), list(qubits), list(params), qobj_instructions)
+            )
     return QasmExperimentCalibrations(gates=calibrations), pulse_library
 
 
 def _extract_common_calibrations(
-        experiments: List[QasmQobjExperiment]
+    experiments: List[QasmQobjExperiment],
 ) -> Tuple[List[QasmQobjExperiment], Optional[QasmExperimentCalibrations]]:
     """Given a list of ``QasmQobjExperiment``s, each of which may have calibrations in their
     ``config``, collect common calibrations into a global ``QasmExperimentCalibrations``
@@ -200,6 +217,7 @@ def _extract_common_calibrations(
         The input experiments with modified calibrations, and common calibrations, if there
         are any
     """
+
     def index_calibrations() -> Dict[int, List[Tuple[int, GateCalibration]]]:
         """Map each calibration to all experiments that contain it."""
         exp_indices = defaultdict(list)
@@ -226,7 +244,7 @@ def _extract_common_calibrations(
                 for exp_idx, gate_cal in exps_w_cal:
                     exps[exp_idx].config.calibrations.gates.remove(gate_cal)
 
-    if not (experiments and all(hasattr(exp.config, 'calibrations') for exp in experiments)):
+    if not (experiments and all(hasattr(exp.config, "calibrations") for exp in experiments)):
         # No common calibrations
         return experiments, None
 
@@ -243,10 +261,7 @@ def _extract_common_calibrations(
 
 
 def assemble_circuits(
-        circuits: List[QuantumCircuit],
-        run_config: RunConfig,
-        qobj_id: int,
-        qobj_header: QobjHeader
+    circuits: List[QuantumCircuit], run_config: RunConfig, qobj_id: int, qobj_header: QobjHeader
 ) -> QasmQobj:
     """Assembles a list of circuits into a qobj that can be run on the backend.
 
@@ -284,13 +299,13 @@ def assemble_circuits(
         if lib:
             pulse_library.update(lib)
     if pulse_library:
-        qobj_config.pulse_library = [PulseLibraryItem(name=name, samples=samples)
-                                     for name, samples in pulse_library.items()]
+        qobj_config.pulse_library = [
+            PulseLibraryItem(name=name, samples=samples) for name, samples in pulse_library.items()
+        ]
     experiments, calibrations = _extract_common_calibrations(experiments)
     if calibrations and calibrations.gates:
         qobj_config.calibrations = calibrations
 
-    return QasmQobj(qobj_id=qobj_id,
-                    config=qobj_config,
-                    experiments=experiments,
-                    header=qobj_header)
+    return QasmQobj(
+        qobj_id=qobj_id, config=qobj_config, experiments=experiments, header=qobj_header
+    )
