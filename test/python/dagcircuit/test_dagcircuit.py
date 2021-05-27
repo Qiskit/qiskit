@@ -1363,16 +1363,6 @@ class TestDagProperties(QiskitTestCase):
 
 
 class TestConditional(QiskitTestCase):
-<<<<<<< HEAD
-    """Test the classical conditional gates.
-    """
-
-    def setUp(self):
-        super().setUp()
-        self.qreg = QuantumRegister(3, 'q')
-        self.creg = ClassicalRegister(2, 'c')
-        self.creg2 = ClassicalRegister(2, 'c2')
-=======
     """Test the classical conditional gates."""
 
     def setUp(self):
@@ -1380,7 +1370,6 @@ class TestConditional(QiskitTestCase):
         self.qreg = QuantumRegister(3, "q")
         self.creg = ClassicalRegister(2, "c")
         self.creg2 = ClassicalRegister(2, "c2")
->>>>>>> 57261183f2f49882e24d255b7b9a9ab1e1c6421e
         self.qubit0 = self.qreg[0]
         self.circuit = QuantumCircuit(self.qreg, self.creg, self.creg2)
         self.dag = None
@@ -1397,27 +1386,6 @@ class TestConditional(QiskitTestCase):
         self.assertEqual(gate_node.condition, (self.creg, 1))
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(gate_node._node_id)),
-<<<<<<< HEAD
-            sorted([
-                (self.dag.input_map[self.qreg[0]]._node_id, gate_node._node_id,
-                 self.qreg[0]),
-                (self.dag.input_map[self.creg[0]]._node_id, gate_node._node_id,
-                 self.creg[0]),
-                (self.dag.input_map[self.creg[1]]._node_id, gate_node._node_id,
-                 self.creg[1])
-            ]))
-
-        self.assertEqual(
-            sorted(self.dag._multi_graph.out_edges(gate_node._node_id)),
-            sorted([
-                (gate_node._node_id, self.dag.output_map[self.qreg[0]]._node_id,
-                 self.qreg[0]),
-                (gate_node._node_id, self.dag.output_map[self.creg[0]]._node_id,
-                 self.creg[0]),
-                (gate_node._node_id, self.dag.output_map[self.creg[1]]._node_id,
-                 self.creg[1])
-            ]))
-=======
             sorted(
                 [
                     (self.dag.input_map[self.qreg[0]]._node_id, gate_node._node_id, self.qreg[0]),
@@ -1437,7 +1405,6 @@ class TestConditional(QiskitTestCase):
                 ]
             ),
         )
->>>>>>> 57261183f2f49882e24d255b7b9a9ab1e1c6421e
 
     def test_clbit_conditional(self):
         """Test consistency of conditional on single classical bit."""
@@ -1451,26 +1418,6 @@ class TestConditional(QiskitTestCase):
         self.assertEqual(gate_node.condition, (self.creg[0], 1))
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(gate_node._node_id)),
-<<<<<<< HEAD
-            sorted([
-                (self.dag.input_map[self.qreg[0]]._node_id, gate_node._node_id,
-                 self.qreg[0]),
-                (self.dag.input_map[self.creg[0]]._node_id, gate_node._node_id,
-                 self.creg[0])
-            ]))
-
-        self.assertEqual(
-            sorted(self.dag._multi_graph.out_edges(gate_node._node_id)),
-            sorted([
-                (gate_node._node_id, self.dag.output_map[self.qreg[0]]._node_id,
-                 self.qreg[0]),
-                (gate_node._node_id, self.dag.output_map[self.creg[0]]._node_id,
-                 self.creg[0]),
-            ]))
-
-
-if __name__ == '__main__':
-=======
             sorted(
                 [
                     (self.dag.input_map[self.qreg[0]]._node_id, gate_node._node_id, self.qreg[0]),
@@ -1491,5 +1438,4 @@ if __name__ == '__main__':
 
 
 if __name__ == "__main__":
->>>>>>> 57261183f2f49882e24d255b7b9a9ab1e1c6421e
     unittest.main()

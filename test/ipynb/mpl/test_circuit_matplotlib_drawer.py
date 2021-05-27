@@ -122,13 +122,13 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.measure(qr, cr)
         circuit.h(qr[0]).c_if(cr, 2)
 
-        self.circuit_drawer(circuit, filename='reg_conditional.png')
+        self.circuit_drawer(circuit, filename="reg_conditional.png")
 
     def test_bit_conditional_with_cregbundle(self):
         """Test that circuits with single bit conditionals draw correctly
         with cregbundle=True."""
-        qr = QuantumRegister(2, 'q')
-        cr = ClassicalRegister(2, 'c')
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(2, "c")
         circuit = QuantumCircuit(qr, cr)
 
         circuit.x(qr[0])
@@ -136,13 +136,13 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr[0]).c_if(cr[0], 1)
         circuit.x(qr[1]).c_if(cr[1], 0)
 
-        self.circuit_drawer(circuit, filename='bit_conditional_bundle.png')
+        self.circuit_drawer(circuit, filename="bit_conditional_bundle.png")
 
     def test_bit_conditional_no_cregbundle(self):
         """Test that circuits with single bit conditionals draw correctly
         with cregbundle=False."""
-        qr = QuantumRegister(2, 'q')
-        cr = ClassicalRegister(2, 'c')
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(2, "c")
         circuit = QuantumCircuit(qr, cr)
 
         circuit.x(qr[0])
@@ -150,8 +150,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr[0]).c_if(cr[0], 1)
         circuit.x(qr[1]).c_if(cr[1], 0)
 
-        self.circuit_drawer(circuit, filename='bit_conditional_no_bundle.png',
-                            cregbundle=False)
+        self.circuit_drawer(circuit, filename="bit_conditional_no_bundle.png", cregbundle=False)
 
     def test_plot_partial_barrier(self):
         """Test plotting of partial barriers."""
