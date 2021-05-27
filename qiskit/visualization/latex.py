@@ -710,7 +710,7 @@ class QCircuitImage:
                 ctrl_bit = (
                     str(cond_reg.name) + "_" + str(self.bit_locations[op.op.condition[0]]["index"])
                 )
-                label = "T" if if_value == True else "F"
+                label = "T" if if_value is True else "F"
                 self._latex[cwire][col] = "\\dstick{_{_{%s=%s}}} \\cw \\cwx[-%s]" % (
                     ctrl_bit,
                     label,
@@ -726,7 +726,7 @@ class QCircuitImage:
             if cond_is_bit:
                 extra_gap = list(cond_reg).index(op.op.condition[0])
                 gap += extra_gap
-                control = "\\control" if if_value == True else "\\controlo"
+                control = "\\control" if if_value is True else "\\controlo"
                 self._latex[cwire + extra_gap][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
             else:
                 for i in range(creg_size):
