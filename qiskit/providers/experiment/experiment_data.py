@@ -23,11 +23,13 @@ import traceback
 import contextlib
 from collections import deque
 from datetime import datetime
+import io
 
 from qiskit.providers import Job, BaseJob, Backend, BaseBackend, Provider
 from qiskit.result import Result
 from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.providers.exceptions import JobError
+from qiskit.visualization import HAS_MATPLOTLIB
 
 from .exceptions import ExperimentError, ExperimentEntryNotFound, ExperimentEntryExists
 from .analysis_result import AnalysisResultV1 as AnalysisResult
@@ -311,20 +313,21 @@ class ExperimentDataV1(ExperimentData):
         raise TypeError(f"Invalid index type {type(index)}.")
 
     @auto_save
-    def add_figure(
+    def add_figures(
         self,
-        figure: Union[str, bytes],
-        figure_name: Optional[str] = None,
+        figures: Union[List[Union[str, bytes, "pyplot.Figure"]], str, bytes, "pyplot.Figure"],
+        figure_names: Optional[Union[List[str], str]] = None,
         overwrite: bool = False,
         save_figure: Optional[bool] = None,
         service: Optional["ExperimentServiceV1"] = None,
-    ) -> str:
+    ) -> Union[str, List[str]]:
         """Add the experiment figure.
 
         Args:
-            figure: Name of the figure file or figure data.
-            figure_name: Name of the figure. If ``None``, use the figure file name, if
-                given, or a generated name.
+            figures: Names of the figure files or figure data.
+            figure_names: Names of the figures. If ``None``, use the figure file
+                names, if given, or a generated name. If `figures` is a list, then
+                `figure_names` must also be a list of the same length or ``None``.
             overwrite: Whether to overwrite the figure if one already exists with
                 the same name.
             save_figure: Whether to save the figure in the database. If ``None``,
@@ -333,47 +336,77 @@ class ExperimentDataV1(ExperimentData):
                 the figure is to be uploaded. If ``None``, the default service is used.
 
         Returns:
-            Figure name.
+            Figure names.
 
         Raises:
             ExperimentEntryExists: If the figure with the same name already exists,
                 and `overwrite=True` is not specified.
+            ValueError: If an input parameter has an invalid value.
         """
-        if not figure_name:
-            if isinstance(figure, str):
-                figure_name = figure
+        if (
+            isinstance(figures, list)
+            and figure_names is not None
+            and (not isinstance(figure_names, list) or len(figures) != len(figure_names))
+        ):
+            raise ValueError(
+                f"The parameter figure_names must be None or a list of "
+                f"the same size as the parameter figures."
+            )
+        if not isinstance(figures, list):
+            figures = [figures]
+        if figure_names is not None and not isinstance(figure_names, list):
+            figure_names = [figure_names]
+
+        added_figs = []
+        for idx, figure in enumerate(figures):
+            if figure_names is None:
+                if isinstance(figure, str):
+                    fig_name = figure
+                else:
+                    fig_name = f"figure_{self.experiment_id}_{datetime.now().isoformat()}"
             else:
-                figure_name = f"figure_{self.experiment_id}_{datetime.now().isoformat()}"
+                fig_name = figure_names[idx]
 
-        existing_figure = figure_name in self._figures
-        if existing_figure and not overwrite:
-            raise ExperimentEntryExists(
-                f"A figure with the name {figure_name} for this experiment "
-                f"already exists. Specify overwrite=True if you "
-                f"want to overwrite it."
-            )
-        if isinstance(figure, str):
-            with open(figure, "rb") as file:
-                figure = file.read()
-        self._figures[figure_name] = figure
+            existing_figure = fig_name in self._figures
+            if existing_figure and not overwrite:
+                raise ExperimentEntryExists(
+                    f"A figure with the name {fig_name} for this experiment "
+                    f"already exists. Specify overwrite=True if you "
+                    f"want to overwrite it."
+                )
+            figure_data = None
+            if isinstance(figure, str):
+                with open(figure, "rb") as file:
+                    figure = file.read()
+            elif HAS_MATPLOTLIB:
+                from matplotlib import pyplot
+                if isinstance(figure, pyplot.Figure):
+                    buf = io.BytesIO()
+                    figure.savefig(buf, format='svg')
+                    buf.seek(0)
+                    figure_data = buf.read()
+                    buf.close()
 
-        service = service or self._service
-        save = save_figure if save_figure is not None else self.auto_save
-        if save and service:
-            data = {
-                "experiment_id": self.experiment_id,
-                "figure": figure,
-                "figure_name": figure_name,
-            }
-            save_data(
-                is_new=(not existing_figure),
-                new_func=service.create_figure,
-                update_func=service.update_figure,
-                new_data={},
-                update_data=data,
-            )
+            self._figures[fig_name] = figure
 
-        return figure_name
+            service = service or self._service
+            save = save_figure if save_figure is not None else self.auto_save
+            if save and service:
+                data = {
+                    "experiment_id": self.experiment_id,
+                    "figure": figure_data or figure,
+                    "figure_name": fig_name,
+                }
+                save_data(
+                    is_new=(not existing_figure),
+                    new_func=service.create_figure,
+                    update_func=service.update_figure,
+                    new_data={},
+                    update_data=data,
+                )
+            added_figs.append(fig_name)
+
+        return added_figs if len(added_figs) > 1 else added_figs[0]
 
     @auto_save
     def delete_figure(
@@ -447,25 +480,31 @@ class ExperimentDataV1(ExperimentData):
         return figure_data
 
     @auto_save
-    def add_analysis_result(
-        self, result: AnalysisResult, service: "ExperimentServiceV1" = None
+    def add_analysis_results(
+        self,
+        results: Union[AnalysisResult, List[AnalysisResult]],
+        service: "ExperimentServiceV1" = None,
     ) -> None:
         """Save the analysis result.
 
         Args:
-            result: Analysis result to be saved.
+            results: Analysis results to be saved.
             service: Experiment service to be used to update the database. If ``None``,
                 the default service is used.
         """
-        self._analysis_results[result.result_id] = result
+        if not isinstance(results, list):
+            results = [results]
 
-        with contextlib.suppress(ExperimentError):
-            result.service = self.service
-            result.auto_save = self.auto_save
+        for result in results:
+            self._analysis_results[result.result_id] = result
 
-        use_service = service or self.service
-        if self.auto_save and use_service:
-            result.save(service=service)
+            with contextlib.suppress(ExperimentError):
+                result.service = self.service
+                result.auto_save = self.auto_save
+
+            use_service = service or self.service
+            if self.auto_save and use_service:
+                result.save(service=service)
 
     @auto_save
     def delete_analysis_result(
@@ -696,8 +735,8 @@ class ExperimentDataV1(ExperimentData):
                 except Exception as err:  # pylint: disable=broad-except
                     LOG.info("Unable to cancel job %s: %s", job.job_id(), err)
 
-    def block_for_jobs(self) -> None:
-        """Block until all pending jobs finish."""
+    def block_for_results(self) -> None:
+        """Block until all pending jobs and their post processing finish."""
         for job, fut in self._job_futures.copy():
             LOG.info("Waiting for job %s and its post processing to finish.", job.job_id())
             with contextlib.suppress(Exception):
@@ -721,6 +760,12 @@ class ExperimentDataV1(ExperimentData):
         Returns:
             Data processing status.
         """
+        if all(
+            len(container) == 0
+            for container in [self._data, self._jobs, self._figures, self._analysis_results]
+        ):
+            return "INITIALIZING"
+
         statuses = set()
         with self._job_futures.lock:
             for idx, item in enumerate(self._job_futures):
@@ -941,7 +986,8 @@ class ExperimentDataV1(ExperimentData):
         ret += f"\nExperiment ID: {self.experiment_id}"
         ret += f"\nStatus: {status}"
         if status == "ERROR":
-            ret += "\n".join(self._errors)
+            ret += "\n  "
+            ret += "\n  ".join(self._errors)
         ret += f"\nData: {len(self._data)}"
         ret += f"\nAnalysis Results: {n_res}"
         ret += "\n" + line

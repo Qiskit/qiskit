@@ -15,7 +15,7 @@
 """Test ExperimentData."""
 
 import os
-from unittest import mock
+from unittest import mock, skipIf
 import copy
 from random import randrange
 import time
@@ -34,6 +34,7 @@ from qiskit.providers.experiment.experiment_data import ExperimentDataV1 as Expe
 from qiskit.providers.experiment.exceptions import ExperimentEntryExists
 from qiskit.providers.experiment.experiment_service import ExperimentServiceV1
 from qiskit.providers.experiment.exceptions import ExperimentError, ExperimentEntryNotFound
+from qiskit.tools.visualization import HAS_MATPLOTLIB
 
 
 class TestExperimentData(QiskitTestCase):
@@ -120,7 +121,7 @@ class TestExperimentData(QiskitTestCase):
         exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         exp_data.add_data(a_job)
         exp_data.add_data(jobs)
-        exp_data.block_for_jobs()
+        exp_data.block_for_results()
         self.assertEqual(expected, [sdata["counts"] for sdata in exp_data.data()])
         self.assertIn(a_job.job_id(), exp_data.job_ids)
 
@@ -132,8 +133,8 @@ class TestExperimentData(QiskitTestCase):
             self.assertEqual(
                 [dat["counts"] for dat in _exp_data.data()], a_job.result().get_counts()
             )
-            exp_data.add_figure(str.encode("hello world"))
-            exp_data.add_analysis_result(mock.MagicMock())
+            exp_data.add_figures(str.encode("hello world"))
+            exp_data.add_analysis_results(mock.MagicMock())
             nonlocal called_back
             called_back = True
 
@@ -143,7 +144,7 @@ class TestExperimentData(QiskitTestCase):
         called_back = False
         exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         exp_data.add_data(a_job, post_processing_callback=_callback)
-        exp_data.block_for_jobs()
+        exp_data.block_for_results()
         self.assertTrue(called_back)
 
     def test_add_data_job_callback_kwargs(self):
@@ -162,7 +163,7 @@ class TestExperimentData(QiskitTestCase):
         callback_kwargs = "foo"
         exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         exp_data.add_data(a_job, _callback, foo=callback_kwargs)
-        exp_data.block_for_jobs()
+        exp_data.block_for_results()
         self.assertTrue(called_back)
 
     def test_get_data(self):
@@ -198,8 +199,45 @@ class TestExperimentData(QiskitTestCase):
         for name, figure, figure_name in sub_tests:
             with self.subTest(name=name):
                 exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
-                fn = exp_data.add_figure(figure, figure_name)
+                fn = exp_data.add_figures(figure, figure_name)
                 self.assertEqual(hello_bytes, exp_data.figure(fn))
+
+    @skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_add_figure_plot(self):
+        """Test adding a matplotlib figure."""
+        import matplotlib.pyplot as plt
+        figure, ax = plt.subplots()
+        ax.plot([1, 2, 3])
+
+        service = self._set_mock_service()
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
+        exp_data.add_figures(figure, save_figure=True)
+        self.assertEqual(figure, exp_data.figure(0))
+        service.create_figure.assert_called_once()
+        _, kwargs = service.create_figure.call_args
+        self.assertIsInstance(kwargs["figure"], bytes)
+
+    def test_add_figures(self):
+        """Test adding multiple new figures."""
+        hello_bytes = [str.encode("hello world"), str.encode("hello friend")]
+        file_names = ["hello_world.svg", "hello_friend.svg"]
+        for idx, fn in enumerate(file_names):
+            self.addCleanup(os.remove, fn)
+            with open(fn, "wb") as file:
+                file.write(hello_bytes[idx])
+
+        sub_tests = [
+            ("file names", file_names, None),
+            ("file bytes", hello_bytes, None),
+            ("new names", hello_bytes, ["hello1.svg", "hello2.svg"]),
+        ]
+
+        for name, figures, figure_names in sub_tests:
+            with self.subTest(name=name):
+                exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
+                added_names = exp_data.add_figures(figures, figure_names)
+                for idx, added_fn in enumerate(added_names):
+                    self.assertEqual(hello_bytes[idx], exp_data.figure(added_fn))
 
     def test_add_figure_overwrite(self):
         """Test updating an existing figure."""
@@ -207,11 +245,11 @@ class TestExperimentData(QiskitTestCase):
         friend_bytes = str.encode("hello friend!")
 
         exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
-        fn = exp_data.add_figure(hello_bytes)
+        fn = exp_data.add_figures(hello_bytes)
         with self.assertRaises(ExperimentEntryExists):
-            exp_data.add_figure(friend_bytes, fn)
+            exp_data.add_figures(friend_bytes, fn)
 
-        exp_data.add_figure(friend_bytes, fn, overwrite=True)
+        exp_data.add_figures(friend_bytes, fn, overwrite=True)
         self.assertEqual(friend_bytes, exp_data.figure(fn))
 
     def test_add_figure_save(self):
@@ -219,11 +257,16 @@ class TestExperimentData(QiskitTestCase):
         hello_bytes = str.encode("hello world")
         service = self._set_mock_service()
         exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
-        exp_data.add_figure(hello_bytes, save_figure=True)
+        exp_data.add_figures(hello_bytes, save_figure=True)
         service.create_figure.assert_called_once()
         _, kwargs = service.create_figure.call_args
         self.assertEqual(kwargs["figure"], hello_bytes)
         self.assertEqual(kwargs["experiment_id"], exp_data.experiment_id)
+
+    def test_add_figure_bad_input(self):
+        """Test adding figures with bad input."""
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
+        self.assertRaises(ValueError, exp_data.add_figures, ["foo", "bar"], ["name"])
 
     def test_get_figure(self):
         """Test getting figure."""
@@ -231,8 +274,8 @@ class TestExperimentData(QiskitTestCase):
         figure_template = "hello world {}"
         name_template = "figure_{}"
         for idx in range(3):
-            exp_data.add_figure(
-                str.encode(figure_template.format(idx)), figure_name=name_template.format(idx)
+            exp_data.add_figures(
+                str.encode(figure_template.format(idx)), figure_names=name_template.format(idx)
             )
         idx = randrange(3)
         expected_figure = str.encode(figure_template.format(idx))
@@ -250,7 +293,7 @@ class TestExperimentData(QiskitTestCase):
         exp_data = ExperimentData(experiment_type="qiskit_test")
         id_template = "figure_{}"
         for idx in range(3):
-            exp_data.add_figure(str.encode("hello world"), id_template.format(idx))
+            exp_data.add_figures(str.encode("hello world"), id_template.format(idx))
 
         sub_tests = [(1, id_template.format(1)), (id_template.format(2), id_template.format(2))]
 
@@ -286,12 +329,24 @@ class TestExperimentData(QiskitTestCase):
             res = mock.MagicMock()
             res.result_id = idx
             results.append(res)
-            exp_data.add_analysis_result(res)
+            exp_data.add_analysis_results(res)
 
         self.assertEqual(results, exp_data.analysis_result())
         self.assertEqual(results[1], exp_data.analysis_result(1))
         self.assertEqual(results[2:4], exp_data.analysis_result(slice(2, 4)))
         self.assertEqual(results[4], exp_data.analysis_result(results[4].result_id))
+
+    def test_add_get_analysis_results(self):
+        """Test adding and getting a list of analysis results."""
+        exp_data = ExperimentData(experiment_type="qiskit_test")
+        results = []
+        for idx in range(5):
+            res = mock.MagicMock()
+            res.result_id = idx
+            results.append(res)
+        exp_data.add_analysis_results(results)
+
+        self.assertEqual(results, exp_data.analysis_result())
 
     def test_delete_analysis_result(self):
         """Test deleting analysis result."""
@@ -300,7 +355,7 @@ class TestExperimentData(QiskitTestCase):
         for idx in range(3):
             res = mock.MagicMock()
             res.result_id = id_template.format(idx)
-            exp_data.add_analysis_result(res)
+            exp_data.add_analysis_results(res)
 
         subtests = [(0, id_template.format(0)), (id_template.format(2), id_template.format(2))]
         for del_key, res_id in subtests:
@@ -325,9 +380,9 @@ class TestExperimentData(QiskitTestCase):
         """Test saving all experiment related data."""
         exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         service = mock.create_autospec(ExperimentServiceV1, instance=True)
-        exp_data.add_figure(str.encode("hello world"))
+        exp_data.add_figures(str.encode("hello world"))
         analysis_result = mock.MagicMock()
-        exp_data.add_analysis_result(analysis_result)
+        exp_data.add_analysis_results(analysis_result)
         exp_data.save_all(service=service)
         service.create_experiment.assert_called_once()
         service.create_figure.assert_called_once()
@@ -337,8 +392,8 @@ class TestExperimentData(QiskitTestCase):
         """Test saving all deletion."""
         exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
         service = mock.create_autospec(ExperimentServiceV1, instance=True)
-        exp_data.add_figure(str.encode("hello world"))
-        exp_data.add_analysis_result(mock.MagicMock())
+        exp_data.add_figures(str.encode("hello world"))
+        exp_data.add_analysis_results(mock.MagicMock())
         exp_data.delete_analysis_result(0)
         exp_data.delete_figure(0)
 
@@ -407,8 +462,8 @@ class TestExperimentData(QiskitTestCase):
 
         subtests = [
             # update function, update parameters, service called
-            (exp_data.add_analysis_result, (mock_result,), mock_result.save),
-            (exp_data.add_figure, (str.encode("hello world"),), service.create_figure),
+            (exp_data.add_analysis_results, (mock_result,), mock_result.save),
+            (exp_data.add_figures, (str.encode("hello world"),), service.create_figure),
             (exp_data.delete_figure, (0,), service.delete_figure),
             (exp_data.delete_analysis_result, (0,), service.delete_analysis_result),
             (exp_data.update_tags, (["foo"],), None),
@@ -480,7 +535,7 @@ class TestExperimentData(QiskitTestCase):
         exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data(job)
         exp_data.add_data(job, _post_processing)
-        exp_data.block_for_jobs()
+        exp_data.block_for_results()
         self.assertEqual("ERROR", exp_data.status())
 
     def test_status_done(self):
@@ -490,7 +545,7 @@ class TestExperimentData(QiskitTestCase):
         exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data(job)
         exp_data.add_data(job, lambda *args, **kwargs: time.sleep(1))
-        exp_data.block_for_jobs()
+        exp_data.block_for_results()
         self.assertEqual("DONE", exp_data.status())
 
     def test_update_tags(self):
@@ -546,7 +601,7 @@ class TestExperimentData(QiskitTestCase):
         exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data(job1, _post_processing)
         exp_data.add_data(job2)
-        exp_data.block_for_jobs()
+        exp_data.block_for_results()
         self.assertEqual("ERROR", exp_data.status())
         self.assertTrue(re.match(r".*1234.*Kaboom!.*5678", exp_data.errors(), re.DOTALL))
 
@@ -571,7 +626,7 @@ class TestExperimentData(QiskitTestCase):
         job.result = _sleeper
         exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data(job, _sleeper)
-        exp_data.block_for_jobs()
+        exp_data.block_for_results()
         self.assertEqual(2, sleep_count)
 
     def test_additional_attr(self):
@@ -584,7 +639,7 @@ class TestExperimentData(QiskitTestCase):
         exp_data = ExperimentData(experiment_type="qiskit_test")
         exp_data.add_data(self._get_job_result(1))
         result = mock.MagicMock()
-        exp_data.add_analysis_result(result)
+        exp_data.add_analysis_results(result)
         exp_data_str = str(exp_data)
         self.assertIn(exp_data.experiment_type, exp_data_str)
         self.assertIn(exp_data.experiment_id, exp_data_str)
