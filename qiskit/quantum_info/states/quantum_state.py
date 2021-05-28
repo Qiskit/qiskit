@@ -61,7 +61,7 @@ class QuantumState:
     @property
     def _rng(self):
         if self._rng_generator is None:
-            return np.random
+            return np.random.default_rng()
         return self._rng_generator
 
     def dims(self, qargs=None):
