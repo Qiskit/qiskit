@@ -212,7 +212,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_with_aer_statevector(self):
         """Test VQE with Aer's statevector_simulator."""
-        backend = Aer.get_backend("statevector_simulator")
+        backend = Aer.get_backend("aer_simulator_statevector")
         wavefunction = self.ry_wavefunction
         optimizer = L_BFGS_B()
 
