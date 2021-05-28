@@ -56,8 +56,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
                             break
                     # if not a subset, add it to the list
                     else:
-                        self.basis.append(one_qubit_decompose.OneQubitEulerDecomposer(
-                            euler_basis_name))
+                        self.basis.append(
+                            one_qubit_decompose.OneQubitEulerDecomposer(euler_basis_name)
+                        )
 
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.
@@ -79,14 +80,14 @@ class Optimize1qGatesDecomposition(TransformationPass):
             if len(run) <= 1:
                 params = run[0].op.params
                 # Remove single identity gates
-                if len(params) > 0 and np.array_equal(run[0].op.to_matrix(),
-                                                      identity_matrix):
+                if len(params) > 0 and np.array_equal(run[0].op.to_matrix(), identity_matrix):
                     dag.remove_op_node(run[0])
                     continue
                 if isinstance(run[0].op, U3Gate):
                     param = float(params[0])
                     if math.isclose(param, 0, rel_tol=0, abs_tol=1e-12) or math.isclose(
-                            param, np.pi/2, abs_tol=1e-12, rel_tol=0):
+                        param, np.pi / 2, abs_tol=1e-12, rel_tol=0
+                    ):
                         single_u3 = True
                     else:
                         continue
@@ -101,8 +102,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 new_circs.append(decomposer._decompose(operator))
             if new_circs:
                 new_circ = min(new_circs, key=len)
-                if (len(run) > len(new_circ) or (single_u3 and
-                                                 new_circ.data[0][0].name != 'u3')):
+                if len(run) > len(new_circ) or (single_u3 and new_circ.data[0][0].name != "u3"):
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
                     # Delete the other nodes in the run

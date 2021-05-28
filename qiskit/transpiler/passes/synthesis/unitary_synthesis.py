@@ -31,11 +31,11 @@ def _choose_kak_gate(basis_gates):
     """Choose the first available 2q gate to use in the KAK decomposition."""
 
     kak_gate_names = {
-        'cx': CXGate(),
-        'cz': CZGate(),
-        'iswap': iSwapGate(),
-        'rxx': RXXGate(pi / 2),
-        'ecr': ECRGate()
+        "cx": CXGate(),
+        "cz": CZGate(),
+        "iswap": iSwapGate(),
+        "rxx": RXXGate(pi / 2),
+        "ecr": ECRGate(),
     }
 
     kak_gate = None
@@ -47,7 +47,7 @@ def _choose_kak_gate(basis_gates):
 
 
 def _choose_euler_basis(basis_gates):
-    """"Choose the first available 1q basis to use in the Euler decomposition."""
+    """ "Choose the first available 1q basis to use in the Euler decomposition."""
     basis_set = set(basis_gates or [])
 
     for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():

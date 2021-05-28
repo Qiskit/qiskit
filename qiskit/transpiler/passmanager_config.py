@@ -14,8 +14,7 @@
 
 
 class PassManagerConfig:
-    """Pass Manager Configuration.
-    """
+    """Pass Manager Configuration."""
 
     def __init__(self,
                  initial_layout=None,
