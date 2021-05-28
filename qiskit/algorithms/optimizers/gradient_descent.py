@@ -137,7 +137,7 @@ class GradientDescent(Optimizer):
 
         for _ in range(1, self.maxiter + 1):
             # compute update -- gradient evaluation counts as one function evaluation
-            update = grad(x)
+            update = np.reshape(grad(x), np.shape(x))
             nfevs += 1
 
             # compute next parameter value
@@ -145,7 +145,7 @@ class GradientDescent(Optimizer):
 
             # send information to callback
             if self.callback is not None:
-                self.callback(nfevs, x_next, loss(x_next))
+                self.callback(nfevs, x_next, loss(x_next), np.linalg.norm(update))
 
             # update parameters
             x = x_next
