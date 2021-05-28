@@ -12,10 +12,10 @@
 
 """Optimize by removing small rotations """
 import numpy as np
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+import qiskit.converters.circuit_to_dag
 from qiskit.circuit.library import CRXGate, CRYGate, CRZGate, PhaseGate, RXGate, RYGate, RZGate
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.converters.circuit_to_dag import circuit_to_dag
 
 from qiskit.transpiler.basepasses import TransformationPass
 
@@ -24,7 +24,7 @@ class RemoveSmallRotations(TransformationPass):
     """Return a circuit with small rotation gates removed."""
 
     def __init__(self, epsilon: float = 0):
-        """Remove all zero rotations from a circuit
+        """Remove all small rotations from a circuit
 
         Args:
             epsilon: Threshold for rotation angle to be removed
@@ -32,8 +32,8 @@ class RemoveSmallRotations(TransformationPass):
         super().__init__()
 
         self.epsilon = epsilon
-        self._empty_dag1 = circuit_to_dag(QuantumCircuit(1))
-        self._empty_dag2 = circuit_to_dag(QuantumCircuit(2))
+        self._empty_dag1 = qiskit.converters.circuit_to_dag(QuantumCircuit(1))
+        self._empty_dag2 = qiskit.converters.circuit_to_dag.circuit_to_dag(QuantumCircuit(2))
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the pass on `dag`.
