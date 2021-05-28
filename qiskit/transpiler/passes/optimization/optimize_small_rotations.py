@@ -33,7 +33,7 @@ class RemoveSmallRotations(TransformationPass):
 
         self.epsilon = epsilon
         self._empty_dag1 = qiskit.converters.circuit_to_dag(QuantumCircuit(1))
-        self._empty_dag2 = qiskit.converters.circuit_to_dag.circuit_to_dag(QuantumCircuit(2))
+        self._empty_dag2 = qiskit.converters.circuit_to_dag(QuantumCircuit(2))
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the pass on `dag`.
