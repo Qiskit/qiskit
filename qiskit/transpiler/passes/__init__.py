@@ -123,16 +123,6 @@ Additional Passes
    RemoveFinalMeasurements
    DAGFixedPoint
    FixedPoint
-
-
-Transpiler Pass Plugins
-=======================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   qiskit.transpiler.passes.synthesis.plugin
-
 """
 
 # layout selection (placement)
