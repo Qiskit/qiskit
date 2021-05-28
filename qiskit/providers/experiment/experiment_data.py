@@ -34,7 +34,8 @@ from qiskit.visualization import HAS_MATPLOTLIB
 from .exceptions import ExperimentError, ExperimentEntryNotFound, ExperimentEntryExists
 from .analysis_result import AnalysisResultV1 as AnalysisResult
 from .json import NumpyEncoder, NumpyDecoder
-from .utils import save_data, qiskit_version, ThreadSafeOrderedDict, ThreadSafeList
+from .utils import (save_data, qiskit_version, plot_to_svg_bytes,
+                    ThreadSafeOrderedDict, ThreadSafeList)
 
 LOG = logging.getLogger(__name__)
 
@@ -374,27 +375,23 @@ class ExperimentDataV1(ExperimentData):
                     f"already exists. Specify overwrite=True if you "
                     f"want to overwrite it."
                 )
-            figure_data = None
+            # figure_data = None
             if isinstance(figure, str):
                 with open(figure, "rb") as file:
                     figure = file.read()
-            elif HAS_MATPLOTLIB:
-                from matplotlib import pyplot
-                if isinstance(figure, pyplot.Figure):
-                    buf = io.BytesIO()
-                    figure.savefig(buf, format='svg')
-                    buf.seek(0)
-                    figure_data = buf.read()
-                    buf.close()
 
             self._figures[fig_name] = figure
 
             service = service or self._service
             save = save_figure if save_figure is not None else self.auto_save
             if save and service:
+                if HAS_MATPLOTLIB:
+                    from matplotlib import pyplot
+                    if isinstance(figure, pyplot.Figure):
+                        figure = plot_to_svg_bytes(figure)
                 data = {
                     "experiment_id": self.experiment_id,
-                    "figure": figure_data or figure,
+                    "figure": figure,
                     "figure_name": fig_name,
                 }
                 save_data(
@@ -662,6 +659,10 @@ class ExperimentDataV1(ExperimentData):
 
         with self._figures.lock:
             for name, figure in self._figures.items():
+                if HAS_MATPLOTLIB:
+                    from matplotlib import pyplot
+                    if isinstance(figure, pyplot.Figure):
+                        figure = plot_to_svg_bytes(figure)
                 data = {"experiment_id": self.experiment_id, "figure": figure, "figure_name": name}
                 save_data(
                     is_new=True,
@@ -990,6 +991,7 @@ class ExperimentDataV1(ExperimentData):
             ret += "\n  ".join(self._errors)
         ret += f"\nData: {len(self._data)}"
         ret += f"\nAnalysis Results: {n_res}"
+        ret += f"\nFigures: {len(self._figures)}"
         ret += "\n" + line
         if n_res:
             ret += "\nLast Analysis Result:"

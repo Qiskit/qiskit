@@ -14,7 +14,7 @@
 
 import logging
 from typing import Callable, Tuple, Dict, Any, Union
-from functools import wraps
+import io
 from datetime import datetime, timezone
 import threading
 from collections import OrderedDict
@@ -73,6 +73,23 @@ def utc_to_local(utc_dt: datetime) -> datetime:
     return local_dt
 
 
+def plot_to_svg_bytes(figure: "pyplot.Figure") -> bytes:
+    """Convert a pyplot Figure to SVG in bytes.
+
+    Args:
+        figure: Figure to be converted
+
+    Returns:
+        Figure in bytes.
+    """
+    buf = io.BytesIO()
+    figure.savefig(buf, format='svg')
+    buf.seek(0)
+    figure_data = buf.read()
+    buf.close()
+    return figure_data
+
+
 def save_data(
     is_new: bool, new_func: Callable, update_func: Callable, new_data: Dict, update_data: Dict
 ) -> Tuple[bool, Any]:
@@ -114,18 +131,6 @@ def save_data(
         # Don't fail the experiment just because its data cannot be saved.
         LOG.error("Unable to save the experiment data: %s", traceback.format_exc())
         return False, None
-
-
-def decorate_func(func: Callable, callback: Callable):
-    """Decorate the input function."""
-
-    @wraps(func)
-    def _wrapped(*args, **kwargs):
-        return_val = func(*args, **kwargs)
-        callback()
-        return return_val
-
-    return _wrapped
 
 
 class ThreadSafeContainer(ABC):

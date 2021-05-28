@@ -373,5 +373,8 @@ class AnalysisResultV1(AnalysisResult):
         ret += f"\nAnalysis Result ID: {self.result_id}"
         ret += f"\nExperiment ID: {self.experiment_id}"
         ret += f"\nDevice Components: {self.device_components}"
-        ret += f"\nQuality: {self.quality}"
+        ret += f"\nQuality: {self.quality.value}"
+        ret += f"\nResult Data:"
+        for key, val in self.data().items():
+            ret += f"\n  - {key}: {val}"
         return ret
