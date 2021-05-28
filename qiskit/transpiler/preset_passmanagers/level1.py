@@ -126,10 +126,15 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
     # 4. Decompose so only 1-qubit and 2-qubit gates remain
-    _unroll3q = [UnitarySynthesis(basis_gates, approximation_degree=approximation_degree,
-                                  coupling_map=coupling_map,
-                                  method=unitary_synthesis_method),
-                 Unroll3qOrMore()]
+    _unroll3q = [
+        UnitarySynthesis(
+            basis_gates,
+            approximation_degree=approximation_degree,
+            coupling_map=coupling_map,
+            method=unitary_synthesis_method,
+        ),
+        Unroll3qOrMore(),
+    ]
 
     # 5. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -169,9 +174,12 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree,
-                             coupling_map=coupling_map,
-                             method=unitary_synthesis_method),
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                method=unitary_synthesis_method,
+            ),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)

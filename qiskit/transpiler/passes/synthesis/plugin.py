@@ -194,8 +194,8 @@ class UnitarySynthesisPluginManager:
 
     def __init__(self):
         self.ext_plugins = stevedore.ExtensionManager(
-            'qiskit.unitary_synthesis', invoke_on_load=True,
-            propagate_map_exceptions=True)
+            "qiskit.unitary_synthesis", invoke_on_load=True, propagate_map_exceptions=True
+        )
 
 
 def unitary_synthesis_plugin_names():

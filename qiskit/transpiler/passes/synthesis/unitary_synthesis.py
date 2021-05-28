@@ -22,8 +22,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
-from qiskit.circuit.library.standard_gates import (iSwapGate, CXGate, CZGate,
-                                                   RXXGate, ECRGate)
+from qiskit.circuit.library.standard_gates import iSwapGate, CXGate, CZGate, RXXGate, ECRGate
 from qiskit.transpiler.passes.synthesis import plugin
 
 
@@ -60,11 +59,13 @@ def _choose_euler_basis(basis_gates):
 class UnitarySynthesis(TransformationPass):
     """Synthesize gates according to their basis gates."""
 
-    def __init__(self,
-                 basis_gates: List[str],
-                 approximation_degree: float = 1,
-                 coupling_map=None,
-                 method: str = None):
+    def __init__(
+        self,
+        basis_gates: List[str],
+        approximation_degree: float = 1,
+        coupling_map=None,
+        method: str = None,
+    ):
         """
         Synthesize unitaries over some basis gates.
 
@@ -98,26 +99,24 @@ class UnitarySynthesis(TransformationPass):
                 :func:`~qiskit.transpiler.passes.synthesis.plugins.unitary_synthesis_plugin_names`
         """
         if not self.method:
-            method = 'default'
+            method = "default"
         else:
             method = self.method
         if method not in self.plugins.ext_plugins:
-            raise QiskitError(
-                    'Specified method: %s not found in plugin list' % method)
+            raise QiskitError("Specified method: %s not found in plugin list" % method)
         plugin_method = self.plugins.ext_plugins[method].obj
         if plugin_method.supports_coupling_map:
-            dag_bit_indices = {bit: idx
-                               for idx, bit in enumerate(dag.qubits)}
-        for node in dag.named_nodes('unitary'):
+            dag_bit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
+        for node in dag.named_nodes("unitary"):
             synth_dag = None
             kwargs = {}
             if plugin_method.supports_basis_gates:
-                kwargs['basis_gates'] = self._basis_gates
+                kwargs["basis_gates"] = self._basis_gates
             if plugin_method.supports_coupling_map:
-                kwargs['coupling_map'] = self._coupling_map
-                kwargs['qubits'] = [dag_bit_indices[x] for x in node.qargs]
+                kwargs["coupling_map"] = self._coupling_map
+                kwargs["qubits"] = [dag_bit_indices[x] for x in node.qargs]
             if plugin_method.supports_approximation_degree:
-                kwargs['approximation_degree'] = self._approximation_degree
+                kwargs["approximation_degree"] = self._approximation_degree
             unitary = node.op.to_matrix()
             synth_dag = plugin_method.run(unitary, **kwargs)
             if synth_dag:
@@ -141,8 +140,8 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         return True
 
     def run(self, unitary, **options):
-        basis_gates = options['basis_gates']
-        approximation_degree = options['approximation_degree']
+        basis_gates = options["basis_gates"]
+        approximation_degree = options["approximation_degree"]
         euler_basis = _choose_euler_basis(basis_gates)
         kak_gate = _choose_kak_gate(basis_gates)
 
@@ -158,9 +157,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         elif unitary.shape == (4, 4):
             if decomposer2q is None:
                 return None
-            synth_dag = circuit_to_dag(decomposer2q(unitary,
-                                                    basis_fidelity=approximation_degree))
+            synth_dag = circuit_to_dag(decomposer2q(unitary, basis_fidelity=approximation_degree))
         else:
-            synth_dag = circuit_to_dag(
-                isometry.Isometry(unitary.op.to_matrix(), 0, 0).definition)
+            synth_dag = circuit_to_dag(isometry.Isometry(unitary.op.to_matrix(), 0, 0).definition)
         return synth_dag

@@ -43,27 +43,27 @@ from qiskit.transpiler.preset_passmanagers import (
 logger = logging.getLogger(__name__)
 
 
-def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-              backend: Optional[Union[Backend, BaseBackend]] = None,
-              basis_gates: Optional[List[str]] = None,
-              coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
-              backend_properties: Optional[BackendProperties] = None,
-              initial_layout: Optional[Union[Layout, Dict, List]] = None,
-              layout_method: Optional[str] = None,
-              routing_method: Optional[str] = None,
-              translation_method: Optional[str] = None,
-              scheduling_method: Optional[str] = None,
-              instruction_durations: Optional[InstructionDurationsType] = None,
-              dt: Optional[float] = None,
-              approximation_degree: Optional[float] = None,
-              seed_transpiler: Optional[int] = None,
-              optimization_level: Optional[int] = None,
-              pass_manager: Optional[PassManager] = None,
-              callback: Optional[Callable[[BasePass, DAGCircuit, float,
-                                           PropertySet, int], Any]] = None,
-              output_name: Optional[Union[str, List[str]]] = None,
-              unitary_synthesis_method: Optional[str] = None) -> Union[QuantumCircuit,
-                                                                       List[QuantumCircuit]]:
+def transpile(
+    circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+    backend: Optional[Union[Backend, BaseBackend]] = None,
+    basis_gates: Optional[List[str]] = None,
+    coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
+    backend_properties: Optional[BackendProperties] = None,
+    initial_layout: Optional[Union[Layout, Dict, List]] = None,
+    layout_method: Optional[str] = None,
+    routing_method: Optional[str] = None,
+    translation_method: Optional[str] = None,
+    scheduling_method: Optional[str] = None,
+    instruction_durations: Optional[InstructionDurationsType] = None,
+    dt: Optional[float] = None,
+    approximation_degree: Optional[float] = None,
+    seed_transpiler: Optional[int] = None,
+    optimization_level: Optional[int] = None,
+    pass_manager: Optional[PassManager] = None,
+    callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
+    output_name: Optional[Union[str, List[str]]] = None,
+    unitary_synthesis_method: Optional[str] = None,
+) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
     All arguments may be given as either a singleton or list. In case of a list,
@@ -214,19 +214,28 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             return circuits[0]
 
     if pass_manager is not None:
-        _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,
-                                    coupling_map=coupling_map, seed_transpiler=seed_transpiler,
-                                    backend_properties=backend_properties,
-                                    initial_layout=initial_layout, layout_method=layout_method,
-                                    routing_method=routing_method,
-                                    translation_method=translation_method,
-                                    approximation_degree=approximation_degree,
-                                    unitary_synthesis_method=unitary_synthesis_method,
-                                    backend=backend)
+        _check_conflicting_argument(
+            optimization_level=optimization_level,
+            basis_gates=basis_gates,
+            coupling_map=coupling_map,
+            seed_transpiler=seed_transpiler,
+            backend_properties=backend_properties,
+            initial_layout=initial_layout,
+            layout_method=layout_method,
+            routing_method=routing_method,
+            translation_method=translation_method,
+            approximation_degree=approximation_degree,
+            unitary_synthesis_method=unitary_synthesis_method,
+            backend=backend,
+        )
 
-        warnings.warn("The parameter pass_manager in transpile is being deprecated. "
-                      "The preferred way to tranpile a circuit using a custom pass manager is"
-                      " pass_manager.run(circuit)", DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "The parameter pass_manager in transpile is being deprecated. "
+            "The preferred way to tranpile a circuit using a custom pass manager is"
+            " pass_manager.run(circuit)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return pass_manager.run(circuits, output_name=output_name, callback=callback)
 
     if optimization_level is None:
@@ -242,13 +251,26 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         )
 
     # Get transpile_args to configure the circuit transpilation job(s)
-    transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
-                                           backend_properties, initial_layout,
-                                           layout_method, routing_method, translation_method,
-                                           scheduling_method, instruction_durations, dt,
-                                           approximation_degree, seed_transpiler,
-                                           optimization_level, callback, output_name,
-                                           unitary_synthesis_method)
+    transpile_args = _parse_transpile_args(
+        circuits,
+        backend,
+        basis_gates,
+        coupling_map,
+        backend_properties,
+        initial_layout,
+        layout_method,
+        routing_method,
+        translation_method,
+        scheduling_method,
+        instruction_durations,
+        dt,
+        approximation_degree,
+        seed_transpiler,
+        optimization_level,
+        callback,
+        output_name,
+        unitary_synthesis_method,
+    )
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
 
@@ -412,12 +434,26 @@ def _remap_layout_faulty_backend(layout, faulty_qubits_map):
     return new_layout
 
 
-def _parse_transpile_args(circuits, backend,
-                          basis_gates, coupling_map, backend_properties,
-                          initial_layout, layout_method, routing_method, translation_method,
-                          scheduling_method, instruction_durations, dt,
-                          approximation_degree, seed_transpiler, optimization_level,
-                          callback, output_name, unitary_synthesis_method) -> List[Dict]:
+def _parse_transpile_args(
+    circuits,
+    backend,
+    basis_gates,
+    coupling_map,
+    backend_properties,
+    initial_layout,
+    layout_method,
+    routing_method,
+    translation_method,
+    scheduling_method,
+    instruction_durations,
+    dt,
+    approximation_degree,
+    seed_transpiler,
+    optimization_level,
+    callback,
+    output_name,
+    unitary_synthesis_method,
+) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
@@ -448,8 +484,9 @@ def _parse_transpile_args(circuits, backend,
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
     approximation_degree = _parse_approximation_degree(approximation_degree, num_circuits)
-    unitary_synthesis_method = _parse_unitary_synthesis_method(unitary_synthesis_method,
-                                                               num_circuits)
+    unitary_synthesis_method = _parse_unitary_synthesis_method(
+        unitary_synthesis_method, num_circuits
+    )
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
@@ -463,29 +500,46 @@ def _parse_transpile_args(circuits, backend,
         )
 
     list_transpile_args = []
-    for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
-                    layout_method, routing_method, translation_method, scheduling_method,
-                    durations, approximation_degree, seed_transpiler, unitary_synthesis_method,
-                    optimization_level, output_name, callback, backend_num_qubits,
-                    faulty_qubits_map):
-        transpile_args = {'pass_manager_config': PassManagerConfig(
-            basis_gates=args[0],
-            coupling_map=args[1],
-            backend_properties=args[2],
-            initial_layout=args[3],
-            layout_method=args[4],
-            routing_method=args[5],
-            translation_method=args[6],
-            scheduling_method=args[7],
-            instruction_durations=args[8],
-            approximation_degree=args[9],
-            seed_transpiler=args[10],
-            unitary_synthesis_method=args[11]),
-                          'optimization_level': args[12],
-                          'output_name': args[13],
-                          'callback': args[14],
-                          'backend_num_qubits': args[15],
-                          'faulty_qubits_map': args[16]}
+    for args in zip(
+        basis_gates,
+        coupling_map,
+        backend_properties,
+        initial_layout,
+        layout_method,
+        routing_method,
+        translation_method,
+        scheduling_method,
+        durations,
+        approximation_degree,
+        seed_transpiler,
+        unitary_synthesis_method,
+        optimization_level,
+        output_name,
+        callback,
+        backend_num_qubits,
+        faulty_qubits_map,
+    ):
+        transpile_args = {
+            "pass_manager_config": PassManagerConfig(
+                basis_gates=args[0],
+                coupling_map=args[1],
+                backend_properties=args[2],
+                initial_layout=args[3],
+                layout_method=args[4],
+                routing_method=args[5],
+                translation_method=args[6],
+                scheduling_method=args[7],
+                instruction_durations=args[8],
+                approximation_degree=args[9],
+                seed_transpiler=args[10],
+                unitary_synthesis_method=args[11],
+            ),
+            "optimization_level": args[12],
+            "output_name": args[13],
+            "callback": args[14],
+            "backend_num_qubits": args[15],
+            "faulty_qubits_map": args[16],
+        }
         list_transpile_args.append(transpile_args)
 
     return list_transpile_args
