@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Tuple
 from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler.assemble_schedules import _assemble_instructions as _assemble_schedule
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.classicalregister import Clbit
 from qiskit.exceptions import QiskitError
 from qiskit.qobj import (
     QasmQobj,
@@ -136,10 +137,16 @@ def _assemble_circuit(
             ctrl_reg, ctrl_val = instruction._condition
             mask = 0
             val = 0
-            for clbit in clbit_labels:
-                if clbit[0] == ctrl_reg.name:
-                    mask |= 1 << clbit_labels.index(clbit)
-                    val |= ((ctrl_val >> clbit[1]) & 1) << clbit_labels.index(clbit)
+            if isinstance(ctrl_reg, Clbit):
+                mask = 1 << clbit_indices[ctrl_reg]
+                val = (ctrl_val & 1) << clbit_indices[ctrl_reg]
+            else:
+                for clbit in clbit_indices:
+                    if clbit in ctrl_reg:
+                        mask |= 1 << clbit_indices[clbit]
+                        val |= ((ctrl_val >> list(ctrl_reg).index(clbit)) & 1) << clbit_indices[
+                            clbit
+                        ]
 
             conditional_reg_idx = memory_slots + max_conditional_idx
             conversion_bfunc = QasmQobjInstruction(
