@@ -236,6 +236,10 @@ class QuantumState:
         Returns:
             dict: The measurement probabilities in dict (ket) form.
         """
+        
+        if decimals is None or decimals > 15:
+            decimals = 15
+   
         return self._vector_to_dict(
             self.probabilities(qargs=qargs, decimals=decimals),
             self.dims(qargs),
