@@ -182,6 +182,7 @@ class MatplotlibDrawer:
         self._ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
         self._initial_state = initial_state
         self._cregbundle = cregbundle
+        self._set_cregbundle()
         self._global_phase = global_phase
 
         self._ast = None
@@ -310,6 +311,24 @@ class MatplotlibDrawer:
         self._qubit = []
         for r in qubit:
             self._qubit.append(r)
+
+    def _set_cregbundle(self):
+        """Sets the cregbundle to False if there is any instruction that
+        needs access to individual clbit."""
+        for layer in self._ops:
+            for op in layer:
+                if op.cargs and op.name != "measure":
+                    self._cregbundle = False
+                    warn(
+                        "Cregbundle set to False since an instruction needs to refer"
+                        " to individual classical wire",
+                        RuntimeWarning,
+                        2,
+                    )
+                    break
+            else:
+                continue
+            break
 
     @property
     def ast(self):
@@ -516,10 +535,16 @@ class MatplotlibDrawer:
         sc = gt
         return fc, ec, gt, self._style["tc"], sc, lc
 
-    def _multiqubit_gate(self, xy, fc=None, ec=None, gt=None, sc=None, text="", subtext=""):
+    def _multiqubit_gate(
+        self, xy, c_xy=None, fc=None, ec=None, gt=None, sc=None, text="", subtext=""
+    ):
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
+        if c_xy:
+            cxpos = min([x[0] for x in c_xy])
+            cypos = min([y[1] for y in c_xy])
+            ypos = min(ypos, cypos)
         fs = self._style["fs"]
         sfs = self._style["sfs"]
 
@@ -554,6 +579,20 @@ class MatplotlibDrawer:
                 clip_on=True,
                 zorder=PORDER_TEXT,
             )
+        if c_xy:
+            # annotate classical inputs
+            for bit, y in enumerate([x[1] for x in c_xy]):
+                self._ax.text(
+                    cxpos + 0.07 - 0.5 * wid,
+                    y,
+                    str(bit),
+                    ha="left",
+                    va="center",
+                    fontsize=fs,
+                    color=gt,
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
         if text:
             if subtext:
                 self._ax.text(
@@ -1365,7 +1404,7 @@ class MatplotlibDrawer:
                         self._gate(q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec)
                     else:
                         self._multiqubit_gate(
-                            q_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec
+                            q_xy, c_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec
                         )
                 elif isinstance(op.op, Delay):
                     param_text = "(%s)" % param
@@ -1377,7 +1416,7 @@ class MatplotlibDrawer:
                 #
                 # draw single qubit gates
                 #
-                elif len(q_xy) == 1:
+                elif len(q_xy) == 1 and not op.cargs:
                     self._gate(
                         q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=str(param)
                     )
@@ -1477,6 +1516,7 @@ class MatplotlibDrawer:
                     else:
                         self._multiqubit_gate(
                             q_xy[num_ctrl_qubits:],
+                            c_xy,
                             fc=fc,
                             ec=ec,
                             gt=gt,
@@ -1489,6 +1529,7 @@ class MatplotlibDrawer:
                 else:
                     self._multiqubit_gate(
                         q_xy,
+                        c_xy,
                         fc=fc,
                         ec=ec,
                         gt=gt,
