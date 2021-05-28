@@ -293,6 +293,29 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertTrue(hasattr(h_op, "conditional"))
         self.assertEqual(bfunc_op.register, h_op.conditional)
 
+    def test_convert_to_bfunc_plus_conditional_onebit(self):
+        """Verify assemble_circuits converts single bit conditionals from QASM to Qobj."""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(3)
+        qc = QuantumCircuit(qr, cr)
+
+        qc.h(qr[0]).c_if(cr[2], 1)
+
+        qobj = assemble(qc)
+        validate_qobj_against_schema(qobj)
+
+        inst_set = qobj.experiments[0].instructions
+        [bfunc_op, h_op] = inst_set
+
+        self.assertEqual(len(inst_set), 2)
+        self.assertEqual(bfunc_op.name, "bfunc")
+        self.assertEqual(bfunc_op.mask, "0x4")
+        self.assertEqual(bfunc_op.val, "0x4")
+        self.assertEqual(bfunc_op.relation, "==")
+
+        self.assertTrue(hasattr(h_op, "conditional"))
+        self.assertEqual(bfunc_op.register, h_op.conditional)
+
     def test_resize_value_to_register(self):
         """Verify assemble_circuits converts the value provided on the classical
         creg to its mapped location on the device register."""
