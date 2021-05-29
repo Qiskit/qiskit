@@ -43,7 +43,10 @@ class Multiplier(QuantumCircuit):
     """
 
     def __init__(
-        self, num_state_qubits: int, num_result_qubits: Optional[int] = None, name: str = "Multiplier"
+        self,
+        num_state_qubits: int,
+        num_result_qubits: Optional[int] = None,
+        name: str = "Multiplier",
     ) -> None:
         """
         Args:
