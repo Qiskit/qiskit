@@ -67,9 +67,10 @@ class RGQFTMultiplier(Multiplier):
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
             num_result_qubits: The number of result qubits to limit the output to.
-                If number of result qubits is `n`, modulo :math:`2^n` is performed
+                If number of result qubits is :math:`n`, multiplication modulo :math:`2^n` is performed
                 to limit the output to the specified number of qubits. Default
-                value is ``2 * num_state_qubits``.
+                value is ``2 * num_state_qubits`` to represent any possible
+                result from the multiplication of the two inputs.
             name: The name of the circuit object.
 
         """
