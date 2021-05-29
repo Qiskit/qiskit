@@ -30,6 +30,23 @@ class RGQFTMultiplier(Multiplier):
     register and is followed by rotations controlled by input registers. The rotations
     transform the state into the product of two input registers in QFT base, which is
     reverted from QFT base using inverse QFT.
+    As an example, a circuit that performs a modular QFT multiplication on two 2-qubit
+    sized input registers with an output register of 2 qubits, is as follows:
+
+    .. parsed-literal::
+
+          a_0: ────────────────────────────────────────■───────■──────■──────■────────────────
+                                                       │       │      │      │
+          a_1: ─────────■───────■───────■───────■──────┼───────┼──────┼──────┼────────────────
+                        │       │       │       │      │       │      │      │
+          b_0: ─────────┼───────┼───────■───────■──────┼───────┼──────■──────■────────────────
+                        │       │       │       │      │       │      │      │
+          b_1: ─────────■───────■───────┼───────┼──────■───────■──────┼──────┼────────────────
+               ┌──────┐ │P(4π)  │       │P(2π)  │      │P(2π)  │      │P(π)  │       ┌───────┐
+        out_0: ┤0     ├─■───────┼───────■───────┼──────■───────┼──────■──────┼───────┤0      ├
+               │  qft │         │P(2π)          │P(π)          │P(π)         │P(π/2) │  iqft │
+        out_1: ┤1     ├─────────■───────────────■──────────────■─────────────■───────┤1      ├
+               └──────┘                                                              └───────┘
 
     **References:**
 
