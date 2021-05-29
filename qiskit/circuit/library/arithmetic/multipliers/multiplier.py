@@ -16,7 +16,7 @@ from qiskit.circuit import QuantumCircuit
 
 
 class Multiplier(QuantumCircuit):
-    r"""Compute the product of two equally sized qubit registers.
+    r"""Compute the product of two equally sized qubit registers into a new register.
 
     For two input registers :math:`|a\rangle_n`, :math:`|b\rangle_n` with :math:`n` qubits each
     and an output register with :math:`2n` qubits, a multiplier performs the following operation
