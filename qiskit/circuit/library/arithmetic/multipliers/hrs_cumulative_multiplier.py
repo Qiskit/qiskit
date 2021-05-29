@@ -23,7 +23,8 @@ class HRSCumulativeMultiplier(Multiplier):
 
     Circuit uses the approach from [1]. As an example, a multiplier circuit that
     performs a non-modular multiplication on two 3-qubit sized registers with
-    the default adder is as follows:
+    the default adder is as follows (where ``Adder`` denotes the 
+    ``CDKMRippleCarryAdder``):
 
     .. parsed-literal::
 
