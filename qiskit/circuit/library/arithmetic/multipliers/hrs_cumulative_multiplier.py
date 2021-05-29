@@ -114,7 +114,7 @@ class HRSCumulativeMultiplier(Multiplier):
 
         # add helper qubits if required
         if num_helper_qubits > 0:
-            qr_h = AncillaRegister(num_helper_qubits, name="aux")  # helper/ancilla qubits
+            qr_h = AncillaRegister(num_helper_qubits, name="helper")  # helper/ancilla qubits
             self.add_register(qr_h)
 
         # build multiplication circuit
