@@ -87,7 +87,7 @@ class HRSCumulativeMultiplier(Multiplier):
                 CDKMRippleCarryAdder is used as default if no adder is provided.
             name: The name of the circuit object.
         Raises:
-            ValueError: If ``num_result_qubits`` is not default and a custom adder is provided.
+            NotImplementedError: If ``num_result_qubits`` is not default and a custom adder is provided.
         """
         super().__init__(num_state_qubits, num_result_qubits, name=name)
 
