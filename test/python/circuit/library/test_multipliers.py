@@ -121,7 +121,7 @@ class TestMultiplier(QiskitTestCase):
 
     def test_modular_cumulative_multiplier_custom_adder(self):
         """Test an error is raised when a custom adder is used with modular cumulative multiplier."""
-        with self.assertRaises(ValueError):
+        with self.assertRaises(NotImplementedError):
             _ = HRSCumulativeMultiplier(3, 3, adder=VBERippleCarryAdder(3))
 
 
