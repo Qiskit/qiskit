@@ -157,30 +157,41 @@ class QCircuitImage:
 
         self._initialize_latex_array()
         self._build_latex_array()
-        header_1 = r"""% \documentclass[preview]{standalone}
-% If the image is too large to fit on this documentclass use
-\documentclass[draft]{beamer}
-"""
-        beamer_line = "\\usepackage[size=custom,height=%d,width=%d,scale=%.1f]{beamerposter}\n"
-        header_2 = r"""% instead and customize the height and width (in cm) to fit.
-% Large images may run out of memory quickly.
-% To fix this use the LuaLaTeX compiler, which dynamically
-% allocates memory.
+#       header_1 = r"""\documentclass[preview]{standalone}
+#% If the image is too large to fit on this documentclass use
+#\documentclass[draft]{beamer}
+#"""
+        header_1 = r"""\documentclass[border=2px]{standalone}
+        """
+#        beamer_line = "\\usepackage[size=custom,height=%d,width=%d,scale=%.1f]{beamerposter}\n"
+#        header_2 = r"""% instead and customize the height and width (in cm) to fit.
+#% Large images may run out of memory quickly.
+#% To fix this use the LuaLaTeX compiler, which dynamically
+#% allocates memory.
+#\usepackage[braket, qm]{qcircuit}
+#\usepackage{amsmath}
+#\pdfmapfile{+sansmathaccent.map}
+#% \usepackage[landscape]{geometry}
+#% Comment out the above line if using the beamer documentclass.
+#\begin{document}
+#"""
+#        qcircuit_line = r"""
+#\begin{equation*}
+#    \Qcircuit @C=%.1fem @R=%.1fem @!R {
+#"""
+
+        header_2 = r"""
 \usepackage[braket, qm]{qcircuit}
-\usepackage{amsmath}
-\pdfmapfile{+sansmathaccent.map}
-% \usepackage[landscape]{geometry}
-% Comment out the above line if using the beamer documentclass.
-\begin{document}
+
+\begin{document} 
 """
         qcircuit_line = r"""
-\begin{equation*}
-    \Qcircuit @C=%.1fem @R=%.1fem @!R {
+\Qcircuit @C=%.1fem @R=%.1fem @!R { \\
 """
         output = io.StringIO()
         output.write(header_1)
-        output.write("%% img_width = %d, img_depth = %d\n" % (self.img_width, self.img_depth))
-        output.write(beamer_line % self._get_beamer_page())
+        #output.write("%% img_width = %d, img_depth = %d\n" % (self.img_width, self.img_depth))
+        #output.write(beamer_line % self._get_beamer_page())
         output.write(header_2)
         if self.global_phase:
             output.write(
@@ -195,9 +206,10 @@ class QCircuitImage:
                 if j != self.img_depth:
                     output.write(" & ")
                 else:
-                    output.write(r"\\" + "\n")
-        output.write("\t }\n")
-        output.write("\\end{equation*}\n\n")
+                    output.write(r"\\ " + "\n")
+        #output.write("\t }\n")
+        output.write(r"\\ " +  "}\n")
+        #output.write("\\end{equation*}\n\n")
         output.write("\\end{document}")
         contents = output.getvalue()
         output.close()
@@ -228,27 +240,27 @@ class QCircuitImage:
             if isinstance(self.ordered_bits[i], Clbit):
                 if self.cregbundle:
                     reg = self.bit_locations[self.ordered_bits[i + offset]]["register"]
-                    self._latex[i][0] = "\\lstick{" + reg.name + ":"
+                    self._latex[i][0] = "\\nghost{" + reg.name  + "} & " + "\\lstick{" + reg.name + ":"
                     clbitsize = self.cregs[reg]
                     self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
                     offset += clbitsize - 1
                 else:
                     self._latex[i][0] = (
-                        "\\lstick{"
-                        + self.bit_locations[self.ordered_bits[i]]["register"].name
-                        + "_{"
-                        + str(self.bit_locations[self.ordered_bits[i]]["index"])
-                        + "}:"
+                        "\\nghost{" + self.bit_locations[self.ordered_bits[i]]["register"].name
+                        + "_" + str(self.bit_locations[self.ordered_bits[i]]["index"]) + "} & " 
+                        + "\\lstick{" + self.bit_locations[self.ordered_bits[i]]["register"].name
+                        + "_{" + str(self.bit_locations[self.ordered_bits[i]]["index"]) + "}:"
                     )
                 if self.initial_state:
                     self._latex[i][0] += "0"
                 self._latex[i][0] += "}"
             else:
                 if self.layout is None:
-                    label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
+                    label = "\\nghost{" + self.bit_locations[self.ordered_bits[i]]["register"].name
+                    label += "_" + str(self.bit_locations[self.ordered_bits[i]]["index"]) + "} & "
+                    label += "\\lstick{{ {{{}}}_{{{}}} : ".format(
                         self.bit_locations[self.ordered_bits[i]]["register"].name,
-                        self.bit_locations[self.ordered_bits[i]]["index"],
-                    )
+                        self.bit_locations[self.ordered_bits[i]]["index"],)
                 else:
                     bit_location = self.bit_locations[self.ordered_bits[i]]
                     if bit_location and self.layout[bit_location["index"]]:
@@ -257,13 +269,15 @@ class QCircuitImage:
                             virt_reg = next(
                                 reg for reg in self.layout.get_registers() if virt_bit in reg
                             )
-                            label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
-                                virt_reg.name, virt_reg[:].index(virt_bit), bit_location["index"]
-                            )
+                            label = "\\nghost{" + virt_reg.name + "} & " 
+                            label += "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
+                                virt_reg.name, virt_reg[:].index(virt_bit), bit_location["index"])
                         except StopIteration:
-                            label = "\\lstick{{ {{{}}} : ".format(bit_location["index"])
+                            label = "\\nghost{" + bit_location["index"] + "} & " 
+                            label += "\\lstick{{ {{{}}} : ".format(bit_location["index"])
                     else:
-                        label = "\\lstick{{ {{{}}} : ".format(bit_location["index"])
+                        label = "\\nghost{" + bit_location["index"] + "} & " 
+                        label +=  "\\lstick{{ {{{}}} : ".format(bit_location["index"])          
                 if self.initial_state:
                     label += "\\ket{{0}}"
                 label += " }"
