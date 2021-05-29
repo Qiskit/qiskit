@@ -102,6 +102,12 @@ class TestMultiplier(QiskitTestCase):
     @data(
         (RGQFTMultiplier, -1),
         (HRSCumulativeMultiplier, -1),
+        (RGQFTMultiplier, 0, 0),
+        (HRSCumulativeMultiplier, 0, 0),
+        (RGQFTMultiplier, 0, 1),
+        (HRSCumulativeMultiplier, 0, 1),
+        (RGQFTMultiplier, 1, 0),
+        (HRSCumulativeMultiplier, 1, 0),
         (RGQFTMultiplier, 3, 2),
         (HRSCumulativeMultiplier, 3, 2),
         (RGQFTMultiplier, 3, 7),
