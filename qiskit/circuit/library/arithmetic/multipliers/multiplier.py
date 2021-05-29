@@ -52,6 +52,8 @@ class Multiplier(QuantumCircuit):
         Args:
             num_state_qubits: The number of qubits in each of the input registers.
             num_result_qubits: The number of result qubits to limit the output to.
+                Default value is ``2 * num_state_qubits`` to represent any possible
+                result from the multiplication of the two inputs.
             name: The name of the circuit.
         Raises:
             ValueError: If ``num_state_qubits`` is smaller than 1.
