@@ -74,27 +74,24 @@ class RGQFTMultiplier(Multiplier):
             name: The name of the circuit object.
 
         """
-        if num_result_qubits is None:
-            num_result_qubits = 2 * num_state_qubits
-
         super().__init__(num_state_qubits, num_result_qubits, name=name)
 
         # define the registers
         qr_a = QuantumRegister(num_state_qubits, name="a")
         qr_b = QuantumRegister(num_state_qubits, name="b")
-        qr_out = QuantumRegister(num_result_qubits, name="out")
+        qr_out = QuantumRegister(self.num_result_qubits, name="out")
         self.add_register(qr_a, qr_b, qr_out)
 
         # build multiplication circuit
-        self.append(QFT(num_result_qubits, do_swaps=False).to_gate(), qr_out[:])
+        self.append(QFT(self.num_result_qubits, do_swaps=False).to_gate(), qr_out[:])
 
         for j in range(1, num_state_qubits + 1):
             for i in range(1, num_state_qubits + 1):
-                for k in range(1, num_result_qubits + 1):
+                for k in range(1, self.num_result_qubits + 1):
                     lam = (2 * np.pi) / (2 ** (i + j + k - 2 * num_state_qubits))
                     self.append(
                         PhaseGate(lam).control(2),
                         [qr_a[num_state_qubits - j], qr_b[num_state_qubits - i], qr_out[k - 1]],
                     )
 
-        self.append(QFT(num_result_qubits, do_swaps=False).inverse().to_gate(), qr_out[:])
+        self.append(QFT(self.num_result_qubits, do_swaps=False).inverse().to_gate(), qr_out[:])

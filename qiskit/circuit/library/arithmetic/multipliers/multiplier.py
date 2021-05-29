@@ -12,6 +12,8 @@
 
 """Compute the product of two equally sized qubit registers."""
 
+from typing import Optional
+
 from qiskit.circuit import QuantumCircuit
 
 
@@ -41,7 +43,7 @@ class Multiplier(QuantumCircuit):
     """
 
     def __init__(
-        self, num_state_qubits: int, num_result_qubits: int, name: str = "Multiplier"
+        self, num_state_qubits: int, num_result_qubits: Optional[int] = None, name: str = "Multiplier"
     ) -> None:
         """
         Args:
@@ -55,6 +57,10 @@ class Multiplier(QuantumCircuit):
         """
         if num_state_qubits < 1:
             raise ValueError("The number of qubits must be at least 1.")
+
+        if num_result_qubits is None:
+            num_result_qubits = 2 * num_state_qubits
+
         if num_result_qubits < num_state_qubits:
             raise ValueError(
                 "Number of result qubits is smaller than number of input state qubits."

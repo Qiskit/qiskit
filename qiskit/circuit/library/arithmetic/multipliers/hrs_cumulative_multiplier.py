@@ -89,18 +89,15 @@ class HRSCumulativeMultiplier(Multiplier):
         Raises:
             ValueError: If ``num_result_qubits`` is not default and a custom adder is provided.
         """
-        if num_result_qubits is None:
-            num_result_qubits = 2 * num_state_qubits
-
-        if num_result_qubits != 2 * num_state_qubits and adder is not None:
-            raise ValueError("Only default adder is supported for modular multiplication.")
-
         super().__init__(num_state_qubits, num_result_qubits, name=name)
+
+        if self.num_result_qubits != 2 * num_state_qubits and adder is not None:
+            raise ValueError("Only default adder is supported for modular multiplication.")
 
         # define the registers
         qr_a = QuantumRegister(num_state_qubits, name="a")
         qr_b = QuantumRegister(num_state_qubits, name="b")
-        qr_out = QuantumRegister(num_result_qubits, name="out")
+        qr_out = QuantumRegister(self.num_result_qubits, name="out")
         self.add_register(qr_a, qr_b, qr_out)
 
         # prepare adder as controlled gate
@@ -119,7 +116,7 @@ class HRSCumulativeMultiplier(Multiplier):
 
         # build multiplication circuit
         for i in range(num_state_qubits):
-            excess_qubits = max(0, num_state_qubits + i + 1 - num_result_qubits)
+            excess_qubits = max(0, num_state_qubits + i + 1 - self.num_result_qubits)
             if excess_qubits == 0:
                 num_adder_qubits = num_state_qubits
                 adder_for_current_step = adder
