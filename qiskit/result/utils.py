@@ -54,8 +54,9 @@ def marginal_counts(result, indices=None, inplace=False, format_marginal=False):
                 new_counts_hex[_bin_to_hex(k)] = v
             experiment_result.data.counts = new_counts_hex
             experiment_result.header.memory_slots = len(indices)
-            csize = experiment_result.header.creg_sizes
-            experiment_result.header.creg_sizes = _adjust_creg_sizes(csize, indices)
+            if hasattr(experiment_result.header, 'creg_sizes'):
+                csize = experiment_result.header.creg_sizes
+                experiment_result.header.creg_sizes = _adjust_creg_sizes(csize, indices)
         return result
     else:
         marg_counts = _marginalize(result, indices)
