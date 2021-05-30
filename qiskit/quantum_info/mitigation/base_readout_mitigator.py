@@ -20,6 +20,7 @@ from qiskit.result import Counts
 
 try:
     import matplotlib.pyplot as plt
+
     _HAS_MATPLOTLIB = True
 except ImportError:
     _HAS_MATPLOTLIB = False
@@ -28,11 +29,10 @@ except ImportError:
 class BaseReadoutMitigator(ABC):
     """Base readout error mitigator class."""
 
-    def quasi_probabilities(data: Counts,
-                            qubits: Iterable[int] = None,
-                            shots: Optional[int] = None
-                            ) -> (Dict[str, float], Dict[str, float]):
-        """Convert counts to a dictionary of non-zero probabilities
+    def quasi_probabilities(
+        data: Counts, qubits: Iterable[int] = None, shots: Optional[int] = None
+    ) -> (Dict[str, float], Dict[str, float]):
+        """Convert counts to a dictionary of quasi-probabilities
 
         Args:
             data: Counts to be mitigated.
@@ -43,22 +43,26 @@ class BaseReadoutMitigator(ABC):
                 be calculated as the sum of all counts.
 
         Returns:
-            A dictionary containing pairs of [output, mean] where "output" is the key in the dictionaries,
-                which is the length-N bitstring of a measured standard basis state, and "mean" is the mean
-                of non-zero quasi-probability estimates.
-            A dictionary containing pairs of [output, standard deviation] where "output" is the key in the dictionaries,
-                which is the length-N bitstring of a measured standard basis state, and "standard deviation" is the
-                standard deviation of the non-zero quasi-probability estimates.
+            A dictionary containing pairs of [output, mean] where "output"
+                is the key in the dictionaries,
+                which is the length-N bitstring of a measured standard basis state,
+                and "mean" is the mean of non-zero quasi-probability estimates.
+            A dictionary containing pairs of [output, standard deviation]
+                where "output" is the key in the dictionaries,
+                which is the length-N bitstring of a measured standard basis state,
+                and "standard deviation" is the standard deviation of the non-zero
+                quasi-probability estimates.
 
         Raises:
             QiskitError: if qubits is not None and does not match the number of count clbits.
         """
 
-    def expectation_value(data: Counts,
-                          diagonal: np.ndarray,
-                          qubits: Iterable[int] = None,
-                          shots: Optional[int] = None
-                          ) -> List[float, float]:
+    def expectation_value(
+        data: Counts,
+        diagonal: np.ndarray,
+        qubits: Iterable[int] = None,
+        shots: Optional[int] = None,
+    ) -> List[float, float]:
         """Calculate the expectation value of a diagonal Hermitian operator.
 
         Args:
@@ -121,10 +125,7 @@ class BaseReadoutMitigator(ABC):
         """
         return self.assignment_matrix(qubits=qubits).diagonal().mean()
 
-
-    def plot_assignment_matrix(self,
-                               qubits=None,
-                               ax=None):
+    def plot_assignment_matrix(self, qubits=None, ax=None):
         """Matrix plot of the readout error assignment matrix.
 
         Args:
@@ -138,18 +139,16 @@ class BaseReadoutMitigator(ABC):
             ImportError: if matplotlib is not installed.
         """
 
-    def plot_mitigation_matrix(self,
-                               qubits=None,
-                               ax=None):
+    def plot_mitigation_matrix(self, qubits=None, ax=None):
         """Matrix plot of the readout error mitigation matrix.
 
-            Args:
-                qubits (list(int)): Optional, qubits being measured for operator expval.
-                ax (plt.axes): Optional. Axes object to add plot to.
+        Args:
+            qubits (list(int)): Optional, qubits being measured for operator expval.
+            ax (plt.axes): Optional. Axes object to add plot to.
 
-            Returns:
-                plt.axes: the figure axes object.
+        Returns:
+            plt.axes: the figure axes object.
 
-            Raises:
-                ImportError: if matplotlib is not installed.
+        Raises:
+            ImportError: if matplotlib is not installed.
         """
