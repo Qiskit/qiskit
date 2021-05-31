@@ -592,6 +592,7 @@ class TextDrawing:
         qubits,
         clbits,
         instructions,
+        reverse_bits=False,
         plotbarriers=True,
         line_length=None,
         vertical_compression="high",
@@ -608,6 +609,7 @@ class TextDrawing:
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
+        self.reverse_bits = reverse_bits
         self.layout = layout
         self.initial_state = initial_state
         self.cregbundle = cregbundle
@@ -1246,7 +1248,7 @@ class TextDrawing:
         layers = [InputWire.fillup_layer(wire_names)]
 
         for instruction_layer in self.instructions:
-            layer = Layer(self.qubits, self.clbits, self.cregbundle, self.cregs)
+            layer = Layer(self.qubits, self.clbits, self.reverse_bits, self.cregbundle, self.cregs)
 
             for instruction in instruction_layer:
                 layer, current_connections, connection_label = self._instruction_to_gate(
@@ -1263,7 +1265,7 @@ class TextDrawing:
 class Layer:
     """A layer is the "column" of the circuit."""
 
-    def __init__(self, qubits, clbits, cregbundle=False, cregs=None):
+    def __init__(self, qubits, clbits, reverse_bits=False, cregbundle=False, cregs=None):
         cregs = [] if cregs is None else cregs
 
         self.qubits = qubits
@@ -1290,6 +1292,7 @@ class Layer:
         self.qubit_layer = [None] * len(qubits)
         self.connections = []
         self.clbit_layer = [None] * len(clbits)
+        self.reverse_bits = reverse_bits
         self.cregbundle = cregbundle
 
     @property
@@ -1472,7 +1475,7 @@ class Layer:
             clbits (list[Clbit]): The list of classical bits on
                 which the instruction is conditioned.
         """
-        vlist = list(val[::-1])
+        vlist = list(val) if self.reverse_bits else list(val[::-1])
         for i, bit in enumerate(clbits):
             bot_connect = " "
             if bit == clbits[-1]:

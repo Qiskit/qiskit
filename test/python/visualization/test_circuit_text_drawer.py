@@ -2830,6 +2830,67 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_conditional_reverse_bits_1(self):
+        """Classical condition on 2q2c circuit with cregbundle=False and reverse bits"""
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.measure(qr[0], cr[0])
+        circuit.h(qr[1]).c_if(cr, 1)
+
+        expected = "\n".join(
+            [
+                "                 ┌───┐",
+                "qr_1: |0>────────┤ H ├",
+                "         ┌───┐┌─┐└─╥─┘",
+                "qr_0: |0>┤ H ├┤M├──╫──",
+                "         └───┘└╥┘  ║  ",
+                " cr_1: 0 ══════╬═══o══",
+                "               ║   ║  ",
+                " cr_0: 0 ══════╩═══■══",
+                "                   =1 ",
+            ]
+        )
+
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=True)),
+            expected
+            )
+
+    def test_text_conditional_reverse_bits_2(self):
+        """Classical condition on 3q3c circuit with cergbundle=False and reverse bits"""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0]).c_if(cr, 6)
+        circuit.h(qr[1]).c_if(cr, 1)
+        circuit.h(qr[2]).c_if(cr, 2)
+        circuit.cx(0, 1).c_if(cr, 3)
+
+        expected = "\n".join(
+            [
+                "                   ┌───┐     ",
+                "qr_2: |0>──────────┤ H ├─────",
+                "              ┌───┐└─╥─┘┌───┐",
+                "qr_1: |0>─────┤ H ├──╫──┤ X ├",
+                "         ┌───┐└─╥─┘  ║  └─┬─┘",
+                "qr_0: |0>┤ H ├──╫────╫────■──",
+                "         └─╥─┘  ║    ║    ║  ",
+                " cr_2: 0 ══■════o════o════o══",
+                "           ║    ║    ║    ║  ",
+                " cr_1: 0 ══■════o════■════■══",
+                "           ║    ║    ║    ║  ",
+                " cr_0: 0 ══o════■════o════■══",
+                "           =6   =1   =2   =3 ",
+            ]
+        )
+
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=True)),
+            expected
+            )
+
 
 class TestTextIdleWires(QiskitTestCase):
     """The idle_wires option"""

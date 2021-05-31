@@ -319,6 +319,7 @@ def _text_circuit_drawer(
         qubits,
         clbits,
         ops,
+        reverse_bits=reverse_bits,
         layout=layout,
         initial_state=initial_state,
         cregbundle=cregbundle,
