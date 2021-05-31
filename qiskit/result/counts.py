@@ -13,18 +13,13 @@
 """A container class for counts from a circuit execution."""
 
 import re
+from collections.abc import Mapping
 
 from qiskit.result import postprocess
 from qiskit import exceptions
 
 
-# NOTE: A dict subclass should not overload any dunder methods like __setitem__
-# this can cause unexpected behavior and issues as the cPython dict
-# implementation has many standard methods in C for performance and the dunder
-# methods are not always used as expected. For example, update() doesn't call
-# __setitem__ so overloading __setitem__ would not always provide the expected
-# result
-class Counts(dict):
+class Counts(Mapping):
     """A class to store a counts result from a circuit execution."""
 
     bitstring_regex = re.compile(r"^[01\s]+$")
@@ -110,7 +105,7 @@ class Counts(dict):
                 header={"creg_sizes": creg_sizes, "memory_slots": memory_slots},
             )
 
-        super().__init__({k: v for k, v in bin_data.items() if v != 0})
+        self.bin_data = bin_data
 
         if not memory_slots:
             if creg_sizes:
@@ -124,7 +119,7 @@ class Counts(dict):
 
     def __getitem__(self, key):
         try:
-            return super().__getitem__(key)
+            return self.bin_data[key]
         except KeyError as keyerror:
             if isinstance(key, int):
                 key = hex(key)
@@ -203,3 +198,20 @@ class Counts(dict):
     def _remove_space_underscore(bitstring):
         """Removes all spaces and underscores from bitstring"""
         return int(bitstring.replace(" ", "").replace("_", ""), 2)
+
+    def __iter__(self):
+        return iter(self.bin_data)
+
+    def __len__(self):
+        return len(self.bin_data)
+
+    def __eq__(self, other):
+        if not isinstance(other, Counts):
+            other = Counts(other)
+        for k, v in other.items():
+            if self.get(k, 0) != v:
+                return False
+        for k, v in self.items():
+            if other.get(k, 0) != v:
+                return False
+        return True
