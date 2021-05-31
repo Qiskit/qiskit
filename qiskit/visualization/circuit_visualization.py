@@ -332,6 +332,8 @@ def _text_circuit_drawer(
 
     if filename:
         text_drawing.dump(filename, encoding=encoding)
+        if filename.split(".")[1] == "txt":
+            logger.warning("WARNING Filename extension is not .txt, saving anyways.")
     return text_drawing
 
 
@@ -449,7 +451,7 @@ def _latex_circuit_drawer(
                     else:
                         try:
                             image.save(filename)
-                        except ValueError as er:
+                        except ValueError:
                             logger.warning(
                                 "WARNING This image format is not supported "
                                 "saving the image in PNG format without changing file extension."
