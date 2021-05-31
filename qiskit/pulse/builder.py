@@ -1462,9 +1462,9 @@ def delay(duration: int, channel: chans.Channel, name: Optional[str] = None):
 
 
 def play(
-        pulse: Union[library.Pulse, library.Signal, np.ndarray],
-        channel: chans.PulseChannel,
-        name: Optional[str] = None
+    pulse: Union[library.Pulse, library.Signal, np.ndarray],
+    channel: chans.PulseChannel,
+    name: Optional[str] = None,
 ):
     """Play a ``pulse`` on a ``channel``.
 

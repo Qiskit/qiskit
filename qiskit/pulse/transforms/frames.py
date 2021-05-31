@@ -22,7 +22,6 @@ from qiskit.pulse import channels as chans, instructions
 from qiskit.pulse.frame import Frame
 
 
-
 def resolve_frames(schedule: Schedule, frames_config: Dict[Frame, Dict]) -> Schedule:
     """
     Parse the schedule and replace instructions on Frames by instructions on the
@@ -52,10 +51,10 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[Frame, Dict]) -> Sche
         # Extract shift and set frame operations from the schedule.
         resolved_frame.set_frame_instructions(schedule)
         resolved_frames[frame] = resolved_frame
-        sample_duration = settings['sample_duration']
+        sample_duration = settings["sample_duration"]
 
     if sample_duration is None:
-        raise PulseError('Frame configuration does not have a sample duration.')
+        raise PulseError("Frame configuration does not have a sample duration.")
 
     # Used to keep track of the frequency and phase of the channels
     channel_trackers = {}
@@ -79,8 +78,7 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[Frame, Dict]) -> Sche
                 frame = inst.pulse.frame
 
                 if frame not in resolved_frames:
-                    raise PulseError(f'{frame} is not configured and cannot '
-                                     f'be resolved.')
+                    raise PulseError(f"{frame} is not configured and cannot " f"be resolved.")
 
                 resolved_frame = resolved_frames[frame]
 
@@ -128,9 +126,15 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[Frame, Dict]) -> Sche
             if issubclass(type(chan), chans.PulseChannel):
                 sched.insert(time, type(inst)(inst.phase, chan), inplace=True)
 
-        elif isinstance(inst, (instructions.Delay,
-                               instructions.Snapshot, instructions.Acquire,
-                               instructions.Directive)):
+        elif isinstance(
+            inst,
+            (
+                instructions.Delay,
+                instructions.Snapshot,
+                instructions.Acquire,
+                instructions.Directive,
+            ),
+        ):
             sched.insert(time, inst, inplace=True)
 
         else:

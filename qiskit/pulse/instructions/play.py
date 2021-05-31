@@ -33,7 +33,9 @@ class Play(Instruction):
     cycle time, dt, of the backend.
     """
 
-    def __init__(self, pulse: Union[Pulse, Signal], channel: PulseChannel, name: Optional[str] = None):
+    def __init__(
+        self, pulse: Union[Pulse, Signal], channel: PulseChannel, name: Optional[str] = None
+    ):
         """Create a new pulse instruction.
 
         Args:
@@ -46,8 +48,10 @@ class Play(Instruction):
             PulseError: If pulse is not a Pulse type.
         """
         if not isinstance(pulse, (Pulse, Signal)):
-            raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse` or "
-                             "`library.Signal`.")
+            raise PulseError(
+                "The `pulse` argument to `Play` must be of type `library.Pulse` or "
+                "`library.Signal`."
+            )
 
         if not isinstance(channel, PulseChannel):
             raise PulseError(

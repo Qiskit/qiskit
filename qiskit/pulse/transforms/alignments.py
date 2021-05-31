@@ -124,8 +124,10 @@ class AlignLeft(AlignmentKind):
                     shared_channels = list(this_channels | other_channels)
                     break
 
-        ch_slacks = [this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
-                     for channel in shared_channels]
+        ch_slacks = [
+            this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
+            for channel in shared_channels
+        ]
 
         if ch_slacks:
             slack_chan = shared_channels[np.argmin(ch_slacks)]
@@ -206,8 +208,9 @@ class AlignRight(AlignmentKind):
                     shared_channels = list(this_channels | other_channels)
                     break
 
-        ch_slacks = [this.ch_start_time(channel) - other.ch_stop_time(channel)
-                     for channel in shared_channels]
+        ch_slacks = [
+            this.ch_start_time(channel) - other.ch_stop_time(channel) for channel in shared_channels
+        ]
 
         if ch_slacks:
             insert_time = min(ch_slacks) + other.start_time

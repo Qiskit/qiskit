@@ -31,12 +31,12 @@ class TestFrame(QiskitTestCase):
 
         frame = pulse.Frame(123)
         self.assertEqual(frame.index, 123)
-        self.assertEqual(frame.name, 'f123')
+        self.assertEqual(frame.name, "f123")
 
     def test_parameter(self):
         """Test parameter assignment."""
         parameter_manager = ParameterManager()
-        param = Parameter('a')
+        param = Parameter("a")
         frame = pulse.Frame(param)
         self.assertTrue(isinstance(frame.index, Parameter))
 
@@ -85,13 +85,19 @@ class TestResolvedFrames(QiskitTestCase):
         # Check that the proper phase instructions are added to the frame resolved schedules.
         resolved = resolve_frames(sched, frames_config).instructions
 
-        params = [(0, 0, self.freq0, 1), (160, 160, self.freq1 - self.freq0, 4),
-                  (320, 160, self.freq0 - self.freq1, 7), (480, 160, self.freq1 - self.freq0, 10)]
+        params = [
+            (0, 0, self.freq0, 1),
+            (160, 160, self.freq1 - self.freq0, 4),
+            (320, 160, self.freq0 - self.freq1, 7),
+            (480, 160, self.freq1 - self.freq0, 10),
+        ]
 
         for time, delta, frame_frequency, index in params:
-            phase = np.angle(np.exp(2.0j * np.pi * frame_frequency * delta * self.dt_)) % (2 * np.pi)
+            phase = np.angle(np.exp(2.0j * np.pi * frame_frequency * delta * self.dt_)) % (
+                2 * np.pi
+            )
             self.assertEqual(resolved[index][0], time)
-            self.assertAlmostEqual(resolved[index][1].phase % (2*np.pi), phase, places=8)
+            self.assertAlmostEqual(resolved[index][1].phase % (2 * np.pi), phase, places=8)
 
     def test_phase_advance_with_instructions(self):
         """Test that the phase advances are properly computed with frame instructions."""
@@ -144,8 +150,9 @@ class TestResolvedFrames(QiskitTestCase):
                     pulse.play(sig, pulse.DriveChannel(3))
                     pulse.play(sig, pulse.ControlChannel(0))
 
-        frames_config = frames_configuration([[pulse.DriveChannel(3), pulse.ControlChannel(0)]],
-                                             [self.freq0], self.dt_)
+        frames_config = frames_configuration(
+            [[pulse.DriveChannel(3), pulse.ControlChannel(0)]], [self.freq0], self.dt_
+        )
 
         resolved = resolve_frames(sched, frames_config).instructions
 
@@ -158,7 +165,7 @@ class TestResolvedFrames(QiskitTestCase):
         set_freq = resolved[0][1]
         self.assertTrue(isinstance(set_freq, pulse.SetFrequency))
         self.assertAlmostEqual(set_freq.frequency, self.freq0, places=8)
-        
+
         self.assertEquals(resolved[1][0], 0)
         set_phase = resolved[1][1]
         self.assertTrue(isinstance(set_phase, pulse.SetPhase))

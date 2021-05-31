@@ -68,12 +68,12 @@ class Signal:
         parameters = self._pulse.parameters
 
         if isinstance(self._frame.index, ParameterExpression):
-            parameters['index'] = self._frame.index
+            parameters["index"] = self._frame.index
 
         return parameters
 
-    def __eq__(self, other: 'Signal') -> bool:
+    def __eq__(self, other: "Signal") -> bool:
         return self._pulse == other._pulse and self.frame == other.frame
 
     def __repr__(self):
-        return f'Signal({self._pulse}, {self._frame})'
+        return f"Signal({self._pulse}, {self._frame})"

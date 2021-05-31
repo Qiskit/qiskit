@@ -381,10 +381,10 @@ def _parse_pulse_args(
     meas_lo_range = meas_lo_range or getattr(backend_config, "meas_lo_range", None)
 
     frames_config_ = None
-    if hasattr(backend_config, 'frames'):
-        frames_config_ = frames_configuration(backend_config.frames(),
-                                              qubit_lo_freq,
-                                              backend_config.dt)
+    if hasattr(backend_config, "frames"):
+        frames_config_ = frames_configuration(
+            backend_config.frames(), qubit_lo_freq, backend_config.dt
+        )
 
     if frames_config is None:
         frames_config = frames_config_
@@ -560,10 +560,12 @@ def _expand_parameters(circuits, run_config):
     return circuits, run_config
 
 
-def frames_configuration(frame_channels: List[List[PulseChannel]],
-                         frame_frequencies: List[float],
-                         dt: float,
-                         frame_indices: List[int] = None) -> Union[dict, None]:
+def frames_configuration(
+    frame_channels: List[List[PulseChannel]],
+    frame_frequencies: List[float],
+    dt: float,
+    frame_indices: List[int] = None,
+) -> Union[dict, None]:
     """
     Ties together the frames of the backend and the frequencies of the frames.
 
@@ -584,8 +586,10 @@ def frames_configuration(frame_channels: List[List[PulseChannel]],
             of frames, i.e. the length of frame_channels.
     """
     if len(frame_frequencies) != len(frame_channels):
-        raise QiskitError(f'Number of frames {len(frame_channels)} is incompatible with '
-                          f'the number of frame initial frequencies {len(frame_frequencies)}.')
+        raise QiskitError(
+            f"Number of frames {len(frame_channels)} is incompatible with "
+            f"the number of frame initial frequencies {len(frame_frequencies)}."
+        )
 
     frames_config = {}
     for index, channels in enumerate(frame_channels):
@@ -595,10 +599,10 @@ def frames_configuration(frame_channels: List[List[PulseChannel]],
             frame_index = index
 
         frames_config[Frame(frame_index)] = {
-            'phase': 0.0,
-            'frequency': frame_frequencies[index],
-            'channels': channels,
-            'sample_duration': dt
+            "phase": 0.0,
+            "frequency": frame_frequencies[index],
+            "channels": channels,
+            "sample_duration": dt,
         }
 
     return frames_config

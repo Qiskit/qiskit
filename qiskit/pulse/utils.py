@@ -136,4 +136,4 @@ def validate_index(index: Any) -> None:
             index = int(index)
 
     if not isinstance(index, (int, np.integer)) and index < 0:
-        raise PulseError('Channel index must be a nonnegative integer')
+        raise PulseError("Channel index must be a nonnegative integer")

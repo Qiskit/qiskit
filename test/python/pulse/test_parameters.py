@@ -446,10 +446,10 @@ class TestParameterFrames(QiskitTestCase):
 
     def test_frames(self):
         """Test that we can create a parameterized schedule with Frames."""
-        ch_param = Parameter('dx')
-        f_param = Parameter('fx')
-        dur = Parameter('duration')
-        phase = Parameter('phase')
+        ch_param = Parameter("dx")
+        f_param = Parameter("fx")
+        dur = Parameter("duration")
+        phase = Parameter("phase")
 
         signal = Signal(pulse.Gaussian(dur, 0.1, 40), Frame(f_param))
         sched = pulse.ScheduleBlock()

@@ -92,7 +92,7 @@ class Tracker(ABC):
 
         freq = self.frequency(time)
 
-        return (phase + 2*np.pi*freq*(time-last_time)*self._sample_duration) % (2*np.pi)
+        return (phase + 2 * np.pi * freq * (time - last_time) * self._sample_duration) % (2 * np.pi)
 
     def set_frequency(self, time: int, frequency: float):
         """Insert a new frequency in the time-ordered frequencies."""
@@ -127,8 +127,14 @@ class ResolvedFrame(Tracker):
     Frame at any given point in time.
     """
 
-    def __init__(self, frame: Frame, frequency: float, phase: float,
-                 sample_duration: float, channels: List[Channel]):
+    def __init__(
+        self,
+        frame: Frame,
+        frequency: float,
+        phase: float,
+        sample_duration: float,
+        channels: List[Channel],
+    ):
         """
         Args:
             frame: The frame to track.
@@ -141,7 +147,7 @@ class ResolvedFrame(Tracker):
             PulseError: If there are still parameters in the given frame.
         """
         if isinstance(frame.index, ParameterExpression):
-            raise PulseError('A parameterized frame cannot be given to ResolvedFrame.')
+            raise PulseError("A parameterized frame cannot be given to ResolvedFrame.")
 
         super().__init__(frame.index, sample_duration)
         self._frequencies_phases = [(0, frequency, phase)]
@@ -149,7 +155,7 @@ class ResolvedFrame(Tracker):
 
         for ch in self._channels:
             if isinstance(ch.index, ParameterExpression):
-                raise PulseError('ResolvedFrame does not allow parameterized channels.')
+                raise PulseError("ResolvedFrame does not allow parameterized channels.")
 
     @property
     def channels(self) -> List[Channel]:
@@ -181,11 +187,11 @@ class ResolvedFrame(Tracker):
                 elif isinstance(inst, SetPhase):
                     self.set_phase(time, inst.phase)
                 else:
-                    raise PulseError('Unexpected frame operation.')
+                    raise PulseError("Unexpected frame operation.")
 
     def __repr__(self):
-        sub_str = '[' + ', '.join([ch.__repr__() for ch in self._channels]) + ']'
-        return f'{self.__class__.__name__}({self._index}, {sub_str})'
+        sub_str = "[" + ", ".join([ch.__repr__() for ch in self._channels]) + "]"
+        return f"{self.__class__.__name__}({self._index}, {sub_str})"
 
 
 class ChannelTracker(Tracker):

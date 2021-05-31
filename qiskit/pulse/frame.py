@@ -21,7 +21,8 @@ from qiskit.pulse.utils import validate_index
 
 class Frame:
     """A frame is a frequency and a phase."""
-    prefix = 'f'
+
+    prefix = "f"
 
     def __init__(self, index: Union[int, Parameter]):
         """
@@ -40,12 +41,12 @@ class Frame:
     @property
     def name(self) -> str:
         """Return the shorthand alias for this frame, which is based on its type and index."""
-        return '{}{}'.format(self.__class__.prefix, self._index)
+        return "{}{}".format(self.__class__.prefix, self._index)
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({self._index})'
+        return f"{self.__class__.__name__}({self._index})"
 
-    def __eq__(self, other: 'Frame') -> bool:
+    def __eq__(self, other: "Frame") -> bool:
         """Return True iff self and other are equal, specifically, iff they have the same type
         and the same index.
 
