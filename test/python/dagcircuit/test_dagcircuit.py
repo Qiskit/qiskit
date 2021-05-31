@@ -1362,5 +1362,80 @@ class TestDagProperties(QiskitTestCase):
         self.assertEqual(dag.depth(), 6)
 
 
+class TestConditional(QiskitTestCase):
+    """Test the classical conditional gates."""
+
+    def setUp(self):
+        super().setUp()
+        self.qreg = QuantumRegister(3, "q")
+        self.creg = ClassicalRegister(2, "c")
+        self.creg2 = ClassicalRegister(2, "c2")
+        self.qubit0 = self.qreg[0]
+        self.circuit = QuantumCircuit(self.qreg, self.creg, self.creg2)
+        self.dag = None
+
+    def test_creg_conditional(self):
+        """Test consistency of conditional on classical register."""
+
+        self.circuit.h(self.qreg[0]).c_if(self.creg, 1)
+        self.dag = circuit_to_dag(self.circuit)
+        gate_node = self.dag.gate_nodes()[0]
+        self.assertEqual(gate_node.op, HGate())
+        self.assertEqual(gate_node.qargs, [self.qreg[0]])
+        self.assertEqual(gate_node.cargs, [])
+        self.assertEqual(gate_node.condition, (self.creg, 1))
+        self.assertEqual(
+            sorted(self.dag._multi_graph.in_edges(gate_node._node_id)),
+            sorted(
+                [
+                    (self.dag.input_map[self.qreg[0]]._node_id, gate_node._node_id, self.qreg[0]),
+                    (self.dag.input_map[self.creg[0]]._node_id, gate_node._node_id, self.creg[0]),
+                    (self.dag.input_map[self.creg[1]]._node_id, gate_node._node_id, self.creg[1]),
+                ]
+            ),
+        )
+
+        self.assertEqual(
+            sorted(self.dag._multi_graph.out_edges(gate_node._node_id)),
+            sorted(
+                [
+                    (gate_node._node_id, self.dag.output_map[self.qreg[0]]._node_id, self.qreg[0]),
+                    (gate_node._node_id, self.dag.output_map[self.creg[0]]._node_id, self.creg[0]),
+                    (gate_node._node_id, self.dag.output_map[self.creg[1]]._node_id, self.creg[1]),
+                ]
+            ),
+        )
+
+    def test_clbit_conditional(self):
+        """Test consistency of conditional on single classical bit."""
+
+        self.circuit.h(self.qreg[0]).c_if(self.creg[0], 1)
+        self.dag = circuit_to_dag(self.circuit)
+        gate_node = self.dag.gate_nodes()[0]
+        self.assertEqual(gate_node.op, HGate())
+        self.assertEqual(gate_node.qargs, [self.qreg[0]])
+        self.assertEqual(gate_node.cargs, [])
+        self.assertEqual(gate_node.condition, (self.creg[0], 1))
+        self.assertEqual(
+            sorted(self.dag._multi_graph.in_edges(gate_node._node_id)),
+            sorted(
+                [
+                    (self.dag.input_map[self.qreg[0]]._node_id, gate_node._node_id, self.qreg[0]),
+                    (self.dag.input_map[self.creg[0]]._node_id, gate_node._node_id, self.creg[0]),
+                ]
+            ),
+        )
+
+        self.assertEqual(
+            sorted(self.dag._multi_graph.out_edges(gate_node._node_id)),
+            sorted(
+                [
+                    (gate_node._node_id, self.dag.output_map[self.qreg[0]]._node_id, self.qreg[0]),
+                    (gate_node._node_id, self.dag.output_map[self.creg[0]]._node_id, self.creg[0]),
+                ]
+            ),
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
