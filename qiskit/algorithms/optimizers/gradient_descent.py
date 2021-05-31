@@ -141,7 +141,11 @@ class GradientDescent(Optimizer):
             nfevs += 1
 
             # compute next parameter value
-            x_next = x - next(eta) * update
+            try:
+                x_next = x - next(eta) * update
+            except Exception:
+                u = np.array([update_item.toarray()[0][0] for update_item in update])
+                x_next = x - next(eta) * u
 
             # send information to callback
             if self.callback is not None:

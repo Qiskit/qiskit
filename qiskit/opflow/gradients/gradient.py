@@ -229,13 +229,16 @@ class Gradient(GradientBase):
                     )
 
             def chain_rule_combo_fn(x):
+                print('Warning chain rule combo fn adapted')
                 # try:
                 #     for j in range(len(x[1])):
                 #         x[1][j] = x[1][j].toarray()[0]
                 # except Exception:
                 #     pass
-                x[1] = x[1][0]
-                result = np.dot(x[1], x[0])
+                try:
+                    result = np.dot(x[1], x[0])
+                except Exception:
+                    result = np.dot(x[1][0], np.transpose(x[0]))
                 if isinstance(result, np.ndarray):
                     result = list(result)
                 return result

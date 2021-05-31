@@ -24,11 +24,11 @@ from qiskit.opflow.evolutions.varqtes.varqrte import VarQRTE
 from qiskit.opflow.evolutions.varqtes.varqite import VarQITE
 from qiskit.opflow.evolutions.varqte import ForwardEuler
 
-from qiskit.opflow import StateFn, SummedOp, MatrixOp, TensoredOp
+from qiskit.opflow import StateFn, SummedOp, MatrixOp, TensoredOp, OperatorBase
 from qiskit.opflow import Z, I, Y, X
 
-from .MRF_Hamiltonian_generator import MrfHamiltonianGenerator
-from .ansatz_generator import AnsatzGenerator
+from qiskit.working_files.QMRF.MRF_Hamiltonian_generator import MrfHamiltonianGenerator
+from qiskit.working_files.QMRF.ansatz_generator import AnsatzGenerator
 np.random.seed = 11
 
 # Evolution time
@@ -46,9 +46,10 @@ reg_names = ['lstsq']
 
 C = [[0, 1, 2], [3, 4, 5], [2, 3]]  # clique structure
 n = 6 # number nodes/qubits
-
-obs = MrfHamiltonianGenerator().gen_Hamiltonian(C, n, 'fast')
-observable = MatrixOp(obs).to_pauli_op()
+mode = 'fast'
+observable = MrfHamiltonianGenerator().gen_Hamiltonian(C, n, mode)
+if not mode == 'fast_pauli':
+    observable = MatrixOp(observable).to_pauli_op()
 observable = observable.reduce()
 target = sp.linalg.expm(-observable.to_matrix(massive=True))/np.trace(sp.linalg.expm(
     -observable.to_matrix(massive=True)))
@@ -118,8 +119,6 @@ print('Target ', np.diag(target))
 # ansatz4.cry(params4[8], 0, 2)
 
 
-
-
 # ansaetze = [ansatz1, ansatz2, ansatz3, ansatz4]
 # params = [params1, params2, params3, params4]
 
@@ -150,7 +149,7 @@ for l, ansatz in enumerate(ansaetze):
                 varqite_snapshot_dir = os.path.join('..', 'xor_withoutwork_bigger', 'imag',
                                                     'ansatz'+str(l),
                                                     reg_names[j],
-                                                    ode_solvers_names[k] + 'nat_grad')
+                                                    ode_solvers_names[k] + 'error')
 
                 varqite = VarQITE(parameters=parameters, grad_method='lin_comb',
                                   init_parameter_values=init_param_values,
@@ -158,27 +157,23 @@ for l, ansatz in enumerate(ansaetze):
                                   ode_solver=ode_solver,
                                   backend=Aer.get_backend('statevector_simulator'),
                                   regularization=reg,
-                                  error_based_ode=False,
+                                  error_based_ode=True,
                                   snapshot_dir=varqite_snapshot_dir)
                 approx_time_evolved_state_imag = varqite.convert(op)
                 out_state = approx_time_evolved_state_imag.eval().primitive.data
                 out_state = np.multiply(out_state, np.conj(out_state))
 
                 print('Output', out_state)
-                varqite_error_bounds, varqite_reverse_error_bounds = varqite.error_bound(
-                    varqite_snapshot_dir, imag_reverse_bound=True,
-                    H=observable.to_matrix(massive=True))
+                varqite_error_bounds = varqite.error_bound(
+                    varqite_snapshot_dir, imag_reverse_bound=False, H=observable.to_matrix(
+                        massive=True))
                 np.save(os.path.join(varqite_snapshot_dir, 'error_bounds.npy'),
                         varqite_error_bounds)
-                np.save(os.path.join(varqite_snapshot_dir, 'reverse_error_bounds.npy'),
-                        varqite_reverse_error_bounds)
                 # dir_fast = '../output/imag/10/ridge/RK45error'
                 # varqite.print_results([dir_fast], [os.path.join(dir_fast,
                 #                                                'error_bounds.npy')])
                 varqite.plot_results([varqite_snapshot_dir], [os.path.join(varqite_snapshot_dir,
-                                                              'error_bounds.npy')],
-                                      [os.path.join(varqite_snapshot_dir,
-                                                    'reverse_error_bounds.npy')]
+                                                              'error_bounds.npy')]
                                       )
 
                 print('run time', (time.time()-t0)/60)
