@@ -2854,9 +2854,8 @@ class TestTextConditional(QiskitTestCase):
         )
 
         self.assertEqual(
-            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=True)),
-            expected
-            )
+            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=True)), expected
+        )
 
     def test_text_conditional_reverse_bits_2(self):
         """Classical condition on 3q3c circuit with cergbundle=False and reverse bits"""
@@ -2887,9 +2886,8 @@ class TestTextConditional(QiskitTestCase):
         )
 
         self.assertEqual(
-            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=True)),
-            expected
-            )
+            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=True)), expected
+        )
 
 
 class TestTextIdleWires(QiskitTestCase):
