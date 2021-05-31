@@ -1729,9 +1729,13 @@ class QuantumCircuit:
             # Assuming here that there is no conditional
             # snapshots or barriers ever.
             if instr.condition:
-                # Controls operate over all bits in the
-                # classical register they use.
-                for cbit in instr.condition[0]:
+                # Controls operate over all bits of a classical register
+                # or over a single bit
+                if isinstance(instr.condition[0], Clbit):
+                    condition_bits = [instr.condition[0]]
+                else:
+                    condition_bits = instr.condition[0]
+                for cbit in condition_bits:
                     idx = bit_indices[cbit]
                     if idx not in reg_ints:
                         reg_ints.append(idx)

@@ -445,7 +445,10 @@ def _latex_circuit_drawer(
                 image = utils._trim(image)
                 os.remove(base + ".png")
                 if filename:
-                    image.save(filename, "PNG")
+                    if filename.endswith(".pdf"):
+                        os.rename(base + ".pdf", filename)
+                    else:
+                        image.save(filename, "PNG")
             except (OSError, subprocess.CalledProcessError) as ex:
                 logger.warning(
                     "WARNING: Unable to convert pdf to image. "
