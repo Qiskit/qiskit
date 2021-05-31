@@ -19,11 +19,15 @@ from IPython.display import display
 from IPython.core import magic_arguments
 from IPython.core.magic import cell_magic, line_magic, Magics, magics_class, register_line_magic
 
+from qiskit.exceptions import MissingOptionalLibraryError
+
 try:
     import ipywidgets as widgets
 except ImportError as ex:
-    raise ImportError(
-        "These functions  need ipywidgets. " 'Run "pip install ipywidgets" before.'
+    raise MissingOptionalLibraryError(
+        libname="ipywidgets",
+        name="jupyter magics",
+        pip_install="pip install ipywidgets",
     ) from ex
 import qiskit
 from qiskit.visualization.matplotlib import HAS_MATPLOTLIB

@@ -17,6 +17,8 @@ Visualization functions for measurement counts.
 from collections import Counter, OrderedDict
 import functools
 import numpy as np
+
+from qiskit.exceptions import MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
@@ -80,7 +82,7 @@ def plot_histogram(
             kwarg is not set.
 
     Raises:
-        ImportError: Matplotlib not available.
+        MissingOptionalLibraryError: Matplotlib not available.
         VisualizationError: When legend is provided and the length doesn't
             match the input data.
 
@@ -101,7 +103,11 @@ def plot_histogram(
            plot_histogram(job.result().get_counts(), color='midnightblue', title="New Histogram")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError("Must have Matplotlib installed.")
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_histogram",
+            pip_install="pip install matplotlib",
+        )
     from matplotlib import get_backend
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator

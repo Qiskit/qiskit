@@ -21,6 +21,7 @@ from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators.symplectic import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.circuit import Measure
+from qiskit.exceptions import MissingOptionalLibraryError
 
 try:
     import PIL
@@ -40,11 +41,10 @@ except ImportError:
 def generate_latex_label(label):
     """Convert a label to a valid latex string."""
     if not HAS_PYLATEX:
-        raise ImportError(
-            "The latex and latex_source drawers need "
-            'pylatexenc installed. Run "pip install '
-            'pylatexenc" before using the latex or '
-            "latex_source drawers."
+        raise MissingOptionalLibraryError(
+            libname="pylatexenc",
+            name="the latex and latex_source circuit drawers",
+            pip_install="pip install pylatexenc",
         )
 
     regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
@@ -69,10 +69,10 @@ def generate_latex_label(label):
 def _trim(image):
     """Trim a PIL image and remove white space."""
     if not HAS_PIL:
-        raise ImportError(
-            "The latex drawer needs pillow installed. "
-            'Run "pip install pillow" before using the '
-            "latex drawer."
+        raise MissingOptionalLibraryError(
+            libname="pillow",
+            name="the latex circuit drawer",
+            pip_install="pip install pillow",
         )
     background = PIL.Image.new(image.mode, image.size, image.getpixel((0, 0)))
     diff = PIL.ImageChops.difference(image, background)
