@@ -171,10 +171,10 @@ def execute(
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
         default_qubit_los (Optional[List[float]]): List of job level qubit drive LO frequencies
-            in Hz. Overridden by ``schedule_los`` if specified. Must have length ``n_qubits.``
+            in Hz. Overridden by ``schedule_los`` if specified. Must have length ``n_qubits``.
 
         default_meas_los (Optional[List[float]]): List of job level measurement LO frequencies in
-            Hz. Overridden by ``schedule_los`` if specified. Must have length ``n_qubits.``
+            Hz. Overridden by ``schedule_los`` if specified. Must have length ``n_qubits``.
 
         qubit_lo_range (Optional[List[List[float]]]): List of job level drive LO ranges each of form
             ``[range_min, range_max]`` in Hz. Used to validate ``qubit_lo_freq``. Must have length
@@ -185,8 +185,8 @@ def execute(
             length ``n_qubits``.
 
         schedule_los (Optional[Union[List[Union[Dict[PulseChannel, float], LoConfig]],
-                               Union[Dict[PulseChannel, float], LoConfig]]]):
-            Experiment level (ie circuit or schedule) LO frequency configurations for qubit drive
+                               Union[Dict[PulseChannel, float], LoConfig]]]): Experiment level
+            (ie circuit or schedule) LO frequency configurations for qubit drive
             and measurement channels. These values override the job level values from
             ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for qasm
             and pulse jobs.
@@ -272,6 +272,8 @@ def execute(
             qc.measure_all()
 
             job = execute(qc, backend, shots=4321)
+
+
     """
     if isinstance(experiments, Schedule) or (
         isinstance(experiments, list) and isinstance(experiments[0], Schedule)
