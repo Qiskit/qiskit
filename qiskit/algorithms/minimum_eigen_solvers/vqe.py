@@ -105,6 +105,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
         quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        sort_parameters_by_name: bool = False,
     ) -> None:
         """
 
@@ -140,6 +141,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 These are: the evaluation count, the optimizer parameters for the
                 ansatz, the evaluated mean and the evaluated standard deviation.`
             quantum_instance: Quantum Instance or Backend
+            sort_parameters_by_name: If True, the initial point is bound to the ansatz parameters
+                strictly sorted by name instead of the default circuit order. That means that the
+                ansatz parameters are e.g. sorted as ``x[0] x[1] x[10] x[2] ...`` instead of
+                ``x[0] x[1] x[2] ... x[10]``. Set this to ``True`` to obtain the behavior prior
+                to Qiskit Terra 0.18.0.
         """
         validate_min("max_evals_grouped", max_evals_grouped, 1)
         if ansatz is None:
@@ -159,6 +165,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._expectation = expectation
         self._include_custom = include_custom
 
+        # set ansatz -- still supporting pre 0.18.0 sorting
+        self._sort_parameters_by_name = sort_parameters_by_name
+        self._ansatz_params = None
         self._ansatz = None
         self.ansatz = ansatz
 
@@ -166,6 +175,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._initial_point = initial_point
         self._gradient = gradient
         self._quantum_instance = None
+
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
 
@@ -189,21 +199,18 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     @property
     def ansatz(self) -> Optional[QuantumCircuit]:
-        """Returns the ansatz"""
+        """Returns the ansatz."""
         return self._ansatz
 
     @ansatz.setter
     def ansatz(self, ansatz: Optional[QuantumCircuit]):
         """Sets the ansatz"""
-        if isinstance(ansatz, QuantumCircuit):
-            # store the parameters
-            self._ansatz_params = sorted(ansatz.parameters, key=lambda p: p.name)
-            self._ansatz = ansatz
-        elif ansatz is None:
-            self._ansatz_params = None
-            self._ansatz = ansatz
-        else:
-            raise ValueError('Unsupported type "{}" of ansatz'.format(type(ansatz)))
+        self._ansatz = ansatz
+        if ansatz is not None:
+            if self._sort_parameters_by_name:
+                self._ansatz_params = sorted(ansatz.parameters, key=lambda p: p.name)
+            else:
+                self._ansatz_params = list(ansatz.parameters)
 
     @property
     def quantum_instance(self) -> Optional[QuantumInstance]:
@@ -221,6 +228,16 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._circuit_sampler = CircuitSampler(
             quantum_instance, param_qobj=is_aer_provider(quantum_instance.backend)
         )
+
+    @property
+    def initial_point(self) -> Optional[np.ndarray]:
+        """Returns initial point"""
+        return self._initial_point
+
+    @initial_point.setter
+    def initial_point(self, initial_point: np.ndarray):
+        """Sets initial point"""
+        self._initial_point = initial_point
 
     @property
     def expectation(self) -> ExpectationBase:
@@ -286,12 +303,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         )
         ret += "{}".format(self.setting)
         ret += "===============================================================\n"
-        if hasattr(self._ansatz, "setting"):
-            ret += "{}".format(self._ansatz.setting)
-        elif hasattr(self._ansatz, "print_settings"):
-            ret += "{}".format(self._ansatz.print_settings())
-        elif isinstance(self._ansatz, QuantumCircuit):
-            ret += "ansatz is a custom circuit"
+        if self.ansatz is not None:
+            ret += "{}".format(self.ansatz.draw(output="text"))
         else:
             ret += "ansatz has not been set"
         ret += "===============================================================\n"
@@ -466,7 +479,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         result.eigenvalue = opt_value + 0j
         result.eigenstate = self._get_eigenstate(result.optimal_parameters)
 
-        # TODO
         logger.info(
             "Optimization complete in %s seconds.\nFound opt_params %s in %s evals",
             eval_time,
@@ -474,8 +486,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             self._eval_count,
         )
 
-        # TODO
-        # self._ret.eigenstate = self.get_optimal_vector()
         if aux_operators is not None:
             aux_values = self._eval_aux_ops(aux_operators)
             result.aux_operator_eigenvalues = aux_values[0]
