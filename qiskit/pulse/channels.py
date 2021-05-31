@@ -21,7 +21,9 @@ channel types can be created. Then, they must be supported in the PulseQobj sche
 assembler.
 """
 from abc import ABCMeta
-from typing import Set, Union
+from typing import Any, Set, Union
+
+import numpy as np
 
 from qiskit.circuit import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType

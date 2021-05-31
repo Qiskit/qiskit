@@ -27,17 +27,10 @@ from qiskit.providers.backend import Backend
 from qiskit.pulse import LoConfig, Instruction
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.frame import Frame
 from qiskit.qobj import QobjHeader, Qobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.validation.jsonschema import SchemaValidationError
-<<<<<<< HEAD
-from qiskit.providers import BaseBackend
-from qiskit.providers.backend import Backend
-from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse import Schedule
-from qiskit.pulse.frame import Frame
-=======
->>>>>>> faf0628161fe20a3449c56cf30f56038b0116c32
 
 logger = logging.getLogger(__name__)
 
@@ -48,32 +41,6 @@ def _log_assembly_time(start_time, end_time):
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
-<<<<<<< HEAD
-def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, List[Schedule]],
-             backend: Optional[Union[Backend, BaseBackend]] = None,
-             qobj_id: Optional[str] = None,
-             qobj_header: Optional[Union[QobjHeader, Dict]] = None,
-             shots: Optional[int] = None, memory: Optional[bool] = False,
-             max_credits: Optional[int] = None,
-             seed_simulator: Optional[int] = None,
-             qubit_lo_freq: Optional[List[int]] = None,
-             meas_lo_freq: Optional[List[int]] = None,
-             qubit_lo_range: Optional[List[int]] = None,
-             meas_lo_range: Optional[List[int]] = None,
-             schedule_los: Optional[Union[List[Union[Dict[PulseChannel, float], LoConfig]],
-                                          Union[Dict[PulseChannel, float], LoConfig]]] = None,
-             meas_level: Union[int, MeasLevel] = MeasLevel.CLASSIFIED,
-             meas_return: Union[str, MeasReturnType] = MeasReturnType.AVERAGE,
-             meas_map: Optional[List[List[Qubit]]] = None,
-             memory_slot_size: int = 100,
-             rep_time: Optional[int] = None,
-             rep_delay: Optional[float] = None,
-             parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
-             parametric_pulses: Optional[List[str]] = None,
-             init_qubits: bool = True,
-             frames_config: Dict[int, Dict] = None,
-             **run_config: Dict) -> Qobj:
-=======
 def assemble(
     experiments: Union[
         QuantumCircuit,
@@ -109,9 +76,9 @@ def assemble(
     parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
     parametric_pulses: Optional[List[str]] = None,
     init_qubits: bool = True,
+    frames_config: Dict[int, Dict] = None,
     **run_config: Dict,
 ) -> Qobj:
->>>>>>> faf0628161fe20a3449c56cf30f56038b0116c32
     """Assemble a list of circuits or pulse schedules into a ``Qobj``.
 
     This function serializes the payloads, which could be either circuits or schedules,
@@ -220,18 +187,6 @@ def assemble(
         )
         end_time = time()
         _log_assembly_time(start_time, end_time)
-<<<<<<< HEAD
-        return assemble_circuits(circuits=bound_experiments, qobj_id=qobj_id,
-                                 qobj_header=qobj_header, run_config=run_config)
-
-    elif all(isinstance(exp, (Schedule, Instruction)) for exp in experiments):
-        run_config = _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq,
-                                       qubit_lo_range, meas_lo_range,
-                                       schedule_los, meas_level, meas_return,
-                                       meas_map, memory_slot_size,
-                                       rep_time, parametric_pulses, frames_config,
-                                       **run_config_common_dict)
-=======
         return assemble_circuits(
             circuits=bound_experiments,
             qobj_id=qobj_id,
@@ -253,9 +208,9 @@ def assemble(
             memory_slot_size,
             rep_time,
             parametric_pulses,
+            frames_config,
             **run_config_common_dict,
         )
->>>>>>> faf0628161fe20a3449c56cf30f56038b0116c32
 
         end_time = time()
         _log_assembly_time(start_time, end_time)
@@ -366,14 +321,6 @@ def _parse_common_args(
     return qobj_id, qobj_header, run_config_dict
 
 
-<<<<<<< HEAD
-def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
-                      meas_lo_range, schedule_los, meas_level,
-                      meas_return, meas_map,
-                      memory_slot_size,
-                      rep_time, parametric_pulses, frames_config,
-                      **run_config):
-=======
 def _parse_pulse_args(
     backend,
     qubit_lo_freq,
@@ -387,9 +334,9 @@ def _parse_pulse_args(
     memory_slot_size,
     rep_time,
     parametric_pulses,
+    frames_config,
     **run_config,
 ):
->>>>>>> faf0628161fe20a3449c56cf30f56038b0116c32
     """Build a pulse RunConfig replacing unset arguments with defaults derived from the `backend`.
     See `assemble` for more information on the required arguments.
 
@@ -433,7 +380,6 @@ def _parse_pulse_args(
     qubit_lo_range = qubit_lo_range or getattr(backend_config, "qubit_lo_range", None)
     meas_lo_range = meas_lo_range or getattr(backend_config, "meas_lo_range", None)
 
-<<<<<<< HEAD
     frames_config_ = None
     if hasattr(backend_config, 'frames'):
         frames_config_ = frames_configuration(backend_config.frames(),
@@ -448,10 +394,7 @@ def _parse_pulse_args(
             if frame not in frames_config:
                 frames_config[frame] = settings
 
-    dynamic_reprate_enabled = getattr(backend_config, 'dynamic_reprate_enabled', False)
-=======
     dynamic_reprate_enabled = getattr(backend_config, "dynamic_reprate_enabled", False)
->>>>>>> faf0628161fe20a3449c56cf30f56038b0116c32
 
     rep_time = rep_time or getattr(backend_config, "rep_times", None)
     if rep_time:
@@ -468,21 +411,6 @@ def _parse_pulse_args(
     parametric_pulses = parametric_pulses or getattr(backend_config, "parametric_pulses", [])
 
     # create run configuration and populate
-<<<<<<< HEAD
-    run_config_dict = dict(qubit_lo_freq=qubit_lo_freq,
-                           meas_lo_freq=meas_lo_freq,
-                           qubit_lo_range=qubit_lo_range,
-                           meas_lo_range=meas_lo_range,
-                           schedule_los=schedule_los,
-                           meas_level=meas_level,
-                           meas_return=meas_return,
-                           meas_map=meas_map,
-                           memory_slot_size=memory_slot_size,
-                           rep_time=rep_time,
-                           parametric_pulses=parametric_pulses,
-                           frames_config=frames_config,
-                           **run_config)
-=======
     run_config_dict = dict(
         qubit_lo_freq=qubit_lo_freq,
         meas_lo_freq=meas_lo_freq,
@@ -495,9 +423,9 @@ def _parse_pulse_args(
         memory_slot_size=memory_slot_size,
         rep_time=rep_time,
         parametric_pulses=parametric_pulses,
+        frames_config=frames_config,
         **run_config,
     )
->>>>>>> faf0628161fe20a3449c56cf30f56038b0116c32
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
     return run_config
