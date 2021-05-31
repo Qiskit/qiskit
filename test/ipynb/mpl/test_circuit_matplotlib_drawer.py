@@ -378,7 +378,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         transpiled = transpile(
             circuit,
             backend=FakeTenerife(),
-            basis_gates={"rx", "ry", "rxx", "ms"},
+            basis_gates=["id", "cx", "rz", "sx", "x"],
             optimization_level=0,
             initial_layout=[1, 2, 0],
             seed_transpiler=0,
