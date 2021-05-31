@@ -93,7 +93,7 @@ of the multiplication without overflow we need :math:`t = 2n` bits.
 
     @property
     def num_result_qubits(self) -> int:
-        """The number of result qubits to limit the output to/
+        """The number of result qubits to limit the output to.
 
         Returns:
             The number of result qubits.
