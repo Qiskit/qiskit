@@ -15,6 +15,7 @@
 
 from IPython.core.magic import line_magic, Magics, magics_class
 from qiskit.tools.events.pubsub import Subscriber
+from qiskit.exceptions import MissingOptionalLibraryError
 
 try:
     from qiskit.providers.ibmq.job.exceptions import IBMQJobApiError
@@ -32,10 +33,10 @@ class JobWatcher(Subscriber):
     def __init__(self):
         super().__init__()
         if not HAS_IBMQ:
-            raise ImportError(
-                "qiskit-ibmq-provider is required to use the "
-                "job watcher. To install it run 'pip install "
-                "qiskit-ibmq-provider'"
+            raise MissingOptionalLibraryError(
+                libname="qiskit-ibmq-provider",
+                name="the job watcher",
+                pip_install="pip install qiskit-ibmq-provider",
             )
         self.jobs = []
         self._init_subscriber()
