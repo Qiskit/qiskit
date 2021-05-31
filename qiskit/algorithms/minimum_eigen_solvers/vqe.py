@@ -182,10 +182,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def _try_set_expectation_value_from_factory(self, operator: OperatorBase) -> None:
         if operator is not None and self.quantum_instance is not None:
             self._expectation = ExpectationFactory.build(
-                    operator=operator,
-                    backend=self.quantum_instance,
-                    include_custom=self._include_custom,
-                )
+                operator=operator,
+                backend=self.quantum_instance,
+                include_custom=self._include_custom,
+            )
 
     @property
     def ansatz(self) -> Optional[QuantumCircuit]:
@@ -377,7 +377,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def supports_aux_operators(cls) -> bool:
         return True
 
-    def _eval_aux_ops(self, aux_operators: List[OperatorBase], threshold: float = 1e-12) -> np.ndarray:
+    def _eval_aux_ops(
+        self, aux_operators: List[OperatorBase], threshold: float = 1e-12
+    ) -> np.ndarray:
         # Create new CircuitSampler to avoid breaking existing one's caches.
         sampler = CircuitSampler(self.quantum_instance)
 
@@ -395,9 +397,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         ]
         # As this has mixed types, since it can included None, it needs to explicitly pass object
         # data type to avoid numpy 1.19 warning message about implicit conversion being deprecated
-        aux_operator_eigenvalues = np.array(
-            [aux_operator_eigenvalues], dtype=object
-        )
+        aux_operator_eigenvalues = np.array([aux_operator_eigenvalues], dtype=object)
         return aux_operator_eigenvalues
 
     def compute_minimum_eigenvalue(
@@ -415,8 +415,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         # validation
         self._check_operator_varform(operator)
 
-        initial_point = _validate_initial_point(self.initial_point,
-                                                self.ansatz)
+        initial_point = _validate_initial_point(self.initial_point, self.ansatz)
+
+        bounds = _validate_bounds(self.ansatz)
 
         # We need to handle the array entries being Optional i.e. having value None
         if aux_operators:
@@ -452,6 +453,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             num_vars=len(initial_point),
             objective_function=energy_evaluation,
             gradient_function=gradient,
+            variable_bounds=bounds,
             initial_point=initial_point,
         )
         eval_time = time() - start_time
@@ -507,9 +509,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         def energy_evaluation(parameters):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))
             # Create dict associating each parameter with the lists of parameterization values for it
-            param_bindings = dict(
-                zip(self._ansatz_params, parameter_sets.transpose().tolist())
-            )
+            param_bindings = dict(zip(self._ansatz_params, parameter_sets.transpose().tolist()))
 
             start_time = time()
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
@@ -536,11 +536,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return energy_evaluation
 
-    @deprecate_function("""
+    @deprecate_function(
+        """
 The VQE.get_optimal_cost method is deprecated as of Qiskit Terra 0.18.0
 and will be removed no sooner than 3 months after the releasedate.
 This information is part of the returned result object and can be
-queried as VQEResult.eigenvalue.""")
+queried as VQEResult.eigenvalue."""
+    )
     def get_optimal_cost(self) -> float:
         """Get the minimal cost or energy found by the VQE."""
         if self._ret.optimal_point is None:
@@ -549,11 +551,13 @@ queried as VQEResult.eigenvalue.""")
             )
         return self._ret.optimal_value
 
-    @deprecate_function("""
+    @deprecate_function(
+        """
 The VQE.get_optimal_circuit method is deprecated as of Qiskit Terra
 0.18.0 and will be removed no sooner than 3 months after the releasedate.
 This information is part of the returned result object and can be
-queried as VQEResult.ansatz.bind_parameters(VQEResult.optimal_point).""")
+queried as VQEResult.ansatz.bind_parameters(VQEResult.optimal_point)."""
+    )
     def get_optimal_circuit(self) -> QuantumCircuit:
         """Get the circuit with the optimal parameters."""
         if self._ret.optimal_point is None:
@@ -563,11 +567,13 @@ queried as VQEResult.ansatz.bind_parameters(VQEResult.optimal_point).""")
             )
         return self.ansatz.assign_parameters(self._ret.optimal_parameters)
 
-    @deprecate_function("""
-The VQE.get_optimal_cost method is deprecated as of Qiskit Terra 0.18.0
+    @deprecate_function(
+        """
+The VQE.get_optimal_vector method is deprecated as of Qiskit Terra 0.18.0
 and will be removed no sooner than 3 months after the releasedate.
 This information is part of the returned result object and can be
-queried as VQEResult.eigenvector.""")
+queried as VQEResult.eigenvector."""
+    )
     def get_optimal_vector(self) -> Union[List[float], Dict[str, int]]:
         """Get the simulation outcome of the optimal circuit."""
         if self._ret.optimal_parameters is None:
@@ -600,11 +606,13 @@ queried as VQEResult.eigenvector.""")
 
         return min_vector
 
-    @deprecate_function("""
+    @deprecate_function(
+        """
 The VQE.optimal_params property is deprecated as of Qiskit Terra 0.18.0
 and will be removed no sooner than 3 months after the releasedate.
 This information is part of the returned result object and can be
-queried as VQEResult.optimal_point.""")
+queried as VQEResult.optimal_point."""
+    )
     @property
     def optimal_params(self) -> List[float]:
         """The optimal parameters for the ansatz."""
@@ -668,7 +676,23 @@ def _validate_initial_point(point, ansatz):
         point = algorithm_globals.random.uniform(lower_bounds, upper_bounds)
 
     elif len(point) != expected_size:
-        raise ValueError(f'The dimension of the initial point ({len(point)}) does not match the '
-                         f'number of parameters in the circuit ({expected_size}).')
+        raise ValueError(
+            f"The dimension of the initial point ({len(point)}) does not match the "
+            f"number of parameters in the circuit ({expected_size})."
+        )
 
     return point
+
+
+def _validate_bounds(ansatz):
+    if hasattr(ansatz, "parameter_bounds") and ansatz.parameter_bounds is not None:
+        bounds = ansatz.parameter_bounds
+        if len(bounds) != ansatz.num_parameters:
+            raise ValueError(
+                f"The number of bounds ({len(bounds)}) does not match the number of "
+                f"parameters in the circuit ({ansatz.num_parameters})."
+            )
+    else:
+        bounds = [(None, None)] * ansatz.num_parameters
+
+    return bounds

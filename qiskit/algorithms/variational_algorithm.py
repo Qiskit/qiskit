@@ -64,13 +64,18 @@ class VariationalAlgorithm:
         Raises:
              ValueError: for invalid input
         """
-        if any(arg is not None for arg in [
-            ansatz, optimizer, cost_fn, gradient, initial_point, quantum_instance
-        ]):
-            warnings.warn('The VariationalAlgorithm class has been reduced to an abstract '
-                          'interface. Passing any arguments to the initializer is deprecated as of '
-                          'Qiskit Terra 0.18.0 and will be unsupported no sooner than 3 months '
-                          'after the release date.', DeprecationWarning, stacklevel=2)
+        if any(
+            arg is not None
+            for arg in [ansatz, optimizer, cost_fn, gradient, initial_point, quantum_instance]
+        ):
+            warnings.warn(
+                "The VariationalAlgorithm class has been reduced to an abstract "
+                "interface. Passing any arguments to the initializer is deprecated as of "
+                "Qiskit Terra 0.18.0 and will be unsupported no sooner than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         self._quantum_instance = None
         if quantum_instance:
