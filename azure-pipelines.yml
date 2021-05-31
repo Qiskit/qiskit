@@ -6,7 +6,7 @@
 trigger:
   branches:
     include:
-      - master
+      - main
       - stable/*
   tags:
     include:
@@ -36,7 +36,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==1.7.1
+            pip install cibuildwheel==1.11.0
             pip install -U twine
             cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
@@ -80,7 +80,32 @@ stages:
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==1.7.1
+          pip install cibuildwheel==1.11.0
+          pip install -U twine
+          cibuildwheel --output-dir wheelhouse .
+      - task: PublishBuildArtifacts@1
+        inputs: {pathtoPublish: 'wheelhouse'}
+        condition: succeededOrFailed()
+      - bash: |
+          twine upload wheelhouse/*
+        env:
+          TWINE_PASSWORD: $(TWINE_PASSWORD)
+    - job: 'macos_arm'
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      pool: {vmImage: 'macOS-latest'}
+      variables:
+        python.version: '3.7'
+        CIBW_BEFORE_BUILD: pip install -U Cython
+        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
+        CIBW_ARCHS_MACOS: universal2
+        TWINE_USERNAME: qiskit
+        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
+      steps:
+      - task: UsePythonVersion@0
+      - bash: |
+          set -e
+          python -m pip install --upgrade pip
+          pip install cibuildwheel==1.11.0
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -107,12 +132,10 @@ stages:
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x64}}
-        - script: choco install vcpython27 -f -y
-          displayName: Install Visual C++ for Python 2.7
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==1.7.1
+            pip install cibuildwheel==1.11.0
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
@@ -148,6 +171,7 @@ stages:
               pip | "$(Agent.OS)"
               pip
             path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - task: Cache@2
           inputs:
             key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
@@ -156,25 +180,30 @@ stages:
               stestr | "$(Agent.OS)"
               stestr
             path: .stestr
-          displayName: Cache pip
+          displayName: Cache stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt .
+            python setup.py sdist
+            pip install -U -c constraints.txt dist/qiskit-terra*.tar.gz
             pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
-            python setup.py build_ext --inplace
+            mkdir -p /tmp/terra-tests
+            cp -r test /tmp/terra-tests/.
+            cp .stestr.conf /tmp/terra-tests/.
             sudo apt install -y graphviz
             pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
             source test-job/bin/activate
+            pushd /tmp/terra-tests
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            popd
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
@@ -191,9 +220,16 @@ stages:
         - bash: |
             set -e
             source test-job/bin/activate
+            cp tools/subunit_to_junit.py /tmp/terra-tests/.
             pip install -U junitxml
+            pushd /tmp/terra-tests
             mkdir -p junit
-            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+            stestr last --subunit | ./subunit_to_junit.py -o junit/test-results.xml
+            popd
+            cp -r /tmp/terra-tests/junit .
+            pushd .stestr
+            ls | grep -P "^\d" | xargs -d "\n" rm -f
+            popd
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -236,7 +272,7 @@ stages:
         - bash: |
             set -e
             source test-job/bin/activate
-            pycodestyle qiskit test
+            black --check qiskit test tools
             pylint -rn qiskit test
             tools/verify_headers.py qiskit test
             python tools/find_optional_imports.py
@@ -274,6 +310,7 @@ stages:
               stestr | "$(Agent.OS)"
               stestr
             path: .stestr
+          displayName: Cache stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -310,6 +347,9 @@ stages:
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+            pushd .stestr
+            ls | grep -e '^[[:digit:]]' | xargs -n1 rm -f
+            popd
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -339,6 +379,7 @@ stages:
               stestr | "$(Agent.OS)"
               stestr
             path: .stestr
+          displayName: Cache stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -380,6 +421,9 @@ stages:
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
+            pushd .stestr
+            ls | grep -P "^\d" | xargs -d "\n" rm -f
+            popd
           condition: succeededOrFailed()
           env:
             LANG: 'C.UTF-8'
@@ -419,6 +463,7 @@ stages:
               stestr | "$(Agent.OS)"
               stestr
             path: .stestr
+          displayName: Cache stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -460,6 +505,9 @@ stages:
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
+            pushd .stestr
+            ls | grep -P "^\d" | xargs -d "\n" rm -f
+            popd
           condition: succeededOrFailed()
           env:
             LANG: 'C.UTF-8'
@@ -506,6 +554,7 @@ stages:
               stestr | "$(Agent.OS)"
               stestr
             path: .stestr
+          displayName: Cache stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -543,6 +592,9 @@ stages:
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+            pushd .stestr
+            ls | grep -P "^\d" | xargs -d "\n" rm -f
+            popd
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -586,6 +638,7 @@ stages:
               stestr | "$(Agent.OS)"
               stestr
             path: .stestr
+          displayName: Cache stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -601,7 +654,7 @@ stages:
             source test-job/bin/activate
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-            stestr run --concurrency 2
+            stestr run
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
@@ -621,6 +674,9 @@ stages:
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+            pushd .stestr
+            ls | grep -e '^[[:digit:]]' | xargs -n1 rm -f
+            popd
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
