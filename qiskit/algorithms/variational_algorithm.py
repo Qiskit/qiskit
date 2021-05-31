@@ -31,7 +31,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
 from qiskit.opflow.gradients import GradientBase
-from qiskit.utils import QuantumInstance, algorithm_globals
+from qiskit.utils import QuantumInstance, algorithm_globals, deprecate_function
 from .algorithm_result import AlgorithmResult
 from .optimizers import Optimizer, SLSQP
 
@@ -97,11 +97,23 @@ class VariationalAlgorithm:
         self._parameterized_circuits = None
 
     @property
+    @deprecate_function(
+        """
+The VariationalAlgorithm is reduced to an interface. Thus, the
+quantum_instance property is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate."""
+    )
     def quantum_instance(self) -> Optional[QuantumInstance]:
         """Returns quantum instance."""
         return self._quantum_instance
 
     @quantum_instance.setter
+    @deprecate_function(
+        """
+The VariationalAlgorithm is reduced to an interface. Thus, the
+quantum_instance property is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate."""
+    )
     def quantum_instance(
         self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
     ) -> None:
@@ -111,11 +123,23 @@ class VariationalAlgorithm:
         self._quantum_instance = quantum_instance
 
     @property
+    @deprecate_function(
+        """
+The VariationalAlgorithm is reduced to an interface. Thus, the
+ansatz property is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate."""
+    )
     def ansatz(self) -> Optional[QuantumCircuit]:
         """Returns the ansatz"""
         return self._ansatz
 
     @ansatz.setter
+    @deprecate_function(
+        """
+The VariationalAlgorithm is reduced to an interface. Thus, the
+ansatz property is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate."""
+    )
     def ansatz(self, ansatz: Optional[QuantumCircuit]):
         """Sets the ansatz"""
         if isinstance(ansatz, QuantumCircuit):
@@ -129,25 +153,55 @@ class VariationalAlgorithm:
             raise ValueError('Unsupported type "{}" of ansatz'.format(type(ansatz)))
 
     @property
+    @deprecate_function(
+        """
+The VariationalAlgorithm is reduced to an interface. Thus, the
+optimizer property is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate."""
+    )
     def optimizer(self) -> Optional[Optimizer]:
         """Returns optimizer"""
         return self._optimizer
 
     @optimizer.setter
+    @deprecate_function(
+        """
+The VariationalAlgorithm is reduced to an interface. Thus, the
+optimizer property is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate."""
+    )
     def optimizer(self, optimizer: Optimizer):
         """Sets optimizer"""
         self._optimizer = optimizer
 
     @property
+    @deprecate_function(
+        """
+The VariationalAlgorithm is reduced to an interface. Thus, the
+initial_point property is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate."""
+    )
     def initial_point(self) -> Optional[np.ndarray]:
         """Returns initial point"""
         return self._initial_point
 
     @initial_point.setter
+    @deprecate_function(
+        """
+The VariationalAlgorithm is reduced to an interface. Thus, the
+initial_point property is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate."""
+    )
     def initial_point(self, initial_point: np.ndarray):
         """Sets initial point"""
         self._initial_point = initial_point
 
+    @deprecate_function(
+        """
+The VariationalAlgorithm is reduced to an interface. Thus, the
+find_minimum method is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate."""
+    )
     def find_minimum(
         self,
         initial_point: Optional[np.ndarray] = None,
@@ -251,6 +305,12 @@ class VariationalAlgorithm:
 
         return result
 
+    @deprecate_function(
+        """
+The VariationalAlgorithm is reduced to an interface. Thus, the
+get_prob_vector_for_params method is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate."""
+    )
     def get_prob_vector_for_params(
         self, construct_circuit_fn, params_s, quantum_instance, construct_circuit_args=None
     ):
@@ -272,6 +332,12 @@ class VariationalAlgorithm:
                 probs_s.append(self.get_probabilities_for_counts(counts))
         return np.array(probs_s)
 
+    @deprecate_function(
+        """
+The VariationalAlgorithm is reduced to an interface. Thus, the
+get_probabilities_for_counts method is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate."""
+    )
     def get_probabilities_for_counts(self, counts):
         """get probabilities for counts"""
         shots = sum(counts.values())
@@ -302,6 +368,12 @@ class VariationalAlgorithm:
         """returns optimal parameters"""
         raise NotImplementedError()
 
+    @deprecate_function(
+        """
+The VariationalAlgorithm is reduced to an interface. Thus, the
+cleanup_paramterized_circuits method is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate."""
+    )
     def cleanup_parameterized_circuits(self):
         """set parameterized circuits to None"""
         self._parameterized_circuits = None
