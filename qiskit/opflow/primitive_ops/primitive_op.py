@@ -180,14 +180,6 @@ class PrimitiveOp(OperatorBase):
 
         return ComposedOp([new_self, other])
 
-    def power(self, exponent: int) -> OperatorBase:
-        if not isinstance(exponent, int) or exponent <= 0:
-            raise TypeError("power can only take positive int arguments")
-        temp = PrimitiveOp(self.primitive, coeff=self.coeff)  # type: OperatorBase
-        for _ in range(exponent - 1):
-            temp = temp.compose(self)
-        return temp
-
     def _expand_dim(self, num_qubits: int) -> OperatorBase:
         raise NotImplementedError
 
