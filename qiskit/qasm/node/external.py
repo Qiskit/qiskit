@@ -15,6 +15,7 @@
 import warnings
 import numpy as np
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from .node import Node
 from .nodeexception import NodeException
 
@@ -60,11 +61,8 @@ class External(Node):
         try:
             from pylatexenc.latexencode import utf8tolatex
         except ImportError as ex:
-            raise ImportError(
-                "To export latex from qasm "
-                "pylatexenc needs to be installed. Run "
-                "'pip install pylatexenc' before using this "
-                "method."
+            raise MissingOptionalLibraryError(
+                "pylatexenc", "latex-from-qasm exporter", "pip install pylatexenc"
             ) from ex
         return utf8tolatex(self.sym())
 
