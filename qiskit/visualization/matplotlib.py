@@ -32,6 +32,7 @@ except ImportError:
     HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate, Gate, Instruction
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay
 from qiskit import user_config
@@ -131,9 +132,10 @@ class MatplotlibDrawer:
     ):
 
         if not HAS_MATPLOTLIB:
-            raise ImportError(
-                "The class MatplotlibDrawer needs matplotlib. "
-                'To install, run "pip install matplotlib".'
+            raise MissingOptionalLibraryError(
+                libname="Matplotlib",
+                name="MatplotlibDrawer",
+                pip_install="pip install matplotlib",
             )
         from matplotlib import patches
 
@@ -142,9 +144,10 @@ class MatplotlibDrawer:
 
         self.plt_mod = plt
         if not HAS_PYLATEX:
-            raise ImportError(
-                "The class MatplotlibDrawer needs pylatexenc. "
-                'to install, run "pip install pylatexenc".'
+            raise MissingOptionalLibraryError(
+                libname="pylatexenc",
+                name="MatplotlibDrawer",
+                pip_install="pip install pylatexenc",
             )
         self._clbit = []
         self._qubit = []
