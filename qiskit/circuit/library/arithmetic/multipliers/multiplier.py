@@ -26,9 +26,9 @@ class Multiplier(QuantumCircuit):
     .. math::
 
         |a\rangle_n |b\rangle_n |0\rangle_{t} \mapsto |a\rangle_n |b\rangle_n |a \cdot b\rangle_t
-        
-where :math:`t` is the number of bits used to represent the result. To completely store the result
-of the multiplication without overflow we need :math:`t = 2n` bits. 
+
+    where :math:`t` is the number of bits used to represent the result. To completely store the result
+    of the multiplication without overflow we need :math:`t = 2n` bits.
 
     The quantum register :math:`|a\rangle_n` (analogously :math:`|b\rangle_n` and
     output register)
