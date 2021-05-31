@@ -184,16 +184,17 @@ def execute(
             form ``[range_min, range_max]`` in Hz. Used to validate ``meas_lo_freq``. Must have
             length ``n_qubits``.
 
-        schedule_los (Optional[Union[List[Union[Dict[PulseChannel, float], LoConfig]],
-                               Union[Dict[PulseChannel, float], LoConfig]]]):
+        schedule_los (list):
             Experiment level (ie circuit or schedule) LO frequency configurations for qubit drive
             and measurement channels. These values override the job level values from
             ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for qasm
             and pulse jobs.
+
             If a single LO config or dict is used, the values are set at job level. If a list is
             used, the list must be the size of the number of experiments in the job, except in the
             case of a single experiment. In this case, a frequency sweep will be assumed and one
             experiment will be created for every list entry.
+
             Not every channel is required to be specified. If not specified, the backend default
             value will be used.
 
