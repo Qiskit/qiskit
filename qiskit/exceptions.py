@@ -40,7 +40,7 @@ class QiskitUserConfigError(QiskitError):
     message = "User config invalid"
 
 
-class MissingOptionalLibraryError(QiskitError):
+class MissingOptionalLibraryError(QiskitError, ImportError):
     """Raised when an optional library is missing."""
 
     def __init__(
