@@ -598,6 +598,7 @@ def _matplotlib_circuit_drawer(
         ops,
         scale=scale,
         style=style,
+        reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
         layout=layout,
         fold=fold,

@@ -120,6 +120,7 @@ class MatplotlibDrawer:
         ops,
         scale=None,
         style=None,
+        reverse_bits=False,
         plot_barriers=True,
         layout=None,
         fold=25,
@@ -166,6 +167,7 @@ class MatplotlibDrawer:
         self._ops = ops
         self._scale = 1.0 if scale is None else scale
         self._style = self._load_style(style)
+        self._reverse_bits = reverse_bits
         self._plot_barriers = plot_barriers
         self._layout = layout
         self._fold = fold
@@ -1354,7 +1356,10 @@ class MatplotlibDrawer:
                     cmask = list(fmt_c.format(mask))[::-1]
                     # value
                     fmt_v = "{{:0{}b}}".format(cmask.count("1"))
-                    vlist = list(fmt_v.format(val))[::-1]
+                    vlist = list(fmt_v.format(val))
+                    if not self._reverse_bits:
+                        vlist = vlist[::-1]
+
                     # plot conditionals
                     v_ind = 0
                     xy_plot = []
