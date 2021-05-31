@@ -270,7 +270,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(circuit, filename="pauli_clifford.png")
 
     def test_u_gates(self):
-        """Test U 1, 2, & 3 gates"""
+        """Test U, Phase, CU, and CPhase gates"""
         from qiskit.circuit.library import PhaseGate, UGate, CPhaseGate, CUGate
 
         qr = QuantumRegister(4, "q")
