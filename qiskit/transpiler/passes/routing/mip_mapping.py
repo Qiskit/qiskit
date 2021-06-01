@@ -37,8 +37,8 @@ class MIPMapping(TransformationPass):
                  coupling_map: CouplingMap,
                  silent: bool = False,
                  basis_fidelity: float = 0.96,
-                 time_limit_er: float = 300,
-                 time_limit_depth: float = 60,
+                 time_limit_er: float = 30,
+                 time_limit_depth: float = 30,
                  dummy_steps: Optional[int] = None,
                  max_total_dummy: Optional[int] = None,
                  initial_layout=None,
@@ -82,11 +82,27 @@ class MIPMapping(TransformationPass):
             raise TranspilerError('More virtual qubits exist than physical.')
 
         # set parameters depending on initial layout or circuit
+        do_layout = False
         self.initial_layout = self.initial_layout or self.property_set['layout']
-        self.dummy_steps = self.dummy_steps or dag.num_qubits()
-        self.max_total_dummy = self.max_total_dummy or (dag.num_qubits() * (dag.num_qubits() - 1))
+        if (self.initial_layout is None):
+            do_layout = True
+            self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+        
+        self.dummy_steps = self.dummy_steps or min(4, dag.num_qubits())
+        self.max_total_dummy = self.max_total_dummy or (self.dummy_steps * (self.dummy_steps - 1))
 
         mapped_dag = self._copy_circuit_metadata(dag)
+
+        qiskit_qubit_to_logical = dict()
+        physical_to_qiskit_qubit = dict()
+        physical_map = self.initial_layout.get_physical_bits()
+        for logical in physical_map.values():
+            qiskit_qubit_to_logical[logical] = len(qiskit_qubit_to_logical)
+        # layout[i] contains the physical position of logical qubit i 
+        layout = [0 for i in range(len(dag.qubits))]
+        for physical in physical_map.keys():
+            layout[qiskit_qubit_to_logical[physical_map[physical]]] = physical
+            physical_to_qiskit_qubit[physical] = physical_map[physical]
 
         gates = []
         # Fidelities of original gate
@@ -95,7 +111,10 @@ class MIPMapping(TransformationPass):
         gate_mfidelity = []
         gateslookup = {}
         meas = []
-        # Generate data structures for the optimization problem
+        # Map of MIP layers to circuit layers (since any empty layer
+        # is eliminated from the problem, so some shifting may occur)
+        circuit_to_orig_layer = []
+        # Generate data structures for the optimization problem        
         for t, lay in enumerate(dag.layers()):
             laygates = []
             layfidelity = []
@@ -114,7 +133,8 @@ class MIPMapping(TransformationPass):
                     else:
                         fidelity = [0.01, 0.01, 1.0, 0.01]
                         mfidelity = [0.01, 0.01, 0.01, 1.0]
-                    i1, i2 = node.qargs[0].index, node.qargs[1].index
+                    i1 = qiskit_qubit_to_logical[physical_to_qiskit_qubit[node.qargs[0].index]]
+                    i2 = qiskit_qubit_to_logical[physical_to_qiskit_qubit[node.qargs[1].index]]
                     laygates.append((i1, i2))
                     layfidelity.append(fidelity)
                     laymfidelity.append(mfidelity)
@@ -122,13 +142,14 @@ class MIPMapping(TransformationPass):
                 elif node.type == 'op':
                     meas.append(node)
             if laygates:
+                circuit_to_orig_layer.append(t)
                 gates.append(laygates)
                 gate_fidelity.append(layfidelity)
                 gate_mfidelity.append(laymfidelity)
         # If we use a fixed layout, we add an empty layer of gates to
         # allow our MILP compiler to add swaps; otherwise, the MILP
         # may be infeasible
-        if (self.initial_layout is not None):
+        if (not do_layout):
             gates = [[]] + gates
             gate_fidelity = [[]] + gate_fidelity
             gate_mfidelity = [[]] + gate_mfidelity
@@ -145,15 +166,13 @@ class MIPMapping(TransformationPass):
             basis_fidelity=[[self.basis_fidelity
                              for _ in self.coupling_map.neighbors(i)]
                             for i in range(self.coupling_map.size())])
-        problem, ic = qomp.create_cpx_model(circ, topo, self.dummy_steps,
-                                            self.max_total_dummy,
-                                            (self.line_symm and self.initial_layout is None),
-                                            self.cycle_symm)
-        if (self.initial_layout is not None):
-            layout = [0 for i in range(ic.num_lqubits)]
-            for logical in self.initial_layout._v2p.keys():
-                layout[logical.index] = self.initial_layout._v2p[logical]
+        problem, ic = qomp.create_cpx_model(
+            circ, topo, self.dummy_steps,
+            self.max_total_dummy,
+            (self.line_symm and self.initial_layout is None),
+            self.cycle_symm)
 
+        if (not do_layout):
             # Fix initial layout variables
             for i in range(ic.num_lqubits):
                 problem.variables.set_lower_bounds(ic.w_index(i, layout[i], 0), 1)
@@ -183,7 +202,7 @@ class MIPMapping(TransformationPass):
             # If we use a fixed layout, the first layer of gates
             # is empty to allow swaps, therefore we shift all
             # indices by 1
-            if (self.initial_layout is not None):
+            if (not do_layout):
                 lookup = t - self.dummy_steps + 1
             else:
                 lookup = t
@@ -191,7 +210,7 @@ class MIPMapping(TransformationPass):
                 for (p, q) in ic.qc.gates[t]:
                     if problem.solution.get_values(ic.y_index(t, (p, q), (i, j))) > 0.5:
                         mapped_gate = self._transform_gate(
-                            gateslookup[(lookup // (self.dummy_steps + 1), p, q)], i, j)
+                            gateslookup[(circuit_to_orig_layer[lookup // (self.dummy_steps + 1)], p, q)], i, j)
                         mapped_dag.apply_operation_back(mapped_gate.op, mapped_gate.qargs)
 
                 if t < ic.depth - 1:
