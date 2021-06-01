@@ -26,7 +26,6 @@ class RemoveBarriers(TransformationPass):
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
-            from qiskit.transpiler import PassManager
             from qiskit.transpiler.passes import RemoveBarriers
 
             circuit = QuantumCircuit(1)
@@ -34,8 +33,7 @@ class RemoveBarriers(TransformationPass):
             circuit.barrier()
             circuit.h(0)
 
-            pm = PassManager(RemoveBarriers())
-            circuit = pm.run(circuit)
+            circuit = RemoveBarriers()(circuit)
             circuit.draw()
 
     """
