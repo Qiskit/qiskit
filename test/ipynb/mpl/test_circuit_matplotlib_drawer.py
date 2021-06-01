@@ -269,21 +269,6 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename="pauli_clifford.png")
 
-    def test_u_gates(self):
-        """Test U, Phase, CU, and CPhase gates"""
-        from qiskit.circuit.library import PhaseGate, UGate, CPhaseGate, CUGate
-
-        qr = QuantumRegister(4, "q")
-        circuit = QuantumCircuit(qr)
-        circuit.append(PhaseGate(3 * pi / 2), [0])
-        circuit.append(UGate(pi / 2, 3 * pi / 2, 2 * pi / 3), [1])
-        circuit.append(UGate(3 * pi / 2, 4.5, pi / 4), [2])
-        circuit.append(CPhaseGate(pi / 4), [0, 1])
-        circuit.append(UGate(pi / 2, pi / 2, 3 * pi / 2).control(1), [2, 3])
-        circuit.append(CUGate(3 * pi / 2, -3 * pi / 4, -pi / 2, 0), [0, 1])
-
-        self.circuit_drawer(circuit, filename="u_gates.png")
-
     def test_creg_initial(self):
         """Test cregbundle and initial state options"""
         qr = QuantumRegister(2, "q")
@@ -320,7 +305,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         qr = QuantumRegister(4, "q")
         circuit = QuantumCircuit(qr)
         circuit.cy(1, 0, label="Bottom Y label")
-        circuit.cy(2, 3, label="Top Y label")
+        circuit.cu(pi / 2, pi / 2, pi /2, 0, 2, 3, label="Top U label")
         circuit.ch(0, 1, label="Top H label")
         circuit.append(
             HGate(label="H gate label").control(3, label="H control label", ctrl_state="010"),
