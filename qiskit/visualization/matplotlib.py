@@ -32,6 +32,7 @@ except ImportError:
     HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate, Gate, Instruction
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay
 from qiskit import user_config
@@ -119,6 +120,7 @@ class MatplotlibDrawer:
         ops,
         scale=None,
         style=None,
+        reverse_bits=False,
         plot_barriers=True,
         layout=None,
         fold=25,
@@ -131,9 +133,10 @@ class MatplotlibDrawer:
     ):
 
         if not HAS_MATPLOTLIB:
-            raise ImportError(
-                "The class MatplotlibDrawer needs matplotlib. "
-                'To install, run "pip install matplotlib".'
+            raise MissingOptionalLibraryError(
+                libname="Matplotlib",
+                name="MatplotlibDrawer",
+                pip_install="pip install matplotlib",
             )
         from matplotlib import patches
 
@@ -142,9 +145,10 @@ class MatplotlibDrawer:
 
         self.plt_mod = plt
         if not HAS_PYLATEX:
-            raise ImportError(
-                "The class MatplotlibDrawer needs pylatexenc. "
-                'to install, run "pip install pylatexenc".'
+            raise MissingOptionalLibraryError(
+                libname="pylatexenc",
+                name="MatplotlibDrawer",
+                pip_install="pip install pylatexenc",
             )
         self._clbit = []
         self._qubit = []
@@ -163,6 +167,7 @@ class MatplotlibDrawer:
         self._ops = ops
         self._scale = 1.0 if scale is None else scale
         self._style = self._load_style(style)
+        self._reverse_bits = reverse_bits
         self._plot_barriers = plot_barriers
         self._layout = layout
         self._fold = fold
@@ -1351,7 +1356,10 @@ class MatplotlibDrawer:
                     cmask = list(fmt_c.format(mask))[::-1]
                     # value
                     fmt_v = "{{:0{}b}}".format(cmask.count("1"))
-                    vlist = list(fmt_v.format(val))[::-1]
+                    vlist = list(fmt_v.format(val))
+                    if not self._reverse_bits:
+                        vlist = vlist[::-1]
+
                     # plot conditionals
                     v_ind = 0
                     xy_plot = []
