@@ -151,6 +151,14 @@ Adders
    VBERippleCarryAdder
    WeightedAdder
 
+Subtractors
++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+    Subtractor
+
 Comparators
 +++++++++++
 
@@ -188,6 +196,7 @@ Particular Quantum Circuits
    QuantumVolume
    PhaseEstimation
    GroverOperator
+   TwosComplement
    PhaseOracle
    EvolvedOperatorAnsatz
 
@@ -362,6 +371,8 @@ from .arithmetic import (
     CDKMRippleCarryAdder,
     DraperQFTAdder,
     PiecewiseChebyshev,
+    TwosComplement,
+    Subtractor,
 )
 
 from .n_local import (
