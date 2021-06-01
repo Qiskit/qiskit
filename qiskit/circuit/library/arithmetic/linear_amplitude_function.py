@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -29,8 +29,8 @@ class LinearAmplitudeFunction(QuantumCircuit):
         F|x\rangle|0\rangle = \sqrt{1 - \hat{f}(x)} |x\rangle|0\rangle + \sqrt{\hat{f}(x)}
             |x\rangle|1\rangle.
 
-    for a function :math:`\hat{f}: \{0, ..., 2^n - 1} \rightarrow [0, 1]`, where :math:`|x\rangle`
-    is a :math:`n` qubit state.
+    for a function :math:`\hat{f}: \{ 0, ..., 2^n - 1 \} \rightarrow [0, 1]`, where
+    :math:`|x\rangle` is a :math:`n` qubit state.
 
     This circuit implements :math:`F` for piecewise linear functions :math:`\hat{f}`.
     In this case, the mapping :math:`F` can be approximately implemented using a Taylor expansion
@@ -38,12 +38,12 @@ class LinearAmplitudeFunction(QuantumCircuit):
     uses a ``rescaling_factor`` to determine the accuracy of the Taylor expansion.
 
     In general, the function of interest :math:`f` is defined from some interval :math:`[a,b]`,
-    the ``domain`` to :math:`[c,d]`, the ``image``, instead of :math`\{1, ..., N}` to
+    the ``domain`` to :math:`[c,d]`, the ``image``, instead of :math:`\{ 1, ..., N \}` to
     :math:`[0, 1]`. Using an affine transformation we can rescale :math:`f` to :math:`\hat{f}`:
 
     .. math::
 
-        \hat{f(x)} = \frac{f(\phi(x)) - c}{d - c}
+        \hat{f}(x) = \frac{f(\phi(x)) - c}{d - c}
 
     with
 
@@ -53,13 +53,13 @@ class LinearAmplitudeFunction(QuantumCircuit):
 
     If :math:`f` is a piecewise linear function on :math:`m` intervals
     :math:`[p_{i-1}, p_i], i \in \{1, ..., m\}` with slopes :math:`\alpha_i` and
-    offsets `\beta_i` it can be written as
+    offsets :math:`\beta_i` it can be written as
 
     .. math::
 
-        f(x) = \sum_{i=1}^m 1_{[p_{i-1}, p_i}(x) (\alpha_i x + \beta_i)
+        f(x) = \sum_{i=1}^m 1_{[p_{i-1}, p_i]}(x) (\alpha_i x + \beta_i)
 
-    where :math:`1_[a, b]` is an indication function that is 1 if the argument is in the interval
+    where :math:`1_{[a, b]}` is an indication function that is 1 if the argument is in the interval
     :math:`[a, b]` and otherwise 0. The breakpoints :math:`p_i` can be specified by the
     ``breakpoints`` argument.
 
