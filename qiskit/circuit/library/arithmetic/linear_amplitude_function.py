@@ -29,8 +29,8 @@ class LinearAmplitudeFunction(QuantumCircuit):
         F|x\rangle|0\rangle = \sqrt{1 - \hat{f}(x)} |x\rangle|0\rangle + \sqrt{\hat{f}(x)}
             |x\rangle|1\rangle.
 
-    for a function :math:`\hat{f}: \{0, ..., 2^n - 1} \rightarrow [0, 1]`, where :math:`|x\rangle`
-    is a :math:`n` qubit state.
+    for a function :math:`\hat{f}: \{ 0, ..., 2^n - 1 \} \rightarrow [0, 1]`, where
+    :math:`|x\rangle` is a :math:`n` qubit state.
 
     This circuit implements :math:`F` for piecewise linear functions :math:`\hat{f}`.
     In this case, the mapping :math:`F` can be approximately implemented using a Taylor expansion
