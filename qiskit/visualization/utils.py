@@ -22,6 +22,7 @@ from qiskit.quantum_info.operators.symplectic import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.circuit import Measure, ControlledGate, Gate, Instruction, Delay, BooleanExpression
 from qiskit.circuit.tools import pi_check
+from qiskit.exceptions import MissingOptionalLibraryError
 
 try:
     import PIL
@@ -119,7 +120,7 @@ def get_param_str(op, drawer, ndigits=3):
         for count, param in enumerate(op.op.params):
             # Latex drawer will cause an xy-pic error and mpl drawer will overwrite
             # the right edge if param string too long, so limit params.
-            if (drawer == "latex" and count > 3) or (drawer == "mpl" and count > 16):
+            if (drawer == "latex" and count > 3) or (drawer == "mpl" and count > 15):
                 param_list.append("...")
                 break
             try:
@@ -142,11 +143,10 @@ def get_param_str(op, drawer, ndigits=3):
 def generate_latex_label(label):
     """Convert a label to a valid latex string."""
     if not HAS_PYLATEX:
-        raise ImportError(
-            "The latex and latex_source drawers need "
-            'pylatexenc installed. Run "pip install '
-            'pylatexenc" before using the latex or '
-            "latex_source drawers."
+        raise MissingOptionalLibraryError(
+            libname="pylatexenc",
+            name="the latex and latex_source circuit drawers",
+            pip_install="pip install pylatexenc",
         )
 
     regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
@@ -171,10 +171,10 @@ def generate_latex_label(label):
 def _trim(image):
     """Trim a PIL image and remove white space."""
     if not HAS_PIL:
-        raise ImportError(
-            "The latex drawer needs pillow installed. "
-            'Run "pip install pillow" before using the '
-            "latex drawer."
+        raise MissingOptionalLibraryError(
+            libname="pillow",
+            name="the latex circuit drawer",
+            pip_install="pip install pillow",
         )
     background = PIL.Image.new(image.mode, image.size, image.getpixel((0, 0)))
     diff = PIL.ImageChops.difference(image, background)
@@ -223,7 +223,7 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
         for node in dag.topological_op_nodes():
             ops.append([node])
     else:
-        ops = _LayerSpooler(dag, justify, measure_map)
+        ops = _LayerSpooler(dag, justify, measure_map, reverse_bits)
 
     if reverse_bits:
         qubits.reverse()
@@ -253,7 +253,7 @@ def _sorted_nodes(dag_layer):
     return dag_instructions
 
 
-def _get_gate_span(qubits, node):
+def _get_gate_span(qubits, node, reverse_bits):
     """Get the list of qubits drawing this gate would cover
     qiskit-terra #2802
     """
@@ -267,6 +267,12 @@ def _get_gate_span(qubits, node):
         if index > max_index:
             max_index = index
 
+    if node.cargs or node.op.condition:
+        if reverse_bits:
+            return qubits[: max_index + 1]
+        else:
+            return qubits[min_index : len(qubits)]
+
     if node.cargs:
         return qubits[min_index:]
     if node.op.condition:
@@ -275,26 +281,27 @@ def _get_gate_span(qubits, node):
     return qubits[min_index : max_index + 1]
 
 
-def _any_crossover(qubits, node, nodes):
+def _any_crossover(qubits, node, nodes, reverse_bits):
     """Return True .IFF. 'node' crosses over any in 'nodes',"""
-    gate_span = _get_gate_span(qubits, node)
+    gate_span = _get_gate_span(qubits, node, reverse_bits)
     all_indices = []
     for check_node in nodes:
         if check_node != node:
-            all_indices += _get_gate_span(qubits, check_node)
+            all_indices += _get_gate_span(qubits, check_node, reverse_bits)
     return any(i in gate_span for i in all_indices)
 
 
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, justification, measure_map):
+    def __init__(self, dag, justification, measure_map, reverse_bits):
         """Create spool"""
         super().__init__()
         self.dag = dag
         self.qubits = dag.qubits
         self.justification = justification
         self.measure_map = measure_map
+        self.reverse_bits = reverse_bits
 
         if self.justification == "left":
             for dag_layer in dag.layers():
@@ -326,7 +333,7 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qubits, node, nodes)
+        return not _any_crossover(self.qubits, node, nodes, self.reverse_bits)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
