@@ -17,6 +17,7 @@
 import collections
 import itertools
 import re
+from warnings import warn
 
 import numpy as np
 
