@@ -17,6 +17,8 @@ import sys
 from math import sin, cos, acos, sqrt
 import numpy as np
 
+from qiskit.exceptions import MissingOptionalLibraryError
+
 
 def _normalize(v, tolerance=0.00001):
     """Makes sure magnitude of the vector is 1 with given tolerance"""
@@ -144,7 +146,7 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
             after the GUI is closed.
 
     Raises:
-        ImportError: Must have Matplotlib (and/or IPython) installed.
+        MissingOptionalLibraryError: Must have Matplotlib (and/or IPython) installed.
         VisualizationError: Given gate(s) are not supported.
 
     """
@@ -172,9 +174,17 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
         jupyter = True
 
     if not has_matplotlib:
-        raise ImportError("Must have Matplotlib installed.")
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="visualize_transition",
+            pip_install="pip install matplotlib",
+        )
     if not has_ipython and jupyter is True:
-        raise ImportError("Must have IPython installed.")
+        raise MissingOptionalLibraryError(
+            libname="IPython",
+            name="visualize_transition",
+            pip_install="pip install ipython",
+        )
     if len(circuit.qubits) != 1:
         raise VisualizationError("Only one qubit circuits are supported")
 

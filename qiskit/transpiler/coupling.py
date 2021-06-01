@@ -24,6 +24,7 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 import retworkx as rx
 from qiskit.transpiler.exceptions import CouplingError
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
 class CouplingMap:
@@ -334,15 +335,24 @@ class CouplingMap:
             PIL.Image: Drawn coupling map.
 
         Raises:
-            ImportError: when pydot or pillow are not installed.
+            MissingOptionalLibraryError: when pydot or pillow are not installed.
         """
-
         try:
             import pydot
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="pydot",
+                name="coupling map drawer",
+                pip_install="pip install pydot",
+            ) from ex
+
+        try:
             from PIL import Image
         except ImportError as ex:
-            raise ImportError(
-                "CouplingMap.draw requires pydot and pillow. " "Run 'pip install pydot pillow'."
+            raise MissingOptionalLibraryError(
+                libname="pillow",
+                name="coupling map drawer",
+                pip_install="pip install pillow",
             ) from ex
         dot_str = self.graph.to_dot()
         dot = pydot.graph_from_dot_data(dot_str)[0]
