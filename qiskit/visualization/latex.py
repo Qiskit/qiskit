@@ -217,14 +217,14 @@ class QCircuitImage:
                 if self.cregbundle:
                     reg = self.bit_locations[self.ordered_bits[i + offset]]["register"]
                     self._latex[i][0] = (
-                        "\\nghost{" + reg.name + "} & " + "\\lstick{" + reg.name + ":"
+                        "\\nghost{Register: " + reg.name + "} & " + "\\lstick{" + reg.name + ":"
                     )
                     clbitsize = self.cregs[reg]
                     self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
                     offset += clbitsize - 1
                 else:
                     self._latex[i][0] = (
-                        "\\nghost{"
+                        "\\nghost{Register: "
                         + self.bit_locations[self.ordered_bits[i]]["register"].name
                         + "_"
                         + str(self.bit_locations[self.ordered_bits[i]]["index"])
@@ -240,7 +240,8 @@ class QCircuitImage:
                 self._latex[i][0] += "}"
             else:
                 if self.layout is None:
-                    label = "\\nghost{" + self.bit_locations[self.ordered_bits[i]]["register"].name
+                    label = "\\nghost{Register: "
+                    label += self.bit_locations[self.ordered_bits[i]]["register"].name
                     label += "_" + str(self.bit_locations[self.ordered_bits[i]]["index"]) + "} & "
                     label += "\\lstick{{ {{{}}}_{{{}}} : ".format(
                         self.bit_locations[self.ordered_bits[i]]["register"].name,
@@ -254,17 +255,18 @@ class QCircuitImage:
                             virt_reg = next(
                                 reg for reg in self.layout.get_registers() if virt_bit in reg
                             )
-                            label = "\\nghost{" + virt_reg.name + "} & "
+                            label = "\\nghost{Register: " + virt_reg.name + "} & "
                             label += "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
                                 virt_reg.name, virt_reg[:].index(virt_bit), bit_location["index"]
                             )
                         except StopIteration:
-                            label = "\\nghost{" + bit_location["index"] + "} & "
+                            label = "\\nghost{Register: " + bit_location["index"] + "} & "
                             label += "\\lstick{{ {{{}}} : ".format(bit_location["index"])
                     else:
-                        label = "\\nghost{" + bit_location["index"] + "} & "
+                        label = "\\nghost{Register: " + bit_location["index"] + "} & "
                         label += "\\lstick{{ {{{}}} : ".format(bit_location["index"])
                 if self.initial_state:
+                    #label += "\\ket{{0}}"
                     label += "\\ket{{0}}"
                 label += " }"
                 self._latex[i][0] = label
