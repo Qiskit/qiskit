@@ -63,6 +63,14 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         summed_op = SummedOp([X, Y])
         self.assertEqual(pauli_sum, summed_op)
 
+        a = Parameter("a")
+        b = Parameter("b")
+        actual = a * PauliSumOp.from_list([("X", 2)]) + b * PauliSumOp.from_list([("Y", 1)])
+        expected = SummedOp(
+            [PauliSumOp.from_list([("X", 2)], a), PauliSumOp.from_list([("Y", 1)], b)]
+        )
+        self.assertEqual(actual, expected)
+
     def test_mul(self):
         """multiplication test"""
         target = 2 * (X + Z)
