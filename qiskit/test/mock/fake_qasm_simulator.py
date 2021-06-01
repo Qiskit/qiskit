@@ -37,6 +37,8 @@ class FakeQasmSimulator(FakeBackend):
             gates=[GateConfig(name="TODO", parameters=[], qasm_def="TODO")],
             dt=1.3333,
             dtm=10.5,
+            qubit_lo_range=[[4.95, 5.05], [4.95, 5.05], [4.95, 5.05], [4.95, 5.05], [4.95, 5.05]],
+            meas_lo_range=[[6.65, 6.75], [6.65, 6.75], [6.65, 6.75], [6.65, 6.75], [6.65, 6.75]],
         )
 
         super().__init__(configuration)
