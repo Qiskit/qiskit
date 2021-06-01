@@ -305,7 +305,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         qr = QuantumRegister(4, "q")
         circuit = QuantumCircuit(qr)
         circuit.cy(1, 0, label="Bottom Y label")
-        circuit.cu(pi / 2, pi / 2, pi /2, 0, 2, 3, label="Top U label")
+        circuit.cu(pi / 2, pi / 2, pi / 2, 0, 2, 3, label="Top U label")
         circuit.ch(0, 1, label="Top H label")
         circuit.append(
             HGate(label="H gate label").control(3, label="H control label", ctrl_state="010"),
