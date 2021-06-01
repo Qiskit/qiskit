@@ -244,6 +244,7 @@ class QasmBackendConfiguration:
         dt=None,
         dtm=None,
         processor_type=None,
+        parametric_pulses=None,
         **kwargs,
     ):
         """Initialize a QasmBackendConfiguration Object
@@ -297,6 +298,9 @@ class QasmBackendConfiguration:
                 - family: Processor family of this backend.
                 - revision: Revision version of this processor.
                 - segment: Segment this processor belongs to within a larger chip.
+            parametric_pulses: A list of pulse shapes which are supported internally on the backend.
+                Example::
+                ['gaussian', 'constant']
 
             **kwargs: optional fields
         """
@@ -354,6 +358,8 @@ class QasmBackendConfiguration:
             self.dtm = dtm * 1e-9
         if processor_type is not None:
             self.processor_type = processor_type
+        if parametric_pulses is not None:
+            self.parametric_pulses = parametric_pulses
 
         if "qubit_lo_range" in kwargs.keys():
             kwargs["qubit_lo_range"] = [
@@ -439,6 +445,7 @@ class QasmBackendConfiguration:
             "dt",
             "dtm",
             "processor_type",
+            "parametric_pulses",
         ]:
             if hasattr(self, kwarg):
                 out_dict[kwarg] = getattr(self, kwarg)
