@@ -10,21 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test RemoveDiagonalGatesBeforeMeasure pass"""
+"""Test RemoveSmallRotations pass"""
 
 import unittest
 
 from qiskit import QuantumCircuit
 from qiskit.transpiler.passes import RemoveSmallRotations
-from qiskit.transpiler import PassManager
 from qiskit.test import QiskitTestCase
 
 
-class TesROptimizeSmallRotations(QiskitTestCase):
+class TestOptimizeSmallRotations(QiskitTestCase):
     """Test optimize_small_rotations"""
 
     def test_remove_small_rotation_gates(self):
-        """Remove a 1-qubit small rotations"""
+        """Remove all 1-qubit and 2-qubit small rotations"""
 
         c = QuantumCircuit(2)
         c.rz(1e-16, 0)
@@ -32,12 +31,10 @@ class TesROptimizeSmallRotations(QiskitTestCase):
         c.rx(0, 1)
         c.rx(3.141592, 1)
 
-        pm = PassManager(RemoveSmallRotations())
-        c = pm.run(c)
+        c = RemoveSmallRotations()(c)
         self.assertEqual(len(c), 2)
 
-        pm = PassManager(RemoveSmallRotations(epsilon=2e-16))
-        c = pm.run(c)
+        c = RemoveSmallRotations(epsilon=2e-16)(c)
         self.assertEqual(len(c), 1)
 
 
