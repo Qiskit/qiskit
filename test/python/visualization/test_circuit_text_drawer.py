@@ -1614,6 +1614,80 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit, vertical_compression="low")), expected)
 
+    def test_text_conditional_reverse_bits_true(self):
+        """Conditional drawing with 1-bit-length regs."""
+        cr = ClassicalRegister(2, "cr")
+        cr2 = ClassicalRegister(1, "cr2")
+        qr = QuantumRegister(3, "qr")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.h(2)
+        circuit.x(0)
+        circuit.x(0)
+        circuit.measure(2, 1)
+        circuit.x(2).c_if(cr, 2)
+        circuit.draw("text", cregbundle=False, reverse_bits=True)
+
+        expected = "\n".join(
+            [
+                "         ┌───┐     ┌─┐      ┌───┐ ",
+                "qr_2: |0>┤ H ├─────┤M├──────┤ X ├─",
+                "         ├───┤     └╥┘      └─╥─┘ ",
+                "qr_1: |0>┤ H ├──────╫─────────╫───",
+                "         ├───┤┌───┐ ║ ┌───┐   ║   ",
+                "qr_0: |0>┤ H ├┤ X ├─╫─┤ X ├───╫───",
+                "         └───┘└───┘ ║ └───┘   ║   ",
+                "cr2_0: 0 ═══════════╬═════════╬═══",
+                "                    ║      ┌──╨──┐",
+                " cr_1: 0 ═══════════╩══════╡     ╞",
+                "                           │ = 2 │",
+                " cr_0: 0 ══════════════════╡     ╞",
+                "                           └─────┘",
+            ]
+        )
+
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=True)), expected
+        )
+
+    def test_text_conditional_reverse_bits_false(self):
+        """Conditional drawing with 1-bit-length regs."""
+        cr = ClassicalRegister(2, "cr")
+        cr2 = ClassicalRegister(1, "cr2")
+        qr = QuantumRegister(3, "qr")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.h(2)
+        circuit.x(0)
+        circuit.x(0)
+        circuit.measure(2, 1)
+        circuit.x(2).c_if(cr, 2)
+        circuit.draw("text", cregbundle=False, reverse_bits=False)
+
+        expected = "\n".join(
+            [
+                "         ┌───┐┌───┐ ┌───┐ ",
+                "qr_0: |0>┤ H ├┤ X ├─┤ X ├─",
+                "         ├───┤└───┘ └───┘ ",
+                "qr_1: |0>┤ H ├────────────",
+                "         ├───┤ ┌─┐  ┌───┐ ",
+                "qr_2: |0>┤ H ├─┤M├──┤ X ├─",
+                "         └───┘ └╥┘ ┌┴─╨─┴┐",
+                " cr_0: 0 ═══════╬══╡     ╞",
+                "                ║  │ = 2 │",
+                " cr_1: 0 ═══════╩══╡     ╞",
+                "                   └─────┘",
+                "cr2_0: 0 ═════════════════",
+                "                          ",
+            ]
+        )
+
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=False)), expected
+        )
+
     def test_text_justify_right(self):
         """Drawing with right justify"""
         expected = "\n".join(

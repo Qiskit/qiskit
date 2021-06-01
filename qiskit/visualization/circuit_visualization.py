@@ -39,7 +39,8 @@ except ImportError:
     HAS_PIL = False
 
 from qiskit import user_config
-from qiskit.visualization import exceptions
+from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization import latex as _latex
 from qiskit.visualization import text as _text
 from qiskit.visualization import utils
@@ -163,7 +164,7 @@ def circuit_drawer(
 
     Raises:
         VisualizationError: when an invalid output method is selected
-        ImportError: when the output methods requires non-installed libraries.
+        MissingOptionalLibraryError: when the output methods requires non-installed libraries.
 
     Example:
         .. jupyter-execute::
@@ -248,7 +249,7 @@ def circuit_drawer(
             cregbundle=cregbundle,
         )
     else:
-        raise exceptions.VisualizationError(
+        raise VisualizationError(
             "Invalid output type %s selected. The only valid choices "
             "are text, latex, latex_source, and mpl" % output
         )
@@ -381,7 +382,7 @@ def _latex_circuit_drawer(
         OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
                  missing.
         CalledProcessError: usually points to errors during diagram creation.
-        ImportError: if pillow is not installed
+        MissingOptionalLibraryError: if pillow is not installed
     """
     tmpfilename = "circuit"
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -430,10 +431,10 @@ def _latex_circuit_drawer(
             raise
         else:
             if not HAS_PIL:
-                raise ImportError(
-                    "The latex drawer needs pillow installed. "
-                    'Run "pip install pillow" before using the '
-                    "latex drawer."
+                raise MissingOptionalLibraryError(
+                    libname="pillow",
+                    name="latex drawer",
+                    pip_install="pip install pillow",
                 )
             try:
                 base = os.path.join(tmpdirname, tmpfilename)
@@ -444,7 +445,10 @@ def _latex_circuit_drawer(
                 image = utils._trim(image)
                 os.remove(base + ".png")
                 if filename:
-                    image.save(filename, "PNG")
+                    if filename.endswith(".pdf"):
+                        os.rename(base + ".pdf", filename)
+                    else:
+                        image.save(filename, "PNG")
             except (OSError, subprocess.CalledProcessError) as ex:
                 logger.warning(
                     "WARNING: Unable to convert pdf to image. "
@@ -593,6 +597,7 @@ def _matplotlib_circuit_drawer(
         ops,
         scale=scale,
         style=style,
+        reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
         layout=layout,
         fold=fold,
