@@ -43,14 +43,6 @@ class RemoveBarriers(TransformationPass):
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the RemoveBarriers pass on `dag`."""
 
-        # add the merged barriers to a new DAG
-        new_dag = dag._copy_circuit_metadata()
+        dag.remove_all_ops_named("barrier")
 
-        # go over current nodes, and add them to the new dag
-        for node in dag.topological_op_nodes():
-            if node.name == "barrier":
-                pass
-            else:
-                # copy the condition over too
-                new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
-        return new_dag
+        return dag

@@ -29,12 +29,10 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         circuit.barrier()
         circuit.barrier()
 
-        expected = QuantumCircuit(2)
-
         pass_ = RemoveBarriers()
-        result = pass_.run(circuit_to_dag(circuit))
+        result_dag = pass_.run(circuit_to_dag(circuit))
 
-        self.assertEqual(result, circuit_to_dag(expected))
+        self.assertEqual(result_dag.size(), 0)
 
     def test_remove_barriers_other_gates(self):
         """Remove all barriers, leave other gates intact"""
@@ -45,14 +43,14 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         circuit.barrier()
         circuit.h(0)
 
-        expected = QuantumCircuit(1)
-        expected.x(0)
-        expected.h(0)
-
         pass_ = RemoveBarriers()
-        result = pass_.run(circuit_to_dag(circuit))
+        result_dag = pass_.run(circuit_to_dag(circuit))
 
-        self.assertEqual(result, circuit_to_dag(expected))
+        op_nodes = result_dag.op_nodes()
+
+        self.assertEqual(result_dag.size(), 2)
+        for ii, name in enumerate(["x", "h"]):
+            self.assertEqual(op_nodes[ii].name, name)
 
 
 if __name__ == "__main__":

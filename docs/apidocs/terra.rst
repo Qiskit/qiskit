@@ -33,5 +33,6 @@ Qiskit Terra API Reference
    transpiler_preset
    utils
    validation
+   visualization
    opflow
    algorithms
