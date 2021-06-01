@@ -1,0 +1,3 @@
+upgrade:
+  - |
+    `retworkx <https://pypi.org/project/retworkx/>`_ dependency was upgraded to version `0.9`
