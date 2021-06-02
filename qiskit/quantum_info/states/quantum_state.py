@@ -148,8 +148,7 @@ class QuantumState:
         Raises:
             NotImplementedError: if subclass does not support addition.
         """
-        raise NotImplementedError(
-            "{} does not support addition".format(type(self)))
+        raise NotImplementedError("{} does not support addition".format(type(self)))
 
     def _multiply(self, other):
         """Return the scalar multipled state other * self.
@@ -165,7 +164,8 @@ class QuantumState:
                                  multiplication.
         """
         raise NotImplementedError(
-            "{} does not support scalar multiplication".format(type(self)))
+            "{} does not support scalar multiplication".format(type(self))
+        )
 
     @abstractmethod
     def evolve(self, other, qargs=None):
@@ -236,14 +236,15 @@ class QuantumState:
         Returns:
             dict: The measurement probabilities in dict (ket) form.
         """
-        
+
         if decimals is None:
             decimals = 15
-   
+
         return self._vector_to_dict(
             self.probabilities(qargs=qargs, decimals=decimals),
             self.dims(qargs),
-            string_labels=True)
+            string_labels=True,
+        )
 
     def sample_memory(self, shots, qargs=None):
         """Sample a list of qubit measurement outcomes in the computational basis.
@@ -272,7 +273,8 @@ class QuantumState:
 
         # Generate list of possible outcome string labels
         labels = self._index_to_ket_array(
-            np.arange(len(probs)), self.dims(qargs), string_labels=True)
+            np.arange(len(probs)), self.dims(qargs), string_labels=True
+        )
         return self._rng.choice(labels, p=probs, size=shots)
 
     def sample_counts(self, shots, qargs=None):
@@ -329,7 +331,8 @@ class QuantumState:
 
         # Format outcome
         outcome = self._index_to_ket_array(
-            sample, self.dims(qargs), string_labels=True)[0]
+            sample, self.dims(qargs), string_labels=True
+        )[0]
 
         # Convert to projector for state update
         proj = np.zeros(len(probs), dtype=complex)
@@ -339,8 +342,8 @@ class QuantumState:
         # TODO: implement a more efficient state update method for
         # diagonal matrix multiplication
         ret = self.evolve(
-            Operator(np.diag(proj), input_dims=dims, output_dims=dims),
-            qargs=qargs)
+            Operator(np.diag(proj), input_dims=dims, output_dims=dims), qargs=qargs
+        )
 
         return outcome, ret
 
@@ -369,7 +372,7 @@ class QuantumState:
             str_kets = char_kets[0]
             for row in char_kets[1:]:
                 if max_dim > 10:
-                    str_kets = np.char.add(',', str_kets)
+                    str_kets = np.char.add(",", str_kets)
                 str_kets = np.char.add(row, str_kets)
             return str_kets.T
 
@@ -395,11 +398,10 @@ class QuantumState:
         """
         # Get indices of non-zero elements
         vals = vec if decimals is None else vec.round(decimals=decimals)
-        inds, = vals.nonzero()
+        (inds,) = vals.nonzero()
 
         # Convert to ket tuple based on subsystem dimensions
-        kets = QuantumState._index_to_ket_array(
-            inds, dims, string_labels=string_labels)
+        kets = QuantumState._index_to_ket_array(inds, dims, string_labels=string_labels)
 
         # Make dict of tuples
         if string_labels:
@@ -427,21 +429,30 @@ class QuantumState:
         """
         # Get indices of non-zero elements
         vals = mat if decimals is None else mat.round(decimals=decimals)
-        inds_row, inds_col, = vals.nonzero()
+        (
+            inds_row,
+            inds_col,
+        ) = vals.nonzero()
 
         # Convert to ket tuple based on subsystem dimensions
         bras = QuantumState._index_to_ket_array(
-            inds_row, dims, string_labels=string_labels)
+            inds_row, dims, string_labels=string_labels
+        )
         kets = QuantumState._index_to_ket_array(
-            inds_col, dims, string_labels=string_labels)
+            inds_col, dims, string_labels=string_labels
+        )
 
         # Make dict of tuples
         if string_labels:
-            return {'{}|{}'.format(ket, bra): val for ket, bra, val in zip(
-                kets, bras, vals[inds_row, inds_col])}
+            return {
+                "{}|{}".format(ket, bra): val
+                for ket, bra, val in zip(kets, bras, vals[inds_row, inds_col])
+            }
 
-        return {(tuple(ket), tuple(bra)): val for ket, bra, val in zip(
-            kets, bras, vals[inds_row, inds_col])}
+        return {
+            (tuple(ket), tuple(bra)): val
+            for ket, bra, val in zip(kets, bras, vals[inds_row, inds_col])
+        }
 
     @staticmethod
     def _accumulate_dims(dims, qargs):
@@ -500,8 +511,7 @@ class QuantumState:
             return probs
 
         # Accumulate dimensions to trace over
-        accum_dims, accum_qargs = QuantumState._accumulate_dims(
-            dims, qargs)
+        accum_dims, accum_qargs = QuantumState._accumulate_dims(dims, qargs)
 
         # Get sum axis for maginalized subsystems
         n_qargs = len(accum_dims)
@@ -510,8 +520,9 @@ class QuantumState:
             axis.remove(n_qargs - 1 - i)
 
         # Reshape the probability to a tensor and sum over maginalized axes
-        new_probs = np.sum(np.reshape(probs, list(reversed(accum_dims))),
-                           axis=tuple(axis))
+        new_probs = np.sum(
+            np.reshape(probs, list(reversed(accum_dims))), axis=tuple(axis)
+        )
 
         # Transpose output probs based on order of qargs
         if sorted(accum_qargs) != accum_qargs:
@@ -525,10 +536,11 @@ class QuantumState:
         return self.evolve(other)
 
     @deprecate_function(
-        'Using `psi @ U` as shorthand for `psi.evolve(U)` is deprecated'
-        ' as of version 0.17.0 and will be removed no earlier than 3 months'
-        ' after the release date. It has been superceded by the `&` operator'
-        ' (`psi & U == psi.evolve(U)`) instead.')
+        "Using `psi @ U` as shorthand for `psi.evolve(U)` is deprecated"
+        " as of version 0.17.0 and will be removed no earlier than 3 months"
+        " after the release date. It has been superceded by the `&` operator"
+        " (`psi & U == psi.evolve(U)`) instead."
+    )
     def __matmul__(self, other):
         # Check for subsystem case return by __call__ method
         if isinstance(other, tuple) and len(other) == 2:
