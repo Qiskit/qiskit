@@ -147,6 +147,38 @@ class TestExperimentData(QiskitTestCase):
         exp_data.block_for_results()
         self.assertTrue(called_back)
 
+    def test_add_data_callback(self):
+        """Test add data with callback."""
+
+        def _callback(_exp_data):
+            self.assertIsInstance(_exp_data, ExperimentData)
+            nonlocal called_back_count, expected_data, subtests
+            expected_data.extend(subtests[called_back_count][1])
+            self.assertEqual([dat["counts"] for dat in _exp_data.data()], expected_data)
+            called_back_count += 1
+
+        a_result = self._get_job_result(1)
+        results = [self._get_job_result(1), self._get_job_result(1)]
+        a_dict = {"counts": {"01": 518}}
+        dicts = [{"counts": {"00": 284}}, {"counts": {"00": 14}}]
+
+        subtests = [
+            (a_result, [a_result.get_counts()]),
+            (results, [res.get_counts() for res in results]),
+            (a_dict, [a_dict["counts"]]),
+            (dicts, [dat["counts"] for dat in dicts]),
+        ]
+
+        called_back_count = 0
+        expected_data = []
+        exp_data = ExperimentData(backend=self.backend, experiment_type="qiskit_test")
+
+        for data, _ in subtests:
+            with self.subTest(data=data):
+                exp_data.add_data(data, post_processing_callback=_callback)
+
+        self.assertEqual(len(subtests), called_back_count)
+
     def test_add_data_job_callback_kwargs(self):
         """Test add job data with callback and additional arguments."""
 
@@ -206,6 +238,7 @@ class TestExperimentData(QiskitTestCase):
     def test_add_figure_plot(self):
         """Test adding a matplotlib figure."""
         import matplotlib.pyplot as plt
+
         figure, ax = plt.subplots()
         ax.plot([1, 2, 3])
 

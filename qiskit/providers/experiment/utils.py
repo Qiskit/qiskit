@@ -83,7 +83,7 @@ def plot_to_svg_bytes(figure: "pyplot.Figure") -> bytes:
         Figure in bytes.
     """
     buf = io.BytesIO()
-    figure.savefig(buf, format='svg')
+    figure.savefig(buf, format="svg")
     buf.seek(0)
     figure_data = buf.read()
     buf.close()

@@ -23,7 +23,6 @@ import traceback
 import contextlib
 from collections import deque
 from datetime import datetime
-import io
 
 from qiskit.providers import Job, BaseJob, Backend, BaseBackend, Provider
 from qiskit.result import Result
@@ -34,8 +33,13 @@ from qiskit.visualization import HAS_MATPLOTLIB
 from .exceptions import ExperimentError, ExperimentEntryNotFound, ExperimentEntryExists
 from .analysis_result import AnalysisResultV1 as AnalysisResult
 from .json import NumpyEncoder, NumpyDecoder
-from .utils import (save_data, qiskit_version, plot_to_svg_bytes,
-                    ThreadSafeOrderedDict, ThreadSafeList)
+from .utils import (
+    save_data,
+    qiskit_version,
+    plot_to_svg_bytes,
+    ThreadSafeOrderedDict,
+    ThreadSafeList,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -166,12 +170,16 @@ class ExperimentDataV1(ExperimentData):
         data: Union[Result, List[Result], Job, List[Job], Dict, List[Dict]],
         post_processing_callback: Optional[Callable] = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         """Add experiment data.
 
         Note:
             This method is not thread safe and should not be called by the
-            `post_processing` function.
+            `post_processing_callback` function.
+
+        Note:
+            If `data` is a ``Job``, this method waits for the job to finish
+            and calls the `post_processing_callback` function asynchronously.
 
         Args:
             data: Experiment data to add.
@@ -183,18 +191,16 @@ class ExperimentDataV1(ExperimentData):
                     * List[Job]: Add data from the job results.
                     * Dict: Add this data.
                     * List[Dict]: Add this list of data.
-            post_processing_callback: Callback function invoked when all pending
-                jobs finish. This ``ExperimentData`` object is the only argument
+            post_processing_callback: Callback function invoked when data is
+                added. If `data` is a ``Job``, the callback is only invoked when
+                the job finishes successfully.
+                This ``ExperimentData`` object is the only argument
                 to be passed to the callback function.
             **kwargs: Keyword arguments to be passed to the callback function.
         Raises:
             TypeError: If the input data type is invalid.
         """
-        if isinstance(data, dict):
-            self._add_single_data(data)
-        elif isinstance(data, Result):
-            self._add_result_data(data)
-        elif isinstance(data, (Job, BaseJob)):
+        if isinstance(data, (Job, BaseJob)):
             if self.backend and self.backend != data.backend():
                 LOG.warning(
                     "Adding a job from a backend (%s) that is different "
@@ -219,12 +225,21 @@ class ExperimentDataV1(ExperimentData):
             )
             if self.auto_save:
                 self.save()
+            return
+
+        if isinstance(data, dict):
+            self._add_single_data(data)
+        elif isinstance(data, Result):
+            self._add_result_data(data)
         elif isinstance(data, list):
             # TODO use loop instead of recursion for fewer save()
             for dat in data:
                 self.add_data(dat)
         else:
             raise TypeError(f"Invalid data type {type(data)}.")
+
+        if post_processing_callback is not None:
+            post_processing_callback(self, **kwargs)
 
     def _wait_for_job(
         self,
@@ -364,7 +379,10 @@ class ExperimentDataV1(ExperimentData):
                 if isinstance(figure, str):
                     fig_name = figure
                 else:
-                    fig_name = f"figure_{self.experiment_id}_{datetime.now().isoformat()}"
+                    fig_name = (
+                        f"figure_{self.experiment_id[:8]}_"
+                        f"{datetime.now().isoformat()}_{len(self._figures)}"
+                    )
             else:
                 fig_name = figure_names[idx]
 
@@ -387,6 +405,7 @@ class ExperimentDataV1(ExperimentData):
             if save and service:
                 if HAS_MATPLOTLIB:
                     from matplotlib import pyplot
+
                     if isinstance(figure, pyplot.Figure):
                         figure = plot_to_svg_bytes(figure)
                 data = {
@@ -661,6 +680,7 @@ class ExperimentDataV1(ExperimentData):
             for name, figure in self._figures.items():
                 if HAS_MATPLOTLIB:
                     from matplotlib import pyplot
+
                     if isinstance(figure, pyplot.Figure):
                         figure = plot_to_svg_bytes(figure)
                 data = {"experiment_id": self.experiment_id, "figure": figure, "figure_name": name}
