@@ -323,7 +323,7 @@ class FullPassManager(PassManager):
 
     1. Init - any initial passes that are run before we start embedding the circuit to the backend
     2. Layout - This stage runs layout and maps the virtual qubits in the
-    circuit to the physical qubits on a backend
+        circuit to the physical qubits on a backend
     3. Routing - This stage runs after a layout has been run and will insert any
         necessary gates to move the qubit states around until it can be run on
         backend's compuling map.
@@ -334,6 +334,10 @@ class FullPassManager(PassManager):
         the circuit until a condtion (such as fixed depth) is reached.
     7. Post-Optimization - Any passes to run after the main optimization loop
 
+    These stages will be executed in order and any stage set to ``None`` will be skipped. If
+    a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
+    (for example in the case of a Pass that covers both Layout and Routing) you will want to set
+    that to the earliest stage in sequence that it covers.
     """
 
     phases = [
