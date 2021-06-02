@@ -299,6 +299,8 @@ class QasmQobjConfig(SimpleNamespace):
         pulse_library=None,
         calibrations=None,
         rep_delay=None,
+        qubit_lo_freq=None,
+        meas_lo_freq=None,
         **kwargs,
     ):
         """Model for RunConfig.
@@ -319,6 +321,9 @@ class QasmQobjConfig(SimpleNamespace):
                 backends (``backend.configuration().dynamic_reprate_enabled`` ). Must be from the
                 range supplied by the backend (``backend.configuration().rep_delay_range``). Default
                 is ``backend.configuration().default_rep_delay``.
+            qubit_lo_freq (list): List of frequencies (as floats) for the qubit driver LO's in GHz.
+            meas_lo_freq (list): List of frequencies (as floats) for the measurement driver LO's in
+                GHz.
             kwargs: Additional free form key value fields to add to the
                 configuration.
         """
@@ -357,6 +362,12 @@ class QasmQobjConfig(SimpleNamespace):
 
         if rep_delay is not None:
             self.rep_delay = rep_delay
+
+        if qubit_lo_freq is not None:
+            self.qubit_lo_freq = qubit_lo_freq
+
+        if meas_lo_freq is not None:
+            self.meas_lo_freq = meas_lo_freq
 
         if kwargs:
             self.__dict__.update(kwargs)
@@ -413,15 +424,21 @@ class QasmQobjExperimentHeader(QobjDictField):
 class QasmQobjExperimentConfig(QobjDictField):
     """Configuration for a single QASM experiment in the qobj."""
 
-    def __init__(self, calibrations=None, **kwargs):
+    def __init__(self, calibrations=None, qubit_lo_freq=None, meas_lo_freq=None, **kwargs):
         """
         Args:
             calibrations (QasmExperimentCalibrations): Information required for Pulse gates.
-            kwargs: Additional free form key value fields to add to the
-                configuration.
+            qubit_lo_freq (List[float]): List of qubit LO frequencies in GHz.
+            meas_lo_freq (List[float]): List of meas readout LO frequencies in GHz.
+            kwargs: Additional free form key value fields to add to the configuration
         """
         if calibrations:
             self.calibrations = calibrations
+        if qubit_lo_freq is not None:
+            self.qubit_lo_freq = qubit_lo_freq
+        if meas_lo_freq is not None:
+            self.meas_lo_freq = meas_lo_freq
+
         super().__init__(**kwargs)
 
     def to_dict(self):

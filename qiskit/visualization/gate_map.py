@@ -14,7 +14,7 @@
 
 import math
 import numpy as np
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
@@ -54,7 +54,7 @@ def plot_gate_map(
 
     Raises:
         QiskitError: if tried to pass a simulator.
-        ImportError: if matplotlib not installed.
+        MissingOptionalLibraryError: if matplotlib not installed.
 
     Example:
         .. jupyter-execute::
@@ -76,8 +76,10 @@ def plot_gate_map(
            plot_gate_map(backend)
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, " 'run "pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_gate_map",
+            pip_install="pip install matplotlib",
         )
     from matplotlib import get_backend
     import matplotlib.pyplot as plt
@@ -591,7 +593,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     Raises:
         VisualizationError: Input is not IBMQ backend.
-        ImportError: If seaborn is not installed
+        MissingOptionalLibraryError: If seaborn is not installed
 
     Example:
         .. jupyter-execute::
@@ -615,13 +617,16 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     try:
         import seaborn as sns
     except ImportError as ex:
-        raise ImportError(
-            "Must have seaborn installed to use plot_error_map. "
-            'To install, run "pip install seaborn".'
+        raise MissingOptionalLibraryError(
+            libname="seaborn",
+            name="plot_error_map",
+            pip_install="pip install seaborn",
         ) from ex
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, " 'run "pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_error_map",
+            pip_install="pip install matplotlib",
         )
     import matplotlib
     from matplotlib import get_backend
