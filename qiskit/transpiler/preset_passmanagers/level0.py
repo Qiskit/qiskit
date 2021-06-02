@@ -19,34 +19,17 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import FullPassManager
 
-from qiskit.transpiler.passes import Unroller
-from qiskit.transpiler.passes import BasisTranslator
-from qiskit.transpiler.passes import UnrollCustomDefinitions
-from qiskit.transpiler.passes import Unroll3qOrMore
-from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import SabreLayout
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import SabreSwap
-from qiskit.transpiler.passes import FullAncillaAllocation
-from qiskit.transpiler.passes import EnlargeWithAncilla
-from qiskit.transpiler.passes import ApplyLayout
-from qiskit.transpiler.passes import CheckGateDirection
-from qiskit.transpiler.passes import Collect2qBlocks
-from qiskit.transpiler.passes import ConsolidateBlocks
-from qiskit.transpiler.passes import UnitarySynthesis
-from qiskit.transpiler.passes import TimeUnitConversion
-from qiskit.transpiler.passes import ALAPSchedule
-from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import Error
-
+from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler import TranspilerError
 
 
@@ -85,7 +68,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> FullPassMana
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
 
-    # 1. Choose an initial layout if not set by user (default: trivial layout)
+    # Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
@@ -102,95 +85,43 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> FullPassMana
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
-    # 2. Extend dag/layout with ancillas using the full coupling map
-    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
-
-    # 3. Decompose so only 1-qubit and 2-qubit gates remain
-    _unroll3q = Unroll3qOrMore()
-
-    # 4. Swap to fit the coupling map
-    _swap_check = CheckMap(coupling_map)
-
-    def _swap_condition(property_set):
-        return not property_set["is_swap_mapped"]
-
-    _swap = [BarrierBeforeFinalMeasurements()]
+    # Choose routing pass
     if routing_method == "basic":
-        _swap += [BasicSwap(coupling_map)]
+        routing_pass = BasicSwap(coupling_map)
     elif routing_method == "stochastic":
-        _swap += [StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
+        routing_pass = StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)
     elif routing_method == "lookahead":
-        _swap += [LookaheadSwap(coupling_map, search_depth=2, search_width=2)]
+        routing_pass = LookaheadSwap(coupling_map, search_depth=2, search_width=2)
     elif routing_method == "sabre":
-        _swap += [SabreSwap(coupling_map, heuristic="basic", seed=seed_transpiler)]
+        routing_pass = SabreSwap(coupling_map, heuristic="basic", seed=seed_transpiler)
     elif routing_method == "none":
-        _swap += [
-            Error(
-                msg="No routing method selected, but circuit is not routed to device. "
-                "CheckMap Error: {check_map_msg}",
-                action="raise",
-            )
-        ]
+        routing_pass = Error(
+            msg="No routing method selected, but circuit is not routed to device. "
+            "CheckMap Error: {check_map_msg}",
+            action="raise",
+        )
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
-
-    # 5. Unroll to the basis
-    if translation_method == "unroller":
-        _unroll = [Unroller(basis_gates)]
-    elif translation_method == "translator":
-        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
-
-        _unroll = [UnrollCustomDefinitions(sel, basis_gates), BasisTranslator(sel, basis_gates)]
-    elif translation_method == "synthesis":
-        _unroll = [
-            Unroll3qOrMore(),
-            Collect2qBlocks(),
-            ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
-        ]
-    else:
-        raise TranspilerError("Invalid translation method %s." % translation_method)
-
-    # 6. Fix any bad CX directions
-    _direction_check = [CheckGateDirection(coupling_map)]
-
-    def _direction_condition(property_set):
-        return not property_set["is_direction_mapped"]
-
-    _direction = [GateDirection(coupling_map)]
-
-    # 7. Unify all durations (either SI, or convert to dt if known)
-    # Schedule the circuit only when scheduling_method is supplied
-    _scheduling = [TimeUnitConversion(instruction_durations)]
-    if scheduling_method:
-        if scheduling_method in {"alap", "as_late_as_possible"}:
-            _scheduling += [ALAPSchedule(instruction_durations)]
-        elif scheduling_method in {"asap", "as_soon_as_possible"}:
-            _scheduling += [ASAPSchedule(instruction_durations)]
-        else:
-            raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
     # Build pass manager
     if coupling_map or initial_layout:
         layout = PassManager()
         layout.append(_given_layout)
         layout.append(_choose_layout, condition=_choose_layout_condition)
-        layout.append(_embed)
-        routing = PassManager()
-        routing.append(_unroll3q)
-        routing.append(_swap_check)
-        routing.append(_swap, condition=_swap_condition)
+        layout += common.generate_embed_passmanager(coupling_map)
+        routing = common.generate_routing_passmanager(routing_pass, coupling_map)
     else:
         layout = None
         routing = None
-    translation = PassManager(_unroll)
+    translation = common.generate_translation_passmanager(
+        basis_gates, translation_method, approximation_degree
+    )
     if coupling_map and not coupling_map.is_symmetric:
-        pre_opt = PassManager(_direction_check)
-        pre_opt.append(_direction, condition=_direction_condition)
-        pre_opt.append(_unroll)
+        pre_opt = common.generate_pre_op_passmanager(coupling_map)
+        pre_opt += translation
     else:
         pre_opt = None
-    post_opt = PassManager(_scheduling)
+    post_opt = common.generate_scheduling_post_opt(instruction_durations, scheduling_method)
     return FullPassManager(
         layout=layout,
         routing=routing,
