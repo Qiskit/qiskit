@@ -276,30 +276,26 @@ class SabreSwap(TransformationPass):
         """Populate extended_set by looking ahead a fixed number of gates.
         For each existing element add a successor until reaching limit.
         """
-        # TODO: use layers instead of bfs_successors so long range successors aren't included.
-        extended_set = set()
-        bfs_successors_pernode = [dag.bfs_successors(n) for n in front_layer]
-        node_lookahead_exhausted = [False] * len(front_layer)
-        for i, node_successor_generator in cycle(enumerate(bfs_successors_pernode)):
-            if all(node_lookahead_exhausted) or len(extended_set) >= EXTENDED_SET_SIZE:
-                break
-
-            try:
-                _, successors = next(node_successor_generator)
-                successors = list(
-                    filter(lambda x: x.type == "op" and len(x.qargs) == 2, successors)
-                )
-            except StopIteration:
-                node_lookahead_exhausted[i] = True
-                continue
-
-            successors = iter(successors)
-            while len(extended_set) < EXTENDED_SET_SIZE:
-                try:
-                    extended_set.add(next(successors))
-                except StopIteration:
+        extended_set = list()
+        incremented = list()
+        tmp_front_layer = deepcopy(front_layer)
+        done = False
+        while tmp_front_layer and not done:
+            new_tmp_front_layer = list()
+            for node in tmp_front_layer:
+                for successor in self._successors(node, dag):
+                    incremented.append(successor)
+                    self.applied_predecessors[successor] += 1
+                    if self._is_resolved(successor):
+                        new_tmp_front_layer.append(successor)
+                        if len(successor.qargs) == 2:
+                            extended_set.append(successor)
+                if len(extended_set) < EXTENDED_SET_SIZE:
+                    done = True
                     break
-
+            tmp_front_layer = new_tmp_front_layer
+        for node in incremented:
+            self.applied_predecessors[node] -= 1
         return extended_set
 
     def _obtain_swaps(self, front_layer, current_layout):
