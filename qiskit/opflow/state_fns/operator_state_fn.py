@@ -22,6 +22,7 @@ from qiskit.opflow.list_ops.summed_op import SummedOp
 from qiskit.opflow.list_ops.tensored_op import TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.matrix_op import MatrixOp
+from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.quantum_info import Statevector
@@ -35,10 +36,12 @@ class OperatorStateFn(StateFn):
     primitive: OperatorBase
 
     # TODO allow normalization somehow?
-    def __init__(self,
-                 primitive: OperatorBase,
-                 coeff: Union[complex, ParameterExpression] = 1.0,
-                 is_measurement: bool = False) -> None:
+    def __init__(
+        self,
+        primitive: OperatorBase,
+        coeff: Union[complex, ParameterExpression] = 1.0,
+        is_measurement: bool = False,
+    ) -> None:
         """
         Args:
             primitive: The ``OperatorBase`` which defines the behavior of the underlying State
@@ -59,8 +62,9 @@ class OperatorStateFn(StateFn):
     def add(self, other: OperatorBase) -> Union["OperatorStateFn", SummedOp]:
         if not self.num_qubits == other.num_qubits:
             raise ValueError(
-                'Sum over statefns with different numbers of qubits, {} and {}, is not well '
-                'defined'.format(self.num_qubits, other.num_qubits))
+                "Sum over statefns with different numbers of qubits, {} and {}, is not well "
+                "defined".format(self.num_qubits, other.num_qubits)
+            )
 
         # Right now doesn't make sense to add a StateFn to a Measurement
         if isinstance(other, OperatorStateFn) and self.is_measurement == other.is_measurement:
@@ -75,24 +79,31 @@ class OperatorStateFn(StateFn):
                 # Also assumes scalar multiplication is available
                 return OperatorStateFn(
                     (self.coeff * self.primitive).add(other.primitive * other.coeff),
-                    is_measurement=self._is_measurement)
+                    is_measurement=self._is_measurement,
+                )
 
         return SummedOp([self, other])
 
     def adjoint(self) -> "OperatorStateFn":
-        return OperatorStateFn(self.primitive.adjoint(),
-                               coeff=self.coeff.conjugate(),
-                               is_measurement=(not self.is_measurement))
+        return OperatorStateFn(
+            self.primitive.adjoint(),
+            coeff=self.coeff.conjugate(),
+            is_measurement=(not self.is_measurement),
+        )
 
-    def _expand_dim(self, num_qubits: int) -> 'OperatorStateFn':
-        return OperatorStateFn(self.primitive._expand_dim(num_qubits),
-                               coeff=self.coeff,
-                               is_measurement=self.is_measurement)
+    def _expand_dim(self, num_qubits: int) -> "OperatorStateFn":
+        return OperatorStateFn(
+            self.primitive._expand_dim(num_qubits),
+            coeff=self.coeff,
+            is_measurement=self.is_measurement,
+        )
 
-    def permute(self, permutation: List[int]) -> 'OperatorStateFn':
-        return OperatorStateFn(self.primitive.permute(permutation),
-                               coeff=self.coeff,
-                               is_measurement=self.is_measurement)
+    def permute(self, permutation: List[int]) -> "OperatorStateFn":
+        return OperatorStateFn(
+            self.primitive.permute(permutation),
+            coeff=self.coeff,
+            is_measurement=self.is_measurement,
+        )
 
     def tensor(self, other: OperatorBase) -> Union["OperatorStateFn", TensoredOp]:
         if isinstance(other, OperatorStateFn):
@@ -105,20 +116,22 @@ class OperatorStateFn(StateFn):
         return TensoredOp([self, other])
 
     def to_density_matrix(self, massive: bool = False) -> np.ndarray:
-        """ Return numpy matrix of density operator, warn if more than 16 qubits
+        """Return numpy matrix of density operator, warn if more than 16 qubits
         to force the user to set
         massive=True if they want such a large matrix. Generally big methods like
         this should require the use of a
         converter, but in this case a convenience method for quick hacking and
         access to classical tools is
-        appropriate. """
-        OperatorBase._check_massive('to_density_matrix', True, self.num_qubits, massive)
+        appropriate."""
+        OperatorBase._check_massive("to_density_matrix", True, self.num_qubits, massive)
         return self.primitive.to_matrix() * self.coeff
 
     def to_matrix_op(self, massive: bool = False) -> "OperatorStateFn":
-        """ Return a MatrixOp for this operator. """
-        return OperatorStateFn(self.primitive.to_matrix_op(massive=massive) * self.coeff,
-                               is_measurement=self.is_measurement)
+        """Return a MatrixOp for this operator."""
+        return OperatorStateFn(
+            self.primitive.to_matrix_op(massive=massive) * self.coeff,
+            is_measurement=self.is_measurement,
+        )
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
         r"""
@@ -143,7 +156,7 @@ class OperatorStateFn(StateFn):
         Raises:
             ValueError: Invalid parameters.
         """
-        OperatorBase._check_massive('to_matrix', False, self.num_qubits, massive)
+        OperatorBase._check_massive("to_matrix", False, self.num_qubits, massive)
         # Operator - return diagonal (real values, not complex),
         # not rank 1 decomposition (statevector)!
         mat = self.primitive.to_matrix(massive=massive)
@@ -163,7 +176,7 @@ class OperatorStateFn(StateFn):
         return diag_over_tree(mat)
 
     def to_circuit_op(self):
-        r""" Return ``StateFnCircuit`` corresponding to this StateFn. Ignore for now because this is
+        r"""Return ``StateFnCircuit`` corresponding to this StateFn. Ignore for now because this is
         undefined. TODO maybe call to_pauli_op and diagonalize here, but that could be very
         inefficient, e.g. splitting one Stabilizer measurement into hundreds of 1 qubit Paulis."""
         raise NotImplementedError
@@ -171,13 +184,15 @@ class OperatorStateFn(StateFn):
     def __str__(self) -> str:
         prim_str = str(self.primitive)
         if self.coeff == 1.0:
-            return "{}({})".format('OperatorStateFn' if not self.is_measurement
-                                   else 'OperatorMeasurement', prim_str)
+            return "{}({})".format(
+                "OperatorStateFn" if not self.is_measurement else "OperatorMeasurement", prim_str
+            )
         else:
             return "{}({}) * {}".format(
-                'OperatorStateFn' if not self.is_measurement else 'OperatorMeasurement',
+                "OperatorStateFn" if not self.is_measurement else "OperatorMeasurement",
                 prim_str,
-                self.coeff)
+                self.coeff,
+            )
 
     def eval(
         self, front: Optional[Union[str, dict, np.ndarray, OperatorBase, Statevector]] = None
@@ -186,32 +201,47 @@ class OperatorStateFn(StateFn):
             matrix = cast(MatrixOp, self.primitive.to_matrix_op()).primitive.data
             # pylint: disable=cyclic-import
             from .vector_state_fn import VectorStateFn
+
             return VectorStateFn(matrix[0, :])
 
         if not self.is_measurement and isinstance(front, OperatorBase):
             raise ValueError(
-                'Cannot compute overlap with StateFn or Operator if not Measurement. Try taking '
-                'sf.adjoint() first to convert to measurement.')
+                "Cannot compute overlap with StateFn or Operator if not Measurement. Try taking "
+                "sf.adjoint() first to convert to measurement."
+            )
 
         if not isinstance(front, OperatorBase):
             front = StateFn(front)
 
         if isinstance(self.primitive, ListOp) and self.primitive.distributive:
-            evals = [OperatorStateFn(op, is_measurement=self.is_measurement).eval(
-                front) for op in self.primitive.oplist]
+            evals = [
+                OperatorStateFn(op, is_measurement=self.is_measurement).eval(front)
+                for op in self.primitive.oplist
+            ]
             result = self.primitive.combo_fn(evals)
             if isinstance(result, list):
                 multiplied = self.primitive.coeff * self.coeff * np.array(result)
                 return multiplied.tolist()
             return result * self.coeff * self.primitive.coeff
 
+        # pylint: disable=cyclic-import
+        from .vector_state_fn import VectorStateFn
+
+        if isinstance(self.primitive, PauliSumOp) and isinstance(front, VectorStateFn):
+            return (
+                front.primitive.expectation_value(self.primitive.primitive)
+                * self.coeff
+                * front.coeff
+            )
+
         # Need an ListOp-specific carve-out here to make sure measurement over a ListOp doesn't
         # produce two-dimensional ListOp from composing from both sides of primitive.
         # Can't use isinstance because this would include subclasses.
         # pylint: disable=unidiomatic-typecheck
         if isinstance(front, ListOp) and type(front) == ListOp:
-            return front.combo_fn([self.eval(front.coeff * front_elem)
-                                   for front_elem in front.oplist])
+            return front.combo_fn(
+                [self.eval(front.coeff * front_elem) for front_elem in front.oplist]
+            )
 
         # If we evaluate against a circuit, evaluate it to a vector so we
         # make sure to only do the expensive circuit simulation once
@@ -220,8 +250,5 @@ class OperatorStateFn(StateFn):
 
         return front.adjoint().eval(cast(OperatorBase, self.primitive.eval(front))) * self.coeff
 
-    def sample(self,
-               shots: int = 1024,
-               massive: bool = False,
-               reverse_endianness: bool = False):
+    def sample(self, shots: int = 1024, massive: bool = False, reverse_endianness: bool = False):
         raise NotImplementedError
