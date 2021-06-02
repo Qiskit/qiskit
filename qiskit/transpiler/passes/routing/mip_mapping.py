@@ -139,7 +139,7 @@ class MIPMapping(TransformationPass):
                     layfidelity.append(fidelity)
                     laymfidelity.append(mfidelity)
                     gateslookup[(t, i1, i2)] = node
-                elif node.type == 'op':
+                elif node.type == 'op' and node.name == 'meas':
                     meas.append(node)
             if laygates:
                 circuit_to_orig_layer.append(t)
@@ -224,7 +224,9 @@ class MIPMapping(TransformationPass):
         inmap = {}
         outmap = {}
         outmeas = [-1 for i in range(len(dag.qubits))]
-        for l in range(len(dag.qubits)):
+        for dag_index in range(len(dag.qubits)):
+            qiskit_qubit = physical_to_qiskit_qubit[dag.qubits[dag_index].index]
+            l = qiskit_qubit_to_logical[qiskit_qubit]
             inpos = None
             outpos = None
             for p in range(ic.num_pqubits):
@@ -233,8 +235,8 @@ class MIPMapping(TransformationPass):
                 if problem.solution.get_values(ic.w_index(l, p, ic.depth - 1)) > 0.5:
                     outpos = p
                     outmeas[l] = p
-            inmap[dag.qubits[l]] = inpos
-            outmap[dag.qubits[l]] = outpos
+            inmap[qiskit_qubit] = inpos
+            outmap[qiskit_qubit] = outpos
         # These are saved, but not sure if used anywhere
         self.property_set['layout'] = Layout(inmap)
         self.property_set['layout_in'] = Layout(inmap)
@@ -244,7 +246,8 @@ class MIPMapping(TransformationPass):
         # Remap measurements
         for m in meas:
             mapped_meas = copy.deepcopy(m)
-            m.qargs = [m.qargs[0].register[outmeas[m.qargs[0].index]]]
+            l = qiskit_qubit_to_logical[physical_to_qiskit_qubit[m.qargs[0].index]]            
+            m.qargs = [m.qargs[0].register[outmeas[l]]]
             mapped_dag.apply_operation_back(op=mapped_meas.op, cargs=m.cargs, qargs=m.qargs)
 
         return mapped_dag
