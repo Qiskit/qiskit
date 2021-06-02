@@ -13,11 +13,13 @@
 """Routing via SWAP insertion using the SABRE method from Li et al."""
 
 import logging
+from collections import defaultdict
 from copy import copy, deepcopy
 from itertools import cycle
 import numpy as np
 
 from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
@@ -131,7 +133,7 @@ class SabreSwap(TransformationPass):
         self.heuristic = heuristic
         self.seed = seed
         self.fake_run = fake_run
-        self.applied_gates = None
+        self.applied_predecessors = None
         self.qubits_decay = None
         self._bit_indices = None
 
@@ -171,7 +173,10 @@ class SabreSwap(TransformationPass):
         # Start algorithm from the front layer and iterate until all gates done.
         num_search_steps = 0
         front_layer = dag.front_layer()
-        self.applied_gates = set()
+        self.applied_predecessors = defaultdict(int)
+        for _, input_node in dag.input_map.items():
+            for successor in self._successors(input_node, dag):
+                self.applied_predecessors[successor] += 1
         while front_layer:
             execute_gate_list = []
 
@@ -188,11 +193,9 @@ class SabreSwap(TransformationPass):
                 for node in execute_gate_list:
                     self._apply_gate(mapped_dag, node, current_layout, canonical_register)
                     front_layer.remove(node)
-                    self.applied_gates.add(node)
-                    for successor in dag.quantum_successors(node):
-                        if successor.type != "op":
-                            continue
-                        if self._is_resolved(successor, dag):
+                    for successor in self._successors(node, dag):
+                        self.applied_predecessors[successor] += 1
+                        if self._is_resolved(successor):
                             front_layer.append(successor)
 
                     if node.qargs:
@@ -257,11 +260,17 @@ class SabreSwap(TransformationPass):
         """
         self.qubits_decay = {k: 1 for k in self.qubits_decay.keys()}
 
-    def _is_resolved(self, node, dag):
-        """Return True if all of a node's predecessors in dag are applied."""
-        predecessors = dag.quantum_predecessors(node)
-        predecessors = filter(lambda x: x.type == "op", predecessors)
-        return all(n in self.applied_gates for n in predecessors)
+    def _successors(self, node, dag):
+        for _, successor, edge_data in dag.edges(node):
+            if successor.type != 'op':
+                continue
+            if isinstance(edge_data, Qubit):
+                yield successor
+
+    def _is_resolved(self, node):
+        """Return True if all of a node's predecessors in dag are applied.
+        """
+        return self.applied_predecessors[node] == len(node.qargs) 
 
     def _obtain_extended_set(self, dag, front_layer):
         """Populate extended_set by looking ahead a fixed number of gates.
