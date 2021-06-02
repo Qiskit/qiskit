@@ -64,7 +64,7 @@ class SabreSwap(TransformationPass):
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
-    def __init__(self, coupling_map, heuristic="basic", seed=None):
+    def __init__(self, coupling_map, heuristic='basic', seed=None, fake_run=False):
         r"""SabreSwap initializer.
 
         Args:
@@ -72,6 +72,8 @@ class SabreSwap(TransformationPass):
             heuristic (str): The type of heuristic to use when deciding best
                 swap strategy ('basic' or 'lookahead' or 'decay').
             seed (int): random seed used to tie-break among candidate swaps.
+            fake_run (bool): if true, it only pretend to do routing, i.e., no
+                swap is effectively added.
 
         Additional Information:
 
@@ -128,6 +130,7 @@ class SabreSwap(TransformationPass):
 
         self.heuristic = heuristic
         self.seed = seed
+        self.fake_run = fake_run
         self.applied_gates = None
         self.qubits_decay = None
         self._bit_indices = None
@@ -152,7 +155,9 @@ class SabreSwap(TransformationPass):
         rng = np.random.default_rng(self.seed)
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
-        mapped_dag = dag._copy_circuit_metadata()
+        mapped_dag = None
+        if not self.fake_run:
+            mapped_dag = dag._copy_circuit_metadata()
 
         canonical_register = dag.qregs["q"]
         current_layout = Layout.generate_trivial_layout(canonical_register)
@@ -181,8 +186,7 @@ class SabreSwap(TransformationPass):
 
             if execute_gate_list:
                 for node in execute_gate_list:
-                    new_node = _transform_gate_for_layout(node, current_layout, canonical_register)
-                    mapped_dag.apply_operation_back(new_node.op, new_node.qargs, new_node.cargs)
+                    self._apply_gate(mapped_dag, node, current_layout, canonical_register)
                     front_layer.remove(node)
                     self.applied_gates.add(node)
                     for successor in dag.quantum_successors(node):
@@ -217,9 +221,8 @@ class SabreSwap(TransformationPass):
             best_swaps = [k for k, v in swap_scores.items() if v == min_score]
             best_swaps.sort(key=lambda x: (self._bit_indices[x[0]], self._bit_indices[x[1]]))
             best_swap = rng.choice(best_swaps)
-            swap_node = DAGNode(op=SwapGate(), qargs=best_swap, type="op")
-            swap_node = _transform_gate_for_layout(swap_node, current_layout, canonical_register)
-            mapped_dag.apply_operation_back(swap_node.op, swap_node.qargs)
+            swap_node = DAGNode(op=SwapGate(), qargs=best_swap, type='op')
+            self._apply_gate(mapped_dag, swap_node, current_layout, canonical_register)
             current_layout.swap(*best_swap)
 
             num_search_steps += 1
@@ -238,7 +241,15 @@ class SabreSwap(TransformationPass):
 
         self.property_set["final_layout"] = current_layout
 
-        return mapped_dag
+        if not self.fake_run:
+            return mapped_dag
+        return dag
+
+    def _apply_gate(self, mapped_dag, node, current_layout, canonical_register):
+        if self.fake_run:
+            return
+        new_node = _transform_gate_for_layout(node, current_layout, canonical_register)
+        mapped_dag.apply_operation_back(new_node.op, new_node.qargs, new_node.cargs)
 
     def _reset_qubits_decay(self):
         """Reset all qubit decay factors to 1 upon request (to forget about
