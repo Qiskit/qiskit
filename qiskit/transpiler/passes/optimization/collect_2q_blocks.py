@@ -47,7 +47,7 @@ class Collect2qBlocks(AnalysisPass):
         a list of tuples of "op" node labels.
         """
         # Initiate the commutation set
-        self.property_set['commutation_set'] = defaultdict(list)
+        self.property_set["commutation_set"] = defaultdict(list)
 
         block_list = []
         nodes = list(dag.topological_nodes())
@@ -57,12 +57,12 @@ class Collect2qBlocks(AnalysisPass):
             group = []
             # Explore predecessors and successors of 2q gates
             if (  # pylint: disable=too-many-boolean-expressions
-                    nd.type == 'op'
-                    and isinstance(nd.op, Gate)
-                    and len(nd.qargs) == 2
-                    and not nodes_seen[nd]
-                    and nd.op.condition is None
-                    and not nd.op.is_parameterized()
+                nd.type == "op"
+                and isinstance(nd.op, Gate)
+                and len(nd.qargs) == 2
+                and not nodes_seen[nd]
+                and nd.op.condition is None
+                and not nd.op.is_parameterized()
             ):
                 these_qubits = set(nd.qargs)
                 # Explore predecessors of the 2q node
@@ -74,14 +74,15 @@ class Collect2qBlocks(AnalysisPass):
                     if len(pred) == 1 and not nodes_seen[pred[0]]:
                         pnd = pred[0]
                         if (
-                                pnd.type == 'op'
-                                and isinstance(pnd.op, Gate)
-                                and len(pnd.qargs) <= 2
-                                and pnd.op.condition is None
-                                and not pnd.op.is_parameterized()
+                            pnd.type == "op"
+                            and isinstance(pnd.op, Gate)
+                            and len(pnd.qargs) <= 2
+                            and pnd.op.condition is None
+                            and not pnd.op.is_parameterized()
                         ):
-                            if (len(pnd.qargs) == 2 and set(pnd.qargs) == these_qubits) \
-                               or len(pnd.qargs) == 1:
+                            if (len(pnd.qargs) == 2 and set(pnd.qargs) == these_qubits) or len(
+                                pnd.qargs
+                            ) == 1:
                                 group.append(pnd)
                                 nodes_seen[pnd] = True
                                 pred_next.extend(dag.quantum_predecessors(pnd))
@@ -89,36 +90,37 @@ class Collect2qBlocks(AnalysisPass):
                     elif len(pred) == 2:
                         # First, check if there is a relationship
                         if pred[0] in dag.predecessors(pred[1]):
-                            sorted_pred = [pred[1]]   # was [pred[1], pred[0]]
+                            sorted_pred = [pred[1]]  # was [pred[1], pred[0]]
                         elif pred[1] in dag.predecessors(pred[0]):
-                            sorted_pred = [pred[0]]   # was [pred[0], pred[1]]
+                            sorted_pred = [pred[0]]  # was [pred[0], pred[1]]
                         else:
                             # We need to avoid accidentally adding a 2q gate on these_qubits
                             # since these must have a dependency through the other predecessor
                             # in this case
                             if len(pred[0].qargs) == 2 and set(pred[0].qargs) == these_qubits:
                                 sorted_pred = [pred[1]]
-                            elif (len(pred[1].qargs) == 1
-                                  and set(pred[1].qargs) == these_qubits):
+                            elif len(pred[1].qargs) == 1 and set(pred[1].qargs) == these_qubits:
                                 sorted_pred = [pred[0]]
                             else:
                                 sorted_pred = pred
-                        if len(sorted_pred) == 2 and len(sorted_pred[0].qargs) == 2 and \
-                           len(sorted_pred[1].qargs) == 2:
+                        if (
+                            len(sorted_pred) == 2
+                            and len(sorted_pred[0].qargs) == 2
+                            and len(sorted_pred[1].qargs) == 2
+                        ):
                             break  # stop immediately if we hit a pair of 2q gates
                         # Examine each predecessor
                         for pnd in sorted_pred:
                             if (
-                                    pnd.type != 'op'
-                                    or not isinstance(pnd.op, Gate)
-                                    or len(pnd.qargs) > 2
-                                    or pnd.op.condition is not None
-                                    or pnd.op.is_parameterized()
+                                pnd.type != "op"
+                                or not isinstance(pnd.op, Gate)
+                                or len(pnd.qargs) > 2
+                                or pnd.op.condition is not None
+                                or pnd.op.is_parameterized()
                             ):
                                 # remove any qubits that are interrupted by a gate
                                 # e.g. a measure in the middle of the circuit
-                                these_qubits = list(set(these_qubits) -
-                                                    set(pnd.qargs))
+                                these_qubits = list(set(these_qubits) - set(pnd.qargs))
                                 continue
                             # If a predecessor is a single qubit gate, add it
                             if len(pnd.qargs) == 1 and not pnd.op.is_parameterized():
@@ -130,9 +132,9 @@ class Collect2qBlocks(AnalysisPass):
                             else:
                                 pred_qubits = set(pnd.qargs)
                                 if (
-                                        pred_qubits == these_qubits
-                                        and pnd.op.condition is None
-                                        and not pnd.op.is_parameterized()
+                                    pred_qubits == these_qubits
+                                    and pnd.op.condition is None
+                                    and not pnd.op.is_parameterized()
                                 ):
                                     # add if on same qubits
                                     if not nodes_seen[pnd]:
@@ -141,8 +143,7 @@ class Collect2qBlocks(AnalysisPass):
                                         pred_next.extend(dag.quantum_predecessors(pnd))
                                 else:
                                     # remove qubit from consideration if not
-                                    these_qubits = list(set(these_qubits) -
-                                                        set(pred_qubits))
+                                    these_qubits = list(set(these_qubits) - set(pred_qubits))
                     # Update predecessors
                     # Stop if there aren't any more
                     pred = list(set(pred_next))
@@ -163,14 +164,15 @@ class Collect2qBlocks(AnalysisPass):
                     if len(succ) == 1 and not nodes_seen[succ[0]]:
                         snd = succ[0]
                         if (
-                                snd.type == 'op'
-                                and isinstance(snd.op, Gate)
-                                and len(snd.qargs) <= 2
-                                and snd.op.condition is None
-                                and not snd.op.is_parameterized()
+                            snd.type == "op"
+                            and isinstance(snd.op, Gate)
+                            and len(snd.qargs) <= 2
+                            and snd.op.condition is None
+                            and not snd.op.is_parameterized()
                         ):
-                            if (len(snd.qargs) == 2 and set(snd.qargs) == these_qubits) or \
-                                    len(snd.qargs) == 1:
+                            if (len(snd.qargs) == 2 and set(snd.qargs) == these_qubits) or len(
+                                snd.qargs
+                            ) == 1:
                                 group.append(snd)
                                 nodes_seen[snd] = True
                                 succ_next.extend(dag.quantum_successors(snd))
@@ -185,31 +187,30 @@ class Collect2qBlocks(AnalysisPass):
                             # We need to avoid accidentally adding a 2q gate on these_qubits
                             # since these must have a dependency through the other successor
                             # in this case
-                            if (len(succ[0].qargs) == 2
-                                    and set(succ[0].qargs) == these_qubits):
+                            if len(succ[0].qargs) == 2 and set(succ[0].qargs) == these_qubits:
                                 sorted_succ = [succ[1]]
-                            elif (len(succ[1].qargs) == 2
-                                  and set(succ[1].qargs) == these_qubits):
+                            elif len(succ[1].qargs) == 2 and set(succ[1].qargs) == these_qubits:
                                 sorted_succ = [succ[0]]
                             else:
                                 sorted_succ = succ
-                        if len(sorted_succ) == 2 and \
-                           len(sorted_succ[0].qargs) == 2 and \
-                           len(sorted_succ[1].qargs) == 2:
+                        if (
+                            len(sorted_succ) == 2
+                            and len(sorted_succ[0].qargs) == 2
+                            and len(sorted_succ[1].qargs) == 2
+                        ):
                             break  # stop immediately if we hit a pair of 2q gates
                         # Examine each successor
                         for snd in sorted_succ:
                             if (
-                                    snd.type != 'op'
-                                    or not isinstance(snd.op, Gate)
-                                    or len(snd.qargs) > 2
-                                    or snd.op.condition is not None
-                                    or snd.op.is_parameterized()
+                                snd.type != "op"
+                                or not isinstance(snd.op, Gate)
+                                or len(snd.qargs) > 2
+                                or snd.op.condition is not None
+                                or snd.op.is_parameterized()
                             ):
                                 # remove qubits from consideration if interrupted
                                 # by a gate e.g. a measure in the middle of the circuit
-                                these_qubits = list(set(these_qubits) -
-                                                    set(snd.qargs))
+                                these_qubits = list(set(these_qubits) - set(snd.qargs))
                                 continue
 
                             # If a successor is a single qubit gate, add it
@@ -224,9 +225,9 @@ class Collect2qBlocks(AnalysisPass):
                                 # If 2q, check qubits
                                 succ_qubits = set(snd.qargs)
                                 if (
-                                        succ_qubits == these_qubits
-                                        and snd.op.condition is None
-                                        and not snd.op.is_parameterized()
+                                    succ_qubits == these_qubits
+                                    and snd.op.condition is None
+                                    and not snd.op.is_parameterized()
                                 ):
                                     # add if on same qubits
                                     if not nodes_seen[snd]:
@@ -235,8 +236,7 @@ class Collect2qBlocks(AnalysisPass):
                                         succ_next.extend(dag.quantum_successors(snd))
                                 else:
                                     # remove qubit from consideration if not
-                                    these_qubits = list(set(these_qubits) -
-                                                        set(succ_qubits))
+                                    these_qubits = list(set(these_qubits) - set(succ_qubits))
                     # Update successors
                     # Stop if there aren't any more
                     succ = list(set(succ_next))
@@ -245,6 +245,6 @@ class Collect2qBlocks(AnalysisPass):
 
                 block_list.append(tuple(group))
 
-        self.property_set['block_list'] = block_list
+        self.property_set["block_list"] = block_list
 
         return dag

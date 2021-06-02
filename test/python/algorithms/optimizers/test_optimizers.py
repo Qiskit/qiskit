@@ -14,92 +14,121 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from scipy.optimize import rosen
 import numpy as np
+from scipy.optimize import rosen, rosen_der
 
+from qiskit.algorithms.optimizers import (
+    ADAM,
+    CG,
+    COBYLA,
+    GSLS,
+    GradientDescent,
+    L_BFGS_B,
+    NELDER_MEAD,
+    P_BFGS,
+    POWELL,
+    SLSQP,
+    SPSA,
+    TNC,
+    SciPyOptimizer,
+)
 from qiskit.utils import algorithm_globals
-from qiskit.algorithms.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, P_BFGS, NELDER_MEAD,
-                                          POWELL, SLSQP, SPSA, TNC, GSLS)
 
 
 class TestOptimizers(QiskitAlgorithmsTestCase):
-    """ Test Optimizers """
+    """Test Optimizers"""
 
     def setUp(self):
         super().setUp()
         algorithm_globals.random_seed = 52
 
-    def _optimize(self, optimizer):
+    def _optimize(self, optimizer, grad=False):
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
-        res = optimizer.optimize(len(x_0), rosen, initial_point=x_0)
+        if grad:
+            res = optimizer.optimize(
+                len(x_0), rosen, gradient_function=rosen_der, initial_point=x_0
+            )
+        else:
+            res = optimizer.optimize(len(x_0), rosen, initial_point=x_0)
         np.testing.assert_array_almost_equal(res[0], [1.0] * len(x_0), decimal=2)
         return res
 
     def test_adam(self):
-        """ adam test """
+        """adam test"""
         optimizer = ADAM(maxiter=10000, tol=1e-06)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
 
     def test_cg(self):
-        """ cg test """
+        """cg test"""
         optimizer = CG(maxiter=1000, tol=1e-06)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
 
+    def test_gradient_descent(self):
+        """cg test"""
+        optimizer = GradientDescent(maxiter=100000, tol=1e-06, learning_rate=1e-3)
+        res = self._optimize(optimizer, grad=True)
+        self.assertLessEqual(res[2], 100000)
+
     def test_cobyla(self):
-        """ cobyla test """
+        """cobyla test"""
         optimizer = COBYLA(maxiter=100000, tol=1e-06)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 100000)
 
     def test_l_bfgs_b(self):
-        """ l_bfgs_b test """
+        """l_bfgs_b test"""
         optimizer = L_BFGS_B(maxfun=1000)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
 
     def test_p_bfgs(self):
-        """ parallel l_bfgs_b test """
+        """parallel l_bfgs_b test"""
         optimizer = P_BFGS(maxfun=1000, max_processes=4)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
 
     def test_nelder_mead(self):
-        """ nelder mead test """
+        """nelder mead test"""
         optimizer = NELDER_MEAD(maxfev=10000, tol=1e-06)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
 
     def test_powell(self):
-        """ powell test """
+        """powell test"""
         optimizer = POWELL(maxfev=10000, tol=1e-06)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
 
     def test_slsqp(self):
-        """ slsqp test """
+        """slsqp test"""
         optimizer = SLSQP(maxiter=1000, tol=1e-06)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
 
     @unittest.skip("Skipping SPSA as it does not do well on non-convex rozen")
     def test_spsa(self):
-        """ spsa test """
+        """spsa test"""
         optimizer = SPSA(maxiter=10000)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 100000)
 
     def test_tnc(self):
-        """ tnc test """
+        """tnc test"""
         optimizer = TNC(maxiter=1000, tol=1e-06)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
 
     def test_gsls(self):
-        """ gsls test """
-        optimizer = GSLS(sample_size_factor=40, sampling_radius=1.0e-12, maxiter=10000,
-                         max_eval=10000, min_step_size=1.0e-12)
+        """gsls test"""
+        optimizer = GSLS(
+            sample_size_factor=40,
+            sampling_radius=1.0e-12,
+            maxiter=10000,
+            max_eval=10000,
+            min_step_size=1.0e-12,
+        )
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
         _, x_value, n_evals = optimizer.optimize(len(x_0), rosen, initial_point=x_0)
 
@@ -107,6 +136,24 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         self.assertLessEqual(x_value, 0.01)
         self.assertLessEqual(n_evals, 10000)
 
+    def test_scipy_optimizer(self):
+        """scipy_optimizer test"""
+        optimizer = SciPyOptimizer("BFGS", options={"maxiter": 1000})
+        res = self._optimize(optimizer)
+        self.assertLessEqual(res[2], 10000)
 
-if __name__ == '__main__':
+    def test_scipy_optimizer_callback(self):
+        """scipy_optimizer callback test"""
+        values = []
+
+        def callback(x):
+            values.append(x)
+
+        optimizer = SciPyOptimizer("BFGS", options={"maxiter": 1000}, callback=callback)
+        res = self._optimize(optimizer)
+        self.assertLessEqual(res[2], 10000)
+        self.assertTrue(values)  # Check the list is nonempty.
+
+
+if __name__ == "__main__":
     unittest.main()

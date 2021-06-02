@@ -541,12 +541,18 @@ from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options
 from qiskit.providers.job import Job
 from qiskit.providers.job import JobV1
+
 # Legacy providers interface
 from qiskit.providers.basebackend import BaseBackend
 from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.basejob import BaseJob
-from qiskit.providers.exceptions import (JobError, JobTimeoutError, QiskitBackendNotFoundError,
-                                         BackendPropertyError, BackendConfigurationError)
+from qiskit.providers.exceptions import (
+    JobError,
+    JobTimeoutError,
+    QiskitBackendNotFoundError,
+    BackendPropertyError,
+    BackendConfigurationError,
+)
 from qiskit.providers.jobstatus import JobStatus
 
 
