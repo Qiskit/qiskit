@@ -290,7 +290,7 @@ class SabreSwap(TransformationPass):
                         new_tmp_front_layer.append(successor)
                         if len(successor.qargs) == 2:
                             extended_set.append(successor)
-                if len(extended_set) < EXTENDED_SET_SIZE:
+                if len(extended_set) >= EXTENDED_SET_SIZE:
                     done = True
                     break
             tmp_front_layer = new_tmp_front_layer
