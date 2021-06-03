@@ -43,12 +43,12 @@ ode_solvers_names = ['ForwardEuler', 'RK45']
 #
 # ode_solvers = [RK45]
 # ode_solvers_names = ['RK45']
-regs = ['ridge', 'perturb_diag', None]
-reg_names = ['ridge', 'perturb_diag', 'lstsq']
+# regs = ['ridge', 'perturb_diag', None]
+# reg_names = ['ridge', 'perturb_diag', 'lstsq']
 # regs = [None]
 # reg_names = ['lstsq']
-# regs = ['ridge']
-# reg_names = ['ridge']
+regs = ['perturb_diag']
+reg_names = ['perturb_diag']
 # for nts in num_time_steps:
 # nts = num_time_steps[1]
 # output_dirs = [ 'illustrative', 'illustrative_reverse', 'transverse_ising',
@@ -88,7 +88,7 @@ for dir in output_dirs:
                     print('number time steps', nts)
                     print('depth ', d)
                     print('---------------------------------------------------------------------')
-                    """
+
                     t0 = time.time()
                     # varqite_snapshot_dir = os.path.join('..', 'output', 'imag',
                     #                                     str(nts),
@@ -173,4 +173,6 @@ for dir in output_dirs:
                                                            'error_bounds.npy')])
                     except Exception:
                         pass
+                        
+                    """
 

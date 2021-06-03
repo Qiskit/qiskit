@@ -12,6 +12,9 @@
 
 """The Variational Quantum Imaginary Time Evolution"""
 
+import os
+import csv
+
 from typing import List, Union, Dict, Iterable, Tuple, Any, Optional
 import warnings
 
@@ -202,16 +205,18 @@ class VarQITE(VarQTE):
                          h_squared: float,
                          h_trip: float,
                          delta_t: float) -> float:
-            print('hsquared ', h_squared)
-            print('e ', e)
+            # print('hsquared ', h_squared)
+            # print('e ', e)
 
-            c_alpha = lambda a: np.sqrt((1-a)**2 + 2*a *(1-a)*e + a**2*h_squared)
+            c_alpha = lambda a: np.sqrt((1-np.abs(a))**2 + 2*a *(1-np.abs(a))*e + a**2*h_squared)
 
-            e_star = lambda a: ((1 - a) ** 2 * e + 2 * (a - a ** 2) * h_squared +
-                               a ** 2 * h_trip) / c_alpha(a) ** 2
+            e_star = lambda a: ((1 - np.abs(a)) ** 2 * e + 2 * (a - a * np.abs(a)) * h_squared +
+                                a ** 2 * h_trip) / c_alpha(a) ** 2
+            # e_star = lambda a: ((1 - a) ** 2 * e + 2 * (a - a ** 2) * h_squared +
+            #                    a ** 2 * h_trip) / c_alpha(a) ** 2
 
-            abs_value = lambda a: (1 - a) * (1 + delta_t * (e_star(a) - e)) + \
-                        a * (e + delta_t * (e * (e + e_star(a)) - 2 * h_squared))
+            # abs_value = lambda a: (1 - a) * (1 + delta_t * (e_star(a) - e)) + \
+            #             a * (e + delta_t * (e * (e + e_star(a)) - 2 * h_squared))
 
             """
                 abs_value = lambda a: (1 - a) * (1 + delta_t * (e_star(a) - e)) + \
@@ -225,7 +230,12 @@ class VarQITE(VarQTE):
                 # print('e ', e)
                 alpha = alpha[0]
 
-                abs_val = np.abs(abs_value(alpha) / c_alpha(alpha))
+                abs_val0 = lambda a: 1 + 2 * delta_t * (e - e_star(a))
+                abs_val1 = lambda a: (1 - np.abs(a) + a * e) * (1 + 2 * delta_t * e) - \
+                                     2 * delta_t * ((1 - np.abs(a)) * e + a * h_squared)
+
+                abs_val0 = np.abs(abs_val0(alpha))
+                abs_val1 = np.abs(abs_val1(alpha) / c_alpha(alpha))
 
                 """
                 # v = (1 + delta_t * (E_t - H))|psi_t>
@@ -245,24 +255,24 @@ class VarQITE(VarQTE):
                 
                 return np.sqrt(2) * np.sqrt(0.5 * (v_norm + w_norm) - abs_val)
                 """
-                if 1 - abs_val < 0:
-                    # # print('1 - abs value ', 1 - abs_val)
-                    if 1 - abs_val < -1e-6:
-                        abs_val = 1
-                    else:
-                        return math.nan
-
-                return_val = np.sqrt(2)*np.sqrt(1 - abs_val)
+                # if 1 - abs_val < 0:
+                #     # # print('1 - abs value ', 1 - abs_val)
+                #     if 1 - abs_val < -1e-6:
+                #         abs_val = 1
+                #     else:
+                #         return math.nan
+                # print('In sqrt ', 1 + abs_val0 - 2 * abs_val1)
+                return_val = np.sqrt(1 + abs_val0 - 2 * abs_val1)
 
                 return return_val
 
-            def constraint0(alpha: Iterable[float]) -> float:
-                alpha = alpha[0]
-                return 1 - abs_value(alpha)
+            # def constraint0(alpha: Iterable[float]) -> float:
+            #     alpha = alpha[0]
+            #     return 1 - abs_value(alpha)
 
             def constraint1(alpha: Iterable[float]) -> float:
                 alpha = alpha[0]
-                return np.abs((1 - alpha + alpha * e) / c_alpha(alpha)) - 1 + eps**2 /2
+                return np.abs((1 - np.abs(alpha) + alpha * e) / c_alpha(alpha)) - 1 + eps**2 /2
 
             def constraint2(alpha: Iterable[float]) -> float:
                 # Constraint alpha >= 0
@@ -277,9 +287,13 @@ class VarQITE(VarQTE):
             #                         rhoend=1e-16, cons=[constraint0, constraint2, constraint3,
             #                                             constraint1])[0]
 
-            alpha_opt_list = []
-            objective_list = []
-            for a in np.linspace(0, 1, 10**6):
+            # alpha_opt_list = []
+            alpha_opt = None
+            objective_fun = None
+            # objective_list = []
+            # TODO Use again finer grid of 10**6
+            a_grid = np.append(np.linspace(-1, 1, 10**5), 0)
+            for a in a_grid:
                 opt_fun = optimization_fun([a])
 
                 if math.isnan(opt_fun):
@@ -289,65 +303,27 @@ class VarQITE(VarQTE):
                     # print('constraint 1 ', constraint1([a]) )
                     pass
                 else:
-                    objective_list.append(opt_fun)
+                    if objective_fun is None or opt_fun > objective_fun:
+                        objective_fun = opt_fun
+                        alpha_opt = a
 
-                    alpha_opt_list.append(a)
+                    # objective_list.append(opt_fun)
+                    # alpha_opt_list.append(a)
 
-            # alpha_opt_list = []
-            # objective_list = []
-            # for j in range(6):
-            #     for a in np.linspace(0, 10**(-1*j), 1000):
-            #         opt_fun = optimization_fun([a])
-            #
-            #         if math.isnan(opt_fun):
-            #             # print('optimization fun is nan')
-            #             pass
-            #         elif constraint1([a]) < 0:
-            #             # print('constraint 1 ', constraint1([a]) )
-            #             pass
-            #         else:
-            #             objective_list.append(opt_fun)
-            #
-            #             alpha_opt_list.append(a)
-            #     if len(objective_list) == 0:
-            #         print('No suitable alpha found')
-                # if len(objective_list) > 3:
-                #     break
-
-            # if len(objective_list) == 1:
-            #     if eps != 0:
-            #         for i in range(6, 10):
-            #             if constraint1([1/10**i]) >= 0:
-            #                 opt_fun = optimization_fun([1 / 10 ** i])
-            #                 if not math.isnan(opt_fun):
-            #                     objective_list.append(opt_fun)
-            #                     alpha_opt_list.append(1/10**i)
-
-
-            # import matplotlib.pyplot as plt
-            # plt.figure(1)
-            # plt.plot(alpha_opt_list, objective_list)
-            # plt.ylabel('objective value')
-            # plt.xlabel(r'$\alpha$')
-            # plt.savefig(self._snapshot_dir + '/objective_values.png')
-            # plt.close()
-
-            # plt.figure(2)
-            # plt.scatter(alpha_opt_list, constraint1_list)
-            # plt.ylabel('constraint value')
-            # plt.xlabel(r'$\alpha$')
-            # plt.savefig(self._snapshot_dir + '/constraint_values.png')
-            # plt.close()
-
-            print('maximization happening')
-            index = objective_list.index(max(objective_list))
-            alpha_opt = alpha_opt_list[index]
+            # index = objective_list.index(max(objective_list))
+            # alpha_opt = alpha_opt_list[index]
 
             print('alpha_opt ', alpha_opt)
-            print('Y(alpha_opt) ', optimization_fun([alpha_opt]))
-            print('alpha list ', alpha_opt_list)
-            print('objective list', objective_list)
-            return optimization_fun([alpha_opt])
+            print('Y(alpha_opt) ', objective_fun)
+            # print('alpha list ', alpha_opt_list)
+            # print('objective list', objective_list)
+            return objective_fun
+
+        with open(os.path.join(self._snapshot_dir, 'varqite_bound_output.csv'), mode='w') as \
+                csv_file:
+            fieldnames = ['dt', 'opt_factor', 'grad_factor', 'energy_factor']
+
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 
         error_bounds = [0]
 
@@ -360,8 +336,28 @@ class VarQITE(VarQTE):
             y = optimization(error_bounds[j-1], energies[j-1], h_squareds[j-1],
                              h_trips[j-1], delta_t)
 
+            energy_factor = (2*error_bounds[j-1]*stddevs[j-1] +
+                             error_bounds[j-1]**2/2*np.abs(energies[j-1]-
+                                                           np.linalg.norm(H, np.inf)))
+
             # \epsilon_{t+1}
-            error_bounds.append(y + delta_t * gradient_errors[j-1])
+            error_bounds.append(y +
+                                delta_t * gradient_errors[j-1] +
+                                delta_t * energy_factor)
+
+            print('opt factor ', y)
+            print('grad factor ', gradient_errors[j-1])
+            print('Energy error factor', np.around(2 * error_bounds[j - 1] * stddevs[j - 1] +
+                                                   error_bounds[j - 1] ** 2 / 2 *
+                                                   np.abs(
+                                                       energies[j - 1] - np.linalg.norm(H, np.inf)),
+                                                   4))
+
+            writer.writerow({'dt': delta_t,
+                             'opt_factor': np.round(y, 8),
+                             'grad_factor': np.round(gradient_errors[j-1]),
+                             'energy_factor': np.round(energy_factor)
+                             })
 
 #--------------------------------
         """
@@ -430,6 +426,13 @@ class VarQITE(VarQTE):
              """
         print('error bounds', np.around(error_bounds, 4))
         print('gradient errors', np.around(gradient_errors, 4))
+
+        #
+        # e_bounds = []
+        # for j, dt in enumerate(times):
+        #     # e_bound.append(np.trapz(errors[:j+1], x=times[:j+1]))
+        #     e_bounds.append(np.trapz(gradient_errors[:j + 1], x=times[:j + 1]))
+
         return error_bounds
 
     def _exact_state(self,

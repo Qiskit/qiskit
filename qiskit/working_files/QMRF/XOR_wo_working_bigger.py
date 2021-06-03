@@ -124,7 +124,7 @@ print('Target ', np.diag(target))
 
 # ansaetze = [ansatz3, ansatz4]
 # params = [params3, params4]
-ansatz, params = AnsatzGenerator().get_ansatz1(C, n)
+ansatz, params = AnsatzGenerator().get_ansatz0(C, n)
 ansaetze = [ansatz]
 params = [params]
 # for nts in num_time_steps:
@@ -149,7 +149,7 @@ for l, ansatz in enumerate(ansaetze):
                 varqite_snapshot_dir = os.path.join('..', 'xor_withoutwork_bigger', 'imag',
                                                     'ansatz'+str(l),
                                                     reg_names[j],
-                                                    ode_solvers_names[k] + 'error')
+                                                    ode_solvers_names[k] + 'nat_grad')
 
                 varqite = VarQITE(parameters=parameters, grad_method='lin_comb',
                                   init_parameter_values=init_param_values,
@@ -157,7 +157,7 @@ for l, ansatz in enumerate(ansaetze):
                                   ode_solver=ode_solver,
                                   backend=Aer.get_backend('statevector_simulator'),
                                   regularization=reg,
-                                  error_based_ode=True,
+                                  error_based_ode=False,
                                   snapshot_dir=varqite_snapshot_dir)
                 approx_time_evolved_state_imag = varqite.convert(op)
                 out_state = approx_time_evolved_state_imag.eval().primitive.data
