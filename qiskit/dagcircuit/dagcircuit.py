@@ -1031,10 +1031,10 @@ class DAGCircuit:
             if in_dag._multi_graph.has_edge(input_node._node_id, output_node._node_id):
                 self_wire = wire_map[wire]
                 pred = self._multi_graph.find_predecessors_by_edge(
-                    node._node_id, lambda edge: edge == self_wire
+                    node._node_id, lambda edge, wire=self_wire: edge == wire
                 )[0]
                 succ = self._multi_graph.find_successors_by_edge(
-                    node._node_id, lambda edge: edge == self_wire
+                    node._node_id, lambda edge, wire=self_wire: edge == wire
                 )[0]
                 self._multi_graph.add_edge(pred._node_id, succ._node_id, self_wire)
 
@@ -1046,7 +1046,7 @@ class DAGCircuit:
                     return False
             return True
 
-        def edge_map_fn(source, target, self_wire):
+        def edge_map_fn(source, _target, self_wire):
             wire = reverse_wire_map[self_wire]
             # successor edge
             if source == node._node_id:
