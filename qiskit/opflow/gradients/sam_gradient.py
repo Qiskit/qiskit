@@ -11,6 +11,7 @@ from .gradient import Gradient
 from .hessian import Hessian
 from ..list_ops.list_op import ListOp
 from ..operator_base import OperatorBase
+from ..state_fns import CircuitStateFn, DictStateFn, OperatorStateFn
 from ..operator_globals import Zero
 
 try:
@@ -23,7 +24,7 @@ except ImportError:
 
 class SAMGradient(Gradient):
 
-    def __init__(self, rho=0.05, second_order=False):
+    def __init__(self, rho=0.01, second_order=False):
         self._rho = rho
         self._second_order = second_order
         super().__init__()
@@ -33,14 +34,16 @@ class SAMGradient(Gradient):
                 params: Optional[
                     Union[ParameterVector, ParameterExpression, List[ParameterExpression]]] = None
                 ) -> OperatorBase:
-        # todo check if operator is exactly the ListOp and combo_fn is identity (lambda x: x)
-        # checkout traverse method for inspiration
 
         if params is None:
             params = sorted(operator.parameters, key=cmp_to_key(_compare_parameters))
 
         if type(operator) == ListOp and operator.combo_fn == (lambda x: x):
             return ListOp([self.convert(op, params) for op in operator])
+        #
+        # if type(operator) in [CircuitStateFn, OperatorStateFn, DictStateFn]:
+        #     # todo explain in docstring why and when error happens
+        #     raise TypeError  # some more specific error
 
         params_op = ListOp([param * (~Zero @ Zero) for param in params])
 
