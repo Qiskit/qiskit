@@ -1024,8 +1024,22 @@ class DAGCircuit:
                         "Mapped DAG would alter clbits " "on which it would be conditioned."
                     )
 
+        # Add wire from pred to succ if no ops on wire
+        for wire in wires:
+            input_node = in_dag.input_map[wire]
+            output_node = in_dag.output_map[wire]
+            if in_dag._multi_graph.has_edge(input_node._node_id, output_node._node_id):
+                self_wire = wire_map[wire]
+                pred = self._multi_graph.find_predecessors_by_edge(
+                    node._node_id, lambda edge: edge == self_wire
+                )[0]
+                succ = self._multi_graph.find_successors_by_edge(
+                    node._node_id, lambda edge: edge == self_wire
+                )[0]
+                self._multi_graph.add_edge(pred._node_id, succ._node_id, self_wire)
+
         def filter_fn(node):
-            if node.type != 'op':
+            if node.type != "op":
                 return False
             for qarg in node.qargs:
                 if qarg not in wire_set:
@@ -1038,18 +1052,24 @@ class DAGCircuit:
             if source == node._node_id:
                 wire_id = in_dag.output_map[wire]._node_id
                 out_index = in_dag._multi_graph.predecessor_indices(wire_id)[0]
+                # Edge from input to output don't map (handled already)
+                if in_dag._multi_graph[out_index].type != "op":
+                    return None
             # predecessor edge
             else:
                 wire_id = in_dag.input_map[wire]._node_id
                 out_index = in_dag._multi_graph.successor_indices(wire_id)[0]
+                # Edge from input to output don't map (handled already)
+                if in_dag._multi_graph[out_index].type != "op":
+                    return None
             return out_index
 
         def edge_weight_map(wire):
             return wire_map[wire]
 
         node_map = self._multi_graph.substitute_node_with_subgraph(
-            node._node_id, in_dag._multi_graph, edge_map_fn, filter_fn,
-            edge_weight_map)
+            node._node_id, in_dag._multi_graph, edge_map_fn, filter_fn, edge_weight_map
+        )
 
         # Iterate over nodes of input_circuit and update wires
         for old_node_index in node_map:
@@ -1057,13 +1077,9 @@ class DAGCircuit:
             new_node_index = node_map[old_node_index]
             old_node = in_dag._multi_graph[old_node_index]
             new_node = copy.copy(old_node)
-            condition = self._map_condition(wire_map,
-                                            old_node.op.condition,
-                                            self.cregs.values())
-            m_qargs = list(map(lambda x: wire_map.get(x, x),
-                               old_node.qargs))
-            m_cargs = list(map(lambda x: wire_map.get(x, x),
-                               old_node.cargs))
+            condition = self._map_condition(wire_map, old_node.op.condition, self.cregs.values())
+            m_qargs = list(map(lambda x: wire_map.get(x, x), old_node.qargs))
+            m_cargs = list(map(lambda x: wire_map.get(x, x), old_node.cargs))
             new_node.qargs = m_qargs
             new_node.cargs = m_cargs
             new_node._node_id = new_node_index
