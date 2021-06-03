@@ -180,7 +180,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             self.quantum_instance = quantum_instance
 
         self._eval_time = None
-        self._eval_count = None
+        self._eval_count = 0
         self._optimizer.set_max_evals_grouped(max_evals_grouped)
         self._callback = callback
 
