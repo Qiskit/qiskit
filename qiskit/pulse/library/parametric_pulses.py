@@ -191,16 +191,16 @@ class Gaussian(ParametricPulse):
 
 
 class GaussianSquare(ParametricPulse):
-    """A square pulse with a Gaussian shaped risefall on both sides. Either risefall_to_sigma
+    """A square pulse with a Gaussian shaped risefall on both sides. Either risefall_sigma_ratio
      or width parameter has to be specified.
 
-    If risefall_to_sigma is not None and width is None:
+    If risefall_sigma_ratio is not None and width is None:
 
     :math:`risefall = risefall` _ :math:`to` _ :math:`sigma * sigma`
 
     :math:`width = duration - 2 * risefall`
 
-    If width is not None and risefall_to_sigma is None:
+    If width is not None and risefall_sigma_ratio is None:
 
     .. math::
 
@@ -230,7 +230,7 @@ class GaussianSquare(ParametricPulse):
         amp: Union[complex, ParameterExpression],
         sigma: Union[float, ParameterExpression],
         width: Union[float, ParameterExpression] = None,
-        risefall_to_sigma: Union[float, ParameterExpression] = None,
+        risefall_sigma_ratio: Union[float, ParameterExpression] = None,
         name: Optional[str] = None,
     ):
         """Initialize the gaussian square pulse.
@@ -241,14 +241,14 @@ class GaussianSquare(ParametricPulse):
             sigma: A measure of how wide or narrow the Gaussian risefall is; see the class
                    docstring for more details.
             width: The duration of the embedded square pulse.
-            risefall_to_sigma: The ratio of each risefall duration to sigma.
+            risefall_sigma_ratio: The ratio of each risefall duration to sigma.
             name: Display name for this pulse envelope.
         """
         if not _is_parameterized(amp):
             amp = complex(amp)
         self._amp = amp
         self._sigma = sigma
-        self._risefall_to_sigma = risefall_to_sigma
+        self._risefall_sigma_ratio = risefall_sigma_ratio
         self._width = width
         super().__init__(duration=duration, name=name)
 
@@ -263,9 +263,9 @@ class GaussianSquare(ParametricPulse):
         return self._sigma
 
     @property
-    def risefall_to_sigma(self) -> Union[float, ParameterExpression]:
+    def risefall_sigma_ratio(self) -> Union[float, ParameterExpression]:
         """The duration of each risefall in terms of sigma."""
-        return self._risefall_to_sigma
+        return self._risefall_sigma_ratio
 
     @property
     def width(self) -> Union[float, ParameterExpression]:
@@ -283,13 +283,13 @@ class GaussianSquare(ParametricPulse):
             raise PulseError("The amplitude norm must be <= 1, " "found: {}".format(abs(self.amp)))
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
-        if self.width is not None and self.risefall_to_sigma is not None:
+        if self.width is not None and self.risefall_sigma_ratio is not None:
             raise PulseError(
-                "Either the pulse width or the risefall_to_sigma parameter can be specified."
+                "Either the pulse width or the risefall_sigma_ratio parameter can be specified but not both."
             )
-        if self.width is None and self.risefall_to_sigma is None:
+        if self.width is None and self.risefall_sigma_ratio is None:
             raise PulseError(
-                "Either the pulse width or the risefall_to_sigma parameter has to be specified."
+                "Either the pulse width or the risefall_sigma_ratio parameter must be specified."
             )
         if self.width is not None:
             if not _is_parameterized(self.width) and self.width < 0:
@@ -299,21 +299,21 @@ class GaussianSquare(ParametricPulse):
                 and self.width >= self.duration
             ):
                 raise PulseError("The pulse width must be less than its duration.")
-            self._risefall_to_sigma = (self.duration - self.width) / (2.0 * self.sigma)
+            self._risefall_sigma_ratio = (self.duration - self.width) / (2.0 * self.sigma)
 
         else:
-            if not _is_parameterized(self.risefall_to_sigma) and self.risefall_to_sigma <= 0:
-                raise PulseError("The parameter risefall_to_sigma must be greater than 0.")
+            if not _is_parameterized(self.risefall_sigma_ratio) and self.risefall_sigma_ratio <= 0:
+                raise PulseError("The parameter risefall_sigma_ratio must be greater than 0.")
             if not (
-                _is_parameterized(self.risefall_to_sigma)
+                _is_parameterized(self.risefall_sigma_ratio)
                 or _is_parameterized(self.duration)
                 or _is_parameterized(self.sigma)
-            ) and self.risefall_to_sigma >= self.duration / (2.0 * self.sigma):
+            ) and self.risefall_sigma_ratio >= self.duration / (2.0 * self.sigma):
                 raise PulseError(
-                    "The parameter risefall_to_sigma must be less than duration/("
+                    "The parameter risefall_sigma_ratio must be less than duration/("
                     "2*sigma)={}.".format(self.duration / (2.0 * self.sigma))
                 )
-            self._width = self.duration - 2.0 * self.risefall_to_sigma * self.sigma
+            self._width = self.duration - 2.0 * self.risefall_sigma_ratio * self.sigma
 
     @property
     def parameters(self) -> Dict[str, Any]:
