@@ -203,6 +203,64 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[3], c[3])
         self.assertEqual(qc.depth(), 4)
 
+    def test_circuit_depth_bit_conditionals1(self):
+        """Test circuit depth for single bit conditional gates #1."""
+        size = 4
+        q = QuantumRegister(size, "q")
+        c = ClassicalRegister(size, "c")
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.measure(q[2], c[2])
+        qc.h(q[1]).c_if(c[0], True)
+        qc.h(q[3]).c_if(c[2], False)
+        self.assertEqual(qc.depth(), 3)
+
+    def test_circuit_depth_bit_conditionals2(self):
+        """Test circuit depth for single bit conditional gates #2."""
+        size = 4
+        q = QuantumRegister(size, "q")
+        c = ClassicalRegister(size, "c")
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.measure(q[2], c[2])
+        qc.h(q[1]).c_if(c[1], True)
+        qc.h(q[3]).c_if(c[3], True)
+        qc.cx(0, 1).c_if(c[0], False)
+        qc.cx(2, 3).c_if(c[2], False)
+        qc.ch(0, 2).c_if(c[1], True)
+        qc.ch(1, 3).c_if(c[3], True)
+        self.assertEqual(qc.depth(), 4)
+
+    def test_circuit_depth_bit_conditionals3(self):
+        """Test circuit depth for single bit conditional gates #3."""
+        size = 4
+        q = QuantumRegister(size, "q")
+        c = ClassicalRegister(size, "c")
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.h(1).c_if(c[0], True)
+        qc.h(q[2]).c_if(c, 2)
+        qc.h(3).c_if(c[3], True)
+        qc.measure(q[1], c[1])
+        qc.measure(q[2], c[2])
+        qc.measure(q[3], c[3])
+        self.assertEqual(qc.depth(), 6)
+
     def test_circuit_depth_measurements1(self):
         """Test circuit depth for measurements #1."""
         size = 4
