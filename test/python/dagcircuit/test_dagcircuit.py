@@ -1153,13 +1153,13 @@ class TestDagSubstitute(QiskitTestCase):
 
     def test_substitute_circuit_one_front(self):
         """The method substitute_node_with_dag() replaces a leaf-in-the-front node with a DAG."""
-        flipped_cx_circuit = DAGCircuit()
+        circuit = DAGCircuit()
         v = QuantumRegister(1, "v")
-        flipped_cx_circuit.add_qreg(v)
-        flipped_cx_circuit.apply_operation_back(HGate(), [v[0]], [])
-        flipped_cx_circuit.apply_operation_back(XGate(), [v[0]], [])
+        circuit.add_qreg(v)
+        circuit.apply_operation_back(HGate(), [v[0]], [])
+        circuit.apply_operation_back(XGate(), [v[0]], [])
 
-        self.dag.substitute_node_with_dag(self.dag.op_nodes()[0], flipped_cx_circuit)
+        self.dag.substitute_node_with_dag(self.dag.op_nodes()[0], circuit)
         expected = DAGCircuit()
         qreg = QuantumRegister(3, "qr")
         creg = ClassicalRegister(2, "cr")
@@ -1173,7 +1173,24 @@ class TestDagSubstitute(QiskitTestCase):
 
     def test_substitute_circuit_one_back(self):
         """The method substitute_node_with_dag() replaces a leaf-in-the-back node with a DAG."""
-        pass
+        circuit = DAGCircuit()
+        v = QuantumRegister(1, "v")
+        circuit.add_qreg(v)
+        circuit.apply_operation_back(HGate(), [v[0]], [])
+        circuit.apply_operation_back(XGate(), [v[0]], [])
+
+        self.dag.substitute_node_with_dag(self.dag.op_nodes()[2], circuit)
+        expected = DAGCircuit()
+        qreg = QuantumRegister(3, "qr")
+        creg = ClassicalRegister(2, "cr")
+        expected.add_qreg(qreg)
+        expected.add_creg(creg)
+        expected.apply_operation_back(HGate(), [qreg[0]], [])
+        expected.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
+        expected.apply_operation_back(HGate(), [qreg[1]], [])
+        expected.apply_operation_back(XGate(), [qreg[1]], [])
+
+        self.assertEqual(self.dag, expected)
 
     def test_raise_if_substituting_dag_modifies_its_conditional(self):
         """Verify that we raise if the input dag modifies any of the bits in node.condition."""
