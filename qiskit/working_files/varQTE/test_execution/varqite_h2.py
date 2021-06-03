@@ -47,10 +47,10 @@ ode_solvers_names = ['ForwardEuler', 'RK45']
 
 # ode_solvers = [ RK23]
 # ode_solvers_names = ['RK23']
-# regs = ['ridge', 'perturb_diag']
-# reg_names = ['ridge', 'perturb_diag']
-regs = [ None]
-reg_names = ['lstsq']
+regs = ['ridge', 'perturb_diag']
+reg_names = ['ridge', 'perturb_diag']
+# regs = [ None]
+# reg_names = ['lstsq']
 # for nts in num_time_steps:
 # nts = num_time_steps[1]
 error_based_odes = [False, True]
@@ -97,7 +97,7 @@ for l, error_based_ode in enumerate(error_based_odes):
                 print('number time steps', nts)
                 print('depth ', d)
                 print('---------------------------------------------------------------------')
-                """
+
                 t0 = time.time()
                 varqite_snapshot_dir = os.path.join('..', 'output_h2', 'imag',
                                                     reg_names[j],
@@ -112,7 +112,8 @@ for l, error_based_ode in enumerate(error_based_odes):
                                   error_based_ode=error_based_ode,
                                   snapshot_dir=varqite_snapshot_dir)
 
-                approx_time_evolved_state_imag = varqite.convert(op)
+                varqite._operator = op
+                # approx_time_evolved_state_imag = varqite.convert(op)
                 varqite_error_bounds = varqite.error_bound(
                     varqite_snapshot_dir, imag_reverse_bound=False,
                     H=observable.to_matrix(massive=True))
@@ -157,3 +158,4 @@ for l, error_based_ode in enumerate(error_based_odes):
                 print('run time', (time.time()-t0)/60)
                 varqrte.plot_results([varqrte_snapshot_dir], [os.path.join(varqrte_snapshot_dir,
                                                                             'error_bounds.npy')])
+                """

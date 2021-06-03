@@ -321,9 +321,11 @@ class VarQITE(VarQTE):
 
         with open(os.path.join(self._snapshot_dir, 'varqite_bound_output.csv'), mode='w') as \
                 csv_file:
-            fieldnames = ['dt', 'opt_factor', 'grad_factor', 'energy_factor']
+            fieldnames = ['eps_t', 'dt', 'opt_factor', 'grad_factor', 'energy_factor', 'stddev',
+                          '|e-norm(H)|']
 
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+            writer.writeheader()
 
         error_bounds = [0]
 
@@ -347,17 +349,27 @@ class VarQITE(VarQTE):
 
             print('opt factor ', y)
             print('grad factor ', gradient_errors[j-1])
-            print('Energy error factor', np.around(2 * error_bounds[j - 1] * stddevs[j - 1] +
+            print('Energy error factor', 2 * error_bounds[j - 1] * stddevs[j - 1] +
                                                    error_bounds[j - 1] ** 2 / 2 *
                                                    np.abs(
-                                                       energies[j - 1] - np.linalg.norm(H, np.inf)),
-                                                   4))
+                                                       energies[j - 1] - np.linalg.norm(H, np.inf)))
 
-            writer.writerow({'dt': delta_t,
-                             'opt_factor': np.round(y, 8),
-                             'grad_factor': np.round(gradient_errors[j-1]),
-                             'energy_factor': np.round(energy_factor)
-                             })
+            with open(os.path.join(self._snapshot_dir, 'varqite_bound_output.csv'), mode='a') as \
+                    csv_file:
+                fieldnames = ['eps_t', 'dt', 'opt_factor', 'grad_factor', 'energy_factor', 'stddev',
+                              '|e-norm(H)|']
+
+                writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+                writer.writerow({'eps_t': np.round(error_bounds[j - 1], 8),
+                                 'dt': delta_t,
+                                 'opt_factor': np.round(y, 8),
+                                 'grad_factor': np.round(gradient_errors[j-1], 8),
+                                 'energy_factor': np.round(energy_factor, 8),
+                                 'stddev': np.round(stddevs[j-1], 8),
+                                 '|e-norm(H)|': np.round(np.abs(energies[j-1]-
+                                                           np.linalg.norm(H, np.inf)), 8)
+                                 })
 
 #--------------------------------
         """
