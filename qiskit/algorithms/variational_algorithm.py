@@ -177,9 +177,11 @@ and will be removed no sooner than 3 months after the releasedate."""
     @property
     @deprecate_function(
         """
-The VariationalAlgorithm is reduced to an interface. Thus, the
-initial_point property is deprecated as of Qiskit Terra 0.18.0
-and will be removed no sooner than 3 months after the releasedate."""
+The VariationalAlgorithm is reduced to an interface. The
+initial_point property will be made abstract no sooner than
+3 months after the release date of Qiskit Terra 0.18.0. You should
+make a concrete implementation in any derived class and not rely on
+the implementation here which will be removed."""
     )
     def initial_point(self) -> Optional[np.ndarray]:
         """Returns initial point"""
@@ -188,9 +190,11 @@ and will be removed no sooner than 3 months after the releasedate."""
     @initial_point.setter
     @deprecate_function(
         """
-The VariationalAlgorithm is reduced to an interface. Thus, the
-initial_point property is deprecated as of Qiskit Terra 0.18.0
-and will be removed no sooner than 3 months after the releasedate."""
+The VariationalAlgorithm is reduced to an interface. The
+initial_point property will be made abstract no sooner than
+3 months after the release date of Qiskit Terra 0.18.0. You should
+make a concrete implementation in any derived class and not rely on
+the implementation here which will be removed."""
     )
     def initial_point(self, initial_point: np.ndarray):
         """Sets initial point"""
