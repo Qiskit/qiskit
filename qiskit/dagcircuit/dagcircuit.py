@@ -959,7 +959,7 @@ class DAGCircuit:
             DAGCircuitError: if met with unexpected predecessor/successors
         """
         in_dag = input_dag
-        condition = None if node.type != "op" else node.op.condition
+        condition = None if node.type != "op" else node._op.condition
 
         # the dag must be amended if used in a
         # conditional context. delete the op nodes and replay
@@ -970,12 +970,12 @@ class DAGCircuit:
             to_replay = []
             for sorted_node in in_dag.topological_nodes():
                 if sorted_node.type == "op":
-                    sorted_node.op.condition = condition
+                    sorted_node._op.condition = condition
                     to_replay.append(sorted_node)
             for input_node in in_dag.op_nodes():
                 in_dag.remove_op_node(input_node)
             for replay_node in to_replay:
-                in_dag.apply_operation_back(replay_node.op, replay_node.qargs, replay_node.cargs)
+                in_dag.apply_operation_back(replay_node._op, replay_node.qargs, replay_node.cargs)
 
         if in_dag.global_phase:
             self.global_phase += in_dag.global_phase
@@ -1076,7 +1076,7 @@ class DAGCircuit:
             # update node attributes
             new_node_index = node_map[old_node_index]
             old_node = in_dag._multi_graph[old_node_index]
-            condition = self._map_condition(wire_map, old_node.op.condition, self.cregs.values())
+            condition = self._map_condition(wire_map, old_node._op.condition, self.cregs.values())
             m_qargs = list(map(lambda x: wire_map.get(x, x), old_node.qargs))
             m_cargs = list(map(lambda x: wire_map.get(x, x), old_node.cargs))
             new_node = DAGNode(
