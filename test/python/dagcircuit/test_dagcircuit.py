@@ -1136,10 +1136,10 @@ class TestDagSubstitute(QiskitTestCase):
 
         self.dag.substitute_node_with_dag(cx_node, flipped_cx_circuit, wires=[v[0], v[1]])
 
-        self.assertEqual(self.dag.count_ops()['h'], 5)
+        self.assertEqual(self.dag.count_ops()["h"], 5)
         expected = DAGCircuit()
-        qreg = QuantumRegister(3, 'qr')
-        creg = ClassicalRegister(2, 'cr')
+        qreg = QuantumRegister(3, "qr")
+        creg = ClassicalRegister(2, "cr")
         expected.add_qreg(qreg)
         expected.add_creg(creg)
         expected.apply_operation_back(HGate(), [qreg[0]], [])
@@ -1159,11 +1159,10 @@ class TestDagSubstitute(QiskitTestCase):
         flipped_cx_circuit.apply_operation_back(HGate(), [v[0]], [])
         flipped_cx_circuit.apply_operation_back(XGate(), [v[0]], [])
 
-        self.dag.substitute_node_with_dag(self.dag.op_nodes()[0],
-                                          flipped_cx_circuit)
+        self.dag.substitute_node_with_dag(self.dag.op_nodes()[0], flipped_cx_circuit)
         expected = DAGCircuit()
-        qreg = QuantumRegister(3, 'qr')
-        creg = ClassicalRegister(2, 'cr')
+        qreg = QuantumRegister(3, "qr")
+        creg = ClassicalRegister(2, "cr")
         expected.add_qreg(qreg)
         expected.add_creg(creg)
         expected.apply_operation_back(HGate(), [qreg[0]], [])
