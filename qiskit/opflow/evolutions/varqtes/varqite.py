@@ -321,19 +321,18 @@ class VarQITE(VarQTE):
             # max B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
             y = max_bures(error_bounds[j - 1], energies[j - 1], h_squareds[j - 1],
                              h_trips[j - 1], d_t)
-
-            
+            # eps_t*sqrt(var) + eps_t^2/2 * |E_t - ||H||_infty |
             energy_factor = (2 * error_bounds[j - 1] * stddevs[j - 1] +
                              error_bounds[j - 1] ** 2 / 2 * np.abs(energies[j - 1] -
                                                                    np.linalg.norm(H, np.inf)))
-
-            print('opt factor ', y)
+            print('Max Bures ', y)
             print('grad factor ', gradient_errors[j - 1])
             print('Energy error factor', 2 * error_bounds[j - 1] * stddevs[j - 1] +
                   error_bounds[j - 1] ** 2 / 2 *
                   np.abs(
                       energies[j - 1] - np.linalg.norm(H, np.inf)))
 
+            # Write terms to csv file
             with open(os.path.join(self._snapshot_dir, 'varqite_bound_output.csv'), mode='a') as \
                     csv_file:
                 fieldnames = ['eps_t', 'dt', 'opt_factor', 'grad_factor', 'energy_factor', 'stddev',
@@ -365,6 +364,7 @@ class VarQITE(VarQTE):
         if trapezoidal:
             trap_grad = [0]
 
+        # Compute error bound for all the time steps of the ODE Solver
         for j in range(len(times)):
             if j == 0:
                 continue
@@ -372,15 +372,15 @@ class VarQITE(VarQTE):
                 delta_t = times[j]-times[j-1]
                 error_bounds.append(get_error_term(delta_t, j))
             else:
+                # Use a finite difference approx. of the gradient underlying the error at time t
+                # to enable the use of an integral formulation of the error
                 #TODO avoid hard-coding of delta_t
                 delta_t_trap = 1e-6
                 trap_grad_term = (get_error_term(delta_t_trap, j) -
                                   error_bounds[j - 1]) / delta_t_trap
                 trap_grad.append(trap_grad_term)
+                # Compute an approx. to the integral formulation of eps_t using the trapezoidal rule
                 error_bounds.append(np.trapz(trap_grad, x=times[:j + 1]))
-
-
-
 
 #--------------------------------
         """
