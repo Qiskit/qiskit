@@ -531,7 +531,7 @@ class C3SXGate(ControlledGate):
 
 
 class C3XGate(ControlledGate):
-    r"""The 4-qubit controlled X gate.
+    r"""The X gate controlled on 3 qubits.
 
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
     """
