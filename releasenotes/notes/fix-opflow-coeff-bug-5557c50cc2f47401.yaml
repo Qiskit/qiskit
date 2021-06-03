@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix the bug expectation converters in opflow ignores the coefficients.

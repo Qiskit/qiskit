@@ -47,6 +47,23 @@ class AerPauliExpectation(ExpectationBase):
         """
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
             return self._replace_pauli_sums(operator.primitive) * operator.coeff
+        elif (
+            isinstance(operator, ComposedOp)
+            and isinstance(operator[0], OperatorStateFn)
+            and operator[0].is_measurement
+        ):
+            state_coeff = operator[1].coeff
+            state = operator[1] / operator[1].coeff
+            return ComposedOp(
+                [
+                    self._replace_pauli_sums(operator[0].primitive)
+                    * operator[0].coeff
+                    * (state_coeff.real ** 2 + state_coeff.imag ** 2),
+                    state,
+                ],
+                coeff=operator.coeff,
+                abelian=operator.abelian,
+            )
         elif isinstance(operator, ListOp):
             return operator.traverse(self.convert)
         else:

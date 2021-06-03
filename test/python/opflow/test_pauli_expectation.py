@@ -254,6 +254,13 @@ class TestPauliExpectation(QiskitOpflowTestCase):
         self.assertIsInstance(observable[0][0][0].primitive, PauliSumOp)
         self.assertIsInstance(observable[0][1][0].primitive, PauliSumOp)
 
+    def test_expectation_with_coeff(self):
+        """Test PauliExpectation with coefficients."""
+        exp = 3 * ~StateFn(Z) @ (2 * One)
+        expected = exp.eval()
+        target = self.sampler.convert(self.expect.convert(exp)).eval()
+        self.assertEqual(target, expected)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -357,8 +357,10 @@ class CircuitSampler(ConverterBase):
                         avg = avg[0] + 1j * avg[1]
                     # Will be replaced with just avg when eval is called later
                     num_qubits = circuit_sfns[0].num_qubits
-                    result_sfn = (
-                        DictStateFn("0" * num_qubits, is_measurement=op_c.is_measurement) * avg
+                    result_sfn = DictStateFn(
+                        "0" * num_qubits,
+                        coeff=avg * op_c.coeff,
+                        is_measurement=op_c.is_measurement,
                     )
                 elif self._statevector:
                     result_sfn = StateFn(
