@@ -1076,14 +1076,13 @@ class DAGCircuit:
             # update node attributes
             new_node_index = node_map[old_node_index]
             old_node = in_dag._multi_graph[old_node_index]
-            new_node = copy.copy(old_node)
             condition = self._map_condition(wire_map, old_node.op.condition, self.cregs.values())
             m_qargs = list(map(lambda x: wire_map.get(x, x), old_node.qargs))
             m_cargs = list(map(lambda x: wire_map.get(x, x), old_node.cargs))
-            new_node.qargs = m_qargs
-            new_node.cargs = m_cargs
-            new_node._node_id = new_node_index
-            new_node.op.condition = condition
+            new_node = DAGNode(
+                "op", op=old_node._op, qargs=m_qargs, cargs=m_cargs, nid=new_node_index
+            )
+            new_node._op.condition = condition
             self._multi_graph[new_node_index] = new_node
 
     def substitute_node(self, node, op, inplace=False):
