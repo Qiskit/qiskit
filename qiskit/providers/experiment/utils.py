@@ -83,7 +83,9 @@ def plot_to_svg_bytes(figure: "pyplot.Figure") -> bytes:
         Figure in bytes.
     """
     buf = io.BytesIO()
-    figure.savefig(buf, format="svg")
+    opaque_color = list(figure.get_facecolor())
+    opaque_color[3] = 1.0  # set alpha to opaque
+    figure.savefig(buf, format="svg", facecolor=tuple(opaque_color), edgecolor="none")
     buf.seek(0)
     figure_data = buf.read()
     buf.close()

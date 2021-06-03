@@ -365,8 +365,8 @@ class ExperimentDataV1(ExperimentData):
             and (not isinstance(figure_names, list) or len(figures) != len(figure_names))
         ):
             raise ValueError(
-                f"The parameter figure_names must be None or a list of "
-                f"the same size as the parameter figures."
+                "The parameter figure_names must be None or a list of "
+                "the same size as the parameter figures."
             )
         if not isinstance(figures, list):
             figures = [figures]
