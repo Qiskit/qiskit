@@ -391,13 +391,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         return True
 
     def _eval_aux_ops(
-        self, aux_operators: List[OperatorBase], threshold: float = 1e-12
+        self, parameters: np.ndarray, aux_operators: List[OperatorBase], threshold: float = 1e-12
     ) -> np.ndarray:
         # Create new CircuitSampler to avoid breaking existing one's caches.
         sampler = CircuitSampler(self.quantum_instance)
 
         aux_op_meas = self.expectation.convert(StateFn(ListOp(aux_operators), is_measurement=True))
-        aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.get_optimal_circuit()))
+        aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.ansatz.bind_parameters(parameters)))
         values = np.real(sampler.convert(aux_op_expect).eval())
 
         # Discard values below threshold
@@ -474,6 +474,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         result = VQEResult()
         result.optimal_point = opt_params
         result.optimal_parameters = dict(zip(self._ansatz_params, opt_params))
+        result.optimal_value = opt_value
         result.cost_function_evals = nfev
         result.optimizer_time = eval_time
         result.eigenvalue = opt_value + 0j
@@ -486,12 +487,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             self._eval_count,
         )
 
-        if aux_operators is not None:
-            aux_values = self._eval_aux_ops(aux_operators)
-            result.aux_operator_eigenvalues = aux_values[0]
-
         # TODO delete as soon as get_optimal_vector etc are removed
         self._ret = result
+
+        if aux_operators is not None:
+            aux_values = self._eval_aux_ops(opt_params, aux_operators)
+            result.aux_operator_eigenvalues = aux_values[0]
+
         return result
 
     def get_energy_evaluation(
@@ -594,27 +596,15 @@ queried as VQEResult.eigenvector."""
         return self._get_eigenstate(self._ret.optimal_parameters)
 
     def _get_eigenstate(self, optimal_parameters) -> Union[List[float], Dict[str, int]]:
-        """Get the simulation outcome of the optimal circuit."""
-        from qiskit.utils.run_circuits import find_regs_by_name
-
+        """Get the simulation outcome of the ansatz, provided with parameters."""
         optimal_circuit = self.ansatz.bind_parameters(optimal_parameters)
-        min_vector = {}
+        state_fn = self._circuit_sampler.convert(StateFn(optimal_circuit)).eval()
         if self.quantum_instance.is_statevector:
-            ret = self._quantum_instance.execute(optimal_circuit)
-            min_vector = ret.get_statevector(optimal_circuit)
+            state = state_fn.primitive.data  # VectorStateFn -> Statevector -> np.array
         else:
-            c = ClassicalRegister(optimal_circuit.width(), name="c")
-            q = find_regs_by_name(optimal_circuit, "q")
-            optimal_circuit.add_register(c)
-            optimal_circuit.barrier(q)
-            optimal_circuit.measure(q, c)
-            ret = self.quantum_instance.execute(optimal_circuit)
-            counts = ret.get_counts(optimal_circuit)
-            # normalize, just as done in CircuitSampler.sample_circuits
-            shots = self.quantum_instance._run_config.shots
-            min_vector = {b: (v / shots) ** 0.5 for (b, v) in counts.items()}
+            state = state_fn.to_dict_fn().primitive  # SparseVectorStateFn -> DictStateFn -> dict
 
-        return min_vector
+        return state
 
     @deprecate_function(
         """
@@ -651,8 +641,6 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
     @property
     def eigenstate(self) -> Optional[np.ndarray]:
         """return eigen state"""
-        if self._eigenstate is None:
-            self._eigenstate = self._get_optimal_vector()
         return self._eigenstate
 
     @eigenstate.setter
