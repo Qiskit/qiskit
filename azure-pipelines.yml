@@ -187,7 +187,6 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt git+https://github.com/mtreinish/retworkx@substitute-node
             python setup.py sdist
             pip install -U -c constraints.txt dist/qiskit-terra*.tar.gz
             pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
@@ -266,7 +265,6 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt git+https://github.com/mtreinish/retworkx@substitute-node
             pip install -U -c constraints.txt -e .
             pip install -U "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
@@ -319,7 +317,6 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt git+https://github.com/mtreinish/retworkx@substitute-node
             pip install -U -c constraints.txt -e .
             pip install -U "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
@@ -389,7 +386,6 @@ stages:
             virtualenv test-job
             source test-job/Scripts/activate
             pip install -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt git+https://github.com/mtreinish/retworkx@substitute-node
             pip install -c constraints.txt -e .
             pip install "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
@@ -474,7 +470,6 @@ stages:
             virtualenv test-job
             source test-job/Scripts/activate
             pip install -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt git+https://github.com/mtreinish/retworkx@substitute-node
             pip install -c constraints.txt -e .
             pip install "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
@@ -566,7 +561,6 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt git+https://github.com/mtreinish/retworkx@substitute-node
             pip install -U -c constraints.txt -e .
             pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
@@ -651,7 +645,6 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt git+https://github.com/mtreinish/retworkx@substitute-node
             pip install -U -c constraints.txt -e .
             python setup.py build_ext --inplace
             pip check
@@ -768,7 +761,6 @@ stages:
             git clone https://github.com/Qiskit/qiskit-tutorials --depth=1
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt git+https://github.com/mtreinish/retworkx@substitute-node
             pip install -c constraints.txt -e .
             # TODO: Remove aqua and ignis from source after next aqua release
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "git+https://github.com/Qiskit/qiskit-ignis" "git+https://github.com/Qiskit/qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
@@ -821,7 +813,6 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -c constraints.txt
-            pip install -U -c constraints.txt git+https://github.com/mtreinish/retworkx@substitute-node
             pip install -U -c constraints.txt -e .
             pip install -U "matplotlib<3.3.0" pylatexenc pillow
             python setup.py build_ext --inplace
