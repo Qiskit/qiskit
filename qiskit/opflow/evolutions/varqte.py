@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 
-from scipy.integrate import OdeSolver, ode, solve_ivp
+from scipy.integrate import OdeSolver, ode, solve_ivp, RK45
 from scipy.optimize import least_squares, minimize
 
 from qiskit.providers import BaseBackend
@@ -490,8 +490,11 @@ class VarQTE(EvolutionBase):
                                        trained_energy, None, h_squared, h_trip, dtdt_state,
                                        reimgrad)
             return dt_params
+        if self._ode_solver == RK45:
+            self._ode_solver =self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
+                                                atol=1e-6, max_step = 0.01)
 
-        if issubclass(self._ode_solver, OdeSolver):
+        elif issubclass(self._ode_solver, OdeSolver):
             self._ode_solver=self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
                                               atol=1e-6)
 

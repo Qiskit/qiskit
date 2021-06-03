@@ -175,9 +175,11 @@ class VarQITE(VarQTE):
                          h_trips: List,
                          H: Union[List, np.ndarray],
                          energies: List,
-                         imag_reverse_bound: bool = True) -> Union[List, Tuple[List, List]]:
+                         imag_reverse_bound: bool = True,
+                         trapezoidal: bool=False) -> Union[List, Tuple[List, List]]:
         """
-        Get the upper bound to a global phase agnostic l2-norm error for VarQITE simulation
+        Get the upper bound to the Bures metric between prepared and target state for VarQITE
+        simulation
         Args:
             gradient_errors: Error of the state propagation gradient for each t in times
             times: List of all points in time considered throughout the simulation
@@ -188,6 +190,7 @@ class VarQITE(VarQTE):
                reverse bound
             energies: ⟨ψ(ω)|H| ψ(ω) for all times
             imag_reverse_bound: If True compute the reverse error bound
+            trapezoidal: If True use trapezoidal rule to compute error bounds.
 
         Returns:
             List of the error upper bound for all times
@@ -200,124 +203,155 @@ class VarQITE(VarQTE):
             raise Warning('The number of the gradient errors is incompatible with the number of '
                           'the time steps.')
 
-        def optimization(eps: float,
+        def max_bures(eps: float,
                          e: float,
                          h_squared: float,
                          h_trip: float,
                          delta_t: float) -> float:
-            # print('hsquared ', h_squared)
-            # print('e ', e)
+            """
+            Compute  max_alpha B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
+            Args:
+                eps: Error from the previous time step
+                e: Energy <psi_t|H|psi_t>
+                h_squared: <psi_t|H^2|psi_t>
+                h_trip: <psi_t|H^3|psi_t>
+                delta_t: time step
+
+            Returns: max_alpha B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
+
+            """
 
             c_alpha = lambda a: np.sqrt((1-np.abs(a))**2 + 2*a *(1-np.abs(a))*e + a**2*h_squared)
 
             e_star = lambda a: ((1 - np.abs(a)) ** 2 * e + 2 * (a - a * np.abs(a)) * h_squared +
                                 a ** 2 * h_trip) / c_alpha(a) ** 2
-            # e_star = lambda a: ((1 - a) ** 2 * e + 2 * (a - a ** 2) * h_squared +
-            #                    a ** 2 * h_trip) / c_alpha(a) ** 2
 
-            # abs_value = lambda a: (1 - a) * (1 + delta_t * (e_star(a) - e)) + \
-            #             a * (e + delta_t * (e * (e + e_star(a)) - 2 * h_squared))
+            def bures(alpha: Iterable[float]) -> float:
+                """
+                Compute generalized Bures metric B(I + delta_t(E_t-H)|psi_t>, I + delta_t(
+                E_t-H)|psi*_t>(alpha))
+                Args:
+                    alpha: optimization parameter alpha
 
-            """
-                abs_value = lambda a: (1 - a) * (1 + delta_t * (e_star(a) - e)) + \
-                a * (e + delta_t * (e * (e + e_star(a)) - 2 * h_squared)) + \
-                delta_t**2 * ((1-a)*(h_squared - e**2) + a * (e**2*e_star(a) - (e +
-                                                                                e_star(a))
-                                                              * h_squared + a * h_trip))
-            """
+                Returns: B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
 
-            def optimization_fun(alpha: Iterable[float]) -> float:
-                # print('e ', e)
+                """
+
                 alpha = alpha[0]
 
-                abs_val0 = lambda a: 1 + 2 * delta_t * (e - e_star(a))
-                abs_val1 = lambda a: (1 - np.abs(a) + a * e) * (1 + 2 * delta_t * e) - \
-                                     2 * delta_t * ((1 - np.abs(a)) * e + a * h_squared)
+                # |<psi*_t|(I + delta_t(E_t-H))^2|psi*_t>|
+                abs_val0 = lambda a: np.abs(1 + 2 * delta_t * (e - e_star(a)))
 
-                abs_val0 = np.abs(abs_val0(alpha))
-                abs_val1 = np.abs(abs_val1(alpha) / c_alpha(alpha))
+                # |<psi_t|(I + delta_t(E_t-H))^2|psi*_t>|
+                abs_val1 = lambda a: np.abs((1 - np.abs(a) + a * e) * (1 + 2 * delta_t * e) - \
+                                     2 * delta_t * ((1 - np.abs(a)) * e + a * h_squared) /
+                                            c_alpha(a))
 
-                """
-                # v = (1 + delta_t * (E_t - H))|psi_t>
-                v_norm = 1 + delta_t**2 * (h_squared - e**2)
+                bures_squared = 1 + abs_val0(alpha) - 2 * abs_val1(alpha)
 
-                # w = (1 + delta_t * (E^*_t - H))|psi^*_t>
-                w_norm = 1 + delta_t**2 * ((1 - alpha)**2 * h_squared + 2*alpha * (1 - alpha)*
-                                           h_trip) / c_alpha(alpha)**2
-                
-                # TODO use this to be actually correct
-                # w_norm = 1 + delta_t**2 * ((1 - alpha)**2 * h_squared +
-                #                            2*alpha * (1 - alpha)* h_trip +
-                #                            alpha**2 * h_fourth) / c_alpha(alpha)**2
+                # Check if B^2 is negative
+                if bures_squared < 0:
+                    # If it is slightly negative then clip
+                    if bures_squared < -1e-6:
+                        bures_squared = 0
+                    # Else raise warning
+                    else:
+                        print('Alpha led to Nan ', alpha)
+                        return math.nan
 
-                if 0.5 * (v_norm + w_norm) - abs_val < 0:
-                
-                
-                return np.sqrt(2) * np.sqrt(0.5 * (v_norm + w_norm) - abs_val)
-                """
-                # if 1 - abs_val < 0:
-                #     # # print('1 - abs value ', 1 - abs_val)
-                #     if 1 - abs_val < -1e-6:
-                #         abs_val = 1
-                #     else:
-                #         return math.nan
-                # print('In sqrt ', 1 + abs_val0 - 2 * abs_val1)
-                return_val = np.sqrt(1 + abs_val0 - 2 * abs_val1)
-
-                return return_val
-
-            # def constraint0(alpha: Iterable[float]) -> float:
-            #     alpha = alpha[0]
-            #     return 1 - abs_value(alpha)
+                # B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
+                bures = np.sqrt(bures_squared)
+                return bures
 
             def constraint1(alpha: Iterable[float]) -> float:
+                """
+                This constraint ensures that the optimization chooses a |psi*_t> which is in
+                accordance with the prior state error
+                Args:
+                    alpha: optimization value
+
+                Returns: |<|psi_t|psi*_t>| - (1 + eps^2/2)
+
+                """
                 alpha = alpha[0]
                 return np.abs((1 - np.abs(alpha) + alpha * e) / c_alpha(alpha)) - 1 + eps**2 /2
 
             def constraint2(alpha: Iterable[float]) -> float:
-                # Constraint alpha >= 0
-                return alpha[0]
+                # Constraint |alpha| <= 1
+                return 1 - np.abs(alpha[0])
 
-            def constraint3(alpha: Iterable[float]) -> float:
-                # Constraint alpha <= 1
-                return 1 - alpha[0]
-
-            # alpha_opt = fmin_cobyla(func=lambda x: (-1) * optimization_fun(x), x0=[0.001],
-            #                         rhobeg=0.1, catol=1e-16, maxfun=100000,
-            #                         rhoend=1e-16, cons=[constraint0, constraint2, constraint3,
-            #                                             constraint1])[0]
-
-            # alpha_opt_list = []
             alpha_opt = None
-            objective_fun = None
-            # objective_list = []
+            max_bures = None
             # TODO Use again finer grid of 10**6
+            # Grid search over alphas for the optimization
             a_grid = np.append(np.linspace(-1, 1, 10**5), 0)
             for a in a_grid:
-                opt_fun = optimization_fun([a])
-
-                if math.isnan(opt_fun):
-                    # print('optimization fun is nan')
+                returned_bures = bures([a])
+                if math.isnan(returned_bures):
+                    print('optimization fun is nan')
                     pass
+                # Ensure that constraint is sufficed
                 elif constraint1([a]) < 0:
-                    # print('constraint 1 ', constraint1([a]) )
                     pass
                 else:
-                    if objective_fun is None or opt_fun > objective_fun:
-                        objective_fun = opt_fun
+                    # Check if the current bures metric is bigger than the max.
+                    if max_bures is None or returned_bures > max_bures:
+                        max_bures = returned_bures
                         alpha_opt = a
-
-                    # objective_list.append(opt_fun)
-                    # alpha_opt_list.append(a)
-
-            # index = objective_list.index(max(objective_list))
-            # alpha_opt = alpha_opt_list[index]
+            # After the grid use the resulting optimal alpha and do another optimization search
+            alpha_opt = fmin_cobyla(func=lambda x: (-1) * bures(x), x0=[alpha_opt],
+                                    rhobeg=1e-6, catol=1e-16, maxfun=10000,
+                                    rhoend=1e-10, cons=[constraint1, constraint2])[0]
+            max_bures = bures([alpha_opt])
 
             print('alpha_opt ', alpha_opt)
-            print('Y(alpha_opt) ', objective_fun)
-            # print('alpha list ', alpha_opt_list)
-            # print('objective list', objective_list)
-            return objective_fun
+            print('Maximum bures metric ', max_bures)
+            return max_bures
+
+        def get_error_term(d_t, j):
+            """
+            Compute the error term for a given time step and a point in the simulation time
+            Args:
+                d_t: time step
+                j: jth step in VarQITE
+
+            Returns: eps_j(delta_t)
+
+            """
+            # max B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
+            y = max_bures(error_bounds[j - 1], energies[j - 1], h_squareds[j - 1],
+                             h_trips[j - 1], d_t)
+
+            
+            energy_factor = (2 * error_bounds[j - 1] * stddevs[j - 1] +
+                             error_bounds[j - 1] ** 2 / 2 * np.abs(energies[j - 1] -
+                                                                   np.linalg.norm(H, np.inf)))
+
+            print('opt factor ', y)
+            print('grad factor ', gradient_errors[j - 1])
+            print('Energy error factor', 2 * error_bounds[j - 1] * stddevs[j - 1] +
+                  error_bounds[j - 1] ** 2 / 2 *
+                  np.abs(
+                      energies[j - 1] - np.linalg.norm(H, np.inf)))
+
+            with open(os.path.join(self._snapshot_dir, 'varqite_bound_output.csv'), mode='a') as \
+                    csv_file:
+                fieldnames = ['eps_t', 'dt', 'opt_factor', 'grad_factor', 'energy_factor', 'stddev',
+                              '|e-norm(H)|']
+
+                writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+                writer.writerow({'eps_t': np.round(error_bounds[j - 1], 8),
+                                 'dt': d_t,
+                                 'opt_factor': np.round(y, 8),
+                                 'grad_factor': np.round(gradient_errors[j - 1], 8),
+                                 'energy_factor': np.round(energy_factor, 8),
+                                 'stddev': np.round(stddevs[j - 1], 8),
+                                 '|e-norm(H)|': np.round(np.abs(energies[j - 1] -
+                                                                np.linalg.norm(H, np.inf)), 8)
+                                 })
+            # \epsilon_{t+1}
+            return y + d_t * gradient_errors[j - 1] + d_t * energy_factor
 
         with open(os.path.join(self._snapshot_dir, 'varqite_bound_output.csv'), mode='w') as \
                 csv_file:
@@ -328,48 +362,25 @@ class VarQITE(VarQTE):
             writer.writeheader()
 
         error_bounds = [0]
+        if trapezoidal:
+            trap_grad = [0]
 
         for j in range(len(times)):
             if j == 0:
                 continue
-            # if j == 9:
-            #     print('stop')
-            delta_t = times[j]-times[j-1]
-            y = optimization(error_bounds[j-1], energies[j-1], h_squareds[j-1],
-                             h_trips[j-1], delta_t)
+            if not trapezoidal:
+                delta_t = times[j]-times[j-1]
+                error_bounds.append(get_error_term(delta_t, j))
+            else:
+                #TODO avoid hard-coding of delta_t
+                delta_t_trap = 1e-6
+                trap_grad_term = (get_error_term(delta_t_trap, j) -
+                                  error_bounds[j - 1]) / delta_t_trap
+                trap_grad.append(trap_grad_term)
+                error_bounds.append(np.trapz(trap_grad, x=times[:j + 1]))
 
-            energy_factor = (2*error_bounds[j-1]*stddevs[j-1] +
-                             error_bounds[j-1]**2/2*np.abs(energies[j-1]-
-                                                           np.linalg.norm(H, np.inf)))
 
-            # \epsilon_{t+1}
-            error_bounds.append(y +
-                                delta_t * gradient_errors[j-1] +
-                                delta_t * energy_factor)
 
-            print('opt factor ', y)
-            print('grad factor ', gradient_errors[j-1])
-            print('Energy error factor', 2 * error_bounds[j - 1] * stddevs[j - 1] +
-                                                   error_bounds[j - 1] ** 2 / 2 *
-                                                   np.abs(
-                                                       energies[j - 1] - np.linalg.norm(H, np.inf)))
-
-            with open(os.path.join(self._snapshot_dir, 'varqite_bound_output.csv'), mode='a') as \
-                    csv_file:
-                fieldnames = ['eps_t', 'dt', 'opt_factor', 'grad_factor', 'energy_factor', 'stddev',
-                              '|e-norm(H)|']
-
-                writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-
-                writer.writerow({'eps_t': np.round(error_bounds[j - 1], 8),
-                                 'dt': delta_t,
-                                 'opt_factor': np.round(y, 8),
-                                 'grad_factor': np.round(gradient_errors[j-1], 8),
-                                 'energy_factor': np.round(energy_factor, 8),
-                                 'stddev': np.round(stddevs[j-1], 8),
-                                 '|e-norm(H)|': np.round(np.abs(energies[j-1]-
-                                                           np.linalg.norm(H, np.inf)), 8)
-                                 })
 
 #--------------------------------
         """
@@ -438,12 +449,6 @@ class VarQITE(VarQTE):
              """
         print('error bounds', np.around(error_bounds, 4))
         print('gradient errors', np.around(gradient_errors, 4))
-
-        #
-        # e_bounds = []
-        # for j, dt in enumerate(times):
-        #     # e_bound.append(np.trapz(errors[:j+1], x=times[:j+1]))
-        #     e_bounds.append(np.trapz(gradient_errors[:j + 1], x=times[:j + 1]))
 
         return error_bounds
 
