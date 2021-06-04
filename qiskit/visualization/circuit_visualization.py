@@ -332,9 +332,10 @@ def _text_circuit_drawer(
     text_drawing.vertical_compression = vertical_compression
 
     if filename:
+        if not filename.endswith(".txt"):
+            logger.warning("WARNING Filename extension is not .txt. Please use a .txt file extension to save in text format.")
+            return text_drawing
         text_drawing.dump(filename, encoding=encoding)
-        if filename.split(".")[1] == "txt":
-            logger.warning("WARNING Filename extension is not .txt, saving anyways.")
     return text_drawing
 
 
@@ -454,10 +455,8 @@ def _latex_circuit_drawer(
                             image.save(filename)
                         except ValueError:
                             logger.warning(
-                                "WARNING This image format is not supported "
-                                "saving the image in PNG format without changing file extension."
+                                "WARNING This image format is not supported. Please change file extension to a supported image format."
                             )
-                            image.save(filename, "PNG")
             except (OSError, subprocess.CalledProcessError) as ex:
                 logger.warning(
                     "WARNING: Unable to convert pdf to image. "
