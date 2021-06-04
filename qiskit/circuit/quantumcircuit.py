@@ -2777,7 +2777,7 @@ class QuantumCircuit:
         control_qubit1,
         control_qubit2,
         target_qubit,
-        ctrl_state=None
+        ctrl_state=None,
     ):
         """Apply :class:`~qiskit.circuit.library.CCXGate`."""
         from .library.standard_gates.x import CCXGate
@@ -2785,7 +2785,7 @@ class QuantumCircuit:
         return self.append(
             CCXGate(ctrl_state=ctrl_state),
             [control_qubit1, control_qubit2, target_qubit],
-            []
+            [],
         )
 
     def toffoli(self, control_qubit1, control_qubit2, target_qubit):
