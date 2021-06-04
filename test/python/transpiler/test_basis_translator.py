@@ -27,7 +27,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
-from qiskit.test.mock import FakeAthens
 
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
