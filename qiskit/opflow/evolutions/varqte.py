@@ -41,6 +41,7 @@ from qiskit.quantum_info import state_fidelity
 
 from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
 
+
 class ForwardEuler:
 
     def __init__(self,

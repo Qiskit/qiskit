@@ -243,8 +243,8 @@ class VarQITE(VarQTE):
                 abs_val0 = lambda a: np.abs(1 + 2 * delta_t * (e - e_star(a)))
 
                 # |<psi_t|(I + delta_t(E_t-H))^2|psi*_t>|
-                abs_val1 = lambda a: np.abs((1 - np.abs(a) + a * e) * (1 + 2 * delta_t * e) - \
-                                     2 * delta_t * ((1 - np.abs(a)) * e + a * h_squared) /
+                abs_val1 = lambda a: np.abs(((1 - np.abs(a) + a * e) * (1 + 2 * delta_t * e) -
+                                     2 * delta_t * ((1 - np.abs(a)) * e + a * h_squared)) /
                                             c_alpha(a))
 
                 bures_squared = 1 + abs_val0(alpha) - 2 * abs_val1(alpha)
@@ -299,10 +299,10 @@ class VarQITE(VarQTE):
                         max_bures = returned_bures
                         alpha_opt = a
             # After the grid use the resulting optimal alpha and do another optimization search
-            alpha_opt = fmin_cobyla(func=lambda x: (-1) * bures(x), x0=[alpha_opt],
-                                    rhobeg=1e-6, catol=1e-16, maxfun=10000,
-                                    rhoend=1e-10, cons=[constraint1, constraint2])[0]
-            max_bures = bures([alpha_opt])
+            # alpha_opt = fmin_cobyla(func=lambda x: (-1) * bures(x), x0=[alpha_opt],
+            #                         rhobeg=1e-6, catol=1e-16, maxfun=10000,
+            #                         rhoend=1e-10, cons=[constraint1, constraint2])[0]
+            # max_bures = bures([alpha_opt])
 
             print('alpha_opt ', alpha_opt)
             print('Maximum bures metric ', max_bures)
