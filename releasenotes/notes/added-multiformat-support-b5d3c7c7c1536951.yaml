@@ -21,6 +21,17 @@ features:
       
       circuit.draw('latex', filename='./file.spooky')
 
-    It will give user a warning, and default to saving the image in a PNG format while keeping
-    the filename as ``file.spooky``.
+    It will give user a warning to change the filename extension to a supported image format::
 
+      "WARNING This image format is not supported. Please change file extension to a supported image format."
+    
+    Similarly, if a user tries to save a file using the ``text`` option in ``QuantumCircuit.draw()`` 
+    without using a ``.txt`` filename extension, a warning will be displayed.
+
+    for example::
+
+      circuit.draw('text', filename'./file.nottxt')
+    
+    will generate::
+
+      "WARNING Filename extension is not .txt. Please use a .txt file extension to save in text format."
