@@ -2777,7 +2777,7 @@ class QuantumCircuit:
         from .library.standard_gates.x import CCXGate
 
         return self.append(
-            CCXGate(label=label, ctrl_state=ctrl_state),
+            CCXGate(ctrl_state=ctrl_state),
             [control_qubit1, control_qubit2, target_qubit],
             []
         )
