@@ -2772,7 +2772,13 @@ class QuantumCircuit:
 
         return self.append(DCXGate(), [qubit1, qubit2], [])
 
-    def ccx(self, control_qubit1, control_qubit2, target_qubit, ctrl_state=None):
+    def ccx(
+        self,
+        control_qubit1,
+        control_qubit2,
+        target_qubit,
+        ctrl_state=None
+    ):
         """Apply :class:`~qiskit.circuit.library.CCXGate`."""
         from .library.standard_gates.x import CCXGate
 
