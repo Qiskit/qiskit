@@ -329,7 +329,7 @@ class HHL(LinearSolver):
             nb = vector.num_qubits
             vector_circuit = vector
         elif isinstance(vector, (list, np.ndarray)):
-            if isinstance(list):
+            if isinstance(vector, list):
                 vector = np.array(vector)
             nb = int(np.log2(len(vector)))
             vector_circuit = QuantumCircuit(nb)
