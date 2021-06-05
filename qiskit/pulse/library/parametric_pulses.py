@@ -285,7 +285,8 @@ class GaussianSquare(ParametricPulse):
             raise PulseError("Sigma must be greater than 0.")
         if self.width is not None and self.risefall_sigma_ratio is not None:
             raise PulseError(
-                "Either the pulse width or the risefall_sigma_ratio parameter can be specified but not both."
+                "Either the pulse width or the risefall_sigma_ratio parameter can be specified"
+                " but not both."
             )
         if self.width is None and self.risefall_sigma_ratio is None:
             raise PulseError(
