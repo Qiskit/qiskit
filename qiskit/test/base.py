@@ -27,6 +27,7 @@ import itertools
 import logging
 import os
 import sys
+import warnings
 import unittest
 from unittest.util import safe_repr
 
@@ -39,6 +40,7 @@ try:
 except ImportError:
     HAS_FIXTURES = False
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from .runtest import RunTest, MultipleExceptions
 from .utils import Path, setup_test_logging
 
@@ -166,9 +168,10 @@ class FullQiskitTestCase(BaseQiskitTestCase):
     def __init__(self, *args, **kwargs):
         """Construct a TestCase."""
         if not HAS_FIXTURES:
-            raise ImportError(
-                "Test runner requirements testtools and fixtures are missing. "
-                "Install them with 'pip install testtools fixtures'"
+            raise MissingOptionalLibraryError(
+                libname="testtools",
+                name="test runner",
+                pip_install="pip install testtools",
             )
         super().__init__(*args, **kwargs)
         self.__RunTest = self.run_tests_with
@@ -411,6 +414,60 @@ class FullQiskitTestCase(BaseQiskitTestCase):
         # Determines if the TestCase is using IBMQ credentials.
         cls.using_ibmq_credentials = False
         cls.log = logging.getLogger(cls.__name__)
+
+        warnings.filterwarnings("error", category=DeprecationWarning)
+        allow_DeprecationWarning_modules = [
+            "test.ipynb.mpl.test_circuit_matplotlib_drawer",
+            "test.python.pulse.test_parameters",
+            "test.python.pulse.test_transforms",
+            "test.python.circuit.test_gate_power",
+            "test.python.pulse.test_builder",
+            "test.python.pulse.test_block",
+            "test.python.quantum_info.operators.symplectic.test_legacy_pauli",
+            "qiskit.quantum_info.operators.pauli",
+            "pybobyqa",
+            "numba",
+            "qiskit.utils.measurement_error_mitigation",
+            "qiskit.circuit.library.standard_gates.x",
+            "qiskit.pulse.schedule",
+            "qiskit.pulse.instructions.instruction",
+            "qiskit.pulse.instructions.play",
+            "qiskit.pulse.library.parametric_pulses",
+            "qiskit.quantum_info.operators.symplectic.pauli",
+            "test.python.dagcircuit.test_dagcircuit",
+            "test.python.quantum_info.operators.test_operator",
+            "test.python.quantum_info.operators.test_scalar_op",
+            "test.python.quantum_info.operators.test_superop",
+            "test.python.quantum_info.operators.channel.test_kraus",
+            "test.python.quantum_info.operators.channel.test_choi",
+            "test.python.quantum_info.operators.channel.test_chi",
+            "test.python.quantum_info.operators.channel.test_superop",
+            "test.python.quantum_info.operators.channel.test_stinespring",
+            "test.python.quantum_info.operators.symplectic.test_sparse_pauli_op",
+            "test.python.quantum_info.operators.channel.test_ptm",
+        ]
+        for mod in allow_DeprecationWarning_modules:
+            warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
+        allow_DeprecationWarning_message = [
+            r".*LogNormalDistribution.*",
+            r".*NormalDistribution.*",
+            r".*UniformDistribution.*",
+            r".*QuantumCircuit\.combine.*",
+            r".*QuantumCircuit\.__add__.*",
+            r".*QuantumCircuit\.__iadd__.*",
+            r".*QuantumCircuit\.extend.*",
+            r".*psi @ U.*",
+            r".*qiskit\.circuit\.library\.standard_gates\.ms import.*",
+            r"elementwise comparison failed.*",
+            r"The jsonschema validation included in qiskit-terra.*",
+            r"The DerivativeBase.parameter_expression_grad method.*",
+            r"Back-references to from Bit instances.*",
+            r"The QuantumCircuit.u. method.*",
+            r"The QuantumCircuit.cu.",
+            r"The CXDirection pass has been deprecated",
+        ]
+        for msg in allow_DeprecationWarning_message:
+            warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
 
 
 def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
