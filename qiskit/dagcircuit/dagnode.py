@@ -17,6 +17,7 @@
 import warnings
 
 from qiskit.exceptions import QiskitError
+from qiskit.circuit import Instruction
 
 
 class DAGNode:
@@ -26,76 +27,14 @@ class DAGNode:
     be supplied to functions that take a node.
     """
 
-    __slots__ = ["type", "_op", "_qargs", "cargs", "_wire", "sort_key", "_node_id"]
+    __slots__ = ["type", "_qargs", "cargs", "sort_key", "_node_id"]
 
-    def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None, wire=None, nid=-1):
+    def __init__(self, qargs=None, cargs=None, nid=-1):
         """Create a node"""
-        self.type = type
-        self._op = op
-        if name is not None:
-            warnings.warn(
-                "The DAGNode 'name' attribute is deprecated as of 0.18.0 and "
-                "will be removed no earlier than 3 months after the release date. "
-                "You can use 'DAGNode.op.name' if the DAGNode is of type 'op'.",
-                DeprecationWarning,
-                2,
-            )
         self._qargs = qargs if qargs is not None else []
         self.cargs = cargs if cargs is not None else []
-        self._wire = wire
-        self._node_id = nid
         self.sort_key = str(self._qargs)
-
-    @property
-    def op(self):
-        """Returns the Instruction object corresponding to the op for the node, else None"""
-        if not self.type or self.type != "op":
-            raise QiskitError("The node %s is not an op node" % (str(self)))
-        return self._op
-
-    @op.setter
-    def op(self, data):
-        self._op = data
-
-    @property
-    def name(self):
-        """Returns the Instruction name corresponding to the op for this node"""
-        if self.type and self.type == "op":
-            return self._op.name
-        return None
-
-    @name.setter
-    def name(self, name):
-        if self.type and self.type == "op":
-            self._op.name = name
-
-    @property
-    def condition(self):
-        """Returns the condition of the node.op"""
-        if not self.type or self.type != "op":
-            raise QiskitError("The node %s is not an op node" % (str(self)))
-        warnings.warn(
-            "The DAGNode 'condition' attribute is deprecated as of 0.18.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "You can use 'DAGNode.op.condition' if the DAGNode is of type 'op'.",
-            DeprecationWarning,
-            2,
-        )
-        return self._op.condition
-
-    @condition.setter
-    def condition(self, new_condition):
-        """Sets the node.condition which sets the node.op.condition."""
-        if not self.type or self.type != "op":
-            raise QiskitError("The node %s is not an op node" % (str(self)))
-        warnings.warn(
-            "The DAGNode 'condition' attribute is deprecated as of 0.18.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "You can use 'DAGNode.op.condition' if the DAGNode is of type 'op'.",
-            DeprecationWarning,
-            2,
-        )
-        self._op.condition = new_condition
+        self._node_id = nid
 
     @property
     def qargs(self):
@@ -110,18 +49,49 @@ class DAGNode:
         self._qargs = new_qargs
         self.sort_key = str(new_qargs)
 
-    @property
-    def wire(self):
-        """
-        Returns the Bit object, else None.
-        """
-        if self.type not in ["in", "out"]:
-            raise QiskitError("The node %s is not an input/output node" % str(self))
-        return self._wire
+    def __lt__(self, other):
+        return self._node_id < other._node_id
 
-    @wire.setter
-    def wire(self, data):
-        self._wire = data
+    def __gt__(self, other):
+        return self._node_id > other._node_id
+
+    def __str__(self):
+        # TODO is this used anywhere other than in DAG drawing?
+        # needs to be unique as it is what pydot uses to distinguish nodes
+        return str(id(self))
+
+
+class OpNode(DAGNode, Instruction):
+    """Object to represent the information at a node in the DAGCircuit.
+
+    It is used as the return value from `*_nodes()` functions and can
+    be supplied to functions that take a node.
+    """
+
+    __slots__ = ["name", "_qargs", "cargs", "sort_key", "_node_id"]
+
+    def __init__(self, name=None, qargs=None, cargs=None, nid=-1):
+        """Create a node"""
+        self.name = name
+        self._qargs = qargs if qargs is not None else []
+        self.cargs = cargs if cargs is not None else []
+        self._node_id = nid
+        self.sort_key = str(self._qargs)
+        DAGNode.__init__(self, qargs=self._qargs, cargs=self.cargs, nid=nid)
+        Instruction.__init__(self, name, len(self._qargs), len(self.cargs), [])
+
+    @property
+    def qargs(self):
+        """
+        Returns list of Qubit, else an empty list.
+        """
+        return self._qargs
+
+    @qargs.setter
+    def qargs(self, new_qargs):
+        """Sets the qargs to be the given list of qargs."""
+        self._qargs = new_qargs
+        self.sort_key = str(new_qargs)
 
     def __lt__(self, other):
         return self._node_id < other._node_id
@@ -174,15 +144,99 @@ class DAGNode:
             return set(node1_qargs) == set(node2_qargs)
 
         if node1.type == node2.type:
-            if node1._op == node2._op:
-                if node1.name == node2.name:
-                    if node1_qargs == node2_qargs:
-                        if node1_cargs == node2_cargs:
-                            if node1.type == "op":
-                                if node1._op.condition != node2._op.condition:
-                                    return False
+            if node1.name == node2.name:
+                if node1_qargs == node2_qargs:
+                    if node1_cargs == node2_cargs:
+                        if node1.condition == node2.condition:
                             if bit_indices1.get(node1._wire, None) == bit_indices2.get(
                                 node2._wire, None
                             ):
                                 return True
         return False
+
+
+class InNode(DAGNode):
+    """Object to represent the information at a node in the DAGCircuit.
+
+    It is used as the return value from `*_nodes()` functions and can
+    be supplied to functions that take a node.
+    """
+
+    __slots__ = ["wire", "_qargs", "cargs", "sort_key", "_node_id"]
+
+    def __init__(self, wire=None, qargs=None, cargs=None, nid=-1):
+        """Create a node"""
+        self.wire = wire
+        self._qargs = qargs if qargs is not None else []
+        self.cargs = cargs if cargs is not None else []
+        self._node_id = nid
+        self.sort_key = str(self._qargs)
+        super().__init__(qargs=self._qargs, cargs=self.cargs, nid=nid)
+
+    @property
+    def qargs(self):
+        """
+        Returns list of Qubit, else an empty list.
+        """
+        return self._qargs
+
+    @qargs.setter
+    def qargs(self, new_qargs):
+        """Sets the qargs to be the given list of qargs."""
+        self._qargs = new_qargs
+        self.sort_key = str(new_qargs)
+
+    def __lt__(self, other):
+        return self._node_id < other._node_id
+
+    def __gt__(self, other):
+        return self._node_id > other._node_id
+
+    def __str__(self):
+        # TODO is this used anywhere other than in DAG drawing?
+        # needs to be unique as it is what pydot uses to distinguish nodes
+        return str(id(self))
+
+
+class OutNode(DAGNode):
+    """Object to represent the information at a node in the DAGCircuit.
+
+    It is used as the return value from `*_nodes()` functions and can
+    be supplied to functions that take a node.
+    """
+
+    __slots__ = ["wire", "_qargs", "cargs", "sort_key", "_node_id"]
+
+    def __init__(self, wire=None, qargs=None, cargs=None, nid=-1):
+        """Create a node"""
+        self.wire = wire
+        self._qargs = qargs if qargs is not None else []
+        self.cargs = cargs if cargs is not None else []
+        self._node_id = nid
+        self.sort_key = str(self._qargs)
+        super().__init__(qargs=self._qargs, cargs=self.cargs, nid=nid)
+
+    @property
+    def qargs(self):
+        """
+        Returns list of Qubit, else an empty list.
+        """
+        return self._qargs
+
+    @qargs.setter
+    def qargs(self, new_qargs):
+        """Sets the qargs to be the given list of qargs."""
+        self._qargs = new_qargs
+        self.sort_key = str(new_qargs)
+
+    def __lt__(self, other):
+        return self._node_id < other._node_id
+
+    def __gt__(self, other):
+        return self._node_id > other._node_id
+
+    def __str__(self):
+        # TODO is this used anywhere other than in DAG drawing?
+        # needs to be unique as it is what pydot uses to distinguish nodes
+        return str(id(self))
+
