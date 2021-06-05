@@ -3,8 +3,7 @@ features:
     Added two new methods, :meth:`~qiskit.dagcircuit.DAGCircuit.is_successor` and
     :meth:`~qiskit.dagcircuit.DAGCircuit.is_predecessor`, to the
     :class:`~qiskit.dagcircuit.DAGCircuit` class. These functions are used to check if a node
-    is either a successor or predecessor of another node on the
-     :class:`~qiskit.dagcircuit.DAGCircuit`.
+    is either a successor or predecessor of another node on the :class:`~qiskit.dagcircuit.DAGCircuit`.
 upgrade:
   - |
     The minimum version of the `retworkx <https://pypi.org/project/retworkx/>`_ dependency
