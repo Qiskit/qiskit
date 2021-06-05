@@ -60,50 +60,6 @@ class DAGNode:
         # needs to be unique as it is what pydot uses to distinguish nodes
         return str(id(self))
 
-
-class OpNode(DAGNode, Instruction):
-    """Object to represent the information at a node in the DAGCircuit.
-
-    It is used as the return value from `*_nodes()` functions and can
-    be supplied to functions that take a node.
-    """
-
-    __slots__ = ["name", "_qargs", "cargs", "sort_key", "_node_id"]
-
-    def __init__(self, name=None, qargs=None, cargs=None, nid=-1):
-        """Create a node"""
-        self.name = name
-        self._qargs = qargs if qargs is not None else []
-        self.cargs = cargs if cargs is not None else []
-        self._node_id = nid
-        self.sort_key = str(self._qargs)
-        DAGNode.__init__(self, qargs=self._qargs, cargs=self.cargs, nid=nid)
-        Instruction.__init__(self, name, len(self._qargs), len(self.cargs), [])
-
-    @property
-    def qargs(self):
-        """
-        Returns list of Qubit, else an empty list.
-        """
-        return self._qargs
-
-    @qargs.setter
-    def qargs(self, new_qargs):
-        """Sets the qargs to be the given list of qargs."""
-        self._qargs = new_qargs
-        self.sort_key = str(new_qargs)
-
-    def __lt__(self, other):
-        return self._node_id < other._node_id
-
-    def __gt__(self, other):
-        return self._node_id > other._node_id
-
-    def __str__(self):
-        # TODO is this used anywhere other than in DAG drawing?
-        # needs to be unique as it is what pydot uses to distinguish nodes
-        return str(id(self))
-
     @staticmethod
     def semantic_eq(node1, node2, bit_indices1=None, bit_indices2=None):
         """
@@ -139,21 +95,44 @@ class OpNode(DAGNode, Instruction):
         node2_qargs = [bit_indices2[qarg] for qarg in node2.qargs]
         node2_cargs = [bit_indices2[carg] for carg in node2.cargs]
 
-        # For barriers, qarg order is not significant so compare as sets
-        if "barrier" == node1.name == node2.name:
-            return set(node1_qargs) == set(node2_qargs)
+        if isinstance(node1, OpNode) and isinstance(node2, OpNode):
+            # For barriers, qarg order is not significant so compare as sets
+            if "barrier" == node1.name == node2.name:
+                return set(node1_qargs) == set(node2_qargs)
 
-        if node1.type == node2.type:
-            if node1.name == node2.name:
-                if node1_qargs == node2_qargs:
-                    if node1_cargs == node2_cargs:
-                        if node1.condition == node2.condition:
-                            if bit_indices1.get(node1._wire, None) == bit_indices2.get(
-                                node2._wire, None
-                            ):
+            if type(node1) == type(node2):
+                if node1.name == node2.name:
+                    if node1_qargs == node2_qargs:
+                        if node1_cargs == node2_cargs:
+                            if node1.condition == node2.condition:
                                 return True
-        return False
+        elif ((isinstance(node1, InNode) and isinstance(node2, InNode))
+              or (isinstance(node1, OutNode) and isinstance(node2, OutNode))):
+            if node1_qargs == node2_qargs:
+                if node1_cargs == node2_cargs:
+                    if bit_indices1.get(node1.wire, None) == bit_indices2.get(
+                        node2.wire, None
+                    ):
+                        return True
+        else:
+            return False
 
+
+
+class OpNode(DAGNode, Instruction):
+    """Object to represent the information at a node in the DAGCircuit.
+
+    It is used as the return value from `*_nodes()` functions and can
+    be supplied to functions that take a node.
+    """
+
+    __slots__ = ["op"]
+
+    def __init__(self, op, qargs=None, cargs=None):
+        """Create a node"""
+        self.op = op
+        DAGNode.__init__(self, qargs, cargs)
+        Instruction.__init__(self, op.name, num_qubits=len(qargs), num_clbits=len(cargs), params=op.params)
 
 class InNode(DAGNode):
     """Object to represent the information at a node in the DAGCircuit.
@@ -162,40 +141,12 @@ class InNode(DAGNode):
     be supplied to functions that take a node.
     """
 
-    __slots__ = ["wire", "_qargs", "cargs", "sort_key", "_node_id"]
+    __slots__ = ["wire"]
 
-    def __init__(self, wire=None, qargs=None, cargs=None, nid=-1):
+    def __init__(self, wire, qargs=None, cargs=None):
         """Create a node"""
         self.wire = wire
-        self._qargs = qargs if qargs is not None else []
-        self.cargs = cargs if cargs is not None else []
-        self._node_id = nid
-        self.sort_key = str(self._qargs)
-        super().__init__(qargs=self._qargs, cargs=self.cargs, nid=nid)
-
-    @property
-    def qargs(self):
-        """
-        Returns list of Qubit, else an empty list.
-        """
-        return self._qargs
-
-    @qargs.setter
-    def qargs(self, new_qargs):
-        """Sets the qargs to be the given list of qargs."""
-        self._qargs = new_qargs
-        self.sort_key = str(new_qargs)
-
-    def __lt__(self, other):
-        return self._node_id < other._node_id
-
-    def __gt__(self, other):
-        return self._node_id > other._node_id
-
-    def __str__(self):
-        # TODO is this used anywhere other than in DAG drawing?
-        # needs to be unique as it is what pydot uses to distinguish nodes
-        return str(id(self))
+        super().__init__(qargs, cargs)
 
 
 class OutNode(DAGNode):
@@ -205,38 +156,9 @@ class OutNode(DAGNode):
     be supplied to functions that take a node.
     """
 
-    __slots__ = ["wire", "_qargs", "cargs", "sort_key", "_node_id"]
+    __slots__ = ["wire"]
 
-    def __init__(self, wire=None, qargs=None, cargs=None, nid=-1):
+    def __init__(self, wire, qargs=None, cargs=None):
         """Create a node"""
         self.wire = wire
-        self._qargs = qargs if qargs is not None else []
-        self.cargs = cargs if cargs is not None else []
-        self._node_id = nid
-        self.sort_key = str(self._qargs)
-        super().__init__(qargs=self._qargs, cargs=self.cargs, nid=nid)
-
-    @property
-    def qargs(self):
-        """
-        Returns list of Qubit, else an empty list.
-        """
-        return self._qargs
-
-    @qargs.setter
-    def qargs(self, new_qargs):
-        """Sets the qargs to be the given list of qargs."""
-        self._qargs = new_qargs
-        self.sort_key = str(new_qargs)
-
-    def __lt__(self, other):
-        return self._node_id < other._node_id
-
-    def __gt__(self, other):
-        return self._node_id > other._node_id
-
-    def __str__(self):
-        # TODO is this used anywhere other than in DAG drawing?
-        # needs to be unique as it is what pydot uses to distinguish nodes
-        return str(id(self))
-
+        super().__init__(qargs, cargs)

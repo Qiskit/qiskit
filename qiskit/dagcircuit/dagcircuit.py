@@ -104,6 +104,7 @@ class DAGCircuit:
             ) from ex
         G = nx.MultiDiGraph()
         for node in self._multi_graph.nodes():
+            print(type(node))
             G.add_node(node)
         for node_id in rx.topological_sort(self._multi_graph):
             for source_id, dest_id, edge in self._multi_graph.in_edges(node_id):
@@ -374,7 +375,7 @@ class DAGCircuit:
         else:
             raise CircuitError("Condition must be used with ClassicalRegister or Clbit.")
 
-    def _add_op_node(self, name, qargs, cargs):
+    def _add_op_node(self, op, qargs, cargs):
         """Add a new operation node to the graph and assign properties.
 
         Args:
@@ -386,7 +387,7 @@ class DAGCircuit:
         """
         # Add a new operation node to the graph
         #new_node = DAGNode(qargs=qargs, cargs=cargs)
-        new_node = OpNode(name=name, qargs=qargs, cargs=cargs)
+        new_node = OpNode(op=op, qargs=qargs, cargs=cargs)
         node_index = self._multi_graph.add_node(new_node)
         new_node._node_id = node_index
         return node_index
@@ -440,7 +441,7 @@ class DAGCircuit:
         self._check_bits(qargs, self.output_map)
         self._check_bits(all_cbits, self.output_map)
 
-        node_index = self._add_op_node(op.name, qargs, cargs)
+        node_index = self._add_op_node(op, qargs, cargs)
 
         # Add new in-edges from predecessors of the output nodes to the
         # operation node while deleting the old in-edges of the output nodes
@@ -479,7 +480,7 @@ class DAGCircuit:
         self._check_condition(op.name, op.condition)
         self._check_bits(qargs, self.input_map)
         self._check_bits(all_cbits, self.input_map)
-        node_index = self._add_op_node(op.name, qargs, cargs)
+        node_index = self._add_op_node(op, qargs, cargs)
 
         # Add new out-edges to successors of the input nodes from the
         # operation node while deleting the old out-edges of the input nodes
@@ -1089,7 +1090,7 @@ class DAGCircuit:
             condition = self._map_condition(wire_map, sorted_node.condition, self.cregs.values())
             m_qargs = list(map(lambda x: wire_map.get(x, x), sorted_node.qargs))
             m_cargs = list(map(lambda x: wire_map.get(x, x), sorted_node.cargs))
-            node_index = self._add_op_node(sorted_node.name, m_qargs, m_cargs)
+            node_index = self._add_op_node(sorted_node, m_qargs, m_cargs)
 
             # Add edges from predecessor nodes to new node
             # and update predecessor nodes that change
@@ -1347,7 +1348,7 @@ class DAGCircuit:
 
         Add edges from predecessors to successors.
         """
-        if isinstance(node, OpNode):
+        if not isinstance(node, OpNode):
             raise DAGCircuitError(
                 'The method remove_op_node only works on OpNodes. A "%s" '
                 "node type was wrongly provided." % node
@@ -1545,7 +1546,7 @@ class DAGCircuit:
         while more_nodes:
             more_nodes = False
             # allow user to just get ops on the wire - not the input/output nodes
-            if isinstance(node, OpNode) or not only_ops:
+            if isinstance(current_node, OpNode) or not only_ops:
                 yield current_node
 
             try:
