@@ -334,7 +334,8 @@ def _text_circuit_drawer(
     if filename:
         if not filename.endswith(".txt"):
             logger.warning(
-                "ERROR: Filename extension is not .txt. Please use a .txt file extension to save in text format."
+                "ERROR: Filename extension is not .txt. "
+                "Please use a .txt file extension to save in text format."
             )
             return text_drawing
         text_drawing.dump(filename, encoding=encoding)
@@ -457,7 +458,8 @@ def _latex_circuit_drawer(
                             image.save(filename)
                         except ValueError:
                             logger.warning(
-                                "ERROR: This image format is not supported. Please change file extension to a supported image format."
+                                "ERROR: This image format is not supported. "
+                                "Please change file extension to a supported image format."
                             )
             except (OSError, subprocess.CalledProcessError) as ex:
                 logger.warning(
