@@ -333,7 +333,9 @@ def _text_circuit_drawer(
 
     if filename:
         if not filename.endswith(".txt"):
-            logger.warning("ERROR: Filename extension is not .txt. Please use a .txt file extension to save in text format.")
+            logger.warning(
+                "ERROR: Filename extension is not .txt. Please use a .txt file extension to save in text format."
+            )
             return text_drawing
         text_drawing.dump(filename, encoding=encoding)
     return text_drawing
