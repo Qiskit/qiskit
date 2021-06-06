@@ -2426,9 +2426,7 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.CHGate`."""
         from .library.standard_gates.h import CHGate
 
-        return self.append(
-            CHGate(ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        return self.append(CHGate(ctrl_state=ctrl_state), [control_qubit, target_qubit], [])
 
     def i(self, qubit):
         """Apply :class:`~qiskit.circuit.library.IGate`."""
@@ -2506,9 +2504,7 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.CRXGate`."""
         from .library.standard_gates.rx import CRXGate
 
-        return self.append(
-            CRXGate(theta, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        return self.append(CRXGate(theta, ctrl_state=ctrl_state), [control_qubit, target_qubit], [])
 
     def rxx(self, theta, qubit1, qubit2):
         """Apply :class:`~qiskit.circuit.library.RXXGate`."""
@@ -2526,9 +2522,7 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.CRYGate`."""
         from .library.standard_gates.ry import CRYGate
 
-        return self.append(
-            CRYGate(theta, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        return self.append(CRYGate(theta, ctrl_state=ctrl_state), [control_qubit, target_qubit], [])
 
     def ryy(self, theta, qubit1, qubit2):
         """Apply :class:`~qiskit.circuit.library.RYYGate`."""
@@ -2546,9 +2540,7 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.CRZGate`."""
         from .library.standard_gates.rz import CRZGate
 
-        return self.append(
-            CRZGate(theta, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        return self.append(CRZGate(theta, ctrl_state=ctrl_state), [control_qubit, target_qubit], [])
 
     def rzx(self, theta, qubit1, qubit2):
         """Apply :class:`~qiskit.circuit.library.RZXGate`."""
@@ -2622,9 +2614,7 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.CSXGate`."""
         from .library.standard_gates.sx import CSXGate
 
-        return self.append(
-            CSXGate(ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        return self.append(CSXGate(ctrl_state=ctrl_state), [control_qubit, target_qubit], [])
 
     def t(self, qubit):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.TGate`."""
@@ -2678,9 +2668,7 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.CU1Gate`."""
         from .library.standard_gates.u1 import CU1Gate
 
-        return self.append(
-            CU1Gate(theta, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        return self.append(CU1Gate(theta, ctrl_state=ctrl_state), [control_qubit, target_qubit], [])
 
     @deprecate_function(
         "The QuantumCircuit.mcu1 method is deprecated as of "
@@ -2755,9 +2743,7 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.CXGate`."""
         from .library.standard_gates.x import CXGate
 
-        return self.append(
-            CXGate(ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        return self.append(CXGate(ctrl_state=ctrl_state), [control_qubit, target_qubit], [])
 
     def cnot(self, control_qubit, target_qubit, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CXGate`."""
@@ -2856,9 +2842,7 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.CYGate`."""
         from .library.standard_gates.y import CYGate
 
-        return self.append(
-            CYGate(ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        return self.append(CYGate(ctrl_state=ctrl_state), [control_qubit, target_qubit], [])
 
     def z(self, qubit):
         """Apply :class:`~qiskit.circuit.library.ZGate`."""
@@ -2870,9 +2854,7 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.CZGate`."""
         from .library.standard_gates.z import CZGate
 
-        return self.append(
-            CZGate(ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        return self.append(CZGate(ctrl_state=ctrl_state), [control_qubit, target_qubit], [])
 
     def pauli(self, pauli_string, qubits):
         """Apply :class:`~qiskit.circuit.library.PauliGate`."""
