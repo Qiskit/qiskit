@@ -1238,16 +1238,23 @@ class TestDagSubstituteNode(QiskitTestCase):
         node_to_be_replaced = dag.named_nodes("rz")[0]
         print(node_to_be_replaced)
         print(type(node_to_be_replaced))
-        x = dag.predecessors(node_to_be_replaced)
+        """x = dag.predecessors(node_to_be_replaced)
         for z in x:
             print(z)
-        print(next(x))
-        y = set(x)
-        print(y)
+        #print(next(x))
+        #y = set(x)
+        #print(y)"""
         print("HERe 1")
-        predecessors = set(dag.predecessors(node_to_be_replaced))
+        predecessors = dag.predecessors(node_to_be_replaced)
+        if len(predecessors) == 1:
+            predecessors = (predecessors[0],)
+        print(predecessors)
+        #print(next(predecessors))
+        print(predecessors[0].name, predecessors[0].qargs, predecessors[0].cargs)
+        print('Here 2')
+        predecessors = set(predecessors)
         print("HERE")
-        successors = set(dag.successors(node_to_be_replaced))
+        successors = frozenset(tuple(dag.successors(node_to_be_replaced)))
         ancestors = dag.ancestors(node_to_be_replaced)
         descendants = dag.descendants(node_to_be_replaced)
 
@@ -1256,8 +1263,8 @@ class TestDagSubstituteNode(QiskitTestCase):
         print(replacement_node)
 
         raise_if_dagcircuit_invalid(dag)
-        self.assertEqual(set(dag.predecessors(replacement_node)), predecessors)
-        self.assertEqual(set(dag.successors(replacement_node)), successors)
+        self.assertEqual(frozenset(tuple(dag.predecessors(replacement_node)), predecessors))
+        self.assertEqual(frozenset(tuple(dag.successors(replacement_node)), successors))
         self.assertEqual(dag.ancestors(replacement_node), ancestors)
         self.assertEqual(dag.descendants(replacement_node), descendants)
 

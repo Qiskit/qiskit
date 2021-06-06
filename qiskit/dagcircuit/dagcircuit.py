@@ -1299,7 +1299,7 @@ class DAGCircuit:
 
     def successors(self, node):
         """Returns iterator of the successors of a node as DAGNodes."""
-        return iter(self._multi_graph.successors(node._node_id))
+        return self._multi_graph.successors(node._node_id)
 
     def predecessors(self, node):
         """Returns iterator of the predecessors of a node as DAGNodes."""
@@ -1309,9 +1309,9 @@ class DAGCircuit:
         x = self._multi_graph.predecessors(node._node_id)
         for z in x:
             print("z", z)
-        print(set(x))
-
-        return iter(self._multi_graph.predecessors(node._node_id))
+        #print(set(x))
+        print(self._multi_graph.nodes())
+        return self._multi_graph.predecessors(node._node_id)
 
     def quantum_predecessors(self, node):
         """Returns iterator of the predecessors of a node that are
