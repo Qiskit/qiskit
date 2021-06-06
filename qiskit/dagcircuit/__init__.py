@@ -37,7 +37,7 @@ Exceptions
    DAGCircuitError
 """
 from .dagcircuit import DAGCircuit
-from .dagnode import DAGNode
+from .dagnode import DAGNode, OpNode, InNode, OutNode
 from .dagdepnode import DAGDepNode
 from .exceptions import DAGCircuitError
 from .dagdependency import DAGDependency

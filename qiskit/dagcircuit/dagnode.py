@@ -17,7 +17,7 @@
 import warnings
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Instruction
+from qiskit.circuit import Instruction, Gate
 
 
 class DAGNode:
@@ -119,20 +119,20 @@ class DAGNode:
 
 
 
-class OpNode(DAGNode, Instruction):
+class OpNode(DAGNode, Gate, Instruction):
     """Object to represent the information at a node in the DAGCircuit.
 
     It is used as the return value from `*_nodes()` functions and can
     be supplied to functions that take a node.
     """
 
-    __slots__ = ["op"]
-
     def __init__(self, op, qargs=None, cargs=None):
         """Create a node"""
-        self.op = op
         DAGNode.__init__(self, qargs, cargs)
-        Instruction.__init__(self, op.name, num_qubits=len(qargs), num_clbits=len(cargs), params=op.params)
+        if isinstance(op, Gate):
+            Gate.__init__(self, op.name, num_qubits=len(qargs), params=op.params)
+        else:
+            Instruction.__init__(self, op.name, num_qubits=len(qargs), num_clbits=len(cargs), params=op.params)
 
 class InNode(DAGNode):
     """Object to represent the information at a node in the DAGCircuit.

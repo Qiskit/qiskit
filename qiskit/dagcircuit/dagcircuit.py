@@ -104,7 +104,6 @@ class DAGCircuit:
             ) from ex
         G = nx.MultiDiGraph()
         for node in self._multi_graph.nodes():
-            print(type(node))
             G.add_node(node)
         for node_id in rx.topological_sort(self._multi_graph):
             for source_id, dest_id, edge in self._multi_graph.in_edges(node_id):
@@ -808,7 +807,9 @@ class DAGCircuit:
             ignore = []
         for wire in self._wires:
             nodes = [
-                node for node in self.nodes_on_wire(wire, only_ops=False) if node.name not in ignore
+                node for node in self.nodes_on_wire(wire, only_ops=False) if (
+                    isinstance(node, OpNode) and node.name not in ignore
+                )
             ]
             if len(nodes) == 2:
                 yield wire
@@ -1302,6 +1303,14 @@ class DAGCircuit:
 
     def predecessors(self, node):
         """Returns iterator of the predecessors of a node as DAGNodes."""
+        print("IN PREDIC  ")
+        print(type(node), node._node_id)
+        print(self._multi_graph.predecessors(node._node_id))
+        x = self._multi_graph.predecessors(node._node_id)
+        for z in x:
+            print("z", z)
+        print(set(x))
+
         return iter(self._multi_graph.predecessors(node._node_id))
 
     def quantum_predecessors(self, node):
