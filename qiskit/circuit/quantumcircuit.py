@@ -2103,6 +2103,10 @@ class QuantumCircuit:
 
         # return as parameter view, which implements the set and list interface
         return ParameterView(self._parameters)
+    
+    @classmethod 
+    def binary_input_to_initialized_state(self):
+        return 
 
     @property
     def num_parameters(self):
