@@ -550,7 +550,13 @@ def _diag_is_identity_up_to_global_phase(diag, epsilon):
 
 
 def iso(
-    self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=None, q_ancillas_dirty=None
+    self,
+    isometry,
+    q_input,
+    q_ancillas_for_output,
+    q_ancillas_zero=None,
+    q_ancillas_dirty=None,
+    epsilon=_EPS,
 ):
     """
     Attach an arbitrary isometry from m to n qubits to a circuit. In particular,
@@ -572,6 +578,8 @@ def iso(
             which are assumed to start in the zero state. Default is q_ancillas_zero = None.
         q_ancillas_dirty (QuantumRegister|list[Qubit]): list of ancilla qubits
             which can start in an arbitrary state. Default is q_ancillas_dirty = None.
+        epsilon (float): error tolerance of calculations.
+            Default is epsilon = _EPS.
 
     Returns:
         QuantumCircuit: the isometry is attached to the quantum circuit.
@@ -599,7 +607,7 @@ def iso(
         q_ancillas_dirty = q_ancillas_dirty[:]
 
     return self.append(
-        Isometry(isometry, len(q_ancillas_zero), len(q_ancillas_dirty)),
+        Isometry(isometry, len(q_ancillas_zero), len(q_ancillas_dirty), epsilon=epsilon),
         q_input + q_ancillas_for_output + q_ancillas_zero + q_ancillas_dirty,
     )
 
