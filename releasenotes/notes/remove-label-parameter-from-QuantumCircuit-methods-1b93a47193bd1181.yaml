@@ -1,0 +1,13 @@
+ ---
+fixes:
+  - |
+    Previously, there exists some discrepancy between gate methods in 
+    ``qiskit.QuantumCircuit`` module. Some gate methods, (for example: cx) 
+    accept labal parameter while others (for example: ccx()) don't.
+    This discrepancy is addressed by removing label parameter from all gate 
+    methods in ``qiskit.QuantumCircuit`` module. Refer to 
+    `#5098 <https://github.com/Qiskit/qiskit-terra/issues/5098>` for more details.
+
+    Gate methods that are affected:
+    control, ch, cp, rx, crx, ry, cry, crz, cswap, csx, cu, cu1, cu3, 
+    x, cx, cnot, cy, cz
