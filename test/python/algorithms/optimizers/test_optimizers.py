@@ -187,10 +187,20 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
 
     def test_spsa(self):
         """Test SPSA optimizer is serializable."""
-        options = {"maxiter": 100, "blocking": True, "allowed_increase": 0.1,
-                   "second_order": True, "learning_rate": 0.02, "perturbation": 0.05,
-                   "regularization": 0.1, "resamplings": 2, "perturbation_dims": 5,
-                   "trust_region": False, "initial_hessian": None, "hessian_delay": 0}
+        options = {
+            "maxiter": 100,
+            "blocking": True,
+            "allowed_increase": 0.1,
+            "second_order": True,
+            "learning_rate": 0.02,
+            "perturbation": 0.05,
+            "regularization": 0.1,
+            "resamplings": 2,
+            "perturbation_dims": 5,
+            "trust_region": False,
+            "initial_hessian": None,
+            "hessian_delay": 0,
+        }
         spsa = SPSA(**options)
 
         serialized = spsa.to_dict()
@@ -204,15 +214,55 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         with self.subTest(msg="test reconstructed optimizer"):
             self.assertDictEqual(reconstructed.to_dict(), expected)
 
+    def test_spsa_custom_iterators(self):
+        """Test serialization works with custom iterators for learning rate and perturbation."""
+        rate = 0.99
+
+        def powerlaw():
+            n = 0
+            while True:
+                yield rate ** n
+                n += 1
+
+        def steps():
+            n = 1
+            divide_after = 20
+            epsilon = 0.5
+            while True:
+                yield epsilon
+                n += 1
+                if n % divide_after == 0:
+                    epsilon /= 2
+
+        learning_rate = powerlaw()
+        expected_learning_rate = np.array([next(learning_rate) for _ in range(200)])
+
+        perturbation = steps()
+        expected_perturbation = np.array([next(perturbation) for _ in range(200)])
+
+        spsa = SPSA(maxiter=200, learning_rate=powerlaw, perturbation=steps)
+        serialized = spsa.to_dict()
+
+        self.assertTrue(np.allclose(serialized["learning_rate"], expected_learning_rate))
+        self.assertTrue(np.allclose(serialized["perturbation"], expected_perturbation))
+
     def test_qnspsa(self):
         """Test QN-SPSA optimizer is serializable."""
         ansatz = RealAmplitudes(1)
         fidelity = QNSPSA.get_fidelity(ansatz)
-        options = {"fidelity": fidelity,
-                   "maxiter": 100, "blocking": True, "allowed_increase": 0.1,
-                   "learning_rate": 0.02, "perturbation": 0.05,
-                   "regularization": 0.1, "resamplings": 2, "perturbation_dims": 5,
-                   "initial_hessian": None, "hessian_delay": 0}
+        options = {
+            "fidelity": fidelity,
+            "maxiter": 100,
+            "blocking": True,
+            "allowed_increase": 0.1,
+            "learning_rate": 0.02,
+            "perturbation": 0.05,
+            "regularization": 0.1,
+            "resamplings": 2,
+            "perturbation_dims": 5,
+            "initial_hessian": None,
+            "hessian_delay": 0,
+        }
         spsa = QNSPSA(**options)
 
         serialized = spsa.to_dict()

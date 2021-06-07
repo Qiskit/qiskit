@@ -221,7 +221,7 @@ class Optimizer(ABC):
         raise NotImplementedError("Dictionary conversion not implemented for this optimizer.")
 
     @classmethod
-    def from_dict(cls, dictionary: Dict[str, Any]) -> 'Optimizer':
+    def from_dict(cls, dictionary: Dict[str, Any]) -> "Optimizer":
         """Initialize the optimizer from a serializable dictionary."""
         if "name" not in dictionary:
             raise ValueError("Required key 'name' not found in the dictionary.")

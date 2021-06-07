@@ -27,7 +27,6 @@ import numpy as np
 from qiskit.utils import algorithm_globals
 
 from .optimizer import Optimizer, OptimizerSupportLevel
-from .iterators import SerializableIterator, Constant
 
 # number of function evaluations, parameters, loss, stepsize, accepted
 CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
@@ -126,8 +125,8 @@ class SPSA(Optimizer):
         blocking: bool = False,
         allowed_increase: Optional[float] = None,
         trust_region: bool = False,
-        learning_rate: Optional[Union[float, Callable[[], Iterator]]] = None,
-        perturbation: Optional[Union[float, Callable[[], Iterator]]] = None,
+        learning_rate: Optional[Union[float, np.array, Callable[[], Iterator]]] = None,
+        perturbation: Optional[Union[float, np.array, Callable[[], Iterator]]] = None,
         last_avg: int = 1,
         resamplings: Union[int, Dict[int, int]] = 1,
         perturbation_dims: Optional[int] = None,
@@ -151,12 +150,12 @@ class SPSA(Optimizer):
             trust_region: If ``True``, restricts the norm of the update step to be :math:`\leq 1`.
             learning_rate: The update step is the learning rate is multiplied with the gradient.
                 If the learning rate is a float, it remains constant over the course of the
-                optimization. It can also be a callable returning an iterator which yields the
-                learning rates for each optimization step.
+                optimization. If a NumPy array, the :math:`i`-th element is the learning rate for
+                the :math:`i`-th iteration. It can also be a callable returning an iterator which
+                yields the learning rates for each optimization step.
                 If ``learning_rate`` is set ``perturbation`` must also be provided.
             perturbation: Specifies the magnitude of the perturbation for the finite difference
-                approximation of the gradients. Can be either a float or a generator yielding
-                the perturbation magnitudes per step.
+                approximation of the gradients. See ``learning_rate`` for the supported types.
                 If ``perturbation`` is set ``learning_rate`` must also be provided.
             last_avg: Return the average of the ``last_avg`` parameters instead of just the
                 last parameter values.
@@ -192,6 +191,13 @@ class SPSA(Optimizer):
         self.maxiter = maxiter
         self.trust_region = trust_region
         self.callback = callback
+
+        # if learning rate and perturbation are arrays, check they are sufficiently long
+        for attr, name in zip([learning_rate, perturbation], ["learning_rate", "perturbation"]):
+            if isinstance(attr, (list, np.ndarray)):
+                if len(attr) < maxiter:
+                    raise ValueError(f"Length of {name} is smaller than maxiter ({maxiter}).")
+
         self.learning_rate = learning_rate
         self.perturbation = perturbation
 
@@ -303,19 +309,18 @@ class SPSA(Optimizer):
         if self.lse_solver is not None:
             raise ValueError("Cannot serialize SPSA with ``lse_solver``.")
 
-        if isinstance(self.learning_rate, float) or self.learning_rate is None:
+        # if learning rate or perturbation are custom iterators expand them
+        if callable(self.learning_rate):
+            iterator = self.learning_rate()
+            learning_rate = np.array([next(iterator) for _ in range(self.maxiter)])
+        else:
             learning_rate = self.learning_rate
-        elif isinstance(self.learning_rate, SerializableIterator):
-            learning_rate = self.learning_rate.serialize()
-        else:
-            raise ValueError(f"Cannot serialize SPSA with learning rate {self.learning_rate}.")
 
-        if isinstance(self.perturbation, float) or self.perturbation is None:
-            perturbation = self.perturbation
-        elif isinstance(self.perturbation, SerializableIterator):
-            perturbation = self.perturbation.serialize()
+        if callable(self.perturbation):
+            iterator = self.perturbation()
+            perturbation = np.array([next(iterator) for _ in range(self.maxiter)])
         else:
-            raise ValueError(f"Cannot serialize SPSA with perturbation {self.perturbation}.")
+            perturbation = self.perturbation
 
         return {
             "name": "SPSA",
@@ -427,7 +432,9 @@ class SPSA(Optimizer):
         if self.learning_rate is None and self.perturbation is None:
             get_eta, get_eps = self.calibrate(loss, initial_point)
         else:
-            get_eta, get_eps = _validate_pert_and_learningrate(self.perturbation, self.learning_rate)
+            get_eta, get_eps = _validate_pert_and_learningrate(
+                self.perturbation, self.learning_rate
+            )
         eta, eps = get_eta(), get_eps()
 
         if self.lse_solver is None:
@@ -615,19 +622,21 @@ def _make_spd(matrix, bias=0.01):
 
 
 def _validate_pert_and_learningrate(perturbation, learning_rate):
-    # case 1: both are none, so autocalibrate
-    # case 2: one is set, the other isn't -- this is invalid!
     if learning_rate is None or perturbation is None:
         raise ValueError("If one of learning rate or perturbation is set, both must be set.")
 
     if isinstance(perturbation, float):
-        perturbation = Constant(perturbation).get_iterator()
-    if isinstance(perturbation, SerializableIterator):
-        perturbation = perturbation.get_iterator()
+        get_eps = constant(perturbation)
+    elif isinstance(perturbation, (list, np.ndarray)):
+
+        def get_eps():
+            return iter(perturbation)
 
     if isinstance(learning_rate, float):
-        learning_rate = Constant(learning_rate)
-    if isinstance(learning_rate, SerializableIterator):
-        learning_rate = learning_rate.get_iterator()
+        get_eta = constant(learning_rate)
+    elif isinstance(learning_rate, (list, np.ndarray)):
 
-    return learning_rate, perturbation
+        def get_eta():
+            return iter(learning_rate)
+
+    return get_eta, get_eps
