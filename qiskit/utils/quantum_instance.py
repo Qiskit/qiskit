@@ -550,10 +550,12 @@ class QuantumInstance:
 
             if meas_error_mitigation_fitter is not None:
                 logger.info("Performing measurement error mitigation.")
-                if (hasattr(self._run_config, 'parameterizations')
-                        and len(self._run_config.parameterizations) > 0
-                        and len(self._run_config.parameterizations[0]) > 0
-                        and len(self._run_config.parameterizations[0][0]) > 0):
+                if (
+                    hasattr(self._run_config, "parameterizations")
+                    and len(self._run_config.parameterizations) > 0
+                    and len(self._run_config.parameterizations[0]) > 0
+                    and len(self._run_config.parameterizations[0][0]) > 0
+                ):
                     num_circuit_templates = len(self._run_config.parameterizations)
                     num_param_variations = len(self._run_config.parameterizations[0][0])
                     num_circuits = num_circuit_templates * num_param_variations
