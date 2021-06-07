@@ -2094,7 +2094,7 @@ class QuantumCircuit:
                 self._global_phase = angle % (2 * np.pi)
     @property
     def qubit_bit_capacity(self):
-        """Returns the number of qubits**2"""
+        """Returns the number of 2**qubits"""
         return 2**self.num_qubits
 
     @property
