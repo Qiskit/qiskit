@@ -9,7 +9,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """The Variational Quantum Eigensolver algorithm.
 
 See https://arxiv.org/abs/1304.3061
@@ -104,7 +103,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
         quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
-        split_transpile: bool = False,
+        split_transpile: bool = True,
     ) -> None:
         """
 
@@ -199,10 +198,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     ) -> None:
         """set quantum_instance"""
         super(VQE, self.__class__).quantum_instance.__set__(self, quantum_instance)
-
         self._circuit_sampler = CircuitSampler(
-            self._quantum_instance, param_qobj=is_aer_provider(self._quantum_instance.backend),
-            skip_transpile=self._split_transpile
+            self._quantum_instance, param_qobj=is_aer_provider(self._quantum_instance.backend)
         )
 
     @property
@@ -308,6 +305,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             wave_function = self.ansatz.assign_parameters(param_dict)
         else:
             wave_function = self.ansatz.construct_circuit(parameter)
+            self._split_transpile = False
 
         # Expectation was never created , try to create one
         if self._expectation is None:
@@ -322,10 +320,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             )
 
         observable_meas = self.expectation.convert(StateFn(operator, is_measurement=True))
-        if self._split_transpile:
-            ansatz_circuit_op = CircuitStateFn(self.quantum_instance.transpile(wave_function)[0])
-        else:
-            ansatz_circuit_op = CircuitStateFn(wave_function)
+        ansatz_circuit_op = CircuitStateFn(wave_function)
         return observable_meas.compose(ansatz_circuit_op).reduce()
 
     def construct_circuit(
@@ -496,8 +491,12 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             zip(self._ansatz_params, parameter_sets.transpose().tolist())
         )  # type: Dict
 
+        common_circuit = self.ansatz if self._split_transpile else None
+
         start_time = time()
-        sampled_expect_op = self._circuit_sampler.convert(self._expect_op, params=param_bindings)
+        sampled_expect_op = self._circuit_sampler.convert(self._expect_op,
+                                                          params=param_bindings,
+                                                          common_circuit=common_circuit)
         means = np.real(sampled_expect_op.eval())
 
         if self._callback is not None:

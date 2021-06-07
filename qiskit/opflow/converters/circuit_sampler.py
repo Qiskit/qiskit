@@ -58,7 +58,6 @@ class CircuitSampler(ConverterBase):
         param_qobj: bool = False,
         attach_results: bool = False,
         caching: str = "last",
-        skip_transpile: bool = False,
     ) -> None:
         """
         Args:
@@ -100,7 +99,6 @@ class CircuitSampler(ConverterBase):
         self._transpiled_circ_cache: Optional[List[Any]] = None
         self._transpiled_circ_templates: Optional[List[Any]] = None
         self._transpile_before_bind = True
-        self._skip_transpile = skip_transpile
 
     def _check_quantum_instance_and_modes_consistent(self) -> None:
         """Checks whether the statevector and param_qobj settings are compatible with the
@@ -149,6 +147,7 @@ class CircuitSampler(ConverterBase):
         self,
         operator: OperatorBase,
         params: Optional[Dict[Parameter, Union[float, List[float], List[List[float]]]]] = None,
+        common_circuit: Optional[QuantumCircuit] = None,
     ) -> OperatorBase:
         r"""
         Converts the Operator to one in which the CircuitStateFns are replaced by
@@ -160,6 +159,7 @@ class CircuitSampler(ConverterBase):
             operator: The Operator to convert
             params: A dictionary mapping parameters to either single binding values or lists of
                 binding values.
+            common_circuit: A circuit that will appears prefix of all circuits from operator
 
         Returns:
             The converted Operator with CircuitStateFns replaced by DictStateFns or VectorStateFns.
@@ -217,7 +217,9 @@ class CircuitSampler(ConverterBase):
         # Don't pass circuits if we have in the cache, the sampling function knows to use the cache
         circs = list(self._circuit_ops_cache.values()) if not self._transpiled_circ_cache else None
         p_b = cast(List[Dict[Parameter, float]], param_bindings)
-        sampled_statefn_dicts = self.sample_circuits(circuit_sfns=circs, param_bindings=p_b)
+        sampled_statefn_dicts = self.sample_circuits(circuit_sfns=circs,
+                                                     param_bindings=p_b,
+                                                     common_circuit=common_circuit)
 
         def replace_circuits_with_dicts(operator, param_index=0):
             if isinstance(operator, CircuitStateFn):
@@ -268,6 +270,7 @@ class CircuitSampler(ConverterBase):
         self,
         circuit_sfns: Optional[List[CircuitStateFn]] = None,
         param_bindings: Optional[List[Dict[Parameter, float]]] = None,
+        common_circuit: Optional[QuantumCircuit] = None,
     ) -> Dict[int, List[StateFn]]:
         r"""
         Samples the CircuitStateFns and returns a dict associating their ``id()`` values to their
@@ -281,6 +284,7 @@ class CircuitSampler(ConverterBase):
         Args:
             circuit_sfns: The list of CircuitStateFns to sample.
             param_bindings: The parameterizations to bind to each CircuitStateFn.
+            common_circuit: A circuit that will appears prefix of all circuits from circuit_sfns
 
         Returns:
             The dictionary mapping ids of the CircuitStateFns to their replacement StateFns.
@@ -298,8 +302,35 @@ class CircuitSampler(ConverterBase):
                 circuits = [op_c.to_circuit(meas=True) for op_c in circuit_sfns]
 
             try:
-                if self._skip_transpile:
-                    self._transpiled_circ_cache = circuits
+                if common_circuit is not None and len(circuits) > 1:
+                    # 1. transpile a common circuit
+                    transpiled_common_circuit = self.quantum_instance.transpile(common_circuit)[0]
+                    layout = transpiled_common_circuit._layout
+
+                    # 2. transpile diff circuits
+                    diff_circuits = []
+                    for circuit in circuits:
+                        diff_circuit = circuit.copy()
+                        del diff_circuit.data[0:len(common_circuit)]
+                        diff_circuits.append(diff_circuit)
+                    orig_layout = self.quantum_instance.compile_config['initial_layout']
+                    self.quantum_instance.compile_config['initial_layout'] = layout
+                    diff_circuits = self.quantum_instance.transpile(diff_circuits)
+                    self.quantum_instance.compile_config['initial_layout'] = orig_layout
+
+                    # 3. combine
+                    transpiled_circuits = []
+                    for diff_circuit in diff_circuits:
+                        transpiled_circuit = transpiled_common_circuit.copy()
+                        for creg in diff_circuit.cregs:
+                            if creg not in transpiled_circuit.cregs:
+                                transpiled_circuit.add_register(creg)
+                        for inst, qargs, cargs in diff_circuit.data:
+                            transpiled_circuit.append(inst, qargs, cargs)
+                        transpiled_circuits.append(transpiled_circuit)
+
+                    # 4. set transpiled circuit cache
+                    self._transpiled_circ_cache = transpiled_circuits
                 else:
                     self._transpiled_circ_cache = self.quantum_instance.transpile(circuits)
             except QiskitError:
