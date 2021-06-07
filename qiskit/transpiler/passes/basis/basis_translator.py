@@ -149,10 +149,12 @@ class BasisTranslator(TransformationPass):
                     # Convert target to circ and back to assign_parameters, since
                     # DAGCircuits won't have a ParameterTable.
                     from qiskit.converters import dag_to_circuit, circuit_to_dag
+
                     target_circuit = dag_to_circuit(target_dag)
 
                     target_circuit.assign_parameters(
-                        dict(zip_longest(target_params, node.op.params)), inplace=True)
+                        dict(zip_longest(target_params, node.op.params)), inplace=True
+                    )
 
                     bound_target_dag = circuit_to_dag(target_circuit)
                 else:
