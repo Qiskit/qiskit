@@ -1833,7 +1833,6 @@ class QuantumCircuit:
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
                                 graphs_touched.append(k)
-                                num_touched += 1
                                 break
 
                 for item in args:
@@ -1842,8 +1841,10 @@ class QuantumCircuit:
                         if reg_int in sub_graphs[k]:
                             if k not in graphs_touched:
                                 graphs_touched.append(k)
-                                num_touched += 1
                                 break
+
+                graphs_touched = list(set(graphs_touched))
+                num_touched = len(graphs_touched)
 
                 # If the gate touches more than one subgraph
                 # join those graphs together and return
