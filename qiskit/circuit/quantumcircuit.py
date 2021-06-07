@@ -2095,7 +2095,8 @@ class QuantumCircuit:
     @property
     def qubit_bit_capacity(self):
         """Returns the number of 2**qubits"""
-        return 2 ** self.num_qubits
+        qubit_bit_capacity_num = 2 ** self.num_qubits
+        return qubit_bit_capacity_num
 
     @property
     def parameters(self):
