@@ -15,12 +15,11 @@
 import logging
 from typing import List, Tuple, Union, cast
 
+from qiskit.opflow.converters.converter_base import ConverterBase
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
+from qiskit.opflow.primitive_ops.tapered_pauli_sum_op import Z2Symmetries
 from qiskit.quantum_info import Pauli
-
-from ..primitive_ops.pauli_sum_op import PauliSumOp
-from ..operator_base import OperatorBase
-from .converter_base import ConverterBase
-from ..primitive_ops.tapered_pauli_sum_op import Z2Symmetries
 
 logger = logging.getLogger(__name__)
 
