@@ -51,6 +51,16 @@ class TestNLocal(QiskitTestCase):
         with self.assertRaises(ValueError):
             _ = NLocal(reps=-1)
 
+    def test_if_reps_is_str(self):
+        """Test to check if proper error is raised for str value of reps"""
+        with self.assertRaises(TypeError):
+            _ = NLocal(reps="3")
+
+    def test_if_reps_is_float(self):
+        """Test to check if proper error is raised for float value of reps"""
+        with self.assertRaises(TypeError):
+            _ = NLocal(reps=5.6)
+
     def test_reps_setter_when_negative(self):
         """Test to check if setter raises error for reps < 0"""
         nlocal = NLocal(reps=1)
