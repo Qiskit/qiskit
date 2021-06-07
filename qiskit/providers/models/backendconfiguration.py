@@ -298,9 +298,8 @@ class QasmBackendConfiguration:
                 - family: Processor family of this backend.
                 - revision: Revision version of this processor.
                 - segment: Segment this processor belongs to within a larger chip.
-            parametric_pulses: A list of pulse shapes which are supported internally on the backend.
-                Example::
-                ['gaussian', 'constant']
+            parametric_pulses (list): A list of pulse shapes which are supported on the backend.
+                For example: ``['gaussian', 'constant']``
 
             **kwargs: optional fields
         """
