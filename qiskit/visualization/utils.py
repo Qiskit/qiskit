@@ -100,10 +100,7 @@ def get_gate_ctrl_text(op, drawer, style=None):
     elif (gate_text == op.name and op_type not in (Gate, Instruction)) or (
         gate_text == base_name and base_type not in (Gate, Instruction)
     ):
-        if drawer == "mpl":
-            gate_text = gate_text.capitalize()
-        else:
-            gate_text = gate_text.upper()
+        gate_text = gate_text.capitalize()
 
     return gate_text, ctrl_text, raw_gate_text
 

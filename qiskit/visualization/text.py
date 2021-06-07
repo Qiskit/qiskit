@@ -839,7 +839,7 @@ class TextDrawing:
     @staticmethod
     def special_label(instruction):
         """Some instructions have special labels"""
-        labels = {IGate: "I", SXGate: "√X", SXdgGate: "√XDG"}
+        labels = {IGate: "I", SXGate: "√X", SXdgGate: "√Xdg"}
         instruction_type = type(instruction)
         return labels.get(instruction_type, None)
 
