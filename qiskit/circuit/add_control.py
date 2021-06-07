@@ -96,7 +96,7 @@ def control(
     q_control = QuantumRegister(num_ctrl_qubits, name="control")
     q_target = QuantumRegister(operation.num_qubits, name="target")
     q_ancillae = None  # TODO: add
-    controlled_circ = QuantumCircuit(q_control, q_target, name='c_{}'.format(operation.name))
+    controlled_circ = QuantumCircuit(q_control, q_target, name="c_{}".format(operation.name))
     if isinstance(operation, controlledgate.ControlledGate):
         original_ctrl_state = operation.ctrl_state
     global_phase = 0
