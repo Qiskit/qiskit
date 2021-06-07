@@ -32,6 +32,7 @@ except ImportError:
     HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate, Gate, Instruction
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay
 from qiskit import user_config
@@ -119,6 +120,7 @@ class MatplotlibDrawer:
         ops,
         scale=None,
         style=None,
+        reverse_bits=False,
         plot_barriers=True,
         layout=None,
         fold=25,
@@ -131,9 +133,10 @@ class MatplotlibDrawer:
     ):
 
         if not HAS_MATPLOTLIB:
-            raise ImportError(
-                "The class MatplotlibDrawer needs matplotlib. "
-                'To install, run "pip install matplotlib".'
+            raise MissingOptionalLibraryError(
+                libname="Matplotlib",
+                name="MatplotlibDrawer",
+                pip_install="pip install matplotlib",
             )
         from matplotlib import patches
 
@@ -142,9 +145,10 @@ class MatplotlibDrawer:
 
         self.plt_mod = plt
         if not HAS_PYLATEX:
-            raise ImportError(
-                "The class MatplotlibDrawer needs pylatexenc. "
-                'to install, run "pip install pylatexenc".'
+            raise MissingOptionalLibraryError(
+                libname="pylatexenc",
+                name="MatplotlibDrawer",
+                pip_install="pip install pylatexenc",
             )
         self._clbit = []
         self._qubit = []
@@ -163,6 +167,7 @@ class MatplotlibDrawer:
         self._ops = ops
         self._scale = 1.0 if scale is None else scale
         self._style = self._load_style(style)
+        self._reverse_bits = reverse_bits
         self._plot_barriers = plot_barriers
         self._layout = layout
         self._fold = fold
@@ -182,6 +187,7 @@ class MatplotlibDrawer:
         self._ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
         self._initial_state = initial_state
         self._cregbundle = cregbundle
+        self._set_cregbundle()
         self._global_phase = global_phase
 
         self._ast = None
@@ -310,6 +316,24 @@ class MatplotlibDrawer:
         self._qubit = []
         for r in qubit:
             self._qubit.append(r)
+
+    def _set_cregbundle(self):
+        """Sets the cregbundle to False if there is any instruction that
+        needs access to individual clbit."""
+        for layer in self._ops:
+            for op in layer:
+                if op.cargs and op.name != "measure":
+                    self._cregbundle = False
+                    warn(
+                        "Cregbundle set to False since an instruction needs to refer"
+                        " to individual classical wire",
+                        RuntimeWarning,
+                        2,
+                    )
+                    break
+            else:
+                continue
+            break
 
     @property
     def ast(self):
@@ -510,10 +534,16 @@ class MatplotlibDrawer:
         sc = gt
         return fc, ec, gt, self._style["tc"], sc, lc
 
-    def _multiqubit_gate(self, xy, fc=None, ec=None, gt=None, sc=None, text="", subtext=""):
+    def _multiqubit_gate(
+        self, xy, c_xy=None, fc=None, ec=None, gt=None, sc=None, text="", subtext=""
+    ):
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
+        if c_xy:
+            cxpos = min([x[0] for x in c_xy])
+            cypos = min([y[1] for y in c_xy])
+            ypos = min(ypos, cypos)
         fs = self._style["fs"]
         sfs = self._style["sfs"]
 
@@ -548,6 +578,20 @@ class MatplotlibDrawer:
                 clip_on=True,
                 zorder=PORDER_TEXT,
             )
+        if c_xy:
+            # annotate classical inputs
+            for bit, y in enumerate([x[1] for x in c_xy]):
+                self._ax.text(
+                    cxpos + 0.07 - 0.5 * wid,
+                    y,
+                    str(bit),
+                    ha="left",
+                    va="center",
+                    fontsize=fs,
+                    color=gt,
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
         if text:
             if subtext:
                 self._ax.text(
@@ -1312,7 +1356,10 @@ class MatplotlibDrawer:
                     cmask = list(fmt_c.format(mask))[::-1]
                     # value
                     fmt_v = "{{:0{}b}}".format(cmask.count("1"))
-                    vlist = list(fmt_v.format(val))[::-1]
+                    vlist = list(fmt_v.format(val))
+                    if not self._reverse_bits:
+                        vlist = vlist[::-1]
+
                     # plot conditionals
                     v_ind = 0
                     xy_plot = []
@@ -1374,7 +1421,7 @@ class MatplotlibDrawer:
                 #
                 # draw single qubit gates
                 #
-                elif len(q_xy) == 1:
+                elif len(q_xy) == 1 and not op.cargs:
                     self._gate(
                         q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=str(param)
                     )
@@ -1487,7 +1534,14 @@ class MatplotlibDrawer:
                 # draw multi-qubit gate as final default
                 else:
                     self._multiqubit_gate(
-                        q_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext="{}".format(param)
+                        q_xy,
+                        c_xy,
+                        fc=fc,
+                        ec=ec,
+                        gt=gt,
+                        sc=sc,
+                        text=gate_text,
+                        subtext="{}".format(param),
                     )
 
             # adjust the column if there have been barriers encountered, but not plotted

@@ -138,9 +138,11 @@ def is_statevector_backend(backend):
         bool: True is statevector
     """
     if has_aer():
-        from qiskit.providers.aer.backends import StatevectorSimulator
+        from qiskit.providers.aer.backends import AerSimulator, StatevectorSimulator
 
         if isinstance(backend, StatevectorSimulator):
+            return True
+        if isinstance(backend, AerSimulator) and backend.name() == "aer_simulator_statevector":
             return True
     return backend.name().startswith("statevector") if backend is not None else False
 
