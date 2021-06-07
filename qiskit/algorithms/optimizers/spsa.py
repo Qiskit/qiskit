@@ -626,17 +626,29 @@ def _validate_pert_and_learningrate(perturbation, learning_rate):
         raise ValueError("If one of learning rate or perturbation is set, both must be set.")
 
     if isinstance(perturbation, float):
-        get_eps = constant(perturbation)
+
+        def get_eps():
+            return constant(perturbation)
+
     elif isinstance(perturbation, (list, np.ndarray)):
 
         def get_eps():
             return iter(perturbation)
 
+    else:
+        get_eps = perturbation
+
     if isinstance(learning_rate, float):
-        get_eta = constant(learning_rate)
+
+        def get_eta():
+            return constant(learning_rate)
+
     elif isinstance(learning_rate, (list, np.ndarray)):
 
         def get_eta():
             return iter(learning_rate)
+
+    else:
+        get_eta = learning_rate
 
     return get_eta, get_eps
