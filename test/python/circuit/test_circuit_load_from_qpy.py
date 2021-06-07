@@ -18,6 +18,7 @@ import io
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
@@ -261,3 +262,22 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circs = load(qpy_file)
         self.assertEqual(circuits, new_circs)
+
+    def test_standalone_register(self):
+        """Test a circuit with standalone registers."""
+        qubits = [Qubit() for _ in range(5)]
+        qc = QuantumCircuit()
+        qc.add_bits(qubits)
+        qr = QuantumRegister(bits=qubits)
+        qc.add_register(qr)
+        qc.h(qr)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.measure_all()
+        qpy_file = io.BytesIO()
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_qc = load(qpy_file)[0]
+        self.assertEqual(qc, new_qc)

@@ -19,12 +19,6 @@ QPY serialization (:mod:`qiskit.circuit.qpy_serialization`)
 
 .. currentmodule:: qiskit.circuit.qpy_serialization
 
-.. warning::
-
-    QPY serialization is still an experimental feature, the API and/or
-    forward compatibility are not yet guaranteed. Future versions of Qiskit
-    may not be fully compatible.
-
 .. autosummary::
 
     load
@@ -100,13 +94,12 @@ The contents of REGISTERS is a number of REGISTER object. If num_registers is
 as:
 
 .. code-block:: c
-
     struct {
         char type;
+        _Bool standalone;
         uint32_t size;
         unit16_t name_size;
     }
-
 ``type`` can be ``'q'`` or ``'c'``.
 
 Immediately following the REGISTER struct is the utf8 encoded register name of
@@ -114,6 +107,11 @@ size ``name_size``. After the ``name`` utf8 bytes there is then an array of
 uint32_t values of size ``size`` that contains a map of the register's index to
 the circuit's qubit index. For example, array element 0's value is the index
 of the ``register[0]``'s position in the containing circuit's qubits list.
+
+The standalone boolean determines whether the register is constructed as a
+standalone register that was added to the circuit or was created from existing
+bits.
+
 
 CUSTOM_DEFINITIONS
 ------------------
@@ -352,8 +350,8 @@ CUSTOM_DEFINITION_SIZE = struct.calcsize(CUSTOM_DEFINITION_PACK)
 
 
 # REGISTER binary format
-REGISTER = namedtuple("REGISTER", ["type", "size", "name_size"])
-REGISTER_PACK = "!1cIH"
+REGISTER = namedtuple("REGISTER", ["type", "standalone", "size", "name_size"])
+REGISTER_PACK = "!1c?IH"
 REGISTER_SIZE = struct.calcsize(REGISTER_PACK)
 
 # INSTRUCTION binary format
@@ -411,22 +409,15 @@ def _read_registers(file_obj, num_registers):
     for _reg in range(num_registers):
         register_raw = file_obj.read(REGISTER_SIZE)
         register = struct.unpack(REGISTER_PACK, register_raw)
-        name = file_obj.read(register[2]).decode("utf8")
-        REGISTER_ARRAY_PACK = "%sI" % register[1]
+        name = file_obj.read(register[3]).decode("utf8")
+        standalone = register[1]
+        REGISTER_ARRAY_PACK = "%sI" % register[2]
         bit_indices_raw = file_obj.read(struct.calcsize(REGISTER_ARRAY_PACK))
-        bit_indices = struct.unpack(REGISTER_ARRAY_PACK, bit_indices_raw)
+        bit_indices = list(struct.unpack(REGISTER_ARRAY_PACK, bit_indices_raw))
         if register[0].decode("utf8") == "q":
-            registers["q"][name] = {}
-            registers["q"][name]["register"] = QuantumRegister(register[1], name)
-            registers["q"][name]["index_map"] = dict(
-                zip(bit_indices, registers["q"][name]["register"])
-            )
+            registers["q"][name] = (standalone, bit_indices)
         else:
-            registers["c"][name] = {}
-            registers["c"][name]["register"] = ClassicalRegister(register[1], name)
-            registers["c"][name]["index_map"] = dict(
-                zip(bit_indices, registers["c"][name]["register"])
-            )
+            registers["c"][name] = (standalone, bit_indices)
     return registers
 
 
@@ -489,7 +480,7 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
     condition_value = instruction[6]
     condition_tuple = None
     if has_condition:
-        condition_tuple = (registers["c"][condition_register]["register"], condition_value)
+        condition_tuple = (registers["c"][condition_register], condition_value)
     qubit_indices = dict(enumerate(circuit.qubits))
     clbit_indices = dict(enumerate(circuit.clbits))
     # Load Arguments
@@ -853,14 +844,20 @@ def _write_circuit(file_obj, circuit):
     clbit_indices = {bit: index for index, bit in enumerate(circuit.clbits)}
     if num_registers > 0:
         for reg in circuit.qregs:
+            standalone = reg[0]._register is not None
             reg_name = reg.name.encode("utf8")
-            file_obj.write(struct.pack(REGISTER_PACK, "q".encode("utf8"), reg.size, len(reg_name)))
+            file_obj.write(
+                struct.pack(REGISTER_PACK, "q".encode("utf8"), standalone, reg.size, len(reg_name))
+            )
             file_obj.write(reg_name)
             REGISTER_ARRAY_PACK = "%sI" % reg.size
             file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *[qubit_indices[bit] for bit in reg]))
         for reg in circuit.cregs:
+            standalone = reg[0]._register is not None
             reg_name = reg.name.encode("utf8")
-            file_obj.write(struct.pack(REGISTER_PACK, "c".encode("utf8"), reg.size, len(reg_name)))
+            file_obj.write(
+                struct.pack(REGISTER_PACK, "c".encode("utf8"), standalone, reg.size, len(reg_name))
+            )
             file_obj.write(reg_name)
             REGISTER_ARRAY_PACK = "%sI" % reg.size
             file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *[clbit_indices[bit] for bit in reg]))
@@ -960,25 +957,62 @@ def _read_circuit(file_obj):
         num_registers,
         num_instructions,
     ) = header
-    registers = {}
+    out_registers = {"q": {}, "c": {}}
     if num_registers > 0:
         circ = QuantumCircuit(name=name, global_phase=global_phase, metadata=metadata)
-        # TODO Update to handle registers composed of not continuous bit
-        # indices. Right now this only works for standalone registers or
-        # registers composed bit indices that are continuous
         registers = _read_registers(file_obj, num_registers)
-        for qreg in registers["q"].values():
-            min_index = min(qreg["index_map"].keys())
-            qubits = [Qubit() for i in range(min_index - len(circ.qubits))]
-            if qubits:
+        standalone_qreg = {key: value[1] for key, value in registers["q"].items() if value[0]}
+        standalone_creg = {key: value[1] for key, value in registers["c"].items() if value[0]}
+        shared_qreg = {key: value[1] for key, value in registers["q"].items() if not value[0]}
+        shared_creg = {key: value[1] for key, value in registers["c"].items() if not value[0]}
+        standalone_qreg_starts = {
+            name: min(value)
+            for name, value in sorted(standalone_qreg.items(), key=lambda v: min(v[1]))
+        }
+        standalone_creg_starts = {
+            name: min(value)
+            for name, value in sorted(standalone_creg.items(), key=lambda v: min(v[1]))
+        }
+        qubit_count = 0
+        # Add quantum registers and bits
+        for name, start in standalone_qreg_starts.items():
+            if start > qubit_count:
+                qubits = [Qubit() for _ in range(start - qubit_count)]
                 circ.add_bits(qubits)
-            circ.add_register(qreg["register"])
-        for creg in registers["c"].values():
-            min_index = min(creg["index_map"].keys())
-            clbits = [Clbit() for i in range(min_index - len(circ.clbits))]
-            if clbits:
+            qubit_indices = standalone_qreg[name]
+            num_reg_bits = len(qubit_indices)
+            qreg = QuantumRegister(num_reg_bits, name)
+            circ.add_register(qreg)
+            out_registers["q"][name] = qreg
+            qubit_count = start + num_reg_bits
+        if qubit_count < num_qubits:
+            qubits = [Qubit() for _ in range(num_qubits - qubit_count)]
+            circ.add_bits(qubits)
+        for name, bit_indices in shared_qreg.items():
+            bits = [circ.qubits[i] for i in bit_indices]
+            qreg = QuantumRegister(name=name, bits=bits)
+            circ.add_register(qreg)
+            out_registers["q"][name] = qreg
+        # Add classical registers and bits
+        clbit_count = 0
+        for name, start in standalone_creg_starts.items():
+            if start > clbit_count:
+                clbits = [Clbit() for _ in range(start - clbit_count)]
                 circ.add_bits(clbits)
-            circ.add_register(creg["register"])
+            clbit_indices = standalone_creg[name]
+            num_reg_bits = len(clbit_indices)
+            creg = ClassicalRegister(num_reg_bits, name)
+            circ.add_register(creg)
+            out_registers["c"][name] = creg
+            clbit_count = start + num_reg_bits
+        if clbit_count < num_clbits:
+            clbits = [Clbit() for _ in range(num_qubits - clbit_count)]
+            circ.add_bits(clbits)
+        for name, bit_indices in shared_creg.items():
+            bits = [circ.clbits[i] for i in bit_indices]
+            qreg = ClassicalRegister(name=name, bits=bits)
+            circ.add_register(creg)
+            out_registers["c"][name] = creg
     else:
         circ = QuantumCircuit(
             num_qubits,
@@ -989,6 +1023,6 @@ def _read_circuit(file_obj):
         )
     custom_instructions = _read_custom_instructions(file_obj)
     for _instruction in range(num_instructions):
-        _read_instruction(file_obj, circ, registers, custom_instructions)
+        _read_instruction(file_obj, circ, out_registers, custom_instructions)
 
     return circ
