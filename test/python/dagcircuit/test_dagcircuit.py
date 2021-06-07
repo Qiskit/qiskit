@@ -1116,16 +1116,20 @@ class TestDagSubstitute(QiskitTestCase):
         self.clbit0 = creg[0]
         self.clbit1 = creg[1]
         self.condition = (creg, 3)
-
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        cx_node = self.dag.op_nodes(op=CXGate).pop()
+        print("\n\n\00000000000000000000000000000000000000000000000000000000000000000000000000", cx_node.qargs)
         self.dag.apply_operation_back(XGate(), [self.qubit1], [])
 
     def test_substitute_circuit_one_middle(self):
         """The method substitute_node_with_dag() replaces a in-the-middle node with a DAG."""
         cx_node = self.dag.op_nodes(op=CXGate).pop()
+        print("\n\n\n888888888888888888888888888888888888888888888888888888888888", cx_node.qargs)
+        print("\n\n\n3333333333333333333333", cx_node.qargs, cx_node.cargs)
 
         flipped_cx_circuit = DAGCircuit()
+        print("\n\n\n888888888888888888888888888888888888888888888888888888888888", cx_node.qargs)
         v = QuantumRegister(2, "v")
         flipped_cx_circuit.add_qreg(v)
         flipped_cx_circuit.apply_operation_back(HGate(), [v[0]], [])
@@ -1133,8 +1137,10 @@ class TestDagSubstitute(QiskitTestCase):
         flipped_cx_circuit.apply_operation_back(CXGate(), [v[1], v[0]], [])
         flipped_cx_circuit.apply_operation_back(HGate(), [v[0]], [])
         flipped_cx_circuit.apply_operation_back(HGate(), [v[1]], [])
+        print("\n\n\n888888888888888888888888888888888888888888888888888888888888", cx_node.qargs)
 
         self.dag.substitute_node_with_dag(cx_node, flipped_cx_circuit, wires=[v[0], v[1]])
+        print("\n\n\n77777777777777777777777777777777777777777777777777777777777", cx_node.qargs)
 
         self.assertEqual(self.dag.count_ops()["h"], 5)
 
@@ -1252,7 +1258,9 @@ class TestDagSubstituteNode(QiskitTestCase):
         #print(next(predecessors))
         print(predecessors[0].name, predecessors[0].qargs, predecessors[0].cargs)
         print('Here 2')
-        predecessors = set(predecessors)
+        z = set()
+        print("Here 3")
+        predecessors = z.update(predecessors)
         print("HERE")
         successors = frozenset(tuple(dag.successors(node_to_be_replaced)))
         ancestors = dag.ancestors(node_to_be_replaced)

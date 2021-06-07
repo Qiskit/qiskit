@@ -439,6 +439,7 @@ class DAGCircuit:
         self._check_condition(op.name, op.condition)
         self._check_bits(qargs, self.output_map)
         self._check_bits(all_cbits, self.output_map)
+        print("\n\n\n\n\n9999999999999999999", qargs, cargs)
 
         node_index = self._add_op_node(op, qargs, cargs)
 
@@ -450,6 +451,7 @@ class DAGCircuit:
         self._multi_graph.insert_node_on_in_edges_multiple(
             node_index, [self.output_map[q]._node_id for q in itertools.chain(*al)]
         )
+        print("******************", self._multi_graph[node_index].name)
         return self._multi_graph[node_index]
 
     def apply_operation_front(self, op, qargs, cargs, condition=None):
@@ -875,6 +877,8 @@ class DAGCircuit:
         if len(set(wires)) != len(wires):
             raise DAGCircuitError("duplicate wires")
 
+        print("\n\n\n\n%%%%%%%%%%%%%%%%%%%%%", node.qargs, node.cargs)
+        print(len(wires))
         wire_tot = len(node.qargs) + len(node.cargs)
         if node.condition is not None:
             wire_tot += node.condition[0].size
@@ -1037,8 +1041,11 @@ class DAGCircuit:
         if in_dag.global_phase:
             self.global_phase += in_dag.global_phase
 
+        print('\n\n&&&&&&&&&&&&&&&&', wires)
         if wires is None:
             wires = in_dag.wires
+        print(wires)
+        print(node.qargs)
 
         self._check_wires_list(wires, node)
 
@@ -1091,6 +1098,7 @@ class DAGCircuit:
             condition = self._map_condition(wire_map, sorted_node.condition, self.cregs.values())
             m_qargs = list(map(lambda x: wire_map.get(x, x), sorted_node.qargs))
             m_cargs = list(map(lambda x: wire_map.get(x, x), sorted_node.cargs))
+            print("\n\n\n111111111111111111111111111111111111", m_qargs)
             node_index = self._add_op_node(sorted_node, m_qargs, m_cargs)
 
             # Add edges from predecessor nodes to new node
@@ -1152,14 +1160,14 @@ class DAGCircuit:
 
         if inplace:
             save_condition = node.condition
-            node = op
+            node = OpNode(op, node.qargs, node.cargs)
             node.name = op.name
             node.condition = save_condition
             return node
 
         new_node = copy.copy(node)
         save_condition = new_node.condition
-        new_node = op
+        new_node = OpNode(op)
         new_node.name = op.name
         new_node.condition = save_condition
         self._multi_graph[node._node_id] = new_node
@@ -1311,7 +1319,7 @@ class DAGCircuit:
             print("z", z)
         #print(set(x))
         print(self._multi_graph.nodes())
-        return self._multi_graph.predecessors(node._node_id)
+        return iter(self._multi_graph.predecessors(node._node_id))
 
     def quantum_predecessors(self, node):
         """Returns iterator of the predecessors of a node that are

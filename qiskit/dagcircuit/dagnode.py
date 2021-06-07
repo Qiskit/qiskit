@@ -133,20 +133,11 @@ class OpNode(DAGNode, Gate, Instruction):
             Gate.__init__(self, op.name, num_qubits=len(qargs), params=op.params)
         else:
             Instruction.__init__(self, op.name, num_qubits=len(qargs), num_clbits=len(cargs), params=op.params)
+        self._hash = hash((type(self), op.name))
+        print(self.qargs, qargs)
 
-    def __lt__(self, other):
-        return self._node_id < other._node_id
-
-    def __gt__(self, other):
-        return self._node_id > other._node_id
-
-    def __str__(self):
-        # TODO is this used anywhere other than in DAG drawing?
-        # needs to be unique as it is what pydot uses to distinguish nodes
-        return str(id(self))
-
-    def __eq__(self, other):
-        return DAGNode.semantic_eq(self, other)
+    def __hash__(self):
+        return self._hash
 
 class InNode(DAGNode):
     """Object to represent the information at a node in the DAGCircuit.
