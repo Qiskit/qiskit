@@ -17,6 +17,7 @@
 import ipywidgets as wid
 from IPython.display import display
 from qiskit import QuantumCircuit
+from qiskit.exceptions import MissingOptionalLibraryError
 
 try:
     import pygments
@@ -119,12 +120,13 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
         Output widget.
 
     Raises:
-        ImportError: If pygments is not installed
+        MissingOptionalLibraryError: If pygments is not installed
     """
     if not HAS_PYGMENTS:
-        raise ImportError(
-            "pygments>2.4 must be installed for to use the qasm "
-            'widget. To install run "pip install pygments"'
+        raise MissingOptionalLibraryError(
+            libname="pygments>2.4",
+            name="qasm_widget",
+            pip_install="pip install pygments",
         )
     qasm_code = circuit.qasm()
     code = pygments.highlight(qasm_code, OpenQASMLexer(), HtmlFormatter())

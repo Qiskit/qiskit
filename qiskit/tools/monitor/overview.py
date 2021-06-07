@@ -14,7 +14,7 @@
 """
 
 import math
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
 
 def get_unique_backends():
@@ -25,15 +25,15 @@ def get_unique_backends():
 
     Raises:
         QiskitError: No backends available.
-        ImportError: If qiskit-ibmq-provider is not installed
+        MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
     """
     try:
         from qiskit.providers.ibmq import IBMQ
     except ImportError as ex:
-        raise ImportError(
-            "The IBMQ provider is necessary for this function "
-            " to work. Please ensure it's installed before "
-            "using this function"
+        raise MissingOptionalLibraryError(
+            libname="qiskit-ibmq-provider",
+            name="get_unique_backends",
+            pip_install="pip install qiskit-ibmq-provider",
         ) from ex
     backends = []
     for provider in IBMQ.providers():
@@ -57,15 +57,15 @@ def backend_monitor(backend):
         backend (IBMQBackend): Backend to monitor.
     Raises:
         QiskitError: Input is not a IBMQ backend.
-        ImportError: If qiskit-ibmq-provider is not installed
+        MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
     """
     try:
         from qiskit.providers.ibmq import IBMQBackend
     except ImportError as ex:
-        raise ImportError(
-            "The IBMQ provider is necessary for this function "
-            " to work. Please ensure it's installed before "
-            "using this function"
+        raise MissingOptionalLibraryError(
+            libname="qiskit-ibmq-provider",
+            name="backend_monitor",
+            pip_install="pip install qiskit-ibmq-provider",
         ) from ex
 
     if not isinstance(backend, IBMQBackend):
