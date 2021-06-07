@@ -176,7 +176,7 @@ class VarQITE(VarQTE):
                          H: Union[List, np.ndarray],
                          energies: List,
                          imag_reverse_bound: bool = True,
-                         trapezoidal: bool=False) -> Union[List, Tuple[List, List]]:
+                         trapezoidal: bool=True) -> Union[List, Tuple[List, List]]:
         """
         Get the upper bound to the Bures metric between prepared and target state for VarQITE
         simulation
@@ -203,7 +203,7 @@ class VarQITE(VarQTE):
             raise Warning('The number of the gradient errors is incompatible with the number of '
                           'the time steps.')
 
-        def max_bures(eps: float,
+        def get_max_bures(eps: float,
                          e: float,
                          h_squared: float,
                          h_trip: float,
@@ -241,7 +241,6 @@ class VarQITE(VarQTE):
 
                 # |<psi*_t|(I + delta_t(E_t-H))^2|psi*_t>|
                 abs_val0 = lambda a: np.abs(1 + 2 * delta_t * (e - e_star(a)))
-
                 # |<psi_t|(I + delta_t(E_t-H))^2|psi*_t>|
                 abs_val1 = lambda a: np.abs(((1 - np.abs(a) + a * e) * (1 + 2 * delta_t * e) -
                                      2 * delta_t * ((1 - np.abs(a)) * e + a * h_squared)) /
@@ -252,7 +251,7 @@ class VarQITE(VarQTE):
                 # Check if B^2 is negative
                 if bures_squared < 0:
                     # If it is slightly negative then clip
-                    if bures_squared < -1e-6:
+                    if np.abs(bures_squared) < 1e-6:
                         bures_squared = 0
                     # Else raise warning
                     else:
@@ -284,7 +283,7 @@ class VarQITE(VarQTE):
             max_bures = None
             # TODO Use again finer grid of 10**6
             # Grid search over alphas for the optimization
-            a_grid = np.append(np.linspace(-1, 1, 10**5), 0)
+            a_grid = np.append(np.linspace(-1, 1, 10**4), 0)
             for a in a_grid:
                 returned_bures = bures([a])
                 if math.isnan(returned_bures):
@@ -299,10 +298,10 @@ class VarQITE(VarQTE):
                         max_bures = returned_bures
                         alpha_opt = a
             # After the grid use the resulting optimal alpha and do another optimization search
-            # alpha_opt = fmin_cobyla(func=lambda x: (-1) * bures(x), x0=[alpha_opt],
-            #                         rhobeg=1e-6, catol=1e-16, maxfun=10000,
-            #                         rhoend=1e-10, cons=[constraint1, constraint2])[0]
-            # max_bures = bures([alpha_opt])
+            alpha_opt = fmin_cobyla(func=lambda x: (-1) * bures(x), x0=[alpha_opt],
+                                    rhobeg=1e-5, catol=1e-16, maxfun=100000,
+                                    rhoend=1e-10, cons=[constraint1, constraint2])[0]
+            max_bures = bures([alpha_opt])
 
             print('alpha_opt ', alpha_opt)
             print('Maximum bures metric ', max_bures)
@@ -319,7 +318,7 @@ class VarQITE(VarQTE):
 
             """
             # max B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
-            y = max_bures(error_bounds[j - 1], energies[j - 1], h_squareds[j - 1],
+            y = get_max_bures(error_bounds[j - 1], energies[j - 1], h_squareds[j - 1],
                              h_trips[j - 1], d_t)
             # eps_t*sqrt(var) + eps_t^2/2 * |E_t - ||H||_infty |
             energy_factor = (2 * error_bounds[j - 1] * stddevs[j - 1] +
@@ -327,10 +326,25 @@ class VarQITE(VarQTE):
                                                                    np.linalg.norm(H, np.inf)))
             print('Max Bures ', y)
             print('grad factor ', gradient_errors[j - 1])
-            print('Energy error factor', 2 * error_bounds[j - 1] * stddevs[j - 1] +
-                  error_bounds[j - 1] ** 2 / 2 *
-                  np.abs(
-                      energies[j - 1] - np.linalg.norm(H, np.inf)))
+            print('Energy error factor', energy_factor)
+            if math.isnan(energy_factor):
+                print('nan')
+
+            if os.path.exists(os.path.join(self._snapshot_dir, 'energy_error_bound.npy')):
+                energy_error_bounds = np.load(os.path.join(self._snapshot_dir,
+                                                           'energy_error_bound.npy'))
+                energy_error_bounds = np.append(energy_error_bounds, energy_factor)
+            else:
+                energy_error_bounds = [energy_factor]
+            if os.path.exists(os.path.join(self._snapshot_dir, 'max_bures.npy')):
+                max_bures_metrics = np.load(os.path.join(self._snapshot_dir, 'max_bures.npy'))
+                max_bures_metrics = np.append(max_bures_metrics, y)
+            else:
+                max_bures_metrics = [y]
+                
+            np.save(os.path.join(self._snapshot_dir, 'energy_error_bound.npy'),
+                    energy_error_bounds)
+            np.save(os.path.join(self._snapshot_dir, 'max_bures.npy'), max_bures_metrics)
 
             # Write terms to csv file
             with open(os.path.join(self._snapshot_dir, 'varqite_bound_output.csv'), mode='a') as \
@@ -375,7 +389,7 @@ class VarQITE(VarQTE):
                 # Use a finite difference approx. of the gradient underlying the error at time t
                 # to enable the use of an integral formulation of the error
                 #TODO avoid hard-coding of delta_t
-                delta_t_trap = 1e-6
+                delta_t_trap = 1e-4
                 trap_grad_term = (get_error_term(delta_t_trap, j) -
                                   error_bounds[j - 1]) / delta_t_trap
                 trap_grad.append(trap_grad_term)

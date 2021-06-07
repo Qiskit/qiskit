@@ -38,19 +38,17 @@ depths = [1]
 # ode_solvers = [ForwardEuler, RK45]
 # ode_solvers_names = ['ForwardEuler', 'RK45']
 
-# ode_solvers = [BDF]
-# ode_solvers_names = ['BDF']
+ode_solvers = [ForwardEuler]
+ode_solvers_names = ['ForwardEuler']
 #
 ode_solvers = [RK45]
 ode_solvers_names = ['RK45']
-regs = ['ridge', 'perturb_diag', None]
-reg_names = ['ridge', 'perturb_diag', 'lstsq']
+# regs = ['ridge', 'perturb_diag', None]
+# reg_names = ['ridge', 'perturb_diag', 'lstsq']
 # regs = [None]
 # reg_names = ['lstsq']
-# regs = ['perturb_diag']
-# reg_names = ['perturb_diag'
-#              ''
-#              '']
+regs = ['ridge']
+reg_names = ['ridge']
 # for nts in num_time_steps:
 # nts = num_time_steps[1]
 # output_dirs = [ 'illustrative', 'illustrative_reverse', 'transverse_ising',
@@ -67,11 +65,7 @@ for dir in output_dirs:
                     print(ode_solvers_names[k])
                     print(reg_names[j])
                     # Define the Hamiltonian for the simulation
-                    # observable = (Y ^ Y)
-                    # observable = SummedOp([(Z ^ X), 0.8 * (Y ^ Y)]).reduce()
                     observable = SummedOp([(Z ^ X), (X ^ Z), 3 * (Z ^ Z)]).reduce()
-                    # observable = (Y ^ I)
-                    # observable = SummedOp([(Z ^ X), 3. * (Y ^ Y), (Z ^ X), (I ^ Z), (Z ^ I)]).reduce()
                     # Define Ansatz
                     # ansatz = RealAmplitudes(observable.num_qubits, reps=d)
                     ansatz = EfficientSU2(observable.num_qubits, reps=d)

@@ -47,8 +47,8 @@ ode_solvers_names = ['ForwardEuler', 'RK45']
 
 # ode_solvers = [ RK23]
 # ode_solvers_names = ['RK23']
-regs = ['ridge', 'perturb_diag']
-reg_names = ['ridge', 'perturb_diag']
+regs = [None, 'ridge', 'perturb_diag']
+reg_names = ['lstsq', 'ridge', 'perturb_diag']
 # regs = [ None]
 # reg_names = ['lstsq']
 # for nts in num_time_steps:
