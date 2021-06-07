@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A generalized SPSA optimizer including support for Hessians."""
+"""The QN-SPSA optimizer."""
 
-from typing import Iterator, Optional, Union, Callable, Dict
+from typing import Any, Iterator, Optional, Union, Callable, Dict
 
 import numpy as np
 from qiskit.providers import Backend
@@ -21,6 +21,7 @@ from qiskit.opflow import StateFn, CircuitSampler, ExpectationBase
 from qiskit.utils import QuantumInstance
 
 from .spsa import SPSA, _batch_evaluate
+from .iterators import SerializableIterator
 
 # the function to compute the fidelity
 FIDELITY = Callable[[np.ndarray, np.ndarray], float]
@@ -188,6 +189,65 @@ class QNSPSA(SPSA):
         hessian_estimate = -0.5 * diff * (rank_one + rank_one.T) / 2
 
         return gradient_estimate, hessian_estimate
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Dump the optimizer settings into a dictionary.
+
+        .. note::
+
+            The ``fidelity`` property cannot be serialized and will not be contained
+            in the dictionary. To construct a ``QNSPSA`` object from a dictionary you
+            have to add it manually with the key ``"fidelity"``.
+
+        """
+        if self.callback is not None:
+            raise ValueError("Cannot serialize QNSPSA with callback.")
+
+        if self.lse_solver is not None:
+            raise ValueError("Cannot serialize QNSPSA with ``lse_solver``.")
+
+        if isinstance(self.learning_rate, float) or self.learning_rate is None:
+            learning_rate = self.learning_rate
+        elif isinstance(self.learning_rate, SerializableIterator):
+            learning_rate = self.learning_rate.serialize()
+        else:
+            raise ValueError(f"Cannot serialize QNSPSA with learning rate {self.learning_rate}.")
+
+        if isinstance(self.perturbation, float) or self.perturbation is None:
+            perturbation = self.perturbation
+        elif isinstance(self.perturbation, SerializableIterator):
+            perturbation = self.perturbation.serialize()
+        else:
+            raise ValueError(f"Cannot serialize QNSPSA with perturbation {self.perturbation}.")
+
+        return {
+            "name": "QNSPSA",
+            "maxiter": self.maxiter,
+            "learning_rate": learning_rate,
+            "perturbation": perturbation,
+            "blocking": self.blocking,
+            "allowed_increase": self.allowed_increase,
+            "resamplings": self.resamplings,
+            "perturbation_dims": self.perturbation_dims,
+            "hessian_delay": self.hessian_delay,
+            "regularization": self.regularization,
+            "initial_hessian": self.initial_hessian,
+        }
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        name = dictionary.pop("name", None)
+        if name != "QNSPSA":
+            raise ValueError("Value of the key 'name' must be 'SPSA'.")
+
+        # raise extra expressive warning if "fidelity" is not contained
+        if "fidelity" not in dictionary.keys():
+            raise ValueError("Required key 'fidelity' missing. If you constructed the dictionary "
+                             "from QNSPSA.to_dict this key is missing since it is not "
+                             "serializable. You have to add the callable to evaluate the fidelity "
+                             "manually to the dictionary to construct a QNSPSA optimizer.")
+
+        return cls(**dictionary)
 
     @staticmethod
     def get_fidelity(

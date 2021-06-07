@@ -12,10 +12,14 @@
 
 """Optimizer interface"""
 
+from typing import Dict, Any
+
 from enum import IntEnum
 import logging
 from abc import ABC, abstractmethod
 import numpy as np
+
+from qiskit.exceptions import QiskitError
 
 logger = logging.getLogger(__name__)
 
@@ -212,6 +216,56 @@ class Optimizer(ABC):
             )
         pass
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Dump the settings of the optimizer in a dictionary for serialization."""
+        raise NotImplementedError("Dictionary conversion not implemented for this optimizer.")
+
+    @classmethod
+    def from_dict(cls, dictionary: Dict[str, Any]) -> 'Optimizer':
+        """Initialize the optimizer from a serializable dictionary."""
+        if "name" not in dictionary:
+            raise ValueError("Required key 'name' not found in the dictionary.")
+
+        name = dictionary["name"]
+
+        if name.lower() == "spsa":
+            from .spsa import SPSA
+
+            return SPSA.from_dict(dictionary)
+
+        if name.lower() == "qnspsa":
+            from .qnspsa import QNSPSA
+
+            return QNSPSA.from_dict(dictionary)
+
+        if name.lower() in [
+            "nelder-mead",
+            "Powell",
+            "CG",
+            "BFGS",
+            "Newton-cg",
+            "l-bfgs-b",
+            "tnc",
+            "COBYLA",
+            "SLSQP",
+            "trust-constr",
+            "dogleg",
+            "trust-ncg",
+            "trust-exact",
+            "trust-krylov",
+        ]:
+            from .scipy_optimizer import SciPyOptimizer
+
+            return SciPyOptimizer.from_dict(dictionary)
+
+        raise NotImplementedError(f"Cannot load from dictionary for optimizer with name {name}.")
+
+    @staticmethod
+    def _check_dict_is_serializable(dictionary: Dict[str, Any]):
+        """Check whether ``dictionary`` is serializable for Qiskit Runtime."""
+        for value in dictionary.values():
+            _check_object_is_serializable(value)
+
     @property
     def gradient_support_level(self):
         """Returns gradient support level"""
@@ -280,3 +334,22 @@ class Optimizer(ABC):
     def set_max_evals_grouped(self, limit):
         """Set max evals grouped"""
         self._max_evals_grouped = limit
+
+
+def _check_object_is_serializable(obj):
+    """Check whether ``obj`` is serializable for Qiskit Runtime."""
+    supported_types = (str, int, float, complex, np.ndarray)
+
+    if isinstance(obj, list):
+        for value in obj:
+            _check_object_is_serializable(value)
+    elif isinstance(obj, dict):
+        for key, value in obj.items():
+            _check_object_is_serializable(key)
+            _check_object_is_serializable(value)
+    else:
+        if not isinstance(obj, supported_types):
+            raise QiskitError(
+                f"Unsupported type {type(obj)} in optimizer serialization. "
+                f"Supported: {supported_types}."
+            )

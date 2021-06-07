@@ -25,13 +25,17 @@ from qiskit.algorithms.optimizers import (
     GradientDescent,
     L_BFGS_B,
     NELDER_MEAD,
+    Optimizer,
     P_BFGS,
     POWELL,
     SLSQP,
     SPSA,
+    QNSPSA,
     TNC,
     SciPyOptimizer,
 )
+from qiskit.circuit.library import RealAmplitudes
+from qiskit.exceptions import QiskitError
 from qiskit.utils import algorithm_globals
 
 
@@ -153,6 +157,77 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
         self.assertTrue(values)  # Check the list is nonempty.
+
+
+class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
+    """Tests concerning the serialization of optimizers."""
+
+    def test_scipy(self):
+        """Test the SciPyOptimizer is serializable."""
+        method = "BFGS"
+        options = {"maxiter": 1000, "eps": np.array([0.1])}
+
+        optimizer = SciPyOptimizer(method, options=options)
+        serialized = optimizer.to_dict()
+        from_dict = SciPyOptimizer.from_dict(serialized)
+
+        self.assertEqual(from_dict._method, method.lower())
+        self.assertEqual(from_dict._options, options)
+
+    def test_scipy_not_serializable(self):
+        """Test serialization fails if the optimizer contains an attribute that's not supported."""
+
+        def callback(x):
+            print(x)
+
+        optimizer = SciPyOptimizer("BFGS", options={"maxiter": 1}, callback=callback)
+
+        with self.assertRaises(QiskitError):
+            _ = optimizer.to_dict()
+
+    def test_spsa(self):
+        """Test SPSA optimizer is serializable."""
+        options = {"maxiter": 100, "blocking": True, "allowed_increase": 0.1,
+                   "second_order": True, "learning_rate": 0.02, "perturbation": 0.05,
+                   "regularization": 0.1, "resamplings": 2, "perturbation_dims": 5,
+                   "trust_region": False, "initial_hessian": None, "hessian_delay": 0}
+        spsa = SPSA(**options)
+
+        serialized = spsa.to_dict()
+        expected = options.copy()
+        expected["name"] = "SPSA"
+
+        with self.subTest(msg="check constructed dictionary"):
+            self.assertDictEqual(serialized, expected)
+
+        reconstructed = Optimizer.from_dict(serialized)
+        with self.subTest(msg="test reconstructed optimizer"):
+            self.assertDictEqual(reconstructed.to_dict(), expected)
+
+    def test_qnspsa(self):
+        """Test QN-SPSA optimizer is serializable."""
+        ansatz = RealAmplitudes(1)
+        fidelity = QNSPSA.get_fidelity(ansatz)
+        options = {"fidelity": fidelity,
+                   "maxiter": 100, "blocking": True, "allowed_increase": 0.1,
+                   "learning_rate": 0.02, "perturbation": 0.05,
+                   "regularization": 0.1, "resamplings": 2, "perturbation_dims": 5,
+                   "initial_hessian": None, "hessian_delay": 0}
+        spsa = QNSPSA(**options)
+
+        serialized = spsa.to_dict()
+        expected = options.copy()
+        expected.pop("fidelity")  # fidelity cannot be serialized
+        expected["name"] = "QNSPSA"
+
+        with self.subTest(msg="check constructed dictionary"):
+            self.assertDictEqual(serialized, expected)
+
+        # fidelity cannot be serialized, so it must be added back in
+        serialized["fidelity"] = fidelity
+        reconstructed = Optimizer.from_dict(serialized)
+        with self.subTest(msg="test reconstructed optimizer"):
+            self.assertDictEqual(reconstructed.to_dict(), expected)
 
 
 if __name__ == "__main__":

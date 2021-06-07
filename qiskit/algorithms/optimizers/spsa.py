@@ -27,6 +27,7 @@ import numpy as np
 from qiskit.utils import algorithm_globals
 
 from .optimizer import Optimizer, OptimizerSupportLevel
+from .iterators import SerializableIterator, Constant
 
 # number of function evaluations, parameters, loss, stepsize, accepted
 CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
@@ -191,16 +192,8 @@ class SPSA(Optimizer):
         self.maxiter = maxiter
         self.trust_region = trust_region
         self.callback = callback
-
-        if isinstance(learning_rate, float):
-            self.learning_rate = lambda: constant(learning_rate)
-        else:
-            self.learning_rate = learning_rate
-
-        if isinstance(perturbation, float):
-            self.perturbation = lambda: constant(perturbation)
-        else:
-            self.perturbation = perturbation
+        self.learning_rate = learning_rate
+        self.perturbation = perturbation
 
         # SPSA specific arguments
         self.blocking = blocking
@@ -212,9 +205,6 @@ class SPSA(Optimizer):
         # 2-SPSA specific arguments
         if regularization is None:
             regularization = 0.01
-
-        if lse_solver is None:
-            lse_solver = np.linalg.solve
 
         self.second_order = second_order
         self.hessian_delay = hessian_delay
@@ -305,6 +295,52 @@ class SPSA(Optimizer):
         losses = [loss(initial_point) for _ in range(avg)]
         return np.std(losses)
 
+    def to_dict(self):
+        """Dump the optimizer settings into a dictionary."""
+        if self.callback is not None:
+            raise ValueError("Cannot serialize SPSA with callback.")
+
+        if self.lse_solver is not None:
+            raise ValueError("Cannot serialize SPSA with ``lse_solver``.")
+
+        if isinstance(self.learning_rate, float) or self.learning_rate is None:
+            learning_rate = self.learning_rate
+        elif isinstance(self.learning_rate, SerializableIterator):
+            learning_rate = self.learning_rate.serialize()
+        else:
+            raise ValueError(f"Cannot serialize SPSA with learning rate {self.learning_rate}.")
+
+        if isinstance(self.perturbation, float) or self.perturbation is None:
+            perturbation = self.perturbation
+        elif isinstance(self.perturbation, SerializableIterator):
+            perturbation = self.perturbation.serialize()
+        else:
+            raise ValueError(f"Cannot serialize SPSA with perturbation {self.perturbation}.")
+
+        return {
+            "name": "SPSA",
+            "maxiter": self.maxiter,
+            "learning_rate": learning_rate,
+            "perturbation": perturbation,
+            "trust_region": self.trust_region,
+            "blocking": self.blocking,
+            "allowed_increase": self.allowed_increase,
+            "resamplings": self.resamplings,
+            "perturbation_dims": self.perturbation_dims,
+            "second_order": self.second_order,
+            "hessian_delay": self.hessian_delay,
+            "regularization": self.regularization,
+            "initial_hessian": self.initial_hessian,
+        }
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        name = dictionary.pop("name", None)
+        if name != "SPSA":
+            raise ValueError("Value of the key 'name' must be 'SPSA'.")
+
+        return cls(**dictionary)
+
     def _point_sample(self, loss, x, eps, delta1, delta2):
         """A single sample of the gradient at position ``x`` in direction ``delta``."""
         # points to evaluate
@@ -362,7 +398,7 @@ class SPSA(Optimizer):
 
         return gradient_estimate / num_samples, hessian_estimate / num_samples
 
-    def _compute_update(self, loss, x, k, eps):
+    def _compute_update(self, loss, x, k, eps, lse_solver):
         # compute the perturbations
         if isinstance(self.resamplings, dict):
             num_samples = self.resamplings.get(k, 1)
@@ -381,7 +417,7 @@ class SPSA(Optimizer):
                 spd_hessian = _make_spd(smoothed, self.regularization)
 
                 # solve for the gradient update
-                gradient = np.real(self.lse_solver(spd_hessian, gradient))
+                gradient = np.real(lse_solver(spd_hessian, gradient))
 
         return gradient
 
@@ -389,16 +425,15 @@ class SPSA(Optimizer):
         # ensure learning rate and perturbation are correctly set: either none or both
         # this happens only here because for the calibration the loss function is required
         if self.learning_rate is None and self.perturbation is None:
-            get_learning_rate, get_perturbation = self.calibrate(loss, initial_point)
-            # get iterator
-            eta = get_learning_rate()
-            eps = get_perturbation()
-        elif self.learning_rate is None or self.perturbation is None:
-            raise ValueError("If one of learning rate or perturbation is set, both must be set.")
+            get_eta, get_eps = self.calibrate(loss, initial_point)
         else:
-            # get iterator
-            eta = self.learning_rate()
-            eps = self.perturbation()
+            get_eta, get_eps = _validate_pert_and_learningrate(self.perturbation, self.learning_rate)
+        eta, eps = get_eta(), get_eps()
+
+        if self.lse_solver is None:
+            lse_solver = np.linalg.solve
+        else:
+            lse_solver = self.lse_solver
 
         # prepare some initials
         x = np.asarray(initial_point)
@@ -427,7 +462,7 @@ class SPSA(Optimizer):
         for k in range(1, self.maxiter + 1):
             iteration_start = time()
             # compute update
-            update = self._compute_update(loss, x, k, next(eps))
+            update = self._compute_update(loss, x, k, next(eps), lse_solver)
 
             # trust region
             if self.trust_region:
@@ -577,3 +612,22 @@ def _make_spd(matrix, bias=0.01):
     identity = np.identity(matrix.shape[0])
     psd = scipy.linalg.sqrtm(matrix.dot(matrix))
     return psd + bias * identity
+
+
+def _validate_pert_and_learningrate(perturbation, learning_rate):
+    # case 1: both are none, so autocalibrate
+    # case 2: one is set, the other isn't -- this is invalid!
+    if learning_rate is None or perturbation is None:
+        raise ValueError("If one of learning rate or perturbation is set, both must be set.")
+
+    if isinstance(perturbation, float):
+        perturbation = Constant(perturbation).get_iterator()
+    if isinstance(perturbation, SerializableIterator):
+        perturbation = perturbation.get_iterator()
+
+    if isinstance(learning_rate, float):
+        learning_rate = Constant(learning_rate)
+    if isinstance(learning_rate, SerializableIterator):
+        learning_rate = learning_rate.get_iterator()
+
+    return learning_rate, perturbation

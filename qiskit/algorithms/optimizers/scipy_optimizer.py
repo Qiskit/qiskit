@@ -85,6 +85,23 @@ class SciPyOptimizer(Optimizer):
             "initial_point": self._initial_point_support_level,
         }
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize the optimizer."""
+        serialized = {
+            "name": self._method,
+            "max_evals_grouped": self._max_evals_grouped,
+            "options": self._options,
+            **self._kwargs,
+        }
+        self._check_dict_is_serializable(serialized)
+        return serialized
+
+    @classmethod
+    def from_dict(cls, settings: Dict[str, Any]):
+        """Construct the optimizer from a dictionary."""
+        method = settings.pop("name")
+        return cls(method, **settings)
+
     def optimize(
         self,
         num_vars,
