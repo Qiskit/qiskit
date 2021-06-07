@@ -19,7 +19,7 @@ import warnings
 import numpy as np
 from scipy import sparse
 
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.circuit.gate import Gate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
@@ -349,8 +349,10 @@ def _cvxpy_check(name):
     # Check CVXPY version
     version = cvxpy.__version__
     if version[0] != "1":
-        raise ImportError(
-            "Incompatible CVXPY version {} found." " Install version >=1.0.".format(version)
+        raise MissingOptionalLibraryError(
+            "CVXPY >= 1.0",
+            "diamond_norm",
+            msg="Incompatible CVXPY version {} found.".format(version),
         )
 
 
