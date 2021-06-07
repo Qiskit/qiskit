@@ -23,7 +23,7 @@ This module can easily be extended to describe more pulse shapes. The new class 
   - have a descriptive name
   - be a well known and/or well described formula (include the formula in the class docstring)
   - take some parameters (at least `duration`) and validate them, if necessary
-  - implement a ``get_sample_pulse`` method which returns a corresponding Waveform in the case that
+  - implement a ``get_waveform`` method which returns a corresponding Waveform in the case that
     it is assembled for a backend which does not support it. Ends are zeroed to avoid steep jumps at
     pulse edges. By default, the ends are defined such that ``f(-1), f(duration+1) = 0``.
 
@@ -32,13 +32,13 @@ The new pulse must then be registered by the assembler in
 by following the existing pattern:
 
     class ParametricPulseShapes(Enum):
-        gaussian = pulse_lib.Gaussian
+        gaussian = library.Gaussian
         ...
-        new_supported_pulse_name = pulse_lib.YourPulseWaveformClass
+        new_supported_pulse_name = library.YourPulseWaveformClass
 """
-import warnings
 from abc import abstractmethod
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
+
 import math
 import numpy as np
 
@@ -48,13 +48,14 @@ from qiskit.pulse.library import continuous
 from qiskit.pulse.library.discrete import gaussian, gaussian_square, drag, constant
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
+from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
 
 
 class ParametricPulse(Pulse):
     """The abstract superclass for parametric pulses."""
 
     @abstractmethod
-    def __init__(self, duration: int, name: Optional[str] = None):
+    def __init__(self, duration: Union[int, ParameterExpression], name: Optional[str] = None):
         """Create a parametric pulse and validate the input parameters.
 
         Args:
@@ -71,12 +72,6 @@ class ParametricPulse(Pulse):
         """
         raise NotImplementedError
 
-    def get_sample_pulse(self) -> Waveform:
-        """Deprecated."""
-        warnings.warn('`get_sample_pulse` has been deprecated. '
-                      ' Use `get_waveform` instead.', DeprecationWarning)
-        return self.get_waveform()
-
     @abstractmethod
     def validate_parameters(self) -> None:
         """
@@ -87,15 +82,23 @@ class ParametricPulse(Pulse):
         """
         raise NotImplementedError
 
-    @property
-    @abstractmethod
-    def parameters(self) -> Dict[str, Any]:
-        """Return a dictionary containing the pulse's parameters."""
-        pass
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return any(_is_parameterized(val) for val in self.parameters.values())
 
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]
-                          ) -> 'ParametricPulse':
+    @deprecated_functionality
+    def assign(
+        self, parameter: ParameterExpression, value: ParameterValueType
+    ) -> "ParametricPulse":
+        """Assign one parameter to a value, which can either be numeric or another parameter
+        expression.
+        """
+        return self.assign_parameters({parameter: value})
+
+    @deprecated_functionality
+    def assign_parameters(
+        self, value_dict: Dict[ParameterExpression, ParameterValueType]
+    ) -> "ParametricPulse":
         """Return a new ParametricPulse with parameters assigned.
 
         Args:
@@ -105,50 +108,22 @@ class ParametricPulse(Pulse):
         Returns:
             New pulse with updated parameters.
         """
-        if not any([_is_parameterized(val) for val in self.parameters.values()]):
+        if not self.is_parameterized():
             return self
 
         new_parameters = {}
         for op, op_value in self.parameters.items():
             for parameter, value in value_dict.items():
                 if _is_parameterized(op_value) and parameter in op_value.parameters:
-                    op_value = op_value.assign(parameter, value)
-                    try:
-                        # TODO: ParameterExpression doesn't support complex values
-                        op_value = float(op_value)
-                    except TypeError:
-                        pass
+                    op_value = format_parameter_value(op_value.assign(parameter, value))
                 new_parameters[op] = op_value
-        return type(self)(**new_parameters)
-
-    def draw(self, dt: float = 1,
-             style=None,
-             filename: Optional[str] = None,
-             interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False):
-        """Plot the pulse.
-
-        Args:
-            dt: Time interval of samples.
-            style (Optional[PulseStyle]): A style sheet to configure plot appearance
-            filename: Name required to save pulse image
-            interp_method: A function for interpolation
-            scale: Relative visual scaling of waveform amplitudes
-            interactive: When set true show the circuit in a new window
-                (this depends on the matplotlib backend being used supporting this)
-
-        Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse envelope
-        """
-        return self.get_waveform().draw(dt=dt, style=style, filename=filename,
-                                        interp_method=interp_method, scale=scale,
-                                        interactive=interactive)
+        return type(self)(**new_parameters, name=self.name)
 
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.parameters == other.parameters
 
     def __hash__(self) -> int:
-        return hash(self.parameters[k] for k in sorted(self.parameters))
+        return hash(tuple(self.parameters[k] for k in sorted(self.parameters)))
 
 
 class Gaussian(ParametricPulse):
@@ -160,11 +135,13 @@ class Gaussian(ParametricPulse):
         f(x) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2) )  ,  0 <= x < duration
     """
 
-    def __init__(self,
-                 duration: int,
-                 amp: Union[complex, ParameterExpression],
-                 sigma: Union[float, ParameterExpression],
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        duration: Union[int, ParameterExpression],
+        amp: Union[complex, ParameterExpression],
+        sigma: Union[float, ParameterExpression],
+        name: Optional[str] = None,
+    ):
         """Initialize the gaussian pulse.
 
         Args:
@@ -191,13 +168,11 @@ class Gaussian(ParametricPulse):
         return self._sigma
 
     def get_waveform(self) -> Waveform:
-        return gaussian(duration=self.duration, amp=self.amp,
-                        sigma=self.sigma, zero_ends=True)
+        return gaussian(duration=self.duration, amp=self.amp, sigma=self.sigma, zero_ends=True)
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.:
-            raise PulseError("The amplitude norm must be <= 1, "
-                             "found: {}".format(abs(self.amp)))
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0:
+            raise PulseError("The amplitude norm must be <= 1, " "found: {}".format(abs(self.amp)))
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
 
@@ -206,9 +181,13 @@ class Gaussian(ParametricPulse):
         return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma}
 
     def __repr__(self) -> str:
-        return "{}(duration={}, amp={}, sigma={}{})" \
-               "".format(self.__class__.__name__, self.duration, self.amp, self.sigma,
-                         ", name='{}'".format(self.name) if self.name is not None else "")
+        return "{}(duration={}, amp={}, sigma={}{})" "".format(
+            self.__class__.__name__,
+            self.duration,
+            self.amp,
+            self.sigma,
+            ", name='{}'".format(self.name) if self.name is not None else "",
+        )
 
 
 class GaussianSquare(ParametricPulse):
@@ -231,12 +210,14 @@ class GaussianSquare(ParametricPulse):
         f(x) = amp * exp( -(1/2) * (x - (risefall + width)/2)^2 / sigma^2) )
     """
 
-    def __init__(self,
-                 duration: int,
-                 amp: Union[complex, ParameterExpression],
-                 sigma: Union[float, ParameterExpression],
-                 width: Union[float, ParameterExpression],
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        duration: Union[int, ParameterExpression],
+        amp: Union[complex, ParameterExpression],
+        sigma: Union[float, ParameterExpression],
+        width: Union[float, ParameterExpression],
+        name: Optional[str] = None,
+    ):
         """Initialize the gaussian square pulse.
 
         Args:
@@ -270,28 +251,36 @@ class GaussianSquare(ParametricPulse):
         return self._width
 
     def get_waveform(self) -> Waveform:
-        return gaussian_square(duration=self.duration, amp=self.amp,
-                               width=self.width, sigma=self.sigma,
-                               zero_ends=True)
+        return gaussian_square(
+            duration=self.duration, amp=self.amp, width=self.width, sigma=self.sigma, zero_ends=True
+        )
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.:
-            raise PulseError("The amplitude norm must be <= 1, "
-                             "found: {}".format(abs(self.amp)))
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0:
+            raise PulseError("The amplitude norm must be <= 1, " "found: {}".format(abs(self.amp)))
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
-        if not _is_parameterized(self.width) and self.width < 0 or self.width >= self.duration:
+        if not _is_parameterized(self.width) and (self.width < 0 or self.width >= self.duration):
             raise PulseError("The pulse width must be at least 0 and less than its duration.")
 
     @property
     def parameters(self) -> Dict[str, Any]:
-        return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma,
-                "width": self.width}
+        return {
+            "duration": self.duration,
+            "amp": self.amp,
+            "sigma": self.sigma,
+            "width": self.width,
+        }
 
     def __repr__(self) -> str:
-        return "{}(duration={}, amp={}, sigma={}, width={}{})" \
-               "".format(self.__class__.__name__, self.duration, self.amp, self.sigma, self.width,
-                         ", name='{}'".format(self.name) if self.name is not None else "")
+        return "{}(duration={}, amp={}, sigma={}, width={}{})" "".format(
+            self.__class__.__name__,
+            self.duration,
+            self.amp,
+            self.sigma,
+            self.width,
+            ", name='{}'".format(self.name) if self.name is not None else "",
+        )
 
 
 class Drag(ParametricPulse):
@@ -328,12 +317,14 @@ class Drag(ParametricPulse):
            Phys. Rev. Lett. 103, 110501 – Published 8 September 2009.*
     """
 
-    def __init__(self,
-                 duration: int,
-                 amp: Union[complex, ParameterExpression],
-                 sigma: Union[float, ParameterExpression],
-                 beta: Union[float, ParameterExpression],
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        duration: Union[int, ParameterExpression],
+        amp: Union[complex, ParameterExpression],
+        sigma: Union[float, ParameterExpression],
+        beta: Union[float, ParameterExpression],
+        name: Optional[str] = None,
+    ):
         """Initialize the drag pulse.
 
         Args:
@@ -367,20 +358,23 @@ class Drag(ParametricPulse):
         return self._beta
 
     def get_waveform(self) -> Waveform:
-        return drag(duration=self.duration, amp=self.amp, sigma=self.sigma,
-                    beta=self.beta, zero_ends=True)
+        return drag(
+            duration=self.duration, amp=self.amp, sigma=self.sigma, beta=self.beta, zero_ends=True
+        )
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.:
-            raise PulseError("The amplitude norm must be <= 1, "
-                             "found: {}".format(abs(self.amp)))
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0:
+            raise PulseError("The amplitude norm must be <= 1, " "found: {}".format(abs(self.amp)))
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
         if not _is_parameterized(self.beta) and isinstance(self.beta, complex):
             raise PulseError("Beta must be real.")
         # Check if beta is too large: the amplitude norm must be <=1 for all points
-        if (not _is_parameterized(self.beta) and not _is_parameterized(self.sigma)
-                and self.beta > self.sigma):
+        if (
+            not _is_parameterized(self.beta)
+            and not _is_parameterized(self.sigma)
+            and self.beta > self.sigma
+        ):
             # If beta <= sigma, then the maximum amplitude is at duration / 2, which is
             # already constrainted by self.amp <= 1
 
@@ -388,27 +382,37 @@ class Drag(ParametricPulse):
             #    This eq is derived from solving for the roots of the norm of the drag function.
             #    There is a second maxima mirrored around the center of the pulse with the same
             #    norm as the first, so checking the value at the first x maxima is sufficient.
-            argmax_x = (self.duration / 2
-                        - (self.sigma / self.beta) * math.sqrt(self.beta ** 2 - self.sigma ** 2))
+            argmax_x = self.duration / 2 - (self.sigma / self.beta) * math.sqrt(
+                self.beta ** 2 - self.sigma ** 2
+            )
             if argmax_x < 0:
                 # If the max point is out of range, either end of the pulse will do
                 argmax_x = 0
 
             # 2. Find the value at that maximum
-            max_val = continuous.drag(np.array(argmax_x), sigma=self.sigma,
-                                      beta=self.beta, amp=self.amp, center=self.duration / 2)
-            if abs(max_val) > 1.:
+            max_val = continuous.drag(
+                np.array(argmax_x),
+                sigma=self.sigma,
+                beta=self.beta,
+                amp=self.amp,
+                center=self.duration / 2,
+            )
+            if abs(max_val) > 1.0:
                 raise PulseError("Beta is too large; pulse amplitude norm exceeds 1.")
 
     @property
     def parameters(self) -> Dict[str, Any]:
-        return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma,
-                "beta": self.beta}
+        return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma, "beta": self.beta}
 
     def __repr__(self) -> str:
-        return "{}(duration={}, amp={}, sigma={}, beta={}{})" \
-               "".format(self.__class__.__name__, self.duration, self.amp, self.sigma, self.beta,
-                         ", name='{}'".format(self.name) if self.name is not None else "")
+        return "{}(duration={}, amp={}, sigma={}, beta={}{})" "".format(
+            self.__class__.__name__,
+            self.duration,
+            self.amp,
+            self.sigma,
+            self.beta,
+            ", name='{}'".format(self.name) if self.name is not None else "",
+        )
 
 
 class Constant(ParametricPulse):
@@ -421,10 +425,12 @@ class Constant(ParametricPulse):
         f(x) = 0      ,  elsewhere
     """
 
-    def __init__(self,
-                 duration: int,
-                 amp: Union[complex, ParameterExpression],
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        duration: Union[int, ParameterExpression],
+        amp: Union[complex, ParameterExpression],
+        name: Optional[str] = None,
+    ):
         """
         Initialize the constant-valued pulse.
 
@@ -447,44 +453,20 @@ class Constant(ParametricPulse):
         return constant(duration=self.duration, amp=self.amp)
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.:
-            raise PulseError("The amplitude norm must be <= 1, "
-                             "found: {}".format(abs(self.amp)))
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0:
+            raise PulseError("The amplitude norm must be <= 1, " "found: {}".format(abs(self.amp)))
 
     @property
     def parameters(self) -> Dict[str, Any]:
         return {"duration": self.duration, "amp": self.amp}
 
     def __repr__(self) -> str:
-        return "{}(duration={}, amp={}{})" \
-               "".format(self.__class__.__name__, self.duration, self.amp,
-                         ", name='{}'".format(self.name) if self.name is not None else "")
-
-
-class ConstantPulse(Constant):
-    """
-    Deprecated. A simple constant pulse, with an amplitude value and a duration:
-
-    .. math::
-
-        f(x) = amp    ,  0 <= x < duration
-        f(x) = 0      ,  elsewhere
-    """
-
-    def __init__(self,
-                 duration: int,
-                 amp: Union[complex, ParameterExpression],
-                 name: Optional[str] = None):
-        """
-        Initialize the constant-valued pulse.
-
-        Args:
-            duration: Pulse length in terms of the the sampling period `dt`.
-            amp: The amplitude of the constant square pulse.
-            name: Display name for this pulse envelope.
-        """
-        super().__init__(duration, amp, name)
-        warnings.warn("The ConstantPulse is deprecated. Use Constant instead", DeprecationWarning)
+        return "{}(duration={}, amp={}{})" "".format(
+            self.__class__.__name__,
+            self.duration,
+            self.amp,
+            ", name='{}'".format(self.name) if self.name is not None else "",
+        )
 
 
 def _is_parameterized(value: Any) -> bool:

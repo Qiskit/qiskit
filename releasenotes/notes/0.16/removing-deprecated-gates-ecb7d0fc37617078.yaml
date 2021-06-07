@@ -1,0 +1,22 @@
+---
+upgrade:
+  - |
+    The previously deprecated module ``qiskit.extensions.standard`` has been
+    removed. This module has been deprecated since the 0.14.0 release.
+    The :mod:`qiskit.circuit.library` can be used instead.
+    Additionally, all the gate classes previously in
+    ``qiskit.extensions.standard`` are still importable from
+    :mod:`qiskit.extensions`.
+  - |
+    The previously deprecated gates in the module
+    ``qiskit.extensions.quantum_initializer``:
+    ``DiagGate``, `UCG``, ``UCPauliRotGate``, ``UCRot``, ``UCRXGate``, ``UCX``,
+    ``UCRYGate``, ``UCY``, ``UCRZGate``, ``UCZ`` have been removed. These were
+    all deprecated in the 0.14.0 release and have alternatives available in
+    the circuit library (:mod:`qiskit.circuit.library`).
+  - |
+    The previously deprecated :class:`qiskit.circuit.QuantumCircuit` gate method
+    :meth:`~qiskit.circuit.QuantumCircuit.iden` has been removed. This was
+    deprecated in the 0.13.0 release and
+    :meth:`~qiskit.circuit.QuantumCircuit.i` or
+    :meth:`~qiskit.circuit.QuantumCircuit.id` can be used instead.

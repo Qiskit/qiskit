@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fixes a bug in the mpl circuit drawer that would
-    cause the drawer to fail if a user entered the
-    parameter ``style='any_string'``.

@@ -1,7 +1,0 @@
----
-upgrade:
-  - |
-    The keyword arguments for the circuit gates ``q``, ``ctl*`` and ``tgt*``,
-    which are deprecated since 0.12.0, have been removed. Instead, only the names
-    ``qubit``, ``control_qubit*`` and ``target_qubit*`` can be used as named
-    arguments.

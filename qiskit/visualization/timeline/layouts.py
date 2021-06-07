@@ -28,8 +28,7 @@ The function signature of the layout is restricted to:
 
     def my_layout(bits: List[types.Bits]) -> List[types.Bits]:
 
-        # sort a list of bits
-        pass
+        # your code here: sort input bits and return list of bits
     ```
 
 2. layout.time_axis_map
@@ -44,12 +43,13 @@ The function signature of the layout is restricted to:
 
     def my_layout(time_window: Tuple[int, int]) -> types.HorizontalAxis:
 
-        # create axis config
-        pass
+        # your code here: create and return axis config
     ```
 
 Arbitrary layout function satisfying the above format can be accepted.
 """
+
+import warnings
 
 from typing import List, Tuple
 import numpy as np
@@ -79,10 +79,12 @@ def qreg_creg_ascending(bits: List[types.Bits]) -> List[types.Bits]:
         elif isinstance(bit, circuit.Clbit):
             cregs.append(bit)
         else:
-            VisualizationError('Unknown bit {bit} is provided.'.format(bit=bit))
+            VisualizationError("Unknown bit {bit} is provided.".format(bit=bit))
 
-    qregs = sorted(qregs, key=lambda x: x.index, reverse=False)
-    cregs = sorted(cregs, key=lambda x: x.index, reverse=False)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        qregs = sorted(qregs, key=lambda x: x.index, reverse=False)
+        cregs = sorted(cregs, key=lambda x: x.index, reverse=False)
 
     return qregs + cregs
 
@@ -107,7 +109,7 @@ def qreg_creg_descending(bits: List[types.Bits]) -> List[types.Bits]:
         elif isinstance(bit, circuit.Clbit):
             cregs.append(bit)
         else:
-            VisualizationError('Unknown bit {bit} is provided.'.format(bit=bit))
+            VisualizationError("Unknown bit {bit} is provided.".format(bit=bit))
 
     qregs = sorted(qregs, key=lambda x: x.index, reverse=True)
     cregs = sorted(cregs, key=lambda x: x.index, reverse=True)
@@ -134,12 +136,10 @@ def time_map_in_dt(time_window: Tuple[int, int]) -> types.HorizontalAxis:
     axis_label = axis_loc.copy()
 
     # consider time resolution
-    label = 'System cycle time (dt)'
+    label = "System cycle time (dt)"
 
-    formatted_label = ['{val:.0f}'.format(val=val) for val in axis_label]
+    formatted_label = ["{val:.0f}".format(val=val) for val in axis_label]
 
     return types.HorizontalAxis(
-        window=(t0, t1),
-        axis_map=dict(zip(axis_loc, formatted_label)),
-        label=label
+        window=(t0, t1), axis_map=dict(zip(axis_loc, formatted_label)), label=label
     )

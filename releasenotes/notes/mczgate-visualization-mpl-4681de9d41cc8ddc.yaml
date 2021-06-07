@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes a bug in the matplotlib drawer, in which controlled-Z Gates were drawn assymetrically.
+    Refer to `#5981 <https://github.com/Qiskit/qiskit-terra/issues/5981>` for more details.

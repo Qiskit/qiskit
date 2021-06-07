@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-=====================================
+====================================================================
 ClassicalFunction compiler (:mod:`qiskit.circuit.classicalfunction`)
-=====================================
+====================================================================
 
 .. currentmodule:: qiskit.circuit.classicalfunction
 
@@ -67,21 +67,22 @@ Supplementary Information
 
 
 ClassicalFunction compiler API
-===================
+==============================
 
 classical_function
-------
+------------------
 
 Decorator for a classical function that returns a `ClassicalFunction` object.
 
 
 ClassicalFunction
-------
+-----------------
 
 .. autosummary::
    :toctree: ../stubs/
 
    ClassicalFunction
+   BooleanExpression
 
 Exceptions
 ----------
@@ -94,14 +95,19 @@ Exceptions
    ClassicalFunctionCompilerTypeError
 
 """
-from .exceptions import (ClassicalFunctionParseError, ClassicalFunctionCompilerError,
-                         ClassicalFunctionCompilerTypeError)
+from .classicalfunction import ClassicalFunction
+from .exceptions import (
+    ClassicalFunctionParseError,
+    ClassicalFunctionCompilerError,
+    ClassicalFunctionCompilerTypeError,
+)
+from .boolean_expression import BooleanExpression
 
 
 def classical_function(func):
     """
     Parses and type checks the callable ``func`` to compile it into an ``ClassicalFunction``
-    that can be synthesised into a ``QuantumCircuit``.
+    that can be synthesized into a ``QuantumCircuit``.
 
     Args:
         func (callable): A callable (with type hints) to compile into an ``ClassicalFunction``.
@@ -111,7 +117,7 @@ def classical_function(func):
         method).
     """
     import inspect
-    from .classicalfunction import ClassicalFunction
+    from textwrap import dedent
 
-    source = inspect.getsource(func).strip()
+    source = dedent(inspect.getsource(func))
     return ClassicalFunction(source, name=func.__name__)

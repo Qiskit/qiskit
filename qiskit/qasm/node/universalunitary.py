@@ -25,12 +25,17 @@ class UniversalUnitary(Node):
 
     def __init__(self, children):
         """Create the U node."""
-        super().__init__('universal_unitary', children, None)
+        super().__init__("universal_unitary", children)
+        self.arguments = children[0]
+        self.bitlist = children[1]
 
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn('Parameter \'UniversalUnitary.qasm(..., prec)\' is no longer used and is '
-                          'being deprecated.', DeprecationWarning, 2)
-        return "U(" + self.children[0].qasm() + ") " + \
-               self.children[1].qasm() + ";"
+            warnings.warn(
+                "Parameter 'UniversalUnitary.qasm(..., prec)' is no longer used and is "
+                "being deprecated.",
+                DeprecationWarning,
+                2,
+            )
+        return "U(" + self.children[0].qasm() + ") " + self.children[1].qasm() + ";"
