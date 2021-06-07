@@ -13,6 +13,7 @@
 "The Qiskit Terra setup file."
 
 import os
+import re
 import sys
 from setuptools import setup, find_packages, Extension
 try:
@@ -22,25 +23,18 @@ except ImportError:
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'Cython>=0.27.1'])
     from Cython.Build import cythonize
 
-REQUIREMENTS = [
-    "contextvars>=2.4;python_version<'3.7'",
-    "jsonschema>=2.6",
-    "retworkx>=0.7.0",
-    "numpy>=1.17",
-    "ply>=3.10",
-    "psutil>=5",
-    "scipy>=1.4",
-    "sympy>=1.3",
-    "dill>=0.3",
-    "fastjsonschema>=2.10",
-    "python-constraint>=1.4",
-    "python-dateutil>=2.8.0",
-]
+with open('requirements.txt') as f:
+    REQUIREMENTS = f.read().splitlines()
 
 # Add Cython extensions here
-CYTHON_EXTS = ['utils', 'swap_trial']
-CYTHON_MODULE = 'qiskit.transpiler.passes.routing.cython.stochastic_swap'
-CYTHON_SOURCE_DIR = 'qiskit/transpiler/passes/routing/cython/stochastic_swap'
+CYTHON_EXTS = {
+    'qiskit/transpiler/passes/routing/cython/stochastic_swap/utils':
+        'qiskit.transpiler.passes.routing.cython.stochastic_swap.utils',
+    'qiskit/transpiler/passes/routing/cython/stochastic_swap/swap_trial':
+        'qiskit.transpiler.passes.routing.cython.stochastic_swap.swap_trial',
+    'qiskit/quantum_info/states/cython/exp_value':
+        'qiskit.quantum_info.states.cython.exp_value',
+}
 
 INCLUDE_DIRS = []
 # Extra link args
@@ -59,24 +53,26 @@ else:
 
 EXT_MODULES = []
 # Add Cython Extensions
-for ext in CYTHON_EXTS:
-    mod = Extension(CYTHON_MODULE + '.' + ext,
-                    sources=[CYTHON_SOURCE_DIR + '/' + ext + '.pyx'],
+for src, module in CYTHON_EXTS.items():
+    ext = Extension(module,
+                    sources=[src + '.pyx'],
                     include_dirs=INCLUDE_DIRS,
                     extra_compile_args=COMPILER_FLAGS,
                     extra_link_args=LINK_FLAGS,
                     language='c++')
-    EXT_MODULES.append(mod)
+    EXT_MODULES.append(ext)
 
 # Read long description from README.
 README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                            'README.md')
 with open(README_PATH) as readme_file:
-    README = readme_file.read()
+    README = re.sub(
+        '<!--- long-description-skip-begin -->.*<!--- long-description-skip-end -->', '',
+        readme_file.read(), flags=re.S | re.M)
 
 setup(
     name="qiskit-terra",
-    version="0.17.0",
+    version="0.18.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type='text/markdown',
@@ -109,7 +105,7 @@ setup(
         'visualization': ['matplotlib>=2.1', 'ipywidgets>=7.3.0',
                           'pydot', "pillow>=4.2.1", "pylatexenc>=1.4",
                           "seaborn>=0.9.0", "pygments>=2.4"],
-        'classical-function-compiler': ['tweedledum'],
+        'classical-function-compiler': ['tweedledum>=1.0,<2.0'],
         'full-featured-simulators': ['qiskit-aer>=0.1'],
         'crosstalk-pass': ['z3-solver>=4.7'],
     },

@@ -25,7 +25,7 @@ import ply.lex as lex
 from . import node
 from .exceptions import QasmError
 
-CORE_LIBS_PATH = os.path.join(os.path.dirname(__file__), 'libs')
+CORE_LIBS_PATH = os.path.join(os.path.dirname(__file__), "libs")
 CORE_LIBS = os.listdir(CORE_LIBS_PATH)
 
 
@@ -35,7 +35,8 @@ class QasmLexer:
     This is a wrapper around the PLY lexer to support the "include" statement
     by creating a stack of lexers.
     """
-    # pylint: disable=invalid-name,missing-docstring
+
+    # pylint: disable=invalid-name,missing-function-docstring
     # pylint: disable=attribute-defined-outside-init,bad-docstring-quotes
 
     def __mklexer__(self, filename):
@@ -80,54 +81,54 @@ class QasmLexer:
     # ---- Beginning of the PLY lexer ----
     literals = r'=()[]{};<>,.+-/*^"'
     reserved = {
-        'barrier': 'BARRIER',
-        'creg': 'CREG',
-        'gate': 'GATE',
-        'if': 'IF',
-        'measure': 'MEASURE',
-        'opaque': 'OPAQUE',
-        'qreg': 'QREG',
-        'pi': 'PI',
-        'reset': 'RESET',
+        "barrier": "BARRIER",
+        "creg": "CREG",
+        "gate": "GATE",
+        "if": "IF",
+        "measure": "MEASURE",
+        "opaque": "OPAQUE",
+        "qreg": "QREG",
+        "pi": "PI",
+        "reset": "RESET",
     }
     tokens = [
-        'NNINTEGER',
-        'REAL',
-        'CX',
-        'U',
-        'FORMAT',
-        'ASSIGN',
-        'MATCHES',
-        'ID',
-        'STRING',
+        "NNINTEGER",
+        "REAL",
+        "CX",
+        "U",
+        "FORMAT",
+        "ASSIGN",
+        "MATCHES",
+        "ID",
+        "STRING",
     ] + list(reserved.values())
 
     def t_REAL(self, t):
-        r'(([0-9]+|([0-9]+)?\.[0-9]+|[0-9]+\.)[eE][+-]?[0-9]+)|(([0-9]+)?\.[0-9]+|[0-9]+\.)'
+        r"(([0-9]+|([0-9]+)?\.[0-9]+|[0-9]+\.)[eE][+-]?[0-9]+)|(([0-9]+)?\.[0-9]+|[0-9]+\.)"
         if np.iscomplex(t):
             return t.real
         else:
             return t
 
     def t_NNINTEGER(self, t):
-        r'[1-9]+[0-9]*|0'
+        r"[1-9]+[0-9]*|0"
         t.value = int(t.value)
         return t
 
     def t_ASSIGN(self, t):
-        '->'
+        "->"
         return t
 
     def t_MATCHES(self, t):
-        '=='
+        "=="
         return t
 
     def t_STRING(self, t):
-        r'\"([^\\\"]|\\.)*\"'
+        r"\"([^\\\"]|\\.)*\" "
         return t
 
     def t_INCLUDE(self, _):
-        'include'
+        "include"
         # Now eat up the next two tokens which must be
         # 1 - the name of the include file, and
         # 2 - a terminating semicolon
@@ -147,42 +148,43 @@ class QasmLexer:
             incfile = os.path.join(CORE_LIBS_PATH, incfile)
 
         next_token = self.lexer.token()
-        if next_token is None or next_token.value != ';':
+        if next_token is None or next_token.value != ";":
             raise QasmError('Invalid syntax, missing ";" at line', str(lineno))
 
         if not os.path.exists(incfile):
             raise QasmError(
-                'Include file %s cannot be found, line %s, file %s' %
-                (incfile, str(next_token.lineno), self.filename))
+                "Include file %s cannot be found, line %s, file %s"
+                % (incfile, str(next_token.lineno), self.filename)
+            )
         self.push(incfile)
         return self.lexer.token()
 
     def t_FORMAT(self, t):
-        r'OPENQASM\s+(\d+)\.(\d+)'
+        r"OPENQASM\s+(\d+)\.(\d+)"
         return t
 
     def t_COMMENT(self, _):
-        r'//.*'
+        r"//.*"
         pass
 
     def t_CX(self, t):
-        'CX'
+        "CX"
         return t
 
     def t_U(self, t):
-        'U'
+        "U"
         return t
 
     def t_ID(self, t):
-        r'[a-z][a-zA-Z0-9_]*'
+        r"[a-z][a-zA-Z0-9_]*"
 
-        t.type = self.reserved.get(t.value, 'ID')
-        if t.type == 'ID':
+        t.type = self.reserved.get(t.value, "ID")
+        if t.type == "ID":
             t.value = node.Id(t.value, self.lineno, self.filename)
         return t
 
     def t_newline(self, t):
-        r'\n+'
+        r"\n+"
         self.lineno += len(t.value)
         t.lexer.lineno = self.lineno
 
@@ -192,8 +194,10 @@ class QasmLexer:
             return self.lexer.token()
         return None
 
-    t_ignore = ' \t\r'
+    t_ignore = " \t\r"
 
     def t_error(self, t):
-        raise QasmError("Unable to match any token rule, got -->%s<-- "
-                        "Check your OPENQASM source and any include statements." % t.value[0])
+        raise QasmError(
+            "Unable to match any token rule, got -->%s<-- "
+            "Check your OPENQASM source and any include statements." % t.value[0]
+        )

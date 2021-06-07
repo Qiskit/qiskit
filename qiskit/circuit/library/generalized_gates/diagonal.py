@@ -73,8 +73,7 @@ class Diagonal(QuantumCircuit):
     `arXiv:0406176 <https://arxiv.org/pdf/quant-ph/0406176.pdf>`_
     """
 
-    def __init__(self,
-                 diag: Union[List, np.array]) -> None:
+    def __init__(self, diag: Union[List, np.array]) -> None:
         """Create a new Diagonal circuit.
 
         Args:
@@ -105,10 +104,11 @@ class Diagonal(QuantumCircuit):
                 diag_phases[i // 2], rz_angle = _extract_rz(diag_phases[i], diag_phases[i + 1])
                 angles_rz.append(rz_angle)
             num_act_qubits = int(np.log2(n))
-            ctrl_qubits = list(range(num_qubits-num_act_qubits+1, num_qubits))
+            ctrl_qubits = list(range(num_qubits - num_act_qubits + 1, num_qubits))
             target_qubit = num_qubits - num_act_qubits
             self.ucrz(angles_rz, ctrl_qubits, target_qubit)
             n //= 2
+        self.global_phase += diag_phases[0]
 
 
 # extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)

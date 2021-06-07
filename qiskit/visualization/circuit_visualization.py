@@ -17,11 +17,11 @@ Module for the primary interface to the circuit drawers.
 This module contains the end user facing API for drawing quantum circuits.
 There are 3 available drawer backends available:
 
- 0. Ascii art
+ 0. ASCII art
  1. LaTeX
  2. Matplotlib
 
-This provides a single function entrypoint to drawing a circuit object with
+This provides a single function entry point to drawing a circuit object with
 any of the backends.
 """
 
@@ -33,12 +33,14 @@ import tempfile
 
 try:
     from PIL import Image
+
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
 
 from qiskit import user_config
-from qiskit.visualization import exceptions
+from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization import latex as _latex
 from qiskit.visualization import text as _text
 from qiskit.visualization import utils
@@ -47,22 +49,24 @@ from qiskit.visualization import matplotlib as _matplotlib
 logger = logging.getLogger(__name__)
 
 
-def circuit_drawer(circuit,
-                   scale=None,
-                   filename=None,
-                   style=None,
-                   output=None,
-                   interactive=False,
-                   plot_barriers=True,
-                   reverse_bits=False,
-                   justify=None,
-                   vertical_compression='medium',
-                   idle_wires=True,
-                   with_layout=True,
-                   fold=None,
-                   ax=None,
-                   initial_state=False,
-                   cregbundle=True):
+def circuit_drawer(
+    circuit,
+    scale=None,
+    filename=None,
+    style=None,
+    output=None,
+    interactive=False,
+    plot_barriers=True,
+    reverse_bits=False,
+    justify=None,
+    vertical_compression="medium",
+    idle_wires=True,
+    with_layout=True,
+    fold=None,
+    ax=None,
+    initial_state=False,
+    cregbundle=True,
+):
     """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
     **text**: ASCII art TextDrawing that can be printed in the console.
@@ -79,12 +83,13 @@ def circuit_drawer(circuit,
             the `mpl`, `latex` and `latex_source` outputs. Defaults to 1.0.
         filename (str): file path to save image to. Defaults to None.
         style (dict or str): dictionary of style or file name of style json file.
-            This option is only used by the `mpl` output type. If a str, it
-            is used as the path to a json file which contains a style dict.
-            The file will be opened, parsed, and then any style elements in the
-            dict will replace the default values in the input dict. A file to
-            be loaded must end in ``.json``, but the name entered here can omit
-            ``.json``. For example, ``style='iqx.json'`` or ``style='iqx'``.
+            This option is only used by the `mpl` output type.
+            If `style` is a str, it is used as the path to a json file
+            which contains a style dict. The file will be opened, parsed, and
+            then any style elements in the dict will replace the default values
+            in the input dict. A file to be loaded must end in ``.json``, but
+            the name entered here can omit ``.json``. For example,
+            ``style='iqx.json'`` or ``style='iqx'``.
             If `style` is a dict and the ``'name'`` key is set, that name
             will be used to load a json file, followed by loading the other
             items in the style dict. For example, ``style={'name': 'iqx'}``.
@@ -96,7 +101,7 @@ def circuit_drawer(circuit,
             The search path for style json files can be specified in the user
             config, for example,
             ``circuit_mpl_style_path = /home/user/styles:/home/user``.
-            See: :ref:`Style Dict Doc <style-dict-doc>` for more
+            See: :class:`~qiskit.visualization.qcstyle.DefaultStyle` for more
             information on the contents.
         output (str): select the output method to use for drawing the circuit.
             Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
@@ -159,139 +164,7 @@ def circuit_drawer(circuit,
 
     Raises:
         VisualizationError: when an invalid output method is selected
-        ImportError: when the output methods requires non-installed libraries.
-
-    .. _style-dict-doc:
-
-    **Style Dict Details**
-
-    The style dict kwarg contains numerous options that define the style of the
-    output circuit visualization. The style dict is only used by the `mpl`
-    output. The options available in the style dict are defined below:
-
-    Args:
-        name (str): the name of the style. The name can be set to ``iqx``,
-            ``bw``, ``default``, or the name of a user-created json file. This
-            overrides the setting in the user config file (usually
-            ``~/.qiskit/settings.conf``).
-        textcolor (str): the color code to use for all text not inside a gate.
-            Defaults to ``#000000``
-        subtextcolor (str): the color code to use for subtext. Defaults to
-            ``#000000``
-        linecolor (str): the color code to use for lines. Defaults to
-            ``#000000``
-        creglinecolor (str): the color code to use for classical register
-            lines. Defaults to ``#778899``
-        gatetextcolor (str): the color code to use for gate text. Defaults to
-            ``#000000``
-        gatefacecolor (str): the color code to use for a gate if no color
-            specified in the 'displaycolor' dict. Defaults to ``#BB8BFF``
-        barrierfacecolor (str): the color code to use for barriers. Defaults to
-            ``#BDBDBD``
-        backgroundcolor (str): the color code to use for the background.
-            Defaults to ``#FFFFFF``
-        edgecolor (str): the color code to use for gate edges when using the
-            `bw` style. Defaults to ``#000000``.
-        fontsize (int): the font size to use for text. Defaults to 13.
-        subfontsize (int): the font size to use for subtext. Defaults to 8.
-        showindex (bool): if set to True, show the index numbers at the top.
-            Defaults to False.
-        figwidth (int): the maximum width (in inches) for the output figure.
-            If set to -1, the maximum displayable width will be used.
-            Defaults to -1.
-        dpi (int): the DPI to use for the output image. Defaults to 150.
-        margin (list): a list of margin values to adjust spacing around output
-            image. Takes a list of 4 ints: [x left, x right, y bottom, y top].
-            Defaults to [2.0, 0.1, 0.1, 0.3].
-        creglinestyle (str): The style of line to use for classical registers.
-            Choices are ``solid``, ``doublet``, or any valid matplotlib
-            `linestyle` kwarg value. Defaults to ``doublet``.
-        displaytext (dict): a dictionary of the text to use for certain element
-            types in the output visualization. These items allow the use of
-            LaTeX formatting for gate names. The 'displaytext' dict can contain
-            any number of elements from one to the entire dict above.The default
-            values are (`default.json`)::
-
-                {
-                    'u1': '$\\mathrm{U}_1$',
-                    'u2': '$\\mathrm{U}_2$',
-                    'u3': '$\\mathrm{U}_3$',
-                    'u': 'U',
-                    'p': 'P',
-                    'id': 'I',
-                    'x': 'X',
-                    'y': 'Y',
-                    'z': 'Z',
-                    'h': 'H',
-                    's': 'S',
-                    'sdg': '$\\mathrm{S}^\\dagger$',
-                    'sx': '$\\sqrt{\\mathrm{X}}$',
-                    'sxdg': '$\\sqrt{\\mathrm{X}}^\\dagger$',
-                    't': 'T',
-                    'tdg': '$\\mathrm{T}^\\dagger$',
-                    'dcx': 'Dcx',
-                    'iswap': 'Iswap',
-                    'ms': 'MS',
-                    'r': 'R',
-                    'rx': '$\\mathrm{R}_\\mathrm{X}$',
-                    'ry': '$\\mathrm{R}_\\mathrm{Y}$',
-                    'rz': '$\\mathrm{R}_\\mathrm{Z}$',
-                    'rxx': '$\\mathrm{R}_{\\mathrm{XX}}$',
-                    'ryy': '$\\mathrm{R}_{\\mathrm{YY}}$',
-                    'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
-                    'rzz': '$\\mathrm{R}_{\\mathrm{ZZ}}$',
-                    'reset': '$\\left|0\\right\\rangle$',
-                    'initialize': '$|\\psi\\rangle$'
-                }
-
-        displaycolor (dict): the color codes to use for each circuit element in
-            the form (gate_color, text_color). Colors can also be entered without
-            the text color, such as 'u1': '#FA74A6', in which case the text color
-            will always be `gatetextcolor`. The `displaycolor` dict can contain
-            any number of elements from one to the entire dict above. The default
-            values are (`default.json`)::
-
-                {
-                    'u1': ('#FA74A6', '#000000'),
-                    'u2': ('#FA74A6', '#000000'),
-                    'u3': ('#FA74A6', '#000000'),
-                    'id': ('#05BAB6', '#000000'),
-                    'u': ('#BB8BFF', '#000000'),
-                    'p': ('#BB8BFF', '#000000'),
-                    'x': ('#05BAB6', '#000000'),
-                    'y': ('#05BAB6', '#000000'),
-                    'z': ('#05BAB6', '#000000'),
-                    'h': ('#6FA4FF', '#000000'),
-                    'cx': ('#6FA4FF', '#000000'),
-                    'ccx': ('#BB8BFF', '#000000'),
-                    'mcx': ('#BB8BFF', '#000000'),
-                    'mcx_gray': ('#BB8BFF', '#000000),
-                    'cy': ('#6FA4FF', '#000000'),
-                    'cz': ('#6FA4FF', '#000000'),
-                    'swap': ('#6FA4FF', '#000000'),
-                    'cswap': ('#BB8BFF', '#000000'),
-                    'ccswap': ('#BB8BFF', '#000000'),
-                    'dcx': ('#6FA4FF', '#000000'),
-                    'cdcx': ('#BB8BFF', '#000000'),
-                    'ccdcx': ('#BB8BFF', '#000000'),
-                    'iswap': ('#6FA4FF', '#000000'),
-                    's': ('#6FA4FF', '#000000'),
-                    'sdg': ('#6FA4FF', '#000000'),
-                    't': ('#BB8BFF', '#000000'),
-                    'tdg': ('#BB8BFF', '#000000'),
-                    'sx': ('#BB8BFF', '#000000'),
-                    'sxdg': ('#BB8BFF', '#000000')
-                    'r': ('#BB8BFF', '#000000'),
-                    'rx': ('#BB8BFF', '#000000'),
-                    'ry': ('#BB8BFF', '#000000'),
-                    'rz': ('#BB8BFF', '#000000'),
-                    'rxx': ('#BB8BFF', '#000000'),
-                    'ryy': ('#BB8BFF', '#000000'),
-                    'rzx': ('#BB8BFF', '#000000'),
-                    'reset': ('#000000', #FFFFFF'),
-                    'target': ('#FFFFFF, '#FFFFFF'),
-                    'measure': ('#000000', '#FFFFFF'),
-                }
+        MissingOptionalLibraryError: when the output methods requires non-installed libraries.
 
     Example:
         .. jupyter-execute::
@@ -303,69 +176,83 @@ def circuit_drawer(circuit,
             qc = QuantumCircuit(q, c)
             qc.h(q)
             qc.measure(q, c)
-            circuit_drawer(qc, output='mpl', style={'showindex': True})
+            circuit_drawer(qc, output='mpl', style={'backgroundcolor': '#EEEEEE'})
     """
     image = None
     config = user_config.get_config()
     # Get default from config file else use text
-    default_output = 'text'
+    default_output = "text"
     if config:
-        default_output = config.get('circuit_drawer', 'text')
-        if default_output == 'auto':
+        default_output = config.get("circuit_drawer", "text")
+        if default_output == "auto":
             if _matplotlib.HAS_MATPLOTLIB:
-                default_output = 'mpl'
+                default_output = "mpl"
             else:
-                default_output = 'text'
+                default_output = "text"
     if output is None:
         output = default_output
 
-    if output == 'text':
-        return _text_circuit_drawer(circuit, filename=filename,
-                                    reverse_bits=reverse_bits,
-                                    plot_barriers=plot_barriers,
-                                    justify=justify,
-                                    vertical_compression=vertical_compression,
-                                    idle_wires=idle_wires,
-                                    with_layout=with_layout,
-                                    fold=fold,
-                                    initial_state=initial_state,
-                                    cregbundle=cregbundle)
-    elif output == 'latex':
-        image = _latex_circuit_drawer(circuit,
-                                      filename=filename, scale=scale,
-                                      plot_barriers=plot_barriers,
-                                      reverse_bits=reverse_bits,
-                                      justify=justify,
-                                      idle_wires=idle_wires,
-                                      with_layout=with_layout,
-                                      initial_state=initial_state,
-                                      cregbundle=cregbundle)
-    elif output == 'latex_source':
-        return _generate_latex_source(circuit,
-                                      filename=filename, scale=scale,
-                                      plot_barriers=plot_barriers,
-                                      reverse_bits=reverse_bits,
-                                      justify=justify,
-                                      idle_wires=idle_wires,
-                                      with_layout=with_layout,
-                                      initial_state=initial_state,
-                                      cregbundle=cregbundle)
-    elif output == 'mpl':
-        image = _matplotlib_circuit_drawer(circuit, scale=scale,
-                                           filename=filename, style=style,
-                                           plot_barriers=plot_barriers,
-                                           reverse_bits=reverse_bits,
-                                           justify=justify,
-                                           idle_wires=idle_wires,
-                                           with_layout=with_layout,
-                                           fold=fold,
-                                           ax=ax,
-                                           initial_state=initial_state,
-                                           cregbundle=cregbundle)
+    if output == "text":
+        return _text_circuit_drawer(
+            circuit,
+            filename=filename,
+            reverse_bits=reverse_bits,
+            plot_barriers=plot_barriers,
+            justify=justify,
+            vertical_compression=vertical_compression,
+            idle_wires=idle_wires,
+            with_layout=with_layout,
+            fold=fold,
+            initial_state=initial_state,
+            cregbundle=cregbundle,
+        )
+    elif output == "latex":
+        image = _latex_circuit_drawer(
+            circuit,
+            filename=filename,
+            scale=scale,
+            plot_barriers=plot_barriers,
+            reverse_bits=reverse_bits,
+            justify=justify,
+            idle_wires=idle_wires,
+            with_layout=with_layout,
+            initial_state=initial_state,
+            cregbundle=cregbundle,
+        )
+    elif output == "latex_source":
+        return _generate_latex_source(
+            circuit,
+            filename=filename,
+            scale=scale,
+            plot_barriers=plot_barriers,
+            reverse_bits=reverse_bits,
+            justify=justify,
+            idle_wires=idle_wires,
+            with_layout=with_layout,
+            initial_state=initial_state,
+            cregbundle=cregbundle,
+        )
+    elif output == "mpl":
+        image = _matplotlib_circuit_drawer(
+            circuit,
+            scale=scale,
+            filename=filename,
+            style=style,
+            plot_barriers=plot_barriers,
+            reverse_bits=reverse_bits,
+            justify=justify,
+            idle_wires=idle_wires,
+            with_layout=with_layout,
+            fold=fold,
+            ax=ax,
+            initial_state=initial_state,
+            cregbundle=cregbundle,
+        )
     else:
-        raise exceptions.VisualizationError(
-            'Invalid output type %s selected. The only valid choices '
-            'are text, latex, latex_source, and mpl' % output)
+        raise VisualizationError(
+            "Invalid output type %s selected. The only valid choices "
+            "are text, latex, latex_source, and mpl" % output
+        )
     if image and interactive:
         image.show()
     return image
@@ -376,10 +263,20 @@ def circuit_drawer(circuit,
 # -----------------------------------------------------------------------------
 
 
-def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
-                         plot_barriers=True, justify=None, vertical_compression='high',
-                         idle_wires=True, with_layout=True, fold=None, initial_state=True,
-                         cregbundle=False, encoding=None):
+def _text_circuit_drawer(
+    circuit,
+    filename=None,
+    reverse_bits=False,
+    plot_barriers=True,
+    justify=None,
+    vertical_compression="high",
+    idle_wires=True,
+    with_layout=True,
+    fold=None,
+    initial_state=True,
+    cregbundle=False,
+    encoding=None,
+):
     """Draws a circuit using ascii art.
 
     Args:
@@ -409,18 +306,27 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
     """
-    qregs, cregs, ops = utils._get_layered_instructions(circuit,
-                                                        reverse_bits=reverse_bits,
-                                                        justify=justify,
-                                                        idle_wires=idle_wires)
+    qubits, clbits, ops = utils._get_layered_instructions(
+        circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
+    )
+
     if with_layout:
         layout = circuit._layout
     else:
         layout = None
-    global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
-    text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout, initial_state=initial_state,
-                                     cregbundle=cregbundle, global_phase=global_phase,
-                                     encoding=encoding)
+    global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
+    text_drawing = _text.TextDrawing(
+        qubits,
+        clbits,
+        ops,
+        layout=layout,
+        initial_state=initial_state,
+        cregbundle=cregbundle,
+        global_phase=global_phase,
+        encoding=encoding,
+        qregs=circuit.qregs,
+        cregs=circuit.cregs,
+    )
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
     text_drawing.vertical_compression = vertical_compression
@@ -435,16 +341,18 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
 # -----------------------------------------------------------------------------
 
 
-def _latex_circuit_drawer(circuit,
-                          scale=0.7,
-                          filename=None,
-                          plot_barriers=True,
-                          reverse_bits=False,
-                          justify=None,
-                          idle_wires=True,
-                          with_layout=True,
-                          initial_state=False,
-                          cregbundle=False):
+def _latex_circuit_drawer(
+    circuit,
+    scale=0.7,
+    filename=None,
+    plot_barriers=True,
+    reverse_bits=False,
+    justify=None,
+    idle_wires=True,
+    with_layout=True,
+    initial_state=False,
+    cregbundle=False,
+):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
     Requires version >=2.6.0 of the qcircuit LaTeX package.
@@ -474,63 +382,95 @@ def _latex_circuit_drawer(circuit,
         OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
                  missing.
         CalledProcessError: usually points to errors during diagram creation.
-        ImportError: if pillow is not installed
+        MissingOptionalLibraryError: if pillow is not installed
     """
-    tmpfilename = 'circuit'
+    tmpfilename = "circuit"
     with tempfile.TemporaryDirectory() as tmpdirname:
-        tmppath = os.path.join(tmpdirname, tmpfilename + '.tex')
-        _generate_latex_source(circuit, filename=tmppath, scale=scale,
-                               plot_barriers=plot_barriers,
-                               reverse_bits=reverse_bits, justify=justify,
-                               idle_wires=idle_wires, with_layout=with_layout,
-                               initial_state=initial_state,
-                               cregbundle=cregbundle)
+        tmppath = os.path.join(tmpdirname, tmpfilename + ".tex")
+        _generate_latex_source(
+            circuit,
+            filename=tmppath,
+            scale=scale,
+            plot_barriers=plot_barriers,
+            reverse_bits=reverse_bits,
+            justify=justify,
+            idle_wires=idle_wires,
+            with_layout=with_layout,
+            initial_state=initial_state,
+            cregbundle=cregbundle,
+        )
         try:
 
-            subprocess.run(["pdflatex", "-halt-on-error",
-                            "-output-directory={}".format(tmpdirname),
-                            "{}".format(tmpfilename + '.tex')],
-                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                           check=True)
+            subprocess.run(
+                [
+                    "pdflatex",
+                    "-halt-on-error",
+                    "-output-directory={}".format(tmpdirname),
+                    "{}".format(tmpfilename + ".tex"),
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                check=True,
+            )
         except OSError as ex:
             if ex.errno == errno.ENOENT:
-                logger.warning('WARNING: Unable to compile latex. '
-                               'Is `pdflatex` installed? '
-                               'Skipping latex circuit drawing...')
+                logger.warning(
+                    "WARNING: Unable to compile latex. "
+                    "Is `pdflatex` installed? "
+                    "Skipping latex circuit drawing..."
+                )
             raise
         except subprocess.CalledProcessError as ex:
-            with open('latex_error.log', 'wb') as error_file:
+            with open("latex_error.log", "wb") as error_file:
                 error_file.write(ex.stdout)
-            logger.warning('WARNING Unable to compile latex. '
-                           'The output from the pdflatex command can '
-                           'be found in latex_error.log')
+            logger.warning(
+                "WARNING Unable to compile latex. "
+                "The output from the pdflatex command can "
+                "be found in latex_error.log"
+            )
             raise
         else:
             if not HAS_PIL:
-                raise ImportError('The latex drawer needs pillow installed. '
-                                  'Run "pip install pillow" before using the '
-                                  'latex drawer.')
+                raise MissingOptionalLibraryError(
+                    libname="pillow",
+                    name="latex drawer",
+                    pip_install="pip install pillow",
+                )
             try:
                 base = os.path.join(tmpdirname, tmpfilename)
-                subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
-                                base + '.pdf', base], check=True)
-                image = Image.open(base + '.png')
+                subprocess.run(
+                    ["pdftocairo", "-singlefile", "-png", "-q", base + ".pdf", base], check=True
+                )
+                image = Image.open(base + ".png")
                 image = utils._trim(image)
-                os.remove(base + '.png')
+                os.remove(base + ".png")
                 if filename:
-                    image.save(filename, 'PNG')
+                    if filename.endswith(".pdf"):
+                        os.rename(base + ".pdf", filename)
+                    else:
+                        image.save(filename, "PNG")
             except (OSError, subprocess.CalledProcessError) as ex:
-                logger.warning('WARNING: Unable to convert pdf to image. '
-                               'Is `poppler` installed? '
-                               'Skipping circuit drawing...')
+                logger.warning(
+                    "WARNING: Unable to convert pdf to image. "
+                    "Is `poppler` installed? "
+                    "Skipping circuit drawing..."
+                )
                 raise
         return image
 
 
-def _generate_latex_source(circuit, filename=None,
-                           scale=0.7, reverse_bits=False,
-                           plot_barriers=True, justify=None, idle_wires=True,
-                           with_layout=True, initial_state=False, cregbundle=False):
+def _generate_latex_source(
+    circuit,
+    filename=None,
+    scale=0.7,
+    reverse_bits=False,
+    plot_barriers=True,
+    justify=None,
+    idle_wires=True,
+    with_layout=True,
+    initial_state=False,
+    cregbundle=False,
+):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
@@ -554,23 +494,32 @@ def _generate_latex_source(circuit, filename=None,
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    qregs, cregs, ops = utils._get_layered_instructions(circuit,
-                                                        reverse_bits=reverse_bits,
-                                                        justify=justify, idle_wires=idle_wires)
+    qubits, clbits, ops = utils._get_layered_instructions(
+        circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
+    )
     if with_layout:
         layout = circuit._layout
     else:
         layout = None
 
-    global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
-    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale,
-                                 plot_barriers=plot_barriers, layout=layout,
-                                 initial_state=initial_state,
-                                 cregbundle=cregbundle,
-                                 global_phase=global_phase)
+    global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
+    qcimg = _latex.QCircuitImage(
+        qubits,
+        clbits,
+        ops,
+        scale,
+        reverse_bits=reverse_bits,
+        plot_barriers=plot_barriers,
+        layout=layout,
+        initial_state=initial_state,
+        cregbundle=cregbundle,
+        global_phase=global_phase,
+        qregs=circuit.qregs,
+        cregs=circuit.cregs,
+    )
     latex = qcimg.latex()
     if filename:
-        with open(filename, 'w') as latex_file:
+        with open(filename, "w") as latex_file:
             latex_file.write(latex)
 
     return latex
@@ -581,19 +530,21 @@ def _generate_latex_source(circuit, filename=None,
 # -----------------------------------------------------------------------------
 
 
-def _matplotlib_circuit_drawer(circuit,
-                               scale=None,
-                               filename=None,
-                               style=None,
-                               plot_barriers=True,
-                               reverse_bits=False,
-                               justify=None,
-                               idle_wires=True,
-                               with_layout=True,
-                               fold=None,
-                               ax=None,
-                               initial_state=False,
-                               cregbundle=True):
+def _matplotlib_circuit_drawer(
+    circuit,
+    scale=None,
+    filename=None,
+    style=None,
+    plot_barriers=True,
+    reverse_bits=False,
+    justify=None,
+    idle_wires=True,
+    with_layout=True,
+    fold=None,
+    ax=None,
+    initial_state=False,
+    cregbundle=True,
+):
 
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
@@ -628,10 +579,9 @@ def _matplotlib_circuit_drawer(circuit,
             if the ``ax`` kwarg is not set.
     """
 
-    qregs, cregs, ops = utils._get_layered_instructions(circuit,
-                                                        reverse_bits=reverse_bits,
-                                                        justify=justify,
-                                                        idle_wires=idle_wires)
+    qubits, clbits, ops = utils._get_layered_instructions(
+        circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
+    )
     if with_layout:
         layout = circuit._layout
     else:
@@ -640,9 +590,22 @@ def _matplotlib_circuit_drawer(circuit,
     if fold is None:
         fold = 25
 
-    global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
-    qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
-                                       plot_barriers=plot_barriers, layout=layout,
-                                       fold=fold, ax=ax, initial_state=initial_state,
-                                       cregbundle=cregbundle, global_phase=global_phase)
+    global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
+    qcd = _matplotlib.MatplotlibDrawer(
+        qubits,
+        clbits,
+        ops,
+        scale=scale,
+        style=style,
+        reverse_bits=reverse_bits,
+        plot_barriers=plot_barriers,
+        layout=layout,
+        fold=fold,
+        ax=ax,
+        initial_state=initial_state,
+        cregbundle=cregbundle,
+        global_phase=global_phase,
+        qregs=circuit.qregs,
+        cregs=circuit.cregs,
+    )
     return qcd.draw(filename)
