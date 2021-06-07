@@ -913,7 +913,7 @@ def plot_state_qsphere(
     colors = sns.hls_palette(n)
 
     ax2 = fig.add_subplot(gs[2:, 2:])
-    ax2.pie(theta, colors=colors[5 * n // 8:] + colors[:5 * n // 8], radius=0.75)
+    ax2.pie(theta, colors=colors[5 * n // 8 :] + colors[: 5 * n // 8], radius=0.75)
     ax2.add_artist(Circle((0, 0), 0.5, color="white", zorder=1))
     offset = 0.95  # since radius of sphere is one.
 
