@@ -21,7 +21,6 @@ from qiskit.opflow import StateFn, CircuitSampler, ExpectationBase
 from qiskit.utils import QuantumInstance
 
 from .spsa import SPSA, _batch_evaluate
-from .iterators import SerializableIterator
 
 # the function to compute the fidelity
 FIDELITY = Callable[[np.ndarray, np.ndarray], float]
@@ -200,39 +199,17 @@ class QNSPSA(SPSA):
             have to add it manually with the key ``"fidelity"``.
 
         """
-        if self.callback is not None:
-            raise ValueError("Cannot serialize QNSPSA with callback.")
+        # re-use serialization from SPSA
+        serialized = super().to_dict()
 
-        if self.lse_solver is not None:
-            raise ValueError("Cannot serialize QNSPSA with ``lse_solver``.")
+        # update name
+        serialized["name"] = "QNSPSA"
 
-        if isinstance(self.learning_rate, float) or self.learning_rate is None:
-            learning_rate = self.learning_rate
-        elif isinstance(self.learning_rate, SerializableIterator):
-            learning_rate = self.learning_rate.serialize()
-        else:
-            raise ValueError(f"Cannot serialize QNSPSA with learning rate {self.learning_rate}.")
+        # remove SPSA-specific arguments not in QNSPSA
+        serialized.pop("trust_region")
+        serialized.pop("second_order")
 
-        if isinstance(self.perturbation, float) or self.perturbation is None:
-            perturbation = self.perturbation
-        elif isinstance(self.perturbation, SerializableIterator):
-            perturbation = self.perturbation.serialize()
-        else:
-            raise ValueError(f"Cannot serialize QNSPSA with perturbation {self.perturbation}.")
-
-        return {
-            "name": "QNSPSA",
-            "maxiter": self.maxiter,
-            "learning_rate": learning_rate,
-            "perturbation": perturbation,
-            "blocking": self.blocking,
-            "allowed_increase": self.allowed_increase,
-            "resamplings": self.resamplings,
-            "perturbation_dims": self.perturbation_dims,
-            "hessian_delay": self.hessian_delay,
-            "regularization": self.regularization,
-            "initial_hessian": self.initial_hessian,
-        }
+        return serialized
 
     @classmethod
     def from_dict(cls, dictionary):
@@ -242,10 +219,12 @@ class QNSPSA(SPSA):
 
         # raise extra expressive warning if "fidelity" is not contained
         if "fidelity" not in dictionary.keys():
-            raise ValueError("Required key 'fidelity' missing. If you constructed the dictionary "
-                             "from QNSPSA.to_dict this key is missing since it is not "
-                             "serializable. You have to add the callable to evaluate the fidelity "
-                             "manually to the dictionary to construct a QNSPSA optimizer.")
+            raise ValueError(
+                "Required key 'fidelity' missing. If you constructed the dictionary "
+                "from QNSPSA.to_dict this key is missing since it is not "
+                "serializable. You have to add the callable to evaluate the fidelity "
+                "manually to the dictionary to construct a QNSPSA optimizer."
+            )
 
         return cls(**dictionary)
 
