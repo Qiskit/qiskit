@@ -10,36 +10,52 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Simultaneous Perturbation Stochastic Approximation optimizer."""
+"""Simultaneous Perturbation Stochastic Approximation (SPSA) optimizer.
 
-from typing import List, Callable
+This implementation allows both, standard first-order as well as second-order SPSA.
+"""
+
+from typing import Iterator, Optional, Union, Callable, Tuple, Dict
 import logging
+import warnings
+from time import time
 
+from collections import deque
+import scipy
 import numpy as np
 
 from qiskit.utils import algorithm_globals
-from qiskit.utils.validation import validate_min
+
 from .optimizer import Optimizer, OptimizerSupportLevel
+
+# number of function evaluations, parameters, loss, stepsize, accepted
+CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
 
 logger = logging.getLogger(__name__)
 
 
 class SPSA(Optimizer):
-    """
-    Simultaneous Perturbation Stochastic Approximation (SPSA) optimizer.
+    """Simultaneous Perturbation Stochastic Approximation (SPSA) optimizer.
 
-    SPSA is an algorithmic method for optimizing systems with multiple unknown parameters.
+    SPSA [1] is an gradient descent method for optimizing systems with multiple unknown parameters.
     As an optimization method, it is appropriately suited to large-scale population models,
     adaptive modeling, and simulation optimization.
 
     .. seealso::
+
         Many examples are presented at the `SPSA Web site <http://www.jhuapl.edu/SPSA>`__.
 
-    SPSA is a descent method capable of finding global minima,
-    sharing this property with other methods as simulated annealing.
-    Its main feature is the gradient approximation, which requires only two
+    The main feature of SPSA is the stochastic gradient approximation, which requires only two
     measurements of the objective function, regardless of the dimension of the optimization
     problem.
+
+    Additionally to standard, first-order SPSA, where only gradient information is used, this
+    implementation also allows second-order SPSA (2-SPSA) [2]. In 2-SPSA we also estimate the
+    Hessian of the loss with a stochastic approximation and multiply the gradient with the
+    inverse Hessian to take local curvature into account and improve convergence.
+    Notably this Hessian estimate requires only a constant number of function evaluations
+    unlike an exact evaluation of the Hessian, which scales quadratically in the number of
+    function evaluations.
 
     .. note::
 
@@ -49,195 +65,515 @@ class SPSA(Optimizer):
         simulator or a real device, SPSA would be the most recommended choice among the optimizers
         provided here.
 
-    The optimization process includes a calibration phase, which requires additional
-    functional evaluations.
+    The optimization process can includes a calibration phase if neither the ``learning_rate`` nor
+    ``perturbation`` is provided, which requires additional functional evaluations.
+    (Note that either both or none must be set.) For further details on the automatic calibration,
+    please refer to the supplementary information section IV. of [3].
 
-    For further details, please refer to https://arxiv.org/pdf/1704.05018v2.pdf#section*.11
-    (Supplementary information Section IV.)
+
+    Examples:
+
+        This short example runs SPSA for the ground state calculation of the ``Z ^ Z``
+        observable where the ansatz is a ``PauliTwoDesign`` circuit.
+
+        .. code-block:: python
+
+            import numpy as np
+            from qiskit.algorithms.optimizers import SPSA
+            from qiskit.circuit.library import PauliTwoDesign
+            from qiskit.opflow import Z, StateFn
+
+            ansatz = PauliTwoDesign(2, reps=1, seed=2)
+            observable = Z ^ Z
+            initial_point = np.random.random(ansatz.num_parameters)
+
+            def loss(x):
+                bound = ansatz.bind_parameters(x)
+                return np.real((StateFn(observable, is_measurement=True) @ StateFn(bound)).eval())
+
+            spsa = SPSA(maxiter=300)
+            result = spsa.optimize(ansatz.num_parameters, loss, initial_point=initial_point)
+
+        To use the Hessian information, i.e. 2-SPSA, you can add `second_order=True` to the
+        initializer of the `SPSA` class, the rest of the code remains the same.
+
+        .. code-block:: python
+
+            two_spsa = SPSA(maxiter=300, second_order=True)
+            result = two_spsa.optimize(ansatz.num_parameters, loss, initial_point=initial_point)
+
+
+    References:
+
+        [1]: J. C. Spall (1998). An Overview of the Simultaneous Perturbation Method for Efficient
+        Optimization, Johns Hopkins APL Technical Digest, 19(4), 482–492.
+        `Online at jhuapl.edu. <https://www.jhuapl.edu/SPSA/PDF-SPSA/Spall_An_Overview.PDF>`_
+
+        [2]: J. C. Spall (1997). Accelerated second-order stochastic optimization using only
+        function measurements, Proceedings of the 36th IEEE Conference on Decision and Control,
+        1417-1424 vol.2. `Online at IEEE.org. <https://ieeexplore.ieee.org/document/657661>`_
+
+        [3]: A. Kandala et al. (2017). Hardware-efficient Variational Quantum Eigensolver for
+        Small Molecules and Quantum Magnets. Nature 549, pages242–246(2017).
+        `arXiv:1704.05018v2 <https://arxiv.org/pdf/1704.05018v2.pdf#section*.11>`_
+
     """
 
-    _C0 = 2 * np.pi * 0.1
-    _OPTIONS = ['save_steps', 'last_avg']
-
-    def __init__(self,
-                 maxiter: int = 1000,
-                 save_steps: int = 1,
-                 last_avg: int = 1,
-                 c0: float = _C0,
-                 c1: float = 0.1,
-                 c2: float = 0.602,
-                 c3: float = 0.101,
-                 c4: float = 0,
-                 skip_calibration: bool = False) -> None:
-        """
+    def __init__(
+        self,
+        maxiter: int = 100,
+        blocking: bool = False,
+        allowed_increase: Optional[float] = None,
+        trust_region: bool = False,
+        learning_rate: Optional[Union[float, Callable[[], Iterator]]] = None,
+        perturbation: Optional[Union[float, Callable[[], Iterator]]] = None,
+        last_avg: int = 1,
+        resamplings: Union[int, Dict[int, int]] = 1,
+        perturbation_dims: Optional[int] = None,
+        second_order: bool = False,
+        regularization: Optional[float] = None,
+        hessian_delay: int = 0,
+        lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
+        initial_hessian: Optional[np.ndarray] = None,
+        callback: Optional[CALLBACK] = None,
+    ) -> None:
+        r"""
         Args:
-            maxiter: Maximum number of iterations to perform.
-            save_steps: Save intermediate info every save_steps step. It has a min. value of 1.
-            last_avg: Averaged parameters over the last_avg iterations.
-                If last_avg = 1, only the last iteration is considered. It has a min. value of 1.
-            c0: The initial a. Step size to update parameters.
-            c1: The initial c. The step size used to approximate gradient.
-            c2: The alpha in the paper, and it is used to adjust a (c0) at each iteration.
-            c3: The gamma in the paper, and it is used to adjust c (c1) at each iteration.
-            c4: The parameter used to control a as well.
-            skip_calibration: Skip calibration and use provided c(s) as is.
+            maxiter: The maximum number of iterations. Note that this is not the maximal number
+                of function evaluations.
+            blocking: If True, only accepts updates that improve the loss (up to some allowed
+                increase, see next argument).
+            allowed_increase: If ``blocking`` is ``True``, this argument determines by how much
+                the loss can increase with the proposed parameters and still be accepted.
+                If ``None``, the allowed increases is calibrated automatically to be twice the
+                approximated standard deviation of the loss function.
+            trust_region: If ``True``, restricts the norm of the update step to be :math:`\leq 1`.
+            learning_rate: The update step is the learning rate is multiplied with the gradient.
+                If the learning rate is a float, it remains constant over the course of the
+                optimization. It can also be a callable returning an iterator which yields the
+                learning rates for each optimization step.
+                If ``learning_rate`` is set ``perturbation`` must also be provided.
+            perturbation: Specifies the magnitude of the perturbation for the finite difference
+                approximation of the gradients. Can be either a float or a generator yielding
+                the perturbation magnitudes per step.
+                If ``perturbation`` is set ``learning_rate`` must also be provided.
+            last_avg: Return the average of the ``last_avg`` parameters instead of just the
+                last parameter values.
+            resamplings: The number of times the gradient (and Hessian) is sampled using a random
+                direction to construct a gradient estimate. Per default the gradient is estimated
+                using only one random direction. If an integer, all iterations use the same number
+                of resamplings. If a dictionary, this is interpreted as
+                ``{iteration: number of resamplings per iteration}``.
+            perturbation_dims: The number of perturbed dimensions. Per default, all dimensions
+                are perturbed, but a smaller, fixed number can be perturbed. If set, the perturbed
+                dimensions are chosen uniformly at random.
+            second_order: If True, use 2-SPSA instead of SPSA. In 2-SPSA, the Hessian is estimated
+                additionally to the gradient, and the gradient is preconditioned with the inverse
+                of the Hessian to improve convergence.
+            regularization: To ensure the preconditioner is symmetric and positive definite, the
+                identity times a small coefficient is added to it. This generator yields that
+                coefficient.
+            hessian_delay: Start multiplying the gradient with the inverse Hessian only after a
+                certain number of iterations. The Hessian is still evaluated and therefore this
+                argument can be useful to first get a stable average over the last iterations before
+                using it as preconditioner.
+            lse_solver: The method to solve for the inverse of the Hessian. Per default an
+                exact LSE solver is used, but can e.g. be overwritten by a minimization routine.
+            initial_hessian: The initial guess for the Hessian. By default the identity matrix
+                is used.
+            callback: A callback function passed information in each iteration step. The
+                information is, in this order: the number of function evaluations, the parameters,
+                the function value, the stepsize, whether the step was accepted.
         """
-        validate_min('save_steps', save_steps, 1)
-        validate_min('last_avg', last_avg, 1)
         super().__init__()
-        for k, v in list(locals().items()):
-            if k in self._OPTIONS:
-                self._options[k] = v
-        self._maxiter = maxiter
-        self._parameters = np.array([c0, c1, c2, c3, c4])
-        self._skip_calibration = skip_calibration
+
+        # general optimizer arguments
+        self.maxiter = maxiter
+        self.trust_region = trust_region
+        self.callback = callback
+
+        if isinstance(learning_rate, float):
+            self.learning_rate = lambda: constant(learning_rate)
+        else:
+            self.learning_rate = learning_rate
+
+        if isinstance(perturbation, float):
+            self.perturbation = lambda: constant(perturbation)
+        else:
+            self.perturbation = perturbation
+
+        # SPSA specific arguments
+        self.blocking = blocking
+        self.allowed_increase = allowed_increase
+        self.last_avg = last_avg
+        self.resamplings = resamplings
+        self.perturbation_dims = perturbation_dims
+
+        # 2-SPSA specific arguments
+        if regularization is None:
+            regularization = 0.01
+
+        if lse_solver is None:
+            lse_solver = np.linalg.solve
+
+        self.second_order = second_order
+        self.hessian_delay = hessian_delay
+        self.lse_solver = lse_solver
+        self.regularization = regularization
+        self.initial_hessian = initial_hessian
+
+        # runtime arguments
+        self._nfev = None  # the number of function evaluations
+        self._smoothed_hessian = None  # smoothed average of the Hessians
+
+    @staticmethod
+    def calibrate(
+        loss: Callable[[np.ndarray], float],
+        initial_point: np.ndarray,
+        c: float = 0.2,
+        stability_constant: float = 0,
+        target_magnitude: Optional[float] = None,  # 2 pi / 10
+        alpha: float = 0.602,
+        gamma: float = 0.101,
+        modelspace: bool = False,
+    ) -> Tuple[Iterator[float], Iterator[float]]:
+        r"""Calibrate SPSA parameters with a powerseries as learning rate and perturbation coeffs.
+
+        The powerseries are:
+
+        .. math::
+
+            a_k = \frac{a}{(A + k + 1)^\alpha}, c_k = \frac{c}{(k + 1)^\gamma}
+
+        Args:
+            loss: The loss function.
+            initial_point: The initial guess of the iteration.
+            c: The initial perturbation magnitude.
+            stability_constant: The value of `A`.
+            target_magnitude: The target magnitude for the first update step, defaults to
+                :math:`2\pi / 10`.
+            alpha: The exponent of the learning rate powerseries.
+            gamma: The exponent of the perturbation powerseries.
+            modelspace: Whether the target magnitude is the difference of parameter values
+                or function values (= model space).
+
+        Returns:
+            tuple(generator, generator): A tuple of powerseries generators, the first one for the
+                learning rate and the second one for the perturbation.
+        """
+        if target_magnitude is None:
+            target_magnitude = 2 * np.pi / 10
+
+        dim = len(initial_point)
+
+        # compute the average magnitude of the first step
+        steps = 25
+        avg_magnitudes = 0
+        for _ in range(steps):
+            # compute the random directon
+            pert = bernoulli_perturbation(dim)
+            delta = loss(initial_point + c * pert) - loss(initial_point - c * pert)
+
+            avg_magnitudes += np.abs(delta / (2 * c))
+
+        avg_magnitudes /= steps
+
+        if modelspace:
+            a = target_magnitude / (avg_magnitudes ** 2)
+        else:
+            a = target_magnitude / avg_magnitudes
+
+        # compute the rescaling factor for correct first learning rate
+        if a < 1e-10:
+            warnings.warn(f"Calibration failed, using {target_magnitude} for `a`")
+            a = target_magnitude
+
+        # set up the powerseries
+        def learning_rate():
+            return powerseries(a, alpha, stability_constant)
+
+        def perturbation():
+            return powerseries(c, gamma)
+
+        return learning_rate, perturbation
+
+    @staticmethod
+    def estimate_stddev(
+        loss: Callable[[np.ndarray], float], initial_point: np.ndarray, avg: int = 25
+    ) -> float:
+        """Estimate the standard deviation of the loss function."""
+        losses = [loss(initial_point) for _ in range(avg)]
+        return np.std(losses)
+
+    def _point_sample(self, loss, x, eps, delta1, delta2):
+        """A single sample of the gradient at position ``x`` in direction ``delta``."""
+        # points to evaluate
+        points = [x + eps * delta1, x - eps * delta1]
+        self._nfev += 2
+
+        if self.second_order:
+            points += [x + eps * (delta1 + delta2), x + eps * (-delta1 + delta2)]
+            self._nfev += 2
+
+        # batch evaluate the points (if possible)
+        values = _batch_evaluate(loss, points, self._max_evals_grouped)
+
+        plus = values[0]
+        minus = values[1]
+        gradient_sample = (plus - minus) / (2 * eps) * delta1
+
+        hessian_sample = None
+        if self.second_order:
+            diff = (values[2] - plus) - (values[3] - minus)
+            diff /= 2 * eps ** 2
+
+            rank_one = np.outer(delta1, delta2)
+            hessian_sample = diff * (rank_one + rank_one.T) / 2
+
+        return gradient_sample, hessian_sample
+
+    def _point_estimate(self, loss, x, eps, num_samples):
+        """The gradient estimate at point x."""
+        # set up variables to store averages
+        gradient_estimate = np.zeros(x.size)
+        hessian_estimate = np.zeros((x.size, x.size))
+
+        # iterate over the directions
+        deltas1 = [
+            bernoulli_perturbation(x.size, self.perturbation_dims) for _ in range(num_samples)
+        ]
+
+        if self.second_order:
+            deltas2 = [
+                bernoulli_perturbation(x.size, self.perturbation_dims) for _ in range(num_samples)
+            ]
+        else:
+            deltas2 = None
+
+        for i in range(num_samples):
+            delta1 = deltas1[i]
+            delta2 = deltas2[i] if self.second_order else None
+
+            gradient_sample, hessian_sample = self._point_sample(loss, x, eps, delta1, delta2)
+            gradient_estimate += gradient_sample
+
+            if self.second_order:
+                hessian_estimate += hessian_sample
+
+        return gradient_estimate / num_samples, hessian_estimate / num_samples
+
+    def _compute_update(self, loss, x, k, eps):
+        # compute the perturbations
+        if isinstance(self.resamplings, dict):
+            num_samples = self.resamplings.get(k, 1)
+        else:
+            num_samples = self.resamplings
+
+        # accumulate the number of samples
+        gradient, hessian = self._point_estimate(loss, x, eps, num_samples)
+
+        # precondition gradient with inverse Hessian, if specified
+        if self.second_order:
+            smoothed = k / (k + 1) * self._smoothed_hessian + 1 / (k + 1) * hessian
+            self._smoothed_hessian = smoothed
+
+            if k > self.hessian_delay:
+                spd_hessian = _make_spd(smoothed, self.regularization)
+
+                # solve for the gradient update
+                gradient = np.real(self.lse_solver(spd_hessian, gradient))
+
+        return gradient
+
+    def _minimize(self, loss, initial_point):
+        # ensure learning rate and perturbation are correctly set: either none or both
+        # this happens only here because for the calibration the loss function is required
+        if self.learning_rate is None and self.perturbation is None:
+            get_learning_rate, get_perturbation = self.calibrate(loss, initial_point)
+            # get iterator
+            eta = get_learning_rate()
+            eps = get_perturbation()
+        elif self.learning_rate is None or self.perturbation is None:
+            raise ValueError("If one of learning rate or perturbation is set, both must be set.")
+        else:
+            # get iterator
+            eta = self.learning_rate()
+            eps = self.perturbation()
+
+        # prepare some initials
+        x = np.asarray(initial_point)
+        if self.initial_hessian is None:
+            self._smoothed_hessian = np.identity(x.size)
+        else:
+            self._smoothed_hessian = self.initial_hessian
+
+        self._nfev = 0
+
+        # if blocking is enabled we need to keep track of the function values
+        if self.blocking:
+            fx = loss(x)
+
+            self._nfev += 1
+            if self.allowed_increase is None:
+                self.allowed_increase = 2 * self.estimate_stddev(loss, x)
+
+        logger.info("=" * 30)
+        logger.info("Starting SPSA optimization")
+        start = time()
+
+        # keep track of the last few steps to return their average
+        last_steps = deque([x])
+
+        for k in range(1, self.maxiter + 1):
+            iteration_start = time()
+            # compute update
+            update = self._compute_update(loss, x, k, next(eps))
+
+            # trust region
+            if self.trust_region:
+                norm = np.linalg.norm(update)
+                if norm > 1:  # stop from dividing by 0
+                    update = update / norm
+
+            # compute next parameter value
+            update = update * next(eta)
+            x_next = x - update
+
+            # blocking
+            if self.blocking:
+                self._nfev += 1
+                fx_next = loss(x_next)
+
+                if fx + self.allowed_increase <= fx_next:  # accept only if loss improved
+                    if self.callback is not None:
+                        self.callback(
+                            self._nfev,  # number of function evals
+                            x_next,  # next parameters
+                            fx_next,  # loss at next parameters
+                            np.linalg.norm(update),  # size of the update step
+                            False,
+                        )  # not accepted
+
+                    logger.info(
+                        "Iteration %s/%s rejected in %s.",
+                        k,
+                        self.maxiter + 1,
+                        time() - iteration_start,
+                    )
+                    continue
+                fx = fx_next
+
+            logger.info(
+                "Iteration %s/%s done in %s.", k, self.maxiter + 1, time() - iteration_start
+            )
+
+            if self.callback is not None:
+                # if we didn't evaluate the function yet, do it now
+                if not self.blocking:
+                    self._nfev += 1
+                    fx_next = loss(x_next)
+
+                self.callback(
+                    self._nfev,  # number of function evals
+                    x_next,  # next parameters
+                    fx_next,  # loss at next parameters
+                    np.linalg.norm(update),  # size of the update step
+                    True,
+                )  # accepted
+
+            # update parameters
+            x = x_next
+
+            # update the list of the last ``last_avg`` parameters
+            if self.last_avg > 1:
+                last_steps.append(x_next)
+                if len(last_steps) > self.last_avg:
+                    last_steps.popleft()
+
+        logger.info("SPSA finished in %s", time() - start)
+        logger.info("=" * 30)
+
+        if self.last_avg > 1:
+            x = np.mean(last_steps, axis=0)
+
+        return x, loss(x), self._nfev
 
     def get_support_level(self):
-        """ return support level dictionary """
+        """Get the support level dictionary."""
         return {
-            'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.ignored,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.ignored,
+            "bounds": OptimizerSupportLevel.ignored,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function,
-                         variable_bounds, initial_point)
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        return self._minimize(objective_function, initial_point)
 
-        if not isinstance(initial_point, np.ndarray):
-            initial_point = np.asarray(initial_point)
 
-        logger.debug('Parameters: %s', self._parameters)
-        if not self._skip_calibration:
-            # at least one calibration, at most 25 calibrations
-            num_steps_calibration = min(25, max(1, self._maxiter // 5))
-            self._calibration(objective_function, initial_point, num_steps_calibration)
-        else:
-            logger.debug('Skipping calibration, parameters used as provided.')
+def bernoulli_perturbation(dim, perturbation_dims=None):
+    """Get a Bernoulli random perturbation."""
+    if perturbation_dims is None:
+        return 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=dim)
 
-        opt, sol, _, _, _, _ = self._optimization(objective_function,
-                                                  initial_point,
-                                                  maxiter=self._maxiter,
-                                                  **self._options)
-        return sol, opt, None
+    pert = 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=perturbation_dims)
+    indices = algorithm_globals.random.choice(
+        list(range(dim)), size=perturbation_dims, replace=False
+    )
+    result = np.zeros(dim)
+    result[indices] = pert
 
-    def _optimization(self,
-                      obj_fun: Callable,
-                      initial_theta: np.ndarray,
-                      maxiter: int,
-                      save_steps: int = 1,
-                      last_avg: int = 1) -> List:
-        """Minimizes obj_fun(theta) with a simultaneous perturbation stochastic
-        approximation algorithm.
+    return result
 
-        Args:
-            obj_fun: the function to minimize
-            initial_theta: initial value for the variables of obj_fun
-            maxiter: the maximum number of trial steps ( = function
-                calls/2) in the optimization
-            save_steps: stores optimization outcomes each 'save_steps'
-                trial steps
-            last_avg: number of last updates of the variables to average
-                on for the final obj_fun
-        Returns:
-            a list with the following elements:
-                cost_final : final optimized value for obj_fun
-                theta_best : final values of the variables corresponding to
-                    cost_final
-                cost_plus_save : array of stored values for obj_fun along the
-                    optimization in the + direction
-                cost_minus_save : array of stored values for obj_fun along the
-                    optimization in the - direction
-                theta_plus_save : array of stored variables of obj_fun along the
-                    optimization in the + direction
-                theta_minus_save : array of stored variables of obj_fun along the
-                    optimization in the - direction
-        """
 
-        theta_plus_save = []
-        theta_minus_save = []
-        cost_plus_save = []
-        cost_minus_save = []
-        theta = initial_theta
-        theta_best = np.zeros(initial_theta.shape)
-        for k in range(maxiter):
-            # SPSA Parameters
-            a_spsa = float(self._parameters[0]) / np.power(k + 1 + self._parameters[4],
-                                                           self._parameters[2])
-            c_spsa = float(self._parameters[1]) / np.power(k + 1, self._parameters[3])
-            delta = 2 * algorithm_globals.random.integers(2, size=np.shape(initial_theta)[0]) - 1
-            # plus and minus directions
-            theta_plus = theta + c_spsa * delta
-            theta_minus = theta - c_spsa * delta
-            # cost function for the two directions
-            if self._max_evals_grouped > 1:
-                cost_plus, cost_minus = obj_fun(np.concatenate((theta_plus, theta_minus)))
-            else:
-                cost_plus = obj_fun(theta_plus)
-                cost_minus = obj_fun(theta_minus)
-            # derivative estimate
-            g_spsa = (cost_plus - cost_minus) * delta / (2.0 * c_spsa)
-            # updated theta
-            theta = theta - a_spsa * g_spsa
-            # saving
-            if k % save_steps == 0:
-                logger.debug('Objective function at theta+ for step # %s: %1.7f', k, cost_plus)
-                logger.debug('Objective function at theta- for step # %s: %1.7f', k, cost_minus)
-                theta_plus_save.append(theta_plus)
-                theta_minus_save.append(theta_minus)
-                cost_plus_save.append(cost_plus)
-                cost_minus_save.append(cost_minus)
+def powerseries(eta=0.01, power=2, offset=0):
+    """Yield a series decreasing by a powerlaw."""
 
-            if k >= maxiter - last_avg:
-                theta_best += theta / last_avg
-        # final cost update
-        cost_final = obj_fun(theta_best)
-        logger.debug('Final objective function is: %.7f', cost_final)
+    n = 1
+    while True:
+        yield eta / ((n + offset) ** power)
+        n += 1
 
-        return [cost_final, theta_best, cost_plus_save, cost_minus_save,
-                theta_plus_save, theta_minus_save]
 
-    def _calibration(self,
-                     obj_fun: Callable,
-                     initial_theta: np.ndarray,
-                     stat: int):
-        """Calibrates and stores the SPSA parameters back.
+def constant(eta=0.01):
+    """Yield a constant series."""
 
-        SPSA parameters are c0 through c5 stored in parameters array
+    while True:
+        yield eta
 
-        c0 on input is target_update and is the aimed update of variables on the first trial step.
-        Following calibration c0 will be updated.
 
-        c1 is initial_c and is first perturbation of initial_theta.
+def _batch_evaluate(function, points, max_evals_grouped):
+    # if the function cannot handle lists of points as input, cover this case immediately
+    if max_evals_grouped == 1:
+        # support functions with multiple arguments where the points are given in a tuple
+        return [
+            function(*point) if isinstance(point, tuple) else function(point) for point in points
+        ]
 
-        Args:
-            obj_fun: the function to minimize.
-            initial_theta: initial value for the variables of obj_fun.
-            stat: number of random gradient directions to average on in the calibration.
-        """
+    num_points = len(points)
 
-        target_update = self._parameters[0]
-        initial_c = self._parameters[1]
-        delta_obj = 0
-        logger.debug("Calibration...")
-        for i in range(stat):
-            if i % 5 == 0:
-                logger.debug('calibration step # %s of %s', str(i), str(stat))
-            delta = 2 * algorithm_globals.random.integers(2, size=np.shape(initial_theta)[0]) - 1
-            theta_plus = initial_theta + initial_c * delta
-            theta_minus = initial_theta - initial_c * delta
-            if self._max_evals_grouped > 1:
-                obj_plus, obj_minus = obj_fun(np.concatenate((theta_plus, theta_minus)))
-            else:
-                obj_plus = obj_fun(theta_plus)
-                obj_minus = obj_fun(theta_minus)
-            delta_obj += np.absolute(obj_plus - obj_minus) / stat
+    # get the number of batches
+    num_batches = num_points // max_evals_grouped
+    if num_points % max_evals_grouped != 0:
+        num_batches += 1
 
-        # only calibrate if delta_obj is larger than 0
-        if delta_obj > 0:
-            self._parameters[0] = target_update * 2 / delta_obj \
-                * self._parameters[1] * (self._parameters[4] + 1)
-            logger.debug('delta_obj is 0, not calibrating (since this would set c0 to inf)')
+    # split the points
+    batched_points = np.split(np.asarray(points), num_batches)
 
-        logger.debug('Calibrated SPSA parameter c0 is %.7f', self._parameters[0])
+    results = []
+    for batch in batched_points:
+        results += function(batch).tolist()
+
+    return results
+
+
+def _make_spd(matrix, bias=0.01):
+    identity = np.identity(matrix.shape[0])
+    psd = scipy.linalg.sqrtm(matrix.dot(matrix))
+    return psd + bias * identity
