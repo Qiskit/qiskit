@@ -61,7 +61,7 @@ class UGate(Gate):
 
     def __init__(self, theta, phi, lam, label=None):
         """Create new U gate."""
-        super().__init__("u", 1, [theta, phi, lam], label=label)
+        super().__init__("U", 1, [theta, phi, lam], label=label)
 
     def inverse(self):
         r"""Return inverted U gate.
