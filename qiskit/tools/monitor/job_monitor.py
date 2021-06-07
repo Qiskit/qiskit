@@ -17,8 +17,9 @@ import sys
 import time
 
 
-def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.stdout,
-                  line_discipline='\r'):
+def _text_checker(
+    job, interval, _interval_set=False, quiet=False, output=sys.stdout, line_discipline="\r"
+):
     """A text-based job status checker
 
     Args:
@@ -67,7 +68,7 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
         print("", file=output)
 
 
-def job_monitor(job, interval=None, quiet=False, output=sys.stdout, line_discipline='\r'):
+def job_monitor(job, interval=None, quiet=False, output=sys.stdout, line_discipline="\r"):
     """Monitor the status of a IBMQJob instance.
 
     Args:
@@ -85,5 +86,6 @@ def job_monitor(job, interval=None, quiet=False, output=sys.stdout, line_discipl
     else:
         _interval_set = True
 
-    _text_checker(job, interval, _interval_set,
-                  quiet=quiet, output=output, line_discipline=line_discipline)
+    _text_checker(
+        job, interval, _interval_set, quiet=quiet, output=output, line_discipline=line_discipline
+    )
