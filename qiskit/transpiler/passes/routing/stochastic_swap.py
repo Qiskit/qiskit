@@ -242,42 +242,30 @@ class StochasticSwap(TransformationPass):
         best_lay = best_layout.to_layout(qregs)
         return True, best_circuit, best_depth, best_lay
 
-    def _layer_update(self, i, best_layout, best_depth, best_circuit, layer_list):
+    def _layer_update(self, dag, layer, best_layout, best_depth, best_circuit):
         """Provide a DAGCircuit for a new mapped layer.
 
         Args:
-            i (int): layer number
+            dag (): The DAGCircuit object that the _mapper method is building
+            layer (): A DAGCircuit layer from the original circuit
             best_layout (Layout): layout returned from _layer_permutation
             best_depth (int): depth returned from _layer_permutation
             best_circuit (DAGCircuit): swap circuit returned from _layer_permutation
-            layer_list (list): list of DAGCircuit objects for each layer,
-                output of DAGCircuit layers() method
-
-        Returns:
-            DAGCircuit: a DAGCircuit object to append to the output DAGCircuit
-                that the _mapper method is building.
         """
         layout = best_layout
         logger.debug("layer_update: layout = %s", layout)
         logger.debug("layer_update: self.trivial_layout = %s", self.trivial_layout)
-        dagcircuit_output = DAGCircuit()
-        dagcircuit_output.add_qubits(layout.get_virtual_bits())
 
         # Output any swaps
         if best_depth > 0:
             logger.debug("layer_update: there are swaps in this layer, " "depth %d", best_depth)
-            dagcircuit_output.compose(best_circuit)
+            dag.compose(best_circuit)
         else:
             logger.debug("layer_update: there are no swaps in this layer")
         # Output this layer
-        layer_circuit = layer_list[i]["graph"]
-        for creg in layer_circuit.cregs.values():
-            dagcircuit_output.add_creg(creg)
-
-        order = layout.reorder_bits(dagcircuit_output.qubits)
-        dagcircuit_output.compose(layer_circuit, qubits=order)
-
-        return dagcircuit_output
+        layer_circuit = layer["graph"]
+        order = layout.reorder_bits(dag.qubits)
+        dag.compose(layer_circuit, qubits=order)
 
     def _mapper(self, circuit_graph, coupling_graph, trials=20):
         """Map a DAGCircuit onto a CouplingMap using swap gates.
@@ -353,10 +341,12 @@ class StochasticSwap(TransformationPass):
                     layout = best_layout
                     # Update the DAG
                     if not self.fake_run:
-                        dagcircuit_output.compose(
-                            self._layer_update(
-                                j, best_layout, best_depth, best_circuit, serial_layerlist
-                            )
+                        self._layer_update(
+                            dagcircuit_output,
+                            serial_layerlist[j],
+                            best_layout,
+                            best_depth,
+                            best_circuit
                         )
 
             else:
@@ -365,8 +355,12 @@ class StochasticSwap(TransformationPass):
 
                 # Update the DAG
                 if not self.fake_run:
-                    dagcircuit_output.compose(
-                        self._layer_update(i, best_layout, best_depth, best_circuit, layerlist)
+                    self._layer_update(
+                        dagcircuit_output,
+                        layerlist[i],
+                        best_layout,
+                        best_depth,
+                        best_circuit
                     )
 
         # This is the final edgemap. We might use it to correctly replace
