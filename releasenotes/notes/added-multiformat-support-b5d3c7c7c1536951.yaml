@@ -23,7 +23,7 @@ features:
 
     It will give user a warning to change the filename extension to a supported image format::
 
-      "WARNING This image format is not supported. Please change file extension to a supported image format."
+      "ERROR: This image format is not supported. Please change file extension to a supported image format."
     
     Similarly, if a user tries to save a file using the ``text`` option in ``QuantumCircuit.draw()`` 
     without using a ``.txt`` filename extension, a warning will be displayed.
@@ -34,4 +34,4 @@ features:
     
     will generate::
 
-      "WARNING Filename extension is not .txt. Please use a .txt file extension to save in text format."
+      "ERROR: Filename extension is not .txt. Please use a .txt file extension to save in text format."
