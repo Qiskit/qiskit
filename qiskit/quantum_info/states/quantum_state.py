@@ -455,7 +455,6 @@ class QuantumState:
         """
         if qargs is None:
             return probs
-<<<<<<< HEAD
         # Convert qargs to tensor axes
         probs_tens = np.reshape(probs, dims)
         ndim = probs_tens.ndim
@@ -469,29 +468,6 @@ class QuantumState:
         probs_tens = np.transpose(probs_tens, axes=qargs_axes)
         new_probs = np.reshape(probs_tens, (probs_tens.size,))
         return new_probs
-=======
-          
-        # Accumulate dimensions to trace over
-        accum_dims, accum_qargs = QuantumState._accumulate_dims(dims, qargs)
-
-        # Get sum axis for maginalized subsystems
-        n_qargs = len(accum_dims)
-        axis = list(range(n_qargs))
-        for i in accum_qargs:
-            axis.remove(n_qargs - 1 - i)
-
-        # Reshape the probability to a tensor and sum over maginalized axes
-        new_probs = np.sum(
-            np.reshape(probs, list(reversed(accum_dims))), axis=tuple(axis)
-        )
-
-        # Transpose output probs based on order of qargs
-        if sorted(accum_qargs) != accum_qargs:
-            axes = np.argsort(accum_qargs)
-            return np.ravel(np.transpose(new_probs, axes=axes))
-
-        return np.ravel(new_probs)
->>>>>>> 54482e3f52450d4530d63b4203af76c5b9e5f0c9
 
     # Overloads
     def __and__(self, other):
