@@ -49,7 +49,7 @@ class StochasticSwap(TransformationPass):
            the circuit.
     """
 
-    def __init__(self, coupling_map, trials=20, seed=None):
+    def __init__(self, coupling_map, trials=20, seed=None, fake_run=False):
         """StochasticSwap initializer.
 
         The coupling map is a connected graph
@@ -61,11 +61,14 @@ class StochasticSwap(TransformationPass):
                 map.
             trials (int): maximum number of iterations to attempt
             seed (int): seed for random number generator
+            fake_run (bool): if true, it only pretend to do routing, i.e., no
+                swap is effectively added.
         """
         super().__init__()
         self.coupling_map = coupling_map
         self.trials = trials
         self.seed = seed
+        self.fake_run = fake_run
         self.qregs = None
         self.rng = None
         self.trivial_layout = None
@@ -307,7 +310,9 @@ class StochasticSwap(TransformationPass):
 
         # Construct an empty DAGCircuit with the same set of
         # qregs and cregs as the input circuit
-        dagcircuit_output = circuit_graph._copy_circuit_metadata()
+        dagcircuit_output = None
+        if not self.fake_run:
+            dagcircuit_output = circuit_graph._copy_circuit_metadata()
 
         logger.debug("trivial_layout = %s", layout)
 
@@ -347,24 +352,29 @@ class StochasticSwap(TransformationPass):
                     # for each inner iteration
                     layout = best_layout
                     # Update the DAG
-                    dagcircuit_output.compose(
-                        self._layer_update(
-                            j, best_layout, best_depth, best_circuit, serial_layerlist
+                    if not self.fake_run:
+                        dagcircuit_output.compose(
+                            self._layer_update(
+                                j, best_layout, best_depth, best_circuit, serial_layerlist
+                            )
                         )
-                    )
 
             else:
                 # Update the record of qubit positions for each iteration
                 layout = best_layout
 
                 # Update the DAG
-                dagcircuit_output.compose(
-                    self._layer_update(i, best_layout, best_depth, best_circuit, layerlist)
-                )
+                if not self.fake_run:
+                    dagcircuit_output.compose(
+                        self._layer_update(i, best_layout, best_depth, best_circuit, layerlist)
+                    )
 
         # This is the final edgemap. We might use it to correctly replace
         # any measurements that needed to be removed earlier.
         logger.debug("mapper: self.trivial_layout = %s", self.trivial_layout)
         logger.debug("mapper: layout = %s", layout)
 
+        if self.fake_run:
+            self.property_set["final_layout"] = layout
+            return circuit_graph
         return dagcircuit_output
