@@ -985,6 +985,14 @@ class MatplotlibDrawer:
             words = [
                 word.replace("^", r"\^{\ }") if word.count("^") > 1 else word for word in words
             ]
+            words = [
+                re.sub(r"(?<!{){(?!{)", r"{{{", words) if words.count("{") > 1 else word
+                for word in words
+            ]
+            words = [
+                re.sub(r"(?<!})}(?!})", r"}}}", words) if words.count("}") > 1 else word
+                for word in words
+            ]
             reg_name = " ".join(words).replace(" ", "\\;")
             return reg_name
 
