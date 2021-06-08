@@ -160,6 +160,8 @@ class VariationalAlgorithm:
 
         Raises:
             ValueError: invalid input
+
+         Note: You should add seed via algorithm_global (qiskit.utils.algorithm_globals.random_seed = seed).
         """
         initial_point = initial_point if initial_point is not None else self.initial_point
         ansatz = ansatz if ansatz is not None else self.ansatz

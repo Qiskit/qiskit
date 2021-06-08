@@ -102,7 +102,8 @@ class GSLS(Optimizer):
         super().optimize(
             num_vars, objective_function, gradient_function, variable_bounds, initial_point
         )
-
+        """ Note: You should add seed via algorithm_global
+         (qiskit.utils.algorithm_globals.random_seed = seed)."""
         if initial_point is None:
             initial_point = algorithm_globals.random.normal(size=num_vars)
         else:

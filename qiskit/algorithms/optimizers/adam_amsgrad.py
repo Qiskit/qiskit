@@ -246,6 +246,9 @@ class ADAM(Optimizer):
                 point: is a 1D numpy.ndarray[float] containing the solution\n
                 value: is a float with the objective function value\n
                 nfev: is the number of objective function calls
+
+         Note: You should add seed via algorithm_global 
+         (qiskit.utils.algorithm_globals.random_seed = seed).
         """
         super().optimize(
             num_vars, objective_function, gradient_function, variable_bounds, initial_point
