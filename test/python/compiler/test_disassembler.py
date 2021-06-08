@@ -41,13 +41,23 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         circ.cx(qr[0], qr[1])
         circ.measure(qr, cr)
 
-        qobj = assemble(circ, shots=2000, memory=True)
+        qubit_lo_freq = [5e9, 5e9]
+        meas_lo_freq = [6.7e9, 6.7e9]
+        qobj = assemble(
+            circ,
+            shots=2000,
+            memory=True,
+            qubit_lo_freq=qubit_lo_freq,
+            meas_lo_freq=meas_lo_freq,
+        )
         circuits, run_config_out, headers = disassemble(qobj)
         run_config_out = RunConfig(**run_config_out)
         self.assertEqual(run_config_out.n_qubits, 2)
         self.assertEqual(run_config_out.memory_slots, 2)
         self.assertEqual(run_config_out.shots, 2000)
         self.assertEqual(run_config_out.memory, True)
+        self.assertEqual(run_config_out.qubit_lo_freq, qubit_lo_freq)
+        self.assertEqual(run_config_out.meas_lo_freq, meas_lo_freq)
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], circ)
         self.assertEqual({}, headers)
