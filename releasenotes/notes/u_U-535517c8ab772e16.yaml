@@ -1,4 +1,4 @@
 ---
 upgrade:
   - |
-    The gate :class:`qiskit.circuit.library.standard_gates.u.UGate` was named from `u` to `U`.
+    The name of the gate :class:`qiskit.circuit.library.standard_gates.u.UGate` was changed from `"u"` to `"U"`.
