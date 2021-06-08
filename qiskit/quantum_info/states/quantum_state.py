@@ -229,11 +229,15 @@ class QuantumState:
             qargs (None or list): subsystems to return probabilities for,
                 if None return for all subsystems (Default: None).
             decimals (None or int): the number of decimal places to round
-                values. If None no rounding is done (Default: None).
+                values. If None, rounding is done upto 15 places (Default: None).
 
         Returns:
             dict: The measurement probabilities in dict (ket) form.
         """
+
+        if decimals is None:
+            decimals = 15
+
         return self._vector_to_dict(
             self.probabilities(qargs=qargs, decimals=decimals), self.dims(qargs), string_labels=True
         )
