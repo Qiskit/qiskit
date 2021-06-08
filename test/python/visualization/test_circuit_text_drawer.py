@@ -1315,7 +1315,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
             [
                 "        ┌──────────────┐",
                 "q_0: |0>┤0             ├",
-                "        │  MULTIPLEXER │",
+                "        │  Multiplexer │",
                 "q_1: |0>┤1             ├",
                 "        └──────────────┘",
             ]
@@ -2297,7 +2297,7 @@ class TestTextConditional(QiskitTestCase):
             [
                 "         ┌──────────────┐",
                 "qr_0: |0>┤0             ├",
-                "         │  MULTIPLEXER │",
+                "         │  Multiplexer │",
                 "qr_1: |0>┤1             ├",
                 "         └──────╥───────┘",
                 "qr_2: |0>───────╫────────",
