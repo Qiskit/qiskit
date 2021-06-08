@@ -854,4 +854,4 @@ class TestBasisExamples(QiskitTestCase):
             routing_method="sabre",
             seed_transpiler=42,
         )
-        self.assertEqual(circ_transpiled.count_ops(), {"cx": 91, "rz": 66, "sx": 22})
+        self.assertEqual(circ_transpiled.count_ops(), {"cx": 100, "rz": 66, "sx": 22})
