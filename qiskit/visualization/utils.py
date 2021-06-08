@@ -202,7 +202,6 @@ class _LayerSpooler(list):
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
         self.reverse_bits = reverse_bits
 
-
         if self.justification == "left":
             for dag_layer in dag.layers():
                 current_index = len(self) - 1
