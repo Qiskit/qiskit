@@ -61,7 +61,7 @@ class QuantumState:
     @property
     def _rng(self):
         if self._rng_generator is None:
-            return np.random
+            return np.random.default_rng()
         return self._rng_generator
 
     def dims(self, qargs=None):
@@ -163,9 +163,7 @@ class QuantumState:
             NotImplementedError: if subclass does not support scala
                                  multiplication.
         """
-        raise NotImplementedError(
-            "{} does not support scalar multiplication".format(type(self))
-        )
+        raise NotImplementedError("{} does not support scalar multiplication".format(type(self)))
 
     @abstractmethod
     def evolve(self, other, qargs=None):
@@ -231,19 +229,13 @@ class QuantumState:
             qargs (None or list): subsystems to return probabilities for,
                 if None return for all subsystems (Default: None).
             decimals (None or int): the number of decimal places to round
-                values. If None, rounding is done upto 15 decimal places (Default: 15).
+                values. If None no rounding is done (Default: None).
 
         Returns:
             dict: The measurement probabilities in dict (ket) form.
         """
-
-        if decimals is None:
-            decimals = 15
-
         return self._vector_to_dict(
-            self.probabilities(qargs=qargs, decimals=decimals),
-            self.dims(qargs),
-            string_labels=True,
+            self.probabilities(qargs=qargs, decimals=decimals), self.dims(qargs), string_labels=True
         )
 
     def sample_memory(self, shots, qargs=None):
@@ -330,9 +322,7 @@ class QuantumState:
         sample = self._rng.choice(len(probs), p=probs, size=1)
 
         # Format outcome
-        outcome = self._index_to_ket_array(
-            sample, self.dims(qargs), string_labels=True
-        )[0]
+        outcome = self._index_to_ket_array(sample, self.dims(qargs), string_labels=True)[0]
 
         # Convert to projector for state update
         proj = np.zeros(len(probs), dtype=complex)
@@ -341,9 +331,7 @@ class QuantumState:
         # Update state object
         # TODO: implement a more efficient state update method for
         # diagonal matrix multiplication
-        ret = self.evolve(
-            Operator(np.diag(proj), input_dims=dims, output_dims=dims), qargs=qargs
-        )
+        ret = self.evolve(Operator(np.diag(proj), input_dims=dims, output_dims=dims), qargs=qargs)
 
         return outcome, ret
 
@@ -435,12 +423,8 @@ class QuantumState:
         ) = vals.nonzero()
 
         # Convert to ket tuple based on subsystem dimensions
-        bras = QuantumState._index_to_ket_array(
-            inds_row, dims, string_labels=string_labels
-        )
-        kets = QuantumState._index_to_ket_array(
-            inds_col, dims, string_labels=string_labels
-        )
+        bras = QuantumState._index_to_ket_array(inds_row, dims, string_labels=string_labels)
+        kets = QuantumState._index_to_ket_array(inds_col, dims, string_labels=string_labels)
 
         # Make dict of tuples
         if string_labels:
@@ -453,43 +437,6 @@ class QuantumState:
             (tuple(ket), tuple(bra)): val
             for ket, bra, val in zip(kets, bras, vals[inds_row, inds_col])
         }
-
-    @staticmethod
-    def _accumulate_dims(dims, qargs):
-        """Flatten subsystem dimensions for unspecified qargs.
-
-        This has the potential to reduce the number of subsystems
-        by combining consecutive subsystems between the specified
-        qargs. For example, if we had a 5-qubit system with
-        ``dims = (2, 2, 2, 2, 2)``, and ``qargs=[0, 4]``, then the
-        flattened system will have dimensions ``new_dims = (2, 8, 2)``
-        and qargs ``new_qargs = [0, 2]``.
-
-        Args:
-            dims (tuple): subsystem dimensions.
-            qargs (list): qargs list.
-
-        Returns:
-            tuple: the pair (new_dims, new_qargs).
-        """
-
-        qargs_map = {}
-        new_dims = []
-
-        # Accumulate subsystems that can be combined
-        accum = []
-        for i, dim in enumerate(dims):
-            if i in qargs:
-                if accum:
-                    new_dims.append(np.product(accum))
-                    accum = []
-                new_dims.append(dim)
-                qargs_map[i] = len(new_dims) - 1
-            else:
-                accum.append(dim)
-        if accum:
-            new_dims.append(np.product(accum))
-        return tuple(new_dims), [qargs_map[i] for i in qargs]
 
     @staticmethod
     def _subsystem_probabilities(probs, dims, qargs=None):
@@ -506,30 +453,21 @@ class QuantumState:
             np.array: the marginalized probability vector flattened
                       for the specified qargs.
         """
-
         if qargs is None:
             return probs
-
-        # Accumulate dimensions to trace over
-        accum_dims, accum_qargs = QuantumState._accumulate_dims(dims, qargs)
-
-        # Get sum axis for maginalized subsystems
-        n_qargs = len(accum_dims)
-        axis = list(range(n_qargs))
-        for i in accum_qargs:
-            axis.remove(n_qargs - 1 - i)
-
-        # Reshape the probability to a tensor and sum over maginalized axes
-        new_probs = np.sum(
-            np.reshape(probs, list(reversed(accum_dims))), axis=tuple(axis)
-        )
-
-        # Transpose output probs based on order of qargs
-        if sorted(accum_qargs) != accum_qargs:
-            axes = np.argsort(accum_qargs)
-            return np.ravel(np.transpose(new_probs, axes=axes))
-
-        return np.ravel(new_probs)
+        # Convert qargs to tensor axes
+        probs_tens = np.reshape(probs, dims)
+        ndim = probs_tens.ndim
+        qargs_axes = [ndim - 1 - i for i in reversed(qargs)]
+        # Get sum axis for marginalized subsystems
+        sum_axis = tuple(i for i in range(ndim) if i not in qargs_axes)
+        if sum_axis:
+            probs_tens = np.sum(probs_tens, axis=sum_axis)
+            qargs_axes = np.argsort(np.argsort(qargs_axes))
+        # Permute probability vector for desired qargs order
+        probs_tens = np.transpose(probs_tens, axes=qargs_axes)
+        new_probs = np.reshape(probs_tens, (probs_tens.size,))
+        return new_probs
 
     # Overloads
     def __and__(self, other):

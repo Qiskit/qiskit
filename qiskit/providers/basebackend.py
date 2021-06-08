@@ -83,11 +83,13 @@ class BaseBackend(ABC):
         Returns:
             BackendStatus: the status of the backend.
         """
-        return BackendStatus(backend_name=self.name(),
-                             backend_version=__version__,
-                             operational=True,
-                             pending_jobs=0,
-                             status_msg='')
+        return BackendStatus(
+            backend_name=self.name(),
+            backend_version=__version__,
+            operational=True,
+            pending_jobs=0,
+            status_msg="",
+        )
 
     def name(self):
         """Return the backend name.
@@ -117,6 +119,4 @@ class BaseBackend(ABC):
 
         [0] https://docs.python.org/3/reference/datamodel.html#object.__repr__
         """
-        return "<{}('{}') from {}()>".format(self.__class__.__name__,
-                                             self.name(),
-                                             self._provider)
+        return "<{}('{}') from {}()>".format(self.__class__.__name__, self.name(), self._provider)

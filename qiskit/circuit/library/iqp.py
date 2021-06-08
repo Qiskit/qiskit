@@ -78,15 +78,15 @@ class IQP(QuantumCircuit):
             raise CircuitError("The interactions matrix is not symmetric")
 
         a_str = np.array_str(interactions)
-        a_str.replace('\n', ';')
-        name = "iqp:" + a_str.replace('\n', ';')
+        a_str.replace("\n", ";")
+        name = "iqp:" + a_str.replace("\n", ";")
 
         inner = QuantumCircuit(num_qubits, name=name)
         super().__init__(num_qubits, name=name)
 
         inner.h(range(num_qubits))
         for i in range(num_qubits):
-            for j in range(i+1, num_qubits):
+            for j in range(i + 1, num_qubits):
                 if interactions[i][j] % 4 != 0:
                     inner.cp(interactions[i][j] * np.pi / 2, i, j)
 
