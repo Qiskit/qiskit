@@ -43,6 +43,12 @@ class ADAM(Optimizer):
              On the Convergence of Adam and Beyond.
              `arXiv:1904.09237 <https://arxiv.org/abs/1904.09237>`_
 
+    
+    
+    Note: This component has some function that is normally random. If you want to reproduce behavior
+     then you should set the random number generator seed in the algorithm_globals
+     (qiskit.utils.algorithm_globals.random_seed = seed).
+
     """
 
     _OPTIONS = [
@@ -247,8 +253,7 @@ class ADAM(Optimizer):
                 value: is a float with the objective function value\n
                 nfev: is the number of objective function calls
 
-         Note: You should add seed via algorithm_global 
-         (qiskit.utils.algorithm_globals.random_seed = seed).
+         
         """
         super().optimize(
             num_vars, objective_function, gradient_function, variable_bounds, initial_point

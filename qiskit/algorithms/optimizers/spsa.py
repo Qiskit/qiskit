@@ -70,7 +70,9 @@ class SPSA(Optimizer):
     (Note that either both or none must be set.) For further details on the automatic calibration,
     please refer to the supplementary information section IV. of [3].
 
-    Note: You should add seed via algorithm_global (qiskit.utils.algorithm_globals.random_seed = seed).
+    Note: This component has some function that is normally random. If you want to reproduce behavior
+     then you should set the random number generator seed in the algorithm_globals
+     (qiskit.utils.algorithm_globals.random_seed = seed).
 
 
     Examples:
