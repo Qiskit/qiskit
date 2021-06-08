@@ -61,6 +61,14 @@ class TestNLocal(QiskitTestCase):
         with self.assertRaises(TypeError):
             _ = NLocal(reps=5.6)
 
+    def test_if_reps_is_npint32(self):
+        """Equality test for reps with int value and np.int32 value"""
+        self.assertEqual(NLocal(reps=3), NLocal(reps=np.int32(3)))
+
+    def test_if_reps_is_npint64(self):
+        """Equality test for reps with int value and np.int64 value"""
+        self.assertEqual(NLocal(reps=3), NLocal(reps=np.int64(3)))
+
     def test_reps_setter_when_negative(self):
         """Test to check if setter raises error for reps < 0"""
         nlocal = NLocal(reps=1)
