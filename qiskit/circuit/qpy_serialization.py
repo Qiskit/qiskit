@@ -94,6 +94,7 @@ The contents of REGISTERS is a number of REGISTER object. If num_registers is
 as:
 
 .. code-block:: c
+
     struct {
         char type;
         _Bool standalone;
