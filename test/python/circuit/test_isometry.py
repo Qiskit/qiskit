@@ -86,7 +86,7 @@ class TestIsometry(QiskitTestCase):
         random_unitary(16).data[:, 0:8],
     )
     def test_isometry_tolerance(self, iso):
-        """Tests for the decomposition of isometries from m to n qubits with a user-specified tolerance"""
+        """Tests for the decomposition of isometries from m to n qubits with a custom tolerance"""
         if len(iso.shape) == 1:
             iso = iso.reshape((len(iso), 1))
         num_q_output = int(np.log2(iso.shape[0]))
