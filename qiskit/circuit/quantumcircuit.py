@@ -460,6 +460,24 @@ class QuantumCircuit:
             inverse_circ._append(inst.inverse(), qargs, cargs)
         return inverse_circ
 
+    def binary_input_to_initialized_state(self, string):
+        """map chars and strings to initializations"""
+        from .library.standard_gates.x import XGate
+
+        to_string = "".join(format(i, "08b") for i in bytearray(string, encoding="utf-8"))
+        qubits = self.qubits
+
+        if (len(qubits)) >= len(to_string):
+            # print(to_string)
+            i = 1
+            for i in range(len(to_string)):
+                if to_string[i] == "1":
+                    # print("index", i)
+                    self.append(XGate(), [qubits[i]], [])
+            # return print("successful")
+        else:
+            raise CircuitError("Circuit has less qubits than the provided binary number length. ")
+
     def repeat(self, reps):
         """Repeat this circuit ``reps`` times.
 
@@ -2103,10 +2121,6 @@ class QuantumCircuit:
 
         # return as parameter view, which implements the set and list interface
         return ParameterView(self._parameters)
-    
-    @classmethod 
-    def binary_input_to_initialized_state(self):
-        return 
 
     @property
     def num_parameters(self):
