@@ -36,6 +36,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
 class DAGCircuit:
@@ -96,9 +97,10 @@ class DAGCircuit:
         try:
             import networkx as nx
         except ImportError as ex:
-            raise ImportError(
-                "Networkx is needed to use to_networkx(). It "
-                "can be installed with 'pip install networkx'"
+            raise MissingOptionalLibraryError(
+                libname="Networkx",
+                name="DAG converter to networkx",
+                pip_install="pip install networkx",
             ) from ex
         G = nx.MultiDiGraph()
         for node in self._multi_graph.nodes():
@@ -121,15 +123,16 @@ class DAGCircuit:
             DAGCircuit: The dagcircuit object created from the networkx
                 MultiDiGraph.
         Raises:
-            ImportError: If networkx is not installed
+            MissingOptionalLibraryError: If networkx is not installed
             DAGCircuitError: If input networkx graph is malformed
         """
         try:
             import networkx as nx
         except ImportError as ex:
-            raise ImportError(
-                "Networkx is needed to use from_networkx(). It "
-                "can be installed with 'pip install networkx'"
+            raise MissingOptionalLibraryError(
+                libname="Networkx",
+                name="DAG converter from networkx",
+                pip_install="pip install networkx",
             ) from ex
         dag = DAGCircuit()
         for node in nx.topological_sort(graph):
