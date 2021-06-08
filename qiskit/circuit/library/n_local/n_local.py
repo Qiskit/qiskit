@@ -112,7 +112,7 @@ class NLocal(BlueprintCircuit):
         Raises:
             ImportError: If an ``initial_state`` is specified but Qiskit Aqua is not installed.
             ValueError: If reps parameter is less than or equal to 0.
-            TypeError : If reps parameter is not an int value.
+            TypeError: If reps parameter is not an int value.
         """
         super().__init__(name=name)
 
@@ -135,7 +135,7 @@ class NLocal(BlueprintCircuit):
         self._data = None
         self._bounds = None
 
-        if not isinstance(reps, int):
+        if int(reps) != reps:
             raise TypeError("The value of reps should be int")
 
         if reps < 0:
