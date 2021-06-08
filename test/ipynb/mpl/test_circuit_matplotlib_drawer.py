@@ -509,6 +509,26 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr[1]).c_if(cr, 1)
         self.circuit_drawer(circuit, filename="meas_condition.png")
 
+    def test_reverse_bits_condition(self):
+        """Tests reverse_bits with a condition and gate above"""
+        cr = ClassicalRegister(2, "cr")
+        cr2 = ClassicalRegister(1, "cr2")
+        qr = QuantumRegister(3, "qr")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.h(2)
+        circuit.x(0)
+        circuit.x(0)
+        circuit.measure(2, 1)
+        circuit.x(2).c_if(cr, 2)
+        self.circuit_drawer(
+            circuit, cregbundle=False, reverse_bits=True, filename="reverse_bits_cond_true.png"
+        )
+        self.circuit_drawer(
+            circuit, cregbundle=False, reverse_bits=False, filename="reverse_bits_cond_false.png"
+        )
+
     def test_style_custom_gates(self):
         """Tests style for custom gates"""
 
@@ -548,6 +568,46 @@ class TestMatplotlibDrawer(QiskitTestCase):
             style={"displaycolor": {"cp": ("#A27486", "#000000"), "h": ("#A27486", "#000000")}},
             filename="6095.png",
         )
+
+    def test_instruction_1q_1c(self):
+        """Tests q0-cr0 instruction on a circuit"""
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        inst = QuantumCircuit(1, 1, name="Inst").to_instruction()
+        circuit.append(inst, [qr[0]], [cr[0]])
+        self.circuit_drawer(circuit, filename="instruction_1q_1c.png")
+
+    def test_instruction_3q_3c_circ1(self):
+        """Tests q0-q1-q2-cr_20-cr0-cr1 instruction on a circuit"""
+        qr = QuantumRegister(4, "qr")
+        cr = ClassicalRegister(2, "cr")
+        cr2 = ClassicalRegister(2, "cr2")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        inst = QuantumCircuit(3, 3, name="Inst").to_instruction()
+        circuit.append(inst, [qr[0], qr[1], qr[2]], [cr2[0], cr[0], cr[1]])
+        self.circuit_drawer(circuit, filename="instruction_3q_3c_circ1.png")
+
+    def test_instruction_3q_3c_circ2(self):
+        """Tests q3-q0-q2-cr0-cr1-cr_20 instruction on a circuit"""
+        qr = QuantumRegister(4, "qr")
+        cr = ClassicalRegister(2, "cr")
+        cr2 = ClassicalRegister(2, "cr2")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        inst = QuantumCircuit(3, 3, name="Inst").to_instruction()
+        circuit.append(inst, [qr[3], qr[0], qr[2]], [cr[0], cr[1], cr2[0]])
+        self.circuit_drawer(circuit, filename="instruction_3q_3c_circ2.png")
+
+    def test_instruction_3q_3c_circ3(self):
+        """Tests q3-q1-q2-cr_31-cr1-cr_30 instruction on a circuit"""
+        qr = QuantumRegister(4, "qr")
+        cr = ClassicalRegister(2, "cr")
+        cr2 = ClassicalRegister(1, "cr2")
+        cr3 = ClassicalRegister(2, "cr3")
+        circuit = QuantumCircuit(qr, cr, cr2, cr3)
+        inst = QuantumCircuit(3, 3, name="Inst").to_instruction()
+        circuit.append(inst, [qr[3], qr[1], qr[2]], [cr3[1], cr[1], cr3[0]])
+        self.circuit_drawer(circuit, filename="instruction_3q_3c_circ3.png")
 
     def test_overwide_gates(self):
         """Test gates don't exceed width of default fold"""
