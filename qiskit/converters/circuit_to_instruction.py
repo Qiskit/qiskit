@@ -15,8 +15,7 @@
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.circuit import Clbit
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 
 
 def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None):
