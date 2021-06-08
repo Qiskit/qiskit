@@ -163,7 +163,13 @@ class QuantumState:
             NotImplementedError: if subclass does not support scala
                                  multiplication.
         """
+<<<<<<< HEAD
         raise NotImplementedError("{} does not support scalar multiplication".format(type(self)))
+=======
+        raise NotImplementedError(
+            "{} does not support scalar multiplication".format(type(self))
+        )
+>>>>>>> 54482e3f52450d4530d63b4203af76c5b9e5f0c9
 
     @abstractmethod
     def evolve(self, other, qargs=None):
@@ -235,7 +241,13 @@ class QuantumState:
             dict: The measurement probabilities in dict (ket) form.
         """
         return self._vector_to_dict(
+<<<<<<< HEAD
             self.probabilities(qargs=qargs, decimals=decimals), self.dims(qargs), string_labels=True
+=======
+            self.probabilities(qargs=qargs, decimals=decimals),
+            self.dims(qargs),
+            string_labels=True,
+>>>>>>> 54482e3f52450d4530d63b4203af76c5b9e5f0c9
         )
 
     def sample_memory(self, shots, qargs=None):
@@ -322,7 +334,13 @@ class QuantumState:
         sample = self._rng.choice(len(probs), p=probs, size=1)
 
         # Format outcome
+<<<<<<< HEAD
         outcome = self._index_to_ket_array(sample, self.dims(qargs), string_labels=True)[0]
+=======
+        outcome = self._index_to_ket_array(
+            sample, self.dims(qargs), string_labels=True
+        )[0]
+>>>>>>> 54482e3f52450d4530d63b4203af76c5b9e5f0c9
 
         # Convert to projector for state update
         proj = np.zeros(len(probs), dtype=complex)
@@ -331,7 +349,13 @@ class QuantumState:
         # Update state object
         # TODO: implement a more efficient state update method for
         # diagonal matrix multiplication
+<<<<<<< HEAD
         ret = self.evolve(Operator(np.diag(proj), input_dims=dims, output_dims=dims), qargs=qargs)
+=======
+        ret = self.evolve(
+            Operator(np.diag(proj), input_dims=dims, output_dims=dims), qargs=qargs
+        )
+>>>>>>> 54482e3f52450d4530d63b4203af76c5b9e5f0c9
 
         return outcome, ret
 
@@ -423,8 +447,17 @@ class QuantumState:
         ) = vals.nonzero()
 
         # Convert to ket tuple based on subsystem dimensions
+<<<<<<< HEAD
         bras = QuantumState._index_to_ket_array(inds_row, dims, string_labels=string_labels)
         kets = QuantumState._index_to_ket_array(inds_col, dims, string_labels=string_labels)
+=======
+        bras = QuantumState._index_to_ket_array(
+            inds_row, dims, string_labels=string_labels
+        )
+        kets = QuantumState._index_to_ket_array(
+            inds_col, dims, string_labels=string_labels
+        )
+>>>>>>> 54482e3f52450d4530d63b4203af76c5b9e5f0c9
 
         # Make dict of tuples
         if string_labels:
@@ -437,6 +470,46 @@ class QuantumState:
             (tuple(ket), tuple(bra)): val
             for ket, bra, val in zip(kets, bras, vals[inds_row, inds_col])
         }
+<<<<<<< HEAD
+=======
+
+    @staticmethod
+    def _accumulate_dims(dims, qargs):
+        """Flatten subsystem dimensions for unspecified qargs.
+
+        This has the potential to reduce the number of subsystems
+        by combining consecutive subsystems between the specified
+        qargs. For example, if we had a 5-qubit system with
+        ``dims = (2, 2, 2, 2, 2)``, and ``qargs=[0, 4]``, then the
+        flattened system will have dimensions ``new_dims = (2, 8, 2)``
+        and qargs ``new_qargs = [0, 2]``.
+
+        Args:
+            dims (tuple): subsystem dimensions.
+            qargs (list): qargs list.
+
+        Returns:
+            tuple: the pair (new_dims, new_qargs).
+        """
+
+        qargs_map = {}
+        new_dims = []
+
+        # Accumulate subsystems that can be combined
+        accum = []
+        for i, dim in enumerate(dims):
+            if i in qargs:
+                if accum:
+                    new_dims.append(np.product(accum))
+                    accum = []
+                new_dims.append(dim)
+                qargs_map[i] = len(new_dims) - 1
+            else:
+                accum.append(dim)
+        if accum:
+            new_dims.append(np.product(accum))
+        return tuple(new_dims), [qargs_map[i] for i in qargs]
+>>>>>>> 54482e3f52450d4530d63b4203af76c5b9e5f0c9
 
     @staticmethod
     def _subsystem_probabilities(probs, dims, qargs=None):
@@ -455,6 +528,7 @@ class QuantumState:
         """
         if qargs is None:
             return probs
+<<<<<<< HEAD
         # Convert qargs to tensor axes
         probs_tens = np.reshape(probs, dims)
         ndim = probs_tens.ndim
@@ -468,6 +542,29 @@ class QuantumState:
         probs_tens = np.transpose(probs_tens, axes=qargs_axes)
         new_probs = np.reshape(probs_tens, (probs_tens.size,))
         return new_probs
+=======
+          
+        # Accumulate dimensions to trace over
+        accum_dims, accum_qargs = QuantumState._accumulate_dims(dims, qargs)
+
+        # Get sum axis for maginalized subsystems
+        n_qargs = len(accum_dims)
+        axis = list(range(n_qargs))
+        for i in accum_qargs:
+            axis.remove(n_qargs - 1 - i)
+
+        # Reshape the probability to a tensor and sum over maginalized axes
+        new_probs = np.sum(
+            np.reshape(probs, list(reversed(accum_dims))), axis=tuple(axis)
+        )
+
+        # Transpose output probs based on order of qargs
+        if sorted(accum_qargs) != accum_qargs:
+            axes = np.argsort(accum_qargs)
+            return np.ravel(np.transpose(new_probs, axes=axes))
+
+        return np.ravel(new_probs)
+>>>>>>> 54482e3f52450d4530d63b4203af76c5b9e5f0c9
 
     # Overloads
     def __and__(self, other):
