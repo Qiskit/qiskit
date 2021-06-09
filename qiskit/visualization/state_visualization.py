@@ -287,7 +287,7 @@ def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_b
         pos = num - 1 - i if reverse_bits else i
         ax = fig.add_subplot(1, num, i + 1, projection="3d")
         plot_bloch_vector(bloch_data[i], "qubit " + str(pos), ax=ax, figsize=figsize)
-    fig.suptitle(title, fontsize=16)
+    fig.suptitle(title, fontsize=16, y=1.01)
     if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
         plt.close(fig)
     return fig
