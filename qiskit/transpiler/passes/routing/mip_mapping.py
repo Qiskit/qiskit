@@ -129,7 +129,7 @@ class MIPMapping(TransformationPass):
                         traces = two_qubit_cnot_decompose.traces(target)
                         tracesm = two_qubit_cnot_decompose.traces(targetm)
                         fidelity = [trace_to_fid(traces[i]) for i in range(4)]
-                        mfidelity = [trace_to_fid(traces[i]) for i in range(4)]
+                        mfidelity = [trace_to_fid(tracesm[i]) for i in range(4)]
                     else:
                         fidelity = [0.01, 0.01, 1.0, 0.01]
                         mfidelity = [0.01, 0.01, 0.01, 1.0]

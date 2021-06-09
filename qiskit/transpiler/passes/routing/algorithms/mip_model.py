@@ -225,7 +225,7 @@ class IndexCalculator:
         self.num_lqubits = self.ht.num_qubits
         # Number of physical qubits
         self.num_pqubits = self.ht.num_qubits
-        self.depth = self.qc.depth        
+        self.depth = self.qc.depth
         self.num_gates = sum(len(self.qc.gates[t])
                              for t in range(self.qc.depth))
         logger.info('Num gates:', self.num_gates)

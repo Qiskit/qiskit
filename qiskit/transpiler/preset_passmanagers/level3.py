@@ -233,9 +233,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Overwrite some passes
     from qiskit.transpiler.passes.routing import MIPMapping
-    _swap = MIPMapping(coupling_map,
-                       silent=False,
-                       basis_fidelity=1-6.4e-3)
+    _swap = [
+        BarrierBeforeFinalMeasurements(),
+        MIPMapping(coupling_map, silent=True, basis_fidelity=1 - 6.4e-3)
+    ]
 
     # Build pass manager
     pm3 = PassManager()
