@@ -20,7 +20,9 @@ of this class to carry out the optimization. Alternatively, all of the functions
 overridden to opt-out of this infrastructure but still meet the interface requirements.
 
 
-    Note: This component has some function that is normally random. If you want to reproduce behavior
+    .. note::
+
+     This component has some function that is normally random. If you want to reproduce behavior
      then you should set the random number generator seed in the algorithm_globals
      (qiskit.utils.algorithm_globals.random_seed = seed).
 """
