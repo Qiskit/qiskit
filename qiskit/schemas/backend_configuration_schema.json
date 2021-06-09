@@ -157,6 +157,11 @@
                     "description": "Whether delay between programs can be set dynamically using 'rep_delay').",
                     "default": false
                     },
+                "measure_esp_enabled": {
+                        "type": "boolean",
+                        "description": "Whether ESP readout is supported by the backend.",
+                        "default": false
+                    },
                 "supported_instructions": {
                     "type": "array",
                     "minItems": 0,
