@@ -288,16 +288,16 @@ class VarQITE(VarQTE):
                         energy: float,
                         h_squared: float,
                         h_trip: float,
-                        stddev: float,
-                        h_norm: float):
-        return (self.get_error_term(delta_t, eps_t, grad_err) - eps_t) / delta_t
+                        stddev: float):
+        return (self.get_error_term(delta_t, eps_t, grad_err, energy, h_squared, h_trip, stddev
+                                    ) - eps_t) / \
+               delta_t
 
     def get_error_term(self, d_t, eps_t, grad_err,
                         energy: float,
                         h_squared: float,
                         h_trip: float,
-                        stddev: float,
-                        h_norm: float):
+                        stddev: float):
         """
         Compute the error term for a given time step and a point in the simulation time
         Args:
@@ -308,22 +308,25 @@ class VarQITE(VarQTE):
 
         """
         # max B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
-        y = self.get_max_bures(eps_t, energy, h_squared,
-                         h_trip, d_t)
+        y = self.get_max_bures(eps_t, energy, h_squared, h_trip, d_t)
         # eps_t*sqrt(var) + eps_t^2/2 * |E_t - ||H||_infty |
         energy_factor = (2 * eps_t * stddev +
-                         eps_t ** 2 / 2 * np.abs(energy - h_norm))
+                         eps_t ** 2 / 2 * np.abs(energy - self._h_norm))
         print('Max Bures ', y)
         print('grad factor ', grad_err)
         print('Energy error factor', energy_factor)
         if math.isnan(energy_factor):
             print('nan')
+        if not os.path.exists(os.path.join(self._snapshot_dir, 'energy_error_bound.npy')):
+            energy_error_bounds = [energy_factor]
+            max_bures_metrics = [y]
 
-        energy_error_bounds = np.load(os.path.join(self._snapshot_dir,
-                                                   'energy_error_bound.npy'))
-        energy_error_bounds = np.append(energy_error_bounds, energy_factor)
-        max_bures_metrics = np.load(os.path.join(self._snapshot_dir, 'max_bures.npy'))
-        max_bures_metrics = np.append(max_bures_metrics, y)
+        else:
+            energy_error_bounds = np.load(os.path.join(self._snapshot_dir,
+                                                       'energy_error_bound.npy'))
+            energy_error_bounds = np.append(energy_error_bounds, energy_factor)
+            max_bures_metrics = np.load(os.path.join(self._snapshot_dir, 'max_bures.npy'))
+            max_bures_metrics = np.append(max_bures_metrics, y)
         np.save(os.path.join(self._snapshot_dir, 'energy_error_bound.npy'),
                 energy_error_bounds)
         np.save(os.path.join(self._snapshot_dir, 'max_bures.npy'), max_bures_metrics)
@@ -342,7 +345,7 @@ class VarQITE(VarQTE):
                              'grad_factor': np.round(grad_err, 8),
                              'energy_factor': np.round(energy_factor, 8),
                              'stddev': np.round(stddev, 8),
-                             '|e-norm(H)|': np.round(np.abs(energy - h_norm), 8)
+                             '|e-norm(H)|': np.round(np.abs(energy - self._h_norm), 8)
                              })
         # \epsilon_{t+1}
         return y + d_t * grad_err + d_t * energy_factor
@@ -354,7 +357,6 @@ class VarQITE(VarQTE):
                          stddevs: List,
                          h_squareds: List,
                          h_trips: List,
-                         H: Union[List, np.ndarray],
                          energies: List,
                          imag_reverse_bound: bool = True,
                          trapezoidal: bool=True) -> Union[List, Tuple[List, List]]:
@@ -412,8 +414,7 @@ class VarQITE(VarQTE):
                 error_bounds.append(self.get_error_term(delta_t, error_bounds[j - 1],
                                                         gradient_errors[j - 1], energies[j - 1],
                                                         h_squareds[j - 1], h_trips[j - 1],
-                                                        stddevs[j - 1],
-                                                        np.linalg.norm(H, np.infty)))
+                                                        stddevs[j - 1]))
             else:
                 # Use a finite difference approx. of the gradient underlying the error at time t
                 # to enable the use of an integral formulation of the error

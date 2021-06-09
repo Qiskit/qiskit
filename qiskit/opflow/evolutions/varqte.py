@@ -186,7 +186,7 @@ class VarQTE(EvolutionBase):
                 with open(os.path.join(self._snapshot_dir, 'varqte_output.csv'), mode='w') as \
                         csv_file:
                     fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
-                                  'error_bound_factor',
+                                  'error_bound_grad',
                                   'error_grad', 'resid', 'fidelity', 'true_error',
                                   'phase_agnostic_true_error',
                                   'true_to_euler_error', 'trained_to_euler_error', 'target_energy',
@@ -263,8 +263,7 @@ class VarQTE(EvolutionBase):
 
     def error_bound(self,
                     data_dir: str,
-                    imag_reverse_bound: bool = True,
-                    H: Optional[Union[List, np.ndarray]] = None) -> List:
+                    imag_reverse_bound: bool = True) -> List:
         """
         Evaluate an upper bound to the error of the VarQTE simulation
         Args:
@@ -280,7 +279,7 @@ class VarQTE(EvolutionBase):
         # Read data
         with open(os.path.join(data_dir, 'varqte_output.csv'), mode='r') as csv_file:
             fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
-                          'error_bound_factor',
+                          'error_bound_grad',
                           'error_grad', 'resid', 'fidelity', 'true_error',
                           'phase_agnostic_true_error',
                           'true_to_euler_error', 'trained_to_euler_error', 'target_energy',
@@ -333,7 +332,7 @@ class VarQTE(EvolutionBase):
             # VarQITE
             time, grad_errors, energies, h_squareds, stddevs = \
                 [list(multiple) for multiple in multiples]
-            e_bound = self._get_error_bound(grad_errors, time, stddevs, h_squareds, h_trips, H,
+            e_bound = self._get_error_bound(grad_errors, time, stddevs, h_squareds, h_trips,
                                             energies, imag_reverse_bound)
 
         else:
@@ -360,6 +359,7 @@ class VarQTE(EvolutionBase):
         self._init_state = self._init_state.eval().primitive.data
         self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
         self._h_matrix = self._h.to_matrix(massive=True)
+        self._h_norm = np.linalg.norm(self._h_matrix, np.infty)
         h_squared = self._h ** 2
         self._h_squared = ComposedOp([~StateFn(h_squared.reduce()), self._state])
         self._h_squared = PauliExpectation().convert(self._h_squared)
@@ -444,7 +444,9 @@ class VarQTE(EvolutionBase):
 
         # Use either the argument that minimizes the gradient error or the result from McLachlan's
         # variational principle to run the ODE solver
-        def ode_fun(t: float, params: Iterable) -> Iterable:
+        def ode_fun(t: float, x: Iterable) -> Iterable:
+            params = x[:-1]
+            error = x[-1]
             param_dict = dict(zip(self._parameters, params))
             if self._error_based_ode:
                 dt_params, grad_res, metric_res = error_based_ode_fun(t, params)
@@ -452,51 +454,60 @@ class VarQTE(EvolutionBase):
                 dt_params, grad_res, metric_res = self._solve_sle(param_dict)
             print('Gradient ', grad_res)
             print('Gradient norm', np.linalg.norm(grad_res))
-            if (self._snapshot_dir is not None) and (self._store_now):
-                # Get the residual for McLachlan's Variational Principle
-                # self._storage_params_tbd = (t, params, et, resid, f, true_error, true_energy,
-                #                             trained_energy, h_squared, dtdt_state, reimgrad)
-                    if np.iscomplex(self._operator.coeff):
-                        # VarQRTE
-                        resid = np.linalg.norm(np.matmul(metric_res, dt_params) - grad_res * 0.5)
-                        et, h_squared, dtdt_state, reimgrad = self._error_t(params, dt_params,
+
+            # Get the residual for McLachlan's Variational Principle
+            # self._storage_params_tbd = (t, params, et, resid, f, true_error, true_energy,
+            #                             trained_energy, h_squared, dtdt_state, reimgrad)
+            if np.iscomplex(self._operator.coeff):
+                # VarQRTE
+                resid = np.linalg.norm(np.matmul(metric_res, dt_params) - grad_res * 0.5)
+                et, h_squared, dtdt_state, reimgrad = self._error_t(params, dt_params,
+                                                                    grad_res,
+                                                                    metric_res)
+                h_trip = None
+            else:
+                # VarQITE
+                resid = np.linalg.norm(np.matmul(metric_res, dt_params) + grad_res * 0.5)
+                # Get the error for the current step
+                et, h_squared, dtdt_state, reimgrad, h_trip = self._error_t(params,
+                                                                            dt_params,
                                                                             grad_res,
                                                                             metric_res)
-                        h_trip = None
+            print('returned et', et)
+            try:
+                if et < 0:
+                    if np.abs(et) > 1e-4:
+                        raise Warning('Non-neglectible negative et observed')
                     else:
-                        # VarQITE
-                        resid = np.linalg.norm(np.matmul(metric_res, dt_params) + grad_res * 0.5)
-                        # Get the error for the current step
-                        et, h_squared, dtdt_state, reimgrad, h_trip = self._error_t(params,
-                                                                                    dt_params,
-                                                                                    grad_res,
-                                                                                    metric_res)
-                    print('returned et', et)
-                    try:
-                        if et < 0:
-                            if np.abs(et) > 1e-4:
-                                raise Warning('Non-neglectible negative et observed')
-                            else:
-                                et = 0
-                        else:
-                            et = np.sqrt(np.real(et))
-                    except Exception:
-                        et = 1000
-                    print('after try except', et)
-                    f, true_error, phase_agnostic_true_error, true_energy, trained_energy = \
-                        self._distance_energy(t, param_dict)
-                    self._store_params(t, params, None, None, et,
-                                       resid, f, true_error, phase_agnostic_true_error, None,
-                                       None, true_energy,
-                                       trained_energy, None, h_squared, h_trip, dtdt_state,
-                                       reimgrad)
+                        et = 0
+                else:
+                    et = np.sqrt(np.real(et))
+            except Exception:
+                et = 1000
+            print('after try except', et)
+            f, true_error, phase_agnostic_true_error, true_energy, trained_energy = \
+                self._distance_energy(t, param_dict)
+
             # TODO stack dt params with the gradient for the error update
             if np.iscomplex(self._operator.coeff):
                 # VarQRTE
-                return np.extend(dt_params, et)
-            # VarQITE
-            grad_error =
-            return np.extend(dt_params, grad_error)
+                error_bound_grad = et
+            else:
+                # VarQITE
+                error_bound_grad = self._get_error_grad(delta_t=1e-4, eps_t=error,
+                                                  grad_err=et,
+                                                  energy=trained_energy, h_squared=h_squared,
+                                                  h_trip=h_trip,
+                                                  stddev=np.sqrt(h_squared - trained_energy**2))
+
+            if (self._snapshot_dir is not None) and (self._store_now):
+                self._store_params(t, params, error, error_bound_grad, et,
+                                   resid, f, true_error, phase_agnostic_true_error, None,
+                                   None, true_energy,
+                                   trained_energy, h_squared, h_trip, dtdt_state,
+                                   reimgrad)
+
+            return np.append(dt_params, error_bound_grad)
         if self._ode_solver == RK45:
             self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
                                                 atol=1e-6, max_step=0.01)
@@ -521,7 +532,7 @@ class VarQTE(EvolutionBase):
             t: Evolution time
             init_params: Set of initial parameters for time 0
         """
-        self._init_ode_solver(t, init_params)
+        self._init_ode_solver(t, np.append(init_params, 0))
         if isinstance(self._ode_solver, OdeSolver) or isinstance(self._ode_solver, ForwardEuler):
             self._store_now = True
             _ = self._ode_solver.fun(self._ode_solver.t, self._ode_solver.y)
@@ -532,8 +543,9 @@ class VarQTE(EvolutionBase):
                     self._store_now = True
                     _ = self._ode_solver.fun(self._ode_solver.t, self._ode_solver.y)
                 print('ode time', self._ode_solver.t)
-                param_values = self._ode_solver.y
-                print('ode parameters', self._ode_solver.y)
+                param_values = self._ode_solver.y[:-1]
+                print('ode parameters', self._ode_solver.y[:-1])
+                print('ode error', self._ode_solver.y[-1])
                 print('ode step size', self._ode_solver.step_size)
                 if self._ode_solver.status == 'finished':
                     break
@@ -563,7 +575,7 @@ class VarQTE(EvolutionBase):
                       t: int,
                       params: List,
                       error_bound: Optional[float] = None,
-                      error_bound_factor: Optional[float] = None,
+                      error_bound_grad: Optional[float] = None,
                       error_grad: Optional[float] = None,
                       resid: Optional[float] = None,
                       fidelity_to_target: Optional[float] = None,
@@ -573,7 +585,6 @@ class VarQTE(EvolutionBase):
                       trained_to_euler_error: Optional[float] = None,
                       target_energy: Optional[float] = None,
                       trained_energy: Optional[float] = None,
-                      h_norm: Optional[float] = None,
                       h_squared: Optional[float] = None,
                       h_trip: Optional[float] = None,
                       dtdt_trained: Optional[float] = None,
@@ -584,6 +595,7 @@ class VarQTE(EvolutionBase):
             t: current point in time evolution
             error_bound: ||\epsilon_t|| >= |||target> - |trained>||_2
                          (using exact |trained_energy - target_energy|)
+            error_bound_grad: error_bound = integral(error_bound_grad)
             error_grad: ||e_t||
             resid: residual of McLachlan's SLE||Adtω-C||
             params: Current parameter values
@@ -607,7 +619,7 @@ class VarQTE(EvolutionBase):
         """
         with open(os.path.join(self._snapshot_dir, 'varqte_output.csv'), mode='a') as csv_file:
             fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
-                          'error_bound_factor',
+                          'error_bound_grad',
                           'error_grad', 'resid', 'fidelity', 'true_error',
                           'phase_agnostic_true_error', 'true_to_euler_error',
                           'trained_to_euler_error', 'target_energy', 'trained_energy',
@@ -624,7 +636,7 @@ class VarQTE(EvolutionBase):
                              'num_params': len(params),
                              'num_time_steps': self._num_time_steps,
                              'error_bound': error_bound,
-                             'error_bound_factor': error_bound_factor,
+                             'error_bound_grad': error_bound_grad,
                              'error_grad': error_grad,
                              'resid': resid,
                              'fidelity': np.round(fidelity_to_target, 8),
@@ -635,7 +647,7 @@ class VarQTE(EvolutionBase):
                              'target_energy': np.round(target_energy, 8),
                              'trained_energy': np.round(trained_energy, 8),
                              'energy_error': np.round(trained_energy - target_energy, 8),
-                             'h_norm': h_norm,
+                             'h_norm': self._h_norm,
                              'h_squared': h_squared,
                              'h_trip': h_trip,
                              'variance': variance,
@@ -798,7 +810,7 @@ class VarQTE(EvolutionBase):
         for j, data_dir in enumerate(data_directories):
             with open(os.path.join(data_dir, 'varqte_output.csv'), mode='r') as csv_file:
                 fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
-                              'error_bound_factor',
+                              'error_bound_grad',
                               'error_grad', 'resid', 'fidelity', 'true_error',
                               'phase_agnostic_true_error',
                               'true_to_euler_error', 'trained_to_euler_error', 'target_energy',
