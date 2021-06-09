@@ -444,6 +444,21 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         msg = f"expected:\n{expected}\nresult:\n{result}"
         self.assertEqual(expected, result, msg=msg)
 
+    def test_short_string(self):
+        """Test that a shorter-than-universal string is still rewritten."""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.ry(np.pi/2, 0)
+        basis = ["sx", "x", "rz"]
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1)
+        expected.sx(0)
+        expected.sx(0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
 
 if __name__ == "__main__":
     unittest.main()
