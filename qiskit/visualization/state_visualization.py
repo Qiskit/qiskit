@@ -318,7 +318,7 @@ def plot_state_city(
         ax_imag (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. If this is specified without an
-            ax_imag only the real component plot will be generated.
+            ax_real only the imaginary component plot will be generated.
             Additionally, if specified there will be no returned Figure since
             it is redundant.
 
