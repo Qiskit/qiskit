@@ -12,6 +12,8 @@
 
 """Stable Noisy Optimization by Branch and FIT algorithm (SNOBFIT) optimizer."""
 
+from typing import Any, Dict
+
 import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
 from .optimizer import Optimizer, OptimizerSupportLevel
@@ -83,6 +85,25 @@ class SNOBFIT(Optimizer):
             "bounds": OptimizerSupportLevel.required,
             "initial_point": OptimizerSupportLevel.required,
         }
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize the optimizer."""
+        return {
+            "name": "SNOBFIT",
+            "maxiter": self._maxiter,
+            "maxfail": self._maxfail,
+            "maxmp": self._maxmp,
+            "verbose": self._verbose,
+        }
+
+    @classmethod
+    def from_dict(cls, dictionary: Dict[str, Any]):
+        """Construct the optimizer from a dictionary."""
+        name = dictionary.pop("name", None)
+        if name is not None:
+            if name.lower() != "snobfit":
+                raise ValueError("Value of the key 'name' must be 'SNOBFIT'.")
+        return cls(**dictionary)
 
     def optimize(
         self,

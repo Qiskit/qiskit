@@ -12,7 +12,7 @@
 
 """A standard gradient descent optimizer."""
 
-from typing import Iterator, Optional, Union, Callable
+from typing import Iterator, Optional, Union, Callable, Dict, Any
 from functools import partial
 
 import numpy as np
@@ -131,6 +131,35 @@ class GradientDescent(Optimizer):
         self.perturbation = perturbation
         self.tol = tol
         self.callback = callback
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize the optimizer."""
+        if self.callback is not None:
+            raise ValueError("Cannot serialize GradientDescent with callback.")
+
+        # if learning rate or perturbation are custom iterators expand them
+        if callable(self.learning_rate):
+            iterator = self.learning_rate()
+            learning_rate = np.array([next(iterator) for _ in range(self.maxiter)])
+        else:
+            learning_rate = self.learning_rate
+
+        return {
+            "name": "GradientDescent",
+            "maxiter": self.maxiter,
+            "tol": self.tol,
+            "learning_rate": learning_rate,
+            "perturbation": self.perturbation,
+        }
+
+    @classmethod
+    def from_dict(cls, dictionary: Dict[str, Any]):
+        """Construct the optimizer from a dictionary."""
+        name = dictionary.pop("name", None)
+        if name is not None:
+            if name.lower() != "gradientdescent":
+                raise ValueError("Value of the key 'name' must be 'GradientDescent'.")
+        return cls(**dictionary)
 
     def _minimize(self, loss, grad, initial_point):
         # set learning rate

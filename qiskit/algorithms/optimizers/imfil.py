@@ -12,6 +12,8 @@
 
 """IMplicit FILtering (IMFIL) optimizer."""
 
+from typing import Any, Dict
+
 from qiskit.exceptions import MissingOptionalLibraryError
 from .optimizer import Optimizer, OptimizerSupportLevel
 
@@ -61,6 +63,22 @@ class IMFIL(Optimizer):
             "bounds": OptimizerSupportLevel.required,
             "initial_point": OptimizerSupportLevel.required,
         }
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize the optimizer."""
+        return {
+            "name": "IMFIL",
+            "maxiter": self._maxiter,
+        }
+
+    @classmethod
+    def from_dict(cls, dictionary: Dict[str, Any]):
+        """Construct the optimizer from a dictionary."""
+        name = dictionary.pop("name", None)
+        if name is not None:
+            if name.lower() != "imfil":
+                raise ValueError("Value of the key 'name' must be 'IMFIL'.")
+        return cls(**dictionary)
 
     def optimize(
         self,

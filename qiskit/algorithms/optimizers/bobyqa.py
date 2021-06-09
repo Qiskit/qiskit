@@ -12,6 +12,7 @@
 
 """Bound Optimization BY Quadratic Approximation (BOBYQA) optimizer."""
 
+from typing import Any, Dict
 
 import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -61,6 +62,22 @@ class BOBYQA(Optimizer):
             "bounds": OptimizerSupportLevel.required,
             "initial_point": OptimizerSupportLevel.required,
         }
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize the optimizer."""
+        return {
+            "name": "BOBYQA",
+            "maxiter": self._maxiter,
+        }
+
+    @classmethod
+    def from_dict(cls, dictionary: Dict[str, Any]):
+        """Construct the optimizer from a dictionary."""
+        name = dictionary.pop("name", None)
+        if name is not None:
+            if name.lower() != "bobyqa":
+                raise ValueError("Value of the key 'name' must be 'BOBYQA'.")
+        return cls(**dictionary)
 
     def optimize(
         self,

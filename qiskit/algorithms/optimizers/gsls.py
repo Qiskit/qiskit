@@ -12,7 +12,7 @@
 
 """Line search with Gaussian-smoothed samples on a sphere."""
 
-from typing import Dict, Optional, Tuple, List, Callable
+from typing import Dict, Optional, Tuple, List, Callable, Any
 import numpy as np
 
 from qiskit.utils import algorithm_globals
@@ -90,6 +90,21 @@ class GSLS(Optimizer):
             "bounds": OptimizerSupportLevel.supported,
             "initial_point": OptimizerSupportLevel.required,
         }
+
+    def to_dict(self) -> Dict[str, Any]:
+        serialized = {"name": "GSLS"}
+        serialized.update(self._options)
+
+        return serialized
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        name = dictionary.pop("name", None)
+        if name is not None:
+            if name.lower() != "gsls":
+                raise ValueError("Value of the key 'name' must be 'GSLS'.")
+
+        return cls(**dictionary)
 
     def optimize(
         self,

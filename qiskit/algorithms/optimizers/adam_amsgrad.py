@@ -12,7 +12,7 @@
 
 """The Adam and AMSGRAD optimizers."""
 
-from typing import Optional, Callable, Tuple, List
+from typing import Any, Optional, Callable, Dict, Tuple, List
 import os
 
 import csv
@@ -113,6 +113,21 @@ class ADAM(Optimizer):
                     fieldnames = ["v", "m", "t"]
                 writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                 writer.writeheader()
+
+    def to_dict(self) -> Dict[str, Any]:
+        serialized = {"name": "ADAM"}
+        serialized.update(self._options)
+
+        return serialized
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        name = dictionary.pop("name", None)
+        if name is not None:
+            if name != "ADAM":
+                raise ValueError("Value of the key 'name' must be 'ADAM'.")
+
+        return cls(**dictionary)
 
     def get_support_level(self):
         """Return support level dictionary"""

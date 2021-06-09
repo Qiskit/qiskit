@@ -97,10 +97,13 @@ class SciPyOptimizer(Optimizer):
         return serialized
 
     @classmethod
-    def from_dict(cls, settings: Dict[str, Any]):
+    def from_dict(cls, dictionary: Dict[str, Any]):
         """Construct the optimizer from a dictionary."""
-        method = settings.pop("name")
-        return cls(method, **settings)
+        method = dictionary.pop("name", None)
+        if method is None:
+            raise ValueError("Required key 'name' not found.")
+
+        return cls(method, **dictionary)
 
     def optimize(
         self,

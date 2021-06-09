@@ -14,11 +14,16 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+
+from ddt import ddt, data, unpack
 import numpy as np
 from scipy.optimize import rosen, rosen_der
 
 from qiskit.algorithms.optimizers import (
     ADAM,
+    AQGD,
+    BOBYQA,
+    IMFIL,
     CG,
     COBYLA,
     GSLS,
@@ -37,6 +42,13 @@ from qiskit.algorithms.optimizers import (
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
 from qiskit.utils import algorithm_globals
+
+try:
+    import skquant.opt as skq  # pylint: disable=unused-import
+
+    _HAS_SKQUANT = True
+except ImportError:
+    _HAS_SKQUANT = False
 
 
 class TestOptimizers(QiskitAlgorithmsTestCase):
@@ -159,13 +171,30 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         self.assertTrue(values)  # Check the list is nonempty.
 
 
+@ddt
 class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
     """Tests concerning the serialization of optimizers."""
 
-    def test_scipy(self):
+    @data(
+        ("BFGS", {"maxiter": 100, "eps": np.array([0.1])}),
+        ("CG", {"maxiter": 100, "gtol": 1e-8}),
+        ("COBYLA", {"maxiter": 100}),
+        ("L_BFGS_B", {"maxiter": 100}),
+        ("NELDER_MEAD", {"maxiter": 100}),
+        ("NFT", {"maxiter": 100}),
+        ("P_BFGS", {"maxiter": 100}),
+        ("POWELL", {"maxiter": 100}),
+        ("SLSQP", {"maxiter": 100}),
+        ("TNC", {"maxiter": 100}),
+        ("dogleg", {"maxiter": 100}),
+        ("trust-constr", {"maxiter": 100}),
+        ("trust-ncg", {"maxiter": 100}),
+        ("trust-exact", {"maxiter": 100}),
+        ("trust-krylov", {"maxiter": 100}),
+    )
+    @unpack
+    def test_scipy(self, method, options):
         """Test the SciPyOptimizer is serializable."""
-        method = "BFGS"
-        options = {"maxiter": 1000, "eps": np.array([0.1])}
 
         optimizer = SciPyOptimizer(method, options=options)
         serialized = optimizer.to_dict()
@@ -184,6 +213,78 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
 
         with self.assertRaises(QiskitError):
             _ = optimizer.to_dict()
+
+    def test_scipy_name_missing(self):
+        """Test serialization fails if the dictionary has no 'name' key."""
+        with self.assertRaises(ValueError):
+            _ = SciPyOptimizer.from_dict({"maxiter": 1})
+
+    def test_adam(self):
+        """Test ADAM is serializable."""
+
+        adam = ADAM(maxiter=100, amsgrad=True)
+        serialized = adam.to_dict()
+
+        reconstructed = Optimizer.from_dict(serialized)
+        self.assertIsInstance(reconstructed, ADAM)
+        self.assertEqual(reconstructed._maxiter, 100)
+        self.assertTrue(reconstructed._amsgrad)
+
+    def test_aqgd(self):
+        """Test AQGD is serializable."""
+
+        opt = AQGD(maxiter=[200, 100], eta=[0.2, 0.1], momentum=[0.25, 0.1])
+        serialized = opt.to_dict()
+
+        reconstructed = Optimizer.from_dict(serialized)
+        self.assertIsInstance(reconstructed, AQGD)
+        self.assertListEqual(reconstructed._maxiter, [200, 100])
+        self.assertListEqual(reconstructed._eta, [0.2, 0.1])
+        self.assertListEqual(reconstructed._momenta_coeff, [0.25, 0.1])
+
+    @unittest.skipIf(not _HAS_SKQUANT, "Install scikit-quant to run this test.")
+    def test_bobyqa(self):
+        """Test BOBYQA is serializable."""
+
+        opt = BOBYQA(maxiter=200)
+        serialized = opt.to_dict()
+
+        reconstructed = Optimizer.from_dict(serialized)
+        self.assertIsInstance(reconstructed, BOBYQA)
+        self.assertEqual(reconstructed._maxiter, 200)
+
+    @unittest.skipIf(not _HAS_SKQUANT, "Install scikit-quant to run this test.")
+    def test_imfil(self):
+        """Test IMFIL is serializable."""
+
+        opt = IMFIL(maxiter=200)
+        serialized = opt.to_dict()
+
+        reconstructed = Optimizer.from_dict(serialized)
+        self.assertIsInstance(reconstructed, IMFIL)
+        self.assertEqual(reconstructed._maxiter, 200)
+
+    def test_gradient_descent(self):
+        """Test GradientDescent is serializable."""
+
+        opt = GradientDescent(maxiter=10, learning_rate=0.01)
+        serialized = opt.to_dict()
+
+        reconstructed = Optimizer.from_dict(serialized)
+        self.assertIsInstance(reconstructed, GradientDescent)
+        self.assertEqual(reconstructed.maxiter, 10)
+        self.assertEqual(reconstructed.learning_rate, 0.01)
+
+    def test_gsls(self):
+        """Test GSLS is serializable."""
+
+        opt = GSLS(maxiter=100, sampling_radius=1e-3)
+        serialized = opt.to_dict()
+
+        reconstructed = Optimizer.from_dict(serialized)
+        self.assertIsInstance(reconstructed, GSLS)
+        self.assertEqual(reconstructed._options["maxiter"], 100)
+        self.assertTrue(reconstructed._options["sampling_radius"], 1e-3)
 
     def test_spsa(self):
         """Test SPSA optimizer is serializable."""

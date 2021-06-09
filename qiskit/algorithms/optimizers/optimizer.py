@@ -226,39 +226,39 @@ class Optimizer(ABC):
         if "name" not in dictionary:
             raise ValueError("Required key 'name' not found in the dictionary.")
 
+        import qiskit.algorithms.optimizers as opt
+
         name = dictionary["name"]
 
-        if name.lower() == "spsa":
-            from .spsa import SPSA
+        optimizers = {
+            "adam": opt.ADAM,
+            "aqgd": opt.AQGD,
+            "bfgs": opt.SciPyOptimizer,
+            "bobyqa": opt.BOBYQA,
+            "cg": opt.CG,
+            "cobyla": opt.COBYLA,
+            "dogleg": opt.SciPyOptimizer,
+            "gsls": opt.GSLS,
+            "gradientdescent": opt.GradientDescent,
+            "imfil": opt.IMFIL,
+            "l-bfgs-b": opt.L_BFGS_B,
+            "nelder-mead": opt.NELDER_MEAD,
+            "newton-cg": opt.SciPyOptimizer,
+            "powell": opt.POWELL,
+            "qnspsa": opt.QNSPSA,
+            "slsqp": opt.SLSQP,
+            "spsa": opt.SPSA,
+            "tnc": opt.TNC,
+            "trust-constr": opt.SciPyOptimizer,
+            "trust-ncg": opt.SciPyOptimizer,
+            "trust-exact": opt.SciPyOptimizer,
+            "trust-krylov": opt.SciPyOptimizer,
+        }
 
-            return SPSA.from_dict(dictionary)
-
-        if name.lower() == "qnspsa":
-            from .qnspsa import QNSPSA
-
-            return QNSPSA.from_dict(dictionary)
-
-        if name.lower() in [
-            "nelder-mead",
-            "Powell",
-            "CG",
-            "BFGS",
-            "Newton-cg",
-            "l-bfgs-b",
-            "tnc",
-            "COBYLA",
-            "SLSQP",
-            "trust-constr",
-            "dogleg",
-            "trust-ncg",
-            "trust-exact",
-            "trust-krylov",
-        ]:
-            from .scipy_optimizer import SciPyOptimizer
-
-            return SciPyOptimizer.from_dict(dictionary)
-
-        raise NotImplementedError(f"Cannot load from dictionary for optimizer with name {name}.")
+        try:
+            return optimizers[name.lower()].from_dict(dictionary)
+        except KeyError as key_error:
+            raise ValueError(f"Unknown optimizer {name}.") from key_error
 
     @staticmethod
     def _check_dict_is_serializable(dictionary: Dict[str, Any]):
