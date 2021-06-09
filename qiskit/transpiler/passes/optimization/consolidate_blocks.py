@@ -54,11 +54,7 @@ class ConsolidateBlocks(TransformationPass):
         if kak_basis_gate is not None:
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
         elif basis_gates is not None:
-            kak_basis_gate = unitary_synthesis._choose_kak_gate(basis_gates)
-            if kak_basis_gate is not None:
-                self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
-            else:
-                self.decomposer = None
+            self.decomposer = unitary_synthesis._basis_gates_to_decomposer_2q(basis_gates)
         else:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
 
@@ -156,12 +152,12 @@ class ConsolidateBlocks(TransformationPass):
                 if (  # pylint: disable=too-many-boolean-expressions
                     self.force_consolidate
                     or unitary.num_qubits > 2
-                    or self.decomposer.num_basis_gates(unitary) < basis_count
                     or len(subcirc) > max_2q_depth
                     or (
                         self.basis_gates is not None
                         and not set(subcirc.count_ops()).issubset(self.basis_gates)
                     )
+                    or self.decomposer.num_basis_gates(unitary) < basis_count
                 ):
                     new_dag.apply_operation_back(
                         unitary, sorted(block_qargs, key=lambda x: block_index_map[x])
