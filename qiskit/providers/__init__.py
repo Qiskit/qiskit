@@ -499,6 +499,11 @@ and for a sync job::
 Legacy Provider Interface Base Objects (:mod:`qiskit.providers`)
 ================================================================
 
+These abstract interfaces are deprecated and will be removed in a future
+release. The documentation here is left for reference purposes while they're
+still supported, but if you're creating or maintaining a provider you should
+be using the versioned interface.
+
 .. currentmodule:: qiskit.providers
 
 Base Objects
