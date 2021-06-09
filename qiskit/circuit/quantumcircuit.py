@@ -1331,12 +1331,18 @@ class QuantumCircuit:
 
         return qasm_string
 
-    def qasm(self, formatted=False, filename=None):
+    def qasm(self, formatted=False, filename=None, encoding=None):
         """Return OpenQASM string.
 
         Args:
             formatted (bool): Return formatted Qasm string.
             filename (str): Save Qasm to file with name 'filename'.
+            encoding (str): Optionally specify the encoding to use for the
+                output file if ``filename`` is specified. By default this is
+                set to the system's default encoding (ie whatever
+                ``locale.getpreferredencoding()`` returns) and can be set to
+                any valid codec or alias from stdlib's
+                `codec module <https://docs.python.org/3/library/codecs.html#standard-encodings>`__
 
         Returns:
             str: If formatted=False.
@@ -1495,7 +1501,7 @@ class QuantumCircuit:
             gate._qasm_def_written = False
 
         if filename:
-            with open(filename, "w+") as file:
+            with open(filename, "w+", encoding=encoding) as file:
                 file.write(string_temp)
             file.close()
 
