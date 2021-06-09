@@ -358,7 +358,6 @@ class VarQITE(VarQTE):
                          h_squareds: List,
                          h_trips: List,
                          energies: List,
-                         imag_reverse_bound: bool = True,
                          trapezoidal: bool=True) -> Union[List, Tuple[List, List]]:
         """
         Get the upper bound to the Bures metric between prepared and target state for VarQITE
@@ -372,7 +371,6 @@ class VarQITE(VarQTE):
             H: If imag_reverse_bound find the first and second Eigenvalue of H to compute the
                reverse bound
             energies: ⟨ψ(ω)|H| ψ(ω) for all times
-            imag_reverse_bound: If True compute the reverse error bound
             trapezoidal: If True use trapezoidal rule to compute error bounds.
 
         Returns:
@@ -432,76 +430,51 @@ class VarQITE(VarQTE):
                         # raise Warning('Negative Error')
 
                 error_bounds.append(error_trap_term)
-
-#--------------------------------
-        """
-       
-        norms = []
-        for e in energies:
-            norms.append(np.linalg.norm(e * np.eye(np.shape(H)[0]) - H, np.inf))
-        
-        # integral_items = np.add(2 * stddevs, norms)
-        # or
-        
-        integral_items = np.add(stddevs, norms)
-        # integral_items = stddevs
-        gradient_error_factors = []
-        for j in range(len(times)):
-            stddev_factor = np.exp(np.trapz(integral_items[j:], x=times[j:]))
-            gradient_error_factors.append(stddev_factor)
-
-        e_bounds = []
-        for j in range(len(times)):
-            e_bounds.append(np.trapz(np.multiply(gradient_errors[:j+1], gradient_error_factors[
-                                                                        :j+1]), x=times[:j+1]))
-        
-        # print('Error bounds ', e_bounds)
-
-        # e_bounds = [np.sqrt(2) if e_bound > np.sqrt(2) else e_bound for e_bound in e_bounds]
-
-        if imag_reverse_bound:
-            if H is None:
-                raise Warning('Please support the respective Hamiltonian.')
-            eigvals = []
-            evs = np.linalg.eigh(H)[0]
-            for eigv in evs:
-                add_ev = True
-                for ev in eigvals:
-                    if np.isclose(ev, eigv):
-                        add_ev = False
-                if add_ev:
-                    eigvals.append(eigv)
-            eigvals = sorted(eigvals)
-            e0 = eigvals[0]
-            e1 = eigvals[1]
-            # Reverse error bound final time
-            reverse_bounds = [stddevs[-1] / (e1 - e0)]
-            reverse_bounds_temp = np.flip(np.multiply(gradient_errors, gradient_error_factors))
-            # reverse_bounds_temp[-1] = reverse_bounds[0]
-            reverse_times = np.flip(times)
-            for j, dt in enumerate(reverse_times):
-                if j == 0:
-                    continue
-                # if use_integral_approx:
-                    # TODO check here if correct
-                reverse_bounds.append(reverse_bounds[0] - np.trapz(reverse_bounds_temp[:j],
-                                                                   x=reverse_times[:j]))
-
-                # else:
-                #
-                #     reverse_bounds.append(reverse_bounds[j] + reverse_bounds_temp[j+1] *
-                #                           reverse_times[j])
-
-            reverse_bounds.reverse()
-
-            # reverse_bounds = [np.sqrt(2) if e_bound > np.sqrt(2) else e_bound for e_bound in
-            #                   reverse_bounds]
-            return e_bounds, reverse_bounds
-             """
         print('error bounds', np.around(error_bounds, 4))
         print('gradient errors', np.around(gradient_errors, 4))
 
         return error_bounds
+
+    def _get_reverse_error_bound(self,
+                                 times: List,
+                                 error_bound_grads: List,
+                                 stddevs: List) -> Union[List, Tuple[List, List]]:
+        """
+        Get the reverse upper bound to the Bures metric between prepared and target state for
+        VarQITE simulation
+        Args:
+            times: List of all points in time considered throughout the simulation
+            error_bound_grads: error_bound = integral(error_bound_grads)
+            stddevs: Standard deviations for times sqrt(⟨ψ(ω)|H^2| ψ(ω)〉- ⟨ψ(ω)|H| ψ(ω)〉^2)
+
+        Returns:
+            List of the reverse error upper bound for all times
+
+        Raises: NotImplementedError
+
+        """
+        eigvals = []
+        evs = np.linalg.eigh(self._h_matrix)[0]
+        for eigv in evs:
+            add_ev = True
+            for ev in eigvals:
+                if np.isclose(ev, eigv):
+                    add_ev = False
+            if add_ev:
+                eigvals.append(eigv)
+        eigvals = sorted(eigvals)
+        e0 = eigvals[0]
+        e1 = eigvals[1]
+        # Reverse error bound final time
+        reverse_bounds = [stddevs[-1] / (e1 - e0)]
+        reverse_bounds_temp = np.flip(error_bound_grads)
+        reverse_times = np.flip(times)
+        for j, dt in enumerate(reverse_times):
+            if j == 0:
+                continue
+            reverse_bounds.append(reverse_bounds[0] - np.trapz(reverse_bounds_temp[:j],
+                                                               x=reverse_times[:j]))
+        return reverse_bounds.reverse()
 
     def _exact_state(self,
                      time: Union[float, complex]) -> Iterable:

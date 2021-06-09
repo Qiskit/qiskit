@@ -287,6 +287,8 @@ class VarQTE(EvolutionBase):
                           'variance', 'dtdt_trained', 're_im_grad']
             reader = csv.DictReader(csv_file, fieldnames=fieldnames)
             first = True
+            error_bound = []
+            error_bound_grad = []
             grad_errors = []
             energies = []
             time = []
@@ -303,6 +305,8 @@ class VarQTE(EvolutionBase):
                 if t_line in time:
                     continue
                 time.append(t_line)
+                error_bound.append(float(line['error_bound']))
+                error_bound_grad.append(float(line['error_bound_grad']))
                 grad_errors.append(float(line['error_grad']))
                 energies.append(float(line['trained_energy']))
                 h_squareds.append(float(line['h_squared']))
@@ -312,34 +316,11 @@ class VarQTE(EvolutionBase):
                     pass
                 stddevs.append(np.sqrt(float(line['variance'])))
 
-        if not np.iscomplex(self._operator.coeff):
-            # VarQITE
-            zipped_lists = zip(time, grad_errors, energies, h_squareds, stddevs)
-        else:
-            # VarQRTE
-            zipped_lists = zip(time, grad_errors, energies)
+        if not np.iscomplex(self._operator.coeff) and imag_reverse_bound:
+            imag_reverse_bound = self._get_reverse_error_bound(time, error_bound_grad, stddevs)
+            return error_bound, imag_reverse_bound
 
-        sorted_pairs = sorted(zipped_lists)
-
-        multiples = zip(*sorted_pairs)
-
-
-
-        # for j in range(len(time)-1):
-        #     time_steps.append(time[j+1]-time[j])
-
-        if not np.iscomplex(self._operator.coeff):
-            # VarQITE
-            time, grad_errors, energies, h_squareds, stddevs = \
-                [list(multiple) for multiple in multiples]
-            e_bound = self._get_error_bound(grad_errors, time, stddevs, h_squareds, h_trips,
-                                            energies, imag_reverse_bound)
-
-        else:
-            # VarQRTE
-            time, grad_errors, energies = [list(multiple) for multiple in multiples]
-            e_bound = self._get_error_bound(grad_errors, time, energies)
-        return e_bound
+        return error_bound
 
     def _init_grad_objects(self):
         """
