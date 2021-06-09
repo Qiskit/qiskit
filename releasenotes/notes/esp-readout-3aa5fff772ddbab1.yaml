@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    Support for Excited State Promoted (ESP) readout from Qiskit has been added. ESP readout
+    discriminates between |0> and higher order energy states of transmon qubits in order to improve
+    readout fidelity. Further details may be found `here <https://arxiv.org/pdf/2008.08571.pdf>`_.
+
+    To check whether the backend supports ESP readout, one can query::
+
+      measure_esp_enabled = getattr(backend.configuration(), "measure_esp_enabled", False)
+
+    If the flag ``measure_esp_enabled`` is not in the backend configuration, we return ``False``
+    by default.
+
+    A user can request usage of ESP readout via the ``use_measure_esp`` flag in
+    ``execute/assemble``. This tells the backend to use ESP readout on the final measurement of
+    each circuit. This is done via::
+
+      qobj = assemble(circ, backend, use_measure_esp=True)
+
+    If ``measure_esp_enabled=False`` and ``use_measure_esp=True``, a ``QiskitError`` is raised.
+
+    If ``use_measure_esp`` is not set, it will default to True if ``measure_esp_enabled=True``,
+    otherwise ``False``.
