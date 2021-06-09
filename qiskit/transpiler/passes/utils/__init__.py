@@ -23,3 +23,4 @@ from .merge_adjacent_barriers import MergeAdjacentBarriers
 from .dag_fixed_point import DAGFixedPoint
 from .fixed_point import FixedPoint
 from .error import Error
+from .remove_barriers import RemoveBarriers
