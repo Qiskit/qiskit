@@ -83,14 +83,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     will default it to :math:`-2\pi`; similarly, if the ansatz returns ``None``
     as the upper bound, the default value will be :math:`2\pi`.
 
-    .. note::
-
-        The VQE stores the parameters of ``ansatz`` sorted by name to map the values
-        provided by the optimizer to the circuit. This is done to ensure reproducible results,
-        for example such that running the optimization twice with same random seeds yields the
-        same result. Also, the ``optimal_point`` of the result object can be used as initial
-        point of another VQE run by passing it as ``initial_point`` to the initializer.
-
     """
 
     def __init__(
