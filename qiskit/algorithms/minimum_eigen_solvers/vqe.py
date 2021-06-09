@@ -20,8 +20,7 @@ import logging
 from time import time
 import numpy as np
 
-from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Parameter
+from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
