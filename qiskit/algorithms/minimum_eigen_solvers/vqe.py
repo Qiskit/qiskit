@@ -14,34 +14,35 @@
 See https://arxiv.org/abs/1304.3061
 """
 
-from typing import Optional, List, Callable, Union, Dict
 import logging
 from time import time
+from typing import Callable, Dict, List, Optional, Union
+
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.providers import BaseBackend
-from qiskit.providers import Backend
 from qiskit.opflow import (
-    OperatorBase,
+    CircuitSampler,
+    CircuitStateFn,
     ExpectationBase,
     ExpectationFactory,
-    StateFn,
-    CircuitStateFn,
-    ListOp,
     I,
-    CircuitSampler,
+    ListOp,
+    OperatorBase,
+    StateFn,
 )
 from qiskit.opflow.gradients import GradientBase
-from qiskit.utils.validation import validate_min
+from qiskit.providers import Backend, BaseBackend
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils.quantum_instance import QuantumInstance
-from ..optimizers import Optimizer, SLSQP
+from qiskit.utils.validation import validate_min
+
+from ..exceptions import AlgorithmError
+from ..optimizers import SLSQP, Optimizer
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
-from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
@@ -321,7 +322,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         observable_meas = self.expectation.convert(StateFn(operator, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
-        return observable_meas.compose(ansatz_circuit_op).reduce()
+        return observable_meas.compose(ansatz_circuit_op)
 
     def construct_circuit(
         self,
@@ -491,12 +492,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             zip(self._ansatz_params, parameter_sets.transpose().tolist())
         )  # type: Dict
 
-        common_circuit = self.ansatz if self._split_transpile else None
-
         start_time = time()
-        sampled_expect_op = self._circuit_sampler.convert(self._expect_op,
-                                                          params=param_bindings,
-                                                          common_circuit=common_circuit)
+        sampled_expect_op = self._circuit_sampler.convert(
+            self._expect_op,
+            params=param_bindings,
+        )
         means = np.real(sampled_expect_op.eval())
 
         if self._callback is not None:
