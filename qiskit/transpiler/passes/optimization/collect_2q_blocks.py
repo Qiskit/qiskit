@@ -62,7 +62,6 @@ class Collect2qBlocks(AnalysisPass):
                     pending_1q[qids[0]].append(node)
                 else:
                     block_list[b_id].append(node)
-                continue
             elif block_id[qids[0]] == block_id[qids[1]]:
                 block_list[block_id[qids[0]]].append(node)
             else:
