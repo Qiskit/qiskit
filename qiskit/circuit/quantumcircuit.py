@@ -2146,7 +2146,7 @@ class QuantumCircuit:
 
         Returns:
             Optional(QuantumCircuit): A copy of the circuit with bound parameters, if
-            ``inplace`` is True, otherwise None.
+            ``inplace`` is False, otherwise None.
 
         Examples:
 
