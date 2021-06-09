@@ -107,14 +107,16 @@ class _HardwareTopology:
         self.num_qubits = num_qubits
         self.connectivity = connectivity
         self._orig_basis_fidelity = basis_fidelity
-        self.num_edges = sum(len(connectivity[i]) for i in range(num_qubits))
+        edge_set = set()
+        for u in range(num_qubits):
+            for v in connectivity[u]:
+                if (u, v) not in edge_set and (v, u) not in edge_set:
+                    edge_set.add((u, v))
+        self.num_edges = len(edge_set)
         self.num_arcs = 2 * self.num_edges
-        self.edges = [(u, v) for u in range(num_qubits)
-                      for v in connectivity[u]]
-        self.arcs = ([(u, v) for u in range(num_qubits)
-                      for v in connectivity[u]] +
-                     [(v, u) for u in range(num_qubits)
-                      for v in connectivity[u]])
+        self.edges = [e for e in edge_set]
+        self.arcs = ([(u, v) for (u, v) in edge_set] +
+                     [(v, u) for (u, v) in edge_set])
         self.edges_by_node = [[k for k, (u, v) in enumerate(self.edges)
                                if (u == i or v == i)]
                               for i in range(self.num_qubits)]
@@ -131,6 +133,7 @@ class _HardwareTopology:
                                 if (v == i)]
                                for i in range(self.num_qubits)]
         self._edge_to_index = {edge: i for i, edge in enumerate(self.edges)}
+        self._arc_to_index = dict()
         self._arc_to_index = {arc: i for i, arc in enumerate(self.arcs)}
         if (basis_fidelity is None):
             self._basis_fidelity = [[0.99] for i in range(num_qubits)
@@ -221,7 +224,7 @@ class IndexCalculator:
         # qubits; some qubits could be dummy
         self.num_lqubits = self.ht.num_qubits
         # Number of physical qubits
-        self.num_pqubits = self.ht.num_qubits        
+        self.num_pqubits = self.ht.num_qubits
         self.depth = self.qc.depth        
         self.num_gates = sum(len(self.qc.gates[t])
                              for t in range(self.qc.depth))
