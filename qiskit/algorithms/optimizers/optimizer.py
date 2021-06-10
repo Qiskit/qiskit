@@ -222,10 +222,19 @@ class Optimizer(ABC):
 
     @classmethod
     def from_dict(cls, dictionary: Dict[str, Any]) -> "Optimizer":
-        """Initialize the optimizer from a serializable dictionary."""
+        """Initialize the optimizer from a serializable dictionary.
+
+        Args:
+            dictionary: The dictionary containing the name and settings for the optimizer.
+
+        Raises:
+            ValueError: If the method on the base class ``qiskit.algorithms.optimizers.Optimizer``
+                is called but the name of the optimizer is not specified.
+        """
         if "name" not in dictionary:
             raise ValueError("Required key 'name' not found in the dictionary.")
 
+        # pylint: disable=cyclic-import
         import qiskit.algorithms.optimizers as opt
 
         name = dictionary["name"]
