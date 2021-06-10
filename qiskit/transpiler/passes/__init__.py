@@ -44,6 +44,7 @@ Routing
    LookaheadSwap
    StochasticSwap
    SabreSwap
+   MIPMapping
 
 Basis Change
 ============
@@ -143,6 +144,7 @@ from .routing import LayoutTransformation
 from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
+from .routing import MIPMapping
 
 # basis change
 from .basis import Decompose
