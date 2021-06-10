@@ -33,19 +33,21 @@ from qiskit.extensions.quantum_initializer.isometry import Isometry
 class TestIsometry(QiskitTestCase):
     """Qiskit isometry tests."""
 
+    seed = 42
+
     @data(
         np.eye(2, 2),
-        random_unitary(2).data,
+        random_unitary(2, seed=seed).data,
         np.eye(4, 4),
-        random_unitary(4).data[:, 0],
+        random_unitary(4, seed=seed).data[:, 0],
         np.eye(4, 4)[:, 0:2],
-        random_unitary(4).data,
-        np.eye(4, 4)[:, np.random.permutation(np.eye(4, 4).shape[1])][:, 0:2],
-        np.eye(8, 8)[:, np.random.permutation(np.eye(8, 8).shape[1])],
-        random_unitary(8).data[:, 0:4],
-        random_unitary(8).data,
-        random_unitary(16).data,
-        random_unitary(16).data[:, 0:8],
+        random_unitary(4, seed=seed).data,
+        np.eye(4, 4)[:, np.random.RandomState(seed=seed).permutation(np.eye(4, 4).shape[1])][:, 0:2],
+        np.eye(8, 8)[:, np.random.RandomState(seed=seed).permutation(np.eye(8, 8).shape[1])],
+        random_unitary(8, seed=seed).data[:, 0:4],
+        random_unitary(8, seed=seed).data,
+        random_unitary(16, seed=seed).data,
+        random_unitary(16, seed=seed).data[:, 0:8],
     )
     def test_isometry(self, iso):
         """Tests for the decomposition of isometries from m to n qubits"""
@@ -73,17 +75,17 @@ class TestIsometry(QiskitTestCase):
 
     @data(
         np.eye(2, 2),
-        random_unitary(2).data,
+        random_unitary(2, seed=seed).data,
         np.eye(4, 4),
-        random_unitary(4).data[:, 0],
+        random_unitary(4, seed=seed).data[:, 0],
         np.eye(4, 4)[:, 0:2],
-        random_unitary(4).data,
-        np.eye(4, 4)[:, np.random.permutation(np.eye(4, 4).shape[1])][:, 0:2],
-        np.eye(8, 8)[:, np.random.permutation(np.eye(8, 8).shape[1])],
-        random_unitary(8).data[:, 0:4],
-        random_unitary(8).data,
-        random_unitary(16).data,
-        random_unitary(16).data[:, 0:8],
+        random_unitary(4, seed=seed).data,
+        np.eye(4, 4)[:, np.random.RandomState(seed=seed).permutation(np.eye(4, 4).shape[1])][:, 0:2],
+        np.eye(8, 8)[:, np.random.RandomState(seed=seed).permutation(np.eye(8, 8).shape[1])],
+        random_unitary(8, seed=seed).data[:, 0:4],
+        random_unitary(8, seed=seed).data,
+        random_unitary(16, seed=seed).data,
+        random_unitary(16, seed=seed).data[:, 0:8],
     )
     def test_isometry_inverse(self, iso):
         """Tests for the inverse of isometries from m to n qubits"""
