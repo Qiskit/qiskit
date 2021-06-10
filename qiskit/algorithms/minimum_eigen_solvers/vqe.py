@@ -532,7 +532,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         """
         num_parameters = self.ansatz.num_parameters
         if num_parameters == 0:
-            raise ValueError("The ansatz must be parameterized, but has 0 free parameters.")
+            raise RuntimeError("The ansatz must be parameterized, but has 0 free parameters.")
 
         expect_op = self.construct_expectation(self._ansatz_params, operator)
 
