@@ -227,6 +227,9 @@ class Optimizer(ABC):
         Args:
             dictionary: The dictionary containing the name and settings for the optimizer.
 
+        Returns:
+            The initialized optimizer.
+
         Raises:
             ValueError: If the method on the base class ``qiskit.algorithms.optimizers.Optimizer``
                 is called but the name of the optimizer is not specified.
