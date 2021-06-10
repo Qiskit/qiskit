@@ -82,7 +82,7 @@ class ProbDistribution(dict):
                 ``"0110"``
         """
         n = len(bin(max(self.keys(), default=0))) - 2 if num_bits is None else num_bits
-        return {format(key, 'b').zfill(n): value for key, value in self.items()}
+        return {format(key, "b").zfill(n): value for key, value in self.items()}
 
     def hex_probabilities(self):
         """Build a probabilities dictionary with hexadecimal string keys
