@@ -105,7 +105,7 @@ Interested in quantum hardware design?
   :caption: Troubleshooting
   :hidden:
 
-  IBM Quantum API error codes <https://quantum-computing.ibm.com/docs/cloud/errors>
+  IBM Quantum API error codes <https://quantum-computing.ibm.com/lab/docs/iql/manage/errors>
 
 .. Hiding - Indices and tables
    :ref:`genindex`
