@@ -39,8 +39,6 @@ from qiskit.opflow.gradients import CircuitQFI, CircuitGradient, Gradient, QFI, 
 
 from qiskit.quantum_info import state_fidelity
 
-from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
-
 
 class ForwardEuler:
 
@@ -263,7 +261,7 @@ class VarQTE(EvolutionBase):
 
     def error_bound(self,
                     data_dir: str,
-                    imag_reverse_bound: bool = False) -> Union[List, Tuple(List, List)]:
+                    imag_reverse_bound: bool = False) -> Union[List, Tuple[List, List]]:
         """
         Evaluate an upper bound to the error of the VarQTE simulation
         Args:
@@ -479,7 +477,8 @@ class VarQTE(EvolutionBase):
                                                   grad_err=et,
                                                   energy=trained_energy, h_squared=h_squared,
                                                   h_trip=h_trip,
-                                                  stddev=np.sqrt(h_squared - trained_energy**2))
+                                                  stddev=np.sqrt(h_squared - trained_energy**2),
+                                                  store=self._store_now)
 
             if (self._snapshot_dir is not None) and (self._store_now):
                 self._store_params(t, params, error, error_bound_grad, et,
@@ -489,11 +488,11 @@ class VarQTE(EvolutionBase):
                                    reimgrad)
 
             return np.append(dt_params, error_bound_grad)
-        if self._ode_solver == RK45:
-            self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
-                                                atol=1e-6, max_step=0.01)
+        # if self._ode_solver == RK45:
+        #     self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
+        #                                         atol=1e-6, max_step=0.01)
 
-        elif issubclass(self._ode_solver, OdeSolver):
+        if issubclass(self._ode_solver, OdeSolver):
             self._ode_solver=self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
                                               atol=1e-6)
 
@@ -846,11 +845,12 @@ class VarQTE(EvolutionBase):
             plt.figure(0, figsize=(9, 7))
             # plt.title('Error Bound ')
             plt.scatter(time, phase_agnostic_true_error, color='indigo', marker='o', s=8,
-                        label='actual error', alpha=0.5)
+                         alpha=0.5)
             plt.scatter(time, error_bounds, color='royalblue', marker='o', s=8,
-                        label='error bound', alpha=0.5)
-            plt.plot(time, phase_agnostic_true_error, color='indigo', alpha=0.5)
-            plt.plot(time, error_bounds, color='royalblue', alpha=0.5)
+                        alpha=0.5)
+            plt.plot(time, phase_agnostic_true_error, color='indigo', label='actual error',
+                     alpha=0.5)
+            plt.plot(time, error_bounds, color='royalblue', label='error bound', alpha=0.5)
 
             # plt.scatter(time, true_error, color='purple', marker='o', s=40, label='actual error')
             plt.legend(loc='best')
@@ -874,14 +874,15 @@ class VarQTE(EvolutionBase):
                 # plt.title('Reverse Error Bound ')
                 # plt.scatter(time, true_error, color='purple', marker='o', s=40, label='actual error')
                 plt.scatter(time, phase_agnostic_true_error, color='indigo', marker='o', s=8,
-                            label='actual error', alpha=0.5)
+                            alpha=0.5)
                 plt.scatter(time, error_bounds, color='royalblue', marker='o', s=8,
-                            label='error bound', alpha=0.5)
-                plt.plot(time, phase_agnostic_true_error, color='indigo')
-                plt.plot(time, error_bounds, color='royalblue', alpha=0.5)
+                            alpha=0.5)
+                plt.plot(time, phase_agnostic_true_error, label='actual error', color='indigo')
+                plt.plot(time, error_bounds, color='royalblue', label='error bound', alpha=0.5)
                 plt.scatter(time, reverse_error_bounds, color='magenta', marker='o', s=8,
-                            label='reverse error bound', alpha=0.5)
-                plt.plot(time, reverse_error_bounds, color='magenta', alpha=0.5)
+                            alpha=0.5)
+                plt.plot(time, reverse_error_bounds, color='magenta', label='reverse error bound',
+                                                                          alpha=0.5)
 
                 plt.legend(loc='best')
                 plt.xlabel('time')
@@ -896,14 +897,16 @@ class VarQTE(EvolutionBase):
                 plt.figure(2, figsize=(9, 7))
                 # plt.title('Fidelity')
                 plt.scatter(time, fid, color='indigo', marker='o', s=8,
-                            label='fidelity', alpha=0.5)
+                            alpha=0.5)
                 plt.scatter(time, fidelity_bounds, color='royalblue', marker='o', s=8,
-                            label='fidelity bound', alpha=0.5)
+                            alpha=0.5)
                 plt.scatter(time, reverse_fidelity_bounds, color='magenta', marker='o', s=8,
-                            label='reverse fidelity bound', alpha=0.5)
-                plt.plot(time, fid, color='indigo', alpha=0.5)
-                plt.plot(time, fidelity_bounds, color='royalblue', alpha=0.5)
-                plt.plot(time, reverse_fidelity_bounds, color='magenta', alpha=0.5)
+                            alpha=0.5)
+                plt.plot(time, fid, color='indigo', label='fidelity', alpha=0.5)
+                plt.plot(time, fidelity_bounds, color='royalblue', label='fidelity bound',
+                         alpha=0.5)
+                plt.plot(time, reverse_fidelity_bounds, color='magenta',
+                         label='reverse fidelity bound', alpha=0.5)
                 plt.xlabel('time')
                 plt.ylabel('fidelity')
                 # plt.autoscale(enable=True)
@@ -918,11 +921,11 @@ class VarQTE(EvolutionBase):
             plt.figure(3, figsize=(9, 7))
             # plt.title('Fidelity')
             plt.scatter(time, fid, color='indigo', marker='o', s=8,
-                        label='fidelity', alpha=0.5)
+                        alpha=0.5)
             plt.scatter(time, fidelity_bounds, color='royalblue', marker='o', s=8,
-                        label='fidelity bound', alpha=0.5)
-            plt.plot(time, fid, color='indigo', alpha=0.5)
-            plt.plot(time, fidelity_bounds, color='royalblue', alpha=0.5)
+                        alpha=0.5)
+            plt.plot(time, fid, color='indigo', label='fidelity', alpha=0.5)
+            plt.plot(time, fidelity_bounds, color='royalblue', label='fidelity bound', alpha=0.5)
             plt.xlabel('time')
             plt.ylabel('fidelity')
             # plt.autoscale(enable=True)
@@ -946,8 +949,6 @@ class VarQTE(EvolutionBase):
                 plt.plot(time, true_energy, color='indigo', alpha=0.5)
                 plt.plot(time, trained_energy, color='royalblue', alpha=0.5)
                 energy_error_bounds = np.load(os.path.join(data_dir, 'energy_error_bound.npy'))
-                print('energy error bounds', energy_error_bounds[:10])
-                print(energy_error_bounds[-10:])
                 plt.plot(time, trained_energy + energy_error_bounds, label='error bound',
                          color='turquoise', alpha=0.5)
                 plt.plot(time, trained_energy - energy_error_bounds,
@@ -965,11 +966,11 @@ class VarQTE(EvolutionBase):
             plt.figure(5, figsize=(9, 7))
             plt.title('Energy')
             plt.scatter(time, true_energy, color='indigo', marker='o', s=8,
-                        label='target state', alpha=0.5)
+                        alpha=0.5)
             plt.scatter(time, trained_energy, color='royalblue', marker='o', s=8,
-                        label='prepared state', alpha=0.5)
-            plt.plot(time, true_energy, color='indigo', alpha=0.5)
-            plt.plot(time, trained_energy, color='royalblue', alpha=0.5)
+                        alpha=0.5)
+            plt.plot(time, true_energy, color='indigo', label='target state', alpha=0.5)
+            plt.plot(time, trained_energy, color='royalblue', label='prepared state', alpha=0.5)
             plt.xlabel('time')
             plt.ylabel('energy')
             plt.legend(loc='best')
@@ -980,6 +981,8 @@ class VarQTE(EvolutionBase):
             if os.path.exists(os.path.join(data_dir, 'energy_error_bound.npy')):
                 plt.figure(6, figsize=(9, 7))
                 plt.title('Energy Error Bound')
+                print('time', time)
+                print('energy error bounds', energy_error_bounds)
                 plt.scatter(time, energy_error_bounds, color='turquoise', marker='o', s=8, alpha=0.5)
                 plt.plot(time, energy_error_bounds, color='turquoise', alpha=0.5)
                 plt.xlabel('time')

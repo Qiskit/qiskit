@@ -31,8 +31,6 @@ from qiskit.quantum_info import state_fidelity
 from qiskit.opflow.evolutions.varqte import VarQTE
 from qiskit.opflow import StateFn, CircuitStateFn, ListOp, ComposedOp, PauliExpectation
 
-from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
-
 
 class VarQITE(VarQTE):
     """Variational Quantum Time Evolution.
@@ -288,8 +286,10 @@ class VarQITE(VarQTE):
                         energy: float,
                         h_squared: float,
                         h_trip: float,
-                        stddev: float):
-        return (self.get_error_term(delta_t, eps_t, grad_err, energy, h_squared, h_trip, stddev
+                        stddev: float,
+                        store: bool = False):
+        return (self.get_error_term(delta_t, eps_t, grad_err, energy, h_squared, h_trip, stddev,
+                                    store
                                     ) - eps_t) / \
                delta_t
 
@@ -297,7 +297,8 @@ class VarQITE(VarQTE):
                         energy: float,
                         h_squared: float,
                         h_trip: float,
-                        stddev: float):
+                        stddev: float,
+                        store: bool = False):
         """
         Compute the error term for a given time step and a point in the simulation time
         Args:
@@ -317,36 +318,37 @@ class VarQITE(VarQTE):
         print('Energy error factor', energy_factor)
         if math.isnan(energy_factor):
             print('nan')
-        if not os.path.exists(os.path.join(self._snapshot_dir, 'energy_error_bound.npy')):
-            energy_error_bounds = [energy_factor]
-            max_bures_metrics = [y]
+        if store:
+            if not os.path.exists(os.path.join(self._snapshot_dir, 'energy_error_bound.npy')):
+                energy_error_bounds = [energy_factor]
+                max_bures_metrics = [y]
 
-        else:
-            energy_error_bounds = np.load(os.path.join(self._snapshot_dir,
-                                                       'energy_error_bound.npy'))
-            energy_error_bounds = np.append(energy_error_bounds, energy_factor)
-            max_bures_metrics = np.load(os.path.join(self._snapshot_dir, 'max_bures.npy'))
-            max_bures_metrics = np.append(max_bures_metrics, y)
-        np.save(os.path.join(self._snapshot_dir, 'energy_error_bound.npy'),
-                energy_error_bounds)
-        np.save(os.path.join(self._snapshot_dir, 'max_bures.npy'), max_bures_metrics)
+            else:
+                energy_error_bounds = np.load(os.path.join(self._snapshot_dir,
+                                                           'energy_error_bound.npy'))
+                energy_error_bounds = np.append(energy_error_bounds, energy_factor)
+                max_bures_metrics = np.load(os.path.join(self._snapshot_dir, 'max_bures.npy'))
+                max_bures_metrics = np.append(max_bures_metrics, y)
+            np.save(os.path.join(self._snapshot_dir, 'energy_error_bound.npy'),
+                    energy_error_bounds)
+            np.save(os.path.join(self._snapshot_dir, 'max_bures.npy'), max_bures_metrics)
 
-        # Write terms to csv file
-        with open(os.path.join(self._snapshot_dir, 'varqite_bound_output.csv'), mode='a') as \
-                csv_file:
-            fieldnames = ['eps_t', 'dt', 'opt_factor', 'grad_factor', 'energy_factor', 'stddev',
-                          '|e-norm(H)|']
+            # Write terms to csv file
+            with open(os.path.join(self._snapshot_dir, 'varqite_bound_output.csv'), mode='a') as \
+                    csv_file:
+                fieldnames = ['eps_t', 'dt', 'opt_factor', 'grad_factor', 'energy_factor', 'stddev',
+                              '|e-norm(H)|']
 
-            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+                writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 
-            writer.writerow({'eps_t': np.round(eps_t, 8),
-                             'dt': d_t,
-                             'opt_factor': np.round(y, 8),
-                             'grad_factor': np.round(grad_err, 8),
-                             'energy_factor': np.round(energy_factor, 8),
-                             'stddev': np.round(stddev, 8),
-                             '|e-norm(H)|': np.round(np.abs(energy - self._h_norm), 8)
-                             })
+                writer.writerow({'eps_t': np.round(eps_t, 8),
+                                 'dt': d_t,
+                                 'opt_factor': np.round(y, 8),
+                                 'grad_factor': np.round(grad_err, 8),
+                                 'energy_factor': np.round(energy_factor, 8),
+                                 'stddev': np.round(stddev, 8),
+                                 '|e-norm(H)|': np.round(np.abs(energy - self._h_norm), 8)
+                                 })
         # \epsilon_{t+1}
         return y + d_t * grad_err + d_t * energy_factor
 
@@ -418,7 +420,10 @@ class VarQITE(VarQTE):
                 # to enable the use of an integral formulation of the error
                 #TODO avoid hard-coding of delta_t
                 delta_t_trap = 1e-3
-                trap_grad_term = self._get_error_grad(delta_t_trap)
+                trap_grad_term = self._get_error_grad(delta_t_trap, error_bounds[j - 1],
+                                                        gradient_errors[j - 1], energies[j - 1],
+                                                        h_squareds[j - 1], h_trips[j - 1],
+                                                        stddevs[j - 1])
                 trap_grad.append(trap_grad_term)
                 # Compute an approx. to the integral formulation of eps_t using the trapezoidal rule
                 error_trap_term = np.trapz(trap_grad, x=times[:j + 1])
@@ -474,7 +479,7 @@ class VarQITE(VarQTE):
                 continue
             reverse_bounds.append(reverse_bounds[0] - np.trapz(reverse_bounds_temp[:j],
                                                                x=reverse_times[:j]))
-        return reverse_bounds.reverse()
+        return np.flip(reverse_bounds)
 
     def _exact_state(self,
                      time: Union[float, complex]) -> Iterable:
