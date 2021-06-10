@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    The keys in :class:`~qiskit.result.ProbDistribution` and
-    :class:`~qiskit.result.QuasiDistribution` are now all the
-    same size when the format is bitstrings (e.g. "010" and "110").
-    The bitstring length can be controlled by the user as well.

@@ -22,7 +22,7 @@ import re
 class ProbDistribution(dict):
     """A generic dict-like class for probability distributions."""
 
-    bitstring_regex = re.compile(r"^[01]+$")
+    _bitstring_regex = re.compile(r"^[01]+$")
 
     def __init__(self, data, shots=None):
         """Builds a probability distribution object.
@@ -34,8 +34,7 @@ class ProbDistribution(dict):
                 The keys can be one of several formats:
 
                     * A hexadecimal string of the form ``"0x4a"``
-                    * A bit string prefixed with ``0b`` for example
-                      ``'0b1011'``
+                    * A bit string e.g. ``'0b1011'`` or ``"01011"``
                     * An integer
 
             shots (int): Number of shots the distribution was derived from.
@@ -56,7 +55,7 @@ class ProbDistribution(dict):
                 elif first_key.startswith("0b"):
                     bin_raw = data
                     data = {int(key, 0): value for key, value in bin_raw.items()}
-                elif self.bitstring_regex.search(first_key):
+                elif self._bitstring_regex.search(first_key):
                     bin_raw = data
                     data = {int("0b" + key, 0): value for key, value in bin_raw.items()}
                 else:
