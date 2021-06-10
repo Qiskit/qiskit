@@ -211,14 +211,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         Args:
             ansatz: The parameterized circuit used as an ansatz.
 
-        Raises:
-            ValueError: If the circuit is not parameterized (i.e. has 0 free parameters).
         """
         self._ansatz = ansatz
         if ansatz is not None:
-            if ansatz.num_parameters == 0:
-                raise ValueError("The ansatz must be parameterized, but has 0 free parameters.")
-
             if self._sort_parameters_by_name:
                 self._ansatz_params = sorted(ansatz.parameters, key=lambda p: p.name)
             else:
@@ -530,9 +525,16 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         Returns:
             Energy of the hamiltonian of each parameter.
+
+        Raises:
+            RuntimeError: If the circuit is not parameterized (i.e. has 0 free parameters).
+
         """
-        expect_op = self.construct_expectation(self._ansatz_params, operator)
         num_parameters = self.ansatz.num_parameters
+        if num_parameters == 0:
+            raise ValueError("The ansatz must be parameterized, but has 0 free parameters.")
+
+        expect_op = self.construct_expectation(self._ansatz_params, operator)
 
         def energy_evaluation(parameters):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))
