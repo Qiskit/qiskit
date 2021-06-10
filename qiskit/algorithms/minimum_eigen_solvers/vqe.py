@@ -17,6 +17,7 @@ See https://arxiv.org/abs/1304.3061
 
 from typing import Optional, List, Callable, Union, Dict
 import logging
+import warnings
 from time import time
 import numpy as np
 
@@ -96,7 +97,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
         quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
-        sort_parameters_by_name: bool = False,
+        sort_parameters_by_name: Optional[bool] = None,
     ) -> None:
         """
 
@@ -132,13 +133,23 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 These are: the evaluation count, the optimizer parameters for the
                 ansatz, the evaluated mean and the evaluated standard deviation.`
             quantum_instance: Quantum Instance or Backend
-            sort_parameters_by_name: If True, the initial point is bound to the ansatz parameters
-                strictly sorted by name instead of the default circuit order. That means that the
-                ansatz parameters are e.g. sorted as ``x[0] x[1] x[10] x[2] ...`` instead of
-                ``x[0] x[1] x[2] ... x[10]``. Set this to ``True`` to obtain the behavior prior
+            sort_parameters_by_name: Deprecated. If True, the initial point is bound to the ansatz
+                parameters strictly sorted by name instead of the default circuit order. That means
+                that the ansatz parameters are e.g. sorted as ``x[0] x[1] x[10] x[2] ...`` instead
+                of ``x[0] x[1] x[2] ... x[10]``. Set this to ``True`` to obtain the behavior prior
                 to Qiskit Terra 0.18.0.
         """
         validate_min("max_evals_grouped", max_evals_grouped, 1)
+
+        if sort_parameters_by_name is not None:
+            warnings.warn(
+                "The ``sort_parameters_by_name`` attribute is deprecated and will be "
+                "removed no sooner than 3 months after the release date of Qiskit Terra "
+                "0.18.0.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if ansatz is None:
             ansatz = RealAmplitudes()
 
@@ -195,13 +206,33 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     @ansatz.setter
     def ansatz(self, ansatz: Optional[QuantumCircuit]):
-        """Sets the ansatz"""
+        """Sets the ansatz.
+
+        Args:
+            ansatz: The parameterized circuit used as an ansatz.
+
+        Raises:
+            ValueError: If the circuit is not parameterized (i.e. has 0 free parameters).
+        """
         self._ansatz = ansatz
         if ansatz is not None:
+            if ansatz.num_parameters == 0:
+                raise ValueError("The ansatz must be parameterized, but has 0 free parameters.")
+
             if self._sort_parameters_by_name:
                 self._ansatz_params = sorted(ansatz.parameters, key=lambda p: p.name)
             else:
                 self._ansatz_params = list(ansatz.parameters)
+
+    @property
+    def gradient(self) -> Optional[Union[GradientBase, Callable]]:
+        """Returns the gradient."""
+        return self._gradient
+
+    @gradient.setter
+    def gradient(self, gradient: Optional[Union[GradientBase, Callable]]):
+        """Sets the gradient."""
+        self._gradient = gradient
 
     @property
     def quantum_instance(self) -> Optional[QuantumInstance]:
@@ -240,7 +271,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def expectation(self, exp: ExpectationBase) -> None:
         self._expectation = exp
 
-    def _check_operator_varform(self, operator: OperatorBase):
+    def _check_operator_ansatz(self, operator: OperatorBase):
         """Check that the number of qubits of operator and ansatz match."""
         if operator is not None and self.ansatz is not None:
             if operator.num_qubits != self.ansatz.num_qubits:
@@ -326,7 +357,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         if operator is None:
             raise AlgorithmError("The operator was never provided.")
 
-        self._check_operator_varform(operator)
+        self._check_operator_ansatz(operator)
 
         param_dict = dict(zip(self._ansatz_params, parameter))  # type: Dict
         wave_function = self.ansatz.assign_parameters(param_dict)
@@ -417,7 +448,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         # this sets the size of the ansatz, so it must be called before the initial point
         # validation
-        self._check_operator_varform(operator)
+        self._check_operator_ansatz(operator)
 
         initial_point = _validate_initial_point(self.initial_point, self.ansatz)
 
@@ -490,7 +521,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def get_energy_evaluation(
         self, operator: OperatorBase
     ) -> Callable[[np.ndarray], Union[float, List[float]]]:
-        """Evaluate energy at given parameters for the ansatz.
+        """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 
         This is the objective function to be passed to the optimizer that is used for evaluation.
 
@@ -499,15 +530,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         Returns:
             Energy of the hamiltonian of each parameter.
-
-        Raises:
-            RuntimeError: If the ansatz has no parameters.
         """
-        num_parameters = self.ansatz.num_parameters
-        if self._ansatz.num_parameters == 0:
-            raise RuntimeError("The ansatz cannot have 0 parameters.")
-
         expect_op = self.construct_expectation(self._ansatz_params, operator)
+        num_parameters = self.ansatz.num_parameters
 
         def energy_evaluation(parameters):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))

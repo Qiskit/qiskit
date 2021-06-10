@@ -125,7 +125,7 @@ class QAOA(VQE):
             quantum_instance=quantum_instance,
         )
 
-    def _check_operator_varform(self, operator: OperatorBase) -> OperatorBase:
+    def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
         if operator.num_qubits != self.ansatz.num_qubits:
             self.ansatz = QAOAAnsatz(
