@@ -202,9 +202,9 @@ class CircuitSampler(ConverterBase):
             num_parameterizations = 1
 
         # Don't pass circuits if we have in the cache, the sampling function knows to use the cache
-        circs = operator if not self._transpiled_circ_cache else None
         p_b = cast(List[Dict[Parameter, float]], param_bindings)
-        sampled_statefn_dicts = self.sample_circuits(circuit_sfns=circs, param_bindings=p_b)
+        sampled_statefn_dicts = self.sample_circuits(
+            operator=operator if not self._transpiled_circ_cache else None, param_bindings=p_b)
 
         def replace_circuits_with_dicts(operator, param_index=0):
             if isinstance(operator, CircuitStateFn):
@@ -240,20 +240,21 @@ class CircuitSampler(ConverterBase):
         """Clear the cache of sampled operator expressions."""
         self._cached_ops = {}
 
-    def _extract_circuitstatefns(self, operator: OperatorBase) -> None:
+    def _extract_circuitstatefns(
+            self, operator: OperatorBase, result: Dict[int, CircuitStateFn]) -> None:
         r"""
         Recursively extract the ``CircuitStateFns`` contained in operator into the
         ``_circuit_ops_cache`` field.
         """
         if isinstance(operator, CircuitStateFn):
-            self._circuit_ops_cache[id(operator)] = operator
+            result[id(operator)] = operator
         elif isinstance(operator, ListOp):
             for op in operator.oplist:
-                self._extract_circuitstatefns(op)
+                self._extract_circuitstatefns(op, result)
 
     def sample_circuits(
         self,
-        circuit_sfns: Optional[List[CircuitStateFn]] = None,
+        operator: OperatorBase = None,
         param_bindings: Optional[List[Dict[Parameter, float]]] = None,
     ) -> Dict[int, List[StateFn]]:
         r"""
@@ -266,7 +267,7 @@ class CircuitSampler(ConverterBase):
         in this list.
 
         Args:
-            circuit_sfns: The list of CircuitStateFns to sample.
+            operator: The Operator to convert
             param_bindings: The parameterizations to bind to each CircuitStateFn.
 
         Returns:
@@ -274,13 +275,13 @@ class CircuitSampler(ConverterBase):
         Raises:
             OpflowError: if extracted circuits are empty.
         """
-        if not circuit_sfns and not self._transpiled_circ_cache:
+        if not operator and not self._transpiled_circ_cache:
             raise OpflowError("CircuitStateFn is empty and there is no cache.")
 
-        if circuit_sfns:
-            self._reduced_op_cache = circuit_sfns.to_circuit_op().reduce()
+        if operator:
+            self._reduced_op_cache = operator.to_circuit_op().reduce()
             self._circuit_ops_cache = {}
-            self._extract_circuitstatefns(self._reduced_op_cache)
+            self._extract_circuitstatefns(self._reduced_op_cache, self._circuit_ops_cache)
             if not self._circuit_ops_cache:
                 raise OpflowError(
                     "Circuits are empty. "
@@ -291,11 +292,12 @@ class CircuitSampler(ConverterBase):
                 for op_c in list(self._circuit_ops_cache.values())
             ]
             if (
-                isinstance(circuit_sfns, ComposedOp)
-                and len(circuit_sfns) >= 2
-                and isinstance(circuit_sfns[1], CircuitStateFn)
+                len(circuits) > 1
+                and isinstance(operator, ComposedOp)
+                and len(operator) == 2
+                and isinstance(operator[1], CircuitStateFn)
             ):
-                common_circuit = circuit_sfns[1].to_circuit_op().reduce().to_circuit()
+                common_circuit = operator[1].to_circuit_op().reduce().to_circuit()
                 try:
                     # 1. transpile a common circuit
                     transpiled_common_circuit = self.quantum_instance.transpile(common_circuit)[0]
@@ -345,7 +347,6 @@ class CircuitSampler(ConverterBase):
                     )
                     self._transpile_before_bind = False
                     self._transpiled_circ_cache = circuits
-        circuit_sfns = list(self._circuit_ops_cache.values()) if self._circuit_ops_cache else None
 
         if param_bindings is not None:
             if self._param_qobj:
@@ -376,7 +377,7 @@ class CircuitSampler(ConverterBase):
         # self.quantum_instance._run_config.parameterizations = None
 
         sampled_statefn_dicts = {}
-        for i, op_c in enumerate(circuit_sfns):
+        for i, op_c in enumerate(self._circuit_ops_cache.values()):
             # Taking square root because we're replacing a statevector
             # representation of probabilities.
             reps = len(param_bindings) if param_bindings is not None else 1
