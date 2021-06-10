@@ -448,7 +448,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         """Test that a shorter-than-universal string is still rewritten."""
         qc = QuantumCircuit(1)
         qc.h(0)
-        qc.ry(np.pi/2, 0)
+        qc.ry(np.pi / 2, 0)
         basis = ["sx", "x", "rz"]
         passmanager = PassManager()
         passmanager.append(Optimize1qGatesDecomposition(basis))
