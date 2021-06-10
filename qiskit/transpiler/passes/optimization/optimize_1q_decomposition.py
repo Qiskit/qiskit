@@ -15,6 +15,7 @@
 import copy
 import logging
 import math
+import warnings
 
 import numpy as np
 
@@ -83,6 +84,12 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 new_circs.append(decomposer._decompose(operator))
             if new_circs:
                 new_circ = min(new_circs, key=len)
+                if all(g.name in self.basis for g in run) and len(run) < len(new_circ):
+                    warnings.warn(f"Resynthesized {run} and got {new_circ}, "
+                                  f"but the original was native and the new "
+                                  f"value is longer.  This indicates an "
+                                  f"efficiency bug in synthesis.  Please "
+                                  f"report it!")
                 if any(g.name not in self.basis for g in run) or len(run) > len(new_circ):
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
