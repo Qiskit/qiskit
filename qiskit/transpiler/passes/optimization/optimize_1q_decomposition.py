@@ -89,7 +89,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
                                   f"but the original was native and the new "
                                   f"value is longer.  This indicates an "
                                   f"efficiency bug in synthesis.  Please "
-                                  f"report it!")
+                                  f"report it by opening an issue here:"
+                                  f"https://github.com/Qiskit/qiskit-terra/issues/new/choose")
                 if any(g.name not in self.basis for g in run) or len(run) > len(new_circ):
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
