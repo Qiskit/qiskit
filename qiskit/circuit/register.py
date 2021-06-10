@@ -142,7 +142,7 @@ class Register:
         """
         Arg:
             bit_type (Qubit or Clbit): a constructor type return element/s.
-            key (int or slice or list): index of the clbit to be retrieved.
+            key (int or slice or list): index of the bit to be retrieved.
 
         Returns:
             Qubit or Clbit or list(Qubit) or list(Clbit): a Qubit or Clbit instance if
