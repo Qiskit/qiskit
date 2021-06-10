@@ -69,14 +69,20 @@ class ProbDistribution(dict):
                 raise TypeError("Input data's keys are of invalid type, must be str or int")
         super().__init__(data)
 
-    def binary_probabilities(self):
+    def binary_probabilities(self, num_bits=None):
         """Build a probabilities dictionary with binary string keys
+
+        Parameters:
+            num_bits (int): number of bits in the binary bitstrings (leading
+                zeros will be padded). If None, the length will be derived
+                from the largest key present.
 
         Returns:
             dict: A dictionary where the keys are binary strings in the format
                 ``"0110"``
         """
-        return {bin(key)[2:]: value for key, value in self.items()}
+        n = len(bin(max(self.keys(), default=0))) - 2 if num_bits is None else num_bits
+        return {format(key, 'b').zfill(n): value for key, value in self.items()}
 
     def hex_probabilities(self):
         """Build a probabilities dictionary with hexadecimal string keys
