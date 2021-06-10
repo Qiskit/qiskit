@@ -79,64 +79,6 @@ Operators
 
    tutorials/operators/*
 
-
-Optimization
-============
-
-.. attention:: Deprecation warning
-
-   The following tutorials contain calls to deprecated functionality.
-   See the `qiskit-optimization <https://qiskit.org/documentation/optimization/>`_
-   application for the updated versions.
-
-.. nbgallery::
-   :glob:
-
-   tutorials/optimization/*
-
-Finance
-=======
-
-.. attention:: Deprecation warning
-
-   The following tutorials contain calls to deprecated functionality.
-   See the `qiskit-finance <https://qiskit.org/documentation/finance/>`_
-   application for the updated versions.
-
-.. nbgallery::
-   :glob:
-
-   tutorials/finance/*
-
-Chemistry
-=========
-
-.. attention:: Deprecation warning
-
-   The following tutorials contain calls to deprecated functionality.
-   See the `qiskit-nature <https://qiskit.org/documentation/nature/>`_
-   application for the updated versions.
-
-.. nbgallery::
-   :glob:
-
-   tutorials/chemistry/*
-
-Machine learning
-================
-
-.. attention:: Deprecation warning
-
-   The following tutorials contain calls to deprecated functionality.
-   See the `qiskit-machine-learning <https://qiskit.org/documentation/machine-learning/>`_
-   application for the updated versions.
-
-.. nbgallery::
-   :glob:
-
-   tutorials/machine_learning/*
-
-
 .. Hiding - Indices and tables
    :ref:`genindex`
    :ref:`modindex`
