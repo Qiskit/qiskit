@@ -198,19 +198,13 @@ class TestPauliExpectation(QiskitOpflowTestCase):
         )
         wf = CX @ (H ^ I) @ Zero
         expect_op = PauliExpectation(group_paulis=False).convert(~StateFn(two_qubit_H2) @ wf)
-        self.sampler._extract_circuitstatefns(expect_op)
+        self.sampler.convert(expect_op)
         num_circuits_ungrouped = len(self.sampler._circuit_ops_cache)
         self.assertEqual(num_circuits_ungrouped, 5)
 
         expect_op_grouped = PauliExpectation(group_paulis=True).convert(~StateFn(two_qubit_H2) @ wf)
-        q_instance = QuantumInstance(
-            BasicAer.get_backend("statevector_simulator"),
-            seed_simulator=self.seed,
-            seed_transpiler=self.seed,
-        )
-        sampler = CircuitSampler(q_instance)
-        sampler._extract_circuitstatefns(expect_op_grouped)
-        num_circuits_grouped = len(sampler._circuit_ops_cache)
+        self.sampler.convert(expect_op_grouped)
+        num_circuits_grouped = len(self.sampler._circuit_ops_cache)
         self.assertEqual(num_circuits_grouped, 2)
 
     @unittest.skip(reason="IBMQ testing not available in general.")

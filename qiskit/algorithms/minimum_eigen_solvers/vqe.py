@@ -200,7 +200,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         """set quantum_instance"""
         super(VQE, self.__class__).quantum_instance.__set__(self, quantum_instance)
         self._circuit_sampler = CircuitSampler(
-            self._quantum_instance, param_qobj=is_aer_provider(self._quantum_instance.backend)
+            self._quantum_instance,
+            param_qobj=is_aer_provider(self._quantum_instance.backend),
+            split_transpile=self._split_transpile,
         )
 
     @property
@@ -493,10 +495,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         )  # type: Dict
 
         start_time = time()
-        sampled_expect_op = self._circuit_sampler.convert(
-            self._expect_op,
-            params=param_bindings,
-        )
+        sampled_expect_op = self._circuit_sampler.convert(self._expect_op, params=param_bindings)
         means = np.real(sampled_expect_op.eval())
 
         if self._callback is not None:

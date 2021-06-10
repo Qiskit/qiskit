@@ -31,6 +31,7 @@ from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.providers import Backend, BaseBackend
+from qiskit.utils import deprecate_arguments
 from qiskit.utils.backend_utils import is_aer_provider, is_statevector_backend
 from qiskit.utils.quantum_instance import QuantumInstance
 
@@ -59,6 +60,7 @@ class CircuitSampler(ConverterBase):
         param_qobj: bool = False,
         attach_results: bool = False,
         caching: str = "last",
+        split_transpile: bool = True,
     ) -> None:
         """
         Args:
@@ -73,6 +75,8 @@ class CircuitSampler(ConverterBase):
                 the circuits.
             caching: The caching strategy. Can be `'last'` (default) to store the last operator
                 that was converted, set to `'all'` to cache all processed operators.
+            split_transpile: ``True`` allows transpiling circuits for ansatz and expectation
+                separately.
 
         Raises:
             ValueError: Set statevector or param_qobj True when not supported by backend.
@@ -100,6 +104,7 @@ class CircuitSampler(ConverterBase):
         self._transpiled_circ_cache: Optional[List[Any]] = None
         self._transpiled_circ_templates: Optional[List[Any]] = None
         self._transpile_before_bind = True
+        self._split_transpile = split_transpile
 
     def _check_quantum_instance_and_modes_consistent(self) -> None:
         """Checks whether the statevector and param_qobj settings are compatible with the
@@ -204,7 +209,8 @@ class CircuitSampler(ConverterBase):
         # Don't pass circuits if we have in the cache, the sampling function knows to use the cache
         p_b = cast(List[Dict[Parameter, float]], param_bindings)
         sampled_statefn_dicts = self.sample_circuits(
-            operator=operator if not self._transpiled_circ_cache else None, param_bindings=p_b)
+            operator=operator if not self._transpiled_circ_cache else None, param_bindings=p_b
+        )
 
         def replace_circuits_with_dicts(operator, param_index=0):
             if isinstance(operator, CircuitStateFn):
@@ -241,7 +247,8 @@ class CircuitSampler(ConverterBase):
         self._cached_ops = {}
 
     def _extract_circuitstatefns(
-            self, operator: OperatorBase, result: Dict[int, CircuitStateFn]) -> None:
+        self, operator: OperatorBase, result: Dict[int, CircuitStateFn]
+    ) -> None:
         r"""
         Recursively extract the ``CircuitStateFns`` contained in operator into the
         ``_circuit_ops_cache`` field.
@@ -252,10 +259,13 @@ class CircuitSampler(ConverterBase):
             for op in operator.oplist:
                 self._extract_circuitstatefns(op, result)
 
+    # pylint: disable=unused-argument
+    @deprecate_arguments({"circuit_sfns": "operator"})
     def sample_circuits(
         self,
-        operator: OperatorBase = None,
+        operator: Optional[OperatorBase] = None,
         param_bindings: Optional[List[Dict[Parameter, float]]] = None,
+        circuit_sfns: Optional[List[CircuitStateFn]] = None,
     ) -> Dict[int, List[StateFn]]:
         r"""
         Samples the CircuitStateFns and returns a dict associating their ``id()`` values to their
@@ -269,6 +279,7 @@ class CircuitSampler(ConverterBase):
         Args:
             operator: The Operator to convert
             param_bindings: The parameterizations to bind to each CircuitStateFn.
+            circuit_sfns: [DEPRECATED] The list of CircuitStateFns to sample.
 
         Returns:
             The dictionary mapping ids of the CircuitStateFns to their replacement StateFns.
@@ -291,14 +302,15 @@ class CircuitSampler(ConverterBase):
                 op_c.to_circuit(meas=not self._statevector)
                 for op_c in list(self._circuit_ops_cache.values())
             ]
-            if (
-                len(circuits) > 1
-                and isinstance(operator, ComposedOp)
-                and len(operator) == 2
-                and isinstance(operator[1], CircuitStateFn)
-            ):
-                common_circuit = operator[1].to_circuit_op().reduce().to_circuit()
-                try:
+            try:
+                if (
+                    self._split_transpile
+                    and len(circuits) > 1
+                    and isinstance(operator, ComposedOp)
+                    and len(operator) == 2
+                    and isinstance(operator[1], CircuitStateFn)
+                ):
+                    common_circuit = operator[1].to_circuit_op().reduce().to_circuit()
                     # 1. transpile a common circuit
                     transpiled_common_circuit = self.quantum_instance.transpile(common_circuit)[0]
                     layout = transpiled_common_circuit._layout
@@ -327,26 +339,17 @@ class CircuitSampler(ConverterBase):
 
                     # 4. set transpiled circuit cache
                     self._transpiled_circ_cache = transpiled_circuits
-                except QiskitError:
-                    logger.debug(
-                        r"CircuitSampler failed to transpile circuits with unbound "
-                        r"parameters. Attempting to transpile only when circuits are bound "
-                        r"now, but this can hurt performance due to repeated transpilation."
-                    )
-                    self._transpile_before_bind = False
-                    self._transpiled_circ_cache = circuits
-            else:
-                self._transpiled_circ_templates = None
-                try:
+                else:
+                    self._transpiled_circ_templates = None
                     self._transpiled_circ_cache = self.quantum_instance.transpile(circuits)
-                except QiskitError:
-                    logger.debug(
-                        r"CircuitSampler failed to transpile circuits with unbound "
-                        r"parameters. Attempting to transpile only when circuits are bound "
-                        r"now, but this can hurt performance due to repeated transpilation."
-                    )
-                    self._transpile_before_bind = False
-                    self._transpiled_circ_cache = circuits
+            except QiskitError:
+                logger.debug(
+                    r"CircuitSampler failed to transpile circuits with unbound "
+                    r"parameters. Attempting to transpile only when circuits are bound "
+                    r"now, but this can hurt performance due to repeated transpilation."
+                )
+                self._transpile_before_bind = False
+                self._transpiled_circ_cache = circuits
 
         if param_bindings is not None:
             if self._param_qobj:
@@ -396,7 +399,7 @@ class CircuitSampler(ConverterBase):
                         # which must be converted to a complex value.
                         avg = avg[0] + 1j * avg[1]
                     # Will be replaced with just avg when eval is called later
-                    num_qubits = circuit_sfns[0].num_qubits
+                    num_qubits = next(iter(self._circuit_ops_cache.values())).num_qubits
                     result_sfn = (
                         DictStateFn("0" * num_qubits, is_measurement=op_c.is_measurement) * avg
                     )
