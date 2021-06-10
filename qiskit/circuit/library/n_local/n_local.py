@@ -595,7 +595,7 @@ class NLocal(BlueprintCircuit):
             return get_entangler_map(n, self.num_qubits, entanglement[i % num_i], offset=i)
 
         # entanglement is List[int]
-        if all(isinstance(e, int) for e in entanglement):
+        if all(isinstance(e, (int, numpy.int32, numpy.int64)) for e in entanglement):
             return [entanglement]
 
         # check if entanglement is List[List]
@@ -610,7 +610,7 @@ class NLocal(BlueprintCircuit):
             )
 
         # entanglement is List[List[int]]
-        if all(isinstance(e2, int) for e in entanglement for e2 in e):
+        if all(isinstance(e2, (int, numpy.int32, numpy.int64)) for e in entanglement for e2 in e):
             return entanglement
 
         # check if entanglement is List[List[List]]
@@ -618,7 +618,12 @@ class NLocal(BlueprintCircuit):
             raise ValueError("Invalid value of entanglement: {}".format(entanglement))
 
         # entanglement is List[List[List[int]]]
-        if all(isinstance(e3, int) for e in entanglement for e2 in e for e3 in e2):
+        if all(
+            isinstance(e3, (int, numpy.int32, numpy.int64))
+            for e in entanglement
+            for e2 in e
+            for e3 in e2
+        ):
             return entanglement[i % num_i]
 
         # check if entanglement is List[List[List[List]]]
@@ -626,7 +631,13 @@ class NLocal(BlueprintCircuit):
             raise ValueError("Invalid value of entanglement: {}".format(entanglement))
 
         # entanglement is List[List[List[List[int]]]]
-        if all(isinstance(e4, int) for e in entanglement for e2 in e for e3 in e2 for e4 in e3):
+        if all(
+            isinstance(e4, (int, numpy.int32, numpy.int64))
+            for e in entanglement
+            for e2 in e
+            for e3 in e2
+            for e4 in e3
+        ):
             return entanglement[i % num_i][j % num_j]
 
         raise ValueError("Invalid value of entanglement: {}".format(entanglement))
