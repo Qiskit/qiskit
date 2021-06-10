@@ -108,8 +108,7 @@ class TestIsometry(QiskitTestCase):
         result = execute(qc, simulator).result()
         unitary = result.get_unitary(qc)
         iso_from_circuit = unitary[::, 0 : 2 ** num_q_input]
-        iso_desired = iso
-        self.assertTrue(matrix_equal(iso_from_circuit, iso_desired, ignore_phase=True))
+        self.assertTrue(matrix_equal(iso_from_circuit, iso, ignore_phase=True))
 
     @data(
         np.eye(2, 2),
