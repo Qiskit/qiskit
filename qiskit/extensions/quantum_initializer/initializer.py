@@ -71,12 +71,18 @@ class Initialize(Instruction):
             )
         self._from_label = False
         self._from_int = False
+        self._from_str = True
 
         if isinstance(params, str):
             self._from_label = True
             num_qubits = len(params)
         elif isinstance(params, int):
             self._from_int = True
+            if num_qubits is None:
+                num_qubits = int(math.log2(params)) + 1
+            params = [params]
+        elif isinstance(params, str):
+            self._from_str = True
             if num_qubits is None:
                 num_qubits = int(math.log2(params)) + 1
             params = [params]
@@ -100,6 +106,8 @@ class Initialize(Instruction):
             self.definition = self._define_from_label()
         elif self._from_int:
             self.definition = self._define_from_int()
+        elif self._from_str:
+            self.definition = self._define_from_str()
         else:
             self.definition = self._define_synthesis()
 
@@ -126,6 +134,19 @@ class Initialize(Instruction):
 
         return initialize_circuit
 
+    def _define_from_str(self):
+        """map chars and strings to initializations"""
+        q = QuantumRegister(self.num_qubits, "q")
+        initialize_circuit = QuantumCircuit(q, name="init_def")
+        to_string = "".join(format(i, "08b") for i in bytearray(self.params[0], encoding="utf-8"))
+        #string as int array
+        to_int = [int(i) for i in str(to_string)]
+        for self.num_qubits, bit in enumerate(to_int):
+            initialize_circuit.append(Reset(), [q[self.num_qubits]])
+            if bit == "1":
+                initialize_circuit.append(XGate(), [q[self.num_qubits]])
+        return initialize_circuit  
+  
     def _define_from_int(self):
         q = QuantumRegister(self.num_qubits, "q")
         initialize_circuit = QuantumCircuit(q, name="init_def")
@@ -346,6 +367,9 @@ class Initialize(Instruction):
     def validate_parameter(self, parameter):
         """Initialize instruction parameter can be str, int, float, and complex."""
 
+        if self._from_str:
+            return parameter
+        
         # Initialize instruction parameter can be str
         if self._from_label:
             if parameter in ["0", "1", "+", "-", "l", "r"]:
