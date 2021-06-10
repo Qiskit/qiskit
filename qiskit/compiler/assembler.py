@@ -142,10 +142,11 @@ def assemble(
             ['gaussian', 'constant']
         init_qubits: Whether to reset the qubits to the ground state for each shot.
             Default: ``True``.
-        use_measure_esp: Whether to use ESP (excited state promoted) readout for the final
-            measurement in each circuit. ESP readout can offer higher fidelity than standard
-            measurement sequences. See `here <https://arxiv.org/pdf/2008.08571.pdf>`_.
-            Default (set on backend): ``True`` if backend supports ESP readout, else ``False``.
+        use_measure_esp: Whether to use excited state promoted (ESP) readout for the final
+            measurement in each circuit. ESP readout discriminates between the |0> and higher
+            transmon states to improve readout fidelity. See
+            `here <https://arxiv.org/pdf/2008.08571.pdf>`_.
+            Default: ``True`` if the backend supports ESP readout, else ``False``.
         **run_config: Extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
             arguments.
@@ -353,11 +354,12 @@ def _parse_common_args(
     ]
 
     measure_esp_enabled = getattr(backend_config, "measure_esp_enabled", False)
-    if use_measure_esp is None:
-        use_measure_esp = True if measure_esp_enabled else False  # default use of esp readout
-    if not measure_esp_enabled and use_measure_esp:
-        raise QiskitError("ESP readout not supported on this device. Please make sure the flag "
-                          "'use_measure_esp' is set to 'False' or not used.")
+    use_measure_esp = use_measure_esp or measure_esp_enabled  # default to backend support value
+    if use_measure_esp and not measure_esp_enabled:
+        raise QiskitError(
+            "ESP readout not supported on this device. Please make sure the flag "
+            "'use_measure_esp' is unset or set to 'False'."
+        )
 
     # create run configuration and populate
     run_config_dict = dict(

@@ -301,11 +301,10 @@ class QasmBackendConfiguration:
                 - segment: Segment this processor belongs to within a larger chip.
             parametric_pulses (list): A list of pulse shapes which are supported on the backend.
                 For example: ``['gaussian', 'constant']``
-            measure_esp_enabled (bool): Whether ESP readout is enabled on this device. ESP readout
-                discriminates between the |0> and higher transmon states so as to produce increased
-                readout fidelity. See `here <https://arxiv.org/pdf/2008.08571.pdf>`_. Defaults to
-                ``False``.
-
+            measure_esp_enabled (bool): Whether excited state promoted (ESP) readout is enabled on
+                this device. ESP readout discriminates between the |0> and higher transmon states to
+                improve readout fidelity. See `here <https://arxiv.org/pdf/2008.08571.pdf>`_.
+                Default: ``False``.
             **kwargs: optional fields
         """
         self._data = {}
