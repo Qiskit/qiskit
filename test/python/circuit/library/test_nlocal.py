@@ -732,6 +732,44 @@ class TestTwoLocal(QiskitTestCase):
 
         self.assertCircuitEqual(two.assign_parameters(parameters), ref)
 
+    def test_circuit_with_int_and_npint32(self):
+        """Test Equality of circuit with int and np.int32 entangling map"""
+        num_qubits = 6
+        reference = [(i, i + 1) for i in range(num_qubits - 1)]
+        expected = [(i, i + 1) for i in np.arange(num_qubits - 1, dtype=np.int32)]
+
+        self.assertCircuitEqual(
+            TwoLocal(num_qubits, entanglement=reference),
+            TwoLocal(num_qubits, entanglement=expected),
+        )
+        self.assertCircuitEqual(
+            TwoLocal(num_qubits, entanglement=[reference]),
+            TwoLocal(num_qubits, entanglement=[expected]),
+        )
+        self.assertCircuitEqual(
+            TwoLocal(num_qubits, entanglement=[[reference]]),
+            TwoLocal(num_qubits, entanglement=[[expected]]),
+        )
+
+    def test_circuit_with_int_and_npint64(self):
+        """Test Equality of circuit with int and np.int64 entangling map"""
+        num_qubits = 6
+        reference = [(i, i + 1) for i in range(num_qubits - 1)]
+        expected = [(i, i + 1) for i in np.arange(num_qubits - 1, dtype=np.int64)]
+
+        self.assertCircuitEqual(
+            TwoLocal(num_qubits, entanglement=reference),
+            TwoLocal(num_qubits, entanglement=expected),
+        )
+        self.assertCircuitEqual(
+            TwoLocal(num_qubits, entanglement=[reference]),
+            TwoLocal(num_qubits, entanglement=[expected]),
+        )
+        self.assertCircuitEqual(
+            TwoLocal(num_qubits, entanglement=[[reference]]),
+            TwoLocal(num_qubits, entanglement=[[expected]]),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
