@@ -7,6 +7,7 @@ import cplex
 import numpy as np
 from cplex import SparsePair
 
+from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.quantum_info import two_qubit_cnot_decompose
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition, \
@@ -25,16 +26,8 @@ class MIPMappingModel:
             self.do_layout = True
             initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        self.qiskit_qubit_to_logical = {}
-        self.physical_to_qiskit_qubit = {}
-        physical_map = initial_layout.get_physical_bits()
-        for logical in physical_map.values():
-            self.qiskit_qubit_to_logical[logical] = len(self.qiskit_qubit_to_logical)
-        # layout[i] contains the physical position of logical qubit i
-        self.layout = [0 for i in range(len(dag.qubits))]
-        for physical in physical_map.keys():
-            self.layout[self.qiskit_qubit_to_logical[physical_map[physical]]] = physical
-            self.physical_to_qiskit_qubit[physical] = physical_map[physical]
+        self.virtual_to_index = {v: i for i, v in enumerate(initial_layout.get_virtual_bits())}
+        self.index_to_virtual = {i: v for i, v in enumerate(initial_layout.get_virtual_bits())}
 
         # 2-qubit gates
         self.gates = []
@@ -42,7 +35,7 @@ class MIPMappingModel:
         gate_fidelity = []
         # Fidelities of the mirrored gate
         gate_mfidelity = []
-        self.gateslookup = {}
+        self.nodeslookup = {}
         self.meas = []
         # Map of MIP layers to circuit layers (since any empty layer
         # is eliminated from the problem, so some shifting may occur)
@@ -66,13 +59,13 @@ class MIPMappingModel:
                     else:
                         fidelity = [0.01, 0.01, 1.0, 0.01]
                         mfidelity = [0.01, 0.01, 0.01, 1.0]
-                    i1 = self.qiskit_qubit_to_logical[self.physical_to_qiskit_qubit[node.qargs[0].index]]
-                    i2 = self.qiskit_qubit_to_logical[self.physical_to_qiskit_qubit[node.qargs[1].index]]
+                    i1 = self.virtual_to_index[node.qargs[0]]
+                    i2 = self.virtual_to_index[node.qargs[1]]
                     laygates.append((i1, i2))
                     layfidelity.append(fidelity)
                     laymfidelity.append(mfidelity)
-                    self.gateslookup[(t, i1, i2)] = node
-                elif node.type == 'op' and node.name == 'meas':
+                    self.nodeslookup[(t, i1, i2)] = node
+                elif node.type == 'op' and isinstance(node.op, Measure):
                     self.meas.append(node)
             if laygates:
                 self.circuit_to_orig_layer.append(t)

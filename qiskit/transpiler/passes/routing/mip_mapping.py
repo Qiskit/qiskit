@@ -14,14 +14,15 @@
 import copy
 from typing import Optional
 
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit import DAGNode
 from qiskit.transpiler import TransformationPass, CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-from qiskit.transpiler.passes.routing.algorithms.mip_model import MIPMappingModel
 from qiskit.transpiler.passes.routing.algorithms import mip_model as qomp
+from qiskit.transpiler.passes.routing.algorithms.mip_model import MIPMappingModel
 
 
 class MIPMapping(TransformationPass):
@@ -73,18 +74,20 @@ class MIPMapping(TransformationPass):
         Raises:
             TranspilerError: if ...
         """
+        # TODO: should run on logical circuits
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
-            raise TranspilerError('MILP swapper runs on physical circuits.')
+            raise TranspilerError('MILP swapper runs on physical circuits only.')
 
         if len(dag.qubits) > self.coupling_map.size():
-            raise TranspilerError('More virtual qubits exist than physical.')
+            raise TranspilerError('More virtual qubits exist than physical qubits.')
+
+        canonical_register = dag.qregs['q']
+        mapped_dag = dag._copy_circuit_metadata()
 
         # set parameters depending on initial layout or circuit
         self.initial_layout = self.initial_layout or self.property_set['layout']
         self.dummy_steps = self.dummy_steps or min(4, dag.num_qubits())
         self.max_total_dummy = self.max_total_dummy or (self.dummy_steps * (self.dummy_steps - 1))
-
-        mapped_dag = self._copy_circuit_metadata(dag)
 
         model = MIPMappingModel(dag=dag,
                                 coupling_map=self.coupling_map,
@@ -99,8 +102,9 @@ class MIPMapping(TransformationPass):
 
         if not model.do_layout:
             # Fix initial layout variables
-            for i in range(ic.num_lqubits):
-                problem.variables.set_lower_bounds(ic.w_index(i, model.layout[i], 0), 1)
+            for q in range(ic.num_lqubits):
+                i = self.initial_layout[model.index_to_virtual[q]]
+                problem.variables.set_lower_bounds(ic.w_index(q, i, 0), 1)
 
         qomp.set_error_rate_obj(problem, ic)
 
@@ -134,26 +138,25 @@ class MIPMapping(TransformationPass):
             for (i, j) in ic.ht.arcs:
                 for (p, q) in ic.qc.gates[t]:
                     if problem.solution.get_values(ic.y_index(t, (p, q), (i, j))) > 0.5:
-                        mapped_gate = self._transform_gate(
-                            model.gateslookup[
-                                (model.circuit_to_orig_layer[lookup // (self.dummy_steps + 1)], p, q)], i,
-                            j)
-                        mapped_dag.apply_operation_back(mapped_gate.op, mapped_gate.qargs)
-
+                        org_node = model.nodeslookup[(model.circuit_to_orig_layer[lookup // (self.dummy_steps + 1)], p, q)]
+                        mapped_dag.apply_operation_back(
+                            op=org_node.op,
+                            qargs=[canonical_register[i], canonical_register[j]]
+                        )
+            for (i, j) in ic.ht.arcs:  # this loop ensure swaps come after 2q-gates for each layer
                 if t < ic.depth - 1:
                     for q in range(ic.num_lqubits):
-                        if (problem.solution.get_values(ic.x_index(q, i, j, t)) > 0.5) and i > j:
-                            swap_node = DAGNode(op=SwapGate(), qargs=[dag.qubits[i], dag.qubits[j]],
-                                                type='op')
-                            mapped_dag.apply_operation_back(swap_node.op, swap_node.qargs)
+                        if (problem.solution.get_values(ic.x_index(q, i, j, t)) > 0.5) and i < j:
+                            mapped_dag.apply_operation_back(
+                                op=SwapGate(),
+                                qargs=[canonical_register[i], canonical_register[j]]
+                            )
         # Reconstruct the qubit map after the final layer: the qubits
         # could be permuted compared to the initial permutation.
         inmap = {}
         outmap = {}
-        outmeas = [-1 for i in range(len(dag.qubits))]
-        for dag_index in range(len(dag.qubits)):
-            qiskit_qubit = model.physical_to_qiskit_qubit[dag.qubits[dag_index].index]
-            l = model.qiskit_qubit_to_logical[qiskit_qubit]
+        outmeas = [-1] * len(dag.qubits)
+        for l, v in model.index_to_virtual.items():
             inpos = None
             outpos = None
             for p in range(ic.num_pqubits):
@@ -162,36 +165,23 @@ class MIPMapping(TransformationPass):
                 if problem.solution.get_values(ic.w_index(l, p, ic.depth - 1)) > 0.5:
                     outpos = p
                     outmeas[l] = p
-            inmap[qiskit_qubit] = inpos
-            outmap[qiskit_qubit] = outpos
+            inmap[v] = inpos
+            outmap[v] = outpos
         # These are saved, but not sure if used anywhere
         self.property_set['layout'] = Layout(inmap)
         self.property_set['layout_in'] = Layout(inmap)
         self.property_set['final_layout'] = Layout(outmap)
         self.property_set['layout_out'] = Layout(outmap)
+        # print(self.property_set)
 
         # Remap measurements
         for m in model.meas:
             mapped_meas = copy.deepcopy(m)
-            l = model.qiskit_qubit_to_logical[model.physical_to_qiskit_qubit[m.qargs[0].index]]
-            m.qargs = [m.qargs[0].register[outmeas[l]]]
+            l = model.virtual_to_index[m.qargs[0]]
+            m.qargs = [canonical_register[outmeas[l]]]
             mapped_dag.apply_operation_back(op=mapped_meas.op, cargs=m.cargs, qargs=m.qargs)
 
         return mapped_dag
-
-    @staticmethod
-    def _copy_circuit_metadata(source_dag):
-        """Return a copy of source_dag with metadata but empty.
-        """
-        target_dag = DAGCircuit()
-        target_dag.name = source_dag.name
-
-        for qreg in source_dag.qregs.values():
-            target_dag.add_qreg(qreg)
-        for creg in source_dag.cregs.values():
-            target_dag.add_creg(creg)
-
-        return target_dag
 
     @staticmethod
     def _transform_gate(op_node, i, j):

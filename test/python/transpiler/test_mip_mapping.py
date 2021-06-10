@@ -50,13 +50,41 @@ class TestMIPMapping(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(actual), circuit_to_dag(circuit))
 
-    def test_a_single_swap(self):
-        """ Adding a swap
+    def test_no_swap(self):
+        """ Adding no swap if not giving initial layout
          q0:-------
          q1:---.---
                |
          q2:--(+)--
          CouplingMap map: [1]--[0]--[2]
+         initial_layout: None
+         q0:--(+)--
+               |
+         q1:---|---
+               |
+         q2:---.---
+        """
+        coupling = CouplingMap([[0, 1], [0, 2]])
+
+        qr = QuantumRegister(3, name='q')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[2])
+
+        actual = MIPMapping(coupling)(circuit)
+
+        expected = QuantumCircuit(qr)
+        expected.cx(qr[2], qr[0])
+
+        self.assertEqual(actual, expected)
+
+    def test_a_single_swap(self):
+        """ Adding a swap if fixing initial layout
+         q0:-------
+         q1:---.---
+               |
+         q2:--(+)--
+         CouplingMap map: [1]--[0]--[2]
+         initial_layout: trivial layout
          q0:--X--(+)--
               |   |
          q1:--|---.---
@@ -69,14 +97,12 @@ class TestMIPMapping(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[2])
 
-        actual = MIPMapping(coupling)(circuit)
+        property_set = {"layout": Layout.generate_trivial_layout(qr)}
+        actual = MIPMapping(coupling)(circuit, property_set)
 
         expected = QuantumCircuit(qr)
         expected.swap(qr[0], qr[2])
         expected.cx(qr[1], qr[0])
-
-        print(actual)
-        print(expected)
 
         self.assertEqual(actual, expected)
 
@@ -96,16 +122,14 @@ class TestMIPMapping(QiskitTestCase):
         circuit.measure(qr[1], cr[0])
         circuit.measure(qr[2], cr[1])
 
-        actual = MIPMapping(coupling)(circuit)
+        property_set = {"layout": Layout.generate_trivial_layout(qr)}
+        actual = MIPMapping(coupling)(circuit, property_set)
 
         expected = QuantumCircuit(qr, cr)
         expected.swap(qr[0], qr[2])
         expected.cx(qr[1], qr[0])
         expected.measure(qr[1], cr[0])
         expected.measure(qr[0], cr[1])  # <- changed due to swap insertion
-
-        print(actual)
-        print(expected)
 
         self.assertEqual(actual, expected)
 
@@ -139,13 +163,13 @@ class TestMIPMapping(QiskitTestCase):
                      |
          qr3:-------(+)-
          CouplingMap map: [0]--[1]--[2]--[3]
-         qr0:-(+)-X----------
-               |  |
-         qr1:--.--X--X-------
-                     |
-         qr2:--------X--.----
-                        |
-         qr3:----------(+)---
+         qr0:-(+)--X-------
+               |   |
+         qr1:--.---X-------
+
+         qr2:------X---.---
+                   |   |
+         qr3:------X--(+)--
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
 
@@ -154,16 +178,14 @@ class TestMIPMapping(QiskitTestCase):
         circuit.cx(qr[1], qr[0])
         circuit.cx(qr[0], qr[3])
 
-        actual = MIPMapping(coupling)(circuit)
+        property_set = {"layout": Layout.generate_trivial_layout(qr)}
+        actual = MIPMapping(coupling)(circuit, property_set)
 
         expected = QuantumCircuit(qr)
         expected.cx(qr[1], qr[0])
         expected.swap(qr[0], qr[1])
-        expected.swap(qr[1], qr[2])
-        expected.cx(qr[2], qr[3])
-
-        print(actual)
-        print(expected)
+        expected.swap(qr[2], qr[3])
+        expected.cx(qr[1], qr[2])
 
         self.assertEqual(actual, expected)
 
