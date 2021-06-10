@@ -191,7 +191,7 @@ Installation
    .. tabbed:: Compiler for Windows
 
       On Windows, it is easiest to install the Visual C++ compiler from the
-      `Build Tools for Visual Studio 2017 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017>`__.
+      `Build Tools for Visual Studio 2019 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019>`__.
       You can instead install Visual Studio version 2015 or 2017, making sure to select the
       options for installing the C++ compiler.
 
