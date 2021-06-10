@@ -16,17 +16,14 @@
 """Module providing definitions of Pulse Qobj classes."""
 
 import copy
-import json
 import pprint
 from typing import Union, List
-import warnings
 
 import numpy
 
 from qiskit.qobj.common import QobjDictField
 from qiskit.qobj.common import QobjHeader
 from qiskit.qobj.common import QobjExperimentHeader
-from qiskit.qobj.common import validator
 
 
 class QobjMeasurementOption:
@@ -559,20 +556,6 @@ class PulseQobj:
         self.type = "PULSE"
         self.schema_version = "1.2.0"
 
-    def _validate_json_schema(self, out_dict):
-        class PulseQobjEncoder(json.JSONEncoder):
-            """A json encoder for pulse qobj"""
-
-            def default(self, obj):
-                if isinstance(obj, numpy.ndarray):
-                    return obj.tolist()
-                if isinstance(obj, complex):
-                    return (obj.real, obj.imag)
-                return json.JSONEncoder.default(self, obj)
-
-        json_str = json.dumps(out_dict, cls=PulseQobjEncoder)
-        validator(json.loads(json_str))
-
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
         experiments_repr = "[" + ", ".join(experiments_str) + "]"
@@ -595,7 +578,7 @@ class PulseQobj:
             out += "%s" % str(experiment)
         return out
 
-    def to_dict(self, validate=False):
+    def to_dict(self):
         """Return a dictionary format representation of the Pulse Qobj.
 
         Note this dict is not in the json wire format expected by IBMQ and qobj
@@ -619,10 +602,6 @@ class PulseQobj:
 
             json.dumps(qobj.to_dict(), cls=QobjEncoder)
 
-        Args:
-            validate (bool): When set to true validate the output dictionary
-                against the jsonschema for qobj spec.
-
         Returns:
             dict: A dictionary representation of the PulseQobj object
         """
@@ -634,18 +613,6 @@ class PulseQobj:
             "type": self.type,
             "experiments": [x.to_dict() for x in self.experiments],
         }
-        if validate:
-            warnings.warn(
-                "The jsonschema validation included in qiskit-terra "
-                "is deprecated and will be removed in a future release. "
-                "If you're relying on this schema validation you should "
-                "pull the schemas from the Qiskit/ibmq-schemas and directly "
-                "validate your payloads with that",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            self._validate_json_schema(out_dict)
-
         return out_dict
 
     @classmethod
