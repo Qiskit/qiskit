@@ -80,9 +80,21 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 new_circs.append(decomposer._decompose(operator))
             if new_circs:
                 new_circ = min(new_circs, key=len)
-                if (all(g.name in self._target_basis and not dag.has_calibration_for(g)
-                        for g in run)
-                    and len(run) < len(new_circ)):
+
+                # is this run all in the target set and also uncalibrated?
+                rewriteable_and_in_basis_p = all(
+                    g.name in self._target_basis and not dag.has_calibration_for(g)
+                    for g in run
+                )
+                # does this run have uncalibrated gates?
+                uncalibrated_p = any(not dag.has_calibration_for(g) for g in run)
+                # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
+                uncalibrated_and_not_basis_p = any(
+                    g.name not in self._target_basis and not dag.has_calibration_for(g)
+                    for g in run
+                )
+
+                if (rewriteable_and_in_basis_p and len(run) < len(new_circ)):
                     # NOTE: This is short-circuited on calibrated gates, which we're timid about
                     #       reducing.
                     warnings.warn(f"Resynthesized {run} and got {new_circ}, "
@@ -91,13 +103,6 @@ class Optimize1qGatesDecomposition(TransformationPass):
                                   f"opening an issue here: "
                                   f"https://github.com/Qiskit/qiskit-terra/issues/new/choose",
                                   stacklevel=2)
-                # does this run have uncalibrated gates?
-                uncalibrated_p = any(not dag.has_calibration_for(g) for g in run)
-                # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
-                uncalibrated_and_not_basis_p = any(
-                    g.name not in self._target_basis and not dag.has_calibration_for(g)
-                    for g in run
-                )
                 # if we're outside of the basis set, we're obligated to logically decompose.
                 # if we're outside of the set of gates for which we have physical definitions,
                 #    then we _try_ to decompose, using the results if we see improvement.
