@@ -184,6 +184,10 @@ class SPSA(Optimizer):
             callback: A callback function passed information in each iteration step. The
                 information is, in this order: the number of function evaluations, the parameters,
                 the function value, the stepsize, whether the step was accepted.
+
+        Raises:
+            ValueError: If ``learning_rate`` or ``perturbation`` is an array with less elements
+                than the number of iterations.
         """
         super().__init__()
 
