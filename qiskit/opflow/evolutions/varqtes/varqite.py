@@ -168,6 +168,7 @@ class VarQITE(VarQTE):
     @staticmethod
     def get_max_bures(eps: float,
                       e: float,
+                      e_factor: float,
                       h_squared: float,
                       h_trip: float,
                       delta_t: float) -> float:
@@ -176,6 +177,7 @@ class VarQITE(VarQTE):
         Args:
             eps: Error from the previous time step
             e: Energy <psi_t|H|psi_t>
+            e_factor: Upper bound to |E - E*|
             h_squared: <psi_t|H^2|psi_t>
             h_trip: <psi_t|H^3|psi_t>
             delta_t: time step
@@ -187,8 +189,8 @@ class VarQITE(VarQTE):
         c_alpha = lambda a: np.sqrt(
             (1 - np.abs(a)) ** 2 + 2 * a * (1 - np.abs(a)) * e + a ** 2 * h_squared)
 
-        e_star = lambda a: ((1 - np.abs(a)) ** 2 * e + 2 * (a - a * np.abs(a)) * h_squared +
-                            a ** 2 * h_trip) / c_alpha(a) ** 2
+        # e_star = lambda a: ((1 - np.abs(a)) ** 2 * e + 2 * (a - a * np.abs(a)) * h_squared +
+        #                     a ** 2 * h_trip) / c_alpha(a) ** 2
 
         def bures(alpha: Iterable[float]) -> float:
             """
@@ -203,28 +205,31 @@ class VarQITE(VarQTE):
 
             alpha = alpha[0]
 
-            # |<psi*_t|(I + delta_t(E_t-H))^2|psi*_t>|
-            abs_val0 = lambda a: np.abs(1 + 2 * delta_t * (e - e_star(a)))
-            # |<psi_t|(I + delta_t(E_t-H))^2|psi*_t>|
-            abs_val1 = lambda a: np.abs(((1 - np.abs(a) + a * e) * (1 + 2 * delta_t * e) -
-                                         2 * delta_t * ((1 - np.abs(a)) * e + a * h_squared)) /
-                                        c_alpha(a))
+            # # |<psi*_t|(I + delta_t(E_t-H))^2|psi*_t>|
+            # abs_val0 = lambda a: np.abs(1 + 2 * delta_t * (e - e_star(a)))
+            # # |<psi_t|(I + delta_t(E_t-H))^2|psi*_t>|
+            # abs_val1 = lambda a: np.abs(((1 - np.abs(a) + a * e) * (1 + 2 * delta_t * e) -
+            #                              2 * delta_t * ((1 - np.abs(a)) * e + a * h_squared)) /
+            #                             c_alpha(a))
 
-            bures_squared = 1 + abs_val0(alpha) - 2 * abs_val1(alpha)
+            x = np.abs((1 + 2 * delta_t * e) * (1 - np.abs(alpha) + alpha*e) - 2 * delta_t * ((
+                    1-np.abs(alpha)) * e) + alpha * h_squared) / c_alpha(alpha)
 
-            # Check if B^2 is negative
-            if bures_squared < 0:
-                # If it is slightly negative then clip
-                if np.abs(bures_squared) < 1e-6:
-                    bures_squared = 0
-                # Else raise warning
-                else:
-                    print('Alpha led to Nan ', alpha)
-                    return math.nan
-
-            # B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
-            bures = np.sqrt(bures_squared)
-            return bures
+            # bures_squared = 1 + abs_val0(alpha) - 2 * abs_val1(alpha)
+            #
+            # # Check if B^2 is negative
+            # if bures_squared < 0:
+            #     # If it is slightly negative then clip
+            #     if np.abs(bures_squared) < 1e-6:
+            #         bures_squared = 0
+            #     # Else raise warning
+            #     else:
+            #         print('Alpha led to Nan ', alpha)
+            #         return math.nan
+            #
+            # # B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
+            # bures = np.sqrt(bures_squared)
+            return x
 
         def constraint1(alpha: Iterable[float]) -> float:
             """
@@ -244,7 +249,7 @@ class VarQITE(VarQTE):
             return 1 - np.abs(alpha[0])
 
         alpha_opt = None
-        max_bures = None
+        x = None
         # TODO Use again finer grid of 10**6
         # Grid search over alphas for the optimization
         a_grid = np.append(np.linspace(-1, 1, 10 ** 6), 0)
@@ -258,23 +263,23 @@ class VarQITE(VarQTE):
                 pass
             else:
                 # Check if the current bures metric is bigger than the max.
-                if max_bures is None or returned_bures > max_bures:
-                    max_bures = returned_bures
+                if x is None or returned_bures < x:
+                    x = returned_bures
                     alpha_opt = a
         # After the grid use the resulting optimal alpha and do another optimization search
         while True:
-            alpha_opt = fmin_cobyla(func=lambda x: (-1) * bures(x), x0=[alpha_opt],
+            alpha_opt = fmin_cobyla(func=lambda x: bures(x), x0=[alpha_opt],
                                     rhobeg=1e-5, catol=1e-12, maxfun=1000000,
                                     rhoend=1e-10, cons=[constraint1, constraint2])[0]
             if np.abs(alpha_opt) <= 1:
                 break
             print('Warning illegal alpha ', alpha_opt)
 
-        max_bures = bures([alpha_opt])
+        x = bures([alpha_opt])
 
-        if max_bures < 0:
+        if x < 0:
             print('something weird')
-
+        max_bures = np.sqrt(2 + 2 * delta_t * e_factor - x)
         print('alpha_opt ', alpha_opt)
         print('Maximum bures metric ', max_bures)
         return max_bures
@@ -289,9 +294,64 @@ class VarQITE(VarQTE):
                         stddev: float,
                         store: bool = False):
         return (self.get_error_term(delta_t, eps_t, grad_err, energy, h_squared, h_trip, stddev,
-                                    store
-                                    ) - eps_t) / \
-               delta_t
+                                    store) - eps_t) / delta_t
+
+    def get_energy_factor(self,
+                          eps_t: float,
+                          energy: float,
+                          stddev: float):
+        """
+        Get upper bound to |E-E*|
+        Args:
+            eps_t:
+            energy:
+            stddev:
+
+        Returns: upper bound to |E-E*|
+
+        """
+        def optimize_energy_factor(alpha):
+            print('alpha ', alpha)
+            return np.abs(alpha[0] * energy - np.sqrt(1 - (1-alpha[0])**2)* stddev)
+
+        def constraint1(alpha):
+            """
+            Ensure that alpha >= 0
+            Args:
+                alpha:
+
+            Returns: alpha
+
+            """
+            return alpha
+
+        def constraint2(alpha):
+            """
+            Ensure that alpha <= eps_t^2/2
+            Args:
+                alpha:
+
+            """
+            return eps_t**2/2 - alpha
+
+        x = None
+        # Grid search over alphas for the optimization
+        num_grid_points = eps_t**2/2 * 10**5 + 1
+        print('eps_t', eps_t)
+        for a in np.linspace(0, eps_t**2/2, int(num_grid_points)):
+            returned_x = optimize_energy_factor([a])
+            if math.isnan(returned_x):
+                print('optimization fun is nan')
+                pass
+            else:
+                # Check if the current bures metric is bigger than the max.
+                if x is None or returned_x > x:
+                    x = returned_x
+
+        # alpha_opt = fmin_cobyla(func=lambda x: (-1) * optimize_energy_factor(x), x0=[eps_t**2/4],
+        #                         rhobeg=1e-5, catol=1e-12, maxfun=1000000,
+        #                         rhoend=1e-10, cons=[constraint1, constraint2])
+        return eps_t**2 * self._h_norm + 2 * x
 
     def get_error_term(self, d_t, eps_t, grad_err,
                         energy: float,
@@ -308,11 +368,13 @@ class VarQITE(VarQTE):
         Returns: eps_j(delta_t)
 
         """
+        energy_factor = self.get_energy_factor(eps_t, energy, stddev)
         # max B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
-        y = self.get_max_bures(eps_t, energy, h_squared, h_trip, d_t)
+        y = self.get_max_bures(eps_t, energy, energy_factor, h_squared, h_trip, d_t)
         # eps_t*sqrt(var) + eps_t^2/2 * |E_t - ||H||_infty |
-        energy_factor = (2 * eps_t * stddev +
-                         eps_t ** 2 / 2 * np.abs(energy - self._h_norm))
+        # energy_factor = (2 * eps_t * stddev +
+        #                  eps_t ** 2 / 2 * np.abs(energy - self._h_norm))
+
         print('Max Bures ', y)
         print('grad factor ', grad_err)
         print('Energy error factor', energy_factor)
