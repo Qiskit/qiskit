@@ -7,7 +7,6 @@ import cplex
 import numpy as np
 from cplex import SparsePair
 
-from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.quantum_info import two_qubit_cnot_decompose
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition, \
@@ -20,12 +19,8 @@ logger = logging.getLogger(__name__)
 class MIPMappingModel:
     """Internal circuit and topology model to create a MIP problem for mapping
     """
-    def __init__(self, dag, coupling_map, initial_layout, basis_fidelity):
-        self.do_layout = False
-        if initial_layout is None:
-            self.do_layout = True
-            initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
-
+    def __init__(self, dag, coupling_map, basis_fidelity, fixed_layout=False):
+        initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
         self.virtual_to_index = {v: i for i, v in enumerate(initial_layout.get_virtual_bits())}
         self.index_to_virtual = {i: v for i, v in enumerate(initial_layout.get_virtual_bits())}
 
@@ -35,47 +30,38 @@ class MIPMappingModel:
         gate_fidelity = []
         # Fidelities of the mirrored gate
         gate_mfidelity = []
-        self.nodeslookup = {}
-        self.meas = []
-        # Map of MIP layers to circuit layers (since any empty layer
-        # is eliminated from the problem, so some shifting may occur)
-        self.circuit_to_orig_layer = []
         # Generate data structures for the optimization problem
         for t, lay in enumerate(dag.layers()):
             laygates = []
             layfidelity = []
             laymfidelity = []
-            for node in lay['graph'].nodes():
-                if len(node.qargs) == 2:
-                    matrix = node.op.to_matrix()
-                    swap = SwapGate().to_matrix()
-                    if basis_fidelity:
-                        target = TwoQubitWeylDecomposition(matrix)
-                        targetm = TwoQubitWeylDecomposition(matrix @ swap)
-                        traces = two_qubit_cnot_decompose.traces(target)
-                        tracesm = two_qubit_cnot_decompose.traces(targetm)
-                        fidelity = [trace_to_fid(traces[i]) for i in range(4)]
-                        mfidelity = [trace_to_fid(tracesm[i]) for i in range(4)]
-                    else:
-                        fidelity = [0.01, 0.01, 1.0, 0.01]
-                        mfidelity = [0.01, 0.01, 0.01, 1.0]
-                    i1 = self.virtual_to_index[node.qargs[0]]
-                    i2 = self.virtual_to_index[node.qargs[1]]
-                    laygates.append((i1, i2))
-                    layfidelity.append(fidelity)
-                    laymfidelity.append(mfidelity)
-                    self.nodeslookup[(t, i1, i2)] = node
-                elif node.type == 'op' and isinstance(node.op, Measure):
-                    self.meas.append(node)
+            subdag = lay['graph']
+            for node in subdag.two_qubit_ops():
+                matrix = node.op.to_matrix()
+                swap = SwapGate().to_matrix()
+                if basis_fidelity:
+                    target = TwoQubitWeylDecomposition(matrix)
+                    targetm = TwoQubitWeylDecomposition(matrix @ swap)
+                    traces = two_qubit_cnot_decompose.traces(target)
+                    tracesm = two_qubit_cnot_decompose.traces(targetm)
+                    fidelity = [trace_to_fid(traces[i]) for i in range(4)]
+                    mfidelity = [trace_to_fid(tracesm[i]) for i in range(4)]
+                else:
+                    fidelity = [0.01, 0.01, 1.0, 0.01]
+                    mfidelity = [0.01, 0.01, 0.01, 1.0]
+                i1 = self.virtual_to_index[node.qargs[0]]
+                i2 = self.virtual_to_index[node.qargs[1]]
+                laygates.append((i1, i2))
+                layfidelity.append(fidelity)
+                laymfidelity.append(mfidelity)
             if laygates:
-                self.circuit_to_orig_layer.append(t)
                 self.gates.append(laygates)
                 gate_fidelity.append(layfidelity)
                 gate_mfidelity.append(laymfidelity)
 
         # If we use a fixed layout, we add an empty layer of gates to
         # allow our MILP compiler to add swaps; otherwise, the MILP may be infeasible
-        if not self.do_layout:
+        if fixed_layout:
             self.gates = [[]] + self.gates
             gate_fidelity = [[]] + gate_fidelity
             gate_mfidelity = [[]] + gate_mfidelity

@@ -45,9 +45,6 @@ class TestMIPMapping(QiskitTestCase):
 
         actual = MIPMapping(coupling)(circuit)
 
-        print(actual)
-        print(circuit)
-
         self.assertEqual(circuit_to_dag(actual), circuit_to_dag(circuit))
 
     def test_no_swap(self):
