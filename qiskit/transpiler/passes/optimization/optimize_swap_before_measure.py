@@ -16,7 +16,7 @@
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, OpNode, OutNode
 
 
 class OptimizeSwapBeforeMeasure(TransformationPass):
@@ -42,8 +42,8 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
             final_successor = []
             for successor in dag.successors(swap):
                 final_successor.append(
-                    successor.type == "out"
-                    or (successor.type == "op" and isinstance(successor.op, Measure))
+                    isinstance(successor, OutNode)
+                    or (isinstance(successor, OpNode) and isinstance(successor.op, Measure))
                 )
             if all(final_successor):
                 # the node swap needs to be removed and, if a measure follows, needs to be adapted
@@ -54,7 +54,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                 for creg in dag.cregs.values():
                     measure_layer.add_creg(creg)
                 for successor in list(dag.successors(swap)):
-                    if successor.type == "op" and successor.op.name == "measure":
+                    if isinstance(successor, OpNode) and successor.op.name == "measure":
                         # replace measure node with a new one, where qargs is set with the "other"
                         # swap qarg.
                         dag.remove_op_node(successor)

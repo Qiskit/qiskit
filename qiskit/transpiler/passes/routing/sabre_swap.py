@@ -21,7 +21,7 @@ from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-from qiskit.dagcircuit import DAGNode
+from qiskit.dagcircuit import DAGNode, OpNode, OutNode
 
 logger = logging.getLogger(__name__)
 
@@ -166,12 +166,19 @@ class SabreSwap(TransformationPass):
         # Start algorithm from the front layer and iterate until all gates done.
         num_search_steps = 0
         front_layer = dag.front_layer()
+        for x in front_layer:
+            #if isinstance(x, OutNode):
+            print('\n\n\n\nFront Layer', type(x), type(front_layer))
         self.applied_gates = set()
         while front_layer:
             execute_gate_list = []
 
             # Remove as many immediately applicable gates as possible
             for node in front_layer:
+                if isinstance(node, OutNode):
+                    print('\n\n\n\n\nNode in front', node)
+                    front_layer.remove(node)
+                    continue
                 if len(node.qargs) == 2:
                     v0, v1 = node.qargs
                     if self.coupling_map.graph.has_edge(current_layout[v0], current_layout[v1]):
@@ -181,12 +188,16 @@ class SabreSwap(TransformationPass):
 
             if execute_gate_list:
                 for node in execute_gate_list:
+                    if isinstance(node, OutNode):
+                        print('\n\n\n\n\nOut Node', node)
                     new_node = _transform_gate_for_layout(node, current_layout, canonical_register)
+                    if isinstance(new_node, OutNode):
+                        print('\n\n\n\n\nOut Node 2', new_node)
                     mapped_dag.apply_operation_back(new_node.op, new_node.qargs, new_node.cargs)
                     front_layer.remove(node)
                     self.applied_gates.add(node)
                     for successor in dag.quantum_successors(node):
-                        if successor.type != "op":
+                        if isinstance(successor, OpNode):
                             continue
                         if self._is_resolved(successor, dag):
                             front_layer.append(successor)
@@ -195,8 +206,8 @@ class SabreSwap(TransformationPass):
                         self._reset_qubits_decay()
 
                 # Diagnostics
-                logger.debug("free! %s", [(n.name, n.qargs) for n in execute_gate_list])
-                logger.debug("front_layer: %s", [(n.name, n.qargs) for n in front_layer])
+                logger.debug("free! %s", [(n.name if isinstance(n, OpNode) else None, n.qargs) for n in execute_gate_list])
+                logger.debug("front_layer: %s", [(n.name if isinstance(n, OpNode) else None, n.qargs) for n in front_layer])
 
                 continue
 
@@ -217,7 +228,7 @@ class SabreSwap(TransformationPass):
             best_swaps = [k for k, v in swap_scores.items() if v == min_score]
             best_swaps.sort(key=lambda x: (self._bit_indices[x[0]], self._bit_indices[x[1]]))
             best_swap = rng.choice(best_swaps)
-            swap_node = DAGNode(op=SwapGate(), qargs=best_swap, type="op")
+            swap_node = OpNode(op=SwapGate(), qargs=best_swap)
             swap_node = _transform_gate_for_layout(swap_node, current_layout, canonical_register)
             mapped_dag.apply_operation_back(swap_node.op, swap_node.qargs)
             current_layout.swap(*best_swap)
@@ -249,7 +260,7 @@ class SabreSwap(TransformationPass):
     def _is_resolved(self, node, dag):
         """Return True if all of a node's predecessors in dag are applied."""
         predecessors = dag.quantum_predecessors(node)
-        predecessors = filter(lambda x: x.type == "op", predecessors)
+        predecessors = filter(lambda x: isinstance(x, OpNode), predecessors)
         return all(n in self.applied_gates for n in predecessors)
 
     def _obtain_extended_set(self, dag, front_layer):
@@ -267,7 +278,7 @@ class SabreSwap(TransformationPass):
             try:
                 _, successors = next(node_successor_generator)
                 successors = list(
-                    filter(lambda x: x.type == "op" and len(x.qargs) == 2, successors)
+                    filter(lambda x: isinstance(x, OpNode) and len(x.qargs) == 2, successors)
                 )
             except StopIteration:
                 node_lookahead_exhausted[i] = True

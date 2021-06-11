@@ -771,7 +771,7 @@ class DAGCircuit:
                 op.condition = condition
                 dag.apply_operation_back(op, m_qargs, m_cargs)
             else:
-                raise DAGCircuitError("bad node type %s" % nd.type)
+                raise DAGCircuitError("bad node type %s" % nd)
 
         if not inplace:
             return dag

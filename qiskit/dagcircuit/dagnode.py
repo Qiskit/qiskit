@@ -131,6 +131,14 @@ class OpNode(DAGNode):
         self.op = op
         super().__init__(qargs, cargs)
 
+    @property
+    def name(self):
+        return self.op.name
+
+    @name.setter
+    def name(self, new_name):
+        self.op.name = new_name
+
 
 class InNode(DAGNode):
     """Object to represent the information at a node in the DAGCircuit.

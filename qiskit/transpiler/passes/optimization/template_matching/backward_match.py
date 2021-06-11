@@ -27,6 +27,7 @@ Exact and practical pattern matching for quantum circuit optimization.
 import heapq
 
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.dagcircuit import OpNode
 
 
 class Match:
@@ -303,9 +304,9 @@ class BackwardMatch:
             bool: True if possible, False otherwise.
         """
         if (
-            node_circuit.type == "op"
+            isinstance(node_circuit, OpNode)
             and node_circuit.op.condition
-            and node_template.type == "op"
+            and isinstance(node_template, OpNode)
             and node_template.op.condition
         ):
             if set(carg_circuit) != set(node_template.cindices):

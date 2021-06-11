@@ -29,7 +29,7 @@ from qiskit.pulse import (
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.providers import basebackend
-from qiskit.dagcircuit import DAGNode
+from qiskit.dagcircuit import DAGNode, OpNode
 from qiskit.circuit.library.standard_gates import RZXGate
 from qiskit.transpiler.basepasses import TransformationPass
 
@@ -57,7 +57,7 @@ class CalibrationCreator(TransformationPass):
         bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
 
         for node in dag.nodes():
-            if node.type == "op":
+            if isinstance(node, OpNode):
                 if self.supported(node.op):
                     params = node.op.params
                     qubits = [bit_indices[qarg] for qarg in node.qargs]

@@ -13,7 +13,7 @@
 """Transform a circuit with virtual qubits into a circuit with physical qubits."""
 
 from qiskit.circuit import QuantumRegister
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, OpNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -59,7 +59,7 @@ class ApplyLayout(TransformationPass):
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
         for node in dag.topological_op_nodes():
-            if node.type == "op":
+            if isinstance(node, OpNode):
                 qargs = [q[layout[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs)
         new_dag._global_phase = dag._global_phase
