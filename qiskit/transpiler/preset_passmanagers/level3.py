@@ -239,18 +239,26 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         MIPMapping(coupling_map, silent=True, basis_fidelity=1 - 6.4e-3)
     ]
 
+    def _no_swap_condition(property_set):
+        return coupling_map is not None and property_set['is_swap_mapped']
+
+    def _trivial_layout_condition(property_set):
+        return not property_set['layout'] and _no_swap_condition(property_set)
+
     # Build pass manager
     pm3 = PassManager()
     pm3.append(_unroll3q)
     pm3.append(_reset + _meas)
     if coupling_map or initial_layout:
-        # pm3.append(_given_layout)
+        pm3.append(_given_layout)
         # pm3.append(_choose_layout_0, condition=_choose_layout_condition)
         # pm3.append(_choose_layout_1, condition=_trivial_not_perfect)
         # pm3.append(_choose_layout_2, condition=_csp_not_found_match)
         # pm3.append(_embed)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
+        pm3.append(TrivialLayout(coupling_map), condition=_trivial_layout_condition)
+        pm3.append(ApplyLayout(), condition=_no_swap_condition)
     pm3.append(_unroll)
     if coupling_map and not coupling_map.is_symmetric:
         pm3.append(_direction_check)

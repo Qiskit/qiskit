@@ -109,13 +109,12 @@ class MIPMapping(TransformationPass):
                                 basis_fidelity=self.basis_fidelity)
 
         if len(model.gates) == 0:
-            # TODO: rewrite without dag<->circuit conversion
             # No need for mapping but have to apply trivial layout
-            pm = PassManager([
-                TrivialLayout(self.coupling_map),
-                ApplyLayout()
-            ])
-            mapped_dag = circuit_to_dag(pm.run(dag_to_circuit(dag)))
+            trivial_layout = Layout.generate_trivial_layout(
+                *(dag.qubits + list(dag.qregs.values())))
+            pass_ = ApplyLayout()
+            pass_.property_set["layout"] = trivial_layout
+            mapped_dag = pass_.run(dag)
             return mapped_dag
 
         problem, ic = model.create_cpx_problem(
