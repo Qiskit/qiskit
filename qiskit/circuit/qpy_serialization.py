@@ -101,6 +101,7 @@ as:
         uint32_t size;
         unit16_t name_size;
     }
+
 ``type`` can be ``'q'`` or ``'c'``.
 
 Immediately following the REGISTER struct is the utf8 encoded register name of
