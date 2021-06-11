@@ -80,15 +80,28 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 new_circs.append(decomposer._decompose(operator))
             if new_circs:
                 new_circ = min(new_circs, key=len)
-                if all(g.name in self._target_basis for g in run) and len(run) < len(new_circ):
+                if (all(g.name in self._target_basis and not dag.has_calibration_for(g)
+                        for g in run)
+                    and len(run) < len(new_circ)):
+                    # NOTE: This is short-circuited on calibrated gates, which we're timid about
+                    #       reducing.
                     warnings.warn(f"Resynthesized {run} and got {new_circ}, "
-                                  f"but the original was native and the new "
-                                  f"value is longer.  This indicates an "
-                                  f"efficiency bug in synthesis.  Please "
-                                  f"report it by opening an issue here:"
+                                  f"but the original was native and the new value is longer.  This "
+                                  f"indicates an efficiency bug in synthesis.  Please report it by "
+                                  f"opening an issue here: "
                                   f"https://github.com/Qiskit/qiskit-terra/issues/new/choose",
                                   stacklevel=2)
-                if any(g.name not in self._target_basis for g in run) or len(run) >= len(new_circ):
+                # does this run have uncalibrated gates?
+                uncalibrated_p = any(not dag.has_calibration_for(g) for g in run)
+                # does this run have gates which are not in the image of .basis _and_ uncalibrated?
+                uncalibrated_and_not_basis_p = any(
+                    g.name not in self._target_basis and not dag.has_calibration_for(g)
+                    for g in run
+                )
+                # if we're outside of the basis set, we're obligated to logically decompose.
+                # if we're outside of the set of gates for which we have physical definitions,
+                #    then we _try_ to decompose, using the results if we see improvement.
+                if uncalibrated_and_not_basis_p or (uncalibrated_p and len(run) >= len(new_circ)):
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
                     # Delete the other nodes in the run
