@@ -45,7 +45,7 @@ class TestCompareGradientImplementations(unittest.TestCase):
         self.assertTrue(isinstance(depth, (int, np.int64)))
         _EPS = float(np.sqrt(np.finfo(np.float64).eps))
         _TINY = float(np.power(np.finfo(np.float64).tiny, 0.25))
-        cnots = generate_random_cnots(nqubits=nqubits, depth=depth)
+        cnots = generate_random_cnots(num_qubits=nqubits, depth=depth)
         depth = cnots.shape[1]  # might be less than initial depth
         U = random_SU(nqubits)
         grad_dflt = DefaultGradient(num_qubits=nqubits, cnots=cnots)

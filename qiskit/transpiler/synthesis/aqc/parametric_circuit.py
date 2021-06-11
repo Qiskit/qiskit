@@ -74,7 +74,7 @@ class ParametricCircuit:
                     raise ValueError("misspelled parameter {:s}".format(k))
 
             cnots = make_cnot_network(
-                nqubits=num_qubits,
+                num_qubits=num_qubits,
                 network_layout=kwargs.get(_LAYOUT, "spin"),
                 connectivity_type=kwargs.get(_CONNECTIVITY, "full"),
                 depth=kwargs.get(_DEPTH, int(0)),

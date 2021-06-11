@@ -31,21 +31,18 @@ class CNotCompressor:
     2011, sections "Rule V" to "Rule VII".
     """
 
-    def __init__(self):
-        pass
-
     @staticmethod
-    def compress(nqubits: int, cnots: np.ndarray) -> np.ndarray:
+    def compress(num_qubits: int, cnots: np.ndarray) -> np.ndarray:
         """
         Applies compression rules to the input CNOT structure and outputs
         a new, compressed one.
         """
-        check_num_qubits(nqubits)
-        check_cnots(nqubits=nqubits, cnots=cnots)
+        check_num_qubits(num_qubits)
+        check_cnots(nqubits=num_qubits, cnots=cnots)
 
         compressed = cnots.copy()  # compressed CNOTs
-        c = np.zeros(4, dtype=cnots.dtype)  # temporary array of control bits
-        t = np.zeros(4, dtype=cnots.dtype)  # temporary array of target bits
+        controls = np.zeros(4, dtype=cnots.dtype)  # temporary array of control bits
+        targets = np.zeros(4, dtype=cnots.dtype)  # temporary array of target bits
 
         # Loop over CNOT list while changes are still happening ...
         modified = True
@@ -55,14 +52,15 @@ class CNotCompressor:
             # Loop through the list of CNOTs and find compressible patterns ...
             i = 0
             while True:
+                # TODO: What is N here?
                 N = compressed.shape[1]
                 if i + 4 <= N:
                     # Copy a fragment of circuit to avoid side effects.
-                    c[0:4] = compressed[0, i : i + 4]  # 4 control bits
-                    t[0:4] = compressed[1, i : i + 4]  # 4 target bits
+                    controls[0:4] = compressed[0, i : i + 4]  # 4 control bits
+                    targets[0:4] = compressed[1, i : i + 4]  # 4 target bits
 
                     # Try to compress 4 consecutive CNOTs.
-                    cnots_new = CNotCompressor._compress4(c[0:4], t[0:4], i, compressed)
+                    cnots_new = CNotCompressor._compress4(controls[0:4], targets[0:4], i, compressed)
                     if compressed.size > cnots_new.size:
                         compressed = cnots_new
                         modified = True
@@ -70,11 +68,11 @@ class CNotCompressor:
 
                 if i + 3 <= N:
                     # Copy a fragment of circuit to avoid side effects.
-                    c[0:3] = compressed[0, i : i + 3]  # 3 control bits
-                    t[0:3] = compressed[1, i : i + 3]  # 3 target bits
+                    controls[0:3] = compressed[0, i : i + 3]  # 3 control bits
+                    targets[0:3] = compressed[1, i : i + 3]  # 3 target bits
 
                     # Try to compress 3 consecutive CNOTs.
-                    cnots_new = CNotCompressor._compress3(c[0:3], t[0:3], i, compressed)
+                    cnots_new = CNotCompressor._compress3(controls[0:3], targets[0:3], i, compressed)
                     if compressed.size > cnots_new.size:
                         compressed = cnots_new
                         modified = True
@@ -201,7 +199,7 @@ class CNotSynthesis:
         pass
 
     @staticmethod
-    def synthesis(nqubits: int, cnots: np.ndarray, choose_shortest: bool = True) -> np.ndarray:
+    def synthesis(num_qubits: int, cnots: np.ndarray, choose_shortest: bool = True) -> np.ndarray:
         """
         Runs Synthesis algorithm for CNOT structure compression.
         N O T E: the algorithm does not guarantee shorter CNOT structure after
@@ -209,7 +207,7 @@ class CNotSynthesis:
         choose_shortest enforces selection of the best structure: either
         the compressed one or the original.
         Args:
-            nqubits: number of qubits.
+            num_qubits: number of qubits.
             cnots: CNOT structure of size 2xN subject to compression.
             choose_shortest: if True, the shortest structure is selected,
                              either the compressed or the original one.
@@ -218,11 +216,11 @@ class CNotSynthesis:
         """
         assert isinstance(choose_shortest, bool)
         depth = cnots.shape[1]
-        m = min(nqubits - 1, min(max(1, int(round(float(np.log2(nqubits))))), 8))
-        A = CNotSynthesis._build_circuit_matrix(nqubits, cnots)
-        lower_circuit = CNotSynthesis._lower_cnot_synth(nqubits, m, A, depth)
+        m = min(num_qubits - 1, min(max(1, int(round(float(np.log2(num_qubits))))), 8))
+        A = CNotSynthesis._build_circuit_matrix(num_qubits, cnots)
+        lower_circuit = CNotSynthesis._lower_cnot_synth(num_qubits, m, A, depth)
         A = A.T.copy()
-        upper_circuit = CNotSynthesis._lower_cnot_synth(nqubits, m, A, depth)
+        upper_circuit = CNotSynthesis._lower_cnot_synth(num_qubits, m, A, depth)
 
         # Concatenate upper/lower results. Note, "upper_circuit" is flipped
         # over both (!) axes.
@@ -237,13 +235,13 @@ class CNotSynthesis:
             return synth_cnots
 
     @staticmethod
-    def compare_cnot_circuits(nqubits: int, cnots1: np.ndarray, cnots2: np.ndarray) -> bool:
+    def compare_cnot_circuits(num_qubits: int, cnots1: np.ndarray, cnots2: np.ndarray) -> bool:
         """
         Returns True, if two CNOT structures implement the same circuit
         albeit the different number of CNOTs.
         """
-        M1 = CNotSynthesis._build_circuit_matrix(nqubits, cnots1)
-        M2 = CNotSynthesis._build_circuit_matrix(nqubits, cnots2)
+        M1 = CNotSynthesis._build_circuit_matrix(num_qubits, cnots1)
+        M2 = CNotSynthesis._build_circuit_matrix(num_qubits, cnots2)
         assert M1.dtype == np.int64 and M2.dtype == np.int64
         return np.all(M1 == M2)
 
@@ -302,11 +300,12 @@ class CNotSynthesis:
         # There are 2^m possible 0/1 patterns in a section of size m:
         pattern = np.zeros(2 ** m, dtype=np.int64)
         # Marker of previously unseen pattern:
-        _NOT_FOUND = -1
+        # TODO: Why we need this?
+        not_found = -1
 
         # Iterate over column sections.
         for sec in range((n + m - 1) // m):  # range(ceil(n / m))
-            pattern.fill(_NOT_FOUND)
+            pattern.fill(not_found)
 
             # Remove duplicate sub-rows in section "sec".
             for row in range(sec * m, n):
@@ -316,7 +315,7 @@ class CNotSynthesis:
                 assert 0 <= sub_row_patt < pattern.size
                 patt = pattern[sub_row_patt]
 
-                if patt == _NOT_FOUND:
+                if patt == not_found:
                     # Memorise row index where this pattern was seen first time.
                     pattern[sub_row_patt] = row
                 else:
@@ -355,8 +354,8 @@ class CNotSynthesis:
         return circuit
 
 
-def CompressCNOTs(
-    nqubits: int, cnots: np.ndarray, choose_shortest: bool = True, check_correctness: bool = True
+def compress_cnots(
+    num_qubits: int, cnots: np.ndarray, choose_shortest: bool = True, check_correctness: bool = True
 ) -> np.ndarray:
     """
     Compresses CNOT structure by applying Synthesis algorithm
@@ -368,22 +367,24 @@ def CompressCNOTs(
     compression (although this is typically the case). Parameter
     choose_shortest enforces selection of the best structure: either
     the compressed one or the original.
+
     Args:
-        nqubits: number of qubits.
+        num_qubits: number of qubits.
         cnots: CNOT structure of size 2xN subject to compression.
         choose_shortest: if True, the shortest structure is selected,
                          either the compressed or the original one.
         check_correctness: flag enforces verification of compression.
+
     Returns:
         compressed structure with possibly fewer CNOTs.
     """
     assert isinstance(choose_shortest, bool)
     assert isinstance(check_correctness, bool)
-    compressed_by_rules = CNotCompressor.compress(nqubits, cnots)
-    synth_cnots = CNotSynthesis.synthesis(nqubits, compressed_by_rules, choose_shortest)
-    compressed_by_rules = CNotCompressor.compress(nqubits, synth_cnots)
+    compressed_by_rules = CNotCompressor.compress(num_qubits, cnots)
+    synth_cnots = CNotSynthesis.synthesis(num_qubits, compressed_by_rules, choose_shortest)
+    compressed_by_rules = CNotCompressor.compress(num_qubits, synth_cnots)
     if check_correctness:
-        assert CNotSynthesis.compare_cnot_circuits(nqubits, cnots, compressed_by_rules)
+        assert CNotSynthesis.compare_cnot_circuits(num_qubits, cnots, compressed_by_rules)
     return compressed_by_rules
 
 

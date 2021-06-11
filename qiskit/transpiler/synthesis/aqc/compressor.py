@@ -9,31 +9,28 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Circuit compressor classes."""
 
 from abc import abstractmethod, ABC
+from typing import Tuple, List, Dict
+
 import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator, OneQubitEulerDecomposer
 from .parametric_circuit import ParametricCircuit
 
-# Avoid excessive deprecation warnings in Qiskit on Linux system.
-import warnings
-
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-
 
 class CompressorBase(ABC):
-    """Interface to any implementation of circuit compressor."""
-
-    def __init__(self):
-        pass
+    """A base interface for a circuit compressor."""
 
     @abstractmethod
     def compress(self, circuit: ParametricCircuit) -> ParametricCircuit:
         """
         Compresses a parametric circuit.
+
         Args:
             circuit: parametric circuit to be compressed.
+
         Returns:
             compressed circuit.
         """
@@ -42,16 +39,14 @@ class CompressorBase(ABC):
 
 class EulerCompressor(CompressorBase):
     """
-    This is the first implementation by Andrea Simonetto where two strategies
-    have been used. First, consecutive bare CNOTs (that stem from block with
-    all zero thetas) are compressed by using mirror relation as described in
-    "Equivalent Quantum Circuits", Garcia-Escartin and Posada, 2011. Another
-    variant of bare CNOT compression (aka "synthesis") borrows its idea from:
-    "Optimal synthesis of linear reversible circuits", Patel et all, 2008.
-    Second, by Euler decomposition of consecutive 1-qubit gates this approach
-    extracts Rz and Rx gates that can be flipped over CNOT one in hope to
-    merge them with 1-qubit gates of preceding block. Flip trick is detailed in:
-    "Minimal Universal Two-Qubit CNOT-based Circuits", Shende et all, 2004.
+    This is the first implementation by Andrea Simonetto where two strategies have been used.
+    First, consecutive bare CNOTs (that stem from block with all zero thetas) are compressed by
+    using mirror relation as described in "Equivalent Quantum Circuits", Garcia-Escartin and
+    Posada, 2011. Another variant of bare CNOT compression (aka "synthesis") borrows its idea from:
+    "Optimal synthesis of linear reversible circuits", Patel et all, 2008. Second, by Euler
+    decomposition of consecutive 1-qubit gates this approach extracts Rz and Rx gates that can be
+    flipped over CNOT one in hope to merge them with 1-qubit gates of preceding block. Flip trick
+    is detailed in: "Minimal Universal Two-Qubit CNOT-based Circuits", Shende et all, 2004.
     """
 
     def __init__(self, eps: float = 0.04, niter: int = 100, synth: bool = False, verbose: int = 0):
@@ -182,9 +177,9 @@ class EulerCompressor(CompressorBase):
         # Internal routines to identify naked CNOT units and compress the circuit
 
         # 1. Build a qiskit circuit,
-        Vbase = ParametricCircuit(num_qubits=n, cnots=lcnots, thetas=thetas)
+        v_base = ParametricCircuit(num_qubits=n, cnots=lcnots, thetas=thetas)
         # todo: why is tol=-1. ?
-        qc = Vbase.to_qiskit(reverse=True, tol=-1.0)
+        qc = v_base.to_qiskit(reverse=True, tol=-1.0)
         # Vbase.Plot(qc)
 
         qc2add = QuantumCircuit(n, 1)
@@ -213,7 +208,7 @@ class EulerCompressor(CompressorBase):
         qbit_map = dict()
         for ii in range(n):
             qbit_map[ii] = ii
-        qc_reduced, cnots, gate_list = self._reduce(qcirc.data, qbit_map)
+        _, cnots, gate_list = self._reduce(qcirc.data, qbit_map)
         th_in, qct_in = self._extract_thetas(cnots, gate_list)
 
         if len(qc.data) > p:
@@ -222,7 +217,7 @@ class EulerCompressor(CompressorBase):
             qct = QuantumCircuit(q)
             for ops in instructions:
                 qct.append(ops[0], ops[1], ops[2])
-            qc_reduced, cnots, gate_list = self._reduce(qct.data, qbit_map)
+            _, cnots, gate_list = self._reduce(qct.data, qbit_map)
             # th = np.zeros(3*n + 4*np.shape(cnots)[1])
             # print('Patching Circuits and Angles --- ')
             # print(th_in, len(th_in), L)
@@ -250,8 +245,8 @@ class EulerCompressor(CompressorBase):
             U1 = Operator(qcirc).data
             V1 = Operator(qct).data
             alpha = np.angle(np.trace(np.dot(V1.conj().T, U1)))
-            Unew1 = np.exp(-1j * alpha) * U1
-            diff = np.linalg.norm(Unew1 - V1)
+            u_new1 = np.exp(-1j * alpha) * U1
+            diff = np.linalg.norm(u_new1 - V1)
 
             if np.abs(diff) > 0.001:
                 print("Internal inconsistency: failed compression")
@@ -341,7 +336,9 @@ class EulerCompressor(CompressorBase):
                 indices = np.unique(sec)
                 num_indices = np.shape(indices)[0]
                 red_sec = sec
-                # print('parameters: ', indices, num_indices, sec, red_cnots, L, i, np.shape(red_cnots)[1])
+                # TODO: remove
+                # print('parameters: ', indices, num_indices, sec, red_cnots,
+                #       L, i, np.shape(red_cnots)[1])
                 if num_indices == 3:
                     j = sec[0, 0]
                     k = sec[1, 0]
@@ -419,12 +416,12 @@ class EulerCompressor(CompressorBase):
     def _minimal(cnots: np.ndarray, niter: int):
         # alternates between commute and reduce
         min_cnots = np.array(cnots)
-        for i in range(niter):
+        for _ in range(niter):
             # print('External i = ', i, ' cnots = ', min_cnots)
-            for j in range(np.shape(cnots)[1]):
+            for _ in range(np.shape(cnots)[1]):
                 min_cnots = EulerCompressor._reduce_for_minimal(min_cnots)
             # print('reduce ', min_cnots)
-            for j in range(np.shape(cnots)[1]):
+            for _ in range(np.shape(cnots)[1]):
                 min_cnots = EulerCompressor._compress_equals(min_cnots)
             # print('compress equals ', min_cnots)
             min_cnots = EulerCompressor._commute(min_cnots)
@@ -432,7 +429,7 @@ class EulerCompressor(CompressorBase):
         return min_cnots
 
     @staticmethod
-    def _reduce(qc_data, qubit_map):
+    def _reduce(qc_data, qubit_map) -> Tuple[QuantumCircuit, List, Dict]:
         """
         Transforms to a QC that is in the same fashion with CNOT structures.
         Note, exactly the same function remains in transformations.py
@@ -443,7 +440,7 @@ class EulerCompressor(CompressorBase):
             qubit_map:
 
         Returns:
-
+            a tuple of quantum circuit, a list of two cnot structures, a dictionary of gates
         """
         qc = QuantumCircuit(len(qubit_map), 1)
         cnots_u = []
@@ -473,10 +470,10 @@ class EulerCompressor(CompressorBase):
         return qc, cnots, gate_list
 
     @staticmethod
-    def _extract_thetas(cnots, gate_list):
+    def _extract_thetas(cnots, gate_list) -> Tuple[np.ndarray, QuantumCircuit]:
         """
-        Note, exactly the same function remains in transformations.py
-        where it is used for transpilation.
+        TODO: add description
+
         Args:
             cnots:
             gate_list:
@@ -495,7 +492,7 @@ class EulerCompressor(CompressorBase):
                 nn = len(gate_list[qbits]) - ii - 1
 
                 if gate_list[qbits][nn] == "xd":
-                    if op == []:
+                    if not op:  # TODO: originally op == []
                         thetas[qbits] += [0.0, 0.0]
                     else:
                         # RxRyRx decomposition on the lower layer
@@ -511,14 +508,16 @@ class EulerCompressor(CompressorBase):
                                     qcirc.rx(ops[0], 0)
 
                         angles = OneQubitEulerDecomposer(basis="XYX").angles(Operator(qcirc).data)
-                        # [angles[1], angles[0], angles[2]]  # this is how qiskit output the angles for XYX
+                        # TODO: remove
+                        # [angles[1], angles[0], angles[2]]
+                        # this is how qiskit output the angles for XYX
                         alpha = angles[2]
                         thetas[qbits] += [angles[0], angles[1]]
 
                         op = [[alpha, "rx"]]  # rotation gate x!
 
                 elif gate_list[qbits][nn] == "xu":
-                    if op == []:
+                    if not op:    # TODO: originally op == []
                         thetas[qbits] += [0.0, 0.0]
                     else:
                         # print('OP ', op[0].params, op[0].definition, op[0].decompositions)
@@ -536,7 +535,9 @@ class EulerCompressor(CompressorBase):
 
                         # print(Operator(qcirc).data)
                         angles = OneQubitEulerDecomposer(basis="ZYZ").angles(Operator(qcirc).data)
-                        # [angles[1], angles[0], angles[2]]  # this is how qiskit output the angles for ZYZ
+                        # TODO: remove
+                        # [angles[1], angles[0], angles[2]]
+                        # this is how qiskit output the angles for ZYZ
                         alpha = angles[2]
                         thetas[qbits] += [angles[0], angles[1]]
 
@@ -545,7 +546,7 @@ class EulerCompressor(CompressorBase):
                 else:
                     op += [gate_list[qbits][nn]]
 
-            if op == []:
+            if not op:
                 thetas[qbits] += [0.0, 0.0, 0.0]
             else:
                 q = QuantumRegister(1, name="q")

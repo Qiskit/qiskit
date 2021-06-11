@@ -31,13 +31,13 @@ class TestCompareCNOTStructures(unittest.TestCase):
         for n in range(1, 51):
             print(".", end="", flush=True)
             if n > 1:
-                self.assertEqual(get_connectivity(nqubits=n, connectivity="full"), full_conn(n))
-                self.assertEqual(get_connectivity(nqubits=n, connectivity="line"), line(n))
-                self.assertEqual(get_connectivity(nqubits=n, connectivity="star"), star(n))
+                self.assertEqual(get_connectivity(num_qubits=n, connectivity="full"), full_conn(n))
+                self.assertEqual(get_connectivity(num_qubits=n, connectivity="line"), line(n))
+                self.assertEqual(get_connectivity(num_qubits=n, connectivity="star"), star(n))
             else:
-                self.assertEqual(len(get_connectivity(nqubits=n, connectivity="full")), 1)
-                self.assertEqual(len(get_connectivity(nqubits=n, connectivity="line")), 1)
-                self.assertEqual(len(get_connectivity(nqubits=n, connectivity="star")), 1)
+                self.assertEqual(len(get_connectivity(num_qubits=n, connectivity="full")), 1)
+                self.assertEqual(len(get_connectivity(num_qubits=n, connectivity="line")), 1)
+                self.assertEqual(len(get_connectivity(num_qubits=n, connectivity="star")), 1)
         print("")
 
     def test_cmp_qubit_network(self):
@@ -57,10 +57,10 @@ class TestCompareCNOTStructures(unittest.TestCase):
                 print(layout)
                 for n in range(2, 51):
                     print(".", end="", flush=True)
-                    links = get_connectivity(nqubits=n, connectivity=conn)
+                    links = get_connectivity(num_qubits=n, connectivity=conn)
                     for L in range(0 if n < 10 else 1, 256):
                         qn = make_cnot_network(
-                            nqubits=n,
+                            num_qubits=n,
                             network_layout=layout,
                             connectivity_type=conn,
                             depth=L,
@@ -80,7 +80,7 @@ class TestCompareCNOTStructures(unittest.TestCase):
         for n in range(3, 15):
             print("'cart' network, nqubits: {:d}".format(n))
             qn = make_cnot_network(
-                nqubits=n, network_layout="cart", connectivity_type="full", depth=0, verbose=1
+                num_qubits=n, network_layout="cart", connectivity_type="full", depth=0, verbose=1
             )
             self.assertTrue(np.all(qn == cart(n)))
 

@@ -21,11 +21,6 @@ import numpy as np
 from numpy import linalg as la
 from qiskit.circuit.library import XGate, YGate, ZGate
 
-# Avoid excessive deprecation warnings in Qiskit on Linux system.
-import warnings
-
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-
 
 # X = [[0, 1], [1, 0]]
 X = XGate().to_matrix()
@@ -37,11 +32,31 @@ Z = ZGate().to_matrix()
 
 # todo: some of them they may have been already defined in qiskit,
 #  but for now we re-define them here
-def unitary(u, n, j):
+def unitary(u, n, j) -> np.ndarray:
+    """
+
+    Args:
+        u:
+        n:
+        j:
+
+    Returns:
+        TODO: An array
+    """
     return np.kron(np.kron(np.eye(2 ** (j - 1)), u), np.eye(2 ** (n - j)))
 
 
-def CNOT(n, j, k):
+def CNOT(n, j, k) -> np.ndarray:
+    """
+
+    Args:
+        n:
+        j:
+        k:
+
+    Returns:
+
+    """
     if j < k:
         V = np.kron(
             np.kron(np.eye(2 ** (j - 1)), [[1, 0], [0, 0]]), np.eye(2 ** (n - j))
@@ -65,22 +80,22 @@ def CNOT(n, j, k):
     return V
 
 
-def Rx(phi):
-    u = [[np.cos(phi / 2), -1j * np.sin(phi / 2)], [-1j * np.sin(phi / 2), np.cos(phi / 2)]]
+def Rx(phi) -> np.ndarray:
+    u = np.array([[np.cos(phi / 2), -1j * np.sin(phi / 2)], [-1j * np.sin(phi / 2), np.cos(phi / 2)]])
     return u
 
 
-def Ry(phi):
-    u = [[np.cos(phi / 2), -np.sin(phi / 2)], [np.sin(phi / 2), np.cos(phi / 2)]]
+def Ry(phi) -> np.ndarray:
+    u = np.array([[np.cos(phi / 2), -np.sin(phi / 2)], [np.sin(phi / 2), np.cos(phi / 2)]])
     return u
 
 
-def Rz(phi):
-    u = [[np.exp(-1j * phi / 2), 0], [0, np.exp(1j * phi / 2)]]
+def Rz(phi) -> np.ndarray:
+    u = np.array([[np.exp(-1j * phi / 2), 0], [0, np.exp(1j * phi / 2)]])
     return u
 
 
-def mcx_gate_matrix(nqubits: int, make_SU: bool = True) -> np.ndarray:
+def mcx_gate_matrix(num_qubits: int, make_su: bool = True) -> np.ndarray:
     """
     Generates a multi-control CX gate as a Numpy matrix.
     Equivalent to:
@@ -93,22 +108,24 @@ def mcx_gate_matrix(nqubits: int, make_SU: bool = True) -> np.ndarray:
     should be scaled accordingly, similar to what is done in the code below.
 
     Args:
-        nqubits: total number of qubits, should be within [2 .. 16] interval.
-        make_SU: generate SU matrix, if True, otherwise a generic unitary one.
+        num_qubits: total number of qubits, should be within [2 .. 16] interval.
+        make_su: generate SU matrix, if True, otherwise a generic unitary one.
+
     Returns:
         MCX gate matrix.
     """
-    assert isinstance(nqubits, (int, np.int64)) and 2 <= nqubits <= 16
-    assert isinstance(make_SU, bool)
-    d = int(2 ** nqubits)
+    assert isinstance(num_qubits, (int, np.int64)) and 2 <= num_qubits <= 16
+    assert isinstance(make_su, bool)
+    d = int(2 ** num_qubits)
     U = np.eye(d, dtype=np.cfloat)
     U[d - 2 : d, d - 2 : d] = [[0, 1], [1, 0]]
-    if make_SU:  # make SU matrix from the generic unitary one
+    if make_su:  # make SU matrix from the generic unitary one
         U /= (np.linalg.det(U) + 0j) ** (1 / d)
     return U
 
 
-def toffoli_gate(n):
+# TODO: replace with Qiskit
+def toffoli_gate(n) -> np.ndarray:
     # Generate a Toffoli gate
     d = int(2 ** n)
     U = np.eye(d)
@@ -117,7 +134,8 @@ def toffoli_gate(n):
     return U
 
 
-def fredkin_gate():
+# TODO: replace with Qiskit
+def fredkin_gate() -> np.ndarray:
     # Generate a Fredkin gate with 3 qubits
     n = 3
     d = int(2 ** n)
@@ -125,6 +143,3 @@ def fredkin_gate():
     U[3:6, 3:6] = [[0, 0, 1], [0, 1, 0], [1, 0, 0]]
     U = U / ((la.det(U) + 0j) ** (1 / d))
     return U
-
-
-# transpile(qc.reverse_bits(), basis_gates=["rx", "ry", "rz", "cx"], optimization_level=3)

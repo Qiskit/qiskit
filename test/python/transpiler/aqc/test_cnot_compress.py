@@ -15,7 +15,7 @@ from qiskit.transpiler.synthesis.aqc.cnot_structures import generate_random_cnot
 from qiskit.transpiler.synthesis.aqc.cnot_compress import (
     CNotCompressor,
     CNotSynthesis,
-    CompressCNOTs,
+    compress_cnots,
 )
 
 
@@ -34,7 +34,7 @@ class TestCNotCompress(unittest.TestCase):
         """
         Runs Synthesis algorithm on a randomly generated CNOT structure.
         """
-        cnots = generate_random_cnots(nqubits=nqubits, depth=depth, set_depth_limit=False)
+        cnots = generate_random_cnots(num_qubits=nqubits, depth=depth, set_depth_limit=False)
         self.assertTrue(depth == cnots.shape[1])
         synth_cnots = CNotSynthesis.synthesis(nqubits, cnots, False)
         delta = int(cnots.shape[1] - synth_cnots.shape[1])
@@ -48,7 +48,7 @@ class TestCNotCompress(unittest.TestCase):
         Returns:
             (number of qubits, reduction of CNOTs after compression)
         """
-        cnots = generate_random_cnots(nqubits=nqubits, depth=depth, set_depth_limit=False)
+        cnots = generate_random_cnots(num_qubits=nqubits, depth=depth, set_depth_limit=False)
         self.assertTrue(depth == cnots.shape[1])
         compressed = CNotCompressor.compress(nqubits, cnots)
         if (depth % 5) == 0:
@@ -64,9 +64,9 @@ class TestCNotCompress(unittest.TestCase):
         Returns:
             (number of qubits, reduction of CNOTs after compression)
         """
-        cnots = generate_random_cnots(nqubits=nqubits, depth=depth, set_depth_limit=False)
+        cnots = generate_random_cnots(num_qubits=nqubits, depth=depth, set_depth_limit=False)
         self.assertTrue(depth == cnots.shape[1])
-        compressed = CompressCNOTs(nqubits, cnots, False, False)
+        compressed = compress_cnots(nqubits, cnots, False, False)
         delta = int(cnots.shape[1] - compressed.shape[1])
         if (depth % 5) == 0:
             self._print_progress(delta)

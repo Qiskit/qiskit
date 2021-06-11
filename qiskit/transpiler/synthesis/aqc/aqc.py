@@ -22,6 +22,9 @@ from .compressor import EulerCompressor
 
 logger = logging.getLogger(__name__)
 
+# tolerance constant for equality checks
+EPS = 100.0 * np.finfo(np.float64).eps
+
 
 class AQC:
     """
@@ -40,6 +43,18 @@ class AQC:
         group=False,
         group_size=4,
     ):
+        """
+
+        Args:
+            method:
+            maxiter:
+            eta:
+            tol:
+            eps:
+            reg:
+            group:
+            group_size:
+        """
         super().__init__()
         self._method = method
         self._maxiter = maxiter
@@ -51,21 +66,27 @@ class AQC:
         self._group_size = group_size
 
     def compile_unitary(
-        self, target_matrix: np.ndarray, cnots: np.ndarray, thetas0: np.ndarray, verbose: int = 0
+        self, target_matrix: np.ndarray, cnots: np.ndarray, thetas0: np.ndarray
     ) -> ParametricCircuit:
         """
-        TODO: description.
+
+        Args:
+            target_matrix:
+            cnots:
+            thetas0:
+            verbose:
+
+        Returns:
+            A parametric circuit that approximate target matrix.
         """
-        _EPS = 100.0 * np.finfo(np.float64).eps
         assert isinstance(target_matrix, np.ndarray)
         assert isinstance(cnots, np.ndarray)
         assert isinstance(thetas0, np.ndarray)
-        assert isinstance(verbose, int)
         gradient_backend = "default"
         num_qubits = int(round(np.log2(target_matrix.shape[0])))
         self._adjust_optimization_parameters(num_qubits)
 
-        self._message("Optimizing via FISTA ...", verbose)
+        logger.debug("Optimizing via FISTA ...")
         circuit = ParametricCircuit(num_qubits=num_qubits, cnots=cnots, thetas=thetas0)
         circuit.init_gradient_backend(gradient_backend)
         circuit.set_thetas(thetas0)
@@ -78,22 +99,29 @@ class AQC:
             reg=self._reg,
             group=True,
         )
-        thetas, obj, gra, _ = optimizer.optimize(target_matrix, circuit)
-        assert np.allclose(thetas, circuit.thetas, atol=_EPS, rtol=_EPS)
+        thetas, _, _, _ = optimizer.optimize(target_matrix, circuit)
+        # TODO: remove
+        assert np.allclose(thetas, circuit.thetas, atol=EPS, rtol=EPS)
 
-        self._message("Compressing the circuit ...", verbose)
+        logger.debug("Compressing the circuit ...")
         compressed_circuit = EulerCompressor(synth=False).compress(circuit)
 
-        self._message("Re-optimizing via gradient descent ...", verbose)
+        logger.debug("Re-optimizing via gradient descent ...")
         compressed_circuit.init_gradient_backend(gradient_backend)
         optimizer = GDOptimizer(self._method, self._maxiter, self._eta, self._tol, self._eps)
-        thetas, obj, gra, thetas_min = optimizer.optimize(target_matrix, compressed_circuit)
-        assert np.allclose(thetas_min, compressed_circuit.thetas, atol=_EPS, rtol=_EPS)
+        thetas, _, _, thetas_min = optimizer.optimize(target_matrix, compressed_circuit)
+        # TODO: remove
+        assert np.allclose(thetas_min, compressed_circuit.thetas, atol=EPS, rtol=EPS)
         return compressed_circuit
 
     def _adjust_optimization_parameters(self, num_qubits: int):
         """
-        TODO: description.
+
+        Args:
+            num_qubits:
+
+        Returns:
+
         """
         if num_qubits <= 3:
             self._maxiter = 200
@@ -105,8 +133,9 @@ class AQC:
             self._maxiter = 500
             self._eta = 0.03
 
-    @staticmethod
-    def _message(msg: str, verbose: int = 0):
-        if verbose >= 1:
-            print(msg)
-        logger.debug(msg)
+    # TODO: remove
+    # @staticmethod
+    # def _message(msg: str, verbose: int = 0):
+    #     if verbose >= 1:
+    #         print(msg)
+    #     logger.debug(msg)

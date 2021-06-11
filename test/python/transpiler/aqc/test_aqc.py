@@ -13,6 +13,8 @@
 """
 Tests AQC framework using hardcoded and randomly generated circuits.
 """
+from qiskit.test import QiskitTestCase
+
 print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
 import sys, os, traceback
@@ -34,7 +36,7 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-class TestAqc(unittest.TestCase):
+class TestAqc(QiskitTestCase):
     def setUp(self) -> None:
         self._maxiter = int(5e3)
         self._eta = 0.1  # .1 for n=3, .01 for n=5
@@ -49,7 +51,7 @@ class TestAqc(unittest.TestCase):
 
         num_qubits = int(round(np.log2(np.array(ORIGINAL_CIRCUIT).shape[0])))
         cnots = make_cnot_network(
-            nqubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
+            num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
         )
 
         aqc = AQC(
