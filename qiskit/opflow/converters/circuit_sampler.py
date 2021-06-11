@@ -313,7 +313,6 @@ class CircuitSampler(ConverterBase):
                     common_circuit = operator[1].to_circuit_op().reduce().to_circuit()
                     # 1. transpile a common circuit
                     transpiled_common_circuit = self.quantum_instance.transpile(common_circuit)[0]
-                    layout = transpiled_common_circuit._layout
 
                     # 2. transpile diff circuits
                     diff_circuits = []
@@ -321,10 +320,23 @@ class CircuitSampler(ConverterBase):
                         diff_circuit = circuit.copy()
                         del diff_circuit.data[0 : len(common_circuit)]
                         diff_circuits.append(diff_circuit)
-                    orig_layout = self.quantum_instance.compile_config["initial_layout"]
-                    self.quantum_instance.compile_config["initial_layout"] = layout
+
+                    if transpiled_common_circuit._layout is not None:
+                        layout = transpiled_common_circuit._layout.copy()
+                        used_qubits = set([])
+                        for diff_circuit in diff_circuits:
+                            for used_qubit in diff_circuit.qubits:
+                                used_qubits.add(used_qubit)
+                        for q in list(layout.get_virtual_bits().keys()):
+                            if q not in used_qubits:
+                                del layout[q]
+                        orig_layout = self.quantum_instance.compile_config["initial_layout"]
+                        self.quantum_instance.compile_config["initial_layout"] = layout
+
                     diff_circuits = self.quantum_instance.transpile(diff_circuits)
-                    self.quantum_instance.compile_config["initial_layout"] = orig_layout
+
+                    if transpiled_common_circuit._layout is not None:
+                        self.quantum_instance.compile_config["initial_layout"] = orig_layout
 
                     # 3. combine
                     transpiled_circuits = []
