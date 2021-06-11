@@ -385,7 +385,6 @@ class DAGCircuit:
             int: The integer node index for the new op node on the DAG
         """
         # Add a new operation node to the graph
-        #new_node = DAGNode(qargs=qargs, cargs=cargs)
         new_node = OpNode(op=op, qargs=qargs, cargs=cargs)
         node_index = self._multi_graph.add_node(new_node)
         new_node._node_id = node_index
@@ -1297,7 +1296,7 @@ class DAGCircuit:
 
     def successors(self, node):
         """Returns iterator of the successors of a node as DAGNodes."""
-        return self._multi_graph.successors(node._node_id)
+        return iter(self._multi_graph.successors(node._node_id))
 
     def predecessors(self, node):
         """Returns iterator of the predecessors of a node as DAGNodes."""
@@ -1581,8 +1580,8 @@ class DAGCircuit:
         op_dict = {}
         path = self.longest_path()
         path = path[1:-1]  # remove qubits at beginning and end of path
-        for op in path:
-            name = op.name
+        for node in path:
+            name = node.op.name
             if name not in op_dict:
                 op_dict[name] = 1
             else:
