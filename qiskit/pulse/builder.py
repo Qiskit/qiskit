@@ -1399,7 +1399,7 @@ def acquire_channel(qubit: int) -> chans.AcquireChannel:
 
 
 def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
-    """Return ``AcquireChannel`` for ``qubit`` on the active builder backend.
+    """Return ``ControlChannel`` for ``qubit`` on the active builder backend.
 
     Return the secondary drive channel for the given qubit -- typically
     utilized for controlling multi-qubit interactions.

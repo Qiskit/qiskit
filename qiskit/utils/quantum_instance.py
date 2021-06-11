@@ -23,7 +23,6 @@ from qiskit.utils import circuit_utils
 from qiskit.exceptions import QiskitError
 from .backend_utils import (
     is_ibmq_provider,
-    is_aer_provider,
     is_statevector_backend,
     is_simulator_backend,
     is_local_backend,
@@ -332,15 +331,28 @@ class QuantumInstance:
         if not had_transpiled:
             circuits = self.transpile(circuits)
 
-        # fix for providers that don't support QasmQobj until a bigger refactor happens
         from qiskit.providers import BackendV1
 
-        circuit_job = (
-            isinstance(self._backend, BackendV1)
-            and not is_aer_provider(self._backend)
-            and not is_basicaer_provider(self._backend)
-            and not is_ibmq_provider(self._backend)
-        )
+        circuit_job = isinstance(self._backend, BackendV1)
+        if self.is_statevector and self._backend.name() == "aer_simulator_statevector":
+            try:
+                from qiskit.providers.aer.library import SaveStatevector
+
+                def _find_save_state(data):
+                    for instr, _, _ in reversed(data):
+                        if isinstance(instr, SaveStatevector):
+                            return True
+                    return False
+
+                if isinstance(circuits, list):
+                    for circuit in circuits:
+                        if not _find_save_state(circuit.data):
+                            circuit.save_statevector()
+                else:
+                    if not _find_save_state(circuits.data):
+                        circuits.save_statevector()
+            except ImportError:
+                pass
 
         # assemble
         if not circuit_job:
@@ -538,7 +550,18 @@ class QuantumInstance:
 
             if meas_error_mitigation_fitter is not None:
                 logger.info("Performing measurement error mitigation.")
-                skip_num_circuits = len(result.results) - len(circuits)
+                if (
+                    hasattr(self._run_config, "parameterizations")
+                    and len(self._run_config.parameterizations) > 0
+                    and len(self._run_config.parameterizations[0]) > 0
+                    and len(self._run_config.parameterizations[0][0]) > 0
+                ):
+                    num_circuit_templates = len(self._run_config.parameterizations)
+                    num_param_variations = len(self._run_config.parameterizations[0][0])
+                    num_circuits = num_circuit_templates * num_param_variations
+                else:
+                    num_circuits = len(circuits)
+                skip_num_circuits = len(result.results) - num_circuits
                 #  remove the calibration counts from result object to assure the length of
                 #  ExperimentalResult is equal length to input circuits
                 result.results = result.results[skip_num_circuits:]
