@@ -244,6 +244,7 @@ class QasmBackendConfiguration:
         dt=None,
         dtm=None,
         processor_type=None,
+        parametric_pulses=None,
         **kwargs,
     ):
         """Initialize a QasmBackendConfiguration Object
@@ -297,6 +298,8 @@ class QasmBackendConfiguration:
                 - family: Processor family of this backend.
                 - revision: Revision version of this processor.
                 - segment: Segment this processor belongs to within a larger chip.
+            parametric_pulses (list): A list of pulse shapes which are supported on the backend.
+                For example: ``['gaussian', 'constant']``
 
             **kwargs: optional fields
         """
@@ -354,7 +357,10 @@ class QasmBackendConfiguration:
             self.dtm = dtm * 1e-9
         if processor_type is not None:
             self.processor_type = processor_type
+        if parametric_pulses is not None:
+            self.parametric_pulses = parametric_pulses
 
+        # convert lo range from GHz to Hz
         if "qubit_lo_range" in kwargs.keys():
             kwargs["qubit_lo_range"] = [
                 [min_range * 1e9, max_range * 1e9]
@@ -439,6 +445,7 @@ class QasmBackendConfiguration:
             "dt",
             "dtm",
             "processor_type",
+            "parametric_pulses",
         ]:
             if hasattr(self, kwarg):
                 out_dict[kwarg] = getattr(self, kwarg)
@@ -450,15 +457,16 @@ class QasmBackendConfiguration:
         if "dtm" in out_dict:
             out_dict["dtm"] *= 1e9
 
+        # Use GHz in dict
         if "qubit_lo_range" in out_dict:
             out_dict["qubit_lo_range"] = [
-                [min_range * 1e9, max_range * 1e9]
+                [min_range * 1e-9, max_range * 1e-9]
                 for (min_range, max_range) in out_dict["qubit_lo_range"]
             ]
 
         if "meas_lo_range" in out_dict:
             out_dict["meas_lo_range"] = [
-                [min_range * 1e9, max_range * 1e9]
+                [min_range * 1e-9, max_range * 1e-9]
                 for (min_range, max_range) in out_dict["meas_lo_range"]
             ]
 
@@ -596,12 +604,15 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         self.n_uchannels = n_uchannels
         self.u_channel_lo = u_channel_lo
         self.meas_levels = meas_levels
+
+        # convert from GHz to Hz
         self.qubit_lo_range = [
             [min_range * 1e9, max_range * 1e9] for (min_range, max_range) in qubit_lo_range
         ]
         self.meas_lo_range = [
             [min_range * 1e9, max_range * 1e9] for (min_range, max_range) in meas_lo_range
         ]
+
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
@@ -726,6 +737,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             out_dict.pop("_channel_qubit_map")
             out_dict.pop("_control_channels")
 
+        # Use GHz in dict
         if self.qubit_lo_range:
             out_dict["qubit_lo_range"] = [
                 [min_range * 1e-9, max_range * 1e-9]
