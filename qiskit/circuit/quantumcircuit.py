@@ -31,7 +31,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
