@@ -352,6 +352,20 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         self._check_operator_ansatz(operator)
 
+        # if expectation was never created, try to create one
+        if self.expectation is None:
+            self._factory_expectation = ExpectationFactory.build(
+                operator=operator,
+                backend=self.quantum_instance,
+                include_custom=self._include_custom,
+            )
+            if self.expectation is None:
+                raise AlgorithmError(
+                    "No expectation set and could not automatically set one, please "
+                    "try explicitly setting an expectation or specify a backend so it "
+                    "can be chosen automatically."
+                )
+
         param_dict = dict(zip(self._ansatz_params, parameter))  # type: Dict
         wave_function = self.ansatz.assign_parameters(param_dict)
 
@@ -430,20 +444,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         # this sets the size of the ansatz, so it must be called before the initial point
         # validation
         self._check_operator_ansatz(operator)
-
-        # if expectation was never created, try to create one
-        if self.expectation is None:
-            self._factory_expectation = ExpectationFactory.build(
-                operator=operator,
-                backend=self.quantum_instance,
-                include_custom=self._include_custom,
-            )
-            if self.expectation is None:
-                raise AlgorithmError(
-                    "No expectation set and could not automatically set one, please "
-                    "try explicitly setting an expectation or specify a backend so it "
-                    "can be chosen automatically."
-                )
 
         initial_point = _validate_initial_point(self.initial_point, self.ansatz)
 
