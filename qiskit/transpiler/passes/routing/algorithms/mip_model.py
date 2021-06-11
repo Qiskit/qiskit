@@ -66,6 +66,9 @@ class MIPMappingModel:
             gate_fidelity = [[]] + gate_fidelity
             gate_mfidelity = [[]] + gate_mfidelity
 
+        if len(self.gates) == 0:
+            return
+
         self.circuit_model = _CircuitModel(
             num_qubits=len(dag.qubits),
             depth=len(self.gates),

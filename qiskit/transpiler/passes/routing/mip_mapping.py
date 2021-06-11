@@ -12,16 +12,26 @@
 
 """Map a DAGCircuit onto a `coupling_map` allocating qubits and adding swap gates."""
 import copy
+import logging
+import warnings
 from typing import Optional
 
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import TransformationPass, CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
+from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
+from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
+from qiskit.transpiler.passes.layout.trivial_layout import TrivialLayout
 from qiskit.transpiler.passes.routing.algorithms import mip_model as qomp
 from qiskit.transpiler.passes.routing.algorithms.mip_model import MIPMappingModel
+from qiskit.transpiler.passmanager import PassManager
+
+logger = logging.getLogger(__name__)
 
 
 class MIPMapping(TransformationPass):
@@ -39,7 +49,6 @@ class MIPMapping(TransformationPass):
                  time_limit_depth: float = 30,
                  dummy_steps: Optional[int] = None,
                  max_total_dummy: Optional[int] = None,
-                 initial_layout=None,
                  heuristic_emphasis: bool = False,
                  line_symm : bool = False,
                  cycle_symm : bool = False):
@@ -50,7 +59,6 @@ class MIPMapping(TransformationPass):
         """
         super().__init__()
         self.coupling_map = copy.deepcopy(coupling_map)  # save a copy since some methods modify it
-        self.initial_layout = initial_layout
         self.dummy_steps = dummy_steps
         self.max_total_dummy = max_total_dummy
         self.silent = silent
@@ -60,7 +68,6 @@ class MIPMapping(TransformationPass):
         self.heuristic_emphasis = heuristic_emphasis
         self.line_symm = line_symm
         self.cycle_symm = cycle_symm
-        self.fixed_layout = False
 
     def run(self, dag):
         """Run the MIPMapping pass on `dag`.
@@ -74,39 +81,48 @@ class MIPMapping(TransformationPass):
         Raises:
             TranspilerError: if ...
         """
+        if self.coupling_map is None:
+            return dag
+
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError('More virtual qubits exist than physical qubits.')
 
-        canonical_register = QuantumRegister(self.coupling_map.size(), 'q')
-        mapped_dag = self._create_empty_dagcircuit(dag, canonical_register)
+        if self.property_set['layout']:
+            warnings.warn("MIPMapping ignores the initial_layout", UserWarning)
 
-        # set parameters depending on initial layout or circuit
-        self.initial_layout = self.initial_layout or self.property_set['layout']
-        if self.initial_layout is not None:
-            self.fixed_layout = True
-            if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
-                raise TranspilerError('MIPMapper with fixed layout runs on physical circuits only.')
+        # MIPMappingModel assumes num_virtual_qubits == num_physical_qubits
+        # TODO: rewrite without dag<->circuit conversion
+        pm = PassManager([
+            TrivialLayout(self.coupling_map),
+            FullAncillaAllocation(self.coupling_map),
+            EnlargeWithAncilla()
+        ])
+        dag = circuit_to_dag(pm.run(dag_to_circuit(dag)))
+
+        # set parameters depending on circuit
         # TODO: set more safety dummy_steps
         self.dummy_steps = self.dummy_steps or min(4, dag.num_qubits())
         self.max_total_dummy = self.max_total_dummy or (self.dummy_steps * (self.dummy_steps - 1))
 
         model = MIPMappingModel(dag=dag,
                                 coupling_map=self.coupling_map,
-                                basis_fidelity=self.basis_fidelity,
-                                fixed_layout=self.fixed_layout)
+                                basis_fidelity=self.basis_fidelity)
+
+        if len(model.gates) == 0:
+            # TODO: rewrite without dag<->circuit conversion
+            # No need for mapping but have to apply trivial layout
+            pm = PassManager([
+                TrivialLayout(self.coupling_map),
+                ApplyLayout()
+            ])
+            mapped_dag = circuit_to_dag(pm.run(dag_to_circuit(dag)))
+            return mapped_dag
 
         problem, ic = model.create_cpx_problem(
             self.dummy_steps,
             self.max_total_dummy,
-            (self.line_symm and self.initial_layout is None),
+            self.line_symm,
             self.cycle_symm)
-
-        if self.fixed_layout:
-            # Fix initial layout variables
-            initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
-            for q in range(ic.num_lqubits):
-                i = initial_layout[model.index_to_virtual[q]]
-                problem.variables.set_lower_bounds(ic.w_index(q, i, 0), 1)
 
         qomp.set_error_rate_obj(problem, ic)
 
@@ -139,15 +155,13 @@ class MIPMapping(TransformationPass):
         # print("solution:", layout)
 
         # Construct the circuit that includes routing
+        canonical_register = QuantumRegister(self.coupling_map.size(), 'q')
+        mapped_dag = self._create_empty_dagcircuit(dag, canonical_register)
         interval = self.dummy_steps + 1
-        t_shift = 0  # TODO: Ideally the shift should be cared within MIPMappingModel
-        if self.fixed_layout:
-            t_shift = self.dummy_steps
         for k, layer in enumerate(dag.layers()):
             # add swaps between (k-1)-th and k-th the layer
-            # dummy steps before 0-th layer are considered only in the fixed_layout case
-            from_dummy_steps = 1 + interval * (k-1) + t_shift
-            to_dummy_steps = interval * k + t_shift
+            from_dummy_steps = 1 + interval * (k-1)
+            to_dummy_steps = interval * k
             for t in range(from_dummy_steps, to_dummy_steps):
                 if t < 0:
                     continue
@@ -190,9 +204,6 @@ class MIPMapping(TransformationPass):
         target_dag.name = source_dag.name
         target_dag._global_phase = source_dag._global_phase
         target_dag.metadata = source_dag.metadata
-
-        target_dag.add_qubits(source_dag.qubits)
-        target_dag.add_clbits(source_dag.clbits)
 
         target_dag.add_qreg(canonical_qreg)
         for creg in source_dag.cregs.values():

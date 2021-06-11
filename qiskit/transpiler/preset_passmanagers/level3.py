@@ -233,6 +233,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Overwrite some passes
     from qiskit.transpiler.passes.routing import MIPMapping
+    # Set trivial layout as dummy layout and No ApplyLayout
     _swap = [
         BarrierBeforeFinalMeasurements(),
         MIPMapping(coupling_map, silent=True, basis_fidelity=1 - 6.4e-3)
@@ -243,11 +244,11 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm3.append(_unroll3q)
     pm3.append(_reset + _meas)
     if coupling_map or initial_layout:
-        pm3.append(_given_layout)
-        pm3.append(_choose_layout_0, condition=_choose_layout_condition)
-        pm3.append(_choose_layout_1, condition=_trivial_not_perfect)
-        pm3.append(_choose_layout_2, condition=_csp_not_found_match)
-        pm3.append(_embed)
+        # pm3.append(_given_layout)
+        # pm3.append(_choose_layout_0, condition=_choose_layout_condition)
+        # pm3.append(_choose_layout_1, condition=_trivial_not_perfect)
+        # pm3.append(_choose_layout_2, condition=_csp_not_found_match)
+        # pm3.append(_embed)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
     pm3.append(_unroll)
