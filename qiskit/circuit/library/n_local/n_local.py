@@ -20,7 +20,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.parametertable import ParameterTable
-from qiskit.utils.deprecation import deprecate_arguments
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -755,12 +754,10 @@ class NLocal(BlueprintCircuit):
 
         return self
 
-    @deprecate_arguments({"param_dict": "parameters"})
     def assign_parameters(
         self,
         parameters: Union[dict, List[float], List[Parameter], ParameterVector],
         inplace: bool = False,
-        param_dict: Optional[dict] = None,  # pylint: disable=unused-argument
     ) -> Optional[QuantumCircuit]:
         """Assign parameters to the n-local circuit.
 
