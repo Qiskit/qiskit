@@ -318,7 +318,7 @@ def plot_state_city(
         ax_imag (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. If this is specified without an
-            ax_imag only the real component plot will be generated.
+            ax_real only the imaginary component plot will be generated.
             Additionally, if specified there will be no returned Figure since
             it is redundant.
 
@@ -660,7 +660,7 @@ def phase_to_rgb(complex_number):
     complex_number is phase is first mapped to angle in the range
     [0, 2pi] and then to the HSL color wheel
     """
-    angles = (np.angle(complex_number) + (np.pi * 4)) % (np.pi * 2)
+    angles = (np.angle(complex_number) + (np.pi * 5 / 4)) % (np.pi * 2)
     rgb = colorsys.hls_to_rgb(angles / (np.pi * 2), 0.5, 0.5)
     return rgb
 
@@ -910,10 +910,11 @@ def plot_state_qsphere(
 
     n = 64
     theta = np.ones(n)
+    colors = sns.hls_palette(n)
 
     ax2 = fig.add_subplot(gs[2:, 2:])
-    ax2.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
-    ax2.add_artist(Circle((0, 0), 0.5, color=plt.rcParams["figure.facecolor"], zorder=1))
+    ax2.pie(theta, colors=colors[5 * n // 8 :] + colors[: 5 * n // 8], radius=0.75)
+    ax2.add_artist(Circle((0, 0), 0.5, color="white", zorder=1))
     offset = 0.95  # since radius of sphere is one.
 
     if use_degrees:
