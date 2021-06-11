@@ -192,7 +192,6 @@ class MatplotlibDrawer:
         self._set_cregbundle()
         self._global_phase = global_phase
 
-        self._ast = None
         self._n_lines = 0
         self._xmax = 0
         self._ymax = 0
@@ -203,15 +202,6 @@ class MatplotlibDrawer:
         self._lwidth15 = 1.5 * self._scale
         self._lwidth2 = 2.0 * self._scale
         self._gate_width = {}
-
-        # default is to use character table for text width,
-        # but get_renderer will work with some mpl backends
-        """fig = plt.figure()
-        if hasattr(fig.canvas, 'get_renderer'):
-            self._renderer = fig.canvas.get_renderer()
-        else:
-            self._renderer = None"""
-        self._renderer = None
 
         # these char arrays are for finding text_width when not
         # using get_renderer method for the matplotlib backend
@@ -338,52 +328,43 @@ class MatplotlibDrawer:
                 continue
             break
 
-    @property
-    def ast(self):
-        """AST getter"""
-        return self._ast
-
     # This computes the width of a string in the default font
     def _get_text_width(self, text, fontsize, param=False):
         if not text:
             return 0.0
 
-        if self._renderer:
-            t = self.plt_mod.text(0.5, 0.5, text, fontsize=fontsize)
-            return t.get_window_extent(renderer=self._renderer).width / 60.0
-        else:
-            math_mode_match = self._mathmode_regex.search(text)
-            num_underscores = 0
-            num_carets = 0
-            if math_mode_match:
-                math_mode_text = math_mode_match.group(1)
-                num_underscores = math_mode_text.count("_")
-                num_carets = math_mode_text.count("^")
-            text = LatexNodes2Text().latex_to_text(text.replace("$$", ""))
+        math_mode_match = self._mathmode_regex.search(text)
+        num_underscores = 0
+        num_carets = 0
+        if math_mode_match:
+            math_mode_text = math_mode_match.group(1)
+            num_underscores = math_mode_text.count("_")
+            num_carets = math_mode_text.count("^")
+        text = LatexNodes2Text().latex_to_text(text.replace("$$", ""))
 
-            # If there are subscripts or superscripts in mathtext string
-            # we need to account for that spacing by manually removing
-            # from text string for text length
-            if num_underscores:
-                text = text.replace("_", "", num_underscores)
-            if num_carets:
-                text = text.replace("^", "", num_carets)
+        # If there are subscripts or superscripts in mathtext string
+        # we need to account for that spacing by manually removing
+        # from text string for text length
+        if num_underscores:
+            text = text.replace("_", "", num_underscores)
+        if num_carets:
+            text = text.replace("^", "", num_carets)
 
-            # This changes hyphen to + to match width of math mode minus sign.
-            if param:
-                text = text.replace("-", "+")
+        # This changes hyphen to + to match width of math mode minus sign.
+        if param:
+            text = text.replace("-", "+")
 
-            f = 0 if fontsize == self._style["fs"] else 1
-            sum_text = 0.0
-            for c in text:
-                try:
-                    sum_text += self._char_list[c][f]
-                except KeyError:
-                    # if non-ASCII char, use width of 'c', an average size
-                    sum_text += self._char_list["c"][f]
-            if f == 1:
-                sum_text *= self._subfont_factor
-            return sum_text
+        f = 0 if fontsize == self._style["fs"] else 1
+        sum_text = 0.0
+        for c in text:
+            try:
+                sum_text += self._char_list[c][f]
+            except KeyError:
+                # if non-ASCII char, use width of 'c', an average size
+                sum_text += self._char_list["c"][f]
+        if f == 1:
+            sum_text *= self._subfont_factor
+        return sum_text
 
     def _get_colors(self, op, gate_text):
         base_name = None if not hasattr(op.op, "base_gate") else op.op.base_gate.name
@@ -1083,11 +1064,8 @@ class MatplotlibDrawer:
             "sxdg",
             "p",
         ]
-        _barriers = {"coord": [], "group": []}
 
-        #
         # generate coordinate manager
-        #
         q_anchors = {}
         for key, qubit in self._qubit_dict.items():
             q_anchors[key] = Anchor(reg_num=self._n_lines, yind=qubit["y"], fold=self._fold)
