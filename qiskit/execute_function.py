@@ -243,12 +243,13 @@ def execute(
             Optionally specify a particular scheduling method.
 
         init_qubits (bool): Whether to reset the qubits to the ground state for each shot.
-                            Default: ``True``.
+            Default: ``True``.
 
         use_measure_esp (bool): Whether to use ESP (excited state promoted) readout for the final
             measurement in each circuit. ESP readout can offer higher fidelity than standard
             measurement sequences. See `here <https://arxiv.org/pdf/2008.08571.pdf>`_.
-            Default (set on backend): ``True`` if backend supports ESP readout, else ``False``.
+            Default: Value of ``measure_esp_enabled``, which reflects whether ESP readout is
+            supported by the backend.
 
         run_config (dict):
             Extra arguments used to configure the run (e.g. for Aer configurable backends).

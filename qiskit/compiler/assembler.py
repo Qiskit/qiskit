@@ -74,7 +74,7 @@ def assemble(
     rep_delay: Optional[float] = None,
     parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
     parametric_pulses: Optional[List[str]] = None,
-    init_qubits: Optional[bool] = True,
+    init_qubits: bool = True,
     use_measure_esp: Optional[bool] = None,
     **run_config: Dict,
 ) -> Qobj:
@@ -143,7 +143,7 @@ def assemble(
         init_qubits: Whether to reset the qubits to the ground state for each shot.
             Default: ``True``.
         use_measure_esp: Whether to use excited state promoted (ESP) readout for the final
-            measurement in each circuit. ESP readout discriminates between the |0> and higher
+            measurement in each circuit. ESP readout discriminates between the ``|0>`` and higher
             transmon states to improve readout fidelity. See
             `here <https://arxiv.org/pdf/2008.08571.pdf>`_.
             Default: ``True`` if the backend supports ESP readout, else ``False``.
