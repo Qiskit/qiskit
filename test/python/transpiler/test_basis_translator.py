@@ -811,10 +811,11 @@ class TestBasisExamples(QiskitTestCase):
         qr = QuantumRegister(2, "q")
         cr = ClassicalRegister(2, "c")
         expected = QuantumCircuit(qr, cr)
-        expected.u2(0, pi, 0)
+        expected.u2(0, -pi, 0)
         expected.cx(0, 1)
         expected.measure(1, 1)
         expected.u2(0, pi, 0).c_if(cr, 1)
+
         self.assertEqual(circ_transpiled, expected)
 
     def test_skip_target_basis_equivalences_1(self):

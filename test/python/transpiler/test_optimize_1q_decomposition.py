@@ -449,7 +449,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.h(0)
         qc.ry(np.pi / 2, 0)
-        basis = ["sx", "x", "rz"]
+        basis = ["sx", "rz"]
         passmanager = PassManager()
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(qc)
