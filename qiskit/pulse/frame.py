@@ -16,6 +16,7 @@ from typing import Optional, Tuple
 
 from qiskit.circuit import Parameter
 from qiskit.pulse.utils import validate_index
+from qiskit.pulse.exceptions import PulseError
 
 
 class Frame:
@@ -27,7 +28,12 @@ class Frame:
             identifier: The index of the frame.
             parametric_index: An optional parameter to specify the numeric part of the index.
         """
-        validate_index(parametric_index)
+        if parametric_index is not None:
+            validate_index(parametric_index)
+
+        if not isinstance(identifier, str):
+            raise PulseError(f"Frame identifiers must be string. Got {type(identifier)}.")
+
         self._identifier = (identifier, parametric_index)
         self._hash = hash((type(self), self._identifier))
 
@@ -35,6 +41,11 @@ class Frame:
     def identifier(self) -> Tuple:
         """Return the index of this frame. The index is a label for a frame."""
         return self._identifier
+
+    @property
+    def prefix(self) -> str:
+        """Return the prefix of the frame."""
+        return self._identifier[0]
 
     @property
     def name(self) -> str:

@@ -209,13 +209,13 @@ class ParameterSetter(NodeVisitor):
 
     def visit_Frame(self, node: Frame):
         """Assign parameters to ``Frame`` object."""
-        if isinstance(node.index, ParameterExpression):
-            new_index = self._assign_parameter_expression(node.index)
+        if isinstance(node.identifier[1], ParameterExpression):
+            new_index = self._assign_parameter_expression(node.identifier[1])
 
             if not isinstance(new_index, ParameterExpression):
                 validate_index(new_index)
 
-            return node.__class__(index=new_index)
+                return node.__class__(node.prefix + str(new_index))
 
         return node
 
@@ -348,8 +348,8 @@ class ParameterGetter(NodeVisitor):
 
     def visit_Frame(self, node: Frame):
         """Get parameters from ``Frame`` object."""
-        if isinstance(node.index, ParameterExpression):
-            self._add_parameters(node.index)
+        if isinstance(node.identifier[1], ParameterExpression):
+            self._add_parameters(node.identifier[1])
 
     def visit_ParametricPulse(self, node: ParametricPulse):
         """Get parameters from ``ParametricPulse`` object."""

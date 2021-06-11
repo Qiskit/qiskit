@@ -60,15 +60,17 @@ class Signal:
 
     def is_parameterized(self) -> bool:
         """Determine if there are any parameters in the Signal."""
-        return self._pulse.is_parameterized() or isinstance(self._frame.index, ParameterExpression)
+        param_id = self._frame.identifier[1]
+        return self._pulse.is_parameterized() or isinstance(param_id, ParameterExpression)
 
     @property
     def parameters(self) -> Dict[str, Any]:
         """Return a list of parameters in the Signal."""
         parameters = self._pulse.parameters
+        param_id = self._frame.identifier[1]
 
-        if isinstance(self._frame.index, ParameterExpression):
-            parameters["index"] = self._frame.index
+        if isinstance(param_id, ParameterExpression):
+            parameters["index"] = param_id
 
         return parameters
 
