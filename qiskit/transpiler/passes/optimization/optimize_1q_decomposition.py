@@ -14,14 +14,10 @@
 
 import copy
 import logging
-import math
 import warnings
-
-import numpy as np
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import one_qubit_decompose
-from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.converters import circuit_to_dag
 
 logger = logging.getLogger(__name__)
@@ -75,7 +71,6 @@ class Optimize1qGatesDecomposition(TransformationPass):
             logger.info("Skipping pass because no basis is set")
             return dag
         runs = dag.collect_1q_runs()
-        identity_matrix = np.eye(2)
         for run in runs:
             new_circs = []
             operator = run[0].op.to_matrix()
