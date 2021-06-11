@@ -25,6 +25,12 @@ class GSLS(Optimizer):
     An implementation of the line search algorithm described in
     https://arxiv.org/pdf/1905.01332.pdf, using gradient approximation
     based on Gaussian-smoothed samples on a sphere.
+
+    .. note::
+
+        This component has some function that is normally random. If you want to reproduce behavior
+        then you should set the random number generator seed in the algorithm_globals
+        (``qiskit.utils.algorithm_globals.random_seed = seed``).
     """
 
     _OPTIONS = [
@@ -102,7 +108,6 @@ class GSLS(Optimizer):
         super().optimize(
             num_vars, objective_function, gradient_function, variable_bounds, initial_point
         )
-
         if initial_point is None:
             initial_point = algorithm_globals.random.normal(size=num_vars)
         else:
