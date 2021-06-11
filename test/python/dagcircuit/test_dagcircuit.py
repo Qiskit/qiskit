@@ -34,6 +34,7 @@ from qiskit.circuit.library.standard_gates.z import CZGate
 from qiskit.circuit.library.standard_gates.x import XGate
 from qiskit.circuit.library.standard_gates.y import YGate
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
+from qiskit.circuit.library.standard_gates.i import IGate
 from qiskit.circuit.barrier import Barrier
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.converters import circuit_to_dag
@@ -449,7 +450,7 @@ class TestDagNodeSelection(QiskitTestCase):
 
         op_nodes = self.dag.front_layer()
         self.assertEqual(len(op_nodes), 1)
-        self.assertIsInstance(op_nodes[0], HGate)
+        self.assertIsInstance(op_nodes[0].op, HGate)
 
     def test_get_op_nodes_all(self):
         """The method dag.op_nodes() returns all op nodes"""
@@ -461,7 +462,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertEqual(len(op_nodes), 3)
 
         for node in op_nodes:
-            self.assertIsInstance(node, Instruction)
+            self.assertIsInstance(node.op, Instruction)
 
     def test_get_op_nodes_particular(self):
         """The method dag.gates_nodes(op=AGate) returns all the AGate nodes"""
@@ -477,8 +478,8 @@ class TestDagNodeSelection(QiskitTestCase):
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
 
-        self.assertIsInstance(op_node_1, HGate)
-        self.assertIsInstance(op_node_2, HGate)
+        self.assertIsInstance(op_node_1.op, HGate)
+        self.assertIsInstance(op_node_2.op, HGate)
 
     def test_quantum_successors(self):
         """The method dag.quantum_successors() returns successors connected by quantum edges"""
@@ -511,8 +512,8 @@ class TestDagNodeSelection(QiskitTestCase):
             next(successor_cnot)
 
         self.assertTrue(
-            (isinstance(successor1, OutNode) and isinstance(successor2, Reset))
-            or (isinstance(successor2, OutNode) and isinstance(successor1, Reset))
+            (isinstance(successor1, OutNode) and isinstance(successor2.op, Reset))
+            or (isinstance(successor2, OutNode) and isinstance(successor1.op, Reset))
         )
 
     def test_quantum_predecessors(self):
@@ -546,8 +547,8 @@ class TestDagNodeSelection(QiskitTestCase):
             next(predecessor_cnot)
 
         self.assertTrue(
-            (isinstance(predecessor1, InNode) and isinstance(predecessor2, Reset))
-            or (isinstance(predecessor2, InNode) and isinstance(predecessor1, Reset))
+            (isinstance(predecessor1, InNode) and isinstance(predecessor2.op, Reset))
+            or (isinstance(predecessor2, InNode) and isinstance(predecessor1.op, Reset))
         )
 
     def test_get_gates_nodes(self):
@@ -562,8 +563,8 @@ class TestDagNodeSelection(QiskitTestCase):
         op_node_1 = op_nodes.pop()
         op_node_2 = op_nodes.pop()
 
-        self.assertIsInstance(op_node_1, Gate)
-        self.assertIsInstance(op_node_2, Gate)
+        self.assertIsInstance(op_node_1.op, Gate)
+        self.assertIsInstance(op_node_2.op, Gate)
 
     def test_two_q_gates(self):
         """The method dag.two_qubit_ops() returns all 2Q gate operation nodes"""
@@ -576,7 +577,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertEqual(len(op_nodes), 1)
 
         op_node = op_nodes.pop()
-        self.assertIsInstance(op_node, Gate)
+        self.assertIsInstance(op_node.op, Gate)
         self.assertEqual(len(op_node.qargs), 2)
 
     def test_get_named_nodes(self):
@@ -939,7 +940,7 @@ class TestDagLayers(QiskitTestCase):
         qr = QuantumRegister(1, "q0")
 
         # the order the nodes should be in
-        truth = [("in", qr[0], 0), ("op", "x", 2), ("op", "id", 3), ("out", qr[0], 1)]
+        truth = [(InNode, qr[0], 0), (OpNode, "x", 2), (OpNode, "id", 3), (OutNode, qr[0], 1)]
 
         # this only occurred sometimes so has to be run more than once
         # (10 times seemed to always be enough for this bug to show at least once)
@@ -951,7 +952,7 @@ class TestDagLayers(QiskitTestCase):
             dag1.apply_operation_back(IGate(), [qr[0]], [])
 
             comp = [
-                (nd, nd.op.name if isinstance(nd, OpNode) else nd.wire, nd._node_id)
+                (type(nd), nd.op.name if isinstance(nd, OpNode) else nd.wire, nd._node_id)
                 for nd in dag1.topological_nodes()
             ]
             self.assertEqual(comp, truth)
@@ -1118,20 +1119,13 @@ class TestDagSubstitute(QiskitTestCase):
         self.condition = (creg, 3)
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
-        #cx_node = self.dag.op_nodes(op=CXGate).pop()
-        #print("\n\n\00000000000000000000000000000000000000000000000000000000000000000000000000", cx_node.qargs)
         self.dag.apply_operation_back(XGate(), [self.qubit1], [])
 
     def test_substitute_circuit_one_middle(self):
         """The method substitute_node_with_dag() replaces a in-the-middle node with a DAG."""
-        for x in self.dag.op_nodes():
-            print("XXXXXXXXXXXX", x.op.name, x.qargs)
         cx_node = self.dag.op_nodes(op=CXGate).pop()
-        print("\n\n\neeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", cx_node.qargs)
-        print("\n\n\n3333333333333333333333", cx_node.qargs, cx_node.cargs)
 
         flipped_cx_circuit = DAGCircuit()
-        print("\n\n\nfffffffffffffffffffffffffffffffffffffffffffffffff", cx_node.qargs)
         v = QuantumRegister(2, "v")
         flipped_cx_circuit.add_qreg(v)
         flipped_cx_circuit.apply_operation_back(HGate(), [v[0]], [])
@@ -1139,10 +1133,8 @@ class TestDagSubstitute(QiskitTestCase):
         flipped_cx_circuit.apply_operation_back(CXGate(), [v[1], v[0]], [])
         flipped_cx_circuit.apply_operation_back(HGate(), [v[0]], [])
         flipped_cx_circuit.apply_operation_back(HGate(), [v[1]], [])
-        print("\n\n\nggggggggggggggggggggggggggggggggggggggggggggggggg", cx_node.qargs)
 
         self.dag.substitute_node_with_dag(cx_node, flipped_cx_circuit, wires=[v[0], v[1]])
-        print("\n\n\n77777777777777777777777777777777777777777777777777777777777", cx_node.qargs)
 
         self.assertEqual(self.dag.count_ops()["h"], 5)
 
@@ -1240,44 +1232,20 @@ class TestDagSubstituteNode(QiskitTestCase):
         qc.rz(0.1, 2)
         qc.cx(1, 2)
         qc.cx(0, 1)
-        #print(qc)
         dag = circuit_to_dag(qc)
-        print(dag)
         node_to_be_replaced = dag.named_nodes("rz")[0]
-        print(node_to_be_replaced)
-        print(type(node_to_be_replaced))
-        """x = dag.predecessors(node_to_be_replaced)
-        for z in x:
-            print(z)
-        #print(next(x))
-        #y = set(x)
-        #print(y)"""
-        print("HERe 1")
-        predecessors = dag.predecessors(node_to_be_replaced)
-        if len(predecessors) == 1:
-            predecessors = (predecessors[0],)
-        print(predecessors)
-        #print(next(predecessors))
-        print(predecessors[0].name, predecessors[0].qargs, predecessors[0].cargs)
-        print('Here 2')
-        z = set()
-        print("Here 3")
-        predecessors = z.update(predecessors)
-        print("HERE")
-        successors = frozenset(tuple(dag.successors(node_to_be_replaced)))
+        predecessors = set(dag.predecessors(node_to_be_replaced))
+        successors = set(dag.successors(node_to_be_replaced))
         ancestors = dag.ancestors(node_to_be_replaced)
         descendants = dag.descendants(node_to_be_replaced)
 
-        print("\n", predecessors, successors, ancestors, descendants)
         replacement_node = dag.substitute_node(node_to_be_replaced, U1Gate(0.1), inplace=inplace)
-        print(replacement_node)
 
         raise_if_dagcircuit_invalid(dag)
-        self.assertEqual(frozenset(tuple(dag.predecessors(replacement_node)), predecessors))
-        self.assertEqual(frozenset(tuple(dag.successors(replacement_node)), successors))
+        self.assertEqual(set(dag.predecessors(replacement_node)), predecessors)
+        self.assertEqual(set(dag.successors(replacement_node)), successors)
         self.assertEqual(dag.ancestors(replacement_node), ancestors)
         self.assertEqual(dag.descendants(replacement_node), descendants)
-
         self.assertEqual(replacement_node is node_to_be_replaced, inplace)
 
 

@@ -100,7 +100,7 @@ class DAGNode:
             if "barrier" == node1.op.name == node2.op.name:
                 return set(node1_qargs) == set(node2_qargs)
 
-            if type(node1) == type(node2):
+            if type(node1.op) == type(node2.op):
                 if node1.op.name == node2.op.name:
                     if node1_qargs == node2_qargs:
                         if node1_cargs == node2_cargs:
@@ -118,7 +118,6 @@ class DAGNode:
             return False
 
 
-
 class OpNode(DAGNode):
     """Object to represent the information at a node in the DAGCircuit.
 
@@ -126,19 +125,12 @@ class OpNode(DAGNode):
     be supplied to functions that take a node.
     """
 
+    __slots__ = ["op"]
     def __init__(self, op, qargs=None, cargs=None):
         """Create a node"""
-        DAGNode.__init__(self, qargs, cargs)
         self.op = op
-        """if isinstance(op, Gate):
-            Gate.__init__(self, op.name, num_qubits=len(qargs), params=op.params)
-        else:
-            Instruction.__init__(self, op.name, num_qubits=len(qargs), num_clbits=len(cargs), params=op.params)
-        self._hash = hash((type(self), op.name))
-        print('OpNode INIT: self qarqs and qargs', self.qargs, qargs)"""
+        super().__init__(qargs, cargs)
 
-    #def __hash__(self):
-    #    return self._hash
 
 class InNode(DAGNode):
     """Object to represent the information at a node in the DAGCircuit.
