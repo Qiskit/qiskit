@@ -18,6 +18,7 @@ from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler import TranspilerError
 from qiskit.transpiler.passes import MIPMapping
 
 
@@ -25,7 +26,7 @@ class TestMIPMapping(QiskitTestCase):
     """ Tests the MIPMapping pass."""
 
     def test_no_two_qubit_gates(self):
-        """No need for mapping, the CX are distance 1 to each other
+        """Raise error if circuit without 2q-gates is supplied
          q0:--[H]--
          q1:-------
          CouplingMap map: [0]--[1]
@@ -35,13 +36,8 @@ class TestMIPMapping(QiskitTestCase):
         circuit = QuantumCircuit(2)
         circuit.h(0)
 
-        actual = MIPMapping(coupling)(circuit)
-
-        q = QuantumRegister(2, name='q')
-        expected = QuantumCircuit(q)
-        expected.h(q[0])
-
-        self.assertEqual(actual, expected)
+        with self.assertRaises(TranspilerError):
+            MIPMapping(coupling)(circuit)
 
     def test_trivial_case(self):
         """No need to have any swap, the CX are distance 1 to each other

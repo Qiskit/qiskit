@@ -12,6 +12,7 @@ from qiskit.quantum_info import two_qubit_cnot_decompose
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition, \
     trace_to_fid
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.exceptions import TranspilerError
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +68,7 @@ class MIPMappingModel:
             gate_mfidelity = [[]] + gate_mfidelity
 
         if len(self.gates) == 0:
-            return
+            raise TranspilerError("No 2q-gates in circuit, no need to run a mapping pass.")
 
         self.circuit_model = _CircuitModel(
             num_qubits=len(dag.qubits),

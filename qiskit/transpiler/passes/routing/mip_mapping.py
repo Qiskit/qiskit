@@ -23,7 +23,6 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import TransformationPass, CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
 from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
 from qiskit.transpiler.passes.layout.trivial_layout import TrivialLayout
@@ -79,7 +78,7 @@ class MIPMapping(TransformationPass):
             DAGCircuit: A mapped DAG.
 
         Raises:
-            TranspilerError: if ...
+            TranspilerError: if dag has no 2q-gates
         """
         if self.coupling_map is None:
             return dag
@@ -91,7 +90,7 @@ class MIPMapping(TransformationPass):
             warnings.warn("MIPMapping ignores the initial_layout", UserWarning)
 
         # MIPMappingModel assumes num_virtual_qubits == num_physical_qubits
-        # TODO: rewrite without dag<->circuit conversion
+        # TODO: rewrite without dag<->circuit conversion (or remove the above assumption)
         pm = PassManager([
             TrivialLayout(self.coupling_map),
             FullAncillaAllocation(self.coupling_map),
@@ -107,15 +106,6 @@ class MIPMapping(TransformationPass):
         model = MIPMappingModel(dag=dag,
                                 coupling_map=self.coupling_map,
                                 basis_fidelity=self.basis_fidelity)
-
-        if len(model.gates) == 0:
-            # No need for mapping but have to apply trivial layout
-            trivial_layout = Layout.generate_trivial_layout(
-                *(dag.qubits + list(dag.qregs.values())))
-            pass_ = ApplyLayout()
-            pass_.property_set["layout"] = trivial_layout
-            mapped_dag = pass_.run(dag)
-            return mapped_dag
 
         problem, ic = model.create_cpx_problem(
             self.dummy_steps,
