@@ -12,39 +12,40 @@
 
 """Implements a Frame."""
 
-from typing import Union
+from typing import Optional, Tuple
 
 from qiskit.circuit import Parameter
-from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.utils import validate_index
 
 
 class Frame:
     """A frame is a frequency and a phase."""
 
-    prefix = "f"
-
-    def __init__(self, index: Union[int, Parameter]):
+    def __init__(self, identifier: str, parametric_index: Optional[Parameter] = None):
         """
         Args:
-            index: The index of the frame.
+            identifier: The index of the frame.
+            parametric_index: An optional parameter to specify the numeric part of the index.
         """
-        validate_index(index)
-        self._index = index
-        self._hash = hash((type(self), self._index))
+        validate_index(parametric_index)
+        self._identifier = (identifier, parametric_index)
+        self._hash = hash((type(self), self._identifier))
 
     @property
-    def index(self) -> Union[int, ParameterExpression]:
+    def identifier(self) -> Tuple:
         """Return the index of this frame. The index is a label for a frame."""
-        return self._index
+        return self._identifier
 
     @property
     def name(self) -> str:
         """Return the shorthand alias for this frame, which is based on its type and index."""
-        return "{}{}".format(self.__class__.prefix, self._index)
+        if self._identifier[1] is None:
+            return f"{self._identifier[0]}"
+
+        return f"{self._identifier[0]}{self._identifier[1].name}"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self._index})"
+        return f"{self.__class__.__name__}({self.name})"
 
     def __eq__(self, other: "Frame") -> bool:
         """Return True iff self and other are equal, specifically, iff they have the same type
@@ -56,7 +57,7 @@ class Frame:
         Returns:
             True iff equal.
         """
-        return type(self) is type(other) and self.index == other.index
+        return type(self) is type(other) and self._identifier == other._identifier
 
     def __hash__(self):
         return self._hash
