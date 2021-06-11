@@ -12,17 +12,18 @@
 
 """Replace a schedule with frames by one with instructions on PulseChannels only."""
 
-from typing import Dict
+from typing import Dict, Union
 
-from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.resolved_frame import ResolvedFrame, ChannelTracker
+from qiskit.pulse.transforms.canonicalization import block_to_schedule
 from qiskit.pulse.library import Signal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse import channels as chans, instructions
 from qiskit.pulse.frame import Frame
 
 
-def resolve_frames(schedule: Schedule, frames_config: Dict[Frame, Dict]) -> Schedule:
+def resolve_frames(schedule: Union[Schedule, ScheduleBlock], frames_config: Dict[Frame, Dict]) -> Schedule:
     """
     Parse the schedule and replace instructions on Frames by instructions on the
     appropriate channels.
@@ -40,6 +41,9 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[Frame, Dict]) -> Sche
     Raises:
         PulseError: if a frame is not configured.
     """
+    if isinstance(schedule, ScheduleBlock):
+        schedule = block_to_schedule(schedule)
+
     if frames_config is None:
         return schedule
 
@@ -61,12 +65,6 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[Frame, Dict]) -> Sche
     for ch in schedule.channels:
         if isinstance(ch, chans.PulseChannel):
             channel_trackers[ch] = ChannelTracker(ch, sample_duration)
-
-    # Add the channels that the frames broadcast on.
-    for resolved_frame in resolved_frames.values():
-        for ch in resolved_frame.channels:
-            if ch not in channel_trackers:
-                channel_trackers[ch] = ChannelTracker(ch, sample_duration)
 
     sched = Schedule(name=schedule.name, metadata=schedule.metadata)
 
