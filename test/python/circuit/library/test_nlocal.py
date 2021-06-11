@@ -732,43 +732,17 @@ class TestTwoLocal(QiskitTestCase):
 
         self.assertCircuitEqual(two.assign_parameters(parameters), ref)
 
-    def test_circuit_with_int_and_npint32(self):
-        """Test Equality of circuit with int and np.int32 entangling map"""
+    def test_circuit_with_numpy_integers(self):
+        """Test if TwoLocal can be made and drawn from numpy integers"""
         num_qubits = 6
-        reference = [(i, i + 1) for i in range(num_qubits - 1)]
-        expected = [(i, i + 1) for i in np.arange(num_qubits - 1, dtype=np.int32)]
+        expected_np32 = [(i, i + 1) for i in np.arange(num_qubits - 1, dtype=np.int32)]
+        expected_np64 = [(i, i + 1) for i in np.arange(num_qubits - 1, dtype=np.int64)]
 
-        self.assertCircuitEqual(
-            TwoLocal(num_qubits, entanglement=reference),
-            TwoLocal(num_qubits, entanglement=expected),
-        )
-        self.assertCircuitEqual(
-            TwoLocal(num_qubits, entanglement=[reference]),
-            TwoLocal(num_qubits, entanglement=[expected]),
-        )
-        self.assertCircuitEqual(
-            TwoLocal(num_qubits, entanglement=[[reference]]),
-            TwoLocal(num_qubits, entanglement=[[expected]]),
-        )
+        two_np32 = TwoLocal(num_qubits, "ry", "cx", entanglement=expected_np32)
+        two_np64 = TwoLocal(num_qubits, "ry", "cx", entanglement=expected_np64)
 
-    def test_circuit_with_int_and_npint64(self):
-        """Test Equality of circuit with int and np.int64 entangling map"""
-        num_qubits = 6
-        reference = [(i, i + 1) for i in range(num_qubits - 1)]
-        expected = [(i, i + 1) for i in np.arange(num_qubits - 1, dtype=np.int64)]
-
-        self.assertCircuitEqual(
-            TwoLocal(num_qubits, entanglement=reference),
-            TwoLocal(num_qubits, entanglement=expected),
-        )
-        self.assertCircuitEqual(
-            TwoLocal(num_qubits, entanglement=[reference]),
-            TwoLocal(num_qubits, entanglement=[expected]),
-        )
-        self.assertCircuitEqual(
-            TwoLocal(num_qubits, entanglement=[[reference]]),
-            TwoLocal(num_qubits, entanglement=[[expected]]),
-        )
+        self.assertTrue(two_np32.draw())
+        self.assertTrue(two_np64.draw())
 
 
 if __name__ == "__main__":
