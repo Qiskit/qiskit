@@ -97,14 +97,14 @@ class DAGNode:
 
         if isinstance(node1, OpNode) and isinstance(node2, OpNode):
             # For barriers, qarg order is not significant so compare as sets
-            if "barrier" == node1.name == node2.name:
+            if "barrier" == node1.op.name == node2.op.name:
                 return set(node1_qargs) == set(node2_qargs)
 
             if type(node1) == type(node2):
-                if node1.name == node2.name:
+                if node1.op.name == node2.op.name:
                     if node1_qargs == node2_qargs:
                         if node1_cargs == node2_cargs:
-                            if node1.condition == node2.condition:
+                            if node1.op.condition == node2.op.condition:
                                 return True
         elif ((isinstance(node1, InNode) and isinstance(node2, InNode))
               or (isinstance(node1, OutNode) and isinstance(node2, OutNode))):
@@ -119,7 +119,7 @@ class DAGNode:
 
 
 
-class OpNode(DAGNode, Gate, Instruction):
+class OpNode(DAGNode):
     """Object to represent the information at a node in the DAGCircuit.
 
     It is used as the return value from `*_nodes()` functions and can
@@ -129,15 +129,16 @@ class OpNode(DAGNode, Gate, Instruction):
     def __init__(self, op, qargs=None, cargs=None):
         """Create a node"""
         DAGNode.__init__(self, qargs, cargs)
-        if isinstance(op, Gate):
+        self.op = op
+        """if isinstance(op, Gate):
             Gate.__init__(self, op.name, num_qubits=len(qargs), params=op.params)
         else:
             Instruction.__init__(self, op.name, num_qubits=len(qargs), num_clbits=len(cargs), params=op.params)
         self._hash = hash((type(self), op.name))
-        print(self.qargs, qargs)
+        print('OpNode INIT: self qarqs and qargs', self.qargs, qargs)"""
 
-    def __hash__(self):
-        return self._hash
+    #def __hash__(self):
+    #    return self._hash
 
 class InNode(DAGNode):
     """Object to represent the information at a node in the DAGCircuit.

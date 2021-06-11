@@ -60,7 +60,7 @@ def dag_to_circuit(dag):
 
     for node in dag.topological_op_nodes():
         # Get arguments for classical control (if any)
-        inst = node.copy()
+        inst = node.op.copy()
         circuit._append(inst, node.qargs, node.cargs)
 
     circuit.duration = dag.duration

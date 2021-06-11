@@ -67,8 +67,8 @@ def raise_if_dagcircuit_invalid(dag):
 
     # Shape of node.op should match shape of node.
     for node in dag.op_nodes():
-        assert len(node.qargs) == node.num_qubits
-        assert len(node.cargs) == node.num_clbits
+        assert len(node.qargs) == node.op.num_qubits
+        assert len(node.cargs) == node.op.num_clbits
 
     # Every edge should be labled with a known wire.
     edges_outside_wires = [
@@ -114,7 +114,7 @@ def raise_if_dagcircuit_invalid(dag):
         in_wires = {data for src, dest, data in in_edges}
         out_wires = {data for src, dest, data in out_edges}
 
-        node_cond_bits = set(node.condition[0][:] if node.condition is not None else [])
+        node_cond_bits = set(node.op.condition[0][:] if node.op.condition is not None else [])
         node_qubits = set(node.qargs)
         node_clbits = set(node.cargs)
 
@@ -300,7 +300,7 @@ class TestDagApplyOperation(QiskitTestCase):
 
         self.assertEqual(h_node.qargs, [self.qubit2])
         self.assertEqual(h_node.cargs, [])
-        self.assertEqual(h_node.condition, h_gate.condition)
+        self.assertEqual(h_node.op.condition, h_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(h_node._node_id)),
@@ -341,7 +341,7 @@ class TestDagApplyOperation(QiskitTestCase):
 
         self.assertEqual(meas_node.qargs, [self.qubit0])
         self.assertEqual(meas_node.cargs, [self.clbit0])
-        self.assertEqual(meas_node.condition, meas_gate.condition)
+        self.assertEqual(meas_node.op.condition, meas_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(meas_node._node_id)),
@@ -387,7 +387,7 @@ class TestDagApplyOperation(QiskitTestCase):
 
         self.assertEqual(meas_node.qargs, [self.qubit1])
         self.assertEqual(meas_node.cargs, [self.clbit1])
-        self.assertEqual(meas_node.condition, meas_gate.condition)
+        self.assertEqual(meas_node.op.condition, meas_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(meas_node._node_id)),
@@ -500,7 +500,7 @@ class TestDagNodeSelection(QiskitTestCase):
         with self.assertRaises(StopIteration):
             next(successor_measure)
 
-        self.assertIsInstance(cnot_node, CXGate)
+        self.assertIsInstance(cnot_node.op, CXGate)
 
         successor_cnot = self.dag.quantum_successors(cnot_node)
         # Ordering between Reset and out[q1] is indeterminant.
@@ -512,7 +512,7 @@ class TestDagNodeSelection(QiskitTestCase):
 
         self.assertTrue(
             (isinstance(successor1, OutNode) and isinstance(successor2, Reset))
-            or (isinstanc(successor2, OutNode) and isinstance(successor1, Reset))
+            or (isinstance(successor2, OutNode) and isinstance(successor1, Reset))
         )
 
     def test_quantum_predecessors(self):
@@ -535,7 +535,7 @@ class TestDagNodeSelection(QiskitTestCase):
         with self.assertRaises(StopIteration):
             next(predecessor_measure)
 
-        self.assertIsInstance(cnot_node, CXGate)
+        self.assertIsInstance(cnot_node.op, CXGate)
 
         predecessor_cnot = self.dag.quantum_predecessors(cnot_node)
         # Ordering between Reset and in[q1] is indeterminant.
@@ -630,7 +630,7 @@ class TestDagNodeSelection(QiskitTestCase):
             (cr[1], []),
         ]
         self.assertEqual(
-            [(i.name if isinstance(i, OpNode) else i.wire, i.qargs) for i in named_nodes], expected
+            [(i.op.name if isinstance(i, OpNode) else i.wire, i.qargs) for i in named_nodes], expected
         )
 
     def test_topological_op_nodes(self):
@@ -650,7 +650,7 @@ class TestDagNodeSelection(QiskitTestCase):
             ("cx", [self.qubit0, self.qubit2]),
             ("h", [self.qubit2]),
         ]
-        self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
+        self.assertEqual(expected, [(i.op.name, i.qargs) for i in named_nodes])
 
     def test_dag_nodes_on_wire(self):
         """Test that listing the gates on a qubit/classical bit gets the correct gates"""
@@ -687,7 +687,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
 
         nodes = self.dag.nodes_on_wire(self.dag.qubits[1], only_ops=True)
-        node_names = [nd.name for nd in nodes]
+        node_names = [nd.op.name for nd in nodes]
 
         self.assertEqual(node_names, ["cx", "h", "cx"])
 
@@ -718,7 +718,7 @@ class TestDagNodeSelection(QiskitTestCase):
             ("cx", [self.qubit0, self.qubit2]),
             ("h", [self.qubit2]),
         ]
-        self.assertEqual(expected, [(i.name, i.qargs) for i in self.dag.topological_op_nodes()])
+        self.assertEqual(expected, [(i.op.name, i.qargs) for i in self.dag.topological_op_nodes()])
 
     def test_remove_non_op_node(self):
         """Try to remove a non-op node with remove_op_node method."""
@@ -738,19 +738,19 @@ class TestDagNodeSelection(QiskitTestCase):
         collected_runs = self.dag.collect_runs(["u1", "cx", "h"])
         self.assertEqual(len(collected_runs), 3)
         for run in collected_runs:
-            if run[0].name == "cx":
+            if run[0].op.name == "cx":
                 self.assertEqual(len(run), 2)
-                self.assertEqual(["cx"] * 2, [x.name for x in run])
+                self.assertEqual(["cx"] * 2, [x.op.name for x in run])
                 self.assertEqual(
                     [[self.qubit2, self.qubit1], [self.qubit1, self.qubit2]], [x.qargs for x in run]
                 )
-            elif run[0].name == "h":
+            elif run[0].op.name == "h":
                 self.assertEqual(len(run), 1)
-                self.assertEqual(["h"], [x.name for x in run])
+                self.assertEqual(["h"], [x.op.name for x in run])
                 self.assertEqual([[self.qubit2]], [x.qargs for x in run])
-            elif run[0].name == "u1":
+            elif run[0].op.name == "u1":
                 self.assertEqual(len(run), 3)
-                self.assertEqual(["u1"] * 3, [x.name for x in run])
+                self.assertEqual(["u1"] * 3, [x.op.name for x in run])
                 self.assertEqual(
                     [[self.qubit0], [self.qubit0], [self.qubit0]], [x.qargs for x in run]
                 )
@@ -768,7 +768,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertEqual(len(collected_runs), 1)
         run = collected_runs.pop()
         self.assertEqual(len(run), 2)
-        self.assertEqual(["h", "h"], [x.name for x in run])
+        self.assertEqual(["h", "h"], [x.op.name for x in run])
         self.assertEqual([[self.qubit0], [self.qubit0]], [x.qargs for x in run])
 
     def test_dag_collect_runs_conditional_in_middle(self):
@@ -783,7 +783,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertEqual(len(collected_runs), 2)
         for run in collected_runs:
             self.assertEqual(len(run), 1)
-            self.assertEqual(["h"], [x.name for x in run])
+            self.assertEqual(["h"], [x.op.name for x in run])
             self.assertEqual([[self.qubit0]], [x.qargs for x in run])
 
     def test_dag_collect_1q_runs(self):
@@ -799,13 +799,13 @@ class TestDagNodeSelection(QiskitTestCase):
         collected_runs = self.dag.collect_1q_runs()
         self.assertEqual(len(collected_runs), 2)
         for run in collected_runs:
-            if run[0].name == "h":
+            if run[0].op.name == "h":
                 self.assertEqual(len(run), 1)
-                self.assertEqual(["h"], [x.name for x in run])
+                self.assertEqual(["h"], [x.op.name for x in run])
                 self.assertEqual([[self.qubit2]], [x.qargs for x in run])
-            elif run[0].name == "u1":
+            elif run[0].op.name == "u1":
                 self.assertEqual(len(run), 3)
-                self.assertEqual(["u1"] * 3, [x.name for x in run])
+                self.assertEqual(["u1"] * 3, [x.op.name for x in run])
                 self.assertEqual(
                     [[self.qubit0], [self.qubit0], [self.qubit0]], [x.qargs for x in run]
                 )
@@ -825,7 +825,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertEqual(len(collected_runs), 1)
         run = collected_runs.pop()
         self.assertEqual(len(run), 2)
-        self.assertEqual(["h", "h"], [x.name for x in run])
+        self.assertEqual(["h", "h"], [x.op.name for x in run])
         self.assertEqual([[self.qubit0], [self.qubit0]], [x.qargs for x in run])
 
     def test_dag_collect_1q_runs_conditional_in_middle(self):
@@ -842,7 +842,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertEqual(len(collected_runs), 2)
         for run in collected_runs:
             self.assertEqual(len(run), 1)
-            self.assertEqual(["h"], [x.name for x in run])
+            self.assertEqual(["h"], [x.op.name for x in run])
             self.assertEqual([[self.qubit0]], [x.qargs for x in run])
 
     def test_dag_collect_1q_runs_with_parameterized_gate(self):
@@ -857,10 +857,10 @@ class TestDagNodeSelection(QiskitTestCase):
         self.dag.apply_operation_back(XGate(), [self.qubit0])
         collected_runs = self.dag.collect_1q_runs()
         self.assertEqual(len(collected_runs), 2)
-        run_gates = [[x.name for x in run] for run in collected_runs]
+        run_gates = [[x.op.name for x in run] for run in collected_runs]
         self.assertIn(["h", "h"], run_gates)
         self.assertIn(["x", "x"], run_gates)
-        self.assertNotIn("u1", [x.name for run in collected_runs for x in run])
+        self.assertNotIn("u1", [x.op.name for run in collected_runs for x in run])
 
     def test_dag_collect_1q_runs_with_cx_in_middle(self):
         """Test collect_1q_runs_with a cx in the middle of the run."""
@@ -880,21 +880,21 @@ class TestDagNodeSelection(QiskitTestCase):
         collected_runs = self.dag.collect_1q_runs()
         self.assertEqual(len(collected_runs), 4)
         for run in collected_runs:
-            if run[0].name == "h":
+            if run[0].op.name == "h":
                 self.assertEqual(len(run), 3)
-                self.assertEqual(["h", "h", "u1"], [x.name for x in run])
+                self.assertEqual(["h", "h", "u1"], [x.op.name for x in run])
                 self.assertEqual([[self.qubit0]] * 3, [x.qargs for x in run])
-            elif run[0].name == "u1":
+            elif run[0].op.name == "u1":
                 self.assertEqual(len(run), 3)
-                self.assertEqual(["u1", "u1", "h"], [x.name for x in run])
+                self.assertEqual(["u1", "u1", "h"], [x.op.name for x in run])
                 self.assertEqual([[self.qubit1]] * 3, [x.qargs for x in run])
-            elif run[0].name == "x":
+            elif run[0].op.name == "x":
                 self.assertEqual(len(run), 2)
-                self.assertEqual(["x", "x"], [x.name for x in run])
+                self.assertEqual(["x", "x"], [x.op.name for x in run])
                 self.assertEqual([[self.qubit1]] * 2, [x.qargs for x in run])
-            elif run[0].name == "y":
+            elif run[0].op.name == "y":
                 self.assertEqual(len(run), 2)
-                self.assertEqual(["y", "y"], [x.name for x in run])
+                self.assertEqual(["y", "y"], [x.op.name for x in run])
                 self.assertEqual([[self.qubit0]] * 2, [x.qargs for x in run])
             else:
                 self.fail("Unknown run encountered")
@@ -927,7 +927,7 @@ class TestDagLayers(QiskitTestCase):
         self.assertEqual(5, len(layers))
 
         name_layers = [
-            [node.name for node in layer["graph"].nodes() if isinstance(node, OpNode)]
+            [node.op.name for node in layer["graph"].nodes() if isinstance(node, OpNode)]
             for layer in layers
         ]
 
@@ -951,7 +951,7 @@ class TestDagLayers(QiskitTestCase):
             dag1.apply_operation_back(IGate(), [qr[0]], [])
 
             comp = [
-                (nd, nd.name if isinstance(nd, OpNode) else nd.wire, nd._node_id)
+                (nd, nd.op.name if isinstance(nd, OpNode) else nd.wire, nd._node_id)
                 for nd in dag1.topological_nodes()
             ]
             self.assertEqual(comp, truth)
@@ -1118,18 +1118,20 @@ class TestDagSubstitute(QiskitTestCase):
         self.condition = (creg, 3)
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
-        cx_node = self.dag.op_nodes(op=CXGate).pop()
-        print("\n\n\00000000000000000000000000000000000000000000000000000000000000000000000000", cx_node.qargs)
+        #cx_node = self.dag.op_nodes(op=CXGate).pop()
+        #print("\n\n\00000000000000000000000000000000000000000000000000000000000000000000000000", cx_node.qargs)
         self.dag.apply_operation_back(XGate(), [self.qubit1], [])
 
     def test_substitute_circuit_one_middle(self):
         """The method substitute_node_with_dag() replaces a in-the-middle node with a DAG."""
+        for x in self.dag.op_nodes():
+            print("XXXXXXXXXXXX", x.op.name, x.qargs)
         cx_node = self.dag.op_nodes(op=CXGate).pop()
-        print("\n\n\n888888888888888888888888888888888888888888888888888888888888", cx_node.qargs)
+        print("\n\n\neeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", cx_node.qargs)
         print("\n\n\n3333333333333333333333", cx_node.qargs, cx_node.cargs)
 
         flipped_cx_circuit = DAGCircuit()
-        print("\n\n\n888888888888888888888888888888888888888888888888888888888888", cx_node.qargs)
+        print("\n\n\nfffffffffffffffffffffffffffffffffffffffffffffffff", cx_node.qargs)
         v = QuantumRegister(2, "v")
         flipped_cx_circuit.add_qreg(v)
         flipped_cx_circuit.apply_operation_back(HGate(), [v[0]], [])
@@ -1137,7 +1139,7 @@ class TestDagSubstitute(QiskitTestCase):
         flipped_cx_circuit.apply_operation_back(CXGate(), [v[1], v[0]], [])
         flipped_cx_circuit.apply_operation_back(HGate(), [v[0]], [])
         flipped_cx_circuit.apply_operation_back(HGate(), [v[1]], [])
-        print("\n\n\n888888888888888888888888888888888888888888888888888888888888", cx_node.qargs)
+        print("\n\n\nggggggggggggggggggggggggggggggggggggggggggggggggg", cx_node.qargs)
 
         self.dag.substitute_node_with_dag(cx_node, flipped_cx_circuit, wires=[v[0], v[1]])
         print("\n\n\n77777777777777777777777777777777777777777777777777777777777", cx_node.qargs)
@@ -1153,7 +1155,7 @@ class TestDagSubstitute(QiskitTestCase):
         pass
 
     def test_raise_if_substituting_dag_modifies_its_conditional(self):
-        """Verify that we raise if the input dag modifies any of the bits in node.condition."""
+        """Verify that we raise if the input dag modifies any of the bits in node.op.condition."""
 
         # Our unroller's rely on substitute_node_with_dag carrying the condition
         # from the node over to the input dag, which it does by making every
@@ -1222,10 +1224,10 @@ class TestDagSubstituteNode(QiskitTestCase):
         replacement_node = dag.substitute_node(node_to_be_replaced, CZGate(), inplace=inplace)
 
         raise_if_dagcircuit_invalid(dag)
-        self.assertEqual(replacement_node.name, "cz")
+        self.assertEqual(replacement_node.op.name, "cz")
         self.assertEqual(replacement_node.qargs, [qr[1], qr[0]])
         self.assertEqual(replacement_node.cargs, [])
-        self.assertEqual(replacement_node.condition, (cr, 1))
+        self.assertEqual(replacement_node.op.condition, (cr, 1))
 
         self.assertEqual(replacement_node is node_to_be_replaced, inplace)
 
@@ -1409,10 +1411,10 @@ class TestConditional(QiskitTestCase):
         self.circuit.h(self.qreg[0]).c_if(self.creg, 1)
         self.dag = circuit_to_dag(self.circuit)
         gate_node = self.dag.gate_nodes()[0]
-        self.assertEqual(gate_node, HGate())
+        self.assertEqual(gate_node.op, HGate())
         self.assertEqual(gate_node.qargs, [self.qreg[0]])
         self.assertEqual(gate_node.cargs, [])
-        self.assertEqual(gate_node.condition, (self.creg, 1))
+        self.assertEqual(gate_node.op.condition, (self.creg, 1))
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(gate_node._node_id)),
             sorted(
@@ -1441,10 +1443,10 @@ class TestConditional(QiskitTestCase):
         self.circuit.h(self.qreg[0]).c_if(self.creg[0], 1)
         self.dag = circuit_to_dag(self.circuit)
         gate_node = self.dag.gate_nodes()[0]
-        self.assertEqual(gate_node, HGate())
+        self.assertEqual(gate_node.op, HGate())
         self.assertEqual(gate_node.qargs, [self.qreg[0]])
         self.assertEqual(gate_node.cargs, [])
-        self.assertEqual(gate_node.condition, (self.creg[0], 1))
+        self.assertEqual(gate_node.op.condition, (self.creg[0], 1))
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(gate_node._node_id)),
             sorted(
