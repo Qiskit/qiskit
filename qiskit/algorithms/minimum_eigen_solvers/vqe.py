@@ -164,7 +164,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         self._max_evals_grouped = max_evals_grouped
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
-        self._expectation = expectation
+        self._input_expectation = expectation
+        self._factory_expectation = None
         self._include_custom = include_custom
 
         # set ansatz -- still supporting pre 0.18.0 sorting
@@ -190,14 +191,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         # TODO remove this once the stateful methods are deleted
         self._ret = None
-
-    def _try_set_expectation_value_from_factory(self, operator: OperatorBase) -> None:
-        if operator is not None and self.quantum_instance is not None:
-            self._expectation = ExpectationFactory.build(
-                operator=operator,
-                backend=self.quantum_instance,
-                include_custom=self._include_custom,
-            )
 
     @property
     def ansatz(self) -> Optional[QuantumCircuit]:
@@ -260,11 +253,14 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def expectation(self) -> ExpectationBase:
         """The expectation value algorithm used to construct the expectation measurement from
         the observable."""
-        return self._expectation
+        if self._input_expectation is not None:
+            return self._input_expectation
+
+        return self._factory_expectation
 
     @expectation.setter
     def expectation(self, exp: ExpectationBase) -> None:
-        self._expectation = exp
+        self._input_expectation = exp
 
     def _check_operator_ansatz(self, operator: OperatorBase):
         """Check that the number of qubits of operator and ansatz match."""
@@ -348,6 +344,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         Raises:
             AlgorithmError: If no operator has been provided.
+            AlgorithmError: If no expectation is passed and None could be inferred via the
+                ExpectationFactory.
         """
         if operator is None:
             raise AlgorithmError("The operator was never provided.")
@@ -356,18 +354,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         param_dict = dict(zip(self._ansatz_params, parameter))  # type: Dict
         wave_function = self.ansatz.assign_parameters(param_dict)
-
-        # Expectation was never created , try to create one
-        if self.expectation is None:
-            self._try_set_expectation_value_from_factory(operator)
-
-        # If setting the expectation failed, raise an Error:
-        if self.expectation is None:
-            raise AlgorithmError(
-                "No expectation set and could not automatically set one, please "
-                "try explicitly setting an expectation or specify a backend so it "
-                "can be chosen automatically."
-            )
 
         observable_meas = self.expectation.convert(StateFn(operator, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
@@ -444,6 +430,20 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         # this sets the size of the ansatz, so it must be called before the initial point
         # validation
         self._check_operator_ansatz(operator)
+
+        # if expectation was never created, try to create one
+        if self.expectation is None:
+            self._factory_expectation = ExpectationFactory.build(
+                operator=operator,
+                backend=self.quantum_instance,
+                include_custom=self._include_custom,
+            )
+            if self.expectation is None:
+                raise AlgorithmError(
+                    "No expectation set and could not automatically set one, please "
+                    "try explicitly setting an expectation or specify a backend so it "
+                    "can be chosen automatically."
+                )
 
         initial_point = _validate_initial_point(self.initial_point, self.ansatz)
 
