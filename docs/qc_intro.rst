@@ -60,7 +60,7 @@ integer of :math:`\pi`).
 As shown above, when the phase difference is close to an odd multiple of :math:`\pi`,
 the superposition of the two waves results in interference, and an output that is
 significantly reduced compared to the original.  The result is the signal of interest
-unincumbered by noise. Although this processing is done by digital circuits, the amplitude
+unencumbered by noise. Although this processing is done by digital circuits, the amplitude
 and phase are continuous variables that can never be matched perfectly, resulting in
 incomplete correction.
 

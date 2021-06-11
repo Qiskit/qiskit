@@ -2,7 +2,7 @@
 Introduction to Qiskit
 ======================
 
-When using Qiskit an user workflow nominally consists of
+When using Qiskit a user workflow nominally consists of
 following four high-level steps:
 
 - **Build**: Design a quantum circuit(s) that represents the problem you are
