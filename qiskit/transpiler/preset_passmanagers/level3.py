@@ -231,6 +231,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
+    # TODO: revert temporary changes for MIPMapping test below
     # Overwrite some passes
     from qiskit.transpiler.passes.routing import MIPMapping
     # Set trivial layout as dummy layout and No ApplyLayout

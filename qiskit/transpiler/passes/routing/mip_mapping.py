@@ -78,7 +78,7 @@ class MIPMapping(TransformationPass):
             DAGCircuit: A mapped DAG.
 
         Raises:
-            TranspilerError: if dag has no 2q-gates
+            TranspilerError: if dag has no 2q-gates or it fails to solve MIP problem
         """
         if self.coupling_map is None:
             return dag

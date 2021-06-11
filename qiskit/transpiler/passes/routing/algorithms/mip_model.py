@@ -6,6 +6,7 @@ import math
 import cplex
 import numpy as np
 from cplex import SparsePair
+from cplex.exceptions.errors import CplexSolverError
 
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.quantum_info import two_qubit_cnot_decompose
@@ -902,6 +903,11 @@ def solve_cpx_model(problem, index_calculator, time_limit=300,
         problem.set_warning_stream(None)
         problem.set_results_stream(None)
     problem.solve()
+    try:
+        problem.solution.get_objective_value()
+    except CplexSolverError as cse:
+        # TODO: more informative error message
+        raise TranspilerError("Failed to solve MIP problem.") from cse
     if (silent):
         return
     # Everything below is just for display purposes; could be
