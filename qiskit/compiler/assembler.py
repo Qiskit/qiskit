@@ -76,7 +76,7 @@ def assemble(
     parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
     parametric_pulses: Optional[List[str]] = None,
     init_qubits: bool = True,
-    frames_config: Dict[int, Dict] = None,
+    frames_config: Dict[Frame, Dict] = None,
     **run_config: Dict,
 ) -> Qobj:
     """Assemble a list of circuits or pulse schedules into a ``Qobj``.
@@ -143,11 +143,10 @@ def assemble(
             ['gaussian', 'constant']
         init_qubits: Whether to reset the qubits to the ground state for each shot.
                      Default: ``True``.
-        frames_config: Dictionary of user provided frames configuration. The key is the index
-            of the frame and the value is a dictionary with the configuration of the frame
-            which must be of the form {'frame': Frame, 'phase': float, 'frequency': float,
-            'channels': List[Channels]}. This object will be used to initialize ResolvedFrame
-            instance to resolve the frames in the Schedule.
+        frames_config: Dictionary of user provided frames configuration. The key is the frame
+            and the value is a dictionary with the configuration of the frame which must be of
+            the form {'frequency': float, 'purpose': str, 'dt': float}. This object is be used
+            to initialize ResolvedFrame instance to resolve the frames in the Schedule.
         **run_config: Extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
             arguments.
@@ -440,37 +439,20 @@ def _parse_pulse_args(
 
     meas_map = meas_map or getattr(backend_config, "meas_map", None)
 
-    schedule_los = schedule_los or []
-    if isinstance(schedule_los, (LoConfig, dict)):
-        schedule_los = [schedule_los]
+    frames_config_ = {}
+    if backend:
+        frames_config_ = getattr(backend.defaults(), "frames", {})
 
-    # Convert to LoConfig if LO configuration supplied as dictionary
-    schedule_los = [
-        lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
-        for lo_config in schedule_los
-    ]
-
-    if not qubit_lo_freq and hasattr(backend_default, "qubit_freq_est"):
-        qubit_lo_freq = backend_default.qubit_freq_est
-    if not meas_lo_freq and hasattr(backend_default, "meas_freq_est"):
-        meas_lo_freq = backend_default.meas_freq_est
-
-    qubit_lo_range = qubit_lo_range or getattr(backend_config, "qubit_lo_range", None)
-    meas_lo_range = meas_lo_range or getattr(backend_config, "meas_lo_range", None)
-
-    frames_config_ = None
-    if hasattr(backend_config, "frames"):
-        frames_config_ = frames_configuration(
-            backend_config.frames(), qubit_lo_freq, backend_config.dt
-        )
+        for config in frames_config_.values():
+            config["dt"] = backend_config.dt
 
     if frames_config is None:
         frames_config = frames_config_
     else:
-        for frame, settings in frames_config_.items():
+        for frame, config in frames_config_.items():
             # Do not override the frames provided by the user.
             if frame not in frames_config:
-                frames_config[frame] = settings
+                frames_config[frame] = config
 
     dynamic_reprate_enabled = getattr(backend_config, "dynamic_reprate_enabled", False)
 
@@ -631,51 +613,3 @@ def _expand_parameters(circuits, run_config):
         run_config.parameter_binds = []
 
     return circuits, run_config
-
-
-def frames_configuration(
-    frame_channels: List[List[PulseChannel]],
-    frame_frequencies: List[float],
-    dt: float,
-    frame_indices: List[int] = None,
-) -> Union[dict, None]:
-    """
-    Ties together the frames of the backend and the frequencies of the frames.
-
-    Args:
-        frame_channels: A List of lists. Sublist i is a list of channel names
-            that frame i will broadcast on.
-        frame_frequencies: A list of starting frequencies for each frame.
-        dt: duration of a sample in the waveforms.
-        frame_indices: The indices of the frames. If None is given these will be
-            in ascending order starting from 0.
-
-    Returns:
-        frames_config: A dictionary with the frame index as key and the values are
-            a dict which can be used to initialized a ResolvedFrame.
-
-    Raises:
-        QiskitError: if the number of frame frequencies is not the same as the number
-            of frames, i.e. the length of frame_channels.
-    """
-    if len(frame_frequencies) != len(frame_channels):
-        raise QiskitError(
-            f"Number of frames {len(frame_channels)} is incompatible with "
-            f"the number of frame initial frequencies {len(frame_frequencies)}."
-        )
-
-    frames_config = {}
-    for index, channels in enumerate(frame_channels):
-        if frame_indices:
-            frame_index = frame_indices[index]
-        else:
-            frame_index = index
-
-        frames_config[Frame(frame_index)] = {
-            "phase": 0.0,
-            "frequency": frame_frequencies[index],
-            "channels": channels,
-            "sample_duration": dt,
-        }
-
-    return frames_config

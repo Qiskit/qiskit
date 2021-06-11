@@ -20,7 +20,6 @@ from collections import defaultdict
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.exceptions import BackendConfigurationError
-from qiskit.pulse.frame import Frame
 from qiskit.pulse.channels import (
     AcquireChannel,
     Channel,
@@ -870,22 +869,6 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             raise BackendConfigurationError(
                 f"This backend - '{self.backend_name}' does not provide channel information."
             ) from ex
-
-    def frames(self) -> Dict[str, Frame]:
-        """
-        Gets the frames that the backend supports.
-
-        Returns:
-            frames: A dictionary of frames with the identifier as key.
-        """
-        frames = {}
-        for qubit in range(self.n_qubits):
-            frames[f"Q{qubit}"] = Frame(f"Q{qubit}")
-
-        for meas_idx, _ in self.meas_lo_range:
-            frames[f"M{meas_idx}"] = Frame(f"M{meas_idx}")
-
-        return frames
 
     def get_channel_qubits(self, channel: Channel) -> List[int]:
         """

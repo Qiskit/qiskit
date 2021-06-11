@@ -20,6 +20,7 @@ from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
+from qiskit.pulse.frame import Frame
 
 
 class MeasurementKernel:
@@ -277,6 +278,23 @@ class PulseDefaults:
         if "discriminator" in in_data:
             in_data["discriminator"] = Discriminator.from_dict(in_data.pop("discriminator"))
         return cls(**in_data)
+
+    @property
+    def frames(self) -> Dict[Frame, Dict]:
+        """Get the frames supported by the backend.
+
+        Returns:
+            frames: A list of dicts, each dict defines a frame, its frequency, and its purpose.
+        """
+        frames = {}
+        for qubit, freq in enumerate(self.qubit_freq_est):
+            frames[Frame(f"Q{qubit}")] = {"frequency": freq, "purpose": f"Frame of qubit {qubit}"}
+
+
+        for meas, freq in enumerate(self.meas_freq_est):
+            frames[Frame(f"M{meas}")] = {"frequency": freq, "purpose": f"Frame of meas {meas}"}
+
+        return frames
 
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
