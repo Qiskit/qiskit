@@ -36,25 +36,25 @@ class Optimize1qGatesDecomposition(TransformationPass):
         """
         super().__init__()
         self._target_basis = basis
-        self.basis = None
+        self._decomposers = None
         if basis:
-            self.basis = []
+            self._decomposers = []
             basis_set = set(basis)
             euler_basis_gates = one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
             for euler_basis_name, gates in euler_basis_gates.items():
                 if set(gates).issubset(basis_set):
-                    basis_copy = copy.copy(self.basis)
+                    basis_copy = copy.copy(self._decomposers)
                     for base in basis_copy:
                         # check if gates are a superset of another basis
                         # and if so, remove that basis
                         if set(euler_basis_gates[base.basis]).issubset(set(gates)):
-                            self.basis.remove(base)
+                            self._decomposers.remove(base)
                         # check if the gates are a subset of another basis
                         elif set(gates).issubset(set(euler_basis_gates[base.basis])):
                             break
                     # if not a subset, add it to the list
                     else:
-                        self.basis.append(
+                        self._decomposers.append(
                             one_qubit_decompose.OneQubitEulerDecomposer(euler_basis_name)
                         )
 
@@ -67,7 +67,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        if not self.basis:
+        if not self._decomposers:
             logger.info("Skipping pass because no basis is set")
             return dag
         runs = dag.collect_1q_runs()
@@ -76,7 +76,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             operator = run[0].op.to_matrix()
             for gate in run[1:]:
                 operator = gate.op.to_matrix().dot(operator)
-            for decomposer in self.basis:
+            for decomposer in self._decomposers:
                 new_circs.append(decomposer._decompose(operator))
             if new_circs:
                 new_circ = min(new_circs, key=len)
@@ -93,7 +93,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                                   stacklevel=2)
                 # does this run have uncalibrated gates?
                 uncalibrated_p = any(not dag.has_calibration_for(g) for g in run)
-                # does this run have gates which are not in the image of .basis _and_ uncalibrated?
+                # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
                 uncalibrated_and_not_basis_p = any(
                     g.name not in self._target_basis and not dag.has_calibration_for(g)
                     for g in run
