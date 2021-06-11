@@ -516,6 +516,20 @@ class TestDagNodeSelection(QiskitTestCase):
             or (isinstance(successor2, OutNode) and isinstance(successor1.op, Reset))
         )
 
+    def test_is_successor(self):
+        """The method dag.is_successor(A, B) checks if node B is a successor of A"""
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
+
+        measure_node = self.dag.named_nodes("measure")[0]
+        cx_node = self.dag.named_nodes("cx")[0]
+        reset_node = self.dag.named_nodes("reset")[0]
+
+        self.assertTrue(self.dag.is_successor(measure_node, cx_node))
+        self.assertFalse(self.dag.is_successor(measure_node, reset_node))
+        self.assertTrue(self.dag.is_successor(cx_node, reset_node))
+
     def test_quantum_predecessors(self):
         """The method dag.quantum_predecessors() returns predecessors connected by quantum edges"""
 
@@ -550,6 +564,21 @@ class TestDagNodeSelection(QiskitTestCase):
             (isinstance(predecessor1, InNode) and isinstance(predecessor2.op, Reset))
             or (isinstance(predecessor2, InNode) and isinstance(predecessor1.op, Reset))
         )
+
+    def test_is_predecessor(self):
+        """The method dag.is_predecessor(A, B) checks if node B is a predecessor of A"""
+
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
+
+        measure_node = self.dag.named_nodes("measure")[0]
+        cx_node = self.dag.named_nodes("cx")[0]
+        reset_node = self.dag.named_nodes("reset")[0]
+
+        self.assertTrue(self.dag.is_predecessor(cx_node, measure_node))
+        self.assertFalse(self.dag.is_predecessor(reset_node, measure_node))
+        self.assertTrue(self.dag.is_predecessor(reset_node, cx_node))
 
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""
