@@ -145,8 +145,9 @@ def assemble(
                      Default: ``True``.
         frames_config: Dictionary of user provided frames configuration. The key is the frame
             and the value is a dictionary with the configuration of the frame which must be of
-            the form {'frequency': float, 'purpose': str, 'dt': float}. This object is be used
-            to initialize ResolvedFrame instance to resolve the frames in the Schedule.
+            the form {'frequency': float, 'purpose': str, 'sample_duration': float}. This
+            object is be used to initialize ResolvedFrame instance to resolve the frames in
+            the Schedule.
         **run_config: Extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
             arguments.
@@ -444,7 +445,7 @@ def _parse_pulse_args(
         frames_config_ = getattr(backend.defaults(), "frames", {})
 
         for config in frames_config_.values():
-            config["dt"] = backend_config.dt
+            config["sample_duration"] = backend_config.dt
 
     if frames_config is None:
         frames_config = frames_config_

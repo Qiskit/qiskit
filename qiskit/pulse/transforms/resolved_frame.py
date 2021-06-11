@@ -13,11 +13,11 @@
 """Implements a Frame."""
 
 from abc import ABC
-from typing import List
+from typing import Optional
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.pulse.channels import Channel, PulseChannel
+from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.frame import Frame
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.instructions.frequency import SetFrequency, ShiftFrequency
@@ -31,22 +31,21 @@ class Tracker(ABC):
     or a pulse channel in a given schedule.
     """
 
-    def __init__(self, index: int, sample_duration: float):
+    def __init__(self, identifier: str, sample_duration: float):
         """
         Args:
-            index: The index of the Tracker. Corresponds to the index of a
-                :class:`~qiskit.pulse.Frame` or a channel.
+            identifier: The identifier of the Tracker.
             sample_duration: Duration of a sample.
         """
-        self._index = index
+        self._identifier = identifier
         self._frequencies_phases = []  # List of (time, frequency, phase) tuples
         self._instructions = {}
         self._sample_duration = sample_duration
 
     @property
-    def index(self) -> int:
-        """Return the index of the tracker."""
-        return self._index
+    def identifier(self) -> str:
+        """Return the identifier of the tracker."""
+        return self._identifier
 
     def frequency(self, time: int) -> float:
         """
@@ -131,36 +130,32 @@ class ResolvedFrame(Tracker):
         self,
         frame: Frame,
         frequency: float,
-        phase: float,
         sample_duration: float,
-        channels: List[Channel],
+        phase: float = 0.0,
+        purpose: Optional[str] = None,
     ):
         """
         Args:
             frame: The frame to track.
             frequency: The initial frequency of the frame.
-            phase: The initial phase of the frame.
             sample_duration: Duration of a sample.
-            channels: The list of channels on which the frame instructions apply.
+            phase: The initial phase of the frame.
+            purpose: A human readable description of the frame.
 
         Raises:
             PulseError: If there are still parameters in the given frame.
         """
-        if isinstance(frame.index, ParameterExpression):
-            raise PulseError("A parameterized frame cannot be given to ResolvedFrame.")
+        if isinstance(frame.identifier[1], ParameterExpression):
+            raise PulseError("A parameterized frame cannot initialize a ResolvedFrame.")
 
-        super().__init__(frame.index, sample_duration)
+        super().__init__(frame.name, sample_duration)
         self._frequencies_phases = [(0, frequency, phase)]
-        self._channels = channels
-
-        for ch in self._channels:
-            if isinstance(ch.index, ParameterExpression):
-                raise PulseError("ResolvedFrame does not allow parameterized channels.")
+        self._purpose = purpose
 
     @property
-    def channels(self) -> List[Channel]:
-        """Returns the channels that this frame ties together."""
-        return self._channels
+    def purpose(self) -> str:
+        """Return the purpose of the frame."""
+        return self.purpose
 
     def set_frame_instructions(self, schedule: Schedule):
         """
@@ -177,7 +172,7 @@ class ResolvedFrame(Tracker):
         frame_instructions = schedule.filter(instruction_types=frame_instruction_types)
 
         for time, inst in frame_instructions.instructions:
-            if Frame(self._index) == inst.operands[1]:
+            if Frame(self.identifier) == inst.operands[1]:
                 if isinstance(inst, ShiftFrequency):
                     self.set_frequency(time, self.frequency(time) + inst.frequency)
                 elif isinstance(inst, SetFrequency):
@@ -190,8 +185,7 @@ class ResolvedFrame(Tracker):
                     raise PulseError("Unexpected frame operation.")
 
     def __repr__(self):
-        sub_str = "[" + ", ".join([ch.__repr__() for ch in self._channels]) + "]"
-        return f"{self.__class__.__name__}({self._index}, {sub_str})"
+        return f"{self.__class__.__name__}({self.identifier}, {self.frequency(0)})"
 
 
 class ChannelTracker(Tracker):
@@ -203,7 +197,7 @@ class ChannelTracker(Tracker):
             channel: The channel that this tracker tracks.
             sample_duration: Duration of a sample.
         """
-        super().__init__(channel.index, sample_duration)
+        super().__init__(channel.name, sample_duration)
         self._channel = channel
 
     def is_initialized(self) -> bool:
