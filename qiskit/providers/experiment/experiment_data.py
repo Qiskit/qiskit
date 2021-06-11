@@ -201,7 +201,7 @@ class ExperimentDataV1(ExperimentData):
             TypeError: If the input data type is invalid.
         """
         if isinstance(data, (Job, BaseJob)):
-            if self.backend and self.backend != data.backend():
+            if self.backend and self.backend.name() != data.backend().name():
                 LOG.warning(
                     "Adding a job from a backend (%s) that is different "
                     "than the current ExperimentData backend (%s). "
