@@ -39,6 +39,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 and the Euler basis.
         """
         super().__init__()
+        self._target_basis = basis
         self.basis = None
         if basis:
             self.basis = []
@@ -84,14 +85,15 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 new_circs.append(decomposer._decompose(operator))
             if new_circs:
                 new_circ = min(new_circs, key=len)
-                if all(g.name in self.basis for g in run) and len(run) < len(new_circ):
+                if all(g.name in self._target_basis for g in run) and len(run) < len(new_circ):
                     warnings.warn(f"Resynthesized {run} and got {new_circ}, "
                                   f"but the original was native and the new "
                                   f"value is longer.  This indicates an "
                                   f"efficiency bug in synthesis.  Please "
                                   f"report it by opening an issue here:"
-                                  f"https://github.com/Qiskit/qiskit-terra/issues/new/choose")
-                if any(g.name not in self.basis for g in run) or len(run) > len(new_circ):
+                                  f"https://github.com/Qiskit/qiskit-terra/issues/new/choose",
+                                  stacklevel=2)
+                if any(g.name not in self._target_basis for g in run) or len(run) >= len(new_circ):
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
                     # Delete the other nodes in the run
