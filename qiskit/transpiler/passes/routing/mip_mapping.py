@@ -74,15 +74,9 @@ class MIPMapping(TransformationPass):
         Raises:
             TranspilerError: if ...
         """
-        # TODO: should run on logical circuits
-        if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
-            raise TranspilerError('MILP swapper runs on physical circuits only.')
-
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError('More virtual qubits exist than physical qubits.')
 
-        # canonical_register = dag.qregs['q']
-        # mapped_dag = dag._create_empty_dagcircuit()
         canonical_register = QuantumRegister(self.coupling_map.size(), 'q')
         mapped_dag = self._create_empty_dagcircuit(dag, canonical_register)
 
@@ -90,6 +84,9 @@ class MIPMapping(TransformationPass):
         self.initial_layout = self.initial_layout or self.property_set['layout']
         if self.initial_layout is not None:
             self.fixed_layout = True
+            if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
+                raise TranspilerError('MIPMapper with fixed layout runs on physical circuits only.')
+        # TODO: set more safety dummy_steps
         self.dummy_steps = self.dummy_steps or min(4, dag.num_qubits())
         self.max_total_dummy = self.max_total_dummy or (self.dummy_steps * (self.dummy_steps - 1))
 
@@ -106,8 +103,9 @@ class MIPMapping(TransformationPass):
 
         if self.fixed_layout:
             # Fix initial layout variables
+            initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
             for q in range(ic.num_lqubits):
-                i = self.initial_layout[model.index_to_virtual[q]]
+                i = initial_layout[model.index_to_virtual[q]]
                 problem.variables.set_lower_bounds(ic.w_index(q, i, 0), 1)
 
         qomp.set_error_rate_obj(problem, ic)
