@@ -1,11 +1,12 @@
 \documentclass[border=2px]{standalone}
         
 \usepackage[braket, qm]{qcircuit}
+\usepackage{graphicx}
 
 \begin{document} 
-
+\scalebox{1.0}{
 \Qcircuit @C=1.0em @R=1.0em @!R { \\
-	 	\nghost{Register: q_0} & \lstick{ {q}_{0} :  } & \gate{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1}\mathrm{)}} & \multigate{1}{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1},\mathrm{0},\mathrm{0}\mathrm{)}}_<<<{0} & \qw & \qw\\ 
-	 	\nghost{Register: q_1} & \lstick{ {q}_{1} :  } & \gate{\left|0\right\rangle} & \ghost{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1},\mathrm{0},\mathrm{0}\mathrm{)}}_<<<{1} & \qw & \qw\\ 
-\\ }
+	 	\nghost{ {q}_{0} :  } & \lstick{ {q}_{0} :  } & \gate{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1}\mathrm{)}} & \multigate{1}{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1},\mathrm{0},\mathrm{0}\mathrm{)}}_<<<{0} & \qw & \qw\\ 
+	 	\nghost{ {q}_{1} :  } & \lstick{ {q}_{1} :  } & \gate{\left|0\right\rangle} & \ghost{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1},\mathrm{0},\mathrm{0}\mathrm{)}}_<<<{1} & \qw & \qw\\ 
+\\ }}
 \end{document}

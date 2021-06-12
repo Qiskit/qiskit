@@ -75,7 +75,7 @@ class QCircuitImage:
         self.ops = ops
 
         # image scaling
-        self.scale = 0.7 if scale is None else scale
+        self.scale = 1.0 if scale is None else scale
 
         # Map of qregs to sizes
         self.qregs = {}
@@ -162,15 +162,19 @@ class QCircuitImage:
 
         header_2 = r"""
 \usepackage[braket, qm]{qcircuit}
+\usepackage{graphicx}
 
 \begin{document} 
 """
+        header_scale  = "\\scalebox{{{}}}".format(self.scale) + "{"
+
         qcircuit_line = r"""
 \Qcircuit @C=%.1fem @R=%.1fem @!R { \\
 """
         output = io.StringIO()
         output.write(header_1)
         output.write(header_2)
+        output.write(header_scale)
         if self.global_phase:
             output.write(
                 r"""{$\mathrm{%s} \mathrm{%s}$}"""
@@ -185,7 +189,7 @@ class QCircuitImage:
                     output.write(" & ")
                 else:
                     output.write(r"\\ " + "\n")
-        output.write(r"\\ " + "}\n")
+        output.write(r"\\ " + "}}\n")
         output.write("\\end{document}")
         contents = output.getvalue()
         output.close()
@@ -216,34 +220,20 @@ class QCircuitImage:
             if isinstance(self.ordered_bits[i], Clbit):
                 if self.cregbundle:
                     reg = self.bit_locations[self.ordered_bits[i + offset]]["register"]
-                    self._latex[i][0] = (
-                        "\\nghost{Register: " + reg.name + "} & " + "\\lstick{" + reg.name + ":"
-                    )
+                    label = reg.name + ":"
                     clbitsize = self.cregs[reg]
                     self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
                     offset += clbitsize - 1
                 else:
-                    self._latex[i][0] = (
-                        "\\nghost{Register: "
-                        + self.bit_locations[self.ordered_bits[i]]["register"].name
-                        + "_"
-                        + str(self.bit_locations[self.ordered_bits[i]]["index"])
-                        + "} & "
-                        + "\\lstick{"
-                        + self.bit_locations[self.ordered_bits[i]]["register"].name
-                        + "_{"
-                        + str(self.bit_locations[self.ordered_bits[i]]["index"])
-                        + "}:"
-                    )
+                    label =  self.bit_locations[self.ordered_bits[i]]["register"].name + "_{"
+                    label += str(self.bit_locations[self.ordered_bits[i]]["index"]) + "}:"
                 if self.initial_state:
-                    self._latex[i][0] += "0"
-                self._latex[i][0] += "}"
+                    label += "0"
+                label += "}"
+                self._latex[i][0] = "\\nghost{" + label + " & " + "\\lstick{" + label
             else:
                 if self.layout is None:
-                    label = "\\nghost{Register: "
-                    label += self.bit_locations[self.ordered_bits[i]]["register"].name
-                    label += "_" + str(self.bit_locations[self.ordered_bits[i]]["index"]) + "} & "
-                    label += "\\lstick{{ {{{}}}_{{{}}} : ".format(
+                    label = " {{{}}}_{{{}}} : ".format(
                         self.bit_locations[self.ordered_bits[i]]["register"].name,
                         self.bit_locations[self.ordered_bits[i]]["index"],
                     )
@@ -255,21 +245,17 @@ class QCircuitImage:
                             virt_reg = next(
                                 reg for reg in self.layout.get_registers() if virt_bit in reg
                             )
-                            label = "\\nghost{Register: " + virt_reg.name + "} & "
-                            label += "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
+                            label = " {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
                                 virt_reg.name, virt_reg[:].index(virt_bit), bit_location["index"]
                             )
                         except StopIteration:
-                            label = "\\nghost{Register: " + bit_location["index"] + "} & "
-                            label += "\\lstick{{ {{{}}} : ".format(bit_location["index"])
+                            label = "  {{{}}} : ".format(bit_location["index"])
                     else:
-                        label = "\\nghost{Register: " + bit_location["index"] + "} & "
-                        label += "\\lstick{{ {{{}}} : ".format(bit_location["index"])
+                        label = " {{{}}} : ".format(bit_location["index"])
                 if self.initial_state:
-                    #label += "\\ket{{0}}"
                     label += "\\ket{{0}}"
                 label += " }"
-                self._latex[i][0] = label
+                self._latex[i][0] = "\\nghost{" + label + " & " + "\\lstick{" + label
 
     def _get_image_depth(self):
         """Get depth information for the circuit."""
