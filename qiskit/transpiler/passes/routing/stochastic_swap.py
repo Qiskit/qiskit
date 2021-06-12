@@ -246,8 +246,8 @@ class StochasticSwap(TransformationPass):
         """Add swaps followed by the now mapped layer from the original circuit.
 
         Args:
-            dag (): The DAGCircuit object that the _mapper method is building
-            layer (): A DAGCircuit layer from the original circuit
+            dag (DAGCircuit): The DAGCircuit object that the _mapper method is building
+            layer (DAGCircuit): A DAGCircuit layer from the original circuit
             best_layout (Layout): layout returned from _layer_permutation
             best_depth (int): depth returned from _layer_permutation
             best_circuit (DAGCircuit): swap circuit returned from _layer_permutation
