@@ -236,13 +236,15 @@ class Optimizer(ABC):
         """
         # if from_dict is called on a particular optimizer class (like SPSA) we don't need the name
         if cls != Optimizer and issubclass(cls, Optimizer):
-            name = dictionary.pop("name", None)
+            name = dictionary.get("name", None)
             if name is not None:
                 classname = cls.__name__.lower()
                 if name.lower() != classname:
                     raise ValueError(f"Value of the key 'name' must be '{classname}'.")
 
-            return cls(**dictionary)
+            # settings are the dictionary without the key "name"
+            settings = {key: value for key, value in dictionary.items() if key != "name"}
+            return cls(**settings)
 
         # otherwise, if from_dict is called on the Optimizer base class, we need the name
         if "name" not in dictionary:

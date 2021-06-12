@@ -214,10 +214,25 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         with self.assertRaises(QiskitError):
             _ = optimizer.to_dict()
 
+    def test_invalid_name(self):
+        """Test serialization fails if the dictionary specifies a 'name' that doesn't exist."""
+        with self.assertRaises(ValueError):
+            _ = Optimizer.from_dict({"name": "IDontExist", "maxiter": 1})
+
+    def test_name_missing(self):
+        """Test serialization fails if the dictionary has no 'name' key."""
+        with self.assertRaises(ValueError):
+            _ = Optimizer.from_dict({"maxiter": 1})
+
     def test_scipy_name_missing(self):
         """Test serialization fails if the dictionary has no 'name' key."""
         with self.assertRaises(ValueError):
             _ = SciPyOptimizer.from_dict({"maxiter": 1})
+
+    def test_wrong_name(self):
+        """Test serialization fails if the dictionary specifies a wrong name on a concrete class."""
+        with self.assertRaises(ValueError):
+            _ = SPSA.from_dict({"name": "COBYLA", "maxiter": 1})
 
     def test_adam(self):
         """Test ADAM is serializable."""
@@ -375,6 +390,10 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
             self.assertDictEqual(serialized, expected)
 
         # fidelity cannot be serialized, so it must be added back in
+        with self.subTest(msg="fidelity missing"):
+            with self.assertRaises(ValueError):
+                _ = Optimizer.from_dict(serialized)
+
         serialized["fidelity"] = fidelity
         reconstructed = Optimizer.from_dict(serialized)
         with self.subTest(msg="test reconstructed optimizer"):

@@ -213,9 +213,10 @@ class QNSPSA(SPSA):
 
     @classmethod
     def from_dict(cls, dictionary):
-        name = dictionary.pop("name", None)
-        if name != "QNSPSA":
-            raise ValueError("Value of the key 'name' must be 'SPSA'.")
+        name = dictionary.get("name", None)
+        if name is not None:
+            if name.lower() != "qnspsa":
+                raise ValueError("Value of the key 'name' must be 'QNSPSA'.")
 
         # raise extra expressive warning if "fidelity" is not contained
         if "fidelity" not in dictionary.keys():
@@ -226,7 +227,9 @@ class QNSPSA(SPSA):
                 "manually to the dictionary to construct a QNSPSA optimizer."
             )
 
-        return cls(**dictionary)
+        # settings are the dictionary without the key "name"
+        settings = {key: value for key, value in dictionary.items() if key != "name"}
+        return cls(**settings)
 
     @staticmethod
     def get_fidelity(
