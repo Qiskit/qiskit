@@ -1833,8 +1833,11 @@ class QuantumCircuit:
                 # Controls necessarily join all the cbits in the
                 # register that they use.
                 if instr.condition and not unitary_only:
-                    creg = instr.condition[0]
-                    for bit in creg:
+                    if isinstance(instr.condition[0], Clbit):
+                        condition_bits = [instr.condition[0]]
+                    else:
+                        condition_bits = instr.condition[0]
+                    for bit in condition_bits:
                         idx = bit_indices[bit]
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
