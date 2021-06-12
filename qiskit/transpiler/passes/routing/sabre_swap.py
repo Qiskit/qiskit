@@ -166,19 +166,12 @@ class SabreSwap(TransformationPass):
         # Start algorithm from the front layer and iterate until all gates done.
         num_search_steps = 0
         front_layer = dag.front_layer()
-        for x in front_layer:
-            #if isinstance(x, OutNode):
-            print('\n\n\n\nFront Layer', type(x), type(front_layer))
         self.applied_gates = set()
         while front_layer:
             execute_gate_list = []
 
             # Remove as many immediately applicable gates as possible
             for node in front_layer:
-                if isinstance(node, OutNode):
-                    print('\n\n\n\n\nNode in front', node)
-                    front_layer.remove(node)
-                    continue
                 if len(node.qargs) == 2:
                     v0, v1 = node.qargs
                     if self.coupling_map.graph.has_edge(current_layout[v0], current_layout[v1]):
@@ -188,16 +181,12 @@ class SabreSwap(TransformationPass):
 
             if execute_gate_list:
                 for node in execute_gate_list:
-                    if isinstance(node, OutNode):
-                        print('\n\n\n\n\nOut Node', node)
                     new_node = _transform_gate_for_layout(node, current_layout, canonical_register)
-                    if isinstance(new_node, OutNode):
-                        print('\n\n\n\n\nOut Node 2', new_node)
                     mapped_dag.apply_operation_back(new_node.op, new_node.qargs, new_node.cargs)
                     front_layer.remove(node)
                     self.applied_gates.add(node)
                     for successor in dag.quantum_successors(node):
-                        if isinstance(successor, OpNode):
+                        if not isinstance(successor, OpNode):
                             continue
                         if self._is_resolved(successor, dag):
                             front_layer.append(successor)
