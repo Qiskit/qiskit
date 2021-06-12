@@ -70,15 +70,6 @@ class BOBYQA(Optimizer):
             "maxiter": self._maxiter,
         }
 
-    @classmethod
-    def from_dict(cls, dictionary: Dict[str, Any]):
-        """Construct the optimizer from a dictionary."""
-        name = dictionary.pop("name", None)
-        if name is not None:
-            if name.lower() != "bobyqa":
-                raise ValueError("Value of the key 'name' must be 'BOBYQA'.")
-        return cls(**dictionary)
-
     def optimize(
         self,
         num_vars,

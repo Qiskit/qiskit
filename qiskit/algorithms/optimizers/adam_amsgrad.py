@@ -120,15 +120,6 @@ class ADAM(Optimizer):
 
         return serialized
 
-    @classmethod
-    def from_dict(cls, dictionary):
-        name = dictionary.pop("name", None)
-        if name is not None:
-            if name != "ADAM":
-                raise ValueError("Value of the key 'name' must be 'ADAM'.")
-
-        return cls(**dictionary)
-
     def get_support_level(self):
         """Return support level dictionary"""
         return {

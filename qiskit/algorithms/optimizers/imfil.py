@@ -71,15 +71,6 @@ class IMFIL(Optimizer):
             "maxiter": self._maxiter,
         }
 
-    @classmethod
-    def from_dict(cls, dictionary: Dict[str, Any]):
-        """Construct the optimizer from a dictionary."""
-        name = dictionary.pop("name", None)
-        if name is not None:
-            if name.lower() != "imfil":
-                raise ValueError("Value of the key 'name' must be 'IMFIL'.")
-        return cls(**dictionary)
-
     def optimize(
         self,
         num_vars,

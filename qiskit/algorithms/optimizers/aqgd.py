@@ -129,15 +129,6 @@ class AQGD(Optimizer):
 
         return serialized
 
-    @classmethod
-    def from_dict(cls, dictionary):
-        name = dictionary.pop("name", None)
-        if name is not None:
-            if name != "AQGD":
-                raise ValueError("Value of the key 'name' must be 'AQGD'.")
-
-        return cls(**dictionary)
-
     def _compute_objective_fn_and_gradient(
         self, params: List[float], obj: Callable
     ) -> Tuple[float, np.array]:

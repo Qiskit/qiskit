@@ -152,15 +152,6 @@ class GradientDescent(Optimizer):
             "perturbation": self.perturbation,
         }
 
-    @classmethod
-    def from_dict(cls, dictionary: Dict[str, Any]):
-        """Construct the optimizer from a dictionary."""
-        name = dictionary.pop("name", None)
-        if name is not None:
-            if name.lower() != "gradientdescent":
-                raise ValueError("Value of the key 'name' must be 'GradientDescent'.")
-        return cls(**dictionary)
-
     def _minimize(self, loss, grad, initial_point):
         # set learning rate
         if isinstance(self.learning_rate, float):

@@ -177,20 +177,20 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
 
     @data(
         ("BFGS", {"maxiter": 100, "eps": np.array([0.1])}),
-        ("CG", {"maxiter": 100, "gtol": 1e-8}),
-        ("COBYLA", {"maxiter": 100}),
-        ("L_BFGS_B", {"maxiter": 100}),
-        ("NELDER_MEAD", {"maxiter": 100}),
+        ("CG", {"maxiter": 200, "gtol": 1e-8}),
+        ("COBYLA", {"maxiter": 10}),
+        ("L_BFGS_B", {"maxiter": 30}),
+        ("NELDER_MEAD", {"maxiter": 0}),
         ("NFT", {"maxiter": 100}),
-        ("P_BFGS", {"maxiter": 100}),
-        ("POWELL", {"maxiter": 100}),
-        ("SLSQP", {"maxiter": 100}),
-        ("TNC", {"maxiter": 100}),
+        ("P_BFGS", {"maxiter": 5}),
+        ("POWELL", {"maxiter": 1}),
+        ("SLSQP", {"maxiter": 400}),
+        ("TNC", {"maxiter": 20}),
         ("dogleg", {"maxiter": 100}),
-        ("trust-constr", {"maxiter": 100}),
+        ("trust-constr", {"maxiter": 10}),
         ("trust-ncg", {"maxiter": 100}),
-        ("trust-exact", {"maxiter": 100}),
-        ("trust-krylov", {"maxiter": 100}),
+        ("trust-exact", {"maxiter": 120}),
+        ("trust-krylov", {"maxiter": 150}),
     )
     @unpack
     def test_scipy(self, method, options):

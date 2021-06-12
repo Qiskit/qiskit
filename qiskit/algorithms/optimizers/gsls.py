@@ -97,15 +97,6 @@ class GSLS(Optimizer):
 
         return serialized
 
-    @classmethod
-    def from_dict(cls, dictionary):
-        name = dictionary.pop("name", None)
-        if name is not None:
-            if name.lower() != "gsls":
-                raise ValueError("Value of the key 'name' must be 'GSLS'.")
-
-        return cls(**dictionary)
-
     def optimize(
         self,
         num_vars: int,

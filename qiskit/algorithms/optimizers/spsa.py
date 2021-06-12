@@ -342,14 +342,6 @@ class SPSA(Optimizer):
             "initial_hessian": self.initial_hessian,
         }
 
-    @classmethod
-    def from_dict(cls, dictionary):
-        name = dictionary.pop("name", None)
-        if name != "SPSA":
-            raise ValueError("Value of the key 'name' must be 'SPSA'.")
-
-        return cls(**dictionary)
-
     def _point_sample(self, loss, x, eps, delta1, delta2):
         """A single sample of the gradient at position ``x`` in direction ``delta``."""
         # points to evaluate
