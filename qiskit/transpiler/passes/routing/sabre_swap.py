@@ -66,7 +66,7 @@ class SabreSwap(TransformationPass):
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
-    def __init__(self, coupling_map, heuristic='basic', seed=None, fake_run=False):
+    def __init__(self, coupling_map, heuristic="basic", seed=None, fake_run=False):
         r"""SabreSwap initializer.
 
         Args:
@@ -224,7 +224,7 @@ class SabreSwap(TransformationPass):
             best_swaps = [k for k, v in swap_scores.items() if v == min_score]
             best_swaps.sort(key=lambda x: (self._bit_indices[x[0]], self._bit_indices[x[1]]))
             best_swap = rng.choice(best_swaps)
-            swap_node = DAGNode(op=SwapGate(), qargs=best_swap, type='op')
+            swap_node = DAGNode(op=SwapGate(), qargs=best_swap, type="op")
             self._apply_gate(mapped_dag, swap_node, current_layout, canonical_register)
             current_layout.swap(*best_swap)
 
@@ -262,15 +262,14 @@ class SabreSwap(TransformationPass):
 
     def _successors(self, node, dag):
         for _, successor, edge_data in dag.edges(node):
-            if successor.type != 'op':
+            if successor.type != "op":
                 continue
             if isinstance(edge_data, Qubit):
                 yield successor
 
     def _is_resolved(self, node):
-        """Return True if all of a node's predecessors in dag are applied.
-        """
-        return self.applied_predecessors[node] == len(node.qargs) 
+        """Return True if all of a node's predecessors in dag are applied."""
+        return self.applied_predecessors[node] == len(node.qargs)
 
     def _obtain_extended_set(self, dag, front_layer):
         """Populate extended_set by looking ahead a fixed number of gates.

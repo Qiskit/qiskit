@@ -86,7 +86,7 @@ class SabreLayout(AnalysisPass):
         initial_layout = Layout({q: dag.qubits[i] for i, q in enumerate(physical_qubits)})
 
         if self.routing_pass is None:
-            self.routing_pass = SabreSwap(self.coupling_map, 'decay', seed=self.seed, fake_run=True)
+            self.routing_pass = SabreSwap(self.coupling_map, "decay", seed=self.seed, fake_run=True)
 
         # Do forward-backward iterations.
         circ = dag_to_circuit(dag)
@@ -105,7 +105,7 @@ class SabreLayout(AnalysisPass):
                 circ, rev_circ = rev_circ, circ
 
             # Diagnostics
-            logger.info('new initial layout')
+            logger.info("new initial layout")
             logger.info(initial_layout)
 
         for qreg in dag.qregs.values():

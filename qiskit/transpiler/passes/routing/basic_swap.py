@@ -105,7 +105,7 @@ class BasicSwap(TransformationPass):
         return new_dag
 
     def _fake_run(self, dag):
-        """Do a fake run the BasicSwap pass on `dag`. 
+        """Do a fake run the BasicSwap pass on `dag`.
 
         Args:
             dag (DAGCircuit): DAG to improve initial layout.

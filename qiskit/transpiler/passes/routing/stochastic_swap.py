@@ -346,7 +346,7 @@ class StochasticSwap(TransformationPass):
                             serial_layerlist[j],
                             best_layout,
                             best_depth,
-                            best_circuit
+                            best_circuit,
                         )
 
             else:
@@ -356,11 +356,7 @@ class StochasticSwap(TransformationPass):
                 # Update the DAG
                 if not self.fake_run:
                     self._layer_update(
-                        dagcircuit_output,
-                        layerlist[i],
-                        best_layout,
-                        best_depth,
-                        best_circuit
+                        dagcircuit_output, layerlist[i], best_layout, best_depth, best_circuit
                     )
 
         # This is the final edgemap. We might use it to correctly replace
