@@ -426,6 +426,7 @@ class VarQTE(EvolutionBase):
         def ode_fun(t: float, x: Iterable) -> Iterable:
             params = x[:-1]
             error = x[-1]
+            print('previous error', error)
             param_dict = dict(zip(self._parameters, params))
             if self._error_based_ode:
                 dt_params, grad_res, metric_res = error_based_ode_fun(t, params)
@@ -479,6 +480,7 @@ class VarQTE(EvolutionBase):
                                                   h_trip=h_trip,
                                                   stddev=np.sqrt(h_squared - trained_energy**2),
                                                   store=self._store_now)
+                print('returned grad', error_bound_grad)
 
             if (self._snapshot_dir is not None) and (self._store_now):
                 self._store_params(t, params, error, error_bound_grad, et,

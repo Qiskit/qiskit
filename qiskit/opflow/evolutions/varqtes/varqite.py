@@ -192,7 +192,7 @@ class VarQITE(VarQTE):
         # e_star = lambda a: ((1 - np.abs(a)) ** 2 * e + 2 * (a - a * np.abs(a)) * h_squared +
         #                     a ** 2 * h_trip) / c_alpha(a) ** 2
 
-        def bures(alpha: Iterable[float]) -> float:
+        def overlap(alpha: Iterable[float]) -> float:
             """
             Compute generalized Bures metric B(I + delta_t(E_t-H)|psi_t>, I + delta_t(
             E_t-H)|psi*_t>(alpha))
@@ -212,8 +212,9 @@ class VarQITE(VarQTE):
             #                              2 * delta_t * ((1 - np.abs(a)) * e + a * h_squared)) /
             #                             c_alpha(a))
 
-            x = np.abs((1 + 2 * delta_t * e) * (1 - np.abs(alpha) + alpha*e) - 2 * delta_t * ((
-                    1-np.abs(alpha)) * e) + alpha * h_squared) / c_alpha(alpha)
+            x = np.abs(((1 + 2 * delta_t * e) * (1 - np.abs(alpha) + alpha * e) -
+                        2 * delta_t * ((1-np.abs(alpha)) * e + alpha * h_squared))
+                       / c_alpha(alpha))
 
             # bures_squared = 1 + abs_val0(alpha) - 2 * abs_val1(alpha)
             #
@@ -252,9 +253,9 @@ class VarQITE(VarQTE):
         x = None
         # TODO Use again finer grid of 10**6
         # Grid search over alphas for the optimization
-        a_grid = np.append(np.linspace(-1, 1, 10 ** 6), 0)
+        a_grid = np.append(np.linspace(-1, 1, 10**6), 0)
         for a in a_grid:
-            returned_bures = bures([a])
+            returned_bures = overlap([a])
             if math.isnan(returned_bures):
                 print('optimization fun is nan')
                 pass
@@ -268,18 +269,17 @@ class VarQITE(VarQTE):
                     alpha_opt = a
         # After the grid use the resulting optimal alpha and do another optimization search
         while True:
-            alpha_opt = fmin_cobyla(func=lambda x: bures(x), x0=[alpha_opt],
+            alpha_opt = fmin_cobyla(func=lambda x: overlap(x), x0=[alpha_opt],
                                     rhobeg=1e-5, catol=1e-12, maxfun=1000000,
                                     rhoend=1e-10, cons=[constraint1, constraint2])[0]
             if np.abs(alpha_opt) <= 1:
                 break
             print('Warning illegal alpha ', alpha_opt)
 
-        x = bures([alpha_opt])
-
-        if x < 0:
-            print('something weird')
-        max_bures = np.sqrt(2 + 2 * delta_t * e_factor - x)
+        x = overlap([alpha_opt])
+        print('dt * e ', delta_t * e_factor)
+        print('x ', x)
+        max_bures = np.sqrt(2 + 2 * delta_t * e_factor - 2 * x)
         print('alpha_opt ', alpha_opt)
         print('Maximum bures metric ', max_bures)
         return max_bures
@@ -293,8 +293,12 @@ class VarQITE(VarQTE):
                         h_trip: float,
                         stddev: float,
                         store: bool = False):
-        return (self.get_error_term(delta_t, eps_t, grad_err, energy, h_squared, h_trip, stddev,
-                                    store) - eps_t) / delta_t
+        eps_t_next = self.get_error_term(delta_t, eps_t, grad_err, energy, h_squared, h_trip,
+                                         stddev, store)
+        grad = (eps_t_next - eps_t) / delta_t
+        if grad > 10:
+            print('huge grad', grad)
+        return grad
 
     def get_energy_factor(self,
                           eps_t: float,
@@ -311,8 +315,7 @@ class VarQITE(VarQTE):
 
         """
         def optimize_energy_factor(alpha):
-            print('alpha ', alpha)
-            return np.abs(alpha[0] * energy - np.sqrt(1 - (1-alpha[0])**2)* stddev)
+            return np.abs(alpha[0] * energy - np.sqrt(1 - (1-alpha[0])**2)*stddev)
 
         def constraint1(alpha):
             """
@@ -323,7 +326,7 @@ class VarQITE(VarQTE):
             Returns: alpha
 
             """
-            return alpha
+            return alpha[0]
 
         def constraint2(alpha):
             """
@@ -332,25 +335,43 @@ class VarQITE(VarQTE):
                 alpha:
 
             """
-            return eps_t**2/2 - alpha
+            return eps_t**2/2 - alpha[0]
+
+        def constraint3(alpha):
+            """
+            Ensure that alpha <= eps_t^2/2
+            Args:
+                alpha:
+
+            """
+            return 1 - alpha[0]
 
         x = None
         # Grid search over alphas for the optimization
-        num_grid_points = eps_t**2/2 * 10**5 + 1
         print('eps_t', eps_t)
-        for a in np.linspace(0, eps_t**2/2, int(num_grid_points)):
+        if eps_t**2/2 > 1:
+            grid = np.linspace(0, 1, 10**5)
+        else:
+            num_grid_points = min(eps_t ** 2 / 2 * 10 ** 5 + 1, 10e6)
+            grid = np.linspace(0, eps_t**2/2, int(num_grid_points))
+        for a in grid:
             returned_x = optimize_energy_factor([a])
             if math.isnan(returned_x):
-                print('optimization fun is nan')
+                print('eps_t', eps_t)
+                raise Warning('optimization fun is nan')
                 pass
             else:
                 # Check if the current bures metric is bigger than the max.
                 if x is None or returned_x > x:
                     x = returned_x
+                    alpha_opt = a
 
-        # alpha_opt = fmin_cobyla(func=lambda x: (-1) * optimize_energy_factor(x), x0=[eps_t**2/4],
-        #                         rhobeg=1e-5, catol=1e-12, maxfun=1000000,
-        #                         rhoend=1e-10, cons=[constraint1, constraint2])
+        alpha_opt = fmin_cobyla(func=lambda z: (-1) * optimize_energy_factor(z), x0=[alpha_opt],
+                                rhobeg=1e-5, catol=1e-12, maxfun=1000000,
+                                rhoend=1e-10, cons=[constraint1, constraint2, constraint3])
+        x = optimize_energy_factor([alpha_opt])[0]
+        print('energy factor part 1', eps_t**2 * self._h_norm)
+        print('energy factor part 2', 2 * x)
         return eps_t**2 * self._h_norm + 2 * x
 
     def get_error_term(self, d_t, eps_t, grad_err,
