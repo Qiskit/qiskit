@@ -733,16 +733,29 @@ class TestTwoLocal(QiskitTestCase):
         self.assertCircuitEqual(two.assign_parameters(parameters), ref)
 
     def test_circuit_with_numpy_integers(self):
-        """Test if TwoLocal can be made and drawn from numpy integers"""
+        """Test if TwoLocal can be made from numpy integers"""
         num_qubits = 6
-        expected_np32 = [(i, i + 1) for i in np.arange(num_qubits - 1, dtype=np.int32)]
-        expected_np64 = [(i, i + 1) for i in np.arange(num_qubits - 1, dtype=np.int64)]
+        reps = 3
+        expected_np32 = [
+            (i, j)
+            for i in np.arange(num_qubits, dtype=np.int32)
+            for j in np.arange(num_qubits, dtype=np.int32)
+            if i < j
+        ]
+        expected_np64 = [
+            (i, j)
+            for i in np.arange(num_qubits, dtype=np.int64)
+            for j in np.arange(num_qubits, dtype=np.int64)
+            if i < j
+        ]
 
-        two_np32 = TwoLocal(num_qubits, "ry", "cx", entanglement=expected_np32)
-        two_np64 = TwoLocal(num_qubits, "ry", "cx", entanglement=expected_np64)
+        two_np32 = TwoLocal(num_qubits, "ry", "cx", entanglement=expected_np32, reps=reps)
+        two_np64 = TwoLocal(num_qubits, "ry", "cx", entanglement=expected_np64, reps=reps)
 
-        self.assertTrue(two_np32.draw())
-        self.assertTrue(two_np64.draw())
+        expected_cx = reps * num_qubits * (num_qubits - 1) / 2
+
+        self.assertEqual(two_np32.count_ops()["cx"], expected_cx)
+        self.assertEqual(two_np64.count_ops()["cx"], expected_cx)
 
 
 if __name__ == "__main__":
