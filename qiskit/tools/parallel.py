@@ -49,18 +49,43 @@ from the multiprocessing library.
 """
 
 import os
-import platform
 from concurrent.futures import ProcessPoolExecutor
+import sys
+
 from qiskit.exceptions import QiskitError
-from qiskit.util import local_hardware_info
+from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.tools.events.pubsub import Publisher
+from qiskit import user_config
+
+CONFIG = user_config.get_config()
+
+if os.getenv("QISKIT_PARALLEL", None) is not None:
+    PARALLEL_DEFAULT = os.getenv("QISKIT_PARALLEL", None).lower() == "true"
+else:
+    # Default False on Windows
+    if sys.platform == "win32":
+        PARALLEL_DEFAULT = False
+    # On python 3.9 default false to avoid deadlock issues
+    elif sys.version_info[0] == 3 and sys.version_info[1] == 9:
+        PARALLEL_DEFAULT = False
+    # On macOS default false on Python >=3.8
+    elif sys.platform == "darwin":
+        if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
+            PARALLEL_DEFAULT = False
+        else:
+            PARALLEL_DEFAULT = True
+    # On linux (and other OSes) default to True
+    else:
+        PARALLEL_DEFAULT = True
 
 # Set parallel flag
-if os.getenv('QISKIT_IN_PARALLEL') is None:
-    os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
+if os.getenv("QISKIT_IN_PARALLEL") is None:
+    os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
 
-# Number of local physical cpus
-CPU_COUNT = local_hardware_info()['cpus']
+if os.getenv("QISKIT_NUM_PROCS") is not None:
+    CPU_COUNT = int(os.getenv("QISKIT_NUM_PROCS"))
+else:
+    CPU_COUNT = CONFIG.get("num_process", local_hardware_info()["cpus"])
 
 
 def _task_wrapper(param):
@@ -69,7 +94,8 @@ def _task_wrapper(param):
 
 
 def parallel_map(  # pylint: disable=dangerous-default-value
-        task, values, task_args=tuple(), task_kwargs={}, num_processes=CPU_COUNT):
+    task, values, task_args=tuple(), task_kwargs={}, num_processes=CPU_COUNT
+):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
     is functionally equivalent to::
@@ -113,9 +139,12 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         Publisher().publish("terra.parallel.done", nfinished[0])
 
     # Run in parallel if not Win and not in parallel already
-    if platform.system() != 'Windows' and num_processes > 1 \
-       and os.getenv('QISKIT_IN_PARALLEL') == 'FALSE':
-        os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
+    if (
+        num_processes > 1
+        and os.getenv("QISKIT_IN_PARALLEL") == "FALSE"
+        and CONFIG.get("parallel_enabled", PARALLEL_DEFAULT)
+    ):
+        os.environ["QISKIT_IN_PARALLEL"] = "TRUE"
         try:
             results = []
             with ProcessPoolExecutor(max_workers=num_processes) as executor:
@@ -128,14 +157,14 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         except (KeyboardInterrupt, Exception) as error:
             if isinstance(error, KeyboardInterrupt):
                 Publisher().publish("terra.parallel.finish")
-                os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
-                raise QiskitError('Keyboard interrupt in parallel_map.')
+                os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
+                raise QiskitError("Keyboard interrupt in parallel_map.") from error
             # Otherwise just reset parallel flag and error
-            os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
+            os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
             raise error
 
         Publisher().publish("terra.parallel.finish")
-        os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
+        os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
         return results
 
     # Cannot do parallel on Windows , if another parallel_map is running in parallel,

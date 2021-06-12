@@ -1,0 +1,61 @@
+---
+prelude: |
+    The 0.16.0 release includes several new features and bug fixes. The
+    major features in this release are the following:
+
+    * Introduction of scheduled circuits, where delays can be used to control
+      the timing and alignment of operations in the circuit.
+    * Compilation of quantum circuits from classical functions, such as
+      oracles.
+    * Ability to compile and optimize single qubit rotations over different
+      Euler basis as well as the phase + square-root(X) basis (i.e.
+      ``['p', 'sx']``), which will replace the older IBM Quantum basis of
+      ``['u1', 'u2', 'u3']``.
+    * Tracking of :meth:`~qiskit.circuit.QuantumCircuit.global_phase` on the
+      :class:`~qiskit.circuit.QuantumCircuit` class has been extended through
+      the :mod:`~qiskit.transpiler`, :mod:`~qiskit.quantum_info`, and
+      :mod:`~qiskit.assembler` modules, as well as the BasicAer and Aer
+      simulators. Unitary and state vector simulations will now return global
+      phase-correct unitary matrices and state vectors.
+
+    Also of particular importance for this release is that Python 3.5 is no
+    longer supported. If you are using Qiskit Terra with Python 3.5, the
+    0.15.2 release is that last version which will work.
+upgrade:
+  - |
+    Type checking for the ``params`` kwarg of the constructor for the
+    :class:`~qiskit.circuit.Gate` class and its subclasses has been changed.
+    Previously all :class:`~qiskit.circuit.Gate` parameters had to be
+    in a set of allowed types defined in the
+    :class:`~qiskit.circuit.Instruction` class. Now a new method,
+    :meth:`~qiskit.circuit.Gate.validate_parameter` is used to determine
+    if a parameter type is valid or not. The definition of this method in
+    a subclass will take priority over its parent. For example,
+    :class:`~qiskit.extensions.UnitaryGate` accepts a parameter of the type
+    ``numpy.ndarray`` and defines a custom
+    :meth:`~qiskit.extensionst.UnitaryGate.validate_parameter` method that
+    returns the parameter if it's an ``numpy.ndarray``. This takes priority
+    over the function defined in its parent class :class:`~qiskit.circuit.Gate`.
+    If :class:`~qiskit.extensions.UnitaryGate` were to be used as parent
+    for a new class, this ``validate_parameter`` method would be used unless
+    the new child class defines its own method.
+deprecations:
+  - |
+    The use of a ``numpy.ndarray`` for a parameter in the ``params`` kwarg
+    for the constructor of the :class:`~qiskit.circuit.Gate` class and
+    subclasses has been deprecated and will be removed in future releases. This
+    was done as part of the refactoring of how ``parms`` type checking is
+    handled for the :class:`~qiskit.circuit.Gate` class. If you have a custom
+    gate class which is a subclass of :class:`~qiskit.circuit.Gate` directly
+    (or via a different parent in the hierarchy) that accepts an ``ndarray``
+    parameter, you should define a custom
+    :meth:`~qiskit.circuit.Gate.validate_parameter` method for your class
+    that will return the allowed parameter type. For example::
+
+      def validate_parameter(self, parameter):
+          """Custom gate parameter has to be an ndarray."""
+          if isinstance(parameter, numpy.ndarray):
+              return parameter
+          else:
+              raise CircuitError("invalid param type {0} in gate "
+                                 "{1}".format(type(parameter), self.name))

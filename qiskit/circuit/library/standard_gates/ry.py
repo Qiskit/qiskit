@@ -46,7 +46,7 @@ class RYGate(Gate):
 
     def __init__(self, theta, label=None):
         """Create new RY gate."""
-        super().__init__('ry', 1, [theta], label=label)
+        super().__init__("ry", 1, [theta], label=label)
 
     def _define(self):
         """
@@ -55,18 +55,17 @@ class RYGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .r import RGate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RGate(self.params[0], pi / 2), [q[0]], [])
-        ]
+        rules = [(RGate(self.params[0], pi / 2), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-RY gate.
+        """Return a (multi-)controlled-RY gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -90,12 +89,11 @@ class RYGate(Gate):
         """
         return RYGate(-self.params[0])
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the RY gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
-        return numpy.array([[cos, -sin],
-                            [sin, cos]], dtype=complex)
+        return numpy.array([[cos, -sin], [sin, cos]], dtype=dtype)
 
 
 class CRYGate(ControlledGate):
@@ -155,8 +153,15 @@ class CRYGate(ControlledGate):
 
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRY gate."""
-        super().__init__('cry', 2, [theta], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state, base_gate=RYGate(theta))
+        super().__init__(
+            "cry",
+            2,
+            [theta],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=RYGate(theta),
+        )
 
     def _define(self):
         """
@@ -167,15 +172,15 @@ class CRYGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u3 import U3Gate
         from .x import CXGate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
-            (U3Gate(self.params[0] / 2, 0, 0), [q[1]], []),
+            (RYGate(self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
-            (CXGate(), [q[0], q[1]], [])
+            (RYGate(-self.params[0] / 2), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -186,20 +191,16 @@ class CRYGate(ControlledGate):
         """Return inverse CRY gate (i.e. with the negative rotation angle)."""
         return CRYGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CRY gate."""
         half_theta = float(self.params[0]) / 2
         cos = numpy.cos(half_theta)
         sin = numpy.sin(half_theta)
         if self.ctrl_state:
-            return numpy.array([[1, 0, 0, 0],
-                                [0, cos, 0, -sin],
-                                [0, 0, 1, 0],
-                                [0, sin, 0, cos]],
-                               dtype=complex)
+            return numpy.array(
+                [[1, 0, 0, 0], [0, cos, 0, -sin], [0, 0, 1, 0], [0, sin, 0, cos]], dtype=dtype
+            )
         else:
-            return numpy.array([[cos, 0, -sin, 0],
-                                [0, 1, 0, 0],
-                                [sin, 0, cos, 0],
-                                [0, 0, 0, 1]],
-                               dtype=complex)
+            return numpy.array(
+                [[cos, 0, -sin, 0], [0, 1, 0, 0], [sin, 0, cos, 0], [0, 0, 0, 1]], dtype=dtype
+            )

@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Several classes to load probability distributions into qubit amplitudes;
+    :class:`~qiskit.circuit.library.UniformDistribution`,
+    :class:`~qiskit.circuit.library.NormalDistribution`, and
+    :class:`~qiskit.circuit.library.LogNormalDistribution` were added to the
+    circuit library (:mod:`qiskit.circuit.library`). The normal and
+    log-normal distribution support both univariate and multivariate
+    distributions. These circuits are central to applications in finance
+    where quantum amplitude estimation is used.

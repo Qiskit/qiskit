@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    In the :class:`~qiskit.providers.models.PulseBackendConfiguration`
+    in the ``hamiltonian`` attributes the ``vars`` field  is now returned
+    in a unit of Hz instead of the previously used GHz. This change was made
+    to be consistent with the units used with the other attributes in the
+    class.

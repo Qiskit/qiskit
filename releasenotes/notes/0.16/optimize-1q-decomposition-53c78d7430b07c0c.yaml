@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    A new transpiler pass,
+    :class:`~qiskit.transpiler.passes.Optimize1qGatesDecomposition`,
+    has been added. This transpiler pass is an alternative to the existing
+    :class:`~qiskit.transpiler.passes.Optimize1qGates` that uses the
+    :class:`~qiskit.quantum_info.OneQubitEulerDecomposer` class to decompose
+    and simplify a chain of single qubit gates. This method is compatible with
+    any basis set, while :class:`~qiskit.transpiler.passes.Optimize1qGates`
+    only works for u1, u2, and u3. The default pass managers for
+    ``optimization_level`` 1, 2, and 3 have been updated to use this new pass
+    if the basis set doesn't include u1, u2, or u3.
+  - |
+    The :class:`~qiskit.quantum_info.OneQubitEulerDecomposer` now supports
+    two new basis, ``'PSX'`` and ``'U'``. These can be specified with the
+    ``basis`` kwarg on the constructor. This will decompose the matrix into a
+    circuit using :class:`~qiskit.circuit.library.PGate` and
+    :class:`~qiskit.circuit.library.SXGate` for ``'PSX'``, and
+    :class:`~qiskit.circuit.library.UGate` for ``'U'``.

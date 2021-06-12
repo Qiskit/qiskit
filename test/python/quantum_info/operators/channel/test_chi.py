@@ -44,8 +44,7 @@ class TestChi(ChannelTestCase):
         self.assertRaises(QiskitError, Chi, mat16, input_dims=2, output_dims=4)
 
         # Non multi-qubit dimensions should raise exception
-        self.assertRaises(
-            QiskitError, Chi, np.eye(6) / 2, input_dims=3, output_dims=2)
+        self.assertRaises(QiskitError, Chi, np.eye(6) / 2, input_dims=3, output_dims=2)
 
     def test_circuit_init(self):
         """Test initialization from a circuit."""
@@ -66,7 +65,7 @@ class TestChi(ChannelTestCase):
 
     def test_copy(self):
         """Test copy method"""
-        mat = np.eye(2)
+        mat = np.eye(4)
         with self.subTest("Deep copy"):
             orig = Chi(mat)
             cpy = orig.copy()
@@ -82,8 +81,7 @@ class TestChi(ChannelTestCase):
         """Test is_cptp method."""
         self.assertTrue(Chi(self.depol_chi(0.25)).is_cptp())
         # Non-CPTP should return false
-        self.assertFalse(
-            Chi(1.25 * self.chiI - 0.25 * self.depol_chi(1)).is_cptp())
+        self.assertFalse(Chi(1.25 * self.chiI - 0.25 * self.depol_chi(1)).is_cptp())
 
     def test_compose_except(self):
         """Test compose different dimension exception"""
@@ -120,7 +118,7 @@ class TestChi(ChannelTestCase):
         output = rho.evolve(chan)
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(output, target)
-        chan = chan1 @ chan2
+        chan = chan1 & chan2
         output = rho.evolve(chan)
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(output, target)
@@ -238,16 +236,10 @@ class TestChi(ChannelTestCase):
         depol = Chi(self.depol_chi(1 - p_id))
 
         # Compose 3 times
-        p_id3 = p_id**3
+        p_id3 = p_id ** 3
         chan3 = depol.power(3)
         targ3 = Chi(self.depol_chi(1 - p_id3))
         self.assertEqual(chan3, targ3)
-
-    def test_power_except(self):
-        """Test power method raises exceptions."""
-        chan = Chi(self.depol_chi(1))
-        # Non-integer power raises error
-        self.assertRaises(QiskitError, chan.power, 0.5)
 
     def test_add(self):
         """Test add method."""
@@ -275,37 +267,37 @@ class TestChi(ChannelTestCase):
         op01 = op1.tensor(op0)
         eye = Chi(self.chiI)
 
-        with self.subTest(msg='qargs=[0]'):
+        with self.subTest(msg="qargs=[0]"):
             value = op + op0([0])
             target = op + eye.tensor(eye).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[1]'):
+        with self.subTest(msg="qargs=[1]"):
             value = op + op0([1])
             target = op + eye.tensor(op0).tensor(eye)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[2]'):
+        with self.subTest(msg="qargs=[2]"):
             value = op + op0([2])
             target = op + op0.tensor(eye).tensor(eye)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[0, 1]'):
+        with self.subTest(msg="qargs=[0, 1]"):
             value = op + op01([0, 1])
             target = op + eye.tensor(op1).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[1, 0]'):
+        with self.subTest(msg="qargs=[1, 0]"):
             value = op + op01([1, 0])
             target = op + eye.tensor(op0).tensor(op1)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[0, 2]'):
+        with self.subTest(msg="qargs=[0, 2]"):
             value = op + op01([0, 2])
             target = op + op1.tensor(eye).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[2, 0]'):
+        with self.subTest(msg="qargs=[2, 0]"):
             value = op + op01([2, 0])
             target = op + op0.tensor(eye).tensor(op1)
             self.assertEqual(value, target)
@@ -322,37 +314,37 @@ class TestChi(ChannelTestCase):
         op01 = op1.tensor(op0)
         eye = Chi(self.chiI)
 
-        with self.subTest(msg='qargs=[0]'):
+        with self.subTest(msg="qargs=[0]"):
             value = op - op0([0])
             target = op - eye.tensor(eye).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[1]'):
+        with self.subTest(msg="qargs=[1]"):
             value = op - op0([1])
             target = op - eye.tensor(op0).tensor(eye)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[2]'):
+        with self.subTest(msg="qargs=[2]"):
             value = op - op0([2])
             target = op - op0.tensor(eye).tensor(eye)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[0, 1]'):
+        with self.subTest(msg="qargs=[0, 1]"):
             value = op - op01([0, 1])
             target = op - eye.tensor(op1).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[1, 0]'):
+        with self.subTest(msg="qargs=[1, 0]"):
             value = op - op01([1, 0])
             target = op - eye.tensor(op0).tensor(op1)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[0, 2]'):
+        with self.subTest(msg="qargs=[0, 2]"):
             value = op - op01([0, 2])
             target = op - op1.tensor(eye).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[2, 0]'):
+        with self.subTest(msg="qargs=[2, 0]"):
             value = op - op01([2, 0])
             target = op - op0.tensor(eye).tensor(op1)
             self.assertEqual(value, target)
@@ -375,8 +367,8 @@ class TestChi(ChannelTestCase):
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Chi(self.chiI)
-        self.assertRaises(QiskitError, chan._multiply, 's')
-        self.assertRaises(QiskitError, chan.__rmul__, 's')
+        self.assertRaises(QiskitError, chan._multiply, "s")
+        self.assertRaises(QiskitError, chan.__rmul__, "s")
         self.assertRaises(QiskitError, chan._multiply, chan)
         self.assertRaises(QiskitError, chan.__rmul__, chan)
 
@@ -387,5 +379,5 @@ class TestChi(ChannelTestCase):
         self.assertEqual(-chan, targ)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

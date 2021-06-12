@@ -23,30 +23,32 @@ from .bit import Bit
 class Qubit(Bit):
     """Implement a quantum bit."""
 
-    def __init__(self, register, index):
+    def __init__(self, register=None, index=None):
         """Creates a qubit.
 
         Args:
-            register (QuantumRegister): a quantum register.
-            index (int): the index to insert the qubit
+            register (QuantumRegister): Optional. A quantum register containing the bit.
+            index (int): Optional. The index of the bit in its containing register.
 
         Raises:
             CircuitError: if the provided register is not a valid :class:`QuantumRegister`
         """
 
-        if isinstance(register, QuantumRegister):
+        if register is None or isinstance(register, QuantumRegister):
             super().__init__(register, index)
         else:
-            raise CircuitError('Qubit needs a QuantumRegister and %s was provided' %
-                               type(register).__name__)
+            raise CircuitError(
+                "Qubit needs a QuantumRegister and %s was provided" % type(register).__name__
+            )
 
 
 class QuantumRegister(Register):
     """Implement a quantum register."""
+
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
-    prefix = 'q'
+    prefix = "q"
     bit_type = Qubit
 
     def qasm(self):
@@ -56,13 +58,15 @@ class QuantumRegister(Register):
 
 class AncillaQubit(Qubit):
     """A qubit used as ancillary qubit."""
+
     pass
 
 
 class AncillaRegister(QuantumRegister):
     """Implement an ancilla register."""
+
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
-    prefix = 'a'
+    prefix = "a"
     bit_type = AncillaQubit

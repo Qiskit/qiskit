@@ -1,0 +1,213 @@
+{
+    "name": "user_style1",
+    "textcolor": "#000000",
+    "gatetextcolor": "#0000FF",
+    "subtextcolor": "#FFFFFF",
+    "linecolor": "#223344",
+    "creglinecolor": "#667799",
+    "gatefacecolor": "#666600",
+    "barrierfacecolor": "#A8A8A8",
+    "backgroundcolor": "#DDDDDD",
+    "edgecolor": null,
+    "fontsize": 13,
+    "subfontsize": 8,
+    "showindex": true,
+    "figwidth": -1,
+    "dpi": 150,
+    "margin": [
+        2.0,
+        0.5,
+        0.1,
+        0.3
+    ],
+    "creglinestyle": "doublet",
+    "displaytext": {
+        "u1": "$\\mathrm{U}_1$",
+        "u2": "$\\mathrm{U}_2$",
+        "u3": "$\\mathrm{U}_3$",
+        "u": "U",
+        "p": "Phase",
+        "id": "I",
+        "x": "X",
+        "y": "Y",
+        "z": "Z",
+        "h": "H",
+        "s": "S",
+        "sdg": "$\\mathrm{S}^\\dagger$",
+        "sx": "$\\sqrt{\\mathrm{X}}$",
+        "sxdg": "$\\sqrt{\\mathrm{X}}^\\dagger$",
+        "t": "T",
+        "tdg": "$\\mathrm{T}^\\dagger$",
+        "dcx": "Dcx",
+        "iswap": "Iswap",
+        "ms": "MS",
+        "r": "R",
+        "rx": "$\\mathrm{R}_\\mathrm{X}$",
+        "ry": "$\\mathrm{R}_\\mathrm{Y}$",
+        "rz": "$\\mathrm{R}_\\mathrm{Z}$",
+        "rxx": "$\\mathrm{R}_{\\mathrm{XX}}$",
+        "ryy": "$\\mathrm{R}_{\\mathrm{YY}}$",
+        "rzx": "$\\mathrm{R}_{\\mathrm{ZX}}$",
+        "rzz": "$\\mathrm{R}_{\\mathrm{ZZ}}$",
+        "reset": "$\\left|0\\right\\rangle$",
+        "initialize": "$|\\psi\\rangle$"
+    },
+    "displaycolor": {
+        "u1": [
+            "#33B1FF",
+            "#000000"
+        ],
+        "u2": [
+            "#9F1853",
+            "#FFFFFF"
+        ],
+        "u3": [
+            "#9F1853",
+            "#FFFFFF"
+        ],
+        "u": [
+            "#9F1853",
+            "#FFFFFF"
+        ],
+        "p": [
+            "#33B1FF",
+            "#000000"
+        ],
+        "id": [
+            "#002D9C",
+            "#FFFFFF"
+        ],
+        "x": [
+            "#00FF00",
+            "#000000"
+        ],
+        "y": [
+            "#00FF00",
+            "#000000"
+        ],
+        "z": [
+            "#00FF00",
+            "#000000"
+        ],
+        "h": [
+            "#FA4D56",
+            "#000000"
+        ],
+        "cx": [
+            "#002D9C",
+            "#000000"
+        ],
+        "ccx": [
+            "#002D9C",
+            "#000000"
+        ],
+        "mcx": [
+            "#002D9C",
+            "#000000"
+        ],
+        "mcx_gray": [
+            "#002D9C",
+            "#000000"
+        ],
+        "cy": [
+            "#9F1853",
+            "#FFFFFF"
+        ],
+        "cz": [
+            "#9F1853",
+            "#FFFFFF"
+        ],
+        "swap": [
+            "#FF0000",
+            "#000000"
+        ],
+        "cswap": [
+            "#FF0000",
+            "#000000"
+        ],
+        "ccswap": [
+            "#002D9C",
+            "#000000"
+        ],
+        "dcx": [
+            "#002D9C",
+            "#FFFFFF"
+        ],
+        "cdcx": [
+            "#002D9C",
+            "#FFFFFF"
+        ],
+        "ccdcx": [
+            "#FF3333",
+            "#000000"
+        ],
+        "iswap": [
+            "#33B1FF",
+            "#000000"
+        ],
+        "s": [
+            "#33B1FF",
+            "#000000"
+        ],
+        "sdg": [
+            "#33B1FF",
+            "#000000"
+        ],
+        "t": [
+            "#33B1FF",
+            "#000000"
+        ],
+        "tdg": [
+            "#33B1FF",
+            "#000000"
+        ],
+        "sx": [
+            "#9F1853",
+            "#FFFFFF"
+        ],
+        "sxdg": [
+            "#9F1853",
+            "#FFFFFF"
+        ],
+        "r": [
+            "#9F1853",
+            "#FFFFFF"
+        ],
+        "rx": [
+            "#FF3333",
+            "#000000"
+        ],
+        "ry": [
+            "#9F1853",
+            "#FFFFFF"
+        ],
+        "rz": [
+            "#9F1853",
+            "#FFFFFF"
+        ],
+        "rxx": [
+            "#aabbcc",
+            "#000000"
+        ],
+        "ryy": [
+            "#aabbcc",
+            "#000000"
+        ],
+        "rzx": [
+            "#aabbcc",
+            "#000000"
+        ],
+        "reset": [
+            "#A8A8A8",
+            "#000000"
+        ],
+        "target": [
+            "#FFFFFF",
+            "#FFFFFF"
+        ],
+        "measure": [
+            "#A8A8A8",
+            "#000000"
+        ]
+    }
+}

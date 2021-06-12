@@ -20,6 +20,7 @@ If a gate has no `_postconditions`, then is assumed to have unknown post-conditi
 """
 try:
     from z3 import Not, And
+
     HAS_Z3 = True
 except ImportError:
     HAS_Z3 = False
