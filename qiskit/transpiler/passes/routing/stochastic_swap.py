@@ -243,7 +243,7 @@ class StochasticSwap(TransformationPass):
         return True, best_circuit, best_depth, best_lay
 
     def _layer_update(self, dag, layer, best_layout, best_depth, best_circuit):
-        """Provide a DAGCircuit for a new mapped layer.
+        """Add swaps followed by the now mapped layer from the original circuit.
 
         Args:
             dag (): The DAGCircuit object that the _mapper method is building
