@@ -294,7 +294,7 @@ class TestHoareOptimizer(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_control_removal(self):
-        """ Should replace CX by X and CZ by Z. """
+        """Should replace CX by X and CZ by Z."""
         circuit = QuantumCircuit(2)
         circuit.x(0)
         circuit.cx(0, 1)
@@ -303,7 +303,7 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.x(0)
         expected.x(1)
 
-        stv = Statevector.from_label('0' * circuit.num_qubits)
+        stv = Statevector.from_label("0" * circuit.num_qubits)
         self.assertEqual(stv @ circuit, stv @ expected)
 
         pass_ = HoareOptimizer(size=5)
@@ -323,7 +323,7 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.z(0)
         expected.h(0)
 
-        stv = Statevector.from_label('0' * circuit.num_qubits)
+        stv = Statevector.from_label("0" * circuit.num_qubits)
         self.assertEqual(stv @ circuit, stv @ expected)
 
         pass_ = HoareOptimizer(size=5)

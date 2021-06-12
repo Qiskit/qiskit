@@ -13,6 +13,7 @@
 """ Pass for Hoare logic circuit optimization. """
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import QuantumRegister, ControlledGate, Gate
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.exceptions import TranspilerError
@@ -143,7 +144,7 @@ class HoareOptimizer(TransformationPass):
         return trivial
 
     def _remove_control(self, gate, ctrlvar, trgtvar):
-        """ use z3 sat solver to determine if all control qubits are in 1 state,
+        """use z3 sat solver to determine if all control qubits are in 1 state,
              and if so replace the Controlled - U by U.
         Args:
             gate (Gate): gate to inspect
@@ -172,13 +173,12 @@ class HoareOptimizer(TransformationPass):
         if isinstance(gate, (CZGate, CU1Gate, MCU1Gate)):
             while not remove and qb[0] > 0:
                 qb[0] = qb[0] - 1
-                ctrl_vars = ctrlvar[:qb[0]] + ctrlvar[qb[0] + 1:] + trgtvar
+                ctrl_vars = ctrlvar[: qb[0]] + ctrlvar[qb[0] + 1 :] + trgtvar
                 remove = self._check_removal(ctrl_vars)
 
         if remove:
             qubits = [qarg[qi] for qi in qb]
-            dag.apply_operation_back(gate.base_gate,
-                                     qubits)
+            dag.apply_operation_back(gate.base_gate, qubits)
 
         return remove, dag, qb
 
@@ -210,8 +210,7 @@ class HoareOptimizer(TransformationPass):
             remove_ctrl, new_dag, qb_idx = self._remove_control(gate, ctrlvar, trgtvar)
 
             if remove_ctrl:
-                dag.substitute_node_with_dag(node,
-                                             new_dag)
+                dag.substitute_node_with_dag(node, new_dag)
                 gate = gate.base_gate
                 node.op = gate
                 node.name = gate.name
