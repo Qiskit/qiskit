@@ -24,7 +24,6 @@ DAG Circuits
    :toctree: ../stubs/
 
    DAGCircuit
-   DAGNode
    DAGDepNode
    DAGDependency
 
@@ -37,7 +36,7 @@ Exceptions
    DAGCircuitError
 """
 from .dagcircuit import DAGCircuit
-from .dagnode import DAGNode, OpNode, InNode, OutNode
+from .dagnode import OpNode, InNode, OutNode
 from .dagdepnode import DAGDepNode
 from .exceptions import DAGCircuitError
 from .dagdependency import DAGDependency

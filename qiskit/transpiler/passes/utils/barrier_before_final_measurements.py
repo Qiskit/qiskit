@@ -38,7 +38,8 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
             for _, child_successors in dag.bfs_successors(candidate_node):
 
                 if any(
-                    isinstance(suc, OpNode) and suc.name not in final_op_types for suc in child_successors
+                    isinstance(suc, OpNode) and suc.name not in final_op_types
+                    for suc in child_successors
                 ):
                     is_final_op = False
                     break

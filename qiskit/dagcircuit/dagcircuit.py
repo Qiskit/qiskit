@@ -35,7 +35,7 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.dagcircuit.dagnode import DAGNode, OpNode, InNode, OutNode
+from qiskit.dagcircuit.dagnode import DAGNodeP, OpNode, InNode, OutNode
 from qiskit.exceptions import MissingOptionalLibraryError
 
 
@@ -806,9 +806,9 @@ class DAGCircuit:
             ignore = []
         for wire in self._wires:
             nodes = [
-                node for node in self.nodes_on_wire(wire, only_ops=False) if (
-                    not isinstance(node, OpNode) or node.op.name not in ignore
-                )
+                node
+                for node in self.nodes_on_wire(wire, only_ops=False)
+                if (not isinstance(node, OpNode) or node.op.name not in ignore)
             ]
             if len(nodes) == 2:
                 yield wire
@@ -975,7 +975,7 @@ class DAGCircuit:
             return False
 
         def node_eq(node_self, node_other):
-            return DAGNode.semantic_eq(node_self, node_other, self_bit_indices, other_bit_indices)
+            return DAGNodeP.semantic_eq(node_self, node_other, self_bit_indices, other_bit_indices)
 
         return rx.is_isomorphic_node_match(self._multi_graph, other._multi_graph, node_eq)
 
@@ -988,7 +988,12 @@ class DAGCircuit:
         """
 
         def _key(x):
-            return x.sort_key
+            #print('\n\n\nkey: ', type(x))
+            if isinstance(x, OpNode):
+                #print('sort_key: ', x.sort_key)
+                return x.sort_key
+            else:
+                return ""
 
         return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
 
@@ -1056,7 +1061,7 @@ class DAGCircuit:
         # If a gate is conditioned, we expect the replacement subcircuit
         # to depend on those condition bits as well.
         if not isinstance(node, OpNode):
-            raise DAGCircuitError('expected node OpNode, got %s' % node)
+            raise DAGCircuitError("expected node OpNode, got %s" % node)
 
         condition_bit_list = self._bits_in_condition(condition)
 
@@ -1139,7 +1144,7 @@ class DAGCircuit:
         """
 
         if not isinstance(node, OpNode):
-            raise DAGCircuitError('Only OpNodes can be replaced.')
+            raise DAGCircuitError("Only OpNodes can be replaced.")
 
         if node.op.num_qubits != op.num_qubits or node.op.num_clbits != op.num_clbits:
             raise DAGCircuitError(
@@ -1199,7 +1204,7 @@ class DAGCircuit:
         if nodes is None:
             nodes = self._multi_graph.nodes()
 
-        elif isinstance(nodes, DAGNode):
+        elif isinstance(nodes, (InNode, OutNode, OpNode)):
             nodes = [nodes]
         for node in nodes:
             raw_nodes = self._multi_graph.out_edges(node._node_id)
@@ -1502,7 +1507,9 @@ class DAGCircuit:
         """
 
         def filter_fn(node):
-            return isinstance(node, OpNode) and node.op.name in namelist and node.op.condition is None
+            return (
+                isinstance(node, OpNode) and node.op.name in namelist and node.op.condition is None
+            )
 
         group_list = rx.collect_runs(self._multi_graph, filter_fn)
         return set(tuple(x) for x in group_list)

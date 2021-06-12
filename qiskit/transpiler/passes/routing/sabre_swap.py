@@ -21,7 +21,7 @@ from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-from qiskit.dagcircuit import DAGNode, OpNode, OutNode
+from qiskit.dagcircuit import OpNode, OutNode
 
 logger = logging.getLogger(__name__)
 
@@ -195,8 +195,17 @@ class SabreSwap(TransformationPass):
                         self._reset_qubits_decay()
 
                 # Diagnostics
-                logger.debug("free! %s", [(n.name if isinstance(n, OpNode) else None, n.qargs) for n in execute_gate_list])
-                logger.debug("front_layer: %s", [(n.name if isinstance(n, OpNode) else None, n.qargs) for n in front_layer])
+                logger.debug(
+                    "free! %s",
+                    [
+                        (n.name if isinstance(n, OpNode) else None, n.qargs)
+                        for n in execute_gate_list
+                    ],
+                )
+                logger.debug(
+                    "front_layer: %s",
+                    [(n.name if isinstance(n, OpNode) else None, n.qargs) for n in front_layer],
+                )
 
                 continue
 
