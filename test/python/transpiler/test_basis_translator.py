@@ -831,4 +831,4 @@ class TestBasisExamples(QiskitTestCase):
             basis_gates=["id", "rz", "sx", "x", "cx"],
             seed_transpiler=42,
         )
-        self.assertEqual(circ_transpiled.count_ops(), {"cx": 100, "rz": 66, "sx": 22})
+        self.assertEqual(circ_transpiled.count_ops(), {"cx": 91, "rz": 66, "sx": 22})
