@@ -113,10 +113,18 @@ class PauliSumOp(PrimitiveOp):
                 f"{other.num_qubits}, is not well defined"
             )
 
-        if isinstance(other, PauliSumOp):
+        if (
+            isinstance(other, PauliSumOp)
+            and not isinstance(self.coeff, ParameterExpression)
+            and not isinstance(other.coeff, ParameterExpression)
+        ):
             return PauliSumOp(self.coeff * self.primitive + other.coeff * other.primitive, coeff=1)
 
-        if isinstance(other, PauliOp):
+        if (
+            isinstance(other, PauliOp)
+            and not isinstance(self.coeff, ParameterExpression)
+            and not isinstance(other.coeff, ParameterExpression)
+        ):
             return PauliSumOp(
                 self.coeff * self.primitive + other.coeff * SparsePauliOp(other.primitive)
             )
@@ -127,7 +135,7 @@ class PauliSumOp(PrimitiveOp):
         if isinstance(scalar, (int, float, complex)) and scalar != 0:
             return PauliSumOp(scalar * self.primitive, coeff=self.coeff)
 
-        return super().mul(scalar)
+        return PauliSumOp(self.primitive, coeff=self.coeff * scalar)
 
     def adjoint(self) -> "PauliSumOp":
         return PauliSumOp(self.primitive.adjoint(), coeff=self.coeff.conjugate())
@@ -326,7 +334,7 @@ class PauliSumOp(PrimitiveOp):
         return self.to_matrix_op().eval(front.to_matrix_op())
 
     def exp_i(self) -> OperatorBase:
-        """ Return a ``CircuitOp`` equivalent to e^-iH for this operator H. """
+        """Return a ``CircuitOp`` equivalent to e^-iH for this operator H."""
         # TODO: optimize for some special cases
         from ..evolutions.evolved_op import EvolvedOp
 

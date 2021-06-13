@@ -37,7 +37,7 @@ Version Changes
 ----------------
 
 Each minor version release of qiskit-terra **may** increment the version of any
-providers interface a single version number. It will be an aggreagate of all
+providers interface a single version number. It will be an aggregate of all
 the interface changes for that release on that interface.
 
 Version Support Policy
@@ -278,7 +278,7 @@ set. For example::
 
 The key thing to ensure is that for any custom gates in your Backend's basis set
 your custom gate's name attribute (the first param on
-``super().__init__()`` in the ``__init__`` defintion above) does not conflict
+``super().__init__()`` in the ``__init__`` definition above) does not conflict
 with the name of any other gates. The name attribute is what is used to
 identify the gate in the basis set for the transpiler. If there is a conflict
 the transpiler will not know which gate to use.
@@ -499,6 +499,11 @@ and for a sync job::
 Legacy Provider Interface Base Objects (:mod:`qiskit.providers`)
 ================================================================
 
+These abstract interfaces are deprecated and will be removed in a future
+release. The documentation here is left for reference purposes while they're
+still supported, but if you're creating or maintaining a provider you should
+be using the versioned interface.
+
 .. currentmodule:: qiskit.providers
 
 Base Objects
@@ -541,12 +546,18 @@ from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options
 from qiskit.providers.job import Job
 from qiskit.providers.job import JobV1
+
 # Legacy providers interface
 from qiskit.providers.basebackend import BaseBackend
 from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.basejob import BaseJob
-from qiskit.providers.exceptions import (JobError, JobTimeoutError, QiskitBackendNotFoundError,
-                                         BackendPropertyError, BackendConfigurationError)
+from qiskit.providers.exceptions import (
+    JobError,
+    JobTimeoutError,
+    QiskitBackendNotFoundError,
+    BackendPropertyError,
+    BackendConfigurationError,
+)
 from qiskit.providers.jobstatus import JobStatus
 
 

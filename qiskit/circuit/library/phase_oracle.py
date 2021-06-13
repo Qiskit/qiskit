@@ -41,9 +41,11 @@ class PhaseOracle(QuantumCircuit):
     default synthesizer.
     """
 
-    def __init__(self, expression: Union[str, ClassicalElement],
-                 synthesizer: Optional[Callable[[BooleanExpression], QuantumCircuit]] = None) \
-            -> None:
+    def __init__(
+        self,
+        expression: Union[str, ClassicalElement],
+        synthesizer: Optional[Callable[[BooleanExpression], QuantumCircuit]] = None,
+    ) -> None:
         """Creates a PhaseOracle object
 
         Args:
@@ -57,17 +59,20 @@ class PhaseOracle(QuantumCircuit):
         self.boolean_expression = expression
 
         if synthesizer is None:
+
             def synthesizer(boolean_expression):
                 from tweedledum.synthesis import pkrm_synth  # pylint: disable=no-name-in-module
                 from qiskit.circuit.classicalfunction.utils import tweedledum2qiskit
+
                 truth_table = boolean_expression._tweedledum_bool_expression.truth_table(
-                    output_bit=0)
+                    output_bit=0
+                )
                 tweedledum_circuit = pkrm_synth(truth_table, {"pkrm_synth": {"phase_esop": True}})
                 return tweedledum2qiskit(tweedledum_circuit)
 
         oracle = expression.synth(synthesizer=synthesizer)
 
-        super().__init__(oracle.num_qubits, name='Phase Oracle')
+        super().__init__(oracle.num_qubits, name="Phase Oracle")
 
         self.compose(oracle, inplace=True)
 

@@ -58,14 +58,16 @@ class QuadraticForm(QuantumCircuit):
 
     """
 
-    def __init__(self,
-                 num_result_qubits: Optional[int] = None,
-                 quadratic: Optional[Union[np.ndarray,
-                                           List[List[Union[float, ParameterExpression]]]]] = None,
-                 linear: Optional[Union[np.ndarray,
-                                        List[Union[float, ParameterExpression]]]] = None,
-                 offset: Optional[Union[float, ParameterExpression]] = None,
-                 little_endian: bool = True) -> None:
+    def __init__(
+        self,
+        num_result_qubits: Optional[int] = None,
+        quadratic: Optional[
+            Union[np.ndarray, List[List[Union[float, ParameterExpression]]]]
+        ] = None,
+        linear: Optional[Union[np.ndarray, List[Union[float, ParameterExpression]]]] = None,
+        offset: Optional[Union[float, ParameterExpression]] = None,
+        little_endian: bool = True,
+    ) -> None:
         r"""
         Args:
             num_result_qubits: The number of qubits to encode the result. Called :math:`m` in
@@ -83,7 +85,7 @@ class QuadraticForm(QuantumCircuit):
         # check inputs match
         if quadratic is not None and linear is not None:
             if len(quadratic) != len(linear):
-                raise ValueError('Mismatching sizes of quadratic and linear.')
+                raise ValueError("Mismatching sizes of quadratic and linear.")
 
         # temporarily set quadratic and linear to [] instead of None so we can iterate over them
         if quadratic is None:
@@ -101,18 +103,19 @@ class QuadraticForm(QuantumCircuit):
         if num_result_qubits is None:
             # check no value is parameterized
             if (
-                    any(any(isinstance(q_ij, ParameterExpression) for q_ij in q_i)
-                        for q_i in quadratic)
-                    or any(isinstance(l_i, ParameterExpression) for l_i in linear)
-                    or isinstance(offset, ParameterExpression)
+                any(any(isinstance(q_ij, ParameterExpression) for q_ij in q_i) for q_i in quadratic)
+                or any(isinstance(l_i, ParameterExpression) for l_i in linear)
+                or isinstance(offset, ParameterExpression)
             ):
-                raise ValueError('If the number of result qubits is not specified, the quadratic '
-                                 'form matrices/vectors/offset may not be parameterized.')
+                raise ValueError(
+                    "If the number of result qubits is not specified, the quadratic "
+                    "form matrices/vectors/offset may not be parameterized."
+                )
             num_result_qubits = self.required_result_qubits(quadratic, linear, offset)
 
         qr_input = QuantumRegister(num_input_qubits)
         qr_result = QuantumRegister(num_result_qubits)
-        super().__init__(qr_input, qr_result, name='Q(x)')
+        super().__init__(qr_input, qr_result, name="Q(x)")
 
         # set quadratic and linear again to None if they were None
         if len(quadratic) == 0:
@@ -157,9 +160,11 @@ class QuadraticForm(QuantumCircuit):
         self.append(iqft, qr_result)
 
     @staticmethod
-    def required_result_qubits(quadratic: Union[np.ndarray, List[List[float]]],
-                               linear: Union[np.ndarray, List[float]],
-                               offset: float) -> int:
+    def required_result_qubits(
+        quadratic: Union[np.ndarray, List[List[float]]],
+        linear: Union[np.ndarray, List[float]],
+        offset: float,
+    ) -> int:
         """Get the number of required result qubits.
 
         Args:
