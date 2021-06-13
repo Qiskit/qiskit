@@ -603,7 +603,7 @@ class TextDrawing():
 
         Args:
             line_length (int): Optional. Breaks the circuit drawing to this length. This
-                               useful when the drawing does not fit in the console. If
+                               is useful when the drawing does not fit in the console. If
                                None (default), it will try to guess the console width using
                                shutil.get_terminal_size(). If you don't want pagination
                                at all, set line_length=-1.
@@ -818,6 +818,9 @@ class TextDrawing():
                 ret.append('%s' % str_param)
             except TypeError:
                 ret.append('%s' % param)
+        if((isinstance(op, Initialize)) and (len(','.join(ret)) > 100)):
+            ret = ret[0:2]
+            ret.append('...')
         return ret
 
     @staticmethod
