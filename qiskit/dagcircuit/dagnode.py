@@ -17,7 +17,6 @@
 import warnings
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Instruction, Gate
 
 
 class DAGNodeP:
@@ -27,7 +26,7 @@ class DAGNodeP:
     be supplied to functions that take a node.
     """
 
-    __slots__ = ["_node_id"]
+    __slots__ = ["_qargs", "cargs", "sort_key", "_node_id"]
 
     def __init__(self, qargs=None, cargs=None, nid=-1):
         """Create a node"""
@@ -100,12 +99,11 @@ class DAGNodeP:
             if "barrier" == node1.op.name == node2.op.name:
                 return set(node1_qargs) == set(node2_qargs)
 
-            if type(node1.op) == type(node2.op):
-                if node1.op.name == node2.op.name:
-                    if node1_qargs == node2_qargs:
-                        if node1_cargs == node2_cargs:
-                            if node1.op.condition == node2.op.condition:
-                                return True
+            if node1.op.name == node2.op.name:
+                if node1_qargs == node2_qargs:
+                    if node1_cargs == node2_cargs:
+                        if node1.op.condition == node2.op.condition:
+                            return True
         elif (isinstance(node1, InNode) and isinstance(node2, InNode)) or (
             isinstance(node1, OutNode) and isinstance(node2, OutNode)
         ):
@@ -122,7 +120,7 @@ class OpNode(DAGNodeP):
     be supplied to functions that take a node.
     """
 
-    __slots__ = ["op", "_qargs", "cargs"]
+    __slots__ = ["op"]
 
     def __init__(self, op, qargs=None, cargs=None):
         """Create a node"""
@@ -131,10 +129,12 @@ class OpNode(DAGNodeP):
 
     @property
     def name(self):
+        """Returns the Instruction name corresponding to the op for this node"""
         return self.op.name
 
     @name.setter
     def name(self, new_name):
+        """Sets the Instruction name corresponding to the op for this node"""
         self.op.name = new_name
 
 
@@ -145,13 +145,12 @@ class InNode(DAGNodeP):
     be supplied to functions that take a node.
     """
 
-    __slots__ = ["wire", "qargs", "cargs"]
+    __slots__ = ["wire"]
 
-    def __init__(self, wire, qargs=None, cargs=None):
+    def __init__(self, wire):
         """Create a node"""
         self.wire = wire
-        #self.qargs = qargs if qargs is not None else []
-        super().__init__(qargs, cargs)
+        super().__init__()
 
 
 class OutNode(DAGNodeP):
@@ -161,13 +160,12 @@ class OutNode(DAGNodeP):
     be supplied to functions that take a node.
     """
 
-    __slots__ = ["wire", "qargs", "cargs"]
+    __slots__ = ["wire"]
 
-    def __init__(self, wire, qargs=None, cargs=None):
+    def __init__(self, wire):
         """Create a node"""
         self.wire = wire
-        #self.qargs = qargs if qargs is not None else []
-        super().__init__(qargs, cargs)
+        super().__init__()
 
 
 class DAGNode:
@@ -216,6 +214,7 @@ class DAGNode:
 
     @name.setter
     def name(self, name):
+        """Sets the Instruction name corresponding to the op for this node"""
         if self.type and self.type == "op":
             self._op.name = name
 

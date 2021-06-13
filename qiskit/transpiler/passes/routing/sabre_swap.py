@@ -21,7 +21,7 @@ from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-from qiskit.dagcircuit import OpNode, OutNode
+from qiskit.dagcircuit import OpNode
 
 logger = logging.getLogger(__name__)
 

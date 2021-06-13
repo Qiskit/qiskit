@@ -771,7 +771,7 @@ class DAGCircuit:
                 op.condition = condition
                 dag.apply_operation_back(op, m_qargs, m_cargs)
             else:
-                raise DAGCircuitError("bad node type %s" % nd)
+                raise DAGCircuitError("bad node type %s" % type(nd))
 
         if not inplace:
             return dag
@@ -988,12 +988,7 @@ class DAGCircuit:
         """
 
         def _key(x):
-            #print('\n\n\nkey: ', type(x))
-            if isinstance(x, OpNode):
-                #print('sort_key: ', x.sort_key)
-                return x.sort_key
-            else:
-                return ""
+            return x.sort_key
 
         return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
 
@@ -1061,7 +1056,7 @@ class DAGCircuit:
         # If a gate is conditioned, we expect the replacement subcircuit
         # to depend on those condition bits as well.
         if not isinstance(node, OpNode):
-            raise DAGCircuitError("expected node OpNode, got %s" % node)
+            raise DAGCircuitError("expected node OpNode, got %s" % type(node))
 
         condition_bit_list = self._bits_in_condition(condition)
 
@@ -1356,7 +1351,7 @@ class DAGCircuit:
         if not isinstance(node, OpNode):
             raise DAGCircuitError(
                 'The method remove_op_node only works on OpNodes. A "%s" '
-                "node type was wrongly provided." % node
+                "node type was wrongly provided." % type(node)
             )
 
         self._multi_graph.remove_node_retain_edges(
@@ -1571,12 +1566,11 @@ class DAGCircuit:
         """
         op_dict = {}
         for node in self.topological_op_nodes():
-            if isinstance(node, OpNode):
-                name = node.op.name
-                if name not in op_dict:
-                    op_dict[name] = 1
-                else:
-                    op_dict[name] += 1
+            name = node.op.name
+            if name not in op_dict:
+                op_dict[name] = 1
+            else:
+                op_dict[name] += 1
         return op_dict
 
     def count_ops_longest_path(self):

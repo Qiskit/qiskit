@@ -640,8 +640,6 @@ class TestDagNodeSelection(QiskitTestCase):
 
         named_nodes = self.dag.topological_nodes()
 
-        print([(i.op.name if isinstance(i, OpNode) else i.wire, i.qargs) for i in named_nodes])
-        
         qr = self.dag.qregs["qr"]
         cr = self.dag.cregs["cr"]
         expected = [
@@ -662,7 +660,8 @@ class TestDagNodeSelection(QiskitTestCase):
             (cr[1], []),
         ]
         self.assertEqual(
-            [(i.op.name if isinstance(i, OpNode) else i.wire, i.qargs) for i in named_nodes], expected
+            [(i.op.name if isinstance(i, OpNode) else i.wire, i.qargs) for i in named_nodes],
+            expected,
         )
 
     def test_topological_op_nodes(self):
