@@ -100,12 +100,13 @@ class Grover(AmplitudeAmplifier):
 
     """
 
-    def __init__(self,
-                 iterations: Optional[Union[List[int], Iterator[int], int]] = None,
-                 growth_rate: Optional[float] = None,
-                 sample_from_iterations: bool = False,
-                 quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        iterations: Optional[Union[List[int], Iterator[int], int]] = None,
+        growth_rate: Optional[float] = None,
+        sample_from_iterations: bool = False,
+        quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,
+    ) -> None:
         r"""
         Args:
             iterations: Specify the number of iterations/power of Grover's operator to be checked.
