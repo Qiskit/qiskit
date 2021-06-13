@@ -18,6 +18,12 @@ Writing a new variational algorithm is a simple as extending this class, impleme
 function for the new algorithm to pass to the optimizer, and running :meth:`find_minimum` method
 of this class to carry out the optimization. Alternatively, all of the functions below can be
 overridden to opt-out of this infrastructure but still meet the interface requirements.
+
+.. note::
+
+    This component has some function that is normally random. If you want to reproduce behavior
+    then you should set the random number generator seed in the algorithm_globals
+    (``qiskit.utils.algorithm_globals.random_seed = seed``).
 """
 
 from typing import Optional, Callable, Union, Dict
@@ -160,6 +166,7 @@ class VariationalAlgorithm:
 
         Raises:
             ValueError: invalid input
+
         """
         initial_point = initial_point if initial_point is not None else self.initial_point
         ansatz = ansatz if ansatz is not None else self.ansatz

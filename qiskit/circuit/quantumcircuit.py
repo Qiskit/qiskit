@@ -23,7 +23,7 @@ import multiprocessing as mp
 from collections import OrderedDict, defaultdict
 from typing import Union
 import numpy as np
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
@@ -1331,18 +1331,24 @@ class QuantumCircuit:
 
         return qasm_string
 
-    def qasm(self, formatted=False, filename=None):
+    def qasm(self, formatted=False, filename=None, encoding=None):
         """Return OpenQASM string.
 
         Args:
             formatted (bool): Return formatted Qasm string.
             filename (str): Save Qasm to file with name 'filename'.
+            encoding (str): Optionally specify the encoding to use for the
+                output file if ``filename`` is specified. By default this is
+                set to the system's default encoding (ie whatever
+                ``locale.getpreferredencoding()`` returns) and can be set to
+                any valid codec or alias from stdlib's
+                `codec module <https://docs.python.org/3/library/codecs.html#standard-encodings>`__
 
         Returns:
             str: If formatted=False.
 
         Raises:
-            ImportError: If pygments is not installed and ``formatted`` is
+            MissingOptionalLibraryError: If pygments is not installed and ``formatted`` is
                 ``True``.
             QasmError: If circuit has free parameters.
         """
@@ -1495,16 +1501,16 @@ class QuantumCircuit:
             gate._qasm_def_written = False
 
         if filename:
-            with open(filename, "w+") as file:
+            with open(filename, "w+", encoding=encoding) as file:
                 file.write(string_temp)
             file.close()
 
         if formatted:
             if not HAS_PYGMENTS:
-                raise ImportError(
-                    "To use the formatted output pygments>2.4 "
-                    "must be installed. To install pygments run "
-                    '"pip install pygments".'
+                raise MissingOptionalLibraryError(
+                    libname="pygments>2.4",
+                    name="formatted QASM output",
+                    pip_install="pip install pygments",
                 )
             code = pygments.highlight(
                 string_temp, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
@@ -1729,9 +1735,13 @@ class QuantumCircuit:
             # Assuming here that there is no conditional
             # snapshots or barriers ever.
             if instr.condition:
-                # Controls operate over all bits in the
-                # classical register they use.
-                for cbit in instr.condition[0]:
+                # Controls operate over all bits of a classical register
+                # or over a single bit
+                if isinstance(instr.condition[0], Clbit):
+                    condition_bits = [instr.condition[0]]
+                else:
+                    condition_bits = instr.condition[0]
+                for cbit in condition_bits:
                     idx = bit_indices[cbit]
                     if idx not in reg_ints:
                         reg_ints.append(idx)
@@ -1829,7 +1839,6 @@ class QuantumCircuit:
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
                                 graphs_touched.append(k)
-                                num_touched += 1
                                 break
 
                 for item in args:
@@ -1838,8 +1847,10 @@ class QuantumCircuit:
                         if reg_int in sub_graphs[k]:
                             if k not in graphs_touched:
                                 graphs_touched.append(k)
-                                num_touched += 1
                                 break
+
+                graphs_touched = list(set(graphs_touched))
+                num_touched = len(graphs_touched)
 
                 # If the gate touches more than one subgraph
                 # join those graphs together and return
@@ -2142,7 +2153,7 @@ class QuantumCircuit:
 
         Returns:
             Optional(QuantumCircuit): A copy of the circuit with bound parameters, if
-            ``inplace`` is True, otherwise None.
+            ``inplace`` is False, otherwise None.
 
         Examples:
 
