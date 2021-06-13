@@ -239,7 +239,7 @@ class HoareOptimizer(TransformationPass):
         Args:
             qubit (Qubit): qubit cache to inspect
         Returns:
-            list(list(OpNodes and OutNodes)): list of target successive gate sequences for
+            list(list(OpNode or OutNode)): list of target successive gate sequences for
                                  this qubit's cache
         """
         seqs = []

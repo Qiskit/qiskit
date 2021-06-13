@@ -1188,7 +1188,7 @@ class DAGCircuit:
         no nodes are specified all edges from the graph are returned.
 
         Args:
-            nodes(OpNode, InNode, or OutNode|list(OpNodes, InNodes, or OutNodes):
+            nodes(OpNode, InNode, or OutNode|list(OpNode, InNode, or OutNode):
                 Either a list of nodes or a single input node. If none is specified,
                 all edges are returned from the graph.
 
@@ -1199,7 +1199,7 @@ class DAGCircuit:
         if nodes is None:
             nodes = self._multi_graph.nodes()
 
-        elif isinstance(nodes, (InNode, OutNode, OpNode)):
+        elif isinstance(nodes, (OpNode, InNode, OutNode)):
             nodes = [nodes]
         for node in nodes:
             raw_nodes = self._multi_graph.out_edges(node._node_id)
@@ -1329,9 +1329,9 @@ class DAGCircuit:
 
     def bfs_successors(self, node):
         """
-        Returns an iterator of tuples of (OpNode, InNode, or OutNode, [OpNodes or OutNodes])
-        where the OpNode, InNode, or OutNode is the current node and 
-        [OpNodes and OutNodes] is its successors in  BFS order.
+        Returns an iterator of tuples of (OpNode, InNode, or OutNode, [OpNode or OutNode])
+        where the OpNode, InNode, or OutNode is the current node and
+        [OpNode or OutNode] is its successors in BFS order.
         """
         return iter(rx.bfs_successors(self._multi_graph, node._node_id))
 
@@ -1470,17 +1470,17 @@ class DAGCircuit:
             # Save the support of the operation we add to the layer
             support_list = []
             # Operation data
-            op = copy.copy(next_node)
-            qa = copy.copy(next_node.qargs)
-            ca = copy.copy(next_node.cargs)
-            co = copy.copy(next_node.op.condition)
-            _ = self._bits_in_condition(co)
+            node = copy.copy(next_node)
+            qargs = copy.copy(next_node.qargs)
+            cargs = copy.copy(next_node.cargs)
+            condition = copy.copy(next_node.op.condition)
+            _ = self._bits_in_condition(condition)
 
             # Add node to new_layer
-            new_layer.apply_operation_back(op.op, qa, ca)
+            new_layer.apply_operation_back(node.op, qargs, cargs)
             # Add operation to partition
             if not next_node.op._directive:
-                support_list.append(list(qa))
+                support_list.append(list(qargs))
             l_dict = {"graph": new_layer, "partition": support_list}
             yield l_dict
 
@@ -1535,7 +1535,7 @@ class DAGCircuit:
             only_ops (bool): True if only the ops nodes are wanted;
                         otherwise, all nodes are returned.
         Yield:
-             OpNodes, InNodes, or OutNodes: the successive nodes on the given wire
+             OpNode, InNode, or OutNode: the successive nodes on the given wire
 
         Raises:
             DAGCircuitError: if the given wire doesn't exist in the DAG

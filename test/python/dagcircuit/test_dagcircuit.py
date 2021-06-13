@@ -64,7 +64,7 @@ def raise_if_dagcircuit_invalid(dag):
         elif isinstance(node, OpNode):
             continue
         else:
-            raise DAGCircuitError("Found node of unexpected type: {}".format(node))
+            raise DAGCircuitError("Found node of unexpected type: {}".format(type(node)))
 
     # Shape of node.op should match shape of node.
     for node in dag.op_nodes():

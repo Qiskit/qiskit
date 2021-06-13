@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,7 @@
 
 # pylint: disable=redefined-builtin
 
-"""Object to represent the information at a node in the DAGCircuit."""
+"""Objects to represent the information at a node in the DAGCircuit."""
 
 import warnings
 
@@ -20,11 +20,7 @@ from qiskit.exceptions import QiskitError
 
 
 class DAGNodeP:
-    """Object to represent the information at a node in the DAGCircuit.
-
-    It is used as the return value from `*_nodes()` functions and can
-    be supplied to functions that take a node.
-    """
+    """Parent class for OpNode, InNode, and OutNode used by DAGCircuit."""
 
     __slots__ = ["_qargs", "cargs", "sort_key", "_node_id"]
 
@@ -37,14 +33,12 @@ class DAGNodeP:
 
     @property
     def qargs(self):
-        """
-        Returns list of Qubit, else an empty list.
-        """
+        """Returns list of Qubit, else an empty list."""
         return self._qargs
 
     @qargs.setter
     def qargs(self, new_qargs):
-        """Sets the qargs to be the given list of qargs."""
+        """Sets qargs to be the new list of qargs and updates sort_key."""
         self._qargs = new_qargs
         self.sort_key = str(new_qargs)
 
@@ -65,8 +59,8 @@ class DAGNodeP:
         Check if DAG nodes are considered equivalent, e.g., as a node_match for nx.is_isomorphic.
 
         Args:
-            node1 (DAGNode): A node to compare.
-            node2 (DAGNode): The other node to compare.
+            node1 (OpNode, InNode, or OutNode): A node to compare.
+            node2 (OpNode, InNode, or OutNode): The other node to compare.
             bit_indices1 (dict): Dictionary mapping Bit instances to their index
                 within the circuit containing node1
             bit_indices2 (dict): Dictionary mapping Bit instances to their index
@@ -77,7 +71,7 @@ class DAGNodeP:
         """
         if bit_indices1 is None or bit_indices2 is None:
             warnings.warn(
-                "DAGNode.semantic_eq now expects two bit-to-circuit index "
+                "DAGNodeP.semantic_eq now expects two bit-to-circuit index "
                 "mappings as arguments. To ease the transition, these will be "
                 "pre-populated based on the values found in Bit.index and "
                 "Bit.register. However, this behavior is deprecated and a future "
@@ -114,16 +108,12 @@ class DAGNodeP:
 
 
 class OpNode(DAGNodeP):
-    """Object to represent the information at a node in the DAGCircuit.
-
-    It is used as the return value from `*_nodes()` functions and can
-    be supplied to functions that take a node.
-    """
+    """Object to represent an Instruction at a node in the DAGCircuit."""
 
     __slots__ = ["op"]
 
     def __init__(self, op, qargs=None, cargs=None):
-        """Create a node"""
+        """Create an Instruction node"""
         self.op = op
         super().__init__(qargs, cargs)
 
@@ -139,31 +129,23 @@ class OpNode(DAGNodeP):
 
 
 class InNode(DAGNodeP):
-    """Object to represent the information at a node in the DAGCircuit.
-
-    It is used as the return value from `*_nodes()` functions and can
-    be supplied to functions that take a node.
-    """
+    """Object to represent an incoming wire node in the DAGCircuit."""
 
     __slots__ = ["wire"]
 
     def __init__(self, wire):
-        """Create a node"""
+        """Create an incoming node"""
         self.wire = wire
         super().__init__()
 
 
 class OutNode(DAGNodeP):
-    """Object to represent the information at a node in the DAGCircuit.
-
-    It is used as the return value from `*_nodes()` functions and can
-    be supplied to functions that take a node.
-    """
+    """Object to represent an outgoing wire node in the DAGCircuit."""
 
     __slots__ = ["wire"]
 
     def __init__(self, wire):
-        """Create a node"""
+        """Create an outgoing node"""
         self.wire = wire
         super().__init__()
 
