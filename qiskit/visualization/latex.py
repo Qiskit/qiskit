@@ -166,7 +166,7 @@ class QCircuitImage:
 
 \begin{document} 
 """
-        header_scale  = "\\scalebox{{{}}}".format(self.scale) + "{"
+        header_scale = "\\scalebox{{{}}}".format(self.scale) + "{"
 
         qcircuit_line = r"""
 \Qcircuit @C=%.1fem @R=%.1fem @!R { \\
@@ -225,7 +225,7 @@ class QCircuitImage:
                     self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
                     offset += clbitsize - 1
                 else:
-                    label =  self.bit_locations[self.ordered_bits[i]]["register"].name + "_{"
+                    label = self.bit_locations[self.ordered_bits[i]]["register"].name + "_{"
                     label += str(self.bit_locations[self.ordered_bits[i]]["index"]) + "}:"
                 if self.initial_state:
                     label += "0"
