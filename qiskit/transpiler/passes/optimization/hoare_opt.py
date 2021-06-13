@@ -175,7 +175,7 @@ class HoareOptimizer(TransformationPass):
         Args:
             qubit (Qubit): qubit cache to inspect
         Returns:
-            list(list(DAGNode)): list of target successive gate sequences for
+            list(list(OpNodes and OutNodes)): list of target successive gate sequences for
                                  this qubit's cache
         """
         seqs = []
@@ -205,7 +205,7 @@ class HoareOptimizer(TransformationPass):
         """determine whether the sequence of gates combines to the identity
             (consider sequences of length 2 for now)
         Args:
-            sequence (list(DAGNode)): gate sequence to inspect
+            sequence (list(OpNode)): gate sequence to inspect
         Returns:
             bool: if gate sequence combines to identity
         """
@@ -237,7 +237,7 @@ class HoareOptimizer(TransformationPass):
             all executed or none of them are executed, based on control qubits
             (consider sequences of length 2 for now)
         Args:
-            sequence (list(DAGNode)): gate sequence to inspect
+            sequence (list(OpNode)): gate sequence to inspect
         Returns:
             bool: if gate sequence is only executed completely or not at all
         """

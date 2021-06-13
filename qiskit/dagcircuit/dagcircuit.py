@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -416,7 +416,7 @@ class DAGCircuit:
             cargs (list[Clbit]): cbits that op will be applied to
             condition (tuple or None): DEPRECATED optional condition (ClassicalRegister, int)
         Returns:
-            DAGNode: the current max node
+            OpNode or OutNode: the current max node
 
         Raises:
             DAGCircuitError: if a leaf node is connected to multiple outputs
@@ -460,7 +460,7 @@ class DAGCircuit:
             cargs (list[Clbit]): cbits that op will be applied to
             condition (tuple or None): DEPRECATED optional condition (ClassicalRegister, int)
         Returns:
-            DAGNode: the current max node
+            OpNode or OutNode: the current max node
 
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
@@ -866,7 +866,7 @@ class DAGCircuit:
         Args:
             wires (list[Bit]): gives an order for (qu)bits
                 in the input circuit that is replacing the node.
-            node (DAGNode): a node in the dag
+            node (OpNode): a node in the dag
 
         Raises:
             DAGCircuitError: if check doesn't pass.
@@ -885,7 +885,7 @@ class DAGCircuit:
         """Return predecessor and successor dictionaries.
 
         Args:
-            node (DAGNode): reference to multi_graph node
+            node (OpNode): reference to multi_graph node
 
         Returns:
             tuple(dict): tuple(predecessor_map, successor_map)
@@ -984,7 +984,7 @@ class DAGCircuit:
         Yield nodes in topological order.
 
         Returns:
-            generator(DAGNode): node in topological order
+            generator(OpNode, InNode, or OutNode): node in topological order
         """
 
         def _key(x):
@@ -997,7 +997,7 @@ class DAGCircuit:
         Yield op nodes in topological order.
 
         Returns:
-            generator(DAGNode): op node in topological order
+            generator(OpNode): op node in topological order
         """
         return (nd for nd in self.topological_nodes() if isinstance(nd, OpNode))
 
@@ -1005,7 +1005,7 @@ class DAGCircuit:
         """Replace one node with dag.
 
         Args:
-            node (DAGNode): node to substitute
+            node (OpNode): node to substitute
             input_dag (DAGCircuit): circuit that will substitute the node
             wires (list[Bit]): gives an order for (qu)bits
                 in the input circuit. This order gets matched to the node wires
@@ -1117,13 +1117,13 @@ class DAGCircuit:
                 self._multi_graph.remove_edge(p[0], self.output_map[w])
 
     def substitute_node(self, node, op, inplace=False):
-        """Replace a DAGNode with a single instruction. qargs, cargs and
+        """Replace an OpNode with a single instruction. qargs, cargs and
         conditions for the new instruction will be inferred from the node to be
         replaced. The new instruction will be checked to match the shape of the
         replaced instruction.
 
         Args:
-            node (DAGNode): Node to be replaced
+            node (OpNode): Node to be replaced
             op (qiskit.circuit.Instruction): The :class:`qiskit.circuit.Instruction`
                 instance to be added to the DAG
             inplace (bool): Optional, default False. If True, existing DAG node
@@ -1131,7 +1131,7 @@ class DAGCircuit:
                 be used.
 
         Returns:
-            DAGNode: the new node containing the added instruction.
+            OpNode: the new node containing the added instruction.
 
         Raises:
             DAGCircuitError: If replacement instruction was incompatible with
@@ -1188,9 +1188,9 @@ class DAGCircuit:
         no nodes are specified all edges from the graph are returned.
 
         Args:
-            nodes(DAGNode|list(DAGNode): Either a list of nodes or a single
-                input node. If none is specified all edges are returned from
-                the graph.
+            nodes(OpNode, InNode, or OutNode|list(OpNodes, InNodes, or OutNodes):
+                Either a list of nodes or a single input node. If none is specified,
+                all edges are returned from the graph.
 
         Yield:
             edge: the edge in the same format as out_edges the tuple
@@ -1215,7 +1215,7 @@ class DAGCircuit:
             include_directives (bool): include `barrier`, `snapshot` etc.
 
         Returns:
-            list[DAGNode]: the list of node ids containing the given op.
+            list[OpNode]: the list of node ids containing the given op.
         """
         nodes = []
         for node in self._multi_graph.nodes():
@@ -1230,7 +1230,7 @@ class DAGCircuit:
         """Get the list of gate nodes in the dag.
 
         Returns:
-            list[DAGNode]: the list of DAGNodes that represent gates.
+            list[OpNode]: the list of OpNodes that represent gates.
         """
         nodes = []
         for node in self.op_nodes():
@@ -1291,15 +1291,15 @@ class DAGCircuit:
         return ops
 
     def longest_path(self):
-        """Returns the longest path in the dag as a list of DAGNodes."""
+        """Returns the longest path in the dag as a list of OpNodes, InNodes, and OutNodes."""
         return [self._multi_graph[x] for x in rx.dag_longest_path(self._multi_graph)]
 
     def successors(self, node):
-        """Returns iterator of the successors of a node as DAGNodes."""
+        """Returns iterator of the successors of a node as OpNodes and OutNodes."""
         return iter(self._multi_graph.successors(node._node_id))
 
     def predecessors(self, node):
-        """Returns iterator of the predecessors of a node as DAGNodes."""
+        """Returns iterator of the predecessors of a node as OpNodes and InNodes."""
         return iter(self._multi_graph.predecessors(node._node_id))
 
     def is_successor(self, node, node_succ):
@@ -1312,7 +1312,7 @@ class DAGCircuit:
 
     def quantum_predecessors(self, node):
         """Returns iterator of the predecessors of a node that are
-        connected by a quantum edge as DAGNodes."""
+        connected by a quantum edge as OpNodes and InNodes."""
         return iter(
             self._multi_graph.find_predecessors_by_edge(
                 node._node_id, lambda edge_data: isinstance(edge_data, Qubit)
@@ -1320,23 +1320,24 @@ class DAGCircuit:
         )
 
     def ancestors(self, node):
-        """Returns set of the ancestors of a node as DAGNodes."""
+        """Returns set of the ancestors of a node as OpNodes and InNodes."""
         return {self._multi_graph[x] for x in rx.ancestors(self._multi_graph, node._node_id)}
 
     def descendants(self, node):
-        """Returns set of the descendants of a node as DAGNodes."""
+        """Returns set of the descendants of a node as OpNodes and OutNodes."""
         return {self._multi_graph[x] for x in rx.descendants(self._multi_graph, node._node_id)}
 
     def bfs_successors(self, node):
         """
-        Returns an iterator of tuples of (DAGNode, [DAGNodes]) where the DAGNode is the current node
-        and [DAGNode] is its successors in  BFS order.
+        Returns an iterator of tuples of (OpNode, InNode, or OutNode, [OpNodes or OutNodes])
+        where the OpNode, InNode, or OutNode is the current node and 
+        [OpNodes and OutNodes] is its successors in  BFS order.
         """
         return iter(rx.bfs_successors(self._multi_graph, node._node_id))
 
     def quantum_successors(self, node):
         """Returns iterator of the successors of a node that are
-        connected by a quantum edge as DAGNodes."""
+        connected by a quantum edge as Opnodes and OutNodes."""
         return iter(
             self._multi_graph.find_successors_by_edge(
                 node._node_id, lambda edge_data: isinstance(edge_data, Qubit)
@@ -1413,9 +1414,9 @@ class DAGCircuit:
         greedy algorithm. Each returned layer is a dict containing
         {"graph": circuit graph, "partition": list of qubit lists}.
 
-        The returned layer contains new (but semantically equivalent) DAGNodes.
-        These are not the same as nodes of the original dag, but are equivalent
-        via DAGNode.semantic_eq(node1, node2).
+        The returned layer contains new (but semantically equivalent) OpNodes, InNodes,
+        and OutNodes. These are not the same as nodes of the original dag, but are equivalent
+        via DAGNodeP.semantic_eq(node1, node2).
 
         TODO: Gates that use the same cbits will end up in different
         layers as this is currently implemented. This may not be
@@ -1447,7 +1448,7 @@ class DAGCircuit:
             new_layer = self._copy_circuit_metadata()
 
             for node in op_nodes:
-                # this creates new DAGNodes in the new_layer
+                # this creates new OpNodes in the new_layer
                 new_layer.apply_operation_back(node.op, node.qargs, node.cargs)
 
             # The quantum registers that have an operation in this layer.
@@ -1534,7 +1535,7 @@ class DAGCircuit:
             only_ops (bool): True if only the ops nodes are wanted;
                         otherwise, all nodes are returned.
         Yield:
-             DAGNode: the successive ops on the given wire
+             OpNodes, InNodes, or OutNodes: the successive nodes on the given wire
 
         Raises:
             DAGCircuitError: if the given wire doesn't exist in the DAG

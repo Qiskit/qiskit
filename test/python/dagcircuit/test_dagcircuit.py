@@ -703,7 +703,7 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def test_dag_nodes_on_wire_multiple_successors(self):
         """
-        Test that if a DAGNode has multiple successors in the DAG along one wire, they are all
+        Test that if an OpNode has multiple successors in the DAG along one wire, they are all
         retrieved in order. This could be the case for a circuit such as
 
                 q0_0: |0>──■─────────■──
