@@ -12,10 +12,13 @@
 
 """ Pass for Hoare logic circuit optimization. """
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit import ControlledGate, Gate
+from qiskit.circuit import QuantumRegister, ControlledGate, Gate
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.library.standard_gates import CZGate, CU1Gate, MCU1Gate
 from . import _gate_extension  # pylint: disable=unused-import
 
 try:
@@ -126,7 +129,7 @@ class HoareOptimizer(TransformationPass):
         else:
             if isinstance(triv_cond, bool):
                 if triv_cond and len(trgtvar) == 1:
-                    self.solver.add(And(ctrl_ones, Not(trgtvar[0])))
+                    self.solver.add(Not(And(ctrl_ones, trgtvar[0])))
                     sol1 = self.solver.check() == unsat
                     self.solver.pop()
                     self.solver.push()
@@ -140,6 +143,55 @@ class HoareOptimizer(TransformationPass):
         self.solver.pop()
         return trivial
 
+    def _remove_control(self, gate, ctrlvar, trgtvar):
+        """use z3 sat solver to determine if all control qubits are in 1 state,
+             and if so replace the Controlled - U by U.
+        Args:
+            gate (Gate): gate to inspect
+            ctrlvar (list(BoolRef)): z3 variables corresponding to latest state
+                                     of control qubits
+            trgtvar (list(BoolRef)): z3 variables corresponding to latest state
+                                     of target qubits
+        Returns:
+            Tuple(bool, DAGCircuit, List)::
+              * bool:if controlled gate can be replaced.
+              * DAGCircuit: with U applied to the target qubits.
+              * List: with indices of target qubits.
+        """
+        remove = False
+
+        qarg = QuantumRegister(gate.num_qubits)
+        dag = DAGCircuit()
+        dag.add_qreg(qarg)
+
+        qb = list(range(len(ctrlvar), gate.num_qubits))  # last qubits as target.
+
+        if isinstance(gate, ControlledGate):
+            remove = self._check_removal(ctrlvar)
+
+        # try with other qubit as 'target'.
+        if isinstance(gate, (CZGate, CU1Gate, MCU1Gate)):
+            while not remove and qb[0] > 0:
+                qb[0] = qb[0] - 1
+                ctrl_vars = ctrlvar[: qb[0]] + ctrlvar[qb[0] + 1 :] + trgtvar
+                remove = self._check_removal(ctrl_vars)
+
+        if remove:
+            qubits = [qarg[qi] for qi in qb]
+            dag.apply_operation_back(gate.base_gate, qubits)
+
+        return remove, dag, qb
+
+    def _check_removal(self, ctrlvar):
+        ctrl_ones = And(*ctrlvar)
+
+        self.solver.push()
+        self.solver.add(Not(ctrl_ones))
+        remove = self.solver.check() == unsat
+        self.solver.pop()
+
+        return remove
+
     def _traverse_dag(self, dag):
         """traverse DAG in topological order
             for each gate check: if any control is 0, or
@@ -151,9 +203,21 @@ class HoareOptimizer(TransformationPass):
         """
         for node in dag.topological_op_nodes():
             gate = node.op
-            _, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
+            ctrlqb, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
 
             ctrl_ones = And(*ctrlvar)
+
+            remove_ctrl, new_dag, qb_idx = self._remove_control(gate, ctrlvar, trgtvar)
+
+            if remove_ctrl:
+                dag.substitute_node_with_dag(node, new_dag)
+                gate = gate.base_gate
+                node.op = gate
+                node.name = gate.name
+                node.qargs = [(ctrlqb + trgtqb)[qi] for qi in qb_idx]
+                _, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
+
+                ctrl_ones = And(*ctrlvar)
 
             trivial = self._test_gate(gate, ctrl_ones, trgtvar)
             if trivial:
@@ -210,8 +274,11 @@ class HoareOptimizer(TransformationPass):
             bool: if gate sequence combines to identity
         """
         assert len(sequence) == 2
-
-        gate1, gate2 = sequence[0].op, sequence[1].op.inverse()
+        # some Instructions (e.g measurements) may not have an inverse.
+        try:
+            gate1, gate2 = sequence[0].op, sequence[1].op.inverse()
+        except CircuitError:
+            return False
         par1, par2 = gate1.params, gate2.params
         def1, def2 = gate1.definition, gate2.definition
 

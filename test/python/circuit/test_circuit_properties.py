@@ -542,7 +542,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 4)
 
     def test_circuit_connected_components_with_cond(self):
-        """Test tensor components with conditional gate."""
+        """Test tensor components with one conditional gate."""
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -556,6 +556,37 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
         qc.measure(q[3], c[3])
+        self.assertEqual(qc.num_connected_components(), 1)
+
+    def test_circuit_connected_components_with_cond2(self):
+        """Test tensor components with two conditional gates."""
+        size = 4
+        q = QuantumRegister(size, "q")
+        c = ClassicalRegister(2 * size, "c")
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.h(0).c_if(c, 0)
+        qc.cx(1, 2).c_if(c, 4)
+        self.assertEqual(qc.num_connected_components(), 2)
+
+    def test_circuit_connected_components_with_cond3(self):
+        """Test tensor components with three conditional gates and measurements."""
+        size = 4
+        q = QuantumRegister(size)
+        c = ClassicalRegister(size)
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.h(q[0]).c_if(c, 0)
+        qc.cx(q[1], q[2]).c_if(c, 1)
+        qc.measure(q[2], c[2])
+        qc.x(q[3]).c_if(c, 2)
         self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_unitary_factors1(self):

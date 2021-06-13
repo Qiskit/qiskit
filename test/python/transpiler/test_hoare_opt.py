@@ -293,6 +293,44 @@ class TestHoareOptimizer(QiskitTestCase):
 
         self.assertEqual(result, circuit_to_dag(expected))
 
+    def test_control_removal(self):
+        """Should replace CX by X and CZ by Z."""
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.cx(0, 1)
+
+        expected = QuantumCircuit(2)
+        expected.x(0)
+        expected.x(1)
+
+        stv = Statevector.from_label("0" * circuit.num_qubits)
+        self.assertEqual(stv @ circuit, stv @ expected)
+
+        pass_ = HoareOptimizer(size=5)
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.cz(0, 1)
+        circuit.h(0)
+
+        expected = QuantumCircuit(2)
+        expected.h(0)
+        expected.x(1)
+        expected.z(0)
+        expected.h(0)
+
+        stv = Statevector.from_label("0" * circuit.num_qubits)
+        self.assertEqual(stv @ circuit, stv @ expected)
+
+        pass_ = HoareOptimizer(size=5)
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
     def test_is_identity(self):
         """The is_identity function determines whether a pair of gates
         forms the identity, when ignoring control qubits.
