@@ -14,8 +14,15 @@
 import numpy as np
 
 from .fast_grad_utils import get_max_num_bits, temporary_code
-from .layer import LayerBase, Layer2Q, Layer1Q, InitLayer2QMatrices, InitLayer2QDerivativeMatrices, \
-    InitLayer1QMatrices, InitLayer1QDerivativeMatrices
+from .layer import (
+    LayerBase,
+    Layer2Q,
+    Layer1Q,
+    init_layer2q_matrices,
+    init_layer2q_deriv_matrices,
+    init_layer1q_matrices,
+    init_layer1q_deriv_matrices,
+)
 from .pmatrix import PMatrix
 from ..gradient import GradientBase
 
@@ -37,9 +44,10 @@ class FastGradient(GradientBase):
         assert isinstance(n, int) and 2 <= n <= get_max_num_bits()
         assert isinstance(cnots, np.ndarray) and cnots.ndim == 2
         assert cnots.dtype == np.int64 and cnots.shape[0] == 2
+        # pylint: disable=misplaced-comparison-constant
         assert np.all(1 <= cnots) and np.all(cnots <= n)
 
-        self.n = n  # number of qubits
+        self.num_qubits = n  # number of qubits
         self.cnots = cnots  # CNOT structure
         N = 2 ** n  # actual problem dimension
         L = cnots.shape[1]
@@ -87,7 +95,7 @@ class FastGradient(GradientBase):
         Computes the gradient of objective function.
         See description of the base class method.
         """
-        L, n = self._L, self.n
+        L, n = self._L, self.num_qubits
         assert L >= 2
         assert isinstance(target_matrix, np.ndarray)
         assert target_matrix.shape == (2 ** n, 2 ** n)
@@ -103,10 +111,10 @@ class FastGradient(GradientBase):
         grad4L = grad[: 4 * L].reshape(L, 4)
         grad3n = grad[4 * L :].reshape(n, 3)
 
-        InitLayer2QMatrices(thetas=thetas4L, dst=self._C_gates)
-        InitLayer2QDerivativeMatrices(thetas=thetas4L, dst=self._C_dervs)
-        InitLayer1QMatrices(thetas=thetas3n, dst=self._F_gates)
-        InitLayer1QDerivativeMatrices(thetas=thetas3n, dst=self._F_dervs)
+        init_layer2q_matrices(thetas=thetas4L, dst=self._C_gates)
+        init_layer2q_deriv_matrices(thetas=thetas4L, dst=self._C_dervs)
+        init_layer1q_matrices(thetas=thetas3n, dst=self._F_gates)
+        init_layer1q_deriv_matrices(thetas=thetas3n, dst=self._F_dervs)
 
         self._init_layers()
         self._calc_ucf_fuc()
@@ -131,7 +139,7 @@ class FastGradient(GradientBase):
 
         F_gates = self._F_gates
         F_layers = self._F_layers
-        for l in range(self.n):
+        for l in range(self.num_qubits):
             F_layers[l].set_from_matrix(g2x2=F_gates[l])
 
     def _calc_ucf_fuc(self):
@@ -143,7 +151,7 @@ class FastGradient(GradientBase):
         tmpA = self._tmpA
         C_layers = self._C_layers
         F_layers = self._F_layers
-        L, n = self._L, self.n
+        L, n = self._L, self.num_qubits
 
         # tmpA = U^dagger.
         np.conj(self._U.T, out=tmpA)
@@ -168,7 +176,7 @@ class FastGradient(GradientBase):
         """
         ucf = self._UCF.finalize(temp_mat=self._tmpA)
         trace_ucf = np.trace(ucf)
-        fobj = abs((2 ** self.n) - float(np.real(trace_ucf)))
+        fobj = abs((2 ** self.num_qubits) - float(np.real(trace_ucf)))
 
         # No need to finalize both matrices UCF and FUC, just for debugging.
         if self._debug:
@@ -205,7 +213,7 @@ class FastGradient(GradientBase):
             # Compute gradient components. We reuse C_layers[l] several times.
             for i in range(4):
                 C_layers[l].set_from_matrix(g4x4=C_dervs[l, i])
-                grad4L[l, i] = -np.real(T.product_q2(L=C_layers[l], tmpA=tmpA, tmpB=tmpB))
+                grad4L[l, i] = (-1) * np.real(T.product_q2(L=C_layers[l], tmpA=tmpA, tmpB=tmpB))
 
     def _calc_gradient3n(self, grad3n: np.ndarray):
         W = self._UCF
@@ -213,7 +221,7 @@ class FastGradient(GradientBase):
         F_gates = self._F_gates
         F_dervs = self._F_dervs
         F_layers = self._F_layers
-        for l in range(self.n):
+        for l in range(self.num_qubits):
             # W[l] <-- F[l-1] @ W[l-1] @ F[l].conj.T. Note, F_layers[l] has
             # been initialized in _init_layers(), however, F_layers[l-1] was
             # reused on the previous step, see below, so we need to restore it.
@@ -225,4 +233,4 @@ class FastGradient(GradientBase):
             # Compute gradient components. We reuse F_layers[l] several times.
             for i in range(3):
                 F_layers[l].set_from_matrix(g2x2=F_dervs[l, i])
-                grad3n[l, i] = -np.real(W.product_q1(L=F_layers[l], tmpA=tmpA, tmpB=tmpB))
+                grad3n[l, i] = (-1) * np.real(W.product_q1(L=F_layers[l], tmpA=tmpA, tmpB=tmpB))

@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Utility functions for the fast gradient implementation."""
 
 import cmath
 import inspect
@@ -65,7 +66,7 @@ def is_permutation(x: np.ndarray) -> bool:
     )
 
 
-def reverse_bits(x: (int, np.ndarray), nbits: int, enable: bool) -> Union[int, np.ndarray]:
+def reverse_bits(x: Union[int, np.ndarray], nbits: int, enable: bool) -> Union[int, np.ndarray]:
     """
     Reverses the bit order in a number of 'nbits' length. If 'x' is an array, then operation is
     applied to every entry.
@@ -87,6 +88,7 @@ def reverse_bits(x: (int, np.ndarray), nbits: int, enable: bool) -> Union[int, n
             assert 0 <= x < 2 ** nbits
         else:
             assert isinstance(x, np.ndarray) and x.dtype == np.int64
+            # pylint: disable=misplaced-comparison-constant
             assert np.all((0 <= x) & (x < 2 ** nbits))
             x = x.copy()
         return x
@@ -96,6 +98,7 @@ def reverse_bits(x: (int, np.ndarray), nbits: int, enable: bool) -> Union[int, n
         res = int(0)
     else:
         assert isinstance(x, np.ndarray) and x.dtype == np.int64
+        # pylint: disable=misplaced-comparison-constant
         assert np.all((0 <= x) & (x < 2 ** nbits))
         x = x.copy()
         res = np.full_like(x, fill_value=0)

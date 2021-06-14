@@ -9,26 +9,49 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Layer classes for the fast gradient implementation."""
+from typing import Tuple
 
 import numpy as np
 
-# from typing import Union
-import fast_grad_utils as myu
+from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils import (
+    get_max_num_bits,
+    bit_permutation_1q,
+    reverse_bits,
+    inverse_permutation,
+    bit_permutation_2q,
+    Rz,
+    Ry,
+)
 
 
+# TODO: should it be abstract?
 class LayerBase:
     """
     Base class for any layer implementation.
     """
 
+    # TODO: There's no need to have an empty constructor.
     def __init__(self):
         pass
 
-    def set_from_matrix(self, _: np.ndarray):
-        raise NotImplementedError("set_from_matrix()")
+    def set_from_matrix(self, matrix: np.ndarray) -> np.ndarray:
+        """
+        Args:
+            matrix: TODO: add documentation
 
-    def get_attr(self) -> (np.ndarray, np.ndarray, np.ndarray):
-        raise NotImplementedError("get_attr()")
+        Returns:
+            TODO: add documentation
+        """
+        raise NotImplementedError()
+
+    def get_attr(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+
+        Returns:
+            TODO: add documentation
+        """
+        raise NotImplementedError()
 
 
 class Layer1Q(LayerBase):
@@ -41,8 +64,8 @@ class Layer1Q(LayerBase):
         """
         Constructor.
         """
-        super(Layer1Q, self).__init__()
-        assert isinstance(nbits, int) and 1 <= nbits <= myu.get_max_num_bits()
+        super().__init__()
+        assert isinstance(nbits, int) and 1 <= nbits <= get_max_num_bits()
         assert isinstance(k, int) and 0 <= k < nbits
 
         self._n = nbits  # number of bits
@@ -57,11 +80,11 @@ class Layer1Q(LayerBase):
 
         bit_flip = True
         N = 2 ** nbits
-        row_perm = myu.reverse_bits(myu.bit_permutation_1q(n=nbits, k=k), nbits=nbits, enable=bit_flip)
-        col_perm = myu.reverse_bits(np.arange(N, dtype=np.int64), nbits=nbits, enable=bit_flip)
+        row_perm = reverse_bits(bit_permutation_1q(n=nbits, k=k), nbits=nbits, enable=bit_flip)
+        col_perm = reverse_bits(np.arange(N, dtype=np.int64), nbits=nbits, enable=bit_flip)
         self._perm = np.full((N,), fill_value=0, dtype=np.int64)
         self._perm[row_perm] = col_perm
-        self._inv_perm = myu.inverse_permutation(self._perm)
+        self._inv_perm = inverse_permutation(self._perm)
 
     def set_from_matrix(self, g2x2: np.ndarray):
         """Update this layer from an external 2x2 gate matrix."""
@@ -81,10 +104,14 @@ class Layer2Q(LayerBase):
 
     def __init__(self, nbits: int, j: int, k: int, g4x4: (np.ndarray, None) = None):
         """
-        Constructor.
+        Args:
+            nbits:
+            j:
+            k:
+            g4x4:
         """
-        super(Layer2Q, self).__init__()
-        assert isinstance(nbits, int) and 2 <= nbits <= myu.get_max_num_bits()
+        super().__init__()
+        assert isinstance(nbits, int) and 2 <= nbits <= get_max_num_bits()
         assert isinstance(j, int) and isinstance(k, int) and j != k
         assert 0 <= j < nbits and 0 <= k < nbits
 
@@ -101,13 +128,11 @@ class Layer2Q(LayerBase):
 
         bit_flip = True  # isNaturalBitOrdering()
         N = 2 ** nbits
-        row_perm = myu.reverse_bits(
-            myu.bit_permutation_2q(n=nbits, j=j, k=k), nbits=nbits, enable=bit_flip
-        )
-        col_perm = myu.reverse_bits(np.arange(N, dtype=np.int64), nbits=nbits, enable=bit_flip)
+        row_perm = reverse_bits(bit_permutation_2q(n=nbits, j=j, k=k), nbits=nbits, enable=bit_flip)
+        col_perm = reverse_bits(np.arange(N, dtype=np.int64), nbits=nbits, enable=bit_flip)
         self._perm = np.full((N,), fill_value=0, dtype=np.int64)
         self._perm[row_perm] = col_perm
-        self._inv_perm = myu.inverse_permutation(self._perm)
+        self._inv_perm = inverse_permutation(self._perm)
 
     def set_from_matrix(self, g4x4: np.ndarray):
         assert isinstance(g4x4, np.ndarray) and g4x4.shape == (4, 4)
@@ -117,14 +142,16 @@ class Layer2Q(LayerBase):
         return self._g, self._perm, self._inv_perm
 
 
-def InitLayer1QMatrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
+def init_layer1q_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
     """
     Initializes 4 x 4 matrices of 2-qubit gates defined in the paper.
-    :param thetas: L x 4 matrix of gate parameters for every layer, where
-                   L is the number of layers.
-    :param dst: destination array of size L x 4 x 4 that will receive gate
-                matrices of each layer.
-    :return: dst.
+
+    Args:
+        thetas: L x 4 matrix of gate parameters for every layer, where L is the number of layers.
+        dst: destination array of size L x 4 x 4 that will receive gate matrices of each layer.
+
+    Returns:
+        Returns the ``dst`` array.
     """
     assert isinstance(thetas, np.ndarray) and isinstance(dst, np.ndarray)
     n = thetas.shape[0]
@@ -133,22 +160,24 @@ def InitLayer1QMatrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
     tmp = np.full((4, 2, 2), fill_value=0, dtype=np.cfloat)
     for k in range(n):
         th = thetas[k]
-        a = myu.Rz(th[0], out=tmp[0])
-        b = myu.Ry(th[1], out=tmp[1])
-        c = myu.Rz(th[2], out=tmp[2])
+        a = Rz(th[0], out=tmp[0])
+        b = Ry(th[1], out=tmp[1])
+        c = Rz(th[2], out=tmp[2])
         np.dot(np.dot(a, b, out=tmp[3]), c, out=dst[k])
     return dst
 
 
-def InitLayer1QDerivativeMatrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
+def init_layer1q_deriv_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
     """
     Initializes 4 x 4 derivative matrices of 2-qubit gates defined in the paper.
-    :param thetas: L x 4 matrix of gate parameters for every layer, where
-                   L is the number of layers.
-    :param dst: destination array of size L x 4 x 4 x 4 that will receive gate
-                derivative matrices of each layer; there are 4 parameters per
-                gate, hence, 4 derivative matrices per layer.
-    :return: dst.
+
+    Args:
+        thetas: L x 4 matrix of gate parameters for every layer, where L is the number of layers.
+        dst: destination array of size L x 4 x 4 x 4 that will receive gate derivative matrices of
+            each layer; there are 4 parameters per gate, hence, 4 derivative matrices per layer.
+
+    Returns:
+        Returns the ``dst`` array.
     """
     assert isinstance(thetas, np.ndarray) and isinstance(dst, np.ndarray)
     n = thetas.shape[0]
@@ -159,9 +188,9 @@ def InitLayer1QDerivativeMatrices(thetas: np.ndarray, dst: np.ndarray) -> np.nda
     tmp = np.full((5, 2, 2), fill_value=0, dtype=np.cfloat)
     for k in range(n):
         th = thetas[k]
-        a = myu.Rz(th[0], out=tmp[0])
-        b = myu.Ry(th[1], out=tmp[1])
-        c = myu.Rz(th[2], out=tmp[2])
+        a = Rz(th[0], out=tmp[0])
+        b = Ry(th[1], out=tmp[1])
+        c = Rz(th[2], out=tmp[2])
 
         za = np.dot(z, a, out=tmp[3])
         np.dot(np.dot(za, b, out=tmp[4]), c, out=dst[k, 0])
@@ -172,14 +201,16 @@ def InitLayer1QDerivativeMatrices(thetas: np.ndarray, dst: np.ndarray) -> np.nda
     return dst
 
 
-def InitLayer2QMatrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
+def init_layer2q_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
     """
     Initializes 4 x 4 matrices of 2-qubit gates defined in the paper.
-    :param thetas: L x 4 matrix of gate parameters for every layer, where
-                   L is the number of layers.
-    :param dst: destination array of size L x 4 x 4 that will receive gate
-                matrices of each layer.
-    :return: dst.
+
+    Args:
+        thetas: L x 4 matrix of gate parameters for every layer, where L is the number of layers.
+        dst: destination array of size L x 4 x 4 that will receive gate matrices of each layer.
+
+    Returns:
+        Returns the ``dst`` array.
     """
     assert isinstance(thetas, np.ndarray) and isinstance(dst, np.ndarray)
     L = thetas.shape[0]
@@ -227,15 +258,18 @@ def InitLayer2QMatrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
     return dst
 
 
-def InitLayer2QDerivativeMatrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
+def init_layer2q_deriv_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
     """
     Initializes 4 x 4 derivative matrices of 2-qubit gates defined in the paper.
-    :param thetas: L x 4 matrix of gate parameters for every layer, where
-                   L is the number of layers.
-    :param dst: destination array of size L x 4 x 4 x 4 that will receive gate
-                derivative matrices of each layer; there are 4 parameters per
-                gate, hence, 4 derivative matrices per layer.
-    :return: dst.
+
+    Args:
+        thetas: L x 4 matrix of gate parameters for every layer, where L is the number of layers.
+        dst: destination array of size L x 4 x 4 x 4 that will receive gate derivative matrices of
+        each layer; there are 4 parameters per gate, hence, 4 derivative matrices per layer.
+
+    Returns:
+        Returns the ``dst`` array.
+
     """
     assert isinstance(thetas, np.ndarray) and isinstance(dst, np.ndarray)
     L = thetas.shape[0]

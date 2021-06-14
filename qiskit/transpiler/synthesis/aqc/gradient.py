@@ -13,8 +13,10 @@
 
 from abc import abstractmethod, ABC
 from typing import Union, List
+
 import numpy as np
 from numpy import linalg as la
+
 from .elementary_operations import op_ry, op_rz, op_unitary, op_cnot, op_rx, X, Y, Z
 
 

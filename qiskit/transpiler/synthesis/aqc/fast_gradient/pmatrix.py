@@ -9,10 +9,14 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Fast multiplication algorithm."""
+
+from typing import Optional
 
 import numpy as np
-from layer import Layer1Q, Layer2Q
-import fast_grad_utils as myu
+
+from .fast_grad_utils import get_max_num_bits
+from .layer import Layer1Q, Layer2Q
 
 
 class PMatrix:
@@ -21,14 +25,14 @@ class PMatrix:
     matrices and block-diagonal ones.
     """
 
-    def __init__(self, M: (np.ndarray, None) = None):
+    def __init__(self, M: Optional[np.ndarray] = None):
         """
-        Constructor.
-        :param M: matrix we want to multiply on the left and on the right
-                  by layer matrices.
-                  N O T E: the external matrix will be modified, i.e. the class
-                  keeps matrix reference and alters its content in-place.
-                  This is done on purpose, because the matrix can be huge.
+        Args:
+            M: matrix we want to multiply on the left and on the right by layer matrices.
+
+                N O T E: the external matrix will be modified, i.e. the class keeps matrix
+                reference and alters its content in-place. This is done on purpose, because
+                the matrix can be huge.
         """
         if M is not None:
             assert isinstance(M, np.ndarray)
@@ -64,14 +68,15 @@ class PMatrix:
             self._I = np.empty(0)
             self._temp_block_diag = np.empty(0)
 
-    def initialize(self, n: int):
+    def initialize(self, num_qubits: int):
         """
-        Initializes the internal structures of this object but does not
-        set the matrix yet.
-        :param n: number of qubits.
+        Initializes the internal structures of this object but does not set the matrix yet.
+
+        Args:
+            num_qubits: number of qubits.
         """
-        assert isinstance(n, int) and 2 <= n <= myu.get_max_num_bits()
-        N = 2 ** n
+        assert isinstance(num_qubits, int) and 2 <= num_qubits <= get_max_num_bits()
+        N = 2 ** num_qubits
         self._N = N
         self._temp_G2x2 = np.full((2, 2), fill_value=0, dtype=np.cfloat)
         self._temp_G4x4 = np.full((4, 4), fill_value=0, dtype=np.cfloat)
@@ -88,9 +93,8 @@ class PMatrix:
 
     def set_matrix(self, M: np.ndarray):
         """
-        Copies specified matrix to internal storage. The call to this function
-        must be preceded by the call to self.initialize() one. Once the matrix
-        is set, the object is ready for use.
+        Copies specified matrix to internal storage. The call to this function must be preceded by
+        the call to self.initialize() one. Once the matrix is set, the object is ready for use.
         Note, the matrix will be copied, mind the size issues.
         """
         assert isinstance(M, np.ndarray)
@@ -113,14 +117,14 @@ class PMatrix:
 
     def mul_right_q1(self, L: Layer1Q, temp_mat: np.ndarray, dagger: bool):
         """
-        Multiplies NxN matrix, wrapped by this object, by a 1-qubit layer
-        matrix of the right, where N is the actual size of matrices involved,
-        N = 2^{num. of qubits}.
-        :param L: 1-qubit layer, i.e. the layer with just one non-trivial
-                  1-qubit gate and other gates are just identity operators.
-        :param temp_mat: a temporary NxN matrix used as a workspace.
-        :param dagger: if true, the right-hand side matrix will be taken as
-                       conjugate transposed.
+        Multiplies NxN matrix, wrapped by this object, by a 1-qubit layer matrix of the right,
+        where N is the actual size of matrices involved, N = 2^{num. of qubits}.
+
+        Args:
+            L: 1-qubit layer, i.e. the layer with just one non-trivial 1-qubit gate and other gates
+                are just identity operators.
+            temp_mat: a temporary NxN matrix used as a workspace.
+            dagger: if true, the right-hand side matrix will be taken as conjugate transposed.
         """
         assert isinstance(L, Layer1Q) and isinstance(temp_mat, np.ndarray)
         assert isinstance(dagger, bool)
@@ -144,14 +148,14 @@ class PMatrix:
 
     def mul_right_q2(self, L: Layer2Q, temp_mat: np.ndarray, dagger: bool = True):
         """
-        Multiplies NxN matrix, wrapped by this object, by a 2-qubit layer
-        matrix on the right, where N is the actual size of matrices involved,
-        N = 2^{num. of qubits}.
-        :param L: 2-qubit layer, i.e. the layer with just one non-trivial
-                  2-qubit gate and other gates are just identity operators.
-        :param temp_mat: a temporary NxN matrix used as a workspace.
-        :param dagger: if true, the right-hand side matrix will be taken as
-                       conjugate transposed.
+        Multiplies NxN matrix, wrapped by this object, by a 2-qubit layer matrix on the right,
+        where N is the actual size of matrices involved, N = 2^{num. of qubits}.
+
+        Args:
+            L: 2-qubit layer, i.e. the layer with just one non-trivial 2-qubit gate and other
+                gates are just identity operators.
+            temp_mat: a temporary NxN matrix used as a workspace.
+            dagger: if true, the right-hand side matrix will be taken as conjugate transposed.
         """
         assert isinstance(L, Layer2Q) and isinstance(temp_mat, np.ndarray)
         assert isinstance(dagger, bool)
@@ -175,12 +179,13 @@ class PMatrix:
 
     def mul_left_q1(self, L: Layer1Q, temp_mat: np.ndarray):
         """
-        Multiplies NxN matrix, wrapped by this object, by a 1-qubit layer
-        matrix of the left, where N is the actual size of matrices involved,
-        N = 2^{num. of qubits}.
-        :param L: 1-qubit layer, i.e. the layer with just one non-trivial
-                  1-qubit gate and other gates are just identity operators.
-        :param temp_mat: a temporary NxN matrix used as a workspace.
+        Multiplies NxN matrix, wrapped by this object, by a 1-qubit layer matrix of the left,
+        where N is the actual size of matrices involved, N = 2^{num. of qubits}.
+
+        Args:
+            L: 1-qubit layer, i.e. the layer with just one non-trivial 1-qubit gate and other gates
+                are just identity operators.
+            temp_mat: a temporary NxN matrix used as a workspace.
         """
         M = self._M
         assert isinstance(L, Layer1Q)
@@ -210,12 +215,13 @@ class PMatrix:
 
     def mul_left_q2(self, L: Layer2Q, temp_mat: np.ndarray):
         """
-        Multiplies NxN matrix, wrapped by this object, by a 2-qubit layer
-        matrix on the left, where N is the actual size of matrices involved,
-        N = 2^{num. of qubits}.
-        :param L: 2-qubit layer, i.e. the layer with just one non-trivial
-                  2-qubit gate and other gates are just identity operators.
-        :param temp_mat: a temporary NxN matrix used as a workspace.
+        Multiplies NxN matrix, wrapped by this object, by a 2-qubit layer matrix on the left,
+        where N is the actual size of matrices involved, N = 2^{num. of qubits}.
+
+        Args:
+            L: 2-qubit layer, i.e. the layer with just one non-trivial 2-qubit gate and other gates
+                are just identity operators.
+            temp_mat: a temporary NxN matrix used as a workspace.
         """
         M = self._M
         assert isinstance(L, Layer2Q)
@@ -245,16 +251,20 @@ class PMatrix:
 
     def product_q1(self, L: Layer1Q, tmpA: np.ndarray, tmpB: np.ndarray) -> np.cfloat:
         """
-        Computes and returns: Trace(M @ C) = Trace(M @ P^T @ G @ P) =
-        Trace((P @ M @ P^T) @ G) = Trace(C @ (P @ M @ P^T)) =
-        vec(G^T)^T @ vec(P @ M @ P^T), where M is NxN matrix wrapped by this
-        object, C is matrix representation of the layer L, and G is 2x2 matrix
-        of underlying 1-qubit gate.
+        Computes and returns: Trace(M @ C) = Trace(M @ P^T @ G @ P) = Trace((P @ M @ P^T) @ G) =
+        Trace(C @ (P @ M @ P^T)) = vec(G^T)^T @ vec(P @ M @ P^T), where M is NxN matrix wrapped
+        by this object, C is matrix representation of the layer L, and G is 2x2 matrix of
+        underlying 1-qubit gate.
+
         N O T E: matrix of this class must be finalized beforehand.
-        :param L: 1-qubit layer.
-        :param tmpA: temporary, external matrix used as a workspace.
-        :param tmpB: temporary, external matrix used as a workspace.
-        :return:
+
+        Args:
+            L: 1-qubit layer.
+            tmpA: temporary, external matrix used as a workspace.
+            tmpB: temporary, external matrix used as a workspace.
+
+        Returns:
+            TODO: what is the return value?
         """
         M = self._M
         assert isinstance(L, Layer1Q)
@@ -266,6 +276,8 @@ class PMatrix:
         np.take(np.take(M, perm, axis=0, out=tmpA), perm, axis=1, out=tmpB)
 
         # matrix dot product = Tr(transposed(kron(I(N/4), G)), (P @ M @ P^T)):
+        # TODO: why do we have compact_version = False ?
+        # TODO: NotImplementedError
         compact_version = False
         if compact_version:
             # bldia = self._temp_block_diag
@@ -273,27 +285,31 @@ class PMatrix:
             # bldia *= G.reshape(-1, G.size)
             # return np.cfloat(np.sum(bldia))
             raise NotImplementedError("in product_q1()")
-        else:
-            Gt, T = self._temp_G2x2, self._temp_2x2
-            np.copyto(Gt, G.T)
-            _sum = 0.0
-            for i in range(0, M.shape[0], 2):
-                T[:, :] = tmpB[i : i + 2, i : i + 2]
-                _sum += np.dot(Gt.ravel(), T.ravel())
-            return np.cfloat(_sum)
+        # else:
+        Gt, T = self._temp_G2x2, self._temp_2x2
+        np.copyto(Gt, G.T)
+        _sum = 0.0
+        for i in range(0, M.shape[0], 2):
+            T[:, :] = tmpB[i : i + 2, i : i + 2]
+            _sum += np.dot(Gt.ravel(), T.ravel())
+        return np.cfloat(_sum)
 
     def product_q2(self, L: Layer2Q, tmpA: np.ndarray, tmpB: np.ndarray) -> np.cfloat:
         """
-        Computes and returns: Trace(M @ C) = Trace(M @ P^T @ G @ P) =
-        Trace((P @ M @ P^T) @ G) = Trace(C @ (P @ M @ P^T)) =
-        vec(G^T)^T @ vec(P @ M @ P^T), where M is NxN matrix wrapped by this
-        object, C is matrix representation of the layer L, and G is 4x4 matrix
-        of underlying 2-qubit gate.
+        Computes and returns: Trace(M @ C) = Trace(M @ P^T @ G @ P) = Trace((P @ M @ P^T) @ G) =
+        Trace(C @ (P @ M @ P^T)) = vec(G^T)^T @ vec(P @ M @ P^T), where M is NxN matrix wrapped
+        by this object, C is matrix representation of the layer L, and G is 4x4 matrix of
+        underlying 2-qubit gate.
+
         N O T E: matrix of this class must be finalized beforehand.
-        :param L: 2-qubit layer.
-        :param tmpA: temporary, external matrix used as a workspace.
-        :param tmpB: temporary, external matrix used as a workspace.
-        :return:
+
+        Args:
+            L: 2-qubit layer.
+            tmpA: temporary, external matrix used as a workspace.
+            tmpB: temporary, external matrix used as a workspace.
+
+        Returns:
+            TODO: what is the return value?
         """
         M = self._M
         assert isinstance(L, Layer2Q)
@@ -341,10 +357,14 @@ class PMatrix:
 
     def finalize(self, temp_mat: np.ndarray) -> np.ndarray:
         """
-        Applies the left (row) and right (column) permutations to the matrix.
-        at the end of computation process.
-        :param temp_mat: temporary, external matrix.
-        :return: finalized matrix with all transformations applied.
+        Applies the left (row) and right (column) permutations to the matrix. at the end of
+        computation process.
+
+        Args:
+            temp_mat: temporary, external matrix.
+
+        Returns:
+            finalized matrix with all transformations applied.
         """
         M = self._M
         assert isinstance(temp_mat, np.ndarray) and id(temp_mat) != id(M)
