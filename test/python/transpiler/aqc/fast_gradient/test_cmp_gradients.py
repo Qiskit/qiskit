@@ -27,7 +27,7 @@ from joblib import Parallel, delayed
 from qiskit.transpiler.synthesis.aqc.cnot_structures import generate_random_cnots
 from qiskit.transpiler.synthesis.aqc.gradient import DefaultGradient
 from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastGradient
-from qiskit.transpiler.synthesis.aqc.utils import random_SU
+from qiskit.transpiler.synthesis.aqc.utils import random_special_unitary
 
 _WALL_TIME = 1
 timer = time.perf_counter if _WALL_TIME != 0 else time.process_time
@@ -47,7 +47,7 @@ class TestCompareGradientImplementations(unittest.TestCase):
         _TINY = float(np.power(np.finfo(np.float64).tiny, 0.25))
         cnots = generate_random_cnots(num_qubits=nqubits, depth=depth)
         depth = cnots.shape[1]  # might be less than initial depth
-        U = random_SU(nqubits)
+        U = random_special_unitary(nqubits)
         grad_dflt = DefaultGradient(num_qubits=nqubits, cnots=cnots)
         grad_fast = FastGradient(num_qubits=nqubits, cnots=cnots)
         thetas = np.random.rand(4 * depth + 3 * nqubits) * 2 * np.pi

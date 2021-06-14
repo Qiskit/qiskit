@@ -85,7 +85,7 @@ class TestAqc(QiskitTestCase):
         self.assertTrue(isinstance(depth, (int, np.int64)))
 
         _TOL = 1e-2
-        target_matrix = utl.random_SU(nqubits=nqubits)
+        target_matrix = utl.random_special_unitary(num_qubits=nqubits)
         aqc = AQC(
             method="nesterov",
             maxiter=self._maxiter,

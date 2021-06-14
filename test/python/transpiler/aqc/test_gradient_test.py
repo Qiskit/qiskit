@@ -55,7 +55,7 @@ class TestGradientAgainstFiniteDiff(unittest.TestCase):
         # Generate random target matrix and random starting point. Repeat until
         # sufficiently large gradient has been encountered.
         while True:
-            target_matrix = ut.random_SU(nqubits=nqubits)
+            target_matrix = ut.random_special_unitary(num_qubits=nqubits)
             thetas = np.random.rand(circuit.num_thetas) * (2.0 * np.pi)
             circuit.set_thetas(thetas)
             fobj0, grad0 = circuit.get_gradient(target_matrix=target_matrix)

@@ -42,7 +42,7 @@ class Layer1Q(LayerBase):
         Constructor.
         """
         super(Layer1Q, self).__init__()
-        assert isinstance(nbits, int) and 1 <= nbits <= myu.getMaxNumBits()
+        assert isinstance(nbits, int) and 1 <= nbits <= myu.get_max_num_bits()
         assert isinstance(k, int) and 0 <= k < nbits
 
         self._n = nbits  # number of bits
@@ -57,11 +57,11 @@ class Layer1Q(LayerBase):
 
         bit_flip = True
         N = 2 ** nbits
-        row_perm = myu.ReverseBits(myu.BitPermutation1Q(n=nbits, k=k), nbits=nbits, enable=bit_flip)
-        col_perm = myu.ReverseBits(np.arange(N, dtype=np.int64), nbits=nbits, enable=bit_flip)
+        row_perm = myu.reverse_bits(myu.bit_permutation_1q(n=nbits, k=k), nbits=nbits, enable=bit_flip)
+        col_perm = myu.reverse_bits(np.arange(N, dtype=np.int64), nbits=nbits, enable=bit_flip)
         self._perm = np.full((N,), fill_value=0, dtype=np.int64)
         self._perm[row_perm] = col_perm
-        self._inv_perm = myu.InversePermutation(self._perm)
+        self._inv_perm = myu.inverse_permutation(self._perm)
 
     def set_from_matrix(self, g2x2: np.ndarray):
         """Update this layer from an external 2x2 gate matrix."""
@@ -84,7 +84,7 @@ class Layer2Q(LayerBase):
         Constructor.
         """
         super(Layer2Q, self).__init__()
-        assert isinstance(nbits, int) and 2 <= nbits <= myu.getMaxNumBits()
+        assert isinstance(nbits, int) and 2 <= nbits <= myu.get_max_num_bits()
         assert isinstance(j, int) and isinstance(k, int) and j != k
         assert 0 <= j < nbits and 0 <= k < nbits
 
@@ -101,13 +101,13 @@ class Layer2Q(LayerBase):
 
         bit_flip = True  # isNaturalBitOrdering()
         N = 2 ** nbits
-        row_perm = myu.ReverseBits(
-            myu.BitPermutation2Q(n=nbits, j=j, k=k), nbits=nbits, enable=bit_flip
+        row_perm = myu.reverse_bits(
+            myu.bit_permutation_2q(n=nbits, j=j, k=k), nbits=nbits, enable=bit_flip
         )
-        col_perm = myu.ReverseBits(np.arange(N, dtype=np.int64), nbits=nbits, enable=bit_flip)
+        col_perm = myu.reverse_bits(np.arange(N, dtype=np.int64), nbits=nbits, enable=bit_flip)
         self._perm = np.full((N,), fill_value=0, dtype=np.int64)
         self._perm[row_perm] = col_perm
-        self._inv_perm = myu.InversePermutation(self._perm)
+        self._inv_perm = myu.inverse_permutation(self._perm)
 
     def set_from_matrix(self, g4x4: np.ndarray):
         assert isinstance(g4x4, np.ndarray) and g4x4.shape == (4, 4)

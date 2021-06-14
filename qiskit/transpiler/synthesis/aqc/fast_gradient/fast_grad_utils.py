@@ -10,13 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-import numpy as np
-from typing import Union
-import inspect
 import cmath
+import inspect
+from typing import Union
+
+import numpy as np
 
 
-def getMaxNumBits() -> int:
+def get_max_num_bits() -> int:
     """
     Returns the maximum supported number of qubits handled by this approach.
     Note, 2^16 means that the size of circuit matrix is 2^16 x 2^16 = 2^32,
@@ -25,7 +26,7 @@ def getMaxNumBits() -> int:
     return int(16)
 
 
-def isNaturalBitOrdering() -> bool:
+def is_natural_bit_ordering() -> bool:
     """
     Returns True, if so called "natural" bit ordering is adopted.
     I M P O R T A N T:
@@ -52,7 +53,7 @@ def isNaturalBitOrdering() -> bool:
     return False
 
 
-def isPermutation(x: np.ndarray) -> bool:
+def is_permutation(x: np.ndarray) -> bool:
     """
     Checks if array is really an index permutation.
     """
@@ -64,16 +65,21 @@ def isPermutation(x: np.ndarray) -> bool:
     )
 
 
-def ReverseBits(x: (int, np.ndarray), nbits: int, enable: bool) -> Union[int, np.ndarray]:
+def reverse_bits(x: (int, np.ndarray), nbits: int, enable: bool) -> Union[int, np.ndarray]:
     """
-    Reverses the bit order in a number of 'nbits' length. If 'x' is an array,
-    then operation is applied to every entry.
-    :param x: either a single integer or an array of integers.
-    :param nbits: number of meaningful bits in the number 'x'.
-    :param enable: apply reverse operation, if enabled, otherwise leave unchanged.
-    :return: a number or array of numbers with reversed bits.
+    Reverses the bit order in a number of 'nbits' length. If 'x' is an array, then operation is
+    applied to every entry.
+
+    Args:
+        x: either a single integer or an array of integers.
+        nbits: number of meaningful bits in the number ``x``.
+        enable: apply reverse operation, if enabled, otherwise leave unchanged.
+
+    Returns:
+        a number or array of numbers with reversed bits.
+
     """
-    assert isinstance(nbits, int) and 1 <= nbits <= getMaxNumBits()
+    assert isinstance(nbits, int) and 1 <= nbits <= get_max_num_bits()
     assert isinstance(enable, bool)
 
     if not enable:
@@ -101,7 +107,7 @@ def ReverseBits(x: (int, np.ndarray), nbits: int, enable: bool) -> Union[int, np
     return res
 
 
-def SwapBits(num: int, a: int, b: int):
+def swap_bits(num: int, a: int, b: int):
     """
     Swaps the bits at positions 'a' and 'b' in the number 'num'.
     """
@@ -109,7 +115,7 @@ def SwapBits(num: int, a: int, b: int):
     return num ^ ((x << a) | (x << b))
 
 
-def BitPermutation1Q(n: int, k: int) -> np.ndarray:
+def bit_permutation_1q(n: int, k: int) -> np.ndarray:
     """
     Constructs index permutation that brings a circuit consisting of a single
     1-qubit gate to "standard form": kron(I(2^n/2), G), as we call it. Here n
@@ -120,20 +126,24 @@ def BitPermutation1Q(n: int, k: int) -> np.ndarray:
     a dense one is much faster than generic dense-dense product. Moreover,
     we do not need to keep the entire circuit matrix in memory but just 2x2 G
     one. This saves a lot of memory when the number of qubits is large.
-    :param n: number of qubits.
-    :param k: index of qubit where single 1-qubit gate is applied.
-    :return: permutation that brings the whole layer to the standard form.
+
+    Args:
+        n: number of qubits.
+        k: index of qubit where single 1-qubit gate is applied.
+
+    Returns:
+        permutation that brings the whole layer to the standard form.
     """
     assert isinstance(n, int) and isinstance(k, int)
-    assert 0 <= k < n <= getMaxNumBits()
+    assert 0 <= k < n <= get_max_num_bits()
     perm = np.arange(2 ** n, dtype=np.int64)
     if k != n - 1:
         for v in range(2 ** n):
-            perm[v] = SwapBits(v, k, n - 1)
+            perm[v] = swap_bits(v, k, n - 1)
     return perm
 
 
-def BitPermutation2Q(n: int, j: int, k: int) -> np.ndarray:
+def bit_permutation_2q(n: int, j: int, k: int) -> np.ndarray:
     """
     Constructs index permutation that brings a circuit consisting of a single
     2-qubit gate to "standard form": kron(I(2^n/4), G), as we call it. Here n
@@ -144,54 +154,59 @@ def BitPermutation2Q(n: int, j: int, k: int) -> np.ndarray:
     a dense one is much faster than generic dense-dense product. Moreover,
     we do not need to keep the entire circuit matrix in memory but just 4x4 G
     one. This saves a lot of memory when the number of qubits is large.
-    :param n: number of qubits.
-    :param j: index of control qubit where single 2-qubit gate is applied.
-    :param k: index of target qubit where single 2-qubit gate is applied.
-    :return: permutation that brings the whole layer to the standard form.
+
+    Args:
+        n: number of qubits.
+        j: index of control qubit where single 2-qubit gate is applied.
+        k: index of target qubit where single 2-qubit gate is applied.
+
+    Returns:
+        permutation that brings the whole layer to the standard form.
     """
     assert isinstance(n, int) and isinstance(j, int) and isinstance(k, int)
-    assert j != k and 0 <= j < n and 0 <= k < n and 2 <= n <= getMaxNumBits()
+    assert j != k and 0 <= j < n and 0 <= k < n and 2 <= n <= get_max_num_bits()
     N = 2 ** n
     perm = np.arange(N, dtype=np.int64)
     if j < n - 2:
         if k < n - 2:
             for v in range(N):
-                perm[v] = SwapBits(SwapBits(v, j, n - 2), k, n - 1)
+                perm[v] = swap_bits(swap_bits(v, j, n - 2), k, n - 1)
         elif k == n - 2:
             for v in range(N):
-                perm[v] = SwapBits(SwapBits(v, n - 2, n - 1), j, n - 2)
+                perm[v] = swap_bits(swap_bits(v, n - 2, n - 1), j, n - 2)
         else:
             assert k == n - 1
             for v in range(N):
-                perm[v] = SwapBits(v, j, n - 2)
+                perm[v] = swap_bits(v, j, n - 2)
     elif j == n - 2:
         if k < n - 2:
             for v in range(N):
-                perm[v] = SwapBits(v, k, n - 1)
+                perm[v] = swap_bits(v, k, n - 1)
         else:
             assert k == n - 1
     else:
         assert j == n - 1
         if k < n - 2:
             for v in range(N):
-                perm[v] = SwapBits(SwapBits(v, n - 2, n - 1), k, n - 1)
+                perm[v] = swap_bits(swap_bits(v, n - 2, n - 1), k, n - 1)
         else:
             assert k == n - 2
             for v in range(N):
-                perm[v] = SwapBits(v, n - 2, n - 1)
+                perm[v] = swap_bits(v, n - 2, n - 1)
     return perm
 
 
-def InversePermutation(perm: np.ndarray) -> np.ndarray:
+def inverse_permutation(perm: np.ndarray) -> np.ndarray:
     """
     Returns inverse permutation.
     """
-    assert isPermutation(perm)
+    assert is_permutation(perm)
     inv = np.full_like(perm, fill_value=0)
     inv[perm] = np.arange(perm.size, dtype=np.int64)
     return inv
 
 
+# TODO: we do have these rotation operations in elementary operations
 def Rx(phi: float, out: np.ndarray) -> np.ndarray:
     """
     X-rotation gate. TODO: assertions could be dropped.
@@ -236,7 +251,7 @@ def Rz(phi: float, out: np.ndarray) -> np.ndarray:
     return out
 
 
-def TemporaryCode(message: (str, None) = None):
+def temporary_code(message: (str, None) = None):
     """
     Prints a warning message when temporary code is executed.
     """

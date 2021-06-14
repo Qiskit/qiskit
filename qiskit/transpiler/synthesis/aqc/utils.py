@@ -9,8 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Utility functions for approximate quantum compiler."""
 
-# Avoid excessive deprecation warnings in Qiskit on Linux system.
 from typing import Union
 
 import numpy as np
@@ -96,17 +96,20 @@ def compare_circuits(
 #     return (float(np.abs(HS)) / float(U_t.shape[0])) ** 2
 
 
-def random_SU(nqubits: int) -> np.ndarray:
+# TODO: move to tests as this function is only used in the tests.
+def random_special_unitary(num_qubits: int) -> np.ndarray:
     """
     Generates a random SU matrix.
+
     Args:
-        nqubits: number of qubits.
-    Returns
+        num_qubits: number of qubits.
+
+    Returns:
         random SU matrix of size 2^n x 2^n.
     """
     EPS = float(np.sqrt(np.finfo(np.float64).eps))
-    assert isinstance(nqubits, (int, np.int64)) and nqubits >= 2
-    d = int(2 ** nqubits)
+    assert isinstance(num_qubits, (int, np.int64)) and num_qubits >= 2
+    d = int(2 ** num_qubits)
     U = unitary_group.rvs(d)
     U = U / (np.linalg.det(U) ** (1.0 / float(d)))
     assert U.dtype == np.cfloat

@@ -60,7 +60,7 @@ def MakeUnitVector(pos: int, nbits: int) -> np.ndarray:
     assert isinstance(pos, int) and isinstance(nbits, int)
     assert 0 <= pos < 2 ** nbits
     vec = np.full((2 ** nbits,), fill_value=0, dtype=np.int64)
-    vec[myu.ReverseBits(pos, nbits, enable=not myu.isNaturalBitOrdering())] = 1
+    vec[myu.reverse_bits(pos, nbits, enable=not myu.is_natural_bit_ordering())] = 1
     return vec
 
 
@@ -119,7 +119,7 @@ def MakeTestMatrices2x2(n: int, k: int, kind: str = "complex") -> (np.ndarray, n
     TODO: bit ordering might be an issue in case of natural ordering???
     """
     assert isinstance(n, int) and isinstance(k, int)
-    assert 0 <= k < n and 2 <= n <= myu.getMaxNumBits()
+    assert 0 <= k < n and 2 <= n <= myu.get_max_num_bits()
     assert isinstance(kind, str) and (kind in {"complex", "primes", "randint"})
     if kind == "primes":
         A = np.array([[2, 3], [5, 7]], dtype=np.int64)
@@ -144,7 +144,7 @@ def MakeTestMatrices4x4(n: int, j: int, k: int, kind: str = "complex") -> (np.nd
     TODO: bit ordering might be an issue in case of natural ordering.
     """
     assert isinstance(n, int) and isinstance(j, int) and isinstance(k, int)
-    assert j != k and 0 <= j < n and 0 <= k < n and 2 <= n <= myu.getMaxNumBits()
+    assert j != k and 0 <= j < n and 0 <= k < n and 2 <= n <= myu.get_max_num_bits()
     assert isinstance(kind, str) and (kind in {"complex", "primes", "randint"})
     if kind == "primes":
         A = np.array([[2, 3], [5, 7]], dtype=np.int64)

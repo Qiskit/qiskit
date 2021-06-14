@@ -9,10 +9,13 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Implementation of the fast gradient computation."""
 
 import numpy as np
-import fast_grad_utils as myu
-import layer as lr
+
+from .fast_grad_utils import get_max_num_bits, temporary_code
+from .layer import LayerBase, Layer2Q, Layer1Q, InitLayer2QMatrices, InitLayer2QDerivativeMatrices, \
+    InitLayer1QMatrices, InitLayer1QDerivativeMatrices
 from .pmatrix import PMatrix
 from ..gradient import GradientBase
 
@@ -31,7 +34,7 @@ class FastGradient(GradientBase):
             print("Gradient:", self.__class__.__name__)
 
         n = num_qubits  # short-hand alias
-        assert isinstance(n, int) and 2 <= n <= myu.getMaxNumBits()
+        assert isinstance(n, int) and 2 <= n <= get_max_num_bits()
         assert isinstance(cnots, np.ndarray) and cnots.ndim == 2
         assert cnots.dtype == np.int64 and cnots.shape[0] == 2
         assert np.all(1 <= cnots) and np.all(cnots <= n)
@@ -49,9 +52,9 @@ class FastGradient(GradientBase):
         self._FUC.initialize(n)
 
         # array of C-layers:
-        self._C_layers = np.array([lr.LayerBase()] * L, dtype=lr.LayerBase)
+        self._C_layers = np.array([LayerBase()] * L, dtype=LayerBase)
         # array of F-layers:
-        self._F_layers = np.array([lr.LayerBase()] * n, dtype=lr.LayerBase)
+        self._F_layers = np.array([LayerBase()] * n, dtype=LayerBase)
         # 4x4 C-gate matrices:
         self._C_gates = np.full((L, 4, 4), fill_value=0, dtype=np.cfloat)
         # derivatives of 4x4 C-gate matrices:
@@ -68,16 +71,16 @@ class FastGradient(GradientBase):
         for l in range(L):
             j = int(cnots[0, l]) - 1  # make 0-based index
             k = int(cnots[1, l]) - 1  # make 0-based index
-            self._C_layers[l] = lr.Layer2Q(nbits=n, j=j, k=k)
+            self._C_layers[l] = Layer2Q(nbits=n, j=j, k=k)
 
         # Create layers of 1-qubit gates.
         for k in range(n):
-            self._F_layers[k] = lr.Layer1Q(nbits=n, k=k)
+            self._F_layers[k] = Layer1Q(nbits=n, k=k)
 
         self._verbose = verbose
         self._debug = False
         if self._debug:
-            myu.TemporaryCode("Debugging mode is on")
+            temporary_code("Debugging mode is on")
 
     def get_gradient(self, thetas: np.ndarray, target_matrix: np.ndarray) -> (float, np.ndarray):
         """
@@ -100,19 +103,19 @@ class FastGradient(GradientBase):
         grad4L = grad[: 4 * L].reshape(L, 4)
         grad3n = grad[4 * L :].reshape(n, 3)
 
-        lr.InitLayer2QMatrices(thetas=thetas4L, dst=self._C_gates)
-        lr.InitLayer2QDerivativeMatrices(thetas=thetas4L, dst=self._C_dervs)
-        lr.InitLayer1QMatrices(thetas=thetas3n, dst=self._F_gates)
-        lr.InitLayer1QDerivativeMatrices(thetas=thetas3n, dst=self._F_dervs)
+        InitLayer2QMatrices(thetas=thetas4L, dst=self._C_gates)
+        InitLayer2QDerivativeMatrices(thetas=thetas4L, dst=self._C_dervs)
+        InitLayer1QMatrices(thetas=thetas3n, dst=self._F_gates)
+        InitLayer1QDerivativeMatrices(thetas=thetas3n, dst=self._F_dervs)
 
         self._init_layers()
-        self._calc_UCF_FUC()
-        fobj = self._calc_objective_function()
+        self._calc_ucf_fuc()
+        objective_value = self._calc_objective_function()
         self._calc_gradient4L(grad4L)
         self._calc_gradient3n(grad3n)
 
-        assert np.isreal(fobj) and grad.dtype == np.float64
-        return fobj, grad
+        assert np.isreal(objective_value) and grad.dtype == np.float64
+        return objective_value, grad
 
     def __copy__(self):
         raise NotImplementedError("non-copyable")
@@ -131,7 +134,7 @@ class FastGradient(GradientBase):
         for l in range(self.n):
             F_layers[l].set_from_matrix(g2x2=F_gates[l])
 
-    def _calc_UCF_FUC(self):
+    def _calc_ucf_fuc(self):
         """
         Computes matrices UCF and FUC. Both remain non-finalized.
         """

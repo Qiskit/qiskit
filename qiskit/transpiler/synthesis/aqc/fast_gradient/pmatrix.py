@@ -70,7 +70,7 @@ class PMatrix:
         set the matrix yet.
         :param n: number of qubits.
         """
-        assert isinstance(n, int) and 2 <= n <= myu.getMaxNumBits()
+        assert isinstance(n, int) and 2 <= n <= myu.get_max_num_bits()
         N = 2 ** n
         self._N = N
         self._temp_G2x2 = np.full((2, 2), fill_value=0, dtype=np.cfloat)

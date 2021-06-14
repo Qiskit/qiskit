@@ -48,16 +48,16 @@ class TestUtils(unittest.TestCase):
         """
         print("\nrunning {:s}() ...".format(self.test_reverse_bits.__name__))
         start = time.time()
-        nbits = myu.getMaxNumBits()
+        nbits = myu.get_max_num_bits()
         for x in range(2 ** nbits):
-            y = myu.ReverseBits(x, nbits, enable=True)
-            self.assertTrue(x == myu.ReverseBits(y, nbits, enable=True))
+            y = myu.reverse_bits(x, nbits, enable=True)
+            self.assertTrue(x == myu.reverse_bits(y, nbits, enable=True))
             for i in range(nbits):
                 self.assertTrue(((x >> i) & 1) == ((y >> (nbits - i - 1)) & 1))
 
         x = np.arange(2 ** nbits, dtype=np.int64)
-        y = myu.ReverseBits(x, nbits, enable=True)
-        self.assertTrue(np.all(myu.ReverseBits(y, nbits, enable=True) == x))
+        y = myu.reverse_bits(x, nbits, enable=True)
+        self.assertTrue(np.all(myu.reverse_bits(y, nbits, enable=True) == x))
         print("test execution time:", time.time() - start)
 
     def test_make_unit_vector(self):
@@ -73,7 +73,7 @@ class TestUtils(unittest.TestCase):
             vec = 1
             for i in range(nbits):
                 x = (num >> i) & 1
-                if myu.isNaturalBitOrdering():
+                if myu.is_natural_bit_ordering():
                     vec = np.kron(np.array([1 - x, x], dtype=np.int64), vec)
                 else:
                     vec = np.kron(vec, np.array([1 - x, x], dtype=np.int64))
@@ -96,12 +96,12 @@ class TestUtils(unittest.TestCase):
         """
         print("\nrunning {:s}() ...".format(self.test_swap.__name__))
         start = time.time()
-        nbits = myu.getMaxNumBits()
+        nbits = myu.get_max_num_bits()
         for x in range(2 ** nbits):
             for a in range(nbits):
                 for b in range(nbits):
-                    y = myu.SwapBits(x, a, b)
-                    self.assertTrue(x == myu.SwapBits(y, a, b))
+                    y = myu.swap_bits(x, a, b)
+                    self.assertTrue(x == myu.swap_bits(y, a, b))
                     self.assertTrue(((x >> a) & 1) == ((y >> b) & 1))
                     self.assertTrue(((x >> b) & 1) == ((y >> a) & 1))
         print("test execution time:", time.time() - start)
@@ -120,7 +120,7 @@ class TestUtils(unittest.TestCase):
         def _PermutationAndMatrix(size: int) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
             """Creates direct and inverse permutations and their matrices."""
             perm = np.random.permutation(np.arange(size, dtype=np.int64))
-            inv_perm = myu.InversePermutation(perm)
+            inv_perm = myu.inverse_permutation(perm)
             P, Q = _Perm2Mat(perm), _Perm2Mat(inv_perm)
             return perm, inv_perm, P, Q
 
