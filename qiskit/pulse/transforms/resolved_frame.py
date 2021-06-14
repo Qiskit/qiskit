@@ -94,7 +94,12 @@ class Tracker(ABC):
         return (phase + 2 * np.pi * freq * (time - last_time) * self._sample_duration) % (2 * np.pi)
 
     def set_frequency(self, time: int, frequency: float):
-        """Insert a new frequency in the time-ordered frequencies."""
+        """Insert a new frequency in the time-ordered frequencies.
+
+        Args:
+            time: The time in samples (i.e. measured in units of dt).
+            frequency: The frequency to which self is set after the given time.
+        """
         insert_idx = 0
         for idx, time_freq in enumerate(self._frequencies_phases):
             if time_freq[0] < time:

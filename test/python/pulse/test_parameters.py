@@ -451,10 +451,10 @@ class TestParameterFrames(QiskitTestCase):
         dur = Parameter("duration")
         phase = Parameter("phase")
 
-        signal = Signal(pulse.Gaussian(dur, 0.1, 40), Frame(f_param))
+        signal = Signal(pulse.Gaussian(dur, 0.1, 40), Frame("Q", f_param))
         sched = pulse.ScheduleBlock()
         sched.append(pulse.Play(signal, DriveChannel(ch_param)))
-        sched.append(pulse.ShiftPhase(phase, Frame(f_param)))
+        sched.append(pulse.ShiftPhase(phase, Frame("Q", f_param)))
         sched.append(pulse.Play(signal, DriveChannel(ch_param)))
 
         for param in [ch_param, f_param, dur, phase]:

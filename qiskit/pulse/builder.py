@@ -908,7 +908,7 @@ def align_left(ignore_frames: bool = False) -> ContextManager[None]:
         None
     """
     builder = _active_builder()
-    builder.push_context(transforms.AlignLeft())
+    builder.push_context(transforms.AlignLeft(ignore_frames))
     try:
         yield
     finally:
@@ -952,7 +952,7 @@ def align_right(ignore_frames: bool = False) -> AlignmentKind:
         None
     """
     builder = _active_builder()
-    builder.push_context(transforms.AlignRight())
+    builder.push_context(transforms.AlignRight(ignore_frames))
     try:
         yield
     finally:
