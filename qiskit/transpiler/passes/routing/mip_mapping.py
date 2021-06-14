@@ -86,9 +86,6 @@ class MIPMapping(TransformationPass):
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError('More virtual qubits exist than physical qubits.')
 
-        if self.property_set['layout']:
-            warnings.warn("MIPMapping ignores the initial_layout", UserWarning)
-
         # MIPMappingModel assumes num_virtual_qubits == num_physical_qubits
         # TODO: rewrite without dag<->circuit conversion (or remove the above assumption)
         pm = PassManager([
@@ -140,8 +137,8 @@ class MIPMapping(TransformationPass):
                 if problem.solution.get_values(ic.w_index(q, i, 0)) > 0.5:
                     dic[model.index_to_virtual[q]] = i
         layout = Layout(dic)
-        self.property_set['layout'] = copy.deepcopy(layout)
-        # print("solution:", layout)
+        optimized_layout = copy.deepcopy(layout)
+        # print("solution:", optimized_layout)
 
         # Construct the circuit that includes routing
         canonical_register = QuantumRegister(self.coupling_map.size(), 'q')
@@ -183,6 +180,10 @@ class MIPMapping(TransformationPass):
                         cargs=node.cargs)
                 # TODO: double check with y values?
 
+        if self.property_set['layout'] and self.property_set['layout'] != optimized_layout:
+            warnings.warn("MIPMapping changed the given initial layout", UserWarning)
+
+        self.property_set['layout'] = optimized_layout
         self.property_set['final_layout'] = copy.deepcopy(layout)
 
         return mapped_dag
