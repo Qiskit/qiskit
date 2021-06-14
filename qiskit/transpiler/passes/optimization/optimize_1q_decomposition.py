@@ -77,13 +77,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
         for run in runs:
             # SPECIAL CASE: Don't bother to optimize single U3 gates which are in the basis set.
             #     The U3 decomposer is only going to emit a sequence of length 1 anyhow.
-            if ('u3' in self._target_basis and len(run) == 1 and isinstance(run[0].op, U3Gate)):
+            if "u3" in self._target_basis and len(run) == 1 and isinstance(run[0].op, U3Gate):
                 # Toss U3 gates equivalent to the identity; there we get off easy.
                 if np.array_equal(run[0].op.to_matrix(), np.eye(2)):
                     dag.remove_op_node(run[0])
                     continue
                 # We might rewrite into lower `u`s if they're available.
-                if 'u2' not in self._target_basis and 'u1' not in self._target_basis:
+                if "u2" not in self._target_basis and "u1" not in self._target_basis:
                     continue
 
             new_circs = []
@@ -99,27 +99,30 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 has_cals_p = dag.calibrations is not None and len(dag.calibrations) > 0
                 # is this run all in the target set and also uncalibrated?
                 rewriteable_and_in_basis_p = all(
-                    g.name in self._target_basis and (not has_cals_p or not dag.has_calibration_for(g))
+                    g.name in self._target_basis
+                    and (not has_cals_p or not dag.has_calibration_for(g))
                     for g in run
                 )
                 # does this run have uncalibrated gates?
                 uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in run)
                 # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
                 uncalibrated_and_not_basis_p = any(
-                    g.name not in self._target_basis and
-                        (not has_cals_p or not dag.has_calibration_for(g))
+                    g.name not in self._target_basis
+                    and (not has_cals_p or not dag.has_calibration_for(g))
                     for g in run
                 )
 
-                if (rewriteable_and_in_basis_p and len(run) < len(new_circ)):
+                if rewriteable_and_in_basis_p and len(run) < len(new_circ):
                     # NOTE: This is short-circuited on calibrated gates, which we're timid about
                     #       reducing.
-                    warnings.warn(f"Resynthesized {run} and got {new_circ}, "
-                                  f"but the original was native and the new value is longer.  This "
-                                  f"indicates an efficiency bug in synthesis.  Please report it by "
-                                  f"opening an issue here: "
-                                  f"https://github.com/Qiskit/qiskit-terra/issues/new/choose",
-                                  stacklevel=2)
+                    warnings.warn(
+                        f"Resynthesized {run} and got {new_circ}, "
+                        f"but the original was native and the new value is longer.  This "
+                        f"indicates an efficiency bug in synthesis.  Please report it by "
+                        f"opening an issue here: "
+                        f"https://github.com/Qiskit/qiskit-terra/issues/new/choose",
+                        stacklevel=2,
+                    )
                 # if we're outside of the basis set, we're obligated to logically decompose.
                 # if we're outside of the set of gates for which we have physical definitions,
                 #    then we _try_ to decompose, using the results if we see improvement.
