@@ -16,6 +16,9 @@ import copy
 import logging
 import warnings
 
+import numpy as np
+
+from qiskit.circuit.library import U3Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.converters import circuit_to_dag
@@ -72,6 +75,17 @@ class Optimize1qGatesDecomposition(TransformationPass):
             return dag
         runs = dag.collect_1q_runs()
         for run in runs:
+            # SPECIAL CASE: Don't bother to optimize single U3 gates which are in the basis set.
+            #     The U3 decomposer is only going to emit a sequence of length 1 anyhow.
+            if ('u3' in self._target_basis and len(run) == 1 and isinstance(run[0].op, U3Gate)):
+                # Toss U3 gates equivalent to the identity; there we get off easy.
+                if np.array_equal(run[0].op.to_matrix(), np.eye(2)):
+                    dag.remove_op_node(run[0])
+                    continue
+                # We might rewrite into lower `u`s if they're available.
+                if 'u2' not in self._target_basis and 'u1' not in self._target_basis:
+                    continue
+
             new_circs = []
             operator = run[0].op.to_matrix()
             for gate in run[1:]:
@@ -81,16 +95,19 @@ class Optimize1qGatesDecomposition(TransformationPass):
             if new_circs:
                 new_circ = min(new_circs, key=len)
 
+                # do we even have calibrations?
+                has_cals_p = dag.calibrations is not None and len(dag.calibrations) > 0
                 # is this run all in the target set and also uncalibrated?
                 rewriteable_and_in_basis_p = all(
-                    g.name in self._target_basis and not dag.has_calibration_for(g)
+                    g.name in self._target_basis and (not has_cals_p or not dag.has_calibration_for(g))
                     for g in run
                 )
                 # does this run have uncalibrated gates?
-                uncalibrated_p = any(not dag.has_calibration_for(g) for g in run)
+                uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in run)
                 # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
                 uncalibrated_and_not_basis_p = any(
-                    g.name not in self._target_basis and not dag.has_calibration_for(g)
+                    g.name not in self._target_basis and
+                        (not has_cals_p or not dag.has_calibration_for(g))
                     for g in run
                 )
 
