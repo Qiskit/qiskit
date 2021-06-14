@@ -159,8 +159,8 @@ class InstructionScheduleMap:
         self,
         instruction: Union[str, Instruction],
         qubits: Union[int, Iterable[int]],
-        *params: Union[int, float, complex, ParameterExpression],
-        **kwparams: Union[int, float, complex, ParameterExpression],
+        *params: Union[complex, ParameterExpression],
+        **kwparams: Union[complex, ParameterExpression],
     ) -> Union[Schedule, ScheduleBlock]:
         """Return the defined :py:class:`~qiskit.pulse.Schedule` or
         :py:class:`~qiskit.pulse.ScheduleBlock` for the given instruction on the given qubits.
@@ -327,8 +327,8 @@ class InstructionScheduleMap:
         self,
         instruction: Union[str, Instruction],
         qubits: Union[int, Iterable[int]],
-        *params: Union[int, float, complex, ParameterExpression],
-        **kwparams: Union[int, float, complex, ParameterExpression],
+        *params: Union[complex, ParameterExpression],
+        **kwparams: Union[complex, ParameterExpression],
     ) -> Union[Schedule, ScheduleBlock]:
         """Remove and return the defined schedule for the given instruction on the given
         qubits.
