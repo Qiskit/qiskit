@@ -14,8 +14,8 @@ features:
     by default.
 
     A user can request usage of ESP readout via the ``use_measure_esp`` flag in
-    :meth:`~qiskit.execute_function.execute` or :meth:`~qiskit.compiler.assemble`. This tells the
-    backend to use ESP readout on the final measurement of each circuit. This is done via::
+    :meth:`~qiskit.compiler.assemble`. This tells the backend to use ESP readout on the final
+    measurement of each circuit. This is done via::
 
         qobj = assemble(circ, backend, use_measure_esp=True)
 

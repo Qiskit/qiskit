@@ -69,7 +69,6 @@ def execute(
     meas_map=None,
     scheduling_method=None,
     init_qubits=None,
-    use_measure_esp=None,
     **run_config,
 ):
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
@@ -245,12 +244,6 @@ def execute(
         init_qubits (bool): Whether to reset the qubits to the ground state for each shot.
             Default: ``True``.
 
-        use_measure_esp (bool): Whether to use ESP (excited state promoted) readout for the final
-            measurement in each circuit. ESP readout can offer higher fidelity than standard
-            measurement sequences. See `here <https://arxiv.org/pdf/2008.08571.pdf>`_.
-            Default: Value of ``measure_esp_enabled``, which reflects whether ESP readout is
-            supported by the backend.
-
         run_config (dict):
             Extra arguments used to configure the run (e.g. for Aer configurable backends).
             Refer to the backend documentation for details on these arguments.
@@ -353,7 +346,6 @@ def execute(
             parameter_binds=parameter_binds,
             backend=backend,
             init_qubits=init_qubits,
-            use_measure_esp=use_measure_esp,
             **run_config,
         )
 
@@ -380,7 +372,6 @@ def execute(
             "rep_time": rep_time,
             "rep_delay": rep_delay,
             "init_qubits": init_qubits,
-            "use_measure_esp": use_measure_esp,
         }
         for key in list(run_kwargs.keys()):
             if not hasattr(backend.options, key):
