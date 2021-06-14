@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 
-from qiskit.circuit.library import U3Gate
+from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.converters import circuit_to_dag
