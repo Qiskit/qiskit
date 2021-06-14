@@ -27,6 +27,9 @@ class Frame:
         Args:
             identifier: The index of the frame.
             parametric_index: An optional parameter to specify the numeric part of the index.
+
+        Raises:
+            PulseError: if the frame identifier is not a string.
         """
         if parametric_index is not None:
             validate_index(parametric_index)
