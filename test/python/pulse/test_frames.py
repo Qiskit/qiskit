@@ -94,13 +94,13 @@ class TestResolvedFrames(QiskitTestCase):
             pulse.Frame("Q0"): {
                 "frequency": self.freq0,
                 "purpose": "Frame of qubit 0.",
-                "sample_duration": self.dt_
+                "sample_duration": self.dt_,
             },
             pulse.Frame("Q1"): {
                 "frequency": self.freq1,
                 "purpose": "Frame of qubit 1.",
-                "sample_duration": self.dt_
-            }
+                "sample_duration": self.dt_,
+            },
         }
 
         frame0_ = ResolvedFrame(pulse.Frame("Q0"), self.freq0, self.dt_)
@@ -126,7 +126,9 @@ class TestResolvedFrames(QiskitTestCase):
 
         channel_phase = 0.0
         for time, delta, frame_freq, other_freq, index in params:
-            wanted_phase = np.angle(np.exp(2.0j * np.pi * frame_freq * time * self.dt_)) % (2 * np.pi)
+            wanted_phase = np.angle(np.exp(2.0j * np.pi * frame_freq * time * self.dt_)) % (
+                2 * np.pi
+            )
 
             phase_diff = (wanted_phase - channel_phase) % (2 * np.pi)
 
@@ -135,11 +137,12 @@ class TestResolvedFrames(QiskitTestCase):
             else:
                 self.assertTrue(isinstance(resolved[index][1], pulse.ShiftPhase))
 
-
             self.assertEqual(resolved[index][0], time)
             self.assertAlmostEqual(resolved[index][1].phase % (2 * np.pi), phase_diff, places=8)
 
-            channel_phase += np.angle(np.exp(2.0j * np.pi * frame_freq * delta * self.dt_)) % (2 * np.pi)
+            channel_phase += np.angle(np.exp(2.0j * np.pi * frame_freq * delta * self.dt_)) % (
+                2 * np.pi
+            )
 
     def test_phase_advance_with_instructions(self):
         """Test that the phase advances are properly computed with frame instructions."""
@@ -196,7 +199,7 @@ class TestResolvedFrames(QiskitTestCase):
             pulse.Frame("Q0"): {
                 "frequency": self.freq0,
                 "purpose": "Frame of qubit 0.",
-                "sample_duration": self.dt_
+                "sample_duration": self.dt_,
             }
         }
 

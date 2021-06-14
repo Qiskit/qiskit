@@ -23,7 +23,9 @@ from qiskit.pulse import channels as chans, instructions
 from qiskit.pulse.frame import Frame
 
 
-def resolve_frames(schedule: Union[Schedule, ScheduleBlock], frames_config: Dict[Frame, Dict]) -> Schedule:
+def resolve_frames(
+    schedule: Union[Schedule, ScheduleBlock], frames_config: Dict[Frame, Dict]
+) -> Schedule:
     """
     Parse the schedule and replace instructions on Frames by instructions on the
     appropriate channels.
