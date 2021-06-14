@@ -892,14 +892,12 @@ class TestControlledGate(QiskitTestCase):
         qc = QuantumCircuit(qreg)
         qc.ccx(0, 1, 2, ctrl_state=0)
         dag = circuit_to_dag(qc)
-        unroller = Unroller(["x", "ccx"])
-        unrolled_dag = unroller.run(dag)
 
         ref_circuit = QuantumCircuit(qreg)
         ccx = CCXGate(ctrl_state=0)
         ref_circuit.append(ccx, [0, 1, 2])
         ref_dag = circuit_to_dag(ref_circuit)
-        self.assertEqual(unrolled_dag, ref_dag)
+        self.assertEqual(dag, ref_dag)
 
     def test_open_control_composite_unrolling(self):
         """test unrolling of open control gates when gate is in basis"""
