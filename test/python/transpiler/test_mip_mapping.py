@@ -180,14 +180,14 @@ class TestMIPMapping(QiskitTestCase):
         circuit.cx(qr[0], qr[3])
 
         property_set = {}
-        actual = MIPMapping(coupling)(circuit, property_set)
+        actual = MIPMapping(coupling, objective="depth")(circuit, property_set)
         actual_final_layout = property_set["final_layout"]
 
         q = QuantumRegister(4, name='q')
         expected = QuantumCircuit(q)
-        expected.cx(q[0], q[1])
-        expected.cx(q[1], q[2])
-        expected_final_layout = Layout({qr[0]: 1, qr[1]: 0, qr[2]: 3, qr[3]: 2})
+        expected.cx(q[2], q[1])
+        expected.cx(q[1], q[0])
+        expected_final_layout = Layout({qr[0]: 1, qr[1]: 2, qr[2]: 3, qr[3]: 0})
 
         self.assertEqual(actual, expected)
         self.assertEqual(actual_final_layout, expected_final_layout)

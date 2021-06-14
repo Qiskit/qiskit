@@ -26,7 +26,6 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
 from qiskit.transpiler.passes.layout.trivial_layout import TrivialLayout
-from qiskit.transpiler.passes.routing.algorithms import mip_model as qomp
 from qiskit.transpiler.passes.routing.algorithms.mip_model import MIPMappingModel
 from qiskit.transpiler.passmanager import PassManager
 
@@ -42,7 +41,7 @@ class MIPMapping(TransformationPass):
 
     def __init__(self,
                  coupling_map: CouplingMap,
-                 silent: bool = True,
+                 objective: str = "error",
                  basis_fidelity: float = 0.96,
                  time_limit_er: float = 30,
                  time_limit_depth: float = 30,
@@ -58,9 +57,9 @@ class MIPMapping(TransformationPass):
         """
         super().__init__()
         self.coupling_map = copy.deepcopy(coupling_map)  # save a copy since some methods modify it
+        self.objective = objective
         self.dummy_steps = dummy_steps
         self.max_total_dummy = max_total_dummy
-        self.silent = silent
         self.basis_fidelity = basis_fidelity
         self.time_limit_er = time_limit_er
         self.time_limit_depth = time_limit_depth
@@ -86,6 +85,9 @@ class MIPMapping(TransformationPass):
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError('More virtual qubits exist than physical qubits.')
 
+        if self.property_set['layout']:
+            logger.info("MIPMapping ignores given initial layout.")
+
         # MIPMappingModel assumes num_virtual_qubits == num_physical_qubits
         # TODO: rewrite without dag<->circuit conversion (or remove the above assumption)
         pm = PassManager([
@@ -104,43 +106,29 @@ class MIPMapping(TransformationPass):
                                 coupling_map=self.coupling_map,
                                 basis_fidelity=self.basis_fidelity)
 
-        problem, ic = model.create_cpx_problem(
-            self.dummy_steps,
-            self.max_total_dummy,
-            self.line_symm,
-            self.cycle_symm)
+        model.create_cpx_problem(
+            objective=self.objective,
+            dummy_time_steps=self.dummy_steps,
+            max_total_dummy=self.max_total_dummy,
+            line_symm=self.line_symm,
+            cycle_symm=self.cycle_symm)
 
-        qomp.set_error_rate_obj(problem, ic)
+        model.solve_cpx_problem(
+            time_limit=self.time_limit_er,
+            heuristic_emphasis=self.heuristic_emphasis)
 
-        qomp.solve_cpx_model(problem, ic, time_limit=self.time_limit_er,
-                             heuristic_emphasis=self.heuristic_emphasis, silent=self.silent)
-        if not self.silent:
-            print('OBJ1 Error rate:', qomp.evaluate_error_rate_obj(problem, ic),
-                  'depth:', qomp.evaluate_depth_obj(problem, ic),
-                  'cross-talk:', qomp.evaluate_cross_talk_obj(problem, ic))
-        qomp.set_error_rate_constraint(problem, ic,
-                                       problem.solution.get_objective_value())
-        qomp.unset_error_rate_obj(problem, ic)
-
-        qomp.set_depth_obj(problem, ic)
-        qomp.solve_cpx_model(problem, ic, time_limit=self.time_limit_depth,
-                             heuristic_emphasis=self.heuristic_emphasis, silent=self.silent)
-        if not self.silent:
-            print('OBJ2 Error rate:', qomp.evaluate_error_rate_obj(problem, ic),
-                  'depth:', qomp.evaluate_depth_obj(problem, ic),
-                  'cross-talk:', qomp.evaluate_cross_talk_obj(problem, ic))
-
-        # create a layout to track changes in layout for each layer
+        # Get the optimized initial layout
         dic = {}
-        for q in range(ic.num_lqubits):
-            for i in range(ic.num_pqubits):
-                if problem.solution.get_values(ic.w_index(q, i, 0)) > 0.5:
+        for q in range(model.num_lqubits):
+            for i in range(model.num_pqubits):
+                if model.is_assigned(q, i, 0):
                     dic[model.index_to_virtual[q]] = i
-        layout = Layout(dic)
-        optimized_layout = copy.deepcopy(layout)
-        # print("solution:", optimized_layout)
+        optimized_layout = Layout(dic)
 
-        # Construct the circuit that includes routing
+        # Create a layout to track changes in layout for each layer
+        layout = copy.deepcopy(optimized_layout)
+
+        # Construct the mapped circuit
         canonical_register = QuantumRegister(self.coupling_map.size(), 'q')
         mapped_dag = self._create_empty_dagcircuit(dag, canonical_register)
         interval = self.dummy_steps + 1
@@ -151,11 +139,11 @@ class MIPMapping(TransformationPass):
             for t in range(from_dummy_steps, to_dummy_steps):
                 if t < 0:
                     continue
-                if t >= ic.depth - 1:
+                if t >= model.depth - 1:
                     break
-                for (i, j) in ic.ht.arcs:
-                    for q in range(ic.num_lqubits):
-                        if (problem.solution.get_values(ic.x_index(q, i, j, t)) > 0.5) and i < j:
+                for (i, j) in model.edges:
+                    for q in range(model.num_lqubits):
+                        if model.is_swapped(q, i, j, t) and i < j:
                             mapped_dag.apply_operation_back(
                                 op=SwapGate(),
                                 qargs=[canonical_register[i], canonical_register[j]]

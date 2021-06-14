@@ -19,9 +19,20 @@ logger = logging.getLogger(__name__)
 
 
 class MIPMappingModel:
-    """Internal circuit and topology model to create a MIP problem for mapping
+    """Internal model to create and solve a MIP problem for mapping.
+
+    Attributes
+    ----------
+    problem: cplex.Cplex
+        A Cplex problem object with the problem description
+        (solution is stored in `problem.solution`).
+    ic: IndexCalculator
+        An Index calculator to retrieve variable indices.
     """
     def __init__(self, dag, coupling_map, basis_fidelity, fixed_layout=False):
+        self.problem = None
+        self.ic = None
+
         initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
         self.virtual_to_index = {v: i for i, v in enumerate(initial_layout.get_virtual_bits())}
         self.index_to_virtual = {i: v for i, v in enumerate(initial_layout.get_virtual_bits())}
@@ -86,7 +97,51 @@ class MIPMappingModel:
                              for _ in coupling_map.neighbors(i)]
                             for i in range(coupling_map.size())])
 
-    def create_cpx_problem(self, dummy_time_steps,
+    def is_assigned(self, q: int, i: int, t: int) -> bool:
+        """Check if logical qubit q is assigned to physical qubit i at timestep t.
+
+        Args:
+            q: Index of logical qubit
+            i: Index of physical qubit
+            t: Timesptep
+
+        Returns:
+            True if logical qubit q is assigned to physical qubit i at timestep t, else False
+        """
+        return self.problem.solution.get_values(self.ic.w_index(q, i, t)) > 0.5
+
+    def is_swapped(self, q: int, i: int, j: int, t: int) -> bool:
+        """Check if logical qubit q is assigned to physical qubit i at t and moved to j at t+1.
+        (May be i == j)
+
+        Args:
+            q: Index of logical qubit
+            i: Index of physical qubit at timestep t
+            j: Index of physical qubit at timestep t+1
+            t: Timesptep
+
+        Returns:
+            True if logical qubit q is assigned to physical qubit i at timestep t, else False
+        """
+        return self.problem.solution.get_values(self.ic.x_index(q, i, j, t)) > 0.5
+
+    @property
+    def num_lqubits(self):
+        return self.ic.num_lqubits
+
+    @property
+    def num_pqubits(self):
+        return self.ic.num_pqubits
+
+    @property
+    def depth(self):
+        return self.ic.depth
+
+    @property
+    def edges(self):
+        return self.ic.ht.arcs
+
+    def create_cpx_problem(self, objective, dummy_time_steps,
                            max_total_dummy=10000, line_symm=False, cycle_symm=False):
         """Create integer programming model to compile a circuit.
 
@@ -106,17 +161,12 @@ class MIPMappingModel:
         cycle_symm : bool
             Use symmetry breaking constrainst for loop. Should only be
             True if the hardware graph is a cycle/loop/ring.
-
-        Returns
-        -------
-        cplex.Cplex, IndexCalculator
-            A Cplex problem object with the problem description, and an
-            index calculator to retrieve variable indices.
-
         """
         prob = cplex.Cplex()
         ic = IndexCalculator(self.circuit_model, self.toplogy_model,
                              dummy_time_steps)
+
+        ### Define variables ###
         # Add w variables
         w_names = [None] * ic.num_w_vars
         for l in range(ic.num_lqubits):
@@ -162,6 +212,8 @@ class MIPMappingModel:
         prob.variables.add(
             types=[prob.variables.type.binary] * ic.num_eu_vars,
             names=eu_names)
+
+        ### Define constraints ###
         # Assignment constraints for w variables
         prob.linear_constraints.add(
             lin_expr=[SparsePair(
@@ -365,614 +417,344 @@ class MIPMappingModel:
                     senses=['E'], rhs=[0],
                     names=['eu_def_{:d}_{:d}_{:d}'.format(t, i, j)])
 
-        return prob, ic
-
-
-def set_error_rate_obj(prob, ic):
-    """Set the minimum error rate objective function.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the model
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    """
-    # Set objective
-    for t in range(ic.depth):
-        used_qubit = [False for i in range(ic.num_lqubits)]
-        used_qubit_fidelity = [0] * ic.num_lqubits
-        used_qubit_mfidelity = [0] * ic.num_lqubits
-        for (p, q) in ic.qc.gates[t]:
-            used_qubit[p] = True
-            used_qubit[q] = True
-            used_qubit_fidelity[p] = ic.qc.gate_fidelity(t, (p, q))
-            used_qubit_fidelity[q] = ic.qc.gate_fidelity(t, (p, q))
-            used_qubit_mfidelity[p] = ic.qc.gate_mfidelity(t, (p, q))
-            used_qubit_mfidelity[q] = ic.qc.gate_mfidelity(t, (p, q))
-            for (i, j) in ic.ht.arcs:
-                # We pay the cost for gate implementation. If we are
-                # mirroring, another objective function coefficient
-                # (below) will ensure we pay the difference between
-                # regular cost and mirrored cost.
-                expected_fidelities = [used_qubit_fidelity[p][k] *
-                                       ic.ht.arc_basis_fidelity((i, j)) ** k
-                                       for k in range(4)]
-                pbest_fid = -np.log(np.max(expected_fidelities))
-                prob.objective.set_linear(
-                    ic.y_index(t, (p, q), (i, j)), pbest_fid)
-        if (t < ic.depth - 1):
-            # x variables are only defined for depth up to depth-1
-            for i in range(ic.num_pqubits):
-                for q in range(ic.num_lqubits):
-                    for j in ic.ht.outstar_by_node[i]:
-                        if (not used_qubit[q]):
-                            # This means we are swapping
-                            prob.objective.set_linear(
-                                ic.x_index(q, i, j, t),
-                                -3 / 2 * ic.ht.arc_log_basis_fidelity((i, j)))
-                        else:
-                            # This is a mirrored gate, so compute the
-                            # difference between its mirrored cost and the
-                            # non-mirrored cost
-                            expected_fidelities = [
-                                used_qubit_fidelity[q][k] *
-                                ic.ht.arc_basis_fidelity((i, j)) ** k
-                                for k in range(4)]
-                            expected_fidelitiesm = [
-                                used_qubit_mfidelity[q][k] *
-                                ic.ht.arc_basis_fidelity((i, j)) ** k
-                                for k in range(4)]
-                            pbest_fid = -np.log(np.max(expected_fidelities))
-                            pbest_fidm = -np.log(np.max(expected_fidelitiesm))
-                            prob.objective.set_linear(
-                                ic.x_index(q, i, j, t),
-                                (pbest_fidm - pbest_fid) / 2)
-
-
-# -- end function
-
-def unset_error_rate_obj(prob, ic):
-    """Unset the error rate objective function.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the model
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    """
-    # Reset objective
-    for i in range(ic.x_start, ic.x_start + ic.num_x_vars):
-        prob.objective.set_linear(i, 0)
-    for i in range(ic.y_start, ic.y_start + ic.num_y_vars):
-        prob.objective.set_linear(i, 0)
-    # -- end function
-
-
-def set_error_rate_constraint(prob, ic, rhs):
-    """Set a maximum error rate constraint.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the model
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    rhs : float
-        Maximum allowed error rate
-
-    """
-    # Create constraint
-    indices = []
-    values = []
-    # Set objective
-    for t in range(ic.depth):
-        used_qubit = [False for i in range(ic.num_lqubits)]
-        used_qubit_fidelity = [0] * ic.num_lqubits
-        used_qubit_mfidelity = [0] * ic.num_lqubits
-        for (p, q) in ic.qc.gates[t]:
-            used_qubit[p] = True
-            used_qubit[q] = True
-            used_qubit_fidelity[p] = ic.qc.gate_fidelity(t, (p, q))
-            used_qubit_fidelity[q] = ic.qc.gate_fidelity(t, (p, q))
-            used_qubit_mfidelity[p] = ic.qc.gate_mfidelity(t, (p, q))
-            used_qubit_mfidelity[q] = ic.qc.gate_mfidelity(t, (p, q))
-            for (i, j) in ic.ht.arcs:
-                # We pay the cost for gate implementation. If we are
-                # mirroring, another objective function coefficient
-                # (below) will ensure we pay the difference between
-                # regular cost and mirrored cost.
-                expected_fidelities = [used_qubit_fidelity[p][k] *
-                                       ic.ht.arc_basis_fidelity((i, j)) ** k
-                                       for k in range(4)]
-                pbest_fid = -np.log(np.max(expected_fidelities))
-                indices.append(ic.y_index(t, (p, q), (i, j)))
-                values.append(pbest_fid)
-        if (t < ic.depth - 1):
-            for i in range(ic.num_pqubits):
-                for q in range(ic.num_lqubits):
-                    for j in ic.ht.outstar_by_node[i]:
-                        if (not used_qubit[q]):
-                            # This means we are swapping
-                            indices.append(ic.x_index(q, i, j, t))
-                            values.append(-3 / 2 *
-                                          ic.ht.arc_log_basis_fidelity((i, j)))
-                        else:
-                            # This is a mirrored gate, so compute the
-                            # difference between its mirrored cost and the
-                            # non-mirrored cost
-                            expected_fidelities = [
-                                used_qubit_fidelity[q][k] *
-                                ic.ht.arc_basis_fidelity((i, j)) ** k
-                                for k in range(4)]
-                            expected_fidelitiesm = [
-                                used_qubit_mfidelity[q][k] *
-                                ic.ht.arc_basis_fidelity((i, j)) ** k
-                                for k in range(4)]
-                            pbest_fid = -np.log(np.max(expected_fidelities))
-                            pbest_fidm = -np.log(np.max(expected_fidelitiesm))
-                            indices.append(ic.x_index(q, i, j, t))
-                            values.append((pbest_fidm - pbest_fid) / 2)
-    prob.linear_constraints.add(
-        lin_expr=[SparsePair(ind=indices, val=values)],
-        senses=['L'], rhs=[rhs], names=['error_rate_const'])
-
-
-# -- end function
-
-def unset_error_rate_constraint(prob, ic):
-    """Unset the maximum error rate constraint.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the model
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    """
-    # Add constraint
-    prob.linear_constraints.delete(['error_rate_const'])
-
-
-# -- end function
-
-def set_depth_obj(prob, ic):
-    """Set the minimum depth objective function.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the model
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    """
-    # Set objective
-    for i in range(ic.wd_start, ic.wd_start + ic.num_wd_vars):
-        prob.objective.set_linear(i, 1)
-
-
-# -- end function
-
-def unset_depth_obj(prob, ic):
-    """Unset the depth objective function.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the model
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    """
-    # Reset objective
-    for i in range(ic.wd_start, ic.wd_start + ic.num_wd_vars):
-        prob.objective.set_linear(i, 0)
-
-
-# -- end function
-
-def set_depth_constraint(prob, ic, rhs):
-    """Set a maximum depth constraint.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the model
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    rhs : float
-        Maximum depth
-
-    """
-    # Add constraint
-    prob.linear_constraints.add(
-        lin_expr=[SparsePair(
-            ind=[ic.wd_index(t) for t in range(ic.depth)],
-            val=[1 for t in range(ic.depth)])],
-        senses=['L'], rhs=[rhs], names=['depth_const'])
-
-
-# -- end function
-
-def unset_depth_constraint(prob, ic):
-    """Unset the maximum depth constraint.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the model
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    """
-    # Add constraint
-    prob.linear_constraints.delete(['depth_const'])
-
-
-# -- end function
-
-def set_cross_talk_obj(prob, ic):
-    """Set the minimum cross talk objective function.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the model
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    """
-    # Set objective
-    for t in range(ic.depth - 1):
-        for e1 in ic.ht.edges:
-            for e2 in ic.ht.cross_talk(e1):
-                prob.objective.set_quadratic_coefficients(
-                    ic.eu_index(t, e1), ic.eu_index(t, e2), 1.0)
-
-
-# -- end function
-
-def unset_cross_talk_obj(prob, ic):
-    """Unset the minimum cross talk objective function.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the model
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    """
-    prob.objective.set_quadratic([0] * prob.variables.get_num())
-
-
-# -- end function
-
-def set_cross_talk_constraint(prob, ic, rhs):
-    """Set the maximum cross talk constraint.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the model
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    rhs : float
-        Maximum cross-talk.
-
-    """
-    product_vars = 0
-    product_vars_start = ic.eu_start + ic.num_eu_vars
-    # New variable index
-    product_index = dict()
-    # Store constraint coefficients here
-    ind1 = list()
-    ind2 = list()
-    val = list()
-    for t in range(ic.depth - 1):
-        for e1 in ic.ht.edges:
-            for e2 in ic.ht.cross_talk(e1):
-                if ((t, ic.eu_index(t, e1), ic.eu_index(t, e2)) not in product_index and
-                        (t, ic.eu_index(t, e2), ic.eu_index(t, e1)) not in product_index):
-                    product_index[(t, ic.eu_index(t, e1), ic.eu_index(t, e2))] = product_vars
-                    product_vars += 1
-                    prob.variables.add(
-                        types=[prob.variables.type.binary],
-                        names=['aux_{:d}_{:d}_{:d}'.format(
-                            t, ic.eu_index(t, e1), ic.eu_index(t, e2))])
-                    prob.linear_constraints.add(
-                        lin_expr=[SparsePair(
-                            ind=[ic.eu_index(t, e1), ic.eu_index(t, e2),
-                                 product_vars_start + product_vars - 1],
-                            val=[1, 1, -1])],
-                        senses=['L'], rhs=[1],
-                        names=['mccormick_0_{:d}_{:d}'.format(
-                            ic.eu_index(t, e1), ic.eu_index(t, e2))])
-                    prob.linear_constraints.add(
-                        lin_expr=[SparsePair(
-                            ind=[ic.eu_index(t, e1),
-                                 product_vars_start + product_vars - 1],
-                            val=[-1, 1])],
-                        senses=['L'], rhs=[0],
-                        names=['mccormick_1_{:d}_{:d}'.format(
-                            ic.eu_index(t, e1), ic.eu_index(t, e2))])
-                    prob.linear_constraints.add(
-                        lin_expr=[SparsePair(
-                            ind=[ic.eu_index(t, e2),
-                                 product_vars_start + product_vars - 1],
-                            val=[-1, 1])],
-                        senses=['L'], rhs=[0],
-                        names=['mccormick_1_{:d}_{:d}'.format(
-                            ic.eu_index(t, e1), ic.eu_index(t, e2))])
-    prob.linear_constraints.add(
-        lin_expr=[SparsePair(
-            ind=[product_vars_start + j for j in range(product_vars)],
-            val=[1 for j in range(product_vars)])],
-        senses=['L'], rhs=[rhs], names=['cross_talk'])
-
-
-# -- end function
-
-def unset_cross_talk_constraint(prob, ic):
-    """Unset the maximum cross talk constraint.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the model
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    rhs : float
-        Maximum cross-talk.
-
-    """
-    # Unset constraint
-    prob.linear_constraints.delete('cross_talk')
-    prob.linear_constraints.delete(
-        [i for (i, c) in enumerate(prob.linear_constraints.get_names()) if
-         c.startswith('mccormick')])
-    prob.variables.delete([v for v in prob.variables.get_names() if v.startswith('aux')])
-
-
-# -- end function
-
-def evaluate_error_rate_obj(prob, ic):
-    """Evaluate the minimum error rate objective function.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the solution
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    """
-    sol = prob.solution.get_values()
-    obj = 0
-    # Loop over terms to ocmpute objective
-    for t in range(ic.depth - 1):
-        used_qubit = [False for i in range(ic.num_lqubits)]
-        used_qubit_fidelity = [0] * ic.num_lqubits
-        used_qubit_mfidelity = [0] * ic.num_lqubits
-        for (p, q) in ic.qc.gates[t]:
-            used_qubit[p] = True
-            used_qubit[q] = True
-            used_qubit_fidelity[p] = ic.qc.gate_fidelity(t, (p, q))
-            used_qubit_fidelity[q] = ic.qc.gate_fidelity(t, (p, q))
-            used_qubit_mfidelity[p] = ic.qc.gate_mfidelity(t, (p, q))
-            used_qubit_mfidelity[q] = ic.qc.gate_mfidelity(t, (p, q))
-            for (i, j) in ic.ht.arcs:
-                # We pay the cost for gate implementation. If we are
-                # mirroring, another objective function coefficient
-                # (below) will ensure we pay the difference between
-                # regular cost and mirrored cost.
-                expected_fidelities = [used_qubit_fidelity[p][k] *
-                                       ic.ht.arc_basis_fidelity((i, j)) ** k
-                                       for k in range(4)]
-                pbest_fid = -np.log(np.max(expected_fidelities))
-                obj += (sol[ic.y_index(t, (p, q), (i, j))] *
-                        pbest_fid)
-        for i in range(ic.num_pqubits):
-            for q in range(ic.num_lqubits):
-                for j in ic.ht.outstar_by_node[i]:
-                    if (not used_qubit[q]):
-                        # This means we are swapping
-                        obj += (sol[ic.x_index(q, i, j, t)] *
-                                -3 / 2 * ic.ht.arc_log_basis_fidelity((i, j)))
-                    else:
-                        # This is a mirrored gate, so compute the
-                        # difference between its mirrored cost and the
-                        # non-mirrored cost
-                        expected_fidelities = [
-                            used_qubit_fidelity[q][k] *
-                            ic.ht.arc_basis_fidelity((i, j)) ** k
-                            for k in range(4)]
-                        expected_fidelitiesm = [
-                            used_qubit_mfidelity[q][k] *
-                            ic.ht.arc_basis_fidelity((i, j)) ** k
-                            for k in range(4)]
-                        pbest_fid = -np.log(np.max(expected_fidelities))
-                        pbest_fidm = -np.log(np.max(expected_fidelitiesm))
-                        obj += (sol[ic.x_index(q, i, j, t)] *
-                                (pbest_fidm - pbest_fid) / 2)
-    return obj
-
-
-# -- end function
-
-def evaluate_depth_obj(prob, ic):
-    """Evaluate the minimum depth objective function.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the solution
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    """
-    # Compute objective
-    obj = 0
-    for i in range(ic.wd_start, ic.wd_start + ic.num_wd_vars):
-        obj += prob.solution.get_values(i)
-    return obj
-
-
-# -- end function
-
-def evaluate_cross_talk_obj(prob, ic):
-    """Evaluate the cross talk objective function.
-
-    Parameters
-    ----------
-    prob : `cplex.Cplex`
-        A Cplex problem object containg the solution
-
-    ic : `IndexCalculator`
-        Corresponding index calculator to retrieve variable indices
-
-    """
-    obj = 0
-    sol = prob.solution.get_values()
-    # Compute objective
-    for t in range(ic.depth - 1):
-        for e1 in ic.ht.edges:
-            for e2 in ic.ht.cross_talk(e1):
-                # Note: we multiply by 0.5 because if e2 is in
-                # cross_talk(e1), then e1 is in cross_talk(e2)
-                obj += sol[ic.eu_index(t, e1)] * sol[ic.eu_index(t, e2)] * 0.5
-    return obj
-
-
-# -- end function
-
-
-def solve_cpx_model(problem, index_calculator, time_limit=300,
-                    heuristic_emphasis=False, silent=False):
-    """Solve the Cplex model and print statistics.
-
-    Parameters
-    ----------
-    problem : cplex.Cplex
-        Model implemented in a Cplex object.
-
-    index_calculator : IndexCalculator
-        Index calculator used to construct the model.
-
-    time_limit : float
-        Time limit given to Cplex.
-
-    heuristic_emphasis : bool
-        Focus on getting good solutions rather than proving optimality
-
-    silent : bool
-        Disable output printing.
-    """
-    problem.parameters.timelimit.set(time_limit)
-    problem.parameters.preprocessing.qtolin.set(1)
-    # This sets the number of threads; by default Cplex uses everything!
-    # problem.parameters.threads.set(8)
-    if (heuristic_emphasis):
-        problem.parameters.emphasis.mip.set(5)
-    if (silent):
-        problem.set_log_stream(None)
-        problem.set_error_stream(None)
-        problem.set_warning_stream(None)
-        problem.set_results_stream(None)
-    problem.solve()
-    try:
-        problem.solution.get_objective_value()
-    except CplexSolverError as cse:
-        # TODO: more informative error message
-        raise TranspilerError("Failed to solve MIP problem.") from cse
-    if (silent):
-        return
-    # Everything below is just for display purposes; could be
-    # eliminated
-    print()
-    print('Time steps that can be eliminated:')
-    for t in range(index_calculator.depth):
-        if (problem.solution.get_values(index_calculator.wd_index(t)) > 0.5):
-            print('  ', end='')
+        self.problem = prob
+        self.ic = ic
+
+        ### Define objevtive function ###
+        if objective == "error":
+            self.set_error_rate_obj(self.problem, self.ic)
+        elif objective == "depth":
+            self.set_depth_obj(self.problem, self.ic)
+        # elif:
+        #     # TODO; balanced (weighted sum of error and depth)
         else:
-            print(' *', end='')
-        if (t < index_calculator.depth - 1):
-            print('->', end='')
-    print()
-    for q in range(index_calculator.true_num_lqubits):
-        print('Position of qubit {:d}:'.format(q))
-        for t in range(index_calculator.depth):
-            pos = -1
-            for i in range(index_calculator.num_pqubits):
-                if (problem.solution.get_values(
-                        index_calculator.w_index(q, i, t)) > 0.5):
-                    pos = i
-            print('{:>2d}'.format(pos), end='')
-            if (t < index_calculator.depth - 1):
-                print('->', end='')
+            raise TranspilerError(f"Unknown objective type: {objective}")
+
+    @staticmethod
+    def set_depth_obj(prob, ic):
+        """Set the minimum depth objective function.
+
+        Parameters
+        ----------
+        prob : `cplex.Cplex`
+            A Cplex problem object containg the model
+
+        ic : `IndexCalculator`
+            Corresponding index calculator to retrieve variable indices
+
+        """
+        # Set objective
+        for i in range(ic.wd_start, ic.wd_start + ic.num_wd_vars):
+            prob.objective.set_linear(i, 1)
+
+    @staticmethod
+    def set_error_rate_obj(prob, ic):
+        """Set the minimum error rate objective function.
+
+        Parameters
+        ----------
+        prob : `cplex.Cplex`
+            A Cplex problem object containg the model
+
+        ic : `IndexCalculator`
+            Corresponding index calculator to retrieve variable indices
+
+        """
+        # Set objective
+        for t in range(ic.depth):
+            used_qubit = [False for i in range(ic.num_lqubits)]
+            used_qubit_fidelity = [0] * ic.num_lqubits
+            used_qubit_mfidelity = [0] * ic.num_lqubits
+            for (p, q) in ic.qc.gates[t]:
+                used_qubit[p] = True
+                used_qubit[q] = True
+                used_qubit_fidelity[p] = ic.qc.gate_fidelity(t, (p, q))
+                used_qubit_fidelity[q] = ic.qc.gate_fidelity(t, (p, q))
+                used_qubit_mfidelity[p] = ic.qc.gate_mfidelity(t, (p, q))
+                used_qubit_mfidelity[q] = ic.qc.gate_mfidelity(t, (p, q))
+                for (i, j) in ic.ht.arcs:
+                    # We pay the cost for gate implementation. If we are
+                    # mirroring, another objective function coefficient
+                    # (below) will ensure we pay the difference between
+                    # regular cost and mirrored cost.
+                    expected_fidelities = [used_qubit_fidelity[p][k] *
+                                           ic.ht.arc_basis_fidelity((i, j)) ** k
+                                           for k in range(4)]
+                    pbest_fid = -np.log(np.max(expected_fidelities))
+                    prob.objective.set_linear(
+                        ic.y_index(t, (p, q), (i, j)), pbest_fid)
+            if (t < ic.depth - 1):
+                # x variables are only defined for depth up to depth-1
+                for i in range(ic.num_pqubits):
+                    for q in range(ic.num_lqubits):
+                        for j in ic.ht.outstar_by_node[i]:
+                            if (not used_qubit[q]):
+                                # This means we are swapping
+                                prob.objective.set_linear(
+                                    ic.x_index(q, i, j, t),
+                                    -3 / 2 * ic.ht.arc_log_basis_fidelity((i, j)))
+                            else:
+                                # This is a mirrored gate, so compute the
+                                # difference between its mirrored cost and the
+                                # non-mirrored cost
+                                expected_fidelities = [
+                                    used_qubit_fidelity[q][k] *
+                                    ic.ht.arc_basis_fidelity((i, j)) ** k
+                                    for k in range(4)]
+                                expected_fidelitiesm = [
+                                    used_qubit_mfidelity[q][k] *
+                                    ic.ht.arc_basis_fidelity((i, j)) ** k
+                                    for k in range(4)]
+                                pbest_fid = -np.log(np.max(expected_fidelities))
+                                pbest_fidm = -np.log(np.max(expected_fidelitiesm))
+                                prob.objective.set_linear(
+                                    ic.x_index(q, i, j, t),
+                                    (pbest_fidm - pbest_fid) / 2)
+
+    @staticmethod
+    def set_error_rate_constraint(prob, ic, rhs):
+        """Set a maximum error rate constraint.
+
+        Parameters
+        ----------
+        prob : `cplex.Cplex`
+            A Cplex problem object containg the model
+
+        ic : `IndexCalculator`
+            Corresponding index calculator to retrieve variable indices
+
+        rhs : float
+            Maximum allowed error rate
+
+        """
+        # Create constraint
+        indices = []
+        values = []
+        # Set objective
+        for t in range(ic.depth):
+            used_qubit = [False for i in range(ic.num_lqubits)]
+            used_qubit_fidelity = [0] * ic.num_lqubits
+            used_qubit_mfidelity = [0] * ic.num_lqubits
+            for (p, q) in ic.qc.gates[t]:
+                used_qubit[p] = True
+                used_qubit[q] = True
+                used_qubit_fidelity[p] = ic.qc.gate_fidelity(t, (p, q))
+                used_qubit_fidelity[q] = ic.qc.gate_fidelity(t, (p, q))
+                used_qubit_mfidelity[p] = ic.qc.gate_mfidelity(t, (p, q))
+                used_qubit_mfidelity[q] = ic.qc.gate_mfidelity(t, (p, q))
+                for (i, j) in ic.ht.arcs:
+                    # We pay the cost for gate implementation. If we are
+                    # mirroring, another objective function coefficient
+                    # (below) will ensure we pay the difference between
+                    # regular cost and mirrored cost.
+                    expected_fidelities = [used_qubit_fidelity[p][k] *
+                                           ic.ht.arc_basis_fidelity((i, j)) ** k
+                                           for k in range(4)]
+                    pbest_fid = -np.log(np.max(expected_fidelities))
+                    indices.append(ic.y_index(t, (p, q), (i, j)))
+                    values.append(pbest_fid)
+            if (t < ic.depth - 1):
+                for i in range(ic.num_pqubits):
+                    for q in range(ic.num_lqubits):
+                        for j in ic.ht.outstar_by_node[i]:
+                            if (not used_qubit[q]):
+                                # This means we are swapping
+                                indices.append(ic.x_index(q, i, j, t))
+                                values.append(-3 / 2 *
+                                              ic.ht.arc_log_basis_fidelity((i, j)))
+                            else:
+                                # This is a mirrored gate, so compute the
+                                # difference between its mirrored cost and the
+                                # non-mirrored cost
+                                expected_fidelities = [
+                                    used_qubit_fidelity[q][k] *
+                                    ic.ht.arc_basis_fidelity((i, j)) ** k
+                                    for k in range(4)]
+                                expected_fidelitiesm = [
+                                    used_qubit_mfidelity[q][k] *
+                                    ic.ht.arc_basis_fidelity((i, j)) ** k
+                                    for k in range(4)]
+                                pbest_fid = -np.log(np.max(expected_fidelities))
+                                pbest_fidm = -np.log(np.max(expected_fidelitiesm))
+                                indices.append(ic.x_index(q, i, j, t))
+                                values.append((pbest_fidm - pbest_fid) / 2)
+        prob.linear_constraints.add(
+            lin_expr=[SparsePair(ind=indices, val=values)],
+            senses=['L'], rhs=[rhs], names=['error_rate_const'])
+
+    def solve_cpx_problem(self, time_limit=300,
+                          heuristic_emphasis=False, silent=True):
+        """Solve the Cplex model and print statistics.
+
+        Parameters
+        ----------
+        time_limit : float
+            Time limit given to Cplex.
+
+        heuristic_emphasis : bool
+            Focus on getting good solutions rather than proving optimality
+
+        silent : bool
+            Disable output printing.
+        """
+        self.problem.parameters.timelimit.set(time_limit)
+        self.problem.parameters.preprocessing.qtolin.set(1)
+        # This sets the number of threads; by default Cplex uses everything!
+        # problem.parameters.threads.set(8)
+        if (heuristic_emphasis):
+            self.problem.parameters.emphasis.mip.set(5)
+        if (silent):
+            self.problem.set_log_stream(None)
+            self.problem.set_error_stream(None)
+            self.problem.set_warning_stream(None)
+            self.problem.set_results_stream(None)
+            self.problem.solve()
+        try:
+            self.problem.solution.get_objective_value()
+        except CplexSolverError as cse:
+            # TODO: more informative error message
+            raise TranspilerError("Failed to solve MIP problem.") from cse
+        if (silent):
+            return
+        # Everything below is just for display purposes; could be
+        # eliminated
+        print()
+        print('Time steps that can be eliminated:')
+        for t in range(self.ic.depth):
+            if (self.problem.solution.get_values(self.ic.wd_index(t)) > 0.5):
+                print('  ', end='')
             else:
-                print()
-    # Verify circuit
-    for t in range(index_calculator.depth):
-        for (p, q) in index_calculator.qc.gates[t]:
-            for (i, j) in index_calculator.ht.arcs:
-                if (problem.solution.get_values(
-                        index_calculator.y_index(t, (p, q), (i, j))) > 0.5):
-                    if (problem.solution.get_values(
-                            index_calculator.w_index(p, i, t)) < 0.5 or
-                            problem.solution.get_values(
-                                index_calculator.w_index(q, j, t)) < 0.5):
-                        print(
-                            'Qubits {:d} and {:d} not in the right position at time {:d}'.format(p,
-                                                                                                 q,
-                                                                                                 t))
-    num_swaps = 0
-    num_merged_swaps = 0
-    depth = 0
-    for t in range(index_calculator.depth - 1):
-        for (i, j) in index_calculator.ht.arcs:
-            gate = False
-            for (p, q) in index_calculator.qc.gates[t]:
-                if (problem.solution.get_values(
-                        index_calculator.y_index(t, (p, q), (i, j))) > 0.5
-                        or
-                        problem.solution.get_values(
-                            index_calculator.y_index(t, (p, q), (j, i))) > 0.5):
-                    gate = True
-            for q in range(index_calculator.num_lqubits):
-                if (problem.solution.get_values(
-                        index_calculator.x_index(q, i, j, t)) > 0.5):
-                    if (gate):
-                        num_merged_swaps += 1
-                    else:
-                        num_swaps += 1
-        if (problem.solution.get_values(index_calculator.wd_index(t)) > 0.5):
-            depth += 1
-    print('Num swaps:', num_swaps // 2, 'num merged swaps:', num_merged_swaps // 2, 'total depth:',
-          depth)
+                print(' *', end='')
+            if (t < self.ic.depth - 1):
+                print('->', end='')
+        print()
+        for q in range(self.ic.true_num_lqubits):
+            print('Position of qubit {:d}:'.format(q))
+            for t in range(self.ic.depth):
+                pos = -1
+                for i in range(self.ic.num_pqubits):
+                    if (self.problem.solution.get_values(
+                            self.ic.w_index(q, i, t)) > 0.5):
+                        pos = i
+                print('{:>2d}'.format(pos), end='')
+                if (t < self.ic.depth - 1):
+                    print('->', end='')
+                else:
+                    print()
+        # Verify circuit
+        for t in range(self.ic.depth):
+            for (p, q) in self.ic.qc.gates[t]:
+                for (i, j) in self.ic.ht.arcs:
+                    if (self.problem.solution.get_values(
+                            self.ic.y_index(t, (p, q), (i, j))) > 0.5):
+                        if (self.problem.solution.get_values(
+                                self.ic.w_index(p, i, t)) < 0.5 or
+                                self.problem.solution.get_values(
+                                    self.ic.w_index(q, j, t)) < 0.5):
+                            print(
+                                'Qubits {:d} and {:d} not in the right position at time {:d}'.format(p,
+                                                                                                     q,
+                                                                                                     t))
+        num_swaps = 0
+        num_merged_swaps = 0
+        depth = 0
+        for t in range(self.ic.depth - 1):
+            for (i, j) in self.ic.ht.arcs:
+                gate = False
+                for (p, q) in self.ic.qc.gates[t]:
+                    if (self.problem.solution.get_values(
+                            self.ic.y_index(t, (p, q), (i, j))) > 0.5
+                            or
+                            self.problem.solution.get_values(
+                                self.ic.y_index(t, (p, q), (j, i))) > 0.5):
+                        gate = True
+                for q in range(self.ic.num_lqubits):
+                    if (self.problem.solution.get_values(
+                            self.ic.x_index(q, i, j, t)) > 0.5):
+                        if (gate):
+                            num_merged_swaps += 1
+                        else:
+                            num_swaps += 1
+            if self.problem.solution.get_values(self.ic.wd_index(t)) > 0.5:
+                depth += 1
+        print('Num swaps:', num_swaps // 2, 'num merged swaps:', num_merged_swaps // 2,
+              'total depth:', depth)
+
+    # def evaluate_error_rate_obj(self):
+    #     """Evaluate the minimum error rate objective function.
+    #     """
+    #     sol = self.problem.solution.get_values()
+    #     obj = 0
+    #     # Loop over terms to ocmpute objective
+    #     for t in range(self.ic.depth - 1):
+    #         used_qubit = [False for i in range(self.ic.num_lqubits)]
+    #         used_qubit_fidelity = [0] * self.ic.num_lqubits
+    #         used_qubit_mfidelity = [0] * self.ic.num_lqubits
+    #         for (p, q) in self.ic.qc.gates[t]:
+    #             used_qubit[p] = True
+    #             used_qubit[q] = True
+    #             used_qubit_fidelity[p] = self.ic.qc.gate_fidelity(t, (p, q))
+    #             used_qubit_fidelity[q] = self.ic.qc.gate_fidelity(t, (p, q))
+    #             used_qubit_mfidelity[p] = self.ic.qc.gate_mfidelity(t, (p, q))
+    #             used_qubit_mfidelity[q] = self.ic.qc.gate_mfidelity(t, (p, q))
+    #             for (i, j) in self.ic.ht.arcs:
+    #                 # We pay the cost for gate implementation. If we are
+    #                 # mirroring, another objective function coefficient
+    #                 # (below) will ensure we pay the difference between
+    #                 # regular cost and mirrored cost.
+    #                 expected_fidelities = [used_qubit_fidelity[p][k] *
+    #                                        self.ic.ht.arc_basis_fidelity((i, j)) ** k
+    #                                        for k in range(4)]
+    #                 pbest_fid = -np.log(np.max(expected_fidelities))
+    #                 obj += (sol[self.ic.y_index(t, (p, q), (i, j))] *
+    #                         pbest_fid)
+    #         for i in range(self.ic.num_pqubits):
+    #             for q in range(self.ic.num_lqubits):
+    #                 for j in self.ic.ht.outstar_by_node[i]:
+    #                     if (not used_qubit[q]):
+    #                         # This means we are swapping
+    #                         obj += (sol[self.ic.x_index(q, i, j, t)] *
+    #                                 -3 / 2 * self.ic.ht.arc_log_basis_fidelity((i, j)))
+    #                     else:
+    #                         # This is a mirrored gate, so compute the
+    #                         # difference between its mirrored cost and the
+    #                         # non-mirrored cost
+    #                         expected_fidelities = [
+    #                             used_qubit_fidelity[q][k] *
+    #                             self.ic.ht.arc_basis_fidelity((i, j)) ** k
+    #                             for k in range(4)]
+    #                         expected_fidelitiesm = [
+    #                             used_qubit_mfidelity[q][k] *
+    #                             self.ic.ht.arc_basis_fidelity((i, j)) ** k
+    #                             for k in range(4)]
+    #                         pbest_fid = -np.log(np.max(expected_fidelities))
+    #                         pbest_fidm = -np.log(np.max(expected_fidelitiesm))
+    #                         obj += (sol[self.ic.x_index(q, i, j, t)] *
+    #                                 (pbest_fidm - pbest_fid) / 2)
+    #     return obj
+    #
+    # def evaluate_depth_obj(self):
+    #     """Evaluate the minimum depth objective function.
+    #     """
+    #     # Compute objective
+    #     obj = 0
+    #     for i in range(self.ic.wd_start, self.ic.wd_start + self.ic.num_wd_vars):
+    #         obj += self.problem.solution.get_values(i)
+    #     return obj
+    #
+    # def evaluate_cross_talk_obj(self):
+    #     """Evaluate the cross talk objective function.
+    #     """
+    #     obj = 0
+    #     sol = self.problem.solution.get_values()
+    #     # Compute objective
+    #     for t in range(self.ic.depth - 1):
+    #         for e1 in self.ic.ht.edges:
+    #             for e2 in self.ic.ht.cross_talk(e1):
+    #                 # Note: we multiply by 0.5 because if e2 is in
+    #                 # cross_talk(e1), then e1 is in cross_talk(e2)
+    #                 obj += sol[self.ic.eu_index(t, e1)] * sol[self.ic.eu_index(t, e2)] * 0.5
+    #     return obj
 
 
 class _CircuitModel:
