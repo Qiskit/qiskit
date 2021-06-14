@@ -91,7 +91,7 @@ class SabreLayout(AnalysisPass):
         # Do forward-backward iterations.
         circ = dag_to_circuit(dag)
         rev_circ = circ.reverse_ops()
-        for i in range(self.max_iterations):
+        for _ in range(self.max_iterations):
             for _ in ("forward", "backward"):
                 pm = self._layout_and_route_passmanager(initial_layout)
                 new_circ = pm.run(circ)
