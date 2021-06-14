@@ -167,7 +167,7 @@ def control(
                     q_target[bit_indices[qargs[1]]],
                     q_ancillae,
                 )
-            elif gate.name == "u":
+            elif gate.name == "U":
                 theta, phi, lamb = gate.params
                 if num_ctrl_qubits == 1:
                     if theta == 0 and phi == 0:

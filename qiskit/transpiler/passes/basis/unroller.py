@@ -33,6 +33,12 @@ class Unroller(TransformationPass):
                 None, does not unroll any gate.
         """
         super().__init__()
+        if "u" in basis:
+            DeprecationWarning(
+                'Using "u" in the basis for referring to the generic single-qubit rotation gate is '
+                'being deprecated in favor of "U". Please use capital "U" in the future.'
+            )
+            basis[basis.index("u")] = "U"
         self.basis = basis
 
     def run(self, dag):
