@@ -207,7 +207,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         )
 
         optimal_vector = vqe.get_optimal_vector()
-        self.assertAlmostEqual(sum([v ** 2 for v in optimal_vector.values()]), 1.0, places=4)
+        self.assertAlmostEqual(sum(v ** 2 for v in optimal_vector.values()), 1.0, places=4)
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_with_aer_statevector(self):
@@ -448,7 +448,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         try:
             vqe.quantum_instance = BasicAer.get_backend("qasm_simulator")
         except Exception as ex:  # pylint: disable=broad-except
-            self.fail("Failed to change backend. Error: '{}'".format(str(ex)))
+            self.fail(f"Failed to change backend. Error: '{str(ex)}'")
             return
 
         result1 = vqe.compute_minimum_eigenvalue(operator=self.h2_op)

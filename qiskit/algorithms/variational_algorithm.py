@@ -118,7 +118,7 @@ class VariationalAlgorithm:
             self._ansatz_params = None
             self._ansatz = ansatz
         else:
-            raise ValueError('Unsupported type "{}" of ansatz'.format(type(ansatz)))
+            raise ValueError(f'Unsupported type "{type(ansatz)}" of ansatz')
 
     @property
     def optimizer(self) -> Optional[Optimizer]:

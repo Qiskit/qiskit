@@ -34,7 +34,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             from qiskit import Aer
             from qiskit.providers.aer import noise
         except ImportError as ex:
-            self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            self.skipTest(f"Package doesn't appear to be installed. Error: '{str(ex)}'")
             return
 
         algorithm_globals.random_seed = 0
@@ -87,7 +87,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             from qiskit import Aer
             from qiskit.providers.aer import noise
         except ImportError as ex:
-            self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            self.skipTest(f"Package doesn't appear to be installed. Error: '{str(ex)}'")
             return
 
         algorithm_globals.random_seed = 0
