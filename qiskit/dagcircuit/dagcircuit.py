@@ -808,7 +808,7 @@ class DAGCircuit:
             nodes = [
                 node
                 for node in self.nodes_on_wire(wire, only_ops=False)
-                if (not isinstance(node, OpNode) or node.op.name not in ignore)
+                if ((not isinstance(node, OpNode) or node.op.name not in ignore))
             ]
             if len(nodes) == 2:
                 yield wire
@@ -1470,14 +1470,14 @@ class DAGCircuit:
             # Save the support of the operation we add to the layer
             support_list = []
             # Operation data
-            node = copy.copy(next_node)
+            op = copy.copy(next_node.op)
             qargs = copy.copy(next_node.qargs)
             cargs = copy.copy(next_node.cargs)
             condition = copy.copy(next_node.op.condition)
             _ = self._bits_in_condition(condition)
 
             # Add node to new_layer
-            new_layer.apply_operation_back(node.op, qargs, cargs)
+            new_layer.apply_operation_back(op, qargs, cargs)
             # Add operation to partition
             if not next_node.op._directive:
                 support_list.append(list(qargs))
