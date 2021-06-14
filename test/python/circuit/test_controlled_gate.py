@@ -869,6 +869,25 @@ class TestControlledGate(QiskitTestCase):
         """test unrolling of open control gates when gate is in basis"""
         qreg = QuantumRegister(3)
         qc = QuantumCircuit(qreg)
+        ccx = CCXGate(ctrl_state=0)
+        qc.append(ccx, [0, 1, 2])
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(["x", "ccx"])
+        unrolled_dag = unroller.run(dag)
+
+        ref_circuit = QuantumCircuit(qreg)
+        ref_circuit.x(qreg[0])
+        ref_circuit.x(qreg[1])
+        ref_circuit.ccx(qreg[0], qreg[1], qreg[2])
+        ref_circuit.x(qreg[0])
+        ref_circuit.x(qreg[1])
+        ref_dag = circuit_to_dag(ref_circuit)
+        self.assertEqual(unrolled_dag, ref_dag)
+        
+    def test_ccx_ctrl_state_paramter(self):
+        """test whether ccx has the paramter ctrl_state or not"""
+        qreg = QuantumRegister(3)
+        qc = QuantumCircuit(qreg)
         qc.ccx(0, 1, 2, ctrl_state=0)
         dag = circuit_to_dag(qc)
         unroller = Unroller(["x", "ccx"])
