@@ -15,7 +15,6 @@
 import logging
 from collections import defaultdict
 from copy import copy, deepcopy
-from itertools import cycle
 import numpy as np
 
 from qiskit.circuit.library.standard_gates import SwapGate
