@@ -297,7 +297,7 @@ class DictStateFn(StateFn):
         from .operator_state_fn import OperatorStateFn
 
         if isinstance(front, OperatorStateFn):
-            return cast(Union[OperatorBase, float, complex], front.adjoint().eval(self.adjoint()))
+            return cast(Union[OperatorBase, complex], front.adjoint().eval(self.adjoint()))
 
         # All other OperatorBases go here
         self_adjoint = cast(DictStateFn, self.adjoint())

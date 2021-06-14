@@ -820,7 +820,6 @@ class TestBasisExamples(QiskitTestCase):
 
     def test_skip_target_basis_equivalences_1(self):
         """Test that BasisTranslator skips gates in the target_basis - #6085"""
-
         circ = QuantumCircuit()
         qasm_file = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -828,7 +827,6 @@ class TestBasisExamples(QiskitTestCase):
             "TestBasisTranslator_skip_target.qasm",
         )
         circ = circ.from_qasm_file(qasm_file)
-
         circ_transpiled = transpile(
             circ,
             basis_gates=["id", "rz", "sx", "x", "cx"],
