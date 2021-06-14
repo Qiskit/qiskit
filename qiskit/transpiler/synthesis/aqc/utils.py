@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 # Avoid excessive deprecation warnings in Qiskit on Linux system.
-import warnings
+from typing import Union
 
 import numpy as np
 from scipy.stats import unitary_group
@@ -19,24 +19,24 @@ from scipy.stats import unitary_group
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-
-def check_num_qubits(nqubits: int) -> bool:
+def check_num_qubits(num_qubits: int) -> bool:
     """
     Checks validity of the number of qubits.
     """
-    assert isinstance(nqubits, (int, np.int64))
-    assert 2 <= nqubits <= 16
+    assert isinstance(num_qubits, (int, np.int64))
+    assert 2 <= num_qubits <= 16
     return True
 
 
-def circuit_to_numpy(circuit: (np.ndarray, QuantumCircuit)) -> np.ndarray:
+def circuit_to_numpy(circuit: Union[np.ndarray, QuantumCircuit]) -> np.ndarray:
     """
     Converts quantum circuit to Numpy matrix or returns just a copy,
     if the input is already a Numpy matrix.
+
     Args:
         circuit: the circuit to be converted into Numpy matrix.
+
     Returns:
         Numpy matrix underlying the input circuit.
     """
@@ -51,14 +51,17 @@ def circuit_to_numpy(circuit: (np.ndarray, QuantumCircuit)) -> np.ndarray:
 
 
 def compare_circuits(
-    target_circuit: (np.ndarray, QuantumCircuit), approx_circuit: (np.ndarray, QuantumCircuit)
+    target_circuit: Union[np.ndarray, QuantumCircuit],
+    approx_circuit: Union[np.ndarray, QuantumCircuit],
 ) -> float:
     """
     Compares two circuits (or their underlying matrices) for equivalence
     up to a global phase factor.
+
     Args:
         target_circuit: the circuit that we try to approximate.
         approx_circuit: the circuit obtained by approximate compiling.
+
     Returns:
         relative difference between two circuits.
     """

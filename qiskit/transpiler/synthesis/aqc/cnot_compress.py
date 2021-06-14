@@ -60,7 +60,9 @@ class CNotCompressor:
                     targets[0:4] = compressed[1, i : i + 4]  # 4 target bits
 
                     # Try to compress 4 consecutive CNOTs.
-                    cnots_new = CNotCompressor._compress4(controls[0:4], targets[0:4], i, compressed)
+                    cnots_new = CNotCompressor._compress4(
+                        controls[0:4], targets[0:4], i, compressed
+                    )
                     if compressed.size > cnots_new.size:
                         compressed = cnots_new
                         modified = True
@@ -72,7 +74,9 @@ class CNotCompressor:
                     targets[0:3] = compressed[1, i : i + 3]  # 3 target bits
 
                     # Try to compress 3 consecutive CNOTs.
-                    cnots_new = CNotCompressor._compress3(controls[0:3], targets[0:3], i, compressed)
+                    cnots_new = CNotCompressor._compress3(
+                        controls[0:3], targets[0:3], i, compressed
+                    )
                     if compressed.size > cnots_new.size:
                         compressed = cnots_new
                         modified = True

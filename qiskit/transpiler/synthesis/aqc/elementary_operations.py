@@ -90,7 +90,9 @@ def op_rx(phi) -> np.ndarray:
     Returns:
 
     """
-    u = np.array([[np.cos(phi / 2), -1j * np.sin(phi / 2)], [-1j * np.sin(phi / 2), np.cos(phi / 2)]])
+    u = np.array(
+        [[np.cos(phi / 2), -1j * np.sin(phi / 2)], [-1j * np.sin(phi / 2), np.cos(phi / 2)]]
+    )
     return u
 
 

@@ -517,7 +517,7 @@ class EulerCompressor(CompressorBase):
                         op = [[alpha, "rx"]]  # rotation gate x!
 
                 elif gate_list[qbits][nn] == "xu":
-                    if not op:    # TODO: originally op == []
+                    if not op:  # TODO: originally op == []
                         thetas[qbits] += [0.0, 0.0]
                     else:
                         # print('OP ', op[0].params, op[0].definition, op[0].decompositions)

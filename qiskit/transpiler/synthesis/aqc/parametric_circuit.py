@@ -46,6 +46,7 @@ ALL_PARAMS = {PARAM_LAYOUT, PARAM_CONNECTIVITY, PARAM_DEPTH}
 class ParametricCircuit:
 
     """A class that represents an approximating circuit."""
+
     def __init__(
         self,
         num_qubits: int,

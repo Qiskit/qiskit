@@ -118,7 +118,9 @@ def make_cnot_network(
 
         cnots = _cartan_network(num_qubits=num_qubits)
         if verbose > 0:
-            print("Optimal lower bound: ", lower_limit(num_qubits), "; Cartan CNOTs: ", cnots.shape[1])
+            print(
+                "Optimal lower bound: ", lower_limit(num_qubits), "; Cartan CNOTs: ", cnots.shape[1]
+            )
         return cnots
 
     elif network_layout == "cyclic_spin":

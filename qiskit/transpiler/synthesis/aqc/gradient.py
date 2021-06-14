@@ -42,6 +42,7 @@ class GradientBase(ABC):
 # TODO: replace with FastGradient?
 class DefaultGradient(GradientBase):
     """A default implementation of a gradient computation."""
+
     def __init__(self, num_qubits: int, cnots: np.ndarray) -> None:
         """
         Args:
