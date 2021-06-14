@@ -471,33 +471,6 @@ class TestCircuitAssembler(QiskitTestCase):
         qobj = assemble(self.circ, init_qubits=False)
         self.assertEqual(qobj.config.init_qubits, False)
 
-    def test_measure_esp_not_enabled(self):
-        """Check that an error is raised if ``use_measure_esp=True`` on a device which does not
-        support ESP readout."""
-        setattr(self.backend_config, "measure_esp_enabled", False)
-        with self.assertRaises(QiskitError):
-            assemble(self.circ, self.backend, use_measure_esp=True)
-
-    def test_measure_esp_defaults(self):
-        """Check that ``use_measure_esp`` defaults to True if ESP readout is enabled on the device
-        and false otherwise."""
-        # esp readout enabled
-        setattr(self.backend_config, "measure_esp_enabled", True)
-        qobj = assemble(self.circ, self.backend)
-        self.assertEqual(qobj.config.use_measure_esp, True)
-
-        # esp readout not enabled
-        setattr(self.backend_config, "measure_esp_enabled", False)
-        qobj = assemble(self.circ, self.backend)
-        self.assertEqual(qobj.config.use_measure_esp, False)
-
-    def test_measure_esp(self):
-        """Test that ``use_measure_esp=True`` works on a device that supports ESP readout."""
-        # esp readout enabled
-        setattr(self.backend_config, "measure_esp_enabled", True)
-        qobj = assemble(self.circ, self.backend, use_measure_esp=True)
-        self.assertEqual(qobj.config.use_measure_esp, True)
-
     def test_circuit_with_global_phase(self):
         """Test that global phase for a circuit is handled correctly."""
         circ = QuantumCircuit(2)
