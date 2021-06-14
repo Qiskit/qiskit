@@ -46,7 +46,7 @@ def resolve_frames(
     if isinstance(schedule, ScheduleBlock):
         schedule = block_to_schedule(schedule)
 
-    if frames_config is None:
+    if frames_config is None or not frames_config:
         return schedule
 
     resolved_frames = {}
