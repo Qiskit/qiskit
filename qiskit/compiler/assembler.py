@@ -77,6 +77,7 @@ def assemble(
     parametric_pulses: Optional[List[str]] = None,
     init_qubits: bool = True,
     frames_config: Dict[Frame, Dict] = None,
+    use_measure_esp: Optional[bool] = None,
     **run_config: Dict,
 ) -> Qobj:
     """Assemble a list of circuits or pulse schedules into a ``Qobj``.
@@ -142,12 +143,17 @@ def assemble(
 
             ['gaussian', 'constant']
         init_qubits: Whether to reset the qubits to the ground state for each shot.
-                     Default: ``True``.
+            Default: ``True``.
         frames_config: Dictionary of user provided frames configuration. The key is the frame
             and the value is a dictionary with the configuration of the frame which must be of
             the form {'frequency': float, 'purpose': str, 'sample_duration': float}. This
             object is be used to initialize ResolvedFrame instance to resolve the frames in
             the Schedule.
+        use_measure_esp: Whether to use excited state promoted (ESP) readout for the final
+            measurement in each circuit. ESP readout discriminates between the ``|0>`` and higher
+            transmon states to improve readout fidelity. See
+            `here <https://arxiv.org/pdf/2008.08571.pdf>`_.
+            Default: ``True`` if the backend supports ESP readout, else ``False``.
         **run_config: Extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
             arguments.
@@ -170,6 +176,7 @@ def assemble(
         max_credits,
         seed_simulator,
         init_qubits,
+        use_measure_esp,
         rep_delay,
         qubit_lo_freq,
         meas_lo_freq,
@@ -238,6 +245,7 @@ def _parse_common_args(
     max_credits,
     seed_simulator,
     init_qubits,
+    use_measure_esp,
     rep_delay,
     qubit_lo_freq,
     meas_lo_freq,
@@ -266,6 +274,8 @@ def _parse_common_args(
             - If any of qubit or meas lo's, or associated ranges do not have length equal to
             ``n_qubits``.
             - If qubit or meas lo's do not fit into perscribed ranges.
+            - If ``use_measure_esp`` is set to ``True`` on a device which does not support ESP
+                readout.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -351,6 +361,14 @@ def _parse_common_args(
         for lo_config in schedule_los
     ]
 
+    measure_esp_enabled = getattr(backend_config, "measure_esp_enabled", False)
+    use_measure_esp = use_measure_esp or measure_esp_enabled  # default to backend support value
+    if use_measure_esp and not measure_esp_enabled:
+        raise QiskitError(
+            "ESP readout not supported on this device. Please make sure the flag "
+            "'use_measure_esp' is unset or set to 'False'."
+        )
+
     # create run configuration and populate
     run_config_dict = dict(
         shots=shots,
@@ -358,6 +376,7 @@ def _parse_common_args(
         max_credits=max_credits,
         seed_simulator=seed_simulator,
         init_qubits=init_qubits,
+        use_measure_esp=use_measure_esp,
         rep_delay=rep_delay,
         qubit_lo_freq=qubit_lo_freq,
         meas_lo_freq=meas_lo_freq,

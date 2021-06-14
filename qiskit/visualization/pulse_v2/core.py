@@ -337,9 +337,7 @@ class DrawerCanvas:
 
         return axis_breaks
 
-    def set_time_range(
-        self, t_start: Union[int, float], t_end: Union[int, float], seconds: bool = True
-    ):
+    def set_time_range(self, t_start: float, t_end: float, seconds: bool = True):
         """Set time range to draw.
 
         All child chart instances are updated when time range is updated.
