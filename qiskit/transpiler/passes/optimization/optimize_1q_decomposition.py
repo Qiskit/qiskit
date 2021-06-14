@@ -41,6 +41,12 @@ class Optimize1qGatesDecomposition(TransformationPass):
         self.basis = None
         if basis:
             self.basis = []
+            if "u" in basis:
+                DeprecationWarning(
+                    'Using "u" in the basis for referring to the generic single-qubit rotation gate is '
+                    'being deprecated in favor of "U". Please use capital "U" in the future.'
+                )
+                basis[basis.index("u")] = "U"
             basis_set = set(basis)
             euler_basis_gates = one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
             for euler_basis_name, gates in euler_basis_gates.items():

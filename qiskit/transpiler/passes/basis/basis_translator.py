@@ -63,6 +63,12 @@ class BasisTranslator(TransformationPass):
         super().__init__()
 
         self._equiv_lib = equivalence_library
+        if target_basis and "u" in target_basis:
+            DeprecationWarning(
+                'Using "u" in the basis for referring to the generic single-qubit rotation gate is '
+                'being deprecated in favor of "U". Please use capital "U" in the future.'
+            )
+            target_basis[target_basis.index("u")] = "U"
         self._target_basis = target_basis
 
     def run(self, dag):
