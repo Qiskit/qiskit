@@ -885,9 +885,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(unrolled_dag, ref_dag)
         
     def test_ccx_paramter_consistency(self):
-        """Test whether ccx paramters are consistent between standard gates
-        and quantumcircuit
-        """
+        """Test the consistency of parameters"""
         qreg = QuantumRegister(3)
         qc = QuantumCircuit(qreg)
         qc.ccx(0, 1, 2, ctrl_state=0)
