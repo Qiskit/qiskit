@@ -43,11 +43,11 @@ def resolve_frames(
     Raises:
         PulseError: if a frame is not configured.
     """
-    if isinstance(schedule, ScheduleBlock):
-        schedule = block_to_schedule(schedule)
-
     if frames_config is None or not frames_config:
         return schedule
+
+    if isinstance(schedule, ScheduleBlock):
+        schedule = block_to_schedule(schedule)
 
     resolved_frames = {}
     sample_duration = None
