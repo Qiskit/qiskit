@@ -13,8 +13,10 @@
 # pylint: disable=missing-docstring
 
 import os
+import configparser as cp
 from uuid import uuid4
 
+from unittest import mock
 from qiskit import exceptions
 from qiskit.test import QiskitTestCase
 from qiskit import user_config
@@ -135,14 +137,66 @@ class TestUserConfig(QiskitTestCase):
             file.flush()
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
-            self.assertEqual(
-                {
-                    "circuit_drawer": "latex",
-                    "circuit_mpl_style": "default",
-                    "circuit_mpl_style_path": ["~", "~/.qiskit"],
-                    "transpile_optimization_level": 3,
-                    "num_processes": 15,
-                    "parallel_enabled": False,
-                },
-                config.settings,
-            )
+
+        self.assertEqual(
+            {
+                "circuit_drawer": "latex",
+                "circuit_mpl_style": "default",
+                "circuit_mpl_style_path": ["~", "~/.qiskit"],
+                "transpile_optimization_level": 3,
+                "num_processes": 15,
+                "parallel_enabled": False,
+            },
+            config.settings,
+        )
+
+    def test_set_config_all_options_valid(self):
+        self.addCleanup(os.remove, self.file_path)
+
+        user_config.set_config("circuit_drawer", "latex", file_path=self.file_path)
+        user_config.set_config("circuit_mpl_style", "default", file_path=self.file_path)
+        user_config.set_config("circuit_mpl_style_path", "~:~/.qiskit", file_path=self.file_path)
+        user_config.set_config("transpile_optimization_level", "3", file_path=self.file_path)
+        user_config.set_config("parallel", "false", file_path=self.file_path)
+        user_config.set_config("num_processes", "15", file_path=self.file_path)
+
+        config_settings = None
+        with mock.patch.dict(os.environ, {"QISKIT_SETTINGS": self.file_path}, clear=True):
+            config_settings = user_config.get_config()
+
+        self.assertEqual(
+            {
+                "circuit_drawer": "latex",
+                "circuit_mpl_style": "default",
+                "circuit_mpl_style_path": ["~", "~/.qiskit"],
+                "transpile_optimization_level": 3,
+                "num_processes": 15,
+                "parallel_enabled": False,
+            },
+            config_settings,
+        )
+
+    def test_set_config_multiple_sections(self):
+        self.addCleanup(os.remove, self.file_path)
+
+        user_config.set_config("circuit_drawer", "latex", file_path=self.file_path)
+        user_config.set_config("circuit_mpl_style", "default", file_path=self.file_path)
+        user_config.set_config("transpile_optimization_level", "3", file_path=self.file_path)
+
+        user_config.set_config("circuit_drawer", "latex", section="test", file_path=self.file_path)
+        user_config.set_config("parallel", "false", section="test", file_path=self.file_path)
+        user_config.set_config("num_processes", "15", section="test", file_path=self.file_path)
+
+        config = cp.ConfigParser()
+        config.read(self.file_path)
+
+        self.assertEqual(config.sections(), ["default", "test"])
+
+        self.assertEqual(
+            {
+                "circuit_drawer": "latex",
+                "circuit_mpl_style": "default",
+                "transpile_optimization_level": "3",
+            },
+            dict(config.items("default")),
+        )

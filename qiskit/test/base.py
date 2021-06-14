@@ -40,6 +40,7 @@ try:
 except ImportError:
     HAS_FIXTURES = False
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from .runtest import RunTest, MultipleExceptions
 from .utils import Path, setup_test_logging
 
@@ -167,9 +168,10 @@ class FullQiskitTestCase(BaseQiskitTestCase):
     def __init__(self, *args, **kwargs):
         """Construct a TestCase."""
         if not HAS_FIXTURES:
-            raise ImportError(
-                "Test runner requirements testtools and fixtures are missing. "
-                "Install them with 'pip install testtools fixtures'"
+            raise MissingOptionalLibraryError(
+                libname="testtools",
+                name="test runner",
+                pip_install="pip install testtools",
             )
         super().__init__(*args, **kwargs)
         self.__RunTest = self.run_tests_with
@@ -527,7 +529,7 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
         return ""
 
 
-if not HAS_FIXTURES and not os.environ.get("QISKIT_TEST_CAPTURE_STREAMS"):
+if not HAS_FIXTURES or not os.environ.get("QISKIT_TEST_CAPTURE_STREAMS"):
     QiskitTestCase = BasicQiskitTestCase
 else:
     QiskitTestCase = FullQiskitTestCase

@@ -20,6 +20,7 @@ from typing import Dict, List, Tuple, Callable, Union, Any
 import numpy as np
 
 from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (
@@ -307,15 +308,15 @@ class WaveformDrawer:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
 
         Raises:
-            ImportError: If matplotlib is not installed
+            MissingOptionalLibraryError: If matplotlib is not installed
         """
         # If these self.style.dpi or self.style.figsize are None, they will
         # revert back to their default rcParam keys.
         if not HAS_MATPLOTLIB:
-            raise ImportError(
-                "Matplotlib needs to be installed to use "
-                "WaveformDrawer. It can be installed with "
-                "'pip install matplotlib'"
+            raise MissingOptionalLibraryError(
+                libname="Matplotlib",
+                name="WaveformDrawer",
+                pip_install="pip install matplotlib",
             )
 
         from matplotlib import pyplot as plt
@@ -384,13 +385,13 @@ class ScheduleDrawer:
         Args:
             style: Style sheet for pulse schedule visualization.
         Raises:
-            ImportError: If matplotlib is not installed
+            MissingOptionalLibraryError: If matplotlib is not installed
         """
         if not HAS_MATPLOTLIB:
-            raise ImportError(
-                "Matplotlib needs to be installed to use "
-                "ScheduleDrawer. It can be installed with "
-                "'pip install matplotlib'"
+            raise MissingOptionalLibraryError(
+                libname="Matplotlib",
+                name="ScheduleDrawer",
+                pip_install="pip install matplotlib",
             )
 
         from matplotlib import pyplot as plt
@@ -875,7 +876,7 @@ class ScheduleDrawer:
         schedule: ScheduleComponent,
         dt: float,
         interp_method: Callable,
-        plot_range: Tuple[Union[int, float], Union[int, float]],
+        plot_range: Tuple[float, float],
         scale: float = None,
         channel_scales: Dict[Channel, float] = None,
         plot_all: bool = True,
