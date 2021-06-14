@@ -884,8 +884,10 @@ class TestControlledGate(QiskitTestCase):
         ref_dag = circuit_to_dag(ref_circuit)
         self.assertEqual(unrolled_dag, ref_dag)
         
-    def test_ccx_ctrl_state_paramter(self):
-        """test whether ccx has the paramter ctrl_state or not"""
+    def test_ccx_paramter_consistency(self):
+        """Test whether ccx paramters are consistent between standard gates
+        and quantumcircuit
+        """
         qreg = QuantumRegister(3)
         qc = QuantumCircuit(qreg)
         qc.ccx(0, 1, 2, ctrl_state=0)
@@ -894,11 +896,8 @@ class TestControlledGate(QiskitTestCase):
         unrolled_dag = unroller.run(dag)
 
         ref_circuit = QuantumCircuit(qreg)
-        ref_circuit.x(qreg[0])
-        ref_circuit.x(qreg[1])
-        ref_circuit.ccx(qreg[0], qreg[1], qreg[2])
-        ref_circuit.x(qreg[0])
-        ref_circuit.x(qreg[1])
+        ccx = CCXGate(ctrl_state=0)
+        ref_circuit.append(ccx, [0, 1, 2])
         ref_dag = circuit_to_dag(ref_circuit)
         self.assertEqual(unrolled_dag, ref_dag)
 
