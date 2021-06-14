@@ -11,19 +11,17 @@
 # that they have been altered from the originals.
 
 """
-This is the Optimizer class: anything to optimize the circuit
+This is the Optimizer class: anything to optimize the circuit.
 """
 
 from abc import ABC, abstractmethod
-import time
 from typing import Tuple, Union
+
 import numpy as np
 from numpy import linalg as la
 from scipy.optimize import fmin_l_bfgs_b
-from parametric_circuit import ParametricCircuit
 
-# TODO: what is the difference between final thetas and thetas_min?
-# TODO: why gradient descent uses thetas_min whereas Fista does not?
+from .parametric_circuit import ParametricCircuit
 
 
 class OptimizerBase(ABC):
@@ -376,15 +374,15 @@ class LBFGSOptimizer(OptimizerBase):
         else:
             tmp_grad[:] = g[:]
 
-        iter = int(iter_counter[0])
-        if iter >= 0:  # verbosity enabled?
-            if iter == 0 or (iter % 20) == 0:
+        num_iter = int(iter_counter[0])
+        if num_iter >= 0:  # verbosity enabled?
+            if num_iter == 0 or (num_iter % 20) == 0:
                 print(
                     "iteration: {:05d}, fobj: {:0.16f}, |grad|: {:0.16f}".format(
-                        iter, f, np.linalg.norm(tmp_grad)
+                        num_iter, f, np.linalg.norm(tmp_grad)
                     ),
                     flush=True,
                 )
-            iter_counter[0] = iter + 1
+            iter_counter[0] = num_iter + 1
 
         return f, tmp_grad

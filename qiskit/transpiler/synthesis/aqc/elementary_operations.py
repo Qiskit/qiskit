@@ -32,7 +32,7 @@ Z = ZGate().to_matrix()
 
 # todo: some of them they may have been already defined in qiskit,
 #  but for now we re-define them here
-def unitary(u, n, j) -> np.ndarray:
+def op_unitary(u, n, j) -> np.ndarray:
     """
 
     Args:
@@ -46,7 +46,7 @@ def unitary(u, n, j) -> np.ndarray:
     return np.kron(np.kron(np.eye(2 ** (j - 1)), u), np.eye(2 ** (n - j)))
 
 
-def CNOT(n, j, k) -> np.ndarray:
+def op_cnot(n, j, k) -> np.ndarray:
     """
 
     Args:
@@ -80,21 +80,49 @@ def CNOT(n, j, k) -> np.ndarray:
     return V
 
 
-def Rx(phi) -> np.ndarray:
+# TODO: replace with Qiskit
+def op_rx(phi) -> np.ndarray:
+    """
+
+    Args:
+        phi:
+
+    Returns:
+
+    """
     u = np.array([[np.cos(phi / 2), -1j * np.sin(phi / 2)], [-1j * np.sin(phi / 2), np.cos(phi / 2)]])
     return u
 
 
-def Ry(phi) -> np.ndarray:
+# TODO: replace with Qiskit
+def op_ry(phi) -> np.ndarray:
+    """
+
+    Args:
+        phi:
+
+    Returns:
+
+    """
     u = np.array([[np.cos(phi / 2), -np.sin(phi / 2)], [np.sin(phi / 2), np.cos(phi / 2)]])
     return u
 
 
-def Rz(phi) -> np.ndarray:
+# TODO: replace with Qiskit
+def op_rz(phi) -> np.ndarray:
+    """
+
+    Args:
+        phi:
+
+    Returns:
+
+    """
     u = np.array([[np.exp(-1j * phi / 2), 0], [0, np.exp(1j * phi / 2)]])
     return u
 
 
+# TODO: replace with the Qiskit's implementation
 def mcx_gate_matrix(num_qubits: int, make_su: bool = True) -> np.ndarray:
     """
     Generates a multi-control CX gate as a Numpy matrix.
