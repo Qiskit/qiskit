@@ -1535,7 +1535,7 @@ class DAGCircuit:
             only_ops (bool): True if only the ops nodes are wanted;
                         otherwise, all nodes are returned.
         Yield:
-             OpNode, InNode, or OutNode: the successive nodes on the given wire
+             Iterator: the successive nodes on the given wire
 
         Raises:
             DAGCircuitError: if the given wire doesn't exist in the DAG

@@ -152,7 +152,7 @@ def _partition_circuit(circuit):
     layers = list(
         zip(dag_layers, [{x: False for x in range(0, num_qubits)} for layer in dag_layers])
     )
-    print(layers)
+
     # initialize the ledger
     # The ledger tracks which qubits in each layer are available to have
     # gates from subsequent layers shifted backward.

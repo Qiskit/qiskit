@@ -59,8 +59,8 @@ class DAGNodeP:
         Check if DAG nodes are considered equivalent, e.g., as a node_match for nx.is_isomorphic.
 
         Args:
-            node1 (OpNode, InNode, or OutNode): A node to compare.
-            node2 (OpNode, InNode, or OutNode): The other node to compare.
+            node1 (OpNode, InNode, OutNode): A node to compare.
+            node2 (OpNode, InNode, OutNode): The other node to compare.
             bit_indices1 (dict): Dictionary mapping Bit instances to their index
                 within the circuit containing node1
             bit_indices2 (dict): Dictionary mapping Bit instances to their index
@@ -69,7 +69,7 @@ class DAGNodeP:
         Return:
             Bool: If node1 == node2
         """
-        """if bit_indices1 is None or bit_indices2 is None:
+        if bit_indices1 is None or bit_indices2 is None:
             warnings.warn(
                 "DAGNodeP.semantic_eq now expects two bit-to-circuit index "
                 "mappings as arguments. To ease the transition, these will be "
@@ -104,56 +104,7 @@ class DAGNodeP:
             if bit_indices1.get(node1.wire, None) == bit_indices2.get(node2.wire, None):
                 return True
         else:
-            return False"""
-        if bit_indices1 is None or bit_indices2 is None:
-            warnings.warn(
-                "DAGNode.semantic_eq now expects two bit-to-circuit index "
-                "mappings as arguments. To ease the transition, these will be "
-                "pre-populated based on the values found in Bit.index and "
-                "Bit.register. However, this behavior is deprecated and a future "
-                "release will require the mappings to be provided as arguments.",
-                DeprecationWarning,
-            )
-
-            bit_indices1 = {arg: arg for arg in node1.qargs + node1.cargs}
-            bit_indices2 = {arg: arg for arg in node2.qargs + node2.cargs}
-        #print('\nbit1', bit_indices1)
-        #print('bit2', bit_indices2)
-
-        node1_qargs = [bit_indices1[qarg] for qarg in node1.qargs]
-        node1_cargs = [bit_indices1[carg] for carg in node1.cargs]
-
-        node2_qargs = [bit_indices2[qarg] for qarg in node2.qargs]
-        node2_cargs = [bit_indices2[carg] for carg in node2.cargs]
-
-        #print(node1_qargs, node1_cargs, node2_qargs, node2_cargs)
-
-        # For barriers, qarg order is not significant so compare as sets
-        if isinstance(node1, OpNode) and isinstance(node2, OpNode) and "barrier" == node1.name == node2.name:
-            return set(node1_qargs) == set(node2_qargs)
-
-        #if node1.type == node2.type:
-        #if type(node1) == type(node2):
-        if isinstance(node1, type(node2)) and isinstance(node2, type(node1)):
-            #print('1', type(node1), type(node2))#, node1.op.name, node2.op.name)
-            #if (isinstance(node1, OpNode) and node1._op == node2._op:
-            if not isinstance(node1, OpNode) or node1.op.name == node2.op.name:
-                #print('2')
-                if node1_qargs == node2_qargs:
-                    #print('3')
-                    if node1_cargs == node2_cargs:
-                        #print('4', type(node1))
-                        if not isinstance(node1, OpNode) or (isinstance(node1, OpNode) and node1.op.condition == node2.op.condition):
-                            #print('False1')
-                            #if not isinstance(node1, OpNode):
-                            #    #print('5',  bit_indices1.get(node1.wire, None), bit_indices2.get(node2.wire, None))
-                            if isinstance(node1, OpNode) or bit_indices1.get(node1.wire, None) == bit_indices2.get(
-                                node2.wire, None
-                            ):
-                                return True
-        #print('False2')
-        return False
-
+            return False
 
 
 class OpNode(DAGNodeP):

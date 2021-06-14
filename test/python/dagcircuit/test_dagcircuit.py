@@ -34,7 +34,6 @@ from qiskit.circuit.library.standard_gates.z import CZGate
 from qiskit.circuit.library.standard_gates.x import XGate
 from qiskit.circuit.library.standard_gates.y import YGate
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
-from qiskit.circuit.library.standard_gates.i import IGate
 from qiskit.circuit.barrier import Barrier
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.converters import circuit_to_dag

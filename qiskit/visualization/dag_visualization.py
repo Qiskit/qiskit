@@ -20,7 +20,7 @@ import os
 import sys
 import tempfile
 
-from qiskit.dagcircuit import OpNode, InNode, OutNode
+from qiskit.dagcircuit.dagnode import OpNode, InNode, OutNode
 from qiskit.exceptions import MissingOptionalLibraryError
 from .exceptions import VisualizationError
 
