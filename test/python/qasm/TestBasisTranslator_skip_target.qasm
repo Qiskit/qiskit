@@ -1,5 +1,5 @@
 OPENQASM 2.0;
-include "qelib1.inc";
+include "standard_gates.inc";
 qreg q[5];
 h q[0];
 cu1(4.1564508) q[2],q[1];
