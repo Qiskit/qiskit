@@ -365,10 +365,10 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
     def test_special_U(self):
         """Special cases of U"""
         self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), "U", {})
-        self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), "U", {"u": 1})
-        self.check_oneq_special_cases(U3Gate(np.pi / 2, 0.2, 0.0).to_matrix(), "U", {"u": 1})
-        self.check_oneq_special_cases(U3Gate(np.pi / 2, 0.0, 0.2).to_matrix(), "U", {"u": 1})
-        self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), "U", {"u": 1})
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), "U", {"U": 1})
+        self.check_oneq_special_cases(U3Gate(np.pi / 2, 0.2, 0.0).to_matrix(), "U", {"U": 1})
+        self.check_oneq_special_cases(U3Gate(np.pi / 2, 0.0, 0.2).to_matrix(), "U", {"U": 1})
+        self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), "U", {"U": 1})
 
     def test_special_RR(self):
         """Special cases of RR"""
@@ -1102,7 +1102,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
         euler_bases=[
             ("U321", ["u3", "u2", "u1"]),
             ("U3", ["u3"]),
-            ("U", ["u"]),
+            ("U", ["U"]),
             ("U1X", ["u1", "rx"]),
             ("RR", ["r"]),
             ("PSX", ["p", "sx"]),
