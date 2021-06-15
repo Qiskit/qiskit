@@ -245,7 +245,6 @@ class QasmBackendConfiguration:
         dtm=None,
         processor_type=None,
         parametric_pulses=None,
-        measure_esp_enabled=False,
         **kwargs,
     ):
         """Initialize a QasmBackendConfiguration Object
@@ -301,10 +300,7 @@ class QasmBackendConfiguration:
                 - segment: Segment this processor belongs to within a larger chip.
             parametric_pulses (list): A list of pulse shapes which are supported on the backend.
                 For example: ``['gaussian', 'constant']``
-            measure_esp_enabled (bool): Whether excited state promoted (ESP) readout is enabled on
-                this device. ESP readout discriminates between the ``|0>`` and higher transmon
-                states to improve readout fidelity. See
-                `here <https://arxiv.org/pdf/2008.08571.pdf>`_. Defaults to ``False``.
+
             **kwargs: optional fields
         """
         self._data = {}
@@ -363,8 +359,6 @@ class QasmBackendConfiguration:
             self.processor_type = processor_type
         if parametric_pulses is not None:
             self.parametric_pulses = parametric_pulses
-
-        self.measure_esp_enabled = measure_esp_enabled
 
         # convert lo range from GHz to Hz
         if "qubit_lo_range" in kwargs.keys():
@@ -427,7 +421,6 @@ class QasmBackendConfiguration:
             "max_shots": self.max_shots,
             "coupling_map": self.coupling_map,
             "dynamic_reprate_enabled": self.dynamic_reprate_enabled,
-            "measure_esp_enabled": self.measure_esp_enabled,
         }
 
         if hasattr(self, "supported_instructions"):
