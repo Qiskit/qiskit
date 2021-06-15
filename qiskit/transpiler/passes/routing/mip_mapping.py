@@ -72,7 +72,7 @@ class MIPMapping(TransformationPass):
             DAGCircuit: A mapped DAG.
 
         Raises:
-            TranspilerError: if dag has no 2q-gates or it fails to solve MIP problem
+            TranspilerError: if it fails to solve MIP problem within the time limit
         """
         if self.coupling_map is None:
             return dag
@@ -83,6 +83,7 @@ class MIPMapping(TransformationPass):
         if self.property_set['layout']:
             logger.info("MIPMapping ignores given initial layout.")
 
+        original_dag = dag
         # MIPMappingModel assumes num_virtual_qubits == num_physical_qubits
         # TODO: rewrite without dag<->circuit conversion (or remove the above assumption)
         pm = PassManager([
@@ -93,7 +94,7 @@ class MIPMapping(TransformationPass):
         dag = circuit_to_dag(pm.run(dag_to_circuit(dag)))
 
         # TODO: set more safety dummy_steps
-        dummy_steps = min(4, dag.num_qubits())
+        dummy_steps = self.coupling_map.size() - 1
         # max_total_dummy = max_total_dummy or (self.dummy_steps * (self.dummy_steps - 1))
 
         model = MIPMappingModel(dag=dag,
@@ -101,9 +102,17 @@ class MIPMapping(TransformationPass):
                                 fixed_layout=False,
                                 dummy_timesteps=dummy_steps)
 
+        if len(model.gates) == 0:
+            logger.info("MIPMapping is skipped due to no 2q-gates.")
+            return original_dag
+
         model.create_cpx_problem(objective=self.objective)
 
-        model.solve_cpx_problem(time_limit=self.time_limit)
+        try:
+            model.solve_cpx_problem(time_limit=self.time_limit)
+        except TranspilerError as err:
+            logger.warning("%s dag is not mapped in MIPMapping.", err.message)
+            return original_dag
 
         # Get the optimized initial layout
         dic = {}

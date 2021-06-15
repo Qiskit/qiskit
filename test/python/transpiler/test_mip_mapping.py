@@ -26,7 +26,7 @@ class TestMIPMapping(QiskitTestCase):
     """ Tests the MIPMapping pass."""
 
     def test_no_two_qubit_gates(self):
-        """Raise error if circuit without 2q-gates is supplied
+        """Returns the original circuit if the circuit has no 2q-gates
          q0:--[H]--
          q1:-------
          CouplingMap map: [0]--[1]
@@ -36,8 +36,9 @@ class TestMIPMapping(QiskitTestCase):
         circuit = QuantumCircuit(2)
         circuit.h(0)
 
-        with self.assertRaises(TranspilerError):
-            MIPMapping(coupling)(circuit)
+        actual = MIPMapping(coupling)(circuit)
+
+        self.assertEqual(actual, circuit)
 
     def test_trivial_case(self):
         """No need to have any swap, the CX are distance 1 to each other
@@ -111,10 +112,6 @@ class TestMIPMapping(QiskitTestCase):
 
     def test_can_map_measurements_correctly(self):
         """Verify measurement nodes are updated to map correct cregs to re-mapped qregs.
-        Create a circuit with measures on q1 and q2, following a cx between q1 and q2.
-        Since (1, 2) is not in the coupling, one of the two will be required to move.
-        Verify that the mapped measure corresponds to one of the two possible layouts following
-        the swap.
         """
         coupling = CouplingMap([[0, 1], [0, 2]])
 
@@ -125,14 +122,13 @@ class TestMIPMapping(QiskitTestCase):
         circuit.measure(qr[1], cr[0])
         circuit.measure(qr[2], cr[1])
 
-        property_set = {"layout": Layout.generate_trivial_layout(qr)}
-        actual = MIPMapping(coupling)(circuit, property_set)
+        actual = MIPMapping(coupling)(circuit)
 
         q = QuantumRegister(3, 'q')
         expected = QuantumCircuit(q, cr)
         expected.cx(q[2], q[0])
         expected.measure(q[2], cr[0])
-        expected.measure(q[0], cr[1])  # <- changed due to swap insertion
+        expected.measure(q[0], cr[1])  # <- changed due to initial layout change
 
         self.assertEqual(actual, expected)
 
@@ -192,47 +188,26 @@ class TestMIPMapping(QiskitTestCase):
         self.assertEqual(actual, expected)
         self.assertEqual(actual_final_layout, expected_final_layout)
 
-    def test_search_4qcx4h1(self):
-        """Test for 4 cx gates and 1 h gate in a 4q circuit.
+    def test_unmappable_cnots_in_a_layer(self):
+        """Test mapping of a circuit with 2 cnots in a layer into T-shape coupling.
         """
         qr = QuantumRegister(4, 'q')
         cr = ClassicalRegister(4, 'c')
         circuit = QuantumCircuit(qr, cr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[2], qr[3])
-        circuit.cx(qr[1], qr[2])
-        circuit.h(qr[1])
-        circuit.cx(qr[1], qr[0])
-        circuit.barrier()
         circuit.measure(qr, cr)
 
         coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])  # {0: [1], 1: [2, 3]}
-        property_set = {"layout": Layout.generate_trivial_layout(qr)}
-        actual = MIPMapping(coupling)(circuit, property_set)
+        actual = MIPMapping(coupling)(circuit)
 
-        expected = QuantumCircuit(qr, cr)
-        expected.cx(qr[0], qr[1])
-        expected.swap(qr[1], qr[2])
-        expected.cx(qr[1], qr[3])
-        expected.cx(qr[2], qr[1])
-        expected.h(qr[2])
-        expected.swap(qr[0], qr[1])
-        expected.cx(qr[2], qr[1])
-        expected.barrier()
-        expected.measure(qr[1], cr[0])
-        expected.measure(qr[2], cr[1])
-        expected.measure(qr[0], cr[2])
-        expected.measure(qr[3], cr[3])
+        # Fails to map and returns the original circuit
+        self.assertEqual(actual, circuit)
 
-        print(actual)
-        print(expected)
-
-        self.assertEqual(actual, expected)
-
-    def test_search_multi_creg(self):
+    def test_multi_cregs(self):
         """Test for multiple ClassicalRegisters.
         """
-        qr = QuantumRegister(4, 'q')
+        qr = QuantumRegister(4, 'qr')
         cr1 = ClassicalRegister(2, 'c')
         cr2 = ClassicalRegister(2, 'd')
         circuit = QuantumCircuit(qr, cr1, cr2)
@@ -243,27 +218,26 @@ class TestMIPMapping(QiskitTestCase):
         circuit.cx(qr[1], qr[0])
         circuit.barrier(qr)
         circuit.measure(qr[0], cr1[0])
-        circuit.measure(qr[1], cr1[1])
-        circuit.measure(qr[2], cr2[0])
+        circuit.measure(qr[1], cr2[0])
+        circuit.measure(qr[2], cr1[1])
         circuit.measure(qr[3], cr2[1])
 
-        coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])  # {0: [1], 1: [2, 3]}
+        coupling = CouplingMap([[0, 1], [0, 2], [2, 3]])  # linear [1, 0, 2, 3]
         property_set = {"layout": Layout.generate_trivial_layout(qr)}
         actual = MIPMapping(coupling)(circuit, property_set)
 
-        expected = QuantumCircuit(qr, cr1, cr2)
-        expected.cx(qr[0], qr[1])
-        expected.swap(qr[1], qr[2])
-        expected.cx(qr[1], qr[3])
-        expected.cx(qr[2], qr[1])
-        expected.h(qr[2])
-        expected.swap(qr[0], qr[1])
-        expected.cx(qr[2], qr[1])
+        q = QuantumRegister(4, name='q')
+        expected = QuantumCircuit(q, cr1, cr2)
+        expected.cx(q[1], q[0])
+        expected.cx(q[2], q[3])
+        expected.cx(q[0], q[2])
+        expected.h(q[0])
+        expected.cx(q[0], q[1])
         expected.barrier()
-        expected.measure(qr[0], cr2[0])
-        expected.measure(qr[1], cr1[0])
-        expected.measure(qr[2], cr1[1])
-        expected.measure(qr[3], cr2[1])
+        expected.measure(q[0], cr2[0])
+        expected.measure(q[1], cr1[0])
+        expected.measure(q[2], cr1[1])
+        expected.measure(q[3], cr2[1])
 
         print(actual)
         print(expected)

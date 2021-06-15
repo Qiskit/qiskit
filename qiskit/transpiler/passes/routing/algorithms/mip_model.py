@@ -59,9 +59,6 @@ class MIPMappingModel:
             if laygates:
                 self.gates.append(laygates)
 
-        if len(self.gates) == 0:
-            raise TranspilerError("No 2q-gates in circuit, no need to run a mapping pass.")
-
         # Generate data structures for the optimization problem
         self.circuit_model = _CircuitModel(
             num_qubits=len(dag.qubits),
@@ -518,9 +515,12 @@ class MIPMappingModel:
             self.problem.set_results_stream(None)
         try:
             self.problem.solve()
-            self.problem.solution.get_objective_value()
+            status = self.problem.solution.get_status()
+            # print(status)
+            objval = self.problem.solution.get_objective_value()
+            # print(objval)
         except CplexSolverError as cse:
-            # TODO: more informative error message
+            logger.warning(cse)
             raise TranspilerError("Failed to solve MIP problem.") from cse
 
 
