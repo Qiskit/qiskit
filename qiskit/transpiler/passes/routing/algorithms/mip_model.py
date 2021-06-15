@@ -26,10 +26,20 @@ class MIPMappingModel:
     problem: cplex.Cplex
         A Cplex problem object with the problem description
         (solution is stored in `problem.solution`).
-    ic: IndexCalculator
+    ic: _IndexCalculator
         An Index calculator to retrieve variable indices.
     """
-    def __init__(self, dag, coupling_map, basis_fidelity, fixed_layout=False):
+    def __init__(self,
+                 dag,
+                 coupling_map,
+                 fixed_layout=False,
+                 dummy_timesteps=None):
+        """
+        Args:
+            dummy_timesteps : int
+                Number of dummy time steps, after each real layer of gates, to
+                allow arbitrary swaps between neighbors.
+        """
         self.problem = None
         self.ic = None
 
@@ -37,64 +47,34 @@ class MIPMappingModel:
         self.virtual_to_index = {v: i for i, v in enumerate(initial_layout.get_virtual_bits())}
         self.index_to_virtual = {i: v for i, v in enumerate(initial_layout.get_virtual_bits())}
 
-        # 2-qubit gates
+        # Extract 2-qubit gates
         self.gates = []
-        # Fidelities of original gate
-        gate_fidelity = []
-        # Fidelities of the mirrored gate
-        gate_mfidelity = []
-        # Generate data structures for the optimization problem
         for t, lay in enumerate(dag.layers()):
             laygates = []
-            layfidelity = []
-            laymfidelity = []
             subdag = lay['graph']
             for node in subdag.two_qubit_ops():
-                matrix = node.op.to_matrix()
-                swap = SwapGate().to_matrix()
-                if basis_fidelity:
-                    target = TwoQubitWeylDecomposition(matrix)
-                    targetm = TwoQubitWeylDecomposition(matrix @ swap)
-                    traces = two_qubit_cnot_decompose.traces(target)
-                    tracesm = two_qubit_cnot_decompose.traces(targetm)
-                    fidelity = [trace_to_fid(traces[i]) for i in range(4)]
-                    mfidelity = [trace_to_fid(tracesm[i]) for i in range(4)]
-                else:
-                    fidelity = [0.01, 0.01, 1.0, 0.01]
-                    mfidelity = [0.01, 0.01, 0.01, 1.0]
                 i1 = self.virtual_to_index[node.qargs[0]]
                 i2 = self.virtual_to_index[node.qargs[1]]
                 laygates.append((i1, i2))
-                layfidelity.append(fidelity)
-                laymfidelity.append(mfidelity)
             if laygates:
                 self.gates.append(laygates)
-                gate_fidelity.append(layfidelity)
-                gate_mfidelity.append(laymfidelity)
-
-        # If we use a fixed layout, we add an empty layer of gates to
-        # allow our MILP compiler to add swaps; otherwise, the MILP may be infeasible
-        if fixed_layout:
-            self.gates = [[]] + self.gates
-            gate_fidelity = [[]] + gate_fidelity
-            gate_mfidelity = [[]] + gate_mfidelity
 
         if len(self.gates) == 0:
             raise TranspilerError("No 2q-gates in circuit, no need to run a mapping pass.")
 
+        # Generate data structures for the optimization problem
         self.circuit_model = _CircuitModel(
             num_qubits=len(dag.qubits),
-            depth=len(self.gates),
             gates=self.gates,
-            gate_fidelity=gate_fidelity,
-            gate_mfidelity=gate_mfidelity)
+            fixed_layout=fixed_layout,
+            dummy_timesteps=dummy_timesteps
+        )
 
+        # TODO: refactoring _HardwareTopology
         self.toplogy_model = _HardwareTopology(
             num_qubits=coupling_map.size(),
-            connectivity=[list(coupling_map.neighbors(i))
-                          for i in range(coupling_map.size())],
-            basis_fidelity=[[basis_fidelity
-                             for _ in coupling_map.neighbors(i)]
+            connectivity=[list(coupling_map.neighbors(i)) for i in range(coupling_map.size())],
+            basis_fidelity=[[0.96 for _ in coupling_map.neighbors(i)]
                             for i in range(coupling_map.size())])
 
     def is_assigned(self, q: int, i: int, t: int) -> bool:
@@ -141,18 +121,19 @@ class MIPMappingModel:
     def edges(self):
         return self.ic.ht.arcs
 
-    def create_cpx_problem(self, objective, dummy_time_steps,
-                           max_total_dummy=10000, line_symm=False, cycle_symm=False):
+    def create_cpx_problem(self,
+                           objective,
+                           line_symm=False,
+                           cycle_symm=False):
         """Create integer programming model to compile a circuit.
 
         Parameters
         ----------
-        dummy_time_steps : int
-            Number of dummy time steps, after each real layer of gates, to
-            allow arbitrary swaps between neighbors.
-
-        max_total_dummy : int
-            Maximum allowed number of nonempty dummy time steps
+        objective : str
+            Type of objective function; one of the following values.
+            - error_rate: predicted error rate of the circuit
+            - depth: depth (number of timesteps) of the circuit
+            - balanced: weighted sum of error_rate and depth
 
         line_symm : bool
             Use symmetry breaking constrainst for line topology. Should
@@ -163,8 +144,7 @@ class MIPMappingModel:
             True if the hardware graph is a cycle/loop/ring.
         """
         prob = cplex.Cplex()
-        ic = IndexCalculator(self.circuit_model, self.toplogy_model,
-                             dummy_time_steps)
+        ic = _IndexCalculator(self.circuit_model, self.toplogy_model)
 
         ### Define variables ###
         # Add w variables
@@ -331,13 +311,13 @@ class MIPMappingModel:
             else:
                 prob.variables.set_lower_bounds(ic.wd_index(t), 1)
                 non_dummy += 1
-        # Total number of dummy steps
-        prob.linear_constraints.add(
-            lin_expr=[SparsePair(
-                ind=[ic.wd_index(t) for t in range(ic.depth)],
-                val=[1 for t in range(ic.depth)])],
-            senses=['L'], rhs=[max_total_dummy + non_dummy],
-            names=['dummy_ts_total'])
+        # # Total number of dummy steps
+        # prob.linear_constraints.add(
+        #     lin_expr=[SparsePair(
+        #         ind=[ic.wd_index(t) for t in range(ic.depth)],
+        #         val=[1 for t in range(ic.depth)])],
+        #     senses=['L'], rhs=[max_total_dummy + non_dummy],
+        #     names=['dummy_ts_total'])
         # Symmetry breaking between dummy time steps
         for t in range(ic.depth - 1):
             # This is a dummy time step and the next one is dummy too
@@ -439,9 +419,8 @@ class MIPMappingModel:
         prob : `cplex.Cplex`
             A Cplex problem object containg the model
 
-        ic : `IndexCalculator`
+        ic : `_IndexCalculator`
             Corresponding index calculator to retrieve variable indices
-
         """
         # Set objective
         for i in range(ic.wd_start, ic.wd_start + ic.num_wd_vars):
@@ -456,7 +435,7 @@ class MIPMappingModel:
         prob : `cplex.Cplex`
             A Cplex problem object containg the model
 
-        ic : `IndexCalculator`
+        ic : `_IndexCalculator`
             Corresponding index calculator to retrieve variable indices
 
         """
@@ -483,12 +462,12 @@ class MIPMappingModel:
                     pbest_fid = -np.log(np.max(expected_fidelities))
                     prob.objective.set_linear(
                         ic.y_index(t, (p, q), (i, j)), pbest_fid)
-            if (t < ic.depth - 1):
+            if t < ic.depth - 1:
                 # x variables are only defined for depth up to depth-1
                 for i in range(ic.num_pqubits):
                     for q in range(ic.num_lqubits):
                         for j in ic.ht.outstar_by_node[i]:
-                            if (not used_qubit[q]):
+                            if not used_qubit[q]:
                                 # This means we are swapping
                                 prob.objective.set_linear(
                                     ic.x_index(q, i, j, t),
@@ -511,78 +490,7 @@ class MIPMappingModel:
                                     ic.x_index(q, i, j, t),
                                     (pbest_fidm - pbest_fid) / 2)
 
-    @staticmethod
-    def set_error_rate_constraint(prob, ic, rhs):
-        """Set a maximum error rate constraint.
-
-        Parameters
-        ----------
-        prob : `cplex.Cplex`
-            A Cplex problem object containg the model
-
-        ic : `IndexCalculator`
-            Corresponding index calculator to retrieve variable indices
-
-        rhs : float
-            Maximum allowed error rate
-
-        """
-        # Create constraint
-        indices = []
-        values = []
-        # Set objective
-        for t in range(ic.depth):
-            used_qubit = [False for i in range(ic.num_lqubits)]
-            used_qubit_fidelity = [0] * ic.num_lqubits
-            used_qubit_mfidelity = [0] * ic.num_lqubits
-            for (p, q) in ic.qc.gates[t]:
-                used_qubit[p] = True
-                used_qubit[q] = True
-                used_qubit_fidelity[p] = ic.qc.gate_fidelity(t, (p, q))
-                used_qubit_fidelity[q] = ic.qc.gate_fidelity(t, (p, q))
-                used_qubit_mfidelity[p] = ic.qc.gate_mfidelity(t, (p, q))
-                used_qubit_mfidelity[q] = ic.qc.gate_mfidelity(t, (p, q))
-                for (i, j) in ic.ht.arcs:
-                    # We pay the cost for gate implementation. If we are
-                    # mirroring, another objective function coefficient
-                    # (below) will ensure we pay the difference between
-                    # regular cost and mirrored cost.
-                    expected_fidelities = [used_qubit_fidelity[p][k] *
-                                           ic.ht.arc_basis_fidelity((i, j)) ** k
-                                           for k in range(4)]
-                    pbest_fid = -np.log(np.max(expected_fidelities))
-                    indices.append(ic.y_index(t, (p, q), (i, j)))
-                    values.append(pbest_fid)
-            if (t < ic.depth - 1):
-                for i in range(ic.num_pqubits):
-                    for q in range(ic.num_lqubits):
-                        for j in ic.ht.outstar_by_node[i]:
-                            if (not used_qubit[q]):
-                                # This means we are swapping
-                                indices.append(ic.x_index(q, i, j, t))
-                                values.append(-3 / 2 *
-                                              ic.ht.arc_log_basis_fidelity((i, j)))
-                            else:
-                                # This is a mirrored gate, so compute the
-                                # difference between its mirrored cost and the
-                                # non-mirrored cost
-                                expected_fidelities = [
-                                    used_qubit_fidelity[q][k] *
-                                    ic.ht.arc_basis_fidelity((i, j)) ** k
-                                    for k in range(4)]
-                                expected_fidelitiesm = [
-                                    used_qubit_mfidelity[q][k] *
-                                    ic.ht.arc_basis_fidelity((i, j)) ** k
-                                    for k in range(4)]
-                                pbest_fid = -np.log(np.max(expected_fidelities))
-                                pbest_fidm = -np.log(np.max(expected_fidelitiesm))
-                                indices.append(ic.x_index(q, i, j, t))
-                                values.append((pbest_fidm - pbest_fid) / 2)
-        prob.linear_constraints.add(
-            lin_expr=[SparsePair(ind=indices, val=values)],
-            senses=['L'], rhs=[rhs], names=['error_rate_const'])
-
-    def solve_cpx_problem(self, time_limit=300,
+    def solve_cpx_problem(self, time_limit=60,
                           heuristic_emphasis=False, silent=True):
         """Solve the Cplex model and print statistics.
 
@@ -601,173 +509,28 @@ class MIPMappingModel:
         self.problem.parameters.preprocessing.qtolin.set(1)
         # This sets the number of threads; by default Cplex uses everything!
         # problem.parameters.threads.set(8)
-        if (heuristic_emphasis):
+        if heuristic_emphasis:
             self.problem.parameters.emphasis.mip.set(5)
-        if (silent):
+        if silent:
             self.problem.set_log_stream(None)
             self.problem.set_error_stream(None)
             self.problem.set_warning_stream(None)
             self.problem.set_results_stream(None)
-            self.problem.solve()
         try:
+            self.problem.solve()
             self.problem.solution.get_objective_value()
         except CplexSolverError as cse:
             # TODO: more informative error message
             raise TranspilerError("Failed to solve MIP problem.") from cse
-        if (silent):
-            return
-        # Everything below is just for display purposes; could be
-        # eliminated
-        print()
-        print('Time steps that can be eliminated:')
-        for t in range(self.ic.depth):
-            if (self.problem.solution.get_values(self.ic.wd_index(t)) > 0.5):
-                print('  ', end='')
-            else:
-                print(' *', end='')
-            if (t < self.ic.depth - 1):
-                print('->', end='')
-        print()
-        for q in range(self.ic.true_num_lqubits):
-            print('Position of qubit {:d}:'.format(q))
-            for t in range(self.ic.depth):
-                pos = -1
-                for i in range(self.ic.num_pqubits):
-                    if (self.problem.solution.get_values(
-                            self.ic.w_index(q, i, t)) > 0.5):
-                        pos = i
-                print('{:>2d}'.format(pos), end='')
-                if (t < self.ic.depth - 1):
-                    print('->', end='')
-                else:
-                    print()
-        # Verify circuit
-        for t in range(self.ic.depth):
-            for (p, q) in self.ic.qc.gates[t]:
-                for (i, j) in self.ic.ht.arcs:
-                    if (self.problem.solution.get_values(
-                            self.ic.y_index(t, (p, q), (i, j))) > 0.5):
-                        if (self.problem.solution.get_values(
-                                self.ic.w_index(p, i, t)) < 0.5 or
-                                self.problem.solution.get_values(
-                                    self.ic.w_index(q, j, t)) < 0.5):
-                            print(
-                                'Qubits {:d} and {:d} not in the right position at time {:d}'.format(p,
-                                                                                                     q,
-                                                                                                     t))
-        num_swaps = 0
-        num_merged_swaps = 0
-        depth = 0
-        for t in range(self.ic.depth - 1):
-            for (i, j) in self.ic.ht.arcs:
-                gate = False
-                for (p, q) in self.ic.qc.gates[t]:
-                    if (self.problem.solution.get_values(
-                            self.ic.y_index(t, (p, q), (i, j))) > 0.5
-                            or
-                            self.problem.solution.get_values(
-                                self.ic.y_index(t, (p, q), (j, i))) > 0.5):
-                        gate = True
-                for q in range(self.ic.num_lqubits):
-                    if (self.problem.solution.get_values(
-                            self.ic.x_index(q, i, j, t)) > 0.5):
-                        if (gate):
-                            num_merged_swaps += 1
-                        else:
-                            num_swaps += 1
-            if self.problem.solution.get_values(self.ic.wd_index(t)) > 0.5:
-                depth += 1
-        print('Num swaps:', num_swaps // 2, 'num merged swaps:', num_merged_swaps // 2,
-              'total depth:', depth)
-
-    # def evaluate_error_rate_obj(self):
-    #     """Evaluate the minimum error rate objective function.
-    #     """
-    #     sol = self.problem.solution.get_values()
-    #     obj = 0
-    #     # Loop over terms to ocmpute objective
-    #     for t in range(self.ic.depth - 1):
-    #         used_qubit = [False for i in range(self.ic.num_lqubits)]
-    #         used_qubit_fidelity = [0] * self.ic.num_lqubits
-    #         used_qubit_mfidelity = [0] * self.ic.num_lqubits
-    #         for (p, q) in self.ic.qc.gates[t]:
-    #             used_qubit[p] = True
-    #             used_qubit[q] = True
-    #             used_qubit_fidelity[p] = self.ic.qc.gate_fidelity(t, (p, q))
-    #             used_qubit_fidelity[q] = self.ic.qc.gate_fidelity(t, (p, q))
-    #             used_qubit_mfidelity[p] = self.ic.qc.gate_mfidelity(t, (p, q))
-    #             used_qubit_mfidelity[q] = self.ic.qc.gate_mfidelity(t, (p, q))
-    #             for (i, j) in self.ic.ht.arcs:
-    #                 # We pay the cost for gate implementation. If we are
-    #                 # mirroring, another objective function coefficient
-    #                 # (below) will ensure we pay the difference between
-    #                 # regular cost and mirrored cost.
-    #                 expected_fidelities = [used_qubit_fidelity[p][k] *
-    #                                        self.ic.ht.arc_basis_fidelity((i, j)) ** k
-    #                                        for k in range(4)]
-    #                 pbest_fid = -np.log(np.max(expected_fidelities))
-    #                 obj += (sol[self.ic.y_index(t, (p, q), (i, j))] *
-    #                         pbest_fid)
-    #         for i in range(self.ic.num_pqubits):
-    #             for q in range(self.ic.num_lqubits):
-    #                 for j in self.ic.ht.outstar_by_node[i]:
-    #                     if (not used_qubit[q]):
-    #                         # This means we are swapping
-    #                         obj += (sol[self.ic.x_index(q, i, j, t)] *
-    #                                 -3 / 2 * self.ic.ht.arc_log_basis_fidelity((i, j)))
-    #                     else:
-    #                         # This is a mirrored gate, so compute the
-    #                         # difference between its mirrored cost and the
-    #                         # non-mirrored cost
-    #                         expected_fidelities = [
-    #                             used_qubit_fidelity[q][k] *
-    #                             self.ic.ht.arc_basis_fidelity((i, j)) ** k
-    #                             for k in range(4)]
-    #                         expected_fidelitiesm = [
-    #                             used_qubit_mfidelity[q][k] *
-    #                             self.ic.ht.arc_basis_fidelity((i, j)) ** k
-    #                             for k in range(4)]
-    #                         pbest_fid = -np.log(np.max(expected_fidelities))
-    #                         pbest_fidm = -np.log(np.max(expected_fidelitiesm))
-    #                         obj += (sol[self.ic.x_index(q, i, j, t)] *
-    #                                 (pbest_fidm - pbest_fid) / 2)
-    #     return obj
-    #
-    # def evaluate_depth_obj(self):
-    #     """Evaluate the minimum depth objective function.
-    #     """
-    #     # Compute objective
-    #     obj = 0
-    #     for i in range(self.ic.wd_start, self.ic.wd_start + self.ic.num_wd_vars):
-    #         obj += self.problem.solution.get_values(i)
-    #     return obj
-    #
-    # def evaluate_cross_talk_obj(self):
-    #     """Evaluate the cross talk objective function.
-    #     """
-    #     obj = 0
-    #     sol = self.problem.solution.get_values()
-    #     # Compute objective
-    #     for t in range(self.ic.depth - 1):
-    #         for e1 in self.ic.ht.edges:
-    #             for e2 in self.ic.ht.cross_talk(e1):
-    #                 # Note: we multiply by 0.5 because if e2 is in
-    #                 # cross_talk(e1), then e1 is in cross_talk(e2)
-    #                 obj += sol[self.ic.eu_index(t, e1)] * sol[self.ic.eu_index(t, e2)] * 0.5
-    #     return obj
 
 
 class _CircuitModel:
     """Description of a quantum circuit.
 
-    Parameters
+    Attributes
     ----------
-
     num_qubits : int
         Number of qubits in the circuit.
-
-    depth : int
-        Depth of the circuit.
 
     gates : list[list[(int, int)]]
         A list of length equal to depth. Each element is a list of
@@ -775,44 +538,61 @@ class _CircuitModel:
         non-overlapping in terms of qubits. A gate is specified by two
         integers between 0 and num_qubits-1.
 
-    gate_fidelity : list[list[int]]
+    _gate_fidelity : list[list[int]]
         A list of the same dimensions as `gates`, indicating the
         fidelity of each gate when using 0, 1, 2 or 3 entangling
         gates. If it is not provided, it is assumed that the fidelity
         is 1 for 2 gates and 0.01 otherwise.
 
-    gate_mfidelity : list[list[int]]
+    _gate_mfidelity : list[list[int]]
         A list of the same dimensions as `gates`, indicating the
         fidelity of each mirrored gate when using 0, 1, 2 or 3 entangling
         gates. If it is not provided, it is assumed that the fidelity
         is 1 for 3 gates and 0.01 otherwise.
-
     """
 
-    def __init__(self, num_qubits, depth, gates, gate_fidelity=None,
-                 gate_mfidelity=None):
+    def __init__(self, num_qubits, gates, fixed_layout=False, dummy_timesteps=None):
+        """.
+
+        Args:
+            dummy_timesteps : int
+                Number of dummy time steps, after each real layer of gates, to
+                allow arbitrary swaps between neighbors.
+        """
         self.num_qubits = num_qubits
-        self.depth = depth
         self.gates = gates
-        self._orig_gate_fidelity = gate_fidelity
-        self._orig_gate_mfidelity = gate_mfidelity
-        self._gate_to_index = {(0, gate[0], gate[1]) : i
-                               for i, gate in enumerate(gates[0])}
-        for t in range(1, depth):
-            for gate in gates[t]:
-                self._gate_to_index[(t, gate[0], gate[1])] = len(self._gate_to_index)
-        if (gate_fidelity is None or gate_mfidelity is None):
-            self._gate_fidelity = {key : [0.01, 0.01, 1.0, 0.01] for key in self._gate_to_index.keys()}
-            self._gate_mfidelity = {key : [0.01, 0.01, 1.0, 0.01] for key in self._gate_to_index.keys()}
-        else:
-            self._gate_fidelity = {(0, gate[0], gate[1]) : gate_fidelity[0][i]
-                                  for (i, gate) in enumerate(gates[0])}
-            self._gate_mfidelity = {(0, gate[0], gate[1]) : gate_mfidelity[0][i]
-                                   for (i, gate) in enumerate(gates[0])}
-            for t in range(1, depth):
-                for (i, gate) in enumerate(gates[t]):
-                    self._gate_fidelity[(t, gate[0], gate[1])] = gate_fidelity[t][i]
-                    self._gate_mfidelity[(t, gate[0], gate[1])] = gate_mfidelity[t][i]
+        # If we use a fixed layout, we add an empty layer of gates to
+        # allow our MILP compiler to add swaps; otherwise, the MILP may be infeasible
+        if fixed_layout:
+            self.gates = [[]] + self.gates
+
+        # Add dummy time steps to this circuit. Dummy time steps can only contain SWAPs.
+        new_depth = 1 + (self.depth-1) * (1 + dummy_timesteps)
+        new_gates = []
+        for t in range(new_depth):
+            if t % (dummy_timesteps + 1) == 0:
+                # This is a real time step: copy the layer
+                old_t = t // (dummy_timesteps+1)
+                new_gates.append(
+                    [gate for gate in self.gates[old_t]])
+            else:
+                new_gates.append(list())
+        self.gates = new_gates
+
+        self._gate_to_index = {}
+        index = 0
+        for t in range(0, self.depth):
+            for gate in self.gates[t]:
+                self._gate_to_index[(t, gate[0], gate[1])] = index
+                index += 1
+
+        # TODO: remove gate_fidelity or lazy set of its values
+        self._gate_fidelity = {}
+        self._gate_mfidelity = {}
+
+    @property
+    def depth(self):
+        return len(self.gates)
 
     def gate_to_index(self, t, gate):
         return self._gate_to_index[t, gate[0], gate[1]]
@@ -827,9 +607,8 @@ class _CircuitModel:
 class _HardwareTopology:
     """Topology of a specific hardware.
 
-    Parameters
+    Attributes
     ----------
-
     num_qubits : int
         Number of qubits in the device
 
@@ -882,7 +661,7 @@ class _HardwareTopology:
         self._edge_to_index = {edge: i for i, edge in enumerate(self.edges)}
         self._arc_to_index = dict()
         self._arc_to_index = {arc: i for i, arc in enumerate(self.arcs)}
-        if (basis_fidelity is None):
+        if basis_fidelity is None:
             self._basis_fidelity = [[0.99] for i in range(num_qubits)
                                     for u in connectivity[i]]
         else:
@@ -938,29 +717,24 @@ class _HardwareTopology:
         return math.log(self._edge_basis_fidelity[edge])
 
     def cross_talk(self, edge):
-        return (self._cross_talk[edge] if (edge) in self._cross_talk else [])
+        return self._cross_talk[edge] if (edge) in self._cross_talk else []
 
 
-class IndexCalculator:
+class _IndexCalculator:
     """Compute flattened indices for decision variables.
 
-    Parameters
+    Attributes
     ----------
-    quantum_circuit : `data_structures.QuantumCircuit`
+    qc : `data_structures.QuantumCircuit`
         Description of a quantum circuit.
 
-    hardware_topology : `data_structures.HardwareTopology`
+    ht : `data_structures.HardwareTopology`
         Description of a hardware topology.
-
-    dummy_time_steps : int
-        Number of dummy time steps, after each real layer of gates, to
-        allow arbitrary swaps between neighbors.
     """
     def __init__(self,
                  quantum_circuit: _CircuitModel,
-                 hardware_topology: _HardwareTopology,
-                 dummy_time_steps):
-        self.qc = self._add_dummy_time_steps(quantum_circuit, dummy_time_steps)
+                 hardware_topology: _HardwareTopology):
+        self.qc = quantum_circuit
         logger.info(self.qc.num_qubits)
         logger.info(self.qc.depth)
         logger.info(self.qc.gates)
@@ -997,8 +771,7 @@ class IndexCalculator:
         self.wd_start = self.x_start + self.num_x_vars
         self.num_wd_vars = self.depth
         self.eu_start = self.wd_start + self.num_wd_vars
-        self.num_eu_vars = self.ht.num_edges * (self.depth-1)            
-    # -- end function
+        self.num_eu_vars = self.ht.num_edges * (self.depth-1)
 
     def w_index(self, logical_qubit, physical_qubit, gate_depth):
         """Return the index of a w variable.
@@ -1021,7 +794,6 @@ class IndexCalculator:
         """
         return (self.w_start + gate_depth*self.num_lqubits*self.num_pqubits +
                 physical_qubit*self.num_lqubits + logical_qubit)
-    # -- end function
     
     def y_index(self, depth, gate, arc):
         """Return the index of a y variable.
@@ -1045,9 +817,8 @@ class IndexCalculator:
 
         gate_index = self.qc.gate_to_index(depth, gate)
         arc_index = self.ht.arc_to_index(arc)
-        return (self.y_start + arc_index*self.num_gates + gate_index)
-    # -- end function
-    
+        return self.y_start + arc_index*self.num_gates + gate_index
+
     def x_index(self, logical_qubit, physical_qubit1, physical_qubit2,
                 depth):
         """Return the index of an x variable.
@@ -1078,7 +849,6 @@ class IndexCalculator:
                                              self.num_pqubits) +
                 logical_qubit*(self.ht.num_arcs + self.num_pqubits) +
                 self.x_var_mapping[physical_qubit1][physical_qubit2])
-    # -- end function
 
     def wd_index(self, depth):
         """Return the index of the w^d variable.
@@ -1094,7 +864,6 @@ class IndexCalculator:
             Index of the variable in a flattened (0-indexed) model.
         """
         return self.wd_start + depth
-    # -- end function
 
     def eu_index(self, depth, edge):
         """Return the index of the e^u variable.
@@ -1112,52 +881,7 @@ class IndexCalculator:
         int
             Index of the variable in a flattened (0-indexed) model.
         """
-        return self.eu_start + depth*(self.ht.num_edges) + self.ht.edge_to_index(edge)
+        return self.eu_start + depth*self.ht.num_edges + self.ht.edge_to_index(edge)
 
-    @staticmethod
-    def _add_dummy_time_steps(quantum_circuit, dummy_time_steps):
-        """Add dummy time steps to a circuit.
-
-        Dummy time steps can only contain SWAPs.
-
-        Parameters
-        ----------
-        quantum_circuit : `data_structures.QuantumCircuit`
-            Description of a quantum circuit.
-
-        dummy_time_steps : int
-            Number of dummy time steps, after each real layer of gates, to
-            allow arbitrary swaps between neighbors.
-
-        Returns
-        -------
-        `data_structures.QuantumCircuit`
-            Quantum circuit with dummy_time_steps between each layer.
-        """
-        num_qubits = quantum_circuit.num_qubits
-        depth = quantum_circuit.depth
-        gates = quantum_circuit.gates
-        gate_fidelity = quantum_circuit._orig_gate_fidelity
-        gate_mfidelity = quantum_circuit._orig_gate_mfidelity
-        new_depth = 1 + (depth-1) * (1 + dummy_time_steps)
-        new_gates = list()
-        new_gate_fidelity = list()
-        new_gate_mfidelity = list()
-        for t in range(new_depth):
-            if (t % (dummy_time_steps + 1) == 0):
-                # This is a real time step: copy the layer
-                old_t = t // (dummy_time_steps+1)
-                new_gates.append(
-                    [gate for gate in gates[old_t]])
-                new_gate_fidelity.append(
-                    [fid for fid in gate_fidelity[old_t]])
-                new_gate_mfidelity.append(
-                    [mfid for mfid in gate_mfidelity[old_t]])
-            else:
-                new_gates.append(list())
-                new_gate_fidelity.append(list())
-                new_gate_mfidelity.append(list())
-
-        return _CircuitModel(num_qubits, new_depth, new_gates, new_gate_fidelity, new_gate_mfidelity)
 
 

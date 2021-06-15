@@ -14,7 +14,6 @@
 import copy
 import logging
 import warnings
-from typing import Optional
 
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import SwapGate
@@ -40,32 +39,28 @@ class MIPMapping(TransformationPass):
     """
 
     def __init__(self,
-                 coupling_map: CouplingMap,
-                 objective: str = "error",
-                 basis_fidelity: float = 0.96,
-                 time_limit_er: float = 30,
-                 time_limit_depth: float = 30,
-                 dummy_steps: Optional[int] = None,
-                 max_total_dummy: Optional[int] = None,
-                 heuristic_emphasis: bool = False,
-                 line_symm : bool = False,
-                 cycle_symm : bool = False):
+                 coupling_map,
+                 objective="depth",
+                 backend_prop=None,
+                 time_limit=30):
         """MIPMapping initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
+            objective (str): Type of objective function; one of the following values.
+                - error_rate: predicted error rate of the circuit
+                - depth: [Default] depth (number of timesteps) of the circuit
+                - balanced: weighted sum of error_rate and depth
+            backend_prop (BackendProperties): Backend properties object
+            time_limit (float): Time limit for solving MIP in seconds
         """
         super().__init__()
+        if objective != "depth" and backend_prop is None:
+            raise TranspilerError("'backend_prop' must be supplied when objective=='depth'")
         self.coupling_map = copy.deepcopy(coupling_map)  # save a copy since some methods modify it
         self.objective = objective
-        self.dummy_steps = dummy_steps
-        self.max_total_dummy = max_total_dummy
-        self.basis_fidelity = basis_fidelity
-        self.time_limit_er = time_limit_er
-        self.time_limit_depth = time_limit_depth
-        self.heuristic_emphasis = heuristic_emphasis
-        self.line_symm = line_symm
-        self.cycle_symm = cycle_symm
+        self.backend_prop = backend_prop
+        self.time_limit = time_limit
 
     def run(self, dag):
         """Run the MIPMapping pass on `dag`.
@@ -97,25 +92,18 @@ class MIPMapping(TransformationPass):
         ])
         dag = circuit_to_dag(pm.run(dag_to_circuit(dag)))
 
-        # set parameters depending on circuit
         # TODO: set more safety dummy_steps
-        self.dummy_steps = self.dummy_steps or min(4, dag.num_qubits())
-        self.max_total_dummy = self.max_total_dummy or (self.dummy_steps * (self.dummy_steps - 1))
+        dummy_steps = min(4, dag.num_qubits())
+        # max_total_dummy = max_total_dummy or (self.dummy_steps * (self.dummy_steps - 1))
 
         model = MIPMappingModel(dag=dag,
                                 coupling_map=self.coupling_map,
-                                basis_fidelity=self.basis_fidelity)
+                                fixed_layout=False,
+                                dummy_timesteps=dummy_steps)
 
-        model.create_cpx_problem(
-            objective=self.objective,
-            dummy_time_steps=self.dummy_steps,
-            max_total_dummy=self.max_total_dummy,
-            line_symm=self.line_symm,
-            cycle_symm=self.cycle_symm)
+        model.create_cpx_problem(objective=self.objective)
 
-        model.solve_cpx_problem(
-            time_limit=self.time_limit_er,
-            heuristic_emphasis=self.heuristic_emphasis)
+        model.solve_cpx_problem(time_limit=self.time_limit)
 
         # Get the optimized initial layout
         dic = {}
@@ -131,7 +119,7 @@ class MIPMapping(TransformationPass):
         # Construct the mapped circuit
         canonical_register = QuantumRegister(self.coupling_map.size(), 'q')
         mapped_dag = self._create_empty_dagcircuit(dag, canonical_register)
-        interval = self.dummy_steps + 1
+        interval = dummy_steps + 1
         for k, layer in enumerate(dag.layers()):
             # add swaps between (k-1)-th and k-th the layer
             from_dummy_steps = 1 + interval * (k-1)
