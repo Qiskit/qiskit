@@ -15,7 +15,7 @@
 See https://arxiv.org/abs/1304.3061
 """
 
-from typing import Optional, List, Callable, Union, Dict
+from typing import Optional, List, Callable, Union, Dict, Tuple
 import logging
 import warnings
 from time import time
@@ -164,8 +164,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         self._max_evals_grouped = max_evals_grouped
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
-        self._input_expectation = expectation
-        self._factory_expectation = None
+        self._expectation = expectation
         self._include_custom = include_custom
 
         # set ansatz -- still supporting pre 0.18.0 sorting
@@ -253,10 +252,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def expectation(self) -> ExpectationBase:
         """The expectation value algorithm used to construct the expectation measurement from
         the observable."""
-        if self._input_expectation is not None:
-            return self._input_expectation
-
-        return self._factory_expectation
+        return self._expectation
 
     @expectation.setter
     def expectation(self, exp: ExpectationBase) -> None:
@@ -329,7 +325,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self,
         parameter: Union[List[float], List[Parameter], np.ndarray],
         operator: OperatorBase,
-    ) -> OperatorBase:
+        return_expectation: bool = False,
+    ) -> Union[OperatorBase, Tuple[OperatorBase, ExpectationBase]]:
         r"""
         Generate the ansatz circuit and expectation value measurement, and return their
         runnable composition.
@@ -337,10 +334,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         Args:
             parameter: Parameters for the ansatz circuit.
             operator: Qubit operator of the Observable
+            return_expectation: If True, return the ``ExpectationBase`` expectation converter used
+                in the construction of the expectation value. Useful e.g. to compute the standard
+                deviation of the expectation value.
 
         Returns:
             The Operator equalling the measurement of the ansatz :class:`StateFn` by the
-            Observable's expectation :class:`StateFn`.
+            Observable's expectation :class:`StateFn`, and, optionally, the expectation converter.
 
         Raises:
             AlgorithmError: If no operator has been provided.
@@ -354,24 +354,25 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         # if expectation was never created, try to create one
         if self.expectation is None:
-            self._factory_expectation = ExpectationFactory.build(
+            expectation = ExpectationFactory.build(
                 operator=operator,
                 backend=self.quantum_instance,
                 include_custom=self._include_custom,
             )
-            if self.expectation is None:
-                raise AlgorithmError(
-                    "No expectation set and could not automatically set one, please "
-                    "try explicitly setting an expectation or specify a backend so it "
-                    "can be chosen automatically."
-                )
+        else:
+            expectation = self.expectation
 
         param_dict = dict(zip(self._ansatz_params, parameter))  # type: Dict
         wave_function = self.ansatz.assign_parameters(param_dict)
 
-        observable_meas = self.expectation.convert(StateFn(operator, is_measurement=True))
+        observable_meas = expectation.convert(StateFn(operator, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
-        return observable_meas.compose(ansatz_circuit_op).reduce()
+        expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
+
+        if return_expectation:
+            return expect_op, expectation
+
+        return expect_op
 
     def construct_circuit(
         self,
@@ -408,12 +409,16 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         return True
 
     def _eval_aux_ops(
-        self, parameters: np.ndarray, aux_operators: List[OperatorBase], threshold: float = 1e-12
+        self,
+        parameters: np.ndarray,
+        aux_operators: List[OperatorBase],
+        expectation: ExpectationBase,
+        threshold: float = 1e-12,
     ) -> np.ndarray:
         # Create new CircuitSampler to avoid breaking existing one's caches.
         sampler = CircuitSampler(self.quantum_instance)
 
-        aux_op_meas = self.expectation.convert(StateFn(ListOp(aux_operators), is_measurement=True))
+        aux_op_meas = expectation.convert(StateFn(ListOp(aux_operators), is_measurement=True))
         aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.ansatz.bind_parameters(parameters)))
         values = np.real(sampler.convert(aux_op_expect).eval())
 
@@ -445,6 +450,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         # validation
         self._check_operator_ansatz(operator)
 
+        # set an expectation for this algorithm run (will be reset to None at the end)
         initial_point = _validate_initial_point(self.initial_point, self.ansatz)
 
         bounds = _validate_bounds(self.ansatz)
@@ -476,7 +482,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             gradient = self._gradient
 
         self._eval_count = 0
-        energy_evaluation = self.get_energy_evaluation(operator)
+        energy_evaluation, expectation = self.get_energy_evaluation(
+            operator, return_expectation=True
+        )
 
         start_time = time()
         opt_params, opt_value, nfev = self.optimizer.optimize(
@@ -508,13 +516,15 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._ret = result
 
         if aux_operators is not None:
-            aux_values = self._eval_aux_ops(opt_params, aux_operators)
+            aux_values = self._eval_aux_ops(opt_params, aux_operators, expectation=expectation)
             result.aux_operator_eigenvalues = aux_values[0]
 
         return result
 
     def get_energy_evaluation(
-        self, operator: OperatorBase
+        self,
+        operator: OperatorBase,
+        return_expectation: bool = False,
     ) -> Callable[[np.ndarray], Union[float, List[float]]]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 
@@ -522,9 +532,14 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         Args:
             operator: The operator whose energy to evaluate.
+            return_expectation: If True, return the ``ExpectationBase`` expectation converter used
+                in the construction of the expectation value. Useful e.g. to evaluate other
+                operators with the same expectation value converter.
+
 
         Returns:
-            Energy of the hamiltonian of each parameter.
+            Energy of the hamiltonian of each parameter, and, optionally, the expectation
+            converter.
 
         Raises:
             RuntimeError: If the circuit is not parameterized (i.e. has 0 free parameters).
@@ -534,7 +549,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         if num_parameters == 0:
             raise RuntimeError("The ansatz must be parameterized, but has 0 free parameters.")
 
-        expect_op = self.construct_expectation(self._ansatz_params, operator)
+        expect_op, expectation = self.construct_expectation(
+            self._ansatz_params, operator, return_expectation=True
+        )
 
         def energy_evaluation(parameters):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))
@@ -546,7 +563,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             means = np.real(sampled_expect_op.eval())
 
             if self._callback is not None:
-                variance = np.real(self.expectation.compute_variance(sampled_expect_op))
+                variance = np.real(expectation.compute_variance(sampled_expect_op))
                 estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)
                 for i, param_set in enumerate(parameter_sets):
                     self._eval_count += 1
@@ -563,6 +580,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             )
 
             return means if len(means) > 1 else means[0]
+
+        if return_expectation:
+            return energy_evaluation, expectation
 
         return energy_evaluation
 
