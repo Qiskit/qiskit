@@ -118,6 +118,17 @@ class OpNode(DAGNodeP):
         super().__init__(qargs, cargs)
 
     @property
+    def type(self):
+        """DEPRECATED Returns 'op' for node.type"""
+        warnings.warn(
+            "The OpNode 'type' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date.",
+            DeprecationWarning,
+            2,
+        )
+        return "op"
+
+    @property
     def name(self):
         """Returns the Instruction name corresponding to the op for this node"""
         return self.op.name
@@ -138,6 +149,17 @@ class InNode(DAGNodeP):
         self.wire = wire
         super().__init__()
 
+    @property
+    def type(self):
+        """DEPRECATED Returns 'in' for node.type"""
+        warnings.warn(
+            "The InNode 'type' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date.",
+            DeprecationWarning,
+            2,
+        )
+        return "in"
+
 
 class OutNode(DAGNodeP):
     """Object to represent an outgoing wire node in the DAGCircuit."""
@@ -149,10 +171,21 @@ class OutNode(DAGNodeP):
         self.wire = wire
         super().__init__()
 
+    @property
+    def type(self):
+        """DEPRECATED Returns 'out' for node.type"""
+        warnings.warn(
+            "The OutNode 'type' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date.",
+            DeprecationWarning,
+            2,
+        )
+        return "out"
+
 
 class DAGNode:
-    """Object to represent the information at a node in the DAGCircuit.
-    It is used as the return value from `*_nodes()` functions and can
+    """DEPRECATED as of 0.18.0. Object to represent the information at a node in
+    the DAGCircuit. It is used as the return value from `*_nodes()` functions and can
     be supplied to functions that take a node.
     """
 
@@ -160,6 +193,14 @@ class DAGNode:
 
     def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None, wire=None, nid=-1):
         """Create a node"""
+        warnings.warn(
+            "The DAGNode class has been deprecated as of version 0.18.0 of qiskit and will be "
+            "removed no earlier than 3 months after the release date. You should use "
+            "OpNode if creating an Instruction node, InNode for an incoming node, or "
+            "OutNode for an outgoing node.",
+            DeprecationWarning,
+            2,
+        )
         self.type = type
         self._op = op
         if name is not None:
