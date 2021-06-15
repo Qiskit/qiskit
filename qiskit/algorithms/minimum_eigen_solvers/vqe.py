@@ -249,13 +249,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._initial_point = initial_point
 
     @property
-    def expectation(self) -> ExpectationBase:
+    def expectation(self) -> Optional[ExpectationBase]:
         """The expectation value algorithm used to construct the expectation measurement from
         the observable."""
         return self._expectation
 
     @expectation.setter
-    def expectation(self, exp: ExpectationBase) -> None:
+    def expectation(self, exp: Optional[ExpectationBase]) -> None:
         self._input_expectation = exp
 
     def _check_operator_ansatz(self, operator: OperatorBase):
