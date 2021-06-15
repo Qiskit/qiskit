@@ -135,7 +135,7 @@ class InstructionDurations:
         inst: Union[str, Instruction],
         qubits: Union[int, List[int], Qubit, List[Qubit]],
         unit: str = "dt",
-    ) -> Union[float, int]:
+    ) -> float:
         """Get the duration of the instruction with the name and the qubits.
 
         Args:
@@ -180,7 +180,7 @@ class InstructionDurations:
                 f"Duration of {inst_name} on qubits {qubits} is not found."
             ) from ex
 
-    def _get(self, name: str, qubits: List[int], to_unit: str) -> Union[float, int]:
+    def _get(self, name: str, qubits: List[int], to_unit: str) -> float:
         """Get the duration of the instruction with the name and the qubits."""
         if name == "barrier":
             return 0
@@ -195,7 +195,7 @@ class InstructionDurations:
 
         return self._convert_unit(duration, unit, to_unit)
 
-    def _convert_unit(self, duration: float, from_unit: str, to_unit: str) -> Union[float, int]:
+    def _convert_unit(self, duration: float, from_unit: str, to_unit: str) -> float:
         if from_unit.endswith("s") and from_unit != "s":
             duration = apply_prefix(duration, from_unit)
             from_unit = "s"
@@ -234,8 +234,8 @@ class InstructionDurations:
 
 
 InstructionDurationsType = Union[
-    List[Tuple[str, Optional[Iterable[int]], Union[float, int], str]],
-    List[Tuple[str, Optional[Iterable[int]], Union[float, int]]],
+    List[Tuple[str, Optional[Iterable[int]], float, str]],
+    List[Tuple[str, Optional[Iterable[int]], float]],
     InstructionDurations,
 ]
 """List of tuples representing (instruction name, qubits indices, duration)."""

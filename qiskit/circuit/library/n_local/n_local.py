@@ -784,7 +784,7 @@ class NLocal(BlueprintCircuit):
         self,
         parameters: Union[dict, List[float], List[Parameter], ParameterVector],
         inplace: bool = False,
-        param_dict: Optional[dict] = None,  # pylint: disable=unused-argument
+        param_dict: Optional[dict] = None,
     ) -> Optional[QuantumCircuit]:
         """Assign parameters to the n-local circuit.
 
