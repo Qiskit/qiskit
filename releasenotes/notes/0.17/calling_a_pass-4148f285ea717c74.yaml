@@ -1,0 +1,42 @@
+---
+features:
+  - |
+    All transpiler passes (ie any instances of
+    :class:`~qiskit.transpiler.BasePass`) are now directly callable.
+    Calling a pass provides a convenient interface for running the pass
+    on a :class:`~qiskit.circuit.QuantumCircuit` object.
+
+    For example, running a single transformation pass, such as
+    :class:`~qiskit.transpiler.passes.BasisTranslator`, can be done with:
+
+    .. jupyter-execute::
+
+      from qiskit import QuantumCircuit
+      from qiskit.transpiler.passes import BasisTranslator
+      from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+
+      circuit = QuantumCircuit(1)
+      circuit.h(0)
+
+      pass_instance = BasisTranslator(sel, ['rx', 'rz', 'cx'])
+      result = pass_instance(circuit)
+      result.draw(output='mpl')
+
+    When running an analysis pass, a property set (as ``dict`` or as
+    :class:`~qiskit.transpiler.PropertySet`)
+    needs to be added as a parameter and it might be modified "in-place".
+    For example:
+
+    .. jupyter-execute::
+
+      from qiskit import QuantumCircuit
+      from qiskit.transpiler.passes import Depth
+
+      circuit = QuantumCircuit(1)
+      circuit.h(0)
+
+      property_set = {}
+      pass_instance = Depth()
+      pass_instance(circuit, property_set)
+      print(property_set)
+

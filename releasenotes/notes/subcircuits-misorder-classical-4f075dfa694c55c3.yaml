@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    If the :meth:`qiskit.circuit.Instruction.to_instruction` was used to create a subcircuit to a
-    :class:`qiskit.circuit.QuantumCircuit` object and the subcircuit used classical registers,
-    the three circuit drawers - ``mpl``, ``text``, and ``latex`` would in some instances display
-    the subcircuit to the left of a measure when it should have been displayed to the right. This
-    update fixes that.

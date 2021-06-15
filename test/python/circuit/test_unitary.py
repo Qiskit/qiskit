@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ,method-hidden,no-member
+# pylint: disable=arguments-differ,no-member
 
 """ UnitaryGate tests """
 
@@ -245,11 +245,11 @@ class TestUnitaryCircuit(QiskitTestCase):
         expected_qasm = (
             "OPENQASM 2.0;\n"
             'include "qelib1.inc";\n'
+            "qreg q0[2];\ncreg c0[1];\n"
+            "x q0[0];\n"
             "gate custom_gate p0 {\n"
             "\tu3(0,0,0) p0;\n"
             "}\n"
-            "qreg q0[2];\ncreg c0[1];\n"
-            "x q0[0];\n"
             "custom_gate q0[0];\n"
             "custom_gate q0[1];\n"
         )
@@ -261,7 +261,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         qr = QuantumRegister(2, "q0")
         cr = ClassicalRegister(1, "c0")
         qc = QuantumCircuit(qr, cr)
-        matrix = numpy.eye(4)
+        matrix = numpy.asarray([[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]])
         unitary_gate = UnitaryGate(matrix, label="custom_gate")
 
         qc.x(qr[0])
@@ -271,13 +271,13 @@ class TestUnitaryCircuit(QiskitTestCase):
         expected_qasm = (
             "OPENQASM 2.0;\n"
             'include "qelib1.inc";\n'
-            "gate custom_gate p0,p1 {\n"
-            "\tu3(0,0,0) p0;\n"
-            "\tu3(0,0,0) p1;\n"
-            "}\n"
             "qreg q0[2];\n"
             "creg c0[1];\n"
             "x q0[0];\n"
+            "gate custom_gate p0,p1 {\n"
+            "\tu3(pi,-pi/2,pi/2) p0;\n"
+            "\tu3(pi,pi/2,-pi/2) p1;\n"
+            "}\n"
             "custom_gate q0[0],q0[1];\n"
             "custom_gate q0[1],q0[0];\n"
         )
@@ -292,9 +292,16 @@ class TestUnitaryCircuit(QiskitTestCase):
     def test_unitary_decomposition_via_definition(self):
         """Test decomposition for 1Q unitary via definition."""
         mat = numpy.array([[0, 1], [1, 0]])
-        numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat)
+        self.assertTrue(numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat))
 
     def test_unitary_decomposition_via_definition_2q(self):
         """Test decomposition for 2Q unitary via definition."""
         mat = numpy.array([[0, 0, 1, 0], [0, 0, 0, -1], [1, 0, 0, 0], [0, -1, 0, 0]])
-        numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat)
+        self.assertTrue(numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat))
+
+    def test_unitary_control(self):
+        """Test parameters of controlled - unitary."""
+        mat = numpy.array([[0, 1], [1, 0]])
+        gate = UnitaryGate(mat).control()
+        self.assertTrue(numpy.allclose(gate.params, mat))
+        self.assertTrue(numpy.allclose(gate.base_gate.params, mat))

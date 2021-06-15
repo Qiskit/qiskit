@@ -17,10 +17,18 @@ import sys
 
 
 def main():
-    optional_imports = ['networkx', 'sympy', 'pydot', 'ipywidgets',
-                        'scipy.stats', 'matplotlib', 'qiskit.providers.aer',
-                        'qiskit.providers.ibmq', 'qiskit.ignis',
-                        'qiskit.aqua']
+    optional_imports = [
+        "networkx",
+        "sympy",
+        "pydot",
+        "ipywidgets",
+        "scipy.stats",
+        "matplotlib",
+        "qiskit.providers.aer",
+        "qiskit.providers.ibmq",
+        "qiskit.ignis",
+        "qiskit.aqua",
+    ]
 
     modules_imported = []
     for mod in optional_imports:
@@ -31,12 +39,17 @@ def main():
         sys.exit(0)
 
     res = subprocess.run(
-        [sys.executable, '-X', 'importtime', '-c', 'import qiskit'],
-        capture_output=True, encoding='utf8', check=True)
+        [sys.executable, "-X", "importtime", "-c", "import qiskit"],
+        capture_output=True,
+        encoding="utf8",
+        check=True,
+    )
 
     import_tree = [
-        x.split('|')[-1] for x in res.stderr.split('\n') if
-        'RuntimeWarning' not in x or 'warnings.warn' not in x]
+        x.split("|")[-1]
+        for x in res.stderr.split("\n")
+        if "RuntimeWarning" not in x or "warnings.warn" not in x
+    ]
 
     indent = -1
     matched_module = None
@@ -50,13 +63,12 @@ def main():
             matched_module = module_name
         if indent > 0:
             if line_indent < indent:
-                print("ERROR: %s is imported via %s" % (matched_module,
-                                                        module_name))
+                print("ERROR: %s is imported via %s" % (matched_module, module_name))
                 indent = -1
                 matched_module = None
 
     sys.exit(len(modules_imported))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

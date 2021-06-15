@@ -26,13 +26,13 @@ class Path(Enum):
     # Main SDK path:    qiskit/
     SDK = qiskit_path[0]
     # test.python path: qiskit/test/python/
-    TEST = os.path.normpath(os.path.join(SDK, '..', 'test', 'python'))
+    TEST = os.path.normpath(os.path.join(SDK, "..", "test", "python"))
     # Examples path:    examples/
-    EXAMPLES = os.path.normpath(os.path.join(SDK, '..', 'examples'))
+    EXAMPLES = os.path.normpath(os.path.join(SDK, "..", "examples"))
     # Schemas path:     qiskit/schemas
-    SCHEMAS = os.path.normpath(os.path.join(SDK, 'schemas'))
+    SCHEMAS = os.path.normpath(os.path.join(SDK, "schemas"))
     # Sample QASMs path: qiskit/test/python/qasm
-    QASMS = os.path.normpath(os.path.join(TEST, 'qasm'))
+    QASMS = os.path.normpath(os.path.join(TEST, "qasm"))
 
 
 def setup_test_logging(logger, log_level, filename):
@@ -44,8 +44,7 @@ def setup_test_logging(logger, log_level, filename):
         filename (str): name of the output file.
     """
     # Set up formatter.
-    log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-               ' %(message)s'.format(logger.name))
+    log_fmt = "{}.%(funcName)s:%(levelname)s:%(asctime)s:" " %(message)s".format(logger.name)
     formatter = logging.Formatter(log_fmt)
 
     # Set up the file handler.
@@ -53,7 +52,7 @@ def setup_test_logging(logger, log_level, filename):
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
-    if os.getenv('STREAM_LOG'):
+    if os.getenv("STREAM_LOG"):
         # Set up the stream handler.
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
@@ -67,6 +66,7 @@ def setup_test_logging(logger, log_level, filename):
 
 class Case(dict):
     """<no description>"""
+
     pass
 
 

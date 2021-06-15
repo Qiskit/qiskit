@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes a bug where the ``channels`` field for a
+    :class:`~qiskit.providers.models.PulseBackendConfiguration` object was
+    not being included in the output of the
+    :class:`qiskit.providers.models.PulseBackendConfiguration.to_dict` method.
+    Fixed `#5579 <https://github.com/Qiskit/qiskit-terra/issues/5579>`__

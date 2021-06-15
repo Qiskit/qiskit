@@ -293,13 +293,7 @@ class CCXGate(ControlledGate):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CCX gate."""
         super().__init__(
-            "ccx",
-            3,
-            [],
-            num_ctrl_qubits=2,
-            label=label,
-            ctrl_state=ctrl_state,
-            base_gate=XGate(),
+            "ccx", 3, [], num_ctrl_qubits=2, label=label, ctrl_state=ctrl_state, base_gate=XGate()
         )
 
     def _define(self):
@@ -461,13 +455,7 @@ class C3SXGate(ControlledGate):
                 yields the sqrt(X) gates, an angle of π/4 the 3-qubit controlled X gate.
         """
         super().__init__(
-            "c3sx",
-            4,
-            [],
-            num_ctrl_qubits=3,
-            label=label,
-            ctrl_state=ctrl_state,
-            base_gate=SXGate(),
+            "c3sx", 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state, base_gate=SXGate()
         )
 
         if angle is not None:
@@ -555,7 +543,7 @@ class C3SXGate(ControlledGate):
 
 
 class C3XGate(ControlledGate):
-    r"""The 4-qubit controlled X gate.
+    r"""The X gate controlled on 3 qubits.
 
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
     """
@@ -572,13 +560,7 @@ class C3XGate(ControlledGate):
     def __init__(self, angle=None, label=None, ctrl_state=None):
         """Create a new 3-qubit controlled X gate."""
         super().__init__(
-            "c3x",
-            4,
-            [],
-            num_ctrl_qubits=3,
-            label=label,
-            ctrl_state=ctrl_state,
-            base_gate=XGate(),
+            "c3x", 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state, base_gate=XGate()
         )
 
     # seems like open controls not hapening?
@@ -1008,7 +990,6 @@ class MCXGrayCode(MCXGate):
         return super().__new__(cls)
 
     def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
-
         if num_ctrl_qubits == 1:
             _name = "cx"
         elif num_ctrl_qubits == 2:
@@ -1049,7 +1030,6 @@ class MCXRecursive(MCXGate):
     """
 
     def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
-
         if num_ctrl_qubits == 1:
             _name = "cx"
         elif num_ctrl_qubits == 2:

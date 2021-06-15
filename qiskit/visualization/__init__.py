@@ -94,6 +94,14 @@ Single Qubit State Transition Visualizations
 
    visualize_transition
 
+Array/Matrix Visualizations
+===========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   array_to_latex
+
 Exceptions
 ==========
 
@@ -107,12 +115,14 @@ import os
 import sys
 
 from qiskit.visualization.counts_visualization import plot_histogram
-from qiskit.visualization.state_visualization import (plot_state_hinton,
-                                                      plot_bloch_vector,
-                                                      plot_bloch_multivector,
-                                                      plot_state_city,
-                                                      plot_state_paulivec,
-                                                      plot_state_qsphere)
+from qiskit.visualization.state_visualization import (
+    plot_state_hinton,
+    plot_bloch_vector,
+    plot_bloch_multivector,
+    plot_state_city,
+    plot_state_paulivec,
+    plot_state_qsphere,
+)
 from qiskit.visualization.transition_visualization import visualize_transition
 from qiskit.visualization.array import array_to_latex
 

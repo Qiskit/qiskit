@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Previously when generating qasm output of controlled gates with open controls the output would be as if all controls were closed independent of the specified control state. Therefore converting to qasm and back to circuit would result in a different cicuit.
-
-    This pr updates the qasm output by defining a composite gate which uses X gates to implement the open controls. The composite gate is named like <original_gate_name>_o<ctrl_state> where "o" stands for open control and `ctrl_state` is the integer value of the control state.
