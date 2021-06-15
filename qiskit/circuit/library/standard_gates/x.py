@@ -72,7 +72,7 @@ class XGate(Gate):
 
     def __init__(self, label=None):
         """Create new X gate."""
-        super().__init__('x', 1, [], label=label)
+        super().__init__("x", 1, [], label=label)
 
     def _define(self):
         """
@@ -81,11 +81,10 @@ class XGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U3Gate(pi, 0, pi), [q[0]], [])
-        ]
+        rules = [(U3Gate(pi, 0, pi), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -105,7 +104,9 @@ class XGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state
+        )
         gate.base_gate.label = self.label
         return gate
 
@@ -115,8 +116,7 @@ class XGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the X gate."""
-        return numpy.array([[0, 1],
-                            [1, 0]], dtype=dtype)
+        return numpy.array([[0, 1], [1, 0]], dtype=dtype)
 
 
 class CXGate(ControlledGate):
@@ -180,8 +180,15 @@ class CXGate(ControlledGate):
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CX gate."""
-        super().__init__('cx', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state, base_gate=XGate())
+        super().__init__(
+            "cx",
+            2,
+            [],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=XGate(),
+        )
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a controlled-X gate with more control lines.
@@ -197,7 +204,9 @@ class CXGate(ControlledGate):
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 1, label=label, ctrl_state=new_ctrl_state)
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 1, label=label, ctrl_state=new_ctrl_state
+        )
         gate.base_gate.label = self.label
         return gate
 
@@ -208,15 +217,13 @@ class CXGate(ControlledGate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the CX gate."""
         if self.ctrl_state:
-            return numpy.array([[1, 0, 0, 0],
-                                [0, 0, 0, 1],
-                                [0, 0, 1, 0],
-                                [0, 1, 0, 0]], dtype=dtype)
+            return numpy.array(
+                [[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=dtype
+            )
         else:
-            return numpy.array([[0, 0, 1, 0],
-                                [0, 1, 0, 0],
-                                [1, 0, 0, 0],
-                                [0, 0, 0, 1]], dtype=dtype)
+            return numpy.array(
+                [[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]], dtype=dtype
+            )
 
 
 class CCXGate(ControlledGate):
@@ -285,8 +292,15 @@ class CCXGate(ControlledGate):
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CCX gate."""
-        super().__init__('ccx', 3, [], num_ctrl_qubits=2, label=label,
-                         ctrl_state=ctrl_state, base_gate=XGate())
+        super().__init__(
+            "ccx",
+            3,
+            [],
+            num_ctrl_qubits=2,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=XGate(),
+        )
 
     def _define(self):
         """
@@ -299,7 +313,8 @@ class CCXGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        q = QuantumRegister(3, 'q')
+
+        q = QuantumRegister(3, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (HGate(), [q[2]], []),
@@ -316,7 +331,7 @@ class CCXGate(ControlledGate):
             (CXGate(), [q[0], q[1]], []),
             (TGate(), [q[0]], []),
             (TdgGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -337,7 +352,9 @@ class CCXGate(ControlledGate):
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 2, label=label, ctrl_state=new_ctrl_state)
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 2, label=label, ctrl_state=new_ctrl_state
+        )
         gate.base_gate.label = self.label
         return gate
 
@@ -347,9 +364,9 @@ class CCXGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CCX gate."""
-        mat = _compute_control_matrix(self.base_gate.to_matrix(),
-                                      self.num_ctrl_qubits,
-                                      ctrl_state=self.ctrl_state)
+        mat = _compute_control_matrix(
+            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
         if dtype:
             return numpy.asarray(mat, dtype=dtype)
         return mat
@@ -370,7 +387,7 @@ class RCCXGate(Gate):
 
     def __init__(self, label=None):
         """Create a new simplified CCX gate."""
-        super().__init__('rccx', 3, [], label=label)
+        super().__init__("rccx", 3, [], label=label)
 
     def _define(self):
         """
@@ -388,7 +405,8 @@ class RCCXGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        q = QuantumRegister(3, 'q')
+
+        q = QuantumRegister(3, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (U2Gate(0, pi), [q[2]], []),  # H gate
@@ -408,14 +426,19 @@ class RCCXGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the simplified CCX gate."""
-        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 1, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 1, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, -1j],
-                            [0, 0, 0, 0, 1, 0, 0, 0],
-                            [0, 0, 0, 0, 0, -1, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, 1j, 0, 0, 0, 0]], dtype=dtype)
+        return numpy.array(
+            [
+                [1, 0, 0, 0, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, -1j],
+                [0, 0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, -1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 1j, 0, 0, 0, 0],
+            ],
+            dtype=dtype,
+        )
 
 
 class C3SXGate(ControlledGate):
@@ -437,13 +460,23 @@ class C3SXGate(ControlledGate):
             angle (float): DEPRECATED. The angle used in the controlled-U1 gates. An angle of π/8
                 yields the sqrt(X) gates, an angle of π/4 the 3-qubit controlled X gate.
         """
-        super().__init__('c3sx', 4, [], num_ctrl_qubits=3, label=label,
-                         ctrl_state=ctrl_state, base_gate=SXGate())
+        super().__init__(
+            "c3sx",
+            4,
+            [],
+            num_ctrl_qubits=3,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=SXGate(),
+        )
 
         if angle is not None:
-            warnings.warn('The angle argument is deprecated as of Qiskit Terra 0.17.0 and will '
-                          'be removed no earlier than 3 months after the release date.',
-                          DeprecationWarning, stacklevel=2)
+            warnings.warn(
+                "The angle argument is deprecated as of Qiskit Terra 0.17.0 and will "
+                "be removed no earlier than 3 months after the release date.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if angle is None:
             angle = numpy.pi / 8
@@ -472,7 +505,8 @@ class C3SXGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import CU1Gate
-        q = QuantumRegister(4, name='q')
+
+        q = QuantumRegister(4, name="q")
         # pylint: disable=invalid-unary-operand-type
         rules = [
             (HGate(), [q[3]], []),
@@ -501,7 +535,7 @@ class C3SXGate(ControlledGate):
             (CXGate(), [q[0], q[2]], []),
             (HGate(), [q[3]], []),
             (CU1Gate(-self._angle), [q[2], q[3]], []),
-            (HGate(), [q[3]], [])
+            (HGate(), [q[3]], []),
         ]
         qc = QuantumCircuit(q)
         for instr, qargs, cargs in rules:
@@ -537,8 +571,15 @@ class C3XGate(ControlledGate):
     # pylint: disable=unused-argument
     def __init__(self, angle=None, label=None, ctrl_state=None):
         """Create a new 3-qubit controlled X gate."""
-        super().__init__('c3x', 4, [], num_ctrl_qubits=3, label=label,
-                         ctrl_state=ctrl_state, base_gate=XGate())
+        super().__init__(
+            "c3x",
+            4,
+            [],
+            num_ctrl_qubits=3,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=XGate(),
+        )
 
     # seems like open controls not hapening?
     def _define(self):
@@ -579,7 +620,8 @@ class C3XGate(ControlledGate):
         }
         """
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        q = QuantumRegister(4, name='q')
+
+        q = QuantumRegister(4, name="q")
         qc = QuantumCircuit(q, name=self.name)
         qc.h(3)
         qc.p(pi / 8, [0, 1, 2, 3])
@@ -626,7 +668,9 @@ class C3XGate(ControlledGate):
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 3, label=label, ctrl_state=new_ctrl_state)
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 3, label=label, ctrl_state=new_ctrl_state
+        )
         gate.base_gate.label = self.label
         return gate
 
@@ -636,9 +680,9 @@ class C3XGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the C4X gate."""
-        mat = _compute_control_matrix(self.base_gate.to_matrix(),
-                                      self.num_ctrl_qubits,
-                                      ctrl_state=self.ctrl_state)
+        mat = _compute_control_matrix(
+            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
         if dtype:
             return numpy.asarray(mat, dtype=dtype)
         return mat
@@ -657,7 +701,7 @@ class RC3XGate(Gate):
 
     def __init__(self, label=None):
         """Create a new RC3X gate."""
-        super().__init__('rc3x', 4, [], label=label)
+        super().__init__("rc3x", 4, [], label=label)
 
     def _define(self):
         """
@@ -684,7 +728,8 @@ class RC3XGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        q = QuantumRegister(4, 'q')
+
+        q = QuantumRegister(4, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (U2Gate(0, pi), [q[3]], []),  # H gate
@@ -713,22 +758,27 @@ class RC3XGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the RC3X gate."""
-        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 1j, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1j, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=dtype)
+        return numpy.array(
+            [
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 1j, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1j, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0],
+            ],
+            dtype=dtype,
+        )
 
 
 class C4XGate(ControlledGate):
@@ -744,8 +794,15 @@ class C4XGate(ControlledGate):
 
     def __init__(self, label=None, ctrl_state=None):
         """Create a new 4-qubit controlled X gate."""
-        super().__init__('c4x', 5, [], num_ctrl_qubits=4, label=label,
-                         ctrl_state=ctrl_state, base_gate=XGate())
+        super().__init__(
+            "c4x",
+            5,
+            [],
+            num_ctrl_qubits=4,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=XGate(),
+        )
 
     # seems like open controls not hapening?
     def _define(self):
@@ -778,7 +835,8 @@ class C4XGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import CU1Gate
-        q = QuantumRegister(5, name='q')
+
+        q = QuantumRegister(5, name="q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (HGate(), [q[4]], []),
@@ -810,7 +868,9 @@ class C4XGate(ControlledGate):
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 4, label=label, ctrl_state=new_ctrl_state)
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 4, label=label, ctrl_state=new_ctrl_state
+        )
         gate.base_gate.label = self.label
         return gate
 
@@ -820,9 +880,9 @@ class C4XGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the C4X gate."""
-        mat = _compute_control_matrix(self.base_gate.to_matrix(),
-                                      self.num_ctrl_qubits,
-                                      ctrl_state=self.ctrl_state)
+        mat = _compute_control_matrix(
+            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
         if dtype:
             return numpy.asarray(mat, dtype=dtype)
         return mat
@@ -839,10 +899,7 @@ class MCXGate(ControlledGate):
         """
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
         # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
-        explicit = {
-            1: CXGate,
-            2: CCXGate
-        }
+        explicit = {1: CXGate, 2: CCXGate}
         if num_ctrl_qubits in explicit.keys():
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
@@ -858,40 +915,47 @@ class MCXGate(ControlledGate):
         # if MCXGate is not specified via MCXGrayCode, MCXRecursive, MCXVChain
         if _name is None:
             if num_ctrl_qubits == 1:
-                _name = 'cx'
+                _name = "cx"
             elif num_ctrl_qubits == 2:
-                _name = 'ccx'
+                _name = "ccx"
             else:
-                _name = f'c{num_ctrl_qubits}x'
+                _name = f"c{num_ctrl_qubits}x"
 
-        super().__init__(_name, num_ctrl_qubits + 1 + num_ancilla_qubits, [],
-                         num_ctrl_qubits=num_ctrl_qubits, label=label,
-                         ctrl_state=ctrl_state, base_gate=XGate())
+        super().__init__(
+            _name,
+            num_ctrl_qubits + 1 + num_ancilla_qubits,
+            [],
+            num_ctrl_qubits=num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=XGate(),
+        )
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
         return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     @staticmethod
-    def get_num_ancilla_qubits(num_ctrl_qubits, mode='noancilla'):
+    def get_num_ancilla_qubits(num_ctrl_qubits, mode="noancilla"):
         """Get the number of required ancilla qubits without instantiating the class.
 
         This staticmethod might be necessary to check the number of ancillas before
         creating the gate, or to use the number of ancillas in the initialization.
         """
-        if mode == 'noancilla':
+        if mode == "noancilla":
             return 0
-        if mode in ['recursion', 'advanced']:
+        if mode in ["recursion", "advanced"]:
             return int(num_ctrl_qubits > 4)
-        if mode[:7] == 'v-chain' or mode[:5] == 'basic':
+        if mode[:7] == "v-chain" or mode[:5] == "basic":
             return max(0, num_ctrl_qubits - 2)
-        raise AttributeError('Unsupported mode ({}) specified!'.format(mode))
+        raise AttributeError("Unsupported mode ({}) specified!".format(mode))
 
     def _define(self):
         """The standard definition used the Gray code implementation."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        q = QuantumRegister(self.num_qubits, name='q')
+
+        q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q)
         qc._append(MCXGrayCode(self.num_ctrl_qubits), q[:], [])
         self.definition = qc
@@ -915,8 +979,11 @@ class MCXGate(ControlledGate):
         """
         if ctrl_state is None:
             # use __class__ so this works for derived classes
-            gate = self.__class__(self.num_ctrl_qubits + num_ctrl_qubits, label=label,
-                                  ctrl_state=ctrl_state)
+            gate = self.__class__(
+                self.num_ctrl_qubits + num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+            )
             gate.base_gate.label = self.label
             return gate
         return super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
@@ -927,16 +994,11 @@ class MCXGrayCode(MCXGate):
 
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
     """
+
     def __new__(cls, num_ctrl_qubits=None, label=None, ctrl_state=None):
-        """Create a new MCXGrayCode instance
-        """
+        """Create a new MCXGrayCode instance"""
         # if 1 to 4 control qubits, create explicit gates
-        explicit = {
-            1: CXGate,
-            2: CCXGate,
-            3: C3XGate,
-            4: C4XGate
-        }
+        explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
         if num_ctrl_qubits in explicit.keys():
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
@@ -948,24 +1010,29 @@ class MCXGrayCode(MCXGate):
     def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
 
         if num_ctrl_qubits == 1:
-            _name = 'cx'
+            _name = "cx"
         elif num_ctrl_qubits == 2:
-            _name = 'ccx'
+            _name = "ccx"
         else:
-            _name = f'c{num_ctrl_qubits}x_gray'
+            _name = f"c{num_ctrl_qubits}x_gray"
 
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name)
+        super().__init__(
+            num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name
+        )
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
-        return MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
+        return MCXGrayCode(
+            num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
 
     def _define(self):
         """Define the MCX gate using the Gray code."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import MCU1Gate
-        q = QuantumRegister(self.num_qubits, name='q')
+
+        q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q, name=self.name)
         qc._append(HGate(), [q[-1]], [])
         qc._append(MCU1Gate(numpy.pi, num_ctrl_qubits=self.num_ctrl_qubits), q[:], [])
@@ -984,28 +1051,33 @@ class MCXRecursive(MCXGate):
     def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
 
         if num_ctrl_qubits == 1:
-            _name = 'cx'
+            _name = "cx"
         elif num_ctrl_qubits == 2:
-            _name = 'ccx'
+            _name = "ccx"
         else:
-            _name = f'c{num_ctrl_qubits}x_recursive'
+            _name = f"c{num_ctrl_qubits}x_recursive"
 
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name)
+        super().__init__(
+            num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name
+        )
 
     @staticmethod
-    def get_num_ancilla_qubits(num_ctrl_qubits, mode='recursion'):
+    def get_num_ancilla_qubits(num_ctrl_qubits, mode="recursion"):
         """Get the number of required ancilla qubits."""
         return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
-        return MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
+        return MCXRecursive(
+            num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
 
     def _define(self):
         """Define the MCX gate using recursion."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        q = QuantumRegister(self.num_qubits, name='q')
+
+        q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q, name=self.name)
         if self.num_qubits == 4:
             qc._append(C3XGate(), q[:], [])
@@ -1025,7 +1097,9 @@ class MCXRecursive(MCXGate):
         if len(q) == 5:
             return [(C4XGate(), q[:], [])]
         if len(q) < 4:
-            raise AttributeError('Something went wrong in the recursion, have less than 4 qubits.')
+            raise AttributeError(
+                "Something went wrong in the recursion, have less than 4 qubits."
+            )
 
         # recurse
         num_ctrl_qubits = len(q) - 1
@@ -1045,34 +1119,45 @@ class MCXRecursive(MCXGate):
 class MCXVChain(MCXGate):
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
 
-    def __new__(cls, num_ctrl_qubits=None, dirty_ancillas=False,  # pylint: disable=unused-argument
-                label=None, ctrl_state=None):
+    def __new__(
+        cls,
+        num_ctrl_qubits=None,
+        dirty_ancillas=False,  # pylint: disable=unused-argument
+        label=None,
+        ctrl_state=None,
+    ):
         """Create a new MCX instance.
 
         This must be defined anew to include the additional argument ``dirty_ancillas``.
         """
         return super().__new__(cls, num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def __init__(self, num_ctrl_qubits, dirty_ancillas=False, label=None, ctrl_state=None):
+    def __init__(
+        self, num_ctrl_qubits, dirty_ancillas=False, label=None, ctrl_state=None
+    ):
 
         if num_ctrl_qubits == 1:
-            _name = 'cx'
+            _name = "cx"
         elif num_ctrl_qubits == 2:
-            _name = 'ccx'
+            _name = "ccx"
         else:
-            _name = f'c{num_ctrl_qubits}x_vchain'
+            _name = f"c{num_ctrl_qubits}x_vchain"
 
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name)
+        super().__init__(
+            num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name
+        )
         self._dirty_ancillas = dirty_ancillas
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
-        return MCXVChain(num_ctrl_qubits=self.num_ctrl_qubits,
-                         dirty_ancillas=self._dirty_ancillas,
-                         ctrl_state=self.ctrl_state)
+        return MCXVChain(
+            num_ctrl_qubits=self.num_ctrl_qubits,
+            dirty_ancillas=self._dirty_ancillas,
+            ctrl_state=self.ctrl_state,
+        )
 
     @staticmethod
-    def get_num_ancilla_qubits(num_ctrl_qubits, mode='v-chain'):
+    def get_num_ancilla_qubits(num_ctrl_qubits, mode="v-chain"):
         """Get the number of required ancilla qubits."""
         return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
 
@@ -1080,11 +1165,12 @@ class MCXVChain(MCXGate):
         """Define the MCX gate using a V-chain of CX gates."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        q = QuantumRegister(self.num_qubits, name='q')
+
+        q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q, name=self.name)
-        q_controls = q[:self.num_ctrl_qubits]
+        q_controls = q[: self.num_ctrl_qubits]
         q_target = q[self.num_ctrl_qubits]
-        q_ancillas = q[self.num_ctrl_qubits + 1:]
+        q_ancillas = q[self.num_ctrl_qubits + 1 :]
 
         definition = []
 
@@ -1106,13 +1192,18 @@ class MCXVChain(MCXGate):
 
             for j in reversed(range(2, self.num_ctrl_qubits - 1)):
                 definition.append(
-                    (RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], []))
+                    (RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], [])
+                )
                 i -= 1
 
-        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[0]], []))
+        definition.append(
+            (RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[0]], [])
+        )
         i = 0
         for j in range(2, self.num_ctrl_qubits - 1):
-            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
+            definition.append(
+                (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], [])
+            )
             i += 1
 
         if self._dirty_ancillas:
@@ -1130,17 +1221,24 @@ class MCXVChain(MCXGate):
             for inst in ancilla_post_rule:
                 definition.append(inst)
         else:
-            definition.append((CCXGate(), [q_controls[-1], q_ancillas[i], q_target], []))
+            definition.append(
+                (CCXGate(), [q_controls[-1], q_ancillas[i], q_target], [])
+            )
 
         for j in reversed(range(2, self.num_ctrl_qubits - 1)):
-            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], []))
+            definition.append(
+                (RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], [])
+            )
             i -= 1
-        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[i]], []))
+        definition.append(
+            (RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[i]], [])
+        )
 
         if self._dirty_ancillas:
             for i, j in enumerate(list(range(2, self.num_ctrl_qubits - 1))):
                 definition.append(
-                    (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
+                    (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], [])
+                )
 
         for instr, qargs, cargs in definition:
             qc._append(instr, qargs, cargs)
