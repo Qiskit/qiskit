@@ -1022,7 +1022,7 @@ class TestCircuitProperties(QiskitTestCase):
 
     def test_circuit_operations(self):
         """Test circuit operations breakdown by kind of op."""
-        operations = {"h": 2, "t": 1, "u": 1, "cx": 1, "ch": 1, "ccx": 1}
+        operations = {"h": 2, "t": 1, "U": 1, "cx": 1, "ch": 1, "ccx": 1}
 
         self.assertDictEqual(self.dag.count_ops(), operations)
 
@@ -1315,7 +1315,7 @@ class TestDagProperties(QiskitTestCase):
 
     def test_dag_operations(self):
         """Test dag operations breakdown by kind of op."""
-        operations = {"h": 2, "t": 1, "u": 1, "cx": 1, "ch": 1, "ccx": 1}
+        operations = {"h": 2, "t": 1, "U": 1, "cx": 1, "ch": 1, "ccx": 1}
 
         self.assertDictEqual(self.dag.count_ops(), operations)
 
@@ -1334,7 +1334,7 @@ class TestDagProperties(QiskitTestCase):
         """Test dag idle_wires."""
         wires = list(self.dag.idle_wires())
         self.assertEqual(len(wires), 0)
-        wires = list(self.dag.idle_wires(["u", "cx"]))
+        wires = list(self.dag.idle_wires(["U", "cx"]))
         self.assertEqual(len(wires), 1)
 
     def test_dag_depth1(self):

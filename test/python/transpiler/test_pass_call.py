@@ -95,8 +95,7 @@ class TestPassCall(QiskitTestCase):
         self.assertEqual(circuit, result)
 
     def test_error_unknown_defn_unroller_pass(self):
-        """Check for proper error message when unroller cannot find the definition
-        of a gate."""
+        """Check for proper error message when unroller cannot find the definition of a gate."""
         circuit = ZGate().control(2).definition
         basis = ["u1", "u2", "u3", "cx"]
         unroller = Unroller(basis)
@@ -104,7 +103,7 @@ class TestPassCall(QiskitTestCase):
             unroller(circuit)
         exp_msg = (
             "Error decomposing node of instruction 'p': 'NoneType' object has no"
-            + " attribute 'global_phase'. Unable to define instruction 'u' in the"
+            + " attribute 'global_phase'. Unable to define instruction 'U' in the"
             + " given basis."
         )
         self.assertEqual(exp_msg, cm.exception.message)

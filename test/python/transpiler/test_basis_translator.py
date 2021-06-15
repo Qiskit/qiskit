@@ -750,9 +750,9 @@ class TestBasisExamples(QiskitTestCase):
         bell.cx(0, 1)
 
         in_dag = circuit_to_dag(bell)
-        out_dag = BasisTranslator(std_eqlib, ["iswap", "u"]).run(in_dag)
+        out_dag = BasisTranslator(std_eqlib, ["iswap", "U"]).run(in_dag)
 
-        self.assertTrue(set(out_dag.count_ops()).issubset(["iswap", "u"]))
+        self.assertTrue(set(out_dag.count_ops()).issubset(["iswap", "U"]))
         self.assertEqual(Operator(bell), Operator(dag_to_circuit(out_dag)))
 
     def test_cx_bell_to_ecr(self):
