@@ -15,10 +15,17 @@ import copy
 import logging
 import warnings
 
+try:
+    import cplex  # pylint: disable=unused-import
+    _HAS_CPLEX = True
+except ImportError:
+    _HAS_CPLEX = False
+
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler import TransformationPass, CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
@@ -54,6 +61,12 @@ class MIPMapping(TransformationPass):
             backend_prop (BackendProperties): Backend properties object
             time_limit (float): Time limit for solving MIP in seconds
         """
+        if not _HAS_CPLEX:
+            raise MissingOptionalLibraryError(
+                libname="CPLEX",
+                name="CplexOptimizer",
+                pip_install="pip install 'qiskit[cplex]'",
+            )
         super().__init__()
         if objective != "depth" and backend_prop is None:
             raise TranspilerError("'backend_prop' must be supplied when objective=='depth'")

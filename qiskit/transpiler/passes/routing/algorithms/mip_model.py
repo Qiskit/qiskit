@@ -2,9 +2,9 @@
 
 import logging
 import math
-
-import cplex
 import numpy as np
+
+from cplex import Cplex
 from cplex import SparsePair
 from cplex.exceptions.errors import CplexSolverError
 
@@ -23,7 +23,7 @@ class MIPMappingModel:
 
     Attributes
     ----------
-    problem: cplex.Cplex
+    problem: Cplex
         A Cplex problem object with the problem description
         (solution is stored in `problem.solution`).
     ic: _IndexCalculator
@@ -32,7 +32,6 @@ class MIPMappingModel:
     def __init__(self,
                  dag,
                  coupling_map,
-                 fixed_layout=False,
                  dummy_timesteps=None):
         """
         Args:
@@ -139,7 +138,7 @@ class MIPMappingModel:
             Use symmetry breaking constrainst for loop. Should only be
             True if the hardware graph is a cycle/loop/ring.
         """
-        prob = cplex.Cplex()
+        prob = Cplex()
         ic = _IndexCalculator(self.circuit_model, self.toplogy_model)
 
         ### Define variables ###
@@ -412,7 +411,7 @@ class MIPMappingModel:
 
         Parameters
         ----------
-        prob : `cplex.Cplex`
+        prob : `Cplex`
             A Cplex problem object containg the model
 
         ic : `_IndexCalculator`
@@ -428,7 +427,7 @@ class MIPMappingModel:
 
         Parameters
         ----------
-        prob : `cplex.Cplex`
+        prob : `Cplex`
             A Cplex problem object containg the model
 
         ic : `_IndexCalculator`
