@@ -1134,6 +1134,45 @@ class TestTwoQubitDecompose(CheckDecompositions):
             requested_basis = set(oneq_gates + [kak_gate_name])
             self.assertTrue(decomposition_basis.issubset(requested_basis))
 
+    @combine(seed=range(10), name="seed_{seed}")
+    def test_sx_virtz_optimal_cnot(self, seed):
+        unitary = random_unitary(4, seed=seed)
+        uqc = two_qubit_cnot_decompose(unitary)
+        self.assertEqual(Operator(unitary), Operator(uqc))
+    # def _get_random_sun(self, nqubits, seed=None):
+    #     """get random special unitary on nqubits"""
+    #     dim = 2**nqubits
+    #     np.random.seed(seed)
+    #     u_n = unitary_group.rvs(dim)
+    #     return u_n * np.linalg.det(u_n)**(1./dim)
+    # def test_cxsxp_optimal_su4(self):
+    #     np.set_printoptions(linewidth=200, precision=2, suppress=True)
+    #     # generate 1st op random unitary on first qubit
+    #     u11 = self._get_random_sun(1, seed=11)
+    #     # generate 1st op random unitary on second qubit
+    #     u12 = self._get_random_sun(1, seed=12)
+    #     U2, U3, qc = _cx_su4_to_su4_cx_su4(u11, u12)
+    # def test_cxsxp_reverse(self):
+    #     np.set_printoptions(linewidth=200, precision=2, suppress=True)
+    #     # generate 1st op random unitary on first qubit
+    #     u11 = self._get_random_sun(1, seed=11)
+    #     # generate 1st op random unitary on second qubit
+    #     u12 = self._get_random_sun(1, seed=12)
+    #     U2, U3, qc = _su4_cx_reverse(u11, u12)
+    # def test_cxsxp_forward(self):
+    #     np.set_printoptions(linewidth=200, precision=2, suppress=True)
+    #     # generate 1st op random unitary on first qubit
+    #     u11 = self._get_random_sun(1, seed=11)
+    #     # generate 1st op random unitary on second qubit
+    #     u12 = self._get_random_sun(1, seed=12)
+    #     U2, U3, qc = _su4_cx_forward(u11, u12)
+    # def test_cxsxp_forward2(self):
+    #     np.set_printoptions(linewidth=200, precision=2, suppress=True)
+    #     # generate 1st op random unitary on first qubit
+    #     u11 = self._get_random_sun(1, seed=13)
+    #     # generate 1st op random unitary on second qubit
+    #     u12 = self._get_random_sun(1, seed=14)
+    #     U2, U3, qc = _su4_cx_forward(u11, u12)
 
 @ddt
 class TestTwoQubitDecomposeApprox(CheckDecompositions):
