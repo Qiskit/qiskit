@@ -63,7 +63,6 @@ class MIPMappingModel:
         self.circuit_model = _CircuitModel(
             num_qubits=len(dag.qubits),
             gates=self.gates,
-            fixed_layout=fixed_layout,
             dummy_timesteps=dummy_timesteps
         )
 
@@ -551,7 +550,7 @@ class _CircuitModel:
         is 1 for 3 gates and 0.01 otherwise.
     """
 
-    def __init__(self, num_qubits, gates, fixed_layout=False, dummy_timesteps=None):
+    def __init__(self, num_qubits, gates, dummy_timesteps=None):
         """.
 
         Args:
@@ -561,10 +560,6 @@ class _CircuitModel:
         """
         self.num_qubits = num_qubits
         self.gates = gates
-        # If we use a fixed layout, we add an empty layer of gates to
-        # allow our MILP compiler to add swaps; otherwise, the MILP may be infeasible
-        if fixed_layout:
-            self.gates = [[]] + self.gates
 
         # Add dummy time steps to this circuit. Dummy time steps can only contain SWAPs.
         new_depth = 1 + (self.depth-1) * (1 + dummy_timesteps)
@@ -581,7 +576,7 @@ class _CircuitModel:
 
         self._gate_to_index = {}
         index = 0
-        for t in range(0, self.depth):
+        for t in range(self.depth):
             for gate in self.gates[t]:
                 self._gate_to_index[(t, gate[0], gate[1])] = index
                 index += 1

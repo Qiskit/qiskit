@@ -185,6 +185,9 @@ class TestMIPMapping(QiskitTestCase):
         expected.cx(q[1], q[0])
         expected_final_layout = Layout({qr[0]: 1, qr[1]: 2, qr[2]: 3, qr[3]: 0})
 
+        # print(actual)
+        # print(expected)
+
         self.assertEqual(actual, expected)
         self.assertEqual(actual_final_layout, expected_final_layout)
 
@@ -223,8 +226,7 @@ class TestMIPMapping(QiskitTestCase):
         circuit.measure(qr[3], cr2[1])
 
         coupling = CouplingMap([[0, 1], [0, 2], [2, 3]])  # linear [1, 0, 2, 3]
-        property_set = {"layout": Layout.generate_trivial_layout(qr)}
-        actual = MIPMapping(coupling)(circuit, property_set)
+        actual = MIPMapping(coupling, objective="depth")(circuit)
 
         q = QuantumRegister(4, name='q')
         expected = QuantumCircuit(q, cr1, cr2)
@@ -234,12 +236,12 @@ class TestMIPMapping(QiskitTestCase):
         expected.h(q[0])
         expected.cx(q[0], q[1])
         expected.barrier()
-        expected.measure(q[0], cr2[0])
         expected.measure(q[1], cr1[0])
+        expected.measure(q[0], cr2[0])
         expected.measure(q[2], cr1[1])
         expected.measure(q[3], cr2[1])
 
-        print(actual)
-        print(expected)
+        # print(actual)
+        # print(expected)
 
         self.assertEqual(actual, expected)

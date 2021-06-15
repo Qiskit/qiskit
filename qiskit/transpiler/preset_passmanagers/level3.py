@@ -236,7 +236,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # Set trivial layout as dummy layout and No ApplyLayout
     _mapping = [
         BarrierBeforeFinalMeasurements(),
-        MIPMapping(coupling_map, basis_fidelity=1 - 6.4e-3)
+        MIPMapping(coupling_map)
     ]
 
     def _given_perfect_layout(property_set):

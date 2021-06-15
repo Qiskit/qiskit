@@ -99,7 +99,6 @@ class MIPMapping(TransformationPass):
 
         model = MIPMappingModel(dag=dag,
                                 coupling_map=self.coupling_map,
-                                fixed_layout=False,
                                 dummy_timesteps=dummy_steps)
 
         if len(model.gates) == 0:
