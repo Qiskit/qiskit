@@ -22,6 +22,95 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.27.0
+*************
+
+Terra 0.17.4
+============
+
+No change
+
+Aer 0.8.2
+=========
+
+No change
+
+Ignis 0.6.0
+===========
+
+No change
+
+Aqua 0.9.2
+==========
+
+.. _Release Notes_Aqua_0.9.2_Fixes:
+
+Bug Fixes
+---------
+
+- Removed version caps from the requirements list to enable installing with newer
+  versions of dependencies.
+
+IBM Q Provider 0.14.0
+=====================
+
+.. _Release Notes_IBMQ_0.14.0_New Features:
+
+New Features
+------------
+
+- You can now use the :meth:`qiskit.providers.ibmq.runtime.RuntimeJob.logs`
+  method to retrieve job logs. Note that logs are only available after the
+  job finishes.
+
+- A new backend configuration attribute ``input_allowed`` now tells you the
+  types of input supported by the backend. Valid input types are ``job``, which
+  means circuit jobs, and ``runtime``, which means Qiskit Runtime.
+
+  You can also use ``input_allowed`` in backend filtering. For example::
+
+    from qiskit import IBMQ
+
+    provider = IBMQ.load_account()
+    # Get a list of all backends that support runtime.
+    runtime_backends = provider.backends(input_allowed='runtime')
+
+
+.. _Release Notes_IBMQ_0.14.0_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+- ``qiskit-ibmq-provider`` now uses a new package ``websocket-client`` as its
+  websocket client, and packages ``websockets`` and ``nest-asyncio`` are no
+  longer required. ``setup.py`` and ``requirements.txt`` have been updated
+  accordingly.
+
+
+.. _Release Notes_IBMQ_0.14.0_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixes the issue that uses ``shots=1`` instead of the documented default
+  when no ``shots`` is specified for
+  :meth:`~qiskit.providers.ibmq.AccountProvider.run_circuits`.
+
+- Fixes the issue wherein a ``QiskitBackendNotFoundError`` exception is raised
+  when retrieving a runtime job that was submitted using a different provider
+  than the one used for retrieval.
+
+- Streaming runtime program interim results with proxies is now supported.
+  You can specify the proxies to use when enabling the account as usual,
+  for example::
+
+    from qiskit import IBMQ
+
+    proxies = {'urls': {'https://127.0.0.1:8085'}}
+    provider = IBMQ.enable_account(API_TOKEN, proxies=proxies)
+
+
+*************
 Qiskit 0.26.1
 *************
 
