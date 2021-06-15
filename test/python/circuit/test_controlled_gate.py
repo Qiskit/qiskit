@@ -888,11 +888,11 @@ class TestControlledGate(QiskitTestCase):
         """Test the consistency of parameters"""
         qreg = QuantumRegister(3)
         qc = QuantumCircuit(qreg)
-        qc.ccx(0, 1, 2, ctrl_state=0)
-        
+        qc.ccx(qreg[0], qreg[1], qreg[2], ctrl_state=0)
+
         ref_circuit = QuantumCircuit(qreg)
         ccx = CCXGate(ctrl_state=0)
-        ref_circuit.append(ccx, [0, 1, 2])
+        ref_circuit.append(ccx, [qreg[0], qreg[1], qreg[2]])
         self.assertEqual(qc, ref_circuit)
 
     def test_open_control_composite_unrolling(self):
