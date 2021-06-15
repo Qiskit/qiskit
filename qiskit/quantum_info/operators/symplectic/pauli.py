@@ -74,7 +74,7 @@ class Pauli(BasePauli):
     ``'-iZIZ'``.
 
     In the string representation qubit-0 corresponds to the right-most
-    Pauli character, and qubit-:math:`(n-1)` to the left-most Paulia
+    Pauli character, and qubit-:math:`(n-1)` to the left-most Pauli
     character. For example ``'XYZ'`` represents
     :math:`X\otimes Y \otimes Z` with ``'Z'`` on qubit-0,
     ``'Y'`` on qubit-1, and ``'X'`` on qubit-3.
