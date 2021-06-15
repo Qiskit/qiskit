@@ -118,14 +118,14 @@ class TestResolvedFrames(QiskitTestCase):
         resolved = resolve_frames(sched, frames_config).instructions
 
         params = [
-            (0, 160, self.freq0, self.freq0, 1),
-            (160, 160, self.freq1, self.freq0, 4),
-            (320, 160, self.freq0, self.freq1, 7),
-            (480, 160, self.freq1, self.freq0, 10),
+            (0, 160, self.freq0, 1),
+            (160, 160, self.freq1, 4),
+            (320, 160, self.freq0, 7),
+            (480, 160, self.freq1, 10),
         ]
 
         channel_phase = 0.0
-        for time, delta, frame_freq, other_freq, index in params:
+        for time, delta, frame_freq, index in params:
             wanted_phase = np.angle(np.exp(2.0j * np.pi * frame_freq * time * self.dt_)) % (
                 2 * np.pi
             )
