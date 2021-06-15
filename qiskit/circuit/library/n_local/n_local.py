@@ -677,7 +677,11 @@ class NLocal(BlueprintCircuit):
         self._initial_state = initial_state
 
         # construct the circuit of the initial state
-        self._initial_state_circuit = initial_state.construct_circuit(mode="circuit")
+        # if initial_state is an instance of QuantumCircuit, do not call construct circuit
+        if isinstance(initial_state, QuantumCircuit):
+            self._initial_state_circuit = initial_state.copy()
+        else:
+            self._initial_state_circuit = initial_state.construct_circuit(mode="circuit")
 
         # the initial state dictates the number of qubits since we do not have information
         # about on which qubits the initial state acts
