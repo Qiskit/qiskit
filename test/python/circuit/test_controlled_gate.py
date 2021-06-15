@@ -884,11 +884,12 @@ class TestControlledGate(QiskitTestCase):
         ref_dag = circuit_to_dag(ref_circuit)
         self.assertEqual(unrolled_dag, ref_dag)
         
-    def test_ccx_paramter_consistency(self):
+    def test_ccx_parameter_consistency(self):
         """Test the consistency of parameters"""
         qreg = QuantumRegister(3)
         qc = QuantumCircuit(qreg)
         qc.ccx(0, 1, 2, ctrl_state=0)
+        
         ref_circuit = QuantumCircuit(qreg)
         ccx = CCXGate(ctrl_state=0)
         ref_circuit.append(ccx, [0, 1, 2])
