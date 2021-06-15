@@ -270,7 +270,7 @@ class SabreSwap(TransformationPass):
 
     def _successors(self, node, dag):
         for _, successor, edge_data in dag.edges(node):
-            if successor.type != "op":
+            if not isinstance(successor, OpNode):
                 continue
             if isinstance(edge_data, Qubit):
                 yield successor
