@@ -86,20 +86,26 @@ from qiskit.visualization.pulse_v2.types import PhaseFreqTuple, PulseInstruction
 
 
 class ChannelEvents:
-    """Channel event manager.
-    """
-    _waveform_group = tuple((pulse.instructions.Play,
-                             pulse.instructions.Delay,
-                             pulse.instructions.Acquire))
-    _frame_group = tuple((pulse.instructions.SetFrequency,
-                          pulse.instructions.ShiftFrequency,
-                          pulse.instructions.SetPhase,
-                          pulse.instructions.ShiftPhase))
+    """Channel event manager."""
 
-    def __init__(self,
-                 waveforms: Dict[int, pulse.Instruction],
-                 frames: Dict[int, List[pulse.Instruction]],
-                 channel: pulse.channels.Channel):
+    _waveform_group = tuple(
+        (pulse.instructions.Play, pulse.instructions.Delay, pulse.instructions.Acquire)
+    )
+    _frame_group = tuple(
+        (
+            pulse.instructions.SetFrequency,
+            pulse.instructions.ShiftFrequency,
+            pulse.instructions.SetPhase,
+            pulse.instructions.ShiftPhase,
+        )
+    )
+
+    def __init__(
+        self,
+        waveforms: Dict[int, pulse.Instruction],
+        frames: Dict[int, List[pulse.Instruction]],
+        channel: pulse.channels.Channel,
+    ):
         """Create new event manager.
 
         Args:
@@ -119,9 +125,7 @@ class ChannelEvents:
         self._dt = 0
 
     @classmethod
-    def load_program(cls,
-                     program: pulse.Schedule,
-                     channel: pulse.channels.Channel):
+    def load_program(cls, program: pulse.Schedule, channel: pulse.channels.Channel):
         """Load a pulse program represented by ``Schedule``.
 
         Args:
@@ -146,10 +150,7 @@ class ChannelEvents:
 
         return ChannelEvents(waveforms, frames, channel)
 
-    def set_config(self,
-                   dt: float,
-                   init_frequency: float,
-                   init_phase: float):
+    def set_config(self, dt: float, init_frequency: float, init_phase: float):
         """Setup system status.
 
         Args:
@@ -175,9 +176,8 @@ class ChannelEvents:
             while len(sorted_frame_changes) > 0 and sorted_frame_changes[-1][0] <= t0:
                 _, frame_changes = sorted_frame_changes.pop()
                 phase, frequency = ChannelEvents._calculate_current_frame(
-                    frame_changes=frame_changes,
-                    phase=phase,
-                    frequency=frequency)
+                    frame_changes=frame_changes, phase=phase, frequency=frequency
+                )
 
             # Convert parameter expression into float
             if isinstance(phase, circuit.ParameterExpression):
@@ -207,9 +207,8 @@ class ChannelEvents:
             pre_phase = phase
             pre_frequency = frequency
             phase, frequency = ChannelEvents._calculate_current_frame(
-                frame_changes=frame_changes,
-                phase=phase,
-                frequency=frequency)
+                frame_changes=frame_changes, phase=phase, frequency=frequency
+            )
 
             # keep parameter expression to check either phase or frequency is parameterized
             frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
@@ -225,10 +224,9 @@ class ChannelEvents:
             yield PulseInstruction(t0, self._dt, frame, frame_changes, is_opaque)
 
     @classmethod
-    def _calculate_current_frame(cls,
-                                 frame_changes: List[pulse.instructions.Instruction],
-                                 phase: float,
-                                 frequency: float) -> Tuple[float, float]:
+    def _calculate_current_frame(
+        cls, frame_changes: List[pulse.instructions.Instruction], phase: float, frequency: float
+    ) -> Tuple[float, float]:
         """Calculate the current frame from the previous frame.
 
         If parameter is unbound phase or frequency accumulation with this instruction is skipped.

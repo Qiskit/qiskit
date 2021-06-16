@@ -38,7 +38,7 @@ class TestSequence(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        sc = transpile(qc, self.backend, scheduling_method='alap')
+        sc = transpile(qc, self.backend, scheduling_method="alap")
         actual = sequence(sc, self.backend)
         expected = schedule(transpile(qc, self.backend), self.backend)
         self.assertEqual(actual, pad(expected))
@@ -46,21 +46,23 @@ class TestSequence(QiskitTestCase):
     def test_transpile_and_sequence_agree_with_schedule_for_circuit_with_delay(self):
         qc = QuantumCircuit(1, 1, name="t2")
         qc.h(0)
-        qc.delay(500, 0, unit='ns')
+        qc.delay(500, 0, unit="ns")
         qc.h(0)
         qc.measure(0, 0)
-        sc = transpile(qc, self.backend, scheduling_method='alap')
+        sc = transpile(qc, self.backend, scheduling_method="alap")
         actual = sequence(sc, self.backend)
         expected = schedule(transpile(qc, self.backend), self.backend)
-        self.assertEqual(actual.exclude(instruction_types=[pulse.Delay]),
-                         expected.exclude(instruction_types=[pulse.Delay]))
+        self.assertEqual(
+            actual.exclude(instruction_types=[pulse.Delay]),
+            expected.exclude(instruction_types=[pulse.Delay]),
+        )
 
     @unittest.skip("not yet determined if delays on ancilla should be removed or not")
     def test_transpile_and_sequence_agree_with_schedule_for_circuits_without_measures(self):
         qc = QuantumCircuit(2, name="bell_without_measurement")
         qc.h(0)
         qc.cx(0, 1)
-        sc = transpile(qc, self.backend, scheduling_method='alap')
+        sc = transpile(qc, self.backend, scheduling_method="alap")
         actual = sequence(sc, self.backend)
         expected = schedule(transpile(qc, self.backend), self.backend)
         self.assertEqual(actual, pad(expected))

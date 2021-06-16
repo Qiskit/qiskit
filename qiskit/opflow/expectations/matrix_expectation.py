@@ -21,11 +21,11 @@ from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 
 
 class MatrixExpectation(ExpectationBase):
-    """ An Expectation converter which converts Operator measurements to be matrix-based so they
-    can be evaluated by matrix multiplication. """
+    """An Expectation converter which converts Operator measurements to be matrix-based so they
+    can be evaluated by matrix multiplication."""
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
-        """ Accept an Operator and return a new Operator with the Pauli measurements replaced by
+        """Accept an Operator and return a new Operator with the Pauli measurements replaced by
         Matrix based measurements.
 
         Args:
