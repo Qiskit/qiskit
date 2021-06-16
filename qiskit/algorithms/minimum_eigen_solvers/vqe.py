@@ -256,7 +256,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     @expectation.setter
     def expectation(self, exp: Optional[ExpectationBase]) -> None:
-        self._input_expectation = exp
+        self._expectation = exp
 
     def _check_operator_ansatz(self, operator: OperatorBase):
         """Check that the number of qubits of operator and ansatz match."""

@@ -381,6 +381,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
             with self.assertRaises(AlgorithmError):
                 _ = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
+        vqe.expectation = MatrixExpectation()
         vqe.quantum_instance = self.statevector_simulator
         with self.subTest(msg="assert VQE works once all info is available"):
             result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
