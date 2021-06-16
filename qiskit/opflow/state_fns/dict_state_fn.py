@@ -42,6 +42,7 @@ class DictStateFn(StateFn):
         primitive: Union[str, dict, Result] = None,
         coeff: Union[complex, ParameterExpression] = 1.0,
         is_measurement: bool = False,
+        from_operator: bool = False,
     ) -> None:
         """
         Args:
@@ -49,6 +50,7 @@ class DictStateFn(StateFn):
                 Result, which defines the behavior of the underlying function.
             coeff: A coefficient by which to multiply the state function.
             is_measurement: Whether the StateFn is a measurement operator.
+            from_operator: if True the StateFn is derived from OperatorStateFn. (Default: False)
 
         Raises:
             TypeError: invalid parameters.
@@ -80,6 +82,7 @@ class DictStateFn(StateFn):
             )
 
         super().__init__(primitive, coeff=coeff, is_measurement=is_measurement)
+        self.from_operator = from_operator
 
     def primitive_strings(self) -> Set[str]:
         return {"Dict"}
@@ -262,12 +265,13 @@ class DictStateFn(StateFn):
         # we define all missing strings to have a function value of
         # zero.
         if isinstance(front, DictStateFn):
+            print(self.from_operator)
             return np.round(
                 cast(
                     float,
                     sum([v * front.primitive.get(b, 0) for (b, v) in self.primitive.items()])
                     * self.coeff
-                    * front.coeff,
+                    * (front.coeff ** 2 if self.from_operator else front.coeff),
                 ),
                 decimals=EVAL_SIG_DIGITS,
             )

@@ -256,10 +256,9 @@ class TestPauliExpectation(QiskitOpflowTestCase):
 
     def test_expectation_with_coeff(self):
         """Test PauliExpectation with coefficients."""
-        exp = 3 * ~StateFn(Z) @ (2 * One)
-        expected = exp.eval()
+        exp = 3 * ~StateFn(X) @ (2 * Minus)
         target = self.sampler.convert(self.expect.convert(exp)).eval()
-        self.assertEqual(target, expected)
+        self.assertEqual(target, -12)
 
 
 if __name__ == "__main__":

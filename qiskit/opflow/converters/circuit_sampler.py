@@ -361,6 +361,7 @@ class CircuitSampler(ConverterBase):
                         "0" * num_qubits,
                         coeff=avg * op_c.coeff,
                         is_measurement=op_c.is_measurement,
+                        from_operator=op_c.from_operator,
                     )
                 elif self._statevector:
                     result_sfn = StateFn(
@@ -369,12 +370,13 @@ class CircuitSampler(ConverterBase):
                     )
                 else:
                     shots = self.quantum_instance._run_config.shots
-                    result_sfn = StateFn(
+                    result_sfn = DictStateFn(
                         {
                             b: (v / shots) ** 0.5 * op_c.coeff
                             for (b, v) in results.get_counts(circ_index).items()
                         },
                         is_measurement=op_c.is_measurement,
+                        from_operator=op_c.from_operator,
                     )
                 if self._attach_results:
                     result_sfn.execution_results = circ_results

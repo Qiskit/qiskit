@@ -47,23 +47,6 @@ class AerPauliExpectation(ExpectationBase):
         """
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
             return self._replace_pauli_sums(operator.primitive) * operator.coeff
-        elif (
-            isinstance(operator, ComposedOp)
-            and isinstance(operator[0], OperatorStateFn)
-            and operator[0].is_measurement
-        ):
-            state_coeff = operator[1].coeff
-            state = operator[1] / operator[1].coeff
-            return ComposedOp(
-                [
-                    self._replace_pauli_sums(operator[0].primitive)
-                    * operator[0].coeff
-                    * (state_coeff.real ** 2 + state_coeff.imag ** 2),
-                    state,
-                ],
-                coeff=operator.coeff,
-                abelian=operator.abelian,
-            )
         elif isinstance(operator, ListOp):
             return operator.traverse(self.convert)
         else:
@@ -89,7 +72,9 @@ class AerPauliExpectation(ExpectationBase):
         if isinstance(operator, PauliSumOp):
             paulis = [(meas[1], meas[0]) for meas in operator.primitive.to_list()]
             snapshot_instruction = SnapshotExpectationValue("expval_measurement", paulis)
-            return CircuitStateFn(snapshot_instruction, coeff=operator.coeff, is_measurement=True)
+            return CircuitStateFn(
+                snapshot_instruction, coeff=operator.coeff, is_measurement=True, from_operator=True
+            )
 
         # Change to Pauli representation if necessary
         if {"Pauli"} != operator.primitive_strings():
@@ -104,13 +89,11 @@ class AerPauliExpectation(ExpectationBase):
         if isinstance(operator, SummedOp):
             paulis = [[meas.coeff, meas.primitive] for meas in operator.oplist]
             snapshot_instruction = SnapshotExpectationValue("expval_measurement", paulis)
-            snapshot_op = CircuitStateFn(snapshot_instruction, is_measurement=True)
-            return snapshot_op
+            return CircuitStateFn(snapshot_instruction, is_measurement=True, from_operator=True)
         if isinstance(operator, PauliOp):
             paulis = [[operator.coeff, operator.primitive]]
             snapshot_instruction = SnapshotExpectationValue("expval_measurement", paulis)
-            snapshot_op = CircuitStateFn(snapshot_instruction, is_measurement=True)
-            return snapshot_op
+            return CircuitStateFn(snapshot_instruction, is_measurement=True, from_operator=True)
 
         raise TypeError(
             f"Conversion of OperatorStateFn of {operator.__class__.__name__} is not defined."
