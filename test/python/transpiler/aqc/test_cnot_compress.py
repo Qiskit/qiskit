@@ -9,33 +9,34 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 Tests correctness of compression algorithms for CNOT structures.
 """
+
 # TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
-import os
+# import os
 import sys
-import traceback
+import unittest
+from collections import OrderedDict
+
+import numpy as np
+
+# if os.getcwd() not in sys.path:
+#     sys.path.append(os.getcwd())
+from joblib import Parallel, delayed
 
 from qiskit.test import QiskitTestCase
-
-if os.getcwd() not in sys.path:
-    sys.path.append(os.getcwd())
-import numpy as np
-import unittest
-from joblib import Parallel, delayed
-from collections import OrderedDict
-from qiskit.transpiler.synthesis.aqc.cnot_structures import generate_random_cnots
 from qiskit.transpiler.synthesis.aqc.cnot_compress import (
     CNotCompressor,
     CNotSynthesis,
     compress_cnots,
 )
+from qiskit.transpiler.synthesis.aqc.cnot_structures import generate_random_cnots
 
 
 class TestCNotCompress(QiskitTestCase):
+    """Tests CNOT compression functions."""
     @staticmethod
     def _print_progress(cnot_reduction: int):
         if cnot_reduction > 0:
@@ -91,6 +92,7 @@ class TestCNotCompress(QiskitTestCase):
 
     # @unittest.skip("temporary skipping this test")
     def test_synthesis(self):
+        """Tests synthesis."""
         print("\nRunning {:s}() ...".format(self.test_synthesis.__name__))
         print("Here we check that Synthesis algorithm does not distort")
         print("circuit matrix, but possibly changes the number of CNOTs.")
@@ -118,6 +120,7 @@ class TestCNotCompress(QiskitTestCase):
 
     # @unittest.skip("temporary skipping this test")
     def test_cnot_compressor(self):
+        """Tests CNOT compressor."""
         print("\nRunning {:s}() ...".format(self.test_cnot_compressor.__name__))
         print("Here we check that CNOT compressor does not distort")
         print("circuit matrix, but possibly reduces the number of CNOTs.")
@@ -157,6 +160,7 @@ class TestCNotCompress(QiskitTestCase):
 
     # @unittest.skip("temporary skipping this test")
     def test_full_compressor(self):
+        """Tests full compressor."""
         print("\nRunning {:s}() ...".format(self.test_full_compressor.__name__))
         print("Here we check that CNOT compressor does not distort")
         print("circuit matrix, but possibly reduces the number of CNOTs.")
@@ -203,16 +207,14 @@ class TestCNotCompress(QiskitTestCase):
 
 if __name__ == "__main__":
     np.set_printoptions(precision=6, linewidth=256)
-    try:
-        unittest.main()
-    except Exception as ex:
-        print("message length:", len(str(ex)))
-        traceback.print_exc()
+    unittest.main()
 
-        # TODO: temporary:
-        # cnots = np.array([[2, 1, 1, 2, 1, 1, 1, 2],
-        #                   [1, 2, 2, 1, 2, 2, 2, 1]])
-        # nqubits = 3
-        # cnots = np.array([[2, 1, 2, 2, 3, 2, 2, 2, 2, 1, 1, 2, 2, 3, 3, 1, 2, 1, 1, 1, 1, 1, 3, 1, 3, 3, 1],
-        #                   [1, 2, 3, 1, 1, 3, 1, 3, 3, 2, 3, 1, 1, 2, 2, 2, 3, 3, 2, 3, 2, 3, 1, 2, 2, 1, 2]])
-        # depth = cnots.shape[1]
+    # TODO: temporary:
+    # cnots = np.array([[2, 1, 1, 2, 1, 1, 1, 2],
+    #                   [1, 2, 2, 1, 2, 2, 2, 1]])
+    # nqubits = 3
+    # cnots = np.array([[2, 1, 2, 2, 3, 2, 2, 2, 2, 1, 1, 2, 2, 3, 3, 1, 2, 1, 1, 1, 1, 1, 3,
+    # 1, 3, 3, 1],
+    #                   [1, 2, 3, 1, 1, 3, 1, 3, 3, 2, 3, 1, 1, 2, 2, 2, 3, 3, 2, 3, 2, 3, 1,
+    #                   2, 2, 1, 2]])
+    # depth = cnots.shape[1]

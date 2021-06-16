@@ -13,24 +13,26 @@
 """
 Tests the original circuit vs compressed one for equivalence.
 """
-from qiskit.test import QiskitTestCase
-
-print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
-
-import sys, os, traceback
-
-if os.getcwd() not in sys.path:
-    sys.path.append(os.getcwd())
-import numpy as np
+import sys
 import unittest
-from joblib import Parallel, delayed
 from collections import OrderedDict
-from qiskit.transpiler.synthesis.aqc.parametric_circuit import ParametricCircuit
+
+# if os.getcwd() not in sys.path:
+#     sys.path.append(os.getcwd())
+import numpy as np
+from joblib import Parallel, delayed
+
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.compressor import EulerCompressor
+from qiskit.transpiler.synthesis.aqc.parametric_circuit import ParametricCircuit
 from qiskit.transpiler.synthesis.aqc.utils import compare_circuits
 
 
+# TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
+
+
 class TestCompression(QiskitTestCase):
+    """Tests Compression."""
     def _euler_compression(self, nqubits: int, depth: int) -> (int, float):
         """
         Compares the original circuit vs compressed one for equivalence of
@@ -67,6 +69,7 @@ class TestCompression(QiskitTestCase):
         return nqubits, residual
 
     def test_euler_compression(self):
+        """Tests Euler compression."""
         print("\nRunning {:s}() ...".format(self.test_euler_compression.__name__))
         print("Here we compare circuit matrices before and after compression.")
         print("They must be equal up to a small round-off error.")
@@ -94,8 +97,4 @@ class TestCompression(QiskitTestCase):
 
 if __name__ == "__main__":
     np.set_printoptions(precision=6, linewidth=256)
-    try:
-        unittest.main()
-    except Exception as ex:
-        print("message length:", len(str(ex)))
-        traceback.print_exc()
+    unittest.main()

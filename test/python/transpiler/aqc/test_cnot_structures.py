@@ -15,15 +15,13 @@ Tests the set of functions for generating CNOT structures.
 """
 # TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
-import sys, os, traceback
+import unittest
 
 from qiskit.test import QiskitTestCase
 
-if os.getcwd() not in sys.path:
-    sys.path.append(os.getcwd())
-import numpy as np
-import unittest
-from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
+
+# if os.getcwd() not in sys.path:
+#     sys.path.append(os.getcwd())
 
 
 # TODO: implement a proper test!
@@ -35,8 +33,4 @@ class TestCnotStructures(QiskitTestCase):
 
 
 if __name__ == "__main__":
-    try:
-        unittest.main()
-    except Exception as ex:
-        print("message length:", len(str(ex)))
-        traceback.print_exc()
+    unittest.main()

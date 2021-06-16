@@ -9,20 +9,23 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
+# TODO: I guess we don't need these tests as they compare new vs old. If the new implementation is
+#  correct then there's no reason to keep the tests.
 """
 Compares old vs new implementation of CNOT layout and connectivity functions.
 """
+# import os
+# import sys
+import traceback
+import unittest
+import numpy as np
+
 from qiskit.test import QiskitTestCase
 
 # TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
-import sys, os, traceback
-
-if os.getcwd() not in sys.path:
-    sys.path.append(os.getcwd())
-import numpy as np
-import unittest
+# if os.getcwd() not in sys.path:
+#     sys.path.append(os.getcwd())
 from qiskit.transpiler.synthesis.aqc.cnot_structures import (
     get_connectivity_types,
     get_network_layouts,
@@ -33,9 +36,9 @@ from qiskit.transpiler.synthesis.aqc.cnot_structures import (
 # from compilers.aqc_rc1.legacy.CnotStructures import \
 #     full_conn, line, star, sequ, spin, cart
 # Avoid excessive deprecation warnings in Qiskit on Linux system.
-import warnings
-
-warnings.filterwarnings("ignore", category=DeprecationWarning)
+# import warnings
+#
+# warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 class TestCompareCNOTStructures(QiskitTestCase):

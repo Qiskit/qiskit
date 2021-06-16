@@ -9,33 +9,19 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Long test suite"""
 
-import sys, os, traceback
+import os
+import sys
+import traceback
 
 if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())
 import unittest
 from pprint import pprint
 
+# TODO: remove this
 # from contextlib import redirect_stdout
-
-import test_cmp_cnot_struct
-import test_cnot_structures
-import test_parametric_circuit
-import test_compression
-import test_aqc
-import test_gradient_test
-import fast_gradient.test_utils
-import fast_gradient.test_layer1q
-import fast_gradient.test_layer2q
-import fast_gradient.test_cmp_gradients
-
-# Avoid excessive deprecation warnings in Qiskit on Linux system.
-import warnings
-
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-
 def redirect_to_file(text):
     original = sys.stdout
     sys.stdout = open("/path/to/redirect.txt", "w")
