@@ -66,7 +66,9 @@ class VersionTable(Magics):
 
         local_hw_info = local_hardware_info()
         sys_info = [
-            ("Python", sys.version),
+            ("Python version", local_hw_info["python_version"]),
+            ("Python compiler", local_hw_info["python_compiler"]),
+            ("Python build", local_hw_info["python_build"]),
             ("OS", "%s" % local_hw_info["os"]),
             ("CPUs", "%s" % local_hw_info["cpus"]),
             ("Memory (Gb)", "%s" % local_hw_info["memory"]),
