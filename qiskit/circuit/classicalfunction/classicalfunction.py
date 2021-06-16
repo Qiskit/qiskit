@@ -38,7 +38,6 @@ class ClassicalFunction(ClassicalElement):
             name (str): Optional. Default: "*classicalfunction*". ClassicalFunction name.
 
         Raises:
-            MissingOptionalLibraryError: If tweedledum is not installed.
             QiskitError: If source is not a string.
         """
         if not isinstance(source, str):

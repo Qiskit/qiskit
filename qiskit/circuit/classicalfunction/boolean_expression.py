@@ -31,9 +31,6 @@ class BooleanExpression(ClassicalElement):
             expression (str): The logical expression string.
             name (str): Optional. Instruction gate name. Otherwise part of
                         the expression is going to be used.
-
-        Raises:
-            MissingOptionalLibraryError: If tweedledum is not installed. Tweedledum is required.
         """
 
         self._tweedledum_bool_expression = BoolFunction.from_expression(expression)
@@ -103,7 +100,6 @@ class BooleanExpression(ClassicalElement):
             BooleanExpression: A gate for the input string
 
         Raises:
-            MissingOptionalLibraryError: If tweedledum is not installed. Tweedledum is required.
             FileNotFoundError: If filename is not found.
         """
 
