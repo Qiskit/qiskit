@@ -152,7 +152,7 @@ def plot_histogram(
             dist.append(DIST_MEAS[sort](item, target_string))
 
         labels = [list(x) for x in zip(*sorted(zip(dist, labels), key=lambda pair: pair[0]))][1]
-    elif 'value' in sort:
+    elif "value" in sort:
         combined_counts = {}
         if isinstance(data, dict):
             combined_counts = data
@@ -215,7 +215,7 @@ def plot_histogram(
     ax.set_ylabel("Probabilities", fontsize=14)
     all_vals = np.concatenate(all_pvalues).ravel()
     ax.set_ylim([0.0, min([1.2, max([1.2 * val for val in all_vals])])])
-    if 'desc' in sort:
+    if "desc" in sort:
         ax.invert_xaxis()
 
     ax.yaxis.set_major_locator(MaxNLocator(5))
