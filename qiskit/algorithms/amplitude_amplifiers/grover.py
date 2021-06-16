@@ -247,7 +247,6 @@ class Grover(AmplitudeAmplifier):
 
             all_circuit_results.append(circuit_results)
             oracle_evaluation = amplification_problem.is_good_state(top_measurement)
-
             if oracle_evaluation is True:
                 break  # we found a solution
 
