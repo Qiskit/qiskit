@@ -201,6 +201,19 @@ class VarQTE(EvolutionBase):
         self._storage_params_tbd = None
         self._store_now = False
 
+    @property
+    def operator(self):
+        return self._operator
+
+    @operator.setter
+    def operator(self, op):
+        self._operator = op
+        #Initialize H Norm
+        self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
+        self._h_matrix = self._h.to_matrix(massive=True)
+        self._h_norm = np.linalg.norm(self._h_matrix, np.infty)
+        return
+
     @abstractmethod
     def convert(self,
                 operator: ListOp) -> StateFn:
@@ -314,9 +327,16 @@ class VarQTE(EvolutionBase):
                     pass
                 stddevs.append(np.sqrt(float(line['variance'])))
 
-        if not np.iscomplex(self._operator.coeff) and imag_reverse_bound:
-            imag_reverse_bound = self._get_reverse_error_bound(time, error_bound_grad, stddevs)
-            return error_bound, imag_reverse_bound
+        if not np.iscomplex(self._operator.coeff):
+            direct_error_bounds = self._get_error_bound(grad_errors, time, stddevs,
+                                                             h_squareds, h_trips, energies,
+                                                             trapezoidal=False)
+            print('direct errors', direct_error_bounds)
+            np.save(os.path.join(data_dir, 'direct_error_bounds.npy'), direct_error_bounds)
+
+            if imag_reverse_bound:
+                imag_reverse_bound = self._get_reverse_error_bound(time, error_bound_grad, stddevs)
+                return error_bound, imag_reverse_bound
 
         return error_bound
 
@@ -425,7 +445,7 @@ class VarQTE(EvolutionBase):
         # variational principle to run the ODE solver
         def ode_fun(t: float, x: Iterable) -> Iterable:
             params = x[:-1]
-            error = x[-1]
+            error = max(x[-1], 0)
             print('previous error', error)
             param_dict = dict(zip(self._parameters, params))
             if self._error_based_ode:
@@ -474,12 +494,13 @@ class VarQTE(EvolutionBase):
                 error_bound_grad = et
             else:
                 # VarQITE
-                error_bound_grad = self._get_error_grad(delta_t=1e-4, eps_t=error,
-                                                  grad_err=et,
-                                                  energy=trained_energy, h_squared=h_squared,
-                                                  h_trip=h_trip,
-                                                  stddev=np.sqrt(h_squared - trained_energy**2),
-                                                  store=self._store_now)
+                error_bound_grad = self._get_error_grad(delta_t=1e-8, eps_t=max(error, 0),
+                                                      grad_err=et,
+                                                      energy=trained_energy, h_squared=h_squared,
+                                                      h_trip=h_trip,
+                                                      stddev=np.sqrt(h_squared - trained_energy**2),
+                                                      store=self._store_now)
+
                 print('returned grad', error_bound_grad)
 
             if (self._snapshot_dir is not None) and (self._store_now):
@@ -490,11 +511,11 @@ class VarQTE(EvolutionBase):
                                    reimgrad)
 
             return np.append(dt_params, error_bound_grad)
-        # if self._ode_solver == RK45:
-        #     self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
-        #                                         atol=1e-6, max_step=0.01)
+        if self._ode_solver == RK45:
+            self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
+                                                atol=1e-6, max_step=0.01)
 
-        if issubclass(self._ode_solver, OdeSolver):
+        elif issubclass(self._ode_solver, OdeSolver):
             self._ode_solver=self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
                                               atol=1e-6)
 
@@ -865,7 +886,18 @@ class VarQTE(EvolutionBase):
             # plt.autoscale(enable=True)
                           # plt.xticks(range(counter-1))
             plt.savefig(os.path.join(data_dir, 'error_bound_actual.png'))
-            plt.close()
+
+
+            if os.path.exists(os.path.join(data_dir, 'direct_error_bounds.npy')):
+                direct_error_bounds = np.load(os.path.join(data_dir, 'direct_error_bounds.npy'))
+                plt.plot(time, direct_error_bounds, color='mediumorchid', label='direct error '
+                                                                                'bound',
+                         alpha=0.5)
+                plt.savefig(os.path.join(data_dir, 'error_bound_actual_incl_direct.png'))
+                plt.close()
+
+            else:
+                plt.close()
 
             if reverse_bound_directories is not None:
                 reverse_error_bounds = np.load(reverse_bound_directories[j])
