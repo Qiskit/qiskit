@@ -13,11 +13,12 @@
 """Routing via SWAP insertion using the SABRE method from Li et al."""
 
 import logging
+from collections import defaultdict
 from copy import copy, deepcopy
-from itertools import cycle
 import numpy as np
 
 from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
@@ -64,7 +65,7 @@ class SabreSwap(TransformationPass):
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
-    def __init__(self, coupling_map, heuristic="basic", seed=None):
+    def __init__(self, coupling_map, heuristic="basic", seed=None, fake_run=False):
         r"""SabreSwap initializer.
 
         Args:
@@ -72,6 +73,8 @@ class SabreSwap(TransformationPass):
             heuristic (str): The type of heuristic to use when deciding best
                 swap strategy ('basic' or 'lookahead' or 'decay').
             seed (int): random seed used to tie-break among candidate swaps.
+            fake_run (bool): if true, it only pretend to do routing, i.e., no
+                swap is effectively added.
 
         Additional Information:
 
@@ -128,7 +131,8 @@ class SabreSwap(TransformationPass):
 
         self.heuristic = heuristic
         self.seed = seed
-        self.applied_gates = None
+        self.fake_run = fake_run
+        self.applied_predecessors = None
         self.qubits_decay = None
         self._bit_indices = None
 
@@ -152,7 +156,9 @@ class SabreSwap(TransformationPass):
         rng = np.random.default_rng(self.seed)
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
-        mapped_dag = dag._copy_circuit_metadata()
+        mapped_dag = None
+        if not self.fake_run:
+            mapped_dag = dag._copy_circuit_metadata()
 
         canonical_register = dag.qregs["q"]
         current_layout = Layout.generate_trivial_layout(canonical_register)
@@ -166,7 +172,10 @@ class SabreSwap(TransformationPass):
         # Start algorithm from the front layer and iterate until all gates done.
         num_search_steps = 0
         front_layer = dag.front_layer()
-        self.applied_gates = set()
+        self.applied_predecessors = defaultdict(int)
+        for _, input_node in dag.input_map.items():
+            for successor in self._successors(input_node, dag):
+                self.applied_predecessors[successor] += 1
         while front_layer:
             execute_gate_list = []
 
@@ -181,14 +190,11 @@ class SabreSwap(TransformationPass):
 
             if execute_gate_list:
                 for node in execute_gate_list:
-                    new_node = _transform_gate_for_layout(node, current_layout, canonical_register)
-                    mapped_dag.apply_operation_back(new_node.op, new_node.qargs, new_node.cargs)
+                    self._apply_gate(mapped_dag, node, current_layout, canonical_register)
                     front_layer.remove(node)
-                    self.applied_gates.add(node)
-                    for successor in dag.quantum_successors(node):
-                        if successor.type != "op":
-                            continue
-                        if self._is_resolved(successor, dag):
+                    for successor in self._successors(node, dag):
+                        self.applied_predecessors[successor] += 1
+                        if self._is_resolved(successor):
                             front_layer.append(successor)
 
                     if node.qargs:
@@ -218,8 +224,7 @@ class SabreSwap(TransformationPass):
             best_swaps.sort(key=lambda x: (self._bit_indices[x[0]], self._bit_indices[x[1]]))
             best_swap = rng.choice(best_swaps)
             swap_node = DAGNode(op=SwapGate(), qargs=best_swap, type="op")
-            swap_node = _transform_gate_for_layout(swap_node, current_layout, canonical_register)
-            mapped_dag.apply_operation_back(swap_node.op, swap_node.qargs)
+            self._apply_gate(mapped_dag, swap_node, current_layout, canonical_register)
             current_layout.swap(*best_swap)
 
             num_search_steps += 1
@@ -238,7 +243,15 @@ class SabreSwap(TransformationPass):
 
         self.property_set["final_layout"] = current_layout
 
-        return mapped_dag
+        if not self.fake_run:
+            return mapped_dag
+        return dag
+
+    def _apply_gate(self, mapped_dag, node, current_layout, canonical_register):
+        if self.fake_run:
+            return
+        new_node = _transform_gate_for_layout(node, current_layout, canonical_register)
+        mapped_dag.apply_operation_back(new_node.op, new_node.qargs, new_node.cargs)
 
     def _reset_qubits_decay(self):
         """Reset all qubit decay factors to 1 upon request (to forget about
@@ -246,40 +259,41 @@ class SabreSwap(TransformationPass):
         """
         self.qubits_decay = {k: 1 for k in self.qubits_decay.keys()}
 
-    def _is_resolved(self, node, dag):
+    def _successors(self, node, dag):
+        for _, successor, edge_data in dag.edges(node):
+            if successor.type != "op":
+                continue
+            if isinstance(edge_data, Qubit):
+                yield successor
+
+    def _is_resolved(self, node):
         """Return True if all of a node's predecessors in dag are applied."""
-        predecessors = dag.quantum_predecessors(node)
-        predecessors = filter(lambda x: x.type == "op", predecessors)
-        return all(n in self.applied_gates for n in predecessors)
+        return self.applied_predecessors[node] == len(node.qargs)
 
     def _obtain_extended_set(self, dag, front_layer):
         """Populate extended_set by looking ahead a fixed number of gates.
         For each existing element add a successor until reaching limit.
         """
-        # TODO: use layers instead of bfs_successors so long range successors aren't included.
-        extended_set = set()
-        bfs_successors_pernode = [dag.bfs_successors(n) for n in front_layer]
-        node_lookahead_exhausted = [False] * len(front_layer)
-        for i, node_successor_generator in cycle(enumerate(bfs_successors_pernode)):
-            if all(node_lookahead_exhausted) or len(extended_set) >= EXTENDED_SET_SIZE:
-                break
-
-            try:
-                _, successors = next(node_successor_generator)
-                successors = list(
-                    filter(lambda x: x.type == "op" and len(x.qargs) == 2, successors)
-                )
-            except StopIteration:
-                node_lookahead_exhausted[i] = True
-                continue
-
-            successors = iter(successors)
-            while len(extended_set) < EXTENDED_SET_SIZE:
-                try:
-                    extended_set.add(next(successors))
-                except StopIteration:
+        extended_set = list()
+        incremented = list()
+        tmp_front_layer = deepcopy(front_layer)
+        done = False
+        while tmp_front_layer and not done:
+            new_tmp_front_layer = list()
+            for node in tmp_front_layer:
+                for successor in self._successors(node, dag):
+                    incremented.append(successor)
+                    self.applied_predecessors[successor] += 1
+                    if self._is_resolved(successor):
+                        new_tmp_front_layer.append(successor)
+                        if len(successor.qargs) == 2:
+                            extended_set.append(successor)
+                if len(extended_set) >= EXTENDED_SET_SIZE:
+                    done = True
                     break
-
+            tmp_front_layer = new_tmp_front_layer
+        for node in incremented:
+            self.applied_predecessors[node] -= 1
         return extended_set
 
     def _obtain_swaps(self, front_layer, current_layout):
