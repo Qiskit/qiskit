@@ -81,7 +81,7 @@ class PhaseOracle(QuantumCircuit):
         This evaluation is done classically without any quantum circuit.
         Args:
             bitstring: The bitstring for which to evaluate. The input bitstring is expected to be
-                in little-endian order.
+              in little-endian order.
         Returns:
             True if the bitstring is a good state, False otherwise.
         """
