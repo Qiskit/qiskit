@@ -1437,7 +1437,7 @@ class QuantumCircuit:
             "c4x",
         ]
 
-        existing_composite_circuits = ""
+        existing_composite_circuits = []
 
         qasm_string_temp = self.header + "\n"
         qasm_string_temp += self.extension_lib + "\n"
