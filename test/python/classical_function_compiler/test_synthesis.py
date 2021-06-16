@@ -16,7 +16,6 @@ import unittest
 from qiskit.test import QiskitTestCase
 
 from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
-from qiskit.circuit.classicalfunction.classicalfunction import HAS_TWEEDLEDUM
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate
@@ -27,7 +26,6 @@ from . import examples
 class TestSynthesis(QiskitTestCase):
     """Tests ClassicalFunction.synth method."""
 
-    @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum not available")
     def test_grover_oracle(self):
         """Synthesis of grover_oracle example"""
         oracle = compile_classical_function(examples.grover_oracle)
@@ -39,7 +37,6 @@ class TestSynthesis(QiskitTestCase):
         self.assertEqual(quantum_circuit.name, "grover_oracle")
         self.assertEqual(quantum_circuit, expected)
 
-    @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum not available")
     def test_grover_oracle_arg_regs(self):
         """Synthesis of grover_oracle example with arg_regs"""
         oracle = compile_classical_function(examples.grover_oracle)

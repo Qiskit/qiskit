@@ -12,13 +12,8 @@
 
 """Internal utils for Classical Function Compiler"""
 
-try:
-    from tweedledum.ir import Qubit  # pylint: disable=no-name-in-module
-    from tweedledum.passes import parity_decomp  # pylint: disable=no-name-in-module
-
-    HAS_TWEEDLEDUM = True
-except Exception:  # pylint: disable=broad-except
-    HAS_TWEEDLEDUM = False
+from tweedledum.ir import Qubit
+from tweedledum.passes import parity_decomp
 
 
 from qiskit.circuit import QuantumCircuit

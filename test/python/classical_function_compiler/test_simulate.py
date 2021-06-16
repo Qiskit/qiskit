@@ -15,7 +15,6 @@ import unittest
 
 from ddt import ddt, data
 from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
-from qiskit.circuit.classicalfunction.classicalfunction import HAS_TWEEDLEDUM
 from qiskit.test import QiskitTestCase
 from .utils import get_truthtable_from_function, example_list
 
@@ -25,7 +24,6 @@ class TestSimulate(QiskitTestCase):
     """Tests LogicNetwork.simulate method"""
 
     @data(*example_list())
-    @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum not available")
     def test_(self, a_callable):
         """Tests LogicSimulate.simulate() on all the examples"""
         network = compile_classical_function(a_callable)

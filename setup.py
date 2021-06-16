@@ -70,6 +70,23 @@ with open(README_PATH) as readme_file:
         '<!--- long-description-skip-begin -->.*<!--- long-description-skip-end -->', '',
         readme_file.read(), flags=re.S | re.M)
 
+
+visualization_extras = [
+    "matplotlib>=2.1",
+    "ipywidgets>=7.3.0",
+    "pydot",
+    "pillow>=4.2.1",
+    "pylatexenc>=1.4",
+    "seaborn>=0.9.0",
+    "pygments>=2.4",
+]
+
+
+z3_requirements = [
+    "z3-solver>=4.7",
+]
+
+
 setup(
     name="qiskit-terra",
     version="0.18.0",
@@ -102,12 +119,9 @@ setup(
     include_package_data=True,
     python_requires=">=3.6",
     extras_require={
-        'visualization': ['matplotlib>=2.1', 'ipywidgets>=7.3.0',
-                          'pydot', "pillow>=4.2.1", "pylatexenc>=1.4",
-                          "seaborn>=0.9.0", "pygments>=2.4"],
-        'classical-function-compiler': ['tweedledum>=1.0,<2.0'],
-        'full-featured-simulators': ['qiskit-aer>=0.1'],
-        'crosstalk-pass': ['z3-solver>=4.7'],
+        'visualization': visualization_extras,
+        'crosstalk-pass': z3_requirements,
+        'all': visualization_extras + z3_requirements,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
