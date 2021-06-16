@@ -12,8 +12,8 @@ from qiskit.transpiler.layout import Layout
 logger = logging.getLogger(__name__)
 
 
-class MIPMappingModel:
-    """Internal model to create and solve a MIP problem for mapping.
+class BIPMappingModel:
+    """Internal model to create and solve a BIP problem for mapping.
 
     Attributes
     ----------
@@ -463,7 +463,7 @@ class MIPMappingModel:
             # print(objval)
         except CplexSolverError as cse:
             logger.warning(cse)
-            raise TranspilerError("Failed to solve MIP problem.") from cse
+            raise TranspilerError("Failed to solve BIP problem.") from cse
 
 
 class _CircuitModel:

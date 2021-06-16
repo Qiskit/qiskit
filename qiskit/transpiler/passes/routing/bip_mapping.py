@@ -32,17 +32,17 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
 from qiskit.transpiler.passes.layout.trivial_layout import TrivialLayout
-from qiskit.transpiler.passes.routing.algorithms.mip_model import MIPMappingModel
+from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingModel
 from qiskit.transpiler.passmanager import PassManager
 
 logger = logging.getLogger(__name__)
 
 
-class MIPMapping(TransformationPass):
+class BIPMapping(TransformationPass):
     """Map a DAGCircuit onto a `coupling_map` allocating qubits and adding swap gates.
 
-    The MIP mapper try to find the best layout and routing at the same time
-    by solving a mathematical optimization problem represented as a MIP (Mixed Integer Programming).
+    The BIP mapper try to find the best layout and routing at the same time
+    by solving a BIP (binary integer programming) problem.
     """
 
     def __init__(self,
@@ -50,7 +50,7 @@ class MIPMapping(TransformationPass):
                  objective="depth",
                  backend_prop=None,
                  time_limit=30):
-        """MIPMapping initializer.
+        """BIPMapping initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
@@ -59,7 +59,7 @@ class MIPMapping(TransformationPass):
                 - depth: [Default] depth (number of timesteps) of the circuit
                 - balanced: [NotImplemented] weighted sum of error_rate and depth
             backend_prop (BackendProperties): Backend properties object
-            time_limit (float): Time limit for solving MIP in seconds
+            time_limit (float): Time limit for solving BIP in seconds
         """
         if not _HAS_CPLEX:
             raise MissingOptionalLibraryError(
@@ -76,7 +76,7 @@ class MIPMapping(TransformationPass):
         self.time_limit = time_limit
 
     def run(self, dag):
-        """Run the MIPMapping pass on `dag`.
+        """Run the BIPMapping pass on `dag`.
 
         Args:
             dag (DAGCircuit): DAG to map.
@@ -85,7 +85,7 @@ class MIPMapping(TransformationPass):
             DAGCircuit: A mapped DAG.
 
         Raises:
-            TranspilerError: if it fails to solve MIP problem within the time limit
+            TranspilerError: if it fails to solve BIP problem within the time limit
         """
         if self.coupling_map is None:
             return dag
@@ -94,10 +94,10 @@ class MIPMapping(TransformationPass):
             raise TranspilerError('More virtual qubits exist than physical qubits.')
 
         if self.property_set['layout']:
-            logger.info("MIPMapping ignores given initial layout.")
+            logger.info("BIPMapping ignores given initial layout.")
 
         original_dag = dag
-        # MIPMappingModel assumes num_virtual_qubits == num_physical_qubits
+        # BIPMappingModel assumes num_virtual_qubits == num_physical_qubits
         # TODO: rewrite without dag<->circuit conversion (or remove the above assumption)
         pm = PassManager([
             TrivialLayout(self.coupling_map),
@@ -110,12 +110,12 @@ class MIPMapping(TransformationPass):
         dummy_steps = self.coupling_map.size() - 1
         # max_total_dummy = max_total_dummy or (self.dummy_steps * (self.dummy_steps - 1))
 
-        model = MIPMappingModel(dag=dag,
+        model = BIPMappingModel(dag=dag,
                                 coupling_map=self.coupling_map,
                                 dummy_timesteps=dummy_steps)
 
         if len(model.su4layers) == 0:
-            logger.info("MIPMapping is skipped due to no 2q-gates.")
+            logger.info("BIPMapping is skipped due to no 2q-gates.")
             return original_dag
 
         model.create_cpx_problem(objective=self.objective)
@@ -123,7 +123,7 @@ class MIPMapping(TransformationPass):
         try:
             model.solve_cpx_problem(time_limit=self.time_limit)
         except TranspilerError as err:
-            logger.warning("%s dag is not mapped in MIPMapping.", err.message)
+            logger.warning("%s dag is not mapped in BIPMapping.", err.message)
             return original_dag
 
         # Get the optimized initial layout
@@ -180,7 +180,7 @@ class MIPMapping(TransformationPass):
                 # TODO: double check with y values?
 
         if self.property_set['layout'] and self.property_set['layout'] != optimized_layout:
-            warnings.warn("MIPMapping changed the given initial layout", UserWarning)
+            warnings.warn("BIPMapping changed the given initial layout", UserWarning)
 
         self.property_set['layout'] = optimized_layout
         self.property_set['final_layout'] = copy.deepcopy(layout)

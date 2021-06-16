@@ -12,18 +12,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test the MIPMapping pass"""
+"""Test the BIPMapping pass"""
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler import TranspilerError
-from qiskit.transpiler.passes import MIPMapping
+from qiskit.transpiler.passes import BIPMapping
 
 
-class TestMIPMapping(QiskitTestCase):
-    """ Tests the MIPMapping pass."""
+class TestBIPMapping(QiskitTestCase):
+    """ Tests the BIPMapping pass."""
 
     def test_no_two_qubit_gates(self):
         """Returns the original circuit if the circuit has no 2q-gates
@@ -36,7 +36,7 @@ class TestMIPMapping(QiskitTestCase):
         circuit = QuantumCircuit(2)
         circuit.h(0)
 
-        actual = MIPMapping(coupling)(circuit)
+        actual = BIPMapping(coupling)(circuit)
 
         self.assertEqual(actual, circuit)
 
@@ -56,7 +56,7 @@ class TestMIPMapping(QiskitTestCase):
         circuit.h(0)
         circuit.cx(2, 0)
 
-        actual = MIPMapping(coupling)(circuit)
+        actual = BIPMapping(coupling)(circuit)
 
         q = QuantumRegister(3, name='q')
         expected = QuantumCircuit(q)
@@ -85,7 +85,7 @@ class TestMIPMapping(QiskitTestCase):
         circuit = QuantumCircuit(3)
         circuit.cx(1, 2)
 
-        actual = MIPMapping(coupling)(circuit)
+        actual = BIPMapping(coupling)(circuit)
 
         q = QuantumRegister(3, name='q')
         expected = QuantumCircuit(q)
@@ -102,7 +102,7 @@ class TestMIPMapping(QiskitTestCase):
         circuit.cx(1, 2)
 
         property_set = {"layout": Layout.generate_trivial_layout(*circuit.qubits)}
-        actual = MIPMapping(coupling)(circuit, property_set)
+        actual = BIPMapping(coupling)(circuit, property_set)
 
         q = QuantumRegister(3, name='q')
         expected = QuantumCircuit(q)
@@ -122,7 +122,7 @@ class TestMIPMapping(QiskitTestCase):
         circuit.measure(qr[1], cr[0])
         circuit.measure(qr[2], cr[1])
 
-        actual = MIPMapping(coupling)(circuit)
+        actual = BIPMapping(coupling)(circuit)
 
         q = QuantumRegister(3, 'q')
         expected = QuantumCircuit(q, cr)
@@ -133,7 +133,7 @@ class TestMIPMapping(QiskitTestCase):
         self.assertEqual(actual, expected)
 
     def test_never_modify_mapped_circuit(self):
-        """Test that mip mapping is idempotent.
+        """Test that the mapping is idempotent.
         It should not modify a circuit which is already compatible with the
         coupling map, and can be applied repeatedly without modifying the circuit.
         """
@@ -145,8 +145,8 @@ class TestMIPMapping(QiskitTestCase):
         circuit.measure(2, 1)
         dag = circuit_to_dag(circuit)
 
-        mapped_dag = MIPMapping(coupling).run(dag)
-        remapped_dag = MIPMapping(coupling).run(mapped_dag)
+        mapped_dag = BIPMapping(coupling).run(dag)
+        remapped_dag = BIPMapping(coupling).run(mapped_dag)
 
         self.assertEqual(mapped_dag, remapped_dag)
 
@@ -176,7 +176,7 @@ class TestMIPMapping(QiskitTestCase):
         circuit.cx(qr[0], qr[3])
 
         property_set = {}
-        actual = MIPMapping(coupling, objective="depth")(circuit, property_set)
+        actual = BIPMapping(coupling, objective="depth")(circuit, property_set)
         actual_final_layout = property_set["final_layout"]
 
         q = QuantumRegister(4, name='q')
@@ -202,7 +202,7 @@ class TestMIPMapping(QiskitTestCase):
         circuit.measure(qr, cr)
 
         coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])  # {0: [1], 1: [2, 3]}
-        actual = MIPMapping(coupling)(circuit)
+        actual = BIPMapping(coupling)(circuit)
 
         # Fails to map and returns the original circuit
         self.assertEqual(actual, circuit)
@@ -226,7 +226,7 @@ class TestMIPMapping(QiskitTestCase):
         circuit.measure(qr[3], cr2[1])
 
         coupling = CouplingMap([[0, 1], [0, 2], [2, 3]])  # linear [1, 0, 2, 3]
-        actual = MIPMapping(coupling, objective="depth")(circuit)
+        actual = BIPMapping(coupling, objective="depth")(circuit)
 
         q = QuantumRegister(4, name='q')
         expected = QuantumCircuit(q, cr1, cr2)
@@ -260,7 +260,7 @@ class TestMIPMapping(QiskitTestCase):
         circuit.cx(1, 3)
 
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
-        actual = MIPMapping(coupling, objective="depth")(circuit)
+        actual = BIPMapping(coupling, objective="depth")(circuit)
 
         q = QuantumRegister(4, name='q')
         expected = QuantumCircuit(q)

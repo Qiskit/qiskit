@@ -17,4 +17,4 @@ from .layout_transformation import LayoutTransformation
 from .lookahead_swap import LookaheadSwap
 from .stochastic_swap import StochasticSwap
 from .sabre_swap import SabreSwap
-from .mip_mapping import MIPMapping
+from .bip_mapping import BIPMapping
