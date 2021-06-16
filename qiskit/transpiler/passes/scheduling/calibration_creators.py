@@ -59,13 +59,15 @@ class CalibrationCreator(TransformationPass):
         for node in dag.nodes():
             if node.type == "op":
                 if self.supported(node.op):
-                    params = node.op.params
+                    # params = node.op.params
+                    # print(params)
+                    params = [round(float(param), 8) for param in node.op.params]
+                    # print(params)
                     qubits = [bit_indices[qarg] for qarg in node.qargs]
 
                     schedule = self.get_calibration(params, qubits)
 
-                    dag.add_calibration(node.op, qubits, schedule, params=params)
-
+                    dag.add_calibration(node.op.name, qubits, schedule, params=params)
         return dag
 
 
@@ -139,6 +141,9 @@ class RZXCalibrationBuilder(CalibrationCreator):
             # The error function is used because the Gaussian may have chopped tails.
             gaussian_area = abs(amp) * sigma * np.sqrt(2 * np.pi) * math.erf(n_sigmas)
             area = gaussian_area + abs(amp) * width
+            # print(theta)
+            # print(type(theta))
+            # theta = float(theta)
 
             target_area = abs(theta) / (np.pi / 2.0) * area
             sign = theta / abs(theta)
@@ -328,6 +333,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
                 support the specified direction of the cx.
         """
         theta = params[0]
+        # print('Theta = ', theta)
         q1, q2 = qubits[0], qubits[1]
 
         if not self._inst_map.has("cx", qubits):
