@@ -459,6 +459,31 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         msg = f"expected:\n{expected}\nresult:\n{result}"
         self.assertEqual(expected, result, msg=msg)
 
+    def test_u_rewrites_to_rz(self):
+        """Test that a phase-like U-gate gets rewritten into an RZ gate."""
+        qc = QuantumCircuit(1)
+        qc.u(0, 0, np.pi / 6, 0)
+        basis = ["sx", "rz"]
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1, global_phase=np.pi / 12)
+        expected.rz(np.pi / 6, 0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_u_rewrites_to_phase(self):
+        """Test that a phase-like U-gate gets rewritten into an RZ gate."""
+        qc = QuantumCircuit(1)
+        qc.u(0, 0, np.pi / 6, 0)
+        basis = ["sx", "p"]
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1)
+        expected.p(np.pi / 6, 0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
 
 if __name__ == "__main__":
     unittest.main()
