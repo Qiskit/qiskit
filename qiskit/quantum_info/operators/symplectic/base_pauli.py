@@ -15,11 +15,12 @@ Optimized list of Pauli operators
 # pylint: disable=invalid-name
 
 import copy
+
 import numpy as np
 
-from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
 
@@ -258,8 +259,50 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             ret = ret.compose(other, front=True, qargs=qargs)
             return ret
 
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators.symplectic.clifford import Clifford
+
+        # Convert Clifford to quantum circuits
+        if isinstance(other, Clifford):
+            return self._evolve_clifford(other, qargs=qargs)
+
         # Otherwise evolve by the inverse circuit to compute C^dg.P.C
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
+
+    def _evolve_clifford(self, other, qargs=None):
+        """Heisenberg picture evolution of a Pauli by a Clifford."""
+        if qargs is None:
+            idx = slice(None)
+        else:
+            idx = list(qargs)
+
+        # Set return to I on qargs
+        ret = self.copy()
+        ret._x[:, idx] = False
+        ret._z[:, idx] = False
+
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+        from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
+
+        # Get action of Pauli's from Clifford
+        adj = other.adjoint()
+        pauli_list = []
+        for z in self._z[:, idx]:
+            pauli = Pauli("I" * len(idx))
+            for row in adj.stabilizer[z]:
+                pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
+            pauli_list.append(pauli)
+        ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
+
+        pauli_list = []
+        for x in self._x[:, idx]:
+            pauli = Pauli("I" * len(idx))
+            for row in adj.destabilizer[x]:
+                pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
+            pauli_list.append(pauli)
+        ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
+        return ret
 
     def _eq(self, other):
         """Entrywise comparison of Pauli equality."""

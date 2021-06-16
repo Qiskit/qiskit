@@ -17,11 +17,11 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+from qiskit.quantum_info.operators.mixins import GroupMixin, LinearMixin
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.stabilizer_table import StabilizerTable
-from qiskit.quantum_info.operators.mixins import LinearMixin, GroupMixin
 
 
 class PauliList(BasePauli, LinearMixin, GroupMixin):
@@ -414,15 +414,16 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                 "Index {} is greater than number of qubits"
                 " in the PauliList ({})".format(ind, self.num_qubits)
             )
-        # TODO: Fix phase
         if len(value) == 1:
             # Pad blocks to correct size
             value_x = np.vstack(size * [value.x])
             value_z = np.vstack(size * [value.z])
+            value_phase = np.vstack(size * [value.phase])
         elif len(value) == size:
             #  Blocks are already correct size
             value_x = value.x
             value_z = value.z
+            value_phase = value.phase
         else:
             # Blocks are incorrect size
             raise QiskitError(
@@ -433,8 +434,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # Build new array by blocks
         z = np.hstack([self.z[:, :ind], value_z, self.z[:, ind:]])
         x = np.hstack([self.x[:, :ind], value_x, self.x[:, ind:]])
+        phase = self.phase + value_phase
 
-        return PauliList.from_symplectic(z, x, self.phase)
+        return PauliList.from_symplectic(z, x, phase)
 
     def argsort(self, weight=False, phase=False):
         """Return indices for sorting the rows of the table.
@@ -457,7 +459,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         x = self.x
         z = self.z
         order = 1 * (x & ~z) + 2 * (x & z) + 3 * (~x & z)
-        phases = self._phase
+        phases = self.phase
         # Optionally get the weight of Pauli
         # This is the number of non identity terms
         if weight:
@@ -489,7 +491,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # If using weights we implement a sort by total number
         # of non-identity Paulis
         if weight:
-            indices = indices[weights.argsort(kind="stable")]
+            sort_inds = weights.argsort(kind="stable")
+            indices = indices[sort_inds]
+            phases = phases[sort_inds]
 
         # If sorting by phase we perform a final sort by the phase value
         # of each pauli
@@ -881,11 +885,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         if qargs is None:
             qargs = getattr(other, "qargs", None)
 
-        # Convert quantum circuits to Cliffords
-        if isinstance(other, Clifford):
-            other = other.to_circuit()
-
-        if not isinstance(other, (BasePauli, Instruction, QuantumCircuit)):
+        if not isinstance(other, (BasePauli, Instruction, QuantumCircuit, Clifford)):
             # Convert to a PauliList
             other = PauliList(other)
 
@@ -924,7 +924,14 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Returns:
             list or array: The rows of the PauliList in label form.
         """
-        ret = np.zeros(self.size, dtype="<U{}".format(self.num_qubits))
+        if (self.phase == 1).any():
+            prefix_len = 2
+        elif (self.phase > 0).any():
+            prefix_len = 1
+        else:
+            prefix_len = 0
+        str_len = self.num_qubits + prefix_len
+        ret = np.zeros(self.size, dtype=f"<U{str_len}")
         iterator = self.label_iter()
         for i in range(self.size):
             ret[i] = next(iterator)

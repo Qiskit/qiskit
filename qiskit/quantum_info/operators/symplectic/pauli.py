@@ -16,17 +16,18 @@ N-qubit Pauli Operator Class
 # pylint: disable=bad-docstring-quotes  # for deprecate_function decorator
 
 import re
+
 import numpy as np
 
-from qiskit.utils.deprecation import deprecate_function
-from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
-from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.circuit import QuantumCircuit, Instruction
-from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
-from qiskit.circuit.library.generalized_gates import PauliGate
+from qiskit.circuit import Instruction, QuantumCircuit
 from qiskit.circuit.barrier import Barrier
+from qiskit.circuit.library.generalized_gates import PauliGate
+from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.scalar_op import ScalarOp
+from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
+from qiskit.utils.deprecation import deprecate_function
 
 
 class Pauli(BasePauli):
@@ -548,58 +549,17 @@ class Pauli(BasePauli):
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.quantum_info.operators.symplectic.clifford import Clifford
-
         if qargs is None:
             qargs = getattr(other, "qargs", None)
 
-        # Convert Clifford to quantum circuits
-        if isinstance(other, Clifford):
-            return self._evolve_clifford(other, qargs=qargs)
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 
-        if not isinstance(other, (Pauli, Instruction, QuantumCircuit)):
+        if not isinstance(other, (Pauli, Instruction, QuantumCircuit, Clifford)):
             # Convert to a Pauli
             other = Pauli(other)
 
         return Pauli(super().evolve(other, qargs=qargs))
-
-    def _evolve_clifford(self, other, qargs=None):
-        """Heisenberg picture evolution of a Pauli by a Clifford."""
-        # Check dimension
-        if qargs is not None and len(qargs) != other.num_qubits:
-            raise QiskitError(
-                "Incorrect number of qubits for Clifford ({} != {}).".format(
-                    other.num_qubits, len(qargs)
-                )
-            )
-        if qargs is None and self.num_qubits != other.num_qubits:
-            raise QiskitError(
-                "Incorrect number of qubits for Clifford ({} != {}).".format(
-                    other.num_qubits, self.num_qubits
-                )
-            )
-
-        if qargs is None:
-            idx = slice(None)
-        else:
-            idx = list(qargs)
-
-        # Set return to I on qargs
-        ret = self.copy()
-        ret.x[idx] = 0
-        ret.z[idx] = 0
-
-        # Get action of Pauli's from Clifford
-        adj = other.adjoint()
-        for row in adj.stabilizer[self.z[idx]]:
-            row_pauli = Pauli((row.Z[0], row.X[0], 2 * row.phase[0]))
-            ret = ret.dot(row_pauli, qargs=qargs)
-        for row in adj.destabilizer[self.x[idx]]:
-            row_pauli = Pauli((row.Z[0], row.X[0], 2 * row.phase[0]))
-            ret = ret.dot(row_pauli, qargs=qargs)
-
-        return ret
 
     # ---------------------------------------------------------------------
     # Initialization helper functions
