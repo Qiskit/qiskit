@@ -23,8 +23,6 @@ import multiprocessing as mp
 from collections import OrderedDict, defaultdict
 from typing import Union
 import numpy as np
-import qiskit as qk
-from qiskit.exceptions import QiskitError
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
@@ -268,8 +266,6 @@ class QuantumCircuit:
             "c4x",
         ]
         self.existing_composite_circuits = []
-        self.qasm_string = ""
-        self.qasm_string_temp = ""
 
     @property
     def data(self):
@@ -1488,12 +1484,12 @@ class QuantumCircuit:
             "u3",
         ]
 
-        self.qasm_string_temp = self.header + "\n"
-        self.qasm_string_temp += self.extension_lib + "\n"
+        qasm_string_temp = self.header + "\n"
+        qasm_string_temp += self.extension_lib + "\n"
         for register in self.qregs:
-            self.qasm_string_temp += register.qasm() + "\n"
+            qasm_string_temp += register.qasm() + "\n"
         for register in self.cregs:
-            self.qasm_string_temp += register.qasm() + "\n"
+            qasm_string_temp += register.qasm() + "\n"
 
         qreg_bits = set(bit for reg in self.qregs for bit in reg)
         creg_bits = set(bit for reg in self.cregs for bit in reg)
@@ -1502,11 +1498,11 @@ class QuantumCircuit:
 
         if set(self.qubits) != qreg_bits:
             regless_qubits = [bit for bit in self.qubits if bit not in qreg_bits]
-            string_temp += "qreg %s[%d];\n" % ("regless", len(regless_qubits))
+            qasm_string_temp += "qreg %s[%d];\n" % ("regless", len(regless_qubits))
 
         if set(self.clbits) != creg_bits:
             regless_clbits = [bit for bit in self.clbits if bit not in creg_bits]
-            string_temp += "creg %s[%d];\n" % ("regless", len(regless_clbits))
+            qasm_string_temp += "creg %s[%d];\n" % ("regless", len(regless_clbits))
 
         unitary_gates = []
 
@@ -1528,7 +1524,7 @@ class QuantumCircuit:
             if instruction.name == "measure":
                 qubit = qargs[0]
                 clbit = cargs[0]
-                string_temp += "%s %s -> %s;\n" % (
+                qasm_string_temp += "%s %s -> %s;\n" % (
                     instruction.qasm(),
                     bit_labels[qubit],
                     bit_labels[clbit],
@@ -1556,23 +1552,23 @@ class QuantumCircuit:
                         )
 
                     # Get qasm of composite circuit
-                    qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
+                    qasm_string_composite = self._get_composite_circuit_qasm_from_instruction(instruction)
 
                     # Insert composite circuit qasm definition right after header and extension lib
-                    string_temp = string_temp.replace(
-                        self.extension_lib, "%s\n%s" % (self.extension_lib, qasm_string)
+                    qasm_string_temp = qasm_string_temp.replace(
+                        self.extension_lib, "%s\n%s" % (self.extension_lib, qasm_string_composite)
                     )
 
                     existing_composite_circuits.append(instruction)
                     existing_gate_names.append(instruction.name)
 
                 # Insert qasm representation of the original instruction
-                string_temp += "%s %s;\n" % (
+                qasm_string_temp += "%s %s;\n" % (
                     instruction.qasm(),
                     ",".join([bit_labels[j] for j in qargs + cargs]),
                 )
             else:
-                string_temp += "%s %s;\n" % (
+                qasm_string_temp += "%s %s;\n" % (
                     instruction.qasm(),
                     ",".join([bit_labels[j] for j in qargs + cargs]),
                 )
@@ -1584,7 +1580,7 @@ class QuantumCircuit:
 
         if filename:
             with open(filename, "w+", encoding=encoding) as file:
-                file.write(string_temp)
+                file.write(qasm_string_temp)
             file.close()
 
         if formatted:
@@ -1595,12 +1591,12 @@ class QuantumCircuit:
                     pip_install="pip install pygments",
                 )
             code = pygments.highlight(
-                string_temp, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
+                qasm_string_temp, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
             )
             print(code)
             return None
         else:
-            return self.qasm_string_temp
+            return qasm_string_temp
 
     def _insert_composite_gate_definition_qasm(self):
         """Insert composite gate definition QASM code right after extension library in the header"""
