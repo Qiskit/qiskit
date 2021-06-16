@@ -17,6 +17,8 @@ Visualization functions for measurement counts.
 from collections import Counter, OrderedDict
 import functools
 import numpy as np
+
+from qiskit.exceptions import MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
@@ -80,7 +82,7 @@ def plot_histogram(
             kwarg is not set.
 
     Raises:
-        ImportError: Matplotlib not available.
+        MissingOptionalLibraryError: Matplotlib not available.
         VisualizationError: When legend is provided and the length doesn't
             match the input data.
 
@@ -101,7 +103,11 @@ def plot_histogram(
            plot_histogram(job.result().get_counts(), color='midnightblue', title="New Histogram")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError("Must have Matplotlib installed.")
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_histogram",
+            pip_install="pip install matplotlib",
+        )
     from matplotlib import get_backend
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
@@ -198,7 +204,7 @@ def plot_histogram(
     # add some text for labels, title, and axes ticks
     ax.set_ylabel("Probabilities", fontsize=14)
     all_vals = np.concatenate(all_pvalues).ravel()
-    ax.set_ylim([0, min(1.2, max(1.2 * val for val in all_vals))])
+    ax.set_ylim([0.0, min([1.2, max([1.2 * val for val in all_vals])])])
     if sort == "desc":
         ax.invert_xaxis()
 
@@ -262,11 +268,9 @@ def _plot_histogram_data(data, labels, number_to_keep):
                 labels_dict[key] = 1
                 values.append(execution[key])
         values = np.array(values, dtype=float)
-        where_idx = np.where(values != 0)[0]
-        pvalues = values[where_idx] / sum(values[where_idx])
-
+        pvalues = values / sum(values)
         all_pvalues.append(pvalues)
-        numelem = len(values[where_idx])
+        numelem = len(values)
         ind = np.arange(numelem)  # the x locations for the groups
         all_inds.append(ind)
 

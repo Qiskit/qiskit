@@ -12,7 +12,7 @@
 
 
 """Test the BasisTranslator pass"""
-
+import os
 
 from numpy import pi
 
@@ -816,3 +816,19 @@ class TestBasisExamples(QiskitTestCase):
         expected.measure(1, 1)
         expected.u2(0, pi, 0).c_if(cr, 1)
         self.assertEqual(circ_transpiled, expected)
+
+    def test_skip_target_basis_equivalences_1(self):
+        """Test that BasisTranslator skips gates in the target_basis - #6085"""
+        circ = QuantumCircuit()
+        qasm_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "qasm",
+            "TestBasisTranslator_skip_target.qasm",
+        )
+        circ = circ.from_qasm_file(qasm_file)
+        circ_transpiled = transpile(
+            circ,
+            basis_gates=["id", "rz", "sx", "x", "cx"],
+            seed_transpiler=42,
+        )
+        self.assertEqual(circ_transpiled.count_ops(), {"cx": 91, "rz": 66, "sx": 22})

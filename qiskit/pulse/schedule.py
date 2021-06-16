@@ -153,6 +153,35 @@ class Schedule:
                 time, sched = 0, sched_pair
             self._mutable_insert(time, sched)
 
+    @classmethod
+    def initialize_from(cls, other_program: Any, name: Optional[str] = None) -> "Schedule":
+        """Create new schedule object with metadata of another schedule object.
+
+        Args:
+            other_program: Qiskit program that provides metadata to new object.
+            name: Name of new schedule. Name of ``schedule`` is used by default.
+
+        Returns:
+            New schedule object with name and metadata.
+
+        Raises:
+            PulseError: When `other_program` does not provide necessary information.
+        """
+        try:
+            name = name or other_program.name
+
+            if other_program.metadata:
+                metadata = other_program.metadata.copy()
+            else:
+                metadata = None
+
+            return cls(name=name, metadata=metadata)
+        except AttributeError as ex:
+            raise PulseError(
+                f"{cls.__name__} cannot be initialized from the program data "
+                f"{other_program.__class__.__name__}."
+            ) from ex
+
     @property
     def name(self) -> str:
         """Name of this Schedule"""
@@ -323,9 +352,10 @@ class Schedule:
             time: Time to shift by
             name: Name of the new schedule if call was mutable. Defaults to name of self
         """
-        if name is None:
-            name = self.name
-        return Schedule((time, self), name=name, metadata=self.metadata.copy())
+        shift_sched = Schedule.initialize_from(self, name)
+        shift_sched.insert(time, self, inplace=True)
+
+        return shift_sched
 
     def _mutable_shift(self, time: int) -> "Schedule":
         """Return this schedule shifted forward by `time`.
@@ -394,9 +424,7 @@ class Schedule:
             schedule: Schedule to insert.
             name: Name of the new ``Schedule``. Defaults to name of ``self``.
         """
-        if name is None:
-            name = self.name
-        new_sched = Schedule(name=name, metadata=self.metadata.copy())
+        new_sched = Schedule.initialize_from(self, name)
         new_sched._mutable_insert(0, self)
         new_sched._mutable_insert(start_time, schedule)
         return new_sched
@@ -694,7 +722,10 @@ class Schedule:
             return self
         else:
             try:
-                return Schedule(*new_children, name=self.name, metadata=self.metadata.copy())
+                new_sched = Schedule.initialize_from(self)
+                for time, inst in new_children:
+                    new_sched.insert(time, inst, inplace=True)
+                return new_sched
             except PulseError as err:
                 raise PulseError(
                     "Replacement of {old} with {new} results in "
@@ -915,6 +946,40 @@ class ScheduleBlock:
 
         # get parameters from context
         self._parameter_manager.update_parameter_table(self._alignment_context)
+
+    @classmethod
+    def initialize_from(cls, other_program: Any, name: Optional[str] = None) -> "ScheduleBlock":
+        """Create new schedule object with metadata of another schedule object.
+
+        Args:
+            other_program: Qiskit program that provides metadata to new object.
+            name: Name of new schedule. Name of ``block`` is used by default.
+
+        Returns:
+            New block object with name and metadata.
+
+        Raises:
+            PulseError: When `other_program` does not provide necessary information.
+        """
+        try:
+            name = name or other_program.name
+
+            if other_program.metadata:
+                metadata = other_program.metadata.copy()
+            else:
+                metadata = None
+
+            try:
+                alignment_context = other_program.alignment_context
+            except AttributeError:
+                alignment_context = None
+
+            return cls(name=name, metadata=metadata, alignment_context=alignment_context)
+        except AttributeError as ex:
+            raise PulseError(
+                f"{cls.__name__} cannot be initialized from the program data "
+                f"{other_program.__class__.__name__}."
+            ) from ex
 
     @property
     def name(self) -> str:
@@ -1368,7 +1433,7 @@ class ParameterizedSchedule:
     def __init__(
         self,
         *schedules,
-        parameters: Optional[Dict[str, Union[float, complex]]] = None,
+        parameters: Optional[Dict[str, complex]] = None,
         name: Optional[str] = None,
     ):
 
@@ -1404,8 +1469,8 @@ class ParameterizedSchedule:
 
     def bind_parameters(
         self,
-        *args: Union[int, float, complex, ParameterExpression],
-        **kwargs: Union[int, float, complex, ParameterExpression],
+        *args: Union[complex, ParameterExpression],
+        **kwargs: Union[complex, ParameterExpression],
     ) -> Schedule:
         """Generate the Schedule from params to evaluate command expressions"""
         bound_schedule = Schedule(name=self.name)
@@ -1452,8 +1517,8 @@ class ParameterizedSchedule:
 
     def __call__(
         self,
-        *args: Union[int, float, complex, ParameterExpression],
-        **kwargs: Union[int, float, complex, ParameterExpression],
+        *args: Union[complex, ParameterExpression],
+        **kwargs: Union[complex, ParameterExpression],
     ) -> Schedule:
         return self.bind_parameters(*args, **kwargs)
 
