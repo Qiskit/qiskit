@@ -18,7 +18,7 @@ from .circuit_gradients.circuit_gradient import CircuitGradient
 from .derivative_base import DerivativeBase
 
 
-class HessianBase(DerivativeBase):  # pylint: disable=abstract-method
+class HessianBase(DerivativeBase):
     """Base class for the Hessian of an expected value."""
 
     def __init__(self, hess_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
