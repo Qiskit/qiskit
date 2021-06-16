@@ -247,30 +247,29 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # TODO: revert temporary changes for BIPMapping test below
     from qiskit.transpiler.passes.routing import BIPMapping
+
     # Set trivial layout as dummy layout and No ApplyLayout
-    _mapping = [
-        BarrierBeforeFinalMeasurements(),
-        BIPMapping(coupling_map)
-    ]
+    _mapping = [BarrierBeforeFinalMeasurements(), BIPMapping(coupling_map)]
 
     def _given_perfect_layout(property_set):
         # Verify that a given layout is perfect (complying with coupling).
         # If given_layout_score == 0, the layout is perfect.
-        if property_set['given_layout_score'] is not None:
-            return property_set['given_layout_score'] == 0
+        if property_set["given_layout_score"] is not None:
+            return property_set["given_layout_score"] == 0
         return False
 
     def _given_not_perfect_layout(property_set):
-        if property_set['given_layout_score'] is not None:
-            return property_set['given_layout_score'] != 0
+        if property_set["given_layout_score"] is not None:
+            return property_set["given_layout_score"] != 0
         return True
 
     def _not_yet_mapped(property_set):
-        return not property_set['is_swap_mapped']
+        return not property_set["is_swap_mapped"]
 
     def _not_yet_mapped_and(func):
         def wrapped(property_set):
             return _not_yet_mapped(property_set) and func(property_set)
+
         return wrapped
 
     # Build pass manager
@@ -280,7 +279,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if coupling_map:
         if initial_layout:
             pm3.append(_given_layout)
-            pm3.append(Layout2qDistance(coupling_map, property_name='given_layout_score'))
+            pm3.append(Layout2qDistance(coupling_map, property_name="given_layout_score"))
             pm3.append(_embed, condition=_given_perfect_layout)
             pm3.append(_mapping, condition=_given_not_perfect_layout)
         else:

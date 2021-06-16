@@ -17,6 +17,7 @@ import warnings
 
 try:
     import cplex  # pylint: disable=unused-import
+
     _HAS_CPLEX = True
 except ImportError:
     _HAS_CPLEX = False
@@ -26,7 +27,7 @@ from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.transpiler import TransformationPass, CouplingMap
+from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
@@ -45,11 +46,7 @@ class BIPMapping(TransformationPass):
     by solving a BIP (binary integer programming) problem.
     """
 
-    def __init__(self,
-                 coupling_map,
-                 objective="depth",
-                 backend_prop=None,
-                 time_limit=30):
+    def __init__(self, coupling_map, objective="depth", backend_prop=None, time_limit=30):
         """BIPMapping initializer.
 
         Args:
@@ -60,6 +57,9 @@ class BIPMapping(TransformationPass):
                 - balanced: [NotImplemented] weighted sum of error_rate and depth
             backend_prop (BackendProperties): Backend properties object
             time_limit (float): Time limit for solving BIP in seconds
+
+        Raises:
+            MissingOptionalLibraryError: if cplex is not installed.
         """
         if not _HAS_CPLEX:
             raise MissingOptionalLibraryError(
@@ -68,8 +68,6 @@ class BIPMapping(TransformationPass):
                 pip_install="pip install 'qiskit[cplex]'",
             )
         super().__init__()
-        if objective != "depth" and backend_prop is None:
-            raise TranspilerError("'backend_prop' must be supplied when objective=='depth'")
         self.coupling_map = copy.deepcopy(coupling_map)  # save a copy since some methods modify it
         self.objective = objective
         self.backend_prop = backend_prop
@@ -91,28 +89,30 @@ class BIPMapping(TransformationPass):
             return dag
 
         if len(dag.qubits) > self.coupling_map.size():
-            raise TranspilerError('More virtual qubits exist than physical qubits.')
+            raise TranspilerError("More virtual qubits exist than physical qubits.")
 
-        if self.property_set['layout']:
+        if self.property_set["layout"]:
             logger.info("BIPMapping ignores given initial layout.")
 
         original_dag = dag
         # BIPMappingModel assumes num_virtual_qubits == num_physical_qubits
         # TODO: rewrite without dag<->circuit conversion (or remove the above assumption)
-        pm = PassManager([
-            TrivialLayout(self.coupling_map),
-            FullAncillaAllocation(self.coupling_map),
-            EnlargeWithAncilla()
-        ])
+        pm = PassManager(
+            [
+                TrivialLayout(self.coupling_map),
+                FullAncillaAllocation(self.coupling_map),
+                EnlargeWithAncilla(),
+            ]
+        )
         dag = circuit_to_dag(pm.run(dag_to_circuit(dag)))
 
         # TODO: set more safety dummy_steps
         dummy_steps = self.coupling_map.size() - 1
         # max_total_dummy = max_total_dummy or (self.dummy_steps * (self.dummy_steps - 1))
 
-        model = BIPMappingModel(dag=dag,
-                                coupling_map=self.coupling_map,
-                                dummy_timesteps=dummy_steps)
+        model = BIPMappingModel(
+            dag=dag, coupling_map=self.coupling_map, dummy_timesteps=dummy_steps
+        )
 
         if len(model.su4layers) == 0:
             logger.info("BIPMapping is skipped due to no 2q-gates.")
@@ -138,16 +138,16 @@ class BIPMapping(TransformationPass):
         layout = copy.deepcopy(optimized_layout)
 
         # Construct the mapped circuit
-        canonical_register = QuantumRegister(self.coupling_map.size(), 'q')
+        canonical_register = QuantumRegister(self.coupling_map.size(), "q")
         mapped_dag = self._create_empty_dagcircuit(dag, canonical_register)
         interval = dummy_steps + 1
         for k, layer in enumerate(dag.layers()):
             if model.is_su4layer(k):
-                l = model.to_su4layer_depth(k)
-                # add swaps between (l-1)-th and l-th su4layer
-                from_steps = interval * (l-1)
-                to_steps = interval * l
-                for t in range(from_steps, to_steps):
+                su4dep = model.to_su4layer_depth(k)
+                # add swaps between (su4dep-1)-th and su4dep-th su4layer
+                from_steps = interval * (su4dep - 1)
+                to_steps = interval * su4dep
+                for t in range(from_steps, to_steps):  # pylint: disable=invalid-name
                     if t < 0:
                         continue
                     if t >= model.depth - 1:
@@ -157,7 +157,7 @@ class BIPMapping(TransformationPass):
                             if model.is_swapped(q, i, j, t) and i < j:
                                 mapped_dag.apply_operation_back(
                                     op=SwapGate(),
-                                    qargs=[canonical_register[i], canonical_register[j]]
+                                    qargs=[canonical_register[i], canonical_register[j]],
                                 )
                                 # update layout, swapping physical qubits (i, j)
                                 # we cannot use Layout.swap() due to #virtuals < #physicals
@@ -171,19 +171,20 @@ class BIPMapping(TransformationPass):
                                 if v_org_j is not None:
                                     layout[v_org_j] = i
             # map gates in k-th layer
-            for node in layer['graph'].nodes():
-                if node.type == 'op':
+            for node in layer["graph"].nodes():
+                if node.type == "op":
                     mapped_dag.apply_operation_back(
                         op=copy.deepcopy(node.op),
                         qargs=[canonical_register[layout[q]] for q in node.qargs],
-                        cargs=node.cargs)
+                        cargs=node.cargs,
+                    )
                 # TODO: double check with y values?
 
-        if self.property_set['layout'] and self.property_set['layout'] != optimized_layout:
+        if self.property_set["layout"] and self.property_set["layout"] != optimized_layout:
             warnings.warn("BIPMapping changed the given initial layout", UserWarning)
 
-        self.property_set['layout'] = optimized_layout
-        self.property_set['final_layout'] = copy.deepcopy(layout)
+        self.property_set["layout"] = optimized_layout
+        self.property_set["final_layout"] = copy.deepcopy(layout)
 
         return mapped_dag
 
