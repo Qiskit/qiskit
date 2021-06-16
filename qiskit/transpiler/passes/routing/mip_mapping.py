@@ -55,9 +55,9 @@ class MIPMapping(TransformationPass):
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
             objective (str): Type of objective function; one of the following values.
-                - error_rate: predicted error rate of the circuit
+                - error_rate: [NotImplemented] predicted error rate of the circuit
                 - depth: [Default] depth (number of timesteps) of the circuit
-                - balanced: weighted sum of error_rate and depth
+                - balanced: [NotImplemented] weighted sum of error_rate and depth
             backend_prop (BackendProperties): Backend properties object
             time_limit (float): Time limit for solving MIP in seconds
         """

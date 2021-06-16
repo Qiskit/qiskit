@@ -1,19 +1,13 @@
 """Integer programming model for quantum circuit compilation."""
 
 import logging
-import math
-import numpy as np
 
 from cplex import Cplex
 from cplex import SparsePair
 from cplex.exceptions.errors import CplexSolverError
 
-from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.quantum_info import two_qubit_cnot_decompose
-from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition, \
-    trace_to_fid
-from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.layout import Layout
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +20,6 @@ class MIPMappingModel:
     problem: Cplex
         A Cplex problem object with the problem description
         (solution is stored in `problem.solution`).
-    ic: _IndexCalculator
-        An Index calculator to retrieve variable indices.
     """
     def __init__(self,
                  dag,
@@ -40,7 +32,7 @@ class MIPMappingModel:
                 allow arbitrary swaps between neighbors.
         """
         self.problem = None
-        self.ic = None
+        self._ic = None
 
         initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
         self.virtual_to_index = {v: i for i, v in enumerate(initial_layout.get_virtual_bits())}
@@ -68,13 +60,10 @@ class MIPMappingModel:
             gates=self.su4layers,
             dummy_timesteps=dummy_timesteps
         )
-
-        # TODO: refactoring _HardwareTopology
         self.toplogy_model = _HardwareTopology(
             num_qubits=coupling_map.size(),
-            connectivity=[list(coupling_map.neighbors(i)) for i in range(coupling_map.size())],
-            basis_fidelity=[[0.96 for _ in coupling_map.neighbors(i)]
-                            for i in range(coupling_map.size())])
+            connectivity=[list(coupling_map.neighbors(i)) for i in range(coupling_map.size())]
+        )
 
     def is_su4layer(self, depth: int) -> bool:
         """Check if the depth-th layer is su4layer (layer containing 2q-gates) or not.
@@ -109,7 +98,7 @@ class MIPMappingModel:
         Returns:
             True if logical qubit q is assigned to physical qubit i at timestep t, else False
         """
-        return self.problem.solution.get_values(self.ic.w_index(q, i, t)) > 0.5
+        return self.problem.solution.get_values(self._ic.w_index(q, i, t)) > 0.5
 
     def is_swapped(self, q: int, i: int, j: int, t: int) -> bool:
         """Check if logical qubit q is assigned to physical qubit i at t and moved to j at t+1.
@@ -124,23 +113,23 @@ class MIPMappingModel:
         Returns:
             True if logical qubit q is assigned to physical qubit i at timestep t, else False
         """
-        return self.problem.solution.get_values(self.ic.x_index(q, i, j, t)) > 0.5
+        return self.problem.solution.get_values(self._ic.x_index(q, i, j, t)) > 0.5
 
     @property
     def num_lqubits(self):
-        return self.ic.num_lqubits
+        return self._ic.num_lqubits
 
     @property
     def num_pqubits(self):
-        return self.ic.num_pqubits
+        return self._ic.num_pqubits
 
     @property
     def depth(self):
-        return self.ic.depth
+        return self._ic.depth
 
     @property
     def edges(self):
-        return self.ic.ht.arcs
+        return self._ic.ht.arcs
 
     def create_cpx_problem(self,
                            objective,
@@ -332,13 +321,6 @@ class MIPMappingModel:
             else:
                 prob.variables.set_lower_bounds(ic.wd_index(t), 1)
                 non_dummy += 1
-        # # Total number of dummy steps
-        # prob.linear_constraints.add(
-        #     lin_expr=[SparsePair(
-        #         ind=[ic.wd_index(t) for t in range(ic.depth)],
-        #         val=[1 for t in range(ic.depth)])],
-        #     senses=['L'], rhs=[max_total_dummy + non_dummy],
-        #     names=['dummy_ts_total'])
         # Symmetry breaking between dummy time steps
         for t in range(ic.depth - 1):
             # This is a dummy time step and the next one is dummy too
@@ -352,7 +334,7 @@ class MIPMappingModel:
                     senses=['G'], rhs=[0],
                     names=['dummy_precedence_{:d}'.format(t)])
         # Symmetry breaking on the line -- only works on line topology!
-        if (line_symm):
+        if line_symm:
             for h in range(1, ic.num_lqubits):
                 prob.linear_constraints.add(
                     lin_expr=[SparsePair(
@@ -363,12 +345,12 @@ class MIPMappingModel:
                     senses=['G'], rhs=[1],
                     names=['sym_break_line_{:d}'.format(h)])
         # Symmetry breaking on the cycle -- only works on cycle topology!
-        if (cycle_symm):
+        if cycle_symm:
             prob.variables.set_lower_bounds(ic.w_index(0, 0, 0), 1)
             # Logical qubit flow constraints
         for t in range(ic.depth):
             for q in range(ic.num_lqubits):
-                if (t < ic.depth - 1):
+                if t < ic.depth - 1:
                     # Flow out; skip last time step
                     prob.linear_constraints.add(
                         lin_expr=[SparsePair(
@@ -381,7 +363,7 @@ class MIPMappingModel:
                         rhs=[0 for i in range(ic.num_pqubits)],
                         names=['flow_out_{:d}_{:d}_{:d}'.format(t, q, i)
                                for i in range(ic.num_pqubits)])
-                if (t > 0):
+                if t > 0:
                     # Flow in; skip first time step
                     prob.linear_constraints.add(
                         lin_expr=[SparsePair(
@@ -419,15 +401,15 @@ class MIPMappingModel:
                     names=['eu_def_{:d}_{:d}_{:d}'.format(t, i, j)])
 
         self.problem = prob
-        self.ic = ic
+        self._ic = ic
 
         ### Define objevtive function ###
-        if objective == "error":
-            self.set_error_rate_obj(self.problem, self.ic)
+        if objective == "error_rate":
+            raise NotImplementedError(f"objective: '{objective}' is not implemented")
         elif objective == "depth":
-            self.set_depth_obj(self.problem, self.ic)
-        # elif:
-        #     # TODO; balanced (weighted sum of error and depth)
+            self.set_depth_obj(self.problem, self._ic)
+        elif objective == "balanced":
+            raise NotImplementedError(f"objective: '{objective}' is not implemented")
         else:
             raise TranspilerError(f"Unknown objective type: {objective}")
 
@@ -446,70 +428,6 @@ class MIPMappingModel:
         # Set objective
         for i in range(ic.wd_start, ic.wd_start + ic.num_wd_vars):
             prob.objective.set_linear(i, 1)
-
-    @staticmethod
-    def set_error_rate_obj(prob, ic):
-        """Set the minimum error rate objective function.
-
-        Parameters
-        ----------
-        prob : `Cplex`
-            A Cplex problem object containg the model
-
-        ic : `_IndexCalculator`
-            Corresponding index calculator to retrieve variable indices
-
-        """
-        # Set objective
-        for t in range(ic.depth):
-            used_qubit = [False for i in range(ic.num_lqubits)]
-            used_qubit_fidelity = [0] * ic.num_lqubits
-            used_qubit_mfidelity = [0] * ic.num_lqubits
-            for (p, q) in ic.qc.gates[t]:
-                used_qubit[p] = True
-                used_qubit[q] = True
-                used_qubit_fidelity[p] = ic.qc.gate_fidelity(t, (p, q))
-                used_qubit_fidelity[q] = ic.qc.gate_fidelity(t, (p, q))
-                used_qubit_mfidelity[p] = ic.qc.gate_mfidelity(t, (p, q))
-                used_qubit_mfidelity[q] = ic.qc.gate_mfidelity(t, (p, q))
-                for (i, j) in ic.ht.arcs:
-                    # We pay the cost for gate implementation. If we are
-                    # mirroring, another objective function coefficient
-                    # (below) will ensure we pay the difference between
-                    # regular cost and mirrored cost.
-                    expected_fidelities = [used_qubit_fidelity[p][k] *
-                                           ic.ht.arc_basis_fidelity((i, j)) ** k
-                                           for k in range(4)]
-                    pbest_fid = -np.log(np.max(expected_fidelities))
-                    prob.objective.set_linear(
-                        ic.y_index(t, (p, q), (i, j)), pbest_fid)
-            if t < ic.depth - 1:
-                # x variables are only defined for depth up to depth-1
-                for i in range(ic.num_pqubits):
-                    for q in range(ic.num_lqubits):
-                        for j in ic.ht.outstar_by_node[i]:
-                            if not used_qubit[q]:
-                                # This means we are swapping
-                                prob.objective.set_linear(
-                                    ic.x_index(q, i, j, t),
-                                    -3 / 2 * ic.ht.arc_log_basis_fidelity((i, j)))
-                            else:
-                                # This is a mirrored gate, so compute the
-                                # difference between its mirrored cost and the
-                                # non-mirrored cost
-                                expected_fidelities = [
-                                    used_qubit_fidelity[q][k] *
-                                    ic.ht.arc_basis_fidelity((i, j)) ** k
-                                    for k in range(4)]
-                                expected_fidelitiesm = [
-                                    used_qubit_mfidelity[q][k] *
-                                    ic.ht.arc_basis_fidelity((i, j)) ** k
-                                    for k in range(4)]
-                                pbest_fid = -np.log(np.max(expected_fidelities))
-                                pbest_fidm = -np.log(np.max(expected_fidelitiesm))
-                                prob.objective.set_linear(
-                                    ic.x_index(q, i, j, t),
-                                    (pbest_fidm - pbest_fid) / 2)
 
     def solve_cpx_problem(self, time_limit=60,
                           heuristic_emphasis=False, silent=True):
@@ -561,18 +479,6 @@ class _CircuitModel:
         gates to be applied at that depth. Gates should be
         non-overlapping in terms of qubits. A gate is specified by two
         integers between 0 and num_qubits-1.
-
-    _gate_fidelity : list[list[int]]
-        A list of the same dimensions as `gates`, indicating the
-        fidelity of each gate when using 0, 1, 2 or 3 entangling
-        gates. If it is not provided, it is assumed that the fidelity
-        is 1 for 2 gates and 0.01 otherwise.
-
-    _gate_mfidelity : list[list[int]]
-        A list of the same dimensions as `gates`, indicating the
-        fidelity of each mirrored gate when using 0, 1, 2 or 3 entangling
-        gates. If it is not provided, it is assumed that the fidelity
-        is 1 for 3 gates and 0.01 otherwise.
     """
 
     def __init__(self, num_qubits, gates, dummy_timesteps=None):
@@ -606,22 +512,12 @@ class _CircuitModel:
                 self._gate_to_index[(t, gate[0], gate[1])] = index
                 index += 1
 
-        # TODO: remove gate_fidelity or lazy set of its values
-        self._gate_fidelity = {}
-        self._gate_mfidelity = {}
-
     @property
     def depth(self):
         return len(self.gates)
 
     def gate_to_index(self, t, gate):
         return self._gate_to_index[t, gate[0], gate[1]]
-
-    def gate_fidelity(self, t, gate):
-        return self._gate_fidelity[t, gate[0], gate[1]]
-
-    def gate_mfidelity(self, t, gate):
-        return self._gate_mfidelity[t, gate[0], gate[1]]
 
 
 class _HardwareTopology:
@@ -636,23 +532,11 @@ class _HardwareTopology:
         A list of length num_qubits, containing for each qubit the
         other qubits to which it is connected. These edges are assumed
         to be directed.
-
-    basis_fidelity : list[list[float]]
-        Same size as `connectivity`, should contain a basis fidelity
-        (success rate, between 0 and 1) for each two-qubit
-        connection. If None, we assume the fidelity is 0.99 for each
-        edge.
-
-    cross_talk : list[(int, int, int, int)]
-        Cross-talk information, where each entry is two pairs of
-        (connected) qubits that cross-talk.
     """
 
-    def __init__(self, num_qubits, connectivity, basis_fidelity=None,
-                 cross_talk=None):
+    def __init__(self, num_qubits, connectivity):
         self.num_qubits = num_qubits
         self.connectivity = connectivity
-        self._orig_basis_fidelity = basis_fidelity
         edge_set = set()
         for u in range(num_qubits):
             for v in connectivity[u]:
@@ -663,15 +547,6 @@ class _HardwareTopology:
         self.edges = [e for e in edge_set]
         self.arcs = ([(u, v) for (u, v) in edge_set] +
                      [(v, u) for (u, v) in edge_set])
-        self.edges_by_node = [[k for k, (u, v) in enumerate(self.edges)
-                               if (u == i or v == i)]
-                              for i in range(self.num_qubits)]
-        self.arcs_out_by_node = [[k for k, (u, v) in enumerate(self.arcs)
-                                  if (u == i)]
-                                 for i in range(self.num_qubits)]
-        self.arcs_in_by_node = [[k for k, (u, v) in enumerate(self.arcs)
-                                 if (v == i)]
-                                for i in range(self.num_qubits)]
         self.outstar_by_node = [[v for k, (u, v) in enumerate(self.arcs)
                                  if (u == i)]
                                 for i in range(self.num_qubits)]
@@ -681,63 +556,12 @@ class _HardwareTopology:
         self._edge_to_index = {edge: i for i, edge in enumerate(self.edges)}
         self._arc_to_index = dict()
         self._arc_to_index = {arc: i for i, arc in enumerate(self.arcs)}
-        if basis_fidelity is None:
-            self._basis_fidelity = [[0.99] for i in range(num_qubits)
-                                    for u in connectivity[i]]
-        else:
-            self._basis_fidelity = basis_fidelity
-        self._edge_basis_fidelity = {(u, v): self._basis_fidelity[u][i]
-                                     for u in range(num_qubits)
-                                     for (i, v) in enumerate(connectivity[u])}
-        self._arc_basis_fidelity = {(u, v): self._basis_fidelity[u][i]
-                                    for u in range(num_qubits)
-                                    for (i, v) in enumerate(connectivity[u])}
-        self._arc_basis_fidelity.update({(v, u): self._basis_fidelity[u][i]
-                                         for u in range(num_qubits)
-                                         for (i, v) in enumerate(connectivity[u])})
-        self._orig_cross_talk = None
-        self._cross_talk = dict()
-        if (cross_talk is not None):
-            for i, j, u, v in cross_talk:
-                # Ensure all edges are taken in the order indicated
-                # stored in the edge data structure
-                if (i, j) in self.edges:
-                    a = (i, j)
-                else:
-                    a = (j, i)
-                if (u, v) in self.edges:
-                    b = (u, v)
-                else:
-                    b = (v, u)
-                if (a not in self._cross_talk):
-                    self._cross_talk[a] = [b]
-                else:
-                    self._cross_talk[a].append(b)
-                if (b not in self._cross_talk):
-                    self._cross_talk[b] = [a]
-                else:
-                    self._cross_talk[b].append(a)
 
     def edge_to_index(self, edge):
         return self._edge_to_index[edge]
 
     def arc_to_index(self, arc):
         return self._arc_to_index[arc]
-
-    def arc_basis_fidelity(self, arc):
-        return self._arc_basis_fidelity[arc]
-
-    def edge_basis_fidelity(self, edge):
-        return self._edge_basis_fidelity[edge]
-
-    def arc_log_basis_fidelity(self, arc):
-        return math.log(self._arc_basis_fidelity[arc])
-
-    def edge_log_basis_fidelity(self, edge):
-        return math.log(self._edge_basis_fidelity[edge])
-
-    def cross_talk(self, edge):
-        return self._cross_talk[edge] if (edge) in self._cross_talk else []
 
 
 class _IndexCalculator:
@@ -902,6 +726,3 @@ class _IndexCalculator:
             Index of the variable in a flattened (0-indexed) model.
         """
         return self.eu_start + depth*self.ht.num_edges + self.ht.edge_to_index(edge)
-
-
-
