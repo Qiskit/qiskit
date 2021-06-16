@@ -1,9 +1,25 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """
 Tests correctness of compression algorithms for CNOT structures.
 """
-print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
+# TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
-import sys, os, traceback
+import os
+import sys
+import traceback
+
+from qiskit.test import QiskitTestCase
 
 if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())
@@ -19,7 +35,7 @@ from qiskit.transpiler.synthesis.aqc.cnot_compress import (
 )
 
 
-class TestCNotCompress(unittest.TestCase):
+class TestCNotCompress(QiskitTestCase):
     @staticmethod
     def _print_progress(cnot_reduction: int):
         if cnot_reduction > 0:

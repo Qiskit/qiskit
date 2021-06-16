@@ -10,9 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-import unittest
 import numpy as np
 
+from qiskit import QuantumCircuit
+from qiskit.quantum_info import Operator
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.optimizers import GDOptimizer, FISTAOptimizer
 from qiskit.transpiler.synthesis.aqc.parametric_circuit import ParametricCircuit
 from test_sample_data import (
@@ -30,9 +32,6 @@ from test_sample_data import (
     FISTA_GD_GRADIENT,
     FISTA_GD_MIN_THETA,
 )
-from qiskit import QuantumCircuit
-from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
 
 
 class TestMain(QiskitTestCase):

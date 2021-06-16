@@ -13,7 +13,9 @@
 """
 Tests analytical gradient vs the one computed via finite differences.
 """
-print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
+from qiskit.test import QiskitTestCase
+
+# TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
 import sys, os, traceback
 
@@ -25,13 +27,8 @@ from joblib import Parallel, delayed
 import qiskit.transpiler.synthesis.aqc.utils as ut
 from qiskit.transpiler.synthesis.aqc.parametric_circuit import ParametricCircuit
 
-# Avoid excessive deprecation warnings in Qiskit on Linux system.
-import warnings
 
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-
-class TestGradientAgainstFiniteDiff(unittest.TestCase):
+class TestGradientAgainstFiniteDiff(QiskitTestCase):
     """
     Compares analytical gradient vs the one computed via finite difference
     approximation. Also, the test demonstrates that the difference between

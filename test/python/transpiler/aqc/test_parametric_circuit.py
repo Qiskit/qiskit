@@ -13,9 +13,11 @@
 """
 Tests the implementation of parametric circuit.
 """
-print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
+# TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
 import sys, os, traceback
+
+from qiskit.test import QiskitTestCase
 
 if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())
@@ -26,13 +28,8 @@ from collections import OrderedDict
 from qiskit.transpiler.synthesis.aqc.parametric_circuit import ParametricCircuit
 from qiskit.transpiler.synthesis.aqc.utils import compare_circuits
 
-# Avoid excessive deprecation warnings in Qiskit on Linux system.
-import warnings
 
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-
-class TestParametricCircuit(unittest.TestCase):
+class TestParametricCircuit(QiskitTestCase):
     def _matrix_conversion(self, nqubits: int, depth: int) -> (int, float):
         print(".", end="", flush=True)
         self.assertTrue(isinstance(nqubits, (int, np.int64)))

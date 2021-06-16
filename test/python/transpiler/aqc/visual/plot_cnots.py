@@ -1,9 +1,24 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """
 Plots CNOT-structures.
 """
 print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
-import sys, os, argparse, traceback
+import argparse
+import os
+import sys
+import traceback
 
 if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())
@@ -15,9 +30,6 @@ from qiskit.transpiler.synthesis.aqc.cnot_structures import (
     get_network_layouts,
     get_connectivity_types,
 )
-
-
-from qiskit.test.mock import FakeVigo, FakeAlmaden, FakeRueschlikon, FakeCasablanca
 
 # Avoid excessive deprecation warnings in Qiskit on Linux system.
 import warnings

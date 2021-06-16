@@ -13,9 +13,11 @@
 """
 Tests the set of functions for generating CNOT structures.
 """
-print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
+# TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
 import sys, os, traceback
+
+from qiskit.test import QiskitTestCase
 
 if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())
@@ -27,7 +29,7 @@ from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
 # TODO: implement a proper test!
 
 
-class TestCnotStructures(unittest.TestCase):
+class TestCnotStructures(QiskitTestCase):
     def test_structures(self):
         print("WARNING: TODO: not implemented yet")
 

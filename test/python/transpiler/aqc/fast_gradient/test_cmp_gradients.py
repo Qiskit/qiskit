@@ -16,7 +16,8 @@ Tests equivalence of the default and fast gradient computation routines.
 """
 print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
-import sys, os
+import os
+import sys
 
 if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())

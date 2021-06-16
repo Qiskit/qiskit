@@ -1,6 +1,20 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """
 Tests the original circuit vs compressed one for equivalence.
 """
+from qiskit.test import QiskitTestCase
+
 print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
 import sys, os, traceback
@@ -15,13 +29,8 @@ from qiskit.transpiler.synthesis.aqc.parametric_circuit import ParametricCircuit
 from qiskit.transpiler.synthesis.aqc.compressor import EulerCompressor
 from qiskit.transpiler.synthesis.aqc.utils import compare_circuits
 
-# Avoid excessive deprecation warnings in Qiskit on Linux system.
-import warnings
 
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-
-class TestCompression(unittest.TestCase):
+class TestCompression(QiskitTestCase):
     def _euler_compression(self, nqubits: int, depth: int) -> (int, float):
         """
         Compares the original circuit vs compressed one for equivalence of

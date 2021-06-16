@@ -13,12 +13,14 @@
 """
 Tests for Layer2Q implementation.
 """
-print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
+# TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
 import os
 import sys
 import time
 import traceback
+
+from qiskit.test import QiskitTestCase
 
 if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())
@@ -30,7 +32,7 @@ from qiskit.transpiler.synthesis.aqc.fast_gradient.pmatrix import PMatrix
 import utils_for_testing as tut
 
 
-class TestLayer2q(unittest.TestCase):
+class TestLayer2q(QiskitTestCase):
     def test_layer2q_matrix(self):
         """
         Tests: (1) the correctness of Layer2Q matrix construction;

@@ -1,7 +1,21 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """
 Compares old vs new implementation of CNOT layout and connectivity functions.
 """
-print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
+from qiskit.test import QiskitTestCase
+
+# TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
 import sys, os, traceback
 
@@ -24,7 +38,7 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-class TestCompareCNOTStructures(unittest.TestCase):
+class TestCompareCNOTStructures(QiskitTestCase):
     def test_cmp_connectivity(self):
         """Tests the new connectivity graph generators against the old ones."""
         print("")

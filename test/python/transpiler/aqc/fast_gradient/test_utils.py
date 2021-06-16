@@ -13,9 +13,12 @@
 """
 Tests for utility functions.
 """
-print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
+# TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
-import sys, os, time, traceback
+import os
+import sys
+import time
+import traceback
 
 if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())
