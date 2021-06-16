@@ -51,6 +51,24 @@ class TestNLocal(QiskitTestCase):
         with self.assertRaises(ValueError):
             _ = NLocal(reps=-1)
 
+    def test_if_reps_is_str(self):
+        """Test to check if proper error is raised for str value of reps"""
+        with self.assertRaises(TypeError):
+            _ = NLocal(reps="3")
+
+    def test_if_reps_is_float(self):
+        """Test to check if proper error is raised for float value of reps"""
+        with self.assertRaises(TypeError):
+            _ = NLocal(reps=5.6)
+
+    def test_if_reps_is_npint32(self):
+        """Equality test for reps with int value and np.int32 value"""
+        self.assertEqual(NLocal(reps=3), NLocal(reps=np.int32(3)))
+
+    def test_if_reps_is_npint64(self):
+        """Equality test for reps with int value and np.int64 value"""
+        self.assertEqual(NLocal(reps=3), NLocal(reps=np.int64(3)))
+
     def test_reps_setter_when_negative(self):
         """Test to check if setter raises error for reps < 0"""
         nlocal = NLocal(reps=1)
@@ -713,6 +731,31 @@ class TestTwoLocal(QiskitTestCase):
         ref.ry(parameters[3], 1)
 
         self.assertCircuitEqual(two.assign_parameters(parameters), ref)
+
+    def test_circuit_with_numpy_integers(self):
+        """Test if TwoLocal can be made from numpy integers"""
+        num_qubits = 6
+        reps = 3
+        expected_np32 = [
+            (i, j)
+            for i in np.arange(num_qubits, dtype=np.int32)
+            for j in np.arange(num_qubits, dtype=np.int32)
+            if i < j
+        ]
+        expected_np64 = [
+            (i, j)
+            for i in np.arange(num_qubits, dtype=np.int64)
+            for j in np.arange(num_qubits, dtype=np.int64)
+            if i < j
+        ]
+
+        two_np32 = TwoLocal(num_qubits, "ry", "cx", entanglement=expected_np32, reps=reps)
+        two_np64 = TwoLocal(num_qubits, "ry", "cx", entanglement=expected_np64, reps=reps)
+
+        expected_cx = reps * num_qubits * (num_qubits - 1) / 2
+
+        self.assertEqual(two_np32.count_ops()["cx"], expected_cx)
+        self.assertEqual(two_np64.count_ops()["cx"], expected_cx)
 
 
 if __name__ == "__main__":
