@@ -46,8 +46,9 @@ class MIPMappingModel:
         self.virtual_to_index = {v: i for i, v in enumerate(initial_layout.get_virtual_bits())}
         self.index_to_virtual = {i: v for i, v in enumerate(initial_layout.get_virtual_bits())}
 
-        # Extract 2-qubit gates
-        self.gates = []
+        # Extract layers with 2-qubit gates
+        self._to_su4layer = []
+        self.su4layers = []
         for t, lay in enumerate(dag.layers()):
             laygates = []
             subdag = lay['graph']
@@ -56,12 +57,15 @@ class MIPMappingModel:
                 i2 = self.virtual_to_index[node.qargs[1]]
                 laygates.append((i1, i2))
             if laygates:
-                self.gates.append(laygates)
+                self._to_su4layer.append(len(self.su4layers))
+                self.su4layers.append(laygates)
+            else:
+                self._to_su4layer.append(-1)
 
         # Generate data structures for the optimization problem
         self.circuit_model = _CircuitModel(
             num_qubits=len(dag.qubits),
-            gates=self.gates,
+            gates=self.su4layers,
             dummy_timesteps=dummy_timesteps
         )
 
@@ -71,6 +75,28 @@ class MIPMappingModel:
             connectivity=[list(coupling_map.neighbors(i)) for i in range(coupling_map.size())],
             basis_fidelity=[[0.96 for _ in coupling_map.neighbors(i)]
                             for i in range(coupling_map.size())])
+
+    def is_su4layer(self, depth: int) -> bool:
+        """Check if the depth-th layer is su4layer (layer containing 2q-gates) or not.
+
+        Args:
+            depth: Depth of the ordinary layer
+
+        Returns:
+            True if the depth-th layer is su4layer, otherwise False
+        """
+        return self._to_su4layer[depth] >= 0
+
+    def to_su4layer_depth(self, depth: int) -> int:
+        """Return the depth as a su4layer. If the depth-th layer is not a su4layer, return -1.
+
+        Args:
+            depth: Depth of the ordinary layer
+
+        Returns:
+            su4layer depth if the depth-th layer is a su4layer, otherwise -1
+        """
+        return self._to_su4layer[depth]
 
     def is_assigned(self, q: int, i: int, t: int) -> bool:
         """Check if logical qubit q is assigned to physical qubit i at timestep t.

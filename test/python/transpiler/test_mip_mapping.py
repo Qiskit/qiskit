@@ -242,6 +242,42 @@ class TestMIPMapping(QiskitTestCase):
         expected.measure(q[2], cr1[1])
         expected.measure(q[3], cr2[1])
 
+        self.assertEqual(actual, expected)
+
+    def test_swaps_in_dummy_steps(self):
+        """Test the case when swaps are inserted in dummy steps.
+        """
+        circuit = QuantumCircuit(4)
+        circuit.cx(0, 1)
+        circuit.cx(2, 3)
+        circuit.barrier()
+        circuit.h([0, 1, 2, 3])
+        circuit.barrier()
+        circuit.cx(0, 3)
+        circuit.cx(1, 2)
+        circuit.barrier()
+        circuit.cx(0, 2)
+        circuit.cx(1, 3)
+
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
+        actual = MIPMapping(coupling, objective="depth")(circuit)
+
+        q = QuantumRegister(4, name='q')
+        expected = QuantumCircuit(q)
+        expected.cx(1, 0)
+        expected.cx(2, 3)
+        expected.barrier()
+        expected.h([0, 1, 2, 3])
+        expected.barrier()
+        expected.swap(1, 2)  # swap in a dummy step
+        expected.cx(0, 1)
+        expected.cx(2, 3)
+        expected.barrier()
+        expected.swap(0, 1)
+        expected.swap(1, 2)  # swap in a dummy step
+        expected.cx(1, 0)
+        expected.cx(2, 3)
+
         # print(actual)
         # print(expected)
 

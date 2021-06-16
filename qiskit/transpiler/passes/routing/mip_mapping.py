@@ -114,7 +114,7 @@ class MIPMapping(TransformationPass):
                                 coupling_map=self.coupling_map,
                                 dummy_timesteps=dummy_steps)
 
-        if len(model.gates) == 0:
+        if len(model.su4layers) == 0:
             logger.info("MIPMapping is skipped due to no 2q-gates.")
             return original_dag
 
@@ -142,32 +142,34 @@ class MIPMapping(TransformationPass):
         mapped_dag = self._create_empty_dagcircuit(dag, canonical_register)
         interval = dummy_steps + 1
         for k, layer in enumerate(dag.layers()):
-            # add swaps between (k-1)-th and k-th the layer
-            from_steps = interval * (k-1)
-            to_steps = interval * k
-            for t in range(from_steps, to_steps):
-                if t < 0:
-                    continue
-                if t >= model.depth - 1:
-                    break
-                for (i, j) in model.edges:
-                    for q in range(model.num_lqubits):
-                        if model.is_swapped(q, i, j, t) and i < j:
-                            mapped_dag.apply_operation_back(
-                                op=SwapGate(),
-                                qargs=[canonical_register[i], canonical_register[j]]
-                            )
-                            # update layout, swapping physical qubits (i, j)
-                            # we cannot use Layout.swap() due to #virtuals < #physicals
-                            v_org_i, v_org_j = None, None
-                            if i in layout.get_physical_bits():
-                                v_org_i = layout[i]
-                            if j in layout.get_physical_bits():
-                                v_org_j = layout[j]
-                            if v_org_i is not None:
-                                layout[v_org_i] = j
-                            if v_org_j is not None:
-                                layout[v_org_j] = i
+            if model.is_su4layer(k):
+                l = model.to_su4layer_depth(k)
+                # add swaps between (l-1)-th and l-th su4layer
+                from_steps = interval * (l-1)
+                to_steps = interval * l
+                for t in range(from_steps, to_steps):
+                    if t < 0:
+                        continue
+                    if t >= model.depth - 1:
+                        break
+                    for (i, j) in model.edges:
+                        for q in range(model.num_lqubits):
+                            if model.is_swapped(q, i, j, t) and i < j:
+                                mapped_dag.apply_operation_back(
+                                    op=SwapGate(),
+                                    qargs=[canonical_register[i], canonical_register[j]]
+                                )
+                                # update layout, swapping physical qubits (i, j)
+                                # we cannot use Layout.swap() due to #virtuals < #physicals
+                                v_org_i, v_org_j = None, None
+                                if i in layout.get_physical_bits():
+                                    v_org_i = layout[i]
+                                if j in layout.get_physical_bits():
+                                    v_org_j = layout[j]
+                                if v_org_i is not None:
+                                    layout[v_org_i] = j
+                                if v_org_j is not None:
+                                    layout[v_org_j] = i
             # map gates in k-th layer
             for node in layer['graph'].nodes():
                 if node.type == 'op':
