@@ -159,10 +159,8 @@ def plot_histogram(
         else:
             for counts in data:
                 for count in counts:
-                    if count in combined_counts:
-                        combined_counts[count] += counts[count]
-                    else:
-                        combined_counts[count] = counts[count]
+                    prev_count = combined_counts.get(count, 0)
+                    combined_counts[count] = max(prev_count, counts[count])
         labels = list(sorted(combined_counts.keys(), key=lambda key: combined_counts[key]))
 
     length = len(data)
