@@ -600,7 +600,7 @@ class NLocal(BlueprintCircuit):
 
         # check if entanglement is List[List]
         if not all(isinstance(en, (tuple, list)) for en in entanglement):
-            raise ValueError("Invalid value of entanglement: {}".format(entanglement))
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
         num_j = len(entanglement[i % num_i])
 
         # entanglement is List[List[str]]
@@ -617,7 +617,7 @@ class NLocal(BlueprintCircuit):
 
         # check if entanglement is List[List[List]]
         if not all(isinstance(e2, (tuple, list)) for en in entanglement for e2 in en):
-            raise ValueError("Invalid value of entanglement: {}".format(entanglement))
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
         # entanglement is List[List[List[int]]]
         if all(
@@ -633,7 +633,7 @@ class NLocal(BlueprintCircuit):
 
         # check if entanglement is List[List[List[List]]]
         if not all(isinstance(e3, (tuple, list)) for en in entanglement for e2 in en for e3 in e2):
-            raise ValueError("Invalid value of entanglement: {}".format(entanglement))
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
         # entanglement is List[List[List[List[int]]]]
         if all(

@@ -554,7 +554,7 @@ class QuantumInstance:
                         cals_result, mit_pattern=state_labels, circlabel=circuit_labels
                     )
                 else:
-                    raise QiskitError("Unknown fitter {}".format(self._meas_error_mitigation_cls))
+                    raise QiskitError(f"Unknown fitter {self._meas_error_mitigation_cls}")
 
                 self._meas_error_mitigation_fitters[qubit_index_str] = (
                     meas_error_mitigation_fitter,
