@@ -14,23 +14,25 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from scipy.optimize import rosen
-import numpy as np
 
-from qiskit.utils import algorithm_globals
+import numpy as np
+from scipy.optimize import rosen
+
 from qiskit.algorithms.optimizers import (
     ADAM,
     CG,
     COBYLA,
+    GSLS,
     L_BFGS_B,
-    P_BFGS,
     NELDER_MEAD,
+    P_BFGS,
     POWELL,
     SLSQP,
     SPSA,
     TNC,
-    GSLS,
+    SciPyOptimizer,
 )
+from qiskit.utils import algorithm_globals
 
 
 class TestOptimizers(QiskitAlgorithmsTestCase):
@@ -122,6 +124,24 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         # Ensure value is near-optimal
         self.assertLessEqual(x_value, 0.01)
         self.assertLessEqual(n_evals, 10000)
+
+    def test_scipy_optimizer(self):
+        """scipy_optimizer test"""
+        optimizer = SciPyOptimizer("BFGS", options={"maxiter": 1000})
+        res = self._optimize(optimizer)
+        self.assertLessEqual(res[2], 10000)
+
+    def test_scipy_optimizer_callback(self):
+        """scipy_optimizer callback test"""
+        values = []
+
+        def callback(x):
+            values.append(x)
+
+        optimizer = SciPyOptimizer("BFGS", options={"maxiter": 1000}, callback=callback)
+        res = self._optimize(optimizer)
+        self.assertLessEqual(res[2], 10000)
+        self.assertTrue(values)  # Check the list is nonempty.
 
 
 if __name__ == "__main__":
