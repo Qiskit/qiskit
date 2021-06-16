@@ -17,8 +17,8 @@ import operator
 from typing import Iterator, List, Optional, Union
 
 import numpy as np
+
 from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.circuit.library import PhaseOracle
 from qiskit.providers import Backend, BaseBackend
 from qiskit.quantum_info import partial_trace
 from qiskit.utils import QuantumInstance
@@ -246,10 +246,7 @@ class Grover(AmplitudeAmplifier):
                 )
 
             all_circuit_results.append(circuit_results)
-            if isinstance(amplification_problem.oracle, PhaseOracle):
-                oracle_evaluation = amplification_problem.is_good_state(top_measurement[::-1])
-            else:
-                oracle_evaluation = amplification_problem.is_good_state(top_measurement)
+            oracle_evaluation = amplification_problem.is_good_state(top_measurement)
 
             if oracle_evaluation is True:
                 break  # we found a solution

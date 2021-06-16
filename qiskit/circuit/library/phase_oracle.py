@@ -80,11 +80,12 @@ class PhaseOracle(QuantumCircuit):
         """Evaluate the oracle on a bitstring.
         This evaluation is done classically without any quantum circuit.
         Args:
-            bitstring: The bitstring for which to evaluate.
+            bitstring: The bitstring for which to evaluate. The input bitstring is expected to be
+                in little-endian order.
         Returns:
             True if the bitstring is a good state, False otherwise.
         """
-        return self.boolean_expression.simulate(bitstring)
+        return self.boolean_expression.simulate(bitstring[::-1])
 
     @classmethod
     def from_dimacs_file(cls, filename: str):
