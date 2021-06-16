@@ -265,7 +265,6 @@ class QuantumCircuit:
             "c3sx",
             "c4x",
         ]
-        self.existing_composite_circuits = []
 
     @property
     def data(self):
@@ -1483,6 +1482,8 @@ class QuantumCircuit:
             "u2",
             "u3",
         ]
+
+        existing_composite_circuits = ""
 
         qasm_string_temp = self.header + "\n"
         qasm_string_temp += self.extension_lib + "\n"
