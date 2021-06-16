@@ -265,7 +265,6 @@ class DictStateFn(StateFn):
         # we define all missing strings to have a function value of
         # zero.
         if isinstance(front, DictStateFn):
-            print(self.from_operator)
             return np.round(
                 cast(
                     float,

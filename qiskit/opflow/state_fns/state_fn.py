@@ -196,12 +196,17 @@ class StateFn(OperatorBase):
                 "{} of type {}.".format(scalar, type(scalar))
             )
 
-        ret = self.__class__(
-            self.primitive, coeff=self.coeff * scalar, is_measurement=self.is_measurement
-        )
         if hasattr(self, "from_operator"):
-            ret.from_operator = self.from_operator
-        return ret
+            return self.__class__(
+                self.primitive,
+                coeff=self.coeff * scalar,
+                is_measurement=self.is_measurement,
+                from_operator=self.from_operator,
+            )
+        else:
+            return self.__class__(
+                self.primitive, coeff=self.coeff * scalar, is_measurement=self.is_measurement
+            )
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
         r"""

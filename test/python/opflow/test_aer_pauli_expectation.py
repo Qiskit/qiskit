@@ -104,7 +104,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         # !!NOTE!!: Depolarizing channel (Sampling) means interference
         # does not happen between circuits in sum, so expectation does
         # not equal expectation for Zero!!
-        np.testing.assert_array_almost_equal(sampled_zero_mean.eval(), [0, 0, 0, np.sqrt(2)])
+        np.testing.assert_array_almost_equal(sampled_zero_mean.eval(), [0, 0, 0, 1])
 
     def test_pauli_expect_state_vector(self):
         """pauli expect state vector test"""
