@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """Tests the classicalfunction parser."""
-import unittest
-
 from qiskit.circuit.classicalfunction import ClassicalFunctionParseError
 from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
 

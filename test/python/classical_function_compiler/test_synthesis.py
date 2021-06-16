@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """Tests classicalfunction compiler synthesis."""
-import unittest
-
 from qiskit.test import QiskitTestCase
 
 from qiskit.circuit.classicalfunction import classical_function as compile_classical_function

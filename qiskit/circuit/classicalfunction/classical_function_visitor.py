@@ -19,7 +19,6 @@ import _ast
 
 from tweedledum.classical import LogicNetwork
 
-from qiskit.exceptions import MissingOptionalLibraryError
 from .exceptions import ClassicalFunctionParseError, ClassicalFunctionCompilerTypeError
 
 

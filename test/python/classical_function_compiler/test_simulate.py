@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """Tests LogicNetwork.simulate method."""
-import unittest
-
 from ddt import ddt, data
 from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
 from qiskit.test import QiskitTestCase
