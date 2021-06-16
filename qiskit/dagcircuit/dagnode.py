@@ -94,7 +94,7 @@ class DAGNode:
             DeprecationWarning,
             2,
         )
-        return self._op.condition
+        return self.op.condition
 
     @condition.setter
     def condition(self, new_condition):
@@ -108,7 +108,7 @@ class DAGNode:
             DeprecationWarning,
             2,
         )
-        self._op.condition = new_condition
+        self.op.condition = new_condition
 
     @property
     def qargs(self):
