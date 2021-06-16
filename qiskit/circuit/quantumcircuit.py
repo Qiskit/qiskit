@@ -1318,53 +1318,7 @@ class QuantumCircuit:
                             f" registers {element1} and {element2} not compatible"
                         )
 
-    def _get_composite_circuit_qasm_from_instruction(self, instruction):
-        """Returns OpenQASM string composite circuit given an instruction.
-        The given instruction should be the result of composite_circuit.to_instruction()."""
-
-        if instruction.definition is None:
-            raise ValueError(f'Instruction "{instruction.name}" is not defined.')
-
-        gate_parameters = ",".join(
-            ["param%i" % num for num in range(len(instruction.params))]
-        )
-        qubit_parameters = ",".join(
-            ["q%i" % num for num in range(instruction.num_qubits)]
-        )
-        composite_circuit_gates = ""
-
-        definition = instruction.definition
-        definition_bit_labels = {
-            bit: idx
-            for bits in (definition.qubits, definition.clbits)
-            for idx, bit in enumerate(bits)
-        }
-        for data, qargs, _ in definition:
-            gate_qargs = ",".join(
-                ["q%i" % index for index in [definition_bit_labels[qubit] for qubit in qargs]]
-            )
-            composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
-
-        if composite_circuit_gates:
-            composite_circuit_gates = composite_circuit_gates.rstrip(" ")
-
-        if gate_parameters:
-            qasm_string = "gate %s(%s) %s { %s }" % (
-                instruction.name,
-                gate_parameters,
-                qubit_parameters,
-                composite_circuit_gates,
-            )
-        else:
-            qasm_string = "gate %s %s { %s }" % (
-                instruction.name,
-                qubit_parameters,
-                composite_circuit_gates,
-            )
-
-        return qasm_string
-
-    def qasm(self, formatted=False, filename=None, encoding=None):
+        def qasm(self, formatted=False, filename=None, encoding=None):
         """Return OpenQASM string.
 
         Args:
@@ -1507,7 +1461,7 @@ class QuantumCircuit:
                         )
 
                     # Get qasm of composite circuit
-                    qasm_string_composite = self._get_composite_circuit_qasm_from_instruction(instruction)
+                    qasm_string_composite = _get_composite_circuit_qasm_from_instruction(instruction)
 
                     # Insert composite circuit qasm definition right after header and extension lib
                     qasm_string_temp = qasm_string_temp.replace(
@@ -1531,7 +1485,7 @@ class QuantumCircuit:
                 unitary_gates.append(instruction)
 
         # insert gate definitions
-        self._insert_composite_gate_definition_qasm()
+        _insert_composite_gate_definition_qasm(qasm_string_temp, existing_composite_circuits, self.extension_lib)
 
         if filename:
             with open(filename, "w+", encoding=encoding) as file:
@@ -1553,10 +1507,7 @@ class QuantumCircuit:
         else:
             return qasm_string_temp
 
-    def _insert_composite_gate_definition_qasm(self):
-        """Insert composite gate definition QASM code right after extension library in the header"""
-
-    def draw(
+   def draw(
         self,
         output=None,
         scale=None,
@@ -3090,3 +3041,71 @@ def _compare_parameters(param1, param2):
 
     # else sort by name
     return _standard_compare(param1.name, param2.name)
+
+def _get_composite_circuit_qasm_from_instruction(instruction):
+    """Returns OpenQASM string composite circuit given an instruction.
+    The given instruction should be the result of composite_circuit.to_instruction()."""
+
+    if instruction.definition is None:
+        raise ValueError(f'Instruction "{instruction.name}" is not defined.')
+
+    gate_parameters = ",".join(
+        ["param%i" % num for num in range(len(instruction.params))]
+    )
+    qubit_parameters = ",".join(
+        ["q%i" % num for num in range(instruction.num_qubits)]
+    )
+    composite_circuit_gates = ""
+
+    definition = instruction.definition
+    definition_bit_labels = {
+        bit: idx
+        for bits in (definition.qubits, definition.clbits)
+        for idx, bit in enumerate(bits)
+    }
+    for data, qargs, _ in definition:
+        gate_qargs = ",".join(
+            ["q%i" % index for index in [definition_bit_labels[qubit] for qubit in qargs]]
+        )
+        composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
+
+    if composite_circuit_gates:
+        composite_circuit_gates = composite_circuit_gates.rstrip(" ")
+
+    if gate_parameters:
+        qasm_string = "gate %s(%s) %s { %s }" % (
+            instruction.name,
+            gate_parameters,
+            qubit_parameters,
+            composite_circuit_gates,
+        )
+    else:
+        qasm_string = "gate %s %s { %s }" % (
+            instruction.name,
+            qubit_parameters,
+            composite_circuit_gates,
+        )
+
+    return qasm_string
+
+def _insert_composite_gate_definition_qasm(qasm_string_temp, existing_composite_circuits, extension_lib):
+    """Insert composite gate definition QASM code right after extension library in the header"""
+
+    gate_definition_string = ""
+
+    # Cycle through all gate definitions and add all undefined gates to the list
+    for instruction in existing_composite_circuits:
+        _get_composite_circuit_qasm_from_instruction(instruction)
+
+    # Generate gate definition string
+    for instruction in existing_composite_circuits:
+        if isinstance(instruction, qk.extensions.unitary.UnitaryGate):
+            qasm_string = instruction._qasm_definition
+        else:
+            qasm_string = _get_composite_circuit_qasm_from_instruction(instruction)
+        gate_definition_string += '\n' + qasm_string
+
+    qasm_string_temp = qasm_string_temp.replace(extension_lib,
+                                                            "%s%s" % (extension_lib,
+                                                                    gate_definition_string))
+    return qasm_string_temp
