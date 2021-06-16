@@ -35,7 +35,7 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.dagcircuit.dagnode import DAGNodeP, OpNode, InNode, OutNode
+from qiskit.dagcircuit.dagnode import DAGNode, OpNode, InNode, OutNode
 from qiskit.exceptions import MissingOptionalLibraryError
 
 
@@ -975,7 +975,7 @@ class DAGCircuit:
             return False
 
         def node_eq(node_self, node_other):
-            return DAGNodeP.semantic_eq(node_self, node_other, self_bit_indices, other_bit_indices)
+            return DAGNode.semantic_eq(node_self, node_other, self_bit_indices, other_bit_indices)
 
         return rx.is_isomorphic_node_match(self._multi_graph, other._multi_graph, node_eq)
 
