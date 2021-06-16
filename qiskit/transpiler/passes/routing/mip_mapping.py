@@ -143,9 +143,9 @@ class MIPMapping(TransformationPass):
         interval = dummy_steps + 1
         for k, layer in enumerate(dag.layers()):
             # add swaps between (k-1)-th and k-th the layer
-            from_dummy_steps = 1 + interval * (k-1)
-            to_dummy_steps = interval * k
-            for t in range(from_dummy_steps, to_dummy_steps):
+            from_steps = interval * (k-1)
+            to_steps = interval * k
+            for t in range(from_steps, to_steps):
                 if t < 0:
                     continue
                 if t >= model.depth - 1:

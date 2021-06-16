@@ -230,14 +230,15 @@ class TestMIPMapping(QiskitTestCase):
 
         q = QuantumRegister(4, name='q')
         expected = QuantumCircuit(q, cr1, cr2)
-        expected.cx(q[1], q[0])
+        expected.cx(q[0], q[1])
         expected.cx(q[2], q[3])
+        expected.swap(q[0], q[1])
         expected.cx(q[0], q[2])
         expected.h(q[0])
         expected.cx(q[0], q[1])
         expected.barrier()
-        expected.measure(q[1], cr1[0])
-        expected.measure(q[0], cr2[0])
+        expected.measure(q[0], cr2[0])  # cbit is changed
+        expected.measure(q[1], cr1[0])  # cbit is changed
         expected.measure(q[2], cr1[1])
         expected.measure(q[3], cr2[1])
 
