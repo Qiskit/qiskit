@@ -14,6 +14,8 @@
 
 """Object to represent the information at a node in the DAGCircuit."""
 
+import warnings
+
 from qiskit.exceptions import QiskitError
 
 
@@ -24,22 +26,57 @@ class DAGDepNode:
     be supplied to functions that take a node.
     """
 
-    __slots__ = ['type', '_op', 'name', '_qargs', 'cargs', 'condition',
-                 'sort_key', 'node_id', 'successors', 'predecessors',
-                 'reachable', 'matchedwith', 'isblocked', 'successorstovisit',
-                 'qindices', 'cindices']
+    __slots__ = [
+        "type",
+        "_op",
+        "name",
+        "_qargs",
+        "cargs",
+        "sort_key",
+        "node_id",
+        "successors",
+        "predecessors",
+        "reachable",
+        "matchedwith",
+        "isblocked",
+        "successorstovisit",
+        "qindices",
+        "cindices",
+    ]
 
-    def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None,
-                 condition=None, successors=None, predecessors=None, reachable=None,
-                 matchedwith=None, successorstovisit=None, isblocked=None, qindices=None,
-                 cindices=None, nid=-1):
+    def __init__(
+        self,
+        type=None,
+        op=None,
+        name=None,
+        qargs=None,
+        cargs=None,
+        condition=None,
+        successors=None,
+        predecessors=None,
+        reachable=None,
+        matchedwith=None,
+        successorstovisit=None,
+        isblocked=None,
+        qindices=None,
+        cindices=None,
+        nid=-1,
+    ):
 
         self.type = type
         self._op = op
         self.name = name
         self._qargs = qargs if qargs is not None else []
         self.cargs = cargs if cargs is not None else []
-        self.condition = condition
+        if condition:
+            warnings.warn(
+                "The DAGDepNode 'condition' kwarg and 'condition' attribute are deprecated "
+                "as of 0.18.0 and will be removed no earlier than 3 months after the "
+                "release date. You can use 'DAGDepNode.op.condition' if the DAGDepNode "
+                "is of type 'op'.",
+                DeprecationWarning,
+                2,
+            )
         self.node_id = nid
         self.sort_key = str(self._qargs)
         self.successors = successors if successors is not None else []
@@ -54,13 +91,41 @@ class DAGDepNode:
     @property
     def op(self):
         """Returns the Instruction object corresponding to the op for the node, else None"""
-        if not self.type or self.type != 'op':
+        if not self.type or self.type != "op":
             raise QiskitError("The node %s is not an op node" % (str(self)))
         return self._op
 
     @op.setter
     def op(self, data):
         self._op = data
+
+    @property
+    def condition(self):
+        """Returns the condition of the node.op"""
+        if not self.type or self.type != "op":
+            raise QiskitError("The node %s is not an op node" % (str(self)))
+        warnings.warn(
+            "The DAGDepNode 'condition' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "You can use 'DAGDepNode.op.condition' if the DAGDepNode is of type 'op'.",
+            DeprecationWarning,
+            2,
+        )
+        return self._op.condition
+
+    @condition.setter
+    def condition(self, new_condition):
+        """Sets the node.condition which sets the node.op.condition."""
+        if not self.type or self.type != "op":
+            raise QiskitError("The node %s is not an op node" % (str(self)))
+        warnings.warn(
+            "The DAGDepNode 'condition' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "You can use 'DAGDepNode.op.condition' if the DAGDepNode is of type 'op'.",
+            DeprecationWarning,
+            2,
+        )
+        self._op.condition = new_condition
 
     @property
     def qargs(self):
@@ -88,23 +153,25 @@ class DAGDepNode:
             Bool: If node1 == node2
         """
         # For barriers, qarg order is not significant so compare as sets
-        if 'barrier' == node1.name == node2.name:
+        if "barrier" == node1.name == node2.name:
             return set(node1._qargs) == set(node2._qargs)
-        result = False
+
         if node1.type == node2.type:
             if node1._op == node2._op:
                 if node1.name == node2.name:
                     if node1._qargs == node2._qargs:
                         if node1.cargs == node2.cargs:
-                            if node1.condition == node2.condition:
-                                result = True
-        return result
+                            if node1.type == "op":
+                                if node1._op.condition != node2._op.condition:
+                                    return False
+                            return True
+        return False
 
     def copy(self):
         """
         Function to copy a DAGDepNode object.
         Returns:
-            DAGDepNode: a copy of a DAGDepNode objectto.
+            DAGDepNode: a copy of a DAGDepNode object.
         """
 
         dagdepnode = DAGDepNode()
@@ -114,7 +181,6 @@ class DAGDepNode:
         dagdepnode.name = self.name
         dagdepnode._qargs = self._qargs
         dagdepnode.cargs = self.cargs
-        dagdepnode.condition = self.condition
         dagdepnode.node_id = self.node_id
         dagdepnode.sort_key = self.sort_key
         dagdepnode.successors = self.successors

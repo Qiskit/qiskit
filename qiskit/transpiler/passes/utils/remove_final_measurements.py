@@ -33,17 +33,19 @@ class RemoveFinalMeasurements(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        final_op_types = ['measure', 'barrier']
+        final_op_types = ["measure", "barrier"]
         final_ops = []
         cregs_to_remove = dict()
         clbits_with_final_measures = set()
+        clbit_registers = {clbit: creg for creg in dag.cregs.values() for clbit in creg}
 
         for candidate_node in dag.named_nodes(*final_op_types):
             is_final_op = True
 
             for _, child_successors in dag.bfs_successors(candidate_node):
-                if any(suc.type == 'op' and suc.name not in final_op_types
-                       for suc in child_successors):
+                if any(
+                    suc.type == "op" and suc.name not in final_op_types for suc in child_successors
+                ):
                     is_final_op = False
                     break
 
@@ -62,10 +64,11 @@ class RemoveFinalMeasurements(TransformationPass):
         # If the clbit is idle, add its register to list of registers we may remove
         for clbit in clbits_with_final_measures:
             if clbit in dag.idle_wires():
-                if clbit.register in cregs_to_remove:
-                    cregs_to_remove[clbit.register] += 1
+                creg = clbit_registers[clbit]
+                if creg in cregs_to_remove:
+                    cregs_to_remove[creg] += 1
                 else:
-                    cregs_to_remove[clbit.register] = 1
+                    cregs_to_remove[creg] = 1
 
         # Remove creg if all of its clbits were added above
         for key, val in zip(list(dag.cregs.keys()), list(dag.cregs.values())):

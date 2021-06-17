@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The decomposition methods for single-qubit gates in
+    :class:`~qiskit.quantum_info.OneQubitEulerDecomposer` has been expanded to now
+    also include the ``'ZSXX'`` basis, for making use of direct :math:`X` gate as well as :math:`\sqrt{X}`.
+fixes:
+  - |
+    Tightened up tolerances, improved repeatability and simplification, fixed several global-phase-tracking bugs
+    for one- and two-qubit gate synthesis.

@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fixes a bug with the :func:`~qiskit.visualization.timeline_drawer` function when handling classical bits.
-  - |
-    Fixes an issue with delays not being considered as idle in circuit
-    visualization.
-    
