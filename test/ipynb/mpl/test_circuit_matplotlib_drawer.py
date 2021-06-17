@@ -31,6 +31,15 @@ from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
+from qiskit.tools.visualization import HAS_MATPLOTLIB
+
+if HAS_MATPLOTLIB:
+    from matplotlib.pyplot import close as mpl_close
+else:
+    raise ImportError(
+        "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+    )
+
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -54,6 +63,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer = TestMatplotlibDrawer.save_data_wrap(
             _matplotlib_circuit_drawer, str(self)
         )
+
+    def tearDown(self):
+        super().tearDown()
+        mpl_close("all")
 
     @staticmethod
     def save_data_wrap(func, testname):

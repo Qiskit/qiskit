@@ -79,7 +79,7 @@ def qreg_creg_ascending(bits: List[types.Bits]) -> List[types.Bits]:
         elif isinstance(bit, circuit.Clbit):
             cregs.append(bit)
         else:
-            VisualizationError("Unknown bit {bit} is provided.".format(bit=bit))
+            VisualizationError(f"Unknown bit {bit} is provided.")
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -109,7 +109,7 @@ def qreg_creg_descending(bits: List[types.Bits]) -> List[types.Bits]:
         elif isinstance(bit, circuit.Clbit):
             cregs.append(bit)
         else:
-            VisualizationError("Unknown bit {bit} is provided.".format(bit=bit))
+            VisualizationError(f"Unknown bit {bit} is provided.")
 
     qregs = sorted(qregs, key=lambda x: x.index, reverse=True)
     cregs = sorted(cregs, key=lambda x: x.index, reverse=True)
@@ -138,7 +138,7 @@ def time_map_in_dt(time_window: Tuple[int, int]) -> types.HorizontalAxis:
     # consider time resolution
     label = "System cycle time (dt)"
 
-    formatted_label = ["{val:.0f}".format(val=val) for val in axis_label]
+    formatted_label = [f"{val:.0f}" for val in axis_label]
 
     return types.HorizontalAxis(
         window=(t0, t1), axis_map=dict(zip(axis_loc, formatted_label)), label=label

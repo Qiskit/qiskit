@@ -265,7 +265,7 @@ class DictStateFn(StateFn):
             return np.round(
                 cast(
                     float,
-                    sum([v * front.primitive.get(b, 0) for (b, v) in self.primitive.items()])
+                    sum(v * front.primitive.get(b, 0) for (b, v) in self.primitive.items())
                     * self.coeff
                     * front.coeff,
                 ),
@@ -281,7 +281,7 @@ class DictStateFn(StateFn):
             return np.round(
                 cast(
                     float,
-                    sum([v * front.primitive.data[int(b, 2)] for (b, v) in self.primitive.items()])
+                    sum(v * front.primitive.data[int(b, 2)] for (b, v) in self.primitive.items())
                     * self.coeff,
                 ),
                 decimals=EVAL_SIG_DIGITS,
@@ -297,7 +297,7 @@ class DictStateFn(StateFn):
         from .operator_state_fn import OperatorStateFn
 
         if isinstance(front, OperatorStateFn):
-            return cast(Union[OperatorBase, float, complex], front.adjoint().eval(self.adjoint()))
+            return cast(Union[OperatorBase, complex], front.adjoint().eval(self.adjoint()))
 
         # All other OperatorBases go here
         self_adjoint = cast(DictStateFn, self.adjoint())

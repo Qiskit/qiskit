@@ -57,7 +57,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             self.sampler = CircuitSampler(q_instance, attach_results=True)
             self.expect = AerPauliExpectation()
         except Exception as ex:  # pylint: disable=broad-except
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
 
     def test_pauli_expect_pair(self):
@@ -185,7 +185,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             actual_sampled = sut.convert(expect_op, params=param_bindings).eval()
             self.assertTrue(
                 np.allclose(actual_sampled, expect_sampled),
-                "%s != %s" % (actual_sampled, expect_sampled),
+                f"{actual_sampled} != {expect_sampled}",
             )
 
         def get_circuit_templates(sampler):
