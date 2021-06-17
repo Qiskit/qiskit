@@ -276,7 +276,7 @@ class SabreSwap(TransformationPass):
         """
         extended_set = list()
         incremented = list()
-        tmp_front_layer = deepcopy(front_layer)
+        tmp_front_layer = front_layer
         done = False
         while tmp_front_layer and not done:
             new_tmp_front_layer = list()
