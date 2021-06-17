@@ -10,17 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=import-error
+
 """Map a DAGCircuit onto a `coupling_map` allocating qubits and adding swap gates."""
 import copy
 import logging
 import warnings
-
-try:
-    import cplex  # pylint: disable=unused-import
-
-    _HAS_CPLEX = True
-except ImportError:
-    _HAS_CPLEX = False
 
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import SwapGate
@@ -33,7 +28,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
 from qiskit.transpiler.passes.layout.trivial_layout import TrivialLayout
-from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingModel
+from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingModel, HAS_CPLEX
 from qiskit.transpiler.passmanager import PassManager
 
 logger = logging.getLogger(__name__)
@@ -72,7 +67,7 @@ class BIPMapping(TransformationPass):
         Raises:
             MissingOptionalLibraryError: if cplex is not installed.
         """
-        if not _HAS_CPLEX:
+        if not HAS_CPLEX:
             raise MissingOptionalLibraryError(
                 libname="CPLEX",
                 name="CplexOptimizer",

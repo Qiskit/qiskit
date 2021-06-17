@@ -2,9 +2,14 @@
 
 import logging
 
-from cplex import Cplex
-from cplex import SparsePair
-from cplex.exceptions.errors import CplexSolverError
+try:
+    from cplex import Cplex
+    from cplex import SparsePair
+    from cplex.exceptions.errors import CplexSolverError
+
+    HAS_CPLEX = True
+except ImportError:
+    HAS_CPLEX = False
 
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
@@ -29,6 +34,12 @@ class BIPMappingModel:
                 Number of dummy time steps, after each real layer of gates, to
                 allow arbitrary swaps between neighbors.
         """
+        if not HAS_CPLEX:
+            raise MissingOptionalLibraryError(
+                libname="CPLEX",
+                name="CplexOptimizer",
+                pip_install="pip install 'qiskit[cplex]'",
+            )
         self.problem = None
         self._ic = None
 

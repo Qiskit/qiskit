@@ -108,6 +108,7 @@ setup(
         'classical-function-compiler': ['tweedledum>=1.0,<2.0'],
         'full-featured-simulators': ['qiskit-aer>=0.1'],
         'crosstalk-pass': ['z3-solver>=4.7'],
+        'cplex': ['cplex']
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",

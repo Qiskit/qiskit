@@ -14,13 +14,17 @@
 
 """Test the BIPMapping pass"""
 
+import unittest
+
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler.passes import BIPMapping
+from qiskit.transpiler.passes.routing.algorithms.bip_model import HAS_CPLEX
 
 
+@unittest.skipUnless(HAS_CPLEX, "cplex is required to run the BIPMapping tests")
 class TestBIPMapping(QiskitTestCase):
     """Tests the BIPMapping pass."""
 
