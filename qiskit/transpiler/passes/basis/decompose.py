@@ -12,9 +12,7 @@
 
 """Expand a gate in a circuit using its decomposition rules."""
 
-from typing import Type
 from fnmatch import fnmatch
-from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
@@ -27,7 +25,6 @@ class Decompose(TransformationPass):
         """Decompose initializer.
 
         Args:
-            gate: gate to decompose.
             gates_to_decompose (list(str)): optional subset of gates to be decomposed,
             identified by gate name. Defaults to all gates.
 
