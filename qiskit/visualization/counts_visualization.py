@@ -214,7 +214,7 @@ def plot_histogram(
     # add some text for labels, title, and axes ticks
     ax.set_ylabel("Probabilities", fontsize=14)
     all_vals = np.concatenate(all_pvalues).ravel()
-    ax.set_ylim([0.0, min([1.2, max([1.2 * val for val in all_vals])])])
+    ax.set_ylim([0.0, min([1.2, max(1.2 * val for val in all_vals)])])
     if "desc" in sort:
         ax.invert_xaxis()
 

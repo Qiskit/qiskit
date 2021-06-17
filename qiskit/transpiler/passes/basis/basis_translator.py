@@ -175,7 +175,7 @@ class BasisTranslator(TransformationPass):
                 else:
                     dag.substitute_node_with_dag(node, bound_target_dag)
             else:
-                raise TranspilerError("BasisTranslator did not map {}.".format(node.name))
+                raise TranspilerError(f"BasisTranslator did not map {node.name}.")
 
         replace_end_time = time.time()
         logger.info(

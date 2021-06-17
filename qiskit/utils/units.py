@@ -37,4 +37,4 @@ def apply_prefix(value: float, unit: str) -> float:
     elif unit[0] in upfactors:
         return value * upfactors[unit[0]]
     else:
-        raise Exception("Could not understand units: {u}".format(u=unit))
+        raise Exception(f"Could not understand units: {unit}")
