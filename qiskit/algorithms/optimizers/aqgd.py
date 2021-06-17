@@ -156,9 +156,9 @@ class AQGD(Optimizer):
 
     def _update(
         self,
-        params: np.array,
-        gradient: np.array,
-        mprev: np.array,
+        params: np.ndarray,
+        gradient: np.ndarray,
+        mprev: np.ndarray,
         step_size: float,
         momentum_coeff: float,
     ) -> Tuple[List[float], List[float]]:

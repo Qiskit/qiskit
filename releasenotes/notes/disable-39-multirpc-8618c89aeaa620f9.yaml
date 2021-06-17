@@ -1,0 +1,20 @@
+---
+issues:
+  - |
+    When running :func:`~qiskit.tools.parallel_map` (and functions that
+    internally call :func:`~qiskit.tools.parallel_map` such as
+    :func:`~qiskit.compiler.transpile` and :func:`~qiskit.compiler.assemble`)
+    on Python 3.9 with ``QISKIT_PARALLEL`` set to True in some scenarios it is
+    possible for the program to deadlock and never finish running. To avoid
+    this from happening the default for Python 3.9 was changed to not run in
+    parallel, but if ``QISKIT_PARALLEL`` is explicitly enabled then this
+    can still occur.
+upgrade:
+  - |
+    The default value for ``QISKIT_PARALLEL`` on Python 3.9 environments has
+    changed to ``False``, this means that when running on Python 3.9 by default
+    multiprocessing will not be used. This was done to avoid a potential
+    deadlock/hanging issue that can occur when running multiprocessing on
+    Python 3.9 (see the known issues section for more detail). It is still
+    possible to manual enable it by explicitly setting the ``QISKIT_PARALLEL``
+    environment variable to ``TRUE``.
