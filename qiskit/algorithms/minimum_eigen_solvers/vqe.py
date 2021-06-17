@@ -38,7 +38,6 @@ from qiskit.providers import Backend, BaseBackend
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils.deprecation import deprecate_function
-from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
 
 from ..exceptions import AlgorithmError
