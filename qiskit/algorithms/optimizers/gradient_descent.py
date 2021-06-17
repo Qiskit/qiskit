@@ -1,3 +1,15 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """A standard gradient descent optimizer."""
 
 from typing import Iterator, Optional, Union, Callable
@@ -27,6 +39,11 @@ class GradientDescent(Optimizer):
     in the ``optimize`` method, or, if you do not provide it, use a finite difference approximation
     of the gradient. To adapt the size of the perturbation in the finite difference gradients,
     set the ``perturbation`` property in the initializer.
+
+    This optimizer supports a callback function. If provided in the initializer, the optimizer
+    will call the callback in each iteration with the following information in this order:
+    current number of function values, current parameters, current function value, norm of current
+    gradient.
 
     Examples:
 
@@ -137,25 +154,22 @@ class GradientDescent(Optimizer):
 
         for _ in range(1, self.maxiter + 1):
             # compute update -- gradient evaluation counts as one function evaluation
-            update = np.reshape(grad(x), np.shape(x))
+            update = grad(x)
             nfevs += 1
 
             # compute next parameter value
-            try:
-                x_next = x - next(eta) * update
-            except Exception:
-                u = np.array([update_item.toarray()[0][0] for update_item in update])
-                x_next = x - next(eta) * u
+            x_next = x - next(eta) * update
 
             # send information to callback
+            stepsize = np.linalg.norm(update)
             if self.callback is not None:
-                self.callback(nfevs, x_next, loss(x_next), np.linalg.norm(update))
+                self.callback(nfevs, x_next, loss(x_next), stepsize)
 
             # update parameters
             x = x_next
 
             # check termination
-            if np.linalg.norm(update) < self.tol:
+            if stepsize < self.tol:
                 break
 
         return x, loss(x), nfevs

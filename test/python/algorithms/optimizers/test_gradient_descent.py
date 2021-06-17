@@ -23,7 +23,7 @@ from qiskit.test.decorators import slow_test
 
 
 class TestGradientDescent(QiskitAlgorithmsTestCase):
-    """Tests for the SPSA optimizer."""
+    """Tests for the gradient descent optimizer."""
 
     def setUp(self):
         super().setUp()
@@ -31,7 +31,7 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
 
     @slow_test
     def test_pauli_two_design(self):
-        """Test SPSA on the Pauli two-design example."""
+        """Test standard gradient descent on the Pauli two-design example."""0
         circuit = PauliTwoDesign(3, reps=3, seed=2)
         parameters = list(circuit.parameters)
         obs = Z ^ Z ^ I
@@ -83,6 +83,7 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
         self.assertIsInstance(history[0][0], int)  # nfevs
         self.assertIsInstance(history[0][1], np.ndarray)  # parameters
         self.assertIsInstance(history[0][2], float)  # function value
+        self.assertIsInstance(history[0][3], float)  # norm of the gradient
 
     def test_iterator_learning_rate(self):
         """Test setting the learning rate as iterator."""

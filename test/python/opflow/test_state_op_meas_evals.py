@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -74,7 +74,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
             state = Plus
             self.assertEqual((~StateFn(op) @ state).eval(), 0j)
 
-        backend = Aer.get_backend("qasm_simulator")
+        backend = Aer.get_backend("aer_simulator")
         q_instance = QuantumInstance(backend, seed_simulator=97, seed_transpiler=97)
         op = I
         with self.subTest("zero coeff in summed StateFn and CircuitSampler"):
@@ -94,7 +94,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
-        backend = Aer.get_backend("qasm_simulator")
+        backend = Aer.get_backend("aer_simulator")
         q_instance = QuantumInstance(backend)  # no seeds needed since no values are compared
         state = Plus
         sampler = CircuitSampler(q_instance).convert(~state @ state)
@@ -119,7 +119,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         bindings = {x: -0.4, y: 0.4}
         listop = ListOp([StateFn(circuit) for circuit in [circuit1, circuit2, circuit3]])
 
-        sampler = CircuitSampler(Aer.get_backend("qasm_simulator"))
+        sampler = CircuitSampler(Aer.get_backend("aer_simulator"))
         sampled = sampler.convert(listop, params=bindings)
 
         self.assertTrue(all(len(op.parameters) == 0 for op in sampled.oplist))
@@ -148,7 +148,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         circuit.ry(x, 0)
         expr = ~StateFn(H) @ StateFn(circuit)
 
-        sampler = CircuitSampler(Aer.get_backend("statevector_simulator"))
+        sampler = CircuitSampler(Aer.get_backend("aer_simulator_statevector"))
 
         res = sampler.convert(expr, params={x: 0}).eval()
 
@@ -169,7 +169,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         expr1 = ~StateFn(H) @ StateFn(circuit)
         expr2 = ~StateFn(X) @ StateFn(circuit)
 
-        sampler = CircuitSampler(Aer.get_backend("statevector_simulator"), caching=caching)
+        sampler = CircuitSampler(Aer.get_backend("aer_simulator_statevector"), caching=caching)
 
         res1 = sampler.convert(expr1, params={x: 0}).eval()
         res2 = sampler.convert(expr2, params={x: 0}).eval()
@@ -208,11 +208,11 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_quantum_instance_with_backend_shots(self):
         """Test sampling a circuit where the backend has shots attached."""
         try:
-            from qiskit.providers.aer import QasmSimulator
+            from qiskit.providers.aer import AerSimulator
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
 
-        backend = QasmSimulator(shots=10)
+        backend = AerSimulator(shots=10)
         sampler = CircuitSampler(backend)
         res = sampler.convert(~Plus @ Plus).eval()
         self.assertAlmostEqual(res, 1 + 0j, places=2)
