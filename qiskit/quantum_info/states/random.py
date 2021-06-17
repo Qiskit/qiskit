@@ -54,8 +54,7 @@ def random_statevector(dims, seed=None):
     return Statevector(np.sqrt(x / sumx) * np.exp(1j * phases), dims=dims)
 
 
-def random_density_matrix(dims, rank=None, method='Hilbert-Schmidt',
-                          seed=None):
+def random_density_matrix(dims, rank=None, method="Hilbert-Schmidt", seed=None):
     """Generator a random DensityMatrix.
 
     Args:
@@ -79,12 +78,12 @@ def random_density_matrix(dims, rank=None, method='Hilbert-Schmidt',
     if rank is None:
         rank = dim  # Use full rank
 
-    if method == 'Hilbert-Schmidt':
+    if method == "Hilbert-Schmidt":
         rho = _random_density_hs(dim, rank, seed)
-    elif method == 'Bures':
+    elif method == "Bures":
         rho = _random_density_bures(dim, rank, seed)
     else:
-        raise QiskitError('Error: unrecognized method {}'.format(method))
+        raise QiskitError(f"Error: unrecognized method {method}")
     return DensityMatrix(rho, dims=dims)
 
 
@@ -107,8 +106,7 @@ def _ginibre_matrix(nrow, ncol, seed):
     else:
         rng = default_rng(seed)
 
-    ginibre = rng.normal(
-        size=(nrow, ncol)) + rng.normal(size=(nrow, ncol)) * 1j
+    ginibre = rng.normal(size=(nrow, ncol)) + rng.normal(size=(nrow, ncol)) * 1j
     return ginibre
 
 

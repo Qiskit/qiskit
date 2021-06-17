@@ -18,6 +18,10 @@ please ensure that:
 1. The code follows the code style of the project and successfully
    passes the tests. For convenience, you can execute `tox` locally,
    which will run these checks and report any issues.
+
+   If your code fails the local style checks (specifically the black
+   code formatting check) you can use `tox -eblack` to automatically
+   fix update the code formatting.
 2. The documentation has been updated accordingly. In particular, if a
    function or class has been modified during the PR, please update the
    *docstring* accordingly.
@@ -199,7 +203,7 @@ Please see the [Installing Qiskit Terra from
 Source](https://qiskit.org/documentation/contributing_to_qiskit.html#installing-terra-from-source)
 section of the Qiskit documentation.
 
-### Test
+## Test
 
 Once you've made a code change, it is important to verify that your change
 does not break any existing tests and that any new tests that you've added
@@ -321,7 +325,61 @@ Alternatively, the `make test_ci` target can be used instead of
 `make test` in order to run in a setup that replicates the configuration
 we used in our CI systems more closely.
 
-### Development Cycle
+### Snapshot Testing for Visualizations
+
+If you are working on code that makes changes to any matplotlib visualisations 
+you will need to check that your changes don't break any snapshot tests, and add 
+new tests where necessary. You can do this as follows:
+
+1. Make sure you have pushed your latest changes to your remote branch.
+2. Go to link: `https://mybinder.org/v2/gh/<github_user>/<repo>/<branch>?urlpath=apps/test/ipynb/mpl_tester.ipynb`. For example, if your GitHub username is `username`, your forked repo has the same name the original, and your branch is `my_awesome_new_feature`, you should visit https://mybinder.org/v2/gh/username/qiskit-terra/my_awesome_new_feature?urlpath=apps/test/ipynb/mpl_tester.ipynb.
+This opens a Jupyter Notebook application running in the cloud that automatically runs 
+the snapshot tests (note this may take some time to finish loading).
+3. Each test result provides a set of 3 images (left: reference image, middle: your test result, right: differences). In the list of tests the passed tests are collapsed and failed tests are expanded. If a test fails, you will see a situation like this:
+
+   <img width="995" alt="Screenshot_2021-03-26_at_14 13 54" src="https://user-images.githubusercontent.com/23662430/112663508-d363e800-8e50-11eb-9478-6d665d0ff086.png">
+4. Fix any broken tests. Working on code for one aspect of the visualisations 
+can sometimes result in minor changes elsewhere to spacing etc. In these cases 
+you just need to update the reference images as follows:
+    - download the mismatched images (link at top of Jupyter Notebook output)
+    - unzip the folder
+    - copy and paste the new images into `qiskit-terra/test/ipynb/mpl/references`, 
+  replacing the existing reference images
+    - add, commit and push your changes, then restart the Jupyter Notebook app in your browser. The 
+  tests should now pass.
+5. Add new snapshot tests covering your new features, extensions, or bugfixes.
+    - add your new snapshot tests to `test/ipynb/mpl/test_circuit_matplotlib_drawer.py`
+    , where you can also find existing tests to use as a guide.
+    - commit and push your changes, restart the Jupyter Notebook app in your browser. 
+    As this is the first time you run your new tests there won't be any reference 
+    images to compare to. Instead you should see an option in the list of tests 
+    to download the new images, like so:
+
+    <img width="1002" alt="Screenshot_2021-03-26_at_15 38 31" src="https://user-images.githubusercontent.com/23662430/112665215-b9c3a000-8e52-11eb-89e7-b18550718522.png">
+
+    - download the new images, then copy and paste into `qiskit-terra/test/ipynb/mpl/references`
+    - add, commit and push your changes, restart the Jupyter Notebook app in your browser. The 
+    new tests should now pass.
+
+Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some file metadata has changed, **please do not commit and push changes to this file unless they were intentional**.
+
+## Style and lint
+
+Qiskit Terra uses 2 tools for verify code formatting and lint checking. The
+first tool is [black](https://github.com/psf/black) which is a code formatting
+tool that will automatically update the code formatting to a consistent style.
+The second tool is [pylint](https://www.pylint.org/) which is a code linter
+which does a deeper analysis of the Python code to find both style issues and
+potential bugs and other common issues in Python.
+
+You can check that your local modifications conform to the style rules
+by running `tox -elint` which will run `black` and `pylint` to check the local
+code formatting and lint. If black returns a code formatting error you can
+run `tox -eblack` to automatically update the code formatting to conform to
+the style. However, if `pylint` returns any error you will have to fix these
+issues by manually updating your code.
+
+## Development Cycle
 
 The development cycle for qiskit-terra is all handled in the open using
 the project boards in Github for project management. We use milestones
@@ -364,3 +422,55 @@ the following steps:
 
 The `stable/*` branches should only receive changes in the form of bug
 fixes.
+
+## Adding deprecation warnings
+The qiskit-terra code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy) fully applies here. Additionally, qiskit-terra does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
+
+For example, if `Obj.method1` is being deprecated in favour of `Obj.method2`, the existing test (or tests) for `method1` might look like this:
+
+```python
+def test_method1(self):
+   result = Obj.method1()
+   self.assertEqual(result, <expected>)
+```
+
+Deprecating `method1` means that `Obj.method1()` now raises a deprecation warning and the test will not pass. The existing test should be updated and a new test added for `method2`:
+
+
+```python
+def test_method1_deprecated(self):
+   with self.assertWarns(DeprecationWarning):
+       result = Obj.method1()
+   self.assertEqual(result, <expected>)
+
+def test_method2(self):
+   result = Obj.method2()
+   self.assertEqual(result, <expected>)
+```
+
+`test_method1_deprecated` can be removed after `Obj.method1` is removed (following the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy)).
+
+## Dealing with the git blame ignore list
+
+In the qiskit-terra repository we maintain a list of commits for git blame
+to ignore. This is mostly commits that are code style changes that don't
+change the functionality but just change the code formatting (for example,
+when we migrated to use black for code formatting). This file,
+`.git-blame-ignore-revs` just contains a list of commit SHA1s you can tell git
+to ignore when using the `git blame` command. This can be done one time
+with something like
+
+```
+git blame --ignore-revs-file .git-blame-ignore-revs qiskit/version.py
+
+```
+
+from the root of the repository. If you'd like to enable this by default you
+can update your local repository's configuration with:
+
+```
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+which will update your local repositories configuration to use the ignore list
+by default.
