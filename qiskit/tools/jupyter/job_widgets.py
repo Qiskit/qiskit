@@ -142,8 +142,8 @@ def build_job_viewer():
         Javascript(
             """
         const isLab = window['Jupyter'] === undefined;
-        const notebook = document.querySelector( isLab ? 'div.jp-Notebook' : '#site'); 
-        const jobWidget = document.querySelector('div.job_widget'); 
+        const notebook = document.querySelector( isLab ? 'div.jp-Notebook' : '#site');
+        const jobWidget = document.querySelector('div.job_widget');
         notebook.prepend(jobWidget);
         jobWidget.style.zIndex = '999';
         jobWidget.style.position = isLab ? 'sticky' : 'fixed';
