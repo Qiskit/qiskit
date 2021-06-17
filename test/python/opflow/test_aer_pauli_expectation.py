@@ -15,10 +15,10 @@
 import itertools
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
+
 import numpy as np
 
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.utils import QuantumInstance
 from qiskit.opflow import (
     CX,
     AerPauliExpectation,
@@ -39,6 +39,7 @@ from qiskit.opflow import (
     Z,
     Zero,
 )
+from qiskit.utils import QuantumInstance
 
 
 class TestAerPauliExpectation(QiskitOpflowTestCase):
@@ -253,6 +254,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         self.assertIsInstance(observable[0], CircuitStateFn)
         self.assertTrue(observable[0].is_measurement)
 
+    @unittest.skip("Skip until https://github.com/Qiskit/qiskit-aer/issues/1271 is resolved.")
     def test_pauli_expectation_non_hermite_op(self):
         """Test PauliExpectation for non hermitian operator"""
         exp = ~StateFn(1j * Z) @ One

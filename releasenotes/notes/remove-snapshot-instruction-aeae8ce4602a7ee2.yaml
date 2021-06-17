@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    :class:`~qiskit.providers.aer.extensions.SnapshotExpectationValue`
+    has been replaced by :class:`~qiskit.providers.aer.library.SaveExpectationValue`
+    since it was deprecated.
