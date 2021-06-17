@@ -20,12 +20,9 @@ from qiskit.exceptions import QiskitError
 
 
 class DAGNode:
-    """DEPRECATED as of 0.18.0. Object to represent the information at a node in
-    the DAGCircuit. It is used as the return value from `*_nodes()` functions and can
-    be supplied to functions that take a node.
-    """
+    """Parent class for OpNode, InNode, and OutNode."""
 
-    __slots__ = ["type", "op", "_qargs", "cargs", "wire", "sort_key", "_node_id"]
+    __slots__ = ["type", "_op", "_qargs", "cargs", "_wire", "sort_key", "_node_id"]
 
     def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None, wire=None, nid=-1):
         """Create a node"""
@@ -46,7 +43,7 @@ class DAGNode:
                 DeprecationWarning,
                 2,
             )
-            self.op = op
+        self._op = op
         if name is not None:
             warnings.warn(
                 "The DAGNode 'name' attribute is deprecated as of 0.18.0 and "
@@ -65,9 +62,20 @@ class DAGNode:
                 DeprecationWarning,
                 2,
             )
-            self.wire = wire
+        self._wire = wire
         self._node_id = nid
         self.sort_key = str(self._qargs)
+
+    @property
+    def op(self):
+        """Returns the Instruction object corresponding to the op for the node, else None"""
+        if not self.type or self.type != "op":
+            raise QiskitError("The node %s is not an op node" % (str(self)))
+        return self._op
+
+    @op.setter
+    def op(self, data):
+        self._op = data
 
     @property
     def name(self):
@@ -122,6 +130,19 @@ class DAGNode:
         """Sets the qargs to be the given list of qargs."""
         self._qargs = new_qargs
         self.sort_key = str(new_qargs)
+
+    @property
+    def wire(self):
+        """
+        Returns the Bit object, else None.
+        """
+        if self.type not in ["in", "out"]:
+            raise QiskitError("The node %s is not an input/output node" % str(self))
+        return self._wire
+
+    @wire.setter
+    def wire(self, data):
+        self._wire = data
 
     def __lt__(self, other):
         return self._node_id < other._node_id
