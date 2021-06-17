@@ -137,9 +137,10 @@ def build_job_viewer():
     acc.selected_index = None
     acc.layout.visibility = "hidden"
     display(acc)
-    acc._dom_classes = ['job_widget']
-    display(Javascript(
-        """
+    acc._dom_classes = ["job_widget"]
+    display(
+        Javascript(
+            """
         const isLab = window['Jupyter'] === undefined;
         const notebook = document.querySelector( isLab ? 'div.jp-Notebook' : '#site'); 
         const jobWidget = document.querySelector('div.job_widget'); 
@@ -153,6 +154,7 @@ def build_job_viewer():
             jobWidget.style.left = '0';
         }
         """
-    ))
-    acc.layout.visibility = 'visible'
+        )
+    )
+    acc.layout.visibility = "visible"
     return acc
