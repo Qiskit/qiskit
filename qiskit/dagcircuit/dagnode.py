@@ -34,7 +34,7 @@ class DAGNode:
                 DeprecationWarning,
                 2,
             )
-            self.type = type
+        self.type = type
         if op is not None:
             warnings.warn(
                 "The DAGNode 'op' attribute is deprecated as of 0.18.0 and "
@@ -195,10 +195,10 @@ class DAGNode:
             if "barrier" == node1.op.name == node2.op.name:
                 return set(node1_qargs) == set(node2_qargs)
 
-            if node1.op == node2.op:
-                if node1_qargs == node2_qargs:
-                    if node1_cargs == node2_cargs:
-                        if node1.op.condition == node2.op.condition:
+            if node1_qargs == node2_qargs:
+                if node1_cargs == node2_cargs:
+                    if node1.op.condition == node2.op.condition:
+                        if node1.op == node2.op:
                             return True
         elif (isinstance(node1, InNode) and isinstance(node2, InNode)) or (
             isinstance(node1, OutNode) and isinstance(node2, OutNode)
