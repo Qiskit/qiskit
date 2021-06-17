@@ -1454,7 +1454,7 @@ class QuantumCircuit:
 
             elif (
                 type(instruction)
-                in [  # pylint: disable=unidiomatic-typecheck
+                in [
                     Gate,
                     Instruction,
                 ]
@@ -1838,7 +1838,6 @@ class QuantumCircuit:
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
                                 graphs_touched.append(k)
-                                num_touched += 1
                                 break
 
                 for item in args:
@@ -1847,8 +1846,10 @@ class QuantumCircuit:
                         if reg_int in sub_graphs[k]:
                             if k not in graphs_touched:
                                 graphs_touched.append(k)
-                                num_touched += 1
                                 break
+
+                graphs_touched = list(set(graphs_touched))
+                num_touched = len(graphs_touched)
 
                 # If the gate touches more than one subgraph
                 # join those graphs together and return
@@ -2886,7 +2887,7 @@ class QuantumCircuit:
             self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
 
     # Functions only for scheduled circuits
-    def qubit_duration(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+    def qubit_duration(self, *qubits: Union[Qubit, int]) -> float:
         """Return the duration between the start and stop time of the first and last instructions,
         excluding delays, over the supplied qubits. Its time unit is ``self.unit``.
 
@@ -2898,7 +2899,7 @@ class QuantumCircuit:
         """
         return self.qubit_stop_time(*qubits) - self.qubit_start_time(*qubits)
 
-    def qubit_start_time(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+    def qubit_start_time(self, *qubits: Union[Qubit, int]) -> float:
         """Return the start time of the first instruction, excluding delays,
         over the supplied qubits. Its time unit is ``self.unit``.
 
@@ -2940,7 +2941,7 @@ class QuantumCircuit:
 
         return 0  # If there are no instructions over bits
 
-    def qubit_stop_time(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+    def qubit_stop_time(self, *qubits: Union[Qubit, int]) -> float:
         """Return the stop time of the last instruction, excluding delays, over the supplied qubits.
         Its time unit is ``self.unit``.
 
