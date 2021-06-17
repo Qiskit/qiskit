@@ -55,7 +55,7 @@ class FakeJob(JobV1):
         elif self._error:
             _status = JobStatus.ERROR
         else:
-            raise Exception("Unexpected state of {}".format(self.__class__.__name__))
+            raise Exception(f"Unexpected state of {self.__class__.__name__}")
         _status_msg = None
         return {"status": _status, "status_msg": _status_msg}
 
@@ -116,7 +116,7 @@ class FakeLegacyJob(BaseJob):
         elif self._error:
             _status = JobStatus.ERROR
         else:
-            raise Exception("Unexpected state of {}".format(self.__class__.__name__))
+            raise Exception(f"Unexpected state of {self.__class__.__name__}")
         _status_msg = None
         return {"status": _status, "status_msg": _status_msg}
 

@@ -45,7 +45,7 @@ class PauliGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
         gates = {"I": IGate, "X": XGate, "Y": YGate, "Z": ZGate}
-        qc = QuantumCircuit(len(self.params[0]), name="{}({})".format(self.name, self.params[0]))
+        qc = QuantumCircuit(len(self.params[0]), name=f"{self.name}({self.params[0]})")
 
         rules = [(gates[p](), [qc.qubits[i]], []) for (i, p) in enumerate(reversed(self.params[0]))]
         qc._data = rules

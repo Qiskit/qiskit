@@ -535,7 +535,7 @@ class QCircuitImage:
         ctrlqargs = wire_list[:num_ctrl_qubits]
         wire_min = min(wireqargs)
         wire_max = max(wireqargs)
-        ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(num_ctrl_qubits, "0")[::-1]
+        ctrl_state = f"{op.op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
 
         # First do single qubit target gates
         if len(wireqargs) == 1:
@@ -584,7 +584,7 @@ class QCircuitImage:
         if isinstance(op.op, RZZGate) or (base_op and isinstance(base_op, RZZGate)):
             ctrl_bit = "1"
         else:
-            ctrl_bit = "{:b}".format(op.op.ctrl_state).rjust(1, "0")[::-1]
+            ctrl_bit = f"{op.op.ctrl_state:b}".rjust(1, "0")[::-1]
 
         control = "\\ctrlo" if ctrl_bit == "0" else "\\ctrl"
         self._latex[wire_next_last][col] = f"{control}" + (
@@ -711,5 +711,5 @@ class QCircuitImage:
     def _truncate_float(self, matchobj, ndigits=4):
         """Truncate long floats."""
         if matchobj.group(0):
-            return "%.{}g".format(ndigits) % float(matchobj.group(0))
+            return f"%.{ndigits}g" % float(matchobj.group(0))
         return ""
