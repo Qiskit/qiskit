@@ -156,7 +156,7 @@ and will be removed no sooner than 3 months after the releasedate."""
             self._ansatz_params = None
             self._ansatz = ansatz
         else:
-            raise ValueError('Unsupported type "{}" of ansatz'.format(type(ansatz)))
+            raise ValueError(f'Unsupported type "{type(ansatz)}" of ansatz')
 
     @property
     @deprecate_function(

@@ -157,7 +157,7 @@ class CircuitOp(PrimitiveOp):
         if self.coeff == 1.0:
             return prim_str
         else:
-            return "{} * {}".format(self.coeff, prim_str)
+            return f"{self.coeff} * {prim_str}"
 
     def assign_parameters(self, param_dict: dict) -> OperatorBase:
         param_value = self.coeff
