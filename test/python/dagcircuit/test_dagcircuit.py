@@ -17,7 +17,7 @@ import unittest
 from ddt import ddt, data
 
 import retworkx as rx
-from numpy import pi as pi
+from numpy import pi
 
 from qiskit.dagcircuit import DAGCircuit, OpNode, InNode, OutNode
 from qiskit.circuit import QuantumRegister
