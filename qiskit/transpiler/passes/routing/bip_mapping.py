@@ -106,7 +106,7 @@ class BIPMapping(TransformationPass):
         if self.property_set["layout"]:
             logger.info("BIPMapping ignores given initial layout.")
 
-        dummy_steps = dag.num_qubits() - 1
+        dummy_steps = max(0, dag.num_qubits() - 1)
         if self.max_swaps_inbetween_layers is not None:
             dummy_steps = max(0, self.max_swaps_inbetween_layers - 1)
 

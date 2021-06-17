@@ -124,12 +124,12 @@ class BIPMappingModel:
     @property
     def depth(self):
         """Number of timesteps (including dummy steps)."""
-        return self._ic.depth
+        return self.circuit_model.depth
 
     @property
     def edges(self):
         """Edges in the hardware topology."""
-        return self._ic.ht.arcs
+        return self.toplogy_model.arcs
 
     def create_cpx_problem(self, objective, line_symm=False, cycle_symm=False):
         """Create integer programming model to compile a circuit.
@@ -476,6 +476,8 @@ class BIPMappingModel:
         else:
             raise TranspilerError(f"Unknown objective type: {objective}")
 
+        logger.info("BIP problem stats: %s", self.problem.get_stats())
+
     @staticmethod
     def _set_depth_obj(prob, ic):
         """Set the minimum depth objective function."""
@@ -521,12 +523,13 @@ class BIPMappingModel:
             self.problem.set_results_stream(None)
         try:
             self.problem.solve()
-            status = self.problem.solution.get_status()
-            # print(status)
+            status = self.problem.solution.get_status_string()
+            logger.info("BIP solution status: %s", status)
             objval = self.problem.solution.get_objective_value()
-            # print(objval)
+            logger.info("BIP objective value: %s", objval)
         except CplexSolverError as cse:
             logger.warning(cse)
+            logger.warning("BIP solution status: %s", status)
             raise TranspilerError("Failed to solve BIP problem.") from cse
 
 
