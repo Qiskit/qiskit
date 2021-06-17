@@ -18,7 +18,6 @@ from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import CouplingMap, Layout
-from qiskit.transpiler import TranspilerError
 from qiskit.transpiler.passes import BIPMapping
 
 
@@ -233,9 +232,9 @@ class TestBIPMapping(QiskitTestCase):
 
         q = QuantumRegister(4, name="q")
         expected = QuantumCircuit(q, cr1, cr2)
-        expected.cx(q[0], q[1])
-        expected.cx(q[2], q[3])
-        expected.swap(q[0], q[1])
+        expected.cx(q[1], q[0])
+        expected.cx(q[3], q[2])
+        expected.swap(q[2], q[3])
         expected.cx(q[0], q[2])
         expected.h(q[0])
         expected.cx(q[0], q[1])
@@ -245,6 +244,8 @@ class TestBIPMapping(QiskitTestCase):
         expected.measure(q[2], cr1[1])
         expected.measure(q[3], cr2[1])
 
+        print(actual)
+        print(expected)
         self.assertEqual(actual, expected)
 
     def test_swaps_in_dummy_steps(self):

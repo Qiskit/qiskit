@@ -12,6 +12,7 @@ from qiskit.transpiler.layout import Layout
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=unnecessary-comprehension
 class BIPMappingModel:
     """Internal model to create and solve a BIP problem for mapping.
 
@@ -483,6 +484,8 @@ class BIPMappingModel:
         """Set the minimum depth objective function."""
         for i in range(ic.wd_start, ic.wd_start + ic.num_wd_vars):
             prob.objective.set_linear(i, 1)
+        for i in range(ic.x_start, ic.x_start + ic.num_x_vars):
+            prob.objective.set_linear(i, 0.1)
 
     @staticmethod
     def _set_error_rate_obj(prob, ic):
