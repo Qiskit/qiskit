@@ -239,6 +239,15 @@ class TestControlledGate(QiskitTestCase):
         ref_mat = Operator(qc).data
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
+    def test_control_open_controlled_gate(self):
+        """Test control(2) vs control.control where inner gate has open controls."""
+        gate1pre = ZGate().control(1, ctrl_state=0)
+        gate1 = gate1pre.control(1, ctrl_state=1)
+        gate2 = ZGate().control(2, ctrl_state=1)
+        expected = Operator(_compute_control_matrix(ZGate().to_matrix(), 2, ctrl_state=1))
+        self.assertEqual(expected, Operator(gate1))
+        self.assertEqual(expected, Operator(gate2))
+
     def test_multi_control_z(self):
         """Test a multi controlled Z gate."""
         qc = QuantumCircuit(1)
