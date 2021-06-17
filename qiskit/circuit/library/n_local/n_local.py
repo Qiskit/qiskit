@@ -14,6 +14,7 @@
 
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
+import warnings
 
 import numpy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -677,7 +678,14 @@ class NLocal(BlueprintCircuit):
         self._initial_state = initial_state
 
         # construct the circuit of the initial state
-        self._initial_state_circuit = initial_state.construct_circuit(mode="circuit")
+        # if initial state is an instance of QuantumCircuit do not call construct circuit
+        if isinstance(self._initial_state, QuantumCircuit):
+            self._initial_state_circuit = self._initial_state.copy()
+        else:
+            warn_message = """'InitialState' is now deprecated and will be removed soon.
+                            You should make 'initial_state' an instance of 'Quantum' instead."""
+            warnings.warn(warn_message, DeprecationWarning)
+            self._initial_state_circuit = initial_state.construct_circuit(mode="circuit")
 
         # the initial state dictates the number of qubits since we do not have information
         # about on which qubits the initial state acts
@@ -939,6 +947,9 @@ class NLocal(BlueprintCircuit):
             if isinstance(self._initial_state, QuantumCircuit):
                 circuit = self._initial_state.copy()
             else:
+                warn_message = """'InitialState' is now deprecated and will be removed soon.
+                            You should make 'initial_state' an instance of 'Quantum' instead."""
+                warnings.warn(warn_message, DeprecationWarning)
                 circuit = self._initial_state.construct_circuit("circuit", register=self.qregs[0])
             self.compose(circuit, inplace=True)
 
