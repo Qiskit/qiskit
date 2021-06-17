@@ -855,11 +855,11 @@ class TextDrawing:
                 str_param = pi_check(param, ndigits=5)
                 ret.append("%s" % str_param)
             except TypeError:
-                ret.append('%s' % param)
-                
-        if((isinstance(op, Initialize)) and (len(','.join(ret)) > 100)):
+                ret.append("%s" % param)
+
+        if (isinstance(op, Initialize)) and (len(",".join(ret)) > 100):
             ret = ret[0:2]
-            ret.append('...')
+            ret.append("...")
         return ret
 
     @staticmethod

@@ -1586,19 +1586,22 @@ class TestTextDrawerParams(QiskitTestCase):
 
     def test_text_initialize_overwide_params(self):
         """Test that parameters in initialize which are too wide get truncated."""
-        expected = '\n'.join(["        ┌────────────────────────────────────────────────────────┐",
-                              "q_0: |0>┤0                                                       ├",
-                              "        │                                                        │",
-                              "q_1: |0>┤1 initialize(0.049507+0.049507j,0.099015+0.099015j,...) ├",
-                              "        │                                                        │",
-                              "q_2: |0>┤2                                                       ├",
-                              "        └────────────────────────────────────────────────────────┘"
-                              ])
+        expected = "\n".join(
+            [
+                "        ┌────────────────────────────────────────────────────────┐",
+                "q_0: |0>┤0                                                       ├",
+                "        │                                                        │",
+                "q_1: |0>┤1 initialize(0.049507+0.049507j,0.099015+0.099015j,...) ├",
+                "        │                                                        │",
+                "q_2: |0>┤2                                                       ├",
+                "        └────────────────────────────────────────────────────────┘",
+            ]
+        )
         ket = numpy.array([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j, 5 + 5j, 6 + 6j, 7 + 7j, 8 + 8j])
-        ket = ket/numpy.linalg.norm(ket)
+        ket = ket / numpy.linalg.norm(ket)
         circuit = QuantumCircuit(3)
         circuit.initialize(ket)
-        self.assertEqual(circuit.draw(output='text', initial_state=True).single_string(), expected)
+        self.assertEqual(circuit.draw(output="text", initial_state=True).single_string(), expected)
 
 
 class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
