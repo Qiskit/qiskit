@@ -13,7 +13,6 @@
 
 """A module for monitoring backends."""
 
-import sys
 import time
 from IPython.display import HTML, display
 from IPython.core.magic import line_magic, Magics, magics_class
