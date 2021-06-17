@@ -50,6 +50,13 @@ lint:
 	pylint -rn --disable='C0103, C0114, W0621' examples/python/*.py
 	python tools/find_optional_imports.py
 
+# Only pylint on files that have changed from origin/main. Also parallelize (disables cyclic-import check)
+lint-incr:
+	git diff --name-only --diff-filter=d origin/main -- qiskit test | grep '\.py$$' | xargs pylint -j4 -rn
+	tools/verify_headers.py qiskit test tools
+	git diff --name-only --diff-filter=d origin/main -- examples/python | grep '\.py$$' | xargs pylint -j4 -rn --disable='C0103, C0114, W0621'
+	python tools/find_optional_imports.py
+
 style:
 	black --check qiskit test tools
 
