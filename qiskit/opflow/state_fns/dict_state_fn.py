@@ -265,12 +265,17 @@ class DictStateFn(StateFn):
         # we define all missing strings to have a function value of
         # zero.
         if isinstance(front, DictStateFn):
+            # If self is come from operator, it should be expanded as
+            # <self|front> = <front| self | front>.
+            front_coeff = (
+                front.coeff * front.coeff.conjugate() if self.from_operator else front.coeff
+            )
             return np.round(
                 cast(
                     float,
                     sum([v * front.primitive.get(b, 0) for (b, v) in self.primitive.items()])
                     * self.coeff
-                    * (front.coeff ** 2 if self.from_operator else front.coeff),
+                    * front_coeff,
                 ),
                 decimals=EVAL_SIG_DIGITS,
             )

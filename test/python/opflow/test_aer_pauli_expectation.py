@@ -257,9 +257,15 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
 
     def test_expectation_with_coeff(self):
         """Test AerPauliExpectation with coefficients."""
-        exp = 3 * ~StateFn(X) @ (2 * Minus)
-        target = self.sampler.convert(self.expect.convert(exp)).eval()
-        self.assertEqual(target, -12)
+        with self.subTest("integer coefficients"):
+            exp = 3 * ~StateFn(X) @ (2 * Minus)
+            target = self.sampler.convert(self.expect.convert(exp)).eval()
+            self.assertEqual(target, -12)
+
+        with self.subTest("complex coefficients"):
+            exp = 3j * ~StateFn(X) @ (2j * Minus)
+            target = self.sampler.convert(self.expect.convert(exp)).eval()
+            self.assertEqual(target, -12j)
 
 
 if __name__ == "__main__":
