@@ -485,5 +485,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         msg = f"expected:\n{expected}\nresult:\n{result}"
         self.assertEqual(expected, result, msg=msg)
 
+
 if __name__ == "__main__":
     unittest.main()
