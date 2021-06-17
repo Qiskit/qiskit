@@ -82,7 +82,7 @@ class StabilizerState(QuantumState):
         return self._data.stabilizer == other._data.stabilizer
 
     def __repr__(self):
-        return "StabilizerState({})".format(self._data.stabilizer)
+        return f"StabilizerState({self._data.stabilizer})"
 
     @property
     def clifford(self):
@@ -94,10 +94,10 @@ class StabilizerState(QuantumState):
         return self._data.is_unitary()
 
     def _add(self, other):
-        raise NotImplementedError("{} does not support addition".format(type(self)))
+        raise NotImplementedError(f"{type(self)} does not support addition")
 
     def _multiply(self, other):
-        raise NotImplementedError("{} does not support scalar multiplication".format(type(self)))
+        raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
 
     def trace(self):
         """Return the trace of the stabilizer state as a density matrix,
@@ -347,7 +347,7 @@ class StabilizerState(QuantumState):
         """
         # Resetting all qubits does not require sampling or RNG
         if qargs is None:
-            return StabilizerState(Clifford((np.eye(2 * self.clifford.num_qubits))))
+            return StabilizerState(Clifford(np.eye(2 * self.clifford.num_qubits)))
 
         randbits = self._rng.integers(2, size=len(qargs))
         ret = self.copy()
@@ -497,7 +497,7 @@ class StabilizerState(QuantumState):
         if (newr != 0) & (newr != 2):
             raise QiskitError("Invalid rowsum in measurement calculation.")
 
-        accum_phase = int((newr == 2))
+        accum_phase = int(newr == 2)
         accum_pauli.x ^= row_pauli.x
         accum_pauli.z ^= row_pauli.z
         return accum_pauli, accum_phase

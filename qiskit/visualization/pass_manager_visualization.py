@@ -130,7 +130,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     for index, controller_group in enumerate(passes):
 
         # label is the name of the flow controller parameter
-        label = "[%s] %s" % (index, ", ".join(controller_group["flow_controllers"]))
+        label = "[{}] {}".format(index, ", ".join(controller_group["flow_controllers"]))
 
         # create the subgraph for this controller
         subgraph = pydot.Cluster(
