@@ -17,6 +17,7 @@ import unittest
 from ddt import ddt, data
 
 import retworkx as rx
+from numpy import pi as pi
 
 from qiskit.dagcircuit import DAGCircuit, OpNode, InNode, OutNode
 from qiskit.circuit import QuantumRegister
@@ -1463,6 +1464,24 @@ class TestConditional(QiskitTestCase):
                 ]
             ),
         )
+
+
+class TestNodeEqual(QiskitTestCase):
+    """Test dag nodes are equal."""
+
+    def test_node_params_equal_unequal(self):
+        """Test node params are equal or unequal."""
+        qc1 = QuantumCircuit(1)
+        qc2 = QuantumCircuit(1)
+        qc3 = QuantumCircuit(1)
+        qc1.p(pi / 4, 0)
+        dag1 = circuit_to_dag(qc1)
+        qc2.p(pi / 4, 0)
+        dag2 = circuit_to_dag(qc2)
+        qc3.p(pi / 2, 0)
+        dag3 = circuit_to_dag(qc3)
+        self.assertEqual(dag1, dag2)
+        self.assertNotEqual(dag2, dag3)
 
 
 if __name__ == "__main__":
