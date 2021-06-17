@@ -59,7 +59,7 @@ class Channel(metaclass=ABCMeta):
                 "See Channel documentation for more information."
             )
 
-        return super(Channel, cls).__new__(cls)
+        return super().__new__(cls)
 
     def __init__(self, index: int):
         """Channel class.
@@ -141,10 +141,10 @@ class Channel(metaclass=ABCMeta):
     @property
     def name(self) -> str:
         """Return the shorthand alias for this channel, which is based on its type and index."""
-        return "{}{}".format(self.__class__.prefix, self._index)
+        return f"{self.__class__.prefix}{self._index}"
 
     def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, self._index)
+        return f"{self.__class__.__name__}({self._index})"
 
     def __eq__(self, other: "Channel") -> bool:
         """Return True iff self and other are equal, specifically, iff they have the same type

@@ -470,7 +470,7 @@ class QuantumCircuit:
             QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
         """
         repeated_circ = QuantumCircuit(
-            self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + "**{}".format(reps)
+            self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + f"**{reps}"
         )
 
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
@@ -555,7 +555,7 @@ class QuantumCircuit:
         controlled_gate = gate.control(num_ctrl_qubits, label, ctrl_state)
         control_qreg = QuantumRegister(num_ctrl_qubits)
         controlled_circ = QuantumCircuit(
-            control_qreg, self.qubits, *self.qregs, name="c_{}".format(self.name)
+            control_qreg, self.qubits, *self.qregs, name=f"c_{self.name}"
         )
         controlled_circ.append(controlled_gate, controlled_circ.qubits)
 
@@ -993,7 +993,7 @@ class QuantumCircuit:
                 ]
             else:
                 raise CircuitError(
-                    "Not able to expand a %s (%s)" % (bit_representation, type(bit_representation))
+                    f"Not able to expand a {bit_representation} ({type(bit_representation)})"
                 )
         except IndexError as ex:
             raise CircuitError("Index out of range.") from ex
@@ -1124,7 +1124,7 @@ class QuantumCircuit:
                     else:
                         if parameter.name in self._parameter_table.get_names():
                             raise CircuitError(
-                                "Name conflict on adding parameter: {}".format(parameter.name)
+                                f"Name conflict on adding parameter: {parameter.name}"
                             )
                         self._parameter_table[parameter] = [(instruction, param_index)]
 
@@ -1310,7 +1310,7 @@ class QuantumCircuit:
             gate_qargs = ",".join(
                 ["q%i" % index for index in [definition_bit_labels[qubit] for qubit in qargs]]
             )
-            composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
+            composite_circuit_gates += f"{data.qasm()} {gate_qargs}; "
 
         if composite_circuit_gates:
             composite_circuit_gates = composite_circuit_gates.rstrip(" ")
@@ -1412,8 +1412,8 @@ class QuantumCircuit:
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
 
-        qreg_bits = set(bit for reg in self.qregs for bit in reg)
-        creg_bits = set(bit for reg in self.cregs for bit in reg)
+        qreg_bits = {bit for reg in self.qregs for bit in reg}
+        creg_bits = {bit for reg in self.cregs for bit in reg}
         regless_qubits = []
         regless_clbits = []
 
@@ -1445,7 +1445,7 @@ class QuantumCircuit:
             if instruction.name == "measure":
                 qubit = qargs[0]
                 clbit = cargs[0]
-                string_temp += "%s %s -> %s;\n" % (
+                string_temp += "{} {} -> {};\n".format(
                     instruction.qasm(),
                     bit_labels[qubit],
                     bit_labels[clbit],
@@ -1477,19 +1477,19 @@ class QuantumCircuit:
 
                     # Insert composite circuit qasm definition right after header and extension lib
                     string_temp = string_temp.replace(
-                        self.extension_lib, "%s\n%s" % (self.extension_lib, qasm_string)
+                        self.extension_lib, f"{self.extension_lib}\n{qasm_string}"
                     )
 
                     existing_composite_circuits.append(instruction)
                     existing_gate_names.append(instruction.name)
 
                 # Insert qasm representation of the original instruction
-                string_temp += "%s %s;\n" % (
+                string_temp += "{} {};\n".format(
                     instruction.qasm(),
                     ",".join([bit_labels[j] for j in qargs + cargs]),
                 )
             else:
-                string_temp += "%s %s;\n" % (
+                string_temp += "{} {};\n".format(
                     instruction.qasm(),
                     ",".join([bit_labels[j] for j in qargs + cargs]),
                 )
@@ -2829,7 +2829,7 @@ class QuantumCircuit:
         if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
             required = gate.num_ancilla_qubits
             if ancilla_qubits is None:
-                raise AttributeError("No ancillas provided, but {} are needed!".format(required))
+                raise AttributeError(f"No ancillas provided, but {required} are needed!")
 
             # convert ancilla qubits to a list if they were passed as int or qubit
             if not hasattr(ancilla_qubits, "__len__"):
@@ -2837,9 +2837,7 @@ class QuantumCircuit:
 
             if len(ancilla_qubits) < required:
                 actually = len(ancilla_qubits)
-                raise ValueError(
-                    "At least {} ancillas required, but {} given.".format(required, actually)
-                )
+                raise ValueError(f"At least {required} ancillas required, but {actually} given.")
             # size down if too many ancillas were provided
             ancilla_qubits = ancilla_qubits[:required]
         else:

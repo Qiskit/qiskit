@@ -300,7 +300,7 @@ def qubit_index_sort(
     sorted_map = sorted(qubit_channel_map.items(), key=lambda x: x[0])
 
     for qind, chans in sorted_map:
-        yield "Q{index:d}".format(index=qind), chans
+        yield f"Q{qind:d}", chans
 
 
 def time_map_in_ns(
@@ -351,7 +351,7 @@ def time_map_in_ns(
     else:
         label = "System cycle time (dt)"
 
-    formatted_label = ["{val:.0f}".format(val=val) for val in axis_label]
+    formatted_label = [f"{val:.0f}" for val in axis_label]
 
     return types.HorizontalAxis(
         window=(t0_shift, t1_shift),
@@ -371,7 +371,7 @@ def detail_title(
     title_str = list()
 
     # add program name
-    title_str.append("Name: {name}".format(name=program.name))
+    title_str.append(f"Name: {program.name}")
 
     # add program duration
     dt = device.dt * 1e9 if device.dt else 1.0
@@ -383,7 +383,7 @@ def detail_title(
 
     # add device name
     if device.backend_name != "no-backend":
-        title_str.append("Backend: {backend_name}".format(backend_name=device.backend_name))
+        title_str.append(f"Backend: {device.backend_name}")
 
     return ", ".join(title_str)
 

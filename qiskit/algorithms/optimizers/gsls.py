@@ -204,13 +204,11 @@ class GSLS(Optimizer):
 
             # Print information
             if self._options["disp"]:
-                print("Iter {:d}".format(iter_count))
-                print("Point {} obj {}".format(x, x_value))
-                print("Gradient {}".format(grad))
-                print(
-                    "Grad norm {} new_x_value {} step_size {}".format(grad_norm, new_x_value, alpha)
-                )
-                print("Direction {}".format(directions))
+                print(f"Iter {iter_count:d}")
+                print(f"Point {x} obj {x_value}")
+                print(f"Gradient {grad}")
+                print(f"Grad norm {grad_norm} new_x_value {new_x_value} step_size {alpha}")
+                print(f"Direction {directions}")
 
             # Test Armijo condition for sufficient decrease
             if new_x_value <= x_value - self._options["armijo_parameter"] * alpha * grad_norm:

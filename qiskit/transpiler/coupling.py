@@ -200,7 +200,7 @@ class CouplingMap:
         )
         if not paths:
             raise CouplingError(
-                "Nodes %s and %s are not connected" % (str(physical_qubit1), str(physical_qubit2))
+                f"Nodes {str(physical_qubit1)} and {str(physical_qubit2)} are not connected"
             )
         return paths[physical_qubit2]
 
@@ -319,7 +319,7 @@ class CouplingMap:
         string = ""
         if self.get_edges():
             string += "["
-            string += ", ".join(["[%s, %s]" % (src, dst) for (src, dst) in self.get_edges()])
+            string += ", ".join([f"[{src}, {dst}]" for (src, dst) in self.get_edges()])
             string += "]"
         return string
 

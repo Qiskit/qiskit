@@ -31,7 +31,7 @@ class Format(Node):
 
     def version(self):
         """Return the version."""
-        return "%s.%s" % (self.majorversion, self.minorversion)
+        return f"{self.majorversion}.{self.minorversion}"
 
     def qasm(self, prec=None):
         """Return the corresponding format string."""
@@ -41,4 +41,4 @@ class Format(Node):
                 DeprecationWarning,
                 2,
             )
-        return "%s %s;" % (self.language, self.version())
+        return f"{self.language} {self.version()};"
