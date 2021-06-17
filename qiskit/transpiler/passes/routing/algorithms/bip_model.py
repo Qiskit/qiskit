@@ -11,6 +11,7 @@ try:
 except ImportError:
     HAS_CPLEX = False
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 
@@ -33,6 +34,9 @@ class BIPMappingModel:
             dummy_timesteps (int):
                 Number of dummy time steps, after each real layer of gates, to
                 allow arbitrary swaps between neighbors.
+
+        Raises:
+            MissingOptionalLibraryError: If cplex is not installed
         """
         if not HAS_CPLEX:
             raise MissingOptionalLibraryError(
