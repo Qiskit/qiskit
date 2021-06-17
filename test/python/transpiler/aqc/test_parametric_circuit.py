@@ -15,28 +15,32 @@ Tests the implementation of parametric circuit.
 """
 # TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
-import sys, os, traceback
+import sys
+import unittest
+from collections import OrderedDict
+
+# if os.getcwd() not in sys.path:
+#     sys.path.append(os.getcwd())
+import numpy as np
+
+# TODO: remove parallelization!
+from joblib import Parallel, delayed
 
 from qiskit.test import QiskitTestCase
-
-if os.getcwd() not in sys.path:
-    sys.path.append(os.getcwd())
-import numpy as np
-import unittest
-from joblib import Parallel, delayed
-from collections import OrderedDict
 from qiskit.transpiler.synthesis.aqc.parametric_circuit import ParametricCircuit
 from qiskit.transpiler.synthesis.aqc.utils import compare_circuits
 
 
 class TestParametricCircuit(QiskitTestCase):
-    def _matrix_conversion(self, nqubits: int, depth: int) -> (int, float):
+    """Tests ParametricCircuit."""
+
+    def _matrix_conversion(self, num_qubits: int, depth: int) -> (int, float):
         print(".", end="", flush=True)
-        self.assertTrue(isinstance(nqubits, (int, np.int64)))
+        self.assertTrue(isinstance(num_qubits, (int, np.int64)))
         self.assertTrue(isinstance(depth, (int, np.int64)))
 
         circuit = ParametricCircuit(
-            num_qubits=nqubits, layout="spin", connectivity="full", depth=depth
+            num_qubits=num_qubits, layout="spin", connectivity="full", depth=depth
         )
 
         thetas = np.random.rand(circuit.num_thetas) * (2.0 * np.pi)
@@ -53,9 +57,10 @@ class TestParametricCircuit(QiskitTestCase):
         sys.stderr.flush()
         sys.stdout.flush()
 
-        return int(nqubits), float(residual)
+        return int(num_qubits), float(residual)
 
     def test_matrix_conversion(self):
+        """Tests matrix conversion."""
         print("\nRunning {:s}() ...".format(self.test_matrix_conversion.__name__))
         print("Here we test that Numpy and Qiskit representations of")
         print("parametric circuit yield the same matrix.")
@@ -81,22 +86,26 @@ class TestParametricCircuit(QiskitTestCase):
             )
 
     def test_basic_functions(self):
+        """Tests basic functions."""
         print("\nRunning {:s}() ...".format(self.test_basic_functions.__name__))
         print("Here we test the basic functionality of parametric circuit")
-        EPS = 10.0 * np.finfo(np.float64).eps
-        for nqubits in range(2, 8 + 1):
+
+        eps = 10.0 * np.finfo(np.float64).eps
+
+        for num_qubits in range(2, 8 + 1):
             for L in np.random.permutation(np.arange(10, 100))[0:10]:
                 print(".", end="", flush=True)
                 circuit = ParametricCircuit(
-                    num_qubits=nqubits, layout="spin", connectivity="full", depth=L
+                    num_qubits=num_qubits, layout="spin", connectivity="full", depth=L
                 )
 
                 thetas = np.random.rand(circuit.num_thetas) * (2.0 * np.pi)
                 circuit.set_thetas(thetas)
-                self.assertTrue(np.allclose(thetas, circuit.thetas, atol=EPS, rtol=EPS))
+                self.assertTrue(np.allclose(thetas, circuit.thetas, atol=eps, rtol=eps))
 
                 self.assertEqual(circuit.cnots.shape, (2, circuit.num_cnots))
 
+                # pylint: disable=misplaced-comparison-constant
                 self.assertTrue(np.all(1 <= circuit.cnots))
                 self.assertTrue(np.all(circuit.cnots <= circuit.num_qubits))
         print("")
@@ -104,8 +113,4 @@ class TestParametricCircuit(QiskitTestCase):
 
 if __name__ == "__main__":
     np.set_printoptions(precision=6, linewidth=256)
-    try:
-        unittest.main()
-    except Exception as ex:
-        print("message length:", len(str(ex)))
-        traceback.print_exc()
+    unittest.main()

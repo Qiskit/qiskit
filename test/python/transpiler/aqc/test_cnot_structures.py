@@ -25,10 +25,11 @@ from qiskit.test import QiskitTestCase
 
 
 # TODO: implement a proper test!
-
-
 class TestCnotStructures(QiskitTestCase):
+    """Tests CNOT structures"""
+
     def test_structures(self):
+        """To do implemented."""
         print("WARNING: TODO: not implemented yet")
 
 

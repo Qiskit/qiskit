@@ -33,7 +33,7 @@ from test_sample_data import (
     FISTA_GD_MIN_THETA,
 )
 
-
+# TODO: code is outdated
 class TestMain(QiskitTestCase):
     def setUp(self) -> None:
         self._seed = 12345

@@ -37,6 +37,7 @@ from qiskit.transpiler.synthesis.aqc.cnot_structures import generate_random_cnot
 
 class TestCNotCompress(QiskitTestCase):
     """Tests CNOT compression functions."""
+
     @staticmethod
     def _print_progress(cnot_reduction: int):
         if cnot_reduction > 0:

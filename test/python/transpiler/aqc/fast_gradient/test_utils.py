@@ -9,42 +9,44 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 Tests for utility functions.
 """
 # TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
-import os
-import sys
-import time
-import traceback
-
-if os.getcwd() not in sys.path:
-    sys.path.append(os.getcwd())
-import unittest
-import numpy as np
-import utils_for_testing as tut
-import qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils as myu
 import random
+import time
+
+# if os.getcwd() not in sys.path:
+#     sys.path.append(os.getcwd())
+import unittest
+
+import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut
+
+import numpy as np
+
+import qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils as myu
 
 
-def _Rx_old(phi: float) -> np.ndarray:
+# TODO: why do we need these function, why is _old suffix?
+def _rx_old(phi: float) -> np.ndarray:
     u = [[np.cos(phi / 2), -1j * np.sin(phi / 2)], [-1j * np.sin(phi / 2), np.cos(phi / 2)]]
     return np.array(u, dtype=np.cfloat)
 
 
-def _Ry_old(phi: float) -> np.ndarray:
+def _ry_old(phi: float) -> np.ndarray:
     u = [[np.cos(phi / 2), -np.sin(phi / 2)], [np.sin(phi / 2), np.cos(phi / 2)]]
     return np.array(u, dtype=np.cfloat)
 
 
-def _Rz_old(phi: float) -> np.ndarray:
+def _rz_old(phi: float) -> np.ndarray:
     u = [[np.exp(-1j * phi / 2), 0], [0, np.exp(1j * phi / 2)]]
     return np.array(u, dtype=np.cfloat)
 
 
 class TestUtils(unittest.TestCase):
+    """Tests utility functions."""
+
     def test_reverse_bits(self):
         """
         Tests the function utils.ReverseBits().
@@ -69,8 +71,10 @@ class TestUtils(unittest.TestCase):
         """
         print("\nrunning {:s}() ...".format(self.test_make_unit_vector.__name__))
         start = time.time()
+
         # Computes unit vector as Kronecker product of (1 0) or (0 1) sub-vectors.
-        def _MakeUnitVectorStraightforward(num: int, nbits: int) -> np.ndarray:
+        # TODO: very long function name, number of characters > 30
+        def _make_unit_vector_straightforward(num: int, nbits: int) -> np.ndarray:
             self.assertTrue(isinstance(num, int) and isinstance(nbits, int))
             self.assertTrue(0 <= num < 2 ** nbits)
             vec = 1
@@ -86,8 +90,8 @@ class TestUtils(unittest.TestCase):
         max_nbits = 11
         for n in range(1, max_nbits + 1):
             for k in range(2 ** n):
-                v1 = _MakeUnitVectorStraightforward(k, n)
-                v2 = tut.MakeUnitVector(k, n)
+                v1 = _make_unit_vector_straightforward(k, n)
+                v2 = tut.make_unit_vector(k, n)
                 self.assertTrue(np.all(v1 == v2))
             print(".", end="", flush=True)
         print("")
@@ -116,15 +120,15 @@ class TestUtils(unittest.TestCase):
         print("\nrunning {:s}() ...".format(self.test_permutations.__name__))
         total_start = time.time()
 
-        def _Perm2Mat(perm: np.ndarray) -> np.ndarray:
+        def _perm2_mat(perm: np.ndarray) -> np.ndarray:
             """Creates permutation matrix from a permutation."""
             return np.eye(perm.size, dtype=np.int64)[perm]
 
-        def _PermutationAndMatrix(size: int) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+        def _permutation_and_matrix(size: int) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
             """Creates direct and inverse permutations and their matrices."""
             perm = np.random.permutation(np.arange(size, dtype=np.int64))
             inv_perm = myu.inverse_permutation(perm)
-            P, Q = _Perm2Mat(perm), _Perm2Mat(inv_perm)
+            P, Q = _perm2_mat(perm), _perm2_mat(inv_perm)
             return perm, inv_perm, P, Q
 
         for n in range(1, 8 + 1):
@@ -133,10 +137,10 @@ class TestUtils(unittest.TestCase):
 
             N = 2 ** n
             for _ in range(100):
-                perm1, inv_perm1, P1, Q1 = _PermutationAndMatrix(N)
-                perm2, inv_perm2, P2, Q2 = _PermutationAndMatrix(N)
+                perm1, inv_perm1, P1, Q1 = _permutation_and_matrix(N)
+                perm2, inv_perm2, P2, Q2 = _permutation_and_matrix(N)
 
-                I = tut.I(n)
+                I = tut.identity_matrix(n)
                 self.assertTrue(np.all(P1 == Q1.T) and np.all(P1.T == Q1))
                 self.assertTrue(np.all(P2 == Q2.T) and np.all(P2.T == Q2))
                 self.assertTrue(np.all(P1 @ Q1 == I) and np.all(Q1 @ P1 == I))
@@ -145,19 +149,19 @@ class TestUtils(unittest.TestCase):
                 self.assertTrue(np.all(perm2[perm1] == np.take(perm2, perm1)))
                 self.assertTrue(np.all(perm1[perm2] == np.take(perm1, perm2)))
 
-                self.assertTrue(np.all(P1 @ P2 == _Perm2Mat(perm2[perm1])))
-                self.assertTrue(np.all(P2 @ P1 == _Perm2Mat(perm1[perm2])))
+                self.assertTrue(np.all(P1 @ P2 == _perm2_mat(perm2[perm1])))
+                self.assertTrue(np.all(P2 @ P1 == _perm2_mat(perm1[perm2])))
 
-                self.assertTrue(np.all(P1 @ Q2 == _Perm2Mat(inv_perm2[perm1])))
-                self.assertTrue(np.all(Q2 @ P1 == _Perm2Mat(perm1[inv_perm2])))
+                self.assertTrue(np.all(P1 @ Q2 == _perm2_mat(inv_perm2[perm1])))
+                self.assertTrue(np.all(Q2 @ P1 == _perm2_mat(perm1[inv_perm2])))
 
-                self.assertTrue(np.all(P2 @ Q1 == _Perm2Mat(inv_perm1[perm2])))
-                self.assertTrue(np.all(Q1 @ P2 == _Perm2Mat(perm2[inv_perm1])))
+                self.assertTrue(np.all(P2 @ Q1 == _perm2_mat(inv_perm1[perm2])))
+                self.assertTrue(np.all(Q1 @ P2 == _perm2_mat(perm2[inv_perm1])))
 
-                perm3, inv_perm3, P3, Q3 = _PermutationAndMatrix(N)
-                perm4, inv_perm4, P4, Q4 = _PermutationAndMatrix(N)
+                _, inv_perm3, P3, _ = _permutation_and_matrix(N)
+                perm4, _, _, Q4 = _permutation_and_matrix(N)
 
-                M = tut.RandMatrix(dim=N, kind="randint")
+                M = tut.rand_matrix(dim=N, kind="randint")
 
                 PMQ = P1 @ M @ Q2
                 self.assertTrue(np.all(PMQ == M[perm1][:, perm2]))
@@ -190,9 +194,9 @@ class TestUtils(unittest.TestCase):
         out = np.full((2, 2), fill_value=0, dtype=np.cfloat)
         for test in range(1000):
             phi = random.random() * 2.0 * np.pi
-            self.assertTrue(np.allclose(myu.Rx(phi, out=out), _Rx_old(phi), atol=_EPS, rtol=_EPS))
-            self.assertTrue(np.allclose(myu.Ry(phi, out=out), _Ry_old(phi), atol=_EPS, rtol=_EPS))
-            self.assertTrue(np.allclose(myu.Rz(phi, out=out), _Rz_old(phi), atol=_EPS, rtol=_EPS))
+            self.assertTrue(np.allclose(myu.Rx(phi, out=out), _rx_old(phi), atol=_EPS, rtol=_EPS))
+            self.assertTrue(np.allclose(myu.Ry(phi, out=out), _ry_old(phi), atol=_EPS, rtol=_EPS))
+            self.assertTrue(np.allclose(myu.Rz(phi, out=out), _rz_old(phi), atol=_EPS, rtol=_EPS))
             if test % 100 == 0:
                 print(".", end="", flush=True)
         print("\ntest execution time:", time.time() - total_start)
@@ -200,8 +204,4 @@ class TestUtils(unittest.TestCase):
 
 if __name__ == "__main__":
     np.set_printoptions(precision=6, linewidth=256)
-    try:
-        unittest.main()
-    except Exception as ex:
-        print("message length:", len(str(ex)))
-        traceback.print_exc()
+    unittest.main()

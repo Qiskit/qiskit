@@ -33,6 +33,7 @@ from qiskit.transpiler.synthesis.aqc.utils import compare_circuits
 
 class TestCompression(QiskitTestCase):
     """Tests Compression."""
+
     def _euler_compression(self, nqubits: int, depth: int) -> (int, float):
         """
         Compares the original circuit vs compressed one for equivalence of
@@ -84,13 +85,13 @@ class TestCompression(QiskitTestCase):
 
         # Group all the results by the number of qubits.
         d = OrderedDict()
-        for nqubits, residual in results:
-            d.setdefault(nqubits, []).append(residual)
+        for num_qubits, residual in results:
+            d.setdefault(num_qubits, []).append(residual)
         # Print out the maximal residual per number of qubits.
-        for nqubits, residuals in d.items():
+        for num_qubits, residuals in d.items():
             print(
                 "#qubits: {:2d}, maximal relative residual: {:0.16f}".format(
-                    nqubits, max(residuals)
+                    num_qubits, max(residuals)
                 )
             )
 

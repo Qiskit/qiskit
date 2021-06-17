@@ -9,25 +9,27 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
-
 """
 Tests equivalence of the default and fast gradient computation routines.
 """
-print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
-import os
+# TODO: remove: print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
+
+# if os.getcwd() not in sys.path:
+#     sys.path.append(os.getcwd())
+import gc
 import sys
-
-if os.getcwd() not in sys.path:
-    sys.path.append(os.getcwd())
-import time, traceback, gc
-import numpy as np
+import time
 import unittest
+
+import numpy as np
+
+# TODO: remove parallelization
 from joblib import Parallel, delayed
+
 from qiskit.transpiler.synthesis.aqc.cnot_structures import generate_random_cnots
-from qiskit.transpiler.synthesis.aqc.gradient import DefaultGradient
 from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastGradient
+from qiskit.transpiler.synthesis.aqc.gradient import DefaultGradient
 from qiskit.transpiler.synthesis.aqc.utils import random_special_unitary
 
 _WALL_TIME = 1
@@ -35,23 +37,31 @@ timer = time.perf_counter if _WALL_TIME != 0 else time.process_time
 
 
 class TestCompareGradientImplementations(unittest.TestCase):
-    def _compare(self, nqubits: int, depth: int) -> (int, int, float, float, float, float, float):
+    """Tests equivalence of the default and fast gradient computation."""
+
+    def _compare(
+        self, num_qubits: int, depth: int
+    ) -> (int, int, float, float, float, float, float):
         """
         Calculates gradient and objective function value for the original
         and the fast implementations, and compares the outputs from both.
         Returns relative errors. Also, accumulates performance metrics.
         """
         print(".", end="", flush=True)
-        self.assertTrue(isinstance(nqubits, (int, np.int64)))
+        self.assertTrue(isinstance(num_qubits, (int, np.int64)))
         self.assertTrue(isinstance(depth, (int, np.int64)))
-        _EPS = float(np.sqrt(np.finfo(np.float64).eps))
-        _TINY = float(np.power(np.finfo(np.float64).tiny, 0.25))
-        cnots = generate_random_cnots(num_qubits=nqubits, depth=depth)
+        # TODO: why the definition is so complicated? Move them out to a dedicated script?
+        #  and what's the difference between them?
+        eps = float(np.sqrt(np.finfo(np.float64).eps))
+        # pylint: disable=no-member
+        tiny = float(np.power(np.finfo(np.float64).tiny, 0.25))
+
+        cnots = generate_random_cnots(num_qubits=num_qubits, depth=depth)
         depth = cnots.shape[1]  # might be less than initial depth
-        U = random_special_unitary(nqubits)
-        grad_dflt = DefaultGradient(num_qubits=nqubits, cnots=cnots)
-        grad_fast = FastGradient(num_qubits=nqubits, cnots=cnots)
-        thetas = np.random.rand(4 * depth + 3 * nqubits) * 2 * np.pi
+        U = random_special_unitary(num_qubits)
+        grad_dflt = DefaultGradient(num_qubits=num_qubits, cnots=cnots)
+        grad_fast = FastGradient(num_qubits=num_qubits, cnots=cnots)
+        thetas = np.random.rand(4 * depth + 3 * num_qubits) * 2 * np.pi
         thetas = thetas.astype(np.float64)
 
         # Compute fast gradient. Disable garbage collection for a while.
@@ -74,17 +84,18 @@ class TestCompareGradientImplementations(unittest.TestCase):
 
         fobj_rel_err = abs(f1 - f2) / f2
         grad_rel_err = np.linalg.norm(g1 - g2) / np.linalg.norm(g2)
-        speedup = t2 / max(t1, _TINY)
-        self.assertLess(fobj_rel_err, _EPS)
-        self.assertLess(grad_rel_err, _EPS)
-        self.assertTrue(np.allclose(g1, g2, atol=_EPS, rtol=_EPS))
+        speedup = t2 / max(t1, tiny)
+        self.assertLess(fobj_rel_err, eps)
+        self.assertLess(grad_rel_err, eps)
+        self.assertTrue(np.allclose(g1, g2, atol=eps, rtol=eps))
 
         # Important when run inside a parallel process:
         sys.stderr.flush()
         sys.stdout.flush()
-        return int(nqubits), int(depth), fobj_rel_err, grad_rel_err, speedup, t1, t2
+        return int(num_qubits), int(depth), fobj_rel_err, grad_rel_err, speedup, t1, t2
 
     def test_cmp_gradients(self):
+        """Tests equivalence of gradients."""
         print("\nRunning {:s}() ...".format(self.test_cmp_gradients.__name__))
         print("Here we compare the default and fast gradient calculators")
         print("for equivalence")
@@ -112,7 +123,7 @@ class TestCompareGradientImplementations(unittest.TestCase):
 
         # Print out the comparison results.
         total_speed_score, total_count = 0.0, 0
-        for nqubits, depth, ferr, gerr, speedup, t1, t2 in results:
+        for num_qubits, depth, ferr, gerr, speedup, t1, t2 in results:
             total_speed_score += speedup
             total_count += 1
             print(
@@ -121,7 +132,7 @@ class TestCompareGradientImplementations(unittest.TestCase):
                 "gradient relative error: {:.16f}, "
                 "speedup: {:6.3f},   "
                 "'fast' time: {:6.3f}, 'default' time: {:6.3f}".format(
-                    nqubits, depth, ferr, gerr, speedup, t1, t2
+                    num_qubits, depth, ferr, gerr, speedup, t1, t2
                 )
             )
         print("\nTotal speedup score: {:0.6f}".format(total_speed_score))
@@ -130,8 +141,4 @@ class TestCompareGradientImplementations(unittest.TestCase):
 
 if __name__ == "__main__":
     np.set_printoptions(precision=6, linewidth=256)
-    try:
-        unittest.main()
-    except Exception as ex:
-        print("message length:", len(str(ex)))
-        traceback.print_exc()
+    unittest.main()

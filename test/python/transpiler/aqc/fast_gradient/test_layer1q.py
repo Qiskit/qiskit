@@ -9,29 +9,29 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
-
 """
 Tests for Layer1Q implementation.
 """
-print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
+# print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
-import os
-import sys
 import time
-import traceback
-
-if os.getcwd() not in sys.path:
-    sys.path.append(os.getcwd())
-from random import randint
-import numpy as np
 import unittest
+
+# if os.getcwd() not in sys.path:
+#     sys.path.append(os.getcwd())
+from random import randint
+
+import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut
+
+import numpy as np
+
 import qiskit.transpiler.synthesis.aqc.fast_gradient.layer as lr
 from qiskit.transpiler.synthesis.aqc.fast_gradient.pmatrix import PMatrix
-import utils_for_testing as tut
 
 
 class TestLayer1q(unittest.TestCase):
+    """Tests layer1q."""
+
     def test_layer1q_matrix(self):
         """
         Tests: (1) the correctness of Layer2Q matrix construction;
@@ -41,42 +41,42 @@ class TestLayer1q(unittest.TestCase):
         print("\nrunning {:s}() ...".format(self.test_layer1q_matrix.__name__))
         start = time.time()
         mat_kind = "complex"
-        EPS = 100.0 * np.finfo(float).eps
+        eps = 100.0 * np.finfo(float).eps
         max_rel_err = 0.0
         for n in range(2, 8 + 1):
             print("n:", n)
             N = 2 ** n
-            I = tut.I(n)
+            I = tut.identity_matrix(n)
             for k in range(n):
-                M = tut.RandMatrix(dim=N, kind=mat_kind)
-                T, G = tut.MakeTestMatrices2x2(n=n, k=k, kind=mat_kind)
+                M = tut.rand_matrix(dim=N, kind=mat_kind)
+                T, G = tut.make_test_matrices2x2(n=n, k=k, kind=mat_kind)
                 lmat = lr.Layer1Q(nbits=n, k=k, g2x2=G)
                 G2, perm, inv_perm = lmat.get_attr()
                 self.assertTrue(M.dtype == T.dtype == G.dtype == G2.dtype)
                 self.assertTrue(np.all(G == G2))
                 self.assertTrue(np.all(I[perm].T == I[inv_perm]))
 
-                G = np.kron(tut.I(n - 1), G)
+                G = np.kron(tut.identity_matrix(n - 1), G)
 
                 # T == P^t @ G @ P.
-                err = tut.RelativeError(T, I[perm].T @ G @ I[perm])
-                self.assertLess(err, EPS, "err = {:0.16f}".format(err))
+                err = tut.relative_error(T, I[perm].T @ G @ I[perm])
+                self.assertLess(err, eps, "err = {:0.16f}".format(err))
                 max_rel_err = max(max_rel_err, err)
 
                 # Multiplication by permutation matrix of the left can be
                 # replaced by row permutations.
                 TM = T @ M
-                err1 = tut.RelativeError(I[perm].T @ G @ M[perm], TM)
-                err2 = tut.RelativeError((G @ M[perm])[inv_perm], TM)
+                err1 = tut.relative_error(I[perm].T @ G @ M[perm], TM)
+                err2 = tut.relative_error((G @ M[perm])[inv_perm], TM)
 
                 # Multiplication by permutation matrix of the right can be
                 # replaced by column permutations.
                 MT = M @ T
-                err3 = tut.RelativeError(M @ I[perm].T @ G @ I[perm], MT)
-                err4 = tut.RelativeError((M[:, perm] @ G)[:, inv_perm], MT)
+                err3 = tut.relative_error(M @ I[perm].T @ G @ I[perm], MT)
+                err4 = tut.relative_error((M[:, perm] @ G)[:, inv_perm], MT)
 
                 self.assertTrue(
-                    err1 < EPS and err2 < EPS and err3 < EPS and err4 < EPS,
+                    err1 < eps and err2 < eps and err3 < eps and err4 < eps,
                     "err1 = {:f},  err2 = {:f},  "
                     "err3 = {:f},  err4 = {:f}".format(err1, err2, err3, err4),
                 )
@@ -105,11 +105,11 @@ class TestLayer1q(unittest.TestCase):
                 k3 = randint(0, n - 1)
                 k4 = randint(0, n - 1)
 
-                T0, G0 = tut.MakeTestMatrices2x2(n=n, k=k0, kind=mat_kind)
-                T1, G1 = tut.MakeTestMatrices2x2(n=n, k=k1, kind=mat_kind)
-                T2, G2 = tut.MakeTestMatrices2x2(n=n, k=k2, kind=mat_kind)
-                T3, G3 = tut.MakeTestMatrices2x2(n=n, k=k3, kind=mat_kind)
-                T4, G4 = tut.MakeTestMatrices2x2(n=n, k=k4, kind=mat_kind)
+                T0, G0 = tut.make_test_matrices2x2(n=n, k=k0, kind=mat_kind)
+                T1, G1 = tut.make_test_matrices2x2(n=n, k=k1, kind=mat_kind)
+                T2, G2 = tut.make_test_matrices2x2(n=n, k=k2, kind=mat_kind)
+                T3, G3 = tut.make_test_matrices2x2(n=n, k=k3, kind=mat_kind)
+                T4, G4 = tut.make_test_matrices2x2(n=n, k=k4, kind=mat_kind)
 
                 C0 = lr.Layer1Q(nbits=n, k=k0, g2x2=G0)
                 C1 = lr.Layer1Q(nbits=n, k=k1, g2x2=G1)
@@ -117,7 +117,7 @@ class TestLayer1q(unittest.TestCase):
                 C3 = lr.Layer1Q(nbits=n, k=k3, g2x2=G3)
                 C4 = lr.Layer1Q(nbits=n, k=k4, g2x2=G4)
 
-                M = tut.RandMatrix(dim=N, kind=mat_kind)
+                M = tut.rand_matrix(dim=N, kind=mat_kind)
                 TTMTT = T0 @ T1 @ M @ np.conj(T2).T @ np.conj(T3).T
 
                 pmat = PMatrix(M=M.copy())  # we use copy for testing (!)
@@ -127,7 +127,7 @@ class TestLayer1q(unittest.TestCase):
                 pmat.mul_right_q1(L=C3, temp_mat=tmpA, dagger=True)
                 alt_TTMTT = pmat.finalize(temp_mat=tmpA)
 
-                err1 = tut.RelativeError(alt_TTMTT, TTMTT)
+                err1 = tut.relative_error(alt_TTMTT, TTMTT)
                 self.assertLess(err1, EPS, "relative error: {:f}".format(err1))
 
                 prod = np.cfloat(np.trace(TTMTT @ T4))
@@ -143,8 +143,4 @@ class TestLayer1q(unittest.TestCase):
 
 if __name__ == "__main__":
     np.set_printoptions(precision=6, linewidth=256)
-    try:
-        unittest.main()
-    except Exception as ex:
-        print("message length:", len(str(ex)))
-        traceback.print_exc()
+    unittest.main()
