@@ -141,7 +141,7 @@ class AstInterpreter:
         "cu3": CU3Gate,
         "ccx": CCXGate,
         "cswap": CSwapGate,
-        "delay": Delay
+        "delay": Delay,
     }
 
     def __init__(self, dag):
