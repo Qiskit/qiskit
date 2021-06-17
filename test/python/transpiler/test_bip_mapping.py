@@ -25,6 +25,13 @@ from qiskit.transpiler.passes import BIPMapping
 class TestBIPMapping(QiskitTestCase):
     """Tests the BIPMapping pass."""
 
+    def test_empty(self):
+        """Returns the original circuit if the circuit is empty."""
+        coupling = CouplingMap([[0, 1]])
+        circuit = QuantumCircuit(2)
+        actual = BIPMapping(coupling)(circuit)
+        self.assertEqual(actual, circuit)
+
     def test_no_two_qubit_gates(self):
         """Returns the original circuit if the circuit has no 2q-gates
         q0:--[H]--

@@ -46,7 +46,14 @@ class BIPMapping(TransformationPass):
     by solving a BIP (binary integer programming) problem.
     """
 
-    def __init__(self, coupling_map, objective="depth", backend_prop=None, time_limit=30):
+    def __init__(
+        self,
+        coupling_map,
+        objective="depth",
+        backend_prop=None,
+        time_limit=30,
+        max_swaps_inbetween_layers=None,
+    ):
         """BIPMapping initializer.
 
         Args:
@@ -57,6 +64,10 @@ class BIPMapping(TransformationPass):
                 - balanced: [NotImplemented] weighted sum of error_rate and depth
             backend_prop (BackendProperties): Backend properties object
             time_limit (float): Time limit for solving BIP in seconds
+            max_swaps_inbetween_layers (int):
+                Number of swaps allowed inbetween layers. If None, automatlically set.
+                Large value could decrease the probability to build infeasible BIP problem but also
+                could decrease the probability to find the optimal solution within the timelimit.
 
         Raises:
             MissingOptionalLibraryError: if cplex is not installed.
@@ -72,6 +83,7 @@ class BIPMapping(TransformationPass):
         self.objective = objective
         self.backend_prop = backend_prop
         self.time_limit = time_limit
+        self.max_swaps_inbetween_layers = max_swaps_inbetween_layers
 
     def run(self, dag):
         """Run the BIPMapping pass on `dag`.
@@ -94,6 +106,10 @@ class BIPMapping(TransformationPass):
         if self.property_set["layout"]:
             logger.info("BIPMapping ignores given initial layout.")
 
+        dummy_steps = dag.num_qubits() - 1
+        if self.max_swaps_inbetween_layers is not None:
+            dummy_steps = max(0, self.max_swaps_inbetween_layers - 1)
+
         original_dag = dag
         # BIPMappingModel assumes num_virtual_qubits == num_physical_qubits
         # TODO: rewrite without dag<->circuit conversion (or remove the above assumption)
@@ -105,10 +121,6 @@ class BIPMapping(TransformationPass):
             ]
         )
         dag = circuit_to_dag(pm.run(dag_to_circuit(dag)))
-
-        # TODO: set more safety dummy_steps
-        dummy_steps = self.coupling_map.size() - 1
-        # max_total_dummy = max_total_dummy or (self.dummy_steps * (self.dummy_steps - 1))
 
         model = BIPMappingModel(
             dag=dag, coupling_map=self.coupling_map, dummy_timesteps=dummy_steps
