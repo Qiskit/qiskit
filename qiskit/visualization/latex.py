@@ -17,7 +17,7 @@ import math
 import re
 
 import numpy as np
-from qiskit.circuit import Gate, Clbit
+from qiskit.circuit import Clbit
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGate, U1Gate, PhaseGate
 from qiskit.circuit.measure import Measure

@@ -29,7 +29,7 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
-from qiskit.circuit import ControlledGate, Gate
+from qiskit.circuit import ControlledGate
 from qiskit.visualization.qcstyle import load_style
 from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
 from qiskit.exceptions import MissingOptionalLibraryError

@@ -18,7 +18,7 @@ from warnings import warn
 from shutil import get_terminal_size
 import sys
 
-from qiskit.circuit import ControlledGate, Gate
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import Reset
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
