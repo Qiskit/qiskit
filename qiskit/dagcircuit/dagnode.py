@@ -195,7 +195,7 @@ class DAGNode:
             if "barrier" == node1.op.name == node2.op.name:
                 return set(node1_qargs) == set(node2_qargs)
 
-            if node1.op.name == node2.op.name:
+            if node1.op == node2.op:
                 if node1_qargs == node2_qargs:
                     if node1_cargs == node2_cargs:
                         if node1.op.condition == node2.op.condition:
