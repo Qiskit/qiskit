@@ -885,7 +885,9 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(unrolled_dag, ref_dag)
 
     def test_ccx_parameter_consistency(self):
-        """Test the consistency of parameters"""
+        """Test the consistency of parameters
+        See issue: https://github.com/Qiskit/qiskit-terra/issues/6465
+        """
         qreg = QuantumRegister(3)
         qc = QuantumCircuit(qreg)
         qc.ccx(qreg[0], qreg[1], qreg[2], ctrl_state=0)
