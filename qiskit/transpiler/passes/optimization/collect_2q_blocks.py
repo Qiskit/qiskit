@@ -31,7 +31,7 @@ class Collect2qBlocks(AnalysisPass):
         tuples of "op" node.
         """
         self.property_set["commutation_set"] = defaultdict(list)
-        pending_1q = [list()] * dag.num_qubits()
+        pending_1q = [list() for _ in range(dag.num_qubits())]
         block_id = [-(i + 1) for i in range(dag.num_qubits())]
         current_id = 0
         block_list = list()
