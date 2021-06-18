@@ -59,7 +59,7 @@ class QiskitTimelineStyle(dict):
         for key, value in __m.items():
             if key in self._deprecated_keys:
                 warnings.warn(
-                    "%s is deprecated. Use %s instead." % (key, self._deprecated_keys[key]),
+                    f"{key} is deprecated. Use {self._deprecated_keys[key]} instead.",
                     DeprecationWarning,
                 )
                 self.__setitem__(self._deprecated_keys[key], value)

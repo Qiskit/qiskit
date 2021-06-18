@@ -138,7 +138,7 @@ class Clifford(BaseOperator, AdjointMixin):
         super().__init__(num_qubits=self._table.num_qubits)
 
     def __repr__(self):
-        return "Clifford({})".format(repr(self.table))
+        return f"Clifford({repr(self.table)})"
 
     def __str__(self):
         return "Clifford: Stabilizer = {}, Destabilizer = {}".format(
