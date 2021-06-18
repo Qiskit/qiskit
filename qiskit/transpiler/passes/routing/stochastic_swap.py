@@ -159,7 +159,7 @@ class StochasticSwap(TransformationPass):
         logger.debug("layer_permutation: gates = %s", gates)
 
         # Can we already apply the gates? If so, there is no work to do.
-        dist = sum([coupling.distance(layout[g[0]], layout[g[1]]) for g in gates])
+        dist = sum(coupling.distance(layout[g[0]], layout[g[1]]) for g in gates)
         logger.debug("layer_permutation: distance = %s", dist)
         if dist == len(gates):
             logger.debug("layer_permutation: nothing to do")

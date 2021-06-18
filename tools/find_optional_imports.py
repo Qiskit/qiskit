@@ -63,7 +63,7 @@ def main():
             matched_module = module_name
         if indent > 0:
             if line_indent < indent:
-                print("ERROR: %s is imported via %s" % (matched_module, module_name))
+                print(f"ERROR: {matched_module} is imported via {module_name}")
                 indent = -1
                 matched_module = None
 

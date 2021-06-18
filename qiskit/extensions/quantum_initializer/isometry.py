@@ -299,7 +299,7 @@ class Isometry(Instruction):
             return parameter
         else:
             raise CircuitError(
-                "invalid param type {0} for gate  " "{1}".format(type(parameter), self.name)
+                "invalid param type {} for gate  " "{}".format(type(parameter), self.name)
             )
 
     def inverse(self):
