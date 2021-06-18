@@ -211,7 +211,7 @@ class TestBIPMapping(QiskitTestCase):
         coupling = CouplingMap([[0, 1], [0, 2], [2, 3]])  # linear [1, 0, 2, 3]
         property_set = {}
         actual = BIPMapping(coupling, objective="depth")(circuit, property_set)
-        self.assertEqual(6, actual.depth())
+        self.assertEqual(5, actual.depth())
 
         CheckMap(coupling)(actual, property_set)
         self.assertTrue(property_set["is_swap_mapped"])

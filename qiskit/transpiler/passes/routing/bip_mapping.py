@@ -12,7 +12,7 @@
 
 # pylint: disable=import-error
 
-"""Map a DAGCircuit onto a `coupling_map` allocating qubits and adding swap gates."""
+"""Map a DAGCircuit onto a given ``coupling_map``, allocating qubits and adding swap gates."""
 import copy
 import logging
 import warnings
@@ -35,10 +35,26 @@ logger = logging.getLogger(__name__)
 
 
 class BIPMapping(TransformationPass):
-    """Map a DAGCircuit onto a `coupling_map` allocating qubits and adding swap gates.
+    r"""Map a DAGCircuit onto a given ``coupling_map``, allocating qubits and adding swap gates.
 
-    The BIP mapper try to find the best layout and routing at the same time
-    by solving a BIP (binary integer programming) problem.
+    The BIP mapper try to find the best layout and routing at once by
+    solving a BIP (binary integer programming) problem as described in [1].
+
+    The BIP problem represents the layer-by-layer mapping of 2-qubit gates, assuming all the gates
+    in a layer can be run on the ``coupling_map`. In the problem, the variables $w$ represent
+    the layout of qubits for each layer and the variables $x$ represent which pair fo qubits
+    should be swapped inbetween layers. Based on the values in the solution of the BIP problem,
+    the mapped circuit will be constructed.
+
+    If you circuits that need to be mapped and need to specify physical qubits (e.g. running
+    Quantum Volume circuits), you have to specify ``coupling_map`` which contains only the qubits
+    to be used. Do not use ``initial_layout`` for that purpose because the BIP mapper gracefully
+    ignore ``initial_layout`` (and try to determines its best layout).
+
+    **References:**
+
+    [1] G. Nannicini et al. "Optimal qubit assignment and routing via integer programming."
+    `arXiv:2106.06446 <https://arxiv.org/abs/2106.06446>`_
     """
 
     def __init__(

@@ -35,8 +35,9 @@ class BIPMappingModel:
 
     Attributes:
         problem (Cplex):
-            A Cplex problem object with the problem description
-            (solution is stored in `problem.solution`).
+            A Cplex problem object with the problem description, which is set by calling
+            :method:`create_cpx_problem`. After calling :method:`solve_cpx_problem`,
+            the solution will be stored in :attr:`problem.solution`).
     """
 
     def __init__(self, dag, coupling_map, dummy_timesteps=None):
@@ -519,8 +520,11 @@ class BIPMappingModel:
         """Set the minimum depth objective function."""
         for i in range(ic.wd_start, ic.wd_start + ic.num_wd_vars):
             prob.objective.set_linear(i, 1)
-        for i in range(ic.x_start, ic.x_start + ic.num_x_vars):
-            prob.objective.set_linear(i, 0.1)
+
+        for t in range(ic.depth - 1):
+            for (i, j) in ic.ht.edges:
+                for q in range(ic.num_lqubits):
+                    prob.objective.set_linear(ic.x_index(q, i, j, t), 0.1)
 
     @staticmethod
     def _set_error_rate_obj(prob, ic):
@@ -548,7 +552,7 @@ class BIPMappingModel:
         Raises:
             TranspilerError: if fails to solve the Cplex problem within given timelimit.
         """
-        # self.problem.parameters.randomseed.set(777)  # pylint: disable=no-member
+        self.problem.parameters.randomseed.set(777)  # pylint: disable=no-member
         self.problem.parameters.timelimit.set(time_limit)  # pylint: disable=no-member
         self.problem.parameters.preprocessing.qtolin.set(1)  # pylint: disable=no-member
         # This sets the number of threads; by default Cplex uses everything!
@@ -570,7 +574,6 @@ class BIPMappingModel:
         logger.info("BIP solution status: %s", status)
         try:
             objval = self.problem.solution.get_objective_value()
-            # print(objval)
             logger.info("BIP objective value: %s", objval)
         except CplexSolverError as cse:
             logger.warning(cse)
@@ -700,7 +703,7 @@ class _IndexCalculator:
         self.num_lqubits = self.qc.num_qubits
         # Number of physical qubits
         self.num_pqubits = self.ht.num_qubits
-        assert(self.num_lqubits == self.num_pqubits)
+        assert self.num_lqubits == self.num_pqubits
         self.depth = self.qc.depth
         self.num_gates = sum(len(self.qc.gates[t]) for t in range(self.qc.depth))
         logger.debug("Num gates: %d", self.num_gates)
