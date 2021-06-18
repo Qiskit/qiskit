@@ -170,7 +170,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._expectation = expectation
         self._include_custom = include_custom
         self._split_transpile = split_transpile
-        self._expect_op = None
 
         # set ansatz -- still supporting pre 0.18.0 sorting
         self._sort_parameters_by_name = sort_parameters_by_name
