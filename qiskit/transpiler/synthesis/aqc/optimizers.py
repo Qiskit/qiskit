@@ -13,7 +13,7 @@
 """
 This is the Optimizer class: anything to optimize the circuit.
 """
-
+import logging
 from abc import ABC, abstractmethod
 from typing import Tuple, Union
 
@@ -22,6 +22,9 @@ from numpy import linalg as la
 from scipy.optimize import fmin_l_bfgs_b
 
 from .parametric_circuit import ParametricCircuit
+
+
+logger = logging.getLogger(__name__)
 
 
 class OptimizerBase(ABC):
@@ -126,7 +129,6 @@ class FISTAOptimizer(OptimizerBase):
         reg: float = 0.2,
         group=False,
         group_size=4,
-        verbose: int = 0,
     ) -> None:
         super().__init__()
         self._method = method
@@ -137,9 +139,6 @@ class FISTAOptimizer(OptimizerBase):
         self._reg = reg
         self._group = group
         self._group_size = group_size
-        self._verbose = verbose
-        if verbose >= 1:
-            print(self.__class__.__name__)
 
     @staticmethod
     def _soth(x, thresh):
@@ -174,9 +173,7 @@ class FISTAOptimizer(OptimizerBase):
         """
         FISTA algorithm. See the base class description.
         """
-        verbose = int(self._verbose)
-        if verbose >= 1:
-            print("FISTA/Lasso optimization ...", flush=True)
+        logger.debug("FISTA/Lasso optimization ...")
 
         thetas0 = circuit.thetas.copy()
         num_cnots = circuit.num_cnots
@@ -196,7 +193,7 @@ class FISTAOptimizer(OptimizerBase):
             if self._method == "vanilla":
                 new_thetas = thetas - self._eta * der
                 if self._group:
-                    # l1+l2
+                    # l1 + l2
                     new_thetas[0 : 4 * (num_cnots - 1)] = self._group_soth(
                         new_thetas[0 : 4 * (num_cnots - 1)], self._eta * self._reg, self._group_size
                     )
@@ -212,12 +209,12 @@ class FISTAOptimizer(OptimizerBase):
                 new_alpha = (1 + np.sqrt(1 + 4 * alpha ** 2)) / 2
                 new_aux = thetas - self._eta * der
                 if self._group:
-                    ## l1+l2
+                    # l1 + l2
                     new_aux[0 : 4 * (num_cnots - 1)] = self._group_soth(
                         new_aux[0 : 4 * (num_cnots - 1)], self._eta * self._reg, self._group_size
                     )
                 else:
-                    ## l1
+                    # l1
                     new_aux[0 : 4 * (num_cnots - 1)] = self._soth(
                         new_aux[0 : 4 * (num_cnots - 1)], self._eta * self._reg
                     )
@@ -230,23 +227,19 @@ class FISTAOptimizer(OptimizerBase):
             err, der = circuit.get_gradient(target_matrix=target_matrix)
             gra[i] = stop_crit
             i += 1
-            if verbose >= 2 and (i == 1 or ((i - 1) % 20) == 0):
-                print(
-                    "iteration: {:05d}, fobj: {:0.16f}, |grad|: {:0.16f}".format(
-                        i - 1, err, np.linalg.norm(der)
-                    ),
-                    flush=True,
+            if i == 1 or ((i - 1) % 20) == 0:
+                logger.debug(
+                    "iteration: %05d, fobj: %0.16f, |grad|: %0.16f", i - 1, err, np.linalg.norm(der)
                 )
 
         obj = obj[0:i]
         gra = gra[0:i]
 
-        if verbose >= 1:
-            print("FISTA status:")
-            print("objective function: {:0.16f}".format(err))
-            print("gradient norm: {:0.16f}".format(np.linalg.norm(err)))
-            print("number of iterations: {:d}".format(int(i)))
-            print("", flush=True)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("FISTA status:")
+            logger.debug("objective function: %0.16f", err)
+            logger.debug("gradient norm: %0.16f", np.linalg.norm(err))
+            logger.debug("number of iterations: %d", int(i))
 
         circuit.set_thetas(thetas)
         return thetas, obj, gra, None
@@ -262,7 +255,6 @@ class LBFGSOptimizer(OptimizerBase):
         self,
         nonzero_theta_mask: (np.ndarray, None) = None,
         maxiter: (int, None) = None,
-        verbose: int = 0,
     ):
         if nonzero_theta_mask is not None:
             assert isinstance(nonzero_theta_mask, np.ndarray)
@@ -270,12 +262,8 @@ class LBFGSOptimizer(OptimizerBase):
             assert np.count_nonzero(nonzero_theta_mask) > 0
         if maxiter is not None:
             assert isinstance(maxiter, int) and maxiter >= 100
-        assert isinstance(verbose, int)
-        if verbose >= 1:
-            print(self.__class__.__name__)
         self._nonzero_mask = nonzero_theta_mask
         self._maxiter = maxiter
-        self._verbose = verbose
 
     def optimize(
         self, target_matrix: np.ndarray, circuit: ParametricCircuit
@@ -284,8 +272,7 @@ class LBFGSOptimizer(OptimizerBase):
         Optimizes parameters of parametric circuit using L-BFGS-B algorithm.
         For input/output specification see description in the base class.
         """
-        if self._verbose >= 1:
-            print("L-BFGS optimization ...", flush=True)
+        logger.debug("L-BFGS optimization ...")
 
         # If nonzero mask was specified, we extract a subset of thetas.
         if self._nonzero_mask is not None:
@@ -296,19 +283,13 @@ class LBFGSOptimizer(OptimizerBase):
 
         maxiter = self._maxiter if self._maxiter is not None else 15000
 
-        if self._verbose >= 1:
-            print(
-                "#thetas: {:d}, optimization problem size: {:d}".format(
-                    circuit.num_thetas, thetas0.size
-                )
-            )
-            print("max. number of iterations:", maxiter)
-            print("", flush=True)
+        logger.debug("#thetas: %d, optimization problem size: %d", circuit.num_thetas, thetas0.size)
+        logger.debug("max. number of iterations: %d", maxiter)
 
         # Optimize.
         # bounds = [-2 * np.pi, 2 * np.pi] * thetas0.size  # TODO: makes sense?
         bounds = None
-        iter_counter = [0 if self._verbose >= 2 else -1]
+        iter_counter = [0]
         tmp_grad = np.zeros_like(thetas0)
         thetas_min, fobj_min, info = fmin_l_bfgs_b(
             func=self._objective_func,
@@ -328,27 +309,26 @@ class LBFGSOptimizer(OptimizerBase):
             circuit.set_thetas(thetas_min)
 
         # Print out the final status of the optimizer:
-        if self._verbose >= 1:
+        if logger.isEnabledFor(logging.DEBUG):
             status = int(info["warnflag"])
-            print("LBFGS status: {:s}converged".format("" if status == 0 else "not "), end="")
+            logger.debug("LBFGS status: %s converged", "" if status == 0 else "not ")
             if status == 0:
-                print("")
+                logger.debug("")
             elif status == 1:
-                print(", too many function evaluations or too many iterations")
+                logger.debug("Too many function evaluations or too many iterations")
             elif status == 2:
-                print(", stopped for the reason: {}".format(info["task"]))
+                logger.debug("Stopped for the reason: %s", info["task"])
             else:
-                print(", unknown reason")
-            print("objective function: {:0.16f}".format(fobj_min))
-            print("gradient norm: {:0.16f}".format(np.linalg.norm(info["grad"])))
-            print("number of function calls made: {:d}".format(int(info["funcalls"])))
-            print("number of iterations: {:d}".format(int(info["nit"])))
-            print("", flush=True)
+                logger.debug("Unknown reason")
+            logger.debug("Objective function: %0.16f", fobj_min)
+            logger.debug("Gradient norm: %0.16f", np.linalg.norm(info["grad"]))
+            logger.debug("Number of function calls made: %d", int(info["funcalls"]))
+            logger.debug("Number of iterations: %d", int(info["nit"]))
 
         return circuit.thetas, np.array([fobj_min]), np.empty(0), None
 
     @staticmethod
-    def _objective_func(thetas: np.ndarray, *args) -> (float, np.ndarray):
+    def _objective_func(thetas: np.ndarray, *args) -> Tuple[float, np.ndarray]:
         """
         Computes the value and gradient of objective function.
         """
@@ -363,26 +343,26 @@ class LBFGSOptimizer(OptimizerBase):
         # print("", flush=True)
         # start = time.time()
 
-        f, g = circuit.get_gradient(target_matrix)
+        objective, grad = circuit.get_gradient(target_matrix)
 
         # TODO: temporary code!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # print("gradient computation time:", time.time() - start); print("", flush=True)
 
-        assert g.ndim == 1
+        assert grad.ndim == 1
         if nonzero_mask is not None:
-            tmp_grad[:] = g[nonzero_mask.ravel()]
+            tmp_grad[:] = grad[nonzero_mask.ravel()]
         else:
-            tmp_grad[:] = g[:]
+            tmp_grad[:] = grad[:]
 
         num_iter = int(iter_counter[0])
         if num_iter >= 0:  # verbosity enabled?
             if num_iter == 0 or (num_iter % 20) == 0:
-                print(
-                    "iteration: {:05d}, fobj: {:0.16f}, |grad|: {:0.16f}".format(
-                        num_iter, f, np.linalg.norm(tmp_grad)
-                    ),
-                    flush=True,
+                logger.debug(
+                    "iteration: %05d, fobj: %0.16f, |grad|: %0.16f",
+                    num_iter,
+                    objective,
+                    np.linalg.norm(tmp_grad),
                 )
             iter_counter[0] = num_iter + 1
 
-        return f, tmp_grad
+        return objective, tmp_grad

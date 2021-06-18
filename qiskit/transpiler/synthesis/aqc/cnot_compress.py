@@ -38,7 +38,7 @@ class CNotCompressor:
         a new, compressed one.
         """
         check_num_qubits(num_qubits)
-        check_cnots(nqubits=num_qubits, cnots=cnots)
+        check_cnots(num_qubits=num_qubits, cnots=cnots)
 
         compressed = cnots.copy()  # compressed CNOTs
         controls = np.zeros(4, dtype=cnots.dtype)  # temporary array of control bits
