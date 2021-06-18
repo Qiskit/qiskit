@@ -32,7 +32,9 @@ else
 	CONCURRENCY := $(shell echo "$(NPROCS) 2" | awk '{printf "%.0f", $$1 / $$2}')
 endif
 
-.PHONY: env lint test test_ci
+.PHONY: default env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
+
+default: style lint-incr test ;
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -53,13 +55,14 @@ lint:
 # Only pylint on files that have changed from origin/main. Also parallelize (disables cyclic-import check)
 lint-incr:
 	-git fetch -q https://github.com/Qiskit/qiskit-terra.git :lint_incr_latest
-	tools/pylint_incr.py -j4 -rn --paths :/qiskit/*.py :/test/*.py
-	tools/pylint_incr.py -j4 -rn --disable='invalid-name, missing-module-docstring, redefined-outer-name' --paths :/examples/python/*.py
+	tools/pylint_incr.py -j4 -rn -sn --paths :/qiskit/*.py :/test/*.py
+	tools/pylint_incr.py -j4 -rn -sn --disable='invalid-name, missing-module-docstring, redefined-outer-name' --paths ':(glob,top)examples/python/*.py'
 	tools/verify_headers.py qiskit test tools
 	python tools/find_optional_imports.py
 
 style:
 	black --check qiskit test tools
+
 black:
 	black qiskit test tools
 

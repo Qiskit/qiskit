@@ -19,6 +19,8 @@ import argparse
 import os
 import sys
 
+from pylint import lint
+
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -66,16 +68,11 @@ def _run_pylint(ref, paths, pylint_args):
         sys.exit(128)
     changed_paths = [path.decode("ascii") for path in stdout.split(b"\x00") if len(path) > 0]
     if len(changed_paths) == 0:
-        print("No changed files!")
+        print(f"No changed files in {' '.join(paths)}")
         sys.exit(0)
-    changed_paths_pretty = "\n\t".join(changed_paths)
-    print(f"Running pylint on changed files:\n {changed_paths_pretty}")
-    code, stdout, stderr = _minimal_ext_cmd(["pylint", *pylint_args, "--", *changed_paths])
-    print((stdout + stderr).decode("ascii"))
-    if code != 0:
-        print(f"Pylint returned {code}")
-        sys.exit(1)
-    sys.exit(0)
+    changed_paths_pretty = "\n    ".join(changed_paths)
+    print(f"Running pylint on {len(changed_paths)} changed files:\n    {changed_paths_pretty}")
+    lint.Run([*pylint_args, "--", *changed_paths])
 
 
 if __name__ == "__main__":
