@@ -343,9 +343,10 @@ class SabreSwap(TransformationPass):
             return total_cost
 
         if heuristic == "decay":
-            return max(
-                self.qubits_decay[swap_qubits[0]], self.qubits_decay[swap_qubits[1]]
-            ) * total_cost
+            return (
+                max(self.qubits_decay[swap_qubits[0]], self.qubits_decay[swap_qubits[1]])
+                * total_cost
+            )
 
         raise TranspilerError("Heuristic %s not recognized." % heuristic)
 
