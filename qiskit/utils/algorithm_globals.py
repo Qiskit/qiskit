@@ -65,7 +65,7 @@ class QiskitAlgorithmGlobals:
         if num_processes is None:
             num_processes = QiskitAlgorithmGlobals.CPU_COUNT
         elif num_processes < 1:
-            raise QiskitError("Invalid Number of Processes {}.".format(num_processes))
+            raise QiskitError(f"Invalid Number of Processes {num_processes}.")
         elif num_processes > QiskitAlgorithmGlobals.CPU_COUNT:
             raise QiskitError(
                 "Number of Processes {} cannot be greater than cpu count {}.".format(

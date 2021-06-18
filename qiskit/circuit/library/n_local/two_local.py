@@ -281,7 +281,7 @@ class TwoLocal(NLocal):
                 if isinstance(gate, layer):
                     instance = gate
             if instance is None:
-                raise ValueError("Unknown layer type`{}`.".format(layer))
+                raise ValueError(f"Unknown layer type`{layer}`.")
             layer = instance
 
         if isinstance(layer, Instruction):
@@ -290,8 +290,7 @@ class TwoLocal(NLocal):
             return circuit
 
         raise TypeError(
-            "Invalid input type {}. ".format(type(layer))
-            + "`layer` must be a type, str or QuantumCircuit."
+            f"Invalid input type {type(layer)}. " + "`layer` must be a type, str or QuantumCircuit."
         )
 
     def get_entangler_map(

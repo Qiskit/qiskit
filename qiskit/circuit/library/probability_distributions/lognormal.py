@@ -137,14 +137,14 @@ class LogNormalDistribution(QuantumCircuit):
             # compute the evaluation points using numpy's meshgrid
             # indexing 'ij' yields the "column-based" indexing
             meshgrid = np.meshgrid(
-                *[
+                *(
                     np.linspace(bound[0], bound[1], num=2 ** num_qubits[i])
                     for i, bound in enumerate(bounds)
-                ],
+                ),
                 indexing="ij",
             )
             # flatten into a list of points
-            x = list(zip(*[grid.flatten() for grid in meshgrid]))
+            x = list(zip(*(grid.flatten() for grid in meshgrid)))
 
         # compute the normalized, truncated probabilities
         probabilities = []
