@@ -122,7 +122,8 @@ def visualize_transition(circuit,
                          trace=False,
                          saveas=None,
                          fpg=100,
-                         spg=2):
+                         spg=2,
+                         dpi=60):
     """
     Creates animation showing transitions between states of a single
     qubit by applying quantum gates.
@@ -140,6 +141,7 @@ def visualize_transition(circuit,
             it might be preferable to choose fpg between 5-30.
         spg (int): Seconds per gate. How many seconds should animation of individual gate
             transitions take.
+        dpi (int): Dots per inch. Changes the quality of the video output file.
 
     Returns:
         IPython.core.display.HTML:
@@ -305,7 +307,7 @@ def visualize_transition(circuit,
                                   interval=time_between_frames)
 
     if saveas:
-        ani.save(saveas, fps=30)
+        ani.save(saveas, fps=30, dpi=dpi)
     if jupyter:
         # This is necessary to overcome matplotlib memory limit
         matplotlib.rcParams['animation.embed_limit'] = 50
