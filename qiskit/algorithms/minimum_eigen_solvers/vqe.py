@@ -21,6 +21,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
+from qiskit import QiskitError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow import (
@@ -189,6 +190,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._eval_count = 0
         self._optimizer.set_max_evals_grouped(max_evals_grouped)
         self._callback = callback
+        self._transpiled_circuits = []
 
         logger.info(self.print_settings())
 
@@ -241,7 +243,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._circuit_sampler = CircuitSampler(
             quantum_instance,
             param_qobj=is_aer_provider(quantum_instance.backend),
-            split_transpile=self._split_transpile,
         )
 
     @property
@@ -375,10 +376,72 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         ansatz_circuit_op = CircuitStateFn(wave_function)
         expect_op = observable_meas.compose(ansatz_circuit_op)
 
+        if self._split_transpile and self.quantum_instance is not None:
+            # 1. transpile a common circuit
+            try:
+                transpiled_wave_function = self.quantum_instance.transpile(wave_function)[0]
+                # 2. transpile diff circuits
+                circuit_sfns = []
+                self._extract_circuitsfns(expect_op.reduce().to_circuit_op().reduce(), circuit_sfns)
+                circuits = [
+                    op_c.to_circuit(meas=not self.quantum_instance.is_statevector)
+                    for op_c in circuit_sfns
+                ]
+
+                diff_circuits = []
+                for circuit in circuits:
+                    diff_circuit = circuit.copy()
+                    del diff_circuit.data[0 : len(wave_function)]
+                    diff_circuits.append(diff_circuit)
+
+                if transpiled_wave_function._layout is not None:
+                    layout = transpiled_wave_function._layout.copy()
+                    used_qubits = set(
+                        used_qubit
+                        for diff_circuit in diff_circuits
+                        for used_qubit in diff_circuit.qubits
+                    )
+                    for q in list(layout.get_virtual_bits().keys()):
+                        if q not in used_qubits:
+                            del layout[q]
+                    orig_layout = self.quantum_instance.compile_config["initial_layout"]
+                    self.quantum_instance.compile_config["initial_layout"] = layout
+
+                diff_circuits = self.quantum_instance.transpile(diff_circuits)
+
+                if transpiled_wave_function._layout is not None:
+                    self.quantum_instance.compile_config["initial_layout"] = orig_layout
+
+                # 3. combine
+                self._transpiled_circuits = []
+                for diff_circuit in diff_circuits:
+                    transpiled_circuit = transpiled_wave_function.copy()
+                    for creg in diff_circuit.cregs:
+                        if creg not in transpiled_circuit.cregs:
+                            transpiled_circuit.add_register(creg)
+                    for inst, qargs, cargs in diff_circuit.data:
+                        transpiled_circuit.append(inst, qargs, cargs)
+                    self._transpiled_circuits.append(transpiled_circuit)
+            except QiskitError:
+                logger.debug(
+                    r"Pre transpile in VQE failed to transpile circuits with unbound "
+                    r"parameters. Attempting to transpile only when circuits are bound "
+                    r"now, but this can hurt performance due to repeated transpilation."
+                )
+        else:
+            expect_op = expect_op.reduce()
+
         if return_expectation:
             return expect_op, expectation
 
         return expect_op
+
+    def _extract_circuitsfns(self, operator, result):
+        if isinstance(operator, CircuitStateFn):
+            result.append(operator)
+        elif isinstance(operator, ListOp):
+            for op in operator.oplist:
+                self._extract_circuitsfns(op, result)
 
     def construct_circuit(
         self,
@@ -422,7 +485,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         threshold: float = 1e-12,
     ) -> np.ndarray:
         # Create new CircuitSampler to avoid breaking existing one's caches.
-        sampler = CircuitSampler(self.quantum_instance, split_transpile=self._split_transpile)
+        sampler = CircuitSampler(self.quantum_instance)
 
         aux_op_meas = expectation.convert(StateFn(ListOp(aux_operators), is_measurement=True))
         aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.ansatz.bind_parameters(parameters)))
@@ -565,7 +628,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             param_bindings = dict(zip(self._ansatz_params, parameter_sets.transpose().tolist()))
 
             start_time = time()
-            sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
+            if self._transpiled_circuits:
+                sampled_expect_op = self._circuit_sampler.convert(
+                    expect_op, param_bindings, self._transpiled_circuits
+                )
+            else:
+                sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
+
             means = np.real(sampled_expect_op.eval())
 
             if self._callback is not None:
