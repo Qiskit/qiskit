@@ -15,6 +15,7 @@
 """Map a DAGCircuit onto a given ``coupling_map``, allocating qubits and adding swap gates."""
 import copy
 import logging
+import math
 import warnings
 
 from qiskit.circuit import QuantumRegister
@@ -41,7 +42,7 @@ class BIPMapping(TransformationPass):
     solving a BIP (binary integer programming) problem as described in [1].
 
     The BIP problem represents the layer-by-layer mapping of 2-qubit gates, assuming all the gates
-    in a layer can be run on the ``coupling_map`. In the problem, the variables $w$ represent
+    in a layer can be run on the ``coupling_map``. In the problem, the variables $w$ represent
     the layout of qubits for each layer and the variables $x$ represent which pair fo qubits
     should be swapped inbetween layers. Based on the values in the solution of the BIP problem,
     the mapped circuit will be constructed.
@@ -69,10 +70,12 @@ class BIPMapping(TransformationPass):
 
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
-            objective (str): Type of objective function; one of the following values.
-                - error_rate: [NotImplemented] predicted error rate of the circuit
-                - depth: [Default] depth (number of timesteps) of the circuit
-                - balanced: [NotImplemented] weighted sum of error_rate and depth
+            objective (str): Type of objective function:
+
+                * ``'error_rate'``: [NotImplemented] Predicted error rate of the circuit
+                * ``'depth'``: [Default] Depth (number of timesteps) of the circuit
+                * ``'balanced'``: [NotImplemented] Weighted sum of ``'error_rate'`` and ``'depth'``
+
             backend_prop (BackendProperties): Backend properties object
             time_limit (float): Time limit for solving BIP in seconds
             max_swaps_inbetween_layers (int):
@@ -117,7 +120,7 @@ class BIPMapping(TransformationPass):
         if self.property_set["layout"]:
             logger.info("BIPMapping ignores given initial layout.")
 
-        dummy_steps = max(0, dag.num_qubits() - 1)
+        dummy_steps = math.ceil(math.sqrt(dag.num_qubits()))
         if self.max_swaps_inbetween_layers is not None:
             dummy_steps = max(0, self.max_swaps_inbetween_layers - 1)
 
