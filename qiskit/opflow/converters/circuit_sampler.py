@@ -104,7 +104,6 @@ class CircuitSampler(ConverterBase):
         self._transpiled_circ_templates: Optional[List[Any]] = None
         self._transpile_before_bind = True
         self._split_transpile = split_transpile
-        self._had_transpiled = False
 
     def _check_quantum_instance_and_modes_consistent(self) -> None:
         """Checks whether the statevector and param_qobj settings are compatible with the
@@ -170,7 +169,6 @@ class CircuitSampler(ConverterBase):
         Raises:
             OpflowError: if extracted circuits are empty.
         """
-        self._had_transpiled = False
         # check if the operator should be cached
         op_id = operator.instance_id
         # op_id = id(operator)
@@ -212,10 +210,11 @@ class CircuitSampler(ConverterBase):
 
                     if transpiled_common_circuit._layout is not None:
                         layout = transpiled_common_circuit._layout.copy()
-                        used_qubits = set([])
-                        for diff_circuit in diff_circuits:
-                            for used_qubit in diff_circuit.qubits:
-                                used_qubits.add(used_qubit)
+                        used_qubits = set(
+                            used_qubit
+                            for diff_circuit in diff_circuits
+                            for used_qubit in diff_circuit.qubits
+                        )
                         for q in list(layout.get_virtual_bits().keys()):
                             if q not in used_qubits:
                                 del layout[q]
@@ -240,8 +239,7 @@ class CircuitSampler(ConverterBase):
 
                     # 4. set transpiled circuit cache
                     self._transpiled_circ_cache = transpiled_circuits
-                    self._transpile_before_bind = False
-                    self._had_transpiled = True
+                    self._transpile_before_bind = True
                 except QiskitError:
                     logger.debug(
                         r"CircuitSampler failed to transpile circuits with unbound "
@@ -368,9 +366,12 @@ class CircuitSampler(ConverterBase):
         if not circuit_sfns and not self._transpiled_circ_cache:
             raise OpflowError("CircuitStateFn is empty and there is no cache.")
 
-        if circuit_sfns and not self._had_transpiled:
+        if circuit_sfns:
             self._transpiled_circ_templates = None
-            circuits = [op_c.to_circuit(meas=not self._statevector) for op_c in circuit_sfns]
+            if self._statevector:
+                circuits = [op_c.to_circuit(meas=False) for op_c in circuit_sfns]
+            else:
+                circuits = [op_c.to_circuit(meas=True) for op_c in circuit_sfns]
 
             try:
                 self._transpiled_circ_cache = self.quantum_instance.transpile(circuits)

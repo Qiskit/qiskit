@@ -374,7 +374,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         observable_meas = expectation.convert(StateFn(operator, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
-
         expect_op = observable_meas.compose(ansatz_circuit_op)
 
         if return_expectation:
@@ -424,7 +423,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         threshold: float = 1e-12,
     ) -> np.ndarray:
         # Create new CircuitSampler to avoid breaking existing one's caches.
-        sampler = CircuitSampler(self.quantum_instance)
+        sampler = CircuitSampler(self.quantum_instance, split_transpile=self._split_transpile)
 
         aux_op_meas = expectation.convert(StateFn(ListOp(aux_operators), is_measurement=True))
         aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.ansatz.bind_parameters(parameters)))
