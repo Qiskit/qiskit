@@ -192,9 +192,9 @@ def _check_sorted_and_in_range(breakpoints, domain):
 def _check_sizes_match(slope, offset, breakpoints):
     size = len(slope)
     if len(offset) != size:
-        raise ValueError("Size mismatch of slope ({}) and offset ({}).".format(size, len(offset)))
+        raise ValueError(f"Size mismatch of slope ({size}) and offset ({len(offset)}).")
     if breakpoints is not None:
         if len(breakpoints) != size:
             raise ValueError(
-                "Size mismatch of slope ({}) and breakpoints ({}).".format(size, len(breakpoints))
+                f"Size mismatch of slope ({size}) and breakpoints ({len(breakpoints)})."
             )
