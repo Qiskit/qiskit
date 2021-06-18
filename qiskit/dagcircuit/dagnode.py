@@ -229,6 +229,30 @@ class OpNode(DAGNode):
         """Sets the Instruction name corresponding to the op for this node"""
         self.op.name = new_name
 
+    @property
+    def condition(self):
+        """Returns the condition of the node.op"""
+        warnings.warn(
+            "The OpNode 'condition' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "You can use 'OpNode.op.condition'.",
+            DeprecationWarning,
+            2,
+        )
+        return self.op.condition
+
+    @condition.setter
+    def condition(self, new_condition):
+        """Sets the node.condition which sets the node.op.condition."""
+        warnings.warn(
+            "The OpNode 'condition' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "You can use 'OpNode.op.condition'.",
+            DeprecationWarning,
+            2,
+        )
+        self.op.condition = new_condition
+
 
 class InNode(DAGNode):
     """Object to represent an incoming wire node in the DAGCircuit."""
