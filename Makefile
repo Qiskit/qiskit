@@ -47,20 +47,19 @@ env:
 lint:
 	pylint -rn qiskit test
 	tools/verify_headers.py qiskit test tools
-	pylint -rn --disable='C0103, C0114, W0621' examples/python/*.py
+	pylint -rn --disable='invalid-name, missing-module-docstring, redefined-outer-name' examples/python/*.py
 	python tools/find_optional_imports.py
 
 # Only pylint on files that have changed from origin/main. Also parallelize (disables cyclic-import check)
 lint-incr:
 	-git fetch -q https://github.com/Qiskit/qiskit-terra.git :lint_incr_latest
-	git diff-index --name-only --diff-filter=d --merge-base -z lint_incr_latest -- :/qiskit/*.py :/test/*.py | xargs -0 pylint -j4 -rn
-	git diff-index --name-only --diff-filter=d --merge-base -z lint_incr_latest -- :/examples/python/*.py |  xargs -0 pylint -j4 -rn --disable='C0103, C0114, W0621'
+	tools/pylint_incr.py -j4 -rn --paths :/qiskit/*.py :/test/*.py
+	tools/pylint_incr.py -j4 -rn --disable='invalid-name, missing-module-docstring, redefined-outer-name' --paths :/examples/python/*.py
 	tools/verify_headers.py qiskit test tools
 	python tools/find_optional_imports.py
 
 style:
 	black --check qiskit test tools
-
 black:
 	black qiskit test tools
 

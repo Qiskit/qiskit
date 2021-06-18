@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Run pylint incrementally on only changed files"""
+
+import subprocess
+import argparse
+import os
+import sys
+
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _minimal_ext_cmd(cmd):
+    # construct minimal environment
+    env = {}
+    for k in ["SYSTEMROOT", "PATH"]:
+        v = os.environ.get(k)
+        if v is not None:
+            env[k] = v
+    # LANGUAGE is used on win32
+    env["LANGUAGE"] = "C"
+    env["LANG"] = "C"
+    env["LC_ALL"] = "C"
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
+        cwd=os.path.join(os.path.dirname(ROOT_DIR)),
+    )
+    stdout, stderr = proc.communicate()
+    return proc.returncode, stdout, stderr
+
+
+def _run_pylint(ref, paths, pylint_args):
+    code, stdout, stderr = _minimal_ext_cmd(
+        [
+            "git",
+            "diff-index",
+            "--name-only",
+            "--diff-filter=d",
+            "--merge-base",
+            "-z",
+            ref,
+            "--",
+            *paths,
+        ]
+    )
+    if code != 0:
+        print(
+            f"{__file__}: unable to get list of changed files. Git returncode: {code}\n"
+            f"{stderr.strip().decode('ascii')}"
+        )
+        sys.exit(128)
+    changed_paths = [path.decode("ascii") for path in stdout.split(b"\x00") if len(path) > 0]
+    if len(changed_paths) == 0:
+        print("No changed files!")
+        sys.exit(0)
+    changed_paths_pretty = "\n\t".join(changed_paths)
+    print(f"Running pylint on changed files:\n {changed_paths_pretty}")
+    code, stdout, stderr = _minimal_ext_cmd(["pylint", *pylint_args, "--", *changed_paths])
+    print((stdout + stderr).decode("ascii"))
+    if code != 0:
+        print(f"Pylint returned {code}")
+        sys.exit(1)
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Incremental pylint.")
+    parser.epilog = "Unknown arguments passed through to pylint"
+    parser.add_argument(
+        "--paths",
+        required=True,
+        type=str,
+        nargs="+",
+        help="Git paths to check if changed (and pass to pylint if so)",
+    )
+    args, pylint_args = parser.parse_known_args()
+    _run_pylint("lint_incr_latest", args.paths, pylint_args)
