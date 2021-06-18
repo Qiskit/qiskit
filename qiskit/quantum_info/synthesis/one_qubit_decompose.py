@@ -186,6 +186,7 @@ class OneQubitEulerDecomposer:
             "XYX": (self._params_xyx, self._circuit_xyx),
         }
         if basis not in basis_methods:
+            import ipdb;ipdb.set_trace()
             raise QiskitError("OneQubitEulerDecomposer: unsupported basis {}".format(basis))
         self._basis = basis
         self._params, self._circuit = basis_methods[self._basis]

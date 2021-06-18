@@ -1135,44 +1135,24 @@ class TestTwoQubitDecompose(CheckDecompositions):
             self.assertTrue(decomposition_basis.issubset(requested_basis))
 
     @combine(seed=range(10), name="seed_{seed}")
-    def test_sx_virtz_optimal_cnot(self, seed):
+    def test_sx_virtz_3cnot_optimal(self, seed):
         unitary = random_unitary(4, seed=seed)
-        uqc = two_qubit_cnot_decompose(unitary)
-        self.assertEqual(Operator(unitary), Operator(uqc))
-    # def _get_random_sun(self, nqubits, seed=None):
-    #     """get random special unitary on nqubits"""
-    #     dim = 2**nqubits
-    #     np.random.seed(seed)
-    #     u_n = unitary_group.rvs(dim)
-    #     return u_n * np.linalg.det(u_n)**(1./dim)
-    # def test_cxsxp_optimal_su4(self):
-    #     np.set_printoptions(linewidth=200, precision=2, suppress=True)
-    #     # generate 1st op random unitary on first qubit
-    #     u11 = self._get_random_sun(1, seed=11)
-    #     # generate 1st op random unitary on second qubit
-    #     u12 = self._get_random_sun(1, seed=12)
-    #     U2, U3, qc = _cx_su4_to_su4_cx_su4(u11, u12)
-    # def test_cxsxp_reverse(self):
-    #     np.set_printoptions(linewidth=200, precision=2, suppress=True)
-    #     # generate 1st op random unitary on first qubit
-    #     u11 = self._get_random_sun(1, seed=11)
-    #     # generate 1st op random unitary on second qubit
-    #     u12 = self._get_random_sun(1, seed=12)
-    #     U2, U3, qc = _su4_cx_reverse(u11, u12)
-    # def test_cxsxp_forward(self):
-    #     np.set_printoptions(linewidth=200, precision=2, suppress=True)
-    #     # generate 1st op random unitary on first qubit
-    #     u11 = self._get_random_sun(1, seed=11)
-    #     # generate 1st op random unitary on second qubit
-    #     u12 = self._get_random_sun(1, seed=12)
-    #     U2, U3, qc = _su4_cx_forward(u11, u12)
-    # def test_cxsxp_forward2(self):
-    #     np.set_printoptions(linewidth=200, precision=2, suppress=True)
-    #     # generate 1st op random unitary on first qubit
-    #     u11 = self._get_random_sun(1, seed=13)
-    #     # generate 1st op random unitary on second qubit
-    #     u12 = self._get_random_sun(1, seed=14)
-    #     U2, U3, qc = _su4_cx_forward(u11, u12)
+        decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis='ZSX', pulse_optimize=True)
+        circ = decomposer(unitary)
+        self.assertEqual(Operator(unitary), Operator(circ))
+
+    @combine(seed=range(10), name="seed_{seed}")
+    def test_sx_virtz_2cnot_optimal(self, seed):
+        rng = np.random.default_rng(seed)
+        decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis='ZSX', pulse_optimize=True)
+        tgt_k1 = np.kron(random_unitary(2, seed=rng).data, random_unitary(2, seed=rng).data)
+        tgt_k2 = np.kron(random_unitary(2, seed=rng).data, random_unitary(2, seed=rng).data)
+        tgt_phase = rng.random() * 2 * np.pi
+        tgt_a, tgt_b = rng.random(size=2) * np.pi / 4
+        tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(tgt_a, tgt_b, 0) @ tgt_k2
+        np.set_printoptions(linewidth=200, precision=2, suppress=True)
+        circ = decomposer(tgt_unitary)
+        self.assertEqual(Operator(tgt_unitary), Operator(circ))
 
 @ddt
 class TestTwoQubitDecomposeApprox(CheckDecompositions):
