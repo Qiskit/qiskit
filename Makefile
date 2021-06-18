@@ -52,9 +52,9 @@ lint:
 
 # Only pylint on files that have changed from origin/main. Also parallelize (disables cyclic-import check)
 lint-incr:
-	git fetch -q https://github.com/Qiskit/qiskit-terra.git
-	git diff-index --name-only --diff-filter=d --merge-base -z FETCH_HEAD -- :/qiskit/*.py :/test/*.py | xargs -0 pylint -j4 -rn
-	git diff-index --name-only --diff-filter=d --merge-base -z FETCH_HEAD -- :/examples/python/*.py |  xargs -0 pylint -j4 -rn --disable='C0103, C0114, W0621'
+	-git fetch -q https://github.com/Qiskit/qiskit-terra.git :lint_incr_latest
+	git diff-index --name-only --diff-filter=d --merge-base -z lint_incr_latest -- :/qiskit/*.py :/test/*.py | xargs -0 pylint -j4 -rn
+	git diff-index --name-only --diff-filter=d --merge-base -z lint_incr_latest -- :/examples/python/*.py |  xargs -0 pylint -j4 -rn --disable='C0103, C0114, W0621'
 	tools/verify_headers.py qiskit test tools
 	python tools/find_optional_imports.py
 
