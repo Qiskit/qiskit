@@ -151,9 +151,9 @@ class QasmQobjInstruction:
             attr_val = getattr(self, attr, None)
             if attr_val is not None:
                 if isinstance(attr_val, str):
-                    out += ', %s="%s"' % (attr, attr_val)
+                    out += f', {attr}="{attr_val}"'
                 else:
-                    out += ", %s=%s" % (attr, attr_val)
+                    out += f", {attr}={attr_val}"
         out += ")"
         return out
 
@@ -173,7 +173,7 @@ class QasmQobjInstruction:
             "snapshot_type",
         ]:
             if hasattr(self, attr):
-                out += "\t\t%s: %s\n" % (attr, getattr(self, attr))
+                out += f"\t\t{attr}: {getattr(self, attr)}\n"
         return out
 
     @classmethod
@@ -218,7 +218,7 @@ class QasmQobjExperiment:
     def __repr__(self):
         instructions_str = [repr(x) for x in self.instructions]
         instructions_repr = "[" + ", ".join(instructions_str) + "]"
-        out = "QasmQobjExperiment(config=%s, header=%s, instructions=%s)" % (
+        out = "QasmQobjExperiment(config={}, header={}, instructions={})".format(
             repr(self.config),
             repr(self.header),
             instructions_repr,
@@ -576,7 +576,7 @@ class QasmQobj:
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
         experiments_repr = "[" + ", ".join(experiments_str) + "]"
-        out = "QasmQobj(qobj_id='%s', config=%s, experiments=%s, header=%s)" % (
+        out = "QasmQobj(qobj_id='{}', config={}, experiments={}, header={})".format(
             self.qobj_id,
             repr(self.config),
             experiments_repr,
