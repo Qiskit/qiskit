@@ -1,3 +1,14 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """Integer programming model for quantum circuit compilation."""
 
 import logging
@@ -37,6 +48,7 @@ class BIPMappingModel:
 
         Raises:
             MissingOptionalLibraryError: If cplex is not installed
+            TranspilerError: if size of virtual qubits and physical qubits differ.
         """
         if not HAS_CPLEX:
             raise MissingOptionalLibraryError(
@@ -44,6 +56,11 @@ class BIPMappingModel:
                 name="CplexOptimizer",
                 pip_install="pip install 'qiskit[cplex]'",
             )
+        if len(dag.qubits) != coupling_map.size():
+            raise TranspilerError(
+                "BIPMappingModel assumes the same size of virtual and physical qubits."
+            )
+
         self.problem = None
         self._ic = None
 
@@ -75,6 +92,29 @@ class BIPMappingModel:
             num_qubits=coupling_map.size(),
             connectivity=[list(coupling_map.neighbors(i)) for i in range(coupling_map.size())],
         )
+        logger.info("Num virtual qubits: %d", self.num_lqubits)
+        logger.info("Num physical qubits: %d", self.num_pqubits)
+        logger.info("Model depth: %d", self.depth)
+
+    @property
+    def num_lqubits(self):
+        """Number of virtual qubits."""
+        return self.circuit_model.num_qubits
+
+    @property
+    def num_pqubits(self):
+        """Number of physical qubits."""
+        return self.toplogy_model.num_qubits
+
+    @property
+    def depth(self):
+        """Number of timesteps (including dummy steps)."""
+        return self.circuit_model.depth
+
+    @property
+    def edges(self):
+        """Edges in the hardware topology."""
+        return self.toplogy_model.arcs
 
     def is_su4layer(self, depth: int) -> bool:
         """Check if the depth-th layer is su4layer (layer containing 2q-gates) or not.
@@ -126,26 +166,6 @@ class BIPMappingModel:
             True if logical qubit q is assigned to physical qubit i at timestep t, else False
         """
         return self.problem.solution.get_values(self._ic.x_index(q, i, j, t)) > 0.5
-
-    @property
-    def num_lqubits(self):
-        """Number of virtual qubits."""
-        return self._ic.num_lqubits
-
-    @property
-    def num_pqubits(self):
-        """Number of physical qubits."""
-        return self._ic.num_pqubits
-
-    @property
-    def depth(self):
-        """Number of timesteps (including dummy steps)."""
-        return self.circuit_model.depth
-
-    @property
-    def edges(self):
-        """Edges in the hardware topology."""
-        return self.toplogy_model.arcs
 
     def create_cpx_problem(self, objective, line_symm=False, cycle_symm=False):
         """Create integer programming model to compile a circuit.
@@ -528,6 +548,7 @@ class BIPMappingModel:
         Raises:
             TranspilerError: if fails to solve the Cplex problem within given timelimit.
         """
+        # self.problem.parameters.randomseed.set(777)  # pylint: disable=no-member
         self.problem.parameters.timelimit.set(time_limit)  # pylint: disable=no-member
         self.problem.parameters.preprocessing.qtolin.set(1)  # pylint: disable=no-member
         # This sets the number of threads; by default Cplex uses everything!
@@ -541,14 +562,20 @@ class BIPMappingModel:
             self.problem.set_results_stream(None)
         try:
             self.problem.solve()
-            status = self.problem.solution.get_status_string()
-            logger.info("BIP solution status: %s", status)
+        except CplexSolverError as cse:
+            logger.warning(cse)
+            raise TranspilerError("Failed to solve BIP problem.") from cse
+
+        status = self.problem.solution.get_status_string()
+        logger.info("BIP solution status: %s", status)
+        try:
             objval = self.problem.solution.get_objective_value()
+            # print(objval)
             logger.info("BIP objective value: %s", objval)
         except CplexSolverError as cse:
             logger.warning(cse)
             logger.warning("BIP solution status: %s", status)
-            raise TranspilerError("Failed to solve BIP problem.") from cse
+            raise TranspilerError("Failed to find solution of BIP problem.") from cse
 
 
 # pylint: disable=invalid-name
@@ -666,22 +693,19 @@ class _IndexCalculator:
 
     def __init__(self, quantum_circuit: _CircuitModel, hardware_topology: _HardwareTopology):
         self.qc = quantum_circuit
-        logger.info(self.qc.num_qubits)
-        logger.info(self.qc.depth)
-        logger.info(self.qc.gates)
+        logger.debug(self.qc.gates)
         self.ht = hardware_topology
-        # True number of logical qubits
-        self.true_num_lqubits = self.qc.num_qubits
         # Number of logical qubits is equal to the number of physical
         # qubits; some qubits could be dummy
-        self.num_lqubits = self.ht.num_qubits
+        self.num_lqubits = self.qc.num_qubits
         # Number of physical qubits
         self.num_pqubits = self.ht.num_qubits
+        assert(self.num_lqubits == self.num_pqubits)
         self.depth = self.qc.depth
         self.num_gates = sum(len(self.qc.gates[t]) for t in range(self.qc.depth))
-        logger.info("Num gates: %d", self.num_gates)
+        logger.debug("Num gates: %d", self.num_gates)
         self.num_arcs = len(self.ht.arcs)
-        logger.info("Num arcs: %d", self.num_arcs)
+        logger.debug("Num arcs: %d", self.num_arcs)
         self.w_start = 0
         self.num_w_vars = self.depth * self.num_lqubits * self.num_pqubits
         self.y_start = self.w_start + self.num_w_vars
