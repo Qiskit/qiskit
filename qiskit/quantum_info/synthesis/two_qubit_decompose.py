@@ -925,7 +925,6 @@ class TwoQubitBasisDecomposer:
                 pass
         else:
             decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
-        import ipdb;ipdb.set_trace()
         if self.pulse_optimize and best_nbasis in {2, 3}:
             if self._decomposer1q.basis == 'ZSX':
                 if isinstance(self.gate, CXGate):
@@ -968,7 +967,6 @@ class TwoQubitBasisDecomposer:
         dq0 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
         dq1 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
         global_phase = 0.0
-        import ipdb;ipdb.set_trace()
         for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
@@ -985,28 +983,46 @@ class TwoQubitBasisDecomposer:
         qc.global_phase = target_decomposed.global_phase
         qc.global_phase -= best_nbasis * self.basis.global_phase
 
-        qc.rz(dq0[0][0], 0)
-        qc.rx(dq0[0][1], 0)
-        qc.rz(dq0[0][2] + dq0[1][0], 0)
-        qc.rx(dq1[0][0], 1)
-        qc.rz(dq1[0][1], 1)
-        qc.rx(dq1[0][2] + dq1[1][0], 1)
+        # TODO: make this more effecient
+        qc1q = QuantumCircuit(1)
+        qc1q.rz(dq0[0][0], 0)
+        qc1q.rx(dq0[0][1], 0)
+        qc1q.rz(dq0[0][2] + dq0[1][0], 0)
+        qceuler = self._decomposer1q(Operator(qc1q).data)
+        qceuler.data[-1][0].params[0] += math.pi / 2
+        qc.compose(qceuler, [0], inplace=True)
+        qc1q = QuantumCircuit(1)
+        qc1q.rx(dq1[0][0], 0)
+        qc1q.rz(dq1[0][1], 0)
+        qc1q.rx(dq1[0][2] + dq1[1][0], 0)
+        qceuler = self._decomposer1q(Operator(qc1q).data)
+        qc.compose(qceuler, [1], inplace=True)
 
         qc.cx(0, 1)
 
-        qc.rx(dq0[1][1], 0)
+        qc.sx(0)
+        qc.rz(dq0[1][1] - math.pi, 0)
+        qc.sx(0)
         qc.rz(dq1[1][1], 1)
 
         qc.cx(0, 1)
 
-        qc.rz(dq0[1][2] + dq0[2][0], 0)
-        qc.rx(dq0[2][1], 0)
-        qc.rz(dq0[2][2], 0)
-        qc.rx(dq1[1][2] + dq1[2][0], 1)
-        qc.rz(dq1[2][1], 1)
-        qc.rx(dq1[2][2], 1)
+        qc1q = QuantumCircuit(1)
+        qc1q.rz(dq0[1][2] + dq0[2][0], 0)
+        qc1q.rx(dq0[2][1], 0)
+        qc1q.rz(dq0[2][2], 0)
+        qceuler = self._decomposer1q(Operator(qc1q).data)
+        qceuler.data[0][0].params[0] += math.pi / 2
+        qc.compose(qceuler, [0], inplace=True)
+        qc1q = QuantumCircuit(1)
+        qc1q.rx(dq1[1][2] + dq1[2][0], 0)
+        qc1q.rz(dq1[2][1], 0)
+        qc1q.rx(dq1[2][2], 0)
+        qceuler = self._decomposer1q(Operator(qc1q).data)
+        qc.compose(qceuler, [1], inplace=True)
 
         # FIXME: sometimes phase is off by multiple of pi/2
+        # and needs to be corrected here.
         qcmat = Operator(qc).data
         tarmat = target_decomposed.unitary_matrix
         phase_factor_offset = (qcmat @ tarmat.conjugate().T)[0, 0]
@@ -1019,13 +1035,12 @@ class TwoQubitBasisDecomposer:
         Decomposition of SU(4) gate for device with SX, virtual RZ, and CNOT gates assuming
         three CNOT gates are needed.
         """
-        best_nbasis = 3  # by assumption
         from scipy.spatial.transform import Rotation
+        best_nbasis = 3  # by assumption
         num_1q_uni = len(decomposition)
         dq0 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
         dq1 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
         global_phase = 0.0
-        import ipdb;ipdb.set_trace()
         for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
@@ -1042,14 +1057,22 @@ class TwoQubitBasisDecomposer:
         qc.global_phase = target_decomposed.global_phase
         qc.global_phase -= best_nbasis * self.basis.global_phase
 
-        qc.rz(dq0[0][0], 0)
-        qc.rx(dq0[0][1], 0)
-        qc.rz(dq0[0][2] + dq0[1][0], 0)
-        qc.h(0)
-        qc.rx(dq1[0][0], 1)
-        qc.rz(dq1[0][1], 1)
-        qc.rx(dq1[0][2] + dq1[1][0], 1)
-        qc.h(1)
+        # TODO: make this more effecient
+        qc1q = QuantumCircuit(1)
+        qc1q.rz(dq0[0][0], 0)
+        qc1q.rx(dq0[0][1], 0)
+        qc1q.rz(dq0[0][2] + dq0[1][0], 0)
+        qc1q.h(0)
+        qceuler = self._decomposer1q(Operator(qc1q).data)
+        qc.compose(qceuler, [0], inplace=True)
+
+        qc1q = QuantumCircuit(1)
+        qc1q.rx(dq1[0][0], 0)
+        qc1q.rz(dq1[0][1], 0)
+        qc1q.rx(dq1[0][2] + dq1[1][0], 0)
+        qc1q.h(0)
+        qceuler = self._decomposer1q(Operator(qc1q).data)
+        qc.compose(qceuler, [1], inplace=True)
 
         qc.cx(1, 0)
 
@@ -1077,14 +1100,21 @@ class TwoQubitBasisDecomposer:
 
         qc.cx(1, 0)
 
-        qc.h(0)
-        qc.rz(dq0[2][2] + dq0[3][0], 0)
-        qc.rx(dq0[3][1], 0)
-        qc.rz(dq0[3][2], 0)
-        qc.h(1)
-        qc.rx(dq1[2][2] + dq1[3][0], 1)
-        qc.rz(dq1[3][1], 1)
-        qc.rx(dq1[3][2], 1)
+        qc1q = QuantumCircuit(1)
+        qc1q.h(0)
+        qc1q.rz(dq0[2][2] + dq0[3][0], 0)
+        qc1q.rx(dq0[3][1], 0)
+        qc1q.rz(dq0[3][2], 0)
+        qceuler = self._decomposer1q(Operator(qc1q).data)
+        qc.compose(qceuler, [0], inplace=True)
+
+        qc1q = QuantumCircuit(1)
+        qc1q.h(0)
+        qc1q.rx(dq1[2][2] + dq1[3][0], 0)
+        qc1q.rz(dq1[3][1], 0)
+        qc1q.rx(dq1[3][2], 0)
+        qceuler = self._decomposer1q(Operator(qc1q).data)
+        qc.compose(qceuler, [1], inplace=True)
 
         # FIXME: sometimes phase is off by multiple of pi/2
         qcmat = Operator(qc).data
@@ -1116,267 +1146,7 @@ class TwoQubitBasisDecomposer:
         ]
         return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity ** i for i in range(4)])
 
-def _su4_cx_forward(U11, U12, theta=0, phi=0):
-    """
-    Convert SU4 to two SU4's such that CX_12.U1 = U2.CX12.U3. U1 is a local unitary
-    and its local operators are supplied e.g. as they might come from the KAK
-    decomposition. U3 = kron(Rz_phi, SX.Rz_theta)
 
-    Args:
-        U11 (ndarray): unitary in SU(2) on first qubit
-        U12 (ndarray): unitary in SU(2) on second qubit
-
-    Returns:
-qiskit/quantum_info/synthe        (tuple): contains:
-
-            U2 (ndarray): unitary in SU(4) before CX
-            U3 (ndarray): unitary in SU(4) after reversed CX
-            qc (QuantumCircuit): quantum circuit with U3 expressed in SX, P.
-    """
-    from cmath import exp as exp
-    from cmath import sqrt as sqrt
-    # convert to su2
-    pf11 = sqrt(np.linalg.det(U11))  # phase factor for U11
-    SU11 = U11 / pf11
-    pf12 = sqrt(np.linalg.det(U12))  # phase factor for U12
-    SU12 = U12 / pf12
-
-    # get components of su2
-    # SU11 = SU11(a1, b1), SU12 = SU12(a2, b2)
-    # U2 = SU21(a3, b3) ⊗ SU22(a4, b4)
-    a1 = SU11[0, 0]
-    b1 = SU11[1, 0]
-    a2 = SU12[0, 0]
-    b2 = SU12[1, 0]
-
-    # TEMPORARY TEST
-    from math import pi
-    theta = pi/2
-    a2, b2 = 1/sqrt(2), 1j/sqrt(2)
-#    a2, b2 = 
-    SU1 = np.kron(SU11, SU12)
-    a2b2 = a2 * b2
-    ca2b2 = a2b2.conjugate()
-    b4r = sqrt(0.5) * sqrt(-1j*exp(-1j * theta) * ca2b2 +
-                           sqrt(4j * exp(-1j * theta) * ca2b2 - 4j * a2b2 * exp(1j * theta) + 1) +
-                           1j * a2b2 * exp(1j * theta))
-    a2b2e = a2b2 * exp(1j * theta)
-    a2b2eim = a2b2e.imag
-    b4rsimp = sqrt(-2 * a2b2eim + sqrt(8 * a2b2eim + 1)) / sqrt(2)
-    print('')
-    print(f'a2, b2: {a2}  {b2}')
-    print(f'a2b2: {a2b2}')
-    print(f'b4r:     {b4r})')
-    print(f'b4rsimp: {b4rsimp}')
-    if not cmath.isclose(b4r.imag, 0):
-        warnings.warn('expected real number where imaginary found')
-    #breakpoint()
-    b4i = (-1)**(0.25) * sqrt(
-        a2b2 * exp(1j * theta) - ca2b2 * exp(-1j * theta)
-        + 1j * (b4r**2 * abs(a2)*2 -
-                abs(a2)**2 + 2 * abs(b2)**2 * (b4r**2 - 1)) ) / sqrt(2)
-
-    b4i_num = sqrt(-a2b2.conjugate() + a2b2 * exp(2j * theta)
-                   + 1j * (2 * b4r**2 - 1) * exp(1j * theta))
-    
-    b4i_den1 = sqrt(2 * b2 * exp(1j * theta) - 2j * a2.conjugate())
-    b4i_den2 = sqrt(a2 * exp(1j * theta) - 1j * b2.conjugate())
-    b4i_den3 = sqrt(exp(1j * theta) / (
-        (b2 * exp(1j * theta)
-         - 1j * a2.conjugate()) * (b2.conjugate() + 1j * a2 * exp(1j * theta))))
-    b4i_den = b4i_den1 * b4i_den2 * b4i_den3
-    print(f'b4i_den1: {b4i_den1}')
-    print(f'b4i_den2: {b4i_den2}')
-    print(f'b4i_den3: {b4i_den3}')
-    b4i2 = b4i_num / b4i_den
-    print(f'b4i:   {b4i}')
-    print(f'b4i2:  {b4i2}')
-    #assert(cmath.isclose(b4i, b4i.real))  # if this is not true try other root
-    b4 = b4r + 1j * b4i2
-    #breakpoint()
-    a4 = b4.conjugate() * (a2 + 1j * exp(-1j * theta) * b2.conjugate()) / (
-        1j * a2 + exp(-1j * theta) * b2.conjugate())
-    SU22 = np.array([[a4, -b4.conjugate()], [b4, a4.conjugate()]])
-
-    a3 = (1 - 1j) * a1 * a2 *  exp(1j * (theta + phi) / 2) / (-a4 + 1j * b4.conjugate())
-    b3 = (1 + 1j) * a2 * b1 * exp(1j * (theta + phi) / 2) / (b4.conjugate() + 1j * a4)
-    SU21 = np.array([[a3, -b3.conjugate()], [b3, a3.conjugate()]])
-
-    SU2 = np.kron(SU21, SU22)  # though parts may not be special unitary, this is.
-
-    rzphi = np.asarray(RZGate(phi))
-    sxrz = np.asarray(SXGate()) @ np.asarray(RZGate(theta))
-    SU3 = np.kron(rzphi, sxrz)
-
-    X = np.array([[0, 1], [1, 0.]])
-    CXc = np.kron(np.eye(2) - np.diag([0, 1]), np.eye(2)) + np.kron(np.diag([0, 1]), X)
-
-
-    qc1 = QuantumCircuit(2)
-    qc2 = QuantumCircuit(2)
-    qc1.cx(0,1) # change order?
-    qc1.unitary(np.kron(SU11, SU12), [0,1])
-
-    qc2.unitary(SU2, [0,1])
-    qc2.cx(0,1)
-    qc2.unitary(SU3, [0,1])
-    print(Operator(qc1))
-    print(Operator(qc2))
-    print(Operator(qc1).equiv(Operator(qc2)))
-#    breakpoint()
-    return SU2, SU3
-
-def _su4_cx_reverse(U11, U12, theta=0, phi=0):
-    """
-    Convert SU4 to two SU4's such that CX_12.U1 = U2.CX21.U3. U1 is a local unitary
-    and its local operators are supplied e.g. as they might come from the KAK
-    decomposition. U3 = kron(Rz_phi, SX.Rz_theta)
-
-    Args:
-        U11 (ndarray): unitary in SU(2) on first qubit
-        U12 (ndarray): unitary in SU(2) on second qubit
-
-    Returns:
-        (tuple): contains:
-
-            U2 (ndarray): unitary in SU(4) before CX
-            U3 (ndarray): unitary in SU(4) after reversed CX
-            qc (QuantumCircuit): quantum circuit with U3 expressed in SX, P.
-    """
-    from cmath import exp as exp
-    from cmath import sqrt as sqrt
-    # convert to su2
-    pf11 = np.linalg.det(U11)  # phase factor for U11
-    SU11 = U11 / pf11
-    pf12 = np.linalg.det(U12)  # phase factor for U12
-    SU12 = U12 / pf12
-
-    # get components of su2
-    # SU11 = SU11(a1, b1), SU12 = SU12(a2, b2)
-    # U2 = SU21(a3, b3) ⊗ SU22(a4, b4)
-    a1 = SU11[0, 0]
-    b1 = SU11[1, 0]
-    a2 = SU12[0, 0]
-    b2 = SU12[1, 0]
-
-    # get imaginary component of b4
-    #   this is the numerator squared
-    a1b1 = a1 * b1
-    b4i2_n0 = exp(1j * theta)
-    b4i2_n1 = a1b1.conjugate() + a1b1 * exp(2j * phi)
-    b4i2_n21 = -exp(1j * theta) * (b2**2 * a2.conjugate()**2 - a2**2 * b2.conjugate()**2)
-    b4i2_n22 = -a1b1.conjugate() + a1b1 * exp(2j * phi)
-    b4i2_n23 = exp(1j * phi) * a2.conjugate() * ((abs(a2)**2 - 1) * a2.conjugate() -
-                                                 a2 * b2.conjugate()**2)
-    b4i2_n24 = a2 * exp(1j * (2 * theta + phi)) * ((a2 - b2) * (a2 + b2) * a2.conjugate() - a2)
-    b4i2_num = b4i2_n0 * b4i2_n1 * (b4i2_n21 * b4i2_n22 + b4i2_n23 + b4i2_n24)
-    #   this is the denominator squared
-    b4i2_d1 = exp(1j * (theta + phi)) * (abs(a2)**2 + abs(b2)**2 - 1) # ~0!!
-    b4i2_d2 = a1b1.conjugate() + a1b1 * exp(2j * phi)
-    b4i2_d3 = exp(2j * theta) * (a2 - b2) * (a2 + b2) + a2.conjugate()**2 - b2.conjugate()**2
-    b4i2_den = b4i2_d1 * b4i2_d2 * b4i2_d3
-    # total
-    b4i = sqrt(b4i2_num / b4i2_den)
-
-    # get real component of b4
-    b4r_n1 = a1b1 * exp(2j * (theta + phi)) * (b4i**2 * (b2**2 - a2**2) + a2**2)
-    b4r_n2 = a1b1.conjugate() * (b4i**2 * b2.conjugate()**2 - (b4i**2 - 1) * a2.conjugate()**2)
-    b4r_n3 = exp(1j * (theta + phi)) * (abs(a2)**2 * (b4i**2 - 1) + abs(b2)**2 * b4i**2)
-    b4r_d1 = a1b1.conjugate() * (a2.conjugate()**2 - b2.conjugate()**2)
-    b4r_d2 = a1b1 * (a2 - b2) * (a2 + b2) * exp(2j * (theta + phi))
-    b4r_d3 = -exp(1j * (theta + phi))
-    b4r = (b4r_n1 + b4r_n2 + b4r_n3) / (b4r_d1 + b4r_d2 + b4r_d3)
-
-    # total b4
-    b4 = complex(b4r, b4i)
-
-    # a4
-    a4 = b4 * (a2 * a1.conjugate() * exp(1j * theta)
-               + b1 * a2.conjugate() * exp(1j * phi)) / (
-                   b2 * a1.conjugate() * exp(1j * theta)
-                   -b1 * b2.conjugate() * exp(1j * (theta - phi)))
-    U21 = np.array([[a4, -b4.conjugate()],
-                    [b4, a4.conjugate()]])
-    #breakpoint()
-    a3 = -(1 + 1j) * a1 * exp(1j * (phi - theta) / 2) * (
-        (a4 * b2 - a2 * b4).conjugate())
-    b3 = -(1 + 1j) * a1.conjugate() * exp(1j * (theta - phi) / 2) * (
-        a2 * a4.conjugate() + b2 * b4.conjugate())
-    
-
-def _cx_su4_to_su4_cx_su4(U11, U12, a4im=0, b4im=0, theta=0, phi=0):
-    """
-    Convert SU4 to two SU4's such that CX.U1 = U2.CX.U3. U1 is a local unitary
-    and its local operators are supplied e.g. as they might come from the KAK
-    decomposition.
-
-    Args:
-        U11 (ndarray): unitary in SU(2) on first qubit
-        U12 (ndarray): unitary in SU(2) on second qubit
-
-    Returns:
-        (tuple): contains:
-
-            U2 (ndarray): unitary in SU(4) before CX
-            U3 (ndarray): unitary in SU(4) after CX
-            qc (QuantumCircuit): quantum circuit with U3 expressed in SX, P.
-    """
-    # given
-    a1, b1 = U11[0, 0], U11[1, 0]
-    a2, b2 = U12[0, 0], U12[1, 0]
-
-    # derived
-    a4re = np.sqrt(np.abs(a2) * (np.abs(a1) + np.abs(b1)))
-    a4 = a4re + 1j * a4im
-    b4re = np.sqrt((np.abs(b1) * np.abs(b2) * (np.abs(a1) + np.abs(b1))) / np.abs(a1))
-    b4 = b4re + 1j * b4im
-
-    a3 = ((1 - 1j) * (a1 * a2 * a4.conjugate() * cmath.exp(1j * (theta + phi)) +
-                      a4 * (a2*b1).conjugate()) * cmath.exp(-0.5j * (theta + phi)) /
-          (2 * np.abs(a4)))
-    b3 = ((1 - 1j) * (a2 * b1 * a4.conjugate() * cmath.exp(1j * (theta + phi)) -
-                      a4 * (a1*a2).conjugate()) * cmath.exp(-0.5j * (theta + phi)) /
-          2 * np.abs(a4))
-    # pre-cx su2 on first qubit 
-    U21 = np.array([[a3, -b3.conjugate()],
-                    [b3, -a3.conjugate()]])
-    # pre-cx su2 on second qubit
-    U22 = np.array([[a4, -b4.conjugate()],
-                    [b4, -a4.conjugate()]])
-    # pre-cx su4
-    U2 = np.kron(U21, U22)
-
-    def rz(angle):
-        return np.array([[cmath.exp(-1j * theta / 2), 0],
-                         [0, cmath.exp(-1j * theta / 2)]])
-    SX = np.array([[1 + 1j, 1 - 1j],
-                   [1 - 1j, 1 + 1j]]) / 2
-    # post-cx su2 on first qubit
-    U31 = rz(theta)
-    # post-cx su2 on second qubit
-    U32 = SX @ rz(phi)
-    # post-cx su4
-    U3 = np.kron(U31, U32)
-
-    # generate circuit incoming circuit
-    qc1 = QuantumCircuit(2)
-    qc1.unitary(np.kron(U11, U12), [0, 1])
-    qc1.cx
-    # generate outgoing circuit
-#    breakpoint()
-    qc2 = QuantumCircuit(2)
-    qc2.unitary(U2, [0, 1])
-    qc2.cx(0, 1)
-    qc2.sx(0)
-    qc2.rz(theta, 0)
-    qc2.rz(phi, 1)
-    from qiskit.quantum_info import Operator
-    np.set_printoptions(linewidth=200, precision=3, suppress=True)
-    print(Operator(qc1).data)
-    print('-'*30)
-    print(Operator(qc2).data)
-
-    
 def _su2_axis_angle(mat):
     """
     Convert 2x2 unitary matrix to axis-angle.

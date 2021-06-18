@@ -57,7 +57,11 @@ def _choose_euler_basis(basis_gates):
 class UnitarySynthesis(TransformationPass):
     """Synthesize gates according to their basis gates."""
 
-    def __init__(self, basis_gates: List[str], approximation_degree: float = 1):
+    def __init__(self, basis_gates: List[str],
+                 approximation_degree: float = 1,
+                 coupling_map: List = None,
+                 backend_props: BackendProperties = None,
+                 pulse_optimize: bool = True):
         """
         Synthesize unitaries over some basis gates.
 
@@ -68,6 +72,9 @@ class UnitarySynthesis(TransformationPass):
         Args:
             basis_gates: List of gate names to target.
             approximation_degree: closeness of approximation (0: lowest, 1: highest).
+            backend_props: properties of a backend to synthesize for
+                (e.g. gate fidelities).
+            pulse_optimize: whether to optimize pulses during synthesis.
         """
         super().__init__()
         self._basis_gates = basis_gates
