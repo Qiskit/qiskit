@@ -308,7 +308,7 @@ def _text_circuit_drawer(
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
     """
-    qubits, clbits, ops = utils._get_layered_instructions(
+    qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
 
@@ -320,7 +320,7 @@ def _text_circuit_drawer(
     text_drawing = _text.TextDrawing(
         qubits,
         clbits,
-        ops,
+        nodes,
         layout=layout,
         initial_state=initial_state,
         cregbundle=cregbundle,
@@ -501,7 +501,7 @@ def _generate_latex_source(
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    qubits, clbits, ops = utils._get_layered_instructions(
+    qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
     if with_layout:
@@ -513,7 +513,7 @@ def _generate_latex_source(
     qcimg = _latex.QCircuitImage(
         qubits,
         clbits,
-        ops,
+        nodes,
         scale,
         style=style,
         reverse_bits=reverse_bits,
@@ -587,7 +587,7 @@ def _matplotlib_circuit_drawer(
             if the ``ax`` kwarg is not set.
     """
 
-    qubits, clbits, ops = utils._get_layered_instructions(
+    qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
     if with_layout:
@@ -602,7 +602,7 @@ def _matplotlib_circuit_drawer(
     qcd = _matplotlib.MatplotlibDrawer(
         qubits,
         clbits,
-        ops,
+        nodes,
         scale=scale,
         style=style,
         reverse_bits=reverse_bits,

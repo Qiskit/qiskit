@@ -29,7 +29,7 @@ from .exceptions import VisualizationError
 
 class TextDrawerCregBundle(VisualizationError):
     """The parameter "cregbundle" was set to True in an impossible situation. For example, an
-    instruction needs to refer to individual classical wires'"""
+    node needs to refer to individual classical wires'"""
 
     pass
 
@@ -41,7 +41,7 @@ class TextDrawerEncodingError(VisualizationError):
 
 
 class DrawElement:
-    """An element is an instruction or an operation that need to be drawn."""
+    """An element is an node or an operation that need to be drawn."""
 
     def __init__(self, label=None):
         self._width = None
@@ -452,7 +452,7 @@ class OpenBullet(DirectOnQuWire):
 
 
 class EmptyWire(DrawElement):
-    """This element is just the wire, with no instructions nor operations."""
+    """This element is just the wire, with no nodes nor operations."""
 
     def __init__(self, wire):
         super().__init__(wire)
@@ -531,7 +531,7 @@ class TextDrawing:
         self,
         qubits,
         clbits,
-        instructions,
+        nodes,
         plotbarriers=True,
         line_length=None,
         vertical_compression="high",
@@ -547,7 +547,7 @@ class TextDrawing:
         self.clbits = clbits
         self.qregs = qregs
         self.cregs = cregs
-        self.instructions = instructions
+        self.nodes = nodes
         self.layout = layout
         self.initial_state = initial_state
         self.cregbundle = cregbundle
@@ -645,7 +645,7 @@ class TextDrawing:
         except TextDrawerCregBundle:
             self.cregbundle = False
             warn(
-                'The parameter "cregbundle" was disable, since an instruction needs to refer to '
+                'The parameter "cregbundle" was disable, since an node needs to refer to '
                 "individual classical wires",
                 RuntimeWarning,
                 2,
@@ -797,7 +797,7 @@ class TextDrawing:
         """Given a list of wires, creates a list of lines with the text drawing.
 
         Args:
-            wires (list): A list of wires with instructions.
+            wires (list): A list of wires with nodes.
         Returns:
             list: A list of lines with the text drawing.
         """
@@ -806,8 +806,8 @@ class TextDrawing:
         for wire in wires:
             # TOP
             top_line = ""
-            for instruction in wire:
-                top_line += instruction.top
+            for node in wire:
+                top_line += node.top
 
             if bot_line is None:
                 lines.append(top_line)
@@ -819,29 +819,29 @@ class TextDrawing:
 
             # MID
             mid_line = ""
-            for instruction in wire:
-                mid_line += instruction.mid
+            for node in wire:
+                mid_line += node.mid
             lines.append(TextDrawing.merge_lines(lines[-1], mid_line, icod="bot"))
 
             # BOT
             bot_line = ""
-            for instruction in wire:
-                bot_line += instruction.bot
+            for node in wire:
+                bot_line += node.bot
             lines.append(TextDrawing.merge_lines(lines[-1], bot_line, icod="bot"))
 
         return lines
 
     @staticmethod
-    def label_for_conditional(instruction):
-        """Creates the label for a conditional instruction."""
-        return "= %s" % instruction.op.condition[1]
+    def label_for_conditional(node):
+        """Creates the label for a conditional node."""
+        return "= %s" % node.op.condition[1]
 
     @staticmethod
-    def special_label(instruction):
-        """Some instructions have special labels"""
+    def special_label(node):
+        """Some nodes have special labels"""
         labels = {IGate: "I", SXGate: "√X", SXdgGate: "√Xdg"}
-        instruction_type = type(instruction)
-        return labels.get(instruction_type, None)
+        node_type = type(node)
+        return labels.get(node_type, None)
 
     @staticmethod
     def merge_lines(top, bot, icod="top"):
@@ -906,32 +906,33 @@ class TextDrawing:
         Args:
             layer (list): A list of elements.
         """
-        instructions = list(filter(lambda x: x is not None, layer))
-        longest = max(instruction.length for instruction in instructions)
-        for instruction in instructions:
-            instruction.layer_width = longest
+        nodes = list(filter(lambda x: x is not None, layer))
+        longest = max(node.length for node in nodes)
+        for node in nodes:
+            node.layer_width = longest
 
     @staticmethod
-    def controlled_wires(instruction, layer):
+    def controlled_wires(node, layer):
         """
-        Analyzes the instruction in the layer and checks if the controlled arguments are in
+        Analyzes the node in the layer and checks if the controlled arguments are in
         the box or out of the box.
 
         Args:
-            instruction (Instruction): instruction to analyse
-            layer (Layer): The layer in which the instruction is inserted.
+            node (Instruction): node to analyse
+            layer (Layer): The layer in which the node is inserted.
 
         Returns:
             Tuple(list, list, list):
-              - tuple: controlled arguments on top of the "instruction box", and its status
-              - tuple: controlled arguments on bottom of the "instruction box", and its status
-              - tuple: controlled arguments in the "instruction box", and its status
+              - tuple: controlled arguments on top of the "node box", and its status
+              - tuple: controlled arguments on bottom of the "node box", and its status
+              - tuple: controlled arguments in the "node box", and its status
               - the rest of the arguments
         """
-        num_ctrl_qubits = instruction.op.num_ctrl_qubits
-        ctrl_qubits = instruction.qargs[:num_ctrl_qubits]
-        args_qubits = instruction.qargs[num_ctrl_qubits:]
-        ctrl_state = f"{instruction.op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
+        op = node.op
+        num_ctrl_qubits = op.num_ctrl_qubits
+        ctrl_qubits = node.qargs[:num_ctrl_qubits]
+        args_qubits = node.qargs[num_ctrl_qubits:]
+        ctrl_state = f"{op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
 
         in_box = list()
         top_box = list()
@@ -948,14 +949,14 @@ class TextDrawing:
                 in_box.append(ctrl_qubit)
         return (top_box, bot_box, in_box, args_qubits)
 
-    def _set_ctrl_state(self, instruction, conditional, ctrl_text, bottom):
-        """Takes the ctrl_state from instruction and appends Bullet or OpenBullet
+    def _set_ctrl_state(self, node, conditional, ctrl_text, bottom):
+        """Takes the ctrl_state from node and appends Bullet or OpenBullet
         to gates depending on whether the bit in ctrl_state is 1 or 0. Returns gates"""
-
+        op = node.op
         gates = []
-        num_ctrl_qubits = instruction.op.num_ctrl_qubits
-        ctrl_qubits = instruction.qargs[:num_ctrl_qubits]
-        cstate = f"{instruction.op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
+        num_ctrl_qubits = op.num_ctrl_qubits
+        ctrl_qubits = node.qargs[:num_ctrl_qubits]
+        cstate = f"{op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
         for i in range(len(ctrl_qubits)):
             if cstate[i] == "1":
                 gates.append(Bullet(conditional=conditional, label=ctrl_text, bottom=bottom))
@@ -963,81 +964,82 @@ class TextDrawing:
                 gates.append(OpenBullet(conditional=conditional, label=ctrl_text, bottom=bottom))
         return gates
 
-    def _instruction_to_gate(self, instruction, layer):
+    def _node_to_gate(self, node, layer):
         """Convert a dag op node into its corresponding Gate object, and establish
         any connections it introduces between qubits"""
 
+        op = node.op
         current_cons = []
         connection_label = None
         conditional = False
-        base_gate = getattr(instruction.op, "base_gate", None)
+        base_gate = getattr(op, "base_gate", None)
 
-        params = get_param_str(instruction, "text", ndigits=5)
+        params = get_param_str(op, "text", ndigits=5)
         if (
-            not isinstance(instruction.op, (Measure, SwapGate, Reset))
-            and not instruction.op._directive
+            not isinstance(op, (Measure, SwapGate, Reset))
+            and not op._directive
         ):
-            gate_text, ctrl_text, _ = get_gate_ctrl_text(instruction, "text")
-            gate_text = TextDrawing.special_label(instruction.op) or gate_text
+            gate_text, ctrl_text, _ = get_gate_ctrl_text(op, "text")
+            gate_text = TextDrawing.special_label(op) or gate_text
             gate_text = gate_text + params
 
-        if instruction.op.condition is not None:
+        if op.condition is not None:
             # conditional
-            cllabel = TextDrawing.label_for_conditional(instruction)
-            layer.set_cl_multibox(instruction.op.condition[0], cllabel, top_connect="╨")
+            cllabel = TextDrawing.label_for_conditional(node)
+            layer.set_cl_multibox(op.condition[0], cllabel, top_connect="╨")
             conditional = True
 
         # add in a gate that operates over multiple qubits
-        def add_connected_gate(instruction, gates, layer, current_cons):
+        def add_connected_gate(node, gates, layer, current_cons):
             for i, gate in enumerate(gates):
-                actual_index = self.qubits.index(instruction.qargs[i])
+                actual_index = self.qubits.index(node.qargs[i])
                 if actual_index not in [i for i, j in current_cons]:
-                    layer.set_qubit(instruction.qargs[i], gate)
+                    layer.set_qubit(node.qargs[i], gate)
                     current_cons.append((actual_index, gate))
 
-        if isinstance(instruction.op, Measure):
+        if isinstance(op, Measure):
             gate = MeasureFrom()
-            layer.set_qubit(instruction.qargs[0], gate)
+            layer.set_qubit(node.qargs[0], gate)
             if self.cregbundle:
                 layer.set_clbit(
-                    instruction.cargs[0],
-                    MeasureTo(str(self.bit_locations[instruction.cargs[0]]["index"])),
+                    node.cargs[0],
+                    MeasureTo(str(self.bit_locations[node.cargs[0]]["index"])),
                 )
             else:
-                layer.set_clbit(instruction.cargs[0], MeasureTo())
+                layer.set_clbit(node.cargs[0], MeasureTo())
 
-        elif instruction.op._directive:
+        elif op._directive:
             # barrier
             if not self.plotbarriers:
                 return layer, current_cons, connection_label
 
-            for qubit in instruction.qargs:
+            for qubit in node.qargs:
                 if qubit in self.qubits:
                     layer.set_qubit(qubit, Barrier())
 
-        elif isinstance(instruction.op, SwapGate):
+        elif isinstance(op, SwapGate):
             # swap
-            gates = [Ex(conditional=conditional) for _ in range(len(instruction.qargs))]
-            add_connected_gate(instruction, gates, layer, current_cons)
+            gates = [Ex(conditional=conditional) for _ in range(len(node.qargs))]
+            add_connected_gate(node, gates, layer, current_cons)
 
-        elif isinstance(instruction.op, Reset):
+        elif isinstance(op, Reset):
             # reset
-            layer.set_qubit(instruction.qargs[0], ResetDisplay(conditional=conditional))
+            layer.set_qubit(node.qargs[0], ResetDisplay(conditional=conditional))
 
-        elif isinstance(instruction.op, RZZGate):
+        elif isinstance(op, RZZGate):
             # rzz
             connection_label = "ZZ%s" % params
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
-            add_connected_gate(instruction, gates, layer, current_cons)
+            add_connected_gate(node, gates, layer, current_cons)
 
-        elif len(instruction.qargs) == 1 and not instruction.cargs:
+        elif len(node.qargs) == 1 and not node.cargs:
             # unitary gate
-            layer.set_qubit(instruction.qargs[0], BoxOnQuWire(gate_text, conditional=conditional))
+            layer.set_qubit(node.qargs[0], BoxOnQuWire(gate_text, conditional=conditional))
 
-        elif isinstance(instruction.op, ControlledGate):
-            params_array = TextDrawing.controlled_wires(instruction, layer)
+        elif isinstance(op, ControlledGate):
+            params_array = TextDrawing.controlled_wires(node, layer)
             controlled_top, controlled_bot, controlled_edge, rest = params_array
-            gates = self._set_ctrl_state(instruction, conditional, ctrl_text, bool(controlled_bot))
+            gates = self._set_ctrl_state(node, conditional, ctrl_text, bool(controlled_bot))
             if base_gate.name == "z":
                 # cz
                 gates.append(Bullet(conditional=conditional))
@@ -1048,7 +1050,7 @@ class TextDrawing:
             elif base_gate.name == "swap":
                 # cswap
                 gates += [Ex(conditional=conditional), Ex(conditional=conditional)]
-                add_connected_gate(instruction, gates, layer, current_cons)
+                add_connected_gate(node, gates, layer, current_cons)
             elif base_gate.name == "rzz":
                 # crzz
                 connection_label = "ZZ%s" % params
@@ -1069,23 +1071,23 @@ class TextDrawing:
                     current_cons.append((index, DrawElement("")))
             else:
                 gates.append(BoxOnQuWire(gate_text, conditional=conditional))
-            add_connected_gate(instruction, gates, layer, current_cons)
+            add_connected_gate(node, gates, layer, current_cons)
 
-        elif len(instruction.qargs) >= 2 and not instruction.cargs:
-            layer.set_qu_multibox(instruction.qargs, gate_text, conditional=conditional)
+        elif len(node.qargs) >= 2 and not node.cargs:
+            layer.set_qu_multibox(node.qargs, gate_text, conditional=conditional)
 
-        elif instruction.qargs and instruction.cargs:
-            if self.cregbundle and instruction.cargs:
+        elif node.qargs and node.cargs:
+            if self.cregbundle and node.cargs:
                 raise TextDrawerCregBundle("TODO")
             layer._set_multibox(
                 gate_text,
-                qubits=instruction.qargs,
-                clbits=instruction.cargs,
+                qubits=node.qargs,
+                clbits=node.cargs,
                 conditional=conditional,
             )
         else:
             raise VisualizationError(
-                "Text visualizer does not know how to handle this instruction: ", instruction.name
+                "Text visualizer does not know how to handle this node: ", op.name
             )
 
         # sort into the order they were declared in
@@ -1109,12 +1111,12 @@ class TextDrawing:
 
         layers = [InputWire.fillup_layer(wire_names)]
 
-        for instruction_layer in self.instructions:
+        for node_layer in self.nodes:
             layer = Layer(self.qubits, self.clbits, self.cregbundle, self.cregs)
 
-            for instruction in instruction_layer:
-                layer, current_connections, connection_label = self._instruction_to_gate(
-                    instruction, layer
+            for node in node_layer:
+                layer, current_connections, connection_label = self._node_to_gate(
+                    node, layer
                 )
 
                 layer.connections.append((connection_label, current_connections))

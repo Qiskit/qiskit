@@ -41,19 +41,19 @@ except ImportError:
 
 def get_gate_ctrl_text(op, drawer, style=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
-    op_label = getattr(op.op, "label", None)
-    op_type = type(op.op)
+    op_label = getattr(op, "label", None)
+    op_type = type(op)
     base_name = base_label = base_type = None
-    if hasattr(op.op, "base_gate"):
-        base_name = op.op.base_gate.name
-        base_label = op.op.base_gate.label
-        base_type = type(op.op.base_gate)
+    if hasattr(op, "base_gate"):
+        base_name = op.base_gate.name
+        base_label = op.base_gate.label
+        base_type = type(op.base_gate)
     ctrl_text = None
 
     if base_label:
         gate_text = base_label
         ctrl_text = op_label
-    elif op_label and isinstance(op.op, ControlledGate):
+    elif op_label and isinstance(op, ControlledGate):
         gate_text = base_name
         ctrl_text = op_label
     elif op_label:
@@ -107,14 +107,14 @@ def get_gate_ctrl_text(op, drawer, style=None):
 
 def get_param_str(op, drawer, ndigits=3):
     """Get the params as a string to add to the gate text display"""
-    if not hasattr(op.op, "params") or any(isinstance(param, np.ndarray) for param in op.op.params):
+    if not hasattr(op, "params") or any(isinstance(param, np.ndarray) for param in op.params):
         return ""
 
-    if isinstance(op.op, Delay):
-        param_list = [f"{op.op.params[0]}[{op.op.unit}]"]
+    if isinstance(op, Delay):
+        param_list = [f"{op.params[0]}[{op.unit}]"]
     else:
         param_list = []
-        for count, param in enumerate(op.op.params):
+        for count, param in enumerate(op.params):
             # Latex drawer will cause an xy-pic error and mpl drawer will overwrite
             # the right edge if param string too long, so limit params.
             if (drawer == "latex" and count > 3) or (drawer == "mpl" and count > 15):
@@ -184,9 +184,9 @@ def _trim(image):
 
 def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wires=True):
     """
-    Given a circuit, return a tuple (qubits, clbits, ops) where
+    Given a circuit, return a tuple (qubits, clbits, nodes) where
     qubits and clbits are the quantum and classical registers
-    in order (based on reverse_bits) and ops is a list
+    in order (based on reverse_bits) and nodes is a list
     of DAG nodes whose type is "operation".
 
     Args:
@@ -207,7 +207,7 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
 
     dag = circuit_to_dag(circuit)
 
-    ops = []
+    nodes = []
     qubits = dag.qubits
     clbits = dag.clbits
 
@@ -218,9 +218,9 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
 
     if justify == "none":
         for node in dag.topological_op_nodes():
-            ops.append([node])
+            nodes.append([node])
     else:
-        ops = _LayerSpooler(dag, justify, measure_map, reverse_bits)
+        nodes = _LayerSpooler(dag, justify, measure_map, reverse_bits)
 
     if reverse_bits:
         qubits.reverse()
@@ -235,19 +235,19 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
             if wire in clbits:
                 clbits.remove(wire)
 
-    ops = [[op for op in layer if any(q in qubits for q in op.qargs)] for layer in ops]
+    nodes = [[node for node in layer if any(q in qubits for q in node.qargs)] for layer in nodes]
 
-    return qubits, clbits, ops
+    return qubits, clbits, nodes
 
 
 def _sorted_nodes(dag_layer):
     """Convert DAG layer into list of nodes sorted by node_id
     qiskit-terra #2802
     """
-    dag_instructions = dag_layer["graph"].op_nodes()
+    nodes = dag_layer["graph"].op_nodes()
     # sort into the order they were input
-    dag_instructions.sort(key=lambda nd: nd._node_id)
-    return dag_instructions
+    nodes.sort(key=lambda nd: nd._node_id)
+    return nodes
 
 
 def _get_gate_span(qubits, node, reverse_bits):
