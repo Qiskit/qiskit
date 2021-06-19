@@ -42,15 +42,15 @@ class BIPMapping(TransformationPass):
     solving a BIP (binary integer programming) problem as described in [1].
 
     The BIP problem represents the layer-by-layer mapping of 2-qubit gates, assuming all the gates
-    in a layer can be run on the ``coupling_map``. In the problem, the variables $w$ represent
-    the layout of qubits for each layer and the variables $x$ represent which pair fo qubits
+    in a layer can be run on the ``coupling_map``. In the problem, the variables :math:`w` represent
+    the layout of qubits for each layer and the variables :math:`x` represent which pair fo qubits
     should be swapped inbetween layers. Based on the values in the solution of the BIP problem,
     the mapped circuit will be constructed.
 
-    If you circuits that need to be mapped and need to specify physical qubits (e.g. running
+    If you have circuits that need to be mapped and want to specify physical qubits (e.g. running
     Quantum Volume circuits), you have to specify ``coupling_map`` which contains only the qubits
     to be used. Do not use ``initial_layout`` for that purpose because the BIP mapper gracefully
-    ignore ``initial_layout`` (and try to determines its best layout).
+    ignores ``initial_layout`` (and try to determines its best layout).
 
     **References:**
 

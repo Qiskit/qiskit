@@ -96,6 +96,7 @@ class BIPMappingModel:
         logger.info("Num virtual qubits: %d", self.num_lqubits)
         logger.info("Num physical qubits: %d", self.num_pqubits)
         logger.info("Model depth: %d", self.depth)
+        logger.info("Dummy steps: %d", dummy_timesteps)
 
     @property
     def num_lqubits(self):
