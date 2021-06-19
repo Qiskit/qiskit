@@ -338,9 +338,7 @@ class QCircuitImage:
                 # all gates take up 1 column except from those with side labels (ie cu1, cp, rzz)
                 # which take 4 columns
                 base_type = None if not hasattr(op, "base_gate") else op.base_gate
-                if isinstance(op, RZZGate) or isinstance(
-                    base_type, (U1Gate, PhaseGate, RZZGate)
-                ):
+                if isinstance(op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
                     column_width = 4
             max_column_widths.append(current_max)
             columns += column_width

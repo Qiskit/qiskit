@@ -1291,7 +1291,14 @@ class MatplotlibDrawer:
                 #
                 elif len(q_xy) == 1 and not node.cargs:
                     self._gate(
-                        node, q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=str(param)
+                        node,
+                        q_xy[0],
+                        fc=fc,
+                        ec=ec,
+                        gt=gt,
+                        sc=sc,
+                        text=gate_text,
+                        subtext=str(param),
                     )
                 #
                 # draw controlled and special gates

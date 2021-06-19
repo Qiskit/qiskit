@@ -975,10 +975,7 @@ class TextDrawing:
         base_gate = getattr(op, "base_gate", None)
 
         params = get_param_str(op, "text", ndigits=5)
-        if (
-            not isinstance(op, (Measure, SwapGate, Reset))
-            and not op._directive
-        ):
+        if not isinstance(op, (Measure, SwapGate, Reset)) and not op._directive:
             gate_text, ctrl_text, _ = get_gate_ctrl_text(op, "text")
             gate_text = TextDrawing.special_label(op) or gate_text
             gate_text = gate_text + params
@@ -1115,9 +1112,7 @@ class TextDrawing:
             layer = Layer(self.qubits, self.clbits, self.cregbundle, self.cregs)
 
             for node in node_layer:
-                layer, current_connections, connection_label = self._node_to_gate(
-                    node, layer
-                )
+                layer, current_connections, connection_label = self._node_to_gate(node, layer)
 
                 layer.connections.append((connection_label, current_connections))
             layer.connect_with("│")
