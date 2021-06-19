@@ -273,6 +273,7 @@ class QCircuitImage:
 
     def _get_image_depth(self):
         """Get depth information for the circuit."""
+
         # wires in the beginning and end
         columns = 2
         if self.cregbundle and (
@@ -282,8 +283,8 @@ class QCircuitImage:
         ):
             columns += 1
 
-        max_column_widths = []
         # Determine wire spacing before image depth
+        max_column_widths = []
         for layer in self.nodes:
             column_width = 1
             current_max = 0

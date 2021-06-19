@@ -212,7 +212,7 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
     clbits = dag.clbits
 
     # Create a mapping of each register to the max layer number for all measure ops
-    # with that register as the target. Then when a node with condition is seen,
+    # with that register as the target. Then when an op with condition is seen,
     # it will be placed to the right of the measure op if the register matches.
     measure_map = OrderedDict([(c, -1) for c in circuit.cregs])
 
@@ -279,7 +279,7 @@ def _get_gate_span(qubits, node, reverse_bits):
 
 
 def _any_crossover(qubits, node, nodes, reverse_bits):
-    """Return True .IFF. 'node' crosses over any in 'nodes',"""
+    """Return True .IFF. 'node' crosses over any 'nodes'."""
     gate_span = _get_gate_span(qubits, node, reverse_bits)
     all_indices = []
     for check_node in nodes:

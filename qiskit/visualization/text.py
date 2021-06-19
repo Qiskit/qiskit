@@ -28,8 +28,8 @@ from .exceptions import VisualizationError
 
 
 class TextDrawerCregBundle(VisualizationError):
-    """The parameter "cregbundle" was set to True in an impossible situation. For example, an
-    node needs to refer to individual classical wires'"""
+    """The parameter "cregbundle" was set to True in an impossible situation. For example,
+    a node needs to refer to individual classical wires'"""
 
     pass
 
@@ -41,7 +41,7 @@ class TextDrawerEncodingError(VisualizationError):
 
 
 class DrawElement:
-    """An element is an node or an operation that need to be drawn."""
+    """An element is an operation that needs to be drawn."""
 
     def __init__(self, label=None):
         self._width = None
@@ -218,7 +218,7 @@ class MeasureFrom(BoxOnQuWire):
 
 
 class MultiBox(DrawElement):
-    """Elements that is draw on over multiple wires."""
+    """Elements that are drawn over multiple wires."""
 
     def center_label(self, input_length, order):
         """In multi-bit elements, the label is centered vertically.
@@ -452,7 +452,7 @@ class OpenBullet(DirectOnQuWire):
 
 
 class EmptyWire(DrawElement):
-    """This element is just the wire, with no nodes nor operations."""
+    """This element is just the wire, with no operations."""
 
     def __init__(self, wire):
         super().__init__(wire)
@@ -621,7 +621,7 @@ class TextDrawing:
         """Generates a list with lines. These lines form the text drawing.
 
         Args:
-            line_length (int): Optional. Breaks the circuit drawing to this length. This
+            line_length (int): Optional. Breaks the circuit drawing to this length. This is
                                useful when the drawing does not fit in the console. If
                                None (default), it will try to guess the console width using
                                shutil.get_terminal_size(). If you don't want pagination
@@ -645,7 +645,7 @@ class TextDrawing:
         except TextDrawerCregBundle:
             self.cregbundle = False
             warn(
-                'The parameter "cregbundle" was disable, since an node needs to refer to '
+                'The parameter "cregbundle" was disabled, since an instruction needs to refer to '
                 "individual classical wires",
                 RuntimeWarning,
                 2,
@@ -833,19 +833,19 @@ class TextDrawing:
 
     @staticmethod
     def label_for_conditional(node):
-        """Creates the label for a conditional node."""
+        """Creates the label for a conditional instruction."""
         return "= %s" % node.op.condition[1]
 
     @staticmethod
     def special_label(node):
-        """Some nodes have special labels"""
+        """Some instructions have special labels"""
         labels = {IGate: "I", SXGate: "√X", SXdgGate: "√Xdg"}
         node_type = type(node)
         return labels.get(node_type, None)
 
     @staticmethod
     def merge_lines(top, bot, icod="top"):
-        """Merges two lines (top and bot) in the way that the overlapping make senses.
+        """Merges two lines (top and bot) in a way that the overlapping makes sense.
 
         Args:
             top (str): the top line
@@ -918,7 +918,7 @@ class TextDrawing:
         the box or out of the box.
 
         Args:
-            node (Instruction): node to analyse
+            node (DAGNode): node to analyse
             layer (Layer): The layer in which the node is inserted.
 
         Returns:
@@ -950,7 +950,7 @@ class TextDrawing:
         return (top_box, bot_box, in_box, args_qubits)
 
     def _set_ctrl_state(self, node, conditional, ctrl_text, bottom):
-        """Takes the ctrl_state from node and appends Bullet or OpenBullet
+        """Takes the ctrl_state from node.op and appends Bullet or OpenBullet
         to gates depending on whether the bit in ctrl_state is 1 or 0. Returns gates"""
         op = node.op
         gates = []
@@ -967,7 +967,6 @@ class TextDrawing:
     def _node_to_gate(self, node, layer):
         """Convert a dag op node into its corresponding Gate object, and establish
         any connections it introduces between qubits"""
-
         op = node.op
         current_cons = []
         connection_label = None
@@ -1087,8 +1086,8 @@ class TextDrawing:
                 "Text visualizer does not know how to handle this node: ", op.name
             )
 
-        # sort into the order they were declared in
-        # this ensures that connected boxes have lines in the right direction
+        # sort into the order they were declared in, to ensure that connected boxes have
+        # lines in the right direction
         current_cons.sort(key=lambda tup: tup[0])
         current_cons = [g for q, g in current_cons]
 
