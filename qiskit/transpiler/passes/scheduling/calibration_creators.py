@@ -59,10 +59,7 @@ class CalibrationCreator(TransformationPass):
         for node in dag.nodes():
             if node.type == "op":
                 if self.supported(node.op):
-                    # params = node.op.params
-                    # print(params)
-                    params = [round(float(param), 8) for param in node.op.params]
-                    # print(params)
+                    params = node.op.params
                     qubits = [bit_indices[qarg] for qarg in node.qargs]
 
                     schedule = self.get_calibration(params, qubits)
@@ -141,10 +138,6 @@ class RZXCalibrationBuilder(CalibrationCreator):
             # The error function is used because the Gaussian may have chopped tails.
             gaussian_area = abs(amp) * sigma * np.sqrt(2 * np.pi) * math.erf(n_sigmas)
             area = gaussian_area + abs(amp) * width
-            # print(theta)
-            # print(type(theta))
-            # theta = float(theta)
-
             target_area = abs(theta) / (np.pi / 2.0) * area
             sign = theta / abs(theta)
 
