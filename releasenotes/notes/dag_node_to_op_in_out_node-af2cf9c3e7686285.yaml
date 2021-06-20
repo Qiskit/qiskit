@@ -1,9 +1,9 @@
 ---
 deprecations:
   - |
-    The :class:`qiskit.dagcircuit.DAGNode` is being deprecated as a
-    standalone class and will be used in the future only as the parent class
-    for :class:`qiskit.dagcircuit.OpNode`, :class:`qiskit.dagcircuit.InNode`,
-    and :class:`qiskit.dagcircuit.OutNode`. As part of this deprecation, the
+    The :class:`qiskit.dagcircuit.dagnode.DAGNode` is being deprecated as a standalone
+    class and will be used in the future only as the parent class for
+    :class:`qiskit.dagcircuit.dagnode.OpNode`, :class:`qiskit.dagcircuit.dagnode.InNode`,
+    and :class:`qiskit.dagcircuit.dagnode.OutNode`. As part of this deprecation, the
     following kwargs in DAGNode are being deprecated - ``type``, ``op``,
     and ``wire``.

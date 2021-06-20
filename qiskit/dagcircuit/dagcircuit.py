@@ -1416,7 +1416,7 @@ class DAGCircuit:
 
         The returned layer contains new (but semantically equivalent) OpNodes, InNodes,
         and OutNodes. These are not the same as nodes of the original dag, but are equivalent
-        via DAGNodeP.semantic_eq(node1, node2).
+        via DAGNode.semantic_eq(node1, node2).
 
         TODO: Gates that use the same cbits will end up in different
         layers as this is currently implemented. This may not be

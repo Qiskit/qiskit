@@ -173,7 +173,7 @@ class DAGNode:
         """
         if bit_indices1 is None or bit_indices2 is None:
             warnings.warn(
-                "DAGNodeP.semantic_eq now expects two bit-to-circuit index "
+                "DAGNode.semantic_eq now expects two bit-to-circuit index "
                 "mappings as arguments. To ease the transition, these will be "
                 "pre-populated based on the values found in Bit.index and "
                 "Bit.register. However, this behavior is deprecated and a future "
