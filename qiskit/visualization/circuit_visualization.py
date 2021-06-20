@@ -411,7 +411,7 @@ def _latex_circuit_drawer(
                     "pdflatex",
                     "-halt-on-error",
                     f"-output-directory={tmpdirname}",
-                    "{}".format(tmpfilename + ".tex"),
+                    f"{tmpfilename + '.tex'}",
                 ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,

@@ -1209,7 +1209,7 @@ class MatplotlibDrawer:
                     and len(op.params) > 0
                     and not any(isinstance(param, np.ndarray) for param in op.params)
                 ):
-                    param = "{}".format(get_param_str(op, "mpl", ndigits=3))
+                    param = f"{get_param_str(op, 'mpl', ndigits=3)}"
                 else:
                     param = ""
 
@@ -1228,7 +1228,7 @@ class MatplotlibDrawer:
                     fmt_c = f"{{:0{len(c_xy)}b}}"
                     cmask = list(fmt_c.format(mask))[::-1]
                     # value
-                    fmt_v = "{{:0{}b}}".format(cmask.count("1"))
+                    fmt_v = f"{{:0{cmask.count('1')}b}}"
                     vlist = list(fmt_v.format(val))
                     if not self._reverse_bits:
                         vlist = vlist[::-1]
@@ -1277,7 +1277,7 @@ class MatplotlibDrawer:
                         self._barrier(_barriers)
 
                 elif op.name == "initialize":
-                    vec = "$[{}]$".format(param.replace("$", ""))
+                    vec = f"$[{param.replace('$', '')}]$"
                     if len(q_xy) == 1:
                         self._gate(
                             node, q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text, subtext=vec
