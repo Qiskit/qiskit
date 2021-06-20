@@ -75,7 +75,7 @@ def _run_pylint(ref, paths, pylint_args):
     lint.Run([*pylint_args, "--", *changed_paths])
 
 
-if __name__ == "__main__":
+def _main():
     parser = argparse.ArgumentParser(description="Incremental pylint.")
     parser.epilog = "Unknown arguments passed through to pylint"
     parser.add_argument(
@@ -87,3 +87,7 @@ if __name__ == "__main__":
     )
     args, pylint_args = parser.parse_known_args()
     _run_pylint("lint_incr_latest", args.paths, pylint_args)
+
+
+if __name__ == "__main__":
+    _main()
