@@ -329,7 +329,8 @@ def load_style(style):
                     break
         else:
             warn(
-                f"Style JSON file '{style_name}' not found in any of these locations: {', '.join(style_path)}."
+                f"Style JSON file '{style_name}' not found in any of these locations: "
+                f"{', '.join(style_path)}. "
                 "Will use default style.",
                 UserWarning,
                 2,
