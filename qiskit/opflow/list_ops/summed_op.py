@@ -49,6 +49,11 @@ class SummedOp(ListOp):
         return self.oplist[0].num_qubits
 
     @property
+    def coeffs(self)-> List[Union[complex, ParameterExpression]]:
+        """Return the coefficients."""
+        return [self.coeff * op.coeff for op in self.oplist]
+
+    @property
     def distributive(self) -> bool:
         return True
 
