@@ -986,16 +986,17 @@ class TestTwoQubitDecompose(CheckDecompositions):
             traces_pred = decomposer.traces(TwoQubitWeylDecomposition(tgt))
 
         for i in range(4):
-            decomp_circuit = decomposer(tgt, _num_basis_uses=i)
-            result = execute(decomp_circuit, UnitarySimulatorPy(), optimization_level=0).result()
-            decomp_unitary = result.get_unitary()
-            tr_actual = np.trace(decomp_unitary.conj().T @ tgt)
-            self.assertAlmostEqual(
-                traces_pred[i],
-                tr_actual,
-                places=13,
-                msg=f"Trace doesn't match for {i}-basis decomposition",
-            )
+            with self.subTest(i=i):
+                decomp_circuit = decomposer(tgt, _num_basis_uses=i)
+                result = execute(decomp_circuit, UnitarySimulatorPy(), optimization_level=0).result()
+                decomp_unitary = result.get_unitary()
+                tr_actual = np.trace(decomp_unitary.conj().T @ tgt)
+                self.assertAlmostEqual(
+                    traces_pred[i],
+                    tr_actual,
+                    places=13,
+                    msg=f"Trace doesn't match for {i}-basis decomposition",
+                )
 
     def test_cx_equivalence_0cx(self, seed=0):
         """Check circuits with  0 cx gates locally equivalent to identity"""
@@ -1136,12 +1137,14 @@ class TestTwoQubitDecompose(CheckDecompositions):
 
     @combine(seed=range(10), name="seed_{seed}")
     def test_sx_virtz_3cnot_optimal(self, seed):
+        """Test 3 CNOT ZSX pulse optimal decomposition"""
         unitary = random_unitary(4, seed=seed)
         decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis='ZSX', pulse_optimize=True)
         circ = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(circ))
 
     @combine(seed=range(10), name="seed_{seed}")
+    """Test 2 CNOT ZSX pulse optimal decomposition"""
     def test_sx_virtz_2cnot_optimal(self, seed):
         rng = np.random.default_rng(seed)
         decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis='ZSX', pulse_optimize=True)
@@ -1150,7 +1153,6 @@ class TestTwoQubitDecompose(CheckDecompositions):
         tgt_phase = rng.random() * 2 * np.pi
         tgt_a, tgt_b = rng.random(size=2) * np.pi / 4
         tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(tgt_a, tgt_b, 0) @ tgt_k2
-        np.set_printoptions(linewidth=200, precision=2, suppress=True)
         circ = decomposer(tgt_unitary)
         self.assertEqual(Operator(tgt_unitary), Operator(circ))
 

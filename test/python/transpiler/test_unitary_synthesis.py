@@ -19,10 +19,14 @@ import unittest
 from ddt import ddt, data
 
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import QuantumCircuit
+from qiskit.test.mock import FakeVigo
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
+from qiskit.quantum_info.random import random_unitary
+from qiskit.transpiler import PassManager, CouplingMap
+from qiskit.transpiler.passes import TrivialLayout
 
 
 @ddt
@@ -61,6 +65,36 @@ class TestUnitarySynthesis(QiskitTestCase):
         out = UnitarySynthesis(basis_gates).run(dag)
 
         self.assertTrue(set(out.count_ops()).issubset(basis_gates))
+
+    def test_two_qubit_synthesis_to_directional_cx(self):
+        """Verify two qubit unitaries are synthesized to match basis gates."""
+        # TODO: should make check more explicit e.g. explicitly set gate
+        # direction in test instead of using specific fake backend
+        backend = FakeVigo()
+        conf = backend.configuration()
+        qr = QuantumRegister(2)
+        coupling_map = CouplingMap(conf.coupling_map)
+        triv_layout_pass = TrivialLayout(coupling_map)
+        qc = QuantumCircuit(qr)
+        qc.unitary(random_unitary(4, seed=12), [0, 1])
+        unisynth_pass = UnitarySynthesis(basis_gates=conf.basis_gates,
+                                    coupling_map=None,
+                                    backend_props=backend.properties(),
+                                    pulse_optimize=True,
+                                    natural_direction=False)
+        pm = PassManager([triv_layout_pass, unisynth_pass])
+        qc_out = pm.run(qc)
+
+        unisynth_pass_nat = UnitarySynthesis(basis_gates=conf.basis_gates,
+                                    coupling_map=None,
+                                    backend_props=backend.properties(),
+                                    pulse_optimize=True,
+                                    natural_direction=True)
+
+        pm_nat = PassManager([triv_layout_pass, unisynth_pass_nat])
+        qc_out_nat = pm_nat.run(qc)
+        self.assertEqual(Operator(qc), Operator(qc_out))
+        self.assertEqual(Operator(qc), Operator(qc_out_nat))
 
 
 if __name__ == "__main__":

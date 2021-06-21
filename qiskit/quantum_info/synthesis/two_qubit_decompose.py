@@ -914,10 +914,6 @@ class TwoQubitBasisDecomposer:
             best_nbasis = _num_basis_uses
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
 
-        from scipy.spatial.transform import Rotation
-        axis, angle, phase = _su2_axis_angle(decomposition[0])
-        r0 = Rotation.from_rotvec(axis * angle)
-
         if isinstance(self.gate, CXGate):
             num_u = 2 * best_nbasis
             decomposition_euler = [None] * num_u
@@ -926,7 +922,7 @@ class TwoQubitBasisDecomposer:
         else:
             decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
         if self.pulse_optimize and best_nbasis in {2, 3}:
-            if self._decomposer1q.basis == 'ZSX':
+            if self._decomposer1q.basis in {'ZSX', 'ZSXX'}:
                 if isinstance(self.gate, CXGate):
                     if best_nbasis == 3:
                         return_circuit = self._get_sx_vz_3cx_efficient_euler(
@@ -938,16 +934,16 @@ class TwoQubitBasisDecomposer:
                     raise QiskitError('pulse_optimizer currently only works with CNOT '
                                       'entangling gate')
             else:
-                raise QiskitError('pulse_optimizer currently only works with ZSX basis')
+                raise QiskitError('"pulse_optimize" currently only works with ZSX basis '
+                                  f'({self._decomposer1q.basis} used)')
         else:
             decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
             q = QuantumRegister(2)
             return_circuit = QuantumCircuit(q)
             return_circuit.global_phase = target_decomposed.global_phase
             return_circuit.global_phase -= best_nbasis * self.basis.global_phase
-            # if best_nbasis == 2:
-            #     #import ipdb; ipdb.set_trace()
-            #     return_circuit.global_phase += np.pi
+            if best_nbasis == 2:
+                return_circuit.global_phase += np.pi
             for i in range(best_nbasis):
                 return_circuit.compose(decomposition_euler[2 * i], [q[0]], inplace=True)
                 return_circuit.compose(decomposition_euler[2 * i + 1], [q[1]], inplace=True)
@@ -970,7 +966,7 @@ class TwoQubitBasisDecomposer:
         for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
-            euler_angles = rot.as_euler('zxz')            
+            euler_angles = rot.as_euler('zxz')
             dq0[iqubit, :] = euler_angles
             global_phase += phase
         for iqubit, idecomp in enumerate(range(1, num_1q_uni, 2)):
@@ -1044,7 +1040,7 @@ class TwoQubitBasisDecomposer:
         for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
-            euler_angles = rot.as_euler('zxz')            
+            euler_angles = rot.as_euler('zxz')
             dq0[iqubit, :] = euler_angles
             global_phase += phase
         for iqubit, idecomp in enumerate(range(1, num_1q_uni, 2)):
