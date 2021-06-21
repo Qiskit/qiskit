@@ -28,7 +28,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
 from qiskit.transpiler.passes.layout.trivial_layout import TrivialLayout
-from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingModel, HAS_CPLEX
+from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingModel, HAS_CPLEX, HAS_DOCPLEX
 from qiskit.transpiler.passmanager import PassManager
 
 logger = logging.getLogger(__name__)
@@ -85,11 +85,11 @@ class BIPMapping(TransformationPass):
         Raises:
             MissingOptionalLibraryError: if cplex is not installed.
         """
-        if not HAS_CPLEX:
+        if not HAS_DOCPLEX or not HAS_CPLEX:
             raise MissingOptionalLibraryError(
-                libname="CPLEX",
-                name="CplexOptimizer",
-                pip_install="pip install 'qiskit[cplex]'",
+                libname="bip-mapper",
+                name="BIP-based mapping pass",
+                pip_install="pip install 'qiskit-terra[bip-mapper]'",
             )
         super().__init__()
         self.coupling_map = copy.deepcopy(coupling_map)  # save a copy to modify

@@ -13,7 +13,12 @@
 
 import logging
 
-from docplex.mp.model import Model
+try:
+    from docplex.mp.model import Model
+
+    HAS_DOCPLEX = True
+except ImportError:
+    HAS_DOCPLEX = False
 
 try:
     import cplex  # pylint: disable=unused-import
@@ -47,15 +52,15 @@ class BIPMappingModel:
                 allow arbitrary swaps between neighbors.
 
         Raises:
-            MissingOptionalLibraryError: If cplex is not installed
+            MissingOptionalLibraryError: If docplex is not installed
             TranspilerError: If size of virtual qubits and physical qubits differ, or
                 if coupling_map is not symmetric (bidirectional).
         """
-        if not HAS_CPLEX:
+        if not HAS_DOCPLEX:
             raise MissingOptionalLibraryError(
-                libname="CPLEX",
-                name="CplexOptimizer",
-                pip_install="pip install 'qiskit[cplex]'",
+                libname="DOcplex",
+                name="Decision Optimization CPLEX Modeling for Python",
+                pip_install="pip install docplex",
             )
 
         if len(dag.qubits) != coupling_map.size():
@@ -357,8 +362,15 @@ class BIPMappingModel:
                 Focus on getting good solutions rather than proving optimality
 
         Raises:
+            MissingOptionalLibraryError: If cplex is not installed
             TranspilerError: if fails to solve the Cplex problem within given timelimit.
         """
+        if not HAS_CPLEX:
+            raise MissingOptionalLibraryError(
+                libname="CPLEX",
+                name="CplexOptimizer",
+                pip_install="pip install cplex",
+            )
         self.problem.set_time_limit(time_limit)
         self.problem.context.cplex_parameters.randomseed = 777
         # self.problem.context.cplex_parameters.threads = 4
