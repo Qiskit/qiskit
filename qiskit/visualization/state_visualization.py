@@ -1211,12 +1211,16 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
     """
     import sympy  # runtime import
 
-    raw_value = complex(np.real_if_close(raw_value))
-    raw_value = -1j * np.real_if_close(raw_value * 1j)
-
-    value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
-    real_value = float(sympy.re(value))
-    imag_value = float(sympy.im(value))
+    if raw_value == 0:
+        value = 0
+        real_value = 0
+        imag_value = 0
+    else:
+        raw_value = complex(np.real_if_close(raw_value))
+        raw_value = -1j * np.real_if_close(raw_value * 1j)
+        value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
+        real_value = float(sympy.re(value))
+        imag_value = float(sympy.im(value))
 
     element = ""
     if np.abs(value) > 0:

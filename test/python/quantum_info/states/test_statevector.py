@@ -32,7 +32,7 @@ from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.visualization.state_visualization import numbers_to_latex_terms
+from qiskit.visualization.state_visualization import numbers_to_latex_terms, state_to_latex
 
 logger = logging.getLogger(__name__)
 
@@ -1078,6 +1078,11 @@ class TestStatevector(QiskitTestCase):
                 sv.draw(drawtype)
         with self.subTest(msg=" draw('latex', convention='vector')"):
             sv.draw("latex", convention="vector")
+
+    def test_state_to_latex_for_large_statevector(self):
+        sv = Statevector(np.eye(2 ** 15, 1))
+        latex_representation = state_to_latex(sv)
+        self.assertEqual(latex_representation, " |000000000000000\\rangle")
 
     def test_number_to_latex_terms(self):
         """Test conversions of complex numbers to latex terms"""
