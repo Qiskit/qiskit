@@ -24,6 +24,7 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
 from qiskit.quantum_info.operators import Operator
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
 class DAGDependency:
@@ -141,9 +142,10 @@ class DAGDependency:
         try:
             import networkx as nx
         except ImportError as ex:
-            raise ImportError(
-                "Networkx is needed to use to_networkx(). It "
-                "can be installed with 'pip install networkx'"
+            raise MissingOptionalLibraryError(
+                libname="Networkx",
+                name="DAG dependency",
+                pip_install="pip install networkx",
             ) from ex
         dag_networkx = nx.MultiDiGraph()
 

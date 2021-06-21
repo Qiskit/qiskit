@@ -239,6 +239,15 @@ class TestControlledGate(QiskitTestCase):
         ref_mat = Operator(qc).data
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
+    def test_control_open_controlled_gate(self):
+        """Test control(2) vs control.control where inner gate has open controls."""
+        gate1pre = ZGate().control(1, ctrl_state=0)
+        gate1 = gate1pre.control(1, ctrl_state=1)
+        gate2 = ZGate().control(2, ctrl_state=1)
+        expected = Operator(_compute_control_matrix(ZGate().to_matrix(), 2, ctrl_state=1))
+        self.assertEqual(expected, Operator(gate1))
+        self.assertEqual(expected, Operator(gate2))
+
     def test_multi_control_z(self):
         """Test a multi controlled Z gate."""
         qc = QuantumCircuit(1)
@@ -415,7 +424,7 @@ class TestControlledGate(QiskitTestCase):
 
             base = PhaseGate(lam).to_matrix()
             expected = _compute_control_matrix(base, num_controls, ctrl_state=ctrl_state)
-            with self.subTest(msg="control state = {}".format(ctrl_state)):
+            with self.subTest(msg=f"control state = {ctrl_state}"):
                 self.assertTrue(matrix_equal(simulated, expected))
 
     @data(1, 2, 3, 4)
@@ -581,7 +590,7 @@ class TestControlledGate(QiskitTestCase):
                 rot_mat = U1Gate(theta).to_matrix()
 
             expected = _compute_control_matrix(rot_mat, num_controls, ctrl_state=ctrl_state)
-            with self.subTest(msg="control state = {}".format(ctrl_state)):
+            with self.subTest(msg=f"control state = {ctrl_state}"):
                 self.assertTrue(matrix_equal(simulated, expected))
 
     @combine(num_controls=[1, 2, 4], use_basis_gates=[True, False])
@@ -637,7 +646,7 @@ class TestControlledGate(QiskitTestCase):
 
             expected = _compute_control_matrix(rot_mat, num_controls, ctrl_state=ctrl_state)
 
-            with self.subTest(msg="control state = {}".format(ctrl_state)):
+            with self.subTest(msg=f"control state = {ctrl_state}"):
                 self.assertTrue(matrix_equal(simulated, expected))
 
     def test_mcry_defaults_to_vchain(self):
@@ -1281,7 +1290,7 @@ class TestControlledStandardGates(QiskitTestCase):
         gate = gate_class(*args)
 
         for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
-            with self.subTest(i="{}, ctrl_state={}".format(gate_class.__name__, ctrl_state)):
+            with self.subTest(i=f"{gate_class.__name__}, ctrl_state={ctrl_state}"):
                 if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
                     # skip matrices that include ancilla qubits
                     continue

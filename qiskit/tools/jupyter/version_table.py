@@ -47,7 +47,7 @@ class VersionTable(Magics):
         packages.append(("IBM Q Provider", qver["qiskit-ibmq-provider"]))
 
         for name, version in packages:
-            html += "<tr><td>%s</td><td>%s</td></tr>" % (name, version)
+            html += f"<tr><td>{name}</td><td>{version}</td></tr>"
 
         html += "<tr><th>System information</th></tr>"
 
@@ -60,7 +60,7 @@ class VersionTable(Magics):
         ]
 
         for name, version in sys_info:
-            html += "<tr><td>%s</td><td>%s</td></tr>" % (name, version)
+            html += f"<tr><td>{name}</td><td>{version}</td></tr>"
 
         html += "<tr><td colspan='2'>%s</td></tr>" % time.strftime("%a %b %d %H:%M:%S %Y %Z")
         html += "</table>"
