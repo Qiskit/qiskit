@@ -1145,7 +1145,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
 
     @combine(seed=range(10), name="seed_{seed}")
     def test_sx_virtz_2cnot_optimal(self, seed):
-    """Test 2 CNOT ZSX pulse optimal decomposition"""
+        """Test 2 CNOT ZSX pulse optimal decomposition"""
         rng = np.random.default_rng(seed)
         decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis='ZSX', pulse_optimize=True)
         tgt_k1 = np.kron(random_unitary(2, seed=rng).data, random_unitary(2, seed=rng).data)
