@@ -13,7 +13,6 @@
 """Standard gates."""
 
 
-# pylint: disable=invalid-name
 import warnings
 from qiskit.qasm import pi
 from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, QuantumRegister
@@ -318,26 +317,6 @@ for inst, qargs, cargs in [
     def_rzz.append(inst, qargs, cargs)
 _sel.add_equivalence(RZZGate(theta), def_rzz)
 
-q = QuantumRegister(2, "q")
-theta = Parameter("theta")
-rzz_to_rzx = QuantumCircuit(q)
-for inst, qargs, cargs in [
-            (RZGate(theta), [q[1]], []),
-            (RZGate(pi/2), [q[1]], []),
-            (RXGate(pi/2), [q[1]], []),
-            (RZGate(pi/2), [q[1]], []),
-            (RXGate(-1*theta), [q[1]], []),
-            (RZXGate(theta / 2), [q[0], q[1]], []),
-            (XGate(), [q[0]], []),
-            (RZXGate(-theta / 2), [q[0], q[1]], []),
-            (XGate(), [q[0]], []),
-            (RZGate(pi/2), [q[1]], []),
-            (RXGate(pi/2), [q[1]], []),
-            (RZGate(pi/2), [q[1]], []),
-        ]:
-    rzz_to_rzx.append(inst, qargs, cargs)
-_sel.add_equivalence(RZZGate(theta), rzz_to_rzx)
-
 # RZXGate
 
 q = QuantumRegister(2, "q")
@@ -390,76 +369,6 @@ for inst, qargs, cargs in [
 ]:
     def_swap.append(inst, qargs, cargs)
 _sel.add_equivalence(SwapGate(), def_swap)
-
-# q = QuantumRegister(2, "q")
-# swap_to_rzx = QuantumCircuit(q)
-# for inst, qargs, cargs in [
-#     (HGate(), [q[0]], []),
-#     (RZXGate(pi / 4), [q[0], q[1]], []),
-#     (XGate(), [q[0]], []),
-#     (RZXGate(-pi / 4), [q[0], q[1]], []),
-#     (XGate(), [q[0]], []),
-#     (HGate(), [q[0]], []),
-#     (SdgGate(), [q[1]], []),
-#     (SdgGate(), [q[0]], []),
-#     (HGate(), [q[0]], []),
-#     (RZXGate(pi / 4), [q[0], q[1]], []),
-#     (XGate(), [q[0]], []),
-#     (RZXGate(-pi / 4), [q[0], q[1]], []),
-#     (XGate(), [q[0]], []),
-#     (HGate(), [q[0]], []),
-#     (SGate(), [q[0]], []),
-#     (SGate(), [q[1]], []),
-#     (HGate(), [q[1]], []),
-#     (RZXGate(pi / 4), [q[0], q[1]], []),
-#     (XGate(), [q[0]], []),
-#     (RZXGate(-pi / 4), [q[0], q[1]], []),
-#     (XGate(), [q[0]], []),
-#     (HGate(), [q[1]], []),
-# ]:
-#     swap_to_rzx.append(inst, qargs, cargs)
-# _sel.add_equivalence(SwapGate(), swap_to_rzx)
-
-q = QuantumRegister(2, "q")
-swap_to_rzx = QuantumCircuit(q)
-for inst, qargs, cargs in [
-    (RZGate(pi / 2), [q[0]], []),
-    (SXGate(), [q[0]], []),
-    (RZGate(pi / 2), [q[0]], []),
-    (RZXGate(pi / 4), [q[0], q[1]], []),
-    (XGate(), [q[0]], []),
-    (RZXGate(-pi / 4), [q[0], q[1]], []),
-    (XGate(), [q[0]], []),
-    (RZGate(pi / 2), [q[0]], []),
-    (SXGate(), [q[0]], []),
-    (RZGate(pi / 2), [q[0]], []),
-    (SdgGate(), [q[1]], []),
-    (SdgGate(), [q[0]], []),
-    (RZGate(pi / 2), [q[0]], []),
-    (SXGate(), [q[0]], []),
-    (RZGate(pi / 2), [q[0]], []),
-    (RZXGate(pi / 4), [q[0], q[1]], []),
-    (XGate(), [q[0]], []),
-    (RZXGate(-pi / 4), [q[0], q[1]], []),
-    (XGate(), [q[0]], []),
-    (RZGate(pi / 2), [q[0]], []),
-    (SXGate(), [q[0]], []),
-    (RZGate(pi / 2), [q[0]], []),
-    (SGate(), [q[0]], []),
-    (SGate(), [q[1]], []),
-    (RZGate(pi / 2), [q[1]], []),
-    (SXGate(), [q[1]], []),
-    (RZGate(pi / 2), [q[1]], []),
-    (RZXGate(pi / 4), [q[0], q[1]], []),
-    (XGate(), [q[0]], []),
-    (RZXGate(-pi / 4), [q[0], q[1]], []),
-    (XGate(), [q[0]], []),
-    (RZGate(pi / 2), [q[1]], []),
-    (SXGate(), [q[1]], []),
-    (RZGate(pi / 2), [q[1]], []),
-]:
-    swap_to_rzx.append(inst, qargs, cargs)
-_sel.add_equivalence(SwapGate(), swap_to_rzx)
 
 # iSwapGate
 
