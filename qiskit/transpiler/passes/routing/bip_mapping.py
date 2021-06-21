@@ -25,7 +25,6 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
 from qiskit.transpiler.passes.layout.trivial_layout import TrivialLayout
@@ -73,15 +72,15 @@ class BIPMapping(TransformationPass):
             objective (str): Type of objective function:
 
                 * ``'error_rate'``: [NotImplemented] Predicted error rate of the circuit
-                * ``'depth'``: [Default] Depth (number of timesteps) of the circuit
+                * ``'depth'``: [Default] Depth (number of time-steps) of the circuit
                 * ``'balanced'``: [NotImplemented] Weighted sum of ``'error_rate'`` and ``'depth'``
 
             backend_prop (BackendProperties): Backend properties object
             time_limit (float): Time limit for solving BIP in seconds
             max_swaps_inbetween_layers (int):
-                Number of swaps allowed inbetween layers. If None, automatlically set.
+                Number of swaps allowed inbetween layers. If None, automatically set.
                 Large value could decrease the probability to build infeasible BIP problem but also
-                could decrease the probability to find the optimal solution within the timelimit.
+                could reduce the chance of finding a feasible solution within the ``time_limit``.
 
         Raises:
             MissingOptionalLibraryError: if cplex is not installed.
@@ -93,7 +92,9 @@ class BIPMapping(TransformationPass):
                 pip_install="pip install 'qiskit[cplex]'",
             )
         super().__init__()
-        self.coupling_map = copy.deepcopy(coupling_map)  # save a copy since some methods modify it
+        self.coupling_map = copy.deepcopy(coupling_map)  # save a copy to modify
+        if self.coupling_map is not None:
+            self.coupling_map.make_symmetric()
         self.objective = objective
         self.backend_prop = backend_prop
         self.time_limit = time_limit
@@ -106,7 +107,7 @@ class BIPMapping(TransformationPass):
             dag (DAGCircuit): DAG to map.
 
         Returns:
-            DAGCircuit: A mapped DAG.
+            DAGCircuit: A mapped DAG. If failing to map, returns the original dag.
 
         Raises:
             TranspilerError: if it fails to solve BIP problem within the time limit
@@ -153,12 +154,7 @@ class BIPMapping(TransformationPass):
             return original_dag
 
         # Get the optimized initial layout
-        dic = {}
-        for q in range(model.num_vqubits):
-            for i in range(model.num_pqubits):
-                if model.is_assigned(0, q, i):
-                    dic[model.index_to_virtual[q]] = i
-        optimized_layout = Layout(dic)
+        optimized_layout = model.get_layout(0)
 
         # Create a layout to track changes in layout for each layer
         layout = copy.deepcopy(optimized_layout)
@@ -171,31 +167,25 @@ class BIPMapping(TransformationPass):
             if model.is_su4layer(k):
                 su4dep = model.to_su4layer_depth(k)
                 # add swaps between (su4dep-1)-th and su4dep-th su4layer
-                from_steps = interval * (su4dep - 1)
-                to_steps = interval * su4dep
+                from_steps = max(interval * (su4dep - 1), 0)
+                to_steps = min(interval * su4dep, model.depth - 1)
                 for t in range(from_steps, to_steps):  # pylint: disable=invalid-name
-                    if t < 0:
-                        continue
-                    if t >= model.depth - 1:
-                        break
-                    for (i, j) in model.arcs:
-                        for q in range(model.num_vqubits):
-                            if model.is_swapped(t, q, i, j) and i < j:
-                                mapped_dag.apply_operation_back(
-                                    op=SwapGate(),
-                                    qargs=[canonical_register[i], canonical_register[j]],
-                                )
-                                # update layout, swapping physical qubits (i, j)
-                                # we cannot use Layout.swap() due to #virtuals < #physicals
-                                v_org_i, v_org_j = None, None
-                                if i in layout.get_physical_bits():
-                                    v_org_i = layout[i]
-                                if j in layout.get_physical_bits():
-                                    v_org_j = layout[j]
-                                if v_org_i is not None:
-                                    layout[v_org_i] = j
-                                if v_org_j is not None:
-                                    layout[v_org_j] = i
+                    for (i, j) in model.get_swaps(t):
+                        mapped_dag.apply_operation_back(
+                            op=SwapGate(),
+                            qargs=[canonical_register[i], canonical_register[j]],
+                        )
+                        # update layout, swapping physical qubits (i, j)
+                        # we cannot use Layout.swap() due to #virtuals < #physicals
+                        v_org_i, v_org_j = None, None
+                        if i in layout.get_physical_bits():
+                            v_org_i = layout[i]
+                        if j in layout.get_physical_bits():
+                            v_org_j = layout[j]
+                        if v_org_i is not None:
+                            layout[v_org_i] = j
+                        if v_org_j is not None:
+                            layout[v_org_j] = i
             # map gates in k-th layer
             for node in layer["graph"].nodes():
                 if node.type == "op":
@@ -209,8 +199,12 @@ class BIPMapping(TransformationPass):
         if self.property_set["layout"] and self.property_set["layout"] != optimized_layout:
             warnings.warn("BIPMapping changed the given initial layout", UserWarning)
 
+        # Check final layout
+        final_layout = model.get_layout(model.depth - 1)
+        assert layout == final_layout
+
         self.property_set["layout"] = optimized_layout
-        self.property_set["final_layout"] = copy.deepcopy(layout)
+        self.property_set["final_layout"] = final_layout
 
         return mapped_dag
 

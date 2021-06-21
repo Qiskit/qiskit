@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 """Integer programming model for quantum circuit compilation."""
 
-import copy
 import logging
 
 from docplex.mp.model import Model
@@ -49,7 +48,8 @@ class BIPMappingModel:
 
         Raises:
             MissingOptionalLibraryError: If cplex is not installed
-            TranspilerError: if size of virtual qubits and physical qubits differ.
+            TranspilerError: If size of virtual qubits and physical qubits differ, or
+                if coupling_map is not symmetric (bidirectional).
         """
         if not HAS_CPLEX:
             raise MissingOptionalLibraryError(
@@ -62,22 +62,24 @@ class BIPMappingModel:
             raise TranspilerError(
                 "BIPMappingModel assumes the same size of virtual and physical qubits."
             )
+        if not coupling_map.is_symmetric:
+            raise TranspilerError(
+                "BIPMappingModel assumes the coupling_map is symmetric (bidirectional)."
+            )
 
         self._dag = dag
-        self._coupling = copy.deepcopy(coupling_map)
-        self._coupling.make_symmetric()
+        self._coupling = coupling_map
 
         self.problem = None
         self.solution = None
-        self._num_vqubits = None
-        self._num_pqubits = None
-        self._arcs = None
-        self._edgeset = None
+        self._num_vqubits = len(self._dag.qubits)
+        self._num_pqubits = self._coupling.size()
+        self._arcs = self._coupling.get_edges()
 
         # pylint: disable=unnecessary-comprehension
         initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
-        self.virtual_to_index = {v: i for i, v in enumerate(initial_layout.get_virtual_bits())}
-        self.index_to_virtual = {i: v for i, v in enumerate(initial_layout.get_virtual_bits())}
+        self._virtual_to_index = {v: i for i, v in enumerate(initial_layout.get_virtual_bits())}
+        self._index_to_virtual = {i: v for i, v in enumerate(initial_layout.get_virtual_bits())}
 
         # Construct internal circuit model
         # Extract layers with 2-qubit gates
@@ -87,8 +89,8 @@ class BIPMappingModel:
             laygates = []
             subdag = lay["graph"]
             for node in subdag.two_qubit_ops():
-                i1 = self.virtual_to_index[node.qargs[0]]
-                i2 = self.virtual_to_index[node.qargs[1]]
+                i1 = self._virtual_to_index[node.qargs[0]]
+                i2 = self._virtual_to_index[node.qargs[1]]
                 laygates.append((i1, i2))
             if laygates:
                 self._to_su4layer.append(len(self.su4layers))
@@ -111,28 +113,17 @@ class BIPMappingModel:
     @property
     def num_vqubits(self):
         """Number of virtual qubits."""
-        if self._num_vqubits is None:
-            self._num_vqubits = len(self._dag.qubits)
         return self._num_vqubits
 
     @property
     def num_pqubits(self):
         """Number of physical qubits."""
-        if self._num_pqubits is None:
-            self._num_pqubits = self._coupling.size()
         return self._num_pqubits
 
     @property
     def depth(self):
         """Number of timesteps (including dummy steps)."""
         return len(self.gates)
-
-    @property
-    def arcs(self):
-        """Arcs (directed edges) in the hardware topology."""
-        if self._arcs is None:
-            self._arcs = self._coupling.get_edges()
-        return self._arcs
 
     def is_su4layer(self, depth: int) -> bool:
         """Check if the depth-th layer is su4layer (layer containing 2q-gates) or not.
@@ -157,34 +148,6 @@ class BIPMappingModel:
         return self._to_su4layer[depth]
 
     # pylint: disable=invalid-name
-    def is_assigned(self, t: int, q: int, i: int) -> bool:
-        """Check if logical qubit q is assigned to physical qubit i at timestep t.
-
-        Args:
-            t: Timestep
-            q: Index of logical qubit
-            i: Index of physical qubit
-
-        Returns:
-            True if logical qubit q is assigned to physical qubit i at timestep t, else False
-        """
-        return self.solution.get_value(f"w_{t}_{q}_{i}") > 0.5
-
-    def is_swapped(self, t: int, q: int, i: int, j: int) -> bool:
-        """Check if logical qubit q is assigned to physical qubit i at t and moved to j at t+1.
-        (May be i == j)
-
-        Args:
-            t: Timestep
-            q: Index of logical qubit
-            i: Index of physical qubit at timestep t
-            j: Index of physical qubit at timestep t+1
-
-        Returns:
-            True if logical qubit q is assigned to physical qubit i at timestep t, else False
-        """
-        return self.solution.get_value(f"x_{t}_{q}_{i}_{j}") > 0.5
-
     def _is_dummy_step(self, t: int):
         """Check if the time step t is a dummy step or not."""
         return len(self.gates[t]) == 0
@@ -220,7 +183,7 @@ class BIPMappingModel:
         y = {}
         for t in range(self.depth):
             for (p, q) in self.gates[t]:
-                for (i, j) in self.arcs:
+                for (i, j) in self._arcs:
                     y[t, p, q, i, j] = mdl.binary_var(name=f"y_{t}_{p}_{q}_{i}_{j}")
         # Add x variables
         x = {}
@@ -249,13 +212,13 @@ class BIPMappingModel:
         for t in range(self.depth):
             for (p, q) in self.gates[t]:
                 mdl.add_constraint(
-                    sum([y[t, p, q, i, j] for (i, j) in self.arcs]) == 1,
+                    sum([y[t, p, q, i, j] for (i, j) in self._arcs]) == 1,
                     ctname=f"implement_gate_{p}_{q}_at_{t}",
                 )
         # Gate can be implemented iff both of its qubits are located at the associated nodes
         for t in range(self.depth):
             for (p, q) in self.gates[t]:
-                for (i, j) in self.arcs:
+                for (i, j) in self._arcs:
                     # Apply McCormick to y[t, p, q, i, j] == w[t, p, i] * w[t, q, j]
                     mdl.add_constraint(
                         y[t, p, q, i, j] >= w[t, p, i] + w[t, q, j] - 1,
@@ -292,7 +255,7 @@ class BIPMappingModel:
         # If a gate is implemented, involved qubits cannot swap with other positions
         for t in range(self.depth - 1):
             for (p, q) in self.gates[t]:
-                for (i, j) in self.arcs:
+                for (i, j) in self._arcs:
                     mdl.add_constraint(
                         x[t, p, i, j] == x[t, q, j, i], ctname=f"swap_{p}_{q}_{i}_{j}_at_{t}"
                     )
@@ -302,7 +265,7 @@ class BIPMappingModel:
             for (p, q) in self.gates[t]:
                 q_no_gate.remove(p)
                 q_no_gate.remove(q)
-            for (i, j) in self.arcs:
+            for (i, j) in self._arcs:
                 mdl.add_constraint(
                     sum([x[t, q, i, j] for q in q_no_gate])
                     == sum([x[t, p, j, i] for p in q_no_gate]),
@@ -336,7 +299,7 @@ class BIPMappingModel:
             if self._is_dummy_step(t):
                 for q in range(self.num_vqubits):
                     mdl.add_constraint(
-                        sum([x[t, q, i, j] for (i, j) in self.arcs]) <= z[t],
+                        sum([x[t, q, i, j] for (i, j) in self._arcs]) <= z[t],
                         ctname=f"dummy_ts_needed_for_vqubit_{q}_at_{t}",
                     )
         # Symmetry breaking between dummy time steps
@@ -360,7 +323,7 @@ class BIPMappingModel:
             objexr = sum([z[t] for t in range(self.depth) if self._is_dummy_step(t)])
             for t in range(self.depth - 1):
                 for q in range(self.num_vqubits):
-                    for (i, j) in self.arcs:
+                    for (i, j) in self._arcs:
                         objexr += 0.1 * x[t, q, i, j]
             mdl.minimize(objexr)
         elif objective == "error_rate":
@@ -409,3 +372,37 @@ class BIPMappingModel:
         if self.solution is None:
             logger.warning("BIP solution status: %s", status)
             raise TranspilerError("Failed to solve a BIP problem.")
+
+    def get_layout(self, t: int) -> Layout:
+        """Get layout at time-step t.
+
+        Args:
+            t: Time-step
+
+        Returns:
+            Layout
+        """
+        dic = {}
+        for q in range(self.num_vqubits):
+            for i in range(self.num_pqubits):
+                if self.solution.get_value(f"w_{t}_{q}_{i}") > 0.5:
+                    dic[self._index_to_virtual[q]] = i
+        return Layout(dic)
+
+    def get_swaps(self, t: int) -> list:
+        """Get swaps (pairs of physical qubits) inserted at time-step ``t``.
+
+        Args:
+            t: Time-step (<= depth - 1)
+
+        Returns:
+            List of swaps (pairs of physical qubits (integers))
+        """
+        swaps = []
+        for (i, j) in self._arcs:
+            if i >= j:
+                continue
+            for q in range(self.num_vqubits):
+                if self.solution.get_value(f"x_{t}_{q}_{i}_{j}") > 0.5:
+                    swaps.append((i, j))
+        return swaps
