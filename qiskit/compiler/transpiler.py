@@ -306,10 +306,8 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
 
         if max_qubits is not None and (num_qubits > max_qubits):
             raise TranspilerError(
-                "Number of qubits ({}) ".format(num_qubits)
-                + "in {} ".format(circuit.name)
-                + "is greater than maximum ({}) ".format(max_qubits)
-                + "in the coupling_map"
+                f"Number of qubits ({num_qubits}) in {circuit.name} "
+                f"is greater than maximum ({max_qubits}) in the coupling_map"
             )
 
 
@@ -635,7 +633,7 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
                     replacement_gate = Gate.from_dict(gate_dict)
                     gate_dict["qubits"] = [faulty_qubits_map[qubit] for qubit in gate.qubits]
                     args = "_".join([str(qubit) for qubit in gate_dict["qubits"]])
-                    gate_dict["name"] = "%s%s" % (gate_dict["gate"], args)
+                    gate_dict["name"] = "{}{}".format(gate_dict["gate"], args)
                     gates.append(replacement_gate)
 
                 backend_properties.gates = gates

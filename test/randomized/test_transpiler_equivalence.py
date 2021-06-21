@@ -247,9 +247,7 @@ class QCircuitMachine(RuleBasedStateMachine):
 
         """
 
-        print(
-            "Evaluating circuit at level {} on {}:\n{}".format(opt_level, backend, self.qc.qasm())
-        )
+        print(f"Evaluating circuit at level {opt_level} on {backend}:\n{self.qc.qasm()}")
 
         assume(backend is None or backend.configuration().n_qubits >= len(self.qc.qubits))
 
