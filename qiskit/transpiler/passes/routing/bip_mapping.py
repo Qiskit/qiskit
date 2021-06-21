@@ -154,9 +154,9 @@ class BIPMapping(TransformationPass):
 
         # Get the optimized initial layout
         dic = {}
-        for q in range(model.num_lqubits):
+        for q in range(model.num_vqubits):
             for i in range(model.num_pqubits):
-                if model.is_assigned(q, i, 0):
+                if model.is_assigned(0, q, i):
                     dic[model.index_to_virtual[q]] = i
         optimized_layout = Layout(dic)
 
@@ -178,9 +178,9 @@ class BIPMapping(TransformationPass):
                         continue
                     if t >= model.depth - 1:
                         break
-                    for (i, j) in model.edges:
-                        for q in range(model.num_lqubits):
-                            if model.is_swapped(q, i, j, t) and i < j:
+                    for (i, j) in model.arcs:
+                        for q in range(model.num_vqubits):
+                            if model.is_swapped(t, q, i, j) and i < j:
                                 mapped_dag.apply_operation_back(
                                     op=SwapGate(),
                                     qargs=[canonical_register[i], canonical_register[j]],

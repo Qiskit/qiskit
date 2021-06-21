@@ -11,12 +11,13 @@
 # that they have been altered from the originals.
 """Integer programming model for quantum circuit compilation."""
 
+import copy
 import logging
 
+from docplex.mp.model import Model
+
 try:
-    from cplex import Cplex
-    from cplex import SparsePair
-    from cplex.exceptions.errors import CplexSolverError
+    import cplex  # pylint: disable=unused-import
 
     HAS_CPLEX = True
 except ImportError:
@@ -29,15 +30,14 @@ from qiskit.transpiler.layout import Layout
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=unnecessary-comprehension
 class BIPMappingModel:
     """Internal model to create and solve a BIP problem for mapping.
 
     Attributes:
-        problem (Cplex):
-            A Cplex problem object with the problem description, which is set by calling
+        problem (Model):
+            A CPLEX problem model object, which is set by calling
             :method:`create_cpx_problem`. After calling :method:`solve_cpx_problem`,
-            the solution will be stored in :attr:`problem.solution`).
+            the solution will be stored in :attr:`solution`).
     """
 
     def __init__(self, dag, coupling_map, dummy_timesteps=None):
@@ -57,18 +57,29 @@ class BIPMappingModel:
                 name="CplexOptimizer",
                 pip_install="pip install 'qiskit[cplex]'",
             )
+
         if len(dag.qubits) != coupling_map.size():
             raise TranspilerError(
                 "BIPMappingModel assumes the same size of virtual and physical qubits."
             )
 
-        self.problem = None
-        self._ic = None
+        self._dag = dag
+        self._coupling = copy.deepcopy(coupling_map)
+        self._coupling.make_symmetric()
 
+        self.problem = None
+        self.solution = None
+        self._num_vqubits = None
+        self._num_pqubits = None
+        self._arcs = None
+        self._edgeset = None
+
+        # pylint: disable=unnecessary-comprehension
         initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
         self.virtual_to_index = {v: i for i, v in enumerate(initial_layout.get_virtual_bits())}
         self.index_to_virtual = {i: v for i, v in enumerate(initial_layout.get_virtual_bits())}
 
+        # Construct internal circuit model
         # Extract layers with 2-qubit gates
         self._to_su4layer = []
         self.su4layers = []
@@ -84,39 +95,44 @@ class BIPMappingModel:
                 self.su4layers.append(laygates)
             else:
                 self._to_su4layer.append(-1)
+        # Add dummy time steps inbetween su4layers. Dummy time steps can only contain SWAPs.
+        self.gates = []  # layered 2q-gates with dummy steps
+        for k, lay in enumerate(self.su4layers):
+            self.gates.append(lay)
+            if k == len(self.su4layers) - 1:  # do not add dummy steps after the last layer
+                break
+            self.gates.extend([[]] * dummy_timesteps)
 
-        # Generate data structures for the optimization problem
-        self.circuit_model = _CircuitModel(
-            num_qubits=len(dag.qubits), gates=self.su4layers, dummy_timesteps=dummy_timesteps
-        )
-        self.toplogy_model = _HardwareTopology(
-            num_qubits=coupling_map.size(),
-            connectivity=[list(coupling_map.neighbors(i)) for i in range(coupling_map.size())],
-        )
-        logger.info("Num virtual qubits: %d", self.num_lqubits)
+        logger.info("Num virtual qubits: %d", self.num_vqubits)
         logger.info("Num physical qubits: %d", self.num_pqubits)
         logger.info("Model depth: %d", self.depth)
         logger.info("Dummy steps: %d", dummy_timesteps)
 
     @property
-    def num_lqubits(self):
+    def num_vqubits(self):
         """Number of virtual qubits."""
-        return self.circuit_model.num_qubits
+        if self._num_vqubits is None:
+            self._num_vqubits = len(self._dag.qubits)
+        return self._num_vqubits
 
     @property
     def num_pqubits(self):
         """Number of physical qubits."""
-        return self.toplogy_model.num_qubits
+        if self._num_pqubits is None:
+            self._num_pqubits = self._coupling.size()
+        return self._num_pqubits
 
     @property
     def depth(self):
         """Number of timesteps (including dummy steps)."""
-        return self.circuit_model.depth
+        return len(self.gates)
 
     @property
-    def edges(self):
-        """Edges in the hardware topology."""
-        return self.toplogy_model.arcs
+    def arcs(self):
+        """Arcs (directed edges) in the hardware topology."""
+        if self._arcs is None:
+            self._arcs = self._coupling.get_edges()
+        return self._arcs
 
     def is_su4layer(self, depth: int) -> bool:
         """Check if the depth-th layer is su4layer (layer containing 2q-gates) or not.
@@ -141,707 +157,255 @@ class BIPMappingModel:
         return self._to_su4layer[depth]
 
     # pylint: disable=invalid-name
-    def is_assigned(self, q: int, i: int, t: int) -> bool:
+    def is_assigned(self, t: int, q: int, i: int) -> bool:
         """Check if logical qubit q is assigned to physical qubit i at timestep t.
 
         Args:
+            t: Timestep
             q: Index of logical qubit
             i: Index of physical qubit
-            t: Timesptep
 
         Returns:
             True if logical qubit q is assigned to physical qubit i at timestep t, else False
         """
-        return self.problem.solution.get_values(self._ic.w_index(q, i, t)) > 0.5
+        return self.solution.get_value(f"w_{t}_{q}_{i}") > 0.5
 
-    def is_swapped(self, q: int, i: int, j: int, t: int) -> bool:
+    def is_swapped(self, t: int, q: int, i: int, j: int) -> bool:
         """Check if logical qubit q is assigned to physical qubit i at t and moved to j at t+1.
         (May be i == j)
 
         Args:
+            t: Timestep
             q: Index of logical qubit
             i: Index of physical qubit at timestep t
             j: Index of physical qubit at timestep t+1
-            t: Timesptep
 
         Returns:
             True if logical qubit q is assigned to physical qubit i at timestep t, else False
         """
-        return self.problem.solution.get_values(self._ic.x_index(q, i, j, t)) > 0.5
+        return self.solution.get_value(f"x_{t}_{q}_{i}_{j}") > 0.5
 
-    def create_cpx_problem(self, objective, line_symm=False, cycle_symm=False):
+    def _is_dummy_step(self, t: int):
+        """Check if the time step t is a dummy step or not."""
+        return len(self.gates[t]) == 0
+
+    def create_cpx_problem(self, objective: str, line_symm: bool = False):
         """Create integer programming model to compile a circuit.
 
         Args:
-            objective (str):
-                Type of objective function; one of the following values.
-                - error_rate: [Not implemented] predicted error rate of the circuit
-                - depth: depth (number of timesteps) of the circuit
-                - balanced: [Not implemented] weighted sum of error_rate and depth
+            objective:
+                Type of objective function:
 
-            line_symm (bool):
+                * ``'error_rate'``: [Not implemented] predicted error rate of the circuit
+                * ``'depth'``: depth (number of timesteps) of the circuit
+                * ``'balanced'``: [Not implemented] weighted sum of error_rate and depth
+
+            line_symm:
                 Use symmetry breaking constrainst for line topology. Should
                 only be True if the hardware graph is a chain/line/path.
-
-            cycle_symm (bool):
-                Use symmetry breaking constrainst for loop. Should only be
-                True if the hardware graph is a cycle/loop/ring.
 
         Raises:
             TranspilerError: if unknow objective type is specified.
         """
-        prob = Cplex()
-        ic = _IndexCalculator(self.circuit_model, self.toplogy_model)
+        mdl = Model()
 
-        ### Define variables ###
+        # *** Define main variables ***
         # Add w variables
-        w_names = [None] * ic.num_w_vars
-        for l in range(ic.num_lqubits):
-            for p in range(ic.num_pqubits):
-                for t in range(ic.depth):
-                    w_names[ic.w_index(l, p, t)] = "w" + "_{:d}_{:d}_{:d}".format(l, p, t)
-        prob.variables.add(types=[prob.variables.type.binary] * ic.num_w_vars, names=w_names)
+        w = {}
+        for t in range(self.depth):
+            for q in range(self.num_vqubits):
+                for j in range(self.num_pqubits):
+                    w[t, q, j] = mdl.binary_var(name=f"w_{t}_{q}_{j}")
         # Add y variables
-        y_names = [None] * ic.num_y_vars
-        for t in range(ic.depth):
-            for (p, q) in ic.qc.gates[t]:
-                for (i, j) in ic.ht.arcs:
-                    y_names[
-                        ic.y_index(t, (p, q), (i, j)) - ic.y_start
-                    ] = "y_{:d}_{:d}_{:d}_{:d}_{:d}".format(t, p, q, i, j)
-        prob.variables.add(types=[prob.variables.type.binary] * ic.num_y_vars, names=y_names)
+        y = {}
+        for t in range(self.depth):
+            for (p, q) in self.gates[t]:
+                for (i, j) in self.arcs:
+                    y[t, p, q, i, j] = mdl.binary_var(name=f"y_{t}_{p}_{q}_{i}_{j}")
         # Add x variables
-        x_names = [None] * ic.num_x_vars
-        for q in range(ic.num_lqubits):
-            for i in range(ic.num_pqubits):
-                for j in ic.ht.outstar_by_node[i]:
-                    for t in range(ic.depth - 1):
-                        x_names[
-                            ic.x_index(q, i, j, t) - ic.x_start
-                        ] = "x" + "_{:d}_{:d}_{:d}_{:d}".format(q, i, j, t)
-        prob.variables.add(types=[prob.variables.type.binary] * ic.num_x_vars, names=x_names)
-        # Add w^t variables (also denoted w^d here)
-        prob.variables.add(
-            types=[prob.variables.type.binary] * ic.num_wd_vars,
-            names=["w_{:d}".format(t) for t in range(ic.depth)],
-        )
-        # Add e^u variables (edge used)
-        eu_names = [None] * ic.num_eu_vars
-        for t in range(ic.depth - 1):
-            for (i, j) in ic.ht.edges:
-                eu_names[ic.eu_index(t, (i, j)) - ic.eu_start] = "eu_{:d}_{:d}_{:d}".format(t, i, j)
-        prob.variables.add(types=[prob.variables.type.binary] * ic.num_eu_vars, names=eu_names)
+        x = {}
+        for t in range(self.depth - 1):
+            for q in range(self.num_vqubits):
+                for i in range(self.num_pqubits):
+                    x[t, q, i, i] = mdl.binary_var(name=f"x_{t}_{q}_{i}_{i}")
+                    for j in self._coupling.neighbors(i):
+                        x[t, q, i, j] = mdl.binary_var(name=f"x_{t}_{q}_{i}_{j}")
 
-        ### Define constraints ###
+        # *** Define main constraints ***
         # Assignment constraints for w variables
-        prob.linear_constraints.add(
-            lin_expr=[
-                SparsePair(
-                    ind=[ic.w_index(q, j, t) for j in range(ic.num_pqubits)],
-                    val=[1 for j in range(ic.num_pqubits)],
+        for t in range(self.depth):
+            for q in range(self.num_vqubits):
+                mdl.add_constraint(
+                    sum([w[t, q, j] for j in range(self.num_pqubits)]) == 1,
+                    ctname=f"assignment_vqubits_{q}_at_{t}",
                 )
-                for q in range(ic.num_lqubits)
-                for t in range(ic.depth)
-            ],
-            senses=["E" for q in range(ic.num_lqubits) for t in range(ic.depth)],
-            rhs=[1 for q in range(ic.num_lqubits) for t in range(ic.depth)],
-            names=[
-                "assignment_lqubits_{:d}_{:d}".format(q, t)
-                for q in range(ic.num_lqubits)
-                for t in range(ic.depth)
-            ],
-        )
-        prob.linear_constraints.add(
-            lin_expr=[
-                SparsePair(
-                    ind=[ic.w_index(q, j, t) for q in range(ic.num_lqubits)],
-                    val=[1 for q in range(ic.num_lqubits)],
+        for t in range(self.depth):
+            for j in range(self.num_pqubits):
+                mdl.add_constraint(
+                    sum([w[t, q, j] for q in range(self.num_vqubits)]) == 1,
+                    ctname=f"assignment_pqubits_{j}_at_{t}",
                 )
-                for j in range(ic.num_pqubits)
-                for t in range(ic.depth)
-            ],
-            senses=["E" for j in range(ic.num_pqubits) for t in range(ic.depth)],
-            rhs=[1 for j in range(ic.num_pqubits) for t in range(ic.depth)],
-            names=[
-                "assignment_pqubits_{:d}_{:d}".format(j, t)
-                for j in range(ic.num_pqubits)
-                for t in range(ic.depth)
-            ],
-        )
-        # Link between w variables and y variables, i.e. a gate can only
-        # be implemented on an arc that has the right logical qubits at
-        # its endpoints
-        for t in range(ic.depth):
-            for (p, q) in ic.qc.gates[t]:
-                for i in range(ic.num_pqubits):
-                    for j in ic.ht.outstar_by_node[i]:
-                        if t == ic.depth - 1:
-                            prob.linear_constraints.add(
-                                lin_expr=[
-                                    SparsePair(
-                                        ind=[ic.w_index(p, i, t)] + [ic.y_index(t, (p, q), (i, j))],
-                                        val=[-1, 1],
-                                    )
-                                ],
-                                senses=["L"],
-                                rhs=[0],
-                                names=["w_y_p_{:d}_{:d}_{:d}_{:d}_{:d}".format(t, p, q, i, j)],
-                            )
-                            prob.linear_constraints.add(
-                                lin_expr=[
-                                    SparsePair(
-                                        ind=[ic.w_index(q, j, t)] + [ic.y_index(t, (p, q), (i, j))],
-                                        val=[-1, 1],
-                                    )
-                                ],
-                                senses=["L"],
-                                rhs=[0],
-                                names=["w_y_q_{:d}_{:d}_{:d}_{:d}_{:d}".format(t, p, q, i, j)],
-                            )
-                        else:
-                            prob.linear_constraints.add(
-                                lin_expr=[
-                                    SparsePair(
-                                        ind=[
-                                            ic.x_index(p, i, i, t),
-                                            ic.x_index(p, i, j, t),
-                                            ic.y_index(t, (p, q), (i, j)),
-                                        ],
-                                        val=[-1, -1, 1],
-                                    )
-                                ],
-                                senses=["L"],
-                                rhs=[0],
-                                names=["w_y_p_{:d}_{:d}_{:d}_{:d}_{:d}".format(t, p, q, i, j)],
-                            )
-                            prob.linear_constraints.add(
-                                lin_expr=[
-                                    SparsePair(
-                                        ind=[
-                                            ic.x_index(q, j, j, t),
-                                            ic.x_index(q, j, i, t),
-                                            ic.y_index(t, (p, q), (i, j)),
-                                        ],
-                                        val=[-1, -1, 1],
-                                    )
-                                ],
-                                senses=["L"],
-                                rhs=[0],
-                                names=["w_y_q_{:d}_{:d}_{:d}_{:d}_{:d}".format(t, p, q, i, j)],
-                            )
         # Each gate must be implemented
-        for t in range(ic.depth):
-            for (p, q) in ic.qc.gates[t]:
-                prob.linear_constraints.add(
-                    lin_expr=[
-                        SparsePair(
-                            ind=[ic.y_index(t, (p, q), a) for a in ic.ht.arcs],
-                            val=[1 for a in ic.ht.arcs],
-                        )
-                    ],
-                    senses=["E"],
-                    rhs=[1],
-                    names=["assignment_y_{:d}_{:d}_{:d}".format(t, p, q)],
+        for t in range(self.depth):
+            for (p, q) in self.gates[t]:
+                mdl.add_constraint(
+                    sum([y[t, p, q, i, j] for (i, j) in self.arcs]) == 1,
+                    ctname=f"implement_gate_{p}_{q}_at_{t}",
                 )
-        # If a gate is implemented, involved qubits cannot swap with other
-        # positions
-        for t in range(ic.depth - 1):
-            for (p, q) in ic.qc.gates[t]:
-                for (i, j) in ic.ht.arcs:
-                    prob.linear_constraints.add(
-                        lin_expr=[
-                            SparsePair(
-                                ind=[ic.x_index(p, i, j, t), ic.x_index(q, j, i, t)], val=[1, -1]
-                            )
-                        ],
-                        senses=["E"],
-                        rhs=[0],
-                        names=["swap_{:d}_{:d}_{:d}_{:d}_{:d}".format(t, p, q, i, j)],
+        # Gate can be implemented iff both of its qubits are located at the associated nodes
+        for t in range(self.depth):
+            for (p, q) in self.gates[t]:
+                for (i, j) in self.arcs:
+                    # Apply McCormick to y[t, p, q, i, j] == w[t, p, i] * w[t, q, j]
+                    mdl.add_constraint(
+                        y[t, p, q, i, j] >= w[t, p, i] + w[t, q, j] - 1,
+                        ctname=f"McCormickLB_{p}_{q}_{i}_{j}_at_{t}",
+                    )
+                    mdl.add_constraint(
+                        y[t, p, q, i, j] <= w[t, p, i],
+                        ctname=f"McCormickUB1_{p}_{q}_{i}_{j}_at_{t}",
+                    )
+                    mdl.add_constraint(
+                        y[t, p, q, i, j] <= w[t, q, j],
+                        ctname=f"McCormickUB2_{p}_{q}_{i}_{j}_at_{t}",
+                    )
+        # Logical qubit flow-out constraints
+        for t in range(self.depth - 1):  # Flow out; skip last time step
+            for q in range(self.num_vqubits):
+                for i in range(self.num_pqubits):
+                    mdl.add_constraint(
+                        w[t, q, i]
+                        == x[t, q, i, i]
+                        + sum([x[t, q, i, j] for j in self._coupling.neighbors(i)]),
+                        ctname=f"flow_out_{q}_{i}_at_{t}",
+                    )
+        # Logical qubit flow-in constraints
+        for t in range(1, self.depth):  # Flow in; skip first time step
+            for q in range(self.num_vqubits):
+                for i in range(self.num_pqubits):
+                    mdl.add_constraint(
+                        w[t, q, i]
+                        == x[t - 1, q, i, i]
+                        + sum([x[t - 1, q, j, i] for j in self._coupling.neighbors(i)]),
+                        ctname=f"flow_in_{q}_{i}_at_{t}",
+                    )
+        # If a gate is implemented, involved qubits cannot swap with other positions
+        for t in range(self.depth - 1):
+            for (p, q) in self.gates[t]:
+                for (i, j) in self.arcs:
+                    mdl.add_constraint(
+                        x[t, p, i, j] == x[t, q, j, i], ctname=f"swap_{p}_{q}_{i}_{j}_at_{t}"
                     )
         # Qubit not in gates can flip with their neighbors
-        for t in range(ic.depth - 1):
-            q_no_gate = list(range(ic.num_lqubits))
-            for (p, q) in ic.qc.gates[t]:
+        for t in range(self.depth - 1):
+            q_no_gate = list(range(self.num_vqubits))
+            for (p, q) in self.gates[t]:
                 q_no_gate.remove(p)
                 q_no_gate.remove(q)
-            for (i, j) in ic.ht.arcs:
-                prob.linear_constraints.add(
-                    lin_expr=[
-                        SparsePair(
-                            ind=[ic.x_index(q, i, j, t) for q in q_no_gate]
-                            + [ic.x_index(p, j, i, t) for p in q_no_gate],
-                            val=[1 for q in q_no_gate] + [-1 for q in q_no_gate],
-                        )
-                    ],
-                    senses=["E"],
-                    rhs=[0],
-                    names=["swap_no_gate_{:d}_{:d}_{:d}".format(t, i, j)],
+            for (i, j) in self.arcs:
+                mdl.add_constraint(
+                    sum([x[t, q, i, j] for q in q_no_gate])
+                    == sum([x[t, p, j, i] for p in q_no_gate]),
+                    ctname=f"swap_no_gate_{i}_{j}_at_{t}",
                 )
-        # Count non-dummy time steps
-        non_dummy = 0
+        # Link between w variables and y variables, i.e. a gate can only
+        # be implemented on an arc that has the right logical qubits at its endpoints
+        for t in range(self.depth - 1):
+            for (p, q) in self.gates[t]:
+                for i in range(self.num_pqubits):
+                    for j in self._coupling.neighbors(i):
+                        mdl.add_constraint(
+                            y[t, p, q, i, j] <= x[t, p, i, i] + x[t, p, i, j],
+                            ctname=f"valid_first_assignment_for_y_{t}_{p}_{q}_{i}_{j}",
+                        )
+                        mdl.add_constraint(
+                            y[t, p, q, i, j] <= x[t, q, j, j] + x[t, q, j, i],
+                            ctname=f"valid_second_assignment_for_y_{t}_{p}_{q}_{i}_{j}",
+                        )
+
+        # *** Define supplemental variables ***
+        # Add z variables to count dummy steps (supplemental variables for symmetry breaking)
+        z = {}
+        for t in range(self.depth):
+            if self._is_dummy_step(t):
+                z[t] = mdl.binary_var(name=f"z_{t}")
+
+        # *** Define supplemental constraints ***
         # See if a dummy time step is needed
-        for t in range(ic.depth):
-            # This is a dummy time step
-            if len(ic.qc.gates[t]) == 0:
-                prob.linear_constraints.add(
-                    lin_expr=[
-                        SparsePair(
-                            ind=[ic.x_index(p, i, j, t) for (i, j) in ic.ht.arcs]
-                            + [ic.wd_index(t)],
-                            val=[1 for (i, j) in ic.ht.arcs] + [-1],
-                        )
-                        for p in range(ic.num_lqubits)
-                    ],
-                    senses=["L" for p in range(ic.num_lqubits)],
-                    rhs=[0 for p in range(ic.num_lqubits)],
-                    names=["dummy_ts_needed_{:d}_{:d}".format(t, p) for p in range(ic.num_lqubits)],
-                )
-            else:
-                prob.variables.set_lower_bounds(ic.wd_index(t), 1)
-                non_dummy += 1
+        for t in range(self.depth):
+            if self._is_dummy_step(t):
+                for q in range(self.num_vqubits):
+                    mdl.add_constraint(
+                        sum([x[t, q, i, j] for (i, j) in self.arcs]) <= z[t],
+                        ctname=f"dummy_ts_needed_for_vqubit_{q}_at_{t}",
+                    )
         # Symmetry breaking between dummy time steps
-        for t in range(ic.depth - 1):
+        for t in range(self.depth - 1):
             # This is a dummy time step and the next one is dummy too
-            if len(ic.qc.gates[t]) == 0 and len(ic.qc.gates[t + 1]) == 0:
+            if self._is_dummy_step(t) and self._is_dummy_step(t + 1):
                 # We cannot use the next time step unless this one is used too
-                prob.linear_constraints.add(
-                    lin_expr=[SparsePair(ind=[ic.wd_index(t), ic.wd_index(t + 1)], val=[1, -1])],
-                    senses=["G"],
-                    rhs=[0],
-                    names=["dummy_precedence_{:d}".format(t)],
-                )
+                mdl.add_constraint(z[t] >= z[t + 1], ctname=f"dummy_precedence_{t}")
         # Symmetry breaking on the line -- only works on line topology!
         if line_symm:
-            for h in range(1, ic.num_lqubits):
-                prob.linear_constraints.add(
-                    lin_expr=[
-                        SparsePair(
-                            ind=[ic.w_index(p, 0, 0) for p in range(h)]
-                            + [
-                                ic.w_index(q, ic.num_pqubits - 1, 0)
-                                for q in range(h, ic.num_lqubits)
-                            ],
-                            val=[1 for p in range(ic.num_lqubits)],
-                        )
-                    ],
-                    senses=["G"],
-                    rhs=[1],
-                    names=["sym_break_line_{:d}".format(h)],
-                )
-        # Symmetry breaking on the cycle -- only works on cycle topology!
-        if cycle_symm:
-            prob.variables.set_lower_bounds(ic.w_index(0, 0, 0), 1)
-            # Logical qubit flow constraints
-        for t in range(ic.depth):
-            for q in range(ic.num_lqubits):
-                if t < ic.depth - 1:
-                    # Flow out; skip last time step
-                    prob.linear_constraints.add(
-                        lin_expr=[
-                            SparsePair(
-                                ind=[ic.w_index(q, i, t)]
-                                + [ic.x_index(q, i, i, t)]
-                                + [ic.x_index(q, i, j, t) for j in ic.ht.outstar_by_node[i]],
-                                val=[1, -1] + [-1 for j in ic.ht.outstar_by_node[i]],
-                            )
-                            for i in range(ic.num_pqubits)
-                        ],
-                        senses=["E" for i in range(ic.num_pqubits)],
-                        rhs=[0 for i in range(ic.num_pqubits)],
-                        names=[
-                            "flow_out_{:d}_{:d}_{:d}".format(t, q, i) for i in range(ic.num_pqubits)
-                        ],
-                    )
-                if t > 0:
-                    # Flow in; skip first time step
-                    prob.linear_constraints.add(
-                        lin_expr=[
-                            SparsePair(
-                                ind=[ic.w_index(q, j, t)]
-                                + [ic.x_index(q, j, j, t - 1)]
-                                + [ic.x_index(q, i, j, t - 1) for i in ic.ht.instar_by_node[j]],
-                                val=[1, -1] + [-1 for i in ic.ht.outstar_by_node[j]],
-                            )
-                            for j in range(ic.num_pqubits)
-                        ],
-                        senses=["E" for j in range(ic.num_pqubits)],
-                        rhs=[0 for j in range(ic.num_pqubits)],
-                        names=[
-                            "flow_in_{:d}_{:d}_{:d}".format(t, q, j) for j in range(ic.num_pqubits)
-                        ],
-                    )
-        # Definition of e^u variables
-        for t in range(ic.depth - 1):
-            used_qubit = [False for i in range(ic.num_lqubits)]
-            edge_representation = [[] for (i, j) in ic.ht.edges]
-            for (p, q) in ic.qc.gates[t]:
-                used_qubit[p] = True
-                used_qubit[q] = True
-                for (k, (i, j)) in enumerate(ic.ht.edges):
-                    edge_representation[k].append(ic.y_index(t, (p, q), (i, j)))
-                    edge_representation[k].append(ic.y_index(t, (p, q), (j, i)))
-            for (i, j) in ic.ht.edges:
-                for q in range(ic.num_lqubits):
-                    index = ic.ht.edge_to_index((i, j))
-                    if (
-                        not used_qubit[q]
-                        and ic.x_index(q, i, j, t) not in edge_representation[index]
-                    ):
-                        edge_representation[index].append(ic.x_index(q, i, j, t))
-            for (k, (i, j)) in enumerate(ic.ht.edges):
-                prob.linear_constraints.add(
-                    lin_expr=[
-                        SparsePair(
-                            ind=edge_representation[k] + [ic.eu_index(t, (i, j))],
-                            val=[1 for h in edge_representation[k]] + [-1],
-                        )
-                    ],
-                    senses=["E"],
-                    rhs=[0],
-                    names=["eu_def_{:d}_{:d}_{:d}".format(t, i, j)],
+            for h in range(1, self.num_vqubits):
+                mdl.add_constraint(
+                    sum([w[0, p, 0] for p in range(h)])
+                    + sum([w[0, q, self.num_pqubits - 1] for q in range(h, self.num_vqubits)])
+                    >= 1,
+                    ctname=f"sym_break_line_{h}",
                 )
 
-        self.problem = prob
-        self._ic = ic
-
-        ### Define objevtive function ###
+        # *** Define objevtive function ***
         if objective == "depth":
-            self._set_depth_obj(self.problem, self._ic)
+            objexr = sum([z[t] for t in range(self.depth) if self._is_dummy_step(t)])
+            for t in range(self.depth - 1):
+                for q in range(self.num_vqubits):
+                    for (i, j) in self.arcs:
+                        objexr += 0.1 * x[t, q, i, j]
+            mdl.minimize(objexr)
         elif objective == "error_rate":
-            self._set_error_rate_obj(self.problem, self._ic)
+            self._set_error_rate_obj(mdl)
         elif objective == "balanced":
-            self._set_balanced_obj(self.problem, self._ic)
+            self._set_balanced_obj(mdl)
         else:
             raise TranspilerError(f"Unknown objective type: {objective}")
 
-        logger.info("BIP problem stats: %s", self.problem.get_stats())
+        self.problem = mdl
+        logger.info("BIP problem stats: %s", self.problem.statistics)
 
     @staticmethod
-    def _set_depth_obj(prob, ic):
-        """Set the minimum depth objective function."""
-        for i in range(ic.wd_start, ic.wd_start + ic.num_wd_vars):
-            prob.objective.set_linear(i, 1)
-
-        for t in range(ic.depth - 1):
-            for (i, j) in ic.ht.edges:
-                for q in range(ic.num_lqubits):
-                    prob.objective.set_linear(ic.x_index(q, i, j, t), 0.1)
-
-    @staticmethod
-    def _set_error_rate_obj(prob, ic):
+    def _set_error_rate_obj(model):
         """Set the minimum error rate objective function."""
         raise NotImplementedError("objective: 'error_rate' is not implemented")
 
     @staticmethod
-    def _set_balanced_obj(prob, ic):
+    def _set_balanced_obj(model):
         """Set the minimum balanced (weighted sum of error_rate and depth) objective function."""
         raise NotImplementedError("objective: 'balanced' is not implemented")
 
-    def solve_cpx_problem(self, time_limit=60, heuristic_emphasis=False, silent=True):
-        """Solve the Cplex model and print statistics.
+    def solve_cpx_problem(self, time_limit: float = 60, heuristic_emphasis: bool = False):
+        """Solve the Cplex model.
 
         Args:
-            time_limit (float):
-                Time limit given to Cplex.
+            time_limit:
+                Time limit (seconds) given to Cplex.
 
-            heuristic_emphasis (bool):
+            heuristic_emphasis:
                 Focus on getting good solutions rather than proving optimality
-
-            silent (bool):
-                Disable output printing.
 
         Raises:
             TranspilerError: if fails to solve the Cplex problem within given timelimit.
         """
-        self.problem.parameters.randomseed.set(777)  # pylint: disable=no-member
-        self.problem.parameters.timelimit.set(time_limit)  # pylint: disable=no-member
-        self.problem.parameters.preprocessing.qtolin.set(1)  # pylint: disable=no-member
-        # This sets the number of threads; by default Cplex uses everything!
-        # problem.parameters.threads.set(8)
+        self.problem.set_time_limit(time_limit)
+        self.problem.context.cplex_parameters.randomseed = 777
+        # self.problem.context.cplex_parameters.threads = 4
         if heuristic_emphasis:
-            self.problem.parameters.emphasis.mip.set(5)  # pylint: disable=no-member
-        if silent:
-            self.problem.set_log_stream(None)
-            self.problem.set_error_stream(None)
-            self.problem.set_warning_stream(None)
-            self.problem.set_results_stream(None)
-        try:
-            self.problem.solve()
-        except CplexSolverError as cse:
-            logger.warning(cse)
-            raise TranspilerError("Failed to solve BIP problem.") from cse
+            self.problem.context.cplex_parameters.emphasis.mip = 5
 
-        status = self.problem.solution.get_status_string()
+        self.solution = self.problem.solve()
+
+        status = self.problem.solve_details.status
         logger.info("BIP solution status: %s", status)
-        try:
-            objval = self.problem.solution.get_objective_value()
-            logger.info("BIP objective value: %s", objval)
-        except CplexSolverError as cse:
-            logger.warning(cse)
+        if self.solution is None:
             logger.warning("BIP solution status: %s", status)
-            raise TranspilerError("Failed to find solution of BIP problem.") from cse
-
-
-# pylint: disable=invalid-name
-class _CircuitModel:
-    """Description of a quantum circuit.
-
-    Attributes
-    ----------
-    num_qubits : int
-        Number of qubits in the circuit.
-
-    gates : list[list[(int, int)]]
-        A list of length equal to depth. Each element is a list of
-        gates to be applied at that depth. Gates should be
-        non-overlapping in terms of qubits. A gate is specified by two
-        integers between 0 and num_qubits-1.
-    """
-
-    def __init__(self, num_qubits, gates, dummy_timesteps=None):
-        """Initialize a circuit model.
-
-        Args:
-            dummy_timesteps : int
-                Number of dummy time steps, after each real layer of gates, to
-                allow arbitrary swaps between neighbors.
-        """
-        self.num_qubits = num_qubits
-        self.gates = gates
-
-        # Add dummy time steps to this circuit. Dummy time steps can only contain SWAPs.
-        new_depth = 1 + (self.depth - 1) * (1 + dummy_timesteps)
-        new_gates = []
-        for t in range(new_depth):
-            if t % (dummy_timesteps + 1) == 0:
-                # This is a real time step: copy the layer
-                old_t = t // (dummy_timesteps + 1)
-                new_gates.append([gate for gate in self.gates[old_t]])
-            else:
-                new_gates.append(list())
-        self.gates = new_gates
-
-        self._gate_to_index = {}
-        index = 0
-        for t in range(self.depth):
-            for gate in self.gates[t]:
-                self._gate_to_index[(t, gate[0], gate[1])] = index
-                index += 1
-
-    @property
-    def depth(self):
-        """Number of timesteps (including dummy steps)."""
-        return len(self.gates)
-
-    def gate_to_index(self, t, gate):
-        """Index of the gate (pair of lqubits) at timestep t."""
-        return self._gate_to_index[t, gate[0], gate[1]]
-
-
-class _HardwareTopology:
-    """Topology of a specific hardware.
-
-    Attributes
-    ----------
-    num_qubits : int
-        Number of qubits in the device
-
-    connectivity : list[list[int]]
-        A list of length num_qubits, containing for each qubit the
-        other qubits to which it is connected. These edges are assumed
-        to be directed.
-    """
-
-    def __init__(self, num_qubits, connectivity):
-        self.num_qubits = num_qubits
-        self.connectivity = connectivity
-        edge_set = set()
-        for u in range(num_qubits):
-            for v in connectivity[u]:
-                if (u, v) not in edge_set and (v, u) not in edge_set:
-                    edge_set.add((u, v))
-        self.num_edges = len(edge_set)
-        self.num_arcs = 2 * self.num_edges
-        self.edges = list(edge_set)
-        self.arcs = [(u, v) for (u, v) in edge_set] + [(v, u) for (u, v) in edge_set]
-        self.outstar_by_node = [
-            [v for k, (u, v) in enumerate(self.arcs) if u == i] for i in range(self.num_qubits)
-        ]
-        self.instar_by_node = [
-            [u for k, (u, v) in enumerate(self.arcs) if v == i] for i in range(self.num_qubits)
-        ]
-        self._edge_to_index = {edge: i for i, edge in enumerate(self.edges)}
-        self._arc_to_index = dict()
-        self._arc_to_index = {arc: i for i, arc in enumerate(self.arcs)}
-
-    def edge_to_index(self, edge):
-        """Index of the edge."""
-        return self._edge_to_index[edge]
-
-    def arc_to_index(self, arc):
-        """Index of the arc."""
-        return self._arc_to_index[arc]
-
-
-class _IndexCalculator:
-    """Compute flattened indices for decision variables.
-
-    Attributes
-    ----------
-    qc : `data_structures.QuantumCircuit`
-        Description of a quantum circuit.
-
-    ht : `data_structures.HardwareTopology`
-        Description of a hardware topology.
-    """
-
-    def __init__(self, quantum_circuit: _CircuitModel, hardware_topology: _HardwareTopology):
-        self.qc = quantum_circuit
-        logger.debug(self.qc.gates)
-        self.ht = hardware_topology
-        # Number of logical qubits is equal to the number of physical
-        # qubits; some qubits could be dummy
-        self.num_lqubits = self.qc.num_qubits
-        # Number of physical qubits
-        self.num_pqubits = self.ht.num_qubits
-        assert self.num_lqubits == self.num_pqubits
-        self.depth = self.qc.depth
-        self.num_gates = sum(len(self.qc.gates[t]) for t in range(self.qc.depth))
-        logger.debug("Num gates: %d", self.num_gates)
-        self.num_arcs = len(self.ht.arcs)
-        logger.debug("Num arcs: %d", self.num_arcs)
-        self.w_start = 0
-        self.num_w_vars = self.depth * self.num_lqubits * self.num_pqubits
-        self.y_start = self.w_start + self.num_w_vars
-        self.num_y_vars = self.num_gates * self.num_arcs
-        self.x_start = self.y_start + self.num_y_vars
-        self.num_x_vars = (
-            (self.depth - 1) * self.num_lqubits * (self.ht.num_arcs + self.num_pqubits)
-        )
-        # Createmapping for x (flow) variables
-        var_index = 0
-        self.x_var_mapping = [dict() for i in range(self.num_pqubits)]
-        for i in range(self.num_pqubits):
-            self.x_var_mapping[i][i] = var_index
-            var_index += 1
-            for j in self.ht.outstar_by_node[i]:
-                self.x_var_mapping[i][j] = var_index
-                var_index += 1
-        self.wd_start = self.x_start + self.num_x_vars
-        self.num_wd_vars = self.depth
-        self.eu_start = self.wd_start + self.num_wd_vars
-        self.num_eu_vars = self.ht.num_edges * (self.depth - 1)
-
-    def w_index(self, logical_qubit, physical_qubit, gate_depth):
-        """Return the index of a w variable.
-
-        Parameters
-        ----------
-        logical_qubit : int
-            Index of the logical qubit.
-
-        physical_qubit : int
-            Index of the physical qubit.
-
-        gate_depth : int
-            Depth of the gate.
-
-        Returns
-        -------
-        int
-            Index of the variable in a flattened (0-indexed) model.
-        """
-        return (
-            self.w_start
-            + gate_depth * self.num_lqubits * self.num_pqubits
-            + physical_qubit * self.num_lqubits
-            + logical_qubit
-        )
-
-    def y_index(self, depth, gate, arc):
-        """Return the index of a y variable.
-
-        Parameters
-        ----------
-        depth : int
-            Depth at which the gate is located.
-
-        gate : tuple(int, int)
-            Gate, given as a pair of logical qubits.
-
-        arc : tuple(int, int)
-            Arc, given as a pair of physical qubits.
-
-        Returns
-        -------
-        int
-            Index of the variable in a flattened (0-indexed) model.
-        """
-
-        gate_index = self.qc.gate_to_index(depth, gate)
-        arc_index = self.ht.arc_to_index(arc)
-        return self.y_start + arc_index * self.num_gates + gate_index
-
-    def x_index(self, logical_qubit, physical_qubit1, physical_qubit2, depth):
-        """Return the index of an x variable.
-
-        Parameters
-        ----------
-        logical_qubit : int
-            Index of the logical qubit.
-
-        physical_qubit1 : int
-            Index of the physical qubit at which the logical qubit is
-            located at depth depth.
-
-        physical_qubit2 : int
-            Index of the physical qubit at which the logical qubit is
-            located at depth depth+1.
-
-        depth : int
-            Depth of the flow.
-
-        Returns
-        -------
-        int
-            Index of the variable in a flattened (0-indexed) model.
-        """
-        return (
-            self.x_start
-            + depth * self.num_lqubits * (self.ht.num_arcs + self.num_pqubits)
-            + logical_qubit * (self.ht.num_arcs + self.num_pqubits)
-            + self.x_var_mapping[physical_qubit1][physical_qubit2]
-        )
-
-    def wd_index(self, depth):
-        """Return the index of the w^d variable.
-
-        Parameters
-        ----------
-        depth : int
-            Depth of the time step.
-
-        Returns
-        -------
-        int
-            Index of the variable in a flattened (0-indexed) model.
-        """
-        return self.wd_start + depth
-
-    def eu_index(self, depth, edge):
-        """Return the index of the e^u variable.
-
-        Parameters
-        ----------
-        depth : int
-            Depth of the time step.
-
-        edge : tuple(int, int)
-            Edge, given as a pair of physical qubits.
-
-        Returns
-        -------
-        int
-            Index of the variable in a flattened (0-indexed) model.
-        """
-        return self.eu_start + depth * self.ht.num_edges + self.ht.edge_to_index(edge)
+            raise TranspilerError("Failed to solve a BIP problem.")

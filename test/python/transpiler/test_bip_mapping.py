@@ -68,29 +68,12 @@ class TestBIPMapping(QiskitTestCase):
         circuit.cx(2, 0)
 
         actual = BIPMapping(coupling)(circuit)
-
-        q = QuantumRegister(3, name="q")
-        expected = QuantumCircuit(q)
-        expected.cx(q[1], q[0])
-        expected.h(q[0])
-        expected.cx(q[2], q[0])
-
-        self.assertEqual(circuit, actual)
+        self.assertEqual(3, len(actual))
+        for inst, _, _ in actual.data:  # there are no swaps
+            self.assertFalse(isinstance(inst, SwapGate))
 
     def test_no_swap(self):
-        """Adding no swap if not giving initial layout
-        q0:-------
-        q1:---.---
-              |
-        q2:--(+)--
-        CouplingMap map: [1]--[0]--[2]
-        initial_layout: None
-        q0:--(+)--
-              |
-        q1:---|---
-              |
-        q2:---.---
-        """
+        """Adding no swap if not giving initial layout"""
         coupling = CouplingMap([[0, 1], [0, 2]])
 
         circuit = QuantumCircuit(3)
@@ -100,7 +83,7 @@ class TestBIPMapping(QiskitTestCase):
 
         q = QuantumRegister(3, name="q")
         expected = QuantumCircuit(q)
-        expected.cx(q[2], q[0])
+        expected.cx(q[0], q[1])
 
         self.assertEqual(expected, actual)
 
@@ -116,7 +99,7 @@ class TestBIPMapping(QiskitTestCase):
 
         q = QuantumRegister(3, name="q")
         expected = QuantumCircuit(q)
-        expected.cx(q[2], q[0])
+        expected.cx(q[0], q[1])
 
         self.assertEqual(expected, actual)
 
@@ -135,9 +118,9 @@ class TestBIPMapping(QiskitTestCase):
 
         q = QuantumRegister(3, "q")
         expected = QuantumCircuit(q, cr)
-        expected.cx(q[2], q[0])
-        expected.measure(q[2], cr[0])
-        expected.measure(q[0], cr[1])  # <- changed due to initial layout change
+        expected.cx(q[0], q[1])
+        expected.measure(q[0], cr[0])  # <- changed due to initial layout change
+        expected.measure(q[1], cr[1])  # <- changed due to initial layout change
 
         self.assertEqual(expected, actual)
 
