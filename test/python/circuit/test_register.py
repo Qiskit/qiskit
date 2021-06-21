@@ -58,7 +58,7 @@ class TestRegisterClass(QiskitTestCase):
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
     def test_init_raise_if_negative_size(self, reg_type):
-        with self.assertRaisesRegex(CircuitError, "Register size must be positive"):
+        with self.assertRaisesRegex(CircuitError, "Register size must be non-negative"):
             _ = reg_type(-1)
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
