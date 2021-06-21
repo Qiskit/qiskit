@@ -274,6 +274,40 @@ class TestPulseParameters(QiskitTestCase):
         self.assertEqual(waveform.amp, self.amp)
         self.assertEqual(waveform.sigma, 12.7)
 
+    def test_parametric_pulses_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        waveform = pulse.library.Gaussian(
+            duration=100, sigma=1.0, amp=1.1 + 0.8j, limit_amplitude=False
+        )
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+        with self.assertRaises(PulseError):
+            waveform = pulse.library.Gaussian(
+                duration=100, sigma=1.0, amp=1.1 + 0.8j, limit_amplitude=True
+            )
+
+        waveform = pulse.library.GaussianSquare(
+            duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10, limit_amplitude=False
+        )
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+        with self.assertRaises(PulseError):
+            waveform = pulse.library.GaussianSquare(
+                duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10, limit_amplitude=True
+            )
+
+        waveform = pulse.library.Drag(
+            duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j, limit_amplitude=False
+        )
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+        with self.assertRaises(PulseError):
+            waveform = pulse.library.Drag(
+                duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j, limit_amplitude=True
+            )
+
+        waveform = pulse.library.Constant(duration=100, amp=1.1 + 0.8j, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+        with self.assertRaises(PulseError):
+            waveform = pulse.library.Constant(duration=100, amp=1.1 + 0.8j, limit_amplitude=True)
+
     @unittest.skip("Not yet supported by ParameterExpression")
     def test_complex_value_assignment(self):
         """Test that complex values can be assigned to Parameters."""
