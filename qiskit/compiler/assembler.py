@@ -268,9 +268,7 @@ def _parse_common_args(
         n_qubits = backend_config.n_qubits
         # check for memory flag applied to backend that does not support memory
         if memory and not backend_config.memory:
-            raise QiskitError(
-                "memory not supported by backend {}".format(backend_config.backend_name)
-            )
+            raise QiskitError(f"memory not supported by backend {backend_config.backend_name}")
 
         # try to set defaults for pulse, other leave as None
         if backend_config.open_pulse:
@@ -389,7 +387,7 @@ def _check_lo_freqs(
         for i, freq in enumerate(lo_freq):
             freq_range = lo_range[i]
             if not (isinstance(freq_range, list) and len(freq_range) == 2):
-                raise QiskitError("Each element of {} LO range must be a 2d list.".format(lo_type))
+                raise QiskitError(f"Each element of {lo_type} LO range must be a 2d list.")
             if freq < freq_range[0] or freq > freq_range[1]:
                 raise QiskitError(
                     "Qubit {} {} LO frequency is {}. The range is [{}, {}].".format(

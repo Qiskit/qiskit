@@ -83,7 +83,7 @@ def _to_complex(value: Union[List[float], complex]) -> complex:
     elif isinstance(value, complex):
         return value
 
-    raise TypeError("{} is not in a valid complex number format.".format(value))
+    raise TypeError(f"{value} is not in a valid complex number format.")
 
 
 def _decode_pulse_library_item(pulse_library_item: Dict) -> None:
