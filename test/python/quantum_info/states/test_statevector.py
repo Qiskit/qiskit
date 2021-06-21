@@ -1080,6 +1080,16 @@ class TestStatevector(QiskitTestCase):
             sv.draw("latex", convention="vector")
 
     def test_state_to_latex_for_large_statevector(self):
+        """Test conversion of large dense state vector"""
+        data = np.ones((2 ** 15, 1))
+        sv = Statevector(data)
+        latex_representation = state_to_latex(sv)
+        self.assertEqual(
+            latex_representation,
+            " |000000000000000\\rangle+ |000000000000001\\rangle+ |000000000000010\\rangle+ |000000000000011\\rangle+ |000000000000100\\rangle+ |000000000000101\\rangle + \\ldots + |111111111111011\\rangle+ |111111111111100\\rangle+ |111111111111101\\rangle+ |111111111111110\\rangle+ |111111111111111\\rangle",
+        )
+
+    def test_state_to_latex_for_large_sparse_statevector(self):
         """Test conversion of large sparse state vector"""
         sv = Statevector(np.eye(2 ** 15, 1))
         latex_representation = state_to_latex(sv)
