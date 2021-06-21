@@ -1164,10 +1164,7 @@ class QuantumCircuit:
                 regs = (QuantumRegister(regs[0], "q"),)
             elif len(regs) == 2 and all(isinstance(reg, int) for reg in regs):
                 # QuantumCircuit with anonymous wires e.g. QuantumCircuit(2, 3)
-                if regs[1] == 0:
-                    regs = (QuantumRegister(regs[0], "q"),)
-                else:
-                    regs = (QuantumRegister(regs[0], "q"), ClassicalRegister(regs[1], "c"))
+                regs = (QuantumRegister(regs[0], "q"), ClassicalRegister(regs[1], "c"))
             else:
                 raise CircuitError(
                     "QuantumCircuit parameters can be Registers or Integers."
