@@ -1225,7 +1225,8 @@ class MatplotlibDrawer:
                     if op.name == "initialize":
                         param = f"[{param}]"
                     param = f"${param}$"
-                    param_width = self._get_text_width(param, fontsize=sfs, param=True) + 0.08
+                    raw_param_width = self._get_text_width(param, fontsize=sfs, param=True)
+                    param_width = raw_param_width + 0.08
                 else:
                     param_width = raw_param_width = 0.0
 
@@ -1448,7 +1449,7 @@ class MatplotlibDrawer:
                         stext = "P"
                     else:
                         stext = "ZZ"
-                    self._sidetext(qubit_b, tc=tc, text=f"{stext} ({param})")
+                    self._sidetext(op, qubit_b, tc=tc, text=f"{stext} ({param})")
                     self._line(qubit_b, qubit_t, lc=lc)
 
                 # swap gate
