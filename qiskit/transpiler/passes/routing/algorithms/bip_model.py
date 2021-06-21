@@ -210,14 +210,14 @@ class BIPMappingModel:
         for t in range(self.depth):
             for j in range(self.num_pqubits):
                 mdl.add_constraint(
-                    sum([w[t, q, j] for q in range(self.num_vqubits)]) == 1,
+                    sum(w[t, q, j] for q in range(self.num_vqubits)) == 1,
                     ctname=f"assignment_pqubits_{j}_at_{t}",
                 )
         # Each gate must be implemented
         for t in range(self.depth):
             for (p, q) in self.gates[t]:
                 mdl.add_constraint(
-                    sum([y[t, p, q, i, j] for (i, j) in self._arcs]) == 1,
+                    sum(y[t, p, q, i, j] for (i, j) in self._arcs) == 1,
                     ctname=f"implement_gate_{p}_{q}_at_{t}",
                 )
         # Gate can be implemented iff both of its qubits are located at the associated nodes
@@ -244,7 +244,7 @@ class BIPMappingModel:
                     mdl.add_constraint(
                         w[t, q, i]
                         == x[t, q, i, i]
-                        + sum([x[t, q, i, j] for j in self._coupling.neighbors(i)]),
+                        + sum(x[t, q, i, j] for j in self._coupling.neighbors(i)),
                         ctname=f"flow_out_{q}_{i}_at_{t}",
                     )
         # Logical qubit flow-in constraints
@@ -254,7 +254,7 @@ class BIPMappingModel:
                     mdl.add_constraint(
                         w[t, q, i]
                         == x[t - 1, q, i, i]
-                        + sum([x[t - 1, q, j, i] for j in self._coupling.neighbors(i)]),
+                        + sum(x[t - 1, q, j, i] for j in self._coupling.neighbors(i)),
                         ctname=f"flow_in_{q}_{i}_at_{t}",
                     )
         # If a gate is implemented, involved qubits cannot swap with other positions
@@ -272,8 +272,8 @@ class BIPMappingModel:
                 q_no_gate.remove(q)
             for (i, j) in self._arcs:
                 mdl.add_constraint(
-                    sum([x[t, q, i, j] for q in q_no_gate])
-                    == sum([x[t, p, j, i] for p in q_no_gate]),
+                    sum(x[t, q, i, j] for q in q_no_gate)
+                    == sum(x[t, p, j, i] for p in q_no_gate),
                     ctname=f"swap_no_gate_{i}_{j}_at_{t}",
                 )
         # Link between w variables and y variables, i.e. a gate can only
@@ -304,7 +304,7 @@ class BIPMappingModel:
             if self._is_dummy_step(t):
                 for q in range(self.num_vqubits):
                     mdl.add_constraint(
-                        sum([x[t, q, i, j] for (i, j) in self._arcs]) <= z[t],
+                        sum(x[t, q, i, j] for (i, j) in self._arcs) <= z[t],
                         ctname=f"dummy_ts_needed_for_vqubit_{q}_at_{t}",
                     )
         # Symmetry breaking between dummy time steps
@@ -317,7 +317,7 @@ class BIPMappingModel:
         if line_symm:
             for h in range(1, self.num_vqubits):
                 mdl.add_constraint(
-                    sum([w[0, p, 0] for p in range(h)])
+                    sum(w[0, p, 0] for p in range(h))
                     + sum([w[0, q, self.num_pqubits - 1] for q in range(h, self.num_vqubits)])
                     >= 1,
                     ctname=f"sym_break_line_{h}",
@@ -325,7 +325,7 @@ class BIPMappingModel:
 
         # *** Define objevtive function ***
         if objective == "depth":
-            objexr = sum([z[t] for t in range(self.depth) if self._is_dummy_step(t)])
+            objexr = sum(z[t] for t in range(self.depth) if self._is_dummy_step(t))
             for t in range(self.depth - 1):
                 for q in range(self.num_vqubits):
                     for (i, j) in self._arcs:
