@@ -294,7 +294,7 @@ def _map_free_gates(layout, gates, coupling_map):
         elif len(qubits) == 1:
             mapped_gate = _transform_gate_for_layout(gate, layout)
             mapped_gates.append(mapped_gate)
-        elif coupling_map.distance(*[layout[q] for q in qubits]) == 1:
+        elif coupling_map.distance(*(layout[q] for q in qubits)) == 1:
             mapped_gate = _transform_gate_for_layout(gate, layout)
             mapped_gates.append(mapped_gate)
         else:
@@ -312,7 +312,7 @@ def _calc_layout_distance(gates, coupling_map, layout, max_gates=None):
         max_gates = 50 + 10 * len(coupling_map.physical_qubits)
 
     return sum(
-        coupling_map.distance(*[layout[q] for q in gate["partition"][0]])
+        coupling_map.distance(*(layout[q] for q in gate["partition"][0]))
         for gate in gates[:max_gates]
         if gate["partition"] and len(gate["partition"][0]) == 2
     )

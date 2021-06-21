@@ -153,7 +153,7 @@ class IntegerComparator(BlueprintCircuit):
              The 2's complement of ``self.value``.
         """
         twos_complement = pow(2, self.num_state_qubits) - int(np.ceil(self.value))
-        twos_complement = "{:b}".format(twos_complement).rjust(self.num_state_qubits, "0")
+        twos_complement = f"{twos_complement:b}".rjust(self.num_state_qubits, "0")
         twos_complement = [
             1 if twos_complement[i] == "1" else 0 for i in reversed(range(len(twos_complement)))
         ]

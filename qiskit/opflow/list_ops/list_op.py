@@ -470,7 +470,7 @@ class ListOp(OperatorBase):
         if self.abelian:
             main_string = "Abelian" + main_string
         if self.coeff != 1.0:
-            main_string = "{} * ".format(self.coeff) + main_string
+            main_string = f"{self.coeff} * " + main_string
         return main_string
 
     def __repr__(self) -> str:

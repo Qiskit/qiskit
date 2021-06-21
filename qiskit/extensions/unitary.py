@@ -195,7 +195,7 @@ class UnitaryGate(Gate):
                     reg_to_qasm[reg] = "p" + str(current_reg)
                     current_reg += 1
 
-            curr_gate = "\t%s %s;\n" % (
+            curr_gate = "\t{} {};\n".format(
                 gate[0].qasm(),
                 ",".join([reg_to_qasm[j] for j in gate[1] + gate[2]]),
             )
@@ -223,7 +223,7 @@ class UnitaryGate(Gate):
             return parameter
         else:
             raise CircuitError(
-                "invalid param type {0} in gate " "{1}".format(type(parameter), self.name)
+                "invalid param type {} in gate " "{}".format(type(parameter), self.name)
             )
 
 

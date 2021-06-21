@@ -53,7 +53,7 @@ class ClassicalFunction(ClassicalElement):
         self._truth_table = None
         super().__init__(
             name or "*classicalfunction*",
-            num_qubits=sum([qreg.size for qreg in self.qregs]),
+            num_qubits=sum(qreg.size for qreg in self.qregs),
             params=[],
         )
 
