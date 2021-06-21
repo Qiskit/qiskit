@@ -298,6 +298,8 @@ class OneQubitEulerDecomposer:
             gphase += phi
             lam, phi = lam - phi, 0
         lam = _mod_2pi(lam, atol)
+        if abs(_mod_2pi(lam + np.pi)) < atol:
+            lam, theta, phi = 0, -theta, lam + phi
         if abs(lam) > atol:
             gphase += lam / 2
             circuit._append(RZGate(lam), [qr[0]], [])
@@ -327,6 +329,8 @@ class OneQubitEulerDecomposer:
             gphase += phi
             lam, phi = lam - phi, 0
         lam = _mod_2pi(lam, atol)
+        if abs(_mod_2pi(lam + np.pi)) < atol:
+            lam, theta, phi = 0, -theta, lam + phi
         if abs(lam) > atol:
             gphase += lam / 2
             circuit._append(RZGate(lam), [qr[0]], [])
@@ -356,6 +360,8 @@ class OneQubitEulerDecomposer:
             gphase += phi
             lam, phi = lam - phi, 0
         lam = _mod_2pi(lam, atol)
+        if abs(_mod_2pi(lam + np.pi)) < atol:
+            lam, theta, phi = 0, -theta, lam + phi
         if abs(lam) > atol:
             gphase += lam / 2
             circuit._append(RXGate(lam), [qr[0]], [])
