@@ -199,7 +199,7 @@ class BIPMappingModel:
         for t in range(self.depth):
             for q in range(self.num_vqubits):
                 mdl.add_constraint(
-                    sum([w[t, q, j] for j in range(self.num_pqubits)]) == 1,
+                    sum(w[t, q, j] for j in range(self.num_pqubits)) == 1,
                     ctname=f"assignment_vqubits_{q}_at_{t}",
                 )
         for t in range(self.depth):
