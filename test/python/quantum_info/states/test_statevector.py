@@ -1080,6 +1080,7 @@ class TestStatevector(QiskitTestCase):
             sv.draw("latex", convention="vector")
 
     def test_state_to_latex_for_large_statevector(self):
+        """Test conversion of large sparse state vector"""
         sv = Statevector(np.eye(2 ** 15, 1))
         latex_representation = state_to_latex(sv)
         self.assertEqual(latex_representation, " |000000000000000\\rangle")

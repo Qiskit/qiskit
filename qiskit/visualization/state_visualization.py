@@ -1200,6 +1200,13 @@ def state_to_latex(
     return prefix + latex_str + suffix
 
 
+def _round_if_close(data):
+    """Round real and imaginary parts of complex number of close to zero"""
+    data = np.real_if_close(data)
+    data = -1j * np.real_if_close(data * 1j)
+    return data
+
+
 def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
     """Convert a complex number to latex code suitable for a ket expression
 
@@ -1216,8 +1223,7 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
         real_value = 0
         imag_value = 0
     else:
-        raw_value = complex(np.real_if_close(raw_value))
-        raw_value = -1j * np.real_if_close(raw_value * 1j)
+        raw_value = _round_if_close(raw_value)
         value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
         real_value = float(sympy.re(value))
         imag_value = float(sympy.im(value))
@@ -1282,17 +1288,40 @@ def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
     return terms
 
 
-def _state_to_latex_ket(data: List[complex]) -> str:
-    """Convert state vector to latex representation"""
-    num = int(np.log2(len(data)))
-    ket_names = [bin(i)[2:].zfill(num) for i in range(2 ** num)]
+def _state_to_latex_ket(data: List[complex], max_size: int = 12) -> str:
+    """Convert state vector to latex representation
 
-    latex_terms = numbers_to_latex_terms(data)
+    Args:
+        data: State vector
+        max_size: Maximum number of non-zero terms in the expression. If the number of non-zero terms is larger
+                 than the max_size, then the representation is truncated.
+
+    Returns:
+        String with LaTeX representation of the state vector
+    """
+    num = int(np.log2(len(data)))
+
+    def ket_name(i):
+        return bin(i)[2:].zfill(num)
+
+    data = _round_if_close(data)
+    nonzero_indices = np.where(data != 0)[0].tolist()
+    if len(nonzero_indices) > max_size:
+        nonzero_indices = (
+            nonzero_indices[: max_size // 2] + [0] + nonzero_indices[-max_size // 2 + 1 :]
+        )
+        latex_terms = numbers_to_latex_terms(data[nonzero_indices])
+        nonzero_indices[max_size // 2] = None
+    else:
+        latex_terms = numbers_to_latex_terms(data[nonzero_indices])
 
     latex_str = ""
-    for idx, term in enumerate(latex_terms):
-        if term is not None:
-            ket = ket_names[idx]
+    for idx, ket_idx in enumerate(nonzero_indices):
+        if ket_idx is None:
+            latex_str += " + \ldots "
+        else:
+            term = latex_terms[idx]
+            ket = ket_name(ket_idx)
             latex_str += f"{term} |{ket}\\rangle"
     return latex_str
 
