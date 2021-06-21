@@ -683,7 +683,13 @@ class NLocal(BlueprintCircuit):
             self._initial_state_circuit = self._initial_state.copy()
         else:
             warnings.warn(
-                "initial_state should be an instance of QuantumCircuit", DeprecationWarning
+                "The initial_state argument of the NLocal class "
+                "should be a QuantumCircuit. Passing any other type is "
+                "is deprecated as of Qiskit Terra 0.18.0, and "
+                "will be removed no earlier than 3 months after that "
+                "release date.",
+                DeprecationWarning,
+                stacklevel=2,
             )
             self._initial_state_circuit = initial_state.construct_circuit(mode="circuit")
 
@@ -948,7 +954,13 @@ class NLocal(BlueprintCircuit):
                 circuit = self._initial_state.copy()
             else:
                 warnings.warn(
-                    "initial_state should be an instance of QuantumCircuit", DeprecationWarning
+                    "The initial_state argument of the NLocal class "
+                    "should be a QuantumCircuit. Passing any other type is "
+                    "is deprecated as of Qiskit Terra 0.18.0, and "
+                    "will be removed no earlier than 3 months after that "
+                    "release date.",
+                    DeprecationWarning,
+                    stacklevel=2,
                 )
                 circuit = self._initial_state.construct_circuit("circuit", register=self.qregs[0])
             self.compose(circuit, inplace=True)
