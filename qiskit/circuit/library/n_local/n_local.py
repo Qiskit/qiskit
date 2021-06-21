@@ -682,9 +682,9 @@ class NLocal(BlueprintCircuit):
         if isinstance(self._initial_state, QuantumCircuit):
             self._initial_state_circuit = self._initial_state.copy()
         else:
-            warn_message = """'InitialState' is now deprecated and will be removed soon.
-                            You should make 'initial_state' an instance of 'Quantum' instead."""
-            warnings.warn(warn_message, DeprecationWarning)
+            warnings.warn(
+                "initial_state should be an instance of QuantumCircuit", DeprecationWarning
+            )
             self._initial_state_circuit = initial_state.construct_circuit(mode="circuit")
 
         # the initial state dictates the number of qubits since we do not have information
@@ -947,9 +947,9 @@ class NLocal(BlueprintCircuit):
             if isinstance(self._initial_state, QuantumCircuit):
                 circuit = self._initial_state.copy()
             else:
-                warn_message = """'InitialState' is now deprecated and will be removed soon.
-                            You should make 'initial_state' an instance of 'Quantum' instead."""
-                warnings.warn(warn_message, DeprecationWarning)
+                warnings.warn(
+                    "initial_state should be an instance of QuantumCircuit", DeprecationWarning
+                )
                 circuit = self._initial_state.construct_circuit("circuit", register=self.qregs[0])
             self.compose(circuit, inplace=True)
 
