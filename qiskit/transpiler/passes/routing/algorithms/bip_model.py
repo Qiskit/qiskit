@@ -243,8 +243,7 @@ class BIPMappingModel:
                 for i in range(self.num_pqubits):
                     mdl.add_constraint(
                         w[t, q, i]
-                        == x[t, q, i, i]
-                        + sum(x[t, q, i, j] for j in self._coupling.neighbors(i)),
+                        == x[t, q, i, i] + sum(x[t, q, i, j] for j in self._coupling.neighbors(i)),
                         ctname=f"flow_out_{q}_{i}_at_{t}",
                     )
         # Logical qubit flow-in constraints
@@ -272,8 +271,7 @@ class BIPMappingModel:
                 q_no_gate.remove(q)
             for (i, j) in self._arcs:
                 mdl.add_constraint(
-                    sum(x[t, q, i, j] for q in q_no_gate)
-                    == sum(x[t, p, j, i] for p in q_no_gate),
+                    sum(x[t, q, i, j] for q in q_no_gate) == sum(x[t, p, j, i] for p in q_no_gate),
                     ctname=f"swap_no_gate_{i}_{j}_at_{t}",
                 )
         # Link between w variables and y variables, i.e. a gate can only

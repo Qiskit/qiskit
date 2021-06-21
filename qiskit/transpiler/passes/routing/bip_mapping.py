@@ -28,7 +28,11 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
 from qiskit.transpiler.passes.layout.trivial_layout import TrivialLayout
-from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingModel, HAS_CPLEX, HAS_DOCPLEX
+from qiskit.transpiler.passes.routing.algorithms.bip_model import (
+    BIPMappingModel,
+    HAS_CPLEX,
+    HAS_DOCPLEX,
+)
 from qiskit.transpiler.passmanager import PassManager
 
 logger = logging.getLogger(__name__)
