@@ -11,25 +11,38 @@
 # that they have been altered from the originals.
 
 """Expand a gate in a circuit using its decomposition rules."""
-
+from typing import Type, Union, List, Optional
 from fnmatch import fnmatch
+
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.circuit.gate import Gate
+from qiskit.utils.deprecation import deprecate_arguments
 
 
 class Decompose(TransformationPass):
     """Expand a gate in a circuit using its decomposition rules."""
 
-    def __init__(self, gates_to_decompose: list = None):
+    @deprecate_arguments({"gate": "gates_to_decompose"})
+    def __init__(
+        self,
+        gates_to_decompose: Optional[Union[Type[Gate], List[Type[Gate]], List[str], str]] = None,
+        gate: Optional[Type[Gate]] = None,
+    ) -> None:
         """Decompose initializer.
 
         Args:
-            gates_to_decompose (list(str)): optional subset of gates to be decomposed,
-            identified by gate name. Defaults to all gates.
-
+            gates_to_decompose: optional subset of gates to be decomposed,
+                identified by gate label, name or type. Defaults to all gates.
+            gate: DEPRECATED gate to decompose.
         """
         super().__init__()
+
+        if not isinstance(gates_to_decompose, list):
+            gates_to_decompose = [gates_to_decompose]
+
+        self.gate = gate
         self.gates = gates_to_decompose
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
@@ -43,20 +56,7 @@ class Decompose(TransformationPass):
         """
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
-            haslabel = False
-
-            if hasattr(node.op, 'label') and node.op.label is not None:
-                haslabel = True
-
-            if (
-                self.gates is None or
-                # check labels and label wildcards first
-                (haslabel and (node.op.label in self.gates or
-                any(fnmatch(node.op.label, p) for p in self.gates))) or
-                # then check names and name wildcards
-                (not haslabel and (node.name in self.gates or
-                any(fnmatch(node.name, p) for p in self.gates)))
-            ):
+            if self.should_decompose(node):
                 if not node.op.definition:
                     continue
                 # TODO: allow choosing among multiple decomposition rules
@@ -70,3 +70,29 @@ class Decompose(TransformationPass):
                     dag.substitute_node_with_dag(node, decomposition)
 
         return dag
+
+    def should_decompose(self, node) -> bool:
+        has_label = False
+        strings_list = [s for s in self.gates if isinstance(s, str)]
+        gate_type_list = [g for g in self.gates if isinstance(g, type)]
+
+        if hasattr(node.op, "label") and node.op.label is not None:
+            has_label = True
+
+        if self.gates == [None] and self.gate is None: # check if no gates given
+            return True
+        elif has_label and (  # check if label or label wildcard is given
+            node.op.label in self.gates or any(fnmatch(node.op.label, p) for p in strings_list)
+        ):
+            return True
+        elif not has_label and (  # check if name or name wildcard is given
+            node.name in self.gates or any(fnmatch(node.name, p) for p in strings_list)
+        ):
+            return True
+        elif not has_label and (  # check if Gate type given
+            any(isinstance(node.op, op) for op in gate_type_list)
+            or (self.gate is not None and isinstance(node.op, self.gate))
+        ):
+            return True
+        else:
+            return False
