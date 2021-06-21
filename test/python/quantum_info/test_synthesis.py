@@ -988,7 +988,9 @@ class TestTwoQubitDecompose(CheckDecompositions):
         for i in range(4):
             with self.subTest(i=i):
                 decomp_circuit = decomposer(tgt, _num_basis_uses=i)
-                result = execute(decomp_circuit, UnitarySimulatorPy(), optimization_level=0).result()
+                result = execute(
+                    decomp_circuit, UnitarySimulatorPy(), optimization_level=0
+                ).result()
                 decomp_unitary = result.get_unitary()
                 tr_actual = np.trace(decomp_unitary.conj().T @ tgt)
                 self.assertAlmostEqual(
@@ -1139,7 +1141,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
     def test_sx_virtz_3cnot_optimal(self, seed):
         """Test 3 CNOT ZSX pulse optimal decomposition"""
         unitary = random_unitary(4, seed=seed)
-        decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis='ZSX', pulse_optimize=True)
+        decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX", pulse_optimize=True)
         circ = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(circ))
 
@@ -1147,7 +1149,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
     def test_sx_virtz_2cnot_optimal(self, seed):
         """Test 2 CNOT ZSX pulse optimal decomposition"""
         rng = np.random.default_rng(seed)
-        decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis='ZSX', pulse_optimize=True)
+        decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX", pulse_optimize=True)
         tgt_k1 = np.kron(random_unitary(2, seed=rng).data, random_unitary(2, seed=rng).data)
         tgt_k2 = np.kron(random_unitary(2, seed=rng).data, random_unitary(2, seed=rng).data)
         tgt_phase = rng.random() * 2 * np.pi
@@ -1155,6 +1157,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
         tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(tgt_a, tgt_b, 0) @ tgt_k2
         circ = decomposer(tgt_unitary)
         self.assertEqual(Operator(tgt_unitary), Operator(circ))
+
 
 @ddt
 class TestTwoQubitDecomposeApprox(CheckDecompositions):

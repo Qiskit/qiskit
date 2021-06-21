@@ -922,20 +922,25 @@ class TwoQubitBasisDecomposer:
         else:
             decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
         if self.pulse_optimize and best_nbasis in {2, 3}:
-            if self._decomposer1q.basis in {'ZSX', 'ZSXX'}:
+            if self._decomposer1q.basis in {"ZSX", "ZSXX"}:
                 if isinstance(self.gate, CXGate):
                     if best_nbasis == 3:
                         return_circuit = self._get_sx_vz_3cx_efficient_euler(
-                            decomposition, target_decomposed)
+                            decomposition, target_decomposed
+                        )
                     elif best_nbasis == 2:
                         return_circuit = self._get_sx_vz_2cx_efficient_euler(
-                            decomposition, target_decomposed)
+                            decomposition, target_decomposed
+                        )
                 else:
-                    raise QiskitError('pulse_optimizer currently only works with CNOT '
-                                      'entangling gate')
+                    raise QiskitError(
+                        "pulse_optimizer currently only works with CNOT " "entangling gate"
+                    )
             else:
-                raise QiskitError('"pulse_optimize" currently only works with ZSX basis '
-                                  f'({self._decomposer1q.basis} used)')
+                raise QiskitError(
+                    '"pulse_optimize" currently only works with ZSX basis '
+                    f"({self._decomposer1q.basis} used)"
+                )
         else:
             decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
             q = QuantumRegister(2)
@@ -959,6 +964,7 @@ class TwoQubitBasisDecomposer:
         """
         best_nbasis = 2  # by assumption
         from scipy.spatial.transform import Rotation
+
         num_1q_uni = len(decomposition)
         dq0 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
         dq1 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
@@ -966,13 +972,13 @@ class TwoQubitBasisDecomposer:
         for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
-            euler_angles = rot.as_euler('zxz')
+            euler_angles = rot.as_euler("zxz")
             dq0[iqubit, :] = euler_angles
             global_phase += phase
         for iqubit, idecomp in enumerate(range(1, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
-            euler_angles = rot.as_euler('xzx')
+            euler_angles = rot.as_euler("xzx")
             dq1[iqubit, :] = euler_angles
             global_phase += phase
         qc = QuantumCircuit(2)
@@ -1032,6 +1038,7 @@ class TwoQubitBasisDecomposer:
         three CNOT gates are needed.
         """
         from scipy.spatial.transform import Rotation
+
         best_nbasis = 3  # by assumption
         num_1q_uni = len(decomposition)
         dq0 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
@@ -1040,13 +1047,13 @@ class TwoQubitBasisDecomposer:
         for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
-            euler_angles = rot.as_euler('zxz')
+            euler_angles = rot.as_euler("zxz")
             dq0[iqubit, :] = euler_angles
             global_phase += phase
         for iqubit, idecomp in enumerate(range(1, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
-            euler_angles = rot.as_euler('xzx')
+            euler_angles = rot.as_euler("xzx")
             dq1[iqubit, :] = euler_angles
             global_phase += phase
         qc = QuantumCircuit(2)
@@ -1078,10 +1085,10 @@ class TwoQubitBasisDecomposer:
         if not math.isclose(x12, 0, abs_tol=1e-10):
             isNonZero = True
             if not math.isclose(abs(x12), math.pi):
-                raise QiskitError(f'expected angle of π but got {x12}')
+                raise QiskitError(f"expected angle of π but got {x12}")
             qc.sx(0)
         if not math.isclose(dq1[1][1], math.pi / 2):
-            raise QiskitError(f'expected angle of π/2 but got {dq1[1][1]}')
+            raise QiskitError(f"expected angle of π/2 but got {dq1[1][1]}")
         qc.sx(1)
         qc.rz(dq1[1][2] + dq1[2][0], 1)
 
@@ -1091,7 +1098,7 @@ class TwoQubitBasisDecomposer:
             qc.sx(0)
         qc.rz(dq0[2][1], 0)
         if not math.isclose(dq1[2][1], math.pi / 2):
-            raise QiskitError(f'expected angle of π/2 but got {dq1[2][1]}')
+            raise QiskitError(f"expected angle of π/2 but got {dq1[2][1]}")
         qc.sx(1)
 
         qc.cx(1, 0)
@@ -1168,5 +1175,6 @@ def _su2_axis_angle(mat):
     angle = 2 * math.atan2(pureqnorm, quat[0])
     axis = quat[1:] / pureqnorm
     return axis, angle, phase
+
 
 two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CXGate())

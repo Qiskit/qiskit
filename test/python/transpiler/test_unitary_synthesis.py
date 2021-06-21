@@ -77,19 +77,23 @@ class TestUnitarySynthesis(QiskitTestCase):
         triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
-        unisynth_pass = UnitarySynthesis(basis_gates=conf.basis_gates,
-                                    coupling_map=None,
-                                    backend_props=backend.properties(),
-                                    pulse_optimize=True,
-                                    natural_direction=False)
+        unisynth_pass = UnitarySynthesis(
+            basis_gates=conf.basis_gates,
+            coupling_map=None,
+            backend_props=backend.properties(),
+            pulse_optimize=True,
+            natural_direction=False,
+        )
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
 
-        unisynth_pass_nat = UnitarySynthesis(basis_gates=conf.basis_gates,
-                                    coupling_map=None,
-                                    backend_props=backend.properties(),
-                                    pulse_optimize=True,
-                                    natural_direction=True)
+        unisynth_pass_nat = UnitarySynthesis(
+            basis_gates=conf.basis_gates,
+            coupling_map=None,
+            backend_props=backend.properties(),
+            pulse_optimize=True,
+            natural_direction=True,
+        )
 
         pm_nat = PassManager([triv_layout_pass, unisynth_pass_nat])
         qc_out_nat = pm_nat.run(qc)

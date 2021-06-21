@@ -60,12 +60,15 @@ def _choose_euler_basis(basis_gates):
 class UnitarySynthesis(TransformationPass):
     """Synthesize gates according to their basis gates."""
 
-    def __init__(self, basis_gates: List[str],
-                 approximation_degree: float = 1,
-                 coupling_map: List = None,
-                 backend_props: BackendProperties = None,
-                 pulse_optimize: bool = False,
-                 natural_direction: bool = True):
+    def __init__(
+        self,
+        basis_gates: List[str],
+        approximation_degree: float = 1,
+        coupling_map: List = None,
+        backend_props: BackendProperties = None,
+        pulse_optimize: bool = False,
+        natural_direction: bool = True,
+    ):
         """
         Synthesize unitaries over some basis gates.
 
@@ -91,7 +94,6 @@ class UnitarySynthesis(TransformationPass):
         self._pulse_optimize = pulse_optimize
         self._natural_direction = natural_direction
 
-
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the UnitarySynthesis pass on `dag`.
 
@@ -107,8 +109,9 @@ class UnitarySynthesis(TransformationPass):
         if euler_basis is not None:
             decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
         if kak_gate is not None:
-            decomposer2q = TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis,
-                                                   pulse_optimize=self._pulse_optimize)
+            decomposer2q = TwoQubitBasisDecomposer(
+                kak_gate, euler_basis=euler_basis, pulse_optimize=self._pulse_optimize
+            )
         for node in dag.named_nodes("unitary"):
             synth_dag = None
             wires = None
@@ -128,7 +131,7 @@ class UnitarySynthesis(TransformationPass):
         return dag
 
     def _synth_natural_direction(self, node, wires, decomposer2q):
-        layout = self.property_set['layout']
+        layout = self.property_set["layout"]
         natural_direction = None
         physical_gate_fidelity = None
         if self._natural_direction and layout and self._coupling_map:
@@ -144,12 +147,14 @@ class UnitarySynthesis(TransformationPass):
             len_1_0 = inf
             try:
                 len_0_1 = self._backend_props.gate_length(
-                    'cx', [node.qargs[0].index, node.qargs[1].index])
+                    "cx", [node.qargs[0].index, node.qargs[1].index]
+                )
             except BackendPropertyError:
                 pass
             try:
                 len_1_0 = self._backend_props.gate_length(
-                    'cx', [node.qargs[1].index, node.qargs[0].index])
+                    "cx", [node.qargs[1].index, node.qargs[0].index]
+                )
             except BackendPropertyError:
                 pass
 
@@ -159,7 +164,8 @@ class UnitarySynthesis(TransformationPass):
                 natural_direction = [1, 0]
             if natural_direction:
                 physical_gate_fidelity = 1 - self._backend_props.gate_error(
-                        'cx', [node.qargs[i].index for i in natural_direction])
+                    "cx", [node.qargs[i].index for i in natural_direction]
+                )
         basis_fidelity = self._approximation_degree or physical_gate_fidelity
         su4_mat = node.op.to_matrix()
         synth_circ = decomposer2q(su4_mat, basis_fidelity=basis_fidelity)
@@ -170,12 +176,10 @@ class UnitarySynthesis(TransformationPass):
         # this new operator is doubly mirrored from the original and is locally equivalent.
         if synth_dag.two_qubit_ops():
             synth_direction = [q.index for q in synth_dag.two_qubit_ops()[0].qargs]
-        if (natural_direction and self._pulse_optimize and
-                synth_direction != natural_direction):
+        if natural_direction and self._pulse_optimize and synth_direction != natural_direction:
             su4_mat_mm = deepcopy(su4_mat)
             su4_mat_mm[[1, 2]] = su4_mat_mm[[2, 1]]
             su4_mat_mm[:, [1, 2]] = su4_mat_mm[:, [2, 1]]
-            synth_dag = circuit_to_dag(
-                decomposer2q(su4_mat_mm, basis_fidelity=basis_fidelity))
+            synth_dag = circuit_to_dag(decomposer2q(su4_mat_mm, basis_fidelity=basis_fidelity))
             wires = synth_dag.wires[::-1]
         return synth_dag, wires
