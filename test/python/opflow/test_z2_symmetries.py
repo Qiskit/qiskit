@@ -21,7 +21,7 @@ from qiskit.quantum_info import Pauli, SparsePauliOp
 class TestZ2Symmetries(QiskitOpflowTestCase):
     """Z2Symmetries tests."""
 
-    def test_find_Z2_symmetries(self):  # pylint: disable=invalid-name
+    def test_find_Z2_symmetries(self):
         """test for find_Z2_symmetries"""
 
         qubit_op = PauliSumOp.from_list(

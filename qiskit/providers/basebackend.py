@@ -17,6 +17,7 @@ Doing so requires that the required backend interface is implemented.
 """
 
 from abc import ABC, abstractmethod
+import warnings
 
 from qiskit.version import VERSION as __version__
 from .models import BackendStatus
@@ -27,7 +28,7 @@ class BaseBackend(ABC):
 
     @abstractmethod
     def __init__(self, configuration, provider=None):
-        """Base class for backends.
+        """DEPRECATED Legacy base class for backends.
 
         This method should initialize the module and its configuration, and
         raise an exception if a component of the module is
@@ -40,6 +41,15 @@ class BaseBackend(ABC):
         Raises:
             QiskitError: if an error occurred when instantiating the backend.
         """
+        warnings.warn(
+            "The BaseBackend abstract interface is deprecated as of "
+            "the 0.18.0 release and will be removed in a future "
+            "release. Instead you should build your backends using "
+            "the BackendV1 abstract class (which is the current "
+            "latest version of the backend interface)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._configuration = configuration
         self._provider = provider
 
@@ -119,4 +129,4 @@ class BaseBackend(ABC):
 
         [0] https://docs.python.org/3/reference/datamodel.html#object.__repr__
         """
-        return "<{}('{}') from {}()>".format(self.__class__.__name__, self.name(), self._provider)
+        return f"<{self.__class__.__name__}('{self.name()}') from {self._provider}()>"

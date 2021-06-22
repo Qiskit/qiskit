@@ -96,7 +96,7 @@ class RZXCalibrationBuilder(CalibrationCreator):
         if not backend.configuration().open_pulse:
             raise QiskitError(
                 "Calibrations can only be added to Pulse-enabled backends, "
-                "but {0} is not enabled with Pulse.".format(backend.name())
+                "but {} is not enabled with Pulse.".format(backend.name())
             )
 
         self._inst_map = backend.defaults().instruction_schedule_map
@@ -328,7 +328,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
                 support the specified direction of the cx.
         """
         theta = params[0]
-        # print('Theta = ', theta)
+
         q1, q2 = qubits[0], qubits[1]
 
         if not self._inst_map.has("cx", qubits):

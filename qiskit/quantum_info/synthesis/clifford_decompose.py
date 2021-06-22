@@ -211,9 +211,9 @@ def _decompose_clifford_1q(pauli, phase):
         circuit.s(0)
 
     # Add circuit name
-    name_destab = "Destabilizer = ['{}{}']".format(destab_phase_label, destab_label)
-    name_stab = "Stabilizer = ['{}{}']".format(stab_phase_label, stab_label)
-    circuit.name = "Clifford: {}, {}".format(name_stab, name_destab)
+    name_destab = f"Destabilizer = ['{destab_phase_label}{destab_label}']"
+    name_stab = f"Stabilizer = ['{stab_phase_label}{stab_label}']"
+    circuit.name = f"Clifford: {name_stab}, {name_destab}"
     return circuit
 
 

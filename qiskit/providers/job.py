@@ -112,7 +112,7 @@ class JobV1(Job, ABC):
         while status not in JOB_FINAL_STATES:
             elapsed_time = time.time() - start_time
             if timeout is not None and elapsed_time >= timeout:
-                raise JobTimeoutError("Timeout while waiting for job {}.".format(self.job_id()))
+                raise JobTimeoutError(f"Timeout while waiting for job {self.job_id()}.")
             if callback:
                 callback(self.job_id(), status, self)
             time.sleep(wait)

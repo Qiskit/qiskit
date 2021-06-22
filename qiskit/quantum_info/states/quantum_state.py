@@ -61,7 +61,7 @@ class QuantumState:
     @property
     def _rng(self):
         if self._rng_generator is None:
-            return np.random
+            return np.random.default_rng()
         return self._rng_generator
 
     def dims(self, qargs=None):
@@ -148,7 +148,7 @@ class QuantumState:
         Raises:
             NotImplementedError: if subclass does not support addition.
         """
-        raise NotImplementedError("{} does not support addition".format(type(self)))
+        raise NotImplementedError(f"{type(self)} does not support addition")
 
     def _multiply(self, other):
         """Return the scalar multipled state other * self.
@@ -163,7 +163,7 @@ class QuantumState:
             NotImplementedError: if subclass does not support scala
                                  multiplication.
         """
-        raise NotImplementedError("{} does not support scalar multiplication".format(type(self)))
+        raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
 
     @abstractmethod
     def evolve(self, other, qargs=None):
@@ -429,8 +429,7 @@ class QuantumState:
         # Make dict of tuples
         if string_labels:
             return {
-                "{}|{}".format(ket, bra): val
-                for ket, bra, val in zip(kets, bras, vals[inds_row, inds_col])
+                f"{ket}|{bra}": val for ket, bra, val in zip(kets, bras, vals[inds_row, inds_col])
             }
 
         return {
