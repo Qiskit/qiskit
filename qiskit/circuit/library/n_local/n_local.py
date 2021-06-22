@@ -947,8 +947,7 @@ class NLocal(BlueprintCircuit):
         if self.num_qubits == 0:
             return
 
-        # use the initial state circuit if it is not None
-        # if the initail_state is an instance of QuantumCircuit, do not call construct_circuit
+        # use the initial state as starting circuit, if it is set
         if self._initial_state:
             if isinstance(self._initial_state, QuantumCircuit):
                 circuit = self._initial_state.copy()
