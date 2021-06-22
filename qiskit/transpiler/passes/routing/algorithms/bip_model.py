@@ -274,20 +274,6 @@ class BIPMappingModel:
                     sum(x[t, q, i, j] for q in q_no_gate) == sum(x[t, p, j, i] for p in q_no_gate),
                     ctname=f"swap_no_gate_{i}_{j}_at_{t}",
                 )
-        # Link between w variables and y variables, i.e. a gate can only
-        # be implemented on an arc that has the right logical qubits at its endpoints
-        for t in range(self.depth - 1):
-            for (p, q) in self.gates[t]:
-                for i in range(self.num_pqubits):
-                    for j in self._coupling.neighbors(i):
-                        mdl.add_constraint(
-                            y[t, p, q, i, j] <= x[t, p, i, i] + x[t, p, i, j],
-                            ctname=f"valid_first_assignment_for_y_{t}_{p}_{q}_{i}_{j}",
-                        )
-                        mdl.add_constraint(
-                            y[t, p, q, i, j] <= x[t, q, j, j] + x[t, q, j, i],
-                            ctname=f"valid_second_assignment_for_y_{t}_{p}_{q}_{i}_{j}",
-                        )
 
         # *** Define supplemental variables ***
         # Add z variables to count dummy steps (supplemental variables for symmetry breaking)
@@ -327,7 +313,7 @@ class BIPMappingModel:
             for t in range(self.depth - 1):
                 for q in range(self.num_vqubits):
                     for (i, j) in self._arcs:
-                        objexr += 0.1 * x[t, q, i, j]
+                        objexr += 0.01 * x[t, q, i, j]
             mdl.minimize(objexr)
         elif objective == "error_rate":
             self._set_error_rate_obj(mdl)
@@ -349,19 +335,19 @@ class BIPMappingModel:
         """Set the minimum balanced (weighted sum of error_rate and depth) objective function."""
         raise NotImplementedError("objective: 'balanced' is not implemented")
 
-    def solve_cpx_problem(self, time_limit: float = 60, heuristic_emphasis: bool = False):
-        """Solve the Cplex model.
+    def solve_cpx_problem(self, time_limit: float = 60, threads: int = None):
+        """Solve the BIP problem using CPLEX.
 
         Args:
             time_limit:
-                Time limit (seconds) given to Cplex.
+                Time limit (seconds) given to CPLEX.
 
-            heuristic_emphasis:
-                Focus on getting good solutions rather than proving optimality
+            threads:
+                Number of threads to be allowed for CPLEX to use.
 
         Raises:
-            MissingOptionalLibraryError: If cplex is not installed
-            TranspilerError: if fails to solve the Cplex problem within given timelimit.
+            MissingOptionalLibraryError: If CPLEX is not installed
+            TranspilerError: if fails to solve the problem within given ``time_limit``.
         """
         if not HAS_CPLEX:
             raise MissingOptionalLibraryError(
@@ -370,10 +356,9 @@ class BIPMappingModel:
                 pip_install="pip install cplex",
             )
         self.problem.set_time_limit(time_limit)
+        if threads is not None:
+            self.problem.context.cplex_parameters.threads = threads
         self.problem.context.cplex_parameters.randomseed = 777
-        # self.problem.context.cplex_parameters.threads = 4
-        if heuristic_emphasis:
-            self.problem.context.cplex_parameters.emphasis.mip = 5
 
         self.solution = self.problem.solve()
 

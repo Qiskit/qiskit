@@ -67,6 +67,7 @@ class BIPMapping(TransformationPass):
         objective="depth",
         backend_prop=None,
         time_limit=30,
+        threads=None,
         max_swaps_inbetween_layers=None,
     ):
         """BIPMapping initializer.
@@ -81,6 +82,7 @@ class BIPMapping(TransformationPass):
 
             backend_prop (BackendProperties): Backend properties object
             time_limit (float): Time limit for solving BIP in seconds
+            threads (int): Number of threads to be allowed for CPLEX to solve BIP
             max_swaps_inbetween_layers (int):
                 Number of swaps allowed inbetween layers. If None, automatically set.
                 Large value could decrease the probability to build infeasible BIP problem but also
@@ -102,6 +104,7 @@ class BIPMapping(TransformationPass):
         self.objective = objective
         self.backend_prop = backend_prop
         self.time_limit = time_limit
+        self.threads = threads
         self.max_swaps_inbetween_layers = max_swaps_inbetween_layers
 
     def run(self, dag):
