@@ -9,7 +9,7 @@ pillow>=4.2.1
 black==21.4b2
 pydot
 astroid==2.5.6
-pylint==2.8.2
+pylint==2.8.3
 stestr>=2.0.0
 PyGithub
 wheel
