@@ -25,8 +25,13 @@ from qiskit.circuit.library.standard_gates import RYGate, HGate, CXGate, ECRGate
 
 
 class NativeCRGateDirection(TransformationPass):
-    """Modify asymmetric gates to match the hardware coupling direction.
-    This pass makes use of the following identities::
+    """Modify asymmetric gates to match the native cross-resonance direction.
+    
+    A cross-resonance gate is in the native direction if the control qubit is driven at the
+    frequency of the target qubit. The non-native direction is recovered by adding Hadamard
+    gates to the pulse schedule which increase the duration of the schedule. This pass replaces
+    any non-native gates with native gates and extra single-qubit gates which are therefore
+    exposed to the transpiler. This pass makes use of the following identities:
                              ┌───┐┌───┐┌───┐
         q_0: ──■──      q_0: ┤ H ├┤ X ├┤ H ├
              ┌─┴─┐  =        ├───┤└─┬─┘├───┤
