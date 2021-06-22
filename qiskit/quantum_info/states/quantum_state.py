@@ -61,7 +61,7 @@ class QuantumState:
     @property
     def _rng(self):
         if self._rng_generator is None:
-            return np.random
+            return np.random.default_rng()
         return self._rng_generator
 
     def dims(self, qargs=None):
@@ -148,8 +148,7 @@ class QuantumState:
         Raises:
             NotImplementedError: if subclass does not support addition.
         """
-        raise NotImplementedError(
-            "{} does not support addition".format(type(self)))
+        raise NotImplementedError(f"{type(self)} does not support addition")
 
     def _multiply(self, other):
         """Return the scalar multipled state other * self.
@@ -164,8 +163,7 @@ class QuantumState:
             NotImplementedError: if subclass does not support scala
                                  multiplication.
         """
-        raise NotImplementedError(
-            "{} does not support scalar multiplication".format(type(self)))
+        raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
 
     @abstractmethod
     def evolve(self, other, qargs=None):
@@ -237,9 +235,8 @@ class QuantumState:
             dict: The measurement probabilities in dict (ket) form.
         """
         return self._vector_to_dict(
-            self.probabilities(qargs=qargs, decimals=decimals),
-            self.dims(qargs),
-            string_labels=True)
+            self.probabilities(qargs=qargs, decimals=decimals), self.dims(qargs), string_labels=True
+        )
 
     def sample_memory(self, shots, qargs=None):
         """Sample a list of qubit measurement outcomes in the computational basis.
@@ -268,7 +265,8 @@ class QuantumState:
 
         # Generate list of possible outcome string labels
         labels = self._index_to_ket_array(
-            np.arange(len(probs)), self.dims(qargs), string_labels=True)
+            np.arange(len(probs)), self.dims(qargs), string_labels=True
+        )
         return self._rng.choice(labels, p=probs, size=shots)
 
     def sample_counts(self, shots, qargs=None):
@@ -324,8 +322,7 @@ class QuantumState:
         sample = self._rng.choice(len(probs), p=probs, size=1)
 
         # Format outcome
-        outcome = self._index_to_ket_array(
-            sample, self.dims(qargs), string_labels=True)[0]
+        outcome = self._index_to_ket_array(sample, self.dims(qargs), string_labels=True)[0]
 
         # Convert to projector for state update
         proj = np.zeros(len(probs), dtype=complex)
@@ -334,9 +331,7 @@ class QuantumState:
         # Update state object
         # TODO: implement a more efficient state update method for
         # diagonal matrix multiplication
-        ret = self.evolve(
-            Operator(np.diag(proj), input_dims=dims, output_dims=dims),
-            qargs=qargs)
+        ret = self.evolve(Operator(np.diag(proj), input_dims=dims, output_dims=dims), qargs=qargs)
 
         return outcome, ret
 
@@ -365,7 +360,7 @@ class QuantumState:
             str_kets = char_kets[0]
             for row in char_kets[1:]:
                 if max_dim > 10:
-                    str_kets = np.char.add(',', str_kets)
+                    str_kets = np.char.add(",", str_kets)
                 str_kets = np.char.add(row, str_kets)
             return str_kets.T
 
@@ -391,11 +386,10 @@ class QuantumState:
         """
         # Get indices of non-zero elements
         vals = vec if decimals is None else vec.round(decimals=decimals)
-        inds, = vals.nonzero()
+        (inds,) = vals.nonzero()
 
         # Convert to ket tuple based on subsystem dimensions
-        kets = QuantumState._index_to_ket_array(
-            inds, dims, string_labels=string_labels)
+        kets = QuantumState._index_to_ket_array(inds, dims, string_labels=string_labels)
 
         # Make dict of tuples
         if string_labels:
@@ -423,21 +417,25 @@ class QuantumState:
         """
         # Get indices of non-zero elements
         vals = mat if decimals is None else mat.round(decimals=decimals)
-        inds_row, inds_col, = vals.nonzero()
+        (
+            inds_row,
+            inds_col,
+        ) = vals.nonzero()
 
         # Convert to ket tuple based on subsystem dimensions
-        bras = QuantumState._index_to_ket_array(
-            inds_row, dims, string_labels=string_labels)
-        kets = QuantumState._index_to_ket_array(
-            inds_col, dims, string_labels=string_labels)
+        bras = QuantumState._index_to_ket_array(inds_row, dims, string_labels=string_labels)
+        kets = QuantumState._index_to_ket_array(inds_col, dims, string_labels=string_labels)
 
         # Make dict of tuples
         if string_labels:
-            return {'{}|{}'.format(ket, bra): val for ket, bra, val in zip(
-                kets, bras, vals[inds_row, inds_col])}
+            return {
+                f"{ket}|{bra}": val for ket, bra, val in zip(kets, bras, vals[inds_row, inds_col])
+            }
 
-        return {(tuple(ket), tuple(bra)): val for ket, bra, val in zip(
-            kets, bras, vals[inds_row, inds_col])}
+        return {
+            (tuple(ket), tuple(bra)): val
+            for ket, bra, val in zip(kets, bras, vals[inds_row, inds_col])
+        }
 
     @staticmethod
     def _subsystem_probabilities(probs, dims, qargs=None):
@@ -475,10 +473,11 @@ class QuantumState:
         return self.evolve(other)
 
     @deprecate_function(
-        'Using `psi @ U` as shorthand for `psi.evolve(U)` is deprecated'
-        ' as of version 0.17.0 and will be removed no earlier than 3 months'
-        ' after the release date. It has been superceded by the `&` operator'
-        ' (`psi & U == psi.evolve(U)`) instead.')
+        "Using `psi @ U` as shorthand for `psi.evolve(U)` is deprecated"
+        " as of version 0.17.0 and will be removed no earlier than 3 months"
+        " after the release date. It has been superceded by the `&` operator"
+        " (`psi & U == psi.evolve(U)`) instead."
+    )
     def __matmul__(self, other):
         # Check for subsystem case return by __call__ method
         if isinstance(other, tuple) and len(other) == 2:

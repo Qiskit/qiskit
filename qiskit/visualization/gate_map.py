@@ -14,59 +14,25 @@
 
 import math
 import numpy as np
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
 
-class _GraphDist():
-    """Transform the circles properly for non-square axes.
-    """
-
-    def __init__(self, size, ax, x=True):
-        self.size = size
-        self.ax = ax  # pylint: disable=invalid-name
-        self.x = x
-
-    @property
-    def dist_real(self):
-        """Compute distance.
-        """
-        x0, y0 = self.ax.transAxes.transform(
-            (0, 0))
-        x1, y1 = self.ax.transAxes.transform(
-            (1, 1))
-        value = x1 - x0 if self.x else y1 - y0
-        return value
-
-    @property
-    def dist_abs(self):
-        """Distance abs
-        """
-        bounds = self.ax.get_xlim() if self.x else self.ax.get_ylim()
-        return bounds[0] - bounds[1]
-
-    @property
-    def value(self):
-        """Return value.
-        """
-        return (self.size / self.dist_real) * self.dist_abs
-
-    def __mul__(self, obj):
-        return self.value * obj
-
-
-def plot_gate_map(backend, figsize=None,
-                  plot_directed=False,
-                  label_qubits=True,
-                  qubit_size=24,
-                  line_width=4,
-                  font_size=12,
-                  qubit_color=None,
-                  qubit_labels=None,
-                  line_color=None,
-                  font_color='w',
-                  ax=None):
+def plot_gate_map(
+    backend,
+    figsize=None,
+    plot_directed=False,
+    label_qubits=True,
+    qubit_size=None,
+    line_width=4,
+    font_size=None,
+    qubit_color=None,
+    qubit_labels=None,
+    line_color=None,
+    font_color="w",
+    ax=None,
+):
     """Plots the gate map of a device.
 
     Args:
@@ -88,7 +54,7 @@ def plot_gate_map(backend, figsize=None,
 
     Raises:
         QiskitError: if tried to pass a simulator.
-        ImportError: if matplotlib not installed.
+        MissingOptionalLibraryError: if matplotlib not installed.
 
     Example:
         .. jupyter-execute::
@@ -110,14 +76,17 @@ def plot_gate_map(backend, figsize=None,
            plot_gate_map(backend)
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, '
-                          'run "pip install matplotlib".')
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_gate_map",
+            pip_install="pip install matplotlib",
+        )
     from matplotlib import get_backend
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
 
     if backend.configuration().simulator:
-        raise QiskitError('Requires a device backend, not simulator.')
+        raise QiskitError("Requires a device backend, not simulator.")
 
     input_axes = False
     if ax:
@@ -129,90 +98,282 @@ def plot_gate_map(backend, figsize=None,
 
     mpl_data[5] = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
 
-    mpl_data[7] = [[0, 0], [0, 1], [0, 2],
-                   [1, 1],
-                   [2, 0], [2, 1], [2, 2]]
+    mpl_data[7] = [[0, 0], [0, 1], [0, 2], [1, 1], [2, 0], [2, 1], [2, 2]]
 
-    mpl_data[20] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
-                    [1, 0], [1, 1], [1, 2], [1, 3], [1, 4],
-                    [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
-                    [3, 0], [3, 1], [3, 2], [3, 3], [3, 4]]
+    mpl_data[20] = [
+        [0, 0],
+        [0, 1],
+        [0, 2],
+        [0, 3],
+        [0, 4],
+        [1, 0],
+        [1, 1],
+        [1, 2],
+        [1, 3],
+        [1, 4],
+        [2, 0],
+        [2, 1],
+        [2, 2],
+        [2, 3],
+        [2, 4],
+        [3, 0],
+        [3, 1],
+        [3, 2],
+        [3, 3],
+        [3, 4],
+    ]
 
-    mpl_data[15] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
-                    [0, 5], [0, 6], [1, 7], [1, 6], [1, 5],
-                    [1, 4], [1, 3], [1, 2], [1, 1], [1, 0]]
+    mpl_data[15] = [
+        [0, 0],
+        [0, 1],
+        [0, 2],
+        [0, 3],
+        [0, 4],
+        [0, 5],
+        [0, 6],
+        [1, 7],
+        [1, 6],
+        [1, 5],
+        [1, 4],
+        [1, 3],
+        [1, 2],
+        [1, 1],
+        [1, 0],
+    ]
 
-    mpl_data[16] = [[1, 0], [1, 1], [2, 1], [3, 1], [1, 2],
-                    [3, 2], [0, 3], [1, 3], [3, 3], [4, 3],
-                    [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [1, 6]]
+    mpl_data[16] = [
+        [1, 0],
+        [1, 1],
+        [2, 1],
+        [3, 1],
+        [1, 2],
+        [3, 2],
+        [0, 3],
+        [1, 3],
+        [3, 3],
+        [4, 3],
+        [1, 4],
+        [3, 4],
+        [1, 5],
+        [2, 5],
+        [3, 5],
+        [1, 6],
+    ]
 
-    mpl_data[27] = [[1, 0], [1, 1], [2, 1], [3, 1], [1, 2],
-                    [3, 2], [0, 3], [1, 3], [3, 3], [4, 3],
-                    [1, 4], [3, 4], [1, 5], [2, 5], [3, 5],
-                    [1, 6], [3, 6], [0, 7], [1, 7], [3, 7],
-                    [4, 7], [1, 8], [3, 8], [1, 9], [2, 9],
-                    [3, 9], [3, 10]]
+    mpl_data[27] = [
+        [1, 0],
+        [1, 1],
+        [2, 1],
+        [3, 1],
+        [1, 2],
+        [3, 2],
+        [0, 3],
+        [1, 3],
+        [3, 3],
+        [4, 3],
+        [1, 4],
+        [3, 4],
+        [1, 5],
+        [2, 5],
+        [3, 5],
+        [1, 6],
+        [3, 6],
+        [0, 7],
+        [1, 7],
+        [3, 7],
+        [4, 7],
+        [1, 8],
+        [3, 8],
+        [1, 9],
+        [2, 9],
+        [3, 9],
+        [3, 10],
+    ]
 
-    mpl_data[28] = [[0, 2], [0, 3], [0, 4], [0, 5], [0, 6],
-                    [1, 2], [1, 6],
-                    [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
-                    [2, 5], [2, 6], [2, 7], [2, 8],
-                    [3, 0], [3, 4], [3, 8],
-                    [4, 0], [4, 1], [4, 2], [4, 3], [4, 4],
-                    [4, 5], [4, 6], [4, 7], [4, 8]]
+    mpl_data[28] = [
+        [0, 2],
+        [0, 3],
+        [0, 4],
+        [0, 5],
+        [0, 6],
+        [1, 2],
+        [1, 6],
+        [2, 0],
+        [2, 1],
+        [2, 2],
+        [2, 3],
+        [2, 4],
+        [2, 5],
+        [2, 6],
+        [2, 7],
+        [2, 8],
+        [3, 0],
+        [3, 4],
+        [3, 8],
+        [4, 0],
+        [4, 1],
+        [4, 2],
+        [4, 3],
+        [4, 4],
+        [4, 5],
+        [4, 6],
+        [4, 7],
+        [4, 8],
+    ]
 
-    mpl_data[53] = [[0, 2], [0, 3], [0, 4], [0, 5], [0, 6],
-                    [1, 2], [1, 6],
-                    [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
-                    [2, 5], [2, 6], [2, 7], [2, 8],
-                    [3, 0], [3, 4], [3, 8],
-                    [4, 0], [4, 1], [4, 2], [4, 3], [4, 4],
-                    [4, 5], [4, 6], [4, 7], [4, 8],
-                    [5, 2], [5, 6],
-                    [6, 0], [6, 1], [6, 2], [6, 3], [6, 4],
-                    [6, 5], [6, 6], [6, 7], [6, 8],
-                    [7, 0], [7, 4], [7, 8],
-                    [8, 0], [8, 1], [8, 2], [8, 3], [8, 4],
-                    [8, 5], [8, 6], [8, 7], [8, 8],
-                    [9, 2], [9, 6]]
+    mpl_data[53] = [
+        [0, 2],
+        [0, 3],
+        [0, 4],
+        [0, 5],
+        [0, 6],
+        [1, 2],
+        [1, 6],
+        [2, 0],
+        [2, 1],
+        [2, 2],
+        [2, 3],
+        [2, 4],
+        [2, 5],
+        [2, 6],
+        [2, 7],
+        [2, 8],
+        [3, 0],
+        [3, 4],
+        [3, 8],
+        [4, 0],
+        [4, 1],
+        [4, 2],
+        [4, 3],
+        [4, 4],
+        [4, 5],
+        [4, 6],
+        [4, 7],
+        [4, 8],
+        [5, 2],
+        [5, 6],
+        [6, 0],
+        [6, 1],
+        [6, 2],
+        [6, 3],
+        [6, 4],
+        [6, 5],
+        [6, 6],
+        [6, 7],
+        [6, 8],
+        [7, 0],
+        [7, 4],
+        [7, 8],
+        [8, 0],
+        [8, 1],
+        [8, 2],
+        [8, 3],
+        [8, 4],
+        [8, 5],
+        [8, 6],
+        [8, 7],
+        [8, 8],
+        [9, 2],
+        [9, 6],
+    ]
 
-    mpl_data[65] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
-                    [0, 5], [0, 6], [0, 7], [0, 8], [0, 9],
-                    [1, 0], [1, 4], [1, 8],
-                    [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
-                    [2, 5], [2, 6], [2, 7], [2, 8], [2, 9], [2, 10],
-                    [3, 2], [3, 6], [3, 10],
-                    [4, 0], [4, 1], [4, 2], [4, 3], [4, 4],
-                    [4, 5], [4, 6], [4, 7], [4, 8], [4, 9], [4, 10],
-                    [5, 0], [5, 4], [5, 8],
-                    [6, 0], [6, 1], [6, 2], [6, 3], [6, 4],
-                    [6, 5], [6, 6], [6, 7], [6, 8], [6, 9], [6, 10],
-                    [7, 2], [7, 6], [7, 10],
-                    [8, 1], [8, 2], [8, 3], [8, 4],
-                    [8, 5], [8, 6], [8, 7], [8, 8], [8, 9], [8, 10]]
+    mpl_data[65] = [
+        [0, 0],
+        [0, 1],
+        [0, 2],
+        [0, 3],
+        [0, 4],
+        [0, 5],
+        [0, 6],
+        [0, 7],
+        [0, 8],
+        [0, 9],
+        [1, 0],
+        [1, 4],
+        [1, 8],
+        [2, 0],
+        [2, 1],
+        [2, 2],
+        [2, 3],
+        [2, 4],
+        [2, 5],
+        [2, 6],
+        [2, 7],
+        [2, 8],
+        [2, 9],
+        [2, 10],
+        [3, 2],
+        [3, 6],
+        [3, 10],
+        [4, 0],
+        [4, 1],
+        [4, 2],
+        [4, 3],
+        [4, 4],
+        [4, 5],
+        [4, 6],
+        [4, 7],
+        [4, 8],
+        [4, 9],
+        [4, 10],
+        [5, 0],
+        [5, 4],
+        [5, 8],
+        [6, 0],
+        [6, 1],
+        [6, 2],
+        [6, 3],
+        [6, 4],
+        [6, 5],
+        [6, 6],
+        [6, 7],
+        [6, 8],
+        [6, 9],
+        [6, 10],
+        [7, 2],
+        [7, 6],
+        [7, 10],
+        [8, 1],
+        [8, 2],
+        [8, 3],
+        [8, 4],
+        [8, 5],
+        [8, 6],
+        [8, 7],
+        [8, 8],
+        [8, 9],
+        [8, 10],
+    ]
 
     config = backend.configuration()
     num_qubits = config.n_qubits
     cmap = config.coupling_map
 
+    if font_size is None:
+        font_size = 12
+
+    if qubit_size is None:
+        qubit_size = 24
+    if num_qubits > 20:
+        qubit_size = 28
+        font_size = 10
+
     if qubit_labels is None:
         qubit_labels = list(range(num_qubits))
     else:
         if len(qubit_labels) != num_qubits:
-            raise QiskitError('Length of qubit labels '
-                              'does not equal number '
-                              'of qubits.')
+            raise QiskitError("Length of qubit labels " "does not equal number " "of qubits.")
 
     if num_qubits in mpl_data.keys():
         grid_data = mpl_data[num_qubits]
     else:
         if not input_axes:
             fig, ax = plt.subplots(figsize=(5, 5))
-            ax.axis('off')
+            ax.axis("off")
             return fig
 
-    x_max = max([d[1] for d in grid_data])
-    y_max = max([d[0] for d in grid_data])
+    x_max = max(d[1] for d in grid_data)
+    y_max = max(d[0] for d in grid_data)
     max_dim = max(x_max, y_max)
 
     if figsize is None:
@@ -223,13 +384,13 @@ def plot_gate_map(backend, figsize=None,
 
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
-        ax.axis('off')
+        ax.axis("off")
 
     # set coloring
     if qubit_color is None:
-        qubit_color = ['#648fff'] * config.n_qubits
+        qubit_color = ["#648fff"] * config.n_qubits
     if line_color is None:
-        line_color = ['#648fff'] * len(cmap) if cmap else []
+        line_color = ["#648fff"] * len(cmap) if cmap else []
 
     # Add lines for couplings
     if num_qubits != 1:
@@ -252,9 +413,15 @@ def plot_gate_map(backend, figsize=None,
                 else:
                     x_end = (x_end - x_start) / 2 + x_start
                     y_end = (y_end - y_start) / 2 + y_start
-            ax.add_artist(plt.Line2D([x_start, x_end], [-y_start, -y_end],
-                                     color=line_color[ind], linewidth=line_width,
-                                     zorder=0))
+            ax.add_artist(
+                plt.Line2D(
+                    [x_start, x_end],
+                    [-y_start, -y_end],
+                    color=line_color[ind],
+                    linewidth=line_width,
+                    zorder=0,
+                )
+            )
             if plot_directed:
                 dx = x_end - x_start
                 dy = y_end - y_start
@@ -270,40 +437,54 @@ def plot_gate_map(backend, figsize=None,
                     dx_arrow = dx * 0.2
                     dy_arrow = -dy * 0.2
                     head_width = 0.2
-                ax.add_patch(mpatches.FancyArrow(x_arrow,
-                                                 y_arrow,
-                                                 dx_arrow,
-                                                 dy_arrow,
-                                                 head_width=head_width,
-                                                 length_includes_head=True,
-                                                 edgecolor=None,
-                                                 linewidth=0,
-                                                 facecolor=line_color[ind],
-                                                 zorder=1))
+                ax.add_patch(
+                    mpatches.FancyArrow(
+                        x_arrow,
+                        y_arrow,
+                        dx_arrow,
+                        dy_arrow,
+                        head_width=head_width,
+                        length_includes_head=True,
+                        edgecolor=None,
+                        linewidth=0,
+                        facecolor=line_color[ind],
+                        zorder=1,
+                    )
+                )
 
     # Add circles for qubits
     for var, idx in enumerate(grid_data):
         _idx = [idx[1], -idx[0]]
-        width = _GraphDist(qubit_size, ax, True)
-        height = _GraphDist(qubit_size, ax, False)
-        ax.add_artist(mpatches.Ellipse(
-            _idx, width, height, color=qubit_color[var], zorder=1))
-        if label_qubits:
-            ax.text(*_idx, s=qubit_labels[var],
-                    horizontalalignment='center',
-                    verticalalignment='center',
-                    color=font_color, size=font_size, weight='bold')
+        ax.add_artist(
+            mpatches.Ellipse(
+                _idx,
+                qubit_size / 48,
+                qubit_size / 48,  # This is here so that the changes
+                color=qubit_color[var],
+                zorder=1,
+            )
+        )  # to how qubits are plotted does
+        if label_qubits:  # not affect qubit size kwarg.
+            ax.text(
+                *_idx,
+                s=qubit_labels[var],
+                horizontalalignment="center",
+                verticalalignment="center",
+                color=font_color,
+                size=font_size,
+                weight="bold",
+            )
     ax.set_xlim([-1, x_max + 1])
     ax.set_ylim([-(y_max + 1), 1])
+    ax.set_aspect("equal")
     if not input_axes:
-        if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                             'nbAgg']:
+        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
         return fig
     return None
 
 
-def plot_circuit_layout(circuit, backend, view='virtual'):
+def plot_circuit_layout(circuit, backend, view="virtual"):
     """Plot the layout of a circuit transpiled for a given
     target backend.
 
@@ -350,54 +531,52 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
             plot_circuit_layout(new_circ_lv3, backend)
     """
     if circuit._layout is None:
-        raise QiskitError('Circuit has no layout. '
-                          'Perhaps it has not been transpiled.')
+        raise QiskitError("Circuit has no layout. " "Perhaps it has not been transpiled.")
 
     num_qubits = backend.configuration().n_qubits
 
     qubits = []
     qubit_labels = [None] * num_qubits
 
-    bit_locations = {bit: {'register': register, 'index': index}
-                     for register in circuit._layout.get_registers()
-                     for index, bit in enumerate(register)}
+    bit_locations = {
+        bit: {"register": register, "index": index}
+        for register in circuit._layout.get_registers()
+        for index, bit in enumerate(register)
+    }
     for index, qubit in enumerate(circuit._layout.get_virtual_bits()):
         if qubit not in bit_locations:
-            bit_locations[qubit] = {'register': None, 'index': index}
+            bit_locations[qubit] = {"register": None, "index": index}
 
-    if view == 'virtual':
+    if view == "virtual":
         for key, val in circuit._layout.get_virtual_bits().items():
-            bit_register = bit_locations[key]['register']
-            if bit_register is None or bit_register.name != 'ancilla':
+            bit_register = bit_locations[key]["register"]
+            if bit_register is None or bit_register.name != "ancilla":
                 qubits.append(val)
-                qubit_labels[val] = bit_locations[key]['index']
+                qubit_labels[val] = bit_locations[key]["index"]
 
-    elif view == 'physical':
+    elif view == "physical":
         for key, val in circuit._layout.get_physical_bits().items():
-            bit_register = bit_locations[val]['register']
-            if bit_register is None or bit_register.name != 'ancilla':
+            bit_register = bit_locations[val]["register"]
+            if bit_register is None or bit_register.name != "ancilla":
                 qubits.append(key)
                 qubit_labels[key] = key
 
     else:
         raise VisualizationError("Layout view must be 'virtual' or 'physical'.")
 
-    qcolors = ['#648fff'] * num_qubits
+    qcolors = ["#648fff"] * num_qubits
     for k in qubits:
-        qcolors[k] = 'k'
+        qcolors[k] = "k"
 
     cmap = backend.configuration().coupling_map
 
-    lcolors = ['#648fff'] * len(cmap)
+    lcolors = ["#648fff"] * len(cmap)
 
     for idx, edge in enumerate(cmap):
         if edge[0] in qubits and edge[1] in qubits:
-            lcolors[idx] = 'k'
+            lcolors[idx] = "k"
 
-    fig = plot_gate_map(backend,
-                        qubit_color=qcolors,
-                        qubit_labels=qubit_labels,
-                        line_color=lcolors)
+    fig = plot_gate_map(backend, qubit_color=qcolors, qubit_labels=qubit_labels, line_color=lcolors)
     return fig
 
 
@@ -414,7 +593,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     Raises:
         VisualizationError: Input is not IBMQ backend.
-        ImportError: If seaborn is not installed
+        MissingOptionalLibraryError: If seaborn is not installed
 
     Example:
         .. jupyter-execute::
@@ -438,11 +617,17 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     try:
         import seaborn as sns
     except ImportError as ex:
-        raise ImportError('Must have seaborn installed to use plot_error_map. '
-                          'To install, run "pip install seaborn".') from ex
+        raise MissingOptionalLibraryError(
+            libname="seaborn",
+            name="plot_error_map",
+            pip_install="pip install seaborn",
+        ) from ex
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, '
-                          'run "pip install matplotlib".')
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_error_map",
+            pip_install="pip install matplotlib",
+        )
     import matplotlib
     from matplotlib import get_backend
     import matplotlib.pyplot as plt
@@ -454,24 +639,25 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     props = backend.properties().to_dict()
     config = backend.configuration().to_dict()
 
-    num_qubits = config['n_qubits']
+    num_qubits = config["n_qubits"]
 
     # U2 error rates
-    single_gate_errors = [0]*num_qubits
-    for gate in props['gates']:
-        if gate['gate'] == 'u2':
-            _qubit = gate['qubits'][0]
-            single_gate_errors[_qubit] = gate['parameters'][0]['value']
+    single_gate_errors = [0] * num_qubits
+    for gate in props["gates"]:
+        if gate["gate"] == "u2":
+            _qubit = gate["qubits"][0]
+            single_gate_errors[_qubit] = gate["parameters"][0]["value"]
 
     # Convert to percent
     single_gate_errors = 100 * np.asarray(single_gate_errors)
     avg_1q_err = np.mean(single_gate_errors)
 
     single_norm = matplotlib.colors.Normalize(
-        vmin=min(single_gate_errors), vmax=max(single_gate_errors))
+        vmin=min(single_gate_errors), vmax=max(single_gate_errors)
+    )
     q_colors = [color_map(single_norm(err)) for err in single_gate_errors]
 
-    cmap = config['coupling_map']
+    cmap = config["coupling_map"]
 
     directed = False
     line_colors = []
@@ -485,9 +671,9 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
         cx_errors = []
         for line in cmap:
-            for item in props['gates']:
-                if item['qubits'] == line:
-                    cx_errors.append(item['parameters'][0]['value'])
+            for item in props["gates"]:
+                if item["qubits"] == line:
+                    cx_errors.append(item["parameters"][0]["value"])
                     break
             else:
                 continue
@@ -496,8 +682,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         cx_errors = 100 * np.asarray(cx_errors)
         avg_cx_err = np.mean(cx_errors)
 
-        cx_norm = matplotlib.colors.Normalize(
-            vmin=min(cx_errors), vmax=max(cx_errors))
+        cx_norm = matplotlib.colors.Normalize(vmin=min(cx_errors), vmax=max(cx_errors))
         line_colors = [color_map(cx_norm(err)) for err in cx_errors]
 
     # Measurement errors
@@ -505,9 +690,9 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     read_err = []
 
     for qubit in range(num_qubits):
-        for item in props['qubits'][qubit]:
-            if item['name'] == 'readout_error':
-                read_err.append(item['value'])
+        for item in props["qubits"][qubit]:
+            if item["name"] == "readout_error":
+                read_err.append(item["value"])
 
     read_err = 100 * np.asarray(read_err)
     avg_read_err = np.mean(read_err)
@@ -516,8 +701,9 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     fig = plt.figure(figsize=figsize)
     gridspec.GridSpec(nrows=2, ncols=3)
 
-    grid_spec = gridspec.GridSpec(12, 12, height_ratios=[1] * 11 + [0.5],
-                                  width_ratios=[2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
+    grid_spec = gridspec.GridSpec(
+        12, 12, height_ratios=[1] * 11 + [0.5], width_ratios=[2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2]
+    )
 
     left_ax = plt.subplot(grid_spec[2:10, :1])
     main_ax = plt.subplot(grid_spec[:11, 1:11])
@@ -526,36 +712,42 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     if cmap:
         bright_ax = plt.subplot(grid_spec[-1, 7:])
 
-    plot_gate_map(backend, qubit_color=q_colors,
-                  line_color=line_colors,
-                  qubit_size=28,
-                  line_width=5,
-                  plot_directed=directed,
-                  ax=main_ax)
-    main_ax.axis('off')
+    qubit_size = 28
+    if num_qubits <= 5:
+        qubit_size = 20
+    plot_gate_map(
+        backend,
+        qubit_color=q_colors,
+        line_color=line_colors,
+        qubit_size=qubit_size,
+        line_width=5,
+        plot_directed=directed,
+        ax=main_ax,
+    )
+    main_ax.axis("off")
     main_ax.set_aspect(1)
     if cmap:
-        single_cb = matplotlib.colorbar.ColorbarBase(bleft_ax, cmap=color_map,
-                                                     norm=single_norm,
-                                                     orientation='horizontal')
+        single_cb = matplotlib.colorbar.ColorbarBase(
+            bleft_ax, cmap=color_map, norm=single_norm, orientation="horizontal"
+        )
         tick_locator = ticker.MaxNLocator(nbins=5)
         single_cb.locator = tick_locator
         single_cb.update_ticks()
         single_cb.update_ticks()
-        bleft_ax.set_title('H error rate (%) [Avg. = {}]'.format(round(avg_1q_err, 3)))
+        bleft_ax.set_title(f"H error rate (%) [Avg. = {round(avg_1q_err, 3)}]")
 
     if cmap is None:
-        bleft_ax.axis('off')
-        bleft_ax.set_title('H error rate (%) = {}'.format(round(avg_1q_err, 3)))
+        bleft_ax.axis("off")
+        bleft_ax.set_title(f"H error rate (%) = {round(avg_1q_err, 3)}")
 
     if cmap:
-        cx_cb = matplotlib.colorbar.ColorbarBase(bright_ax, cmap=color_map,
-                                                 norm=cx_norm,
-                                                 orientation='horizontal')
+        cx_cb = matplotlib.colorbar.ColorbarBase(
+            bright_ax, cmap=color_map, norm=cx_norm, orientation="horizontal"
+        )
         tick_locator = ticker.MaxNLocator(nbins=5)
         cx_cb.locator = tick_locator
         cx_cb.update_ticks()
-        bright_ax.set_title('CNOT error rate (%) [Avg. = {}]'.format(round(avg_cx_err, 3)))
+        bright_ax.set_title(f"CNOT error rate (%) [Avg. = {round(avg_cx_err, 3)}]")
 
     if num_qubits < 10:
         num_left = num_qubits
@@ -564,40 +756,38 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         num_left = math.ceil(num_qubits / 2)
         num_right = num_qubits - num_left
 
-    left_ax.barh(range(num_left), read_err[:num_left], align='center', color='#DDBBBA')
-    left_ax.axvline(avg_read_err, linestyle='--', color='#212121')
+    left_ax.barh(range(num_left), read_err[:num_left], align="center", color="#DDBBBA")
+    left_ax.axvline(avg_read_err, linestyle="--", color="#212121")
     left_ax.set_yticks(range(num_left))
     left_ax.set_xticks([0, round(avg_read_err, 2), round(max_read_err, 2)])
     left_ax.set_yticklabels([str(kk) for kk in range(num_left)], fontsize=12)
     left_ax.invert_yaxis()
-    left_ax.set_title('Readout Error (%)', fontsize=12)
+    left_ax.set_title("Readout Error (%)", fontsize=12)
 
     for spine in left_ax.spines.values():
         spine.set_visible(False)
 
     if num_right:
-        right_ax.barh(range(num_left, num_qubits), read_err[num_left:],
-                      align='center', color='#DDBBBA')
-        right_ax.axvline(avg_read_err, linestyle='--', color='#212121')
+        right_ax.barh(
+            range(num_left, num_qubits), read_err[num_left:], align="center", color="#DDBBBA"
+        )
+        right_ax.axvline(avg_read_err, linestyle="--", color="#212121")
         right_ax.set_yticks(range(num_left, num_qubits))
         right_ax.set_xticks([0, round(avg_read_err, 2), round(max_read_err, 2)])
-        right_ax.set_yticklabels([str(kk) for kk in range(num_left, num_qubits)],
-                                 fontsize=12)
+        right_ax.set_yticklabels([str(kk) for kk in range(num_left, num_qubits)], fontsize=12)
         right_ax.invert_yaxis()
         right_ax.invert_xaxis()
         right_ax.yaxis.set_label_position("right")
         right_ax.yaxis.tick_right()
-        right_ax.set_title('Readout Error (%)', fontsize=12)
+        right_ax.set_title("Readout Error (%)", fontsize=12)
     else:
-        right_ax.axis('off')
+        right_ax.axis("off")
 
     for spine in right_ax.spines.values():
         spine.set_visible(False)
 
     if show_title:
-        fig.suptitle('{name} Error Map'.format(name=backend.name()),
-                     fontsize=24, y=0.9)
-    if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                         'nbAgg']:
+        fig.suptitle(f"{backend.name()} Error Map", fontsize=24, y=0.9)
+    if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
         plt.close(fig)
     return fig

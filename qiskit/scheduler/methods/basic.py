@@ -24,8 +24,7 @@ from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.lowering import lower_gates
 
 
-def as_soon_as_possible(circuit: QuantumCircuit,
-                        schedule_config: ScheduleConfig) -> Schedule:
+def as_soon_as_possible(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Schedule:
     """
     Return the pulse Schedule which implements the input circuit using an "as soon as possible"
     (asap) scheduling policy.
@@ -61,13 +60,18 @@ def as_soon_as_possible(circuit: QuantumCircuit,
         start_times.append(start_time)
         update_times(circ_pulse_def.qubits, stop_time)
 
-    timed_schedules = [(time, cpd.schedule) for time, cpd in zip(start_times, circ_pulse_defs)
-                       if not isinstance(cpd.schedule, Barrier)]
-    return Schedule(*timed_schedules, name=circuit.name, metadata=circuit.metadata)
+    timed_schedules = [
+        (time, cpd.schedule)
+        for time, cpd in zip(start_times, circ_pulse_defs)
+        if not isinstance(cpd.schedule, Barrier)
+    ]
+    schedule = Schedule.initialize_from(circuit)
+    for time, inst in timed_schedules:
+        schedule.insert(time, inst, inplace=True)
+    return schedule
 
 
-def as_late_as_possible(circuit: QuantumCircuit,
-                        schedule_config: ScheduleConfig) -> Schedule:
+def as_late_as_possible(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Schedule:
     """
     Return the pulse Schedule which implements the input circuit using an "as late as possible"
     (alap) scheduling policy.
@@ -108,6 +112,13 @@ def as_late_as_possible(circuit: QuantumCircuit,
 
     last_stop = max(t for t in qubit_time_available.values()) if qubit_time_available else 0
     start_times = [last_stop - t for t in reversed(rev_stop_times)]
-    timed_schedules = [(time, cpd.schedule) for time, cpd in zip(start_times, circ_pulse_defs)
-                       if not isinstance(cpd.schedule, Barrier)]
-    return Schedule(*timed_schedules, name=circuit.name, metadata=circuit.metadata)
+
+    timed_schedules = [
+        (time, cpd.schedule)
+        for time, cpd in zip(start_times, circ_pulse_defs)
+        if not isinstance(cpd.schedule, Barrier)
+    ]
+    schedule = Schedule.initialize_from(circuit)
+    for time, inst in timed_schedules:
+        schedule.insert(time, inst, inplace=True)
+    return schedule
