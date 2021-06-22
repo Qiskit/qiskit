@@ -24,8 +24,11 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylEchoRZ
 
 
 class EchoRZXWeylDecomposition(TransformationPass):
-    """Rewrite two-qubit gates in terms of echoed cross-resonance gates according
-    to the Weyl decomposition.
+    """Rewrite two-qubit gates using the Weyl decomposition.
+    
+    This transpiler pass rewrites two-qubit gates in terms of echoed cross-resonance gates according
+    to the Weyl decomposition. A two-qubit gate will be replaced with at most six non-echoed RZXGates.
+    Each pair of RZXGates forms an echoed RZXGate.
     """
 
     def __init__(self):
