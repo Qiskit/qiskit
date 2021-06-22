@@ -69,10 +69,14 @@ class Delay(Instruction):
     def validate_parameter(self, parameter):
         """Delay parameter (i.e. duration) must be int, float or ParameterExpression."""
         if isinstance(parameter, int):
+            if parameter < 0:
+                raise CircuitError("Duration must be positive")
             return parameter
         elif isinstance(parameter, float):
             if self.unit == "dt":
                 raise CircuitError("Integer duration is expected for 'dt' unit.")
+            if parameter < 0:
+                raise CircuitError("Duration must be positive")
             return parameter
         elif isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:
