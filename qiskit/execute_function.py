@@ -242,7 +242,7 @@ def execute(
             Optionally specify a particular scheduling method.
 
         init_qubits (bool): Whether to reset the qubits to the ground state for each shot.
-            Default: ``True``.
+                            Default: ``True``.
 
         run_config (dict):
             Extra arguments used to configure the run (e.g. for Aer configurable backends).
