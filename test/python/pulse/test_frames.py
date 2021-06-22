@@ -73,6 +73,29 @@ class TestResolvedFrames(QiskitTestCase):
             phase = np.angle(np.exp(two_pi_dt * (5.5e9 * 99 + 5.2e9 * (time - 99)))) % (2 * np.pi)
             self.assertAlmostEqual(r_frame.phase(time), phase, places=8)
 
+    def test_get_phase(self):
+        """Test that we get the correct phase as function of time."""
+
+        r_frame = ResolvedFrame(pulse.Frame("Q0"), 0.0, self.dt_)
+        r_frame.set_phase(4, 1.0)
+        r_frame.set_phase(8, 2.0)
+
+        expected = [0, 0, 0, 0, 1, 1, 1, 1, 2, 2]
+        for time, phase in enumerate(expected):
+            self.assertEqual(r_frame.phase(time), phase)
+
+    def test_get_frequency(self):
+        """Test that we get the correct phase as function of time."""
+
+        r_frame = ResolvedFrame(pulse.Frame("Q0"), 1.0, self.dt_)
+        r_frame.set_frequency(4, 2.0)
+        r_frame.set_frequency(8, 3.0)
+
+        expected = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3]
+        for time, phase in enumerate(expected):
+            self.assertEqual(r_frame.frequency(time), phase)
+
+
     def test_phase_advance(self):
         """Test that phases are properly set when frames are resolved.
 

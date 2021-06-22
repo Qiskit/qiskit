@@ -66,11 +66,11 @@ class Tracker(ABC):
         Returns:
             frequency: The frequency of the frame right before time.
         """
-        frequency = self._frequencies_phases[0].frequency
-        for tfp in self._frequencies_phases:
+        frequency = self._frequencies_phases[-1].frequency
+        for tfp in reversed(self._frequencies_phases):
+            frequency = tfp.frequency
+
             if tfp.time <= time:
-                frequency = tfp.frequency
-            else:
                 break
 
         return frequency
@@ -88,14 +88,14 @@ class Tracker(ABC):
         if len(self._frequencies_phases) == 0:
             return 0.0
 
-        phase = self._frequencies_phases[0].phase
-        last_time = self._frequencies_phases[0].time
+        phase = self._frequencies_phases[-1].phase
+        last_time = self._frequencies_phases[-1].time
 
-        for tfp in self._frequencies_phases:
+        for tfp in reversed(self._frequencies_phases):
+            phase = tfp.phase
+            last_time = tfp.time
+
             if tfp.time <= time:
-                phase = tfp.phase
-                last_time = tfp.time
-            else:
                 break
 
         freq = self.frequency(time)
