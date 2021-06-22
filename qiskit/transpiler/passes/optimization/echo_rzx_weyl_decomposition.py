@@ -31,7 +31,8 @@ class EchoRZXWeylDecomposition(TransformationPass):
     Each pair of RZXGates forms an echoed RZXGate.
     """
 
-    def __init__(self):
+    def __init__(self, backend):
+        self.backend = backend
         """EchoRZXWeylDecomposition pass.
         """
         super().__init__()
