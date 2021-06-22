@@ -96,13 +96,11 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         )
         # Validation
         if qargs is None and other.num_qubits != self.num_qubits:
-            raise QiskitError(
-                "other {} must be on the same number of qubits.".format(type(self).__name__)
-            )
+            raise QiskitError(f"other {type(self).__name__} must be on the same number of qubits.")
 
         if qargs and other.num_qubits != len(qargs):
             raise QiskitError(
-                "Number of qubits of the other {} does not match qargs.".format(type(self).__name__)
+                f"Number of qubits of the other {type(self).__name__} does not match qargs."
             )
 
         if other._num_paulis not in [1, self._num_paulis]:
@@ -462,7 +460,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         if isinstance(gate, str):
             # Check if gate is a valid Clifford basis gate string
             if gate not in basis_1q and gate not in basis_2q:
-                raise QiskitError("Invalid Clifford gate name string {}".format(gate))
+                raise QiskitError(f"Invalid Clifford gate name string {gate}")
             name = gate
         else:
             # Assume gate is an Instruction
@@ -470,7 +468,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         # Apply gate if it is a Clifford basis gate
         if name in non_clifford:
-            raise QiskitError("Cannot update Pauli with non-Clifford gate {}".format(name))
+            raise QiskitError(f"Cannot update Pauli with non-Clifford gate {name}")
         if name in basis_1q:
             if len(qargs) != 1:
                 raise QiskitError("Invalid qubits for 1-qubit gate.")
@@ -483,7 +481,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         # If not a Clifford basis gate we try to unroll the gate and
         # raise an exception if unrolling reaches a non-Clifford gate.
         if gate.definition is None:
-            raise QiskitError("Cannot apply Instruction: {}".format(gate.name))
+            raise QiskitError(f"Cannot apply Instruction: {gate.name}")
         if not isinstance(gate.definition, QuantumCircuit):
             raise QiskitError(
                 "{} instruction definition is {}; expected QuantumCircuit".format(
@@ -501,7 +499,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         for instr, qregs, cregs in flat_instr:
             if cregs:
                 raise QiskitError(
-                    "Cannot apply Instruction with classical registers: {}".format(instr.name)
+                    f"Cannot apply Instruction with classical registers: {instr.name}"
                 )
             # Get the integer position of the flat register
             new_qubits = [qargs[bit_indices[tup]] for tup in qregs]

@@ -52,7 +52,7 @@ class TestLoadFromQPY(QiskitTestCase):
         q_circuit.measure(qr_a, cr_c)
         q_circuit.measure(qr_b, cr_d)
         qpy_file = io.BytesIO()
-        dump(qpy_file, q_circuit)
+        dump(q_circuit, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(q_circuit, new_circ)
@@ -65,7 +65,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1, 1)
         qc.x(0).c_if(qc.cregs[0], 1)
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -75,7 +75,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(3, 0)
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -85,7 +85,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(3.14, 0)
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -95,7 +95,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(np.float32(3.14), 0)
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -105,7 +105,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(np.int16(3), 0)
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -116,7 +116,7 @@ class TestLoadFromQPY(QiskitTestCase):
         unitary = np.array([[0, 1], [1, 0]])
         qc.unitary(unitary, 0)
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -127,7 +127,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(custom_gate, [0])
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -138,7 +138,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(custom_gate, [0])
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -155,7 +155,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(custom_gate, [0])
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -172,7 +172,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(custom_gate, [0])
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -195,7 +195,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.measure(0, 0)
 
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -219,7 +219,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.assign_parameters({theta: 3.14})
 
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -245,7 +245,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.measure(0, 0)
 
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
@@ -258,7 +258,7 @@ class TestLoadFromQPY(QiskitTestCase):
                 random_circuit(10, 10, measure=True, conditional=True, reset=True, seed=42 + i)
             )
         qpy_file = io.BytesIO()
-        dump(qpy_file, circuits)
+        dump(circuits, qpy_file)
         qpy_file.seek(0)
         new_circs = load(qpy_file)
         self.assertEqual(circuits, new_circs)
