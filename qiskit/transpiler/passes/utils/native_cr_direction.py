@@ -23,7 +23,8 @@ from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import RYGate, HGate, CXGate, ECRGate, RZXGate
 
-class NativeCXGateDirection(TransformationPass):
+
+class NativeCRGateDirection(TransformationPass):
     """Modify asymmetric gates to match the hardware coupling direction.
     This pass makes use of the following identities::
                              ┌───┐┌───┐┌───┐
