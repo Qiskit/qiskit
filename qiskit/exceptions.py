@@ -40,7 +40,7 @@ class QiskitUserConfigError(QiskitError):
     message = "User config invalid"
 
 
-class MissingOptionalLibraryError(QiskitError):
+class MissingOptionalLibraryError(QiskitError, ImportError):
     """Raised when an optional library is missing."""
 
     def __init__(
@@ -53,11 +53,11 @@ class MissingOptionalLibraryError(QiskitError):
             pip_install: pip install command, if any
             msg: Descriptive message, if any
         """
-        message = ["The '{}' library is required to use '{}'.".format(libname, name)]
+        message = [f"The '{libname}' library is required to use '{name}'."]
         if pip_install:
-            message.append("You can install it with '{}'.".format(pip_install))
+            message.append(f"You can install it with '{pip_install}'.")
         if msg:
-            message.append(" {}.".format(msg))
+            message.append(f" {msg}.")
 
         super().__init__(" ".join(message))
         self.message = " ".join(message)

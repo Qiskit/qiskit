@@ -38,7 +38,7 @@ import numpy
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from .tools import pi_check
@@ -80,7 +80,8 @@ class Instruction:
 
         self._params = []  # a list of gate params stored
 
-        # tuple (ClassicalRegister, int) when the instruction has a conditional ("if")
+        # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
+        # when the instruction has a conditional ("if")
         self.condition = None
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
@@ -336,18 +337,20 @@ class Instruction:
 
         from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
 
+        if self.name.endswith("_dg"):
+            name = self.name[:-3]
+        else:
+            name = self.name + "_dg"
         if self.num_clbits:
             inverse_gate = Instruction(
-                name=self.name + "_dg",
+                name=name,
                 num_qubits=self.num_qubits,
                 num_clbits=self.num_clbits,
                 params=self.params.copy(),
             )
 
         else:
-            inverse_gate = Gate(
-                name=self.name + "_dg", num_qubits=self.num_qubits, params=self.params.copy()
-            )
+            inverse_gate = Gate(name=name, num_qubits=self.num_qubits, params=self.params.copy())
 
         inverse_gate.definition = QuantumCircuit(
             *self.definition.qregs,
@@ -361,11 +364,15 @@ class Instruction:
         return inverse_gate
 
     def c_if(self, classical, val):
-        """Add classical condition on register classical and value val."""
-        if not isinstance(classical, ClassicalRegister):
-            raise CircuitError("c_if must be used with a classical register")
+        """Add classical condition on register or cbit classical and value val."""
+        if not isinstance(classical, (ClassicalRegister, Clbit)):
+            raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
             raise CircuitError("condition value should be non-negative")
+        if isinstance(classical, Clbit):
+            # Casting the conditional value as Boolean when
+            # the classical condition is on a classical bit.
+            val = bool(val)
         self.condition = (classical, val)
         return self
 
@@ -408,7 +415,7 @@ class Instruction:
         """
         name_param = self.name
         if self.params:
-            name_param = "%s(%s)" % (
+            name_param = "{}({})".format(
                 name_param,
                 ",".join([pi_check(i, ndigits=8, output="qasm") for i in self.params]),
             )
@@ -443,7 +450,7 @@ class Instruction:
 
     def _return_repeat(self, exponent):
         return Instruction(
-            name="%s*%s" % (self.name, exponent),
+            name=f"{self.name}*{exponent}",
             num_qubits=self.num_qubits,
             num_clbits=self.num_clbits,
             params=self.params,
