@@ -74,8 +74,8 @@ def resolve_frames(
         if isinstance(inst, instructions.Play):
             chan = inst.channel
 
-            if isinstance(inst.pulse, Signal):
-                frame = inst.pulse.frame
+            if inst.signal.frame is not None:
+                frame = inst.signal.frame
 
                 if frame not in resolved_frames:
                     raise PulseError(f"{frame} is not configured and cannot " f"be resolved.")

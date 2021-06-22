@@ -62,8 +62,19 @@ class Play(Instruction):
         super().__init__(operands=(pulse, channel), name=name)
 
     @property
-    def pulse(self) -> [Pulse, Signal]:
+    def pulse(self) -> Pulse:
         """A description of the samples that will be played."""
+        if isinstance(self.operands[0], Signal):
+            return self.operands[0].pulse
+
+        return self.operands[0]
+
+    @property
+    def signal(self) -> Signal:
+        """The signal that will be played."""
+        if isinstance(self.operands[0], Pulse):
+            return Signal(self.operands[0], None)
+
         return self.operands[0]
 
     @property
