@@ -12,12 +12,9 @@
 """
 Tests AQC framework using hardcoded and randomly generated circuits.
 """
-# import os
 import sys
 import unittest
 
-# if os.getcwd() not in sys.path:
-#     sys.path.append(os.getcwd())
 import numpy as np
 
 # TODO: remove parallelization!
@@ -25,18 +22,19 @@ from joblib import Parallel, delayed
 
 from qiskit.test import QiskitTestCase
 
-# TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 from qiskit.transpiler.synthesis.aqc.aqc import AQC
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
 from qiskit.transpiler.synthesis.aqc.parametric_circuit import ParametricCircuit
 from qiskit.transpiler.synthesis.aqc.utils import compare_circuits, random_special_unitary
-from .test_sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
+# from .test_sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
+from test.python.transpiler.aqc.test_sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 
 
 class TestAqc(QiskitTestCase):
     """Main tests of approximate quantum compiler."""
 
     def setUp(self) -> None:
+        super().setUp()
         self._maxiter = int(5e3)
         self._eta = 0.1  # .1 for n=3, .01 for n=5
         self._tol = 0.01
@@ -71,7 +69,9 @@ class TestAqc(QiskitTestCase):
         )
 
         err = compare_circuits(optimized_circuit.to_numpy(), np.array(ORIGINAL_CIRCUIT))
+        err2 = .5 * (np.linalg.norm(optimized_circuit.to_numpy() - ORIGINAL_CIRCUIT, 'fro') ** 2)
         print("Relative difference between target and approximated matrices: {:0.6}".format(err))
+        print(err2)
         self.assertTrue(err < 1e-3)
 
     def _aqc_random(self, nqubits: int, depth: int) -> (int, int, float, float):

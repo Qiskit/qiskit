@@ -130,6 +130,18 @@ class FISTAOptimizer(OptimizerBase):
         group=False,
         group_size=4,
     ) -> None:
+        """
+
+        Args:
+            method:
+            maxiter:
+            eta:
+            tol:
+            eps:
+            reg:
+            group:
+            group_size:
+        """
         super().__init__()
         self._method = method
         self._maxiter = maxiter
@@ -141,30 +153,45 @@ class FISTAOptimizer(OptimizerBase):
         self._group_size = group_size
 
     @staticmethod
-    def _soth(x, thresh):
+    def _soth(x, thresh) -> np.ndarray:
         """
-        Soft-thresholding operator for l1 regularization (LASSO).
+        Soft-thresholding operator for L1 regularization (LASSO).
+
+        Args:
+            x:
+            thresh:
+
+        Returns:
+
         """
         y = np.multiply(np.sign(x), np.maximum(np.abs(x) - thresh, 0))
         return y
 
     @staticmethod
-    def _group_soth(x, thresh, group_size):
+    def _group_soth(x, thresh, group_size) -> np.ndarray:
         """
-        Group soft-thresholding operator for group l2 regularization (GROUP LASSO).
+        Group soft-thresholding operator for group L2 regularization (GROUP LASSO).
+
+        Args:
+            x:
+            thresh:
+            group_size:
+
+        Returns:
+
         """
         l = len(x)
         n = int(np.ceil(l / group_size))
         y = np.zeros(l)
         for i in range(n - 1):
-            grp = x[group_size * i : group_size * (i + 1)]
-            nrm = la.norm(grp)
-            if nrm > thresh:
-                y[group_size * i : group_size * (i + 1)] = (1 - thresh / nrm) * grp
-        grp = x[group_size * (n - 1) : l]
-        nrm = la.norm(grp)
-        if nrm > thresh:
-            y[group_size * (n - 1) : l] = (1 - thresh / nrm) * grp
+            group = x[group_size * i : group_size * (i + 1)]
+            norm = la.norm(group)
+            if norm > thresh:
+                y[group_size * i : group_size * (i + 1)] = (1 - thresh / norm) * group
+        group = x[group_size * (n - 1) : l]
+        norm = la.norm(group)
+        if norm > thresh:
+            y[group_size * (n - 1) : l] = (1 - thresh / norm) * group
         return y
 
     def optimize(

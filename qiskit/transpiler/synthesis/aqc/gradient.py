@@ -12,7 +12,7 @@
 """Defines classes to compute gradient."""
 
 from abc import abstractmethod, ABC
-from typing import Union, List
+from typing import Union, List, Tuple
 
 import numpy as np
 from numpy import linalg as la
@@ -29,7 +29,7 @@ class GradientBase(ABC):
     @abstractmethod
     def get_gradient(
         self, thetas: Union[List[float], np.ndarray], target_matrix: np.ndarray
-    ) -> (float, np.ndarray):
+    ) -> Tuple[float, np.ndarray]:
         """
         Computes gradient and objective function.
         Args:
@@ -61,7 +61,6 @@ class DefaultGradient(GradientBase):
 
     def get_gradient(self, thetas: Union[List[float], np.ndarray], target_matrix: np.ndarray):
         # Get the gradient of the cost function
-        # todo: compare to Rx, etc
         x = np.multiply(-1j / 2, X)
         y = np.multiply(-1j / 2, Y)
         z = np.multiply(-1j / 2, Z)
