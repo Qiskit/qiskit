@@ -1039,7 +1039,11 @@ class MatplotlibDrawer:
                     if not (not nreg or register != self._bit_locations[nreg]["register"]):
                         continue
                 else:
-                    clbit_name = f"${register.name}_{{{index}}}$"
+                    if len(self._clbit) > 1:
+                        clbit_name = "${}_{{{}}}$".format(register.name, index)
+                    else:
+                        clbit_name = "${}_{{{}}}$".format(register.name, "")
+
                     clbit_name = _fix_double_script(clbit_name) + initial_cbit
                     text_width = self._get_text_width(register.name, fs) * 1.15
                     if text_width > longest_reg_name_width:
