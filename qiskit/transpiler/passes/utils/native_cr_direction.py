@@ -88,7 +88,7 @@ class NativeCRGateDirection(TransformationPass):
         rzx_dag.apply_operation_back(HGate(), [qr[1]], [])
         return rzx_dag
 
-    def is_native_cx(self, qubit_pair: Tuple):
+    def is_native_cx(self, qubit_pair: Tuple) -> bool:
         """Check that a CX for a qubit pair is native."""
         inst_map = self.backend.defaults().instruction_schedule_map
         cx1 = inst_map.get('cx', qubit_pair)
