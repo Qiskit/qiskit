@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,27 +17,28 @@ import unittest
 from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
 
+from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import (
-    X,
-    Y,
-    Z,
-    I,
     CX,
-    H,
-    S,
-    ListOp,
-    Zero,
-    One,
-    Plus,
-    Minus,
-    StateFn,
     AerPauliExpectation,
     CircuitSampler,
     CircuitStateFn,
+    H,
+    I,
+    ListOp,
+    Minus,
+    One,
     PauliExpectation,
+    PauliSumOp,
+    Plus,
+    S,
+    StateFn,
+    X,
+    Y,
+    Z,
+    Zero,
 )
-from qiskit.circuit.library import RealAmplitudes
 
 
 class TestAerPauliExpectation(QiskitOpflowTestCase):
@@ -49,7 +50,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             from qiskit import Aer
 
             self.seed = 97
-            self.backend = Aer.get_backend("qasm_simulator")
+            self.backend = Aer.get_backend("aer_simulator")
             q_instance = QuantumInstance(
                 self.backend, seed_simulator=self.seed, seed_transpiler=self.seed
             )
@@ -148,6 +149,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             sampled_plus.eval(), [1, 0.5 ** 0.5, (1 + 0.5 ** 0.5), 1], decimal=1
         )
 
+    @unittest.skip("Skip until https://github.com/Qiskit/qiskit-aer/issues/1249 is closed.")
     def test_parameterized_qobj(self):
         """grouped pauli expectation test"""
         two_qubit_h2 = (
@@ -242,6 +244,14 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         np.testing.assert_array_almost_equal([val1] * 2, val2, decimal=2)
         np.testing.assert_array_almost_equal(val1, val3, decimal=2)
         np.testing.assert_array_almost_equal([val1] * 2, val4, decimal=2)
+
+    def test_list_pauli_sum(self):
+        """Test AerPauliExpectation for ListOp[PauliSumOp]"""
+        test_op = ListOp([PauliSumOp.from_list([("XX", 1), ("ZI", 3), ("ZZ", 5)])])
+        observable = AerPauliExpectation().convert(~StateFn(test_op))
+        self.assertIsInstance(observable, ListOp)
+        self.assertIsInstance(observable[0], CircuitStateFn)
+        self.assertTrue(observable[0].is_measurement)
 
     def test_pauli_expectation_non_hermite_op(self):
         """Test PauliExpectation for non hermitian operator"""

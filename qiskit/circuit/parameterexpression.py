@@ -29,7 +29,7 @@ except ImportError:
     HAS_SYMENGINE = False
 
 
-ParameterValueType = Union["ParameterExpression", float, int]
+ParameterValueType = Union["ParameterExpression", float]
 
 
 class ParameterExpression:

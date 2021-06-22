@@ -113,10 +113,18 @@ class PauliSumOp(PrimitiveOp):
                 f"{other.num_qubits}, is not well defined"
             )
 
-        if isinstance(other, PauliSumOp):
+        if (
+            isinstance(other, PauliSumOp)
+            and not isinstance(self.coeff, ParameterExpression)
+            and not isinstance(other.coeff, ParameterExpression)
+        ):
             return PauliSumOp(self.coeff * self.primitive + other.coeff * other.primitive, coeff=1)
 
-        if isinstance(other, PauliOp):
+        if (
+            isinstance(other, PauliOp)
+            and not isinstance(self.coeff, ParameterExpression)
+            and not isinstance(other.coeff, ParameterExpression)
+        ):
             return PauliSumOp(
                 self.coeff * self.primitive + other.coeff * SparsePauliOp(other.primitive)
             )
@@ -410,7 +418,7 @@ class PauliSumOp(PrimitiveOp):
     @classmethod
     def from_list(
         cls,
-        pauli_list: List[Tuple[str, Union[complex]]],
+        pauli_list: List[Tuple[str, complex]],
         coeff: Union[complex, ParameterExpression] = 1.0,
     ) -> "PauliSumOp":
         """Construct from a pauli_list with the form [(pauli_str, coeffs)]
