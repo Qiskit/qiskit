@@ -562,10 +562,13 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
         del simplify
         circ.h(0)
         if abs(self.a) > atol:
-            circ.rzx(-self.a, 0, 1)
-            circ.x(0)
-            circ.rzx(self.a, 0, 1)
-            circ.x(0)
+            if self.is_native(...):
+                circ.rzx(-self.a, 0, 1)
+                circ.x(0)
+                circ.rzx(self.a, 0, 1)
+                circ.x(0)
+            else:
+                # reverse the direction of the rzx
         circ.h(0)
         circ.sdg(0)
         circ.h(0)
