@@ -126,7 +126,20 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 # if we're outside of the basis set, we're obligated to logically decompose.
                 # if we're outside of the set of gates for which we have physical definitions,
                 #    then we _try_ to decompose, using the results if we see improvement.
-                if uncalibrated_and_not_basis_p or (uncalibrated_p and len(run) >= len(new_circ)):
+                # NOTE: Here we use circuit length as a weak proxy for "improvement"; in reality,
+                #       we care about something more like fidelity at runtime, which would mean,
+                #       e.g., a preference for `RZGate`s over `RXGate`s.  In fact, users sometimes
+                #       express a preference for a "canonical form" of a circuit, which may come in
+                #       the form of some parameter values, also not visible at the level of circuit
+                #       length.  Since we don't have a framework for the caller to programmatically
+                #       express what they want here, we include some special casing for particular
+                #       gates which we've promised to normalize --- but this is fragile and should
+                #       ultimately be done away with.
+                if (
+                    uncalibrated_and_not_basis_p
+                    or (uncalibrated_p and len(run) > len(new_circ))
+                    or isinstance(run[0].op, U3Gate)
+                ):
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
                     # Delete the other nodes in the run
