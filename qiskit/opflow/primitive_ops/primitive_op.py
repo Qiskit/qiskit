@@ -211,7 +211,7 @@ class PrimitiveOp(OperatorBase):
         raise NotImplementedError
 
     def __repr__(self) -> str:
-        return "{}({}, coeff={})".format(type(self).__name__, repr(self.primitive), self.coeff)
+        return f"{type(self).__name__}({repr(self.primitive)}, coeff={self.coeff})"
 
     def eval(
         self,

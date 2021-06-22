@@ -45,9 +45,7 @@ class PauliOp(PrimitiveOp):
             TypeError: invalid parameters.
         """
         if not isinstance(primitive, Pauli):
-            raise TypeError(
-                "PauliOp can only be instantiated with Paulis, not {}".format(type(primitive))
-            )
+            raise TypeError(f"PauliOp can only be instantiated with Paulis, not {type(primitive)}")
         super().__init__(primitive, coeff=coeff)
 
     def primitive_strings(self) -> Set[str]:
@@ -197,7 +195,7 @@ class PauliOp(PrimitiveOp):
         if self.coeff == 1.0:
             return prim_str
         else:
-            return "{} * {}".format(self.coeff, prim_str)
+            return f"{self.coeff} * {prim_str}"
 
     def eval(
         self,
