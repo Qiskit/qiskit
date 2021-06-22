@@ -22,10 +22,11 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler.passes import BIPMapping
 from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler.passes.routing.algorithms.bip_model import HAS_CPLEX
+from qiskit.transpiler.passes.routing.algorithms.bip_model import HAS_CPLEX, HAS_DOCPLEX
 
 
 @unittest.skipUnless(HAS_CPLEX, "cplex is required to run the BIPMapping tests")
+@unittest.skipUnless(HAS_DOCPLEX, "docplex is required to run the BIPMapping tests")
 class TestBIPMapping(QiskitTestCase):
     """Tests the BIPMapping pass."""
 
