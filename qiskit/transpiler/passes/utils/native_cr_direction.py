@@ -92,8 +92,8 @@ class NativeCRGateDirection(TransformationPass):
 
     def run(self, dag):
         """Run the GateDirection pass on `dag`.
-        Flips the cx nodes to match the hardware-native coupling map. Modifies the
-        input dag.
+        Flips the cx, ecr, and rzx nodes to match the hardware-native coupling map.
+        Modifies the input dag.
         Args:
             dag (DAGCircuit): DAG to map.
         Returns:
