@@ -84,17 +84,17 @@ def create_job_widget(watcher, job, backend, status="", queue_pos=None, msg=""):
     """
     job_id = job.job_id()
 
-    id_label = widgets.HTML(value="{}".format(job_id), layout=widgets.Layout(width="190px"))
-    backend_label = widgets.HTML(value="{}".format(backend), layout=widgets.Layout(width="145px"))
-    status_label = widgets.HTML(value="{}".format(status), layout=widgets.Layout(width="95px"))
+    id_label = widgets.HTML(value=f"{job_id}", layout=widgets.Layout(width="190px"))
+    backend_label = widgets.HTML(value=f"{backend}", layout=widgets.Layout(width="145px"))
+    status_label = widgets.HTML(value=f"{status}", layout=widgets.Layout(width="95px"))
     if queue_pos is None:
         queue_pos = "-"
     else:
         queue_pos = str(queue_pos)
-    queue_label = widgets.HTML(value="{}".format(queue_pos), layout=widgets.Layout(width="70px"))
+    queue_label = widgets.HTML(value=f"{queue_pos}", layout=widgets.Layout(width="70px"))
 
     msg_label = widgets.HTML(
-        value="<p style=white-space:nowrap;>{}</p>".format(msg),
+        value=f"<p style=white-space:nowrap;>{msg}</p>",
         layout=widgets.Layout(overflow_x="scroll"),
     )
 

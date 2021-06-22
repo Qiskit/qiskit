@@ -45,7 +45,7 @@ def raise_if_dagdependency_invalid(dag):
     # Every node should be of type op.
     for node in dag.get_nodes():
         if node.type != "op":
-            raise DAGDependencyError("Found node of unexpected type: {}".format(node.type))
+            raise DAGDependencyError(f"Found node of unexpected type: {node.type}")
 
 
 class TestDagRegisters(QiskitTestCase):

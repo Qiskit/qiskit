@@ -415,7 +415,7 @@ class Instruction:
         """
         name_param = self.name
         if self.params:
-            name_param = "%s(%s)" % (
+            name_param = "{}({})".format(
                 name_param,
                 ",".join([pi_check(i, ndigits=8, output="qasm") for i in self.params]),
             )
@@ -450,7 +450,7 @@ class Instruction:
 
     def _return_repeat(self, exponent):
         return Instruction(
-            name="%s*%s" % (self.name, exponent),
+            name=f"{self.name}*{exponent}",
             num_qubits=self.num_qubits,
             num_clbits=self.num_clbits,
             params=self.params,

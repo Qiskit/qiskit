@@ -117,8 +117,7 @@ class DrawerCanvas:
         When the horizontal coordinate contains `AbstractCoordinate`,
         the value is substituted by current time range preference.
         """
-        for name, data in self._output_dataset.items():
-            yield name, data
+        yield from self._output_dataset.items()
 
     @time_range.setter
     def time_range(self, new_range: Tuple[int, int]):
@@ -354,7 +353,7 @@ class DrawerCanvas:
                 return self.vmax
             if val == types.AbstractCoordinate.BOTTOM:
                 return self.vmin
-            raise VisualizationError("Coordinate {name} is not supported.".format(name=val))
+            raise VisualizationError(f"Coordinate {val} is not supported.")
 
         try:
             return np.asarray(vals, dtype=float)

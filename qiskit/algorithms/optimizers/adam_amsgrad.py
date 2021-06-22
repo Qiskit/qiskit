@@ -156,7 +156,7 @@ class ADAM(Optimizer):
         Args:
             load_dir: The directory containing ``adam_params.csv``.
         """
-        with open(os.path.join(load_dir, "adam_params.csv"), mode="r") as csv_file:
+        with open(os.path.join(load_dir, "adam_params.csv")) as csv_file:
             if self._amsgrad:
                 fieldnames = ["v", "v_eff", "m", "t"]
             else:
