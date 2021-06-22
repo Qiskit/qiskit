@@ -150,11 +150,17 @@ class ResolvedFrame(Tracker):
         ]
 
         self._purpose = definition.purpose
+        self._tolerance = definition.tolerance
 
     @property
     def purpose(self) -> str:
         """Return the purpose of the frame."""
         return self.purpose
+
+    @property
+    def tolerance(self) -> float:
+        """Tolerance on phase and frequency shifts. Shifts below this value are ignored."""
+        return self._tolerance
 
     def set_frame_instructions(self, schedule: Schedule):
         """

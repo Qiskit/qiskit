@@ -88,11 +88,11 @@ def resolve_frames(
                     freq_diff = frame_freq - channel_trackers[chan].frequency(time)
                     phase_diff = frame_phase - channel_trackers[chan].phase(time)
 
-                    if abs(freq_diff) > 1e-8:
+                    if abs(freq_diff) > resolved_frame.tolerance:
                         shift_freq = instructions.ShiftFrequency(freq_diff, chan)
                         sched.insert(time, shift_freq, inplace=True)
 
-                    if abs(phase_diff) > 1e-8:
+                    if abs(phase_diff) > resolved_frame.tolerance:
                         sched.insert(time, instructions.ShiftPhase(phase_diff, chan), inplace=True)
 
                 # If the channel's phase and frequency has not been set in the past

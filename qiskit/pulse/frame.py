@@ -104,6 +104,9 @@ class FrameDefinition:
     # The phase of the frame at time zero.
     phase: float = 0.0
 
+    # Tolerance on phase and frequency shifts. Shifts below this value are ignored.
+    tolerance: float = 1.0e-8
+
 
 class FramesConfiguration:
     """A class that specifies how frames on a backend are configured."""
