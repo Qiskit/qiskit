@@ -61,7 +61,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
         for idx, node in enumerate(dag.two_qubit_ops()):
             if node.type == "op":
                 unitary = qi.Operator(node.op).data
-                dag_weyl = circuit_to_dag(TwoQubitWeylEchoRZX(unitary).circuit())
+                dag_weyl = circuit_to_dag(TwoQubitWeylEchoRZX(unitary, backend).circuit())
                 dag.substitute_node_with_dag(node, dag_weyl)
 
         return dag
