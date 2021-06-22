@@ -48,9 +48,9 @@ env:
 # Ignoring generated ones with .py extension.
 lint:
 	pylint -rn qiskit test
-	tools/verify_headers.py qiskit test tools
+	tools/verify_headers.py qiskit test tools examples
 	pylint -rn --disable='invalid-name, missing-module-docstring, redefined-outer-name' examples/python/*.py
-	python tools/find_optional_imports.py
+	tools/find_optional_imports.py
 
 # Only pylint on files that have changed from origin/main. Also parallelize (disables cyclic-import check)
 lint-incr:
@@ -58,13 +58,13 @@ lint-incr:
 	tools/pylint_incr.py -j4 -rn -sn --paths :/qiskit/*.py :/test/*.py
 	tools/pylint_incr.py -j4 -rn -sn --disable='invalid-name, missing-module-docstring, redefined-outer-name' --paths ':(glob,top)examples/python/*.py'
 	tools/verify_headers.py qiskit test tools
-	python tools/find_optional_imports.py
+	tools/find_optional_imports.py
 
 style:
-	black --check qiskit test tools
+	black --check qiskit test tools examples setup.py
 
 black:
-	black qiskit test tools
+	black qiskit test tools examples setup.py
 
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
