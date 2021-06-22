@@ -38,13 +38,17 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
     def run(self, dag):
         """Run the EchoRZXWeylDecomposition pass on `dag`.
+        
         Rewrites two-qubit gates in an arbitrary circuit in terms of echoed cross-resonance
         gates by computing the Cartan decomposition of the corresponding unitary. Modifies the
         input dag.
+        
         Args:
             dag (DAGCircuit): DAG to map.
+            
         Returns:
             DAGCircuit: The rearranged dag.
+            
         Raises:
             TranspilerError: If the circuit cannot be mapped.
         """
