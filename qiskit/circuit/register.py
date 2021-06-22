@@ -130,6 +130,17 @@ class Register:
         """Get the register size."""
         return self._size
 
+    def index(self, element):
+        """Get index of element in register.
+
+        Args:
+            element (self.bit_type): element to find index of.
+
+        Returns:
+            int: index of element
+        """
+        return self._bits.index(element)
+
     def __repr__(self):
         """Return the official string representing the register."""
         return self._repr
