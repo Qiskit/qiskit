@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Weyl decomposition of an arbitrary two-qubit circiut in terms of echoed cross-resonance gates."""
+"""Weyl decomposition of two-qubit gates in terms of echoed cross-resonance gates."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -24,7 +24,8 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylEchoRZ
 
 
 class EchoRZXWeylDecomposition(TransformationPass):
-    """Modify asymmetric gates to match the hardware coupling direction.
+    """Rewrite two-qubit gates in terms of echoed cross-resonance gates according
+    to the Weyl decomposition.
     """
 
     def __init__(self):
@@ -34,8 +35,9 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
     def run(self, dag):
         """Run the EchoRZXWeylDecomposition pass on `dag`.
-        Rewrites a two-qubit circuit in terms of echoed cross-resonance gates by computing
-        the Cartan decomposition of the corresponding unitary. Modifies the input dag.
+        Rewrites two-qubit gates in an arbitrary circuit in terms of echoed cross-resonance
+        gates by computing the Cartan decomposition of the corresponding unitary. Modifies the
+        input dag.
         Args:
             dag (DAGCircuit): DAG to map.
         Returns:
@@ -51,7 +53,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
         for idx, node in enumerate(dag.two_qubit_ops()):
             if node.type == "op":
                 unitary = qi.Operator(node.op).data
-                dag_weyl = circuit_to_dag(TwoQubitWeylEchoRZX(unitary).circuit(simplify=True))
+                dag_weyl = circuit_to_dag(TwoQubitWeylEchoRZX(unitary).circuit())
                 dag.substitute_node_with_dag(node, dag_weyl)
 
         return dag

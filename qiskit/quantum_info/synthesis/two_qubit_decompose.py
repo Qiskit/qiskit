@@ -545,6 +545,8 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
 
 
 class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
+    """Decompose two-qubit unitary in terms of echoed cross-resonance gates.
+    """
 
     def specialize(self):
         pass
@@ -553,73 +555,38 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
         """Appends Ud(a, b, c) to the circuit.
 
         Can be overriden in subclasses for special cases"""
-        # if not simplify or abs(self.a) > atol:
-        #     circ.rz(np.pi / 2, 0)
-        #     circ.sx(0)
-        #     circ.rz(np.pi / 2, 0)
-        #     circ.rzx(self.a / 2, 0, 1)
-        #     circ.x(0)
-        #     circ.rzx(-self.a / 2, 0, 1)
-        # if not simplify or abs(self.b) > atol:
-        #     circ.sx(0)
-        #     circ.rz(3*np.pi / 2, 1)
-        #     circ.rzx(self.b / 2, 0, 1)
-        #     circ.x(0)
-        #     circ.rzx(-self.b / 2, 0, 1)
-        # if not simplify or abs(self.c) > atol:
-        #     circ.rz(np.pi / 2, 0)
-        #     circ.sx(0)
-        #     circ.rz(np.pi, 1)
-        #     circ.sx(1)
-        #     circ.rz(np.pi / 2, 1)
-        #     circ.rzx(self.c / 2, 0, 1)
-        #     circ.x(0)
-        #     circ.rzx(-self.c / 2, 0, 1)
-        #     circ.x(0)
-        #     circ.rz(np.pi / 2, 1)
-        #     circ.sx(0)
-        #     circ.rz(np.pi / 2, 1)
-        # if not simplify or abs(self.a) > atol:
-        #     circ.h(0)
-        #     circ.rzx(-self.a * 2, 0, 1)
-        # if not simplify or abs(self.b) > atol:
-        #     circ.h(0)
-        #     circ.sdg(0)
-        #     circ.h(0)
-        #     circ.sdg(1)
-        #     circ.rzx(-self.b * 2, 0, 1)
-        # if not simplify or abs(self.c) > atol:
-        #     circ.h(0)
-        #     circ.s(0)
-        #     circ.s(1)
-        #     circ.h(1)
-        #     circ.rzx(-self.c * 2, 0, 1)
-        #     circ.h(1)
-        if not simplify or abs(self.a) > atol:
-            circ.h(0)
+        del simplify
+        circ.h(0)
+        if abs(self.a) > atol:
             circ.rzx(-self.a, 0, 1)
             circ.x(0)
             circ.rzx(self.a, 0, 1)
             circ.x(0)
-        if not simplify or abs(self.b) > atol:
-            circ.h(0)
-            circ.sdg(0)
-            circ.h(0)
-            circ.sdg(1)
+        else:
+            pass
+        circ.h(0)
+        circ.sdg(0)
+        circ.h(0)
+        circ.sdg(1)
+        if abs(self.b) > atol:
             circ.rzx(-self.b, 0, 1)
             circ.x(0)
             circ.rzx(self.b, 0, 1)
             circ.x(0)
-        if not simplify or abs(self.c) > atol:
-            circ.h(0)
-            circ.s(0)
-            circ.s(1)
-            circ.h(1)
+        else:
+            pass
+        circ.h(0)
+        circ.s(0)
+        circ.s(1)
+        circ.h(1)
+        if abs(self.c) > atol:
             circ.rzx(-self.c, 0, 1)
             circ.x(0)
             circ.rzx(self.c, 0, 1)
             circ.x(0)
-            circ.h(1)
+        else:
+            pass
+        circ.h(1)
 
 
 
