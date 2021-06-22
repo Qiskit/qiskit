@@ -35,6 +35,7 @@ from qiskit.circuit.library import (
     ZGate,
     CXGate,
     CZGate,
+    SwapGate,
     iSwapGate,
     RXXGate,
     RXGate,

@@ -103,6 +103,7 @@ class UnitarySynthesis(TransformationPass):
         Returns:
             Output dag with UnitaryGates synthesized to target basis.
         """
+        
         euler_basis = _choose_euler_basis(self._basis_gates)
         kak_gate = _choose_kak_gate(self._basis_gates)
         decomposer1q, decomposer2q = None, None
@@ -112,7 +113,8 @@ class UnitarySynthesis(TransformationPass):
             decomposer2q = TwoQubitBasisDecomposer(
                 kak_gate, euler_basis=euler_basis, pulse_optimize=self._pulse_optimize
             )
-        for node in dag.named_nodes("unitary"):
+
+        for node in dag.named_nodes("unitary", "swap"):
             synth_dag = None
             wires = None
             if len(node.qargs) == 1:
