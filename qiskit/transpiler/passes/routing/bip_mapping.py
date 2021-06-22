@@ -155,7 +155,7 @@ class BIPMapping(TransformationPass):
         model.create_cpx_problem(objective=self.objective)
 
         try:
-            model.solve_cpx_problem(time_limit=self.time_limit)
+            model.solve_cpx_problem(time_limit=self.time_limit, threads=self.threads)
         except TranspilerError as err:
             logger.warning("%s dag is not mapped in BIPMapping.", err.message)
             return original_dag
