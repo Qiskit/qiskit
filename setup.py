@@ -121,7 +121,7 @@ setup(
         "classical-function-compiler": ["tweedledum>=1.0,<2.0"],
         "full-featured-simulators": ["qiskit-aer>=0.1"],
         "crosstalk-pass": ["z3-solver>=4.7"],
-        'bip-mapper': ['cplex', 'docplex'],
+        "bip-mapper": ["cplex; python_version < '3.9'", "docplex"],
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
