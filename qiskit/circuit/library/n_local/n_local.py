@@ -205,7 +205,7 @@ class NLocal(BlueprintCircuit):
         except AttributeError:
             pass
 
-        raise TypeError("Adding a {} to an NLocal is not supported.".format(type(layer)))
+        raise TypeError(f"Adding a {type(layer)} to an NLocal is not supported.")
 
     @property
     def rotation_blocks(self) -> List[Instruction]:
@@ -514,12 +514,12 @@ class NLocal(BlueprintCircuit):
         Returns:
             The class name and the attributes/parameters of the instance as ``str``.
         """
-        ret = "NLocal: {}\n".format(self.__class__.__name__)
+        ret = f"NLocal: {self.__class__.__name__}\n"
         params = ""
         for key, value in self.__dict__.items():
             if key[0] == "_":
-                params += "-- {}: {}\n".format(key[1:], value)
-        ret += "{}".format(params)
+                params += f"-- {key[1:]}: {value}\n"
+        ret += f"{params}"
         return ret
 
     @property
@@ -587,7 +587,7 @@ class NLocal(BlueprintCircuit):
 
         # check if entanglement is list of something
         if not isinstance(entanglement, (tuple, list)):
-            raise ValueError("Invalid value of entanglement: {}".format(entanglement))
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
         num_i = len(entanglement)
 
         # entanglement is List[str]
@@ -600,7 +600,7 @@ class NLocal(BlueprintCircuit):
 
         # check if entanglement is List[List]
         if not all(isinstance(en, (tuple, list)) for en in entanglement):
-            raise ValueError("Invalid value of entanglement: {}".format(entanglement))
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
         num_j = len(entanglement[i % num_i])
 
         # entanglement is List[List[str]]
@@ -617,7 +617,7 @@ class NLocal(BlueprintCircuit):
 
         # check if entanglement is List[List[List]]
         if not all(isinstance(e2, (tuple, list)) for en in entanglement for e2 in en):
-            raise ValueError("Invalid value of entanglement: {}".format(entanglement))
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
         # entanglement is List[List[List[int]]]
         if all(
@@ -633,7 +633,7 @@ class NLocal(BlueprintCircuit):
 
         # check if entanglement is List[List[List[List]]]
         if not all(isinstance(e3, (tuple, list)) for en in entanglement for e2 in en for e3 in e2):
-            raise ValueError("Invalid value of entanglement: {}".format(entanglement))
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
         # entanglement is List[List[List[List[int]]]]
         if all(
@@ -649,7 +649,7 @@ class NLocal(BlueprintCircuit):
                         e2[ind] = tuple(map(int, e3))
             return entanglement[i % num_i][j % num_j]
 
-        raise ValueError("Invalid value of entanglement: {}".format(entanglement))
+        raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
     @property
     def initial_state(self) -> Any:
@@ -1090,4 +1090,4 @@ def get_entangler_map(
         return sca
 
     else:
-        raise ValueError("Unsupported entanglement type: {}".format(entanglement))
+        raise ValueError(f"Unsupported entanglement type: {entanglement}")

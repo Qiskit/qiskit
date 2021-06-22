@@ -189,7 +189,7 @@ class Gaussian(ParametricPulse):
             self.duration,
             self.amp,
             self.sigma,
-            ", name='{}'".format(self.name) if self.name is not None else "",
+            f", name='{self.name}'" if self.name is not None else "",
         )
 
 
@@ -337,7 +337,7 @@ class GaussianSquare(ParametricPulse):
             self.amp,
             self.sigma,
             self.width,
-            ", name='{}'".format(self.name) if self.name is not None else "",
+            f", name='{self.name}'" if self.name is not None else "",
         )
 
 
@@ -471,7 +471,7 @@ class Drag(ParametricPulse):
             self.amp,
             self.sigma,
             self.beta,
-            ", name='{}'".format(self.name) if self.name is not None else "",
+            f", name='{self.name}'" if self.name is not None else "",
         )
 
 
@@ -528,7 +528,7 @@ class Constant(ParametricPulse):
             self.__class__.__name__,
             self.duration,
             self.amp,
-            ", name='{}'".format(self.name) if self.name is not None else "",
+            f", name='{self.name}'" if self.name is not None else "",
         )
 
 
