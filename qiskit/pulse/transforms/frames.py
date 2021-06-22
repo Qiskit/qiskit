@@ -50,16 +50,10 @@ def resolve_frames(
     resolved_frames = {}
     sample_duration = None
     for frame, frame_def in frames_config.items():
-        resolved_frame = ResolvedFrame(
-            frame,
-            frequency=frame_def.frequency,
-            sample_duration=frame_def.sample_duration,
-            purpose=frame_def.purpose,
-        )
+        resolved_frames[frame] = ResolvedFrame(frame, frame_def)
 
         # Extract shift and set frame operations from the schedule.
-        resolved_frame.set_frame_instructions(schedule)
-        resolved_frames[frame] = resolved_frame
+        resolved_frames[frame].set_frame_instructions(schedule)
         sample_duration = frame_def.sample_duration
 
     if sample_duration is None:

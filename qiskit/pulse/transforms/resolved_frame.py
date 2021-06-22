@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse.frame import Frame
+from qiskit.pulse.frame import Frame, FrameDefinition
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.instructions.frequency import SetFrequency, ShiftFrequency
 from qiskit.pulse.instructions.phase import SetPhase, ShiftPhase
@@ -129,21 +129,13 @@ class ResolvedFrame(Tracker):
     Frame at any given point in time.
     """
 
-    def __init__(
-        self,
-        frame: Frame,
-        frequency: float,
-        sample_duration: float,
-        phase: float = 0.0,
-        purpose: Optional[str] = None,
-    ):
-        """
+    def __init__(self, frame: Frame, definition: FrameDefinition):
+        """Initialized a resolved frame.
+
         Args:
             frame: The frame to track.
-            frequency: The initial frequency of the frame.
-            sample_duration: Duration of a sample.
-            phase: The initial phase of the frame.
-            purpose: A human readable description of the frame.
+            definition: An instance of the FrameDefinition dataclass which defines
+                the frequency, phase, sample_duration, and purpose of a frame.
 
         Raises:
             PulseError: If there are still parameters in the given frame.
@@ -151,9 +143,13 @@ class ResolvedFrame(Tracker):
         if isinstance(frame.identifier[1], ParameterExpression):
             raise PulseError("A parameterized frame cannot initialize a ResolvedFrame.")
 
-        super().__init__(frame.name, sample_duration)
-        self._frequencies_phases = [TimeFrequencyPhase(time=0, frequency=frequency, phase=phase)]
-        self._purpose = purpose
+        super().__init__(frame.name, definition.sample_duration)
+
+        self._frequencies_phases = [
+            TimeFrequencyPhase(time=0, frequency=definition.frequency, phase=definition.phase)
+        ]
+
+        self._purpose = definition.purpose
 
     @property
     def purpose(self) -> str:

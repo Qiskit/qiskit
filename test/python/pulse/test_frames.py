@@ -20,7 +20,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.pulse.transforms import resolve_frames, block_to_schedule
 from qiskit.pulse.transforms.resolved_frame import ResolvedFrame
 from qiskit.pulse.parameter_manager import ParameterManager
-from qiskit.pulse.frame import Frame, FramesConfiguration
+from qiskit.pulse.frame import Frame, FramesConfiguration, FrameDefinition
 
 
 class TestFrame(QiskitTestCase):
@@ -82,6 +82,7 @@ class TestFramesConfiguration(QiskitTestCase):
 
         for name in ["Q0", "Q1", "Q2"]:
             self.assertEqual(frames_config[Frame(name)].sample_duration, 0.1e-9)
+            self.assertEqual(frames_config[Frame(name)].phase, 0.0)
 
 
     def test_merge_two_configs(self):
@@ -117,7 +118,7 @@ class TestResolvedFrames(QiskitTestCase):
         """Test the phase of the resolved frames."""
         two_pi_dt = 2.0j * np.pi * self.dt_
 
-        r_frame = ResolvedFrame(pulse.Frame("Q0"), 5.5e9, self.dt_)
+        r_frame = ResolvedFrame(pulse.Frame("Q0"), FrameDefinition(5.5e9, self.dt_))
         r_frame.set_frequency(99, 5.2e9)
 
         for time in [0, 55, 98]:
@@ -132,7 +133,7 @@ class TestResolvedFrames(QiskitTestCase):
     def test_get_phase(self):
         """Test that we get the correct phase as function of time."""
 
-        r_frame = ResolvedFrame(pulse.Frame("Q0"), 0.0, self.dt_)
+        r_frame = ResolvedFrame(pulse.Frame("Q0"), FrameDefinition(0.0, self.dt_))
         r_frame.set_phase(4, 1.0)
         r_frame.set_phase(8, 2.0)
 
@@ -143,7 +144,7 @@ class TestResolvedFrames(QiskitTestCase):
     def test_get_frequency(self):
         """Test that we get the correct phase as function of time."""
 
-        r_frame = ResolvedFrame(pulse.Frame("Q0"), 1.0, self.dt_)
+        r_frame = ResolvedFrame(pulse.Frame("Q0"), FrameDefinition(1.0, self.dt_))
         r_frame.set_frequency(4, 2.0)
         r_frame.set_frequency(8, 3.0)
 
@@ -182,8 +183,8 @@ class TestResolvedFrames(QiskitTestCase):
             },
         })
 
-        frame0_ = ResolvedFrame(pulse.Frame("Q0"), self.freq0, self.dt_)
-        frame1_ = ResolvedFrame(pulse.Frame("Q1"), self.freq1, self.dt_)
+        frame0_ = ResolvedFrame(pulse.Frame("Q0"), FrameDefinition(self.freq0, self.dt_))
+        frame1_ = ResolvedFrame(pulse.Frame("Q1"), FrameDefinition(self.freq1, self.dt_))
 
         # Check that the resolved frames are tracking phases properly
         for time in [0, 160, 320, 480]:
@@ -232,7 +233,7 @@ class TestResolvedFrames(QiskitTestCase):
             pulse.play(sig, pulse.DriveChannel(0))
             pulse.shift_phase(1.0, pulse.Frame("Q0"))
 
-        frame = ResolvedFrame(pulse.Frame("Q0"), self.freq0, self.dt_)
+        frame = ResolvedFrame(pulse.Frame("Q0"), FrameDefinition(self.freq0, self.dt_))
         frame.set_frame_instructions(block_to_schedule(sched))
 
         self.assertAlmostEqual(frame.phase(0), 0.0, places=8)
@@ -251,7 +252,7 @@ class TestResolvedFrames(QiskitTestCase):
     def test_set_frequency(self):
         """Test setting the frequency of the resolved frame."""
 
-        frame = ResolvedFrame(pulse.Frame("Q0"), self.freq1, self.dt_)
+        frame = ResolvedFrame(pulse.Frame("Q0"), FrameDefinition(self.freq1, self.dt_))
         frame.set_frequency(16, self.freq0)
         frame.set_frequency(10, self.freq1)
         frame.set_frequency(10, self.freq1)

@@ -82,14 +82,17 @@ class Frame:
 class FrameDefinition:
     """A class to keep track of frame definitions."""
 
-    # The frequency of the frame.
+    # The frequency of the frame at time zero.
     frequency: float
 
     # The duration of the samples in the control electronics.
     sample_duration: float
 
     # A user-friendly string defining the purpose of the Frame.
-    purpose: str
+    purpose: str = None
+
+    # The phase of the frame at time zero.
+    phase: float = 0.0
 
 
 class FramesConfiguration:
@@ -101,7 +104,12 @@ class FramesConfiguration:
 
     @classmethod
     def from_dict(cls, frames_config: Dict[Frame, Dict]) -> "FramesConfiguration":
-        """Create a frame configuration from a dict."""
+        """Create a frame configuration from a dict.
+
+        This dict must have frames as keys and a dict as value. This dict is then
+        used to instantiate a FramesDefinition instance. Thus refer to FrameDefinition,
+        to see what key-value pairs are needed.
+        """
         config = FramesConfiguration()
 
         for frame, definition in frames_config.items():
