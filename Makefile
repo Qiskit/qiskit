@@ -57,7 +57,7 @@ lint-incr:
 	-git fetch -q https://github.com/Qiskit/qiskit-terra.git :lint_incr_latest
 	tools/pylint_incr.py -j4 -rn -sn --paths :/qiskit/*.py :/test/*.py
 	tools/pylint_incr.py -j4 -rn -sn --disable='invalid-name, missing-module-docstring, redefined-outer-name' --paths ':(glob,top)examples/python/*.py'
-	tools/verify_headers.py qiskit test tools
+	tools/verify_headers.py qiskit test tools examples
 	tools/find_optional_imports.py
 
 style:
