@@ -63,6 +63,7 @@ def _run_pylint(ref, paths, pylint_args):
     if code != 0:
         print(
             f"{__file__}: unable to get list of changed files. Git returncode: {code}\n"
+            f"Git must be installed, and you need to be in a git tree with a ref `{ref}`"
             f"{stderr.strip().decode('ascii')}"
         )
         sys.exit(128)
