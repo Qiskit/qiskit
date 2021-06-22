@@ -109,33 +109,18 @@ class Tracker(ABC):
             time: The time in samples (i.e. measured in units of dt).
             frequency: The frequency to which self is set after the given time.
         """
-        insert_idx = 0
-        for idx, tfp in enumerate(self._frequencies_phases):
-            if tfp.time < time:
-                insert_idx = idx
-            else:
-                break
-
-        phase = self.phase(time)
-
-        new_tfp = TimeFrequencyPhase(time=time, frequency=frequency, phase=phase)
-
-        self._frequencies_phases.insert(insert_idx + 1, new_tfp)
+        new_tfp = TimeFrequencyPhase(time=time, frequency=frequency, phase=self.phase(time))
+        self._frequencies_phases = sorted(self._frequencies_phases + [new_tfp], key=lambda x: x[0])
 
     def set_phase(self, time: int, phase: float):
-        """Insert a new phase in the time-ordered phases."""
-        insert_idx = 0
-        for idx, tfp in enumerate(self._frequencies_phases):
-            if tfp.time < time:
-                insert_idx = idx
-            else:
-                break
+        """Insert a new phase in the time-ordered phases.
 
-        frequency = self.frequency(time)
-
-        new_tfp = TimeFrequencyPhase(time=time, frequency=frequency, phase=phase)
-
-        self._frequencies_phases.insert(insert_idx + 1, new_tfp)
+        Args:
+            time: The time in samples (i.e. measured in units of dt).
+            phase: The phase to which self is set after the given time.
+        """
+        new_tfp = TimeFrequencyPhase(time=time, frequency=self.frequency(time), phase=phase)
+        self._frequencies_phases = sorted(self._frequencies_phases + [new_tfp], key=lambda x: x[0])
 
 
 class ResolvedFrame(Tracker):
