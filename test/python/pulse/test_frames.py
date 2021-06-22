@@ -29,7 +29,7 @@ class TestFrame(QiskitTestCase):
     def basic(self):
         """Test basic functionality of frames."""
 
-        frame = pulse.Frame("Q13")
+        frame = pulse.Frame("Q", 13)
         self.assertEqual(frame.identifier, "Q13")
         self.assertEqual(frame.name, "Q13")
 
@@ -44,8 +44,8 @@ class TestFrame(QiskitTestCase):
         parameter_manager.update_parameter_table(frame)
         new_frame = parameter_manager.assign_parameters(frame, {param: 123})
 
-        self.assertEqual(new_frame, pulse.Frame("Q123"))
-        self.assertEqual(new_frame.identifier, ("Q123", None))
+        self.assertEqual(new_frame, pulse.Frame("Q", 123))
+        self.assertEqual(new_frame.identifier, ("Q", 123))
         self.assertEqual(frame, pulse.Frame("Q", param))
 
 
@@ -56,53 +56,53 @@ class TestFramesConfiguration(QiskitTestCase):
         """Test that frame configs can be properly created."""
 
         config = {
-            Frame("Q0"): {
+            Frame("Q", 0): {
                 "frequency": 5.5e9,
                 "sample_duration": 0.222e-9,
                 "purpose": "Frame of qubit 0"
             },
-            Frame("Q1"): {
+            Frame("Q", 1): {
                 "frequency": 5.2e9,
                 "sample_duration": 0.222e-9,
             },
-            Frame("Q2"): {
+            Frame("Q", 2): {
                 "frequency": 5.2e9,
             }
         }
 
         frames_config = FramesConfiguration.from_dict(config)
 
-        self.assertEqual(frames_config[Frame("Q0")].frequency, 5.5e9)
-        self.assertEqual(frames_config[Frame("Q0")].sample_duration, 0.222e-9)
-        self.assertEqual(frames_config[Frame("Q1")].frequency, 5.2e9)
-        self.assertTrue(frames_config[Frame("Q2")].sample_duration is None)
+        self.assertEqual(frames_config[Frame("Q", 0)].frequency, 5.5e9)
+        self.assertEqual(frames_config[Frame("Q", 0)].sample_duration, 0.222e-9)
+        self.assertEqual(frames_config[Frame("Q", 1)].frequency, 5.2e9)
+        self.assertTrue(frames_config[Frame("Q", 2)].sample_duration is None)
 
         for frame_def in frames_config.definitions:
             frame_def.sample_duration = 0.1e-9
 
-        for name in ["Q0", "Q1", "Q2"]:
-            self.assertEqual(frames_config[Frame(name)].sample_duration, 0.1e-9)
-            self.assertEqual(frames_config[Frame(name)].phase, 0.0)
+        for idx in range(3):
+            self.assertEqual(frames_config[Frame("Q", idx)].sample_duration, 0.1e-9)
+            self.assertEqual(frames_config[Frame("Q", idx)].phase, 0.0)
 
 
     def test_merge_two_configs(self):
         """Test to see if we can merge two configs."""
 
         config1 = FramesConfiguration.from_dict({
-            Frame("Q0"): {"frequency": 5.5e9, "sample_duration": 0.222e-9},
-            Frame("Q1"): {"frequency": 5.2e9, "sample_duration": 0.222e-9},
+            Frame("Q", 0): {"frequency": 5.5e9, "sample_duration": 0.222e-9},
+            Frame("Q", 1): {"frequency": 5.2e9, "sample_duration": 0.222e-9},
         })
 
         config2 = FramesConfiguration.from_dict({
-            Frame("Q1"): {"frequency": 4.5e9, "sample_duration": 0.222e-9},
-            Frame("Q2"): {"frequency": 4.2e9, "sample_duration": 0.222e-9},
+            Frame("Q", 1): {"frequency": 4.5e9, "sample_duration": 0.222e-9},
+            Frame("Q", 2): {"frequency": 4.2e9, "sample_duration": 0.222e-9},
         })
 
         for frame, frame_def in config2.items():
             config1[frame] = frame_def
 
-        for name, freq in [("Q0", 5.5e9), ("Q1", 4.5e9), ("Q2", 4.2e9)]:
-            self.assertEqual(config1[Frame(name)].frequency, freq)
+        for idx, freq in enumerate([5.5e9, 4.5e9, 4.2e9]):
+            self.assertEqual(config1[Frame("Q", idx)].frequency, freq)
 
 
 class TestResolvedFrames(QiskitTestCase):
@@ -118,7 +118,7 @@ class TestResolvedFrames(QiskitTestCase):
         """Test the phase of the resolved frames."""
         two_pi_dt = 2.0j * np.pi * self.dt_
 
-        r_frame = ResolvedFrame(pulse.Frame("Q0"), FrameDefinition(5.5e9, self.dt_))
+        r_frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(5.5e9, self.dt_))
         r_frame.set_frequency(99, 5.2e9)
 
         for time in [0, 55, 98]:
@@ -133,7 +133,7 @@ class TestResolvedFrames(QiskitTestCase):
     def test_get_phase(self):
         """Test that we get the correct phase as function of time."""
 
-        r_frame = ResolvedFrame(pulse.Frame("Q0"), FrameDefinition(0.0, self.dt_))
+        r_frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(0.0, self.dt_))
         r_frame.set_phase(4, 1.0)
         r_frame.set_phase(8, 2.0)
 
@@ -144,7 +144,7 @@ class TestResolvedFrames(QiskitTestCase):
     def test_get_frequency(self):
         """Test that we get the correct phase as function of time."""
 
-        r_frame = ResolvedFrame(pulse.Frame("Q0"), FrameDefinition(1.0, self.dt_))
+        r_frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(1.0, self.dt_))
         r_frame.set_frequency(4, 2.0)
         r_frame.set_frequency(8, 3.0)
 
@@ -161,8 +161,8 @@ class TestResolvedFrames(QiskitTestCase):
         """
 
         d0 = pulse.DriveChannel(0)
-        sig0 = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame("Q0"))
-        sig1 = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame("Q1"))
+        sig0 = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame("Q", 0))
+        sig1 = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame("Q", 1))
 
         with pulse.build() as sched:
             pulse.play(sig0, d0)
@@ -171,20 +171,20 @@ class TestResolvedFrames(QiskitTestCase):
             pulse.play(sig1, d0)
 
         frames_config = FramesConfiguration.from_dict({
-            pulse.Frame("Q0"): {
+            pulse.Frame("Q", 0): {
                 "frequency": self.freq0,
                 "purpose": "Frame of qubit 0.",
                 "sample_duration": self.dt_,
             },
-            pulse.Frame("Q1"): {
+            pulse.Frame("Q", 1): {
                 "frequency": self.freq1,
                 "purpose": "Frame of qubit 1.",
                 "sample_duration": self.dt_,
             },
         })
 
-        frame0_ = ResolvedFrame(pulse.Frame("Q0"), FrameDefinition(self.freq0, self.dt_))
-        frame1_ = ResolvedFrame(pulse.Frame("Q1"), FrameDefinition(self.freq1, self.dt_))
+        frame0_ = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(self.freq0, self.dt_))
+        frame1_ = ResolvedFrame(pulse.Frame("Q", 1), FrameDefinition(self.freq1, self.dt_))
 
         # Check that the resolved frames are tracking phases properly
         for time in [0, 160, 320, 480]:
@@ -227,13 +227,13 @@ class TestResolvedFrames(QiskitTestCase):
     def test_phase_advance_with_instructions(self):
         """Test that the phase advances are properly computed with frame instructions."""
 
-        sig = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame("Q0"))
+        sig = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame("Q", 0))
 
         with pulse.build() as sched:
             pulse.play(sig, pulse.DriveChannel(0))
-            pulse.shift_phase(1.0, pulse.Frame("Q0"))
+            pulse.shift_phase(1.0, pulse.Frame("Q", 0))
 
-        frame = ResolvedFrame(pulse.Frame("Q0"), FrameDefinition(self.freq0, self.dt_))
+        frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(self.freq0, self.dt_))
         frame.set_frame_instructions(block_to_schedule(sched))
 
         self.assertAlmostEqual(frame.phase(0), 0.0, places=8)
@@ -252,7 +252,7 @@ class TestResolvedFrames(QiskitTestCase):
     def test_set_frequency(self):
         """Test setting the frequency of the resolved frame."""
 
-        frame = ResolvedFrame(pulse.Frame("Q0"), FrameDefinition(self.freq1, self.dt_))
+        frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(self.freq1, self.dt_))
         frame.set_frequency(16, self.freq0)
         frame.set_frequency(10, self.freq1)
         frame.set_frequency(10, self.freq1)
@@ -265,18 +265,18 @@ class TestResolvedFrames(QiskitTestCase):
     def test_broadcasting(self):
         """Test that resolved frames broadcast to control channels."""
 
-        sig = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame("Q0"))
+        sig = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame("Q", 0))
 
         with pulse.build() as sched:
             with pulse.align_left():
                 pulse.play(sig, pulse.DriveChannel(3))
-                pulse.shift_phase(1.23, pulse.Frame("Q0"))
+                pulse.shift_phase(1.23, pulse.Frame("Q", 0))
                 with pulse.align_left(ignore_frames=True):
                     pulse.play(sig, pulse.DriveChannel(3))
                     pulse.play(sig, pulse.ControlChannel(0))
 
         frames_config = FramesConfiguration.from_dict({
-            pulse.Frame("Q0"): {
+            pulse.Frame("Q", 0): {
                 "frequency": self.freq0,
                 "purpose": "Frame of qubit 0.",
                 "sample_duration": self.dt_,

@@ -150,9 +150,9 @@ class TestSetFrequency(QiskitTestCase):
 
     def test_frame(self):
         """Test the basic shift phase on a Frame."""
-        set_freq = instructions.SetFrequency(4.5e9, Frame("Q123"))
+        set_freq = instructions.SetFrequency(4.5e9, Frame("Q", 123))
 
-        self.assertEqual(set_freq.channel, Frame("Q123"))
+        self.assertEqual(set_freq.channel, Frame("Q", 123))
 
 
 class TestShiftPhase(QiskitTestCase):
@@ -177,9 +177,9 @@ class TestShiftPhase(QiskitTestCase):
 
     def test_frame(self):
         """Test the basic shift phase on a Frame."""
-        shift_phase = instructions.ShiftPhase(1.57, Frame("Q123"))
+        shift_phase = instructions.ShiftPhase(1.57, Frame("Q", 123))
 
-        self.assertEqual(shift_phase.channel, Frame("Q123"))
+        self.assertEqual(shift_phase.channel, Frame("Q", 123))
 
 
 class TestSnapshot(QiskitTestCase):

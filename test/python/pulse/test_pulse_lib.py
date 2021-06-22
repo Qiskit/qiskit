@@ -117,9 +117,9 @@ class TestSignal(QiskitTestCase):
 
     def test_construction(self):
         """Test the basics of the signal class."""
-        signal = Signal(Gaussian(160, 0.1, 40), Frame("Q1"))
+        signal = Signal(Gaussian(160, 0.1, 40), Frame("Q", 1))
         self.assertEqual(signal.pulse, Gaussian(160, 0.1, 40))
-        self.assertEqual(signal.frame, Frame("Q1"))
+        self.assertEqual(signal.frame, Frame("Q", 1))
 
 
 class TestParametricPulses(QiskitTestCase):

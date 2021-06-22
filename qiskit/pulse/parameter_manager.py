@@ -215,7 +215,7 @@ class ParameterSetter(NodeVisitor):
             if not isinstance(new_index, ParameterExpression):
                 validate_index(new_index)
 
-                return node.__class__(node.prefix + str(new_index))
+                return node.__class__(node.prefix, new_index)
 
         return node
 

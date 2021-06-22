@@ -13,7 +13,7 @@
 """Implements a Frame."""
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 from qiskit.circuit import Parameter
 from qiskit.pulse.utils import validate_index
@@ -23,22 +23,32 @@ from qiskit.pulse.exceptions import PulseError
 class Frame:
     """A frame is a frequency and a phase."""
 
-    def __init__(self, identifier: str, parametric_index: Optional[Parameter] = None):
+    def __init__(self, prefix: str, index: Union[int, Parameter]):
         """
+        Frames are identified using an identifier, such as "Q10". However, parameters
+        in Qiskit currently do not support strings as valid assignment values. Therefore,
+        to allow for parametric identifiers in frames we separate the string prefix from
+        the numeric (and possibly parametric) index. This behaviour may change in the
+        future if parameters can be assigned string values.
+
         Args:
-            identifier: The index of the frame.
-            parametric_index: An optional parameter to specify the numeric part of the index.
+            prefix: The index of the frame.
+            index: An optional parameter to specify the numeric part of the index.
 
         Raises:
-            PulseError: if the frame identifier is not a string.
+            PulseError: if the frame identifier is not a string or if the identifier
+                contains numbers which should have been specified as the index.
         """
-        if parametric_index is not None:
-            validate_index(parametric_index)
+        if index is not None:
+            validate_index(index)
 
-        if not isinstance(identifier, str):
-            raise PulseError(f"Frame identifiers must be string. Got {type(identifier)}.")
+        if not isinstance(prefix, str):
+            raise PulseError(f"Frame identifiers must be string. Got {type(prefix)}.")
 
-        self._identifier = (identifier, parametric_index)
+        if any(char.isdigit() for char in prefix):
+            raise PulseError(f"Frame prefixes cannot contain digits. Found {prefix}")
+
+        self._identifier = (prefix, index)
         self._hash = hash((type(self), self._identifier))
 
     @property
@@ -54,10 +64,10 @@ class Frame:
     @property
     def name(self) -> str:
         """Return the shorthand alias for this frame, which is based on its type and index."""
-        if self._identifier[1] is None:
-            return f"{self._identifier[0]}"
+        if isinstance(self._identifier[1], Parameter):
+            return f"{self._identifier[0]}{self._identifier[1].name}"
 
-        return f"{self._identifier[0]}{self._identifier[1].name}"
+        return f"{self._identifier[0]}{self._identifier[1]}"
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.name})"

@@ -171,7 +171,7 @@ class ResolvedFrame(Tracker):
         frame_instructions = schedule.filter(instruction_types=frame_instruction_types)
 
         for time, inst in frame_instructions.instructions:
-            if Frame(self.identifier) == inst.operands[1]:
+            if isinstance(inst.operands[1], Frame) and self.identifier == inst.operands[1].name:
                 if isinstance(inst, ShiftFrequency):
                     self.set_frequency(time, self.frequency(time) + inst.frequency)
                 elif isinstance(inst, SetFrequency):

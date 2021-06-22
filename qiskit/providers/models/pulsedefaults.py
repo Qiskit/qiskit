@@ -287,10 +287,10 @@ class PulseDefaults:
         """
         frames = {}
         for qubit, freq in enumerate(self.qubit_freq_est):
-            frames[Frame(f"Q{qubit}")] = {"frequency": freq, "purpose": f"Frame of qubit {qubit}"}
+            frames[Frame("Q", qubit)] = {"frequency": freq, "purpose": f"Frame of qubit {qubit}"}
 
         for meas, freq in enumerate(self.meas_freq_est):
-            frames[Frame(f"M{meas}")] = {"frequency": freq, "purpose": f"Frame of meas {meas}"}
+            frames[Frame("M", meas)] = {"frequency": freq, "purpose": f"Frame of meas {meas}"}
 
         return FramesConfiguration.from_dict(frames)
 
