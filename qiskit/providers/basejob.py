@@ -19,6 +19,7 @@ job interface.
 from abc import ABC, abstractmethod
 from typing import Callable, Optional
 import time
+import warnings
 
 from .jobstatus import JobStatus, JOB_FINAL_STATES
 from .exceptions import JobTimeoutError
@@ -26,7 +27,7 @@ from .basebackend import BaseBackend
 
 
 class BaseJob(ABC):
-    """Legacy Class to handle asynchronous jobs"""
+    """DEPRECATED Legacy Class to handle asynchronous jobs"""
 
     def __init__(self, backend: BaseBackend, job_id: str) -> None:
         """Initializes the asynchronous job.
@@ -36,6 +37,15 @@ class BaseJob(ABC):
             job_id: a unique id in the context of the backend used to run
                 the job.
         """
+        warnings.warn(
+            "The BaseJob abstract interface is deprecated as of "
+            "the 0.18.0 release and will be removed in a future "
+            "release. Instead you should build your backends using "
+            "the JobV1 abstract class (which is the current "
+            "latest version of the backend interface)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._job_id = job_id
         self._backend = backend
 
@@ -90,7 +100,7 @@ class BaseJob(ABC):
         while status not in JOB_FINAL_STATES:
             elapsed_time = time.time() - start_time
             if timeout is not None and elapsed_time >= timeout:
-                raise JobTimeoutError("Timeout while waiting for job {}.".format(self.job_id()))
+                raise JobTimeoutError(f"Timeout while waiting for job {self.job_id()}.")
             if callback:
                 callback(self.job_id(), status, self)
             time.sleep(wait)

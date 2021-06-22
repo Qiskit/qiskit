@@ -51,19 +51,8 @@ def add_control(
         Controlled version of gate.
 
     """
-    import qiskit.circuit.library.standard_gates as standard
-
     if ctrl_state is None:
         ctrl_state = 2 ** num_ctrl_qubits - 1
-    if isinstance(operation, standard.RZGate) or operation.name == "rz":
-        # num_ctrl_qubits > 1
-        # the condition matching 'name' above is to catch a test case,
-        # 'TestControlledGate.test_rotation_gates', where the rz gate
-        # gets converted to a circuit before becoming a generic Gate object.
-        cgate = standard.CRZGate(*operation.params)
-        cngate = cgate.control(num_ctrl_qubits - 1)
-        cngate.ctrl_state = ctrl_state
-        return cngate
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()
@@ -107,7 +96,9 @@ def control(
     q_control = QuantumRegister(num_ctrl_qubits, name="control")
     q_target = QuantumRegister(operation.num_qubits, name="target")
     q_ancillae = None  # TODO: add
-    controlled_circ = QuantumCircuit(q_control, q_target, name="c_{}".format(operation.name))
+    controlled_circ = QuantumCircuit(q_control, q_target, name=f"c_{operation.name}")
+    if isinstance(operation, controlledgate.ControlledGate):
+        original_ctrl_state = operation.ctrl_state
     global_phase = 0
     if operation.name == "x" or (
         isinstance(operation, controlledgate.ControlledGate) and operation.base_gate.name == "x"
@@ -117,6 +108,8 @@ def control(
             global_phase += operation.definition.global_phase
     else:
         basis = ["p", "u", "x", "z", "rx", "ry", "rz", "cx"]
+        if isinstance(operation, controlledgate.ControlledGate):
+            operation.ctrl_state = None
         unrolled_gate = _unroll_gate(operation, basis_gates=basis)
         if unrolled_gate.definition.global_phase:
             global_phase += unrolled_gate.definition.global_phase
@@ -212,9 +205,7 @@ def control(
                 controlled_circ.mcx(q_control, q_target[bit_indices[qargs[0]]], q_ancillae)
                 controlled_circ.h(q_target[bit_indices[qargs[0]]])
             else:
-                raise CircuitError(
-                    "gate contains non-controllable instructions: {}".format(gate.name)
-                )
+                raise CircuitError(f"gate contains non-controllable instructions: {gate.name}")
             if gate.definition is not None and gate.definition.global_phase:
                 global_phase += gate.definition.global_phase
     # apply controlled global phase
@@ -224,6 +215,7 @@ def control(
         else:
             controlled_circ.mcp(global_phase, q_control[:-1], q_control[-1])
     if isinstance(operation, controlledgate.ControlledGate):
+        operation.ctrl_state = original_ctrl_state
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
         new_ctrl_state = operation.ctrl_state << num_ctrl_qubits | ctrl_state
         base_name = operation.base_gate.name
@@ -238,10 +230,10 @@ def control(
     # is named like "cc<base_gate.name>", else it is named like
     # "c<num_ctrl_qubits><base_name>".
     if new_num_ctrl_qubits > 2:
-        ctrl_substr = "c{:d}".format(new_num_ctrl_qubits)
+        ctrl_substr = f"c{new_num_ctrl_qubits:d}"
     else:
         ctrl_substr = ("{0}" * new_num_ctrl_qubits).format("c")
-    new_name = "{}{}".format(ctrl_substr, base_name)
+    new_name = f"{ctrl_substr}{base_name}"
     cgate = controlledgate.ControlledGate(
         new_name,
         controlled_circ.num_qubits,

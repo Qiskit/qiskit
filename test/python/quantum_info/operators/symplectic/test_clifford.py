@@ -333,7 +333,7 @@ class TestCliffordGates(QiskitTestCase):
 
         for gate_name in ("cx", "cz", "swap"):
             for qubits in ([0, 1], [1, 0]):
-                with self.subTest(msg="append gate %s %s" % (gate_name, qubits)):
+                with self.subTest(msg=f"append gate {gate_name} {qubits}"):
                     cliff = Clifford(np.eye(4))
                     cliff1 = cliff.copy()
                     cliff = _append_circuit(cliff, gate_name, qubits)
@@ -428,7 +428,7 @@ class TestCliffordSynthesis(QiskitTestCase):
     def test_decompose_1q(self):
         """Test synthesis for all 1-qubit Cliffords"""
         for cliff in self._cliffords_1q():
-            with self.subTest(msg="Test circuit {}".format(cliff)):
+            with self.subTest(msg=f"Test circuit {cliff}"):
                 target = cliff
                 value = Clifford(cliff.to_circuit())
                 self.assertEqual(target, value)

@@ -29,7 +29,7 @@ except ImportError:
     HAS_SYMENGINE = False
 
 
-ParameterValueType = Union["ParameterExpression", float, int]
+ParameterValueType = Union["ParameterExpression", float]
 
 
 class ParameterExpression:
@@ -201,7 +201,7 @@ class ParameterExpression:
         }
         if nan_parameter_values:
             raise CircuitError(
-                "Expression cannot bind non-numeric values ({})".format(nan_parameter_values)
+                f"Expression cannot bind non-numeric values ({nan_parameter_values})"
             )
 
     def _raise_if_parameter_names_conflict(self, inbound_parameters, outbound_parameters=None):
@@ -407,7 +407,7 @@ class ParameterExpression:
             return self._call(_log)
 
     def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, str(self))
+        return f"{self.__class__.__name__}({str(self)})"
 
     def __str__(self):
         from sympy import sympify

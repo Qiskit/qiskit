@@ -47,7 +47,7 @@ class TensoredOp(ListOp):
 
     @property
     def num_qubits(self) -> int:
-        return sum([op.num_qubits for op in self.oplist])
+        return sum(op.num_qubits for op in self.oplist)
 
     @property
     def distributive(self) -> bool:
