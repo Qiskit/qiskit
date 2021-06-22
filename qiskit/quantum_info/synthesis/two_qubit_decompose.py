@@ -562,8 +562,6 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
             circ.x(0)
             circ.rzx(self.a, 0, 1)
             circ.x(0)
-        else:
-            pass
         circ.h(0)
         circ.sdg(0)
         circ.h(0)
