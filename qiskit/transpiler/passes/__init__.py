@@ -88,6 +88,12 @@ Scheduling
    AlignMeasures
    ValidatePulseGates
 
+Decoupling
+=============
+.. autosummary::
+   :toctree: ../stubs/
+   InsertDD
+
 Circuit Analysis
 ================
 
@@ -191,6 +197,9 @@ from .scheduling import RZXCalibrationBuilder
 from .scheduling import TimeUnitConversion
 from .scheduling import AlignMeasures
 from .scheduling import ValidatePulseGates
+
+# dynamical decoupling
+from .decoupling import InsertDD
 
 # additional utility passes
 from .utils import CheckMap
