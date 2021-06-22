@@ -100,14 +100,12 @@ def _assemble_experiments(
     )
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction, **run_config.to_dict())
 
-    formatted_schedules = [transforms.target_qobj_transform(sched) for sched in schedules]
-
     frames_config = getattr(run_config, "frames_config", None)
-    resolved_schedules = [
-        transforms.resolve_frames(sched, frames_config) for sched in formatted_schedules
+    formatted_schedules = [
+        transforms.target_qobj_transform(sched, frames_config) for sched in schedules
     ]
 
-    compressed_schedules = transforms.compress_pulses(resolved_schedules)
+    compressed_schedules = transforms.compress_pulses(formatted_schedules)
 
     user_pulselib = {}
     experiments = []
