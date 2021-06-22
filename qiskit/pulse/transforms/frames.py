@@ -12,19 +12,18 @@
 
 """Replace a schedule with frames by one with instructions on PulseChannels only."""
 
-from typing import Dict, Union
+from typing import Union
 
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.resolved_frame import ResolvedFrame, ChannelTracker
 from qiskit.pulse.transforms.canonicalization import block_to_schedule
-from qiskit.pulse.library import Signal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse import channels as chans, instructions
-from qiskit.pulse.frame import Frame
+from qiskit.pulse.frame import FramesConfiguration
 
 
 def resolve_frames(
-    schedule: Union[Schedule, ScheduleBlock], frames_config: Dict[Frame, Dict]
+    schedule: Union[Schedule, ScheduleBlock], frames_config: FramesConfiguration
 ) -> Schedule:
     """
     Parse the schedule and replace instructions on Frames by instructions on the
@@ -33,8 +32,7 @@ def resolve_frames(
     Args:
         schedule: The schedule for which to replace frames with the appropriate
             channels.
-        frames_config: A dictionary with the frame index as key and the values are
-            a dict which can be used to initialized a ResolvedFrame.
+        frames_config: An instance of FramesConfiguration defining the frames.
 
     Returns:
         new_schedule: A new schedule where frames have been replaced with
@@ -51,13 +49,18 @@ def resolve_frames(
 
     resolved_frames = {}
     sample_duration = None
-    for frame, settings in frames_config.items():
-        resolved_frame = ResolvedFrame(frame, **settings)
+    for frame, frame_def in frames_config.items():
+        resolved_frame = ResolvedFrame(
+            frame,
+            frequency=frame_def.frequency,
+            sample_duration=frame_def.sample_duration,
+            purpose=frame_def.purpose,
+        )
 
         # Extract shift and set frame operations from the schedule.
         resolved_frame.set_frame_instructions(schedule)
         resolved_frames[frame] = resolved_frame
-        sample_duration = settings["sample_duration"]
+        sample_duration = frame_def.sample_duration
 
     if sample_duration is None:
         raise PulseError("Frame configuration does not have a sample duration.")

@@ -20,6 +20,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.pulse.transforms import resolve_frames, block_to_schedule
 from qiskit.pulse.transforms.resolved_frame import ResolvedFrame
 from qiskit.pulse.parameter_manager import ParameterManager
+from qiskit.pulse.frame import Frame, FramesConfiguration
 
 
 class TestFrame(QiskitTestCase):
@@ -46,6 +47,61 @@ class TestFrame(QiskitTestCase):
         self.assertEqual(new_frame, pulse.Frame("Q123"))
         self.assertEqual(new_frame.identifier, ("Q123", None))
         self.assertEqual(frame, pulse.Frame("Q", param))
+
+
+class TestFramesConfiguration(QiskitTestCase):
+    """The the frames config object."""
+
+    def test_frame_config(self):
+        """Test that frame configs can be properly created."""
+
+        config = {
+            Frame("Q0"): {
+                "frequency": 5.5e9,
+                "sample_duration": 0.222e-9,
+                "purpose": "Frame of qubit 0"
+            },
+            Frame("Q1"): {
+                "frequency": 5.2e9,
+                "sample_duration": 0.222e-9,
+            },
+            Frame("Q2"): {
+                "frequency": 5.2e9,
+            }
+        }
+
+        frames_config = FramesConfiguration.from_dict(config)
+
+        self.assertEqual(frames_config[Frame("Q0")].frequency, 5.5e9)
+        self.assertEqual(frames_config[Frame("Q0")].sample_duration, 0.222e-9)
+        self.assertEqual(frames_config[Frame("Q1")].frequency, 5.2e9)
+        self.assertTrue(frames_config[Frame("Q2")].sample_duration is None)
+
+        for frame_def in frames_config.definitions:
+            frame_def.sample_duration = 0.1e-9
+
+        for name in ["Q0", "Q1", "Q2"]:
+            self.assertEqual(frames_config[Frame(name)].sample_duration, 0.1e-9)
+
+
+    def test_merge_two_configs(self):
+        """Test to see if we can merge two configs."""
+
+        config1 = FramesConfiguration.from_dict({
+            Frame("Q0"): {"frequency": 5.5e9, "sample_duration": 0.222e-9},
+            Frame("Q1"): {"frequency": 5.2e9, "sample_duration": 0.222e-9},
+        })
+
+        config2 = FramesConfiguration.from_dict({
+            Frame("Q1"): {"frequency": 4.5e9, "sample_duration": 0.222e-9},
+            Frame("Q2"): {"frequency": 4.2e9, "sample_duration": 0.222e-9},
+        })
+
+        for frame, frame_def in config2.items():
+            config1[frame] = frame_def
+
+        for name, freq in [("Q0", 5.5e9), ("Q1", 4.5e9), ("Q2", 4.2e9)]:
+            self.assertEqual(config1[Frame(name)].frequency, freq)
 
 
 class TestResolvedFrames(QiskitTestCase):
@@ -113,7 +169,7 @@ class TestResolvedFrames(QiskitTestCase):
             pulse.play(sig0, d0)
             pulse.play(sig1, d0)
 
-        frames_config = {
+        frames_config = FramesConfiguration.from_dict({
             pulse.Frame("Q0"): {
                 "frequency": self.freq0,
                 "purpose": "Frame of qubit 0.",
@@ -124,7 +180,7 @@ class TestResolvedFrames(QiskitTestCase):
                 "purpose": "Frame of qubit 1.",
                 "sample_duration": self.dt_,
             },
-        }
+        })
 
         frame0_ = ResolvedFrame(pulse.Frame("Q0"), self.freq0, self.dt_)
         frame1_ = ResolvedFrame(pulse.Frame("Q1"), self.freq1, self.dt_)
@@ -218,13 +274,13 @@ class TestResolvedFrames(QiskitTestCase):
                     pulse.play(sig, pulse.DriveChannel(3))
                     pulse.play(sig, pulse.ControlChannel(0))
 
-        frames_config = {
+        frames_config = FramesConfiguration.from_dict({
             pulse.Frame("Q0"): {
                 "frequency": self.freq0,
                 "purpose": "Frame of qubit 0.",
                 "sample_duration": self.dt_,
             }
-        }
+        })
 
         resolved = resolve_frames(sched, frames_config).instructions
 

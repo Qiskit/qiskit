@@ -19,7 +19,7 @@ from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
-from qiskit.pulse.frame import Frame
+from qiskit.pulse.frame import Frame, FramesConfiguration
 
 
 class MeasurementKernel:
@@ -279,7 +279,7 @@ class PulseDefaults:
         return cls(**in_data)
 
     @property
-    def frames(self) -> Dict[Frame, Dict]:
+    def frames(self) -> FramesConfiguration:
         """Get the frames supported by the backend.
 
         Returns:
@@ -292,7 +292,7 @@ class PulseDefaults:
         for meas, freq in enumerate(self.meas_freq_est):
             frames[Frame(f"M{meas}")] = {"frequency": freq, "purpose": f"Frame of meas {meas}"}
 
-        return frames
+        return FramesConfiguration.from_dict(frames)
 
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]

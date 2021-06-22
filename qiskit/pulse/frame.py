@@ -12,7 +12,8 @@
 
 """Implements a Frame."""
 
-from typing import Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 
 from qiskit.circuit import Parameter
 from qiskit.pulse.utils import validate_index
@@ -75,3 +76,80 @@ class Frame:
 
     def __hash__(self):
         return self._hash
+
+
+@dataclass
+class FrameDefinition:
+    """A class to keep track of frame definitions."""
+
+    # The frequency of the frame.
+    frequency: float
+
+    # The duration of the samples in the control electronics.
+    sample_duration: float
+
+    # A user-friendly string defining the purpose of the Frame.
+    purpose: str
+
+
+class FramesConfiguration:
+    """A class that specifies how frames on a backend are configured."""
+
+    def __init__(self):
+        """Initialize the frames configuration."""
+        self._frames = dict()
+
+    @classmethod
+    def from_dict(cls, frames_config: Dict[Frame, Dict]) -> "FramesConfiguration":
+        """Create a frame configuration from a dict."""
+        config = FramesConfiguration()
+
+        for frame, definition in frames_config.items():
+            config.add_frame(frame, **definition)
+
+        return config
+
+    def to_dict(self) -> Dict:
+        """Export the frames configuration to a dictionary"""
+        config = dict()
+
+        for frame, definition in self._frames.items():
+            config[frame] = definition.__dict__
+
+        return config
+
+    def add_frame(
+        self,
+        frame: Frame,
+        frequency: float,
+        sample_duration: Optional[float] = None,
+        purpose: Optional[str] = None
+    ):
+        """Add a frame to the frame configuration.
+
+        Args:
+            frame: The frame instance to add.
+            frequency: The frequency of the frame.
+            sample_duration: The sample duration.
+            purpose: A string describing the purpose of the frame.
+        """
+        self._frames[frame] = FrameDefinition(
+            frequency=frequency, sample_duration=sample_duration, purpose=purpose
+        )
+
+    @property
+    def definitions(self) -> List[FrameDefinition]:
+        """Return the definitions for each frame."""
+        return [frame_def for frame_def in self._frames.values()]
+
+    def items(self):
+        """Return the items in the frames config."""
+        return self._frames.items()
+
+    def __getitem__(self, frame: Frame) -> FrameDefinition:
+        """Return the frame definition."""
+        return self._frames[frame]
+
+    def __setitem__(self, frame: Frame, frame_def: FrameDefinition):
+        """Return the frame definition."""
+        self._frames[frame] = frame_def

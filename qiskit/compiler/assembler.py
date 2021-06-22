@@ -27,7 +27,7 @@ from qiskit.providers.backend import Backend
 from qiskit.pulse import LoConfig, Instruction
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse.frame import Frame
+from qiskit.pulse.frame import FramesConfiguration
 from qiskit.qobj import QobjHeader, Qobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.validation.jsonschema import SchemaValidationError
@@ -76,7 +76,7 @@ def assemble(
     parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
     parametric_pulses: Optional[List[str]] = None,
     init_qubits: bool = True,
-    frames_config: Dict[Frame, Dict] = None,
+    frames_config: FramesConfiguration = None,
     use_measure_esp: Optional[bool] = None,
     **run_config: Dict,
 ) -> Qobj:
@@ -144,11 +144,8 @@ def assemble(
             ['gaussian', 'constant']
         init_qubits: Whether to reset the qubits to the ground state for each shot.
             Default: ``True``.
-        frames_config: Dictionary of user provided frames configuration. The key is the frame
-            and the value is a dictionary with the configuration of the frame which must be of
-            the form {'frequency': float, 'purpose': str, 'sample_duration': float}. This
-            object is be used to initialize ResolvedFrame instance to resolve the frames in
-            the Schedule.
+        frames_config: An instance of FramesConfiguration defining how the frames are configured
+            for the backend.
         use_measure_esp: Whether to use excited state promoted (ESP) readout for the final
             measurement in each circuit. ESP readout discriminates between the ``|0>`` and higher
             transmon states to improve readout fidelity. See
@@ -459,12 +456,14 @@ def _parse_pulse_args(
 
     meas_map = meas_map or getattr(backend_config, "meas_map", None)
 
-    frames_config_ = {}
+    frames_config_ = FramesConfiguration()
     if backend:
-        frames_config_ = getattr(backend.defaults(), "frames", {})
+        frames_config_ = getattr(backend.defaults(), "frames", FramesConfiguration())
 
-        for config in frames_config_.values():
-            config["sample_duration"] = backend_config.dt
+        # The frames in pulse defaults do not provide a dt (needed to compute phase
+        # advances) so we add it here.
+        for frame_def in frames_config_.definitions:
+            frame_def.sample_duration = backend_config.dt
 
     if frames_config is None:
         frames_config = frames_config_
