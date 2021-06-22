@@ -485,3 +485,15 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
     @abstractmethod
     def __str__(self) -> str:
         raise NotImplementedError
+
+    @staticmethod
+    def zero(num_qubits: int) -> "OperatorBase":
+        """Construct Zero Operator.
+
+        Returns:
+            ZeroOp
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.opflow.zero_op import ZeroOp
+
+        return ZeroOp(num_qubits)

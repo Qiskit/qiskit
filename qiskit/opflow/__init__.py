@@ -144,6 +144,7 @@ Exceptions
 
 # New Operators
 from .operator_base import OperatorBase
+from .zero_op import ZeroOp
 from .primitive_ops import (
     PrimitiveOp,
     PauliOp,
@@ -249,6 +250,7 @@ __all__ = [
     "SummedOp",
     "ComposedOp",
     "TensoredOp",
+    "ZeroOp",
     # Converters
     "ConverterBase",
     "CircuitSampler",
