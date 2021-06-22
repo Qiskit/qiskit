@@ -15,31 +15,35 @@ Abstract QuantumState class.
 """
 
 import copy
-import warnings
 from abc import abstractmethod
 
 import numpy as np
 
-from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.base_operator import BaseOperator, AbstractTolerancesMeta
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.result.counts import Counts
+from qiskit.utils.deprecation import deprecate_function
 
 
-class QuantumState(metaclass=AbstractTolerancesMeta):
+class QuantumState:
     """Abstract quantum state base class"""
 
-    def __init__(self, dims):
-        """Initialize a state object."""
-        # Dimension attributes
-        # Note that the tuples of input and output dims are ordered
-        # from least-significant to most-significant subsystems
-        self._dims = None        # tuple of dimensions of each subsystem
-        self._dim = None         # combined dimension of all subsystems
-        self._num_qubits = None  # number of qubit subsystems if N-qubit state
-        self._set_dims(dims)
+    def __init__(self, op_shape=None):
+        """Initialize a QuantumState object.
+
+        Args:
+            op_shape (OpShape): Optional, an OpShape object for state dimensions.
+
+        .. note::
+
+            If `op_shape`` is specified it will take precedence over other
+            kwargs.
+        """
+        self._op_shape = op_shape
         # RNG for measure functions
         self._rng_generator = None
+
+    # Set higher priority than Numpy array and matrix classes
+    __array_priority__ = 20
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.dims() == other.dims()
@@ -47,76 +51,22 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
     @property
     def dim(self):
         """Return total state dimension."""
-        return self._dim
+        return self._op_shape.shape[0]
 
     @property
     def num_qubits(self):
         """Return the number of qubits if a N-qubit state or None otherwise."""
-        return self._num_qubits
-
-    @property
-    def atol(self):
-        """The absolute tolerance parameter for float comparisons."""
-        return self.__class__.atol
-
-    @property
-    def rtol(self):
-        """The relative tolerance parameter for float comparisons."""
-        return self.__class__.rtol
-
-    @classmethod
-    def set_atol(cls, value):
-        """Set the class default absolute tolerance parameter for float comparisons.
-
-        DEPRECATED: use operator.atol = value instead
-        """
-        warnings.warn("`{}.set_atol` method is deprecated, use `{}.atol = "
-                      "value` instead.".format(cls.__name__, cls.__name__),
-                      DeprecationWarning)
-        cls.atol = value
-
-    @classmethod
-    def set_rtol(cls, value):
-        """Set the class default relative tolerance parameter for float comparisons.
-
-        DEPRECATED: use operator.rtol = value instead
-        """
-        warnings.warn("`{}.set_rtol` method is deprecated, use `{}.rtol = "
-                      "value` instead.".format(cls.__name__, cls.__name__),
-                      DeprecationWarning)
-        cls.rtol = value
+        return self._op_shape.num_qubits
 
     @property
     def _rng(self):
         if self._rng_generator is None:
-            return np.random
+            return np.random.default_rng()
         return self._rng_generator
-
-    def _reshape(self, dims=None):
-        """Reshape dimensions of the state.
-
-        Arg:
-            dims (tuple): new subsystem dimensions.
-
-        Returns:
-            self: returns self with reshaped dimensions.
-
-        Raises:
-            QiskitError: if combined size of all subsystem dimensions are not constant.
-        """
-        if dims is not None:
-            if np.product(dims) != self._dim:
-                raise QiskitError(
-                    "Reshaped dims are incompatible with combined dimension."
-                )
-            self._dims = tuple(dims)
-        return self
 
     def dims(self, qargs=None):
         """Return tuple of input dimension for specified subsystems."""
-        if qargs is None:
-            return self._dims
-        return tuple(self._dims[i] for i in qargs)
+        return self._op_shape.dims_l(qargs)
 
     def copy(self):
         """Make a copy of current operator."""
@@ -198,8 +148,7 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
         Raises:
             NotImplementedError: if subclass does not support addition.
         """
-        raise NotImplementedError(
-            "{} does not support addition".format(type(self)))
+        raise NotImplementedError(f"{type(self)} does not support addition")
 
     def _multiply(self, other):
         """Return the scalar multipled state other * self.
@@ -214,65 +163,7 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
             NotImplementedError: if subclass does not support scala
                                  multiplication.
         """
-        raise NotImplementedError(
-            "{} does not support scalar multiplication".format(type(self)))
-
-    def add(self, other):
-        """Return the linear combination self + other.
-
-        DEPRECATED: use ``state + other`` instead.
-
-        Args:
-            other (QuantumState): a quantum state object.
-
-        Returns:
-            LinearOperator: the linear combination self + other.
-
-        Raises:
-            QiskitError: if other is not a quantum state, or has
-                         incompatible dimensions.
-        """
-        warnings.warn("`{}.add` method is deprecated, use + binary operator"
-                      "`state + other` instead.".format(self.__class__),
-                      DeprecationWarning)
-        return self._add(other)
-
-    def subtract(self, other):
-        """Return the linear operator self - other.
-
-        DEPRECATED: use ``state - other`` instead.
-
-        Args:
-            other (QuantumState): a quantum state object.
-
-        Returns:
-            LinearOperator: the linear combination self - other.
-
-        Raises:
-            QiskitError: if other is not a quantum state, or has
-                         incompatible dimensions.
-        """
-        warnings.warn("`{}.subtract` method is deprecated, use - binary operator"
-                      "`state - other` instead.".format(self.__class__),
-                      DeprecationWarning)
-        return self._add(-other)
-
-    def multiply(self, other):
-        """Return the scalar multipled state other * self.
-
-        Args:
-            other (complex): a complex number.
-
-        Returns:
-            QuantumState: the scalar multipled state other * self.
-
-        Raises:
-            QiskitError: if other is not a valid complex number.
-        """
-        warnings.warn("`{}.multiply` method is deprecated, use * binary operator"
-                      "`other * state` instead.".format(self.__class__),
-                      DeprecationWarning)
-        return self._multiply(other)
+        raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
 
     @abstractmethod
     def evolve(self, other, qargs=None):
@@ -344,9 +235,8 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
             dict: The measurement probabilities in dict (ket) form.
         """
         return self._vector_to_dict(
-            self.probabilities(qargs=qargs, decimals=decimals),
-            self.dims(qargs),
-            string_labels=True)
+            self.probabilities(qargs=qargs, decimals=decimals), self.dims(qargs), string_labels=True
+        )
 
     def sample_memory(self, shots, qargs=None):
         """Sample a list of qubit measurement outcomes in the computational basis.
@@ -375,7 +265,8 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
 
         # Generate list of possible outcome string labels
         labels = self._index_to_ket_array(
-            np.arange(len(probs)), self.dims(qargs), string_labels=True)
+            np.arange(len(probs)), self.dims(qargs), string_labels=True
+        )
         return self._rng.choice(labels, p=probs, size=shots)
 
     def sample_counts(self, shots, qargs=None):
@@ -431,8 +322,7 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
         sample = self._rng.choice(len(probs), p=probs, size=1)
 
         # Format outcome
-        outcome = self._index_to_ket_array(
-            sample, self.dims(qargs), string_labels=True)[0]
+        outcome = self._index_to_ket_array(sample, self.dims(qargs), string_labels=True)[0]
 
         # Convert to projector for state update
         proj = np.zeros(len(probs), dtype=complex)
@@ -441,32 +331,9 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
         # Update state object
         # TODO: implement a more efficient state update method for
         # diagonal matrix multiplication
-        ret = self.evolve(
-            Operator(np.diag(proj), input_dims=dims, output_dims=dims),
-            qargs=qargs)
+        ret = self.evolve(Operator(np.diag(proj), input_dims=dims, output_dims=dims), qargs=qargs)
 
         return outcome, ret
-
-    @classmethod
-    def _automatic_dims(cls, dims, size):
-        """Check if input dimension corresponds to qubit subsystems."""
-        return BaseOperator._automatic_dims(dims, size)
-
-    def _set_dims(self, dims):
-        """Set dimension attribute"""
-        # Shape lists the dimension of each subsystem starting from
-        # least significant through to most significant.
-        self._dims = tuple(dims)
-        # The total input and output dimensions are given by the product
-        # of all subsystem dimensions
-        self._dim = np.product(dims)
-        # Check if an N-qubit operator
-        if set(self._dims) == {2}:
-            # If so set the number of qubits
-            self._num_qubits = len(self._dims)
-        else:
-            # Otherwise set the number of qubits to None
-            self._num_qubits = None
 
     @staticmethod
     def _index_to_ket_array(inds, dims, string_labels=False):
@@ -493,7 +360,7 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
             str_kets = char_kets[0]
             for row in char_kets[1:]:
                 if max_dim > 10:
-                    str_kets = np.char.add(',', str_kets)
+                    str_kets = np.char.add(",", str_kets)
                 str_kets = np.char.add(row, str_kets)
             return str_kets.T
 
@@ -519,11 +386,10 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
         """
         # Get indices of non-zero elements
         vals = vec if decimals is None else vec.round(decimals=decimals)
-        inds, = vals.nonzero()
+        (inds,) = vals.nonzero()
 
         # Convert to ket tuple based on subsystem dimensions
-        kets = QuantumState._index_to_ket_array(
-            inds, dims, string_labels=string_labels)
+        kets = QuantumState._index_to_ket_array(inds, dims, string_labels=string_labels)
 
         # Make dict of tuples
         if string_labels:
@@ -551,58 +417,25 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
         """
         # Get indices of non-zero elements
         vals = mat if decimals is None else mat.round(decimals=decimals)
-        inds_row, inds_col, = vals.nonzero()
+        (
+            inds_row,
+            inds_col,
+        ) = vals.nonzero()
 
         # Convert to ket tuple based on subsystem dimensions
-        bras = QuantumState._index_to_ket_array(
-            inds_row, dims, string_labels=string_labels)
-        kets = QuantumState._index_to_ket_array(
-            inds_col, dims, string_labels=string_labels)
+        bras = QuantumState._index_to_ket_array(inds_row, dims, string_labels=string_labels)
+        kets = QuantumState._index_to_ket_array(inds_col, dims, string_labels=string_labels)
 
         # Make dict of tuples
         if string_labels:
-            return {'{}|{}'.format(ket, bra): val for ket, bra, val in zip(
-                kets, bras, vals[inds_row, inds_col])}
+            return {
+                f"{ket}|{bra}": val for ket, bra, val in zip(kets, bras, vals[inds_row, inds_col])
+            }
 
-        return {(tuple(ket), tuple(bra)): val for ket, bra, val in zip(
-            kets, bras, vals[inds_row, inds_col])}
-
-    @staticmethod
-    def _accumulate_dims(dims, qargs):
-        """Flatten subsystem dimensions for unspecified qargs.
-
-        This has the potential to reduce the number of subsystems
-        by combining consecutive subsystems between the specified
-        qargs. For example, if we had a 5-qubit system with
-        ``dims = (2, 2, 2, 2, 2)``, and ``qargs=[0, 4]``, then the
-        flattened system will have dimensions ``new_dims = (2, 8, 2)``
-        and qargs ``new_qargs = [0, 2]``.
-
-        Args:
-            dims (tuple): subsystem dimensions.
-            qargs (list): qargs list.
-
-        Returns:
-            tuple: the pair (new_dims, new_qargs).
-        """
-
-        qargs_map = {}
-        new_dims = []
-
-        # Accumulate subsystems that can be combined
-        accum = []
-        for i, dim in enumerate(dims):
-            if i in qargs:
-                if accum:
-                    new_dims.append(np.product(accum))
-                    accum = []
-                new_dims.append(dim)
-                qargs_map[i] = len(new_dims) - 1
-            else:
-                accum.append(dim)
-        if accum:
-            new_dims.append(np.product(accum))
-        return tuple(new_dims), [qargs_map[i] for i in qargs]
+        return {
+            (tuple(ket), tuple(bra)): val
+            for ket, bra, val in zip(kets, bras, vals[inds_row, inds_col])
+        }
 
     @staticmethod
     def _subsystem_probabilities(probs, dims, qargs=None):
@@ -619,32 +452,32 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
             np.array: the marginalized probability vector flattened
                       for the specified qargs.
         """
-
         if qargs is None:
             return probs
-
-        # Accumulate dimensions to trace over
-        accum_dims, accum_qargs = QuantumState._accumulate_dims(
-            dims, qargs)
-
-        # Get sum axis for maginalized subsystems
-        n_qargs = len(accum_dims)
-        axis = list(range(n_qargs))
-        for i in accum_qargs:
-            axis.remove(n_qargs - 1 - i)
-
-        # Reshape the probability to a tensor and sum over maginalized axes
-        new_probs = np.sum(np.reshape(probs, list(reversed(accum_dims))),
-                           axis=tuple(axis))
-
-        # Transpose output probs based on order of qargs
-        if sorted(accum_qargs) != accum_qargs:
-            axes = np.argsort(accum_qargs)
-            return np.ravel(np.transpose(new_probs, axes=axes))
-
-        return np.ravel(new_probs)
+        # Convert qargs to tensor axes
+        probs_tens = np.reshape(probs, dims)
+        ndim = probs_tens.ndim
+        qargs_axes = [ndim - 1 - i for i in reversed(qargs)]
+        # Get sum axis for marginalized subsystems
+        sum_axis = tuple(i for i in range(ndim) if i not in qargs_axes)
+        if sum_axis:
+            probs_tens = np.sum(probs_tens, axis=sum_axis)
+            qargs_axes = np.argsort(np.argsort(qargs_axes))
+        # Permute probability vector for desired qargs order
+        probs_tens = np.transpose(probs_tens, axes=qargs_axes)
+        new_probs = np.reshape(probs_tens, (probs_tens.size,))
+        return new_probs
 
     # Overloads
+    def __and__(self, other):
+        return self.evolve(other)
+
+    @deprecate_function(
+        "Using `psi @ U` as shorthand for `psi.evolve(U)` is deprecated"
+        " as of version 0.17.0 and will be removed no earlier than 3 months"
+        " after the release date. It has been superceded by the `&` operator"
+        " (`psi & U == psi.evolve(U)`) instead."
+    )
     def __matmul__(self, other):
         # Check for subsystem case return by __call__ method
         if isinstance(other, tuple) and len(other) == 2:

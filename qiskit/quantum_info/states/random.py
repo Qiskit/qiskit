@@ -14,7 +14,6 @@
 Random state generation.
 """
 
-import warnings
 import numpy as np
 from numpy.random import default_rng
 
@@ -55,28 +54,7 @@ def random_statevector(dims, seed=None):
     return Statevector(np.sqrt(x / sumx) * np.exp(1j * phases), dims=dims)
 
 
-def random_state(dim, seed=None):
-    """
-    DEPRECATED Return a random quantum state.
-
-    Args:
-        dim (int): the dim of the state space
-        seed (int or np.random.Generator): Optional. Set a fixed seed or
-                                           generator for RNG.
-
-    Returns:
-        ndarray:  state(2**num) a random quantum state.
-    """
-    warnings.warn(
-        'The `random_state` function is deprecated as of 0.13.0,'
-        ' and will be removed no earlier than 3 months after that '
-        'release date. You should use the `random_statevector`'
-        ' function instead.', DeprecationWarning, stacklevel=2)
-    return random_statevector(dim, seed=seed).data
-
-
-def random_density_matrix(dims, rank=None, method='Hilbert-Schmidt',
-                          seed=None):
+def random_density_matrix(dims, rank=None, method="Hilbert-Schmidt", seed=None):
     """Generator a random DensityMatrix.
 
     Args:
@@ -100,12 +78,12 @@ def random_density_matrix(dims, rank=None, method='Hilbert-Schmidt',
     if rank is None:
         rank = dim  # Use full rank
 
-    if method == 'Hilbert-Schmidt':
+    if method == "Hilbert-Schmidt":
         rho = _random_density_hs(dim, rank, seed)
-    elif method == 'Bures':
+    elif method == "Bures":
         rho = _random_density_bures(dim, rank, seed)
     else:
-        raise QiskitError('Error: unrecognized method {}'.format(method))
+        raise QiskitError(f"Error: unrecognized method {method}")
     return DensityMatrix(rho, dims=dims)
 
 
@@ -128,8 +106,7 @@ def _ginibre_matrix(nrow, ncol, seed):
     else:
         rng = default_rng(seed)
 
-    ginibre = rng.normal(
-        size=(nrow, ncol)) + rng.normal(size=(nrow, ncol)) * 1j
+    ginibre = rng.normal(size=(nrow, ncol)) + rng.normal(size=(nrow, ncol)) * 1j
     return ginibre
 
 

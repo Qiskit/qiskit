@@ -1,0 +1,45 @@
+---
+upgrade:
+  - |
+    The ``qiskit.__qiskit_version__`` module attribute was previously a ``dict``
+    will now return a custom read-only ``Mapping`` object that checks the
+    version of qiskit elements at runtime instead of at import time. This was
+    done to speed up the import path of qiskit and eliminate a possible import
+    cycle by only importing the element packages at runtime if the version
+    is needed from the package. This should be fully compatible with the
+    ``dict`` previously return and for most normal use cases there will be no
+    difference. However, if some applications were relying on either mutating
+    the contents or explicitly type checking it may require updates to adapt to
+    this change.
+  - |
+    The ``qiskit.execute`` module has been renamed to
+    :mod:`qiskit.execute_function`. This was necessary to avoid a potentical
+    name conflict between the :func:`~qiskit.execute_function.execute` function
+    which is re-exported as ``qiskit.execute``. ``qiskit.execute`` the function
+    in some situations could conflict with ``qiskit.execute`` the module which
+    would lead to a cryptic error because Python was treating ``qiskit.execute``
+    as the module when the intent was to the function or vice versa. The module
+    rename was necessary to avoid this conflict. If you're importing
+    ``qiskit.execute`` to get the module (typical usage was
+    ``from qiskit.execute import execute``) you will need to update this to
+    use ``qiskit.execute_function`` instead. ``qiskit.execute`` will now always
+    resolve to the function.
+  - |
+    The ``qiskit.compiler.transpile``, ``qiskit.compiler.assemble``,
+    ``qiskit.compiler.schedule``, and ``qiskit.compiler.sequence`` modules have
+    been renamed to ``qiskit.compiler.transpiler``,
+    ``qiskit.compiler.assembler``, ``qiskit.compiler.scheduler``, and
+    ``qiskit.compiler.sequence`` respectively. This was necessary to avoid a
+    potentical name conflict between the modules and the re-exported function
+    paths :func:`qiskit.compiler.transpile`, :func:`qiskit.compiler.assemble`,
+    :func:`qiskit.compiler.schedule`, and :func:`qiskit.compiler.sequence`.
+    In some situations this name conflict between the module path and
+    re-exported function path would lead to a cryptic error because Python was
+    treating an import as the module when the intent was to use the function or
+    vice versa. The module rename was necessary to avoid this conflict. If
+    you were using the imports to get the modules before (typical usage would
+    be like``from qiskit.compiler.transpile import transpile``) you will need
+    to update this to use the new module paths.
+    :func:`qiskit.compiler.transpile`, :func:`qiskit.compiler.assemble`,
+    :func:`qiskit.compiler.schedule`, and :func:`qiskit.compiler.sequence`
+    will now always resolve to the functions.

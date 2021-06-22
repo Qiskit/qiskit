@@ -20,7 +20,7 @@ Transpiler (:mod:`qiskit.transpiler`)
 Overview
 ========
 Transpilation is the process of rewriting a given input circuit to match
-the topoplogy of a specific quantum device, and/or to optimize the circuit
+the topology of a specific quantum device, and/or to optimize the circuit
 for execution on present day noisy quantum systems.
 
 Most circuits must undergo a series of transformations that make them compatible with
@@ -46,11 +46,8 @@ these ready-made routines.
 Supplementary Information
 =========================
 
-.. container:: toggle
-
-   .. container:: header
-
-      **Basis Gates**
+.. dropdown:: Basis gates
+   :animate: fade-in-slide-down
 
    When writing a quantum circuit you are free to use any quantum gate (unitary operator) that
    you like, along with a collection of non-gate operations such as qubit measurements and
@@ -152,11 +149,8 @@ Supplementary Information
 
       <br>
 
-.. container:: toggle
-
-   .. container:: header
-
-      **Initial Layout**
+.. dropdown:: Initial layout
+   :animate: fade-in-slide-down
 
    Quantum circuits are abstract entities whose qubits are "virtual" representations of actual
    qubits used in computations.  We need to be able to map these virtual qubits in a one-to-one
@@ -247,11 +241,8 @@ Supplementary Information
       <br>
 
 
-.. container:: toggle
-
-   .. container:: header
-
-      **Mapping Circuits to Hardware Topology**
+.. dropdown:: Mapping circuits to hardware topology
+   :animate: fade-in-slide-down
 
    In order to implement a CNOT gate between qubits in a quantum circuit that are not directly
    connected on a quantum device one or more SWAP gates must be inserted into the circuit to
@@ -317,11 +308,8 @@ Supplementary Information
       <br>
 
 
-.. container:: toggle
-
-   .. container:: header
-
-      **Gate Optimization**
+.. dropdown:: Gate optimization
+   :animate: fade-in-slide-down
 
    Decomposing quantum circuits into the basis gate set of the IBM Quantum devices,
    and the addition of SWAP gates needed to match hardware topology, conspire to
@@ -406,6 +394,15 @@ Fenced Objects
 
    FencedDAGCircuit
    FencedPropertySet
+
+Abstract Passes
+---------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   TransformationPass
+   AnalysisPass
 
 Exceptions
 ----------

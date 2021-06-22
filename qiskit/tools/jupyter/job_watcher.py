@@ -13,28 +13,31 @@
 
 """A module for the job watcher"""
 
-from IPython.core.magic import (line_magic,             # pylint: disable=import-error
-                                Magics, magics_class)
+from IPython.core.magic import line_magic, Magics, magics_class
 from qiskit.tools.events.pubsub import Subscriber
+from qiskit.exceptions import MissingOptionalLibraryError
+
 try:
     from qiskit.providers.ibmq.job.exceptions import IBMQJobApiError
+
     HAS_IBMQ = True
 except ImportError:
     HAS_IBMQ = False
-from .job_widgets import (build_job_viewer, make_clear_button,
-                          make_labels, create_job_widget)
+from .job_widgets import build_job_viewer, make_clear_button, make_labels, create_job_widget
 from .watcher_monitor import _job_monitor
 
 
 class JobWatcher(Subscriber):
-    """An IBM Q job watcher.
-    """
+    """An IBM Q job watcher."""
+
     def __init__(self):
         super().__init__()
         if not HAS_IBMQ:
-            raise ImportError("qiskit-ibmq-provider is required to use the "
-                              "job watcher. To install it run 'pip install "
-                              "qiskit-ibmq-provider'")
+            raise MissingOptionalLibraryError(
+                libname="qiskit-ibmq-provider",
+                name="the job watcher",
+                pip_install="pip install qiskit-ibmq-provider",
+            )
         self.jobs = []
         self._init_subscriber()
         self.job_viewer = None
@@ -43,22 +46,20 @@ class JobWatcher(Subscriber):
         self.refresh_viewer()
 
     def refresh_viewer(self):
-        """Refreshes the job viewer.
-        """
+        """Refreshes the job viewer."""
         if self.job_viewer is not None:
-            self.job_viewer.children[0].children = [self._clear_button,
-                                                    self._labels] + list(reversed(self.jobs))
+            self.job_viewer.children[0].children = [self._clear_button, self._labels] + list(
+                reversed(self.jobs)
+            )
 
     def stop_viewer(self):
-        """Stops the job viewer.
-        """
+        """Stops the job viewer."""
         if self.job_viewer:
             self.job_viewer.close()
         self.job_viewer = None
 
     def start_viewer(self):
-        """Starts the job viewer
-        """
+        """Starts the job viewer"""
         self.job_viewer = build_job_viewer()
         self.refresh_viewer()
 
@@ -79,18 +80,18 @@ class JobWatcher(Subscriber):
         if found_job:
             job_wid = self.jobs[ind]
             # update status
-            if update_info[1] == 'DONE':
-                stat = "<font style='color:#34BC6E'>{}</font>".format(update_info[1])
-            elif update_info[1] == 'ERROR':
-                stat = "<font style='color:#DC267F'>{}</font>".format(update_info[1])
-            elif update_info[1] == 'CANCELLED':
-                stat = "<font style='color:#FFB000'>{}</font>".format(update_info[1])
+            if update_info[1] == "DONE":
+                stat = f"<font style='color:#34BC6E'>{update_info[1]}</font>"
+            elif update_info[1] == "ERROR":
+                stat = f"<font style='color:#DC267F'>{update_info[1]}</font>"
+            elif update_info[1] == "CANCELLED":
+                stat = f"<font style='color:#FFB000'>{update_info[1]}</font>"
             else:
                 stat = update_info[1]
             job_wid.children[3].value = stat
             # update queue
             if update_info[2] == 0:
-                queue = '-'
+                queue = "-"
             else:
                 queue = str(update_info[2])
             job_wid.children[4].value = queue
@@ -114,26 +115,23 @@ class JobWatcher(Subscriber):
                 ind = idx
                 break
         if not do_pop:
-            raise Exception('job_id not found')
-        if 'CANCELLED' not in self.jobs[ind].children[3].value:
+            raise Exception("job_id not found")
+        if "CANCELLED" not in self.jobs[ind].children[3].value:
             try:
                 self.jobs[ind].job.cancel()
                 status = self.jobs[ind].job.status()
             except IBMQJobApiError:
                 pass
             else:
-                self.update_single_job((self.jobs[ind].job_id,
-                                        status.name, 0,
-                                        status.value))
+                self.update_single_job((self.jobs[ind].job_id, status.name, 0, status.value))
 
     def clear_done(self):
-        """Clears the done jobs from the list.
-        """
+        """Clears the done jobs from the list."""
         _temp_jobs = []
         do_refresh = False
         for job in self.jobs:
             job_str = job.children[3].value
-            if not (('DONE' in job_str) or ('CANCELLED' in job_str) or ('ERROR' in job_str)):
+            if not (("DONE" in job_str) or ("CANCELLED" in job_str) or ("ERROR" in job_str)):
                 _temp_jobs.append(job)
             else:
                 job.close()
@@ -143,14 +141,11 @@ class JobWatcher(Subscriber):
             self.refresh_viewer()
 
     def _init_subscriber(self):
-
         def _add_job(job):
             status = job.status()
-            job_widget = create_job_widget(self, job,
-                                           job.backend(),
-                                           status.name,
-                                           job.queue_position(),
-                                           status.value)
+            job_widget = create_job_widget(
+                self, job, job.backend(), status.name, job.queue_position(), status.value
+            )
             self.jobs.append(job_widget)
             self.refresh_viewer()
             _job_monitor(job, status, self)
@@ -160,21 +155,20 @@ class JobWatcher(Subscriber):
 
 @magics_class
 class JobWatcherMagic(Magics):
-    """A class for enabling/disabling the job watcher.
-    """
+    """A class for enabling/disabling the job watcher."""
+
     @line_magic
-    def qiskit_job_watcher(self, line='', cell=None):
-        """A Jupyter magic function to enable job watcher.
-        """
+    def qiskit_job_watcher(self, line="", cell=None):
+        """A Jupyter magic function to enable job watcher."""
         _JOB_WATCHER.stop_viewer()
         _JOB_WATCHER.start_viewer()
 
     @line_magic
-    def qiskit_disable_job_watcher(self, line='', cell=None):
-        """A Jupyter magic function to disable job watcher.
-        """
+    def qiskit_disable_job_watcher(self, line="", cell=None):
+        """A Jupyter magic function to disable job watcher."""
         _JOB_WATCHER.stop_viewer()
 
 
-# The Jupyter job watcher instance
-_JOB_WATCHER = JobWatcher()
+if HAS_IBMQ:
+    # The Jupyter job watcher instance
+    _JOB_WATCHER = JobWatcher()

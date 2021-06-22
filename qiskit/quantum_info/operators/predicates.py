@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=len-as-condition,unsubscriptable-object
-
 """
 Predicates for operators.
 """
@@ -22,11 +20,7 @@ ATOL_DEFAULT = 1e-8
 RTOL_DEFAULT = 1e-5
 
 
-def matrix_equal(mat1,
-                 mat2,
-                 ignore_phase=False,
-                 rtol=RTOL_DEFAULT,
-                 atol=ATOL_DEFAULT):
+def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if two arrays are equal.
 
     The final comparison is implemented using Numpy.allclose. See its
@@ -46,25 +40,34 @@ def matrix_equal(mat1,
 
     Returns:
         bool: True if the matrices are equal or False otherwise.
-    """.format(RTOL_DEFAULT, ATOL_DEFAULT)
+    """.format(
+        RTOL_DEFAULT, ATOL_DEFAULT
+    )
 
     if atol is None:
         atol = ATOL_DEFAULT
     if rtol is None:
         rtol = RTOL_DEFAULT
-    mat1 = np.array(mat1)
-    mat2 = np.array(mat2)
+
+    if not isinstance(mat1, np.ndarray):
+        mat1 = np.array(mat1)
+    if not isinstance(mat2, np.ndarray):
+        mat2 = np.array(mat2)
+
     if mat1.shape != mat2.shape:
         return False
+
     if ignore_phase:
         # Get phase of first non-zero entry of mat1 and mat2
         # and multiply all entries by the conjugate
-        phases1 = np.angle(mat1[abs(mat1) > atol].ravel(order='F'))
-        if len(phases1) > 0:
-            mat1 = np.exp(-1j * phases1[0]) * mat1
-        phases2 = np.angle(mat2[abs(mat2) > atol].ravel(order='F'))
-        if len(phases2) > 0:
-            mat2 = np.exp(-1j * phases2[0]) * mat2
+        for elt in mat1.flat:
+            if abs(elt) > atol:
+                mat1 = np.exp(-1j * np.angle(elt)) * mat1
+                break
+        for elt in mat2.flat:
+            if abs(elt) > atol:
+                mat2 = np.exp(-1j * np.angle(elt)) * mat2
+                break
     return np.allclose(mat1, mat2, rtol=rtol, atol=atol)
 
 
@@ -129,10 +132,7 @@ def is_positive_semidefinite_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     return True
 
 
-def is_identity_matrix(mat,
-                       ignore_phase=False,
-                       rtol=RTOL_DEFAULT,
-                       atol=ATOL_DEFAULT):
+def is_identity_matrix(mat, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if an array is an identity matrix."""
     if atol is None:
         atol = ATOL_DEFAULT

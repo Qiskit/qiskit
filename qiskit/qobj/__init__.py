@@ -54,14 +54,6 @@ Pulse
    PulseQobjConfig
    QobjMeasurementOption
    PulseLibraryItem
-
-Validation
-==========
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   validate_qobj_against_schema
 """
 
 import warnings
@@ -91,11 +83,12 @@ from .utils import validate_qobj_against_schema
 class Qobj(QasmQobj):
     """A backwards compat alias for QasmQobj."""
 
-    def __init__(self, qobj_id=None, config=None, experiments=None,
-                 header=None):
+    def __init__(self, qobj_id=None, config=None, experiments=None, header=None):
         """Initialize a Qobj object."""
-        warnings.warn('qiskit.qobj.Qobj is deprecated use either QasmQobj or '
-                      'PulseQobj depending on your application instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(qobj_id=qobj_id, config=config,
-                         experiments=experiments, header=header)
+        warnings.warn(
+            "qiskit.qobj.Qobj is deprecated use either QasmQobj or "
+            "PulseQobj depending on your application instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(qobj_id=qobj_id, config=config, experiments=experiments, header=header)

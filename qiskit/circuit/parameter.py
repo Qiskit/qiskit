@@ -17,11 +17,18 @@ from uuid import uuid4
 
 from .parameterexpression import ParameterExpression
 
+try:
+    import symengine
+
+    HAS_SYMENGINE = True
+except ImportError:
+    HAS_SYMENGINE = False
+
 
 class Parameter(ParameterExpression):
     """Parameter Class for variable parameters."""
 
-    def __new__(cls, name, uuid=None):  # pylint:disable=unused-argument
+    def __new__(cls, name, uuid=None):  # pylint: disable=unused-argument
         # Parameter relies on self._uuid being set prior to other attributes
         # (e.g. symbol_map) which may depend on self._uuid for Parameter's hash
         # or __eq__ functions.
@@ -41,20 +48,29 @@ class Parameter(ParameterExpression):
 
         return (self.name, self._uuid)
 
-    def __init__(self, name):
-        self._name = name
+    def __init__(self, name: str):
+        """Create a new named :class:`Parameter`.
 
-        from sympy import Symbol
-        symbol = Symbol(name)
+        Args:
+            name: name of the ``Parameter``, used for visual representation. This can
+                be any unicode string, e.g. "ϕ".
+        """
+        self._name = name
+        if not HAS_SYMENGINE:
+            from sympy import Symbol
+
+            symbol = Symbol(name)
+        else:
+            symbol = symengine.Symbol(name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)
 
-    def subs(self, parameter_map):
-        """Substitute self with the corresponding parameter in parameter_map."""
+    def subs(self, parameter_map: dict):
+        """Substitute self with the corresponding parameter in ``parameter_map``."""
         return parameter_map[self]
 
     @property
     def name(self):
-        """Returns the name of the Parameter."""
+        """Returns the name of the :class:`Parameter`."""
         return self._name
 
     def __str__(self):
@@ -67,7 +83,7 @@ class Parameter(ParameterExpression):
         return self
 
     def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__, self.name)
+        return f"{self.__class__.__name__}({self.name})"
 
     def __eq__(self, other):
         if isinstance(other, Parameter):
@@ -79,3 +95,16 @@ class Parameter(ParameterExpression):
 
     def __hash__(self):
         return self._hash
+
+    def __getstate__(self):
+        return {"name": self._name}
+
+    def __setstate__(self, state):
+        self._name = state["name"]
+        if not HAS_SYMENGINE:
+            from sympy import Symbol
+
+            symbol = Symbol(self._name)
+        else:
+            symbol = symengine.Symbol(self._name)
+        super().__init__(symbol_map={self: symbol}, expr=symbol)

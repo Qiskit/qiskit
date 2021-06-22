@@ -69,6 +69,7 @@ For example::
 # pylint: disable=attribute-defined-outside-init
 
 import unittest
+import os
 import sys
 
 from qiskit import execute
@@ -78,7 +79,7 @@ from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, S
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler import CouplingMap, Layout
 
-from qiskit.test import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase
 
 
 class CommonUtilitiesMixin:
@@ -109,7 +110,7 @@ class CommonUtilitiesMixin:
 
     def create_backend(self):
         """Returns a Backend."""
-        return BasicAer.get_backend('qasm_simulator')
+        return BasicAer.get_backend("qasm_simulator")
 
     def generate_ground_truth(self, transpiled_result, filename):
         """Generates the expected result into a file.
@@ -122,16 +123,22 @@ class CommonUtilitiesMixin:
             filename (string): Where the QASM is saved.
         """
         sim_backend = self.create_backend()
-        job = execute(transpiled_result, sim_backend, seed_simulator=self.seed_simulator,
-                      seed_transpiler=self.seed_transpiler, shots=self.shots)
+        job = execute(
+            transpiled_result,
+            sim_backend,
+            seed_simulator=self.seed_simulator,
+            seed_transpiler=self.seed_transpiler,
+            shots=self.shots,
+        )
         self.assertDictAlmostEqual(self.counts, job.result().get_counts(), delta=self.delta)
 
         transpiled_result.qasm(formatted=False, filename=filename)
 
     def assertResult(self, result, circuit):
         """Fetches the QASM in circuit.name file and compares it with result."""
-        qasm_name = '%s_%s.qasm' % (type(self).__name__, circuit.name)
-        filename = QiskitTestCase._get_resource_path(qasm_name, Path.QASMS)
+        qasm_name = f"{type(self).__name__}_{circuit.name}.qasm"
+        qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
+        filename = os.path.join(qasm_dir, qasm_name)
 
         if self.regenerate_expected:
             # Run result in backend to test that is valid.
@@ -174,14 +181,14 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         expected count: '000': 50%
                         '110': 50%
         """
-        self.counts = {'000': 512, '110': 512}
+        self.counts = {"000": 512, "110": 512}
         self.shots = 1024
         self.delta = 5
         coupling_map = [[0, 1], [0, 2]]
 
-        qr = QuantumRegister(3, 'q')
-        cr = ClassicalRegister(3, 'c')
-        circuit = QuantumCircuit(qr, cr, name='a_cx_to_map')
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
+        circuit = QuantumCircuit(qr, cr, name="a_cx_to_map")
         circuit.h(qr[1])
         circuit.cx(qr[1], qr[2])
         circuit.measure(qr, cr)
@@ -208,14 +215,14 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         expected count: '000': 50%
                         '110': 50%
         """
-        self.counts = {'0000': 512, '0110': 512}
+        self.counts = {"0000": 512, "0110": 512}
         self.shots = 1024
         self.delta = 5
         coupling_map = [[0, 1], [0, 2], [2, 3]]
 
-        qr = QuantumRegister(4, 'q')
-        cr = ClassicalRegister(4, 'c')
-        circuit = QuantumCircuit(qr, cr, name='initial_layout')
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(4, "c")
+        circuit = QuantumCircuit(qr, cr, name="initial_layout")
         circuit.h(qr[1])
         circuit.cx(qr[1], qr[2])
         circuit.measure(qr, cr)
@@ -246,14 +253,14 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         expected count: '0000': 50%
                         '1011': 50%
         """
-        self.counts = {'1011': 512, '0000': 512}
+        self.counts = {"1011": 512, "0000": 512}
         self.shots = 1024
         self.delta = 5
         coupling_map = [[0, 1], [1, 2], [2, 3]]
 
-        qr = QuantumRegister(4, 'q')
-        cr = ClassicalRegister(4, 'c')
-        circuit = QuantumCircuit(qr, cr, name='handle_measurement')
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(4, "c")
+        circuit = QuantumCircuit(qr, cr, name="handle_measurement")
         circuit.h(qr[3])
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[3], qr[1])
@@ -266,28 +273,32 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
 
 class TestsBasicSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using BasicSwap."""
+
     pass_class = BasicSwap
 
 
 class TestsLookaheadSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using LookaheadSwap."""
+
     pass_class = LookaheadSwap
 
 
 class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using StochasticSwap."""
+
     pass_class = StochasticSwap
-    additional_args = {'seed': 0}
+    additional_args = {"seed": 0}
 
 
 class TestsSabreSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using SabreSwap."""
+
     pass_class = SabreSwap
-    additional_args = {'seed': 0}
+    additional_args = {"seed": 0}
 
 
-if __name__ == '__main__':
-    if len(sys.argv) >= 2 and sys.argv[1] == 'regenerate':
+if __name__ == "__main__":
+    if len(sys.argv) >= 2 and sys.argv[1] == "regenerate":
         CommonUtilitiesMixin.regenerate_expected = True
         del sys.argv[1]
     unittest.main()
