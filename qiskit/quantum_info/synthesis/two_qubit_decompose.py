@@ -548,6 +548,10 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
     """Decompose two-qubit unitary in terms of echoed cross-resonance gates.
     """
 
+    def __init__(self, unitary, backend):
+        self._backend = backend
+        super().__init__(unitary)
+
     def specialize(self):
         pass
 
