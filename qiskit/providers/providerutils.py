@@ -91,7 +91,7 @@ def resolve_backend_name(name, backends, deprecated, aliased):
         resolved_name = next((b for b in resolved_name if b in available), "")
 
     if resolved_name not in available:
-        raise LookupError("backend '{}' not found.".format(name))
+        raise LookupError(f"backend '{name}' not found.")
 
     if name in deprecated:
         logger.warning("Backend '%s' is deprecated. Use '%s'.", name, resolved_name)

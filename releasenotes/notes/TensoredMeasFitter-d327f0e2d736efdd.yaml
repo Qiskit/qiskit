@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Add qiskit-ignis TensoredMeasFitter error mitigation to :class:`~qiskit.utils.QuantumInstance`.

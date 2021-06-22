@@ -142,7 +142,7 @@ class Shor:
 
     def _controlled_multiple_mod_N(self, num_qubits: int, N: int, a: int) -> Instruction:
         """Implements modular multiplication by a as an instruction."""
-        circuit = QuantumCircuit(num_qubits, name="multiply_by_{}_mod_{}".format(a % N, N))
+        circuit = QuantumCircuit(num_qubits, name=f"multiply_by_{a % N}_mod_{N}")
         down = circuit.qubits[1 : self._n + 1]
         aux = circuit.qubits[self._n + 1 :]
         qubits = [aux[i] for i in reversed(range(self._n + 1))]
@@ -219,7 +219,7 @@ class Shor:
 
         # Create Quantum Circuit
         circuit = QuantumCircuit(
-            self._up_qreg, self._down_qreg, self._aux_qreg, name="Shor(N={}, a={})".format(N, a)
+            self._up_qreg, self._down_qreg, self._aux_qreg, name=f"Shor(N={N}, a={a})"
         )
 
         # Create gates to perform addition/subtraction by N in Fourier Space

@@ -97,7 +97,7 @@ class MSBasisDecomposer(TransformationPass):
                 replacement_circuit = cnot_decomposition
             else:
                 raise QiskitError(
-                    "Unable to handle instruction (%s, %s)." % (node.op.name, type(node.op))
+                    f"Unable to handle instruction ({node.op.name}, {type(node.op)})."
                 )
 
             replacement_dag = circuit_to_dag(replacement_circuit)

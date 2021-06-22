@@ -203,7 +203,7 @@ class Pauli(BasePauli):
 
     def __repr__(self):
         """Display representation."""
-        return "Pauli('{}')".format(self.__str__())
+        return f"Pauli('{self.__str__()}')"
 
     def __str__(self):
         """Print representation."""
@@ -659,7 +659,7 @@ class Pauli(BasePauli):
     def _from_scalar_op(cls, op):
         """Convert a ScalarOp to BasePauli data."""
         if op.num_qubits is None:
-            raise QiskitError("{} is not an N-qubit identity".format(op))
+            raise QiskitError(f"{op} is not an N-qubit identity")
         base_z = np.zeros((1, op.num_qubits), dtype=bool)
         base_x = np.zeros((1, op.num_qubits), dtype=bool)
         base_phase = np.mod(
@@ -692,7 +692,7 @@ class Pauli(BasePauli):
         if isinstance(instr, Instruction):
             # Convert other instructions to circuit definition
             if instr.definition is None:
-                raise QiskitError("Cannot apply Instruction: {}".format(instr.name))
+                raise QiskitError(f"Cannot apply Instruction: {instr.name}")
             # Convert to circuit
             instr = instr.definition
 
@@ -713,7 +713,7 @@ class Pauli(BasePauli):
         for dinstr, qregs, cregs in instr.data:
             if cregs:
                 raise QiskitError(
-                    "Cannot apply instruction with classical registers: {}".format(dinstr.name)
+                    f"Cannot apply instruction with classical registers: {dinstr.name}"
                 )
             if not isinstance(dinstr, Barrier):
                 next_instr = BasePauli(*cls._from_circuit(dinstr))
