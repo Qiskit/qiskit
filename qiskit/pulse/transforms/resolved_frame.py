@@ -14,6 +14,7 @@
 
 from abc import ABC
 from typing import Optional
+from dataclasses import dataclass
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -23,6 +24,14 @@ from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.instructions.frequency import SetFrequency, ShiftFrequency
 from qiskit.pulse.instructions.phase import SetPhase, ShiftPhase
 from qiskit.pulse.exceptions import PulseError
+
+
+@dataclass
+class TimeFrequencyPhase:
+    """Class to help keep track of time, frequency and phase."""
+    time: float
+    frequency: float
+    phase: float
 
 
 class Tracker(ABC):
@@ -38,7 +47,7 @@ class Tracker(ABC):
             sample_duration: Duration of a sample.
         """
         self._identifier = identifier
-        self._frequencies_phases = []  # List of (time, frequency, phase) tuples
+        self._frequencies_phases = []  # List of TimeFreqPhase instances
         self._instructions = {}
         self._sample_duration = sample_duration
 
@@ -57,10 +66,10 @@ class Tracker(ABC):
         Returns:
             frequency: The frequency of the frame right before time.
         """
-        frequency = self._frequencies_phases[0][1]
-        for time_freq in self._frequencies_phases:
-            if time_freq[0] <= time:
-                frequency = time_freq[1]
+        frequency = self._frequencies_phases[0].frequency
+        for tfp in self._frequencies_phases:
+            if tfp.time <= time:
+                frequency = tfp.frequency
             else:
                 break
 
@@ -79,13 +88,13 @@ class Tracker(ABC):
         if len(self._frequencies_phases) == 0:
             return 0.0
 
-        phase = self._frequencies_phases[0][1]
-        last_time = self._frequencies_phases[0][0]
+        phase = self._frequencies_phases[0].phase
+        last_time = self._frequencies_phases[0].time
 
-        for time_freq in self._frequencies_phases:
-            if time_freq[0] <= time:
-                phase = time_freq[2]
-                last_time = time_freq[0]
+        for tfp in self._frequencies_phases:
+            if tfp.time <= time:
+                phase = tfp.phase
+                last_time = tfp.time
             else:
                 break
 
@@ -101,28 +110,32 @@ class Tracker(ABC):
             frequency: The frequency to which self is set after the given time.
         """
         insert_idx = 0
-        for idx, time_freq in enumerate(self._frequencies_phases):
-            if time_freq[0] < time:
+        for idx, tfp in enumerate(self._frequencies_phases):
+            if tfp.time < time:
                 insert_idx = idx
             else:
                 break
 
         phase = self.phase(time)
 
-        self._frequencies_phases.insert(insert_idx + 1, (time, frequency, phase))
+        new_tfp = TimeFrequencyPhase(time=time, frequency=frequency, phase=phase)
+
+        self._frequencies_phases.insert(insert_idx + 1, new_tfp)
 
     def set_phase(self, time: int, phase: float):
         """Insert a new phase in the time-ordered phases."""
         insert_idx = 0
-        for idx, time_freq in enumerate(self._frequencies_phases):
-            if time_freq[0] < time:
+        for idx, tfp in enumerate(self._frequencies_phases):
+            if tfp.time < time:
                 insert_idx = idx
             else:
                 break
 
         frequency = self.frequency(time)
 
-        self._frequencies_phases.insert(insert_idx + 1, (time, frequency, phase))
+        new_tfp = TimeFrequencyPhase(time=time, frequency=frequency, phase=phase)
+
+        self._frequencies_phases.insert(insert_idx + 1, new_tfp)
 
 
 class ResolvedFrame(Tracker):
@@ -154,7 +167,7 @@ class ResolvedFrame(Tracker):
             raise PulseError("A parameterized frame cannot initialize a ResolvedFrame.")
 
         super().__init__(frame.name, sample_duration)
-        self._frequencies_phases = [(0, frequency, phase)]
+        self._frequencies_phases = [TimeFrequencyPhase(time=0, frequency=frequency, phase=phase)]
         self._purpose = purpose
 
     @property
