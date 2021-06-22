@@ -115,6 +115,8 @@ class UnitarySynthesis(TransformationPass):
             )
 
         for node in dag.named_nodes("unitary", "swap"):
+            if node.name in self._basis_gates:
+                continue
             synth_dag = None
             wires = None
             if len(node.qargs) == 1:
