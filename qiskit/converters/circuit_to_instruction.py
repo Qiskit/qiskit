@@ -80,7 +80,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         num_qubits=sum(qreg.size for qreg in circuit.qregs),
         num_clbits=sum(creg.size for creg in circuit.cregs),
         params=[*parameter_dict.values()],
-        label=label
+        label=label,
     )
     instruction.condition = None
 
