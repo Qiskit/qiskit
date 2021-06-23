@@ -110,12 +110,12 @@ class EvolvedOp(PrimitiveOp):
     def __str__(self) -> str:
         prim_str = str(self.primitive)
         if self.coeff == 1.0:
-            return "e^(-i*{})".format(prim_str)
+            return f"e^(-i*{prim_str})"
         else:
-            return "{} * e^(-i*{})".format(self.coeff, prim_str)
+            return f"{self.coeff} * e^(-i*{prim_str})"
 
     def __repr__(self) -> str:
-        return "EvolvedOp({}, coeff={})".format(repr(self.primitive), self.coeff)
+        return f"EvolvedOp({repr(self.primitive)}, coeff={self.coeff})"
 
     def reduce(self) -> "EvolvedOp":
         return EvolvedOp(self.primitive.reduce(), coeff=self.coeff)
