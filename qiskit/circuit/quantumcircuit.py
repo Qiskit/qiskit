@@ -1318,7 +1318,7 @@ class QuantumCircuit:
                             f" registers {element1} and {element2} not compatible"
                         )
 
-        def qasm(self, formatted=False, filename=None, encoding=None):
+    def qasm(self, formatted=False, filename=None, encoding=None):
         """Return OpenQASM string.
 
         Args:
