@@ -119,7 +119,7 @@ class TestVF2Layout(QiskitTestCase):
 
         self.assertEqual(layout[qr[0]], 1)
         self.assertEqual(layout[qr[1]], 0)
-        self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
+        self.assertEqual(pass_.property_set["VF2Layout_stop_reason"], "solution found")
 
     # def test_3q_circuit_5q_coupling_sd(self):
     #     """3 qubits in Tenerife, considering the direction
