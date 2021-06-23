@@ -901,7 +901,7 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(1)
 
         obs = (Z ^ X) - (Y ^ Y)
-        op = ~StateFn(obs) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = StateFn(obs, is_measurement=True) @ CircuitStateFn(primitive=qc)
 
         shots = 100000
 
