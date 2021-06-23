@@ -15,8 +15,7 @@
 import os
 import csv
 
-from typing import List, Union, Dict, Iterable, Tuple, Any, Optional
-import warnings
+from typing import List, Union, Iterable, Tuple, Any
 
 from scipy.optimize import fmin_cobyla
 
@@ -249,20 +248,20 @@ class VarQITE(VarQTE):
 
         print('after grid x overlap', x)
         # After the grid use the resulting optimal alpha and do another optimization search
-        while True:
-            alpha_opt = fmin_cobyla(func=lambda x: overlap(x), x0=[alpha_opt],
-                                    rhobeg=1e-5, catol=1e-12, maxfun=1000000,
-                                    rhoend=1e-10, cons=[constraint1, constraint2])[0]
-            if np.abs(alpha_opt) <= 1:
-                break
-            print('Warning illegal alpha ', alpha_opt)
-
-        x = overlap([alpha_opt])
-        if x > 1:
-            x = 1.
-            print('warning x clipped to 1 ', x)
-
-        print('after cobyla x overlap', x)
+        # while True:
+        #     alpha_opt = fmin_cobyla(func=lambda x: overlap(x), x0=[alpha_opt],
+        #                             rhobeg=1e-5, catol=1e-12, maxfun=1000000,
+        #                             rhoend=1e-10, cons=[constraint1, constraint2])[0]
+        #     if np.abs(alpha_opt) <= 1:
+        #         break
+        #     print('Warning illegal alpha ', alpha_opt)
+        #
+        # x = overlap([alpha_opt])
+        # if x > 1:
+        #     x = 1.
+        #     print('warning x clipped to 1 ', x)
+        #
+        # print('after cobyla x overlap', x)
         print('dt * e ', delta_t * e_factor)
         print('x ', x)
         max_bures = np.sqrt(2 + 2 * delta_t * e_factor - 2 * x)
@@ -339,10 +338,9 @@ class VarQITE(VarQTE):
         # Grid search over alphas for the optimization
         print('eps_t', eps_t)
         if eps_t**2/2 > 1:
-            grid = np.linspace(0, 1, int(1e5))
+            grid = np.linspace(0, 1, int(1e7))
         else:
-            num_grid_points = min(eps_t ** 2 / 2 * 10 ** 5 + 1, 1e5)
-            grid = np.linspace(0, eps_t**2/2, int(num_grid_points))
+            grid = np.linspace(0, eps_t**2/2, int(1e7))
         for a in grid:
             returned_x = optimize_energy_factor([a])
             if math.isnan(returned_x):
@@ -356,11 +354,12 @@ class VarQITE(VarQTE):
                     alpha_opt = a
         print('after grid x energy', x)
 
-        alpha_opt = fmin_cobyla(func=lambda z: (-1) * optimize_energy_factor(z), x0=[alpha_opt],
-                                rhobeg=1e-5, catol=1e-12, maxfun=1000000,
-                                rhoend=1e-10, cons=[constraint1, constraint2, constraint3])
-        x = optimize_energy_factor([alpha_opt])[0]
-        print('after cobyla x energy', x)
+        # alpha_opt = fmin_cobyla(func=lambda z: (-1) * optimize_energy_factor(z), x0=[alpha_opt],
+        #                         rhobeg=1e-3, catol=1e-12, maxfun=1000000,
+        #                         rhoend=1e-10, cons=[constraint1, constraint2, constraint3])
+        # x = optimize_energy_factor([alpha_opt])[0]
+        # print('after cobyla x energy', x)
+        print('alpha opt energy', alpha_opt)
         print('energy factor part 1', eps_t**2 * self._h_norm)
         print('energy factor part 2', 2 * x)
         return eps_t**2 * self._h_norm + 2 * x
@@ -386,12 +385,18 @@ class VarQITE(VarQTE):
         if eps_t < 0:
             eps_t = 0
             print('Warn eps_t neg. clipped to 0')
-        energy_factor = self.get_energy_factor(eps_t, energy, stddev)
-        # max B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
-        y = self.get_max_bures(eps_t, energy, energy_factor, h_squared, h_trip, d_t)
-        # eps_t*sqrt(var) + eps_t^2/2 * |E_t - ||H||_infty |
-        # energy_factor = (2 * eps_t * stddev +
-        #                  eps_t ** 2 / 2 * np.abs(energy - self._h_norm))
+        if eps_t == 0 and grad_err == 0:
+            eps_t_next = 0
+            energy_factor = 0
+            y = 0
+        else:
+            energy_factor = self.get_energy_factor(eps_t, energy, stddev)
+            # max B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
+            y = self.get_max_bures(eps_t, energy, energy_factor, h_squared, h_trip, d_t)
+            # eps_t*sqrt(var) + eps_t^2/2 * |E_t - ||H||_infty |
+            # energy_factor = (2 * eps_t * stddev +
+            #                  eps_t ** 2 / 2 * self._h_norm)
+            eps_t_next = y + d_t * grad_err + d_t * energy_factor
 
         print('Max Bures ', y)
         print('grad factor ', grad_err)
@@ -407,6 +412,7 @@ class VarQITE(VarQTE):
                 energy_error_bounds = np.load(os.path.join(self._snapshot_dir,
                                                            'energy_error_bound.npy'))
                 energy_error_bounds = np.append(energy_error_bounds, energy_factor)
+                print('Energy error bounbds', energy_error_bounds)
                 max_bures_metrics = np.load(os.path.join(self._snapshot_dir, 'max_bures.npy'))
                 max_bures_metrics = np.append(max_bures_metrics, y)
             np.save(os.path.join(self._snapshot_dir, 'energy_error_bound.npy'),
@@ -419,7 +425,7 @@ class VarQITE(VarQTE):
                         csv_file:
                     fieldnames = ['eps_t', 'dt', 'opt_factor', 'grad_factor', 'energy_factor',
                                   'stddev',
-                                  '|e-norm(H)|']
+                                  '|norm(H)|']
 
                     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                     writer.writeheader()
@@ -429,7 +435,7 @@ class VarQITE(VarQTE):
             with open(os.path.join(self._snapshot_dir, 'varqite_bound_output.csv'), mode='a') as \
                     csv_file:
                 fieldnames = ['eps_t', 'dt', 'opt_factor', 'grad_factor', 'energy_factor', 'stddev',
-                              '|e-norm(H)|']
+                              '|norm(H)|']
 
                 writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 
@@ -439,10 +445,10 @@ class VarQITE(VarQTE):
                                  'grad_factor': np.round(grad_err, 8),
                                  'energy_factor': np.round(energy_factor, 8),
                                  'stddev': np.round(stddev, 8),
-                                 '|e-norm(H)|': np.round(np.abs(energy - self._h_norm), 8)
+                                 '|norm(H)|': np.round(self._h_norm, 8)
                                  })
         # \epsilon_{t+1}
-        return y + d_t * grad_err + d_t * energy_factor
+        return eps_t_next
 
 
     def _get_error_bound(self,
@@ -483,7 +489,7 @@ class VarQITE(VarQTE):
             with open(os.path.join(self._snapshot_dir, 'varqite_bound_output.csv'), mode='w') as \
                     csv_file:
                 fieldnames = ['eps_t', 'dt', 'opt_factor', 'grad_factor', 'energy_factor', 'stddev',
-                              '|e-norm(H)|']
+                              '|norm(H)|']
 
                 writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                 writer.writeheader()

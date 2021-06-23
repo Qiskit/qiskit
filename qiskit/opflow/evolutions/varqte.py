@@ -494,7 +494,7 @@ class VarQTE(EvolutionBase):
                 error_bound_grad = et
             else:
                 # VarQITE
-                error_bound_grad = self._get_error_grad(delta_t=1e-8, eps_t=max(error, 0),
+                error_bound_grad = self._get_error_grad(delta_t=1e-4, eps_t=max(error, 0),
                                                       grad_err=et,
                                                       energy=trained_energy, h_squared=h_squared,
                                                       h_trip=h_trip,
@@ -511,13 +511,13 @@ class VarQTE(EvolutionBase):
                                    reimgrad)
 
             return np.append(dt_params, error_bound_grad)
-        if self._ode_solver == RK45:
-            self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
-                                                atol=1e-6, max_step=0.01)
+        # if self._ode_solver == RK45:
+        #     self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
+        #                                         atol=1e-6, max_step=0.01)
 
-        elif issubclass(self._ode_solver, OdeSolver):
+        if issubclass(self._ode_solver, OdeSolver):
             self._ode_solver=self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
-                                              atol=1e-6)
+                                              atol=1e-10)
 
         elif self._ode_solver == ForwardEuler:
             self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0,
@@ -890,9 +890,10 @@ class VarQTE(EvolutionBase):
 
             if os.path.exists(os.path.join(data_dir, 'direct_error_bounds.npy')):
                 direct_error_bounds = np.load(os.path.join(data_dir, 'direct_error_bounds.npy'))
-                plt.plot(time, direct_error_bounds, color='mediumorchid', label='direct error '
+                plt.plot(time, direct_error_bounds, color='pink', label='direct error '
                                                                                 'bound',
                          alpha=0.5)
+                plt.legend(loc='best')
                 plt.savefig(os.path.join(data_dir, 'error_bound_actual_incl_direct.png'))
                 plt.close()
 
@@ -1017,7 +1018,8 @@ class VarQTE(EvolutionBase):
                 plt.title('Energy Error Bound')
                 print('time', time)
                 print('energy error bounds', energy_error_bounds)
-                plt.scatter(time, energy_error_bounds, color='turquoise', marker='o', s=8, alpha=0.5)
+                plt.scatter(time, energy_error_bounds, color='turquoise', marker='o', s=8,
+                            alpha=0.5)
                 plt.plot(time, energy_error_bounds, color='turquoise', alpha=0.5)
                 plt.xlabel('time')
                 plt.ylabel('energy error bound')

@@ -76,6 +76,7 @@ class MrfHamiltonianGenerator():
                 result = f
             else:
                 result = result ^ f
+
         return result / s
 
     def isXOR(self, x, y, z):
@@ -101,6 +102,8 @@ class MrfHamiltonianGenerator():
         """
         if not mode == 'fast_pauli':
             H = np.zeros(2 ** n * 2 ** n).reshape(2 ** n, 2 ** n)  # Hamitonian of size 2^n X 2^n
+        else:
+            H = None
 
         for l, c in enumerate(clique_structure):
             Y = list(itertools.product([0, 1], repeat=len(c)))
@@ -118,14 +121,13 @@ class MrfHamiltonianGenerator():
                     theta *= -1
                 elif l == 2 and (y[0] != y[1]):
                     theta *= -1
-                if not mode == 'fast_pauli':
-                    H += theta * Phi
+                if H is None:
+                    H = theta * Phi
                 else:
-                    #TODO
-                    pass
+                    H += theta * Phi
 
-        H[H > 0] = 3
-        H[H < 0] = -3
+        # H[H > 0] = 3
+        # H[H < 0] = -3
 
         return H
 
