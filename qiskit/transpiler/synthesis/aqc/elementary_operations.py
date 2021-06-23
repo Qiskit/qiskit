@@ -30,27 +30,25 @@ Y = YGate().to_matrix()
 Z = ZGate().to_matrix()
 
 
-# todo: some of them they may have been already defined in qiskit,
-#  but for now we re-define them here
 def op_unitary(u, n, j) -> np.ndarray:
     """
-
+    I(j - 1) tensor product U tensor product I(n - j).
     Args:
-        u:
-        n:
-        j:
+        u: 2x2, single qubit unitary or bigger?
+        n: num qubits
+        j: position where to place a unitary
 
     Returns:
-        TODO: An array
+        unitary of n qubits with u in position j.
     """
     return np.kron(np.kron(np.eye(2 ** (j - 1)), u), np.eye(2 ** (n - j)))
 
 
 def op_cnot(n, j, k) -> np.ndarray:
     """
-
+    place a CNOT from j to k (what is target, what is control?), todo: e.g. j = 1, k = 5
     Args:
-        n:
+        n: num qubits
         j:
         k:
 

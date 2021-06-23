@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-This is the Optimizer class: anything to optimize the circuit.
+Gradient descent optimizers for AQC.
 """
 import logging
 from abc import ABC, abstractmethod
@@ -50,7 +50,7 @@ class OptimizerBase(ABC):
 
 
 class GDOptimizer(OptimizerBase):
-    """Class implements the gradient descent optimization algorithm."""
+    """Implements the gradient descent optimization algorithm."""
 
     def __init__(
         self,
@@ -60,6 +60,14 @@ class GDOptimizer(OptimizerBase):
         tol: float = 1e-5,
         eps: float = 0,
     ) -> None:
+        """
+        Args:
+            method: gradient descent method, either ``vanilla`` or ``nesterov``.
+            maxiter: maximum number of iterations to run.
+            eta: learning rate/step size.
+            tol: defines an error tolerance when to stop the optimizer.
+            eps: size of the noise to be added to escape local minima.
+        """
         super().__init__()
         self._method = method
         self._maxiter = maxiter
@@ -89,9 +97,9 @@ class GDOptimizer(OptimizerBase):
         errmax = 10
         while gra[i - 1] > self._tol and i < self._maxiter:
             if self._eps != 0:
-                nois = np.random.normal(0, 2 * np.pi, num_thetas)
-                nois = nois / la.norm(nois) * self._eps / i
-                der += nois
+                noise = np.random.normal(0, 2 * np.pi, num_thetas)
+                noise = noise / la.norm(noise) * self._eps / i
+                der += noise
             if self._method == "vanilla":
                 thetas = thetas - self._eta * der
             elif self._method == "nesterov":
@@ -112,7 +120,7 @@ class GDOptimizer(OptimizerBase):
         # perform optimality checks:
         # self.perform_checks(thetas, tol)
 
-        circuit.set_thetas(thetas_min)  # TODO: why thetas_min?
+        circuit.set_thetas(thetas_min)
         return thetas, obj, gra, thetas_min
 
 
@@ -131,67 +139,69 @@ class FISTAOptimizer(OptimizerBase):
         group_size=4,
     ) -> None:
         """
-
         Args:
-            method:
-            maxiter:
-            eta:
-            tol:
-            eps:
-            reg:
-            group:
-            group_size:
+            method: gradient descent method, either ``vanilla`` or ``nesterov``.
+            maxiter: maximum number of iterations to run.
+            eta: learning rate/step size.
+            tol: defines an error tolerance when to stop the optimizer.
+            eps: size of the noise to be added to escape local minima.
+            reg: a regularization parameter for lasso or for group lasso.
+            group: a flag whether to prefer group lasso regularization or not.
+            group_size: group size, useful only if group lasso is selected.
         """
         super().__init__()
         self._method = method
         self._maxiter = maxiter
         self._eta = eta
         self._tol = tol
-        self._eps = eps
+        self._eps = eps  # todo: is not used
         self._reg = reg
         self._group = group
         self._group_size = group_size
 
     @staticmethod
-    def _soth(x, thresh) -> np.ndarray:
+    def compute_soft_thresholding_map(sub_thetas: np.ndarray, threshold: float) -> np.ndarray:
         """
-        Soft-thresholding operator for L1 regularization (LASSO).
+        Computes soft-thresholding operator for L1 regularization (LASSO).
 
         Args:
-            x:
-            thresh:
+            sub_thetas: an array of angles (thetas) defined in cnot units, this does not
+                include three initial rotations.
+            threshold: defines a regularization parameter in the soft-thresholding operator.
 
         Returns:
-
+            an array of angles after the operator is applied.
         """
-        y = np.multiply(np.sign(x), np.maximum(np.abs(x) - thresh, 0))
-        return y
+        return np.multiply(np.sign(sub_thetas), np.maximum(np.abs(sub_thetas) - threshold, 0))
 
     @staticmethod
-    def _group_soth(x, thresh, group_size) -> np.ndarray:
+    def compute_group_soft_thresholding_map(
+        sub_thetas: np.ndarray, threshold: float, group_size: int
+    ) -> np.ndarray:
         """
         Group soft-thresholding operator for group L2 regularization (GROUP LASSO).
 
         Args:
-            x:
-            thresh:
-            group_size:
+            sub_thetas: an array of angles (thetas) defined in cnot units, this does not
+                include three initial rotations.
+            threshold: defines a regularization parameter in the soft-thresholding operator.
+            group_size: defines a group size to be used.
 
         Returns:
-
+            an array of angles after the operator is applied.
         """
-        l = len(x)
-        n = int(np.ceil(l / group_size))
-        y = np.zeros(l)
+        num_thetas = len(sub_thetas)
+        n = int(np.ceil(num_thetas / group_size))
+        y = np.zeros(num_thetas)
         for i in range(n - 1):
-            group = x[group_size * i : group_size * (i + 1)]
+            group = sub_thetas[group_size * i : group_size * (i + 1)]
             norm = la.norm(group)
-            if norm > thresh:
-                y[group_size * i : group_size * (i + 1)] = (1 - thresh / norm) * group
-        group = x[group_size * (n - 1) : l]
+            if norm > threshold:
+                y[group_size * i : group_size * (i + 1)] = (1 - threshold / norm) * group
+        group = sub_thetas[group_size * (n - 1) : num_thetas]
         norm = la.norm(group)
-        if norm > thresh:
-            y[group_size * (n - 1) : l] = (1 - thresh / norm) * group
+        if norm > threshold:
+            y[group_size * (n - 1) : num_thetas] = (1 - threshold / norm) * group
         return y
 
     def optimize(
@@ -204,8 +214,8 @@ class FISTAOptimizer(OptimizerBase):
 
         thetas0 = circuit.thetas.copy()
         num_cnots = circuit.num_cnots
-        aux = np.empty(0)
-        alpha = 0
+        aux = np.empty(0)  # aux var for prev thetas
+        alpha = 0  # weights, a parameter of the nesterov GD.
         if self._method == "nesterov":
             aux = thetas0
             alpha = 1
@@ -220,13 +230,13 @@ class FISTAOptimizer(OptimizerBase):
             if self._method == "vanilla":
                 new_thetas = thetas - self._eta * der
                 if self._group:
-                    # l1 + l2
-                    new_thetas[0 : 4 * (num_cnots - 1)] = self._group_soth(
+                    # L1 + L2
+                    new_thetas[0 : 4 * (num_cnots - 1)] = self.compute_group_soft_thresholding_map(
                         new_thetas[0 : 4 * (num_cnots - 1)], self._eta * self._reg, self._group_size
                     )
                 else:
-                    # l1
-                    new_thetas[0 : 4 * (num_cnots - 1)] = self._soth(
+                    # L1
+                    new_thetas[0 : 4 * (num_cnots - 1)] = self.compute_soft_thresholding_map(
                         new_thetas[0 : 4 * (num_cnots - 1)], self._eta * self._reg
                     )
 
@@ -236,13 +246,13 @@ class FISTAOptimizer(OptimizerBase):
                 new_alpha = (1 + np.sqrt(1 + 4 * alpha ** 2)) / 2
                 new_aux = thetas - self._eta * der
                 if self._group:
-                    # l1 + l2
-                    new_aux[0 : 4 * (num_cnots - 1)] = self._group_soth(
+                    # L1 + L2
+                    new_aux[0 : 4 * (num_cnots - 1)] = self.compute_group_soft_thresholding_map(
                         new_aux[0 : 4 * (num_cnots - 1)], self._eta * self._reg, self._group_size
                     )
                 else:
-                    # l1
-                    new_aux[0 : 4 * (num_cnots - 1)] = self._soth(
+                    # L1
+                    new_aux[0 : 4 * (num_cnots - 1)] = self.compute_soft_thresholding_map(
                         new_aux[0 : 4 * (num_cnots - 1)], self._eta * self._reg
                     )
 
