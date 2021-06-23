@@ -906,7 +906,7 @@ class TestGradients(QiskitOpflowTestCase):
         shots = 100000 if backend_type == 'qasm_simulator' else 1
 
         values = [[0, np.pi / 2], [np.pi / 4, np.pi / 4], [np.pi / 3, np.pi / 9]]
-        correct_values = [[-2., 1.12e-16], [-1., -2.41421356], [-0.34202014, -3.5069806]]
+        correct_values = [[-2., 0], [-1., -2.41421356], [-0.34202014, -3.5069806]]
         for i, value in enumerate(values):
             backend = BasicAer.get_backend(backend_type)
             q_instance = QuantumInstance(backend=backend, shots=shots)
