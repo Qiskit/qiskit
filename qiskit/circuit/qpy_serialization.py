@@ -842,14 +842,14 @@ def _write_circuit(file_obj, circuit):
         for reg in circuit.qregs:
             standalone = reg[0]._register is not None
             reg_name = reg.name.encode("utf8")
-            file_obj.write(struct.pack(REGISTER_PACK, b"q", reg.size, len(reg_name)))
+            file_obj.write(struct.pack(REGISTER_PACK, b"q", standalone, reg.size, len(reg_name)))
             file_obj.write(reg_name)
             REGISTER_ARRAY_PACK = "%sI" % reg.size
             file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *(qubit_indices[bit] for bit in reg)))
         for reg in circuit.cregs:
             standalone = reg[0]._register is not None
             reg_name = reg.name.encode("utf8")
-            file_obj.write(struct.pack(REGISTER_PACK, b"c", reg.size, len(reg_name)))
+            file_obj.write(struct.pack(REGISTER_PACK, b"c", standalone, reg.size, len(reg_name)))
             file_obj.write(reg_name)
             REGISTER_ARRAY_PACK = "%sI" % reg.size
             file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *(clbit_indices[bit] for bit in reg)))

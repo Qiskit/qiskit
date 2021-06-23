@@ -277,7 +277,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.cx(0, 4)
         qc.measure_all()
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_qc = load(qpy_file)[0]
         self.assertEqual(qc, new_qc)
