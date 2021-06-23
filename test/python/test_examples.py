@@ -9,7 +9,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
 
 """Test examples scripts."""
 
@@ -52,11 +51,11 @@ class TestPythonExamples(QiskitTestCase):
                     env={**os.environ, "PYTHONIOENCODING": "utf8"},
                 )
                 stdout, stderr = run_example.communicate()
-                error_string = "Running example %s failed with return code %s\n" % (
+                error_string = "Running example {} failed with return code {}\n".format(
                     example,
                     run_example.returncode,
                 )
-                error_string += "stdout:%s\nstderr: %s" % (stdout, stderr)
+                error_string += f"stdout:{stdout}\nstderr: {stderr}"
                 self.assertEqual(run_example.returncode, 0, error_string)
 
     @unittest.skipIf(
@@ -85,9 +84,9 @@ class TestPythonExamples(QiskitTestCase):
                     env={**os.environ, "PYTHONIOENCODING": "utf8"},
                 )
                 stdout, stderr = run_example.communicate()
-                error_string = "Running example %s failed with return code %s\n" % (
+                error_string = "Running example {} failed with return code {}\n".format(
                     example,
                     run_example.returncode,
                 )
-                error_string += "\tstdout:%s\n\tstderr: %s" % (stdout, stderr)
+                error_string += f"\tstdout:{stdout}\n\tstderr: {stderr}"
                 self.assertEqual(run_example.returncode, 0, error_string)

@@ -82,7 +82,7 @@ class FourierChecking(QuantumCircuit):
                 "{1, -1}."
             )
 
-        inner = QuantumCircuit(num_qubits, name="fc: %s, %s" % (f, g))
+        inner = QuantumCircuit(num_qubits, name=f"fc: {f}, {g}")
 
         inner.h(inner.qubits)
 

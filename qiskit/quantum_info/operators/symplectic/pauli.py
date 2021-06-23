@@ -196,7 +196,7 @@ class Pauli(BasePauli):
 
     def __repr__(self):
         """Display representation."""
-        return "Pauli('{}')".format(self.__str__())
+        return f"Pauli('{self.__str__()}')"
 
     def __str__(self):
         """Print representation."""
@@ -561,13 +561,50 @@ class Pauli(BasePauli):
 
         # Convert Clifford to quantum circuits
         if isinstance(other, Clifford):
-            other = other.to_circuit()
+            return self._evolve_clifford(other, qargs=qargs)
 
         if not isinstance(other, (Pauli, Instruction, QuantumCircuit)):
             # Convert to a Pauli
             other = Pauli(other)
 
         return Pauli(super().evolve(other, qargs=qargs))
+
+    def _evolve_clifford(self, other, qargs=None):
+        """Heisenberg picture evolution of a Pauli by a Clifford."""
+        # Check dimension
+        if qargs is not None and len(qargs) != other.num_qubits:
+            raise QiskitError(
+                "Incorrect number of qubits for Clifford ({} != {}).".format(
+                    other.num_qubits, len(qargs)
+                )
+            )
+        if qargs is None and self.num_qubits != other.num_qubits:
+            raise QiskitError(
+                "Incorrect number of qubits for Clifford ({} != {}).".format(
+                    other.num_qubits, self.num_qubits
+                )
+            )
+
+        if qargs is None:
+            idx = slice(None)
+        else:
+            idx = list(qargs)
+
+        # Set return to I on qargs
+        ret = self.copy()
+        ret.x[idx] = 0
+        ret.z[idx] = 0
+
+        # Get action of Pauli's from Clifford
+        adj = other.adjoint()
+        for row in adj.stabilizer[self.z[idx]]:
+            row_pauli = Pauli((row.Z[0], row.X[0], 2 * row.phase[0]))
+            ret = ret.dot(row_pauli, qargs=qargs)
+        for row in adj.destabilizer[self.x[idx]]:
+            row_pauli = Pauli((row.Z[0], row.X[0], 2 * row.phase[0]))
+            ret = ret.dot(row_pauli, qargs=qargs)
+
+        return ret
 
     # ---------------------------------------------------------------------
     # Initialization helper functions
@@ -616,7 +653,7 @@ class Pauli(BasePauli):
     def _from_scalar_op(cls, op):
         """Convert a ScalarOp to BasePauli data."""
         if op.num_qubits is None:
-            raise QiskitError("{} is not an N-qubit identity".format(op))
+            raise QiskitError(f"{op} is not an N-qubit identity")
         base_z = np.zeros((1, op.num_qubits), dtype=bool)
         base_x = np.zeros((1, op.num_qubits), dtype=bool)
         base_phase = np.mod(
@@ -649,7 +686,7 @@ class Pauli(BasePauli):
         if isinstance(instr, Instruction):
             # Convert other instructions to circuit definition
             if instr.definition is None:
-                raise QiskitError("Cannot apply Instruction: {}".format(instr.name))
+                raise QiskitError(f"Cannot apply Instruction: {instr.name}")
             # Convert to circuit
             instr = instr.definition
 
@@ -670,7 +707,7 @@ class Pauli(BasePauli):
         for dinstr, qregs, cregs in instr.data:
             if cregs:
                 raise QiskitError(
-                    "Cannot apply instruction with classical registers: {}".format(dinstr.name)
+                    f"Cannot apply instruction with classical registers: {dinstr.name}"
                 )
             if not isinstance(dinstr, Barrier):
                 next_instr = BasePauli(*cls._from_circuit(dinstr))
@@ -1049,7 +1086,7 @@ def _phase_from_label(label):
     label = label.replace("+", "", 1).replace("1", "", 1).replace("j", "i", 1)
     phases = {"": 0, "-i": 1, "-": 2, "i": 3}
     if label not in phases:
-        raise QiskitError("Invalid Pauli phase label '{}'".format(label))
+        raise QiskitError(f"Invalid Pauli phase label '{label}'")
     return phases.get(label)
 
 

@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-type-doc
 
 """Model and schema for pulse defaults."""
 import copy
@@ -281,8 +280,8 @@ class PulseDefaults:
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
         meas_freqs = [freq / 1e9 for freq in self.meas_freq_est]
-        qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=qubit_freqs)
-        mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=meas_freqs)
+        qfreq = f"Qubit Frequencies [GHz]\n{qubit_freqs}"
+        mfreq = f"Measurement Frequencies [GHz]\n{meas_freqs} "
         return "<{name}({insts}{qfreq}\n{mfreq})>" "".format(
             name=self.__class__.__name__,
             insts=str(self.instruction_schedule_map),

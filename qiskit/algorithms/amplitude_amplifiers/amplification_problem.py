@@ -50,14 +50,25 @@ class AmplificationProblem:
             objective_qubits: If set, specifies the indices of the qubits that should be measured.
                 If None, all qubits will be measured. The ``is_good_state`` function will be
                 applied on the measurement outcome of these qubits.
-            is_good_state: A function to check whether a string represents a good state.
+            is_good_state: A function to check whether a string represents a good state. By default
+                if the ``oracle`` argument has an ``evaluate_bitstring`` method (currently only
+                provided by the :class:`~qiskit.circuit.library.PhaseOracle` class) this will be
+                used, otherwise this kwarg is required and **must** be specified.
+
+        Raises:
+            TypeError: if ``is_good_state`` is not provided and is required
         """
         self._oracle = oracle
         self._state_preparation = state_preparation
         self._grover_operator = grover_operator
         self._post_processing = post_processing
         self._objective_qubits = objective_qubits
-        self._is_good_state = is_good_state
+        if is_good_state is not None:
+            self._is_good_state = is_good_state
+        elif hasattr(oracle, "evaluate_bitstring"):
+            self._is_good_state = oracle.evaluate_bitstring
+        else:
+            raise TypeError("A is_good_state function is required with the " "provided oracle")
 
     @property
     def oracle(self) -> Union[QuantumCircuit, Statevector]:
