@@ -207,7 +207,7 @@ class RunningPassManager:
         return dag
 
     def _log_pass(self, start_time, end_time, name):
-        log_msg = "Pass: %s - %.5f (ms)" % (name, (end_time - start_time) * 1000)
+        log_msg = f"Pass: {name} - {(end_time - start_time) * 1000:.5f} (ms)"
         logger.info(log_msg)
 
     def _update_valid_passes(self, pass_):

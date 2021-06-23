@@ -127,7 +127,7 @@ class CheckDecompositions(QiskitTestCase):
             decomp_unitary = Operator(decomposer(target_unitary, simplify=simplify)).data
         maxdist = np.max(np.abs(target_unitary - decomp_unitary))
         self.assertTrue(
-            np.abs(maxdist) < tolerance, "Operator {}: Worst distance {}".format(operator, maxdist)
+            np.abs(maxdist) < tolerance, f"Operator {operator}: Worst distance {maxdist}"
         )
 
     @contextlib.contextmanager
@@ -237,7 +237,7 @@ class CheckDecompositions(QiskitTestCase):
         maxdist = np.max(np.abs(target_unitary - decomp_unitary))
         self.assertTrue(
             np.abs(maxdist) < tolerance,
-            "Unitary {}: Worst distance {}".format(target_unitary, maxdist),
+            f"Unitary {target_unitary}: Worst distance {maxdist}",
         )
 
 

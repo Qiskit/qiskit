@@ -586,7 +586,7 @@ class Chart:
         """
         for name, data in self._output_dataset.items():
             # prepare unique name
-            unique_id = "chart{ind:d}_{key}".format(ind=self.index, key=name)
+            unique_id = f"chart{self.index:d}_{name}"
             if self._check_visible(data):
                 yield unique_id, data
 
@@ -853,7 +853,7 @@ class Chart:
                 return self.vmax
             if val == types.AbstractCoordinate.BOTTOM:
                 return self.vmin
-            raise VisualizationError("Coordinate {name} is not supported.".format(name=val))
+            raise VisualizationError(f"Coordinate {val} is not supported.")
 
         try:
             return np.asarray(vals, dtype=float)

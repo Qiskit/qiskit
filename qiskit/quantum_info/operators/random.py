@@ -138,7 +138,7 @@ def random_quantum_channel(input_dims=None, output_dims=None, rank=None, seed=No
     if rank is None or rank > d_in * d_out:
         rank = d_in * d_out
     if rank < 1:
-        raise QiskitError("Rank {} must be greater than 0.".format(rank))
+        raise QiskitError(f"Rank {rank} must be greater than 0.")
     from scipy import stats
 
     # Generate a random unitary matrix
