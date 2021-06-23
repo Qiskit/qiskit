@@ -48,10 +48,8 @@ class VF2Layout(AnalysisPass):
     def run(self, dag):
         """run the layout method"""
         qubits = dag.qubits
-        interactions = list()
-
-        for gate in dag.two_qubit_ops():
-            interactions.append((qubits.index(gate.qargs[0]), qubits.index(gate.qargs[1])))
+        qubit_indices = {qubit: index for index, qubit in enumerate(qubits)}
+        interactions = [(qubit_indices[gate.qargs[0]], qubit_indices[gate.qargs[1]]) for gate in dag.two_qubit_ops()]
 
         if self.strict_direction:
             cm_graph = self.coupling_map.graph
