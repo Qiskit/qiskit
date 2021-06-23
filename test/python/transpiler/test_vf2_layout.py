@@ -103,23 +103,23 @@ class TestVF2Layout(QiskitTestCase):
     #     self.assertEqual(layout[qr1[4]], 10)
     #     self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
 
-    # def test_2q_circuit_2q_coupling_sd(self):
-    #     """A simple example, considering the direction
-    #      0  -> 1
-    #     qr1 -> qr0
-    #     """
-    #     qr = QuantumRegister(2, "qr")
-    #     circuit = QuantumCircuit(qr)
-    #     circuit.cx(qr[1], qr[0])  # qr1 -> qr0
-    #
-    #     dag = circuit_to_dag(circuit)
-    #     pass_ = CSPLayout(CouplingMap([[0, 1]]), strict_direction=True, seed=self.seed)
-    #     pass_.run(dag)
-    #     layout = pass_.property_set["layout"]
-    #
-    #     self.assertEqual(layout[qr[0]], 1)
-    #     self.assertEqual(layout[qr[1]], 0)
-    #     self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
+    def test_2q_circuit_2q_coupling_sd(self):
+        """A simple example, considering the direction
+         0  -> 1
+        qr1 -> qr0
+        """
+        qr = QuantumRegister(2, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[0])  # qr1 -> qr0
+
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(CouplingMap([[0, 1]]), strict_direction=True, seed=self.seed)
+        pass_.run(dag)
+        layout = pass_.property_set["layout"]
+
+        self.assertEqual(layout[qr[0]], 1)
+        self.assertEqual(layout[qr[1]], 0)
+        self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
 
     # def test_3q_circuit_5q_coupling_sd(self):
     #     """3 qubits in Tenerife, considering the direction

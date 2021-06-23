@@ -16,7 +16,7 @@ satisfy the circuit, i.e. no further swap is needed. If no solution is
 found, no ``property_set['layout']`` is set.
 """
 import random
-from retworkx import PyGraph, PyDiGraph, graph_vf2_mapping
+from retworkx import PyGraph, PyDiGraph, graph_vf2_mapping, digraph_vf2_mapping
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 
@@ -49,10 +49,15 @@ class VF2Layout(AnalysisPass):
         """run the layout method"""
         qubits = dag.qubits
         qubit_indices = {qubit: index for index, qubit in enumerate(qubits)}
-        interactions = [(qubit_indices[gate.qargs[0]], qubit_indices[gate.qargs[1]]) for gate in dag.two_qubit_ops()]
+        interactions = [
+            (qubit_indices[gate.qargs[0]], qubit_indices[gate.qargs[1]])
+            for gate in dag.two_qubit_ops()
+        ]
 
         if self.strict_direction:
             cm_graph = self.coupling_map.graph
+            im_graph = PyDiGraph()
+            vf2_mapping = digraph_vf2_mapping
         else:
             cm_graph = self.coupling_map.graph.to_undirected()
             im_graph = PyGraph()
