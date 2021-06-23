@@ -1235,7 +1235,7 @@ class QuantumCircuit:
                parameters in the circuit to parameters to be used in the
                instruction. If None, existing circuit parameters will also
                parameterize the instruction.
-               label (str): Optional gate label.
+            label (str): Optional gate label.
 
         Returns:
             qiskit.circuit.Instruction: a composite instruction encapsulating this circuit
