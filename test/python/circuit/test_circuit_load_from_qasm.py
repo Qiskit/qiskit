@@ -516,6 +516,51 @@ class LoadFromQasmTest(QiskitTestCase):
         expected.u(-0.5235987755982988, 6.283185307179586, 3.141592653589793, qr[0])
         self.assertEqualUnroll("u", circuit, expected)
 
+
+class ImplicitQiskitlib1Test(QiskitTestCase):
+    """For some time, Qiskit is going to implicitly allow the gates in qiskitlib1.inc
+    See: https://github.com/Qiskit/qiskit-terra/pull/6125#issuecomment-862720866
+
+    Once the period finishes, remove the full test class  # TODO
+    """
+
+    def test_implicit_swap(self):
+        """Swap is in qiskitlib1.inc"""
+        qasm_string = """OPENQASM 2.0;
+                         qreg qr[2];
+                         swap qr[1], qr[0];
+                         """
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
+
+        qr = QuantumRegister(2, name="qr")
+        expected = QuantumCircuit(qr, name="circuit")
+        expected.swap(qr[1], qr[0])
+
+        self.assertEqualUnroll(["cx"], circuit, expected)
+
+    def test_from_qasm_str_custom_gate5(self):
+        """Test load custom gates"""
+        qasm_string = """OPENQASM 2.0;
+                         gate my_gate(phi,lambda) q {u3(pi/2,phi,lambda) q;} // biop with pi
+                         qreg qr[1];
+                         my_gate(pi, pi) qr[0];"""
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
+
+        my_gate_circuit = QuantumCircuit(1, name="my_gate")
+        phi = Parameter("phi")
+        lam = Parameter("lambda")
+        my_gate_circuit.u(1.5707963267948966, phi, lam, 0)
+        my_gate = my_gate_circuit.to_gate()
+
+        qr = QuantumRegister(1, name="qr")
+        expected = QuantumCircuit(qr, name="circuit")
+        expected.append(my_gate, [qr[0]])
+        expected = expected.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
+
+        self.assertEqualUnroll("u", circuit, expected)
+
     def assertEqualUnroll(self, basis, circuit, expected):
         """Compares the dags after unrolling to basis"""
         circuit_dag = circuit_to_dag(circuit)

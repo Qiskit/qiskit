@@ -15,6 +15,7 @@
 import os
 import shutil
 import tempfile
+import warnings
 
 import numpy as np
 import ply.yacc as yacc
@@ -22,6 +23,7 @@ import ply.yacc as yacc
 from . import node
 from .exceptions import QasmError
 from .qasmlexer import QasmLexer
+from .node import Id, IdList, Opaque
 
 
 class QasmParser:
@@ -50,6 +52,7 @@ class QasmParser:
         self.current_symtab = self.global_symtab  # top of symbol stack
         self.symbols = []  # symbol stack
         self.external_functions = ["sin", "cos", "tan", "exp", "ln", "sqrt", "acos", "atan", "asin"]
+        self.on_the_fly_opaque = []
 
     def __enter__(self):
         return self
@@ -132,15 +135,91 @@ class QasmParser:
                     if hasattr(children, "children"):
                         self.verify_exp_list(children)
 
+    def in_qiskitlib1_inc(self, obj):
+        # TODO Remove once deprecation period. Dont forget to remove self.on_the_fly_opaque
+        # See: https://github.com/Qiskit/qiskit-terra/pull/6125#issuecomment-862720866
+        qiskitlib1_inc_gates = {"u3": (3, 1),
+                                "u2": (2, 1),
+                                "u1": (1, 1),
+                                "cx": (0, 2),
+                                "id": (0, 1),
+                                "u0": (1, 1),
+                                "u": (3, 1),
+                                "p": (1, 1),
+                                "x": (0, 1),
+                                "y": (0, 1),
+                                "z": (0, 1),
+                                "h": (0, 1),
+                                "s": (0, 1),
+                                "sdg": (0, 1),
+                                "t": (0, 1),
+                                "tdg": (0, 1),
+                                "rx": (1, 1),
+                                "ry": (1, 1),
+                                "rz": (1, 1),
+                                "sx": (0, 1),
+                                "sxdg": (0, 1),
+                                "cz": (0, 2),
+                                "cy": (0, 2),
+                                "swap": (0, 2),
+                                "ch": (0, 2),
+                                "ccx": (0, 3),
+                                "cswap": (0, 3),
+                                "crx": (1, 2),
+                                "cry": (1, 2),
+                                "crz": (1, 2),
+                                "cu1": (1, 2),
+                                "cp": (1, 2),
+                                "cu3": (3, 2),
+                                "csx": (0, 2),
+                                "cu": (4, 2),
+                                "rxx": (1, 2),
+                                "rzz": (1, 2),
+                                "rccx": (0, 3),
+                                "rc3x": (0, 4),
+                                "c3x": (0, 4),
+                                "c3sqrtx": (0, 4),
+                                "c4x": (0, 5),
+                                }
+        if obj.name in qiskitlib1_inc_gates:
+            warnings.warn(
+                f"The gate {obj.name} (used in line {obj.line}) was moved to qiskitlib1.inc. Consider"
+                "adding the line 'include \"qiskitlib1.inc\";'. In the future, this warning will be"
+                " a fatal error.",
+                DeprecationWarning,
+            )
+
+            idlist = []
+            for i in range(qiskitlib1_inc_gates[obj.name][1]):
+                qubit_id = Id(f"q{i}", line=0, file="qiskitlib1_inc")
+                qubit_id.is_bit = True
+                idlist.append(qubit_id)
+
+            arglist = []
+            for i in range(qiskitlib1_inc_gates[obj.name][0]):
+                arglist.append(Id(f"a{i}", line=0, file="qiskitlib1_inc"))
+
+            if arglist:
+                on_the_fly_opaque = Opaque([Id(obj.name, line=0, file="qiskitlib1_inc"), IdList(arglist),
+                                            IdList(idlist)])
+            else:
+                on_the_fly_opaque = Opaque([Id(obj.name, line=0, file="qiskitlib1_inc"), IdList(idlist)])
+            self.on_the_fly_opaque.append(on_the_fly_opaque)
+            self.global_symtab[obj.name] = on_the_fly_opaque
+            return True
+        else:
+            return False
+
     def verify_as_gate(self, obj, bitlist, arglist=None):
         """Verify a user defined gate call."""
         if obj.name not in self.global_symtab:
-            raise QasmError(
-                "Cannot find gate definition for '" + obj.name + "', line",
-                str(obj.line),
-                "file",
-                obj.file,
-            )
+            if not self.in_qiskitlib1_inc(obj):
+                raise QasmError(
+                    "Cannot find gate definition for '" + obj.name + "', line",
+                    str(obj.line),
+                    "file",
+                    obj.file,
+                )
         g_sym = self.global_symtab[obj.name]
         if not (g_sym.type == "gate" or g_sym.type == "opaque"):
             raise QasmError(
@@ -330,6 +409,8 @@ class QasmParser:
         main : program
         """
         self.qasm = program[1]
+        for gate in self.on_the_fly_opaque:  # TODO remove when self.on_the_fly_opaque get removed
+            self.qasm.children.insert(1, gate)
 
     # ----------------------------------------
     #  program : statement
