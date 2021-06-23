@@ -1,5 +1,5 @@
 OPENQASM 2.0;
-include "standard_gates.inc";
+include "qiskitlib1.inc";
 qreg q[3];
 creg c[3];
 

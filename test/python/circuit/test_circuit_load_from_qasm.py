@@ -55,7 +55,7 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqual(q_circuit, q_circuit_2)
 
     def test_loading_all_standard_gates(self):
-        """Test setting up circuit with all gates defined in qiskit/qasm/libs/standard_gates.inc."""
+        """Test setting up circuit with all gates defined in qiskit/qasm/libs/qiskitlib1.inc."""
         from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate, UGate
 
         all_gates_qasm = os.path.join(self.qasm_dir, "all_standard_gates.qasm")
