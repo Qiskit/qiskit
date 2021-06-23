@@ -127,7 +127,7 @@ class GateConfig:
         return False
 
     def __repr__(self):
-        out_str = "GateConfig(%s, %s, %s" % (self.name, self.parameters, self.qasm_def)
+        out_str = f"GateConfig({self.name}, {self.parameters}, {self.qasm_def}"
         for i in ["coupling_map", "latency_map", "conditional", "description"]:
             if hasattr(self, i):
                 out_str += ", " + repr(getattr(self, i))
@@ -191,7 +191,7 @@ class UchannelLO:
         return False
 
     def __repr__(self):
-        return "UchannelLO(%s, %s)" % (self.q, self.scale)
+        return f"UchannelLO({self.q}, {self.scale})"
 
 
 class QasmBackendConfiguration:
@@ -245,7 +245,6 @@ class QasmBackendConfiguration:
         dtm=None,
         processor_type=None,
         parametric_pulses=None,
-        measure_esp_enabled=False,
         **kwargs,
     ):
         """Initialize a QasmBackendConfiguration Object
@@ -301,10 +300,7 @@ class QasmBackendConfiguration:
                 - segment: Segment this processor belongs to within a larger chip.
             parametric_pulses (list): A list of pulse shapes which are supported on the backend.
                 For example: ``['gaussian', 'constant']``
-            measure_esp_enabled (bool): Whether excited state promoted (ESP) readout is enabled on
-                this device. ESP readout discriminates between the ``|0>`` and higher transmon
-                states to improve readout fidelity. See
-                `here <https://arxiv.org/pdf/2008.08571.pdf>`_. Defaults to ``False``.
+
             **kwargs: optional fields
         """
         self._data = {}
@@ -363,8 +359,6 @@ class QasmBackendConfiguration:
             self.processor_type = processor_type
         if parametric_pulses is not None:
             self.parametric_pulses = parametric_pulses
-
-        self.measure_esp_enabled = measure_esp_enabled
 
         # convert lo range from GHz to Hz
         if "qubit_lo_range" in kwargs.keys():
@@ -427,7 +421,6 @@ class QasmBackendConfiguration:
             "max_shots": self.max_shots,
             "coupling_map": self.coupling_map,
             "dynamic_reprate_enabled": self.dynamic_reprate_enabled,
-            "measure_esp_enabled": self.measure_esp_enabled,
         }
 
         if hasattr(self, "supported_instructions"):
@@ -809,7 +802,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             Qubit drive channel.
         """
         if not 0 <= qubit < self.n_qubits:
-            raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
+            raise BackendConfigurationError(f"Invalid index for {qubit}-qubit system.")
         return DriveChannel(qubit)
 
     def measure(self, qubit: int) -> MeasureChannel:
@@ -822,7 +815,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             Qubit measurement stimulus line.
         """
         if not 0 <= qubit < self.n_qubits:
-            raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
+            raise BackendConfigurationError(f"Invalid index for {qubit}-qubit system.")
         return MeasureChannel(qubit)
 
     def acquire(self, qubit: int) -> AcquireChannel:
@@ -835,7 +828,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             Qubit measurement acquisition line.
         """
         if not 0 <= qubit < self.n_qubits:
-            raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
+            raise BackendConfigurationError(f"Invalid index for {qubit}-qubit systems.")
         return AcquireChannel(qubit)
 
     def control(self, qubits: Iterable[int] = None, channel: int = None) -> List[ControlChannel]:
