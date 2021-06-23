@@ -10,10 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""TODO A pass for choosing a Layout of a circuit onto a Coupling graph, as a
-Constraint Satisfaction Problem. It tries to find a solution that fully
-satisfy the circuit, i.e. no further swap is needed. If no solution is
-found, no ``property_set['layout']`` is set.
+"""A pass for choosing a Layout of a circuit onto a Coupling graph, as a
+a subgraph isomorphism problem, solved by VF2++. If a solution is found
+that means no further swap is needed. If no solution is
+found, no ``property_set['layout']`` is set. The stopping reason is set in
+``property_set['VF2Layout_stop_reason']``.
 """
 import random
 from retworkx import PyGraph, PyDiGraph, graph_vf2_mapping, digraph_vf2_mapping
@@ -32,10 +33,10 @@ class VF2Layout(AnalysisPass):
         following values:
 
         * solution found: If a perfect layout was found.
-        * nonexistent solution: If no perfect layout was found and every combination was checked.
+        * nonexistent solution: If no perfect layout was found.
 
         Args:
-            coupling_map (Coupling): Directed graph representing a coupling map.
+            coupling_map (CouplingMap): Directed graph representing a coupling map.
             strict_direction (bool): If True, considers the direction of the coupling map.
                                      Default is False.
             seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
@@ -75,11 +76,6 @@ class VF2Layout(AnalysisPass):
 
         im_graph.add_nodes_from(range(len(qubits)))
         im_graph.add_edges_from_no_data(interactions)
-        # print(cm_graph.node_indexes())
-        # print(cm_graph.edge_list())
-        # print('-------')
-        # print(im_graph.node_indexes())
-        # print(im_graph.edge_list())
 
         mapping = vf2_mapping(cm_graph, im_graph, subgraph=True, id_order=True)
 
