@@ -39,25 +39,9 @@ class VersionTable(Magics):
         packages = []
         qver = qiskit.__qiskit_version__
 
-        packages.append(("Qiskit", qver["qiskit"]))
-        if qver["qiskit-terra"]:
-            packages.append(("Terra", qver["qiskit-terra"]))
-        if qver["qiskit-aer"]:
-            packages.append(("Aer", qver["qiskit-aer"]))
-        if qver["qiskit-ignis"]:
-            packages.append(("Ignis", qver["qiskit-ignis"]))
-        if qver["qiskit-aqua"]:
-            packages.append(("Aqua", qver["qiskit-aqua"]))
-        if qver["qiskit-optimization"]:
-            packages.append(("Optimization", qver["qiskit-optimization"]))
-        if qver["qiskit-machine-learning"]:
-            packages.append(("Machine Learning", qver["qiskit-machine-learning"]))
-        if qver["qiskit-nature"]:
-            packages.append(("Nature", qver["qiskit-nature"]))
-        if qver["qiskit-finance"]:
-            packages.append(("Finance", qver["qiskit-finance"]))
-        if qver["qiskit-ibmq-provider"]:
-            packages.append(("IBM Q Provider", qver["qiskit-ibmq-provider"]))
+        for pkg in qver:
+            if qver[pkg]:
+                packages.append((f"<code>{pkg}</code>", qver[pkg]))
 
         for name, version in packages:
             html += "<tr><td>%s</td><td>%s</td></tr>" % (name, version)
