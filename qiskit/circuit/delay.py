@@ -70,13 +70,13 @@ class Delay(Instruction):
         """Delay parameter (i.e. duration) must be int, float or ParameterExpression."""
         if isinstance(parameter, int):
             if parameter < 0:
-                raise CircuitError("Duration must be positive")
+                raise CircuitError(f"Duration for Delay instruction must be be positive. Found {parameter}.")
             return parameter
         elif isinstance(parameter, float):
             if self.unit == "dt":
                 raise CircuitError("Integer duration is expected for 'dt' unit.")
             if parameter < 0:
-                raise CircuitError("Duration must be positive")
+                raise CircuitError(f"Duration for Delay instruction must be be positive. Found {parameter}.")
             return parameter
         elif isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:
@@ -84,6 +84,8 @@ class Delay(Instruction):
             if not parameter.is_real():
                 raise CircuitError(f"Bound parameter expression is complex in delay {self.name}")
             fval = float(parameter)
+            if fval < 0:
+                raise CircuitError(f"Duration for Delay instruction must be be positive. Found {fval}.")
             if self.unit == "dt":
                 ival = int(parameter)
                 rounding_error = abs(fval - ival)
