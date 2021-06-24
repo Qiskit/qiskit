@@ -24,7 +24,7 @@ from qiskit.providers.jobstatus import JobStatus
 class FakeJob(JobV1):
     """Fake simulator job"""
 
-    _executor = futures.ThreadPoolExecutor()
+    _executor = futures.ThreadPoolExecutor()  # pylint: disable=consider-using-with
 
     def __init__(self, backend, job_id, fn):
         super().__init__(backend, job_id)
@@ -85,7 +85,7 @@ class FakeJob(JobV1):
 class FakeLegacyJob(BaseJob):
     """Fake simulator job"""
 
-    _executor = futures.ThreadPoolExecutor()
+    _executor = futures.ThreadPoolExecutor()  # pylint: disable=consider-using-with
 
     def __init__(self, backend, job_id, fn):
         super().__init__(backend, job_id)
