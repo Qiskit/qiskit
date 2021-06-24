@@ -18,6 +18,8 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag
 
+from qiskit.transpiler.layout import Layout
+
 import qiskit.quantum_info as qi
 
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylEchoRZX
@@ -41,7 +43,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
         """Run the EchoRZXWeylDecomposition pass on `dag`.
         
         Rewrites two-qubit gates in an arbitrary circuit in terms of echoed cross-resonance
-        gates by computing the Cartan decomposition of the corresponding unitary. Modifies the
+        gates by computing the Weyl decomposition of the corresponding unitary. Modifies the
         input dag.
         
         Args:
@@ -58,10 +60,27 @@ class EchoRZXWeylDecomposition(TransformationPass):
             raise TranspilerError('EchoRZXWeylDecomposition expects a single qreg input DAG,'
                                   'but input DAG had qregs: {}.'.format(dag.qregs))
 
+        trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+
         for idx, node in enumerate(dag.two_qubit_ops()):
             if node.type == "op":
+                control = node.qargs[0]
+                target = node.qargs[1]
+
+                physical_q0 = trivial_layout[control]
+                physical_q1 = trivial_layout[target]
+
+                config = self.backend.configuration()
+                if [physical_q0, physical_q1] not in config.coupling_map:
+                    raise TranspilerError('Qubits %s and %s are not connected on the backend'
+                                          % (physical_q0, physical_q1))
+
+                qubit_pair = (physical_q0, physical_q1)
+
                 unitary = qi.Operator(node.op).data
-                dag_weyl = circuit_to_dag(TwoQubitWeylEchoRZX(unitary, backend).circuit())
+                dag_weyl = circuit_to_dag(TwoQubitWeylEchoRZX(unitary,
+                                                              backend=self.backend,
+                                                              qubit_pair=qubit_pair).circuit())
                 dag.substitute_node_with_dag(node, dag_weyl)
 
         return dag

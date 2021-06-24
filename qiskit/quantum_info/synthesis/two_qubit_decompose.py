@@ -28,7 +28,7 @@ import math
 import io
 import base64
 import warnings
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, Tuple
 
 import logging
 
@@ -42,6 +42,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer, DEFAULT_ATOL
+from qiskit.providers.backend import Backend
 
 logger = logging.getLogger(__name__)
 
@@ -129,12 +130,12 @@ class TwoQubitWeylDecomposition:
 
         Make explicitly-instantiated subclass __new__  call base __new__ with fidelity=None"""
         super().__init_subclass__(**kwargs)
-        cls.__new__ = lambda cls, *a, fidelity=None, **k: TwoQubitWeylDecomposition.__new__(
-            cls, *a, fidelity=None, **k
-        )
+        cls.__new__ = lambda cls, *a, fidelity=None, backend=None, qubit_pair=None, **k: \
+            TwoQubitWeylDecomposition.__new__(cls, *a, fidelity=None, backend=None,
+                                              qubit_pair=None, **k)
 
     @staticmethod
-    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9)):
+    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9), backend=None, qubit_pair=None):
         """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
 
         The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
@@ -548,8 +549,9 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
     """Decompose two-qubit unitary in terms of echoed cross-resonance gates.
     """
 
-    def __init__(self, unitary, backend):
-        self._backend = backend
+    def __init__(self, unitary, backend: Backend, qubit_pair: Tuple):
+        self.backend = backend
+        self.qubit_pair = qubit_pair
         super().__init__(unitary)
 
     def specialize(self):
@@ -561,6 +563,7 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
         cx1 = inst_map.get('cx', qubit_pair)
         cx2 = inst_map.get('cx', qubit_pair[::-1])
         return cx1.duration < cx2.duration
+
     def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
         """Appends Ud(a, b, c) to the circuit.
 
@@ -568,33 +571,62 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
         del simplify
         circ.h(0)
         if abs(self.a) > atol:
-            if self.is_native(...):
+            if self.is_native_cx(self.qubit_pair):
                 circ.rzx(-self.a, 0, 1)
                 circ.x(0)
                 circ.rzx(self.a, 0, 1)
                 circ.x(0)
             else:
-                # reverse the direction of the rzx
+                # reverse the direction of echoed rzx
+                circ.h(0)
+                circ.h(1)
+                circ.rzx(-self.a, 1, 0)
+                circ.x(1)
+                circ.rzx(self.a, 1, 0)
+                circ.x(1)
+                circ.h(0)
+                circ.h(1)
         circ.h(0)
         circ.sdg(0)
         circ.h(0)
         circ.sdg(1)
         if abs(self.b) > atol:
-            circ.rzx(-self.b, 0, 1)
-            circ.x(0)
-            circ.rzx(self.b, 0, 1)
-            circ.x(0)
+            if self.is_native_cx(self.qubit_pair):
+                circ.rzx(-self.b, 0, 1)
+                circ.x(0)
+                circ.rzx(self.b, 0, 1)
+                circ.x(0)
+            else:
+                # reverse the direction of echoed rzx
+                circ.h(0)
+                circ.h(1)
+                circ.rzx(-self.b, 1, 0)
+                circ.x(1)
+                circ.rzx(self.b, 1, 0)
+                circ.x(1)
+                circ.h(0)
+                circ.h(1)
         circ.h(0)
         circ.s(0)
         circ.s(1)
         circ.h(1)
         if abs(self.c) > atol:
-            circ.rzx(-self.c, 0, 1)
-            circ.x(0)
-            circ.rzx(self.c, 0, 1)
-            circ.x(0)
+            if self.is_native_cx(self.qubit_pair):
+                circ.rzx(-self.c, 0, 1)
+                circ.x(0)
+                circ.rzx(self.c, 0, 1)
+                circ.x(0)
+            else:
+                # reverse the direction of echoed rzx
+                circ.h(0)
+                circ.h(1)
+                circ.rzx(-self.c, 1, 0)
+                circ.x(1)
+                circ.rzx(self.c, 1, 0)
+                circ.x(1)
+                circ.h(0)
+                circ.h(1)
         circ.h(1)
-
 
 
 class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
