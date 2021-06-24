@@ -27,6 +27,7 @@ from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
@@ -1507,7 +1508,7 @@ class QuantumCircuit:
         else:
             return string_temp
 
-   def draw(
+    def draw(
         self,
         output=None,
         scale=None,
