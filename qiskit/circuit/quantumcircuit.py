@@ -1393,12 +1393,12 @@ class QuantumCircuit:
 
         existing_composite_circuits = []
 
-        qasm_string_temp = self.header + "\n"
-        qasm_string_temp += self.extension_lib + "\n"
+        string_temp = self.header + "\n"
+        string_temp += self.extension_lib + "\n"
         for register in self.qregs:
-            qasm_string_temp += register.qasm() + "\n"
+            string_temp += register.qasm() + "\n"
         for register in self.cregs:
-            qasm_string_temp += register.qasm() + "\n"
+            string_temp += register.qasm() + "\n"
 
         qreg_bits = set(bit for reg in self.qregs for bit in reg)
         creg_bits = set(bit for reg in self.cregs for bit in reg)
@@ -1407,11 +1407,11 @@ class QuantumCircuit:
 
         if set(self.qubits) != qreg_bits:
             regless_qubits = [bit for bit in self.qubits if bit not in qreg_bits]
-            qasm_string_temp += "qreg %s[%d];\n" % ("regless", len(regless_qubits))
+            string_temp += "qreg %s[%d];\n" % ("regless", len(regless_qubits))
 
         if set(self.clbits) != creg_bits:
             regless_clbits = [bit for bit in self.clbits if bit not in creg_bits]
-            qasm_string_temp += "creg %s[%d];\n" % ("regless", len(regless_clbits))
+            string_temp += "creg %s[%d];\n" % ("regless", len(regless_clbits))
 
         unitary_gates = []
 
@@ -1433,7 +1433,7 @@ class QuantumCircuit:
             if instruction.name == "measure":
                 qubit = qargs[0]
                 clbit = cargs[0]
-                qasm_string_temp += "%s %s -> %s;\n" % (
+                string_temp += "%s %s -> %s;\n" % (
                     instruction.qasm(),
                     bit_labels[qubit],
                     bit_labels[clbit],
@@ -1464,7 +1464,7 @@ class QuantumCircuit:
                     qasm_string_composite = _get_composite_circuit_qasm_from_instruction(instruction)
 
                     # Insert composite circuit qasm definition right after header and extension lib
-                    qasm_string_temp = qasm_string_temp.replace(
+                    string_temp = string_temp.replace(
                         self.extension_lib, "%s\n%s" % (self.extension_lib, qasm_string_composite)
                     )
 
@@ -1472,12 +1472,12 @@ class QuantumCircuit:
                     existing_gate_names.append(instruction.name)
 
                 # Insert qasm representation of the original instruction
-                qasm_string_temp += "%s %s;\n" % (
+                string_temp += "%s %s;\n" % (
                     instruction.qasm(),
                     ",".join([bit_labels[j] for j in qargs + cargs]),
                 )
             else:
-                qasm_string_temp += "%s %s;\n" % (
+                string_temp += "%s %s;\n" % (
                     instruction.qasm(),
                     ",".join([bit_labels[j] for j in qargs + cargs]),
                 )
@@ -1485,11 +1485,11 @@ class QuantumCircuit:
                 unitary_gates.append(instruction)
 
         # insert gate definitions
-        _insert_composite_gate_definition_qasm(qasm_string_temp, existing_composite_circuits, self.extension_lib)
+        _insert_composite_gate_definition_qasm(string_temp, existing_composite_circuits, self.extension_lib)
 
         if filename:
             with open(filename, "w+", encoding=encoding) as file:
-                file.write(qasm_string_temp)
+                file.write(string_temp)
             file.close()
 
         if formatted:
@@ -1500,12 +1500,12 @@ class QuantumCircuit:
                     pip_install="pip install pygments",
                 )
             code = pygments.highlight(
-                qasm_string_temp, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
+                string_temp, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
             )
             print(code)
             return None
         else:
-            return qasm_string_temp
+            return string_temp
 
    def draw(
         self,
@@ -3088,7 +3088,7 @@ def _get_composite_circuit_qasm_from_instruction(instruction):
 
     return qasm_string
 
-def _insert_composite_gate_definition_qasm(qasm_string_temp, existing_composite_circuits, extension_lib):
+def _insert_composite_gate_definition_qasm(string_temp, existing_composite_circuits, extension_lib):
     """Insert composite gate definition QASM code right after extension library in the header"""
 
     gate_definition_string = ""
@@ -3105,7 +3105,7 @@ def _insert_composite_gate_definition_qasm(qasm_string_temp, existing_composite_
             qasm_string = _get_composite_circuit_qasm_from_instruction(instruction)
         gate_definition_string += '\n' + qasm_string
 
-    qasm_string_temp = qasm_string_temp.replace(extension_lib,
+    string_temp = string_temp.replace(extension_lib,
                                                             "%s%s" % (extension_lib,
                                                                     gate_definition_string))
-    return qasm_string_temp
+    return string_temp
