@@ -477,11 +477,7 @@ class QuantumCircuit:
             QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
         """
         repeated_circ = QuantumCircuit(
-            self.qubits,
-            self.clbits,
-            *self.qregs,
-            *self.cregs,
-            name=self.name + "**{}".format(reps),
+            self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + "**{}".format(reps)
         )
 
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
@@ -772,10 +768,7 @@ class QuantumCircuit:
                 for i, c in enumerate(clbits)
             }
 
-        edge_map = {**qubit_map, **clbit_map} or {
-            **identity_qubit_map,
-            **identity_clbit_map,
-        }
+        edge_map = {**qubit_map, **clbit_map} or {**identity_qubit_map, **identity_clbit_map}
 
         mapped_instrs = []
         for instr, qargs, cargs in instrs:
@@ -784,9 +777,7 @@ class QuantumCircuit:
             n_instr = instr.copy()
 
             if instr.condition is not None:
-                from qiskit.dagcircuit import (
-                    DAGCircuit,
-                )  # pylint: disable=cyclic-import
+                from qiskit.dagcircuit import DAGCircuit  # pylint: disable=cyclic-import
 
                 n_instr.condition = DAGCircuit._map_condition(edge_map, instr.condition, self.cregs)
 
