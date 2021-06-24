@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 # pylint: disable=invalid-name
-# pylint: disable=inconsistent-return-statements,unsubscriptable-object
+# pylint: disable=inconsistent-return-statements
 # pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 
 """
@@ -640,7 +640,7 @@ def lex_index(n, k, lst):
     if len(lst) != k:
         raise VisualizationError("list should have length k")
     comb = list(map(lambda x: n - 1 - x, lst))
-    dualm = sum([n_choose_k(comb[k - 1 - i], i + 1) for i in range(k)])
+    dualm = sum(n_choose_k(comb[k - 1 - i], i + 1) for i in range(k))
     return int(dualm)
 
 

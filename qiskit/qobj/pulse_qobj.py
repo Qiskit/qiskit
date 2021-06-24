@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,redefined-builtin,method-hidden,arguments-differ
+# pylint: disable=invalid-name,redefined-builtin,arguments-differ
 # pylint: disable=super-init-not-called
 
 """Module providing definitions of Pulse Qobj classes."""
@@ -201,14 +201,14 @@ class PulseQobjInstruction:
         return out_dict
 
     def __repr__(self):
-        out = 'PulseQobjInstruction(name="%s", t0=%s' % (self.name, self.t0)
+        out = f'PulseQobjInstruction(name="{self.name}", t0={self.t0}'
         for attr in self._COMMON_ATTRS:
             attr_val = getattr(self, attr, None)
             if attr_val is not None:
                 if isinstance(attr_val, str):
-                    out += ', %s="%s"' % (attr, attr_val)
+                    out += f', {attr}="{attr_val}"'
                 else:
-                    out += ", %s=%s" % (attr, attr_val)
+                    out += f", {attr}={attr_val}"
         out += ")"
         return out
 
@@ -217,7 +217,7 @@ class PulseQobjInstruction:
         out += "\t\tt0: %s\n" % self.t0
         for attr in self._COMMON_ATTRS:
             if hasattr(self, attr):
-                out += "\t\t%s: %s\n" % (attr, getattr(self, attr))
+                out += f"\t\t{attr}: {getattr(self, attr)}\n"
         return out
 
     @classmethod
@@ -266,7 +266,7 @@ def _to_complex(value: Union[List[float], complex]) -> complex:
     elif isinstance(value, complex):
         return value
 
-    raise TypeError("{} is not in a valid complex number format.".format(value))
+    raise TypeError(f"{value} is not in a valid complex number format.")
 
 
 class PulseQobjConfig(QobjDictField):
@@ -522,10 +522,10 @@ class PulseLibraryItem:
         return cls(**data)
 
     def __repr__(self):
-        return "PulseLibraryItem(%s, %s)" % (self.name, repr(self.samples))
+        return f"PulseLibraryItem({self.name}, {repr(self.samples)})"
 
     def __str__(self):
-        return "Pulse Library Item:\n\tname: %s\n\tsamples: %s" % (self.name, self.samples)
+        return f"Pulse Library Item:\n\tname: {self.name}\n\tsamples: {self.samples}"
 
     def __eq__(self, other):
         if isinstance(other, PulseLibraryItem):
@@ -576,7 +576,7 @@ class PulseQobj:
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
         experiments_repr = "[" + ", ".join(experiments_str) + "]"
-        out = "PulseQobj(qobj_id='%s', config=%s, experiments=%s, header=%s)" % (
+        out = "PulseQobj(qobj_id='{}', config={}, experiments={}, header={})".format(
             self.qobj_id,
             repr(self.config),
             experiments_repr,
