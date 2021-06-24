@@ -41,6 +41,7 @@ def name_args(mapping, skip=0):
                 # raise warning, this is deprecated!
 
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -49,7 +50,7 @@ def name_args(mapping, skip=0):
                 default_name = replacement[0]
                 if len(replacement) == 1:  # just renaming, no special cases
                     if default_name in kwargs.keys():
-                        raise ValueError('Name collapse on {}'.format(default_name))
+                        raise ValueError(f"Name collapse on {default_name}")
                     kwargs[default_name] = arg
                 else:
                     # check if we find a special name
@@ -62,9 +63,11 @@ def name_args(mapping, skip=0):
                         name = default_name
 
                     if name in kwargs.keys():
-                        raise ValueError('Name collapse on {}'.format(default_name))
+                        raise ValueError(f"Name collapse on {default_name}")
                     kwargs[name] = arg
 
             return func(*args[:skip], **kwargs)
+
         return wrapper
+
     return decorator

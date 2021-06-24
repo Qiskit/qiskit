@@ -31,6 +31,6 @@ class RemoveResetInZeroState(TransformationPass):
         resets = dag.op_nodes(Reset)
         for reset in resets:
             predecessor = next(dag.predecessors(reset))
-            if predecessor.type == 'in':
+            if predecessor.type == "in":
                 dag.remove_op_node(reset)
         return dag

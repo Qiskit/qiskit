@@ -46,55 +46,69 @@
 """Progress bars module"""
 
 import time
+
 try:
     import ipywidgets as widgets
-except ImportError as ex:
-    raise ImportError('These functions  need ipywidgets. '
-                      'Run "pip install ipywidgets" before.') from ex
+
+    HAS_IPYWIDGETS = True
+except ImportError:
+    HAS_IPYWIDGETS = False
 from IPython.display import display
+
 from qiskit.tools.events.progressbar import BaseProgressBar
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
 class HTMLProgressBar(BaseProgressBar):
     """
     A simple HTML progress bar for using in IPython notebooks.
     """
+
     def __init__(self):
         super().__init__()
         self.progress_bar = None
         self.label = None
         self.box = None
+        if not HAS_IPYWIDGETS:
+            raise MissingOptionalLibraryError(
+                libname="ipywidgets",
+                name="progress bar",
+                pip_install="pip install ipywidgets",
+            )
         self._init_subscriber()
 
     def _init_subscriber(self):
         def _initialize_progress_bar(num_tasks):
-            """ When an event of compilation starts, this function will be called, and
+            """When an event of compilation starts, this function will be called, and
             will initialize the progress bar.
 
             Args
                 num_tasks: Number of compilation tasks the progress bar will track
             """
             self.start(num_tasks)
+
         self.subscribe("terra.parallel.start", _initialize_progress_bar)
 
         def _update_progress_bar(progress):
-            """ When an event of compilation completes, this function will be called, and
+            """When an event of compilation completes, this function will be called, and
             will update the progress bar indication.
 
             Args
                 progress: Number of tasks completed
             """
             self.update(progress)
+
         self.subscribe("terra.parallel.done", _update_progress_bar)
 
         def _finish_progress_bar():
-            """ When an event of compilation finishes (meaning that there's no more circuits to
+            """When an event of compilation finishes (meaning that there's no more circuits to
             compile), this function will be called, unsubscribing from all events and
             finishing the progress bar."""
             self.unsubscribe("terra.parallel.start", _initialize_progress_bar)
             self.unsubscribe("terra.parallel.done", _update_progress_bar)
             self.unsubscribe("terra.parallel.finish", _finish_progress_bar)
             self.finished()
+
         self.subscribe("terra.parallel.finish", _finish_progress_bar)
 
     def start(self, iterations):
@@ -102,7 +116,7 @@ class HTMLProgressBar(BaseProgressBar):
         self.iter = int(iterations)
         self.t_start = time.time()
         self.progress_bar = widgets.IntProgress(min=0, max=self.iter, value=0)
-        self.progress_bar.bar_style = 'info'
+        self.progress_bar.bar_style = "info"
         self.label = widgets.HTML()
         self.box = widgets.VBox(children=[self.label, self.progress_bar])
         display(self.box)
@@ -114,5 +128,5 @@ class HTMLProgressBar(BaseProgressBar):
 
     def finished(self):
         self.t_done = time.time()
-        self.progress_bar.bar_style = 'success'
+        self.progress_bar.bar_style = "success"
         self.label.value = "Elapsed time: %s" % self.time_elapsed()

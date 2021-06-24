@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-type-doc
 
 """Model and schema for pulse defaults."""
 import copy
@@ -41,7 +40,7 @@ class MeasurementKernel:
         Returns:
             dict: The dictionary form of the MeasurementKernel.
         """
-        return {'name': self.name, 'params': self.params}
+        return {"name": self.name, "params": self.params}
 
     @classmethod
     def from_dict(cls, data):
@@ -77,7 +76,7 @@ class Discriminator:
         Returns:
             dict: The dictionary form of the Discriminator.
         """
-        return {'name': self.name, 'params': self.params}
+        return {"name": self.name, "params": self.params}
 
     @classmethod
     def from_dict(cls, data):
@@ -100,6 +99,7 @@ class Command:
     Attributes:
         name: Pulse command name.
     """
+
     _data = {}
 
     def __init__(self, name: str, qubits=None, sequence=None, **kwargs):
@@ -123,7 +123,7 @@ class Command:
         try:
             return self._data[name]
         except KeyError as ex:
-            raise AttributeError(f'Attribute {name} is not defined') from ex
+            raise AttributeError(f"Attribute {name} is not defined") from ex
 
     def to_dict(self):
         """Return a dictionary format representation of the Command.
@@ -131,11 +131,11 @@ class Command:
         Returns:
             dict: The dictionary form of the Command.
         """
-        out_dict = {'name': self.name}
-        if hasattr(self, 'qubits'):
-            out_dict['qubits'] = self.qubits
-        if hasattr(self, 'sequence'):
-            out_dict['sequence'] = [x.to_dict() for x in self.sequence]
+        out_dict = {"name": self.name}
+        if hasattr(self, "qubits"):
+            out_dict["qubits"] = self.qubits
+        if hasattr(self, "sequence"):
+            out_dict["sequence"] = [x.to_dict() for x in self.sequence]
         out_dict.update(self._data)
         return out_dict
 
@@ -153,10 +153,10 @@ class Command:
                 dictionary.
         """
         in_data = copy.copy(data)
-        if 'sequence' in in_data:
-            in_data['sequence'] = [
-                PulseQobjInstruction.from_dict(x) for x in in_data.pop(
-                    'sequence')]
+        if "sequence" in in_data:
+            in_data["sequence"] = [
+                PulseQobjInstruction.from_dict(x) for x in in_data.pop("sequence")
+            ]
         return cls(**in_data)
 
 
@@ -168,15 +168,17 @@ class PulseDefaults:
 
     _data = {}
 
-    def __init__(self,
-                 qubit_freq_est: List[float],
-                 meas_freq_est: List[float],
-                 buffer: int,
-                 pulse_library: List[PulseLibraryItem],
-                 cmd_def: List[Command],
-                 meas_kernel: MeasurementKernel = None,
-                 discriminator: Discriminator = None,
-                 **kwargs: Dict[str, Any]):
+    def __init__(
+        self,
+        qubit_freq_est: List[float],
+        meas_freq_est: List[float],
+        buffer: int,
+        pulse_library: List[PulseLibraryItem],
+        cmd_def: List[Command],
+        meas_kernel: MeasurementKernel = None,
+        discriminator: Discriminator = None,
+        **kwargs: Dict[str, Any],
+    ):
         """
         Validate and reformat transport layer inputs to initialize.
         Args:
@@ -216,7 +218,7 @@ class PulseDefaults:
         try:
             return self._data[name]
         except KeyError as ex:
-            raise AttributeError(f'Attribute {name} is not defined') from ex
+            raise AttributeError(f"Attribute {name} is not defined") from ex
 
     def to_dict(self):
         """Return a dictionary format representation of the PulseDefaults.
@@ -224,26 +226,33 @@ class PulseDefaults:
             dict: The dictionary form of the PulseDefaults.
         """
         out_dict = {
-            'qubit_freq_est': self.qubit_freq_est,
-            'meas_freq_est': self.qubit_freq_est,
-            'buffer': self.buffer,
-            'pulse_library': [x.to_dict() for x in self.pulse_library],
-            'cmd_def': [x.to_dict() for x in self.cmd_def],
+            "qubit_freq_est": self.qubit_freq_est,
+            "meas_freq_est": self.qubit_freq_est,
+            "buffer": self.buffer,
+            "pulse_library": [x.to_dict() for x in self.pulse_library],
+            "cmd_def": [x.to_dict() for x in self.cmd_def],
         }
-        if hasattr(self, 'meas_kernel'):
-            out_dict['meas_kernel'] = self.meas_kernel.to_dict()
-        if hasattr(self, 'discriminator'):
-            out_dict['discriminator'] = self.discriminator.to_dict()
+        if hasattr(self, "meas_kernel"):
+            out_dict["meas_kernel"] = self.meas_kernel.to_dict()
+        if hasattr(self, "discriminator"):
+            out_dict["discriminator"] = self.discriminator.to_dict()
         for key, value in self.__dict__.items():
-            if key not in ['qubit_freq_est', 'meas_freq_est', 'buffer',
-                           'pulse_library', 'cmd_def', 'meas_kernel',
-                           'discriminator', 'converter',
-                           'instruction_schedule_map']:
+            if key not in [
+                "qubit_freq_est",
+                "meas_freq_est",
+                "buffer",
+                "pulse_library",
+                "cmd_def",
+                "meas_kernel",
+                "discriminator",
+                "converter",
+                "instruction_schedule_map",
+            ]:
                 out_dict[key] = value
         out_dict.update(self._data)
 
-        out_dict['qubit_freq_est'] = [freq * 1e-9 for freq in self.qubit_freq_est]
-        out_dict['meas_freq_est'] = [freq * 1e-9 for freq in self.meas_freq_est]
+        out_dict["qubit_freq_est"] = [freq * 1e-9 for freq in self.qubit_freq_est]
+        out_dict["meas_freq_est"] = [freq * 1e-9 for freq in self.meas_freq_est]
         return out_dict
 
     @classmethod
@@ -258,23 +267,24 @@ class PulseDefaults:
             PulseDefaults: The PulseDefaults from the input dictionary.
         """
         in_data = copy.copy(data)
-        in_data['pulse_library'] = [
-            PulseLibraryItem.from_dict(x) for x in in_data.pop('pulse_library')]
-        in_data['cmd_def'] = [
-            Command.from_dict(x) for x in in_data.pop('cmd_def')]
-        if 'meas_kernel' in in_data:
-            in_data['meas_kernel'] = MeasurementKernel.from_dict(
-                in_data.pop('meas_kernel'))
-        if 'discriminator' in in_data:
-            in_data['discriminator'] = Discriminator.from_dict(
-                in_data.pop('discriminator'))
+        in_data["pulse_library"] = [
+            PulseLibraryItem.from_dict(x) for x in in_data.pop("pulse_library")
+        ]
+        in_data["cmd_def"] = [Command.from_dict(x) for x in in_data.pop("cmd_def")]
+        if "meas_kernel" in in_data:
+            in_data["meas_kernel"] = MeasurementKernel.from_dict(in_data.pop("meas_kernel"))
+        if "discriminator" in in_data:
+            in_data["discriminator"] = Discriminator.from_dict(in_data.pop("discriminator"))
         return cls(**in_data)
 
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
         meas_freqs = [freq / 1e9 for freq in self.meas_freq_est]
-        qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=qubit_freqs)
-        mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=meas_freqs)
-        return ("<{name}({insts}{qfreq}\n{mfreq})>"
-                "".format(name=self.__class__.__name__, insts=str(self.instruction_schedule_map),
-                          qfreq=qfreq, mfreq=mfreq))
+        qfreq = f"Qubit Frequencies [GHz]\n{qubit_freqs}"
+        mfreq = f"Measurement Frequencies [GHz]\n{meas_freqs} "
+        return "<{name}({insts}{qfreq}\n{mfreq})>" "".format(
+            name=self.__class__.__name__,
+            insts=str(self.instruction_schedule_map),
+            qfreq=qfreq,
+            mfreq=mfreq,
+        )
