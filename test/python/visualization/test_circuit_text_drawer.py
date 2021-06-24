@@ -2412,9 +2412,7 @@ class TestTextNonRational(QiskitTestCase):
     def test_text_pifrac(self):
         """u drawing with -5pi/8 fraction"""
         expected = "\n".join(
-            ["      ┌──────────────┐", 
-             "q: |0>┤ U(π,-5π/8,0) ├", 
-             "      └──────────────┘"]
+            ["      ┌──────────────┐", "q: |0>┤ U(π,-5π/8,0) ├", "      └──────────────┘"]
         )
 
         qr = QuantumRegister(1, "q")
