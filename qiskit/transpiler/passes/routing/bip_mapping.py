@@ -23,6 +23,9 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.layout.trivial_layout import TrivialLayout
+from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
+from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
 from qiskit.transpiler.passes.routing.algorithms.bip_model import (
     BIPMappingModel,
     HAS_CPLEX,
@@ -48,6 +51,11 @@ class BIPMapping(TransformationPass):
     Quantum Volume circuits), you have to specify ``coupling_map`` which contains only the qubits
     to be used. Do not use ``initial_layout`` for that purpose because the BIP mapper gracefully
     ignores ``initial_layout`` (and try to determines its best layout).
+
+    .. warning::
+        The BIP mapper scales badly with respect to the number of qubits or gates.
+        For example, it would not work with ``coupling_map`` beyond 10 qubits because
+        the BIP solver (CPLEX) could not find any solution within the default time limit.
 
     **References:**
 
@@ -100,6 +108,10 @@ class BIPMapping(TransformationPass):
         self.time_limit = time_limit
         self.threads = threads
         self.max_swaps_inbetween_layers = max_swaps_inbetween_layers
+        # ensure the number of virtual and physical qubits are the same
+        self.requires.append(TrivialLayout(self.coupling_map))
+        self.requires.append(FullAncillaAllocation(self.coupling_map))
+        self.requires.append(EnlargeWithAncilla())
 
     def run(self, dag):
         """Run the BIPMapping pass on `dag`, assuming the number of virtual qubits (defined in
@@ -123,8 +135,6 @@ class BIPMapping(TransformationPass):
         if len(dag.qubits) != self.coupling_map.size():
             raise TranspilerError(
                 "BIPMapping pass requires the number of virtual and physical qubits are the same."
-                "Please call TrivialLayout, FullAncillaAllocation and EnlargeWithAncilla passes"
-                "in this order before running the BIPMapping pass."
             )
 
         if self.property_set["layout"]:
