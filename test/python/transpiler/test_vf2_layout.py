@@ -152,6 +152,55 @@ class TestVF2Layout(QiskitTestCase):
         self.assertEqual(layout[qr[2]], 2)
         self.assertEqual(pass_.property_set["VF2Layout_stop_reason"], "solution found")
 
+    def test_3q_circuit_3q_coupling_non_induced(self):
+        """A simple example, check for non-induced subgraph
+            1         qr0 -> qr1 -> qr2
+           / \
+          0 - 2
+        """
+        qr = QuantumRegister(3, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])  # qr0-> qr1
+        circuit.cx(qr[1], qr[2])  # qr1-> qr2
+
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(CouplingMap([[0, 1], [1, 2], [2, 0]]), seed=-1)
+        pass_.run(dag)
+        layout = pass_.property_set["layout"]
+
+        self.assertEqual(layout[qr[0]], 0)
+        self.assertEqual(layout[qr[1]], 1)
+        self.assertEqual(layout[qr[2]], 2)
+        self.assertEqual(pass_.property_set["VF2Layout_stop_reason"], "solution found")
+
+
+    def test_4q_circuit_5q_coupling_loose_nodes(self):
+        """4 qubits in Tenerife, with loose nodes
+
+            1
+          ↙ ↑                 /  |
+        0 ← 2 ← 3           0 -  -
+            ↑ ↙                 |   /
+            4
+        """
+        cmap5 = FakeTenerife().configuration().coupling_map
+
+        qr = QuantumRegister(4, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[0])  # qr1 -> qr0
+        circuit.cx(qr[0], qr[2])  # qr0 -> qr2
+
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(CouplingMap(cmap5), seed=self.seed)
+        pass_.run(dag)
+        layout = pass_.property_set["layout"]
+
+        self.assertEqual(layout[qr[0]], 4)
+        self.assertEqual(layout[qr[1]], 2)
+        self.assertEqual(layout[qr[2]], 3)
+        self.assertEqual(layout[qr[3]], 1)
+        self.assertEqual(pass_.property_set["VF2Layout_stop_reason"], "solution found")
+
     def test_9q_circuit_16q_coupling_sd(self):
         """9 qubits in Rueschlikon, considering the direction
 
