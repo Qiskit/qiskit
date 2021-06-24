@@ -30,8 +30,12 @@ with open("requirements.txt") as f:
 
 # Add Cython extensions here
 CYTHON_EXTS = {
-    "qiskit/transpiler/passes/routing/cython/stochastic_swap/utils": "qiskit.transpiler.passes.routing.cython.stochastic_swap.utils",
-    "qiskit/transpiler/passes/routing/cython/stochastic_swap/swap_trial": "qiskit.transpiler.passes.routing.cython.stochastic_swap.swap_trial",
+    "qiskit/transpiler/passes/routing/cython/stochastic_swap/utils": (
+        "qiskit.transpiler.passes.routing.cython.stochastic_swap.utils"
+    ),
+    "qiskit/transpiler/passes/routing/cython/stochastic_swap/swap_trial": (
+        "qiskit.transpiler.passes.routing.cython.stochastic_swap.swap_trial"
+    ),
     "qiskit/quantum_info/states/cython/exp_value": "qiskit.quantum_info.states.cython.exp_value",
 }
 
