@@ -216,7 +216,7 @@ def mcry(self, theta, q_controls, q_target, q_ancillae=None, mode=None, use_basi
                 use_basis_gates=use_basis_gates,
             )
     else:
-        raise QiskitError("Unrecognized mode for building MCRY circuit: {}.".format(mode))
+        raise QiskitError(f"Unrecognized mode for building MCRY circuit: {mode}.")
 
 
 def mcrz(self, lam, q_controls, q_target, use_basis_gates=False):

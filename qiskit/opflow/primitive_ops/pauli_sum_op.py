@@ -97,7 +97,7 @@ class PauliSumOp(PrimitiveOp):
             """Matrix representation iteration and item access."""
 
             def __repr__(self):
-                return "<PauliSumOp_matrix_iterator at {}>".format(hex(id(self)))
+                return f"<PauliSumOp_matrix_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 sumopcoeff = self.obj.coeff * self.obj.primitive.coeffs[key]
@@ -418,7 +418,7 @@ class PauliSumOp(PrimitiveOp):
     @classmethod
     def from_list(
         cls,
-        pauli_list: List[Tuple[str, Union[complex]]],
+        pauli_list: List[Tuple[str, complex]],
         coeff: Union[complex, ParameterExpression] = 1.0,
     ) -> "PauliSumOp":
         """Construct from a pauli_list with the form [(pauli_str, coeffs)]

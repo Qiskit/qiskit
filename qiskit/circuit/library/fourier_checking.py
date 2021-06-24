@@ -82,7 +82,7 @@ class FourierChecking(QuantumCircuit):
                 "{1, -1}."
             )
 
-        super().__init__(num_qubits, name="fc: %s, %s" % (f, g))
+        super().__init__(num_qubits, name=f"fc: {f}, {g}")
 
         self.h(self.qubits)
 
