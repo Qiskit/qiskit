@@ -79,9 +79,9 @@ class TestVF2Layout(QiskitTestCase):
         ↓    ↑    ↓    ↓    ↑    ↓    ↓   ↑
         0 ← 15 → 14 ← 13 ← 12 → 11 → 10 ← 9
 
-        q1_0 -  2 --- 3 --- q1_2 - 5 - q1_1 - 7 --- q0_1
+          1 -- q1_0 - q1_1 - 4 --- 5 --  6  - 7 --- q0_1
           |    |      |      |     |     |    |      |
-          0 - q1_3 - q0_0 - 13 - q0_3 - 11 - q1_4 - q0_2
+        q1_2 - q1_3 - q0_0 - 13 - q0_3 - 11 - q1_4 - q0_2
         """
         cmap16 = FakeRueschlikon().configuration().coupling_map
 
@@ -101,9 +101,9 @@ class TestVF2Layout(QiskitTestCase):
         self.assertEqual(layout[qr0[1]], 8)
         self.assertEqual(layout[qr0[2]], 9)
         self.assertEqual(layout[qr0[3]], 12)
-        self.assertEqual(layout[qr1[0]], 1)
-        self.assertEqual(layout[qr1[1]], 6)
-        self.assertEqual(layout[qr1[2]], 4)
+        self.assertEqual(layout[qr1[0]], 2)
+        self.assertEqual(layout[qr1[1]], 3)
+        self.assertEqual(layout[qr1[2]], 0)
         self.assertEqual(layout[qr1[3]], 15)
         self.assertEqual(layout[qr1[4]], 10)
         self.assertEqual(pass_.property_set["VF2Layout_stop_reason"], "solution found")
@@ -173,7 +173,6 @@ class TestVF2Layout(QiskitTestCase):
         self.assertEqual(layout[qr[2]], 2)
         self.assertEqual(pass_.property_set["VF2Layout_stop_reason"], "solution found")
 
-
     def test_4q_circuit_5q_coupling_loose_nodes(self):
         """4 qubits in Tenerife, with loose nodes
 
@@ -208,9 +207,9 @@ class TestVF2Layout(QiskitTestCase):
         ↓    ↑    ↓    ↓    ↑    ↓    ↓   ↑
         0 ← 15 → 14 ← 13 ← 12 → 11 → 10 ← 9
 
-        q1[4] →   2   → q0[3] → 4   ← q1[0] ←   6  → q1[3] ← q0[0]
-          ↓       ↑      ↓      ↓       ↑       ↓      ↓      ↑
-        q0[2] ← q0[1] → 14  ← q1[1] ←  12   → q1[2] → 10   ←  9
+        1 → q1[2]  → 3    →  4  ←   5  ←   6  → q1[3] ← q0[0]
+        ↓     ↑      ↓       ↓      ↑      ↓      ↓      ↑
+        0 ← q1[0] → q0[3] ← q1[1] ← 12 → q1[4] → q0[2] ← q0[1]
         """
         cmap16 = FakeRueschlikon().configuration().coupling_map
 
@@ -227,14 +226,14 @@ class TestVF2Layout(QiskitTestCase):
         layout = pass_.property_set["layout"]
 
         self.assertEqual(layout[qr0[0]], 8)
-        self.assertEqual(layout[qr0[1]], 15)
-        self.assertEqual(layout[qr0[2]], 0)
-        self.assertEqual(layout[qr0[3]], 3)
-        self.assertEqual(layout[qr1[0]], 5)
-        self.assertEqual(layout[qr1[1]], 13)
-        self.assertEqual(layout[qr1[2]], 11)
+        self.assertEqual(layout[qr0[1]], 9)
+        self.assertEqual(layout[qr0[2]], 10)
+        self.assertEqual(layout[qr0[3]], 14)
+        self.assertEqual(layout[qr1[0]], 15)
+        self.assertEqual(layout[qr1[1]], 12)
+        self.assertEqual(layout[qr1[2]], 2)
         self.assertEqual(layout[qr1[3]], 7)
-        self.assertEqual(layout[qr1[4]], 1)
+        self.assertEqual(layout[qr1[4]], 11)
         self.assertEqual(pass_.property_set["VF2Layout_stop_reason"], "solution found")
 
     def test_5q_circuit_16q_coupling_no_solution(self):

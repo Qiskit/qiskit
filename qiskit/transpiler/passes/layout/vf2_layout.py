@@ -76,7 +76,6 @@ class VF2Layout(AnalysisPass):
 
         im_graph.add_nodes_from(range(len(qubits)))
         im_graph.add_edges_from_no_data(interactions)
-        print('cm_graph', cm_graph.edge_list())
 
         mapping = vf2_mapping(cm_graph, im_graph, subgraph=True, id_order=True, induced=False)
 
