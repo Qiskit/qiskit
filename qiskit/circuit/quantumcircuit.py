@@ -1414,8 +1414,6 @@ class QuantumCircuit:
             regless_clbits = [bit for bit in self.clbits if bit not in creg_bits]
             string_temp += "creg %s[%d];\n" % ("regless", len(regless_clbits))
 
-        unitary_gates = []
-
         bit_labels = {
             bit: "%s[%d]" % (reg.name, idx)
             for reg in self.qregs + self.cregs
@@ -1439,54 +1437,27 @@ class QuantumCircuit:
                     bit_labels[qubit],
                     bit_labels[clbit],
                 )
-
-            # If instruction is a root gate or a root instruction (in that case, compositive)
-
-            elif (
-                type(instruction)
-                in [
-                    Gate,
-                    Instruction,
-                ]
-                or (isinstance(instruction, qiskit.circuit.controlledgate.ControlledGate) and instruction._open_ctrl)
-            ):
-                if instruction not in existing_composite_circuits:
-                    if instruction.name in existing_gate_names:
-                        old_name = instruction.name
-                        instruction.name += "_" + str(id(instruction))
-
-                        warnings.warn(
-                            "A gate named {} already exists. "
-                            "We have renamed "
-                            "your gate to {}".format(old_name, instruction.name)
-                        )
-
-                    # Get qasm of composite circuit
-                    qasm_string_composite = _get_composite_circuit_qasm_from_instruction(instruction)
-
-                    # Insert composite circuit qasm definition right after header and extension lib
-                    string_temp = string_temp.replace(
-                        self.extension_lib, f"{self.extension_lib}\n{qasm_string_composite}"
-                    )
-
-                    existing_composite_circuits.append(instruction)
-                    existing_gate_names.append(instruction.name)
-
-                # Insert qasm representation of the original instruction
-                string_temp += "{} {};\n".format(
-                    instruction.qasm(),
-                    ",".join([bit_labels[j] for j in qargs + cargs]),
-                )
             else:
-                string_temp += "{} {};\n".format(
-                    instruction.qasm(),
-                    ",".join([bit_labels[j] for j in qargs + cargs]),
-                )
-            if instruction.name == "unitary":
-                unitary_gates.append(instruction)
+                # decompose gate using definitions if they are not defined in OpenQASM2
+                if instruction.name not in existing_gate_names:
+                    if instruction not in existing_composite_circuits:
+                        custom_instr_names = [instruction.name for instruction
+                                              in existing_composite_circuits]
+                        if instruction.name in custom_instr_names:
+                            # append instruction id to name to make it unique
+                            instruction.name += f'_{id(instruction)}'
+                        existing_composite_circuits.append(instruction)
+
+                string_temp += "%s %s;\n" % (instruction.qasm(),
+                                                       ",".join([bit_labels[j]
+                                                                 for j in qargs + cargs]))
 
         # insert gate definitions
-        _insert_composite_gate_definition_qasm(string_temp, existing_composite_circuits, self.extension_lib)
+        string_temp = _insert_composite_gate_definition_qasm(
+                        string_temp,
+                        existing_composite_circuits,
+                        self.extension_lib
+                        )
 
         if filename:
             with open(filename, "w+", encoding=encoding) as file:
@@ -3108,7 +3079,7 @@ def _insert_composite_gate_definition_qasm(string_temp, existing_composite_circu
 
     # Generate gate definition string
     for instruction in existing_composite_circuits:
-        if isinstance(instruction, qk.extensions.unitary.UnitaryGate):
+        if isinstance(instruction, qiskit.extensions.unitary.UnitaryGate):
             qasm_string = instruction._qasm_definition
         else:
             qasm_string = _get_composite_circuit_qasm_from_instruction(instruction)
