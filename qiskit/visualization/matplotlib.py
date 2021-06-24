@@ -32,7 +32,7 @@ except ImportError:
     HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate, Gate, Instruction
-from qiskit.dagcircuit import OpNode
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay
@@ -1312,8 +1312,7 @@ class MatplotlibDrawer:
 
                 # load param
                 if (
-                    isinstance(op, OpNode)
-                    and hasattr(op.op, "params")
+                    hasattr(op.op, "params")
                     and len(op.op.params) > 0
                     and not any(isinstance(param, np.ndarray) for param in op.op.params)
                 ):
@@ -1322,7 +1321,7 @@ class MatplotlibDrawer:
                     param = ""
 
                 # conditional gate
-                if isinstance(op, OpNode) and op.op.condition:
+                if op.op.condition:
                     c_xy = [
                         c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
                         for ii in self._clbit_dict

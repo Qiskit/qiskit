@@ -15,7 +15,7 @@
 from collections import defaultdict
 
 from qiskit.circuit import Gate
-from qiskit.dagcircuit import OpNode
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -58,8 +58,7 @@ class Collect2qBlocks(AnalysisPass):
             group = []
             # Explore predecessors and successors of 2q gates
             if (  # pylint: disable=too-many-boolean-expressions
-                isinstance(nd, OpNode)
-                and isinstance(nd.op, Gate)
+                isinstance(nd.op, Gate)
                 and len(nd._qargs) == 2
                 and not nodes_seen[nd]
                 and nd.op.condition is None
@@ -75,7 +74,7 @@ class Collect2qBlocks(AnalysisPass):
                     if len(pred) == 1 and not nodes_seen[pred[0]]:
                         pnd = pred[0]
                         if (
-                            isinstance(pnd, OpNode)
+                            isinstance(pnd, DAGOpNode)
                             and isinstance(pnd.op, Gate)
                             and len(pnd._qargs) <= 2
                             and pnd.op.condition is None
@@ -113,7 +112,7 @@ class Collect2qBlocks(AnalysisPass):
                         # Examine each predecessor
                         for pnd in sorted_pred:
                             if (
-                                not isinstance(pnd, OpNode)
+                                not isinstance(pnd, DAGOpNode)
                                 or not isinstance(pnd.op, Gate)
                                 or len(pnd._qargs) > 2
                                 or pnd.op.condition is not None
@@ -165,7 +164,7 @@ class Collect2qBlocks(AnalysisPass):
                     if len(succ) == 1 and not nodes_seen[succ[0]]:
                         snd = succ[0]
                         if (
-                            isinstance(snd, OpNode)
+                            isinstance(snd, DAGOpNode)
                             and isinstance(snd.op, Gate)
                             and len(snd._qargs) <= 2
                             and snd.op.condition is None
@@ -203,7 +202,7 @@ class Collect2qBlocks(AnalysisPass):
                         # Examine each successor
                         for snd in sorted_succ:
                             if (
-                                not isinstance(snd, OpNode)
+                                not isinstance(snd, DAGOpNode)
                                 or not isinstance(snd.op, Gate)
                                 or len(snd._qargs) > 2
                                 or snd.op.condition is not None

@@ -19,7 +19,7 @@ from ddt import ddt, data
 import retworkx as rx
 from numpy import pi
 
-from qiskit.dagcircuit import DAGCircuit, OpNode, InNode, OutNode
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit import QuantumCircuit, Qubit
@@ -57,11 +57,11 @@ def raise_if_dagcircuit_invalid(dag):
     # Every node should be of type in, out, or op.
     # All input/output nodes should be present in input_map/output_map.
     for node in dag._multi_graph.nodes():
-        if isinstance(node, InNode):
+        if isinstance(node, DAGInNode):
             assert node is dag.input_map[node.wire]
-        elif isinstance(node, OutNode):
+        elif isinstance(node, DAGOutNode):
             assert node is dag.output_map[node.wire]
-        elif isinstance(node, OpNode):
+        elif isinstance(node, DAGOpNode):
             continue
         else:
             raise DAGCircuitError(f"Found node of unexpected type: {type(node)}")
@@ -88,8 +88,8 @@ def raise_if_dagcircuit_invalid(dag):
 
         assert in_node.wire == wire
         assert out_node.wire == wire
-        assert isinstance(in_node, InNode)
-        assert isinstance(out_node, OutNode)
+        assert isinstance(in_node, DAGInNode)
+        assert isinstance(out_node, DAGOutNode)
 
     # Every wire should be propagated by exactly one edge between nodes.
     for wire in dag.wires:
@@ -512,8 +512,8 @@ class TestDagNodeSelection(QiskitTestCase):
             next(successor_cnot)
 
         self.assertTrue(
-            (isinstance(successor1, OutNode) and isinstance(successor2.op, Reset))
-            or (isinstance(successor2, OutNode) and isinstance(successor1.op, Reset))
+            (isinstance(successor1, DAGOutNode) and isinstance(successor2.op, Reset))
+            or (isinstance(successor2, DAGOutNode) and isinstance(successor1.op, Reset))
         )
 
     def test_is_successor(self):
@@ -561,8 +561,8 @@ class TestDagNodeSelection(QiskitTestCase):
             next(predecessor_cnot)
 
         self.assertTrue(
-            (isinstance(predecessor1, InNode) and isinstance(predecessor2.op, Reset))
-            or (isinstance(predecessor2, InNode) and isinstance(predecessor1.op, Reset))
+            (isinstance(predecessor1, DAGInNode) and isinstance(predecessor2.op, Reset))
+            or (isinstance(predecessor2, DAGInNode) and isinstance(predecessor1.op, Reset))
         )
 
     def test_is_predecessor(self):
@@ -660,7 +660,7 @@ class TestDagNodeSelection(QiskitTestCase):
             (cr[1], []),
         ]
         self.assertEqual(
-            [(i.op.name if isinstance(i, OpNode) else i.wire, i.qargs) for i in named_nodes],
+            [(i.op.name if isinstance(i, DAGOpNode) else i.wire, i.qargs) for i in named_nodes],
             expected,
         )
 
@@ -703,7 +703,7 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def test_dag_nodes_on_wire_multiple_successors(self):
         """
-        Test that if an OpNode has multiple successors in the DAG along one wire, they are all
+        Test that if an DAGOpNode has multiple successors in the DAG along one wire, they are all
         retrieved in order. This could be the case for a circuit such as
 
                 q0_0: |0>──■─────────■──
@@ -958,7 +958,7 @@ class TestDagLayers(QiskitTestCase):
         self.assertEqual(5, len(layers))
 
         name_layers = [
-            [node.op.name for node in layer["graph"].nodes() if isinstance(node, OpNode)]
+            [node.op.name for node in layer["graph"].nodes() if isinstance(node, DAGOpNode)]
             for layer in layers
         ]
 
@@ -970,7 +970,12 @@ class TestDagLayers(QiskitTestCase):
         qr = QuantumRegister(1, "q0")
 
         # the order the nodes should be in
-        truth = [(InNode, qr[0], 0), (OpNode, "x", 2), (OpNode, "id", 3), (OutNode, qr[0], 1)]
+        truth = [
+            (DAGInNode, qr[0], 0),
+            (DAGOpNode, "x", 2),
+            (DAGOpNode, "id", 3),
+            (DAGOutNode, qr[0], 1),
+        ]
 
         # this only occurred sometimes so has to be run more than once
         # (10 times seemed to always be enough for this bug to show at least once)
@@ -982,7 +987,7 @@ class TestDagLayers(QiskitTestCase):
             dag1.apply_operation_back(IGate(), [qr[0]], [])
 
             comp = [
-                (type(nd), nd.op.name if isinstance(nd, OpNode) else nd.wire, nd._node_id)
+                (type(nd), nd.op.name if isinstance(nd, DAGOpNode) else nd.wire, nd._node_id)
                 for nd in dag1.topological_nodes()
             ]
             self.assertEqual(comp, truth)

@@ -13,7 +13,7 @@
 """Remove reset gate when the qubit is in zero state."""
 
 from qiskit.circuit import Reset
-from qiskit.dagcircuit import InNode
+from qiskit.dagcircuit import DAGInNode
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -32,6 +32,6 @@ class RemoveResetInZeroState(TransformationPass):
         resets = dag.op_nodes(Reset)
         for reset in resets:
             predecessor = next(dag.predecessors(reset))
-            if isinstance(predecessor, InNode):
+            if isinstance(predecessor, DAGInNode):
                 dag.remove_op_node(reset)
         return dag

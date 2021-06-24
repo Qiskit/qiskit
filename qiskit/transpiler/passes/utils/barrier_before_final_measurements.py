@@ -15,7 +15,7 @@
 
 from qiskit.circuit.barrier import Barrier
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit, OpNode
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from .merge_adjacent_barriers import MergeAdjacentBarriers
 
 
@@ -38,7 +38,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
             for _, child_successors in dag.bfs_successors(candidate_node):
 
                 if any(
-                    isinstance(suc, OpNode) and suc.name not in final_op_types
+                    isinstance(suc, DAGOpNode) and suc.name not in final_op_types
                     for suc in child_successors
                 ):
                     is_final_op = False

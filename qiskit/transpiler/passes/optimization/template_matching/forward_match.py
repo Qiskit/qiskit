@@ -25,7 +25,7 @@ Exact and practical pattern matching for quantum circuit optimization.
 """
 
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.dagcircuit import OpNode
+from qiskit.dagcircuit import DAGOpNode
 
 
 class ForwardMatch:
@@ -199,7 +199,7 @@ class ForwardMatch:
             successor_id (int): successor id to remove.
 
         Returns:
-            OpNode or OutNode: Node with updated attribute 'SuccessorToVisit'.
+            DAGOpNode or DAGOutNode: Node with updated attribute 'SuccessorToVisit'.
         """
         node_update = node
         node_update.successorstovisit.pop(successor_id)
@@ -209,7 +209,7 @@ class ForwardMatch:
         """
         Return the successor for a given node and id.
         Args:
-            node (OpNode or OutNode): current node.
+            node (DAGOpNode or DAGOutNode): current node.
             list_id (int): id in the list for the successor to get.
 
         Returns:
@@ -313,9 +313,9 @@ class ForwardMatch:
             bool: True if possible, False otherwise.
         """
         if (
-            isinstance(node_circuit, OpNode)
+            node_circuit.type == "op"
             and node_circuit.op.condition
-            and isinstance(node_template, OpNode)
+            and node_template.type == "op"
             and node_template.op.conditon
         ):
             if set(self.carg_indices) != set(node_template.cindices):

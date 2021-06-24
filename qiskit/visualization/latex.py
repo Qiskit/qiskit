@@ -56,7 +56,7 @@ class QCircuitImage:
         Args:
             qubits (list[Qubit]): list of qubits
             clbits (list[Clbit]): list of clbits
-            ops (list[list[OpNode]]): list of circuit instructions, grouped by layer
+            ops (list[list[DAGOpNode]]): list of circuit instructions, grouped by layer
             scale (float): image scaling
             reverse_bits (bool): when True, reverse the bit ordering of the registers
             plot_barriers (bool): Enable/disable drawing barriers in the output
