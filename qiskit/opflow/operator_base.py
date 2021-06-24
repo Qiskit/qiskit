@@ -159,8 +159,8 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
     @staticmethod
     def _indent(lines: str, indentation: str = INDENTATION) -> str:
         """Indented representation to allow pretty representation of nested operators."""
-        indented_str = indentation + lines.replace("\n", "\n{}".format(indentation))
-        if indented_str.endswith("\n{}".format(indentation)):
+        indented_str = indentation + lines.replace("\n", f"\n{indentation}")
+        if indented_str.endswith(f"\n{indentation}"):
             indented_str = indented_str[: -len(indentation)]
         return indented_str
 

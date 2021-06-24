@@ -57,7 +57,7 @@ def _assemble_circuit(
     """
     if circuit.unit != "dt":
         raise QiskitError(
-            "Unable to assemble circuit with unit '{}', which must be 'dt'.".format(circuit.unit)
+            f"Unable to assemble circuit with unit '{circuit.unit}', which must be 'dt'."
         )
 
     # header data
