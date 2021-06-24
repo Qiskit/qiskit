@@ -2380,9 +2380,7 @@ class QuantumCircuit:
         from .library.standard_gates.h import CHGate
 
         return self.append(
-            CHGate(label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit],
-            [],
+            CHGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
     def i(self, qubit):
@@ -2413,9 +2411,7 @@ class QuantumCircuit:
         from .library.standard_gates.p import CPhaseGate
 
         return self.append(
-            CPhaseGate(theta, label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit],
-            [],
+            CPhaseGate(theta, label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
     def mcp(self, lam, control_qubits, target_qubit):
@@ -2450,9 +2446,7 @@ class QuantumCircuit:
         from .library.standard_gates.x import RC3XGate
 
         return self.append(
-            RC3XGate(),
-            [control_qubit1, control_qubit2, control_qubit3, target_qubit],
-            [],
+            RC3XGate(), [control_qubit1, control_qubit2, control_qubit3, target_qubit], []
         )
 
     def rx(self, theta, qubit, label=None):  # pylint: disable=invalid-name
@@ -2488,9 +2482,7 @@ class QuantumCircuit:
         from .library.standard_gates.ry import CRYGate
 
         return self.append(
-            CRYGate(theta, label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit],
-            [],
+            CRYGate(theta, label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
     def ryy(self, theta, qubit1, qubit2):
@@ -2510,9 +2502,7 @@ class QuantumCircuit:
         from .library.standard_gates.rz import CRZGate
 
         return self.append(
-            CRZGate(theta, label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit],
-            [],
+            CRZGate(theta, label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
     def rzx(self, theta, qubit1, qubit2):
@@ -2611,17 +2601,7 @@ class QuantumCircuit:
 
         return self.append(UGate(theta, phi, lam), [qubit], [])
 
-    def cu(
-        self,
-        theta,
-        phi,
-        lam,
-        gamma,
-        control_qubit,
-        target_qubit,
-        label=None,
-        ctrl_state=None,
-    ):
+    def cu(self, theta, phi, lam, gamma, control_qubit, target_qubit, label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CUGate`."""
         from .library.standard_gates.u import CUGate
 
@@ -2656,9 +2636,7 @@ class QuantumCircuit:
         from .library.standard_gates.u1 import CU1Gate
 
         return self.append(
-            CU1Gate(theta, label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit],
-            [],
+            CU1Gate(theta, label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
     @deprecate_function(
@@ -2736,9 +2714,7 @@ class QuantumCircuit:
         from .library.standard_gates.x import CXGate
 
         return self.append(
-            CXGate(label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit],
-            [],
+            CXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
     def cnot(self, control_qubit, target_qubit, label=None, ctrl_state=None):
@@ -2848,9 +2824,7 @@ class QuantumCircuit:
         from .library.standard_gates.y import CYGate
 
         return self.append(
-            CYGate(label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit],
-            [],
+            CYGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
     def z(self, qubit):
@@ -2864,9 +2838,7 @@ class QuantumCircuit:
         from .library.standard_gates.z import CZGate
 
         return self.append(
-            CZGate(label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit],
-            [],
+            CZGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
     def pauli(self, pauli_string, qubits):
