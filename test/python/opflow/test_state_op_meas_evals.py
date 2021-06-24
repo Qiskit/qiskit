@@ -67,7 +67,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         try:
             from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
         with self.subTest("zero coeff in SummedOp"):
             op = 0 * (I + Z)
@@ -92,7 +92,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         try:
             from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
         backend = Aer.get_backend("aer_simulator")
         q_instance = QuantumInstance(backend)  # no seeds needed since no values are compared
@@ -105,7 +105,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         try:
             from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
         x, y = Parameter("x"), Parameter("y")
 
@@ -140,7 +140,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         try:
             from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
 
         x = Parameter("x")
@@ -160,7 +160,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         try:
             from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
 
         x = Parameter("x")
@@ -210,7 +210,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         try:
             from qiskit.providers.aer import AerSimulator
         except Exception as ex:  # pylint: disable=broad-except
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
 
         backend = AerSimulator(shots=10)
         sampler = CircuitSampler(backend)

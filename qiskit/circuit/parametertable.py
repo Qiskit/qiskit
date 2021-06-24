@@ -80,7 +80,7 @@ class ParameterTable(MutableMapping):
         return len(self._table)
 
     def __repr__(self):
-        return "ParameterTable({})".format(repr(self._table))
+        return f"ParameterTable({repr(self._table)})"
 
 
 def _deprecated_set_method():
