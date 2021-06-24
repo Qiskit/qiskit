@@ -31,7 +31,8 @@ class Snapshot(Instruction):
             label (str): the snapshot label for result data.
             snapshot_type (str): the type of the snapshot.
             num_qubits (int): the number of qubits for the snapshot type [Default: 0].
-            num_clbits (int): the number of classical bits for the snapshot type [Default: 0].
+            num_clbits (int): the number of classical bits for the snapshot type
+                              [Default: 0].
             params (list or None): the parameters for snapshot_type [Default: None].
 
         Raises:
