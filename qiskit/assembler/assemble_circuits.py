@@ -68,7 +68,6 @@ def _assemble_circuit(
 
     qreg_sizes = []
     creg_sizes = []
-    clbit_list = []
     for qreg in circuit.qregs:
         qreg_sizes.append([qreg.name, qreg.size])
         for j in range(qreg.size):
@@ -79,9 +78,6 @@ def _assemble_circuit(
         for j in range(creg.size):
             clbit_labels.append([creg.name, j])
         memory_slots += creg.size
-    for creg in circuit.cregs:
-        for bit in creg:
-            clbit_list.append(bit)
 
     qubit_indices = {qubit: idx for idx, qubit in enumerate(circuit.qubits)}
     clbit_indices = {clbit: idx for idx, clbit in enumerate(circuit.clbits)}
