@@ -126,9 +126,9 @@ setup(
     include_package_data=True,
     python_requires=">=3.6",
     extras_require={
-        'visualization': visualization_extras,
-        'crosstalk-pass': z3_requirements,
-        'all': visualization_extras + z3_requirements,
+        "visualization": visualization_extras,
+        "crosstalk-pass": z3_requirements,
+        "all": visualization_extras + z3_requirements,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
