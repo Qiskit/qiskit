@@ -104,9 +104,7 @@ class XGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        gate = MCXGate(
-            num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state
-        )
+        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
         gate.base_gate.label = self.label
         return gate
 
@@ -204,9 +202,7 @@ class CXGate(ControlledGate):
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(
-            num_ctrl_qubits=num_ctrl_qubits + 1, label=label, ctrl_state=new_ctrl_state
-        )
+        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 1, label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label
         return gate
 
@@ -346,9 +342,7 @@ class CCXGate(ControlledGate):
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(
-            num_ctrl_qubits=num_ctrl_qubits + 2, label=label, ctrl_state=new_ctrl_state
-        )
+        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 2, label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label
         return gate
 
@@ -650,9 +644,7 @@ class C3XGate(ControlledGate):
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(
-            num_ctrl_qubits=num_ctrl_qubits + 3, label=label, ctrl_state=new_ctrl_state
-        )
+        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 3, label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label
         return gate
 
@@ -850,9 +842,7 @@ class C4XGate(ControlledGate):
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(
-            num_ctrl_qubits=num_ctrl_qubits + 4, label=label, ctrl_state=new_ctrl_state
-        )
+        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 4, label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label
         return gate
 
@@ -997,15 +987,11 @@ class MCXGrayCode(MCXGate):
         else:
             _name = f"c{num_ctrl_qubits}x_gray"
 
-        super().__init__(
-            num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name
-        )
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name)
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
-        return MCXGrayCode(
-            num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-        )
+        return MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     def _define(self):
         """Define the MCX gate using the Gray code."""
@@ -1037,9 +1023,7 @@ class MCXRecursive(MCXGate):
         else:
             _name = f"c{num_ctrl_qubits}x_recursive"
 
-        super().__init__(
-            num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name
-        )
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name)
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits, mode="recursion"):
@@ -1048,9 +1032,7 @@ class MCXRecursive(MCXGate):
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
-        return MCXRecursive(
-            num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-        )
+        return MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     def _define(self):
         """Define the MCX gate using recursion."""
@@ -1077,9 +1059,7 @@ class MCXRecursive(MCXGate):
         if len(q) == 5:
             return [(C4XGate(), q[:], [])]
         if len(q) < 4:
-            raise AttributeError(
-                "Something went wrong in the recursion, have less than 4 qubits."
-            )
+            raise AttributeError("Something went wrong in the recursion, have less than 4 qubits.")
 
         # recurse
         num_ctrl_qubits = len(q) - 1
@@ -1112,9 +1092,7 @@ class MCXVChain(MCXGate):
         """
         return super().__new__(cls, num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def __init__(
-        self, num_ctrl_qubits, dirty_ancillas=False, label=None, ctrl_state=None
-    ):
+    def __init__(self, num_ctrl_qubits, dirty_ancillas=False, label=None, ctrl_state=None):
 
         if num_ctrl_qubits == 1:
             _name = "cx"
@@ -1123,9 +1101,7 @@ class MCXVChain(MCXGate):
         else:
             _name = f"c{num_ctrl_qubits}x_vchain"
 
-        super().__init__(
-            num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name
-        )
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name)
         self._dirty_ancillas = dirty_ancillas
 
     def inverse(self):
@@ -1176,14 +1152,10 @@ class MCXVChain(MCXGate):
                 )
                 i -= 1
 
-        definition.append(
-            (RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[0]], [])
-        )
+        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[0]], []))
         i = 0
         for j in range(2, self.num_ctrl_qubits - 1):
-            definition.append(
-                (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], [])
-            )
+            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
             i += 1
 
         if self._dirty_ancillas:
@@ -1201,18 +1173,12 @@ class MCXVChain(MCXGate):
             for inst in ancilla_post_rule:
                 definition.append(inst)
         else:
-            definition.append(
-                (CCXGate(), [q_controls[-1], q_ancillas[i], q_target], [])
-            )
+            definition.append((CCXGate(), [q_controls[-1], q_ancillas[i], q_target], []))
 
         for j in reversed(range(2, self.num_ctrl_qubits - 1)):
-            definition.append(
-                (RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], [])
-            )
+            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], []))
             i -= 1
-        definition.append(
-            (RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[i]], [])
-        )
+        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[i]], []))
 
         if self._dirty_ancillas:
             for i, j in enumerate(list(range(2, self.num_ctrl_qubits - 1))):

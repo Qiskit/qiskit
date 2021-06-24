@@ -106,9 +106,7 @@ class UnitaryGate(Gate):
         if self.num_qubits == 1:
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(q, name=self.name)
-            theta, phi, lam, global_phase = _DECOMPOSER1Q.angles_and_phase(
-                self.to_matrix()
-            )
+            theta, phi, lam, global_phase = _DECOMPOSER1Q.angles_and_phase(self.to_matrix())
             qc._append(U3Gate(theta, phi, lam), [q[0]], [])
             qc.global_phase = global_phase
             self.definition = qc
@@ -136,9 +134,7 @@ class UnitaryGate(Gate):
             QiskitError: Invalid ctrl_state.
             ExtensionError: Non-unitary controlled unitary.
         """
-        cmat = _compute_control_matrix(
-            self.to_matrix(), num_ctrl_qubits, ctrl_state=None
-        )
+        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits, ctrl_state=None)
         iso = isometry.Isometry(cmat, 0, 0)
         cunitary = ControlledGate(
             "c-unitary",
