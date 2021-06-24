@@ -60,7 +60,7 @@ def _Main(cmd_args: Any):
             circuit = ParametricCircuit(
                 num_qubits=nqubits, layout=layout, connectivity=conn, depth=depth
             )
-            print(circuit.to_qiskit().draw())
+            print(circuit.to_circuit().draw())
 
 
 def _CommandLineArguments() -> Any:

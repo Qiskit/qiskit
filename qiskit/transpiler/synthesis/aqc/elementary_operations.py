@@ -9,23 +9,17 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
-These are a number of elementary functions that are required for
-the aqc routines to work.
+These are a number of elementary functions that are required for the aqc routines to work.
 """
-
-# TODO: add more comments.
 
 import numpy as np
 
 from qiskit.circuit.library import XGate, YGate, ZGate, RXGate, RZGate
 
-# X = [[0, 1], [1, 0]]
+# todo: move all of them to gradient.py?
 X = XGate().to_matrix()
-# Y = [[0, -1j], [1j, 0]]
 Y = YGate().to_matrix()
-# Z = [[1, 0], [0, -1]]
 Z = ZGate().to_matrix()
 
 

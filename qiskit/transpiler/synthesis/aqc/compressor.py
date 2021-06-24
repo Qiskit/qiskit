@@ -179,7 +179,7 @@ class EulerCompressor(CompressorBase):
         # 1. Build a qiskit circuit,
         v_base = ParametricCircuit(num_qubits=n, cnots=lcnots, thetas=thetas)
         # todo: why is tol=-1. ?
-        qc = v_base.to_qiskit(reverse=True, tol=-1.0)
+        qc = v_base.to_circuit(reverse=True, tol=-1.0)
         # Vbase.Plot(qc)
 
         qc2add = QuantumCircuit(n, 1)

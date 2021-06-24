@@ -69,8 +69,8 @@ class TestAqc(QiskitTestCase):
             thetas0=np.array(INITIAL_THETAS),
         )
 
-        err = compare_circuits(optimized_circuit.to_numpy(), np.array(ORIGINAL_CIRCUIT))
-        err2 = 0.5 * (np.linalg.norm(optimized_circuit.to_numpy() - ORIGINAL_CIRCUIT, "fro") ** 2)
+        err = compare_circuits(optimized_circuit.to_matrix(), np.array(ORIGINAL_CIRCUIT))
+        err2 = 0.5 * (np.linalg.norm(optimized_circuit.to_matrix() - ORIGINAL_CIRCUIT, "fro") ** 2)
         print("Relative difference between target and approximated matrices: {:0.6}".format(err))
         print(err2)
         self.assertTrue(err < 1e-3)
@@ -103,7 +103,7 @@ class TestAqc(QiskitTestCase):
 
         # Difference between the target and current circuit at the beginning.
         diff_before = compare_circuits(
-            target_circuit=target_matrix, approx_circuit=circuit0.to_qiskit(tol=self._tol)
+            target_circuit=target_matrix, approx_circuit=circuit0.to_circuit(tol=self._tol)
         )
 
         # Optimize the initial circuit and get a new, optimized one.
@@ -113,7 +113,7 @@ class TestAqc(QiskitTestCase):
 
         # Evaluate difference after optimization.
         diff_after = compare_circuits(
-            target_circuit=target_matrix, approx_circuit=optimized_circuit.to_qiskit(tol=self._tol)
+            target_circuit=target_matrix, approx_circuit=optimized_circuit.to_circuit(tol=self._tol)
         )
 
         # Important when run inside a parallel process:

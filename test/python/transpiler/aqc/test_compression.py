@@ -58,7 +58,7 @@ class TestCompression(QiskitTestCase):
         compressed_circuit = EulerCompressor().compress(circuit)
 
         residual = compare_circuits(
-            target_circuit=circuit.to_numpy(), approx_circuit=compressed_circuit.to_numpy()
+            target_circuit=circuit.to_matrix(), approx_circuit=compressed_circuit.to_matrix()
         )
         self.assertLess(
             residual, float(np.sqrt(np.finfo(np.float64).eps)), "too big relative residual"

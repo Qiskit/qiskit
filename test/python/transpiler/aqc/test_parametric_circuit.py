@@ -47,7 +47,7 @@ class TestParametricCircuit(QiskitTestCase):
         circuit.set_thetas(thetas)
 
         residual = compare_circuits(
-            target_circuit=circuit.to_numpy(), approx_circuit=circuit.to_qiskit(reverse=False)
+            target_circuit=circuit.to_matrix(), approx_circuit=circuit.to_circuit(reverse=False)
         )
         self.assertLess(
             residual, float(np.sqrt(np.finfo(np.float64).eps)), "too big relative residual"

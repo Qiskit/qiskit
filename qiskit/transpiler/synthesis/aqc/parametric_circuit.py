@@ -27,8 +27,10 @@ from .elementary_operations import op_rx, op_ry, op_rz, op_unitary, op_cnot
 from .fast_gradient.fast_gradient import FastGradient
 from .gradient import GradientBase, DefaultGradient
 
-# TODO: remove gradient parameter in constructor!
+# TODO: remove gradient parameter in constructor! <- unclear why (Anton)
 # TODO: describe kwargs "layout", "connectivity", "depth" in constructor.
+#  <- make them explicit parameters
+
 # TODO: make ParametricCircuit more abstract and independent of the CNOT unit that we choose
 # TODO: actually computes V from thetas for the specific cnot structure,
 #  same computation are done in the gradient implementations - badness
@@ -121,7 +123,7 @@ class ParametricCircuit:
         """
         return int(4)
 
-    # todo: two properties: num_angles and num_thetas, keep only one!
+    # todo: two properties: num_angles and num_thetas, keep only one! or num_parameters as in QC
     @property
     def num_angles(self) -> int:
         """
@@ -260,8 +262,7 @@ class ParametricCircuit:
             raise RuntimeError("Gradient backend has not been instantiated")
         return self._gradient.get_gradient(self._thetas, target_matrix)
 
-    # todo: rename to to_matrix
-    def to_numpy(self) -> np.ndarray:
+    def to_matrix(self) -> np.ndarray:
         """
         Circuit builds a matrix representation of this parametric circuit.
 
@@ -269,41 +270,47 @@ class ParametricCircuit:
             2^n x 2^n numpy matrix corresponding to this circuit.
         """
 
-        V = np.eye(2 ** self._num_qubits)
-        for l in range(self._num_cnots):
-            p = 4 * l
+        all_cnot_units = np.eye(2 ** self._num_qubits)
+        for i in range(self._num_cnots):
+            p = 4 * i
             a = op_ry(self._thetas[0 + p])
             b = op_rz(self._thetas[1 + p])
             c = op_ry(self._thetas[2 + p])
             d = op_rx(self._thetas[3 + p])
+
             # Extract where the CNOT goes
-            q1 = int(self._cnots[0, l])
-            q2 = int(self._cnots[1, l])
+            q1 = int(self._cnots[0, i])
+            q2 = int(self._cnots[1, i])
             u1 = np.dot(b, a)
             u2 = np.dot(d, c)
-            U1 = op_unitary(u1, self._num_qubits, q1)
-            U2 = op_unitary(u2, self._num_qubits, q2)
-            CNOT1 = op_cnot(self._num_qubits, q1, q2)
-            # Build the CNOT unit, our basic structure
-            C = la.multi_dot([U2, U1, CNOT1])
-            # Concatenate the CNOT unit
-            V = np.dot(C, V)
 
-        # Add the first rotation gates: ZYZ
-        V1 = 1
-        for k in range(self._num_qubits):
+            # these matrices span all qubits
+            global_unitary1 = op_unitary(u1, self._num_qubits, q1)
+            global_unitary2 = op_unitary(u2, self._num_qubits, q2)
+            global_cnot = op_cnot(self._num_qubits, q1, q2)   # todo: verify the size of cnot1
+
+            # Build the CNOT unit, our basic structure
+            cnot_unit = la.multi_dot([global_unitary2, global_unitary1, global_cnot])
+
+            # Concatenate the CNOT unit
+            all_cnot_units = np.dot(cnot_unit, all_cnot_units)
+
+        # Add the first rotation gates: ZYZ. Single qubit operations.
+        single_rotations = 1    # todo: why 1 ?
+        for qubit in range(self._num_qubits):
             # compute an index where angles for the first 3 rotations of the qubit k start in
             # the thetas array.
-            p = 4 * self._num_cnots + 3 * k
+            p = 4 * self._num_cnots + 3 * qubit
             a = op_rz(self._thetas[0 + p])
             b = op_ry(self._thetas[1 + p])
             c = op_rz(self._thetas[2 + p])
-            V1 = np.kron(V1, la.multi_dot([a, b, c]))
-        V = np.dot(V, V1)
-        return V
+            single_rotations = np.kron(single_rotations, la.multi_dot([a, b, c]))
 
-    # todo: rename to to_circuit
-    def to_qiskit(self, tol: float = 0.0, reverse: bool = False) -> QuantumCircuit:
+        # combine all together
+        matrix = np.dot(all_cnot_units, single_rotations)
+        return matrix
+
+    def to_circuit(self, tol: float = 0.0, reverse: bool = False) -> QuantumCircuit:
         """
         Makes a Qiskit quantum circuit from this parametric one.
         N O T E, reverse=False is a bit misleading default value. By setting it
@@ -316,19 +323,19 @@ class ParametricCircuit:
             tol: angle parameter less or equal this (small) value is considered
                  equal zero and corresponding gate is not inserted into the
                  output circuit (because it becomes identity one in this case).
-            reverse: recommended False value.
+            reverse: recommended False value.   todo: make it always False
 
         Returns:
             A quantum circuit converted from this parametric circuit.
         """
+        # todo: do we need this variables?
         n = self._num_qubits
-        L = self._num_cnots
         thetas = self._thetas
         cnots = self._cnots
         qc = QuantumCircuit(n, 1)
 
         for k in range(n):
-            p = 4 * L + 3 * k
+            p = 4 * self._num_cnots + 3 * k
             # TODO: revise the code
             # if reverse:
             #     k = k   # pylint: disable=self-assigning-variable
@@ -341,7 +348,7 @@ class ParametricCircuit:
             if np.abs(thetas[0 + p]) > tol:
                 qc.rz(thetas[0 + p], k)
 
-        for c in range(L):
+        for c in range(self._num_cnots):
             p = 4 * c
             # Extract where the CNOT goes
             q1 = int(cnots[0, c]) - 1  # 1-based index
