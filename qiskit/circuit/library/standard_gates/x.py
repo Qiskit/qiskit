@@ -179,13 +179,7 @@ class CXGate(ControlledGate):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CX gate."""
         super().__init__(
-            "cx",
-            2,
-            [],
-            num_ctrl_qubits=1,
-            label=label,
-            ctrl_state=ctrl_state,
-            base_gate=XGate(),
+            "cx", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=XGate()
         )
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -769,13 +763,7 @@ class C4XGate(ControlledGate):
     def __init__(self, label=None, ctrl_state=None):
         """Create a new 4-qubit controlled X gate."""
         super().__init__(
-            "c4x",
-            5,
-            [],
-            num_ctrl_qubits=4,
-            label=label,
-            ctrl_state=ctrl_state,
-            base_gate=XGate(),
+            "c4x", 5, [], num_ctrl_qubits=4, label=label, ctrl_state=ctrl_state, base_gate=XGate()
         )
 
     # seems like open controls not hapening?
@@ -952,9 +940,7 @@ class MCXGate(ControlledGate):
         if ctrl_state is None:
             # use __class__ so this works for derived classes
             gate = self.__class__(
-                self.num_ctrl_qubits + num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
+                self.num_ctrl_qubits + num_ctrl_qubits, label=label, ctrl_state=ctrl_state
             )
             gate.base_gate.label = self.label
             return gate
