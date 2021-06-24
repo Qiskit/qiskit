@@ -25,7 +25,6 @@ Exact and practical pattern matching for quantum circuit optimization.
 """
 
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.dagcircuit import DAGOpNode
 
 
 class ForwardMatch:

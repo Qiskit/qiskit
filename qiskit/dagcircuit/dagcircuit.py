@@ -1094,7 +1094,7 @@ class DAGCircuit:
 
             # Add edges from predecessor nodes to new node
             # and update predecessor nodes that change
-            all_cbits = self._bits_in_condition(node.op.condition)
+            all_cbits = self._bits_in_condition(condition)
             all_cbits.extend(m_cargs)
             al = [m_qargs, all_cbits]
             for q in itertools.chain(*al):

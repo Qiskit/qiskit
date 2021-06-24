@@ -32,7 +32,6 @@ except ImportError:
     HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate, Gate, Instruction
-from qiskit.dagcircuit import DAGOpNode
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay

@@ -27,7 +27,6 @@ Exact and practical pattern matching for quantum circuit optimization.
 import heapq
 
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.dagcircuit import DAGOpNode
 
 
 class Match:
