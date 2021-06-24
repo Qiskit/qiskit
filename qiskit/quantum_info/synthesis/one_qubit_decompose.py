@@ -282,14 +282,29 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _circuit_kak(
-        theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, k_gate=RZGate, a_gate=RYGate
+        theta,
+        phi,
+        lam,
+        phase,
+        simplify=True,
+        atol=DEFAULT_ATOL,
+        allow_non_canonical=True,
+        k_gate=RZGate,
+        a_gate=RYGate,
     ):
         """
-        Installs the angles phi, theta, and lam into a KAK-type decomposition of
-        the form K(phi) . A(theta) . K(lam) , where K and A are an orthogonal
-        pair drawn from RZGate, RYGate, and RXGate.
+        Installs the angles phi, theta, and lam into a KAK-type decomposition of the form
+        K(phi) . A(theta) . K(lam) , where K and A are an orthogonal pair drawn from RZGate, RYGate,
+        and RXGate.
 
-        NOTE: `theta` is expected to lie in [0, pi).
+        Behavior flags:
+            `simplify` indicates whether gates should be elided / coalesced where possible.
+            `allow_non_canonical` indicates whether we are permitted to reverse the sign of the
+                middle parameter, theta, in the output.  When this and `simplify` are both enabled,
+                we take the opportunity to commute half-rotations in the outer gates past the middle
+                gate, which permits us to coalesce them at the cost of reversing the sign of theta.
+
+        NOTE: The input value of `theta` is expected to lie in [0, pi).
         """
         gphase = phase - (phi + lam) / 2
         qr = QuantumRegister(1, "qr")
@@ -307,7 +322,9 @@ class OneQubitEulerDecomposer:
         if abs(theta - np.pi) < atol:
             gphase += phi
             lam, phi = lam - phi, 0
-        if abs(_mod_2pi(lam + np.pi)) < atol or abs(_mod_2pi(phi + np.pi)) < atol:
+        if allow_non_canonical and (
+            abs(_mod_2pi(lam + np.pi)) < atol or abs(_mod_2pi(phi + np.pi)) < atol
+        ):
             lam, theta, phi = lam + np.pi, -theta, phi + np.pi
         if abs(_mod_2pi(lam)) > atol:
             gphase += lam / 2
@@ -320,19 +337,49 @@ class OneQubitEulerDecomposer:
         circuit.global_phase = gphase
         return circuit
 
-    def _circuit_zyz(self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL):
+    def _circuit_zyz(
+        self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, allow_non_canonical=True
+    ):
         return self._circuit_kak(
-            theta, phi, lam, phase, simplify=simplify, atol=atol, k_gate=RZGate, a_gate=RYGate
+            theta,
+            phi,
+            lam,
+            phase,
+            simplify=simplify,
+            atol=atol,
+            allow_non_canonical=allow_non_canonical,
+            k_gate=RZGate,
+            a_gate=RYGate,
         )
 
-    def _circuit_zxz(self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL):
+    def _circuit_zxz(
+        self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, allow_non_canonical=True
+    ):
         return self._circuit_kak(
-            theta, phi, lam, phase, simplify=simplify, atol=atol, k_gate=RZGate, a_gate=RXGate
+            theta,
+            phi,
+            lam,
+            phase,
+            simplify=simplify,
+            atol=atol,
+            allow_non_canonical=allow_non_canonical,
+            k_gate=RZGate,
+            a_gate=RXGate,
         )
 
-    def _circuit_xyx(self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL):
+    def _circuit_xyx(
+        self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, allow_non_canonical=True
+    ):
         return self._circuit_kak(
-            theta, phi, lam, phase, simplify=simplify, atol=atol, k_gate=RXGate, a_gate=RYGate
+            theta,
+            phi,
+            lam,
+            phase,
+            simplify=simplify,
+            atol=atol,
+            allow_non_canonical=allow_non_canonical,
+            k_gate=RXGate,
+            a_gate=RYGate,
         )
 
     @staticmethod
@@ -378,8 +425,7 @@ class OneQubitEulerDecomposer:
         """
         Generic X90, phase decomposition
 
-        NOTE: `pfun`, `xfun`, and `xpifun` are responsible for eliding gates
-              where appropriate (e.g., at angle value 0).
+        NOTE: `pfun` is responsible for eliding gates where appropriate (e.g., at angle value 0).
         """
         qr = QuantumRegister(1, "qr")
         circuit = QuantumCircuit(qr, global_phase=phase)
