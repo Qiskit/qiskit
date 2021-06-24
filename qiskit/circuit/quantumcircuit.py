@@ -23,11 +23,11 @@ import multiprocessing as mp
 from collections import OrderedDict, defaultdict
 from typing import Union
 import numpy as np
+import qiskit
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
@@ -1448,7 +1448,7 @@ class QuantumCircuit:
                     Gate,
                     Instruction,
                 ]
-                or (isinstance(instruction, ControlledGate) and instruction._open_ctrl)
+                or (isinstance(instruction, qiskit.circuit.controlledgate.ControlledGate) and instruction._open_ctrl)
             ):
                 if instruction not in existing_composite_circuits:
                     if instruction.name in existing_gate_names:
