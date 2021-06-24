@@ -189,7 +189,7 @@ class Gaussian(ParametricPulse):
             self.duration,
             self.amp,
             self.sigma,
-            ", name='{}'".format(self.name) if self.name is not None else "",
+            f", name='{self.name}'" if self.name is not None else "",
         )
 
 
@@ -337,7 +337,7 @@ class GaussianSquare(ParametricPulse):
             self.amp,
             self.sigma,
             self.width,
-            ", name='{}'".format(self.name) if self.name is not None else "",
+            f", name='{self.name}'" if self.name is not None else "",
         )
 
 
@@ -446,9 +446,8 @@ class Drag(ParametricPulse):
             argmax_x = self.duration / 2 - (self.sigma / self.beta) * math.sqrt(
                 self.beta ** 2 - self.sigma ** 2
             )
-            if argmax_x < 0:
-                # If the max point is out of range, either end of the pulse will do
-                argmax_x = 0
+            # If the max point is out of range, either end of the pulse will do
+            argmax_x = max(argmax_x, 0)
 
             # 2. Find the value at that maximum
             max_val = continuous.drag(
@@ -472,7 +471,7 @@ class Drag(ParametricPulse):
             self.amp,
             self.sigma,
             self.beta,
-            ", name='{}'".format(self.name) if self.name is not None else "",
+            f", name='{self.name}'" if self.name is not None else "",
         )
 
 
@@ -529,7 +528,7 @@ class Constant(ParametricPulse):
             self.__class__.__name__,
             self.duration,
             self.amp,
-            ", name='{}'".format(self.name) if self.name is not None else "",
+            f", name='{self.name}'" if self.name is not None else "",
         )
 
 

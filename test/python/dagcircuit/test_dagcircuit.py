@@ -63,7 +63,7 @@ def raise_if_dagcircuit_invalid(dag):
         elif node.type == "op":
             continue
         else:
-            raise DAGCircuitError("Found node of unexpected type: {}".format(node.type))
+            raise DAGCircuitError(f"Found node of unexpected type: {node.type}")
 
     # Shape of node.op should match shape of node.
     for node in dag.op_nodes():
@@ -120,7 +120,7 @@ def raise_if_dagcircuit_invalid(dag):
 
         all_bits = node_qubits | node_clbits | node_cond_bits
 
-        assert in_wires == all_bits, "In-edge wires {} != node bits {}".format(in_wires, all_bits)
+        assert in_wires == all_bits, f"In-edge wires {in_wires} != node bits {all_bits}"
         assert out_wires == all_bits, "Out-edge wires {} != node bits {}".format(
             out_wires, all_bits
         )

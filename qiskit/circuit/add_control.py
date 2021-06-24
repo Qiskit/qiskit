@@ -96,7 +96,7 @@ def control(
     q_control = QuantumRegister(num_ctrl_qubits, name="control")
     q_target = QuantumRegister(operation.num_qubits, name="target")
     q_ancillae = None  # TODO: add
-    controlled_circ = QuantumCircuit(q_control, q_target, name="c_{}".format(operation.name))
+    controlled_circ = QuantumCircuit(q_control, q_target, name=f"c_{operation.name}")
     if isinstance(operation, controlledgate.ControlledGate):
         original_ctrl_state = operation.ctrl_state
     global_phase = 0
@@ -205,9 +205,7 @@ def control(
                 controlled_circ.mcx(q_control, q_target[bit_indices[qargs[0]]], q_ancillae)
                 controlled_circ.h(q_target[bit_indices[qargs[0]]])
             else:
-                raise CircuitError(
-                    "gate contains non-controllable instructions: {}".format(gate.name)
-                )
+                raise CircuitError(f"gate contains non-controllable instructions: {gate.name}")
             if gate.definition is not None and gate.definition.global_phase:
                 global_phase += gate.definition.global_phase
     # apply controlled global phase
@@ -232,10 +230,10 @@ def control(
     # is named like "cc<base_gate.name>", else it is named like
     # "c<num_ctrl_qubits><base_name>".
     if new_num_ctrl_qubits > 2:
-        ctrl_substr = "c{:d}".format(new_num_ctrl_qubits)
+        ctrl_substr = f"c{new_num_ctrl_qubits:d}"
     else:
         ctrl_substr = ("{0}" * new_num_ctrl_qubits).format("c")
-    new_name = "{}{}".format(ctrl_substr, base_name)
+    new_name = f"{ctrl_substr}{base_name}"
     cgate = controlledgate.ControlledGate(
         new_name,
         controlled_circ.num_qubits,

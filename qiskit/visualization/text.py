@@ -263,8 +263,8 @@ class BoxOnQuWireTop(MultiBox, BoxOnQuWire):
         self.left_fill = len(self.wire_label)
         self.top_format = "┌─" + "s".center(self.left_fill + 1, "─") + "─┐"
         self.top_format = self.top_format.replace("s", "%s")
-        self.mid_format = "┤{} %s ├".format(self.wire_label)
-        self.bot_format = "│{} %s │".format(self.bot_pad * self.left_fill)
+        self.mid_format = f"┤{self.wire_label} %s ├"
+        self.bot_format = f"│{self.bot_pad * self.left_fill} %s │"
         self.top_connect = top_connect if top_connect else "─"
 
 
@@ -276,8 +276,8 @@ class BoxOnWireMid(MultiBox):
         self.top_pad = self.bot_pad = self.top_connect = self.bot_connect = " "
         self.wire_label = wire_label
         self.left_fill = len(self.wire_label)
-        self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
-        self.bot_format = "│{} %s │".format(self.bot_pad * self.left_fill)
+        self.top_format = f"│{self.top_pad * self.left_fill} %s │"
+        self.bot_format = f"│{self.bot_pad * self.left_fill} %s │"
         self.top_connect = self.bot_connect = self.mid_content = ""
         self.center_label(input_length, order)
 
@@ -288,9 +288,9 @@ class BoxOnQuWireMid(BoxOnWireMid, BoxOnQuWire):
     def __init__(self, label, input_length, order, wire_label="", control_label=None):
         super().__init__(label, input_length, order, wire_label=wire_label)
         if control_label:
-            self.mid_format = "{}{} %s ├".format(control_label, self.wire_label)
+            self.mid_format = f"{control_label}{self.wire_label} %s ├"
         else:
-            self.mid_format = "┤{} %s ├".format(self.wire_label)
+            self.mid_format = f"┤{self.wire_label} %s ├"
 
 
 class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
@@ -301,8 +301,8 @@ class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
         self.wire_label = wire_label
         self.top_pad = " "
         self.left_fill = len(self.wire_label)
-        self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
-        self.mid_format = "┤{} %s ├".format(self.wire_label)
+        self.top_format = f"│{self.top_pad * self.left_fill} %s │"
+        self.mid_format = f"┤{self.wire_label} %s ├"
         self.bot_format = "└─" + "s".center(self.left_fill + 1, "─") + "─┘"
         self.bot_format = self.bot_format.replace("s", "%s")
         bot_connect = bot_connect if bot_connect else "─"
@@ -330,7 +330,7 @@ class BoxOnClWireMid(BoxOnWireMid, BoxOnClWire):
 
     def __init__(self, label, input_length, order, wire_label="", **_):
         super().__init__(label, input_length, order, wire_label=wire_label)
-        self.mid_format = "╡{} %s ╞".format(self.wire_label)
+        self.mid_format = f"╡{self.wire_label} %s ╞"
 
 
 class BoxOnClWireBot(MultiBox, BoxOnClWire):
@@ -342,8 +342,8 @@ class BoxOnClWireBot(MultiBox, BoxOnClWire):
         self.left_fill = len(self.wire_label)
         self.top_pad = " "
         self.bot_pad = "─"
-        self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
-        self.mid_format = "╡{} %s ╞".format(self.wire_label)
+        self.top_format = f"│{self.top_pad * self.left_fill} %s │"
+        self.mid_format = f"╡{self.wire_label} %s ╞"
         self.bot_format = "└─" + "s".center(self.left_fill + 1, "─") + "─┘"
         self.bot_format = self.bot_format.replace("s", "%s")
         bot_connect = bot_connect if bot_connect else "─"
@@ -520,7 +520,7 @@ class InputWire(DrawElement):
         Returns:
             list: The new layer
         """
-        longest = max([len(name) for name in names])
+        longest = max(len(name) for name in names)
         inputs_wires = []
         for name in names:
             inputs_wires.append(InputWire(name.rjust(longest)))
@@ -892,7 +892,7 @@ class TextDrawing:
 
         if params:
             if isinstance(instruction.op, DelayInstruction) and instruction.op.unit:
-                label += "(%s[%s])" % (params[0], instruction.op.unit)
+                label += f"({params[0]}[{instruction.op.unit}])"
             else:
                 label += "(%s)" % ",".join(params)
         return label
@@ -961,7 +961,7 @@ class TextDrawing:
             layer (list): A list of elements.
         """
         instructions = list(filter(lambda x: x is not None, layer))
-        longest = max([instruction.length for instruction in instructions])
+        longest = max(instruction.length for instruction in instructions)
         for instruction in instructions:
             instruction.layer_width = longest
 
@@ -985,13 +985,13 @@ class TextDrawing:
         num_ctrl_qubits = instruction.op.num_ctrl_qubits
         ctrl_qubits = instruction.qargs[:num_ctrl_qubits]
         args_qubits = instruction.qargs[num_ctrl_qubits:]
-        ctrl_state = "{:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, "0")[::-1]
+        ctrl_state = f"{instruction.op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
 
         in_box = list()
         top_box = list()
         bot_box = list()
 
-        qubit_index = sorted([i for i, x in enumerate(layer.qubits) if x in args_qubits])
+        qubit_index = sorted(i for i, x in enumerate(layer.qubits) if x in args_qubits)
 
         for ctrl_qubit in zip(ctrl_qubits, ctrl_state):
             if min(qubit_index) > layer.qubits.index(ctrl_qubit[0]):
@@ -1009,7 +1009,7 @@ class TextDrawing:
         gates = []
         num_ctrl_qubits = instruction.op.num_ctrl_qubits
         ctrl_qubits = instruction.qargs[:num_ctrl_qubits]
-        cstate = "{:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, "0")[::-1]
+        cstate = f"{instruction.op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
         for i in range(len(ctrl_qubits)):
             if cstate[i] == "1":
                 gates.append(Bullet(conditional=conditional, label=ctrl_label, bottom=bottom))
@@ -1116,7 +1116,7 @@ class TextDrawing:
                 gates.append(Bullet(conditional=conditional))
             elif base_gate.name in ["u1", "p"]:
                 # cu1
-                connection_label = "%s(%s)" % (
+                connection_label = "{}({})".format(
                     base_gate.name.upper(),
                     TextDrawing.params_for_label(instruction)[0],
                 )
@@ -1276,8 +1276,8 @@ class Layer:
         controlled_edge=None,
     ):
         if qubits is not None and clbits is not None:
-            cbit_index = sorted([i for i, x in enumerate(self.clbits) if x in clbits])
-            qbit_index = sorted([i for i, x in enumerate(self.qubits) if x in qubits])
+            cbit_index = sorted(i for i, x in enumerate(self.clbits) if x in clbits)
+            qbit_index = sorted(i for i, x in enumerate(self.qubits) if x in qubits)
 
             # Further below, indices are used as wire labels. Here, get the length of
             # the longest label, and pad all labels with spaces to this length.
@@ -1326,7 +1326,7 @@ class Layer:
             return cbit_index
         if qubits is None and clbits is not None:
             bits = list(clbits)
-            bit_index = sorted([i for i, x in enumerate(self.clbits) if x in bits])
+            bit_index = sorted(i for i, x in enumerate(self.clbits) if x in bits)
             wire_label_len = len(str(len(bits) - 1))
             bits.sort(key=self.clbits.index)
             qargs = [""] * len(bits)
@@ -1337,7 +1337,7 @@ class Layer:
             OnWireBot = BoxOnClWireBot
         elif clbits is None and qubits is not None:
             bits = list(qubits)
-            bit_index = sorted([i for i, x in enumerate(self.qubits) if x in bits])
+            bit_index = sorted(i for i, x in enumerate(self.qubits) if x in bits)
             wire_label_len = len(str(len(bits) - 1))
             qargs = [
                 str(bits.index(qbit)).ljust(wire_label_len, " ")

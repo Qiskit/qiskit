@@ -37,7 +37,7 @@ def pauli_mat(label):
         elif i == "Z":
             mat = np.kron(mat, np.array([[1, 0], [0, -1]], dtype=complex))
         else:
-            raise QiskitError("Invalid Pauli string {}".format(i))
+            raise QiskitError(f"Invalid Pauli string {i}")
     return mat
 
 
