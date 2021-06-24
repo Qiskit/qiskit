@@ -20,6 +20,7 @@ from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BIPMapping
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes.routing.algorithms.bip_model import HAS_CPLEX, HAS_DOCPLEX
@@ -236,9 +237,5 @@ class TestBIPMapping(QiskitTestCase):
         circuit.cx(1, 2)
 
         coupling = CouplingMap.from_line(5)
-        property_set = {}
-        actual = BIPMapping(coupling, objective="depth")(circuit, property_set)
-        self.assertEqual(3, actual.depth())
-
-        CheckMap(coupling)(actual, property_set)
-        self.assertTrue(property_set["is_swap_mapped"])
+        with self.assertRaises(TranspilerError):
+            BIPMapping(coupling)(circuit)

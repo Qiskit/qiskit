@@ -16,24 +16,18 @@
 import copy
 import logging
 import math
-import warnings
 
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
-from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
-from qiskit.transpiler.passes.layout.trivial_layout import TrivialLayout
 from qiskit.transpiler.passes.routing.algorithms.bip_model import (
     BIPMappingModel,
     HAS_CPLEX,
     HAS_DOCPLEX,
 )
-from qiskit.transpiler.passmanager import PassManager
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +102,8 @@ class BIPMapping(TransformationPass):
         self.max_swaps_inbetween_layers = max_swaps_inbetween_layers
 
     def run(self, dag):
-        """Run the BIPMapping pass on `dag`.
+        """Run the BIPMapping pass on `dag`, assuming the number of virtual qubits (defined in
+        `dag`) and the number of physical qubits (defined in `coupling_map`) are the same.
 
         Args:
             dag (DAGCircuit): DAG to map.
@@ -125,24 +120,21 @@ class BIPMapping(TransformationPass):
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError("More virtual qubits exist than physical qubits.")
 
+        if len(dag.qubits) != self.coupling_map.size():
+            raise TranspilerError(
+                "BIPMapping pass requires the number of virtual and physical qubits are the same."
+                "Please call TrivialLayout, FullAncillaAllocation and EnlargeWithAncilla passes"
+                "in this order before running the BIPMapping pass."
+            )
+
         if self.property_set["layout"]:
-            logger.info("BIPMapping ignores given initial layout.")
+            logger.info("BIPMapping ignores any given layout.")
+
+        original_dag = dag
 
         dummy_steps = math.ceil(math.sqrt(dag.num_qubits()))
         if self.max_swaps_inbetween_layers is not None:
             dummy_steps = max(0, self.max_swaps_inbetween_layers - 1)
-
-        original_dag = dag
-        # BIPMappingModel assumes num_virtual_qubits == num_physical_qubits
-        # TODO: rewrite without dag<->circuit conversion (or remove the above assumption)
-        pm = PassManager(
-            [
-                TrivialLayout(self.coupling_map),
-                FullAncillaAllocation(self.coupling_map),
-                EnlargeWithAncilla(),
-            ]
-        )
-        dag = circuit_to_dag(pm.run(dag_to_circuit(dag)))
 
         model = BIPMappingModel(
             dag=dag, coupling_map=self.coupling_map, dummy_timesteps=dummy_steps
@@ -157,7 +149,7 @@ class BIPMapping(TransformationPass):
         try:
             model.solve_cpx_problem(time_limit=self.time_limit, threads=self.threads)
         except TranspilerError as err:
-            logger.warning("%s dag is not mapped in BIPMapping.", err.message)
+            logger.warning("%s dag was not mapped in BIPMapping.", err.message)
             return original_dag
 
         # Get the optimized initial layout
@@ -183,16 +175,8 @@ class BIPMapping(TransformationPass):
                             qargs=[canonical_register[i], canonical_register[j]],
                         )
                         # update layout, swapping physical qubits (i, j)
-                        # we cannot use Layout.swap() due to #virtuals < #physicals
-                        v_org_i, v_org_j = None, None
-                        if i in layout.get_physical_bits():
-                            v_org_i = layout[i]
-                        if j in layout.get_physical_bits():
-                            v_org_j = layout[j]
-                        if v_org_i is not None:
-                            layout[v_org_i] = j
-                        if v_org_j is not None:
-                            layout[v_org_j] = i
+                        layout.swap(i, j)
+
             # map gates in k-th layer
             for node in layer["graph"].nodes():
                 if node.type == "op":
@@ -202,9 +186,6 @@ class BIPMapping(TransformationPass):
                         cargs=node.cargs,
                     )
                 # TODO: double check with y values?
-
-        if self.property_set["layout"] and self.property_set["layout"] != optimized_layout:
-            warnings.warn("BIPMapping changed the given initial layout", UserWarning)
 
         # Check final layout
         final_layout = model.get_layout(model.depth - 1)
