@@ -191,17 +191,17 @@ class FISTAOptimizer(OptimizerBase):
             an array of angles after the operator is applied.
         """
         num_thetas = len(sub_thetas)
-        n = int(np.ceil(num_thetas / group_size))
+        num_groups = int(np.ceil(num_thetas / group_size))
         y = np.zeros(num_thetas)
-        for i in range(n - 1):
+        for i in range(num_groups - 1):
             group = sub_thetas[group_size * i : group_size * (i + 1)]
             norm = la.norm(group)
             if norm > threshold:
                 y[group_size * i : group_size * (i + 1)] = (1 - threshold / norm) * group
-        group = sub_thetas[group_size * (n - 1) : num_thetas]
+        group = sub_thetas[group_size * (num_groups - 1) : num_thetas]
         norm = la.norm(group)
         if norm > threshold:
-            y[group_size * (n - 1) : num_thetas] = (1 - threshold / norm) * group
+            y[group_size * (num_groups - 1) : num_thetas] = (1 - threshold / norm) * group
         return y
 
     def optimize(

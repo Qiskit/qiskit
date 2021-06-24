@@ -89,7 +89,7 @@ class ParametricCircuit:
         assert cnots.dtype == np.int64 or cnots.dtype == int
 
         self._num_qubits = num_qubits
-        self._cnots = cnots.copy()
+        self._cnots = cnots.copy()  # todo: why copy, do we modify it?
         self._num_cnots = cnots.shape[1]
         self._thetas = np.full(self.num_thetas, fill_value=0, dtype=np.float64)
         self._gradient = gradient
@@ -121,6 +121,7 @@ class ParametricCircuit:
         """
         return int(4)
 
+    # todo: two properties: num_angles and num_thetas, keep only one!
     @property
     def num_angles(self) -> int:
         """
@@ -167,10 +168,11 @@ class ParametricCircuit:
         assert isinstance(thetas, np.ndarray) and thetas.dtype == np.float64
         if thetas.size != self.num_thetas:
             raise ValueError("wrong size of array of theta parameters")
-        np.copyto(self._thetas, thetas.ravel())
+        np.copyto(self._thetas, thetas.ravel())  # todo: do we need copy and ravel?
 
     def set_nonzero_thetas(self, thetas: np.ndarray, nonzero_mask: np.ndarray):
         """
+        TODO: unclear the goal of this methods. why it is here???
         Updates those theta parameters that can take arbitrary values.
 
         Args:

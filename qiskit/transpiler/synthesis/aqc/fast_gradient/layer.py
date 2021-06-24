@@ -76,7 +76,7 @@ class Layer1Q(LayerBase):
         self._tmp_g = np.full_like(self._g, fill_value=0)
         if isinstance(g2x2, np.ndarray):
             assert g2x2.shape == (2, 2)
-            np.copyto(self._g, g2x2)
+            np.copyto(self._g, g2x2)    # todo: why copy?
 
         bit_flip = True
         N = 2 ** nbits
@@ -89,7 +89,7 @@ class Layer1Q(LayerBase):
     def set_from_matrix(self, g2x2: np.ndarray):
         """Update this layer from an external 2x2 gate matrix."""
         assert isinstance(g2x2, np.ndarray) and g2x2.shape == (2, 2)
-        np.copyto(self._g, g2x2)
+        np.copyto(self._g, g2x2)    # todo: why copy?
 
     def get_attr(self) -> (np.ndarray, np.ndarray, np.ndarray):
         """Returns gate matrix, direct and inverse permutations."""

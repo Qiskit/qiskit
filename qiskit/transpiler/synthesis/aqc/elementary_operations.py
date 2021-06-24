@@ -18,9 +18,8 @@ the aqc routines to work.
 # TODO: add more comments.
 
 import numpy as np
-from numpy import linalg as la
-from qiskit.circuit.library import XGate, YGate, ZGate
 
+from qiskit.circuit.library import XGate, YGate, ZGate, RXGate, RZGate
 
 # X = [[0, 1], [1, 0]]
 X = XGate().to_matrix()
@@ -30,33 +29,35 @@ Y = YGate().to_matrix()
 Z = ZGate().to_matrix()
 
 
-def op_unitary(u, n, j) -> np.ndarray:
+def op_unitary(unitary: np.ndarray, n: int, j: int) -> np.ndarray:
     """
     I(j - 1) tensor product U tensor product I(n - j).
+
     Args:
-        u: 2x2, single qubit unitary or bigger?
+        unitary: 2x2, single qubit unitary or bigger?
         n: num qubits
         j: position where to place a unitary
 
     Returns:
-        unitary of n qubits with u in position j.
+        a unitary of n qubits with u in position j.
     """
-    return np.kron(np.kron(np.eye(2 ** (j - 1)), u), np.eye(2 ** (n - j)))
+    return np.kron(np.kron(np.eye(2 ** (j - 1)), unitary), np.eye(2 ** (n - j)))
 
 
-def op_cnot(n, j, k) -> np.ndarray:
+def op_cnot(n: int, j: int, k: int) -> np.ndarray:
     """
-    place a CNOT from j to k (what is target, what is control?), todo: e.g. j = 1, k = 5
+    Places a CNOT from j to k (what is target, what is control?), todo: e.g. j = 1, k = 5
+
     Args:
         n: num qubits
-        j:
-        k:
+        j: todo: target/control location of CNOT
+        k: todo: target/control location of CNOT
 
     Returns:
-
+        a unitary of n qubits with CNOT placed at ``j`` and ``k``.
     """
     if j < k:
-        V = np.kron(
+        unitary = np.kron(
             np.kron(np.eye(2 ** (j - 1)), [[1, 0], [0, 0]]), np.eye(2 ** (n - j))
         ) + np.kron(
             np.kron(
@@ -66,7 +67,7 @@ def op_cnot(n, j, k) -> np.ndarray:
             np.eye(2 ** (n - k)),
         )
     else:
-        V = np.kron(
+        unitary = np.kron(
             np.kron(np.eye(2 ** (j - 1)), [[1, 0], [0, 0]]), np.eye(2 ** (n - j))
         ) + np.kron(
             np.kron(
@@ -75,10 +76,10 @@ def op_cnot(n, j, k) -> np.ndarray:
             ),
             np.eye(2 ** (n - j)),
         )
-    return V
+    return unitary
 
 
-# TODO: replace with Qiskit
+# TODO: do we need a dedicated function?
 def op_rx(phi) -> np.ndarray:
     """
 
@@ -86,12 +87,12 @@ def op_rx(phi) -> np.ndarray:
         phi:
 
     Returns:
-
+        an RX rotation matrix
     """
-    u = np.array(
-        [[np.cos(phi / 2), -1j * np.sin(phi / 2)], [-1j * np.sin(phi / 2), np.cos(phi / 2)]]
-    )
-    return u
+    return RXGate(phi).to_matrix()
+    # return np.array(
+    #     [[np.cos(phi / 2), -1j * np.sin(phi / 2)], [-1j * np.sin(phi / 2), np.cos(phi / 2)]]
+    # )
 
 
 # TODO: replace with Qiskit
@@ -102,13 +103,11 @@ def op_ry(phi) -> np.ndarray:
         phi:
 
     Returns:
-
+        an RY rotation matrix
     """
-    u = np.array([[np.cos(phi / 2), -np.sin(phi / 2)], [np.sin(phi / 2), np.cos(phi / 2)]])
-    return u
+    return np.array([[np.cos(phi / 2), -np.sin(phi / 2)], [np.sin(phi / 2), np.cos(phi / 2)]])
 
 
-# TODO: replace with Qiskit
 def op_rz(phi) -> np.ndarray:
     """
 
@@ -116,58 +115,61 @@ def op_rz(phi) -> np.ndarray:
         phi:
 
     Returns:
-
+        an RZ rotation matrix
     """
-    u = np.array([[np.exp(-1j * phi / 2), 0], [0, np.exp(1j * phi / 2)]])
-    return u
+    return RZGate(phi).to_matrix()
+    # return np.array([[np.exp(-1j * phi / 2), 0], [0, np.exp(1j * phi / 2)]])
 
 
 # TODO: replace with the Qiskit's implementation
-def mcx_gate_matrix(num_qubits: int, make_su: bool = True) -> np.ndarray:
-    """
-    Generates a multi-control CX gate as a Numpy matrix.
-    Equivalent to:
-        qc = QuantumCircuit(nqubits)
-        qc.mcx([0, ..., nqubits-2], nqubits-1)
-        qiskit_matrix = Operator(qc.reverse_bits()).data
-
-    N O T E, the above Qiskit code outputs generic unitary operator, whereas
-    we optimize for SU one. In order to obtain SU matrix, the "qiskit_matrix"
-    should be scaled accordingly, similar to what is done in the code below.
-
-    Args:
-        num_qubits: total number of qubits, should be within [2 .. 16] interval.
-        make_su: generate SU matrix, if True, otherwise a generic unitary one.
-
-    Returns:
-        MCX gate matrix.
-    """
-    assert isinstance(num_qubits, (int, np.int64)) and 2 <= num_qubits <= 16
-    assert isinstance(make_su, bool)
-    d = int(2 ** num_qubits)
-    U = np.eye(d, dtype=np.cfloat)
-    U[d - 2 : d, d - 2 : d] = [[0, 1], [1, 0]]
-    if make_su:  # make SU matrix from the generic unitary one
-        U /= (np.linalg.det(U) + 0j) ** (1 / d)
-    return U
-
-
-# TODO: replace with Qiskit
-def toffoli_gate(n) -> np.ndarray:
-    # Generate a Toffoli gate
-    d = int(2 ** n)
-    U = np.eye(d)
-    U[d - 2 : d, d - 2 : d] = [[0, 1], [1, 0]]
-    U = U / ((la.det(U) + 0j) ** (1 / d))
-    return U
+# TODO: is not used
+# def mcx_gate_matrix(num_qubits: int, make_su: bool = True) -> np.ndarray:
+#     """
+#     Generates a multi-control CX gate as a Numpy matrix.
+#     Equivalent to:
+#         qc = QuantumCircuit(nqubits)
+#         qc.mcx([0, ..., nqubits-2], nqubits-1)
+#         qiskit_matrix = Operator(qc.reverse_bits()).data
+#
+#     N O T E, the above Qiskit code outputs generic unitary operator, whereas
+#     we optimize for SU one. In order to obtain SU matrix, the "qiskit_matrix"
+#     should be scaled accordingly, similar to what is done in the code below.
+#
+#     Args:
+#         num_qubits: total number of qubits, should be within [2 .. 16] interval.
+#         make_su: generate SU matrix, if True, otherwise a generic unitary one.
+#
+#     Returns:
+#         MCX gate matrix.
+#     """
+#     assert isinstance(num_qubits, (int, np.int64)) and 2 <= num_qubits <= 16
+#     assert isinstance(make_su, bool)
+#     d = int(2 ** num_qubits)
+#     U = np.eye(d, dtype=np.cfloat)
+#     U[d - 2 : d, d - 2 : d] = [[0, 1], [1, 0]]
+#     if make_su:  # make SU matrix from the generic unitary one
+#         U /= (np.linalg.det(U) + 0j) ** (1 / d)
+#     return U
 
 
 # TODO: replace with Qiskit
-def fredkin_gate() -> np.ndarray:
-    # Generate a Fredkin gate with 3 qubits
-    n = 3
-    d = int(2 ** n)
-    U = np.eye(d)
-    U[3:6, 3:6] = [[0, 0, 1], [0, 1, 0], [1, 0, 0]]
-    U = U / ((la.det(U) + 0j) ** (1 / d))
-    return U
+# TODO: is not used
+# def toffoli_gate(n) -> np.ndarray:
+#     # Generate a Toffoli gate
+#     d = int(2 ** n)
+#     U = np.eye(d)
+#     U[d - 2 : d, d - 2 : d] = [[0, 1], [1, 0]]
+#     U = U / ((la.det(U) + 0j) ** (1 / d))
+#     return U
+
+
+# TODO: replace with Qiskit
+# TODO: is not used
+# def fredkin_gate() -> np.ndarray:
+#     # Generate a Fredkin gate with 3 qubits
+#     n = 3
+#     d = int(2 ** n)
+#     U = np.eye(d)
+#     U[3:6, 3:6] = [[0, 0, 1], [0, 1, 0], [1, 0, 0]]
+#     U = U / ((la.det(U) + 0j) ** (1 / d))
+#     return U

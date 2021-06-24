@@ -204,16 +204,17 @@ def inverse_permutation(perm: np.ndarray) -> np.ndarray:
     Returns inverse permutation.
     """
     assert is_permutation(perm)
-    inv = np.full_like(perm, fill_value=0)
+    inv = np.full_like(perm, fill_value=0)  # todo: np.zeros() faster
     inv[perm] = np.arange(perm.size, dtype=np.int64)
     return inv
 
 
-# TODO: we do have these rotation operations in elementary operations
+# TODO: we do have these rotation operations in elementary operations, remove this
 def Rx(phi: float, out: np.ndarray) -> np.ndarray:
     """
     X-rotation gate. TODO: assertions could be dropped.
     """
+    # TODO: what if phi is int? we are failing! but int is still a valid value
     assert isinstance(phi, float) and isinstance(out, np.ndarray)
     assert out.shape == (2, 2) and out.dtype == np.cfloat
     a = 0.5 * phi

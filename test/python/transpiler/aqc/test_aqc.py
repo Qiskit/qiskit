@@ -26,6 +26,7 @@ from qiskit.transpiler.synthesis.aqc.aqc import AQC
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
 from qiskit.transpiler.synthesis.aqc.parametric_circuit import ParametricCircuit
 from qiskit.transpiler.synthesis.aqc.utils import compare_circuits, random_special_unitary
+
 # from .test_sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 from test.python.transpiler.aqc.test_sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 
@@ -69,7 +70,7 @@ class TestAqc(QiskitTestCase):
         )
 
         err = compare_circuits(optimized_circuit.to_numpy(), np.array(ORIGINAL_CIRCUIT))
-        err2 = .5 * (np.linalg.norm(optimized_circuit.to_numpy() - ORIGINAL_CIRCUIT, 'fro') ** 2)
+        err2 = 0.5 * (np.linalg.norm(optimized_circuit.to_numpy() - ORIGINAL_CIRCUIT, "fro") ** 2)
         print("Relative difference between target and approximated matrices: {:0.6}".format(err))
         print(err2)
         self.assertTrue(err < 1e-3)

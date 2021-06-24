@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Implementation of the fast gradient computation."""
+from typing import Tuple
 
 import numpy as np
 
@@ -35,6 +36,7 @@ class FastGradient(GradientBase):
 
     def __init__(self, num_qubits: int, cnots: np.ndarray, verbose: int = 0):
         """Constructor."""
+        # todo: make it stateless and lazily initialized?
         super().__init__()
         assert isinstance(verbose, int)
         if verbose >= 1:
@@ -90,7 +92,9 @@ class FastGradient(GradientBase):
         if self._debug:
             temporary_code("Debugging mode is on")
 
-    def get_gradient(self, thetas: np.ndarray, target_matrix: np.ndarray) -> (float, np.ndarray):
+    def get_gradient(
+        self, thetas: np.ndarray, target_matrix: np.ndarray
+    ) -> Tuple[float, np.ndarray]:
         """
         Computes the gradient of objective function.
         See description of the base class method.

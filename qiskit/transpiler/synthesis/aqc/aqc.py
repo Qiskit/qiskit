@@ -74,7 +74,6 @@ class AQC:
             target_matrix:
             cnots:
             thetas0:
-            verbose:
 
         Returns:
             A parametric circuit that approximate target matrix.
@@ -84,6 +83,7 @@ class AQC:
         assert isinstance(thetas0, np.ndarray)
         gradient_backend = "default"
         num_qubits = int(round(np.log2(target_matrix.shape[0])))
+        # todo: don't change parameters that are already specified in the constructor!
         self._adjust_optimization_parameters(num_qubits)
 
         logger.debug("Optimizing via FISTA ...")
@@ -107,6 +107,7 @@ class AQC:
         compressed_circuit = EulerCompressor(synth=False).compress(circuit)
 
         logger.debug("Re-optimizing via gradient descent ...")
+        # todo: why re-instantiate the gradient? is it stateful? just rest should be enough!
         compressed_circuit.init_gradient_backend(gradient_backend)
         optimizer = GDOptimizer(self._method, self._maxiter, self._eta, self._tol, self._eps)
         thetas, _, _, thetas_min = optimizer.optimize(target_matrix, compressed_circuit)
