@@ -95,9 +95,6 @@ class FrameDefinition:
     # The frequency of the frame at time zero.
     frequency: float
 
-    # The duration of the samples in the control electronics.
-    sample_duration: float
-
     # A user-friendly string defining the purpose of the Frame.
     purpose: str = None
 
@@ -114,6 +111,7 @@ class FramesConfiguration:
     def __init__(self):
         """Initialize the frames configuration."""
         self._frames = dict()
+        self._sample_duration = None
 
     @classmethod
     def from_dict(cls, frames_config: Dict[Frame, Dict]) -> "FramesConfiguration":
@@ -143,7 +141,6 @@ class FramesConfiguration:
         self,
         frame: Frame,
         frequency: float,
-        sample_duration: Optional[float] = None,
         purpose: Optional[str] = None
     ):
         """Add a frame to the frame configuration.
@@ -151,22 +148,24 @@ class FramesConfiguration:
         Args:
             frame: The frame instance to add.
             frequency: The frequency of the frame.
-            sample_duration: The sample duration.
             purpose: A string describing the purpose of the frame.
         """
-        self._frames[frame] = FrameDefinition(
-            frequency=frequency, sample_duration=sample_duration, purpose=purpose
-        )
+        self._frames[frame] = FrameDefinition(frequency=frequency, purpose=purpose)
 
     @property
     def definitions(self) -> List[FrameDefinition]:
         """Return the definitions for each frame."""
         return [frame_def for frame_def in self._frames.values()]
 
-    def add_dt(self, sample_duration: float):
-        """Add the same duration to all frames."""
-        for definition in self._frames.values():
-            definition.sample_duration = sample_duration
+    @property
+    def sample_duration(self) -> float:
+        """Return the duration of a sample."""
+        return self._sample_duration
+
+    @sample_duration.setter
+    def sample_duration(self, sample_duration):
+        """Set the duration of the samples."""
+        self._sample_duration = sample_duration
 
     def items(self):
         """Return the items in the frames config."""

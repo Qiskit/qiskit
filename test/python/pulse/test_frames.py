@@ -58,12 +58,10 @@ class TestFramesConfiguration(QiskitTestCase):
         config = {
             Frame("Q", 0): {
                 "frequency": 5.5e9,
-                "sample_duration": 0.222e-9,
                 "purpose": "Frame of qubit 0"
             },
             Frame("Q", 1): {
                 "frequency": 5.2e9,
-                "sample_duration": 0.222e-9,
             },
             Frame("Q", 2): {
                 "frequency": 5.2e9,
@@ -71,11 +69,11 @@ class TestFramesConfiguration(QiskitTestCase):
         }
 
         frames_config = FramesConfiguration.from_dict(config)
+        frames_config.sample_duration = 0.222e-9
 
         self.assertEqual(frames_config[Frame("Q", 0)].frequency, 5.5e9)
-        self.assertEqual(frames_config[Frame("Q", 0)].sample_duration, 0.222e-9)
+        self.assertEqual(frames_config.sample_duration, 0.222e-9)
         self.assertEqual(frames_config[Frame("Q", 1)].frequency, 5.2e9)
-        self.assertTrue(frames_config[Frame("Q", 2)].sample_duration is None)
 
         for frame_def in frames_config.definitions:
             frame_def.sample_duration = 0.1e-9
@@ -89,13 +87,13 @@ class TestFramesConfiguration(QiskitTestCase):
         """Test to see if we can merge two configs."""
 
         config1 = FramesConfiguration.from_dict({
-            Frame("Q", 0): {"frequency": 5.5e9, "sample_duration": 0.222e-9},
-            Frame("Q", 1): {"frequency": 5.2e9, "sample_duration": 0.222e-9},
+            Frame("Q", 0): {"frequency": 5.5e9},
+            Frame("Q", 1): {"frequency": 5.2e9},
         })
 
         config2 = FramesConfiguration.from_dict({
-            Frame("Q", 1): {"frequency": 4.5e9, "sample_duration": 0.222e-9},
-            Frame("Q", 2): {"frequency": 4.2e9, "sample_duration": 0.222e-9},
+            Frame("Q", 1): {"frequency": 4.5e9},
+            Frame("Q", 2): {"frequency": 4.2e9},
         })
 
         for frame, frame_def in config2.items():
@@ -118,7 +116,7 @@ class TestResolvedFrames(QiskitTestCase):
         """Test the phase of the resolved frames."""
         two_pi_dt = 2.0j * np.pi * self.dt_
 
-        r_frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(5.5e9, self.dt_))
+        r_frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(5.5e9), self.dt_)
         r_frame.set_frequency(99, 5.2e9)
 
         for time in [0, 55, 98]:
@@ -133,7 +131,7 @@ class TestResolvedFrames(QiskitTestCase):
     def test_get_phase(self):
         """Test that we get the correct phase as function of time."""
 
-        r_frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(0.0, self.dt_))
+        r_frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(0.0), self.dt_)
         r_frame.set_phase(4, 1.0)
         r_frame.set_phase(8, 2.0)
 
@@ -144,7 +142,7 @@ class TestResolvedFrames(QiskitTestCase):
     def test_get_frequency(self):
         """Test that we get the correct phase as function of time."""
 
-        r_frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(1.0, self.dt_))
+        r_frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(1.0), self.dt_)
         r_frame.set_frequency(4, 2.0)
         r_frame.set_frequency(8, 3.0)
 
@@ -174,17 +172,15 @@ class TestResolvedFrames(QiskitTestCase):
             pulse.Frame("Q", 0): {
                 "frequency": self.freq0,
                 "purpose": "Frame of qubit 0.",
-                "sample_duration": self.dt_,
             },
             pulse.Frame("Q", 1): {
                 "frequency": self.freq1,
                 "purpose": "Frame of qubit 1.",
-                "sample_duration": self.dt_,
             },
         })
 
-        frame0_ = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(self.freq0, self.dt_))
-        frame1_ = ResolvedFrame(pulse.Frame("Q", 1), FrameDefinition(self.freq1, self.dt_))
+        frame0_ = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(self.freq0), self.dt_)
+        frame1_ = ResolvedFrame(pulse.Frame("Q", 1), FrameDefinition(self.freq1), self.dt_)
 
         # Check that the resolved frames are tracking phases properly
         for time in [0, 160, 320, 480]:
@@ -233,7 +229,7 @@ class TestResolvedFrames(QiskitTestCase):
             pulse.play(sig, pulse.DriveChannel(0))
             pulse.shift_phase(1.0, pulse.Frame("Q", 0))
 
-        frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(self.freq0, self.dt_))
+        frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(self.freq0), self.dt_)
         frame.set_frame_instructions(block_to_schedule(sched))
 
         self.assertAlmostEqual(frame.phase(0), 0.0, places=8)
@@ -252,7 +248,7 @@ class TestResolvedFrames(QiskitTestCase):
     def test_set_frequency(self):
         """Test setting the frequency of the resolved frame."""
 
-        frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(self.freq1, self.dt_))
+        frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(self.freq1), self.dt_)
         frame.set_frequency(16, self.freq0)
         frame.set_frequency(10, self.freq1)
         frame.set_frequency(10, self.freq1)
@@ -279,9 +275,9 @@ class TestResolvedFrames(QiskitTestCase):
             pulse.Frame("Q", 0): {
                 "frequency": self.freq0,
                 "purpose": "Frame of qubit 0.",
-                "sample_duration": self.dt_,
             }
         })
+        frames_config.sample_duration = self.dt_
 
         resolved = resolve_frames(sched, frames_config).instructions
 

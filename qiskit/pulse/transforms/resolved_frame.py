@@ -129,13 +129,14 @@ class ResolvedFrame(Tracker):
     Frame at any given point in time.
     """
 
-    def __init__(self, frame: Frame, definition: FrameDefinition):
+    def __init__(self, frame: Frame, definition: FrameDefinition, sample_duration: float):
         """Initialized a resolved frame.
 
         Args:
             frame: The frame to track.
             definition: An instance of the FrameDefinition dataclass which defines
                 the frequency, phase, sample_duration, and purpose of a frame.
+            sample_duration: The duration of a sample.
 
         Raises:
             PulseError: If there are still parameters in the given frame.
@@ -143,7 +144,7 @@ class ResolvedFrame(Tracker):
         if isinstance(frame.identifier[1], ParameterExpression):
             raise PulseError("A parameterized frame cannot initialize a ResolvedFrame.")
 
-        super().__init__(frame.name, definition.sample_duration)
+        super().__init__(frame.name, sample_duration)
 
         self._frequencies_phases = [
             TimeFrequencyPhase(time=0, frequency=definition.frequency, phase=definition.phase)

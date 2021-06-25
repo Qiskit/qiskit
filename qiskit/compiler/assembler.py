@@ -469,7 +469,7 @@ def _parse_pulse_args(
                 frames_config[frame] = config
 
     if backend:
-        frames_config.add_dt(backend_config.dt)
+        frames_config.sample_duration = backend_config.dt
 
     dynamic_reprate_enabled = getattr(backend_config, "dynamic_reprate_enabled", False)
 

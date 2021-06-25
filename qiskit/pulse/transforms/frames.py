@@ -50,22 +50,17 @@ def resolve_frames(
         schedule = block_to_schedule(schedule)
 
     resolved_frames = {}
-    sample_duration = None
     for frame, frame_def in frames_config.items():
-        resolved_frames[frame] = ResolvedFrame(frame, frame_def)
+        resolved_frames[frame] = ResolvedFrame(frame, frame_def, frames_config.sample_duration)
 
         # Extract shift and set frame operations from the schedule.
         resolved_frames[frame].set_frame_instructions(schedule)
-        sample_duration = frame_def.sample_duration
-
-    if sample_duration is None:
-        raise PulseError("Frame configuration does not have a sample duration.")
 
     # Used to keep track of the frequency and phase of the channels
     channel_trackers = {}
     for ch in schedule.channels:
         if isinstance(ch, chans.PulseChannel):
-            channel_trackers[ch] = ChannelTracker(ch, sample_duration)
+            channel_trackers[ch] = ChannelTracker(ch, frames_config.sample_duration)
 
     sched = Schedule(name=schedule.name, metadata=schedule.metadata)
 
@@ -73,47 +68,42 @@ def resolve_frames(
         if isinstance(inst, Play):
             chan = inst.channel
 
-            if inst.signal.frame is not None:
-                frame = inst.signal.frame
+            if inst.frame not in resolved_frames:
+                raise PulseError(f"{inst.frame} is not configured and cannot " f"be resolved.")
 
-                if frame not in resolved_frames:
-                    raise PulseError(f"{frame} is not configured and cannot " f"be resolved.")
+            resolved_frame = resolved_frames[inst.frame]
 
-                resolved_frame = resolved_frames[frame]
+            frame_freq = resolved_frame.frequency(time)
+            frame_phase = resolved_frame.phase(time)
 
-                frame_freq = resolved_frame.frequency(time)
-                frame_phase = resolved_frame.phase(time)
+            # If the frequency and phase of the channel has already been set once in
+            # the past we compute shifts.
+            if channel_trackers[chan].is_initialized():
+                freq_diff = frame_freq - channel_trackers[chan].frequency(time)
+                phase_diff = frame_phase - channel_trackers[chan].phase(time)
 
-                # If the frequency and phase of the channel has already been set once in
-                # The past we compute shifts.
-                if channel_trackers[chan].is_initialized():
-                    freq_diff = frame_freq - channel_trackers[chan].frequency(time)
-                    phase_diff = frame_phase - channel_trackers[chan].phase(time)
+                if abs(freq_diff) > resolved_frame.tolerance:
+                    shift_freq = ShiftFrequency(freq_diff, chan)
+                    sched.insert(time, shift_freq, inplace=True)
 
-                    if abs(freq_diff) > resolved_frame.tolerance:
-                        shift_freq = ShiftFrequency(freq_diff, chan)
-                        sched.insert(time, shift_freq, inplace=True)
+                if abs(phase_diff) > resolved_frame.tolerance:
+                    sched.insert(time, ShiftPhase(phase_diff, chan), inplace=True)
 
-                    if abs(phase_diff) > resolved_frame.tolerance:
-                        sched.insert(time, ShiftPhase(phase_diff, chan), inplace=True)
-
-                # If the channel's phase and frequency has not been set in the past
-                # we set it now
-                else:
-                    if frame_freq != 0:
-                        sched.insert(time, SetFrequency(frame_freq, chan), inplace=True)
-
-                    if frame_phase != 0:
-                        sched.insert(time, SetPhase(frame_phase, chan), inplace=True)
-
-                # Update the frequency and phase of this channel.
-                channel_trackers[chan].set_frequency(time, frame_freq)
-                channel_trackers[chan].set_phase(time, frame_phase)
-
-                play = Play(inst.pulse, chan)
-                sched.insert(time, play, inplace=True)
+            # If the channel's phase and frequency has not been set in the past
+            # we set it now
             else:
-                sched.insert(time, Play(inst.pulse, chan), inplace=True)
+                if frame_freq != 0:
+                    sched.insert(time, SetFrequency(frame_freq, chan), inplace=True)
+
+                if frame_phase != 0:
+                    sched.insert(time, SetPhase(frame_phase, chan), inplace=True)
+
+            # Update the frequency and phase of this channel.
+            channel_trackers[chan].set_frequency(time, frame_freq)
+            channel_trackers[chan].set_phase(time, frame_phase)
+
+            play = Play(inst.pulse, chan)
+            sched.insert(time, play, inplace=True)
 
         # Insert phase and frequency commands that are not applied to frames.
         elif isinstance(inst, (SetFrequency, ShiftFrequency)):
