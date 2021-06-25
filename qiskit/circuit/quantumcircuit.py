@@ -1406,7 +1406,7 @@ class QuantumCircuit:
             if instruction.name == "measure":
                 qubit = qargs[0]
                 clbit = cargs[0]
-                string_temp += "{} {} -> {};\n".forma(
+                string_temp += "{} {} -> {};\n".format(
                     instruction.qasm(),
                     bit_labels[qubit],
                     bit_labels[clbit],
