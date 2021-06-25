@@ -26,7 +26,7 @@ class Signal:
     Frame, i.e. a frequency and a phase.
     """
 
-    def __init__(self, pulse: Pulse, frame: Optional[Frame], name: Optional[str] = None):
+    def __init__(self, pulse: Pulse, frame: Frame, name: Optional[str] = None):
         """
         Args:
             pulse: The envelope of the signal.
