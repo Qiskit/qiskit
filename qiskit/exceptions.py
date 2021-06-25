@@ -37,6 +37,7 @@ class QiskitIndexError(QiskitError, IndexError):
         warnings.warn(
             "QiskitIndexError class is being deprecated and it is going to be remove in the future",
             DeprecationWarning,
+            stacklevel=2,
         )
         super().__init__(*args)
 
