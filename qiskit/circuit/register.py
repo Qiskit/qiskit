@@ -20,6 +20,7 @@ import itertools
 import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.exceptions import QiskitIndexError
 
 
 class Register:
@@ -160,7 +161,7 @@ class Register:
             if max(key) < len(self):
                 return [self._bits[idx] for idx in key]
             else:
-                raise CircuitError("register index out of range")
+                raise QiskitIndexError("register index out of range")
         else:
             return self._bits[key]
 
