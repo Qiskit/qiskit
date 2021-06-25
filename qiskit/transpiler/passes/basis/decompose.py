@@ -72,6 +72,8 @@ class Decompose(TransformationPass):
         return dag
 
     def should_decompose(self, node) -> bool:
+        """Call a decomposition pass on this circuit,
+        to decompose one level (shallow decompose)."""
         has_label = False
         strings_list = [s for s in self.gates if isinstance(s, str)]
         gate_type_list = [g for g in self.gates if isinstance(g, type)]

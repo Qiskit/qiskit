@@ -13,8 +13,6 @@
 """Test the decompose pass"""
 
 from numpy import pi
-from qiskit.converters.dag_to_circuit import dag_to_circuit
-from qiskit.transpiler.passes.basis import decompose
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Decompose
