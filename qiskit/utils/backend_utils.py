@@ -137,14 +137,16 @@ def is_statevector_backend(backend):
     Returns:
         bool: True is statevector
     """
+    if backend is None:
+        return False
     if has_aer():
         from qiskit.providers.aer.backends import AerSimulator, StatevectorSimulator
 
         if isinstance(backend, StatevectorSimulator):
             return True
-        if isinstance(backend, AerSimulator) and backend.name() == "aer_simulator_statevector":
+        if isinstance(backend, AerSimulator) and has_save_statevector(backend):
             return True
-    return backend.name().startswith("statevector") if backend is not None else False
+    return has_save_statevector(backend)
 
 
 def is_simulator_backend(backend):
@@ -200,3 +202,15 @@ def support_backend_options(backend):
     if is_basicaer_provider(backend) or is_aer_provider(backend):
         ret = True
     return ret
+
+
+def has_save_statevector(backend):
+    """
+    Return True if backend supports save_statevector
+    Args:
+        backend (BaseBackend): backend instance
+
+    Returns:
+        bool: True if backend supports save_statevector
+    """
+    return 'save_statevector' in backend.configuration().basis_gates

@@ -29,6 +29,7 @@ from .backend_utils import (
     is_aer_qasm,
     is_basicaer_provider,
     support_backend_options,
+    has_save_statevector,
 )
 
 logger = logging.getLogger(__name__)
@@ -346,7 +347,7 @@ class QuantumInstance:
         from qiskit.providers import BackendV1
 
         circuit_job = isinstance(self._backend, BackendV1)
-        if self.is_statevector and self._backend.name() == "aer_simulator_statevector":
+        if self.is_statevector and has_save_statevector(self._backend):
             try:
                 from qiskit.providers.aer.library import SaveStatevector
 
