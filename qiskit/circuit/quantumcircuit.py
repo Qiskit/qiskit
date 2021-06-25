@@ -23,7 +23,6 @@ import multiprocessing as mp
 from collections import OrderedDict, defaultdict
 from typing import Union
 import numpy as np
-import qiskit
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
@@ -3017,6 +3016,8 @@ def _insert_composite_gate_definition_qasm(
 ):
     """Insert composite gate definition QASM code right after extension library in the header"""
 
+    from qiskit.extensions.unitary import UnitaryGate
+
     gate_definition_string = ""
 
     # Cycle through all gate definitions and add all undefined gates to the list
@@ -3027,7 +3028,7 @@ def _insert_composite_gate_definition_qasm(
 
     # Generate gate definition string
     for instruction in existing_composite_circuits:
-        if isinstance(instruction, qiskit.extensions.unitary.UnitaryGate):
+        if isinstance(instruction, UnitaryGate):
             qasm_string = instruction._qasm_definition
         else:
             qasm_string = _get_composite_circuit_qasm_from_instruction(
