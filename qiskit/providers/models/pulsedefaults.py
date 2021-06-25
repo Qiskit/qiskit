@@ -214,6 +214,7 @@ class PulseDefaults:
             self.discriminator = discriminator
 
         self._data.update(kwargs)
+        self._frames_config = None
 
     def __getattr__(self, name):
         try:
@@ -285,14 +286,17 @@ class PulseDefaults:
         Returns:
             frames: A list of dicts, each dict defines a frame, its frequency, and its purpose.
         """
-        frames = {}
-        for qubit, freq in enumerate(self.qubit_freq_est):
-            frames[Frame("Q", qubit)] = {"frequency": freq, "purpose": f"Frame of qubit {qubit}"}
+        if self._frames_config is None:
+            frames = {}
+            for qubit, freq in enumerate(self.qubit_freq_est):
+                frames[Frame("Q", qubit)] = {"frequency": freq, "purpose": f"Frame of qubit {qubit}"}
 
-        for meas, freq in enumerate(self.meas_freq_est):
-            frames[Frame("M", meas)] = {"frequency": freq, "purpose": f"Frame of meas {meas}"}
+            for meas, freq in enumerate(self.meas_freq_est):
+                frames[Frame("M", meas)] = {"frequency": freq, "purpose": f"Frame of meas {meas}"}
 
-        return FramesConfiguration.from_dict(frames)
+            self._frames_config = FramesConfiguration.from_dict(frames)
+
+        return self._frames_config
 
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
