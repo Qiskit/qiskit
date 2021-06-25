@@ -14,7 +14,7 @@
 DensityMatrix quantum state class.
 """
 
-import warnings
+import copy
 from numbers import Number
 import numpy as np
 
@@ -22,25 +22,34 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
+from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
-from qiskit.quantum_info.states.statevector import Statevector
+
+# pylint: disable=no-name-in-module
+from .cython.exp_value import density_expval_pauli_no_x, density_expval_pauli_with_x
 
 
-class DensityMatrix(QuantumState):
+class DensityMatrix(QuantumState, TolerancesMixin):
     """DensityMatrix class"""
 
     def __init__(self, data, dims=None):
         """Initialize a density matrix object.
 
         Args:
-            data (matrix_like or vector_like): a density matrix or
-                statevector. If a vector the density matrix is constructed
-                as the projector of that vector.
+            data (np.ndarray or list or matrix_like or QuantumCircuit or
+                  qiskit.circuit.Instruction):
+                A statevector, quantum instruction or an object with a ``to_operator`` or
+                ``to_matrix`` method from which the density matrix can be constructed.
+                If a vector the density matrix is constructed as the projector of that vector.
+                If a quantum instruction, the density matrix is constructed by assuming all
+                qubits are initialized in the zero state.
             dims (int or tuple or list): Optional. The subsystem dimension
                     of the state (See additional information).
 
@@ -64,15 +73,19 @@ class DensityMatrix(QuantumState):
             # Finally we check if the input is a raw matrix in either a
             # python list or numpy array format.
             self._data = np.asarray(data, dtype=complex)
-        elif hasattr(data, 'to_operator'):
+        elif isinstance(data, (QuantumCircuit, Instruction)):
+            # If the data is a circuit or an instruction use the classmethod
+            # to construct the DensityMatrix object
+            self._data = DensityMatrix.from_instruction(data)._data
+        elif hasattr(data, "to_operator"):
             # If the data object has a 'to_operator' attribute this is given
             # higher preference than the 'to_matrix' method for initializing
             # an Operator object.
             op = data.to_operator()
             self._data = op.data
             if dims is None:
-                dims = op._output_dims
-        elif hasattr(data, 'to_matrix'):
+                dims = op.output_dims()
+        elif hasattr(data, "to_matrix"):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
             # a complex numpy matrix.
@@ -88,23 +101,80 @@ class DensityMatrix(QuantumState):
             self._data = np.outer(self._data, np.conj(self._data))
         elif ndim == 2 and shape[1] == 1:
             self._data = np.reshape(self._data, shape[0])
-            shape = self._data.shape
         else:
-            raise QiskitError(
-                "Invalid DensityMatrix input: not a square matrix.")
-        super().__init__(self._automatic_dims(dims, shape[0]))
+            raise QiskitError("Invalid DensityMatrix input: not a square matrix.")
+        super().__init__(op_shape=OpShape.auto(shape=self._data.shape, dims_l=dims, dims_r=dims))
+
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.data, dtype=dtype)
+        return self.data
 
     def __eq__(self, other):
         return super().__eq__(other) and np.allclose(
-            self._data, other._data, rtol=self.rtol, atol=self.atol)
+            self._data, other._data, rtol=self.rtol, atol=self.atol
+        )
 
     def __repr__(self):
-        prefix = 'DensityMatrix('
-        pad = len(prefix) * ' '
-        return '{}{},\n{}dims={})'.format(
-            prefix, np.array2string(
-                self._data, separator=', ', prefix=prefix),
-            pad, self._dims)
+        prefix = "DensityMatrix("
+        pad = len(prefix) * " "
+        return "{}{},\n{}dims={})".format(
+            prefix,
+            np.array2string(self._data, separator=", ", prefix=prefix),
+            pad,
+            self._op_shape.dims_l(),
+        )
+
+    def draw(self, output=None, **drawer_args):
+        """Return a visualization of the Statevector.
+
+        **repr**: ASCII TextMatrix of the state's ``__repr__``.
+
+        **text**: ASCII TextMatrix that can be printed in the console.
+
+        **latex**: An IPython Latex object for displaying in Jupyter Notebooks.
+
+        **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
+
+        **qsphere**: Matplotlib figure, rendering of density matrix using `plot_state_qsphere()`.
+
+        **hinton**: Matplotlib figure, rendering of density matrix using `plot_state_hinton()`.
+
+        **bloch**: Matplotlib figure, rendering of density matrix using `plot_bloch_multivector()`.
+
+        Args:
+            output (str): Select the output method to use for drawing the
+                state. Valid choices are `repr`, `text`, `latex`, `latex_source`,
+                `qsphere`, `hinton`, or `bloch`. Default is `repr`. Default can
+                be changed by adding the line ``state_drawer = <default>`` to
+                ``~/.qiskit/settings.conf`` under ``[default]``.
+            drawer_args: Arguments to be passed directly to the relevant drawing
+                function or constructor (`TextMatrix()`, `array_to_latex()`,
+                `plot_state_qsphere()`, `plot_state_hinton()` or `plot_bloch_multivector()`).
+                See the relevant function under `qiskit.visualization` for that function's
+                documentation.
+
+        Returns:
+            :class:`matplotlib.Figure` or :class:`str` or
+            :class:`TextMatrix` or :class:`IPython.display.Latex`:
+            Drawing of the Statevector.
+
+        Raises:
+            ValueError: when an invalid output method is selected.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.visualization.state_visualization import state_drawer
+
+        return state_drawer(self, output=output, **drawer_args)
+
+    def _ipython_display_(self):
+        out = self.draw()
+        if isinstance(out, str):
+            print(out)
+        else:
+            from IPython.display import display
+
+            display(out)
 
     @property
     def data(self):
@@ -161,9 +231,10 @@ class DensityMatrix(QuantumState):
         """
         if not isinstance(other, DensityMatrix):
             other = DensityMatrix(other)
-        dims = other.dims() + self.dims()
-        data = np.kron(self._data, other._data)
-        return DensityMatrix(data, dims)
+        ret = copy.copy(self)
+        ret._data = np.kron(self._data, other._data)
+        ret._op_shape = self._op_shape.tensor(other._op_shape)
+        return ret
 
     def expand(self, other):
         """Return the tensor product state other ⊗ self.
@@ -179,9 +250,10 @@ class DensityMatrix(QuantumState):
         """
         if not isinstance(other, DensityMatrix):
             other = DensityMatrix(other)
-        dims = self.dims() + other.dims()
-        data = np.kron(other._data, self._data)
-        return DensityMatrix(data, dims)
+        ret = copy.copy(self)
+        ret._data = np.kron(other._data, self._data)
+        ret._op_shape = self._op_shape.expand(other._op_shape)
+        return ret
 
     def _add(self, other):
         """Return the linear combination self + other.
@@ -198,9 +270,10 @@ class DensityMatrix(QuantumState):
         """
         if not isinstance(other, DensityMatrix):
             other = DensityMatrix(other)
-        if self.dim != other.dim:
-            raise QiskitError("other DensityMatrix has different dimensions.")
-        return DensityMatrix(self.data + other.data, self.dims())
+        self._op_shape._validate_add(other._op_shape)
+        ret = copy.copy(self)
+        ret._data = self.data + other.data
+        return ret
 
     def _multiply(self, other):
         """Return the scalar multiplied state other * self.
@@ -216,7 +289,9 @@ class DensityMatrix(QuantumState):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        return DensityMatrix(other * self.data, self.dims())
+        ret = copy.copy(self)
+        ret._data = other * self.data
+        return ret
 
     def evolve(self, other, qargs=None):
         """Evolve a quantum state by an operator.
@@ -235,14 +310,14 @@ class DensityMatrix(QuantumState):
                          specified QuantumState subsystem dimensions.
         """
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
 
         # Evolution by a circuit or instruction
         if isinstance(other, (QuantumCircuit, Instruction)):
             return self._evolve_instruction(other, qargs=qargs)
 
         # Evolution by a QuantumChannel
-        if hasattr(other, 'to_quantumchannel'):
+        if hasattr(other, "to_quantumchannel"):
             return other.to_quantumchannel()._evolve(self, qargs=qargs)
         if isinstance(other, QuantumChannel):
             return other._evolve(self, qargs=qargs)
@@ -251,6 +326,60 @@ class DensityMatrix(QuantumState):
         if not isinstance(other, Operator):
             other = Operator(other)
         return self._evolve_operator(other, qargs=qargs)
+
+    def reverse_qargs(self):
+        r"""Return a DensityMatrix with reversed subsystem ordering.
+
+        For a tensor product state this is equivalent to reversing the order
+        of tensor product subsystems. For a density matrix
+        :math:`\rho = \rho_{n-1} \otimes ... \otimes \rho_0`
+        the returned state will be
+        :math:`\rho_0 \otimes ... \otimes \rho_{n-1}`.
+
+        Returns:
+            DensityMatrix: the state with reversed subsystem order.
+        """
+        ret = copy.copy(self)
+        axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
+        axes = axes + tuple(len(axes) + i for i in axes)
+        ret._data = np.reshape(
+            np.transpose(np.reshape(self.data, self._op_shape.tensor_shape), axes),
+            self._op_shape.shape,
+        )
+        ret._op_shape = self._op_shape.reverse()
+        return ret
+
+    def _expectation_value_pauli(self, pauli, qargs=None):
+        """Compute the expectation value of a Pauli.
+
+        Args:
+            pauli (Pauli): a Pauli operator to evaluate expval of.
+            qargs (None or list): subsystems to apply operator on.
+
+        Returns:
+            complex: the expectation value.
+        """
+        n_pauli = len(pauli)
+        if qargs is None:
+            qubits = np.arange(n_pauli)
+        else:
+            qubits = np.array(qargs)
+        x_mask = np.dot(1 << qubits, pauli.x)
+        z_mask = np.dot(1 << qubits, pauli.z)
+        pauli_phase = (-1j) ** pauli.phase if pauli.phase else 1
+
+        if x_mask + z_mask == 0:
+            return pauli_phase * self.trace()
+
+        data = np.ravel(self.data, order="F")
+        if x_mask == 0:
+            return pauli_phase * density_expval_pauli_no_x(data, self.num_qubits, z_mask)
+
+        x_max = qubits[pauli.x][-1]
+        y_phase = (-1j) ** np.sum(pauli.x & pauli.z)
+        return pauli_phase * density_expval_pauli_with_x(
+            data, self.num_qubits, z_mask, x_mask, y_phase, x_max
+        )
 
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
@@ -262,9 +391,18 @@ class DensityMatrix(QuantumState):
         Returns:
             complex: the expectation value.
         """
+        if isinstance(oper, Pauli):
+            return self._expectation_value_pauli(oper, qargs)
+
+        if isinstance(oper, SparsePauliOp):
+            return sum(
+                coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
+                for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)
+            )
+
         if not isinstance(oper, Operator):
             oper = Operator(oper)
-        return np.trace(Operator(self).dot(oper.adjoint(), qargs=qargs).data)
+        return np.trace(Operator(self).dot(oper, qargs=qargs).data)
 
     def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.
@@ -324,7 +462,8 @@ class DensityMatrix(QuantumState):
                 print('Swapped probs: {}'.format(probs_swapped))
         """
         probs = self._subsystem_probabilities(
-            np.abs(self.data.diagonal()), self._dims, qargs=qargs)
+            np.abs(self.data.diagonal()), self._op_shape.dims_l(), qargs=qargs
+        )
         if decimals is not None:
             probs = probs.round(decimals=decimals)
         return probs
@@ -348,9 +487,11 @@ class DensityMatrix(QuantumState):
         """
         if qargs is None:
             # Resetting all qubits does not require sampling or RNG
-            state = np.zeros(2 * (self._dim, ), dtype=complex)
+            ret = copy.copy(self)
+            state = np.zeros(self._op_shape.shape, dtype=complex)
             state[0, 0] = 1
-            return DensityMatrix(state, dims=self._dims)
+            ret._data = state
+            return ret
 
         # Reset by evolving by reset SuperOp
         dims = self.dims(qargs)
@@ -391,6 +532,8 @@ class DensityMatrix(QuantumState):
             QiskitError: if the label contains invalid characters, or the length
                          of the label is larger than an explicitly specified num_qubits.
         """
+        from qiskit.quantum_info.states.statevector import Statevector
+
         return DensityMatrix(Statevector.from_label(label))
 
     @staticmethod
@@ -444,9 +587,9 @@ class DensityMatrix(QuantumState):
             instruction = instruction.to_instruction()
         # Initialize an the statevector in the all |0> state
         num_qubits = instruction.num_qubits
-        init = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
+        init = np.zeros((2 ** num_qubits, 2 ** num_qubits), dtype=complex)
         init[0, 0] = 1
-        vec = DensityMatrix(init, dims=num_qubits * (2, ))
+        vec = DensityMatrix(init, dims=num_qubits * (2,))
         vec._append_instruction(instruction)
         return vec
 
@@ -494,7 +637,7 @@ class DensityMatrix(QuantumState):
                 rho = DensityMatrix(mat, dims=(3, 3))
                 print(rho.to_dict())
 
-            For large subsystem dimensions delimeters are required. The
+            For large subsystem dimensions delimiters are required. The
             following example is for a 20-dimensional system consisting of
             a qubit and 10-dimensional qudit.
 
@@ -509,53 +652,41 @@ class DensityMatrix(QuantumState):
                 rho = DensityMatrix(mat, dims=(2, 10))
                 print(rho.to_dict())
         """
-        return self._matrix_to_dict(self.data,
-                                    self._dims,
-                                    decimals=decimals,
-                                    string_labels=True)
-
-    @property
-    def _shape(self):
-        """Return the tensor shape of the matrix operator"""
-        return 2 * tuple(reversed(self.dims()))
+        return self._matrix_to_dict(
+            self.data, self._op_shape.dims_l(), decimals=decimals, string_labels=True
+        )
 
     def _evolve_operator(self, other, qargs=None):
         """Evolve density matrix by an operator"""
+        # Get shape of output density matrix
+        new_shape = self._op_shape.compose(other._op_shape, qargs=qargs)
+        new_shape._dims_r = new_shape._dims_l
+        new_shape._num_qargs_r = new_shape._num_qargs_l
+
+        ret = copy.copy(self)
         if qargs is None:
             # Evolution on full matrix
-            if self._dim != other._input_dim:
-                raise QiskitError(
-                    "Operator input dimension is not equal to density matrix dimension."
-                )
             op_mat = other.data
-            mat = np.dot(op_mat, self.data).dot(op_mat.T.conj())
-            return DensityMatrix(mat, dims=other._output_dims)
-        # Otherwise we are applying an operator only to subsystems
-        # Check dimensions of subsystems match the operator
-        if self.dims(qargs) != other.input_dims():
-            raise QiskitError(
-                "Operator input dimensions are not equal to statevector subsystem dimensions."
-            )
+            ret._data = np.dot(op_mat, self.data).dot(op_mat.T.conj())
+            ret._op_shape = new_shape
+            return ret
+
         # Reshape statevector and operator
-        tensor = np.reshape(self.data, self._shape)
+        tensor = np.reshape(self.data, self._op_shape.tensor_shape)
         # Construct list of tensor indices of statevector to be contracted
         num_indices = len(self.dims())
         indices = [num_indices - 1 - qubit for qubit in qargs]
         # Left multiple by mat
-        mat = np.reshape(other.data, other._shape)
+        mat = np.reshape(other.data, other._op_shape.tensor_shape)
         tensor = Operator._einsum_matmul(tensor, mat, indices)
         # Right multiply by mat ** dagger
         adj = other.adjoint()
-        mat_adj = np.reshape(adj.data, adj._shape)
-        tensor = Operator._einsum_matmul(tensor, mat_adj, indices, num_indices,
-                                         True)
+        mat_adj = np.reshape(adj.data, adj._op_shape.tensor_shape)
+        tensor = Operator._einsum_matmul(tensor, mat_adj, indices, num_indices, True)
         # Replace evolved dimensions
-        new_dims = list(self.dims())
-        for i, qubit in enumerate(qargs):
-            new_dims[qubit] = other._output_dims[i]
-        new_dim = np.product(new_dims)
-        return DensityMatrix(np.reshape(tensor, (new_dim, new_dim)),
-                             dims=new_dims)
+        ret._data = np.reshape(tensor, new_shape.shape)
+        ret._op_shape = new_shape
+        return ret
 
     def _append_instruction(self, other, qargs=None):
         """Update the current Statevector by applying an instruction."""
@@ -585,28 +716,31 @@ class DensityMatrix(QuantumState):
         # circuit decomposition definition if it exists, otherwise we
         # cannot compose this gate and raise an error.
         if other.definition is None:
-            raise QiskitError('Cannot apply Instruction: {}'.format(
-                other.name))
+            raise QiskitError(f"Cannot apply Instruction: {other.name}")
         if not isinstance(other.definition, QuantumCircuit):
-            raise QiskitError('{} instruction definition is {}; expected QuantumCircuit'.format(
-                other.name, type(other.definition)))
+            raise QiskitError(
+                "{} instruction definition is {}; expected QuantumCircuit".format(
+                    other.name, type(other.definition)
+                )
+            )
+        qubit_indices = {bit: idx for idx, bit in enumerate(other.definition.qubits)}
         for instr, qregs, cregs in other.definition:
             if cregs:
                 raise QiskitError(
-                    'Cannot apply instruction with classical registers: {}'.
-                    format(instr.name))
+                    f"Cannot apply instruction with classical registers: {instr.name}"
+                )
             # Get the integer position of the flat register
             if qargs is None:
-                new_qargs = [tup.index for tup in qregs]
+                new_qargs = [qubit_indices[tup] for tup in qregs]
             else:
-                new_qargs = [qargs[tup.index] for tup in qregs]
+                new_qargs = [qargs[qubit_indices[tup]] for tup in qregs]
             self._append_instruction(instr, qargs=new_qargs)
 
     def _evolve_instruction(self, obj, qargs=None):
         """Return a new statevector by applying an instruction."""
         if isinstance(obj, QuantumCircuit):
             obj = obj.to_instruction()
-        vec = DensityMatrix(self.data, dims=self._dims)
+        vec = copy.copy(self)
         vec._append_instruction(obj, qargs=qargs)
         return vec
 
@@ -624,6 +758,8 @@ class DensityMatrix(QuantumState):
         Raises:
             QiskitError: if the state is not pure.
         """
+        from qiskit.quantum_info.states.statevector import Statevector
+
         if atol is None:
             atol = self.atol
         if rtol is None:
@@ -635,24 +771,8 @@ class DensityMatrix(QuantumState):
         evals, evecs = np.linalg.eig(self._data)
 
         nonzero_evals = evals[abs(evals) > atol]
-        if len(nonzero_evals) != 1 or not np.isclose(nonzero_evals[0], 1,
-                                                     atol=atol, rtol=rtol):
+        if len(nonzero_evals) != 1 or not np.isclose(nonzero_evals[0], 1, atol=atol, rtol=rtol):
             raise QiskitError("Density matrix is not a pure state")
 
         psi = evecs[:, np.argmax(evals)]  # eigenvectors returned in columns.
         return Statevector(psi)
-
-    def to_counts(self):
-        """Returns the density matrix as a counts dict of probabilities.
-
-        DEPRECATED: use :meth:`probabilities_dict` instead.
-
-        Returns:
-            dict: Counts of probabilities.
-        """
-        warnings.warn(
-            'The `Statevector.to_counts` method is deprecated as of 0.13.0,'
-            ' and will be removed no earlier than 3 months after that '
-            'release date. You should use the `Statevector.probabilities_dict`'
-            ' method instead.', DeprecationWarning, stacklevel=2)
-        return self.probabilities_dict()

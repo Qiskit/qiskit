@@ -1,0 +1,27 @@
+---
+features:
+  - |
+    Support for disassembly of :class:`~qiskit.qobj.PulseQobj` objects has
+    been added to the :func:`qiskit.assembler.disassemble` function.
+    For example:
+
+    .. code-block::
+
+      from qiskit import pulse
+      from qiskit.assembler.disassemble import disassemble
+      from qiskit.compiler.assemble import assemble
+      from qiskit.test.mock import FakeOpenPulse2Q
+
+      backend = FakeOpenPulse2Q()
+
+      d0 = pulse.DriveChannel(0)
+      d1 = pulse.DriveChannel(1)
+      with pulse.build(backend) as sched:
+          with pulse.align_right():
+              pulse.play(pulse.library.Constant(10, 1.0), d0)
+              pulse.shift_phase(3.11, d0)
+              pulse.measure_all()
+
+      qobj = assemble(sched, backend=backend, shots=512)
+      scheds, run_config, header = disassemble(qobj)
+

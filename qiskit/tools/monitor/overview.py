@@ -9,13 +9,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
 
 """ A module for viewing the details of all available devices.
 """
 
 import math
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
 
 def get_unique_backends():
@@ -26,14 +25,16 @@ def get_unique_backends():
 
     Raises:
         QiskitError: No backends available.
-        ImportError: If qiskit-ibmq-provider is not installed
+        MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
     """
     try:
         from qiskit.providers.ibmq import IBMQ
-    except ImportError:
-        raise ImportError("The IBMQ provider is necessary for this function "
-                          " to work. Please ensure it's installed before "
-                          "using this function")
+    except ImportError as ex:
+        raise MissingOptionalLibraryError(
+            libname="qiskit-ibmq-provider",
+            name="get_unique_backends",
+            pip_install="pip install qiskit-ibmq-provider",
+        ) from ex
     backends = []
     for provider in IBMQ.providers():
         for backend in provider.backends():
@@ -45,7 +46,7 @@ def get_unique_backends():
             unique_hardware_backends.append(back)
             unique_names.append(back.name())
     if not unique_hardware_backends:
-        raise QiskitError('No backends available.')
+        raise QiskitError("No backends available.")
     return unique_hardware_backends
 
 
@@ -56,97 +57,106 @@ def backend_monitor(backend):
         backend (IBMQBackend): Backend to monitor.
     Raises:
         QiskitError: Input is not a IBMQ backend.
-        ImportError: If qiskit-ibmq-provider is not installed
+        MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
     """
     try:
-        # pylint: disable=import-error,no-name-in-module
         from qiskit.providers.ibmq import IBMQBackend
-    except ImportError:
-        raise ImportError("The IBMQ provider is necessary for this function "
-                          " to work. Please ensure it's installed before "
-                          "using this function")
+    except ImportError as ex:
+        raise MissingOptionalLibraryError(
+            libname="qiskit-ibmq-provider",
+            name="backend_monitor",
+            pip_install="pip install qiskit-ibmq-provider",
+        ) from ex
 
     if not isinstance(backend, IBMQBackend):
-        raise QiskitError('Input variable is not of type IBMQBackend.')
+        raise QiskitError("Input variable is not of type IBMQBackend.")
     config = backend.configuration().to_dict()
     status = backend.status().to_dict()
     config_dict = {**status, **config}
-    if not config['simulator']:
-        props = backend.properties().to_dict()
 
     print(backend.name())
-    print('='*len(backend.name()))
-    print('Configuration')
-    print('-'*13)
-    offset = '    '
+    print("=" * len(backend.name()))
+    print("Configuration")
+    print("-" * 13)
+    offset = "    "
 
-    upper_list = ['n_qubits', 'operational',
-                  'status_msg', 'pending_jobs',
-                  'backend_version', 'basis_gates',
-                  'local', 'simulator']
+    upper_list = [
+        "n_qubits",
+        "operational",
+        "status_msg",
+        "pending_jobs",
+        "backend_version",
+        "basis_gates",
+        "local",
+        "simulator",
+    ]
 
     lower_list = list(set(config_dict.keys()).difference(upper_list))
     # Remove gates because they are in a different tab
-    lower_list.remove('gates')
-    for item in upper_list+lower_list:
-        print(offset+item+':', config_dict[item])
+    lower_list.remove("gates")
+    for item in upper_list + lower_list:
+        print(offset + item + ":", config_dict[item])
 
     # Stop here if simulator
-    if config['simulator']:
+    if config["simulator"]:
         return
 
     print()
-    qubit_header = 'Qubits [Name / Freq / T1 / T2 / U1 err / U2 err / U3 err / Readout err]'
-    print(qubit_header)
-    print('-'*len(qubit_header))
+    props = backend.properties()
+    qubit_header = None
+    sep = " / "
 
-    sep = ' / '
-    for qub in range(len(props['qubits'])):
-        name = 'Q%s' % qub
-        qubit_data = props['qubits'][qub]
-        gate_data = [g for g in props['gates'] if g['qubits'] == [qub]]
-        t1_info = qubit_data[0]
-        t2_info = qubit_data[1]
-        freq_info = qubit_data[2]
-        readout_info = qubit_data[3]
+    for index, qubit_data in enumerate(props.qubits):
+        name = "Q%s" % index
+        gate_data = [gate for gate in props.gates if gate.qubits == [index]]
 
-        freq = str(round(freq_info['value'], 5))+' '+freq_info['unit']
-        T1 = str(round(t1_info['value'],
-                       5))+' ' + t1_info['unit']
-        T2 = str(round(t2_info['value'],
-                       5))+' ' + t2_info['unit']
+        cal_data = dict.fromkeys(["T1", "T2", "frequency", "readout_error"], "Unknown")
+        for nduv in qubit_data:
+            if nduv.name in cal_data.keys():
+                cal_data[nduv.name] = format(nduv.value, ".5f") + " " + nduv.unit
+
+        gate_names = []
+        gate_error = []
         for gd in gate_data:
-            if gd['gate'] == 'u1':
-                U1 = str(round(gd['parameters'][0]['value'], 5))
-                break
+            if gd.gate in ["id"]:
+                continue
+            try:
+                gate_error.append(format(props.gate_error(gd.gate, index), ".5f"))
+                gate_names.append(gd.gate.upper() + " err")
+            except QiskitError:
+                pass
 
-        for gd in gate_data:
-            if gd['gate'] == 'u2':
-                U2 = str(round(gd['parameters'][0]['value'], 5))
-                break
-        for gd in gate_data:
-            if gd['gate'] == 'u3':
-                U3 = str(round(gd['parameters'][0]['value'], 5))
-                break
+        if not qubit_header:
+            qubit_header = (
+                "Qubits [Name / Freq / T1 / T2" + sep.join([""] + gate_names) + " / Readout err]"
+            )
+            print(qubit_header)
+            print("-" * len(qubit_header))
 
-        readout_error = str(round(readout_info['value'], 5))
+        qstr = sep.join(
+            [name, cal_data["frequency"], cal_data["T1"], cal_data["T2"]]
+            + gate_error
+            + [cal_data["readout_error"]]
+        )
 
-        qstr = sep.join([name, freq, T1, T2, U1, U2, U3, readout_error])
-        print(offset+qstr)
+        print(offset + qstr)
 
     print()
-    multi_qubit_gates = [g for g in props['gates'] if len(g['qubits']) > 1]
-    multi_header = 'Multi-Qubit Gates [Name / Type / Gate Error]'
+    multi_qubit_gates = [g for g in props.gates if len(g.qubits) > 1]
+    multi_header = "Multi-Qubit Gates [Name / Type / Gate Error]"
     print(multi_header)
-    print('-'*len(multi_header))
+    print("-" * len(multi_header))
 
-    for qub, gate in enumerate(multi_qubit_gates):
-        gate = multi_qubit_gates[qub]
-        qubits = gate['qubits']
-        ttype = gate['gate']
-        error = round(gate['parameters'][0]['value'], 5)
-        mstr = sep.join(["{}{}_{}".format(ttype, qubits[0], qubits[1]), ttype, str(error)])
-        print(offset+mstr)
+    for gate in multi_qubit_gates:
+        qubits = gate.qubits
+        ttype = gate.gate
+        error = "Unknown"
+        try:
+            error = format(props.gate_error(gate.gate, qubits), ".5f")
+        except QiskitError:
+            pass
+        mstr = sep.join([f"{ttype}{qubits[0]}_{qubits[1]}", ttype, str(error)])
+        print(offset + mstr)
 
 
 def backend_overview():
@@ -173,46 +183,48 @@ def backend_overview():
             least_pending_idx = ind
             break
 
-    num_rows = math.ceil(len(_backends)/3)
+    num_rows = math.ceil(len(_backends) / 3)
 
     count = 0
     num_backends = len(_backends)
     for _ in range(num_rows):
         max_len = 0
-        str_list = ['']*8
+        str_list = [""] * 8
         for idx in range(3):
-            offset = ' ' * 10 if idx else ''
+            offset = " " * 10 if idx else ""
             config = _backends[count].configuration().to_dict()
             props = _backends[count].properties().to_dict()
-            num_qubits = config['n_qubits']
-            str_list[0] += (' '*(max_len-len(str_list[0]))+offset)
+            num_qubits = config["n_qubits"]
+            str_list[0] += " " * (max_len - len(str_list[0])) + offset
             str_list[0] += _backends[count].name()
 
-            str_list[1] += (' '*(max_len-len(str_list[1]))+offset)
-            str_list[1] += '-'*len(_backends[count].name())
+            str_list[1] += " " * (max_len - len(str_list[1])) + offset
+            str_list[1] += "-" * len(_backends[count].name())
 
-            str_list[2] += (' '*(max_len-len(str_list[2]))+offset)
-            str_list[2] += 'Num. Qubits:  %s' % config['n_qubits']
+            str_list[2] += " " * (max_len - len(str_list[2])) + offset
+            str_list[2] += "Num. Qubits:  %s" % config["n_qubits"]
 
-            str_list[3] += (' '*(max_len-len(str_list[3]))+offset)
-            str_list[3] += 'Pending Jobs: %s' % stati[count].pending_jobs
+            str_list[3] += " " * (max_len - len(str_list[3])) + offset
+            str_list[3] += "Pending Jobs: %s" % stati[count].pending_jobs
 
-            str_list[4] += (' '*(max_len-len(str_list[4]))+offset)
-            str_list[4] += 'Least busy:   %s' % (count == least_pending_idx)
+            str_list[4] += " " * (max_len - len(str_list[4])) + offset
+            str_list[4] += "Least busy:   %s" % (count == least_pending_idx)
 
-            str_list[5] += (' '*(max_len-len(str_list[5]))+offset)
-            str_list[5] += 'Operational:  %s' % stati[count].operational
+            str_list[5] += " " * (max_len - len(str_list[5])) + offset
+            str_list[5] += "Operational:  %s" % stati[count].operational
 
-            str_list[6] += (' '*(max_len-len(str_list[6]))+offset)
-            str_list[6] += 'Avg. T1:      %s' % round(sum([q[0]['value']
-                                                           for q in props['qubits']])/num_qubits, 1)
-            str_list[7] += (' '*(max_len-len(str_list[7]))+offset)
-            str_list[7] += 'Avg. T2:      %s' % round(sum([q[1]['value']
-                                                           for q in props['qubits']])/num_qubits, 1)
+            str_list[6] += " " * (max_len - len(str_list[6])) + offset
+            str_list[6] += "Avg. T1:      %s" % round(
+                sum(q[0]["value"] for q in props["qubits"]) / num_qubits, 1
+            )
+            str_list[7] += " " * (max_len - len(str_list[7])) + offset
+            str_list[7] += "Avg. T2:      %s" % round(
+                sum(q[1]["value"] for q in props["qubits"]) / num_qubits, 1
+            )
             count += 1
             if count == num_backends:
                 break
-            max_len = max([len(s) for s in str_list])
+            max_len = max(len(s) for s in str_list)
 
         print("\n".join(str_list))
-        print('\n'*2)
+        print("\n" * 2)

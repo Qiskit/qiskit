@@ -14,4 +14,5 @@
 
 from .two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompose
 from .one_qubit_decompose import OneQubitEulerDecomposer
-from .two_qubit_decompose import euler_angles_1q  # DEPRECATED
+from .quaternion import Quaternion
+from .clifford_decompose import decompose_clifford

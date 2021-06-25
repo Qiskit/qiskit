@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue in which the 
+    :meth:`~qiskit.circuit.QuantumCircuit.num_connected_components` method of
+    :class:`~qiskit.circuit.QuantumCircuit` outputs incorrect number of
+    components when the circuit contains two or more gates controlled on
+    classical registers.

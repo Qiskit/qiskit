@@ -22,149 +22,160 @@ from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any, Tuple
 import numpy as np
 from qiskit import pulse
 
-PhaseFreqTuple = NamedTuple(
-    'PhaseFreqTuple',
-    [('phase', float),
-     ('freq', float)])
-PhaseFreqTuple.__doc__ = 'Data to represent a set of frequency and phase values.'
-PhaseFreqTuple.phase.__doc__ = 'Phase value in rad.'
-PhaseFreqTuple.freq.__doc__ = 'Frequency value in Hz.'
+
+class PhaseFreqTuple(NamedTuple):
+    phase: float
+    freq: float
+
+
+PhaseFreqTuple.__doc__ = "Data to represent a set of frequency and phase values."
+PhaseFreqTuple.phase.__doc__ = "Phase value in rad."
+PhaseFreqTuple.freq.__doc__ = "Frequency value in Hz."
 
 
 PulseInstruction = NamedTuple(
-    'InstructionTuple',
-    [('t0', int),
-     ('dt', Optional[float]),
-     ('frame', PhaseFreqTuple),
-     ('inst', Union[pulse.Instruction, List[pulse.Instruction]])])
-PulseInstruction.__doc__ = 'Data to represent pulse instruction for visualization.'
-PulseInstruction.t0.__doc__ = 'A time when the instruction is issued.'
-PulseInstruction.dt.__doc__ = 'System cycle time.'
-PulseInstruction.frame.__doc__ = 'A reference frame to run instruction.'
-PulseInstruction.inst.__doc__ = 'Pulse instruction.'
+    "InstructionTuple",
+    [
+        ("t0", int),
+        ("dt", Optional[float]),
+        ("frame", PhaseFreqTuple),
+        ("inst", Union[pulse.Instruction, List[pulse.Instruction]]),
+        ("is_opaque", bool),
+    ],
+)
+PulseInstruction.__doc__ = "Data to represent pulse instruction for visualization."
+PulseInstruction.t0.__doc__ = "A time when the instruction is issued."
+PulseInstruction.dt.__doc__ = "System cycle time."
+PulseInstruction.frame.__doc__ = "A reference frame to run instruction."
+PulseInstruction.inst.__doc__ = "Pulse instruction."
+PulseInstruction.is_opaque.__doc__ = "If there is any unbound parameters."
 
 
 BarrierInstruction = NamedTuple(
-    'Barrier',
-    [('t0', int),
-     ('dt', Optional[float]),
-     ('channels', List[pulse.channels.Channel])]
+    "Barrier", [("t0", int), ("dt", Optional[float]), ("channels", List[pulse.channels.Channel])]
 )
-BarrierInstruction.__doc__ = 'Data to represent special pulse instruction of barrier.'
-BarrierInstruction.t0.__doc__ = 'A time when the instruction is issued.'
-BarrierInstruction.dt.__doc__ = 'System cycle time.'
-BarrierInstruction.channels.__doc__ = 'A list of channel associated with this barrier.'
+BarrierInstruction.__doc__ = "Data to represent special pulse instruction of barrier."
+BarrierInstruction.t0.__doc__ = "A time when the instruction is issued."
+BarrierInstruction.dt.__doc__ = "System cycle time."
+BarrierInstruction.channels.__doc__ = "A list of channel associated with this barrier."
 
 
 SnapshotInstruction = NamedTuple(
-    'Snapshots',
-    [('t0', int),
-     ('dt', Optional[float]),
-     ('inst', pulse.instructions.Snapshot)]
+    "Snapshots", [("t0", int), ("dt", Optional[float]), ("inst", pulse.instructions.Snapshot)]
 )
-SnapshotInstruction.__doc__ = 'Data to represent special pulse instruction of snapshot.'
-SnapshotInstruction.t0.__doc__ = 'A time when the instruction is issued.'
-SnapshotInstruction.dt.__doc__ = 'System cycle time.'
-SnapshotInstruction.inst.__doc__ = 'Snapshot instruction.'
+SnapshotInstruction.__doc__ = "Data to represent special pulse instruction of snapshot."
+SnapshotInstruction.t0.__doc__ = "A time when the instruction is issued."
+SnapshotInstruction.dt.__doc__ = "System cycle time."
+SnapshotInstruction.inst.__doc__ = "Snapshot instruction."
 
 
-ChartAxis = NamedTuple(
-    'ChartAxis',
-    [('name', str),
-     ('channels', List[pulse.channels.Channel])]
-)
-ChartAxis.__doc__ = 'Data to represent an axis information of chart.'
-ChartAxis.name.__doc__ = 'Name of chart.'
-ChartAxis.channels.__doc__ = 'Channels associated with chart.'
+class ChartAxis(NamedTuple):
+    name: str
+    channels: List[pulse.channels.Channel]
 
 
-ComplexColors = NamedTuple(
-    'ComplexColors',
-    [('real', str),
-     ('imaginary', str)])
-ComplexColors.__doc__ = 'Data to represent a set of color codes for real and imaginary part.'
-ComplexColors.real.__doc__ = 'Color code of real part.'
-ComplexColors.imaginary.__doc__ = 'Color code of imaginary part.'
+ChartAxis.__doc__ = "Data to represent an axis information of chart."
+ChartAxis.name.__doc__ = "Name of chart."
+ChartAxis.channels.__doc__ = "Channels associated with chart."
 
 
-ParsedInstruction = NamedTuple(
-    'ParsedWaveform',
-    [('xvals', np.ndarray),
-     ('yvals', np.ndarray),
-     ('meta', Dict[str, Any])]
-)
-ParsedInstruction.__doc__ = 'Data to represent a parsed pulse instruction for object generation.'
-ParsedInstruction.xvals.__doc__ = 'Numpy array of x axis data.'
-ParsedInstruction.yvals.__doc__ = 'Numpy array of y axis data.'
-ParsedInstruction.meta.__doc__ = 'Dictionary containing instruction details.'
+class ParsedInstruction(NamedTuple):
+    xvals: np.ndarray
+    yvals: np.ndarray
+    meta: Dict[str, Any]
 
 
-HorizontalAxis = NamedTuple(
-    'HorizontalAxis',
-    [('window', Tuple[int, int]),
-     ('axis_map', Dict[int, int]),
-     ('axis_break_pos', List[int]),
-     ('label', str)]
-)
+ParsedInstruction.__doc__ = "Data to represent a parsed pulse instruction for object generation."
+ParsedInstruction.xvals.__doc__ = "Numpy array of x axis data."
+ParsedInstruction.yvals.__doc__ = "Numpy array of y axis data."
+ParsedInstruction.meta.__doc__ = "Dictionary containing instruction details."
+
+
+class OpaqueShape(NamedTuple):
+    duration: np.ndarray
+    meta: Dict[str, Any]
+
+
+OpaqueShape.__doc__ = "Data to represent a pulse instruction with parameterized shape."
+OpaqueShape.duration.__doc__ = "Duration of instruction."
+OpaqueShape.meta.__doc__ = "Dictionary containing instruction details."
+
+
+class HorizontalAxis(NamedTuple):
+    window: Tuple[int, int]
+    axis_map: Dict[float, Union[float, str]]
+    axis_break_pos: List[int]
+    label: str
+
+
 HorizontalAxis.__doc__ = "Data to represent configuration of horizontal axis."
 HorizontalAxis.window.__doc__ = "Left and right edge of graph."
-HorizontalAxis.axis_map.__doc__ = 'Mapping of apparent coordinate system and actual location.'
+HorizontalAxis.axis_map.__doc__ = "Mapping of apparent coordinate system and actual location."
 HorizontalAxis.axis_break_pos.__doc__ = "Locations of axis break."
 HorizontalAxis.label.__doc__ = "Label of horizontal axis."
 
 
-class DrawingWaveform(Enum):
+class WaveformType(str, Enum):
     """
     Waveform data type.
 
     REAL: Assigned to objects that represent real part of waveform.
     IMAG: Assigned to objects that represent imaginary part of waveform.
+    OPAQUE: Assigned to objects that represent waveform with unbound parameters.
     """
-    REAL = 'Waveform.Real'
-    IMAG = 'Waveform.Imag'
+
+    REAL = "Waveform.Real"
+    IMAG = "Waveform.Imag"
+    OPAQUE = "Waveform.Opaque"
 
 
-class DrawingLabel(Enum):
+class LabelType(str, Enum):
     """
     Label data type.
 
     PULSE_NAME: Assigned to objects that represent name of waveform.
+    PULSE_INFO: Assigned to objects that represent extra info about waveform.
+    OPAQUE_BOXTEXT: Assigned to objects that represent box text of opaque shapes.
     CH_NAME: Assigned to objects that represent name of channel.
     CH_SCALE: Assigned to objects that represent scaling factor of channel.
     FRAME: Assigned to objects that represent value of frame.
     SNAPSHOT: Assigned to objects that represent label of snapshot.
     """
-    PULSE_NAME = 'Label.Pulse.Name'
-    PULSE_INFO = 'Label.Pulse.Info'
-    CH_NAME = 'Label.Channel.Name'
-    CH_INFO = 'Label.Channel.Info'
-    FRAME = 'Label.Frame.Value'
-    SNAPSHOT = 'Label.Snapshot'
+
+    PULSE_NAME = "Label.Pulse.Name"
+    PULSE_INFO = "Label.Pulse.Info"
+    OPAQUE_BOXTEXT = "Label.Opaque.Boxtext"
+    CH_NAME = "Label.Channel.Name"
+    CH_INFO = "Label.Channel.Info"
+    FRAME = "Label.Frame.Value"
+    SNAPSHOT = "Label.Snapshot"
 
 
-class DrawingSymbol(Enum):
+class SymbolType(str, Enum):
     """
     Symbol data type.
 
     FRAME: Assigned to objects that represent symbol of frame.
     SNAPSHOT: Assigned to objects that represent symbol of snapshot.
     """
-    FRAME = 'Symbol.Frame'
-    SNAPSHOT = 'Symbol.Snapshot'
+
+    FRAME = "Symbol.Frame"
+    SNAPSHOT = "Symbol.Snapshot"
 
 
-class DrawingLine(Enum):
+class LineType(str, Enum):
     """
     Line data type.
 
     BASELINE: Assigned to objects that represent zero line of channel.
     BARRIER: Assigned to objects that represent barrier line.
     """
-    BASELINE = 'Line.Baseline'
-    BARRIER = 'Line.Barrier'
+
+    BASELINE = "Line.Baseline"
+    BARRIER = "Line.Barrier"
 
 
-class AbstractCoordinate(Enum):
+class AbstractCoordinate(str, Enum):
     """Abstract coordinate that the exact value depends on the user preference.
 
     RIGHT: The horizontal coordinate at t0 shifted by the left margin.
@@ -172,10 +183,11 @@ class AbstractCoordinate(Enum):
     TOP: The vertical coordinate at the top of chart.
     BOTTOM: The vertical coordinate at the bottom of chart.
     """
-    RIGHT = 'RIGHT'
-    LEFT = 'LEFT'
-    TOP = 'TOP'
-    BOTTOM = 'BOTTOM'
+
+    RIGHT = "RIGHT"
+    LEFT = "LEFT"
+    TOP = "TOP"
+    BOTTOM = "BOTTOM"
 
 
 class DynamicString(str, Enum):
@@ -183,20 +195,42 @@ class DynamicString(str, Enum):
 
     SCALE: A temporal value of chart scaling factor.
     """
-    SCALE = '@scale'
+
+    SCALE = "@scale"
 
 
 class WaveformChannel(pulse.channels.PulseChannel):
     """Dummy channel that doesn't belong to specific pulse channel."""
-    prefix = 'w'
+
+    prefix = "w"
 
     def __init__(self):
         """Create new waveform channel."""
         super().__init__(0)
 
 
+class Plotter(str, Enum):
+    """Name of pulse plotter APIs.
+
+    Mpl2D: Matplotlib plotter interface. Show charts in 2D canvas.
+    """
+
+    Mpl2D = "mpl2d"
+
+
+class TimeUnits(str, Enum):
+    """Representation of time units.
+
+    SYSTEM_CYCLE_TIME: System time dt.
+    NANO_SEC: Nano seconds.
+    """
+
+    CYCLES = "dt"
+    NS = "ns"
+
+
 # convenient type to represent union of drawing data
-DataTypes = NewType('DataType', Union[DrawingWaveform, DrawingLabel, DrawingLine, DrawingSymbol])
+DataTypes = NewType("DataType", Union[WaveformType, LabelType, LineType, SymbolType])
 
 # convenient type to represent union of values to represent a coordinate
-Coordinate = NewType('Coordinate', Union[int, float, AbstractCoordinate])
+Coordinate = NewType("Coordinate", Union[float, AbstractCoordinate])

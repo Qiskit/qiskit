@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    When accessing the ``definition`` attribute of a parameterized ``Gate``
-    instance, the generated ``QuantumCircuit`` had been generated with an invalid
-    ``ParameterTable``, such that reading from ``QuantumCircuit.parameters`` or
-    calling ``QuantumCircuit.bind_parameters`` would incorrectly report the
-    unbound parameters. This has been resolved.

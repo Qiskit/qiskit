@@ -49,8 +49,7 @@ class SabreLayout(AnalysisPass):
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
-    def __init__(self, coupling_map, routing_pass=None, seed=None,
-                 max_iterations=3):
+    def __init__(self, coupling_map, routing_pass=None, seed=None, max_iterations=3):
         """SabreLayout initializer.
 
         Args:
@@ -75,55 +74,60 @@ class SabreLayout(AnalysisPass):
             TranspilerError: if dag wider than self.coupling_map
         """
         if len(dag.qubits) > self.coupling_map.size():
-            raise TranspilerError('More virtual qubits exist than physical.')
+            raise TranspilerError("More virtual qubits exist than physical.")
 
         # Choose a random initial_layout.
         if self.seed is None:
             self.seed = np.random.randint(0, np.iinfo(np.int32).max)
         rng = np.random.default_rng(self.seed)
 
-        physical_qubits = rng.choice(self.coupling_map.size(),
-                                     len(dag.qubits), replace=False)
+        physical_qubits = rng.choice(self.coupling_map.size(), len(dag.qubits), replace=False)
         physical_qubits = rng.permutation(physical_qubits)
-        initial_layout = Layout({q: dag.qubits[i]
-                                 for i, q in enumerate(physical_qubits)})
+        initial_layout = Layout({q: dag.qubits[i] for i, q in enumerate(physical_qubits)})
 
         if self.routing_pass is None:
-            self.routing_pass = SabreSwap(self.coupling_map, 'decay', seed=self.seed)
+            self.routing_pass = SabreSwap(self.coupling_map, "decay", seed=self.seed, fake_run=True)
+        else:
+            self.routing_pass.fake_run = True
 
         # Do forward-backward iterations.
         circ = dag_to_circuit(dag)
-        for i in range(self.max_iterations):
-            for _ in ('forward', 'backward'):
+        rev_circ = circ.reverse_ops()
+        for _ in range(self.max_iterations):
+            for _ in ("forward", "backward"):
                 pm = self._layout_and_route_passmanager(initial_layout)
                 new_circ = pm.run(circ)
 
                 # Update initial layout and reverse the unmapped circuit.
-                pass_final_layout = pm.property_set['final_layout']
-                final_layout = self._compose_layouts(initial_layout,
-                                                     pass_final_layout,
-                                                     new_circ.qregs)
+                pass_final_layout = pm.property_set["final_layout"]
+                final_layout = self._compose_layouts(
+                    initial_layout, pass_final_layout, new_circ.qregs  # pylint: disable=no-member
+                )
                 initial_layout = final_layout
-                circ = circ.reverse_ops()
+                circ, rev_circ = rev_circ, circ
 
             # Diagnostics
-            logger.info('After round %d, num_swaps: %d',
-                        i+1, new_circ.count_ops().get('swap', 0))
-            logger.info('new initial layout')
+            logger.info("new initial layout")
             logger.info(initial_layout)
 
-        self.property_set['layout'] = initial_layout
+        for qreg in dag.qregs.values():
+            initial_layout.add_register(qreg)
+
+        self.property_set["layout"] = initial_layout
+        self.routing_pass.fake_run = False
 
     def _layout_and_route_passmanager(self, initial_layout):
         """Return a passmanager for a full layout and routing.
 
         We use a factory to remove potential statefulness of passes.
         """
-        layout_and_route = [SetLayout(initial_layout),
-                            FullAncillaAllocation(self.coupling_map),
-                            EnlargeWithAncilla(),
-                            ApplyLayout(),
-                            self.routing_pass]
+        layout_and_route = [
+            SetLayout(initial_layout),
+            FullAncillaAllocation(self.coupling_map),
+            EnlargeWithAncilla(),
+            ApplyLayout(),
+            self.routing_pass,
+        ]
         pm = PassManager(layout_and_route)
         return pm
 
@@ -137,9 +141,8 @@ class SabreLayout(AnalysisPass):
         initial_layout that was selected.
         """
         trivial_layout = Layout.generate_trivial_layout(*qregs)
-        pass_final_layout = Layout({trivial_layout[v.index]: p
-                                    for v, p in pass_final_layout.get_virtual_bits().items()})
         qubit_map = Layout.combine_into_edge_map(initial_layout, trivial_layout)
-        final_layout = {v: pass_final_layout[qubit_map[v]]
-                        for v, _ in initial_layout.get_virtual_bits().items()}
+        final_layout = {
+            v: pass_final_layout[qubit_map[v]] for v, _ in initial_layout.get_virtual_bits().items()
+        }
         return Layout(final_layout)

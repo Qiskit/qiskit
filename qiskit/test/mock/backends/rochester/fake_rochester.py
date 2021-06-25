@@ -15,28 +15,22 @@ Fake Rochester device (53 qubit).
 """
 
 import os
-import json
-
-from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
-from qiskit.test.mock.fake_backend import FakeBackend
+from qiskit.test.mock import fake_qasm_backend
 
 
-class FakeRochester(FakeBackend):
+class FakeRochester(fake_qasm_backend.FakeQasmBackend):
     """A fake Rochester backend."""
 
-    def __init__(self):
-        dirname = os.path.dirname(__file__)
-        filename = "conf_rochester.json"
-        with open(os.path.join(dirname, filename)) as f_conf:
-            conf = json.load(f_conf)
-        configuration = QasmBackendConfiguration.from_dict(conf)
-        configuration.backend_name = 'fake_rochester'
-        super().__init__(configuration)
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_rochester.json"
+    props_filename = "props_rochester.json"
+    backend_name = "fake_rochester"
 
-    def properties(self):
-        """Returns a snapshot of device properties"""
-        dirname = os.path.dirname(__file__)
-        filename = "props_rochester.json"
-        with open(os.path.join(dirname, filename)) as f_prop:
-            props = json.load(f_prop)
-        return BackendProperties.from_dict(props)
+
+class FakeLegacyRochester(fake_qasm_backend.FakeQasmLegacyBackend):
+    """A fake Rochester backend."""
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_rochester.json"
+    props_filename = "props_rochester.json"
+    backend_name = "fake_rochester"
