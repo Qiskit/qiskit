@@ -460,11 +460,6 @@ def _parse_pulse_args(
     if backend:
         frames_config_ = getattr(backend.defaults(), "frames", FramesConfiguration())
 
-        # The frames in pulse defaults do not provide a dt (needed to compute phase
-        # advances) so we add it here.
-        for frame_def in frames_config_.definitions:
-            frame_def.sample_duration = backend_config.dt
-
     if frames_config is None:
         frames_config = frames_config_
     else:
@@ -472,6 +467,9 @@ def _parse_pulse_args(
             # Do not override the frames provided by the user.
             if frame not in frames_config:
                 frames_config[frame] = config
+
+    if backend:
+        frames_config.add_dt(backend_config.dt)
 
     dynamic_reprate_enabled = getattr(backend_config, "dynamic_reprate_enabled", False)
 
