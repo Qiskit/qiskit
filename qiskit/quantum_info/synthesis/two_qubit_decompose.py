@@ -565,9 +565,7 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
         return cx1.duration < cx2.duration
 
     def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
-        """Appends Ud(a, b, c) to the circuit.
-
-        Can be overriden in subclasses for special cases"""
+        """Appends Ud(a, b, c) to the circuit."""
         del simplify
         circ.h(0)
         if abs(self.a) > atol:
