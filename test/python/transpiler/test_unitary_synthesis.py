@@ -27,6 +27,7 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.transpiler import PassManager, CouplingMap
 from qiskit.transpiler.passes import TrivialLayout
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 @ddt
@@ -203,6 +204,155 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc_out_nat = pm_nat.run(qc)
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
+
+    def test_two_qubit_synthesis_not_pulse_optimal(self):
+        """Verify not attempting pulse optimal decomposition when pulse_optimize==False."""
+        backend = FakeVigo()
+        conf = backend.configuration()
+        qr = QuantumRegister(2)
+        coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
+        triv_layout_pass = TrivialLayout(coupling_map)
+        qc = QuantumCircuit(qr)
+        qc.unitary(random_unitary(4, seed=12), [0, 1])
+        unisynth_pass = UnitarySynthesis(
+            basis_gates=conf.basis_gates,
+            coupling_map=coupling_map,
+            backend_props=backend.properties(),
+            pulse_optimize=False,
+            natural_direction=True,
+        )
+        pm = PassManager([triv_layout_pass, unisynth_pass])
+        qc_out = pm.run(qc)
+        if isinstance(qc_out, QuantumCircuit):
+            num_ops = qc_out.count_ops()  # pylint: disable=no-member
+        else:
+            num_ops = qc_out[0].count_ops()
+        self.assertIn("sx", num_ops)
+        self.assertGreaterEqual(num_ops["sx"], 16)
+
+    def test_two_qubit_pulse_optimal_true_raises(self):
+        """Verify not attempting pulse optimal decomposition when pulse_optimize==False."""
+        from qiskit.exceptions import QiskitError
+
+        backend = FakeVigo()
+        conf = backend.configuration()
+        # this assumes iswawp pulse optimal decomposition doesn't exist
+        conf.basis_gates = [gate if gate != "cx" else "iswap" for gate in conf.basis_gates]
+        qr = QuantumRegister(2)
+        coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
+        triv_layout_pass = TrivialLayout(coupling_map)
+        qc = QuantumCircuit(qr)
+        qc.unitary(random_unitary(4, seed=12), [0, 1])
+        unisynth_pass = UnitarySynthesis(
+            basis_gates=conf.basis_gates,
+            coupling_map=coupling_map,
+            backend_props=backend.properties(),
+            pulse_optimize=True,
+            natural_direction=True,
+        )
+        pm = PassManager([triv_layout_pass, unisynth_pass])
+        with self.assertRaises(QiskitError):
+            pm.run(qc)
+
+    def test_two_qubit_natural_direction_true_coupling_map_raises(self):
+        """Verify not attempting pulse optimal decomposition when pulse_optimize==False."""
+        # this assumes iswawp pulse optimal decomposition doesn't exist
+        from qiskit.exceptions import QiskitError
+
+        backend = FakeVigo()
+        conf = backend.configuration()
+        conf.basis_gates = [gate if gate != "cx" else "iswap" for gate in conf.basis_gates]
+        qr = QuantumRegister(2)
+        coupling_map = CouplingMap([[0, 1], [1, 0], [1, 2], [1, 3], [3, 4]])
+        triv_layout_pass = TrivialLayout(coupling_map)
+        qc = QuantumCircuit(qr)
+        qc.unitary(random_unitary(4, seed=12), [0, 1])
+        unisynth_pass = UnitarySynthesis(
+            basis_gates=conf.basis_gates,
+            coupling_map=coupling_map,
+            backend_props=backend.properties(),
+            pulse_optimize=True,
+            natural_direction=True,
+        )
+        pm = PassManager([triv_layout_pass, unisynth_pass])
+        with self.assertRaises(QiskitError):
+            pm.run(qc)
+
+    def test_two_qubit_natural_direction_true_gate_length_raises(self):
+        """Verify not attempting pulse optimal decomposition when pulse_optimize==False."""
+        # this assumes iswawp pulse optimal decomposition doesn't exist
+        backend = FakeVigo()
+        conf = backend.configuration()
+        for _, nduv in backend.properties()._gates["cx"].items():
+            nduv["gate_length"] = (4e-7, nduv["gate_length"][1])
+            nduv["gate_error"] = (7e-3, nduv["gate_error"][1])
+        qr = QuantumRegister(2)
+        coupling_map = CouplingMap([[0, 1], [1, 0], [1, 2], [1, 3], [3, 4]])
+        triv_layout_pass = TrivialLayout(coupling_map)
+        qc = QuantumCircuit(qr)
+        qc.unitary(random_unitary(4, seed=12), [0, 1])
+        unisynth_pass = UnitarySynthesis(
+            basis_gates=conf.basis_gates,
+            backend_props=backend.properties(),
+            pulse_optimize=True,
+            natural_direction=True,
+        )
+        pm = PassManager([triv_layout_pass, unisynth_pass])
+        with self.assertRaises(TranspilerError):
+            pm.run(qc)
+
+    def test_two_qubit_pulse_optimal_none_optimal(self):
+        """Verify pulse optimal decomposition when pulse_optimize==None."""
+        # this assumes iswawp pulse optimal decomposition doesn't exist
+        backend = FakeVigo()
+        conf = backend.configuration()
+        qr = QuantumRegister(2)
+        coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
+        triv_layout_pass = TrivialLayout(coupling_map)
+        qc = QuantumCircuit(qr)
+        qc.unitary(random_unitary(4, seed=12), [0, 1])
+        unisynth_pass = UnitarySynthesis(
+            basis_gates=conf.basis_gates,
+            coupling_map=coupling_map,
+            backend_props=backend.properties(),
+            pulse_optimize=None,
+            natural_direction=True,
+        )
+        pm = PassManager([triv_layout_pass, unisynth_pass])
+        qc_out = pm.run(qc)
+        if isinstance(qc_out, QuantumCircuit):
+            num_ops = qc_out.count_ops()  # pylint: disable=no-member
+        else:
+            num_ops = qc_out[0].count_ops()
+        self.assertIn("sx", num_ops)
+        self.assertLessEqual(num_ops["sx"], 12)
+
+    def test_two_qubit_pulse_optimal_none_no_raise(self):
+        """Verify pulse optimal decomposition when pulse_optimize==None."""
+        # this assumes iswawp pulse optimal decomposition doesn't exist
+        backend = FakeVigo()
+        conf = backend.configuration()
+        conf.basis_gates = [gate if gate != "cx" else "iswap" for gate in conf.basis_gates]
+        qr = QuantumRegister(2)
+        coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
+        triv_layout_pass = TrivialLayout(coupling_map)
+        qc = QuantumCircuit(qr)
+        qc.unitary(random_unitary(4, seed=12), [0, 1])
+        unisynth_pass = UnitarySynthesis(
+            basis_gates=conf.basis_gates,
+            coupling_map=coupling_map,
+            backend_props=backend.properties(),
+            pulse_optimize=None,
+            natural_direction=True,
+        )
+        pm = PassManager([triv_layout_pass, unisynth_pass])
+        qc_out = pm.run(qc)
+        if isinstance(qc_out, QuantumCircuit):
+            num_ops = qc_out.count_ops()  # pylint: disable=no-member
+        else:
+            num_ops = qc_out[0].count_ops()
+        self.assertIn("sx", num_ops)
+        self.assertLessEqual(num_ops["sx"], 14)
 
 
 if __name__ == "__main__":

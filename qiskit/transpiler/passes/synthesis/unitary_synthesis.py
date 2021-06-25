@@ -13,11 +13,12 @@
 """Synthesize UnitaryGates."""
 
 from math import pi, inf
-from typing import List
+from typing import List, Union
 from copy import deepcopy
 
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.synthesis import one_qubit_decompose
@@ -66,8 +67,8 @@ class UnitarySynthesis(TransformationPass):
         approximation_degree: float = 1,
         coupling_map: List = None,
         backend_props: BackendProperties = None,
-        pulse_optimize: bool = False,
-        natural_direction: bool = True,
+        pulse_optimize: Union[bool, None] = None,
+        natural_direction: Union[bool, None] = None,
     ):
         """
         Synthesize unitaries over some basis gates.
@@ -78,13 +79,16 @@ class UnitarySynthesis(TransformationPass):
 
         Args:
             basis_gates: List of gate names to target.
-            approximation_degree: closeness of approximation (0: lowest, 1: highest).
-            backend_props: properties of a backend to synthesize for
+            approximation_degree: Closeness of approximation (0: lowest, 1: highest).
+            backend_props: Properties of a backend to synthesize for
                 (e.g. gate fidelities).
-            pulse_optimize: whether to optimize pulses during synthesis.
-            natural_direction: whether to apply synthesis favoring directionally
+            pulse_optimize: Whether to optimize pulses during synthesis.
+            natural_direction: Whether to apply synthesis favoring directionally
                 favored 2-qubit gate direction. Only applies when
-                `pulse_optimize` == True.
+                `pulse_optimize` == True. The natural direction is determined
+                by first checking to see whether the coupling map is unidirectional.
+                If there is no coupling map, the gate direction with the shorter
+                duration from the backend properties will be used.
         """
         super().__init__()
         self._basis_gates = basis_gates
@@ -102,6 +106,14 @@ class UnitarySynthesis(TransformationPass):
 
         Returns:
             Output dag with UnitaryGates synthesized to target basis.
+
+        Raises:
+            TranspilerError:
+                1. pulse_optimize is True but pulse optimal decomposition is not known
+                   for requested basis.
+                2. pulse_optimize is True and natural_direction is True but a preferred
+                   gate direction can't be determined from the coupling map or the
+                   relative gate lengths.
         """
 
         euler_basis = _choose_euler_basis(self._basis_gates)
@@ -118,7 +130,6 @@ class UnitarySynthesis(TransformationPass):
             if self._basis_gates and node.name in self._basis_gates:
                 continue
             synth_dag = None
-            wires = None
             if len(node.qargs) == 1:
                 if decomposer1q is None:
                     continue
@@ -126,7 +137,7 @@ class UnitarySynthesis(TransformationPass):
             elif len(node.qargs) == 2:
                 if decomposer2q is None:
                     continue
-                synth_dag, wires = self._synth_natural_direction(node, wires, dag, decomposer2q)
+                synth_dag, wires = self._synth_natural_direction(node, dag, decomposer2q)
             else:
                 synth_dag = circuit_to_dag(isometry.Isometry(node.op.to_matrix(), 0, 0).definition)
 
@@ -134,12 +145,13 @@ class UnitarySynthesis(TransformationPass):
 
         return dag
 
-    def _synth_natural_direction(self, node, wires, dag, decomposer2q):
+    def _synth_natural_direction(self, node, dag, decomposer2q):
         layout = self.property_set["layout"]
         natural_direction = None
         synth_direction = None
         physical_gate_fidelity = None
-        if self._natural_direction and layout and self._coupling_map:
+        wires = None
+        if self._natural_direction in {None, True} and layout and self._coupling_map:
             neighbors = self._coupling_map.neighbors(dag.qubits.index(node.qargs[0]))
             zero_one = dag.qubits.index(node.qargs[1]) in neighbors
             neighbors = self._coupling_map.neighbors(dag.qubits.index(node.qargs[1]))
@@ -149,18 +161,20 @@ class UnitarySynthesis(TransformationPass):
             if one_zero and not zero_one:
                 natural_direction = [1, 0]
 
-        elif self._natural_direction and layout and self._backend_props:
+        elif self._natural_direction in {None, True} and layout and self._backend_props:
             len_0_1 = inf
             len_1_0 = inf
             try:
                 len_0_1 = self._backend_props.gate_length(
-                    "cx", [dag.qubits.index(node.qargs[0]), dag.qubits.index(node.qargs[1])]
+                    decomposer2q.gate.name,
+                    [dag.qubits.index(node.qargs[0]), dag.qubits.index(node.qargs[1])],
                 )
             except BackendPropertyError:
                 pass
             try:
                 len_1_0 = self._backend_props.gate_length(
-                    "cx", [dag.qubits.index(node.qargs[1]), dag.qubits.index(node.qargs[0])]
+                    decomposer2q.gate.name,
+                    [dag.qubits.index(node.qargs[1]), dag.qubits.index(node.qargs[0])],
                 )
             except BackendPropertyError:
                 pass
@@ -173,6 +187,12 @@ class UnitarySynthesis(TransformationPass):
                 physical_gate_fidelity = 1 - self._backend_props.gate_error(
                     "cx", [dag.qubits.index(node.qargs[i]) for i in natural_direction]
                 )
+        if self._natural_direction is True and natural_direction is None:
+            raise TranspilerError(
+                f"No preferred direction of {node.name} gate "
+                "could be determined from coupling map or "
+                "gate lengths."
+            )
         basis_fidelity = self._approximation_degree or physical_gate_fidelity
         su4_mat = node.op.to_matrix()
         synth_circ = decomposer2q(su4_mat, basis_fidelity=basis_fidelity)
@@ -181,10 +201,10 @@ class UnitarySynthesis(TransformationPass):
         # if a natural direction exists but the synthesis is in the opposite direction,
         # resynthesize a new operator which is the original conjugated by swaps.
         # this new operator is doubly mirrored from the original and is locally equivalent.
-        if synth_dag.two_qubit_ops():
-            synth_direction = [
-                synth_dag.qubits.index(qubit) for qubit in synth_dag.two_qubit_ops()[0].qargs
-            ]
+        synth_direction = next(
+            ((synth_dag.qubits.index(q) for q in op.qargs) for op in synth_dag.two_qubit_ops()),
+            None,
+        )
         if natural_direction and self._pulse_optimize and synth_direction != natural_direction:
             su4_mat_mm = deepcopy(su4_mat)
             su4_mat_mm[[1, 2]] = su4_mat_mm[[2, 1]]

@@ -34,6 +34,7 @@ import logging
 
 import numpy as np
 import scipy.linalg as la
+from scipy.spatial.transform import Rotation
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -41,7 +42,10 @@ from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
-from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer, DEFAULT_ATOL
+from qiskit.quantum_info.synthesis.one_qubit_decompose import (
+    OneQubitEulerDecomposer,
+    DEFAULT_ATOL,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -675,9 +679,14 @@ class TwoQubitBasisDecomposer:
         euler_basis (str): Basis string to be provided to OneQubitEulerDecomposer for 1Q synthesis.
             Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U', 'U3', 'U1X', 'PSX', 'ZSX', 'RR'].
             Default 'U3'.
+        pulse_optimize (None or bool): If True, try to do decomposition which minimizes
+            local unitaries in between entangling gates. This will raise an exception if an
+            optimal decomposition not implemented. Currently, only {CX, SX, RZ} is known.
+            If False, don't attempt optimization. If None, attempt optimization but don't raise
+            if unknown.
     """
 
-    def __init__(self, gate, basis_fidelity=1.0, euler_basis=None, pulse_optimize=False):
+    def __init__(self, gate, basis_fidelity=1.0, euler_basis=None, pulse_optimize=None):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
         self.pulse_optimize = pulse_optimize
@@ -913,114 +922,141 @@ class TwoQubitBasisDecomposer:
         if _num_basis_uses is not None:
             best_nbasis = _num_basis_uses
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
+        # attempt pulse optimal decomposition
+        try:
+            if self.pulse_optimize in {None, True}:
+                return_circuit = self._pulse_optimal_chooser(
+                    best_nbasis, decomposition, target_decomposed
+                )
+                return return_circuit
+        except QiskitError:
+            if self.pulse_optimize:
+                raise
 
-        if isinstance(self.gate, CXGate):
-            num_u = 2 * best_nbasis
-            decomposition_euler = [None] * num_u
-            for i in range(0, num_u, 2):
-                pass
-        else:
-            decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
-        if self.pulse_optimize and best_nbasis in {2, 3}:
-            if self._decomposer1q.basis in {"ZSX", "ZSXX"}:
-                if isinstance(self.gate, CXGate):
-                    if best_nbasis == 3:
-                        return_circuit = self._get_sx_vz_3cx_efficient_euler(
-                            decomposition, target_decomposed
-                        )
-                    elif best_nbasis == 2:
-                        return_circuit = self._get_sx_vz_2cx_efficient_euler(
-                            decomposition, target_decomposed
-                        )
-                else:
-                    raise QiskitError(
-                        "pulse_optimizer currently only works with CNOT " "entangling gate"
-                    )
+        # do default decomposition
+        decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
+        q = QuantumRegister(2)
+        return_circuit = QuantumCircuit(q)
+        return_circuit.global_phase = target_decomposed.global_phase
+        return_circuit.global_phase -= best_nbasis * self.basis.global_phase
+        if best_nbasis == 2:
+            return_circuit.global_phase += np.pi
+        for i in range(best_nbasis):
+            return_circuit.compose(decomposition_euler[2 * i], [q[0]], inplace=True)
+            return_circuit.compose(decomposition_euler[2 * i + 1], [q[1]], inplace=True)
+            return_circuit.append(self.gate, [q[0], q[1]])
+        return_circuit.compose(decomposition_euler[2 * best_nbasis], [q[0]], inplace=True)
+        return_circuit.compose(decomposition_euler[2 * best_nbasis + 1], [q[1]], inplace=True)
+        return return_circuit
+
+    def _pulse_optimal_chooser(self, best_nbasis, decomposition, target_decomposed):
+        """Determine method to find pulse optimal circuit. This method may be
+        removed once a more general approach is used.
+
+        Returns:
+            QuantumCircuit: pulse optimal quantum circuit.
+        """
+        if self.pulse_optimize and best_nbasis not in {2, 3}:
+            raise QiskitError(
+                f"Unexpected number of entangling gates ({best_nbasis}) in decomposition."
+            )
+        if self._decomposer1q.basis in {"ZSX", "ZSXX"}:
+            if isinstance(self.gate, CXGate):
+                if best_nbasis == 3:
+                    circuit = self._get_sx_vz_3cx_efficient_euler(decomposition, target_decomposed)
+                elif best_nbasis == 2:
+                    circuit = self._get_sx_vz_2cx_efficient_euler(decomposition, target_decomposed)
             else:
                 raise QiskitError(
-                    '"pulse_optimize" currently only works with ZSX basis '
-                    f"({self._decomposer1q.basis} used)"
+                    "pulse_optimizer currently only works with CNOT " "entangling gate"
                 )
         else:
-            decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
-            q = QuantumRegister(2)
-            return_circuit = QuantumCircuit(q)
-            return_circuit.global_phase = target_decomposed.global_phase
-            return_circuit.global_phase -= best_nbasis * self.basis.global_phase
-            if best_nbasis == 2:
-                return_circuit.global_phase += np.pi
-            for i in range(best_nbasis):
-                return_circuit.compose(decomposition_euler[2 * i], [q[0]], inplace=True)
-                return_circuit.compose(decomposition_euler[2 * i + 1], [q[1]], inplace=True)
-                return_circuit.append(self.gate, [q[0], q[1]])
-            return_circuit.compose(decomposition_euler[2 * best_nbasis], [q[0]], inplace=True)
-            return_circuit.compose(decomposition_euler[2 * best_nbasis + 1], [q[1]], inplace=True)
-        return return_circuit
+            raise QiskitError(
+                '"pulse_optimize" currently only works with ZSX basis '
+                f"({self._decomposer1q.basis} used)"
+            )
+        return circuit
 
     def _get_sx_vz_2cx_efficient_euler(self, decomposition, target_decomposed):
         """
         Decomposition of SU(4) gate for device with SX, virtual RZ, and CNOT gates assuming
         two CNOT gates are needed.
+
+        This first decomposes each unitary from the KAK decomposition into ZXZ on the source
+        qubit of the CNOTs and XZX on the targets in order to commute operators to beginning and
+        end of decomposition. The beginning and ending single qubit gates are then
+        collapsed and re-decomposed with the single qubit decomposer. This last step could be avoided
+        if performance is a concern.
         """
         best_nbasis = 2  # by assumption
-        from scipy.spatial.transform import Rotation
-
         num_1q_uni = len(decomposition)
-        dq0 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
-        dq1 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
+        # list of euler angle decompositions on qubits 0 and 1
+        euler_q0 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
+        euler_q1 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
         global_phase = 0.0
+        # decompose source unitaries to zxz
         for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
             euler_angles = rot.as_euler("zxz")
-            dq0[iqubit, :] = euler_angles
+            euler_q0[iqubit, :] = euler_angles
             global_phase += phase
+        # decompose target unitaries to xzx
         for iqubit, idecomp in enumerate(range(1, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
             euler_angles = rot.as_euler("xzx")
-            dq1[iqubit, :] = euler_angles
+            euler_q1[iqubit, :] = euler_angles
             global_phase += phase
         qc = QuantumCircuit(2)
         qc.global_phase = target_decomposed.global_phase
         qc.global_phase -= best_nbasis * self.basis.global_phase
 
-        # TODO: make this more effecient
-        qc1q = QuantumCircuit(1)
-        qc1q.rz(dq0[0][0], 0)
-        qc1q.rx(dq0[0][1], 0)
-        qc1q.rz(dq0[0][2] + dq0[1][0], 0)
-        qceuler = self._decomposer1q(Operator(qc1q).data)
-        qceuler.data[-1][0].params[0] += math.pi / 2
+        # TODO: make this more effecient to avoid double decomposition
+        # prepare beginning 0th qubit local unitary
+        circ = QuantumCircuit(1)
+        circ.rz(euler_q0[0][0], 0)
+        circ.rx(euler_q0[0][1], 0)
+        circ.rz(euler_q0[0][2] + euler_q0[1][0], 0)
+        # re-decomopse to basis of 1q decomposer
+        qceuler = self._decomposer1q(Operator(circ).data)
+        if isinstance(qceuler.data[-1][0], RZGate):
+            qceuler.data[-1][0].params[0] += math.pi / 2
+        else:
+            qceuler.rz(math.pi / 2)
         qc.compose(qceuler, [0], inplace=True)
-        qc1q = QuantumCircuit(1)
-        qc1q.rx(dq1[0][0], 0)
-        qc1q.rz(dq1[0][1], 0)
-        qc1q.rx(dq1[0][2] + dq1[1][0], 0)
-        qceuler = self._decomposer1q(Operator(qc1q).data)
+
+        # prepare beginning 1st qubit local unitary
+        circ = QuantumCircuit(1)
+        circ.rx(euler_q1[0][0], 0)
+        circ.rz(euler_q1[0][1], 0)
+        circ.rx(euler_q1[0][2] + euler_q1[1][0], 0)
+        qceuler = self._decomposer1q(Operator(circ).data)
         qc.compose(qceuler, [1], inplace=True)
 
         qc.cx(0, 1)
-
+        # the central decompositions are dependent on the specific form of the
+        # unitaries coming out of the two qubit decomposer which have some flexibility
+        # of choice.
         qc.sx(0)
-        qc.rz(dq0[1][1] - math.pi, 0)
+        qc.rz(euler_q0[1][1] - math.pi, 0)
         qc.sx(0)
-        qc.rz(dq1[1][1], 1)
+        qc.rz(euler_q1[1][1], 1)
 
         qc.cx(0, 1)
 
-        qc1q = QuantumCircuit(1)
-        qc1q.rz(dq0[1][2] + dq0[2][0], 0)
-        qc1q.rx(dq0[2][1], 0)
-        qc1q.rz(dq0[2][2], 0)
-        qceuler = self._decomposer1q(Operator(qc1q).data)
+        circ = QuantumCircuit(1)
+        circ.rz(euler_q0[1][2] + euler_q0[2][0], 0)
+        circ.rx(euler_q0[2][1], 0)
+        circ.rz(euler_q0[2][2], 0)
+        qceuler = self._decomposer1q(Operator(circ).data)
         qceuler.data[0][0].params[0] += math.pi / 2
         qc.compose(qceuler, [0], inplace=True)
-        qc1q = QuantumCircuit(1)
-        qc1q.rx(dq1[1][2] + dq1[2][0], 0)
-        qc1q.rz(dq1[2][1], 0)
-        qc1q.rx(dq1[2][2], 0)
-        qceuler = self._decomposer1q(Operator(qc1q).data)
+        circ = QuantumCircuit(1)
+        circ.rx(euler_q1[1][2] + euler_q1[2][0], 0)
+        circ.rz(euler_q1[2][1], 0)
+        circ.rx(euler_q1[2][2], 0)
+        qceuler = self._decomposer1q(Operator(circ).data)
         qc.compose(qceuler, [1], inplace=True)
 
         # FIXME: sometimes phase is off by multiple of pi/2
@@ -1036,87 +1072,92 @@ class TwoQubitBasisDecomposer:
         """
         Decomposition of SU(4) gate for device with SX, virtual RZ, and CNOT gates assuming
         three CNOT gates are needed.
-        """
-        from scipy.spatial.transform import Rotation
 
+        This first decomposes each unitary from the KAK decomposition into ZXZ on the source
+        qubit of the CNOTs and XZX on the targets in order commute operators to beginning and
+        end of decomposition. Inserting Hadamards reverses the direction of the CNOTs and transforms
+        a variable Rx -> variable virtual Rz. The beginning and ending single qubit gates are then
+        collapsed and re-decomposed with the single qubit decomposer. This last step could be avoided
+        if performance is a concern.
+        """
         best_nbasis = 3  # by assumption
         num_1q_uni = len(decomposition)
-        dq0 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
-        dq1 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
+        euler_q0 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
+        euler_q1 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
         global_phase = 0.0
         for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
             euler_angles = rot.as_euler("zxz")
-            dq0[iqubit, :] = euler_angles
+            euler_q0[iqubit, :] = euler_angles
             global_phase += phase
         for iqubit, idecomp in enumerate(range(1, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
             euler_angles = rot.as_euler("xzx")
-            dq1[iqubit, :] = euler_angles
+            euler_q1[iqubit, :] = euler_angles
             global_phase += phase
         qc = QuantumCircuit(2)
         qc.global_phase = target_decomposed.global_phase
         qc.global_phase -= best_nbasis * self.basis.global_phase
 
-        # TODO: make this more effecient
-        qc1q = QuantumCircuit(1)
-        qc1q.rz(dq0[0][0], 0)
-        qc1q.rx(dq0[0][1], 0)
-        qc1q.rz(dq0[0][2] + dq0[1][0], 0)
-        qc1q.h(0)
-        qceuler = self._decomposer1q(Operator(qc1q).data)
+        # TODO: make this more effecient to avoid double decomposition
+        circ = QuantumCircuit(1)
+        circ.rz(euler_q0[0][0], 0)
+        circ.rx(euler_q0[0][1], 0)
+        circ.rz(euler_q0[0][2] + euler_q0[1][0], 0)
+        circ.h(0)
+        qceuler = self._decomposer1q(Operator(circ).data)
         qc.compose(qceuler, [0], inplace=True)
 
-        qc1q = QuantumCircuit(1)
-        qc1q.rx(dq1[0][0], 0)
-        qc1q.rz(dq1[0][1], 0)
-        qc1q.rx(dq1[0][2] + dq1[1][0], 0)
-        qc1q.h(0)
-        qceuler = self._decomposer1q(Operator(qc1q).data)
+        circ = QuantumCircuit(1)
+        circ.rx(euler_q1[0][0], 0)
+        circ.rz(euler_q1[0][1], 0)
+        circ.rx(euler_q1[0][2] + euler_q1[1][0], 0)
+        circ.h(0)
+        qceuler = self._decomposer1q(Operator(circ).data)
         qc.compose(qceuler, [1], inplace=True)
 
         qc.cx(1, 0)
 
-        qc.rz(dq0[1][1], 0)
-        x12 = dq0[1][2] + dq0[2][0]
+        qc.rz(euler_q0[1][1], 0)
+        x12 = euler_q0[1][2] + euler_q0[2][0]
         isNonZero = False
         if not math.isclose(x12, 0, abs_tol=1e-10):
             isNonZero = True
             if not math.isclose(abs(x12), math.pi):
                 raise QiskitError(f"expected angle of π but got {x12}")
             qc.sx(0)
-        if not math.isclose(dq1[1][1], math.pi / 2):
-            raise QiskitError(f"expected angle of π/2 but got {dq1[1][1]}")
+        if not math.isclose(euler_q1[1][1], math.pi / 2):
+            raise QiskitError(f"expected angle of π/2 but got {euler_q1[1][1]}")
         qc.sx(1)
-        qc.rz(dq1[1][2] + dq1[2][0], 1)
+        qc.rz(euler_q1[1][2] + euler_q1[2][0], 1)
 
         qc.cx(1, 0)
 
         if isNonZero:
             qc.sx(0)
-        qc.rz(dq0[2][1], 0)
-        if not math.isclose(dq1[2][1], math.pi / 2):
-            raise QiskitError(f"expected angle of π/2 but got {dq1[2][1]}")
+        qc.rz(euler_q0[2][1], 0)
+        if not math.isclose(euler_q1[2][1], math.pi / 2):
+            raise QiskitError(f"expected angle of π/2 but got {euler_q1[2][1]}")
         qc.sx(1)
 
         qc.cx(1, 0)
 
-        qc1q = QuantumCircuit(1)
-        qc1q.h(0)
-        qc1q.rz(dq0[2][2] + dq0[3][0], 0)
-        qc1q.rx(dq0[3][1], 0)
-        qc1q.rz(dq0[3][2], 0)
-        qceuler = self._decomposer1q(Operator(qc1q).data)
+        circ = QuantumCircuit(1)
+        circ.h(0)
+        circ.rz(euler_q0[2][2] + euler_q0[3][0], 0)
+        circ.rx(euler_q0[3][1], 0)
+        circ.rz(euler_q0[3][2], 0)
+        qceuler = self._decomposer1q(Operator(circ).data)
         qc.compose(qceuler, [0], inplace=True)
 
-        qc1q = QuantumCircuit(1)
-        qc1q.h(0)
-        qc1q.rx(dq1[2][2] + dq1[3][0], 0)
-        qc1q.rz(dq1[3][1], 0)
-        qc1q.rx(dq1[3][2], 0)
-        qceuler = self._decomposer1q(Operator(qc1q).data)
+        circ = QuantumCircuit(1)
+        circ.h(0)
+        circ.rx(euler_q1[2][2] + euler_q1[3][0], 0)
+        circ.rz(euler_q1[3][1], 0)
+        circ.rx(euler_q1[3][2], 0)
+        qceuler = self._decomposer1q(Operator(circ).data)
         qc.compose(qceuler, [1], inplace=True)
 
         # FIXME: sometimes phase is off by multiple of pi/2
@@ -1152,14 +1193,14 @@ class TwoQubitBasisDecomposer:
 
 def _su2_axis_angle(mat):
     """
-    Convert 2x2 unitary matrix to axis-angle.
+    Parameterize 2x2 unitary matrix as axis-angle.
 
     Args:
         mat (ndarray): single qubit unitary matrix to convert
 
     Returns:
         tuple(axis, angle, phase): where axis is vector in SO(3), angle is the rotation
-            angle in radians, and phase scales mat as exp(1j*phase)
+            angle in radians, and phase scales mat as exp(𝑖 * phase)
             away from the symmetry of su2. If the matrix is a scalar operator the axis will
             be the zero vector, the angle will be zero, and the phase gives the scalar constant as
             exp(𝑖 * phase) · 𝕀.
@@ -1171,10 +1212,39 @@ def _su2_axis_angle(mat):
     u10 = umat[1, 0]
     phase = (-1j * np.log(det)).real / 2
     quat = np.array([u00.real, -u10.imag, u10.real, -u00.imag])  # 1st element scalar
-    pureqnorm = np.linalg.norm(quat[1:])
-    angle = 2 * math.atan2(pureqnorm, quat[0])
-    axis = quat[1:] / pureqnorm
+    pure_quat_norm = np.linalg.norm(quat[1:])
+    if pure_quat_norm:
+        angle = 2 * math.atan2(pure_quat_norm, quat[0])
+        axis[:] = quat[1:] / pure_quat_norm
+    else:
+        angle = 0
     return axis, angle, phase
+
+
+def _axis_angle_su2(axis, angle, phase=None):
+    """Convert axis-angle-phase to matrix in U(2). If zero vector is supplied,
+    or angle is zero, return identity.
+
+    Args:
+        axis (ndarray): The three element axis of rotation.
+        angle (float): The angle of rotation in radians.
+        phase (float, None): If None, returned matrix will be in SU(2).
+    Returns:
+        ndarray: su2 representation of quaternion
+    """
+    if angle == 0 or np.allclose(axis, np.zeros(3)):
+        return np.array([[1, 0], [0, 1]])
+    half_angle = angle / 2
+    quat = np.array([math.cos(half_angle), *(axis * math.sin(half_angle))])
+    matrix = np.array(
+        [
+            [quat[0] - 1j * quat[3], -(quat[2] + 1j * quat[1])],
+            [quat[2] - 1j * quat[1], quat[0] + 1j * quat[3]],
+        ]
+    )
+    if phase:
+        matrix *= cmath.exp(1j * phase)
+    return matrix
 
 
 two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CXGate())

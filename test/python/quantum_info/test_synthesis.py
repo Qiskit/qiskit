@@ -35,7 +35,6 @@ from qiskit.circuit.library import (
     ZGate,
     CXGate,
     CZGate,
-    SwapGate,
     iSwapGate,
     RXXGate,
     RXGate,
@@ -62,6 +61,8 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     Ud,
     decompose_two_qubit_product_gate,
+    _axis_angle_su2,
+    _su2_axis_angle,
 )
 
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
@@ -1276,6 +1277,48 @@ class TestDecomposeProductRaises(QiskitTestCase):
         with self.assertRaises(QiskitError) as exc:
             decompose_two_qubit_product_gate(klkr)
         self.assertIn("decomposition failed", exc.exception.message)
+
+
+@ddt
+class TestAxisAngleConversion(QiskitTestCase):
+    """Test axis-angle conversion."""
+
+    @combine(step=range(8))
+    def test_z_axis_su2_to_axis_angle(self, step):
+        """test conversion from z-axis su2 to axis-angle representation"""
+        matrix = RZGate(np.pi / 4 * step).to_matrix()
+        axis, angle, _ = _su2_axis_angle(matrix)
+        if angle:
+            self.assertTrue(np.allclose(axis, np.array([0, 0, 1])))
+        else:
+            self.assertTrue(np.allclose(axis, np.zeros(3)))
+
+    def test_zero_axis_su2_to_axis_angle(self):
+        """test conversion from scalar matrix to axis-angle representation"""
+        matrix = np.array([[5, 0], [0, 5]])
+        axis, angle, phase = _su2_axis_angle(matrix)
+        self.assertTrue(np.allclose(axis, np.array([0, 0, 0])))
+        self.assertEqual(angle, 0)
+        self.assertEqual(phase, 0)
+
+    @combine(seed=range(10))
+    def test_round_trip(self, seed):
+        """test converting from su2 to axis angle and back"""
+        rng = np.random.default_rng(seed)
+        matrix = random_unitary(2, seed=rng).data
+        axis, angle, phase = _su2_axis_angle(matrix)
+        matrix_out = _axis_angle_su2(axis, angle, phase)
+        self.assertTrue(np.allclose(matrix, matrix_out))
+
+    @combine(seed=range(10))
+    def test_round_trip_phased(self, seed):
+        """test converting from u2 to axis angle and back"""
+        rng = np.random.default_rng(seed)
+        phase_in = rng.random() * 2 * np.pi - np.pi
+        matrix = random_unitary(2, seed=rng).data * np.exp(1j * phase_in)
+        axis, angle, phase = _su2_axis_angle(matrix)
+        matrix_out = _axis_angle_su2(axis, angle, phase)
+        self.assertTrue(np.allclose(matrix, matrix_out))
 
 
 if __name__ == "__main__":
