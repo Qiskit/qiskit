@@ -516,6 +516,16 @@ class LoadFromQasmTest(QiskitTestCase):
         expected.u(-0.5235987755982988, 6.283185307179586, 3.141592653589793, qr[0])
         self.assertEqualUnroll("u", circuit, expected)
 
+    def assertEqualUnroll(self, basis, circuit, expected):
+        """Compares the dags after unrolling to basis"""
+        circuit_dag = circuit_to_dag(circuit)
+        expected_dag = circuit_to_dag(expected)
+
+        circuit_result = Unroller(basis).run(circuit_dag)
+        expected_result = Unroller(basis).run(expected_dag)
+
+        self.assertEqual(circuit_result, expected_result)
+
 
 class ImplicitQiskitlib1Test(QiskitTestCase):
     """For some time, Qiskit is going to implicitly allow the gates in qiskitlib1.inc

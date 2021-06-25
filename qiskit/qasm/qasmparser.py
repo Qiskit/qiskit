@@ -138,49 +138,50 @@ class QasmParser:
     def in_qiskitlib1_inc(self, obj):
         # TODO Remove once deprecation period. Dont forget to remove self.on_the_fly_opaque
         # See: https://github.com/Qiskit/qiskit-terra/pull/6125#issuecomment-862720866
-        qiskitlib1_inc_gates = {"u3": (3, 1),
-                                "u2": (2, 1),
-                                "u1": (1, 1),
-                                "cx": (0, 2),
-                                "id": (0, 1),
-                                "u0": (1, 1),
-                                "u": (3, 1),
-                                "p": (1, 1),
-                                "x": (0, 1),
-                                "y": (0, 1),
-                                "z": (0, 1),
-                                "h": (0, 1),
-                                "s": (0, 1),
-                                "sdg": (0, 1),
-                                "t": (0, 1),
-                                "tdg": (0, 1),
-                                "rx": (1, 1),
-                                "ry": (1, 1),
-                                "rz": (1, 1),
-                                "sx": (0, 1),
-                                "sxdg": (0, 1),
-                                "cz": (0, 2),
-                                "cy": (0, 2),
-                                "swap": (0, 2),
-                                "ch": (0, 2),
-                                "ccx": (0, 3),
-                                "cswap": (0, 3),
-                                "crx": (1, 2),
-                                "cry": (1, 2),
-                                "crz": (1, 2),
-                                "cu1": (1, 2),
-                                "cp": (1, 2),
-                                "cu3": (3, 2),
-                                "csx": (0, 2),
-                                "cu": (4, 2),
-                                "rxx": (1, 2),
-                                "rzz": (1, 2),
-                                "rccx": (0, 3),
-                                "rc3x": (0, 4),
-                                "c3x": (0, 4),
-                                "c3sqrtx": (0, 4),
-                                "c4x": (0, 5),
-                                }
+        qiskitlib1_inc_gates = {
+            "u3": (3, 1),
+            "u2": (2, 1),
+            "u1": (1, 1),
+            "cx": (0, 2),
+            "id": (0, 1),
+            "u0": (1, 1),
+            "u": (3, 1),
+            "p": (1, 1),
+            "x": (0, 1),
+            "y": (0, 1),
+            "z": (0, 1),
+            "h": (0, 1),
+            "s": (0, 1),
+            "sdg": (0, 1),
+            "t": (0, 1),
+            "tdg": (0, 1),
+            "rx": (1, 1),
+            "ry": (1, 1),
+            "rz": (1, 1),
+            "sx": (0, 1),
+            "sxdg": (0, 1),
+            "cz": (0, 2),
+            "cy": (0, 2),
+            "swap": (0, 2),
+            "ch": (0, 2),
+            "ccx": (0, 3),
+            "cswap": (0, 3),
+            "crx": (1, 2),
+            "cry": (1, 2),
+            "crz": (1, 2),
+            "cu1": (1, 2),
+            "cp": (1, 2),
+            "cu3": (3, 2),
+            "csx": (0, 2),
+            "cu": (4, 2),
+            "rxx": (1, 2),
+            "rzz": (1, 2),
+            "rccx": (0, 3),
+            "rc3x": (0, 4),
+            "c3x": (0, 4),
+            "c3sqrtx": (0, 4),
+            "c4x": (0, 5),
+        }
         if obj.name in qiskitlib1_inc_gates:
             warnings.warn(
                 f"The gate {obj.name} (used in line {obj.line}) was moved to qiskitlib1.inc. Consider"
@@ -200,10 +201,13 @@ class QasmParser:
                 arglist.append(Id(f"a{i}", line=0, file="qiskitlib1_inc"))
 
             if arglist:
-                on_the_fly_opaque = Opaque([Id(obj.name, line=0, file="qiskitlib1_inc"), IdList(arglist),
-                                            IdList(idlist)])
+                on_the_fly_opaque = Opaque(
+                    [Id(obj.name, line=0, file="qiskitlib1_inc"), IdList(arglist), IdList(idlist)]
+                )
             else:
-                on_the_fly_opaque = Opaque([Id(obj.name, line=0, file="qiskitlib1_inc"), IdList(idlist)])
+                on_the_fly_opaque = Opaque(
+                    [Id(obj.name, line=0, file="qiskitlib1_inc"), IdList(idlist)]
+                )
             self.on_the_fly_opaque.append(on_the_fly_opaque)
             self.global_symtab[obj.name] = on_the_fly_opaque
             return True
