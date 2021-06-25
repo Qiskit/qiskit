@@ -163,6 +163,11 @@ class FramesConfiguration:
         """Return the definitions for each frame."""
         return [frame_def for frame_def in self._frames.values()]
 
+    def add_dt(self, sample_duration: float):
+        """Add the same duration to all frames."""
+        for definition in self._frames.values():
+            definition.sample_duration = sample_duration
+
     def items(self):
         """Return the items in the frames config."""
         return self._frames.items()
