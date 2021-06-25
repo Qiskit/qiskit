@@ -36,7 +36,7 @@ def pulse_efficient_pass_manager(pass_manager_config: PassManagerConfig) -> Pass
     This pass manager consolidates all consecutive two-qubit operations in a quantum circuit and
     computes the Weyl decomposition of the corresponding unitaries. It rewrites the unitary operations
     in terms of cross-resonance gates and creates calibrations for these gates. Lastly, the circuit
-    is rewritten in the hardware-native basis ['rzx', 'rz', 'x', 'sx'].
+    is rewritten in the hardware-native basis with 'rzx'.
 
     Note:
         This pass manager does currently not support the transpilation of two-qubit operations
