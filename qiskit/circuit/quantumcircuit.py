@@ -1413,15 +1413,14 @@ class QuantumCircuit:
                 )
             else:
                 # decompose gate using definitions if they are not defined in OpenQASM2
-                if instruction.name not in existing_gate_names:
-                    if instruction not in existing_composite_circuits:
-                        custom_instr_names = [
-                            instruction.name for instruction in existing_composite_circuits
-                        ]
-                        if instruction.name in custom_instr_names:
-                            # append instruction id to name to make it unique
-                            instruction.name += f"_{id(instruction)}"
-                        existing_composite_circuits.append(instruction)
+                if instruction.name not in existing_gate_names and \
+                    instruction not in existing_composite_circuits:
+                    if instruction.name in [instruction.name for instruction \
+                        in existing_composite_circuits]:
+                        # append instruction id to name to make it unique
+                        instruction.name += f"_{id(instruction)}"
+
+                    existing_composite_circuits.append(instruction)
 
                 string_temp += "%s %s;\n" % (
                     instruction.qasm(),
