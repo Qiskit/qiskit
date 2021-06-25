@@ -70,25 +70,30 @@ class UnitarySynthesis(TransformationPass):
         pulse_optimize: Union[bool, None] = None,
         natural_direction: Union[bool, None] = None,
     ):
-        """
-        Synthesize unitaries over some basis gates.
+        """Synthesize unitaries over some basis gates.
 
-        This pass can approximate 2-qubit unitaries given some approximation
-        closeness measure (expressed as approximation_degree). Other unitaries
-        are synthesized exactly.
+        This pass can approximate 2-qubit unitaries given some
+        approximation closeness measure (expressed as
+        approximation_degree). Other unitaries are synthesized
+        exactly.
 
         Args:
             basis_gates: List of gate names to target.
-            approximation_degree: Closeness of approximation (0: lowest, 1: highest).
+            approximation_degree: Closeness of approximation
+                (0: lowest, 1: highest).
             backend_props: Properties of a backend to synthesize for
                 (e.g. gate fidelities).
-            pulse_optimize: Whether to optimize pulses during synthesis.
-            natural_direction: Whether to apply synthesis favoring directionally
-                favored 2-qubit gate direction. Only applies when
-                `pulse_optimize` == True. The natural direction is determined
-                by first checking to see whether the coupling map is unidirectional.
-                If there is no coupling map, the gate direction with the shorter
+            pulse_optimize: Whether to optimize pulses during
+                synthesis. A value of None will attempt it but fall
+                back if it doesn't succeed.
+            natural_direction: Whether to apply synthesis considering
+                directionality of 2-qubit gates. Only applies when
+                `pulse_optimize` == True. The natural direction is
+                determined by first checking to see whether the
+                coupling map is unidirectional.  If there is no
+                coupling map, the gate direction with the shorter
                 duration from the backend properties will be used.
+
         """
         super().__init__()
         self._basis_gates = basis_gates
@@ -130,6 +135,7 @@ class UnitarySynthesis(TransformationPass):
             if self._basis_gates and node.name in self._basis_gates:
                 continue
             synth_dag = None
+            wires = None
             if len(node.qargs) == 1:
                 if decomposer1q is None:
                     continue

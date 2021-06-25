@@ -928,7 +928,8 @@ class TwoQubitBasisDecomposer:
                 return_circuit = self._pulse_optimal_chooser(
                     best_nbasis, decomposition, target_decomposed
                 )
-                return return_circuit
+                if return_circuit:
+                    return return_circuit
         except QiskitError:
             if self.pulse_optimize:
                 raise
@@ -955,7 +956,12 @@ class TwoQubitBasisDecomposer:
 
         Returns:
             QuantumCircuit: pulse optimal quantum circuit.
+            None: Probably nbasis=1 and original circuit is fine.
+
+        Raises:
+            QiskitError: Decomposition for selected basis not implemented.
         """
+        circuit = None
         if self.pulse_optimize and best_nbasis not in {2, 3}:
             raise QiskitError(
                 f"Unexpected number of entangling gates ({best_nbasis}) in decomposition."
@@ -967,9 +973,7 @@ class TwoQubitBasisDecomposer:
                 elif best_nbasis == 2:
                     circuit = self._get_sx_vz_2cx_efficient_euler(decomposition, target_decomposed)
             else:
-                raise QiskitError(
-                    "pulse_optimizer currently only works with CNOT " "entangling gate"
-                )
+                raise QiskitError("pulse_optimizer currently only works with CNOT entangling gate")
         else:
             raise QiskitError(
                 '"pulse_optimize" currently only works with ZSX basis '
@@ -998,14 +1002,20 @@ class TwoQubitBasisDecomposer:
         for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
-            euler_angles = rot.as_euler("zxz")
+            with warnings.catch_warnings(record=True):
+                # catch the gimbal lock warning where 1st and 3rd angles cannot be
+                # resolved individually and so 3rd is set to zero
+                euler_angles = rot.as_euler("zxz")
             euler_q0[iqubit, :] = euler_angles
             global_phase += phase
         # decompose target unitaries to xzx
         for iqubit, idecomp in enumerate(range(1, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
-            euler_angles = rot.as_euler("xzx")
+            with warnings.catch_warnings(record=True):
+                # catch the gimbal lock warning where 1st and 3rd angles cannot be
+                # resolved individually and so 3rd is set to zero
+                euler_angles = rot.as_euler("xzx")
             euler_q1[iqubit, :] = euler_angles
             global_phase += phase
         qc = QuantumCircuit(2)
@@ -1017,13 +1027,9 @@ class TwoQubitBasisDecomposer:
         circ = QuantumCircuit(1)
         circ.rz(euler_q0[0][0], 0)
         circ.rx(euler_q0[0][1], 0)
-        circ.rz(euler_q0[0][2] + euler_q0[1][0], 0)
+        circ.rz(euler_q0[0][2] + euler_q0[1][0] + math.pi / 2, 0)
         # re-decomopse to basis of 1q decomposer
         qceuler = self._decomposer1q(Operator(circ).data)
-        if isinstance(qceuler.data[-1][0], RZGate):
-            qceuler.data[-1][0].params[0] += math.pi / 2
-        else:
-            qceuler.rz(math.pi / 2)
         qc.compose(qceuler, [0], inplace=True)
 
         # prepare beginning 1st qubit local unitary
@@ -1046,11 +1052,10 @@ class TwoQubitBasisDecomposer:
         qc.cx(0, 1)
 
         circ = QuantumCircuit(1)
-        circ.rz(euler_q0[1][2] + euler_q0[2][0], 0)
+        circ.rz(euler_q0[1][2] + euler_q0[2][0] + math.pi / 2, 0)
         circ.rx(euler_q0[2][1], 0)
         circ.rz(euler_q0[2][2], 0)
         qceuler = self._decomposer1q(Operator(circ).data)
-        qceuler.data[0][0].params[0] += math.pi / 2
         qc.compose(qceuler, [0], inplace=True)
         circ = QuantumCircuit(1)
         circ.rx(euler_q1[1][2] + euler_q1[2][0], 0)
@@ -1088,13 +1093,19 @@ class TwoQubitBasisDecomposer:
         for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
-            euler_angles = rot.as_euler("zxz")
+            with warnings.catch_warnings(record=True):
+                # catch the gimbal lock warning where 1st and 3rd angles cannot be
+                # resolved individually and so 3rd is set to zero
+                euler_angles = rot.as_euler("zxz")
             euler_q0[iqubit, :] = euler_angles
             global_phase += phase
         for iqubit, idecomp in enumerate(range(1, num_1q_uni, 2)):
             axis, angle, phase = _su2_axis_angle(decomposition[idecomp])
             rot = Rotation.from_rotvec(axis * angle)
-            euler_angles = rot.as_euler("xzx")
+            with warnings.catch_warnings(record=True):
+                # catch the gimbal lock warning where 1st and 3rd angles cannot be
+                # resolved individually and so 3rd is set to zero
+                euler_angles = rot.as_euler("xzx")
             euler_q1[iqubit, :] = euler_angles
             global_phase += phase
         qc = QuantumCircuit(2)
