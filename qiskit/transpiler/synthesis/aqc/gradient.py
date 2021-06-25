@@ -67,14 +67,14 @@ class DefaultGradient(GradientBase):
         n = self._num_qubits
         cnots = self._cnots
 
-        L = np.shape(cnots)[1]
+        num_cnots = np.shape(cnots)[1]
 
         # compute parametric circuit and prepare required matrices for gradient computations
         # we start from the parametric circuit
-        C = np.zeros((2 ** n, 2 ** n * L)) + 0j
-        S = np.zeros((2 ** n, 2 ** n * L)) + 0j
-        T = np.zeros((2 ** n, 2 ** n * L)) + 0j
-        for l in range(L):
+        C = np.zeros((2 ** n, 2 ** n * num_cnots)) + 0j
+        S = np.zeros((2 ** n, 2 ** n * num_cnots)) + 0j
+        T = np.zeros((2 ** n, 2 ** n * num_cnots)) + 0j
+        for l in range(num_cnots):   # todo: why `l` ?
             p = 4 * l
             a = op_ry(thetas[0 + p])
             b = op_rz(thetas[1 + p])
@@ -89,17 +89,17 @@ class DefaultGradient(GradientBase):
             cnot1 = op_cnot(n, q1, q2)
             C[:, 2 ** n * l : 2 ** n * (l + 1)] = la.multi_dot([U2, U1, cnot1])
         V = np.eye(2 ** n)
-        for l in range(L - 1, -1, -1):
+        for l in range(num_cnots - 1, -1, -1):
             V = np.dot(V, C[:, 2 ** n * l : 2 ** n * (l + 1)])
             S[:, 2 ** n * l : 2 ** n * (l + 1)] = V
         V = np.eye(2 ** n)
-        for l in range(L):
+        for l in range(num_cnots):
             V = np.dot(C[:, 2 ** n * l : 2 ** n * (l + 1)], V)
             T[:, 2 ** n * l : 2 ** n * (l + 1)] = V
         V2 = V
         V1 = 1
         for k in range(n):
-            p = 4 * L + 3 * k
+            p = 4 * num_cnots + 3 * k
             # a = Rx(thetas[0 + p])
             a = op_rz(thetas[0 + p])
             b = op_ry(thetas[1 + p])
@@ -111,8 +111,8 @@ class DefaultGradient(GradientBase):
         err = 0.5 * (la.norm(V - target_matrix, "fro") ** 2)
 
         # compute gradient
-        der = np.zeros(4 * L + 3 * n)
-        for l in range(L):
+        der = np.zeros(4 * num_cnots + 3 * n)
+        for l in range(num_cnots):
             p = 4 * l
             a = op_ry(thetas[0 + p])
             b = op_rz(thetas[1 + p])
@@ -140,7 +140,7 @@ class DefaultGradient(GradientBase):
                 dC = la.multi_dot([U2, U1, cnot1])
                 if l == 0:
                     dV = np.dot(S[:, 2 ** n * (l + 1) : 2 ** n * (l + 2)], dC)
-                elif L - 1 == l:
+                elif num_cnots - 1 == l:
                     dV = np.dot(dC, T[:, 2 ** n * (l - 1) : 2 ** n * l])
                 else:
                     dV = la.multi_dot(
@@ -155,7 +155,7 @@ class DefaultGradient(GradientBase):
         for i in range(3 * n):
             dV1 = 1
             for k in range(n):
-                p = 4 * L + 3 * k
+                p = 4 * num_cnots + 3 * k
                 # a = Rx(thetas[0 + p])
                 a = op_rz(thetas[0 + p])
                 b = op_ry(thetas[1 + p])
@@ -169,7 +169,7 @@ class DefaultGradient(GradientBase):
                     c = np.dot(z, c)
                 dV1 = np.kron(dV1, la.multi_dot([a, b, c]))
             dV = np.dot(V2, dV1)
-            der[4 * L + i] = -np.real(np.trace(np.dot(dV.conj().T, target_matrix)))  # V-
+            der[4 * num_cnots + i] = -np.real(np.trace(np.dot(dV.conj().T, target_matrix)))  # V-
 
         # return error, gradient
         return err, der
