@@ -42,7 +42,7 @@ class CVaRMeasurement(OperatorStateFn):
     # TODO allow normalization somehow?
     def __init__(
         self,
-        primitive: Union[OperatorBase] = None,
+        primitive: OperatorBase = None,
         alpha: float = 1.0,
         coeff: Union[complex, ParameterExpression] = 1.0,
     ) -> None:
@@ -138,7 +138,7 @@ class CVaRMeasurement(OperatorStateFn):
         raise NotImplementedError
 
     def __str__(self) -> str:
-        return "CVaRMeasurement({}) * {}".format(str(self.primitive), self.coeff)
+        return f"CVaRMeasurement({str(self.primitive)}) * {self.coeff}"
 
     def eval(
         self, front: Union[str, dict, np.ndarray, OperatorBase, Statevector] = None

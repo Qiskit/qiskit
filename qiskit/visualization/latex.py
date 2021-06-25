@@ -75,7 +75,7 @@ class QCircuitImage:
         self.ops = ops
 
         # image scaling
-        self.scale = 0.7 if scale is None else scale
+        self.scale = 1.0 if scale is None else scale
 
         # Map of qregs to sizes
         self.qregs = {}
@@ -133,13 +133,21 @@ class QCircuitImage:
             if bit not in self.bit_locations:
                 self.bit_locations[bit] = {"register": None, "index": index}
 
+        self.cregbundle = cregbundle
+        # If there is any custom instruction that uses clasiscal bits
+        # then cregbundle is forced to be False.
+        for layer in self.ops:
+            for op in layer:
+                if op.name not in {"measure"} and op.cargs:
+                    self.cregbundle = False
+
         self.cregs_bits = [self.bit_locations[bit]["register"] for bit in clbits]
         self.img_regs = {bit: ind for ind, bit in enumerate(self.ordered_bits)}
-        if cregbundle:
+
+        if self.cregbundle:
             self.img_width = len(qubits) + len(self.cregs)
         else:
             self.img_width = len(self.img_regs)
-        self.cregbundle = cregbundle
         self.global_phase = global_phase
 
         self._style = DefaultStyle().style
@@ -149,31 +157,24 @@ class QCircuitImage:
 
         self._initialize_latex_array()
         self._build_latex_array()
-        header_1 = r"""% \documentclass[preview]{standalone}
-% If the image is too large to fit on this documentclass use
-\documentclass[draft]{beamer}
-"""
-        beamer_line = "\\usepackage[size=custom,height=%d,width=%d,scale=%.1f]{beamerposter}\n"
-        header_2 = r"""% instead and customize the height and width (in cm) to fit.
-% Large images may run out of memory quickly.
-% To fix this use the LuaLaTeX compiler, which dynamically
-% allocates memory.
+        header_1 = r"""\documentclass[border=2px]{standalone}
+        """
+
+        header_2 = r"""
 \usepackage[braket, qm]{qcircuit}
-\usepackage{amsmath}
-\pdfmapfile{+sansmathaccent.map}
-% \usepackage[landscape]{geometry}
-% Comment out the above line if using the beamer documentclass.
-\begin{document}
+\usepackage{graphicx}
+
+\begin{document} 
 """
+        header_scale = "\\scalebox{{{}}}".format(self.scale) + "{"
+
         qcircuit_line = r"""
-\begin{equation*}
-    \Qcircuit @C=%.1fem @R=%.1fem @!R {
+\Qcircuit @C=%.1fem @R=%.1fem @!R { \\
 """
         output = io.StringIO()
         output.write(header_1)
-        output.write("%% img_width = %d, img_depth = %d\n" % (self.img_width, self.img_depth))
-        output.write(beamer_line % self._get_beamer_page())
         output.write(header_2)
+        output.write(header_scale)
         if self.global_phase:
             output.write(
                 r"""{$\mathrm{%s} \mathrm{%s}$}"""
@@ -187,9 +188,8 @@ class QCircuitImage:
                 if j != self.img_depth:
                     output.write(" & ")
                 else:
-                    output.write(r"\\" + "\n")
-        output.write("\t }\n")
-        output.write("\\end{equation*}\n\n")
+                    output.write(r"\\ " + "\n")
+        output.write(r"\\ " + "}}\n")
         output.write("\\end{document}")
         contents = output.getvalue()
         output.close()
@@ -220,24 +220,20 @@ class QCircuitImage:
             if isinstance(self.ordered_bits[i], Clbit):
                 if self.cregbundle:
                     reg = self.bit_locations[self.ordered_bits[i + offset]]["register"]
-                    self._latex[i][0] = "\\lstick{" + reg.name + ":"
+                    label = reg.name + ":"
                     clbitsize = self.cregs[reg]
                     self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
                     offset += clbitsize - 1
                 else:
-                    self._latex[i][0] = (
-                        "\\lstick{"
-                        + self.bit_locations[self.ordered_bits[i]]["register"].name
-                        + "_{"
-                        + str(self.bit_locations[self.ordered_bits[i]]["index"])
-                        + "}:"
-                    )
+                    label = self.bit_locations[self.ordered_bits[i]]["register"].name + "_{"
+                    label += str(self.bit_locations[self.ordered_bits[i]]["index"]) + "}:"
                 if self.initial_state:
-                    self._latex[i][0] += "0"
-                self._latex[i][0] += "}"
+                    label += "0"
+                label += "}"
+                self._latex[i][0] = "\\nghost{" + label + " & " + "\\lstick{" + label
             else:
                 if self.layout is None:
-                    label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
+                    label = " {{{}}}_{{{}}} : ".format(
                         self.bit_locations[self.ordered_bits[i]]["register"].name,
                         self.bit_locations[self.ordered_bits[i]]["index"],
                     )
@@ -249,17 +245,17 @@ class QCircuitImage:
                             virt_reg = next(
                                 reg for reg in self.layout.get_registers() if virt_bit in reg
                             )
-                            label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
+                            label = " {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
                                 virt_reg.name, virt_reg[:].index(virt_bit), bit_location["index"]
                             )
                         except StopIteration:
-                            label = "\\lstick{{ {{{}}} : ".format(bit_location["index"])
+                            label = "  {{{}}} : ".format(bit_location["index"])
                     else:
-                        label = "\\lstick{{ {{{}}} : ".format(bit_location["index"])
+                        label = " {{{}}} : ".format(bit_location["index"])
                 if self.initial_state:
                     label += "\\ket{{0}}"
                 label += " }"
-                self._latex[i][0] = label
+                self._latex[i][0] = "\\nghost{" + label + " & " + "\\lstick{" + label
 
     def _get_image_depth(self):
         """Get depth information for the circuit."""
@@ -463,30 +459,39 @@ class QCircuitImage:
                     gate_text = self._add_params_to_gate_text(op, gate_text)
                     gate_text = generate_latex_label(gate_text)
                     wire_list = [self.img_regs[qarg] for qarg in op.qargs]
+                    if op.cargs:
+                        cwire_list = [self.img_regs[carg] for carg in op.cargs]
+                    else:
+                        cwire_list = []
 
                     if op.op.condition:
                         self._add_condition(op, wire_list, column)
 
-                    if len(wire_list) == 1:
+                    if len(wire_list) == 1 and not op.cargs:
                         self._latex[wire_list[0]][column] = "\\gate{%s}" % gate_text
 
                     elif isinstance(op.op, ControlledGate):
                         num_cols_op = self._build_ctrl_gate(op, gate_text, wire_list, column)
                     else:
-                        num_cols_op = self._build_multi_gate(op, gate_text, wire_list, column)
+                        num_cols_op = self._build_multi_gate(
+                            op, gate_text, wire_list, cwire_list, column
+                        )
 
                 num_cols_layer = max(num_cols_layer, num_cols_op)
 
             column += num_cols_layer
 
-    def _build_multi_gate(self, op, gate_text, wire_list, col):
+    def _build_multi_gate(self, op, gate_text, wire_list, cwire_list, col):
         """Add a multiple wire gate to the _latex list"""
+        cwire_start = len(self.qubit_list)
         num_cols_op = 1
         if isinstance(op.op, (SwapGate, RZZGate)):
             num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
         else:
             wire_min = min(wire_list)
             wire_max = max(wire_list)
+            if cwire_list and not self.cregbundle:
+                wire_max = max(cwire_list)
             wire_ind = wire_list.index(wire_min)
             self._latex[wire_min][col] = (
                 "\\multigate{%s}{%s}_" % (wire_max - wire_min, gate_text)
@@ -494,15 +499,20 @@ class QCircuitImage:
                 + "{%s}" % wire_ind
             )
             for wire in range(wire_min + 1, wire_max + 1):
-                if wire in wire_list:
-                    wire_ind = wire_list.index(wire)
+                if wire < cwire_start:
+                    ghost_box = "\\ghost{%s}" % gate_text
+                    if wire in wire_list:
+                        wire_ind = wire_list.index(wire)
+                else:
+                    ghost_box = "\\cghost{%s}" % gate_text
+                    if wire in cwire_list:
+                        wire_ind = cwire_list.index(wire)
+                if wire in wire_list + cwire_list:
                     self._latex[wire][col] = (
-                        "\\ghost{%s}_" % gate_text
-                        + "<" * (len(str(wire_ind)) + 2)
-                        + "{%s}" % wire_ind
+                        ghost_box + "_" + "<" * (len(str(wire_ind)) + 2) + "{%s}" % wire_ind
                     )
                 else:
-                    self._latex[wire][col] = "\\ghost{%s}" % gate_text
+                    self._latex[wire][col] = ghost_box
         return num_cols_op
 
     def _build_ctrl_gate(self, op, gate_text, wire_list, col):
@@ -513,7 +523,7 @@ class QCircuitImage:
         ctrlqargs = wire_list[:num_ctrl_qubits]
         wire_min = min(wireqargs)
         wire_max = max(wireqargs)
-        ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(num_ctrl_qubits, "0")[::-1]
+        ctrl_state = f"{op.op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
 
         # First do single qubit target gates
         if len(wireqargs) == 1:
@@ -543,7 +553,7 @@ class QCircuitImage:
                 else:
                     self._add_controls(wire_list, ctrlqargs, ctrl_state, col)
 
-                self._build_multi_gate(op, gate_text, wireqargs, col)
+                self._build_multi_gate(op, gate_text, wireqargs, [], col)
         return num_cols_op
 
     def _build_symmetric_gate(self, op, gate_text, wire_list, col):
@@ -562,7 +572,7 @@ class QCircuitImage:
         if isinstance(op.op, RZZGate) or (base_op and isinstance(base_op, RZZGate)):
             ctrl_bit = "1"
         else:
-            ctrl_bit = "{:b}".format(op.op.ctrl_state).rjust(1, "0")[::-1]
+            ctrl_bit = f"{op.op.ctrl_state:b}".rjust(1, "0")[::-1]
 
         control = "\\ctrlo" if ctrl_bit == "0" else "\\ctrl"
         self._latex[wire_next_last][col] = f"{control}" + (
@@ -689,5 +699,5 @@ class QCircuitImage:
     def _truncate_float(self, matchobj, ndigits=4):
         """Truncate long floats."""
         if matchobj.group(0):
-            return "%.{}g".format(ndigits) % float(matchobj.group(0))
+            return f"%.{ndigits}g" % float(matchobj.group(0))
         return ""

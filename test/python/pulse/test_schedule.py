@@ -243,7 +243,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched = sched.append(Play(lp0, self.config.drive(0)))  # child
         sched = sched.append(subsched)
 
-        start_times = sorted([shft + instr.start_time for shft, instr in sched.instructions])
+        start_times = sorted(shft + instr.start_time for shft, instr in sched.instructions)
         self.assertEqual([0, 30, 40], start_times)
 
     def test_shift_schedule(self):
@@ -260,7 +260,7 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         shift = sched.shift(100)
 
-        start_times = sorted([shft + instr.start_time for shft, instr in shift.instructions])
+        start_times = sorted(shft + instr.start_time for shft, instr in shift.instructions)
 
         self.assertEqual([100, 130, 140], start_times)
 
@@ -484,6 +484,17 @@ class TestScheduleBuilding(BaseTestSchedule):
         for j in range(1, 10):
             sched = sched.append(Play(lp0, self.config.drive(0)))
             self.assertEqual(len(sched), j)
+
+    def test_inherit_from(self):
+        """Test creating schedule with another schedule."""
+        ref_metadata = {"test": "value"}
+        ref_name = "test"
+
+        base_sched = Schedule(name=ref_name, metadata=ref_metadata)
+        new_sched = Schedule.initialize_from(base_sched)
+
+        self.assertEqual(new_sched.name, ref_name)
+        self.assertDictEqual(new_sched.metadata, ref_metadata)
 
 
 class TestReplace(BaseTestSchedule):

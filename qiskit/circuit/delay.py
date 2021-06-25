@@ -64,7 +64,7 @@ class Delay(Instruction):
 
     def __repr__(self):
         """Return the official string representing the delay."""
-        return "%s(duration=%s[unit=%s])" % (self.__class__.__name__, self.params[0], self.unit)
+        return f"{self.__class__.__name__}(duration={self.params[0]}[unit={self.unit}])"
 
     def validate_parameter(self, parameter):
         """Delay parameter (i.e. duration) must be int, float or ParameterExpression."""
@@ -77,7 +77,7 @@ class Delay(Instruction):
         elif isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:
                 return parameter  # expression has free parameters, we cannot validate it
-            if not parameter._symbol_expr.is_real:
+            if not parameter.is_real():
                 raise CircuitError(f"Bound parameter expression is complex in delay {self.name}")
             fval = float(parameter)
             if self.unit == "dt":

@@ -368,7 +368,7 @@ Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some 
 Qiskit Terra uses 2 tools for verify code formatting and lint checking. The
 first tool is [black](https://github.com/psf/black) which is a code formatting
 tool that will automatically update the code formatting to a consistent style.
-The second tool is [pylint]https://www.pylint.org/) which is a code linter
+The second tool is [pylint](https://www.pylint.org/) which is a code linter
 which does a deeper analysis of the Python code to find both style issues and
 potential bugs and other common issues in Python.
 
@@ -422,3 +422,55 @@ the following steps:
 
 The `stable/*` branches should only receive changes in the form of bug
 fixes.
+
+## Adding deprecation warnings
+The qiskit-terra code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy) fully applies here. Additionally, qiskit-terra does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
+
+For example, if `Obj.method1` is being deprecated in favour of `Obj.method2`, the existing test (or tests) for `method1` might look like this:
+
+```python
+def test_method1(self):
+   result = Obj.method1()
+   self.assertEqual(result, <expected>)
+```
+
+Deprecating `method1` means that `Obj.method1()` now raises a deprecation warning and the test will not pass. The existing test should be updated and a new test added for `method2`:
+
+
+```python
+def test_method1_deprecated(self):
+   with self.assertWarns(DeprecationWarning):
+       result = Obj.method1()
+   self.assertEqual(result, <expected>)
+
+def test_method2(self):
+   result = Obj.method2()
+   self.assertEqual(result, <expected>)
+```
+
+`test_method1_deprecated` can be removed after `Obj.method1` is removed (following the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy)).
+
+## Dealing with the git blame ignore list
+
+In the qiskit-terra repository we maintain a list of commits for git blame
+to ignore. This is mostly commits that are code style changes that don't
+change the functionality but just change the code formatting (for example,
+when we migrated to use black for code formatting). This file,
+`.git-blame-ignore-revs` just contains a list of commit SHA1s you can tell git
+to ignore when using the `git blame` command. This can be done one time
+with something like
+
+```
+git blame --ignore-revs-file .git-blame-ignore-revs qiskit/version.py
+
+```
+
+from the root of the repository. If you'd like to enable this by default you
+can update your local repository's configuration with:
+
+```
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+which will update your local repositories configuration to use the ignore list
+by default.

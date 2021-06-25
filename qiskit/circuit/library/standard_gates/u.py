@@ -71,7 +71,7 @@ class UGate(Gate):
         return UGate(-self.params[0], -self.params[2], -self.params[1])
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (multi-)controlled-U3 gate.
+        """Return a (multi-)controlled-U gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -97,7 +97,7 @@ class UGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the U gate."""
-        theta, phi, lam = [float(param) for param in self.params]
+        theta, phi, lam = (float(param) for param in self.params)
         return numpy.array(
             [
                 [numpy.cos(theta / 2), -numpy.exp(1j * lam) * numpy.sin(theta / 2)],
@@ -131,7 +131,7 @@ class CUGate(ControlledGate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        CU(\theta, \phi, \lambda)\ q_0, q_1 =
+        CU(\theta, \phi, \lambda, \gamma)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| +
             e^{i\gamma} U(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
@@ -157,9 +157,9 @@ class CUGate(ControlledGate):
 
         .. math::
 
-            CU(\theta, \phi, \lambda)\ q_1, q_0 =
+            CU(\theta, \phi, \lambda, \gamma)\ q_1, q_0 =
                 |0\rangle\langle 0| \otimes I +
-                e^{i\gamma}|1\rangle\langle 1| \otimes U3(\theta,\phi,\lambda) =
+                e^{i\gamma}|1\rangle\langle 1| \otimes U(\theta,\phi,\lambda) =
                 \begin{pmatrix}
                     1 & 0 & 0                             & 0 \\
                     0 & 1 & 0                             & 0 \\
@@ -221,7 +221,7 @@ class CUGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CU gate."""
-        theta, phi, lam, gamma = [float(param) for param in self.params]
+        theta, phi, lam, gamma = (float(param) for param in self.params)
         cos = numpy.cos(theta / 2)
         sin = numpy.sin(theta / 2)
         a = numpy.exp(1j * gamma) * cos

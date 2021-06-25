@@ -12,6 +12,8 @@
 
 """Test circuits with variable parameters."""
 import unittest
+import cmath
+import math
 
 import copy
 import pickle
@@ -197,7 +199,7 @@ class TestParameters(QiskitTestCase):
             [a, x[0], x[1], x[2], x[3], x[10], x[11], z]
 
         """
-        a, b, some_name, z = [Parameter(name) for name in ["a", "b", "some_name", "z"]]
+        a, b, some_name, z = (Parameter(name) for name in ["a", "b", "some_name", "z"])
         x = ParameterVector("x", 12)
         a_vector = ParameterVector("a_vector", 15)
 
@@ -604,9 +606,8 @@ class TestParameters(QiskitTestCase):
                     circs.append(getattr(qc_aer, assign_fun)({theta: theta_i}))
                 qobj = assemble(circs)
                 for index, theta_i in enumerate(theta_list):
-                    self.assertEqual(
-                        float(qobj.experiments[index].instructions[0].params[0]), theta_i
-                    )
+                    res = float(qobj.experiments[index].instructions[0].params[0])
+                    self.assertTrue(math.isclose(res, theta_i), f"{res} != {theta_i}")
 
     def test_circuit_composition(self):
         """Test preservation of parameters when combining circuits."""
@@ -714,7 +715,7 @@ class TestParameters(QiskitTestCase):
         paramvecs = []
         qc = QuantumCircuit(qubits)
         for i in range(depth):
-            theta_l = ParameterVector("θ{}".format(i + 1), length=len(ryrz.qubits) * 2)
+            theta_l = ParameterVector(f"θ{i + 1}", length=len(ryrz.qubits) * 2)
             ryrz_inst = ryrz.to_instruction(parameter_map={theta: theta_l})
             paramvecs += [theta_l]
             qc.append(ryrz_inst, qargs=qc.qubits)
@@ -758,7 +759,7 @@ class TestParameters(QiskitTestCase):
         cr = ClassicalRegister(3)
 
         circuit = QuantumCircuit(qr, cr)
-        parameters = [Parameter("x{}".format(i)) for i in range(num_processes)]
+        parameters = [Parameter(f"x{i}") for i in range(num_processes)]
 
         results = parallel_map(
             _construct_circuit, parameters, task_args=(qr,), num_processes=num_processes
@@ -1254,7 +1255,9 @@ class TestParameterExpressions(QiskitTestCase):
                 expr = op(x, const)
                 bound_expr = expr.bind({x: 2.3})
 
-                self.assertEqual(complex(bound_expr), op(2.3, const))
+                res = complex(bound_expr)
+                expected = op(2.3, const)
+                self.assertTrue(cmath.isclose(res, expected), f"{res} != {expected}")
 
     def test_complex_parameter_bound_to_real(self):
         """Test a complex parameter expression can be real if bound correctly."""

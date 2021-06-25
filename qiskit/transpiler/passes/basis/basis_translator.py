@@ -126,11 +126,6 @@ class BasisTranslator(TransformationPass):
 
         # Replace source instructions with target translations.
 
-        # As a bandaid for the performance regression introduced by #6072, cache
-        # bound target DAGs to avoid recurring cost of symbolic calculation on
-        # assign_parameters.
-        target_dag_cache = {}
-
         replace_start_time = time.time()
         for node in dag.op_nodes():
             if node.name in target_basis:
@@ -151,22 +146,17 @@ class BasisTranslator(TransformationPass):
                     )
 
                 if node.op.params:
-                    key = (node.name, tuple(node.op.params))
-                    if key in target_dag_cache:
-                        bound_target_dag = target_dag_cache[key]
-                    else:
-                        # Convert target to circ and back to assign_parameters, since
-                        # DAGCircuits won't have a ParameterTable.
-                        from qiskit.converters import dag_to_circuit, circuit_to_dag
+                    # Convert target to circ and back to assign_parameters, since
+                    # DAGCircuits won't have a ParameterTable.
+                    from qiskit.converters import dag_to_circuit, circuit_to_dag
 
-                        target_circuit = dag_to_circuit(target_dag)
+                    target_circuit = dag_to_circuit(target_dag)
 
-                        target_circuit.assign_parameters(
-                            dict(zip_longest(target_params, node.op.params)), inplace=True
-                        )
+                    target_circuit.assign_parameters(
+                        dict(zip_longest(target_params, node.op.params)), inplace=True
+                    )
 
-                        bound_target_dag = circuit_to_dag(target_circuit)
-                        target_dag_cache[key] = bound_target_dag
+                    bound_target_dag = circuit_to_dag(target_circuit)
                 else:
                     bound_target_dag = target_dag
 
@@ -181,14 +171,11 @@ class BasisTranslator(TransformationPass):
                     dag.substitute_node(node, dag_op, inplace=True)
 
                     if bound_target_dag.global_phase:
-                        from sympy import evaluate
-
-                        with evaluate(False):
-                            dag.global_phase += bound_target_dag.global_phase
+                        dag.global_phase += bound_target_dag.global_phase
                 else:
                     dag.substitute_node_with_dag(node, bound_target_dag)
             else:
-                raise TranspilerError("BasisTranslator did not map {}.".format(node.name))
+                raise TranspilerError(f"BasisTranslator did not map {node.name}.")
 
         replace_end_time = time.time()
         logger.info(
