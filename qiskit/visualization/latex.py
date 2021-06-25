@@ -245,7 +245,6 @@ class QCircuitImage:
                 else:
                     # Check the size of the classical register
                     if clbits_len > 1:
-                        index_cl_bit = str(self.bit_locations[self.ordered_bits[i]]["index"])
                         self._latex[i][0] = (
                             "\\lstick{"
                             + self.bit_locations[self.ordered_bits[i]]["register"].name
