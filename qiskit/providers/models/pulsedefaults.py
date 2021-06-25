@@ -16,6 +16,7 @@ import copy
 from typing import Any, Dict, List
 
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.channels import DriveChannel, MeasureChannel
 from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
@@ -289,10 +290,16 @@ class PulseDefaults:
         if self._frames_config is None:
             frames = {}
             for qubit, freq in enumerate(self.qubit_freq_est):
-                frames[Frame("Q", qubit)] = {"frequency": freq, "purpose": f"Frame of qubit {qubit}"}
+                frames[Frame(DriveChannel.prefix, qubit)] = {
+                    "frequency": freq,
+                    "purpose": f"Frame of qubit {qubit}"
+                }
 
             for meas, freq in enumerate(self.meas_freq_est):
-                frames[Frame("M", meas)] = {"frequency": freq, "purpose": f"Frame of meas {meas}"}
+                frames[Frame(MeasureChannel.prefix, meas)] = {
+                    "frequency": freq,
+                    "purpose": f"Frame of meas {meas}"
+                }
 
             self._frames_config = FramesConfiguration.from_dict(frames)
 

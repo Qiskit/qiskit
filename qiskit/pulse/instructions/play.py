@@ -22,6 +22,7 @@ from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.signal import Signal
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.pulse.utils import deprecated_functionality
+from qiskit.pulse.frame import Frame
 
 
 class Play(Instruction):
@@ -73,9 +74,17 @@ class Play(Instruction):
     def signal(self) -> Signal:
         """The signal that will be played."""
         if isinstance(self.operands[0], Pulse):
-            return Signal(self.operands[0], None)
+            return Signal(self.operands[0], self.operands[1].frame)
 
         return self.operands[0]
+
+    @property
+    def frame(self) -> Frame:
+        """The frame in which the pulse is played."""
+        if isinstance(self.operands[0], Signal):
+            return self.operands[0].frame
+
+        return self.channel.frame
 
     @property
     def channel(self) -> PulseChannel:

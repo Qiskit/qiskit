@@ -100,7 +100,7 @@ class Tracker(ABC):
 
         freq = self.frequency(time)
 
-        return (phase + 2 * np.pi * freq * (time - last_time) * self._sample_duration) % (2 * np.pi)
+        return phase + 2 * np.pi * freq * (time - last_time) * self._sample_duration
 
     def set_frequency(self, time: int, frequency: float):
         """Insert a new frequency in the time-ordered frequencies.

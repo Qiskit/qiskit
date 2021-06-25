@@ -13,6 +13,7 @@
 """Replace a schedule with frames by one with instructions on PulseChannels only."""
 
 from typing import Union
+import numpy as np
 
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.resolved_frame import ResolvedFrame, ChannelTracker
@@ -20,6 +21,7 @@ from qiskit.pulse.transforms.canonicalization import block_to_schedule
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse import channels as chans, instructions
 from qiskit.pulse.frame import FramesConfiguration
+from qiskit.pulse.instructions import ShiftPhase, ShiftFrequency, Play, SetFrequency, SetPhase
 
 
 def resolve_frames(
@@ -68,7 +70,7 @@ def resolve_frames(
     sched = Schedule(name=schedule.name, metadata=schedule.metadata)
 
     for time, inst in schedule.instructions:
-        if isinstance(inst, instructions.Play):
+        if isinstance(inst, Play):
             chan = inst.channel
 
             if inst.signal.frame is not None:
@@ -89,35 +91,38 @@ def resolve_frames(
                     phase_diff = frame_phase - channel_trackers[chan].phase(time)
 
                     if abs(freq_diff) > resolved_frame.tolerance:
-                        shift_freq = instructions.ShiftFrequency(freq_diff, chan)
+                        shift_freq = ShiftFrequency(freq_diff, chan)
                         sched.insert(time, shift_freq, inplace=True)
 
                     if abs(phase_diff) > resolved_frame.tolerance:
-                        sched.insert(time, instructions.ShiftPhase(phase_diff, chan), inplace=True)
+                        sched.insert(time, ShiftPhase(phase_diff, chan), inplace=True)
 
                 # If the channel's phase and frequency has not been set in the past
                 # we set it now
                 else:
-                    sched.insert(time, instructions.SetFrequency(frame_freq, chan), inplace=True)
-                    sched.insert(time, instructions.SetPhase(frame_phase, chan), inplace=True)
+                    if frame_freq != 0:
+                        sched.insert(time, SetFrequency(frame_freq, chan), inplace=True)
+
+                    if frame_phase != 0:
+                        sched.insert(time, SetPhase(frame_phase, chan), inplace=True)
 
                 # Update the frequency and phase of this channel.
                 channel_trackers[chan].set_frequency(time, frame_freq)
                 channel_trackers[chan].set_phase(time, frame_phase)
 
-                play = instructions.Play(inst.operands[0].pulse, chan)
+                play = Play(inst.pulse, chan)
                 sched.insert(time, play, inplace=True)
             else:
-                sched.insert(time, instructions.Play(inst.pulse, chan), inplace=True)
+                sched.insert(time, Play(inst.pulse, chan), inplace=True)
 
         # Insert phase and frequency commands that are not applied to frames.
-        elif isinstance(inst, (instructions.SetFrequency, instructions.ShiftFrequency)):
+        elif isinstance(inst, (SetFrequency, ShiftFrequency)):
             chan = inst.channel
 
             if issubclass(type(chan), chans.PulseChannel):
                 sched.insert(time, type(inst)(inst.frequency, chan), inplace=True)
 
-        elif isinstance(inst, (instructions.SetPhase, instructions.ShiftPhase)):
+        elif isinstance(inst, (SetPhase, ShiftPhase)):
             chan = inst.channel
 
             if issubclass(type(chan), chans.PulseChannel):
@@ -133,7 +138,8 @@ def resolve_frames(
             ),
         ):
             sched.insert(time, inst, inplace=True)
-
+        elif isinstance(inst, instructions.Call):
+            raise PulseError("Inline Call instructions before resolving frames.")
         else:
             raise PulseError(f"Unsupported {inst.__class__.__name__} in frame resolution.")
 
