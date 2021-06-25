@@ -50,7 +50,7 @@ or months, there are many new pull requests opened every day and limited number
 of reviewers available, and while every proposed change is a valuable addition
 to the project not everything is the highest priority. You can help this
 process move more quickly by actively reviewing other open PRs. While only
-members of the @Qiskit/terra-core group or listed contributors in CODEOWNERS
+members of the `@Qiskit/terra-core` group or listed contributors in `CODEOWNERS`
 file have permission to provide final approval and mark a PR as ready for
 merging reviewing code is open to everyone and all reviews are welcome and
 extremely valued contributions. Helping with code review also helps reduce
@@ -78,7 +78,7 @@ code review). This will result in a single CI run instead of doing standalone
 updates with no code changes.
 
 Once your PR has the necessary approvals it will be tagged with the `automerge`
-tag. This is a signal to the mergify bot that the PR has been approved and is
+tag. This is a signal to the [mergify bot](https://mergify.io/) that the PR has been approved and is
 ready for merging. The mergify bot will then enqueue the PR onto it's merge
 queue. At this point the process of updating a PR to the current HEAD of the
 `main` branch is fully automated and once CI passes mergify will merge the PR
