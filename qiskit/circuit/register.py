@@ -20,7 +20,6 @@ import itertools
 import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.exceptions import QiskitIndexError
 
 
 class Register:
@@ -150,8 +149,7 @@ class Register:
             key is int. If key is a slice, returns a list of these instances.
 
         Raises:
-            CircuitError: if the `key` is not an integer.
-            QiskitIndexError: if the `key` is not in the range `(0, self.size)`.
+            CircuitError: if the `key` is not an integer or not in the range `(0, self.size)`.
         """
         if not isinstance(key, (int, np.integer, slice, list)):
             raise CircuitError("expected integer or slice index into register")
@@ -161,7 +159,7 @@ class Register:
             if max(key) < len(self):
                 return [self._bits[idx] for idx in key]
             else:
-                raise QiskitIndexError("register index out of range")
+                raise CircuitError("register index out of range")
         else:
             return self._bits[key]
 
