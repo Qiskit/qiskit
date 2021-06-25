@@ -61,7 +61,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
         trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        for idx, node in enumerate(dag.two_qubit_ops()):
+        for node in dag.two_qubit_ops():
             if node.type == "op":
                 control = node.qargs[0]
                 target = node.qargs[1]
