@@ -72,7 +72,9 @@ class AerPauliExpectation(ExpectationBase):
         if isinstance(operator, PauliSumOp):
             paulis = [(meas[1], meas[0]) for meas in operator.primitive.to_list()]
             snapshot_instruction = SnapshotExpectationValue("expval_measurement", paulis)
-            return CircuitStateFn(snapshot_instruction, coeff=operator.coeff, is_measurement=True)
+            return CircuitStateFn(
+                snapshot_instruction, coeff=operator.coeff, is_measurement=True, from_operator=True
+            )
 
         # Change to Pauli representation if necessary
         if {"Pauli"} != operator.primitive_strings():
@@ -87,13 +89,11 @@ class AerPauliExpectation(ExpectationBase):
         if isinstance(operator, SummedOp):
             paulis = [[meas.coeff, meas.primitive] for meas in operator.oplist]
             snapshot_instruction = SnapshotExpectationValue("expval_measurement", paulis)
-            snapshot_op = CircuitStateFn(snapshot_instruction, is_measurement=True)
-            return snapshot_op
+            return CircuitStateFn(snapshot_instruction, is_measurement=True, from_operator=True)
         if isinstance(operator, PauliOp):
             paulis = [[operator.coeff, operator.primitive]]
             snapshot_instruction = SnapshotExpectationValue("expval_measurement", paulis)
-            snapshot_op = CircuitStateFn(snapshot_instruction, is_measurement=True)
-            return snapshot_op
+            return CircuitStateFn(snapshot_instruction, is_measurement=True, from_operator=True)
 
         raise TypeError(
             f"Conversion of OperatorStateFn of {operator.__class__.__name__} is not defined."
