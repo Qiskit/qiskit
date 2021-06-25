@@ -35,8 +35,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
     def __init__(self, backend):
         self.backend = backend
-        """EchoRZXWeylDecomposition pass.
-        """
+        """EchoRZXWeylDecomposition pass."""
         super().__init__()
 
     def run(self, dag):
