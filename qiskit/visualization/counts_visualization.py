@@ -64,7 +64,10 @@ def plot_histogram(
         color (list or str): String or list of strings for histogram bar colors.
         number_to_keep (int): The number of terms to plot and rest
             is made into a single bar called 'rest'.
-        sort (string): Could be 'asc', 'desc', 'hamming', 'value', or 'value_desc'.
+        sort (string): Could be `'asc'`, `'desc'`, `'hamming'`, `'value'`, or
+            `'value_desc'`. If set to `'value'` or `'value_desc'` the x axis
+            will be sorted by the maximum probability for each bitstring.
+            Defaults to `'asc'`.
         target_string (str): Target string if 'sort' is a distance measure.
         legend(list): A list of strings to use for labels of the data.
             The number of entries must match the length of data (if data is a
