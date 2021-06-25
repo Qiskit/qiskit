@@ -200,7 +200,7 @@ class TestDecompose(QiskitTestCase):
         self.assertEqual(dag.op_nodes()[3].name, "x")
         self.assertEqual(dag.op_nodes()[4].name, "mcx")
         self.assertEqual(dag.op_nodes()[5].name, "h")
-        self.assertEqual(dag.op_nodes()[6].name, "circuit-6")
+        self.assertRegex(dag.op_nodes()[6].name, "circuit-")
 
     def test_decompose_only_given_name(self):
         """Test decomposition parameters so that only given name is decomposed."""
@@ -221,7 +221,7 @@ class TestDecompose(QiskitTestCase):
         self.assertEqual(dag.op_nodes()[9].name, "h")
         self.assertEqual(dag.op_nodes()[10].name, "c3sx")
         self.assertEqual(dag.op_nodes()[11].name, "h")
-        self.assertEqual(dag.op_nodes()[12].name, "circuit-33")
+        self.assertRegex(dag.op_nodes()[12].name, "circuit-")
 
     def test_decompose_mixture_of_names_and_labels(self):
         """ Test decomposition parameters so that mixture of names and labels is decomposed"""
@@ -243,7 +243,7 @@ class TestDecompose(QiskitTestCase):
         self.assertEqual(dag.op_nodes()[11].name, "h")
         self.assertEqual(dag.op_nodes()[12].name, "c3sx")
         self.assertEqual(dag.op_nodes()[13].name, "h")
-        self.assertEqual(dag.op_nodes()[14].name, "circuit-33")
+        self.assertRegex(dag.op_nodes()[14].name, "circuit-")
 
     def test_decompose_name_wildcards(self):
         """ Test decomposition parameters so that name wildcards is decomposed"""
@@ -255,7 +255,7 @@ class TestDecompose(QiskitTestCase):
         self.assertEqual(dag.op_nodes()[1].op.label, "gate2")
         self.assertEqual(dag.op_nodes()[2].name, "mcx")
         self.assertEqual(dag.op_nodes()[3].name, "h")
-        self.assertEqual(dag.op_nodes()[4].name, "circuit-76")
+        self.assertRegex(dag.op_nodes()[4].name, "circuit-")
 
     def test_decompose_label_wildcards(self):
         """ Test decomposition parameters so that label wildcards is decomposed"""
@@ -271,4 +271,4 @@ class TestDecompose(QiskitTestCase):
         self.assertEqual(dag.op_nodes()[5].name, "x")
         self.assertEqual(dag.op_nodes()[6].name, "mcx")
         self.assertEqual(dag.op_nodes()[7].name, "h")
-        self.assertEqual(dag.op_nodes()[8].name, "circuit-88")
+        self.assertRegex(dag.op_nodes()[8].name, "circuit-")
