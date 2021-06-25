@@ -250,7 +250,7 @@ class WeightedAdder(BlueprintCircuit):
             q_state = qr_state[i]
 
             # get bit representation of current weight
-            weight_binary = "{:b}".format(int(weight)).rjust(self.num_sum_qubits, "0")[::-1]
+            weight_binary = f"{int(weight):b}".rjust(self.num_sum_qubits, "0")[::-1]
 
             # loop over bits of current weight and add them to sum and carry registers
             for j, bit in enumerate(weight_binary):
