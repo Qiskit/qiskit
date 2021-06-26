@@ -48,19 +48,19 @@ def pulse_efficient_pass_manager(pass_manager_config: PassManagerConfig) -> Pass
     Returns:
         a pulse-efficient pass manager.
     """
-    backend = pass_manager_config.backend
+    inst_map = pass_manager_config.inst_map
 
     # 1. Consolidate all consecutive two-qubit operations
     _collect_2q_blocks = Collect2qBlocks()
     _consolidate_blocks = ConsolidateBlocks(basis_gates=['rz', 'sx', 'x', 'rxx'])
 
     # 2. Decompose two-qubit unitaries in terms of echoed RZX gates according to the Weyl decomposition
-    _echo_rzx_weyl_decomposition = EchoRZXWeylDecomposition(backend)
-
-    # 3. Add calibrations
-    _rzx_calibrations = RZXCalibrationBuilderNoEcho(backend)
-
-    # 4. Unroll to ['rzx', 'rz', 'x', 'sx'] basis
+    _echo_rzx_weyl_decomposition = EchoRZXWeylDecomposition(inst_map)
+    #
+    # # 3. Add calibrations
+    _rzx_calibrations = RZXCalibrationBuilderNoEcho(inst_map)
+    #
+    # # 4. Unroll to ['rzx', 'rz', 'x', 'sx'] basis
     rzx_basis = ['rzx', 'rz', 'x', 'sx']
     _unroll = [UnrollCustomDefinitions(std_eqlib, rzx_basis),
                BasisTranslator(std_eqlib, rzx_basis)]

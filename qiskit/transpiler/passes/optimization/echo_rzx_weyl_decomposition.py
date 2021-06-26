@@ -33,8 +33,8 @@ class EchoRZXWeylDecomposition(TransformationPass):
     Each pair of RZXGates forms an echoed RZXGate.
     """
 
-    def __init__(self, backend):
-        self.backend = backend
+    def __init__(self, inst_map):
+        self.inst_map = inst_map
         """EchoRZXWeylDecomposition pass."""
         super().__init__()
 
@@ -69,16 +69,16 @@ class EchoRZXWeylDecomposition(TransformationPass):
                 physical_q0 = trivial_layout[control]
                 physical_q1 = trivial_layout[target]
 
-                config = self.backend.configuration()
-                if [physical_q0, physical_q1] not in config.coupling_map:
-                    raise TranspilerError('Qubits %s and %s are not connected on the backend'
-                                          % (physical_q0, physical_q1))
+                # config = self.backend.configuration()
+                # if [physical_q0, physical_q1] not in config.coupling_map:
+                #     raise TranspilerError('Qubits %s and %s are not connected on the backend'
+                #                           % (physical_q0, physical_q1))
 
                 qubit_pair = (physical_q0, physical_q1)
 
                 unitary = qi.Operator(node.op).data
                 dag_weyl = circuit_to_dag(TwoQubitWeylEchoRZX(unitary,
-                                                              backend=self.backend,
+                                                              inst_map=self.inst_map,
                                                               qubit_pair=qubit_pair).circuit())
                 dag.substitute_node_with_dag(node, dag_weyl)
 
