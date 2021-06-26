@@ -16,6 +16,7 @@ import numpy as np
 
 from qiskit.circuit import Parameter
 import qiskit.pulse as pulse
+from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.test import QiskitTestCase
 from qiskit.pulse.transforms import resolve_frames, block_to_schedule
 from qiskit.pulse.transforms.resolved_frame import ResolvedFrame
@@ -121,12 +122,12 @@ class TestResolvedFrames(QiskitTestCase):
 
         for time in [0, 55, 98]:
             phase = np.angle(np.exp(two_pi_dt * 5.5e9 * time)) % (2 * np.pi)
-            self.assertAlmostEqual(r_frame.phase(time), phase, places=8)
+            self.assertAlmostEqual(r_frame.phase(time) % (2 * np.pi), phase, places=8)
             self.assertEqual(r_frame.frequency(time), 5.5e9)
 
         for time in [100, 112]:
             phase = np.angle(np.exp(two_pi_dt * (5.5e9 * 99 + 5.2e9 * (time - 99)))) % (2 * np.pi)
-            self.assertAlmostEqual(r_frame.phase(time), phase, places=8)
+            self.assertAlmostEqual(r_frame.phase(time) % (2 * np.pi), phase, places=8)
 
     def test_get_phase(self):
         """Test that we get the correct phase as function of time."""
@@ -206,47 +207,38 @@ class TestResolvedFrames(QiskitTestCase):
                 "purpose": "Frame of qubit 1.",
             },
         })
+        frames_config.sample_duration = self.dt_
 
         frame0_ = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(self.freq0), self.dt_)
         frame1_ = ResolvedFrame(pulse.Frame("Q", 1), FrameDefinition(self.freq1), self.dt_)
 
         # Check that the resolved frames are tracking phases properly
         for time in [0, 160, 320, 480]:
-            phase = np.angle(np.exp(2.0j * np.pi * self.freq0 * time * self.dt_)) % (2 * np.pi)
-            self.assertAlmostEqual(frame0_.phase(time), phase, places=8)
+            phase = np.angle(np.exp(2.0j * np.pi * self.freq0 * time * self.dt_))
+            self.assertAlmostEqual(frame0_.phase(time) % (2 * np.pi), phase % (2 * np.pi), places=8)
 
             phase = np.angle(np.exp(2.0j * np.pi * self.freq1 * time * self.dt_)) % (2 * np.pi)
-            self.assertAlmostEqual(frame1_.phase(time), phase, places=8)
+            self.assertAlmostEqual(frame1_.phase(time) % (2 * np.pi), phase % (2 * np.pi), places=8)
 
         # Check that the proper phase instructions are added to the frame resolved schedules.
         resolved = resolve_frames(sched, frames_config).instructions
 
         params = [
-            (0, 160, self.freq0, 1),
-            (160, 160, self.freq1, 4),
-            (320, 160, self.freq0, 7),
-            (480, 160, self.freq1, 10),
+            (160, 160, self.freq1, self.freq0, 3),
+            (320, 160, self.freq0, self.freq1, 6),
+            (480, 160, self.freq1, self.freq0, 9),
         ]
 
-        channel_phase = 0.0
-        for time, delta, frame_freq, index in params:
-            wanted_phase = np.angle(np.exp(2.0j * np.pi * frame_freq * time * self.dt_)) % (
-                2 * np.pi
-            )
+        for time, delta, frame_freq, prev_freq, index in params:
+            desired_phase = np.angle(np.exp(2.0j * np.pi * frame_freq * time * self.dt_))
+            channel_phase = np.angle(np.exp(2.0j * np.pi * prev_freq * time * self.dt_))
 
-            phase_diff = (wanted_phase - channel_phase) % (2 * np.pi)
+            phase_diff = (desired_phase - channel_phase) % (2 * np.pi)
 
-            if time == 0:
-                self.assertTrue(isinstance(resolved[index][1], pulse.SetPhase))
-            else:
-                self.assertTrue(isinstance(resolved[index][1], pulse.ShiftPhase))
+            self.assertTrue(isinstance(resolved[index][1], pulse.ShiftPhase))
 
             self.assertEqual(resolved[index][0], time)
             self.assertAlmostEqual(resolved[index][1].phase % (2 * np.pi), phase_diff, places=8)
-
-            channel_phase += np.angle(np.exp(2.0j * np.pi * frame_freq * delta * self.dt_)) % (
-                2 * np.pi
-            )
 
     def test_phase_advance_with_instructions(self):
         """Test that the phase advances are properly computed with frame instructions."""
@@ -263,15 +255,15 @@ class TestResolvedFrames(QiskitTestCase):
         self.assertAlmostEqual(frame.phase(0), 0.0, places=8)
 
         # Test the phase right before the shift phase instruction
-        phase = np.angle(np.exp(2.0j * np.pi * self.freq0 * 159 * self.dt_)) % (2 * np.pi)
-        self.assertAlmostEqual(frame.phase(159), phase, places=8)
+        phase = np.angle(np.exp(2.0j * np.pi * self.freq0 * 159 * self.dt_))
+        self.assertAlmostEqual(frame.phase(159) % (2*np.pi), phase % (2*np.pi), places=8)
 
         # Test the phase at and after the shift phase instruction
-        phase = (np.angle(np.exp(2.0j * np.pi * self.freq0 * 160 * self.dt_)) + 1.0) % (2 * np.pi)
-        self.assertAlmostEqual(frame.phase(160), phase, places=8)
+        phase = np.angle(np.exp(2.0j * np.pi * self.freq0 * 160 * self.dt_)) + 1.0
+        self.assertAlmostEqual(frame.phase(160) % (2 * np.pi), phase % (2 * np.pi), places=8)
 
-        phase = (np.angle(np.exp(2.0j * np.pi * self.freq0 * 161 * self.dt_)) + 1.0) % (2 * np.pi)
-        self.assertAlmostEqual(frame.phase(161), phase, places=8)
+        phase = np.angle(np.exp(2.0j * np.pi * self.freq0 * 161 * self.dt_)) + 1.0
+        self.assertAlmostEqual(frame.phase(161) % (2 * np.pi), phase % (2 * np.pi), places=8)
 
     def test_set_frequency(self):
         """Test setting the frequency of the resolved frame."""
@@ -320,25 +312,59 @@ class TestResolvedFrames(QiskitTestCase):
         self.assertAlmostEqual(set_freq.frequency, self.freq0, places=8)
 
         self.assertEqual(resolved[1][0], 0)
-        set_phase = resolved[1][1]
-        self.assertTrue(isinstance(set_phase, pulse.SetPhase))
-        self.assertAlmostEqual(set_phase.phase, 0.0, places=8)
+        play_pulse = resolved[1][1]
+        self.assertTrue(isinstance(play_pulse, pulse.Play))
 
         # Next, check that we do phase shifts on the DriveChannel after the first Gaussian.
-        self.assertEqual(resolved[3][0], 160)
-        shift_phase = resolved[3][1]
+        self.assertEqual(resolved[2][0], 160)
+        shift_phase = resolved[2][1]
         self.assertTrue(isinstance(shift_phase, pulse.ShiftPhase))
         self.assertAlmostEqual(shift_phase.phase, 1.23, places=8)
 
         # Up to now, no pulse has been applied on the ControlChannel so we should
         # encounter a Set instructions at time 160 which is when the first pulse
         # is played on ControlChannel(0)
-        self.assertEqual(resolved[4][0], 160)
-        set_freq = resolved[4][1]
+        self.assertEqual(resolved[3][0], 160)
+        set_freq = resolved[3][1]
         self.assertTrue(isinstance(set_freq, pulse.SetFrequency))
         self.assertAlmostEqual(set_freq.frequency, self.freq0, places=8)
 
-        self.assertEqual(resolved[5][0], 160)
-        set_phase = resolved[5][1]
+        self.assertEqual(resolved[4][0], 160)
+        set_phase = resolved[4][1]
         self.assertTrue(isinstance(set_phase, pulse.SetPhase))
-        self.assertAlmostEqual(set_phase.phase, phase, places=8)
+        self.assertAlmostEqual(set_phase.phase % (2 * np.pi), phase, places=8)
+
+    def test_implicit_frame(self):
+        """If a frame is not specified then the frame of the channel is assumed."""
+
+        qt = 0
+        frame01 = Frame("d", qt)
+        frame12 = Frame("t", qt)
+        xp01 = pulse.Gaussian(160, 0.2, 40)
+        xp12 = pulse.Gaussian(160, 0.2, 40)
+        d_chan = pulse.DriveChannel(qt)
+
+        # Create a schedule in which frames are specified for all pulses.
+        with pulse.build() as rabi_sched_explicit:
+            pulse.play(pulse.Signal(xp01, frame01), d_chan)
+            pulse.play(pulse.Signal(xp12, frame12), d_chan)
+            pulse.play(pulse.Signal(xp01, frame01), d_chan)
+
+        # Create a schedule in which frames are implicitly specified for qubit transitions.
+        with pulse.build() as rabi_sched_implicit:
+            pulse.play(xp01, d_chan)
+            pulse.play(pulse.Signal(xp12, frame12), d_chan)
+            pulse.play(xp01, d_chan)
+
+        frames_config = FramesConfiguration.from_dict({
+            frame01: {"frequency": 5.5e9, "purpose": "Frame of 0 <-> 1."},
+            frame12: {"frequency": 5.2e9, "purpose": "Frame of 1 <-> 2."},
+        })
+        frames_config.sample_duration = 0.222e-9
+
+        transform = lambda sched: target_qobj_transform(sched, frames_config=frames_config)
+
+        resolved_explicit = transform(rabi_sched_explicit)
+        resolved_implicit = transform(rabi_sched_implicit)
+
+        self.assertEqual(resolved_explicit, resolved_implicit)
