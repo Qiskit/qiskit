@@ -720,19 +720,12 @@ class TextDrawing:
                 register = self.bit_locations[bit]["register"]
                 label = "{name}_{index}: " + initial_qubit_value
                 if self.bit_locations[bit]["register"] is not None:
-                    if register.size > 1:
-                        qubit_labels.append(
-                            ("{name}_{index}: " + initial_qubit_value).format(
-                                name=self.bit_locations[bit]["register"].name,
-                                index=self.bit_locations[bit]["index"],
-                            )
+                    qubit_labels.append(
+                        ("{name}_{index}: " + initial_qubit_value).format(
+                            name=self.bit_locations[bit]["register"].name,
+                            index=self.bit_locations[bit]["index"],
                         )
-                    else:
-                        qubit_labels.append(
-                            ("{name}: " + initial_qubit_value).format(
-                                name=self.bit_locations[bit]["register"].name,
-                            )
-                        )
+                    )
                 else:
                     qubit_labels.append(
                         label.format(name="", index=self.bit_locations[bit]["index"], physical="")
@@ -777,17 +770,11 @@ class TextDrawing:
                         name=register.name, initial_value=initial_clbit_value, size=register.size
                     )
                 )
-            elif register.size > 1:
+            else:
                 label = "{name}_{index}: " + initial_clbit_value
                 clbit_labels.append(
                     label.format(name=register.name if register is not None else "", index=index)
                 )
-            else:
-                label = "{name}: " + initial_clbit_value
-                clbit_labels.append(
-                    label.format(name=register.name if register is not None else "")
-                )
-
         return qubit_labels + clbit_labels
 
     def should_compress(self, top_line, bot_line):
