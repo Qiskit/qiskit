@@ -16,6 +16,7 @@
 
 import itertools
 import re
+from warnings import warn
 
 import numpy as np
 
@@ -41,6 +42,7 @@ from qiskit.extensions import Initialize
 from qiskit.visualization.qcstyle import load_style
 from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.exceptions import MissingOptionalLibraryError
 
 # Default gate width and height
 WID = 0.65
@@ -79,9 +81,10 @@ class MatplotlibDrawer:
     ):
 
         if not HAS_MATPLOTLIB:
-            raise ImportError(
-                "The class MatplotlibDrawer needs matplotlib. "
-                'To install, run "pip install matplotlib".'
+            raise MissingOptionalLibraryError(
+                libname="Matplotlib",
+                name="MatplotlibDrawer",
+                pip_install="pip install matplotlib",
             )
         from matplotlib import patches
 
@@ -90,9 +93,10 @@ class MatplotlibDrawer:
 
         self._plt_mod = plt
         if not HAS_PYLATEX:
-            raise ImportError(
-                "The class MatplotlibDrawer needs pylatexenc. "
-                'to install, run "pip install pylatexenc".'
+            raise MissingOptionalLibraryError(
+                libname="pylatexenc",
+                name="MatplotlibDrawer",
+                pip_install="pip install pylatexenc",
             )
 
         # First load register and index info for the cregs and qregs,
@@ -468,13 +472,14 @@ class MatplotlibDrawer:
 
             # draw the gates in this layer
             for node in layer:
-                fc, ec, gt, tc, sc, lc = self._get_colors(node, self._data[node]["raw_gate_text"])
+                op = node.op
+                fc, ec, gt, tc, sc, lc = self._get_colors(op, self._data[node]["raw_gate_text"])
 
                 if verbose:
-                    print(node.op)
+                    print(op)
 
                 # add conditional
-                if node.op.condition:
+                if op.condition:
                     cond_xy = [
                         self._c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
                         for ii in self._clbit_dict
@@ -482,7 +487,7 @@ class MatplotlibDrawer:
                     self._condition(node, self._data[node]["q_xy"], cond_xy)
 
                 # draw measure
-                if isinstance(node.op, Measure):
+                if isinstance(op, Measure):
                     self._measure(
                         node,
                         self._data[node]["q_xy"][0],
@@ -495,12 +500,12 @@ class MatplotlibDrawer:
                     )
 
                 # draw barriers, snapshots, etc.
-                elif node.op._directive:
+                elif op._directive:
                     if self._plot_barriers:
                         self._barrier(self._data[node]["q_xy"])
 
                 # draw single qubit gates
-                elif len(self._data[node]["q_xy"]) == 1:
+                elif len(self._data[node]["q_xy"]) == 1 and not node.cargs:
                     self._gate(
                         node,
                         self._data[node]["q_xy"][0],
@@ -513,7 +518,7 @@ class MatplotlibDrawer:
                     )
 
                 # draw controlled gates
-                elif isinstance(node.op, ControlledGate):
+                elif isinstance(op, ControlledGate):
                     self._control_gate(
                         node,
                         self._data[node]["q_xy"],
@@ -533,6 +538,7 @@ class MatplotlibDrawer:
                     self._multiqubit_gate(
                         node,
                         self._data[node]["q_xy"],
+                        self._data[node]["c_xy"],
                         fc=fc,
                         ec=ec,
                         gt=gt,
@@ -556,18 +562,28 @@ class MatplotlibDrawer:
         for layer in self._nodes:
             widest_box = WID
             for node in layer:
+                op = node.op
+                #print(self._cregbundle, node.cargs, type(node))
+                if self._cregbundle and node.cargs and not isinstance(op, Measure):
+                    self._cregbundle = False
+                    warn(
+                        "Cregbundle set to False since an instruction needs to refer"
+                        " to individual classical wire",
+                        RuntimeWarning,
+                        2,
+                    )
                 self._data[node] = {}
                 self._data[node]["width"] = WID
                 num_ctrl_qubits = (
-                    0 if not hasattr(node.op, "num_ctrl_qubits") else node.op.num_ctrl_qubits
+                    0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
                 )
-                if node.op._directive or isinstance(node.op, Measure):
-                    self._data[node]["raw_gate_text"] = node.op.name
+                if op._directive or isinstance(op, Measure):
+                    self._data[node]["raw_gate_text"] = op.name
                     continue
 
-                base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
+                base_type = None if not hasattr(op, "base_gate") else op.base_gate
                 gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
-                    node, "mpl", style=self._style
+                    op, "mpl", style=self._style
                 )
                 self._data[node]["gate_text"] = gate_text
                 self._data[node]["ctrl_text"] = ctrl_text
@@ -579,10 +595,10 @@ class MatplotlibDrawer:
                     (
                         (len(node.qargs) - num_ctrl_qubits) == 1
                         and len(gate_text) < 3
-                        and (not hasattr(node.op, "params") or len(node.op.params) == 0)
+                        and (not hasattr(op, "params") or len(op.params) == 0)
                         and ctrl_text is None
                     )
-                    or isinstance(node.op, SwapGate)
+                    or isinstance(op, SwapGate)
                     or isinstance(base_type, SwapGate)
                 ):
                     continue
@@ -593,12 +609,12 @@ class MatplotlibDrawer:
 
                 # get param_width, but 0 for gates with array params
                 if (
-                    hasattr(node.op, "params")
-                    and len(node.op.params) > 0
-                    and not any(isinstance(param, np.ndarray) for param in node.op.params)
+                    hasattr(op, "params")
+                    and len(op.params) > 0
+                    and not any(isinstance(param, np.ndarray) for param in op.params)
                 ):
-                    param = get_param_str(node, "mpl", ndigits=3)
-                    if isinstance(node.op, Initialize):
+                    param = get_param_str(op, "mpl", ndigits=3)
+                    if isinstance(op, Initialize):
                         param = f"$[{param.replace('$', '')}]$"
                     self._data[node]["param"] = param
                     raw_param_width = self._get_text_width(param, fontsize=self._sfs, param=True)
@@ -607,7 +623,7 @@ class MatplotlibDrawer:
                     param_width = raw_param_width = 0.0
 
                 # get gate_width for sidetext symmetric gates
-                if isinstance(node.op, RZZGate) or isinstance(
+                if isinstance(op, RZZGate) or isinstance(
                     base_type, (U1Gate, PhaseGate, RZZGate)
                 ):
                     if isinstance(base_type, PhaseGate):
@@ -707,8 +723,6 @@ class MatplotlibDrawer:
                 # else math name and number
                 if self._cregbundle:
                     clbit_name = f"{register.name}"
-                elif register.size == 1:
-                    clbit_name = f"${register.name}$"
                 else:
                     clbit_name = f"${register.name}_{index}$"
                 clbit_name = _fix_double_script(clbit_name) + initial_cbit
@@ -836,9 +850,9 @@ class MatplotlibDrawer:
             sum_text *= self._subfont_factor
         return sum_text
 
-    def _get_colors(self, node, gate_text):
+    def _get_colors(self, op, gate_text):
         """Get all the colors needed for drawing the circuit"""
-        base_name = None if not hasattr(node.op, "base_gate") else node.op.base_gate.name
+        base_name = None if not hasattr(op, "base_gate") else op.base_gate.name
         if gate_text in self._style["dispcol"]:
             color = self._style["dispcol"][gate_text]
             # Backward compatibility for style dict using 'displaycolor' with
@@ -1061,17 +1075,18 @@ class MatplotlibDrawer:
                 )
 
     def _multiqubit_gate(
-        self, node, xy, fc=None, ec=None, gt=None, sc=None, tc=None, lc=None, text="", subtext=""
+        self, node, xy, c_xy, fc=None, ec=None, gt=None, sc=None, tc=None, lc=None, text="", subtext=""
     ):
         """Draw a gate covering more than one qubit"""
+        op = node.op
 
         # Swap gate
-        if isinstance(node.op, SwapGate):
+        if isinstance(op, SwapGate):
             self._swap(xy, lc)
             return
 
         # RZZ Gate
-        elif isinstance(node.op, RZZGate):
+        elif isinstance(op, RZZGate):
             self._symmetric_gate(
                 node,
                 RZZGate,
@@ -1087,6 +1102,10 @@ class MatplotlibDrawer:
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
+        if c_xy:
+            cxpos = min([x[0] for x in c_xy])
+            cypos = min([y[1] for y in c_xy])
+            ypos = min(ypos, cypos)
 
         wid = max(self._data[node]["width"] + 0.21, WID)
 
@@ -1116,6 +1135,20 @@ class MatplotlibDrawer:
                 clip_on=True,
                 zorder=PORDER_TEXT,
             )
+        if c_xy:
+            # annotate classical inputs
+            for bit, y in enumerate([x[1] for x in c_xy]):
+                self._ax.text(
+                    cxpos + 0.07 - 0.5 * wid,
+                    y,
+                    str(bit),
+                    ha="left",
+                    va="center",
+                    fontsize=self._fs,
+                    color=gt,
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
         if text:
             if subtext:
                 self._ax.text(
@@ -1169,17 +1202,18 @@ class MatplotlibDrawer:
         ctrl_text="",
     ):
         """Draw a controlled gate"""
-        base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
+        op = node.op
+        base_type = None if not hasattr(op, "base_gate") else op.base_gate
         qubit_b = min(xy, key=lambda xy: xy[1])
         qubit_t = max(xy, key=lambda xy: xy[1])
-        num_ctrl_qubits = node.op.num_ctrl_qubits
+        num_ctrl_qubits = op.num_ctrl_qubits
         num_qargs = len(xy) - num_ctrl_qubits
         self._set_ctrl_bits(
-            node.op.ctrl_state, num_ctrl_qubits, xy, ec=ec, tc=tc, text=ctrl_text, qargs=node.qargs
+            op.ctrl_state, num_ctrl_qubits, xy, ec=ec, tc=tc, text=ctrl_text, qargs=node.qargs
         )
         self._line(qubit_b, qubit_t, lc=lc)
 
-        if isinstance(node.op, RZZGate) or isinstance(
+        if isinstance(op, RZZGate) or isinstance(
             base_type, (U1Gate, PhaseGate, ZGate, RZZGate)
         ):
             self._symmetric_gate(
@@ -1207,7 +1241,7 @@ class MatplotlibDrawer:
 
         else:
             self._multiqubit_gate(
-                node, xy[num_ctrl_qubits:], fc=fc, ec=ec, gt=gt, sc=sc, text=text, subtext=subtext
+                node, xy[num_ctrl_qubits:], self._data[node]["c_xy"], fc=fc, ec=ec, gt=gt, sc=sc, text=text, subtext=subtext
             )
 
     def _set_ctrl_bits(
@@ -1316,19 +1350,20 @@ class MatplotlibDrawer:
         param="",
     ):
         """Draw symmetric gates for cz, cu1, cp, and rzz"""
+        op = node.op
         qubit_b = min(xy, key=lambda xy: xy[1])
         qubit_t = max(xy, key=lambda xy: xy[1])
-        base_type = None if not hasattr(node.op, "base_gate") else node.op.base_gate
+        base_type = None if not hasattr(op, "base_gate") else op.base_gate
 
         # cz and mcz gates
-        if not isinstance(node.op, ZGate) and isinstance(base_type, ZGate):
-            num_ctrl_qubits = node.op.num_ctrl_qubits
+        if not isinstance(op, ZGate) and isinstance(base_type, ZGate):
+            num_ctrl_qubits = op.num_ctrl_qubits
             self._ctrl_qubit(xy[-1], fc=ec, ec=ec, tc=tc)
             self._line(qubit_b, qubit_t, lc=lc, zorder=PORDER_LINE + 1)
 
         # cu1, cp, rzz, and controlled rzz gates (sidetext gates)
-        elif isinstance(node.op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
-            num_ctrl_qubits = 0 if isinstance(node.op, RZZGate) else node.op.num_ctrl_qubits
+        elif isinstance(op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
+            num_ctrl_qubits = 0 if isinstance(op, RZZGate) else op.num_ctrl_qubits
             if isinstance(base_type, PhaseGate):
                 gate_text = "P"
             self._ctrl_qubit(xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
