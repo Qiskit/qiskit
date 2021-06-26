@@ -59,6 +59,7 @@ def transpile(
     dt: Optional[float] = None,
     approximation_degree: Optional[float] = None,
     seed_transpiler: Optional[int] = None,
+    inst_map: Dict[str, Dict[Tuple[int], Schedule]] = None,
     optimization_level: Optional[int] = None,
     pass_manager: Optional[PassManager] = None,
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
@@ -187,6 +188,7 @@ def transpile(
 
         output_name: A list with strings to identify the output circuits. The length of
             the list should be exactly the length of the ``circuits`` parameter.
+        inst_map: ...
 
     Returns:
         The transpiled circuit(s).
@@ -222,6 +224,7 @@ def transpile(
             translation_method=translation_method,
             approximation_degree=approximation_degree,
             backend=backend,
+            inst_map=inst_map,
         )
 
         warnings.warn(
@@ -261,6 +264,7 @@ def transpile(
         dt,
         approximation_degree,
         seed_transpiler,
+        inst_map,
         optimization_level,
         callback,
         output_name,
@@ -347,16 +351,16 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
 
     if level == 0:
         pass_manager = level_0_pass_manager(pass_manager_config)
-    elif level == 'pulse_efficient':
-        pass_manager = pulse_efficient_pass_manager(pass_manager_config)
     elif level == 1:
         pass_manager = level_1_pass_manager(pass_manager_config)
     elif level == 2:
         pass_manager = level_2_pass_manager(pass_manager_config)
     elif level == 3:
         pass_manager = level_3_pass_manager(pass_manager_config)
+    elif level == 'pulse_efficient':
+        pass_manager = pulse_efficient_pass_manager(pass_manager_config)
     else:
-        raise TranspilerError("optimization_level can range from 0 to 3.")
+        raise TranspilerError("optimization_level can range from 0 to 3, or can be 'pulse_efficient'.")
 
     result = pass_manager.run(
         circuit, callback=transpile_config["callback"], output_name=transpile_config["output_name"]
@@ -443,6 +447,7 @@ def _parse_transpile_args(
     dt,
     approximation_degree,
     seed_transpiler,
+    inst_map,
     optimization_level,
     callback,
     output_name,
@@ -478,7 +483,7 @@ def _parse_transpile_args(
     translation_method = _parse_translation_method(translation_method, num_circuits)
     approximation_degree = _parse_approximation_degree(approximation_degree, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
-    backend = _parse_backend(backend, num_circuits)
+    inst_map = _parse_inst_map(inst_map, backend, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
     callback = _parse_callback(callback, num_circuits)
@@ -503,7 +508,7 @@ def _parse_transpile_args(
         durations,
         approximation_degree,
         seed_transpiler,
-        backend,
+        inst_map,
         optimization_level,
         output_name,
         callback,
@@ -523,7 +528,7 @@ def _parse_transpile_args(
                 instruction_durations=args[8],
                 approximation_degree=args[9],
                 seed_transpiler=args[10],
-                backend=args[11],
+                inst_map=args[11],
             ),
             "optimization_level": args[12],
             "output_name": args[13],
@@ -765,10 +770,14 @@ def _parse_seed_transpiler(seed_transpiler, num_circuits):
     return seed_transpiler
 
 
-def _parse_backend(backend, num_circuits):
-    if not isinstance(backend, list):
-        backend = [backend] * num_circuits
-    return backend
+def _parse_inst_map(inst_map, backend, num_circuits):
+    if inst_map is None:
+        if backend.defaults():
+            backend_defaults = backend.defaults()
+            inst_map = backend_defaults.instruction_schedule_map
+    if not isinstance(inst_map, list):
+        inst_map = [inst_map] * num_circuits
+    return inst_map
 
 
 def _parse_optimization_level(optimization_level, num_circuits):

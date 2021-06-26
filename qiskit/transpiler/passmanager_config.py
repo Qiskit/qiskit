@@ -29,7 +29,7 @@ class PassManagerConfig:
         backend_properties=None,
         approximation_degree=None,
         seed_transpiler=None,
-        backend=None,
+        inst_map=None
     ):
         """Initialize a PassManagerConfig object
 
@@ -55,7 +55,7 @@ class PassManagerConfig:
                 (1.0=no approximation, 0.0=maximal approximation)
             seed_transpiler (int): Sets random seed for the stochastic parts of
                 the transpiler.
-            backend (Backend): the backend that is used.
+            inst_map (Dict[str, Dict[Tuple[int], Schedule]]): Schedule instructions
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -68,4 +68,4 @@ class PassManagerConfig:
         self.backend_properties = backend_properties
         self.approximation_degree = approximation_degree
         self.seed_transpiler = seed_transpiler
-        self.backend = backend
+        self.inst_map = inst_map
