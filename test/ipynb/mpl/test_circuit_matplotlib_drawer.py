@@ -639,6 +639,13 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.initialize(initial_state)
         self.circuit_drawer(circuit, filename="wide_params.png")
 
+    # def something(self):
+    #     """just for testing"""
+    #     circuit = QuantumCircuit(3)
+    #     circuit.h(0)
+    #     circuit.x(1)
+    #     self.circuit_drawer(circuit, filename="something.png")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
