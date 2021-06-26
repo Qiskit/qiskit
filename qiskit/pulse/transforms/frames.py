@@ -99,8 +99,7 @@ def resolve_frames(
                     sched.insert(time, SetPhase(frame_phase, chan), inplace=True)
 
             # Update the frequency and phase of this channel.
-            channel_trackers[chan].set_frequency(time, frame_freq)
-            channel_trackers[chan].set_phase(time, frame_phase)
+            channel_trackers[chan].set_frequency_phase(time, frame_freq, frame_phase)
 
             play = Play(inst.pulse, chan)
             sched.insert(time, play, inplace=True)

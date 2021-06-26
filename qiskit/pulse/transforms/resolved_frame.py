@@ -122,6 +122,17 @@ class Tracker(ABC):
         tfp = TimeFrequencyPhase(time=time, frequency=self.frequency(time), phase=phase)
         self._frequencies_phases = sorted(self._frequencies_phases + [tfp], key=lambda x: x.time)
 
+    def set_frequency_phase(self, time: int, frequency: float, phase: float):
+        """Insert a new frequency and phase at the given time.
+
+        Args:
+            time: The time in samples (i.e. measured in units of dt).
+            frequency: The frequency to which self is set after the given time.
+            phase: The phase to which self is set after the given time.
+        """
+        tfp = TimeFrequencyPhase(time=time, frequency=frequency, phase=phase)
+        self._frequencies_phases = sorted(self._frequencies_phases + [tfp], key=lambda x: x.time)
+
 
 class ResolvedFrame(Tracker):
     """

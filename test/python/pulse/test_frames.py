@@ -150,6 +150,34 @@ class TestResolvedFrames(QiskitTestCase):
         for time, phase in enumerate(expected):
             self.assertEqual(r_frame.frequency(time), phase)
 
+    def test_set_phase_frequency(self):
+        """Test the set frequency and phase methods of the channel trackers."""
+
+        sample_duration = 0.25
+
+        r_frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(1.0), sample_duration)
+        r_frame.set_frequency_phase(2, 2.0, 0.5)
+        r_frame.set_frequency_phase(4, 3.0, 0.5)
+        r_frame.set_frequency_phase(6, 3.0, 1.0)
+
+        # Frequency and phases at the time they are set.
+        expected = [(0, 1, 0), (2, 2, .5), (4, 3, .5), (6, 3, 1)]
+        for time, freq, phase in expected:
+            self.assertEqual(r_frame.frequency(time), freq)
+            self.assertEqual(r_frame.phase(time), phase)
+
+        # Frequency and phases in between setting times i.e. with phase advance.
+        # As we have one sample in between times when phases are set, the total
+        # phase is the phase at the setting time pulse the phase advance during
+        # one sample.
+        expected = [(1, 1, 0), (3, 2, .5), (5, 3, .5), (7, 3, 1)]
+        time_step = 1
+
+        for time, freq, phase in expected:
+            self.assertEqual(r_frame.frequency(time), freq)
+
+            total_phase = phase + 2 * np.pi * time_step * sample_duration * freq
+            self.assertEqual(r_frame.phase(time), total_phase)
 
     def test_phase_advance(self):
         """Test that phases are properly set when frames are resolved.
