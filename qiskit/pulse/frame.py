@@ -106,7 +106,13 @@ class FrameDefinition:
 
 
 class FramesConfiguration:
-    """A class that specifies how frames on a backend are configured."""
+    """A class that specifies how frames on a backend are configured.
+
+    Internally this class stores the frames configuration in a dictionary where frames
+    are keys with a corresponding instance of :class:`FrameDefinition` as value. All
+    frames are required to have the same sample duration which is stored in a separate
+    property of the :class:`FramesConfiguration`.
+    """
 
     def __init__(self):
         """Initialize the frames configuration."""
@@ -146,9 +152,12 @@ class FramesConfiguration:
         """Add a frame to the frame configuration.
 
         Args:
-            frame: The frame instance to add.
-            frequency: The frequency of the frame.
-            purpose: A string describing the purpose of the frame.
+            frame: The frame instance to add. This instance will be a key in the internal
+                dictionary that allows the frame resolution mechanism to identify the
+                frequency of the frame.
+            frequency: The frequency of the frame which will determine the frequency of
+                all pulses played in the frame added to the configuration.
+            purpose: A human readable string describing the purpose of the frame.
         """
         self._frames[frame] = FrameDefinition(frequency=frequency, purpose=purpose)
 
