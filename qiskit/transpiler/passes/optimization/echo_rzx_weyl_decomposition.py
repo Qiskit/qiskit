@@ -57,11 +57,11 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
         if len(dag.qregs) > 1:
             raise TranspilerError('EchoRZXWeylDecomposition expects a single qreg input DAG,'
-                                  'but input DAG had qregs: {}.'.format(dag.qregs))
+                                  f'but input DAG had qregs: {dag.qregs}.')
 
         trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        for idx, node in enumerate(dag.two_qubit_ops()):
+        for node in dag.two_qubit_ops():
             if node.type == "op":
                 control = node.qargs[0]
                 target = node.qargs[1]
