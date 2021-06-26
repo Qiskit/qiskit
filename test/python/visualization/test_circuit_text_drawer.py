@@ -12,6 +12,7 @@
 
 """ `_text_circuit_drawer` "draws" a circuit in "ascii art" """
 
+import os
 import unittest
 from codecs import encode
 from math import pi
@@ -27,9 +28,11 @@ from qiskit.transpiler import Layout
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
 from qiskit.extensions import UnitaryGate, HamiltonianGate
+from qiskit.extensions.quantum_initializer import UCGate
 from qiskit.circuit.library import (
     HGate,
     U2Gate,
+    U3Gate,
     XGate,
     CZGate,
     ZGate,
@@ -42,6 +45,7 @@ from qiskit.circuit.library import (
     CPhaseGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
+from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -446,9 +450,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         expected = "\n".join(
             [
                 "                   ┌─────────┐",
-                "q_0: |0>─────■─────┤ RZ(π/2) ├",
+                "q_0: |0>─────■─────┤ Rz(π/2) ├",
                 "        ┌────┴────┐└────┬────┘",
-                "q_1: |0>┤ RZ(π/2) ├─────┼─────",
+                "q_1: |0>┤ Rz(π/2) ├─────┼─────",
                 "        └─────────┘     │     ",
                 "q_2: |0>────────────────■─────",
                 "                              ",
@@ -465,9 +469,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         expected = "\n".join(
             [
                 "                   ┌─────────┐",
-                "q_0: |0>─────■─────┤ RY(π/2) ├",
+                "q_0: |0>─────■─────┤ Ry(π/2) ├",
                 "        ┌────┴────┐└────┬────┘",
-                "q_1: |0>┤ RY(π/2) ├─────┼─────",
+                "q_1: |0>┤ Ry(π/2) ├─────┼─────",
                 "        └─────────┘     │     ",
                 "q_2: |0>────────────────■─────",
                 "                              ",
@@ -484,9 +488,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         expected = "\n".join(
             [
                 "                   ┌─────────┐",
-                "q_0: |0>─────■─────┤ RX(π/2) ├",
+                "q_0: |0>─────■─────┤ Rx(π/2) ├",
                 "        ┌────┴────┐└────┬────┘",
-                "q_1: |0>┤ RX(π/2) ├─────┼─────",
+                "q_1: |0>┤ Rx(π/2) ├─────┼─────",
                 "        └─────────┘     │     ",
                 "q_2: |0>────────────────■─────",
                 "                              ",
@@ -1034,7 +1038,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                 "             └───┘    └───┘",
                 "q1_1: |0>──────────────────",
                 "         ┌───────────┐     ",
-                "q1_2: |0>┤ RZ(1e-07) ├─────",
+                "q1_2: |0>┤ Rz(1e-07) ├─────",
                 "         └───────────┘     ",
             ]
         )
@@ -1056,7 +1060,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                 "              │      ",
                 "q_1: |0>──────X──────",
                 "        ┌───────────┐",
-                "q_2: |0>┤ RZ(11111) ├",
+                "q_2: |0>┤ Rz(11111) ├",
                 "        └───────────┘",
             ]
         )
@@ -1274,7 +1278,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "q_0: |0>┤0         ├",
                 "        │          │",
                 "q_1: |0>┤          ├",
-                "        │  UNITARY │",
+                "        │  Unitary │",
                 "q_2: |0>┤          ├",
                 "        │          │",
                 "q_3: |0>┤1         ├",
@@ -1304,7 +1308,6 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(qc)), expected)
 
-    @unittest.skip("Add back when Multiplexer is implemented in terms of UCGate")
     def test_multiplexer(self):
         """Test Multiplexer.
         See https://github.com/Qiskit/qiskit-terra/pull/2238#issuecomment-487630014"""
@@ -1312,13 +1315,13 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
             [
                 "        ┌──────────────┐",
                 "q_0: |0>┤0             ├",
-                "        │  multiplexer │",
+                "        │  Multiplexer │",
                 "q_1: |0>┤1             ├",
                 "        └──────────────┘",
             ]
         )
 
-        cx_multiplexer = Gate("multiplexer", 2, [numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
+        cx_multiplexer = UCGate([numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
 
         qr = QuantumRegister(2, name="q")
         qc = QuantumCircuit(qr)
@@ -1560,9 +1563,9 @@ class TestTextDrawerParams(QiskitTestCase):
         """Text pi in circuit with parameter expression."""
         expected = "\n".join(
             [
-                "   ┌─────────────────────┐",
-                "q: ┤ RX((π - x)*(π - y)) ├",
-                "   └─────────────────────┘",
+                "     ┌─────────────────────┐",
+                "q_0: ┤ Rx((π - x)*(π - y)) ├",
+                "     └─────────────────────┘",
             ]
         )
 
@@ -1614,6 +1617,80 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
 
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit, vertical_compression="low")), expected)
+
+    def test_text_conditional_reverse_bits_true(self):
+        """Conditional drawing with 1-bit-length regs."""
+        cr = ClassicalRegister(2, "cr")
+        cr2 = ClassicalRegister(1, "cr2")
+        qr = QuantumRegister(3, "qr")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.h(2)
+        circuit.x(0)
+        circuit.x(0)
+        circuit.measure(2, 1)
+        circuit.x(2).c_if(cr, 2)
+        circuit.draw("text", cregbundle=False, reverse_bits=True)
+
+        expected = "\n".join(
+            [
+                "         ┌───┐     ┌─┐      ┌───┐ ",
+                "qr_2: |0>┤ H ├─────┤M├──────┤ X ├─",
+                "         ├───┤     └╥┘      └─╥─┘ ",
+                "qr_1: |0>┤ H ├──────╫─────────╫───",
+                "         ├───┤┌───┐ ║ ┌───┐   ║   ",
+                "qr_0: |0>┤ H ├┤ X ├─╫─┤ X ├───╫───",
+                "         └───┘└───┘ ║ └───┘   ║   ",
+                "cr2_0: 0 ═══════════╬═════════╬═══",
+                "                    ║      ┌──╨──┐",
+                " cr_1: 0 ═══════════╩══════╡     ╞",
+                "                           │ = 2 │",
+                " cr_0: 0 ══════════════════╡     ╞",
+                "                           └─────┘",
+            ]
+        )
+
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=True)), expected
+        )
+
+    def test_text_conditional_reverse_bits_false(self):
+        """Conditional drawing with 1-bit-length regs."""
+        cr = ClassicalRegister(2, "cr")
+        cr2 = ClassicalRegister(1, "cr2")
+        qr = QuantumRegister(3, "qr")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.h(2)
+        circuit.x(0)
+        circuit.x(0)
+        circuit.measure(2, 1)
+        circuit.x(2).c_if(cr, 2)
+        circuit.draw("text", cregbundle=False, reverse_bits=False)
+
+        expected = "\n".join(
+            [
+                "         ┌───┐┌───┐ ┌───┐ ",
+                "qr_0: |0>┤ H ├┤ X ├─┤ X ├─",
+                "         ├───┤└───┘ └───┘ ",
+                "qr_1: |0>┤ H ├────────────",
+                "         ├───┤ ┌─┐  ┌───┐ ",
+                "qr_2: |0>┤ H ├─┤M├──┤ X ├─",
+                "         └───┘ └╥┘ ┌┴─╨─┴┐",
+                " cr_0: 0 ═══════╬══╡     ╞",
+                "                ║  │ = 2 │",
+                " cr_1: 0 ═══════╩══╡     ╞",
+                "                   └─────┘",
+                "cr2_0: 0 ═════════════════",
+                "                          ",
+            ]
+        )
+
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=False)), expected
+        )
 
     def test_text_justify_right(self):
         """Drawing with right justify"""
@@ -2208,10 +2285,9 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
-    @unittest.skip("Add back when Multiplexer is implemented in terms of UCGate")
     def test_conditional_multiplexer(self):
         """Test Multiplexer."""
-        cx_multiplexer = Gate("multiplexer", 2, [numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
+        cx_multiplexer = UCGate([numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
         qr = QuantumRegister(3, name="qr")
         cr = ClassicalRegister(1, "cr")
         qc = QuantumCircuit(qr, cr)
@@ -2221,12 +2297,12 @@ class TestTextConditional(QiskitTestCase):
             [
                 "         ┌──────────────┐",
                 "qr_0: |0>┤0             ├",
-                "         │  multiplexer │",
+                "         │  Multiplexer │",
                 "qr_1: |0>┤1             ├",
-                "         └──────┬───────┘",
-                "qr_2: |0>───────┼────────",
-                "             ┌──┴──┐     ",
-                "   cr: 0 ════╡ = 1 ╞═════",
+                "         └──────╥───────┘",
+                "qr_2: |0>───────╫────────",
+                "             ┌──╨──┐     ",
+                " cr_0: 0 ════╡ = 1 ╞═════",
                 "             └─────┘     ",
             ]
         )
@@ -2339,9 +2415,9 @@ class TestTextNonRational(QiskitTestCase):
         """u drawing with -5pi/8 fraction"""
         # fmt: off
         expected = "\n".join(
-            ["      ┌──────────────┐",
-             "q: |0>┤ U(π,-5π/8,0) ├",
-             "      └──────────────┘"]
+            ["        ┌──────────────┐",
+             "q_0: |0>┤ U(π,-5π/8,0) ├",
+             "        └──────────────┘"]
         )
         # fmt: on
         qr = QuantumRegister(1, "q")
@@ -2356,7 +2432,7 @@ class TestTextNonRational(QiskitTestCase):
             [
                 "     ┌────────────────────────────────────┐",
                 "q_0: ┤0                                   ├",
-                "     │  INITIALIZE(0.5+0.1j,0,0,0.86023j) │",
+                "     │  Initialize(0.5+0.1j,0,0,0.86023j) │",
                 "q_1: ┤1                                   ├",
                 "     └────────────────────────────────────┘",
             ]
@@ -2373,7 +2449,7 @@ class TestTextNonRational(QiskitTestCase):
             [
                 "        ┌────────────────────────────────┐",
                 "q_0: |0>┤0                               ├",
-                "        │  INITIALIZE(π/10,0,0,0.94937j) │",
+                "        │  Initialize(π/10,0,0,0.94937j) │",
                 "q_1: |0>┤1                               ├",
                 "        └────────────────────────────────┘",
             ]
@@ -2391,7 +2467,7 @@ class TestTextNonRational(QiskitTestCase):
             [
                 "        ┌────────────────────────────────┐",
                 "q_0: |0>┤0                               ├",
-                "        │  INITIALIZE(0.94937,0,0,π/10j) │",
+                "        │  Initialize(0.94937,0,0,π/10j) │",
                 "q_1: |0>┤1                               ├",
                 "        └────────────────────────────────┘",
             ]
@@ -3925,6 +4001,85 @@ class TestTextPhase(QiskitTestCase):
         circuit.global_phase = 4.21
 
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
+
+
+class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
+    """Tests utf8 and cp437 encoding."""
+
+    text_reference_utf8 = path_to_diagram_reference("circuit_text_ref_utf8.txt")
+    text_reference_cp437 = path_to_diagram_reference("circuit_text_ref_cp437.txt")
+
+    def sample_circuit(self):
+        """Generate a sample circuit that includes the most common elements of
+        quantum circuits.
+        """
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.x(qr[0])
+        circuit.y(qr[0])
+        circuit.z(qr[0])
+        circuit.barrier(qr[0])
+        circuit.barrier(qr[1])
+        circuit.barrier(qr[2])
+        circuit.h(qr[0])
+        circuit.s(qr[0])
+        circuit.sdg(qr[0])
+        circuit.t(qr[0])
+        circuit.tdg(qr[0])
+        circuit.sx(qr[0])
+        circuit.sxdg(qr[0])
+        circuit.i(qr[0])
+        circuit.reset(qr[0])
+        circuit.rx(pi, qr[0])
+        circuit.ry(pi, qr[0])
+        circuit.rz(pi, qr[0])
+        circuit.append(U1Gate(pi), [qr[0]])
+        circuit.append(U2Gate(pi, pi), [qr[0]])
+        circuit.append(U3Gate(pi, pi, pi), [qr[0]])
+        circuit.swap(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cy(qr[0], qr[1])
+        circuit.cz(qr[0], qr[1])
+        circuit.ch(qr[0], qr[1])
+        circuit.append(CU1Gate(pi), [qr[0], qr[1]])
+        circuit.append(CU3Gate(pi, pi, pi), [qr[0], qr[1]])
+        circuit.crz(pi, qr[0], qr[1])
+        circuit.cry(pi, qr[0], qr[1])
+        circuit.crx(pi, qr[0], qr[1])
+        circuit.ccx(qr[0], qr[1], qr[2])
+        circuit.cswap(qr[0], qr[1], qr[2])
+        circuit.measure(qr, cr)
+
+        return circuit
+
+    def test_text_drawer_utf8(self):
+        """Test that text drawer handles utf8 encoding."""
+        filename = "current_textplot_utf8.txt"
+        qc = self.sample_circuit()
+        output = _text_circuit_drawer(
+            qc, filename=filename, fold=-1, initial_state=True, cregbundle=False, encoding="utf8"
+        )
+        try:
+            encode(str(output), encoding="utf8")
+        except UnicodeEncodeError:
+            self.fail("_text_circuit_drawer() should be utf8.")
+        self.assertFilesAreEqual(filename, self.text_reference_utf8, "utf8")
+        os.remove(filename)
+
+    def test_text_drawer_cp437(self):
+        """Test that text drawer handles cp437 encoding."""
+        filename = "current_textplot_cp437.txt"
+        qc = self.sample_circuit()
+        output = _text_circuit_drawer(
+            qc, filename=filename, fold=-1, initial_state=True, cregbundle=False, encoding="cp437"
+        )
+        try:
+            encode(str(output), encoding="cp437")
+        except UnicodeEncodeError:
+            self.fail("_text_circuit_drawer() should be cp437.")
+        self.assertFilesAreEqual(filename, self.text_reference_cp437, "cp437")
+        os.remove(filename)
 
 
 if __name__ == "__main__":

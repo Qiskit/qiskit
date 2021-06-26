@@ -17,7 +17,7 @@ import math
 import re
 
 import numpy as np
-from qiskit.circuit import Gate, Clbit
+from qiskit.circuit import Clbit
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGate, U1Gate, PhaseGate
 from qiskit.circuit.measure import Measure
@@ -40,7 +40,7 @@ class QCircuitImage:
         self,
         qubits,
         clbits,
-        ops,
+        nodes,
         scale,
         style=None,
         reverse_bits=False,
@@ -57,7 +57,7 @@ class QCircuitImage:
         Args:
             qubits (list[Qubit]): list of qubits
             clbits (list[Clbit]): list of clbits
-            ops (list[list[DAGNode]]): list of circuit instructions, grouped by layer
+            nodes (list[list[DAGNode]]): list of circuit instructions, grouped by layer
             scale (float): image scaling
             style (dict or str): dictionary of style or file name of style file
             reverse_bits (bool): when True, reverse the bit ordering of the registers
@@ -74,10 +74,10 @@ class QCircuitImage:
             ImportError: If pylatexenc is not installed
         """
         # list of lists corresponding to layers of the circuit
-        self.ops = ops
+        self.nodes = nodes
 
         # image scaling
-        self.scale = 0.7 if scale is None else scale
+        self.scale = 1.0 if scale is None else scale
 
         # Map of qregs to sizes
         self.qregs = {}
@@ -138,9 +138,9 @@ class QCircuitImage:
         self.cregbundle = cregbundle
         # If there is any custom instruction that uses clasiscal bits
         # then cregbundle is forced to be False.
-        for layer in self.ops:
-            for op in layer:
-                if op.name not in {"measure"} and op.cargs:
+        for layer in self.nodes:
+            for node in layer:
+                if node.op.name not in {"measure"} and node.cargs:
                     self.cregbundle = False
 
         self.cregs_bits = [self.bit_locations[bit]["register"] for bit in clbits]
@@ -159,31 +159,24 @@ class QCircuitImage:
 
         self._initialize_latex_array()
         self._build_latex_array()
-        header_1 = r"""% \documentclass[preview]{standalone}
-% If the image is too large to fit on this documentclass use
-\documentclass[draft]{beamer}
-"""
-        beamer_line = "\\usepackage[size=custom,height=%d,width=%d,scale=%.1f]{beamerposter}\n"
-        header_2 = r"""% instead and customize the height and width (in cm) to fit.
-% Large images may run out of memory quickly.
-% To fix this use the LuaLaTeX compiler, which dynamically
-% allocates memory.
+        header_1 = r"""\documentclass[border=2px]{standalone}
+        """
+
+        header_2 = r"""
 \usepackage[braket, qm]{qcircuit}
-\usepackage{amsmath}
-\pdfmapfile{+sansmathaccent.map}
-% \usepackage[landscape]{geometry}
-% Comment out the above line if using the beamer documentclass.
-\begin{document}
+\usepackage{graphicx}
+
+\begin{document} 
 """
+        header_scale = "\\scalebox{{{}}}".format(self.scale) + "{"
+
         qcircuit_line = r"""
-\begin{equation*}
-    \Qcircuit @C=%.1fem @R=%.1fem @!R {
+\Qcircuit @C=%.1fem @R=%.1fem @!R { \\
 """
         output = io.StringIO()
         output.write(header_1)
-        output.write("%% img_width = %d, img_depth = %d\n" % (self.img_width, self.img_depth))
-        output.write(beamer_line % self._get_beamer_page())
         output.write(header_2)
+        output.write(header_scale)
         if self.global_phase:
             output.write(
                 r"""{$\mathrm{%s} \mathrm{%s}$}"""
@@ -197,9 +190,8 @@ class QCircuitImage:
                 if j != self.img_depth:
                     output.write(" & ")
                 else:
-                    output.write(r"\\" + "\n")
-        output.write("\t }\n")
-        output.write("\\end{equation*}\n\n")
+                    output.write(r"\\ " + "\n")
+        output.write(r"\\ " + "}}\n")
         output.write("\\end{document}")
         contents = output.getvalue()
         output.close()
@@ -231,39 +223,23 @@ class QCircuitImage:
             if isinstance(self.ordered_bits[i], Clbit):
                 if self.cregbundle:
                     reg = self.bit_locations[self.ordered_bits[i + offset]]["register"]
-                    self._latex[i][0] = "\\lstick{" + reg.name + ":"
+                    label = reg.name + ":"
                     clbitsize = self.cregs[reg]
                     self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
                     offset += clbitsize - 1
-
-                elif register.size > 1:
-                    self._latex[i][0] = (
-                        "\\lstick{"
-                        + self.bit_locations[self.ordered_bits[i]]["register"].name
-                        + "_{"
-                        + str(self.bit_locations[self.ordered_bits[i]]["index"])
-                        + "}:"
-                    )
                 else:
-                    self._latex[i][0] = (
-                        "\\lstick{"
-                        + self.bit_locations[self.ordered_bits[i]]["register"].name
-                        + " :"
-                    )
+                    label = self.bit_locations[self.ordered_bits[i]]["register"].name + "_{"
+                    label += str(self.bit_locations[self.ordered_bits[i]]["index"]) + "}:"
                 if self.initial_state:
-                    self._latex[i][0] += "0"
-                self._latex[i][0] += "}"
+                    label += "0"
+                label += "}"
+                self._latex[i][0] = "\\nghost{" + label + " & " + "\\lstick{" + label
             else:
                 if self.layout is None:
-                    if register.size > 1:
-                        label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
-                            self.bit_locations[self.ordered_bits[i]]["register"].name,
-                            self.bit_locations[self.ordered_bits[i]]["index"],
-                        )
-                    else:
-                        label = "\\lstick{{ {{{}}} : ".format(
-                            self.bit_locations[self.ordered_bits[i]]["register"].name,
-                        )
+                    label = " {{{}}}_{{{}}} : ".format(
+                        self.bit_locations[self.ordered_bits[i]]["register"].name,
+                        self.bit_locations[self.ordered_bits[i]]["index"],
+                    )
                 else:
                     bit_location = self.bit_locations[self.ordered_bits[i]]
                     if bit_location and self.layout[bit_location["index"]]:
@@ -272,24 +248,37 @@ class QCircuitImage:
                             virt_reg = next(
                                 reg for reg in self.layout.get_registers() if virt_bit in reg
                             )
-                            label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
+                            label = " {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
                                 virt_reg.name, virt_reg[:].index(virt_bit), bit_location["index"]
                             )
                         except StopIteration:
-                            label = "\\lstick{{ {{{}}} : ".format(bit_location["index"])
-                    elif len(self.qubit_list) > 1:
-                        label = "\\lstick{{ {{{}}} : ".format(bit_location["index"])
+                            label = "  {{{}}} : ".format(bit_location["index"])
+                    else:
+                        label = " {{{}}} : ".format(bit_location["index"])
                 if self.initial_state:
                     label += "\\ket{{0}}"
                 label += " }"
-                self._latex[i][0] = label
+                self._latex[i][0] = "\\nghost{" + label + " & " + "\\lstick{" + label
 
     def _get_image_depth(self):
         """Get depth information for the circuit."""
-        max_column_widths = []
+
+        # wires in the beginning and end
+        columns = 2
+        if self.cregbundle and (
+            self.nodes
+            and self.nodes[0]
+            and (self.nodes[0][0].op.name == "measure" or self.nodes[0][0].op.condition)
+        ):
+            columns += 1
+
         # Determine wire spacing before image depth
-        for layer in self.ops:
-            for op in layer:
+        max_column_widths = []
+        for layer in self.nodes:
+            column_width = 1
+            current_max = 0
+            for node in layer:
+                op = node.op
                 # useful information for determining wire spacing
                 boxed_gates = [
                     "u1",
@@ -323,45 +312,25 @@ class QCircuitImage:
                     self.has_box = True
                 elif op.name in target_gates:
                     self.has_target = True
-                elif isinstance(op.op, ControlledGate):
+                elif isinstance(op, ControlledGate):
                     self.has_box = True
 
-        for layer in self.ops:
-
-            current_max = 0
-            for op in layer:
                 arg_str_len = 0
-
                 # the wide gates
-                for arg in op.op.params:
-                    if not any(isinstance(param, np.ndarray) for param in op.op.params):
+                for arg in op.params:
+                    if not any(isinstance(param, np.ndarray) for param in op.params):
                         arg_str = re.sub(r"[-+]?\d*\.\d{2,}|\d{2,}", self._truncate_float, str(arg))
                         arg_str_len += len(arg_str)
 
                 # the width of the column is the max of all the gates in the column
                 current_max = max(arg_str_len, current_max)
 
-            max_column_widths.append(current_max)
-
-        # wires in the beginning and end
-        columns = 2
-        if self.cregbundle and (
-            self.ops
-            and self.ops[0]
-            and (self.ops[0][0].name == "measure" or self.ops[0][0].op.condition)
-        ):
-            columns += 1
-
-        # all gates take up 1 column except from those with side labels (ie cu1, cp, rzz)
-        # which take 4 columns
-        for layer in self.ops:
-            column_width = 1
-            for op in layer:
-                base_type = None if not hasattr(op.op, "base_gate") else op.op.base_gate
-                if isinstance(op.op, RZZGate) or isinstance(
-                    base_type, (U1Gate, PhaseGate, RZZGate)
-                ):
+                # all gates take up 1 column except from those with side labels (ie cu1, cp, rzz)
+                # which take 4 columns
+                base_type = None if not hasattr(op, "base_gate") else op.base_gate
+                if isinstance(op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
                     column_width = 4
+            max_column_widths.append(current_max)
             columns += column_width
 
         # every 3 characters is roughly one extra 'unit' of width in the cell
@@ -415,40 +384,41 @@ class QCircuitImage:
         column = 1
         # Leave a column to display number of classical registers if needed
         if self.cregbundle and (
-            self.ops
-            and self.ops[0]
-            and (self.ops[0][0].name == "measure" or self.ops[0][0].op.condition)
+            self.nodes
+            and self.nodes[0]
+            and (self.nodes[0][0].op.name == "measure" or self.nodes[0][0].op.condition)
         ):
             column += 1
 
-        for layer in self.ops:
+        for layer in self.nodes:
             num_cols_layer = 1
 
-            for op in layer:
+            for node in layer:
+                op = node.op
                 num_cols_op = 1
-                if isinstance(op.op, Measure):
-                    self._build_measure(op, column)
+                if isinstance(op, Measure):
+                    self._build_measure(node, column)
 
-                elif op.op._directive:  # barrier, snapshot, etc.
-                    self._build_barrier(op, column)
+                elif op._directive:  # barrier, snapshot, etc.
+                    self._build_barrier(node, column)
 
                 else:
                     gate_text, _, _ = get_gate_ctrl_text(op, "latex", style=self._style)
                     gate_text += get_param_str(op, "latex", ndigits=4)
                     gate_text = generate_latex_label(gate_text)
-                    wire_list = [self.img_regs[qarg] for qarg in op.qargs]
-                    if op.cargs:
-                        cwire_list = [self.img_regs[carg] for carg in op.cargs]
+                    wire_list = [self.img_regs[qarg] for qarg in node.qargs]
+                    if node.cargs:
+                        cwire_list = [self.img_regs[carg] for carg in node.cargs]
                     else:
                         cwire_list = []
 
-                    if op.op.condition:
+                    if op.condition:
                         self._add_condition(op, wire_list, column)
 
-                    if len(wire_list) == 1 and not op.cargs:
+                    if len(wire_list) == 1 and not node.cargs:
                         self._latex[wire_list[0]][column] = "\\gate{%s}" % gate_text
 
-                    elif isinstance(op.op, ControlledGate):
+                    elif isinstance(op, ControlledGate):
                         num_cols_op = self._build_ctrl_gate(op, gate_text, wire_list, column)
                     else:
                         num_cols_op = self._build_multi_gate(
@@ -463,7 +433,7 @@ class QCircuitImage:
         """Add a multiple wire gate to the _latex list"""
         cwire_start = len(self.qubit_list)
         num_cols_op = 1
-        if isinstance(op.op, (SwapGate, RZZGate)):
+        if isinstance(op, (SwapGate, RZZGate)):
             num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
         else:
             wire_min = min(wire_list)
@@ -496,29 +466,29 @@ class QCircuitImage:
     def _build_ctrl_gate(self, op, gate_text, wire_list, col):
         """Add a gate with multiple controls to the _latex list"""
         num_cols_op = 1
-        num_ctrl_qubits = op.op.num_ctrl_qubits
+        num_ctrl_qubits = op.num_ctrl_qubits
         wireqargs = wire_list[num_ctrl_qubits:]
         ctrlqargs = wire_list[:num_ctrl_qubits]
         wire_min = min(wireqargs)
         wire_max = max(wireqargs)
-        ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(num_ctrl_qubits, "0")[::-1]
+        ctrl_state = f"{op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
 
         # First do single qubit target gates
         if len(wireqargs) == 1:
             self._add_controls(wire_list, ctrlqargs, ctrl_state, col)
 
             # Check for cx, cz, cu1 and cp first, then do standard gate
-            if isinstance(op.op.base_gate, XGate):
+            if isinstance(op.base_gate, XGate):
                 self._latex[wireqargs[0]][col] = "\\targ"
-            elif isinstance(op.op.base_gate, ZGate):
+            elif isinstance(op.base_gate, ZGate):
                 self._latex[wireqargs[0]][col] = "\\control\\qw"
-            elif isinstance(op.op.base_gate, (U1Gate, PhaseGate)):
+            elif isinstance(op.base_gate, (U1Gate, PhaseGate)):
                 num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
             else:
                 self._latex[wireqargs[0]][col] = "\\gate{%s}" % gate_text
         else:
             # Treat special cases of swap and rzz gates
-            if isinstance(op.op.base_gate, (SwapGate, RZZGate)):
+            if isinstance(op.base_gate, (SwapGate, RZZGate)):
                 self._add_controls(wire_list, ctrlqargs, ctrl_state, col)
                 num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
             else:
@@ -540,17 +510,17 @@ class QCircuitImage:
         # The last and next to last in the wire list are the gate wires without added controls
         wire_next_last = wire_list[-2]
         wire_last = wire_list[-1]
-        base_op = None if not hasattr(op.op, "base_gate") else op.op.base_gate
+        base_op = None if not hasattr(op, "base_gate") else op.base_gate
 
-        if isinstance(op.op, SwapGate) or (base_op and isinstance(base_op, SwapGate)):
+        if isinstance(op, SwapGate) or (base_op and isinstance(base_op, SwapGate)):
             self._latex[wire_next_last][col] = "\\qswap"
             self._latex[wire_last][col] = "\\qswap \\qwx[" + str(wire_next_last - wire_last) + "]"
             return 1  # num_cols
 
-        if isinstance(op.op, RZZGate) or (base_op and isinstance(base_op, RZZGate)):
+        if isinstance(op, RZZGate) or (base_op and isinstance(base_op, RZZGate)):
             ctrl_bit = "1"
         else:
-            ctrl_bit = "{:b}".format(op.op.ctrl_state).rjust(1, "0")[::-1]
+            ctrl_bit = f"{op.ctrl_state:b}".rjust(1, "0")[::-1]
 
         control = "\\ctrlo" if ctrl_bit == "0" else "\\ctrl"
         self._latex[wire_next_last][col] = f"{control}" + (
@@ -561,15 +531,15 @@ class QCircuitImage:
         self._latex[wire_max - 1][col + 1] = "\\dstick{\\hspace{2.0em}%s} \\qw" % gate_text
         return 4  # num_cols for side text gates
 
-    def _build_measure(self, op, col):
+    def _build_measure(self, node, col):
         """Build a meter and the lines to the creg"""
-        if op.op.condition:
+        if node.op.condition:
             raise exceptions.VisualizationError("If controlled measures currently not supported.")
 
-        wire1 = self.img_regs[op.qargs[0]]
+        wire1 = self.img_regs[node.qargs[0]]
         if self.cregbundle:
             wire2 = len(self.qubit_list)
-            cregindex = self.img_regs[op.cargs[0]] - wire2
+            cregindex = self.img_regs[node.cargs[0]] - wire2
             for creg_size in self.cregs.values():
                 if cregindex >= creg_size:
                     cregindex -= creg_size
@@ -577,7 +547,7 @@ class QCircuitImage:
                 else:
                     break
         else:
-            wire2 = self.img_regs[op.cargs[0]]
+            wire2 = self.img_regs[node.cargs[0]]
 
         self._latex[wire1][col] = "\\meter"
         if self.cregbundle:
@@ -588,10 +558,10 @@ class QCircuitImage:
         else:
             self._latex[wire2][col] = "\\control \\cw \\cwx[-" + str(wire2 - wire1) + "]"
 
-    def _build_barrier(self, op, col):
+    def _build_barrier(self, node, col):
         """Build a partial or full barrier if plot_barriers set"""
         if self.plot_barriers:
-            indexes = [self.img_regs[qarg] for qarg in op.qargs]
+            indexes = [self.img_regs[qarg] for qarg in node.qargs]
             indexes.sort()
             first = last = indexes[0]
             for index in indexes[1:]:
@@ -631,15 +601,15 @@ class QCircuitImage:
         #         or if cregbundle, wire number of the condition register itself
         # gap - the number of wires from cwire to the bottom gate qubit
 
-        creg_size = self.cregs[op.op.condition[0]]
-        if_value = format(op.op.condition[1], "b").zfill(creg_size)
+        creg_size = self.cregs[op.condition[0]]
+        if_value = format(op.condition[1], "b").zfill(creg_size)
         if not self.reverse_bits:
             if_value = if_value[::-1]
 
         cwire = len(self.qubit_list)
         iter_cregs = iter(list(self.cregs)) if self.cregbundle else iter(self.cregs_bits)
         for creg in iter_cregs:
-            if creg == op.op.condition[0]:
+            if creg == op.condition[0]:
                 break
             cwire += 1
 
@@ -647,7 +617,7 @@ class QCircuitImage:
         if self.cregbundle:
             # Print the condition value at the bottom
             self._latex[cwire][col] = "\\dstick{_{_{=%s}}} \\cw \\cwx[-%s]" % (
-                str(op.op.condition[1]),
+                str(op.condition[1]),
                 str(gap),
             )
         else:
@@ -660,5 +630,5 @@ class QCircuitImage:
     def _truncate_float(self, matchobj, ndigits=4):
         """Truncate long floats."""
         if matchobj.group(0):
-            return "%.{}g".format(ndigits) % float(matchobj.group(0))
+            return f"%.{ndigits}g" % float(matchobj.group(0))
         return ""

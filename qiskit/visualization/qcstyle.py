@@ -283,8 +283,8 @@ def load_style(style):
             style_name = config.get("circuit_mpl_style", "default")
         elif not isinstance(style, (str, dict)):
             warn(
-                "style parameter '{}' must be a str or a dictionary."
-                " Will use default style.".format(style),
+                f"style parameter '{style}' must be a str or a dictionary."
+                " Will use default style.",
                 UserWarning,
                 2,
             )
@@ -314,23 +314,24 @@ def load_style(style):
                     break
                 except json.JSONDecodeError as err:
                     warn(
-                        "Could not decode JSON in file '{}': {}. ".format(path, str(err))
-                        + "Will use default style.",
+                        f"Could not decode JSON in file '{path}': {str(err)}. "
+                        "Will use default style.",
                         UserWarning,
                         2,
                     )
                     break
                 except (OSError, FileNotFoundError):
                     warn(
-                        "Error loading JSON file '{}'. Will use default style.".format(path),
+                        f"Error loading JSON file '{path}'. Will use default style.",
                         UserWarning,
                         2,
                     )
                     break
         else:
             warn(
-                "Style JSON file '{}' not found in any of these locations: {}. Will use"
-                " default style.".format(style_name, ", ".join(style_path)),
+                f"Style JSON file '{style_name}' not found in any of these locations: "
+                f"{', '.join(style_path)}. "
+                "Will use default style.",
                 UserWarning,
                 2,
             )
@@ -387,7 +388,7 @@ def set_style(current_style, new_style):
     unsupported_keys = set(new_style) - valid_fields
     if unsupported_keys:
         warn(
-            "style option/s ({}) is/are not supported".format(", ".join(unsupported_keys)),
+            f"style option/s ({', '.join(unsupported_keys)}) is/are not supported",
             UserWarning,
             2,
         )
