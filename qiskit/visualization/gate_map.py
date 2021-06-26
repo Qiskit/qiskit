@@ -540,7 +540,7 @@ def plot_circuit_layout(circuit, backend, view="virtual"):
 
     bit_locations = {
         bit: {"register": register, "index": index}
-        for register in circuit._layout.get_registers()
+        for register in circuit.qregs
         for index, bit in enumerate(register)
     }
     for index, qubit in enumerate(circuit._layout.get_virtual_bits()):
