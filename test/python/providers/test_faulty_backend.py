@@ -13,7 +13,11 @@
 """Testing a Faulty Ourense Backend."""
 
 from qiskit.test import QiskitTestCase
-from .faulty_backends import FakeOurenseFaultyCX01, FakeOurenseFaultyQ1, FakeOurenseFaultyCX13
+from .faulty_backends import (
+    FakeOurenseFaultyCX01CX10,
+    FakeOurenseFaultyQ1,
+    FakeOurenseFaultyCX13CX31,
+)
 
 
 class FaultyQubitBackendTestCase(QiskitTestCase):
@@ -32,10 +36,10 @@ class FaultyQubitBackendTestCase(QiskitTestCase):
 
 
 class FaultyGate13BackendTestCase(QiskitTestCase):
-    """Test operational-related methods of backend.properties() with FakeOurenseFaultyCX13,
+    """Test operational-related methods of backend.properties() with FakeOurenseFaultyCX13CX31,
     which is like FakeOurense but with a faulty CX(Q1, Q3) and symmetric."""
 
-    backend = FakeOurenseFaultyCX13()
+    backend = FakeOurenseFaultyCX13CX31()
 
     def test_operational_gate(self):
         """Test is_gate_operational method."""
@@ -51,10 +55,10 @@ class FaultyGate13BackendTestCase(QiskitTestCase):
 
 
 class FaultyGate01BackendTestCase(QiskitTestCase):
-    """Test operational-related methods of backend.properties() with FakeOurenseFaultyCX13,
+    """Test operational-related methods of backend.properties() with FakeOurenseFaultyCX13CX31,
     which is like FakeOurense but with a faulty CX(Q1, Q3) and symmetric."""
 
-    backend = FakeOurenseFaultyCX01()
+    backend = FakeOurenseFaultyCX01CX10()
 
     def test_operational_gate(self):
         """Test is_gate_operational method."""
