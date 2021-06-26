@@ -853,8 +853,12 @@ class MatplotlibDrawer:
     def _get_colors(self, op, gate_text):
         """Get all the colors needed for drawing the circuit"""
         base_name = None if not hasattr(op, "base_gate") else op.base_gate.name
+        color = None
         if gate_text in self._style["dispcol"]:
             color = self._style["dispcol"][gate_text]
+        elif op.name in self._style["dispcol"]:
+            color = self._style["dispcol"][op.name]
+        if color is not None:
             # Backward compatibility for style dict using 'displaycolor' with
             # gate color and no text color, so test for str first
             if isinstance(color, str):
