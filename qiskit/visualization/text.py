@@ -717,11 +717,10 @@ class TextDrawing:
         qubit_labels = []
         if self.layout is None:
             for bit in self.qubits:
-                register = self.bit_locations[bit]["register"]
                 label = "{name}_{index}: " + initial_qubit_value
                 if self.bit_locations[bit]["register"] is not None:
                     qubit_labels.append(
-                        ("{name}_{index}: " + initial_qubit_value).format(
+                        label.format(
                             name=self.bit_locations[bit]["register"].name,
                             index=self.bit_locations[bit]["index"],
                         )
@@ -978,6 +977,7 @@ class TextDrawing:
             gate_text, ctrl_text, _ = get_gate_ctrl_text(op, "text")
             gate_text = TextDrawing.special_label(op) or gate_text
             gate_text = gate_text + params
+
         if op.condition is not None:
             # conditional
             cllabel = TextDrawing.label_for_conditional(node)
@@ -1011,6 +1011,7 @@ class TextDrawing:
             for qubit in node.qargs:
                 if qubit in self.qubits:
                     layer.set_qubit(qubit, Barrier())
+
         elif isinstance(op, SwapGate):
             # swap
             gates = [Ex(conditional=conditional) for _ in range(len(node.qargs))]

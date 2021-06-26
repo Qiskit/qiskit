@@ -219,7 +219,6 @@ class QCircuitImage:
         if self.cregbundle:
             offset = 0
         for i in range(self.img_width):
-            register = self.bit_locations[self.ordered_bits[i]]["register"]
             if isinstance(self.ordered_bits[i], Clbit):
                 if self.cregbundle:
                     reg = self.bit_locations[self.ordered_bits[i + offset]]["register"]
