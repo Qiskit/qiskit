@@ -13,12 +13,12 @@
 """Replace a schedule with frames by one with instructions on PulseChannels only."""
 
 from typing import Union
-import numpy as np
 
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.resolved_frame import ResolvedFrame, ChannelTracker
 from qiskit.pulse.transforms.canonicalization import block_to_schedule
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.library.signal import Signal
 from qiskit.pulse import channels as chans, instructions
 from qiskit.pulse.frame import FramesConfiguration
 from qiskit.pulse.instructions import ShiftPhase, ShiftFrequency, Play, SetFrequency, SetPhase
@@ -48,6 +48,15 @@ def resolve_frames(
 
     if isinstance(schedule, ScheduleBlock):
         schedule = block_to_schedule(schedule)
+
+    # Check that the schedule has any frame instructions that need resolving.
+    # TODO Need to check phase/frequency instructions.
+    for time, inst in schedule.instructions:
+        if isinstance(inst, Play):
+            if isinstance(inst.operands[0], Signal):
+                break
+    else:
+        return schedule
 
     resolved_frames = {}
     for frame, frame_def in frames_config.items():
