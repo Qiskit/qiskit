@@ -35,6 +35,8 @@ from qiskit.transpiler.passes import Decompose
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import LookaheadSwap
 
+from qiskit.providers.ibmq.exceptions import IBMQProviderError
+
 
 provider = IBMQ.load_account()
 
@@ -68,7 +70,7 @@ for backend in provider.backends():
 try:
     # select least busy available device and execute.
     least_busy_device = least_busy(provider.backends(simulator=False))
-except:
+except IBMQProviderError:
     print("All devices are currently unavailable.")
 
 print("Running on current least busy device: ", least_busy_device)

@@ -42,6 +42,9 @@ GOTO :next
 
 :lint
 pylint qiskit test
+python "tools/verify_headers.py" qiskit test tools examples
+pylint -rn --disable="C0103, W0621, E0611, E0401" examples
+python "tools/find_optional_imports.py"
 IF errorlevel 9009 GOTO :error
 GOTO :next
 

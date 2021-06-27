@@ -33,6 +33,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
+from qiskit.providers.ibmq.exceptions import IBMQProviderError
 
 provider = IBMQ.load_account()
 
@@ -63,7 +64,7 @@ for backend in provider.backends():
 try:
     # select least busy available device and execute.
     least_busy_device = least_busy(provider.backends(simulator=False))
-except:
+except IBMQProviderError:
     print("All devices are currently unavailable.")
 
 print("Running on current least busy device: ", least_busy_device)

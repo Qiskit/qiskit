@@ -47,7 +47,7 @@ env:
 lint:
 	pylint -rn qiskit test tools
 	tools/verify_headers.py qiskit test tools examples
-	pylint -rn --disable='C0103, C0114, W0621' examples/python/*.py
+	pylint -rn --disable='C0103, W0621, E0611, E0401' examples
 	tools/find_optional_imports.py
 
 style:

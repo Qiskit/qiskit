@@ -16,18 +16,18 @@ Example showing how to use Qiskit-Terra at level 0 (novice).
 This example shows the most basic way to user Terra. It builds some circuits
 and runs them on both the BasicAer (local Qiskit provider) or IBMQ (remote IBMQ provider).
 
-To control the compile parameters we have provided a transpile function which can be used 
+To control the compile parameters we have provided a transpile function which can be used
 as a level 1 user.
 
 """
 
-import time
 
 # Import the Qiskit modules
 from qiskit import QuantumCircuit
 from qiskit import execute, IBMQ, BasicAer
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
+from qiskit.providers.ibmq.exceptions import IBMQProviderError
 
 
 provider = IBMQ.load_account()
@@ -64,7 +64,7 @@ print(IBMQ.providers()[0].backends())
 try:
     # select least busy available device and execute.
     least_busy_device = least_busy(provider.backends(simulator=False))
-except:
+except IBMQProviderError:
     print("All devices are currently unavailable.")
 
 print("Running on current least busy device: ", least_busy_device)
