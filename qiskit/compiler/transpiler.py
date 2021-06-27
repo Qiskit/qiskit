@@ -60,7 +60,7 @@ def transpile(
     approximation_degree: Optional[float] = None,
     seed_transpiler: Optional[int] = None,
     inst_map: Dict[str, Dict[Tuple[int], Schedule]] = None,
-    optimization_level: Optional[int] = None,
+    optimization_level: Union[Optional[int], Optional[str]] = None,
     pass_manager: Optional[PassManager] = None,
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
     output_name: Optional[Union[str, List[str]]] = None,
