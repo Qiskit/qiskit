@@ -332,13 +332,6 @@ def _assemble_config(
         if m_los:
             qobj_config["meas_lo_freq"] = [freq / 1e9 for freq in m_los]
 
-    # frames config: replace the frame instance by its name.
-    frames_config = qobj_config.get("frames_config", None)
-    if frames_config:
-        frames_config_ = {}
-        for frame, settings in frames_config.items():
-            frames_config_[frame.name] = settings
-
-        qobj_config["frames_config"] = frames_config_
+    qobj_config.pop("frames_config", None)
 
     return qobj.PulseQobjConfig(**qobj_config)
