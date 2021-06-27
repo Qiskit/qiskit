@@ -29,7 +29,7 @@ class PassManagerConfig:
         backend_properties=None,
         approximation_degree=None,
         seed_transpiler=None,
-        inst_map=None
+        inst_map=None,
     ):
         """Initialize a PassManagerConfig object
 

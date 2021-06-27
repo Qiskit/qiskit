@@ -82,17 +82,19 @@ class RZXCalibrationBuilder(CalibrationCreator):
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """
 
-    def __init__(self, inst_map: Dict[str, Dict[Tuple[int], Schedule]], backend: Optional[BaseBackend] = None):
+    def __init__(
+        self, inst_map: Dict[str, Dict[Tuple[int], Schedule]], backend: Optional[BaseBackend] = None
+    ):
         """
-                Initializes a RZXGate calibration builder.
+        Initializes a RZXGate calibration builder.
 
-                Args:
-                    inst_map: Instruction schedule map.
-                    backend: Backend for which to construct the gates.
+        Args:
+            inst_map: Instruction schedule map.
+            backend: Backend for which to construct the gates.
 
-                Raises:
-                    QiskitError: if open pulse is not supported by the backend.
-                """
+        Raises:
+            QiskitError: if open pulse is not supported by the backend.
+        """
 
         super().__init__()
 

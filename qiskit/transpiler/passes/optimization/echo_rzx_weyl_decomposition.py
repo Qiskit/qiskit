@@ -27,7 +27,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylEchoRZ
 
 class EchoRZXWeylDecomposition(TransformationPass):
     """Rewrite two-qubit gates using the Weyl decomposition.
-    
+
     This transpiler pass rewrites two-qubit gates in terms of echoed cross-resonance gates according
     to the Weyl decomposition. A two-qubit gate will be replaced with at most six non-echoed RZXGates.
     Each pair of RZXGates forms an echoed RZXGate.
@@ -40,24 +40,26 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
     def run(self, dag):
         """Run the EchoRZXWeylDecomposition pass on `dag`.
-        
+
         Rewrites two-qubit gates in an arbitrary circuit in terms of echoed cross-resonance
         gates by computing the Weyl decomposition of the corresponding unitary. Modifies the
         input dag.
-        
+
         Args:
             dag (DAGCircuit): DAG to map.
-            
+
         Returns:
             DAGCircuit: The rearranged dag.
-            
+
         Raises:
             TranspilerError: If the circuit cannot be mapped.
         """
 
         if len(dag.qregs) > 1:
-            raise TranspilerError('EchoRZXWeylDecomposition expects a single qreg input DAG,'
-                                  f'but input DAG had qregs: {dag.qregs}.')
+            raise TranspilerError(
+                "EchoRZXWeylDecomposition expects a single qreg input DAG,"
+                f"but input DAG had qregs: {dag.qregs}."
+            )
 
         trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
@@ -77,9 +79,11 @@ class EchoRZXWeylDecomposition(TransformationPass):
                 qubit_pair = (physical_q0, physical_q1)
 
                 unitary = qi.Operator(node.op).data
-                dag_weyl = circuit_to_dag(TwoQubitWeylEchoRZX(unitary,
-                                                              inst_map=self.inst_map,
-                                                              qubit_pair=qubit_pair).circuit())
+                dag_weyl = circuit_to_dag(
+                    TwoQubitWeylEchoRZX(
+                        unitary, inst_map=self.inst_map, qubit_pair=qubit_pair
+                    ).circuit()
+                )
                 dag.substitute_node_with_dag(node, dag_weyl)
 
         return dag

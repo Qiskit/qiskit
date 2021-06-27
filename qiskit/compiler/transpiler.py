@@ -357,10 +357,12 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         pass_manager = level_2_pass_manager(pass_manager_config)
     elif level == 3:
         pass_manager = level_3_pass_manager(pass_manager_config)
-    elif level == 'pulse_efficient':
+    elif level == "pulse_efficient":
         pass_manager = pulse_efficient_pass_manager(pass_manager_config)
     else:
-        raise TranspilerError("optimization_level can range from 0 to 3, or can be 'pulse_efficient'.")
+        raise TranspilerError(
+            "optimization_level can range from 0 to 3, or can be 'pulse_efficient'."
+        )
 
     result = pass_manager.run(
         circuit, callback=transpile_config["callback"], output_name=transpile_config["output_name"]

@@ -17,14 +17,19 @@ import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
 
-from qiskit.transpiler.passes.optimization.echo_rzx_weyl_decomposition import EchoRZXWeylDecomposition
+from qiskit.transpiler.passes.optimization.echo_rzx_weyl_decomposition import (
+    EchoRZXWeylDecomposition,
+)
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeParis
 
 import qiskit.quantum_info as qi
 
-from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition, TwoQubitWeylEchoRZX
+from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+    TwoQubitWeylDecomposition,
+    TwoQubitWeylEchoRZX,
+)
 
 
 class TestEchoRZXWeylDecomposition(QiskitTestCase):
@@ -36,8 +41,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         self.inst_map = self.backend.defaults().instruction_schedule_map
 
     def test_native_weyl_decomposition(self):
-        """The CX is in the hardware-native direction
-        """
+        """The CX is in the hardware-native direction"""
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
@@ -65,13 +69,12 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         if not gamma == 0:
             expected_rzx_number += 2
 
-        circuit_rzx_number = QuantumCircuit.count_ops(after)['rzx']
+        circuit_rzx_number = QuantumCircuit.count_ops(after)["rzx"]
 
         self.assertEqual(expected_rzx_number, circuit_rzx_number)
 
     def test_non_native_weyl_decomposition(self):
-        """The RZZ is not in the hardware-native direction
-        """
+        """The RZZ is not in the hardware-native direction"""
         theta = pi / 9
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
@@ -100,13 +103,12 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         if not gamma == 0:
             expected_rzx_number += 2
 
-        circuit_rzx_number = QuantumCircuit.count_ops(after)['rzx']
+        circuit_rzx_number = QuantumCircuit.count_ops(after)["rzx"]
 
         self.assertEqual(expected_rzx_number, circuit_rzx_number)
 
     def test_weyl_unitaries_random_circuit(self):
-        """Weyl decomposition for random two-qubit circuit.
-        """
+        """Weyl decomposition for random two-qubit circuit."""
         theta = pi / 9
         epsilon = 5
         delta = -1
@@ -140,8 +142,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         self.assertTrue(np.allclose(unitary_circuit, unitary_after))
 
     def test_weyl_parameters(self):
-        """Computation of the correct RZX Weyl parameters
-        """
+        """Computation of the correct RZX Weyl parameters"""
         theta = pi / 3
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
@@ -157,15 +158,20 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         gamma = TwoQubitWeylDecomposition(unitary_circuit).c
 
         # RZX Weyl parameters (rzx_alpha, rzx_beta, rzx_gamma)
-        rzx_alpha = TwoQubitWeylEchoRZX(unitary_circuit, inst_map=self.inst_map, qubit_pair=qubit_pair).a
-        rzx_beta = TwoQubitWeylEchoRZX(unitary_circuit, inst_map=self.inst_map, qubit_pair=qubit_pair).b
-        rzx_gamma = TwoQubitWeylEchoRZX(unitary_circuit, inst_map=self.inst_map, qubit_pair=qubit_pair).c
+        rzx_alpha = TwoQubitWeylEchoRZX(
+            unitary_circuit, inst_map=self.inst_map, qubit_pair=qubit_pair
+        ).a
+        rzx_beta = TwoQubitWeylEchoRZX(
+            unitary_circuit, inst_map=self.inst_map, qubit_pair=qubit_pair
+        ).b
+        rzx_gamma = TwoQubitWeylEchoRZX(
+            unitary_circuit, inst_map=self.inst_map, qubit_pair=qubit_pair
+        ).c
 
         self.assertEqual((alpha, beta, gamma), (rzx_alpha, rzx_beta, rzx_gamma))
 
     def test_non_native_weyl_parameters(self):
-        """Weyl parameters for a non-hardware-native CX direction
-        """
+        """Weyl parameters for a non-hardware-native CX direction"""
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         qubit_pair = (qr[1], qr[0])
@@ -178,9 +184,15 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         gamma = TwoQubitWeylDecomposition(unitary_circuit).c
 
         # RZX Weyl parameters (rzx_alpha, rzx_beta, rzx_gamma)
-        rzx_alpha = TwoQubitWeylEchoRZX(unitary_circuit, inst_map=self.inst_map, qubit_pair=qubit_pair).a
-        rzx_beta = TwoQubitWeylEchoRZX(unitary_circuit, inst_map=self.inst_map, qubit_pair=qubit_pair).b
-        rzx_gamma = TwoQubitWeylEchoRZX(unitary_circuit, inst_map=self.inst_map, qubit_pair=qubit_pair).c
+        rzx_alpha = TwoQubitWeylEchoRZX(
+            unitary_circuit, inst_map=self.inst_map, qubit_pair=qubit_pair
+        ).a
+        rzx_beta = TwoQubitWeylEchoRZX(
+            unitary_circuit, inst_map=self.inst_map, qubit_pair=qubit_pair
+        ).b
+        rzx_gamma = TwoQubitWeylEchoRZX(
+            unitary_circuit, inst_map=self.inst_map, qubit_pair=qubit_pair
+        ).c
 
         self.assertEqual((alpha, beta, gamma), (rzx_alpha, rzx_beta, rzx_gamma))
 

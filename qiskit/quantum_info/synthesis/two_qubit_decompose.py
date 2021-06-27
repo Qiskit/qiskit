@@ -129,9 +129,9 @@ class TwoQubitWeylDecomposition:
 
         Make explicitly-instantiated subclass __new__  call base __new__ with fidelity=None"""
         super().__init_subclass__(**kwargs)
-        cls.__new__ = lambda cls, *a, fidelity=None, inst_map=None, qubit_pair=None, **k: \
-            TwoQubitWeylDecomposition.__new__(cls, *a, fidelity=None, inst_map=None,
-                                              qubit_pair=None, **k)
+        cls.__new__ = lambda cls, *a, fidelity=None, inst_map=None, qubit_pair=None, **k: TwoQubitWeylDecomposition.__new__(
+            cls, *a, fidelity=None, inst_map=None, qubit_pair=None, **k
+        )
 
     @staticmethod
     def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9), inst_map=None, qubit_pair=None):
@@ -545,8 +545,7 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
 
 
 class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
-    """Decompose two-qubit unitary in terms of echoed cross-resonance gates.
-    """
+    """Decompose two-qubit unitary in terms of echoed cross-resonance gates."""
 
     def __init__(self, unitary, inst_map, qubit_pair: Tuple):
         self.inst_map = inst_map
@@ -580,8 +579,8 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
 
     def is_native_cx(self, qubit_pair: Tuple) -> bool:
         """Check that a CX for a qubit pair is native."""
-        cx1 = self.inst_map.get('cx', qubit_pair)
-        cx2 = self.inst_map.get('cx', qubit_pair[::-1])
+        cx1 = self.inst_map.get("cx", qubit_pair)
+        cx2 = self.inst_map.get("cx", qubit_pair[::-1])
         return cx1.duration < cx2.duration
 
     def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):

@@ -24,8 +24,12 @@ from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 
 from qiskit.transpiler.passes.scheduling.calibration_creators import RZXCalibrationBuilderNoEcho
-from qiskit.transpiler.passes.optimization.echo_rzx_weyl_decomposition import EchoRZXWeylDecomposition
-from qiskit.circuit.library.standard_gates.equivalence_library import StandardEquivalenceLibrary as std_eqlib
+from qiskit.transpiler.passes.optimization.echo_rzx_weyl_decomposition import (
+    EchoRZXWeylDecomposition,
+)
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib,
+)
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 
@@ -53,7 +57,7 @@ def pulse_efficient_pass_manager(pass_manager_config: PassManagerConfig) -> Pass
 
     # 1. Consolidate all consecutive two-qubit operations
     _collect_2q_blocks = Collect2qBlocks()
-    _consolidate_blocks = ConsolidateBlocks(basis_gates=['rz', 'sx', 'x', 'rxx'])
+    _consolidate_blocks = ConsolidateBlocks(basis_gates=["rz", "sx", "x", "rxx"])
 
     # 2. Decompose two-qubit unitaries in terms of echoed RZX gates according to the Weyl decomposition
     _echo_rzx_weyl_decomposition = EchoRZXWeylDecomposition(inst_map)
@@ -62,10 +66,12 @@ def pulse_efficient_pass_manager(pass_manager_config: PassManagerConfig) -> Pass
     _rzx_calibrations = RZXCalibrationBuilderNoEcho(inst_map)
 
     # 4. Unroll to backend basis with rzx
-    basis_gates = list(set(basis_gates) | {'rzx'})
+    basis_gates = list(set(basis_gates) | {"rzx"})
 
-    _unroll = [UnrollCustomDefinitions(std_eqlib, basis_gates),
-               BasisTranslator(std_eqlib, basis_gates)]
+    _unroll = [
+        UnrollCustomDefinitions(std_eqlib, basis_gates),
+        BasisTranslator(std_eqlib, basis_gates),
+    ]
 
     # 5. Optimize one-qubit decomposition
     _optimize_1q_decomposition = Optimize1qGatesDecomposition(basis_gates)

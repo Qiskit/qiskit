@@ -51,7 +51,7 @@ class TestPulseEfficientTranspilerPass(QiskitTestCase):
 
         unitary_circuit = qi.Operator(circuit).data
 
-        result = transpile(circuit, self.backends[0], optimization_level='pulse_efficient')
+        result = transpile(circuit, self.backends[0], optimization_level="pulse_efficient")
 
         unitary_result = qi.Operator(result).data
 
@@ -73,7 +73,7 @@ class TestPulseEfficientTranspilerPass(QiskitTestCase):
 
         unitary_circuit = qi.Operator(circuit).data
 
-        result = transpile(circuit, self.backends[0], optimization_level='pulse_efficient')
+        result = transpile(circuit, self.backends[0], optimization_level="pulse_efficient")
 
         unitary_result = qi.Operator(result).data
 
@@ -96,7 +96,7 @@ class TestPulseEfficientTranspilerPass(QiskitTestCase):
 
         unitary_circuit = qi.Operator(circuit).data
 
-        result = transpile(circuit, self.backends[1], optimization_level='pulse_efficient')
+        result = transpile(circuit, self.backends[1], optimization_level="pulse_efficient")
 
         alpha = TwoQubitWeylDecomposition(unitary_circuit).a
         beta = TwoQubitWeylDecomposition(unitary_circuit).b
@@ -111,7 +111,7 @@ class TestPulseEfficientTranspilerPass(QiskitTestCase):
         if not gamma == 0:
             expected_rzx_number += 2
 
-        circuit_rzx_number = QuantumCircuit.count_ops(result)['rzx']
+        circuit_rzx_number = QuantumCircuit.count_ops(result)["rzx"]
 
         self.assertEqual(expected_rzx_number, circuit_rzx_number)
 
@@ -123,7 +123,7 @@ class TestPulseEfficientTranspilerPass(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.rzz(theta, qr[1], qr[0])
 
-        result = transpile(circuit, self.backends[1], optimization_level='pulse_efficient')
+        result = transpile(circuit, self.backends[1], optimization_level="pulse_efficient")
 
         unitary_result = qi.Operator(result).data
 
@@ -160,7 +160,7 @@ class TestPulseEfficientTranspilerPass(QiskitTestCase):
 
         unitary_circuit = qi.Operator(circuit).data
 
-        result = transpile(circuit, self.backends[0], optimization_level='pulse_efficient')
+        result = transpile(circuit, self.backends[0], optimization_level="pulse_efficient")
 
         unitary_result = qi.Operator(result).data
 
@@ -185,9 +185,9 @@ class TestPulseEfficientTranspilerPass(QiskitTestCase):
         circuit.swap(qr[1], qr[4])
         circuit.h(qr[3])
 
-        result = transpile(circuit, self.backends[0], optimization_level='pulse_efficient')
+        result = transpile(circuit, self.backends[0], optimization_level="pulse_efficient")
 
-        self.assertIn('rzx', result.calibrations)
+        self.assertIn("rzx", result.calibrations)
 
     def test_params_values(self):
         """Test whether absolute value of rzx angles is smaller than or equals pi"""
@@ -214,12 +214,12 @@ class TestPulseEfficientTranspilerPass(QiskitTestCase):
         circuit.swap(qr[1], qr[4])
         circuit.h(qr[3])
 
-        result = transpile(circuit, self.backends[0], optimization_level='pulse_efficient')
+        result = transpile(circuit, self.backends[0], optimization_level="pulse_efficient")
 
         after_dag = circuit_to_dag(result)
 
         for node in after_dag.nodes():
-            if node.type == "op" and node.op.name == 'rzx':
+            if node.type == "op" and node.op.name == "rzx":
                 params = node.op.params
                 self.assertTrue(abs(params[0]) <= np.pi)
 
