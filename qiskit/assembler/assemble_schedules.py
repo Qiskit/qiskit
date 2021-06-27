@@ -102,7 +102,7 @@ def _assemble_experiments(
 
     frames_config = getattr(run_config, "frames_config", None)
     formatted_schedules = [
-        transforms.target_qobj_transform(sched, frames_config) for sched in schedules
+        transforms.target_qobj_transform(sched, frames_config=frames_config) for sched in schedules
     ]
 
     compressed_schedules = transforms.compress_pulses(formatted_schedules)
@@ -183,7 +183,9 @@ def _assemble_instructions(
         A list of converted instructions, the user pulse library dictionary (from pulse name to
         pulse samples), and the maximum number of readout memory slots used by this Schedule.
     """
-    sched = transforms.target_qobj_transform(sched)
+    sched = transforms.target_qobj_transform(
+        sched, frames_config=getattr(run_config, "frames_config", None)
+    )
 
     max_memory_slot = 0
     qobj_instructions = []
