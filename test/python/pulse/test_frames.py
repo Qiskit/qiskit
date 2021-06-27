@@ -14,7 +14,8 @@
 
 import numpy as np
 
-from qiskit.circuit import Parameter
+from qiskit import schedule, assemble
+from qiskit.circuit import Parameter, QuantumCircuit, Gate
 import qiskit.pulse as pulse
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.test import QiskitTestCase
@@ -22,6 +23,7 @@ from qiskit.pulse.transforms import resolve_frames, block_to_schedule
 from qiskit.pulse.transforms.resolved_frame import ResolvedFrame
 from qiskit.pulse.parameter_manager import ParameterManager
 from qiskit.pulse.frame import Frame, FramesConfiguration, FrameDefinition
+from qiskit.test.mock import FakeAthens
 
 
 class TestFrame(QiskitTestCase):
@@ -368,3 +370,88 @@ class TestResolvedFrames(QiskitTestCase):
         resolved_implicit = transform(rabi_sched_implicit)
 
         self.assertEqual(resolved_explicit, resolved_implicit)
+
+
+class TestFrameAssembly(QiskitTestCase):
+    """Test that the assembler resolves the frames."""
+
+    def setUp(self):
+        """Setup the tests."""
+
+        self.backend = FakeAthens()
+        self.defaults = self.backend.defaults()
+        self.qubit = 0
+
+        # Setup the frames
+        freq12 = self.defaults.qubit_freq_est[self.qubit] - 330e6
+        frames_config = self.backend.defaults().frames
+        frames_config.add_frame(Frame("t", self.qubit), freq12, purpose="Frame of qutrit.")
+        frames_config.sample_duration = self.backend.configuration().dt
+
+        self.xp01 = self.defaults.instruction_schedule_map.get(
+            'x', qubits=self.qubit
+        ).instructions[0][1].pulse
+
+        self.xp12 = pulse.Gaussian(160, 0.1, 40)
+
+        # Create the expected schedule with all the explicit frames
+        with pulse.build(backend=self.backend, default_alignment="sequential") as expected_schedule:
+            pulse.play(pulse.Signal(self.xp01, pulse.Frame("d", self.qubit)), pulse.drive_channel(self.qubit))
+            pulse.play(pulse.Signal(self.xp12, pulse.Frame("t", self.qubit)), pulse.drive_channel(self.qubit))
+            pulse.play(pulse.Signal(self.xp01, pulse.Frame("d", self.qubit)), pulse.drive_channel(self.qubit))
+            pulse.measure(qubits=[self.qubit])
+
+        self.expected_schedule = expected_schedule
+
+    def test_frames_in_circuit(self):
+        """
+        Test that we can add schedules with frames in the calibrations of a circuit
+        and that it will compile to the expected outcome.
+        """
+
+        with pulse.build(backend=self.backend, default_alignment="sequential") as xp12_schedule:
+            pulse.play(pulse.Signal(self.xp12, Frame("t", self.qubit)), pulse.drive_channel(self.qubit))
+
+        # Create a quantum circuit and attach the pulse to it.
+        circ = QuantumCircuit(1)
+        circ.x(0)
+        circ.append(Gate("xp12", num_qubits=1, params=[]), (0,))
+        circ.x(0)
+        circ.measure_active()
+        circ.add_calibration("xp12", schedule=xp12_schedule, qubits=[0])
+
+        transform = lambda sched: target_qobj_transform(
+            sched, frames_config=self.backend.defaults().frames
+        )
+
+        sched_resolved = transform(schedule(circ, self.backend))
+
+        expected_resolved = transform(self.expected_schedule)
+
+        self.assertEqual(sched_resolved, expected_resolved)
+
+    def test_transforms_frame_resolution(self):
+        """Test that resolving frames multiple times does not change the schedule."""
+
+        transform = lambda sched: target_qobj_transform(
+            sched, frames_config=self.backend.defaults().frames
+        )
+
+        resolved1 = transform(self.expected_schedule)
+        resolved2 = transform(resolved1)
+
+        self.assertEqual(resolved1, resolved2)
+
+    def test_assmble_frames(self):
+        """Test that the assembler resolves the frames of schedule experiments."""
+
+        # Assemble a schedule with frames.
+        qobj = assemble(self.expected_schedule, self.backend)
+
+        # Manually resolve frames and assemble.
+        transform = lambda sched: target_qobj_transform(
+            sched, frames_config=self.backend.defaults().frames
+        )
+        qobj_resolved = assemble(transform(self.expected_schedule), self.backend)
+
+        self.assertEqual(qobj.experiments, qobj_resolved.experiments)
