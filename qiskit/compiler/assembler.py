@@ -180,6 +180,7 @@ def assemble(
         qubit_lo_range,
         meas_lo_range,
         schedule_los,
+        frames_config,
         **run_config,
     )
 
@@ -216,7 +217,6 @@ def assemble(
             memory_slot_size,
             rep_time,
             parametric_pulses,
-            frames_config,
             **run_config_common_dict,
         )
 
@@ -249,6 +249,7 @@ def _parse_common_args(
     qubit_lo_range,
     meas_lo_range,
     schedule_los,
+    frames_config,
     **run_config,
 ):
     """Resolve the various types of args allowed to the assemble() function through
@@ -366,6 +367,21 @@ def _parse_common_args(
             "'use_measure_esp' is unset or set to 'False'."
         )
 
+    frames_config_ = FramesConfiguration()
+    if backend:
+        frames_config_ = getattr(backend.defaults(), "frames", FramesConfiguration())
+
+    if frames_config is None:
+        frames_config = frames_config_
+    else:
+        for frame, config in frames_config_.items():
+            # Do not override the frames provided by the user.
+            if frame not in frames_config:
+                frames_config[frame] = config
+
+    if backend:
+        frames_config.sample_duration = backend_config.dt
+
     # create run configuration and populate
     run_config_dict = dict(
         shots=shots,
@@ -381,6 +397,7 @@ def _parse_common_args(
         meas_lo_range=meas_lo_range,
         schedule_los=schedule_los,
         n_qubits=n_qubits,
+        frames_config=frames_config,
         **run_config,
     )
 
@@ -455,21 +472,6 @@ def _parse_pulse_args(
             )
 
     meas_map = meas_map or getattr(backend_config, "meas_map", None)
-
-    frames_config_ = FramesConfiguration()
-    if backend:
-        frames_config_ = getattr(backend.defaults(), "frames", FramesConfiguration())
-
-    if frames_config is None:
-        frames_config = frames_config_
-    else:
-        for frame, config in frames_config_.items():
-            # Do not override the frames provided by the user.
-            if frame not in frames_config:
-                frames_config[frame] = config
-
-    if backend:
-        frames_config.sample_duration = backend_config.dt
 
     dynamic_reprate_enabled = getattr(backend_config, "dynamic_reprate_enabled", False)
 
