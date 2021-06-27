@@ -188,7 +188,7 @@ def transpile(
 
         output_name: A list with strings to identify the output circuits. The length of
             the list should be exactly the length of the ``circuits`` parameter.
-        inst_map: ...
+        inst_map: Instruction schedule map.
 
     Returns:
         The transpiled circuit(s).
