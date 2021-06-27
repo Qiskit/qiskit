@@ -26,6 +26,7 @@ from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.frame import Frame
 from qiskit.qobj import QobjMeasurementOption
 from qiskit.qobj.utils import MeasLevel
 from qiskit.circuit import Parameter, ParameterExpression
@@ -295,7 +296,7 @@ class InstructionToQobjConverter:
         command_dict = {
             "name": "setf",
             "t0": shift + instruction.start_time,
-            "ch": instruction.channel.name,
+            "ch": instruction.frame.name,
             "frequency": instruction.frequency / 1e9,
         }
         return self._qobj_model(**command_dict)
@@ -314,7 +315,7 @@ class InstructionToQobjConverter:
         command_dict = {
             "name": "shiftf",
             "t0": shift + instruction.start_time,
-            "ch": instruction.channel.name,
+            "ch": instruction.frame.name,
             "frequency": instruction.frequency / 1e9,
         }
         return self._qobj_model(**command_dict)
@@ -332,7 +333,7 @@ class InstructionToQobjConverter:
         command_dict = {
             "name": "setp",
             "t0": shift + instruction.start_time,
-            "ch": instruction.channel.name,
+            "ch": instruction.frame.name,
             "phase": instruction.phase,
         }
         return self._qobj_model(**command_dict)
@@ -350,7 +351,7 @@ class InstructionToQobjConverter:
         command_dict = {
             "name": "fc",
             "t0": shift + instruction.start_time,
-            "ch": instruction.channel.name,
+            "ch": instruction.frame.name,
             "phase": instruction.phase,
         }
         return self._qobj_model(**command_dict)
@@ -562,9 +563,10 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
+        frame = Frame(channel.prefix, channel.index)
         phase = self.disassemble_value(instruction.phase)
 
-        return instructions.SetPhase(phase, channel) << t0
+        return instructions.SetPhase(phase, frame) << t0
 
     @bind_name("fc")
     def convert_shift_phase(self, instruction):
@@ -577,9 +579,10 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
+        frame = Frame(channel.prefix, channel.index)
         phase = self.disassemble_value(instruction.phase)
 
-        return instructions.ShiftPhase(phase, channel) << t0
+        return instructions.ShiftPhase(phase, frame) << t0
 
     @bind_name("setf")
     def convert_set_frequency(self, instruction):
@@ -594,9 +597,10 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
+        frame = Frame(channel.prefix, channel.index)
         frequency = self.disassemble_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
 
-        return instructions.SetFrequency(frequency, channel) << t0
+        return instructions.SetFrequency(frequency, frame) << t0
 
     @bind_name("shiftf")
     def convert_shift_frequency(self, instruction):
@@ -612,9 +616,10 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
+        frame = Frame(channel.prefix, channel.index)
         frequency = self.disassemble_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
 
-        return instructions.ShiftFrequency(frequency, channel) << t0
+        return instructions.ShiftFrequency(frequency, frame) << t0
 
     @bind_name("delay")
     def convert_delay(self, instruction):

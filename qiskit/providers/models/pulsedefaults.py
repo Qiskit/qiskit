@@ -292,13 +292,15 @@ class PulseDefaults:
             for qubit, freq in enumerate(self.qubit_freq_est):
                 frames[Frame(DriveChannel.prefix, qubit)] = {
                     "frequency": freq,
-                    "purpose": f"Frame of qubit {qubit}"
+                    "purpose": f"Frame of qubit {qubit}",
+                    "has_physical_channel": True,
                 }
 
             for meas, freq in enumerate(self.meas_freq_est):
                 frames[Frame(MeasureChannel.prefix, meas)] = {
                     "frequency": freq,
-                    "purpose": f"Frame of meas {meas}"
+                    "purpose": f"Frame of meas {meas}",
+                    "has_physical_channel": True,
                 }
 
             self._frames_config = FramesConfiguration.from_dict(frames)

@@ -19,7 +19,6 @@ from qiskit.pulse.transforms.resolved_frame import ResolvedFrame, ChannelTracker
 from qiskit.pulse.transforms.canonicalization import block_to_schedule
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.signal import Signal
-from qiskit.pulse.frame import Frame
 from qiskit.pulse import channels as chans, instructions
 from qiskit.pulse.frame import FramesConfiguration
 from qiskit.pulse.instructions import ShiftPhase, ShiftFrequency, Play, SetFrequency, SetPhase
@@ -51,13 +50,17 @@ def resolve_frames(
         schedule = block_to_schedule(schedule)
 
     # Check that the schedule has any frame instructions that need resolving.
+    # A schedule needs resolving if:
+    # - A pulse in a frame different from the channel's frame is played, and
+    # - A Set/Shift instruction is applied on a frame which does not correspond to a channel frame.
     for time, inst in schedule.instructions:
         if isinstance(inst, Play):
             if isinstance(inst.operands[0], Signal):
                 break
 
         if isinstance(inst, (SetFrequency, SetPhase, ShiftFrequency, ShiftPhase)):
-            if isinstance(inst.channel, Frame):
+            frame = inst.frame
+            if not frames_config[frame].has_physical_channel:
                 break
     else:
         return schedule
@@ -80,6 +83,7 @@ def resolve_frames(
     for time, inst in schedule.instructions:
         if isinstance(inst, Play):
             chan = inst.channel
+            chan_frame = channel_trackers[chan].frame
 
             if inst.frame not in resolved_frames:
                 raise PulseError(f"{inst.frame} is not configured and cannot " f"be resolved.")
@@ -96,20 +100,19 @@ def resolve_frames(
                 phase_diff = frame_phase - channel_trackers[chan].phase(time)
 
                 if abs(freq_diff) > resolved_frame.tolerance:
-                    shift_freq = ShiftFrequency(freq_diff, chan)
-                    sched.insert(time, shift_freq, inplace=True)
+                    sched.insert(time, ShiftFrequency(freq_diff, chan_frame), inplace=True)
 
                 if abs(phase_diff) > resolved_frame.tolerance:
-                    sched.insert(time, ShiftPhase(phase_diff, chan), inplace=True)
+                    sched.insert(time, ShiftPhase(phase_diff, chan_frame), inplace=True)
 
             # If the channel's phase and frequency has not been set in the past
             # we set it now
             else:
                 if frame_freq != 0:
-                    sched.insert(time, SetFrequency(frame_freq, chan), inplace=True)
+                    sched.insert(time, SetFrequency(frame_freq, chan_frame), inplace=True)
 
                 if frame_phase != 0:
-                    sched.insert(time, SetPhase(frame_phase, chan), inplace=True)
+                    sched.insert(time, SetPhase(frame_phase, chan_frame), inplace=True)
 
             # Update the frequency and phase of this channel.
             channel_trackers[chan].set_frequency_phase(time, frame_freq, frame_phase)
@@ -117,18 +120,14 @@ def resolve_frames(
             play = Play(inst.pulse, chan)
             sched.insert(time, play, inplace=True)
 
-        # Insert phase and frequency commands that are not applied to frames.
+        # Insert phase and frequency commands that are ties to physical channels.
         elif isinstance(inst, (SetFrequency, ShiftFrequency)):
-            chan = inst.channel
-
-            if issubclass(type(chan), chans.PulseChannel):
-                sched.insert(time, type(inst)(inst.frequency, chan), inplace=True)
+            if frames_config[inst.frame].has_physical_channel:
+                sched.insert(time, inst, inplace=True)
 
         elif isinstance(inst, (SetPhase, ShiftPhase)):
-            chan = inst.channel
-
-            if issubclass(type(chan), chans.PulseChannel):
-                sched.insert(time, type(inst)(inst.phase, chan), inplace=True)
+            if frames_config[inst.frame].has_physical_channel:
+                sched.insert(time, inst, inplace=True)
 
         elif isinstance(
             inst,

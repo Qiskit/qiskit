@@ -65,17 +65,6 @@ class TestPulseParameters(QiskitTestCase):
         chan = chan.assign(self.beta, 1)
         self.assertFalse(chan.is_parameterized())
 
-    def test_parameter_attribute_instruction(self):
-        """Test the ``parameter`` attributes."""
-        inst = pulse.ShiftFrequency(self.alpha * self.qubit, DriveChannel(self.qubit))
-        self.assertTrue(inst.is_parameterized())
-        self.assertEqual(inst.parameters, {self.alpha, self.qubit})
-        inst.assign_parameters({self.alpha: self.qubit})
-        self.assertEqual(inst.parameters, {self.qubit})
-        inst.assign_parameters({self.qubit: 1})
-        self.assertFalse(inst.is_parameterized())
-        self.assertEqual(inst.parameters, set())
-
     def test_parameter_attribute_play(self):
         """Test the ``parameter`` attributes."""
         inst = pulse.Play(
@@ -194,7 +183,7 @@ class TestPulseParameters(QiskitTestCase):
         schedule += pulse.ShiftPhase(self.phase, DriveChannel(2 * self.qubit))
 
         schedule.assign_parameters({self.qubit: 4})
-        self.assertEqual(schedule.instructions[0][1].channel, DriveChannel(8))
+        self.assertEqual(schedule.instructions[0][1].frame, Frame("d", 8))
 
     def test_acquire_channels(self):
         """Test Acquire instruction with multiple channels parameterized."""

@@ -16,11 +16,13 @@ at that moment, and ``ShiftPhase`` instructions which increase the existing phas
 relative amount.
 """
 from typing import Optional, Union, Tuple
+import warnings
 
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.frame import Frame
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.pulse.exceptions import PulseError
 
 
 class ShiftPhase(Instruction):
@@ -43,7 +45,7 @@ class ShiftPhase(Instruction):
     def __init__(
         self,
         phase: Union[complex, ParameterExpression],
-        channel: Union[PulseChannel, Frame],
+        frame: Union[PulseChannel, Frame],
         name: Optional[str] = None,
     ):
         """Instantiate a shift phase instruction, increasing the output signal phase on ``channel``
@@ -51,10 +53,18 @@ class ShiftPhase(Instruction):
 
         Args:
             phase: The rotation angle in radians.
-            channel: The channel or frame this instruction operates on.
+            frame: The channel or frame this instruction operates on.
             name: Display name for this instruction.
         """
-        super().__init__(operands=(phase, channel), name=name)
+        if isinstance(frame, PulseChannel):
+            warnings.warn(
+                f"Applying {self.__class__.__name__} to channel {frame}. This "
+                f"functionality will be deprecated. Using frame {frame.frame}. "
+                f"Instead, apply {self.__class__.__name__} to a frame."
+            )
+            frame = frame.frame
+
+        super().__init__(operands=(phase, frame), name=name)
 
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
@@ -66,12 +76,17 @@ class ShiftPhase(Instruction):
         """Return the :py:class:`~qiskit.pulse.channels.Channel` or frame that this instruction is
         scheduled on.
         """
+        raise PulseError(f"{self} applies to a {type(self.operands[1])}")
+
+    @property
+    def frame(self) -> Frame:
+        """Return the frame on which this instruction applies."""
         return self.operands[1]
 
     @property
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
-        return (self.channel,)
+        return tuple()
 
     @property
     def duration(self) -> int:
@@ -80,7 +95,7 @@ class ShiftPhase(Instruction):
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return isinstance(self.phase, ParameterExpression) or super().is_parameterized()
+        return isinstance(self.phase, ParameterExpression) or self.frame.is_parameterized()
 
 
 class SetPhase(Instruction):
@@ -99,7 +114,7 @@ class SetPhase(Instruction):
     def __init__(
         self,
         phase: Union[complex, ParameterExpression],
-        channel: Union[PulseChannel, Frame],
+        frame: Union[PulseChannel, Frame],
         name: Optional[str] = None,
     ):
         """Instantiate a set phase instruction, setting the output signal phase on ``channel``
@@ -107,10 +122,18 @@ class SetPhase(Instruction):
 
         Args:
             phase: The rotation angle in radians.
-            channel: The channel or frame this instruction operates on.
+            frame: The frame or channel this instruction operates on.
             name: Display name for this instruction.
         """
-        super().__init__(operands=(phase, channel), name=name)
+        if isinstance(frame, PulseChannel):
+            warnings.warn(
+                f"Applying {self.__class__.__name__} to channel {frame}. This "
+                f"functionality will be deprecated. Using frame {frame.frame}. "
+                f"Instead, apply {self.__class__.__name__} to a frame."
+            )
+            frame = frame.frame
+
+        super().__init__(operands=(phase, frame), name=name)
 
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
@@ -122,12 +145,17 @@ class SetPhase(Instruction):
         """Return the :py:class:`~qiskit.pulse.channels.Channel` or frame that this instruction is
         scheduled on.
         """
+        raise PulseError(f"{self} applies to a {type(self.operands[1])}")
+
+    @property
+    def frame(self) -> Frame:
+        """Return the frame on which this instruction applies."""
         return self.operands[1]
 
     @property
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
-        return (self.channel,)
+        return tuple()
 
     @property
     def duration(self) -> int:
@@ -136,4 +164,4 @@ class SetPhase(Instruction):
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return isinstance(self.phase, ParameterExpression) or super().is_parameterized()
+        return isinstance(self.phase, ParameterExpression) or self.frame.is_parameterized()

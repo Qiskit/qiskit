@@ -163,6 +163,7 @@ class ResolvedFrame(Tracker):
 
         self._purpose = definition.purpose
         self._tolerance = definition.tolerance
+        self._has_physical_channel = definition.has_physical_channel
 
     @property
     def purpose(self) -> str:
@@ -185,21 +186,22 @@ class ResolvedFrame(Tracker):
             PulseError: if the internal filtering does not contain the right
                 instructions.
         """
-        frame_instruction_types = [ShiftPhase, SetPhase, ShiftFrequency, SetFrequency]
+        frame_instruction_types = (ShiftPhase, SetPhase, ShiftFrequency, SetFrequency)
         frame_instructions = schedule.filter(instruction_types=frame_instruction_types)
 
         for time, inst in frame_instructions.instructions:
-            if isinstance(inst.operands[1], Frame) and self.identifier == inst.operands[1].name:
-                if isinstance(inst, ShiftFrequency):
-                    self.set_frequency(time, self.frequency(time) + inst.frequency)
-                elif isinstance(inst, SetFrequency):
-                    self.set_frequency(time, inst.frequency)
-                elif isinstance(inst, ShiftPhase):
-                    self.set_phase(time, self.phase(time) + inst.phase)
-                elif isinstance(inst, SetPhase):
-                    self.set_phase(time, inst.phase)
-                else:
-                    raise PulseError("Unexpected frame operation.")
+            if isinstance(inst, frame_instruction_types) and self.identifier == inst.frame.name:
+                if not self._has_physical_channel:
+                    if isinstance(inst, ShiftFrequency):
+                        self.set_frequency(time, self.frequency(time) + inst.frequency)
+                    elif isinstance(inst, SetFrequency):
+                        self.set_frequency(time, inst.frequency)
+                    elif isinstance(inst, ShiftPhase):
+                        self.set_phase(time, self.phase(time) + inst.phase)
+                    elif isinstance(inst, SetPhase):
+                        self.set_phase(time, inst.phase)
+                    else:
+                        raise PulseError("Unexpected frame operation.")
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.identifier}, {self.frequency(0)})"
@@ -216,6 +218,12 @@ class ChannelTracker(Tracker):
         """
         super().__init__(channel.name, sample_duration)
         self._channel = channel
+        self._frame = Frame(channel.prefix, channel.index)
+
+    @property
+    def frame(self) -> Frame:
+        """Return the native frame of this channel."""
+        return self._frame
 
     def is_initialized(self) -> bool:
         """Return true if the channel has been initialized."""

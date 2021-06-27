@@ -13,9 +13,9 @@
 """Implements a Frame."""
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.pulse.utils import validate_index
 from qiskit.pulse.exceptions import PulseError
 
@@ -69,6 +69,18 @@ class Frame:
 
         return f"{self._identifier[0]}{self._identifier[1]}"
 
+    @property
+    def parameters(self) -> Set:
+        """Parameters which determine the frame index."""
+        if isinstance(self._identifier[1], ParameterExpression):
+            return self._identifier[1].parameters
+
+        return set()
+
+    def is_parameterized(self) -> bool:
+        """Return true if the identifier has a parameter."""
+        return isinstance(self._identifier[1], ParameterExpression)
+
     def __repr__(self):
         return f"{self.__class__.__name__}({self.name})"
 
@@ -97,6 +109,9 @@ class FrameDefinition:
 
     # A user-friendly string defining the purpose of the Frame.
     purpose: str = None
+
+    # True if this frame is the native frame of a physical channel
+    has_physical_channel: bool = False
 
     # The phase of the frame at time zero.
     phase: float = 0.0
@@ -147,6 +162,7 @@ class FramesConfiguration:
         self,
         frame: Frame,
         frequency: float,
+        has_physical_channel: Optional[bool] = False,
         purpose: Optional[str] = None
     ):
         """Add a frame to the frame configuration.
@@ -157,9 +173,12 @@ class FramesConfiguration:
                 frequency of the frame.
             frequency: The frequency of the frame which will determine the frequency of
                 all pulses played in the frame added to the configuration.
+            has_physical_channel: Whether this frame is the native frame of a physical channel.
             purpose: A human readable string describing the purpose of the frame.
         """
-        self._frames[frame] = FrameDefinition(frequency=frequency, purpose=purpose)
+        self._frames[frame] = FrameDefinition(frequency=frequency,
+                                              has_physical_channel=has_physical_channel,
+                                              purpose=purpose)
 
     @property
     def definitions(self) -> List[FrameDefinition]:
