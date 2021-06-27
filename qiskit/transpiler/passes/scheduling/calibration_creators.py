@@ -13,7 +13,7 @@
 """Calibration creators."""
 
 import math
-from typing import List, Union
+from typing import List, Union, Optional, Dict, Tuple
 from abc import abstractmethod
 import numpy as np
 
@@ -28,7 +28,7 @@ from qiskit.pulse import (
 )
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.exceptions import QiskitError
-from qiskit.providers import basebackend
+from qiskit.providers import BaseBackend
 from qiskit.dagcircuit import DAGNode
 from qiskit.circuit.library.standard_gates import RZXGate
 from qiskit.transpiler.basepasses import TransformationPass
@@ -82,26 +82,28 @@ class RZXCalibrationBuilder(CalibrationCreator):
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """
 
-    def __init__(self, backend: basebackend):
+    def __init__(self, inst_map: Dict[str, Dict[Tuple[int], Schedule]], backend: Optional[BaseBackend] = None):
         """
-        Initializes a RZXGate calibration builder.
+                Initializes a RZXGate calibration builder.
 
-        Args:
-            backend: Backend for which to construct the gates.
+                Args:
+                    inst_map: Instruction schedule map.
+                    backend: Backend for which to construct the gates.
 
-        Raises:
-            QiskitError: if open pulse is not supported by the backend.
-        """
+                Raises:
+                    QiskitError: if open pulse is not supported by the backend.
+                """
+
         super().__init__()
-        if not backend.configuration().open_pulse:
-            raise QiskitError(
-                "Calibrations can only be added to Pulse-enabled backends, "
-                "but {} is not enabled with Pulse.".format(backend.name())
-            )
 
-        self._inst_map = backend.defaults().instruction_schedule_map
-        self._config = backend.configuration()
-        self._channel_map = backend.configuration().qubit_channel_mapping
+        self._inst_map = inst_map
+
+        if backend is not None:
+            if not backend.configuration().open_pulse:
+                raise QiskitError(
+                    "Calibrations can only be added to Pulse-enabled backends, "
+                    "but {} is not enabled with Pulse.".format(backend.name())
+                )
 
     def supported(self, node_op: DAGNode) -> bool:
         """
