@@ -17,17 +17,27 @@ import numpy as np
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit import Delay
-from qiskit.circuit.library import U3Gate, XGate
+from qiskit.circuit.library import UGate, XGate
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 
 class InsertDD(TransformationPass):
-    """DD insertion pass."""
+    """Dynamical decoupling insertion pass.
+
+    This pass works on a scheduled, physical circuit. It scans the circuit for idle periods
+    of time (i.e. those containing delay instructions) and inserts a DD sequence of
+    gates in those spots. These gates amount to the identity, so do not alter the logical
+    action of the circuit, but have the effect of mitigating decoherence in those idle periods.
+
+    The pass does not insert DD on idle periods that immediately follow qubit reset,
+    as qubits in the ground state are less susceptile to decoherence.
+    """
 
     def __init__(self, durations, dd_sequence):
-        """ASAPSchedule initializer.
+        """Dynamical decoupling initializer.
+
         Args:
             durations (InstructionDurations): Durations of instructions to be used in scheduling
             dd_sequence (list[str]): sequence of gates to apply in idle spots
@@ -38,21 +48,20 @@ class InsertDD(TransformationPass):
 
     def run(self, dag):
         """Run the InsertDD pass on `dag`.
+
         Args:
             dag (DAGCircuit): a scheduled DAG.
+
         Returns:
-            DAGCircuit: equivalent circuit with no extra delays but DD where possible.
+            DAGCircuit: equivalent circuit with delays interrupted by DD, where possible.
+
         Raises:
             TranspilerError: if the circuit is not mapped on physical qubits.
         """
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
-            raise TranspilerError('DD runs on physical circuits only')
+            raise TranspilerError('DD runs on physical circuits only.')
 
-        new_dag = DAGCircuit()
-        for qreg in dag.qregs.values():
-            new_dag.add_qreg(qreg)
-        for creg in dag.cregs.values():
-            new_dag.add_creg(creg)
+        new_dag = dag._copy_circuit_metadata()
 
         for nd in dag.topological_op_nodes():
             if isinstance(nd.op, Delay):
@@ -80,7 +89,7 @@ class InsertDD(TransformationPass):
                             new_dag.apply_operation_back(dd_sequence[1], [qubit])
                             new_dag.apply_operation_back(Delay(begin), [qubit])
                         elif len(self._dd_sequence) == 1: 
-                            if isinstance(succ.op, U3Gate): # only do it if the rest can absorb
+                            if isinstance(succ.op, UGate): # only do it if the rest can absorb
                                 begin = int(slack/2)
                                 new_dag.apply_operation_back(Delay(begin), [qubit])
                                 new_dag.apply_operation_back(dd_sequence[0], [qubit])
@@ -91,10 +100,11 @@ class InsertDD(TransformationPass):
                             else:
                                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
                         else:
-                            raise TranspilerError('whats this sequence you tryna do?')
+                            raise TranspilerError(
+                                    f'Provided value for dd_sequence: {self._dd_sequence} is not valid')
             else:
                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
 
-        new_dag.qubit_time_available = dag.qubit_time_available
         new_dag.duration = dag.duration
+        new_dag.unit = dag.unit
         return new_dag
