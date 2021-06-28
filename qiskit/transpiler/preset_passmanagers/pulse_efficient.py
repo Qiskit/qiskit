@@ -77,11 +77,11 @@ def pulse_efficient_pass_manager(pass_manager_config: PassManagerConfig) -> Pass
     _optimize_1q_decomposition = Optimize1qGatesDecomposition(basis_gates)
 
     # Build pass manager
-    pm0 = PassManager()
-    pm0.append(_collect_2q_blocks)
-    pm0.append(_consolidate_blocks)
-    pm0.append(_echo_rzx_weyl_decomposition)
-    pm0.append(_rzx_calibrations)
-    pm0.append(_unroll)
-    pm0.append(_optimize_1q_decomposition)
-    return pm0
+    pm = PassManager()
+    pm.append(_collect_2q_blocks)
+    pm.append(_consolidate_blocks)
+    pm.append(_echo_rzx_weyl_decomposition)
+    pm.append(_rzx_calibrations)
+    pm.append(_unroll)
+    pm.append(_optimize_1q_decomposition)
+    return pm
