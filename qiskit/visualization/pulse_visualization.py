@@ -35,7 +35,7 @@ def pulse_drawer(
     scale: float = None,
     channel_scales: Dict[Channel, float] = None,
     plot_all: bool = False,
-    plot_range: Tuple[Union[int, float], Union[int, float]] = None,
+    plot_range: Tuple[float, float] = None,
     interactive: bool = False,
     table: bool = False,
     label: bool = False,

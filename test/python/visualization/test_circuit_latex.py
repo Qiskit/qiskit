@@ -112,7 +112,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         cr = ClassicalRegister(3, "c")
         circuit = QuantumCircuit(qr, cr)
         # Prepare an initial state
-        circuit.u3(0.3, 0.2, 0.1, [qr[0]])
+        circuit.u(0.3, 0.2, 0.1, [qr[0]])
         # Prepare a Bell pair
         circuit.h(qr[1])
         circuit.cx(qr[1], qr[2])
@@ -492,13 +492,13 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.t(4)
         circuit.tdg(4)
         circuit.p(pi / 2, 4)
-        circuit.u1(pi / 2, 4)
+        circuit.p(pi / 2, 4)
         circuit.cz(5, 6)
-        circuit.cu1(pi / 2, 5, 6)
+        circuit.cp(pi / 2, 5, 6)
         circuit.y(5)
         circuit.rx(pi / 3, 5)
         circuit.rzx(pi / 2, 5, 6)
-        circuit.u2(pi / 2, pi / 2, 5)
+        circuit.u(pi / 2, pi / 2, pi / 2, 5)
         circuit.barrier(5, 6)
         circuit.reset(5)
 

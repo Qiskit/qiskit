@@ -337,18 +337,20 @@ class Instruction:
 
         from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
 
+        if self.name.endswith("_dg"):
+            name = self.name[:-3]
+        else:
+            name = self.name + "_dg"
         if self.num_clbits:
             inverse_gate = Instruction(
-                name=self.name + "_dg",
+                name=name,
                 num_qubits=self.num_qubits,
                 num_clbits=self.num_clbits,
                 params=self.params.copy(),
             )
 
         else:
-            inverse_gate = Gate(
-                name=self.name + "_dg", num_qubits=self.num_qubits, params=self.params.copy()
-            )
+            inverse_gate = Gate(name=name, num_qubits=self.num_qubits, params=self.params.copy())
 
         inverse_gate.definition = QuantumCircuit(
             *self.definition.qregs,
@@ -413,7 +415,7 @@ class Instruction:
         """
         name_param = self.name
         if self.params:
-            name_param = "%s(%s)" % (
+            name_param = "{}({})".format(
                 name_param,
                 ",".join([pi_check(i, ndigits=8, output="qasm") for i in self.params]),
             )
@@ -448,7 +450,7 @@ class Instruction:
 
     def _return_repeat(self, exponent):
         return Instruction(
-            name="%s*%s" % (self.name, exponent),
+            name=f"{self.name}*{exponent}",
             num_qubits=self.num_qubits,
             num_clbits=self.num_clbits,
             params=self.params,
