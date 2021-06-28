@@ -344,8 +344,8 @@ class EulerCompressor(CompressorBase):
                 if num_indices == 3:
                     j = sec[0, 0]
                     k = sec[1, 0]
-                    l = sec[0, 1]  # todo: bad index: l
-                    m = sec[1, 1]
+                    v = sec[0, 1]
+                    w = sec[1, 1]
                     p = sec[0, 2]
                     q = sec[1, 2]
 
@@ -353,20 +353,20 @@ class EulerCompressor(CompressorBase):
                     # 1) long on the left
                     if k - j > 1:
                         # 1.1) up then down
-                        if m == p and j == l and k == q:
-                            red_sec = np.array([[p, l], [q, m]])
+                        if w == p and j == v and k == q:
+                            red_sec = np.array([[p, v], [q, w]])
                         # 1.2) down then up
-                        if l == q and j == p and k == m:
-                            red_sec = np.array([[p, l], [q, m]])
+                        if v == q and j == p and k == w:
+                            red_sec = np.array([[p, v], [q, w]])
 
                     # 2) long on the right
                     if q - p > 1:
                         # 2.1) up then down
-                        if k == l and j == p and m == q:
-                            red_sec = np.array([[l, j], [m, k]])
+                        if k == v and j == p and w == q:
+                            red_sec = np.array([[v, j], [w, k]])
                         # 2.2) down then up
-                        if j == m and l == p and k == q:
-                            red_sec = np.array([[l, m], [j, k]])
+                        if j == w and v == p and k == q:
+                            red_sec = np.array([[v, w], [j, k]])
 
                     # print('1, ', red_cnots)
                     red_cnots = np.delete(red_cnots, np.arange(i, i + 3), 1)
@@ -396,10 +396,10 @@ class EulerCompressor(CompressorBase):
                 if num_indices == 2:
                     j = sec[0, 0]
                     k = sec[1, 0]
-                    l = sec[0, 1]  # todo: bad index: l
-                    m = sec[1, 1]
+                    v = sec[0, 1]
+                    w = sec[1, 1]
 
-                    if j == l and k == m:
+                    if j == v and k == w:
                         red_sec = [[], []]
 
                     # print('1, ', red_cnots)
@@ -571,14 +571,14 @@ class EulerCompressor(CompressorBase):
                     angles[1],
                 ]  # this is how qiskit output the angles for ZYZ
 
-        L = np.shape(cnots)[1]
+        num_thetas = np.shape(cnots)[1]
         n = len(gate_list)
-        p = 3 * n + 4 * L
+        p = 3 * n + 4 * num_thetas
         thetas_t = np.zeros(p)
         qct = QuantumCircuit(n, 1)
 
         for k in range(n):
-            p = 3 * k + 4 * L
+            p = 3 * k + 4 * num_thetas
             thetas_t[0 + p] = thetas[k][-1]
             thetas_t[1 + p] = thetas[k][-2]
             thetas_t[2 + p] = thetas[k][-3]
@@ -591,10 +591,10 @@ class EulerCompressor(CompressorBase):
         for k in range(n):
             kk[k] = 0
 
-        for l in range(L):
-            p = 4 * l
-            q1 = cnots[0][l] - 1
-            q2 = cnots[1][l] - 1
+        for i in range(num_thetas):
+            p = 4 * i
+            q1 = cnots[0][i] - 1
+            q2 = cnots[1][i] - 1
 
             thetas_t[0 + p] = thetas[q1][-5 - kk[q1]]
             thetas_t[1 + p] = thetas[q1][-4 - kk[q1]]
