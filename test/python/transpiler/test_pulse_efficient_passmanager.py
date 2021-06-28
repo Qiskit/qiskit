@@ -32,7 +32,7 @@ import qiskit.quantum_info as qi
 
 
 
-class TestPulseEfficientTranspilerPass(QiskitTestCase):
+class TestPulseEfficientPassManager(QiskitTestCase):
     """Test the pulse-efficient pass manager"""
 
     def setUp(self):
