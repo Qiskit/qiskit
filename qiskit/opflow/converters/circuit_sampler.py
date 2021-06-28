@@ -357,8 +357,11 @@ class CircuitSampler(ConverterBase):
                         avg = avg[0] + 1j * avg[1]
                     # Will be replaced with just avg when eval is called later
                     num_qubits = circuit_sfns[0].num_qubits
-                    result_sfn = (
-                        DictStateFn("0" * num_qubits, is_measurement=op_c.is_measurement) * avg
+                    result_sfn = DictStateFn(
+                        "0" * num_qubits,
+                        coeff=avg * op_c.coeff,
+                        is_measurement=op_c.is_measurement,
+                        from_operator=op_c.from_operator,
                     )
                 elif self._statevector:
                     result_sfn = StateFn(
@@ -367,12 +370,13 @@ class CircuitSampler(ConverterBase):
                     )
                 else:
                     shots = self.quantum_instance._run_config.shots
-                    result_sfn = StateFn(
+                    result_sfn = DictStateFn(
                         {
                             b: (v / shots) ** 0.5 * op_c.coeff
                             for (b, v) in results.get_counts(circ_index).items()
                         },
                         is_measurement=op_c.is_measurement,
+                        from_operator=op_c.from_operator,
                     )
                 if self._attach_results:
                     result_sfn.execution_results = circ_results
@@ -392,7 +396,7 @@ class CircuitSampler(ConverterBase):
             param_mappings = {}
             for param in inst_param._parameter_symbols.keys():
                 if param not in input_params:
-                    raise ValueError("unexpected parameter: {0}".format(param))
+                    raise ValueError(f"unexpected parameter: {param}")
                 param_mappings[param] = input_params[param]
             return float(inst_param.bind(param_mappings))
 

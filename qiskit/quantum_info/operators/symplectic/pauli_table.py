@@ -150,7 +150,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         elif isinstance(data, ScalarOp):
             # Initialize an N-qubit identity
             if data.num_qubits is None:
-                raise QiskitError("{} is not an N-qubit identity".format(data))
+                raise QiskitError(f"{data} is not an N-qubit identity")
             self._array = np.zeros((1, 2 * data.num_qubits), dtype=bool)
         else:
             raise QiskitError("Invalid input data for PauliTable.")
@@ -173,7 +173,7 @@ class PauliTable(BaseOperator, AdjointMixin):
 
     def __str__(self):
         """String representation."""
-        return "PauliTable: {}".format(self.to_labels())
+        return f"PauliTable: {self.to_labels()}"
 
     def __eq__(self, other):
         """Test if two Pauli tables are equal."""
@@ -686,11 +686,11 @@ class PauliTable(BaseOperator, AdjointMixin):
 
     def conjugate(self):
         """Not implemented."""
-        raise NotImplementedError("{} does not support conjugatge".format(type(self)))
+        raise NotImplementedError(f"{type(self)} does not support conjugatge")
 
     def transpose(self):
         """Not implemented."""
-        raise NotImplementedError("{} does not support transpose".format(type(self)))
+        raise NotImplementedError(f"{type(self)} does not support transpose")
 
     # ---------------------------------------------------------------------
     # Utility methods
@@ -878,7 +878,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         Returns:
             list or array: The rows of the PauliTable in label form.
         """
-        ret = np.zeros(self.size, dtype="<U{}".format(self.num_qubits))
+        ret = np.zeros(self.size, dtype=f"<U{self.num_qubits}")
         for i in range(self.size):
             ret[i] = self._to_label(self._array[i])
         if array:
@@ -1051,7 +1051,7 @@ class PauliTable(BaseOperator, AdjointMixin):
             """Label representation iteration and item access."""
 
             def __repr__(self):
-                return "<PauliTable_label_iterator at {}>".format(hex(id(self)))
+                return f"<PauliTable_label_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 return self.obj._to_label(self.obj.array[key])
@@ -1078,7 +1078,7 @@ class PauliTable(BaseOperator, AdjointMixin):
             """Matrix representation iteration and item access."""
 
             def __repr__(self):
-                return "<PauliTable_matrix_iterator at {}>".format(hex(id(self)))
+                return f"<PauliTable_matrix_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 return self.obj._to_matrix(self.obj.array[key], sparse=sparse)
