@@ -138,7 +138,7 @@ class CVaRMeasurement(OperatorStateFn):
         raise NotImplementedError
 
     def __str__(self) -> str:
-        return "CVaRMeasurement({}) * {}".format(str(self.primitive), self.coeff)
+        return f"CVaRMeasurement({str(self.primitive)}) * {self.coeff}"
 
     def eval(
         self, front: Union[str, dict, np.ndarray, OperatorBase, Statevector] = None
