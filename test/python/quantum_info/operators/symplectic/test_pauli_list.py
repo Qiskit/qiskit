@@ -33,7 +33,13 @@ from qiskit.circuit.library import (
     YGate,
     ZGate,
 )
-from qiskit.quantum_info.operators import Operator, PauliList, PauliTable, StabilizerTable
+from qiskit.quantum_info.operators import (
+    Clifford,
+    Operator,
+    PauliList,
+    PauliTable,
+    StabilizerTable,
+)
 from qiskit.quantum_info.random import random_clifford, random_pauli_list
 from qiskit.test import QiskitTestCase
 
@@ -1933,7 +1939,24 @@ class TestPauliListMethods(QiskitTestCase):
             target = []
             self.assertEqual(value, target)
 
-    @combine(gate=(IGate(), XGate(), YGate(), ZGate(), HGate(), SGate(), SdgGate()))
+    @combine(
+        gate=(
+            IGate(),
+            XGate(),
+            YGate(),
+            ZGate(),
+            HGate(),
+            SGate(),
+            SdgGate(),
+            Clifford(IGate()),
+            Clifford(XGate()),
+            Clifford(YGate()),
+            Clifford(ZGate()),
+            Clifford(HGate()),
+            Clifford(SGate()),
+            Clifford(SdgGate()),
+        )
+    )
     def test_evolve_clifford1(self, gate):
         """Test evolve method for 1-qubit Clifford gates."""
         op = Operator(gate)
@@ -1942,7 +1965,18 @@ class TestPauliListMethods(QiskitTestCase):
         target = [op.adjoint().dot(pauli).dot(op) for pauli in pauli_list]
         self.assertListEqual(value, target)
 
-    @combine(gate=(CXGate(), CYGate(), CZGate(), SwapGate()))
+    @combine(
+        gate=(
+            CXGate(),
+            CYGate(),
+            CZGate(),
+            SwapGate(),
+            Clifford(CXGate()),
+            Clifford(CYGate()),
+            Clifford(CZGate()),
+            Clifford(SwapGate()),
+        )
+    )
     def test_evolve_clifford2(self, gate):
         """Test evolve method for 2-qubit Clifford gates."""
         op = Operator(gate)
