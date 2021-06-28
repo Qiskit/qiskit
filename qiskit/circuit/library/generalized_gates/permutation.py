@@ -79,7 +79,7 @@ class Permutation(QuantumCircuit):
             inner.swap(i, j)
 
         all_qubits = self.qubits
-        self.append(inner, all_qubits)
+        self.append(inner.to_gate(), all_qubits)
 
 
 def _get_ordered_swap(permutation_in):

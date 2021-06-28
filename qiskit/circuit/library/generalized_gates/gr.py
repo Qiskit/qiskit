@@ -63,8 +63,12 @@ class GR(QuantumCircuit):
             theta: rotation angle about axis determined by phi
             phi: angle of rotation axis in xy-plane
         """
-        super().__init__(num_qubits, name="gr")
-        self.r(theta, phi, self.qubits)
+        name = f"GR({theta:.2f}, {phi:.2f})"
+        inner = QuantumCircuit(num_qubits, name=name)
+        inner.r(theta, phi, inner.qubits)
+
+        super().__init__(num_qubits, name=name)
+        self.append(inner.to_gate(), self.qubits)
 
 
 class GRX(GR):
