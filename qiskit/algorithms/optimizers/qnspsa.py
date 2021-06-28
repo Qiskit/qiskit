@@ -189,8 +189,9 @@ class QNSPSA(SPSA):
 
         return gradient_estimate, hessian_estimate
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Dump the optimizer settings into a dictionary.
+    @property
+    def settings(self) -> Dict[str, Any]:
+        """The optimizer settings in a dictionary format.
 
         .. note::
 
@@ -200,36 +201,16 @@ class QNSPSA(SPSA):
 
         """
         # re-use serialization from SPSA
-        serialized = super().to_dict()
+        settings = super().settings
 
         # update name
-        serialized["name"] = "QNSPSA"
+        settings["name"] = "QNSPSA"
 
         # remove SPSA-specific arguments not in QNSPSA
-        serialized.pop("trust_region")
-        serialized.pop("second_order")
+        settings.pop("trust_region")
+        settings.pop("second_order")
 
-        return serialized
-
-    @classmethod
-    def from_dict(cls, dictionary):
-        name = dictionary.get("name", None)
-        if name is not None:
-            if name.lower() != "qnspsa":
-                raise ValueError("Value of the key 'name' must be 'QNSPSA'.")
-
-        # raise extra expressive warning if "fidelity" is not contained
-        if "fidelity" not in dictionary.keys():
-            raise ValueError(
-                "Required key 'fidelity' missing. If you constructed the dictionary "
-                "from QNSPSA.to_dict this key is missing since it is not "
-                "serializable. You have to add the callable to evaluate the fidelity "
-                "manually to the dictionary to construct a QNSPSA optimizer."
-            )
-
-        # settings are the dictionary without the key "name"
-        settings = {key: value for key, value in dictionary.items() if key != "name"}
-        return cls(**settings)
+        return settings
 
     @staticmethod
     def get_fidelity(

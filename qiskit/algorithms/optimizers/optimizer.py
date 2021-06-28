@@ -216,8 +216,9 @@ class Optimizer(ABC):
             )
         pass
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Dump the settings of the optimizer in a dictionary for serialization."""
+    @property
+    def settings(self) -> Dict[str, Any]:
+        """The optimizer settings in a dictionary format."""
         raise NotImplementedError("Dictionary conversion not implemented for this optimizer.")
 
     @classmethod
@@ -234,8 +235,17 @@ class Optimizer(ABC):
             ValueError: If the method on the base class ``qiskit.algorithms.optimizers.Optimizer``
                 is called but the name of the optimizer is not specified.
         """
+        # pylint: disable=cyclic-import
+        import qiskit.algorithms.optimizers as opt
+
+        # handle SciPyOptimizers separately as they contain the name as the keyword "method"
+        if cls == opt.SciPyOptimizer:
+            settings = dictionary.copy()
+            settings["method"] = settings.pop("name")
+            return cls(**settings)
+
         # if from_dict is called on a particular optimizer class (like SPSA) we don't need the name
-        if cls != Optimizer and issubclass(cls, Optimizer):
+        elif cls != Optimizer and issubclass(cls, Optimizer):
             name = dictionary.get("name", None)
             if name is not None:
                 classname = cls.__name__.lower()
@@ -249,9 +259,6 @@ class Optimizer(ABC):
         # otherwise, if from_dict is called on the Optimizer base class, we need the name
         if "name" not in dictionary:
             raise ValueError("Required key 'name' not found in the dictionary.")
-
-        # pylint: disable=cyclic-import
-        import qiskit.algorithms.optimizers as opt
 
         name = dictionary["name"]
 

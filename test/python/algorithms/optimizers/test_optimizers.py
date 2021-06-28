@@ -197,7 +197,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         """Test the SciPyOptimizer is serializable."""
 
         optimizer = SciPyOptimizer(method, options=options)
-        serialized = optimizer.to_dict()
+        serialized = optimizer.settings
         from_dict = SciPyOptimizer.from_dict(serialized)
 
         self.assertEqual(from_dict._method, method.lower())
@@ -212,7 +212,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         optimizer = SciPyOptimizer("BFGS", options={"maxiter": 1}, callback=callback)
 
         with self.assertRaises(QiskitError):
-            _ = optimizer.to_dict()
+            _ = optimizer.settings
 
     def test_invalid_name(self):
         """Test serialization fails if the dictionary specifies a 'name' that doesn't exist."""
@@ -226,7 +226,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
 
     def test_scipy_name_missing(self):
         """Test serialization fails if the dictionary has no 'name' key."""
-        with self.assertRaises(ValueError):
+        with self.assertRaises(KeyError):
             _ = SciPyOptimizer.from_dict({"maxiter": 1})
 
     def test_wrong_name(self):
@@ -238,7 +238,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         """Test ADAM is serializable."""
 
         adam = ADAM(maxiter=100, amsgrad=True)
-        serialized = adam.to_dict()
+        serialized = adam.settings
 
         reconstructed = Optimizer.from_dict(serialized)
         self.assertIsInstance(reconstructed, ADAM)
@@ -249,7 +249,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         """Test AQGD is serializable."""
 
         opt = AQGD(maxiter=[200, 100], eta=[0.2, 0.1], momentum=[0.25, 0.1])
-        serialized = opt.to_dict()
+        serialized = opt.settings
 
         reconstructed = Optimizer.from_dict(serialized)
         self.assertIsInstance(reconstructed, AQGD)
@@ -262,7 +262,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         """Test BOBYQA is serializable."""
 
         opt = BOBYQA(maxiter=200)
-        serialized = opt.to_dict()
+        serialized = opt.settings
 
         reconstructed = Optimizer.from_dict(serialized)
         self.assertIsInstance(reconstructed, BOBYQA)
@@ -273,7 +273,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         """Test IMFIL is serializable."""
 
         opt = IMFIL(maxiter=200)
-        serialized = opt.to_dict()
+        serialized = opt.settings
 
         reconstructed = Optimizer.from_dict(serialized)
         self.assertIsInstance(reconstructed, IMFIL)
@@ -283,7 +283,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         """Test GradientDescent is serializable."""
 
         opt = GradientDescent(maxiter=10, learning_rate=0.01)
-        serialized = opt.to_dict()
+        serialized = opt.settings
 
         reconstructed = Optimizer.from_dict(serialized)
         self.assertIsInstance(reconstructed, GradientDescent)
@@ -294,7 +294,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         """Test GSLS is serializable."""
 
         opt = GSLS(maxiter=100, sampling_radius=1e-3)
-        serialized = opt.to_dict()
+        serialized = opt.settings
 
         reconstructed = Optimizer.from_dict(serialized)
         self.assertIsInstance(reconstructed, GSLS)
@@ -319,7 +319,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         }
         spsa = SPSA(**options)
 
-        serialized = spsa.to_dict()
+        serialized = spsa.settings
         expected = options.copy()
         expected["name"] = "SPSA"
 
@@ -328,7 +328,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
 
         reconstructed = Optimizer.from_dict(serialized)
         with self.subTest(msg="test reconstructed optimizer"):
-            self.assertDictEqual(reconstructed.to_dict(), expected)
+            self.assertDictEqual(reconstructed.settings, expected)
 
     def test_spsa_custom_iterators(self):
         """Test serialization works with custom iterators for learning rate and perturbation."""
@@ -357,7 +357,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         expected_perturbation = np.array([next(perturbation) for _ in range(200)])
 
         spsa = SPSA(maxiter=200, learning_rate=powerlaw, perturbation=steps)
-        serialized = spsa.to_dict()
+        serialized = spsa.settings
 
         self.assertTrue(np.allclose(serialized["learning_rate"], expected_learning_rate))
         self.assertTrue(np.allclose(serialized["perturbation"], expected_perturbation))
@@ -381,7 +381,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         }
         spsa = QNSPSA(**options)
 
-        serialized = spsa.to_dict()
+        serialized = spsa.settings
         expected = options.copy()
         expected.pop("fidelity")  # fidelity cannot be serialized
         expected["name"] = "QNSPSA"
@@ -391,13 +391,13 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
 
         # fidelity cannot be serialized, so it must be added back in
         with self.subTest(msg="fidelity missing"):
-            with self.assertRaises(ValueError):
+            with self.assertRaises(TypeError):
                 _ = Optimizer.from_dict(serialized)
 
         serialized["fidelity"] = fidelity
         reconstructed = Optimizer.from_dict(serialized)
         with self.subTest(msg="test reconstructed optimizer"):
-            self.assertDictEqual(reconstructed.to_dict(), expected)
+            self.assertDictEqual(reconstructed.settings, expected)
 
 
 if __name__ == "__main__":

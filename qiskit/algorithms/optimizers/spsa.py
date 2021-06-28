@@ -305,8 +305,8 @@ class SPSA(Optimizer):
         losses = [loss(initial_point) for _ in range(avg)]
         return np.std(losses)
 
-    def to_dict(self):
-        """Dump the optimizer settings into a dictionary."""
+    @property
+    def settings(self):
         if self.callback is not None:
             raise ValueError("Cannot serialize SPSA with callback.")
 

@@ -116,8 +116,9 @@ class AQGD(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
-    def to_dict(self) -> Dict[str, Any]:
-        serialized = {
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return {
             "name": "AQGD",
             "maxiter": self._maxiter,
             "eta": self._eta,
@@ -126,8 +127,6 @@ class AQGD(Optimizer):
             "tol": self._tol,
             "averaging": self._averaging,
         }
-
-        return serialized
 
     def _compute_objective_fn_and_gradient(
         self, params: List[float], obj: Callable

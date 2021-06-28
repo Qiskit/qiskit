@@ -64,8 +64,8 @@ class IMFIL(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Serialize the optimizer."""
+    @property
+    def settings(self) -> Dict[str, Any]:
         return {
             "name": "IMFIL",
             "maxiter": self._maxiter,

@@ -86,8 +86,8 @@ class SNOBFIT(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Serialize the optimizer."""
+    @property
+    def settings(self) -> Dict[str, Any]:
         return {
             "name": "SNOBFIT",
             "maxiter": self._maxiter,

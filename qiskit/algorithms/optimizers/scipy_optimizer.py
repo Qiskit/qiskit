@@ -85,25 +85,16 @@ class SciPyOptimizer(Optimizer):
             "initial_point": self._initial_point_support_level,
         }
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Serialize the optimizer."""
-        serialized = {
+    @property
+    def settings(self) -> Dict[str, Any]:
+        settings = {
             "name": self._method,
             "max_evals_grouped": self._max_evals_grouped,
             "options": self._options,
             **self._kwargs,
         }
-        self._check_dict_is_serializable(serialized)
-        return serialized
-
-    @classmethod
-    def from_dict(cls, dictionary: Dict[str, Any]):
-        """Construct the optimizer from a dictionary."""
-        method = dictionary.pop("name", None)
-        if method is None:
-            raise ValueError("Required key 'name' not found.")
-
-        return cls(method, **dictionary)
+        self._check_dict_is_serializable(settings)
+        return settings
 
     def optimize(
         self,

@@ -63,8 +63,8 @@ class BOBYQA(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Serialize the optimizer."""
+    @property
+    def settings(self) -> Dict[str, Any]:
         return {
             "name": "BOBYQA",
             "maxiter": self._maxiter,

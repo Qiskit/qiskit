@@ -91,11 +91,12 @@ class GSLS(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
-    def to_dict(self) -> Dict[str, Any]:
-        serialized = {"name": "GSLS"}
-        serialized.update(self._options)
+    @property
+    def settings(self) -> Dict[str, Any]:
+        settings = {"name": "GSLS"}
+        settings.update(self._options)
 
-        return serialized
+        return settings
 
     def optimize(
         self,

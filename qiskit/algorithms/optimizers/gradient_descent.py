@@ -132,8 +132,8 @@ class GradientDescent(Optimizer):
         self.tol = tol
         self.callback = callback
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Serialize the optimizer."""
+    @property
+    def settings(self) -> Dict[str, Any]:
         if self.callback is not None:
             raise ValueError("Cannot serialize GradientDescent with callback.")
 
