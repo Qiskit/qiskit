@@ -446,6 +446,7 @@ class VarQTE(EvolutionBase):
         def ode_fun(t: float, x: Iterable) -> Iterable:
             params = x[:-1]
             error = max(x[-1], 0)
+            error = min(error, np.sqrt(2))
             print('previous error', error)
             param_dict = dict(zip(self._parameters, params))
             if self._error_based_ode:
@@ -494,12 +495,16 @@ class VarQTE(EvolutionBase):
                 error_bound_grad = et
             else:
                 # VarQITE
-                error_bound_grad = self._get_error_grad(delta_t=1e-4, eps_t=max(error, 0),
-                                                      grad_err=et,
-                                                      energy=trained_energy, h_squared=h_squared,
-                                                      h_trip=h_trip,
-                                                      stddev=np.sqrt(h_squared - trained_energy**2),
-                                                      store=self._store_now)
+                error_store = max(error, 0)
+                error_store = min(error_store, np.sqrt(2))
+                error_bound_grad = self._get_error_grad(delta_t=1e-4, eps_t=error_store,
+                                                        grad_err=et,
+                                                        energy=trained_energy,
+                                                        h_squared=h_squared,
+                                                        h_trip=h_trip,
+                                                        stddev=np.sqrt(h_squared -
+                                                                       trained_energy**2),
+                                                        store=self._store_now)
 
                 print('returned grad', error_bound_grad)
 

@@ -279,9 +279,12 @@ class VarQITE(VarQTE):
                         stddev: float,
                         store: bool = False):
         eps_t = max(eps_t, 0)
+        eps_t = min(eps_t, np.sqrt(2))
         eps_t_next = self.get_error_term(delta_t, eps_t, grad_err, energy, h_squared, h_trip,
                                          stddev, store)
-        grad = (max(eps_t_next, 0) - eps_t) / delta_t
+        eps_t_next = max(eps_t_next, 0)
+        eps_t_next = min(eps_t_next, np.sqrt(2))
+        grad = (eps_t_next - eps_t) / delta_t
         if grad > 10:
             print('huge grad', grad)
         if grad < 0:
@@ -515,7 +518,9 @@ class VarQITE(VarQTE):
                                                         gradient_errors[j - 1], energies[j - 1],
                                                         h_squareds[j - 1], h_trips[j - 1],
                                                         stddevs[j - 1], store=store)
-                error_bounds.append(max(eb_term, 0))
+                eb_append = max(eb_term, 0)
+                eb_append = min(eb_append, np.sqrt(2))
+                error_bounds.append(eb_append)
             else:
                 # Use a finite difference approx. of the gradient underlying the error at time t
                 # to enable the use of an integral formulation of the error

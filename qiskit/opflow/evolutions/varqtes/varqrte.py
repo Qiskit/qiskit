@@ -25,7 +25,7 @@ from qiskit.quantum_info import state_fidelity
 from qiskit.opflow.evolutions.varqte import VarQTE
 from qiskit.opflow import StateFn, CircuitStateFn, ComposedOp, PauliExpectation
 
-from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
+# from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
 
 
 class VarQRTE(VarQTE):
