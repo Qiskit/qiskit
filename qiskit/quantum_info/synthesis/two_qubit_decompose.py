@@ -562,7 +562,6 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
         circ.x(0)
         circ.rzx(angle, 0, 1)
         circ.x(0)
-        return circ
 
     @staticmethod
     def _apply_reverse_rzx(circ: QuantumCircuit, angle: float):
