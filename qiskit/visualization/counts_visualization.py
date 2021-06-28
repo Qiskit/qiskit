@@ -39,7 +39,7 @@ def hamming_distance(str1, str2):
     return sum(s1 != s2 for s1, s2 in zip(str1, str2))
 
 
-VALID_SORTS = ["asc", "desc", "hamming"]
+VALID_SORTS = ["asc", "desc", "hamming", "value", "value_desc"]
 DIST_MEAS = {"hamming": hamming_distance}
 
 
@@ -64,7 +64,10 @@ def plot_histogram(
         color (list or str): String or list of strings for histogram bar colors.
         number_to_keep (int): The number of terms to plot and rest
             is made into a single bar called 'rest'.
-        sort (string): Could be 'asc', 'desc', or 'hamming'.
+        sort (string): Could be `'asc'`, `'desc'`, `'hamming'`, `'value'`, or
+            `'value_desc'`. If set to `'value'` or `'value_desc'` the x axis
+            will be sorted by the maximum probability for each bitstring.
+            Defaults to `'asc'`.
         target_string (str): Target string if 'sort' is a distance measure.
         legend(list): A list of strings to use for labels of the data.
             The number of entries must match the length of data (if data is a
@@ -116,7 +119,7 @@ def plot_histogram(
         raise VisualizationError(
             "Value of sort option, %s, isn't a "
             "valid choice. Must be 'asc', "
-            "'desc', or 'hamming'"
+            "'desc', 'hamming', 'value', 'value_desc'"
         )
     if sort in DIST_MEAS.keys() and target_string is None:
         err_msg = "Must define target_string when using distance measure."
@@ -152,6 +155,16 @@ def plot_histogram(
             dist.append(DIST_MEAS[sort](item, target_string))
 
         labels = [list(x) for x in zip(*sorted(zip(dist, labels), key=lambda pair: pair[0]))][1]
+    elif "value" in sort:
+        combined_counts = {}
+        if isinstance(data, dict):
+            combined_counts = data
+        else:
+            for counts in data:
+                for count in counts:
+                    prev_count = combined_counts.get(count, 0)
+                    combined_counts[count] = max(prev_count, counts[count])
+        labels = list(sorted(combined_counts.keys(), key=lambda key: combined_counts[key]))
 
     length = len(data)
     width = 1 / (len(data) + 1)  # the width of the bars
@@ -205,7 +218,7 @@ def plot_histogram(
     ax.set_ylabel("Probabilities", fontsize=14)
     all_vals = np.concatenate(all_pvalues).ravel()
     ax.set_ylim([0.0, min([1.2, max(1.2 * val for val in all_vals)])])
-    if sort == "desc":
+    if "desc" in sort:
         ax.invert_xaxis()
 
     ax.yaxis.set_major_locator(MaxNLocator(5))
