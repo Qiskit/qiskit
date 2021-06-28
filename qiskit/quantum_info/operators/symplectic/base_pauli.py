@@ -271,8 +271,10 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         """Heisenberg picture evolution of a Pauli by a Clifford."""
         if qargs is None:
             idx = slice(None)
+            num_act = self.num_qubits
         else:
             idx = list(qargs)
+            num_act = len(idx)
 
         # Set return to I on qargs
         ret = self.copy()
@@ -287,7 +289,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         adj = other.adjoint()
         pauli_list = []
         for z in self._z[:, idx]:
-            pauli = Pauli("I" * len(idx))
+            pauli = Pauli("I" * num_act)
             for row in adj.stabilizer[z]:
                 pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
             pauli_list.append(pauli)
@@ -295,7 +297,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         pauli_list = []
         for x in self._x[:, idx]:
-            pauli = Pauli("I" * len(idx))
+            pauli = Pauli("I" * num_act)
             for row in adj.destabilizer[x]:
                 pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
             pauli_list.append(pauli)
