@@ -67,7 +67,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         if not gamma == 0:
             expected_rzx_number += 2
 
-        circuit_rzx_number = QuantumCircuit.count_ops(after)["rzx"]
+        circuit_rzx_number = after.count_ops()["rzx"]
 
         self.assertEqual(expected_rzx_number, circuit_rzx_number)
 
