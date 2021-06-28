@@ -47,7 +47,7 @@ class TestPulseEfficientPassManager(QiskitTestCase):
 
         unitary_circuit = qi.Operator(circuit).data
 
-        result = transpile(circuit, self.backends[0], optimization_level="pulse_efficient")
+        result = transpile(circuit, FakeParis(), optimization_level="pulse_efficient")
 
         unitary_result = qi.Operator(result).data
 
