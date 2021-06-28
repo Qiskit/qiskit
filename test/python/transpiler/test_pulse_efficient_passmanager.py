@@ -44,13 +44,41 @@ class TestPulseEfficientPassManager(QiskitTestCase):
 
         unitary_circuit = qi.Operator(circuit).data
 
-        result = transpile(circuit, FakeParis(), optimization_level="pulse_efficient")
+        result = transpile(circuit, FakeAthens(), optimization_level="pulse_efficient", seed_transpiler=100)
+
+        transpile_level_3 = transpile(circuit, FakeAthens(), optimization_level=3, seed_transpiler=100)
 
         unitary_result = qi.Operator(result).data
 
-        self.assertTrue(np.allclose(unitary_circuit, unitary_result))
+        unitary_3 = qi.Operator(transpile_level_3).data
+
+        self.assertTrue(np.allclose(unitary_3, unitary_result))
 
     def test_2q_circuit_transpilation(self):
+        """Test random two-qubit circuit"""
+
+        theta = 0.2
+        epsilon = pi / 3
+        qr = QuantumRegister(5, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[0])
+        circuit.rzx(theta, qr[1], qr[0])
+        circuit.sx(qr[1])
+        circuit.rzz(epsilon, qr[1], qr[0])
+        circuit.swap(qr[1], qr[0])
+        circuit.h(qr[1])
+
+        result = transpile(circuit, FakeAthens(), optimization_level="pulse_efficient", seed_transpiler=100)
+
+        transpile_level_3 = transpile(circuit, FakeAthens(), optimization_level=3, seed_transpiler=100)
+
+        unitary_result = qi.Operator(result).data
+
+        unitary_3 = qi.Operator(transpile_level_3).data
+
+        self.assertTrue(np.allclose(unitary_3, unitary_result))
+
+    def test_correct_basis(self):
         """Test random two-qubit circuit"""
 
         theta = 0.2
@@ -64,68 +92,64 @@ class TestPulseEfficientPassManager(QiskitTestCase):
         circuit.swap(qr[1], qr[0])
         circuit.h(qr[1])
 
-        unitary_circuit = qi.Operator(circuit).data
+        result = transpile(circuit, FakeAthens(), optimization_level="pulse_efficient", seed_transpiler=100)
 
-        result = transpile(circuit, FakeParis(), optimization_level="pulse_efficient")
+        self.assertEqual(set(result.count_ops().keys()), {'rz', 'rzx', 'sx', 'x'})
 
-        unitary_result = qi.Operator(result).data
+    # def test_2q_circuit_rzx_number(self):
+    #     """Test correct number of rzx gates"""
+    #
+    #     theta = -2
+    #     epsilon = pi / 9
+    #     qr = QuantumRegister(2, "qr")
+    #     circuit = QuantumCircuit(qr)
+    #     circuit.cx(qr[0], qr[1])
+    #     circuit.rxx(theta, qr[1], qr[0])
+    #     circuit.x(qr[1])
+    #     circuit.cx(qr[1], qr[0])
+    #     circuit.rzz(epsilon, qr[1], qr[0])
+    #     circuit.cx(qr[1], qr[0])
+    #     circuit.h(qr[1])
+    #
+    #     unitary_circuit = qi.Operator(circuit).data
+    #
+    #     result = transpile(circuit, FakeAthens(), optimization_level="pulse_efficient", seed_transpiler=10)
+    #
+    #     alpha = TwoQubitWeylDecomposition(unitary_circuit).a
+    #     beta = TwoQubitWeylDecomposition(unitary_circuit).b
+    #     gamma = TwoQubitWeylDecomposition(unitary_circuit).c
+    #
+    #     # check whether after circuit has correct number of rzx gates
+    #     expected_rzx_number = 0
+    #     if not alpha == 0:
+    #         expected_rzx_number += 2
+    #     if not beta == 0:
+    #         expected_rzx_number += 2
+    #     if not gamma == 0:
+    #         expected_rzx_number += 2
+    #
+    #     circuit_rzx_number = QuantumCircuit.count_ops(result)["rzx"]
+    #
+    #     self.assertEqual(expected_rzx_number, circuit_rzx_number)
 
-        self.assertTrue(np.allclose(unitary_circuit, unitary_result))
-
-    def test_2q_circuit_rzx_number(self):
-        """Test correct number of rzx gates"""
-
-        theta = -2
-        epsilon = pi / 9
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.rxx(theta, qr[1], qr[0])
-        circuit.x(qr[1])
-        circuit.cx(qr[1], qr[0])
-        circuit.rzz(epsilon, qr[1], qr[0])
-        circuit.cx(qr[1], qr[0])
-        circuit.h(qr[1])
-
-        unitary_circuit = qi.Operator(circuit).data
-
-        result = transpile(circuit, FakeAthens(), optimization_level="pulse_efficient")
-
-        alpha = TwoQubitWeylDecomposition(unitary_circuit).a
-        beta = TwoQubitWeylDecomposition(unitary_circuit).b
-        gamma = TwoQubitWeylDecomposition(unitary_circuit).c
-
-        # check whether after circuit has correct number of rzx gates
-        expected_rzx_number = 0
-        if not alpha == 0:
-            expected_rzx_number += 2
-        if not beta == 0:
-            expected_rzx_number += 2
-        if not gamma == 0:
-            expected_rzx_number += 2
-
-        circuit_rzx_number = QuantumCircuit.count_ops(result)["rzx"]
-
-        self.assertEqual(expected_rzx_number, circuit_rzx_number)
-
-    def test_alpha_beta_gamma(self):
-        """Check if the Weyl parameters match the expected ones for rzz"""
-
-        theta = 1
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.rzz(theta, qr[1], qr[0])
-
-        result = transpile(circuit, FakeParis(), optimization_level="pulse_efficient")
-
-        unitary_result = qi.Operator(result).data
-
-        alpha = TwoQubitWeylDecomposition(unitary_result).a
-        beta = TwoQubitWeylDecomposition(unitary_result).b
-        gamma = TwoQubitWeylDecomposition(unitary_result).c
-
-        self.assertEqual((alpha, beta, gamma), (0.5, 0, 0))
-
+    # def test_alpha_beta_gamma(self):
+    #     """Check if the Weyl parameters match the expected ones for rzz"""
+    #
+    #     theta = 1
+    #     qr = QuantumRegister(2, "qr")
+    #     circuit = QuantumCircuit(qr)
+    #     circuit.rzz(theta, qr[1], qr[0])
+    #
+    #     result = transpile(circuit, FakeAthens(), optimization_level="pulse_efficient", seed_transpiler=10)
+    #
+    #     unitary_result = qi.Operator(result).data
+    #
+    #     alpha = TwoQubitWeylDecomposition(unitary_result).a
+    #     beta = TwoQubitWeylDecomposition(unitary_result).b
+    #     gamma = TwoQubitWeylDecomposition(unitary_result).c
+    #
+    #     self.assertEqual((alpha, beta, gamma), (0.5, 0, 0))
+    #
     def test_5q_circuit_weyl_decomposition(self):
         """Test random five-qubit circuit"""
 
@@ -151,13 +175,15 @@ class TestPulseEfficientPassManager(QiskitTestCase):
         circuit.swap(qr[1], qr[4])
         circuit.h(qr[3])
 
-        unitary_circuit = qi.Operator(circuit).data
+        result = transpile(circuit, FakeAthens(), optimization_level="pulse_efficient", seed_transpiler=10)
 
-        result = transpile(circuit, FakeParis(), optimization_level="pulse_efficient")
+        transpile_level_3 = transpile(circuit, FakeAthens(), optimization_level=3, seed_transpiler=100)
 
         unitary_result = qi.Operator(result).data
 
-        self.assertTrue(np.allclose(unitary_circuit, unitary_result))
+        unitary_3 = qi.Operator(transpile_level_3).data
+
+        self.assertTrue(np.allclose(unitary_3, unitary_result))
 
     def test_rzx_calibrations(self):
         """Test whether there exist calibrations for rzx"""
@@ -178,7 +204,7 @@ class TestPulseEfficientPassManager(QiskitTestCase):
         circuit.swap(qr[1], qr[4])
         circuit.h(qr[3])
 
-        result = transpile(circuit, FakeParis(), optimization_level="pulse_efficient")
+        result = transpile(circuit, FakeAthens(), optimization_level="pulse_efficient", seed_transpiler=10)
 
         self.assertIn("rzx", result.calibrations)
 
@@ -207,7 +233,7 @@ class TestPulseEfficientPassManager(QiskitTestCase):
         circuit.swap(qr[1], qr[4])
         circuit.h(qr[3])
 
-        result = transpile(circuit, FakeParis(), optimization_level="pulse_efficient")
+        result = transpile(circuit, FakeAthens(), optimization_level="pulse_efficient", seed_transpiler=10)
 
         after_dag = circuit_to_dag(result)
 

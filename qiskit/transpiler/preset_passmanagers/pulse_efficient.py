@@ -33,6 +33,10 @@ from qiskit.circuit.library.standard_gates.equivalence_library import (
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 
+from qiskit.transpiler.preset_passmanagers.level3 import level_3_pass_manager
+
+from qiskit.transpiler.preset_passmanagers.level0 import level_0_pass_manager
+
 
 def pulse_efficient_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     """Pulse-efficient pass manager.
@@ -60,10 +64,10 @@ def pulse_efficient_pass_manager(pass_manager_config: PassManagerConfig) -> Pass
     _consolidate_blocks = ConsolidateBlocks(basis_gates=["rz", "sx", "x", "rxx"])
 
     # 2. Decompose two-qubit unitaries in terms of echoed RZX gates according to the Weyl decomposition
-    _echo_rzx_weyl_decomposition = EchoRZXWeylDecomposition(inst_map)
+    _echo_rzx_weyl_decomposition = EchoRZXWeylDecomposition(inst_map=inst_map)
 
     # 3. Add calibrations
-    _rzx_calibrations = RZXCalibrationBuilderNoEcho(inst_map)
+    _rzx_calibrations = RZXCalibrationBuilderNoEcho(inst_map=inst_map)
 
     # 4. Unroll to backend basis with rzx
     basis_gates = list(set(basis_gates) | {"rzx"})
@@ -77,7 +81,8 @@ def pulse_efficient_pass_manager(pass_manager_config: PassManagerConfig) -> Pass
     _optimize_1q_decomposition = Optimize1qGatesDecomposition(basis_gates)
 
     # Build pass manager
-    pm = PassManager()
+    # pm = PassManager()
+    pm = level_3_pass_manager(pass_manager_config)
     pm.append(_collect_2q_blocks)
     pm.append(_consolidate_blocks)
     pm.append(_echo_rzx_weyl_decomposition)

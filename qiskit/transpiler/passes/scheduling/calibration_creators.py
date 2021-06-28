@@ -83,7 +83,8 @@ class RZXCalibrationBuilder(CalibrationCreator):
     """
 
     def __init__(
-        self, inst_map: Dict[str, Dict[Tuple[int], Schedule]], backend: Optional[BaseBackend] = None
+        self, backend: Optional[BaseBackend] = None,
+            inst_map: Optional[Dict[str, Dict[Tuple[int], Schedule]]] = None
     ):
         """
         Initializes a RZXGate calibration builder.
@@ -98,14 +99,20 @@ class RZXCalibrationBuilder(CalibrationCreator):
 
         super().__init__()
 
-        self._inst_map = inst_map
-
         if backend is not None:
+            self._inst_map = backend.defaults().instruction_schedule_map
             if not backend.configuration().open_pulse:
                 raise QiskitError(
                     "Calibrations can only be added to Pulse-enabled backends, "
                     "but {} is not enabled with Pulse.".format(backend.name())
                 )
+        elif inst_map is not None:
+            self._inst_map = inst_map
+        else:
+            raise QiskitError(
+                    "Either a backend or an instruction schedule map must be specified.")
+
+        # self._inst_map = inst_map
 
     def supported(self, node_op: DAGNode) -> bool:
         """
