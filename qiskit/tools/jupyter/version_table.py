@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -39,12 +39,9 @@ class VersionTable(Magics):
         packages = []
         qver = qiskit.__qiskit_version__
 
-        packages.append(("Qiskit", qver["qiskit"]))
-        packages.append(("Terra", qver["qiskit-terra"]))
-        packages.append(("Aer", qver["qiskit-aer"]))
-        packages.append(("Ignis", qver["qiskit-ignis"]))
-        packages.append(("Aqua", qver["qiskit-aqua"]))
-        packages.append(("IBM Q Provider", qver["qiskit-ibmq-provider"]))
+        for pkg in qver:
+            if qver[pkg]:
+                packages.append((f"<code>{pkg}</code>", qver[pkg]))
 
         for name, version in packages:
             html += f"<tr><td>{name}</td><td>{version}</td></tr>"
