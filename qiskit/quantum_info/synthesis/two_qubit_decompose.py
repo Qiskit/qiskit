@@ -575,7 +575,6 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
         circ.x(1)
         circ.h(0)
         circ.h(1)
-        return circ
 
     def is_native_cx(self, qubit_pair: Tuple) -> bool:
         """Check that a CX for a qubit pair is native."""
