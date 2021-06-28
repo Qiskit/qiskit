@@ -60,10 +60,7 @@ class DefaultGradient(GradientBase):
         self._num_cnots = cnots.shape[1]
 
     def get_gradient(self, thetas: Union[List[float], np.ndarray], target_matrix: np.ndarray):
-        # Liam
-
         # Pauli matrices with additional an additional coefficient
-
         x = np.multiply(-1j / 2, X)
         y = np.multiply(-1j / 2, Y)
         z = np.multiply(-1j / 2, Z)
@@ -137,10 +134,10 @@ class DefaultGradient(GradientBase):
         circuit_matrix = np.dot(cnot_matrix, rotation_matrix)
 
         # compute error
-        err = 0.5 * (la.norm(circuit_matrix - target_matrix, "fro") ** 2)
+        error = 0.5 * (la.norm(circuit_matrix - target_matrix, "fro") ** 2)
 
         # compute gradient
-        der = np.zeros(4 * num_cnots + 3 * n)
+        der_circuit_matrix = np.zeros(4 * num_cnots + 3 * n)
         for cnot_index in range(num_cnots):
             cnot_theta_index = 4 * cnot_index
             ry1 = op_ry(thetas[0 + cnot_theta_index])
@@ -168,34 +165,33 @@ class DefaultGradient(GradientBase):
                 full_q2 = op_unitary(single_q2, n, q2)
 
                 # partial derivative of that particular cnot unit, size of (2^n, 2^n)
-                partial_cnot_unit = la.multi_dot([full_q2, full_q1, cnot_q1q2])
+                der_cnot_unit = la.multi_dot([full_q2, full_q1, cnot_q1q2])
                 if cnot_index == 0:
                     # todo: left partial of the cnot matrix, derivative
-                    partial_cnot_matrix = np.dot(
+                    der_cnot_matrix = np.dot(
                         left_matrix[:, 2 ** n * (cnot_index + 1) : 2 ** n * (cnot_index + 2)],
-                        partial_cnot_unit,
+                        der_cnot_unit,
                     )
                 elif num_cnots - 1 == cnot_index:
-                    partial_cnot_matrix = np.dot(
-                        partial_cnot_unit,
+                    der_cnot_matrix = np.dot(
+                        der_cnot_unit,
                         middle_matrix[:, 2 ** n * (cnot_index - 1) : 2 ** n * cnot_index],
                     )
                 else:
-                    partial_cnot_matrix = la.multi_dot(
+                    der_cnot_matrix = la.multi_dot(
                         [
                             left_matrix[:, 2 ** n * (cnot_index + 1) : 2 ** n * (cnot_index + 2)],
-                            partial_cnot_unit,
+                            der_cnot_unit,
                             middle_matrix[:, 2 ** n * (cnot_index - 1) : 2 ** n * cnot_index],
                         ]
                     )
-                partial_cnot_matrix = np.dot(partial_cnot_matrix, rotation_matrix)
-                der[i + cnot_theta_index] = -np.real(
-                    np.trace(np.dot(partial_cnot_matrix.conj().T, target_matrix))
+                der_cnot_matrix = np.dot(der_cnot_matrix, rotation_matrix)
+                der_circuit_matrix[i + cnot_theta_index] = -np.real(
+                    np.trace(np.dot(der_cnot_matrix.conj().T, target_matrix))
                 )
 
         for i in range(3 * n):
-            # todo: this is a derivative
-            partial_rotation_matrix = 1
+            der_rotation_matrix = 1
             for k in range(n):
                 cnot_theta_index = 4 * num_cnots + 3 * k
                 # a = Rx(thetas[0 + p])
@@ -209,13 +205,13 @@ class DefaultGradient(GradientBase):
                     rz1 = np.dot(y, rz1)
                 elif i - 3 * k == 2:
                     ry2 = np.dot(z, ry2)
-                partial_rotation_matrix = np.kron(
-                    partial_rotation_matrix, la.multi_dot([ry1, rz1, ry2])
+                der_rotation_matrix = np.kron(
+                    der_rotation_matrix, la.multi_dot([ry1, rz1, ry2])
                 )
-            partial_cnot_matrix = np.dot(cnot_matrix, partial_rotation_matrix)
-            der[4 * num_cnots + i] = -np.real(
-                np.trace(np.dot(partial_cnot_matrix.conj().T, target_matrix))
+            der_cnot_matrix = np.dot(cnot_matrix, der_rotation_matrix)
+            der_circuit_matrix[4 * num_cnots + i] = -np.real(
+                np.trace(np.dot(der_cnot_matrix.conj().T, target_matrix))
             )
 
         # return error, gradient
-        return err, der
+        return error, der_circuit_matrix
