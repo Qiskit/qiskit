@@ -77,8 +77,8 @@ class BIPMappingModel:
 
         self.problem = None
         self.solution = None
-        self._num_vqubits = len(self._dag.qubits)
-        self._num_pqubits = self._coupling.size()
+        self.num_vqubits = len(self._dag.qubits)
+        self.num_pqubits = self._coupling.size()
         self._arcs = self._coupling.get_edges()
 
         # pylint: disable=unnecessary-comprehension
@@ -115,15 +115,6 @@ class BIPMappingModel:
         logger.info("Model depth: %d", self.depth)
         logger.info("Dummy steps: %d", dummy_timesteps)
 
-    @property
-    def num_vqubits(self):
-        """Number of virtual qubits."""
-        return self._num_vqubits
-
-    @property
-    def num_pqubits(self):
-        """Number of physical qubits."""
-        return self._num_pqubits
 
     @property
     def depth(self):
