@@ -20,7 +20,8 @@ from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators.symplectic import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.circuit import Measure, ControlledGate, Gate, Instruction, Delay, BooleanExpression, Clbit
+from qiskit.circuit import Measure, ControlledGate, Gate, Instruction, Delay, BooleanExpression
+from qiskit.circuit import Clbit
 from qiskit.circuit.tools import pi_check
 from qiskit.exceptions import MissingOptionalLibraryError
 
