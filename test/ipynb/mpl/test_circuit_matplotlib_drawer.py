@@ -25,12 +25,21 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
-from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate, ZGate
+from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate, ZGate, SGate
 from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
+from qiskit.tools.visualization import HAS_MATPLOTLIB
+
+if HAS_MATPLOTLIB:
+    from matplotlib.pyplot import close as mpl_close
+else:
+    raise ImportError(
+        "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+    )
+
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -54,6 +63,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer = TestMatplotlibDrawer.save_data_wrap(
             _matplotlib_circuit_drawer, str(self)
         )
+
+    def tearDown(self):
+        super().tearDown()
+        mpl_close("all")
 
     @staticmethod
     def save_data_wrap(func, testname):
@@ -443,6 +456,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Tests loading a user style"""
         circuit = QuantumCircuit(7)
         circuit.h(0)
+        circuit.append(HGate(label="H2"), [1])
         circuit.x(0)
         circuit.cx(0, 1)
         circuit.ccx(0, 1, 2)
@@ -453,7 +467,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(DCXGate().control(1), [0, 1, 2])
         circuit.append(DCXGate().control(2), [0, 1, 2, 3])
         circuit.z(4)
-        circuit.s(4)
+        circuit.append(SGate(label="S1"), [4])
         circuit.sdg(4)
         circuit.t(4)
         circuit.tdg(4)
@@ -467,7 +481,15 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.barrier(5, 6)
         circuit.reset(5)
 
-        self.circuit_drawer(circuit, style={"name": "user_style"}, filename="user_style.png")
+        self.circuit_drawer(
+            circuit,
+            style={
+                "name": "user_style",
+                "displaytext": {"H2": "H_2"},
+                "displaycolor": {"H2": ("#EEDD00", "#FF0000")},
+            },
+            filename="user_style.png",
+        )
 
     def test_subfont_change(self):
         """Tests changing the subfont size"""
@@ -490,6 +512,26 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.measure(qr[0], cr[0])
         circuit.h(qr[1]).c_if(cr, 1)
         self.circuit_drawer(circuit, filename="meas_condition.png")
+
+    def test_reverse_bits_condition(self):
+        """Tests reverse_bits with a condition and gate above"""
+        cr = ClassicalRegister(2, "cr")
+        cr2 = ClassicalRegister(1, "cr2")
+        qr = QuantumRegister(3, "qr")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.h(2)
+        circuit.x(0)
+        circuit.x(0)
+        circuit.measure(2, 1)
+        circuit.x(2).c_if(cr, 2)
+        self.circuit_drawer(
+            circuit, cregbundle=False, reverse_bits=True, filename="reverse_bits_cond_true.png"
+        )
+        self.circuit_drawer(
+            circuit, cregbundle=False, reverse_bits=False, filename="reverse_bits_cond_false.png"
+        )
 
     def test_style_custom_gates(self):
         """Tests style for custom gates"""

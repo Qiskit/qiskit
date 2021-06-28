@@ -159,8 +159,8 @@ class InstructionScheduleMap:
         self,
         instruction: Union[str, Instruction],
         qubits: Union[int, Iterable[int]],
-        *params: Union[int, float, complex, ParameterExpression],
-        **kwparams: Union[int, float, complex, ParameterExpression],
+        *params: Union[complex, ParameterExpression],
+        **kwparams: Union[complex, ParameterExpression],
     ) -> Union[Schedule, ScheduleBlock]:
         """Return the defined :py:class:`~qiskit.pulse.Schedule` or
         :py:class:`~qiskit.pulse.ScheduleBlock` for the given instruction on the given qubits.
@@ -245,11 +245,11 @@ class InstructionScheduleMap:
         # validation of target qubit
         qubits = _to_tuple(qubits)
         if qubits == ():
-            raise PulseError("Cannot add definition {} with no target qubits.".format(instruction))
+            raise PulseError(f"Cannot add definition {instruction} with no target qubits.")
 
         # generate signature
         if isinstance(schedule, (Schedule, ScheduleBlock)):
-            ordered_names = sorted(list(set(par.name for par in schedule.parameters)))
+            ordered_names = sorted(list({par.name for par in schedule.parameters}))
             if arguments:
                 if set(arguments) != set(ordered_names):
                     raise PulseError(
@@ -327,8 +327,8 @@ class InstructionScheduleMap:
         self,
         instruction: Union[str, Instruction],
         qubits: Union[int, Iterable[int]],
-        *params: Union[int, float, complex, ParameterExpression],
-        **kwparams: Union[int, float, complex, ParameterExpression],
+        *params: Union[complex, ParameterExpression],
+        **kwparams: Union[complex, ParameterExpression],
     ) -> Union[Schedule, ScheduleBlock]:
         """Remove and return the defined schedule for the given instruction on the given
         qubits.
@@ -370,9 +370,9 @@ class InstructionScheduleMap:
         multi_q_insts = "Multi qubit instructions:\n"
         for qubits, insts in self._qubit_instructions.items():
             if len(qubits) == 1:
-                single_q_insts += "  q{qubit}: {insts}\n".format(qubit=qubits[0], insts=insts)
+                single_q_insts += f"  q{qubits[0]}: {insts}\n"
             else:
-                multi_q_insts += "  {qubits}: {insts}\n".format(qubits=qubits, insts=insts)
+                multi_q_insts += f"  {qubits}: {insts}\n"
         instructions = single_q_insts + multi_q_insts
         return "<{name}({insts})>" "".format(name=self.__class__.__name__, insts=instructions)
 

@@ -17,15 +17,21 @@ import math
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, idata, unpack
 
-from qiskit import Aer
+from qiskit import Aer, ClassicalRegister
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms import Shor
+from qiskit.test import slow_test
 
 
 @unittest.skipUnless(Aer, "qiskit-aer is required for these tests")
 @ddt
 class TestShor(QiskitAlgorithmsTestCase):
     """test Shor's algorithm"""
+
+    def setUp(self):
+        super().setUp()
+        backend = Aer.get_backend("qasm_simulator")
+        self.instance = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
 
     @idata(
         [
@@ -34,6 +40,21 @@ class TestShor(QiskitAlgorithmsTestCase):
     )
     @unpack
     def test_shor_factoring(self, n_v, backend, factors):
+        """shor factoring test for n = log(N) = 4"""
+        self._test_shor_factoring(backend, factors, n_v)
+
+    @slow_test
+    @idata(
+        [
+            [21, "qasm_simulator", [3, 7]],
+        ]
+    )
+    @unpack
+    def test_shor_factoring_5_bit_number(self, n_v, backend, factors):
+        """shor factoring test for n = log(N) = 5"""
+        self._test_shor_factoring(backend, factors, n_v)
+
+    def _test_shor_factoring(self, backend, factors, n_v):
         """shor factoring test"""
         shor = Shor(quantum_instance=QuantumInstance(Aer.get_backend(backend), shots=1000))
         result = shor.factor(N=n_v)
@@ -43,8 +64,7 @@ class TestShor(QiskitAlgorithmsTestCase):
     @data(5, 7)
     def test_shor_no_factors(self, n_v):
         """shor no factors test"""
-        backend = Aer.get_backend("qasm_simulator")
-        shor = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
+        shor = self.instance
         result = shor.factor(N=n_v)
         self.assertTrue(result.factors == [])
         self.assertTrue(result.successful_counts == 0)
@@ -56,20 +76,98 @@ class TestShor(QiskitAlgorithmsTestCase):
         ]
     )
     @unpack
-    def test_shor_power(self, base, power):
-        """shor power test"""
+    def test_shor_input_being_power(self, base, power):
+        """shor input being power test"""
         n_v = int(math.pow(base, power))
-        backend = Aer.get_backend("qasm_simulator")
-        shor = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
+        shor = self.instance
         result = shor.factor(N=n_v)
         self.assertTrue(result.factors == [base])
         self.assertTrue(result.total_counts >= result.successful_counts)
 
-    @data(-1, 0, 1, 2, 4, 16)
-    def test_shor_bad_input(self, n_v):
-        """shor bad input test"""
+    @idata(
+        [[N, 2] for N in [-1, 0, 1, 2, 4, 16]] + [[15, a] for a in [-1, 0, 1, 3, 5, 15, 16]],
+    )
+    @unpack
+    def test_shor_bad_input(self, n_v, a_v):
+        """shor factor bad input test"""
+        shor = self.instance
         with self.assertRaises(ValueError):
-            _ = Shor().factor(N=n_v)
+            _ = shor.factor(N=n_v, a=a_v)
+
+    @idata(
+        [
+            [15, 4, 2],
+            [15, 7, 4],
+        ]
+    )
+    @unpack
+    def test_shor_quantum_result(self, n_v, a_v, order):
+        """shor quantum result test (for order being power of 2)"""
+        self._test_quantum_result(a_v, n_v, order)
+
+    @slow_test
+    @idata(
+        [
+            [17, 8, 8],
+            [21, 13, 2],
+        ]
+    )
+    @unpack
+    def test_shor_quantum_result_for_5_bit_number(self, n_v, a_v, order):
+        """shor quantum result test (for order being power of 2 and n = log(N) = 5)"""
+        self._test_quantum_result(a_v, n_v, order)
+
+    def _test_quantum_result(self, a_v, n_v, order):
+        shor = self.instance
+        circuit = shor.construct_circuit(N=n_v, a=a_v, measurement=True)
+
+        result = shor.quantum_instance.execute(circuit)
+        measurements = [int(key, base=2) for key in result.get_counts(circuit).keys()]
+
+        # calculate values that could be measured
+        values = [i << (2 * n_v.bit_length() - order.bit_length() + 1) for i in range(order)]
+
+        for measurement in measurements:
+            self.assertTrue(measurement in values)
+
+    @idata(
+        [
+            [15, 4, [1, 4]],
+            [15, 7, [1, 4, 7, 13]],
+        ]
+    )
+    @unpack
+    def test_shor_exponentiation_result(self, n_v, a_v, values):
+        """shor exponentiation result test (for n = log(N) = 4)"""
+        self._test_exponentiation_result(a_v, n_v, values)
+
+    @slow_test
+    @idata(
+        [
+            [21, 5, [1, 4, 5, 16, 17, 20]],
+            [25, 4, [1, 4, 6, 9, 11, 14, 16, 19, 21, 24]],
+        ]
+    )
+    @unpack
+    def test_shor_exponentiation_result_for_5_bit_number(self, a_v, n_v, values):
+        """shor exponentiation result test (for n = log(N) = 5)"""
+        self._test_exponentiation_result(a_v, n_v, values)
+
+    def _test_exponentiation_result(self, a_v, n_v, values):
+        shor = self.instance
+
+        circuit = shor.construct_circuit(N=n_v, a=a_v, measurement=False)
+        # modify circuit to measure output (down) register
+        down_qreg = circuit.qregs[1]
+        down_creg = ClassicalRegister(len(down_qreg), name="m")
+        circuit.add_register(down_creg)
+        circuit.measure(down_qreg, down_creg)
+
+        result = shor.quantum_instance.execute(circuit)
+        measurements = [int(key, base=2) for key in result.get_counts(circuit).keys()]
+
+        for measurement in measurements:
+            self.assertTrue(measurement in values)
 
     @idata([[2, 15, 8], [4, 15, 4]])
     @unpack

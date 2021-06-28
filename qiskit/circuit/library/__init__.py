@@ -151,6 +151,15 @@ Adders
    VBERippleCarryAdder
    WeightedAdder
 
+Multipliers
++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   HRSCumulativeMultiplier
+   RGQFTMultiplier
+
 Comparators
 +++++++++++
 
@@ -362,6 +371,8 @@ from .arithmetic import (
     CDKMRippleCarryAdder,
     DraperQFTAdder,
     PiecewiseChebyshev,
+    HRSCumulativeMultiplier,
+    RGQFTMultiplier,
 )
 
 from .n_local import (
