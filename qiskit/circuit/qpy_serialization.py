@@ -840,7 +840,7 @@ def _write_circuit(file_obj, circuit):
     clbit_indices = {bit: index for index, bit in enumerate(circuit.clbits)}
     if num_registers > 0:
         for reg in circuit.qregs:
-            standalone = reg[0]._register is not None
+            standalone = all(bit._register is reg for bit in reg)
             reg_name = reg.name.encode("utf8")
             file_obj.write(struct.pack(REGISTER_PACK, b"q", standalone, reg.size, len(reg_name)))
             file_obj.write(reg_name)
