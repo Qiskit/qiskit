@@ -157,9 +157,11 @@ class StateFn(OperatorBase):
     @property
     def settings(self) -> Dict:
         """Return settings."""
-        return {"primitive": self._primitive,
-                "coeff": self._coeff,
-                "is_measurement": self._is_measurement}
+        return {
+            "primitive": self._primitive,
+            "coeff": self._coeff,
+            "is_measurement": self._is_measurement,
+        }
 
     def primitive_strings(self) -> Set[str]:
         raise NotImplementedError

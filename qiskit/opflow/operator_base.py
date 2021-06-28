@@ -48,6 +48,11 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         self._instance_id = next(self._count)
 
     @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {}
+
+    @property
     def instance_id(self) -> int:
         """Return the unique instance id."""
         return self._instance_id

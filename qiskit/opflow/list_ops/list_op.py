@@ -104,9 +104,7 @@ class ListOp(OperatorBase):
     @property
     def settings(self) -> Dict:
         """Return settings."""
-        return {"oplist": self._oplist,
-                "coeff": self._coeff,
-                "abelian": self._abelian}
+        return {"oplist": self._oplist, "coeff": self._coeff, "abelian": self._abelian}
 
     @property
     def oplist(self) -> List[OperatorBase]:

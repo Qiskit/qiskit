@@ -70,9 +70,11 @@ class TaperedPauliSumOp(PauliSumOp):
     @property
     def settings(self) -> Dict:
         """Return operator settings."""
-        return {"primitive": self._primitive,
-                "z2_symmetries": self._z2_symmetries,
-                "coeff": self._coeff}
+        return {
+            "primitive": self._primitive,
+            "z2_symmetries": self._z2_symmetries,
+            "coeff": self._coeff,
+        }
 
     def assign_parameters(self, param_dict: dict) -> OperatorBase:
         pauli_sum = PauliSumOp(self.primitive, self.coeff)  # pylint: disable=no-member
@@ -168,7 +170,7 @@ class Z2Symmetries:
             "symmetries": self._symmetries,
             "sq_paulis": self._sq_paulis,
             "sq_list": self._sq_list,
-            "tapering_values": self._tapering_values
+            "tapering_values": self._tapering_values,
         }
 
     def __str__(self):
