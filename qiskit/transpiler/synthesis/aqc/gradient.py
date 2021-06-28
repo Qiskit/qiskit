@@ -71,171 +71,148 @@ class DefaultGradient(GradientBase):
 
         # compute parametric circuit and prepare required matrices for gradient computations
         # we start from the parametric circuit
-        C = np.zeros((2 ** n, 2 ** n * num_cnots)) + 0j
-        S = np.zeros((2 ** n, 2 ** n * num_cnots)) + 0j
-        T = np.zeros((2 ** n, 2 ** n * num_cnots)) + 0j
-        for l in range(num_cnots):   # todo: why `l` ?
-            p = 4 * l
-            a = op_ry(thetas[0 + p])
-            b = op_rz(thetas[1 + p])
-            c = op_ry(thetas[2 + p])
-            d = op_rx(thetas[3 + p])
-            q1 = int(cnots[0, l])
-            q2 = int(cnots[1, l])
-            u1 = np.dot(b, a)
-            u2 = np.dot(d, c)
-            U1 = op_unitary(u1, n, q1)
-            U2 = op_unitary(u2, n, q2)
-            cnot1 = op_cnot(n, q1, q2)
-            C[:, 2 ** n * l : 2 ** n * (l + 1)] = la.multi_dot([U2, U1, cnot1])
-        V = np.eye(2 ** n)
-        for l in range(num_cnots - 1, -1, -1):
-            V = np.dot(V, C[:, 2 ** n * l : 2 ** n * (l + 1)])
-            S[:, 2 ** n * l : 2 ** n * (l + 1)] = V
-        V = np.eye(2 ** n)
-        for l in range(num_cnots):
-            V = np.dot(C[:, 2 ** n * l : 2 ** n * (l + 1)], V)
-            T[:, 2 ** n * l : 2 ** n * (l + 1)] = V
-        V2 = V
-        V1 = 1
+        # todo: what kind of product we have here?
+        right_matrix = np.zeros((2 ** n, 2 ** n * num_cnots)) + 0j
+        left_matrix = np.zeros((2 ** n, 2 ** n * num_cnots)) + 0j
+        middle_matrix = np.zeros((2 ** n, 2 ** n * num_cnots)) + 0j
+        for cnot_index in range(num_cnots):
+            cnot_theta_index = 4 * cnot_index
+            # rotations that are applied on the q1 qubit
+            ry1 = op_ry(thetas[0 + cnot_theta_index])
+            rz1 = op_rz(thetas[1 + cnot_theta_index])
+
+            # rotations that are applied on the q2 qubit
+            ry2 = op_ry(thetas[2 + cnot_theta_index])
+            rx2 = op_rx(thetas[3 + cnot_theta_index])
+
+            # cnot qubit indices for the cnot unit identified by cnot_index
+            q1 = int(cnots[0, cnot_index])
+            q2 = int(cnots[1, cnot_index])
+
+            # combine the rotations on qubits q1 and q2
+            single_q1 = np.dot(rz1, ry1)
+            single_q2 = np.dot(rx2, ry2)
+
+            # we place single qubit matrices at the corresponding locations in the (2^n, 2^n) matrix
+            full_q1 = op_unitary(single_q1, n, q1)
+            full_q2 = op_unitary(single_q2, n, q2)
+
+            # we place a cnot matrix at the qubits q1 and q2 in the full matrix.
+            cnot_q1q2 = op_cnot(n, q1, q2)
+
+            # compute right matrix
+            right_matrix[:, 2 ** n * cnot_index : 2 ** n * (cnot_index + 1)] = la.multi_dot(
+                [full_q2, full_q1, cnot_q1q2]
+            )
+
+        # A full sized matrix with all cnot units
+        cnot_matrix = np.eye(2 ** n)
+        for cnot_index in range(num_cnots - 1, -1, -1):
+            cnot_matrix = np.dot(
+                cnot_matrix, right_matrix[:, 2 ** n * cnot_index : 2 ** n * (cnot_index + 1)]
+            )
+            left_matrix[:, 2 ** n * cnot_index : 2 ** n * (cnot_index + 1)] = cnot_matrix
+        cnot_matrix = np.eye(2 ** n)
+        for cnot_index in range(num_cnots):
+            cnot_matrix = np.dot(
+                right_matrix[:, 2 ** n * cnot_index : 2 ** n * (cnot_index + 1)], cnot_matrix
+            )
+            middle_matrix[:, 2 ** n * cnot_index : 2 ** n * (cnot_index + 1)] = cnot_matrix
+
+        # rotation matrix is the initial rotation part of the circuit
+        rotation_matrix = 1
         for k in range(n):
-            p = 4 * num_cnots + 3 * k
+            #
+            cnot_theta_index = 4 * num_cnots + 3 * k
             # a = Rx(thetas[0 + p])
-            a = op_rz(thetas[0 + p])
-            b = op_ry(thetas[1 + p])
-            c = op_rz(thetas[2 + p])
-            V1 = np.kron(V1, la.multi_dot([a, b, c]))
-        V = np.dot(V2, V1)
+            ry1 = op_rz(thetas[0 + cnot_theta_index])
+            rz1 = op_ry(thetas[1 + cnot_theta_index])
+            ry2 = op_rz(thetas[2 + cnot_theta_index])
+            rotation_matrix = np.kron(rotation_matrix, la.multi_dot([ry1, rz1, ry2]))
+
+        # full sized circuit matrix
+        circuit_matrix = np.dot(cnot_matrix, rotation_matrix)
 
         # compute error
-        err = 0.5 * (la.norm(V - target_matrix, "fro") ** 2)
+        err = 0.5 * (la.norm(circuit_matrix - target_matrix, "fro") ** 2)
 
         # compute gradient
         der = np.zeros(4 * num_cnots + 3 * n)
-        for l in range(num_cnots):
-            p = 4 * l
-            a = op_ry(thetas[0 + p])
-            b = op_rz(thetas[1 + p])
-            c = op_ry(thetas[2 + p])
-            d = op_rx(thetas[3 + p])
-            q1 = int(cnots[0, l])
-            q2 = int(cnots[1, l])
-            cnot1 = op_cnot(n, q1, q2)
+        for cnot_index in range(num_cnots):
+            cnot_theta_index = 4 * cnot_index
+            ry1 = op_ry(thetas[0 + cnot_theta_index])
+            rz1 = op_rz(thetas[1 + cnot_theta_index])
+            ry2 = op_ry(thetas[2 + cnot_theta_index])
+            rx2 = op_rx(thetas[3 + cnot_theta_index])
+            q1 = int(cnots[0, cnot_index])
+            q2 = int(cnots[1, cnot_index])
+            cnot_q1q2 = op_cnot(n, q1, q2)
             for i in range(4):
                 if i == 0:
-                    u1 = la.multi_dot([b, y, a])
-                    u2 = np.dot(d, c)
+                    single_q1 = la.multi_dot([rz1, y, ry1])
+                    single_q2 = np.dot(rx2, ry2)
                 # TODO: replace with elif
                 if i == 1:
-                    u1 = la.multi_dot([z, b, a])
-                    u2 = np.dot(d, c)
+                    single_q1 = la.multi_dot([z, rz1, ry1])
+                    single_q2 = np.dot(rx2, ry2)
                 if i == 2:
-                    u1 = np.dot(b, a)
-                    u2 = la.multi_dot([d, y, c])
+                    single_q1 = np.dot(rz1, ry1)
+                    single_q2 = la.multi_dot([rx2, y, ry2])
                 if i == 3:
-                    u1 = np.dot(b, a)
-                    u2 = la.multi_dot([x, d, c])
-                U1 = op_unitary(u1, n, q1)
-                U2 = op_unitary(u2, n, q2)
-                dC = la.multi_dot([U2, U1, cnot1])
-                if l == 0:
-                    dV = np.dot(S[:, 2 ** n * (l + 1) : 2 ** n * (l + 2)], dC)
-                elif num_cnots - 1 == l:
-                    dV = np.dot(dC, T[:, 2 ** n * (l - 1) : 2 ** n * l])
+                    single_q1 = np.dot(rz1, ry1)
+                    single_q2 = la.multi_dot([x, rx2, ry2])
+                full_q1 = op_unitary(single_q1, n, q1)
+                full_q2 = op_unitary(single_q2, n, q2)
+
+                # partial derivative of that particular cnot unit, size of (2^n, 2^n)
+                partial_cnot_unit = la.multi_dot([full_q2, full_q1, cnot_q1q2])
+                if cnot_index == 0:
+                    # todo: left partial of the cnot matrix, derivative
+                    partial_cnot_matrix = np.dot(
+                        left_matrix[:, 2 ** n * (cnot_index + 1) : 2 ** n * (cnot_index + 2)],
+                        partial_cnot_unit,
+                    )
+                elif num_cnots - 1 == cnot_index:
+                    partial_cnot_matrix = np.dot(
+                        partial_cnot_unit,
+                        middle_matrix[:, 2 ** n * (cnot_index - 1) : 2 ** n * cnot_index],
+                    )
                 else:
-                    dV = la.multi_dot(
+                    partial_cnot_matrix = la.multi_dot(
                         [
-                            S[:, 2 ** n * (l + 1) : 2 ** n * (l + 2)],
-                            dC,
-                            T[:, 2 ** n * (l - 1) : 2 ** n * l],
+                            left_matrix[:, 2 ** n * (cnot_index + 1) : 2 ** n * (cnot_index + 2)],
+                            partial_cnot_unit,
+                            middle_matrix[:, 2 ** n * (cnot_index - 1) : 2 ** n * cnot_index],
                         ]
                     )
-                dV = np.dot(dV, V1)
-                der[i + p] = -np.real(np.trace(np.dot(dV.conj().T, target_matrix)))
+                partial_cnot_matrix = np.dot(partial_cnot_matrix, rotation_matrix)
+                der[i + cnot_theta_index] = -np.real(
+                    np.trace(np.dot(partial_cnot_matrix.conj().T, target_matrix))
+                )
+
         for i in range(3 * n):
-            dV1 = 1
+            # todo: this is a derivative
+            partial_rotation_matrix = 1
             for k in range(n):
-                p = 4 * num_cnots + 3 * k
+                cnot_theta_index = 4 * num_cnots + 3 * k
                 # a = Rx(thetas[0 + p])
-                a = op_rz(thetas[0 + p])
-                b = op_ry(thetas[1 + p])
-                c = op_rz(thetas[2 + p])
+                ry1 = op_rz(thetas[0 + cnot_theta_index])
+                rz1 = op_ry(thetas[1 + cnot_theta_index])
+                ry2 = op_rz(thetas[2 + cnot_theta_index])
                 if i - 3 * k == 0:
                     # a = np.dot(x, a)
-                    a = np.dot(z, a)
+                    ry1 = np.dot(z, ry1)
                 elif i - 3 * k == 1:
-                    b = np.dot(y, b)
+                    rz1 = np.dot(y, rz1)
                 elif i - 3 * k == 2:
-                    c = np.dot(z, c)
-                dV1 = np.kron(dV1, la.multi_dot([a, b, c]))
-            dV = np.dot(V2, dV1)
-            der[4 * num_cnots + i] = -np.real(np.trace(np.dot(dV.conj().T, target_matrix)))  # V-
+                    ry2 = np.dot(z, ry2)
+                partial_rotation_matrix = np.kron(
+                    partial_rotation_matrix, la.multi_dot([ry1, rz1, ry2])
+                )
+            partial_cnot_matrix = np.dot(cnot_matrix, partial_rotation_matrix)
+            der[4 * num_cnots + i] = -np.real(
+                np.trace(np.dot(partial_cnot_matrix.conj().T, target_matrix))
+            )
 
         # return error, gradient
         return err, der
-
-    # TODO: this method is not used now!
-    # def _get_smallgrad(self, thetas):
-    #     # This method is called only when num_cnots == 1
-    #     # todo: double check we need this method
-    #     n = self._num_qubits
-    #     cnots = self._cnots
-    #     err = self._get_cost(thetas)
-    #     L = np.shape(cnots)[1]
-    #     p = 4 * L + 3 * n
-    #     der = np.zeros(p)
-    #     for l in range(p):
-    #         ddV = self._dd_circuit(thetas, l, l)
-    #         der[l] = -np.real(np.trace(np.dot(ddV.conj().T, self.U)))
-    #     return err, der
-
-    # TODO: this method is referenced in the _get_smallgrad, which is not used
-    # def _dd_circuit(self, thetas, j, m):
-    #     # TODO: No idea of what this does
-    #     n = self._num_qubits
-    #     cnots = self._cnots
-    #     x = np.multiply(-1j / 2, X)
-    #     y = np.multiply(-1j / 2, Y)
-    #     z = np.multiply(-1j / 2, Z)
-    #     L = np.shape(cnots)[1]
-    #     ddV = np.eye(2 ** n)
-    #     for l in range(L):
-    #         p = 4 * l
-    #         a = Ry(thetas[0 + p])
-    #         b = Rz(thetas[1 + p])
-    #         c = Ry(thetas[2 + p])
-    #         d = Rx(thetas[3 + p])
-    #         if 0 + p == j or 0 + p == m:
-    #             a = np.dot(y, a)
-    #         if 1 + p == j or 1 + p == m:
-    #             b = np.dot(z, b)
-    #         if 2 + p == j or 2 + p == m:
-    #             c = np.dot(y, c)
-    #         if 3 + p == j or 3 + p == m:
-    #             d = np.dot(x, d)
-    #         q1 = int(cnots[0, l])
-    #         q2 = int(cnots[1, l])
-    #         u1 = np.dot(b, a)
-    #         u2 = np.dot(d, c)
-    #         U1 = unitary(u1, n, q1)
-    #         U2 = unitary(u2, n, q2)
-    #         CNOT1 = CNOT(n, q1, q2)
-    #         C = la.multi_dot([U2, U1, CNOT1])
-    #         ddV = np.dot(C, ddV)
-    #     ddV1 = 1
-    #     for k in range(n):
-    #         p = 4 * L + 3 * k
-    #         # a = Rx(thetas[0 + p])
-    #         a = Rz(thetas[0 + p])
-    #         b = Ry(thetas[1 + p])
-    #         c = Rz(thetas[2 + p])
-    #         if 0 + p == j or 0 + p == m:
-    #             # a = np.dot(x, a)
-    #             a = np.dot(z, a)
-    #         if 1 + p == j or 1 + p == m:
-    #             b = np.dot(y, b)
-    #         if 2 + p == j or 2 + p == m:
-    #             c = np.dot(z, c)
-    #         ddV1 = np.kron(ddV1, la.multi_dot([a, b, c]))
-    #     ddV = np.dot(ddV, ddV1)
-    #     return ddV

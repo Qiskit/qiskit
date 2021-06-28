@@ -270,45 +270,45 @@ class ParametricCircuit:
             2^n x 2^n numpy matrix corresponding to this circuit.
         """
 
-        all_cnot_units = np.eye(2 ** self._num_qubits)
+        cnot_matrix = np.eye(2 ** self._num_qubits)
         for i in range(self._num_cnots):
             p = 4 * i
-            a = op_ry(self._thetas[0 + p])
-            b = op_rz(self._thetas[1 + p])
-            c = op_ry(self._thetas[2 + p])
-            d = op_rx(self._thetas[3 + p])
+            ry1 = op_ry(self._thetas[0 + p])
+            rz1 = op_rz(self._thetas[1 + p])
+            ry2 = op_ry(self._thetas[2 + p])
+            rx2 = op_rx(self._thetas[3 + p])
 
             # Extract where the CNOT goes
             q1 = int(self._cnots[0, i])
             q2 = int(self._cnots[1, i])
-            u1 = np.dot(b, a)
-            u2 = np.dot(d, c)
+            single_q1 = np.dot(rz1, ry1)
+            single_q2 = np.dot(rx2, ry2)
 
             # these matrices span all qubits
-            global_unitary1 = op_unitary(u1, self._num_qubits, q1)
-            global_unitary2 = op_unitary(u2, self._num_qubits, q2)
-            global_cnot = op_cnot(self._num_qubits, q1, q2)   # todo: verify the size of cnot1
+            full_q1 = op_unitary(single_q1, self._num_qubits, q1)
+            full_q2 = op_unitary(single_q2, self._num_qubits, q2)
+            cnot_q1q2 = op_cnot(self._num_qubits, q1, q2)  # todo: verify the size of cnot1
 
             # Build the CNOT unit, our basic structure
-            cnot_unit = la.multi_dot([global_unitary2, global_unitary1, global_cnot])
+            cnot_unit = la.multi_dot([full_q2, full_q1, cnot_q1q2])
 
             # Concatenate the CNOT unit
-            all_cnot_units = np.dot(cnot_unit, all_cnot_units)
+            cnot_matrix = np.dot(cnot_unit, cnot_matrix)
 
         # Add the first rotation gates: ZYZ. Single qubit operations.
-        single_rotations = 1    # todo: why 1 ?
+        rotation_matrix = 1
         for qubit in range(self._num_qubits):
             # compute an index where angles for the first 3 rotations of the qubit k start in
             # the thetas array.
             p = 4 * self._num_cnots + 3 * qubit
-            a = op_rz(self._thetas[0 + p])
-            b = op_ry(self._thetas[1 + p])
-            c = op_rz(self._thetas[2 + p])
-            single_rotations = np.kron(single_rotations, la.multi_dot([a, b, c]))
+            ry1 = op_rz(self._thetas[0 + p])
+            rz1 = op_ry(self._thetas[1 + p])
+            ry2 = op_rz(self._thetas[2 + p])
+            rotation_matrix = np.kron(rotation_matrix, la.multi_dot([ry1, rz1, ry2]))
 
         # combine all together
-        matrix = np.dot(all_cnot_units, single_rotations)
-        return matrix
+        circuit_matrix = np.dot(cnot_matrix, rotation_matrix)
+        return circuit_matrix
 
     def to_circuit(self, tol: float = 0.0, reverse: bool = False) -> QuantumCircuit:
         """
