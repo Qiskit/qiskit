@@ -64,6 +64,7 @@ class ZZFeatureMap(PauliFeatureMap):
         entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
         data_map_func: Optional[Callable[[np.ndarray], float]] = None,
         insert_barriers: bool = False,
+        name: str = "ZZFeatureMap",
     ) -> None:
         """Create a new second-order Pauli-Z expansion.
 
@@ -92,4 +93,5 @@ class ZZFeatureMap(PauliFeatureMap):
             paulis=["Z", "ZZ"],
             data_map_func=data_map_func,
             insert_barriers=insert_barriers,
+            name=name,
         )
