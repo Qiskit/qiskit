@@ -100,14 +100,11 @@ class AQC:
             group=True,
         )
         thetas, _, _, _ = optimizer.optimize(target_matrix, circuit)
-        print(f"FISTA thetas:\n{thetas}")
         # TODO: remove
         assert np.allclose(thetas, circuit.thetas, atol=EPS, rtol=EPS)
 
         logger.debug("Compressing the circuit ...")
         compressed_circuit = EulerCompressor(synth=False).compress(circuit)
-        print(f"compressed_circuit.thetas {compressed_circuit.thetas}")
-        print(f"compressed_circuit.cnots {compressed_circuit.cnots}")
 
         logger.debug("Re-optimizing via gradient descent ...")
         # todo: why re-instantiate the gradient? is it stateful? just rest should be enough!

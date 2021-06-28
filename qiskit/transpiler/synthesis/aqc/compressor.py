@@ -90,10 +90,10 @@ class EulerCompressor(CompressorBase):
 
         n = circuit.num_qubits
         cnots = circuit.cnots
-        cmp_cnots = np.array(cnots)
+        compressed_cnots = np.array(cnots)
 
         # Initialize the compressed theta for bookeeping/the warm start
-        cmp_thetas = np.array(circuit.thetas)
+        compressed_thetas = np.array(circuit.thetas)
 
         # Determine the sparsity pattern:
         # vector that tells where four angles after a CNOT are 0s, of dimension L-1
@@ -108,7 +108,7 @@ class EulerCompressor(CompressorBase):
             a = ranges[z, 0]
             b = ranges[z, 1] + 1
             # Slice the section of cnots that will be affected by the compression rules
-            sec = np.array(cmp_cnots[0:2, a:b])
+            sec = np.array(compressed_cnots[0:2, a:b])
 
             # Apply synthesis or not
             if self._synth:
@@ -123,22 +123,22 @@ class EulerCompressor(CompressorBase):
                 if np.shape(syn_sec)[1] > 2:
                     syn_sec = self._minimal(syn_sec, self._niter)
 
-            num_cnots1 = np.shape(cmp_cnots)[1]
+            num_cnots1 = np.shape(compressed_cnots)[1]
 
-            old_cnots = np.array(cmp_cnots[:, b - 1])  # keep the rightmost cnot that is deleted
+            old_cnots = np.array(compressed_cnots[:, b - 1])  # keep the rightmost cnot that is deleted
             logger.debug("old cnot = %s", old_cnots)
             # print('old_cnot = ', old_cnot)
 
-            cmp_cnots = np.delete(cmp_cnots, np.arange(a, b), 1)
+            compressed_cnots = np.delete(compressed_cnots, np.arange(a, b), 1)
 
             # print('cmp_cnot = ', cmp_cnots)
 
             old_thetas = np.array(
-                cmp_thetas[4 * (b - 1) : 4 * b]
+                compressed_thetas[4 * (b - 1) : 4 * b]
             )  # keep the angles corresponding to old_cnot
             # print('Before =', (old_thetas))
-            cmp_thetas = np.delete(
-                cmp_thetas, np.arange(4 * a, 4 * b)
+            compressed_thetas = np.delete(
+                compressed_thetas, np.arange(4 * a, 4 * b)
             )  # delete angles corresponding to deleted cnots
             # print('After =', (cmp_thetas))
 
@@ -146,16 +146,16 @@ class EulerCompressor(CompressorBase):
 
             # If there is still a CNOT:
             if np.shape(syn_sec)[0] != 0:
-                cmp_cnots = np.insert(cmp_cnots, a, np.transpose(syn_sec), 1)
+                compressed_cnots = np.insert(compressed_cnots, a, np.transpose(syn_sec), 1)
                 c = np.shape(syn_sec)[1]  # length of syn_sec
-                cmp_thetas = np.insert(
-                    cmp_thetas, 4 * a, np.zeros(4 * c)
+                compressed_thetas = np.insert(
+                    compressed_thetas, 4 * a, np.zeros(4 * c)
                 )  # insert zero angles for inserted cnots
 
             # print('cmp_cnot = ', cmp_cnots)
             # print('After =', (cmp_thetas))
 
-            num_cnots2 = np.shape(cmp_cnots)[1]
+            num_cnots2 = np.shape(compressed_cnots)[1]
 
             # print('L2 = ', L2)
             # print('ranges = ', ranges)
@@ -166,14 +166,14 @@ class EulerCompressor(CompressorBase):
             # print('Bookkeeping : ', cmp_cnots, cmp_thetas, old_cnot, old_thetas, L2n)
 
             #
-            cmp_thetas = self._extra_angles(
-                cmp_cnots, L2n, cmp_thetas, old_cnots, old_thetas, n
+            compressed_thetas = self._extra_angles(
+                compressed_cnots, L2n, compressed_thetas, old_cnots, old_thetas, n
             )  # update angles
             # print(cmp_thetas)
             # cpcp
         if self._verbose >= 1:
             print("Sparsity pattern: {}".format(spar))
-        return ParametricCircuit(num_qubits=n, cnots=cmp_cnots, thetas=cmp_thetas)
+        return ParametricCircuit(num_qubits=n, cnots=compressed_cnots, thetas=compressed_thetas)
         # return cmp_cnots, cmp_thetas, spar  # added cmp_thetas as an output
 
     def _extra_angles(self, lcnots, L, thetas, rcnot, rthetas, n, checks=True):
