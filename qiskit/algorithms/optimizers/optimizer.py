@@ -19,8 +19,6 @@ import logging
 from abc import ABC, abstractmethod
 import numpy as np
 
-from qiskit.exceptions import QiskitError
-
 logger = logging.getLogger(__name__)
 
 
@@ -221,83 +219,6 @@ class Optimizer(ABC):
         """The optimizer settings in a dictionary format."""
         raise NotImplementedError("Dictionary conversion not implemented for this optimizer.")
 
-    @classmethod
-    def from_dict(cls, dictionary: Dict[str, Any]) -> "Optimizer":
-        """Initialize the optimizer from a serializable dictionary.
-
-        Args:
-            dictionary: The dictionary containing the name and settings for the optimizer.
-
-        Returns:
-            The initialized optimizer.
-
-        Raises:
-            ValueError: If the method on the base class ``qiskit.algorithms.optimizers.Optimizer``
-                is called but the name of the optimizer is not specified.
-        """
-        # pylint: disable=cyclic-import
-        import qiskit.algorithms.optimizers as opt
-
-        # handle SciPyOptimizers separately as they contain the name as the keyword "method"
-        if cls == opt.SciPyOptimizer:
-            settings = dictionary.copy()
-            settings["method"] = settings.pop("name")
-            return cls(**settings)
-
-        # if from_dict is called on a particular optimizer class (like SPSA) we don't need the name
-        elif cls != Optimizer and issubclass(cls, Optimizer):
-            name = dictionary.get("name", None)
-            if name is not None:
-                classname = cls.__name__.lower()
-                if name.lower() != classname:
-                    raise ValueError(f"Value of the key 'name' must be '{classname}'.")
-
-            # settings are the dictionary without the key "name"
-            settings = {key: value for key, value in dictionary.items() if key != "name"}
-            return cls(**settings)
-
-        # otherwise, if from_dict is called on the Optimizer base class, we need the name
-        if "name" not in dictionary:
-            raise ValueError("Required key 'name' not found in the dictionary.")
-
-        name = dictionary["name"]
-
-        optimizers = {
-            "adam": opt.ADAM,
-            "aqgd": opt.AQGD,
-            "bfgs": opt.SciPyOptimizer,
-            "bobyqa": opt.BOBYQA,
-            "cg": opt.CG,
-            "cobyla": opt.COBYLA,
-            "dogleg": opt.SciPyOptimizer,
-            "gsls": opt.GSLS,
-            "gradientdescent": opt.GradientDescent,
-            "imfil": opt.IMFIL,
-            "l-bfgs-b": opt.L_BFGS_B,
-            "nelder-mead": opt.NELDER_MEAD,
-            "newton-cg": opt.SciPyOptimizer,
-            "powell": opt.POWELL,
-            "qnspsa": opt.QNSPSA,
-            "slsqp": opt.SLSQP,
-            "spsa": opt.SPSA,
-            "tnc": opt.TNC,
-            "trust-constr": opt.SciPyOptimizer,
-            "trust-ncg": opt.SciPyOptimizer,
-            "trust-exact": opt.SciPyOptimizer,
-            "trust-krylov": opt.SciPyOptimizer,
-        }
-
-        try:
-            return optimizers[name.lower()].from_dict(dictionary)
-        except KeyError as key_error:
-            raise ValueError(f"Unknown optimizer {name}.") from key_error
-
-    @staticmethod
-    def _check_dict_is_serializable(dictionary: Dict[str, Any]):
-        """Check whether ``dictionary`` is serializable for Qiskit Runtime."""
-        for value in dictionary.values():
-            _check_object_is_serializable(value)
-
     @property
     def gradient_support_level(self):
         """Returns gradient support level"""
@@ -366,22 +287,3 @@ class Optimizer(ABC):
     def set_max_evals_grouped(self, limit):
         """Set max evals grouped"""
         self._max_evals_grouped = limit
-
-
-def _check_object_is_serializable(obj):
-    """Check whether ``obj`` is serializable for Qiskit Runtime."""
-    supported_types = (str, int, float, complex, np.ndarray)
-
-    if isinstance(obj, list):
-        for value in obj:
-            _check_object_is_serializable(value)
-    elif isinstance(obj, dict):
-        for key, value in obj.items():
-            _check_object_is_serializable(key)
-            _check_object_is_serializable(value)
-    else:
-        if not isinstance(obj, supported_types):
-            raise QiskitError(
-                f"Unsupported type {type(obj)} in optimizer serialization. "
-                f"Supported: {supported_types}."
-            )

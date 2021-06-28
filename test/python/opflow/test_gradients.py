@@ -686,8 +686,8 @@ class TestGradients(QiskitOpflowTestCase):
             return grad
 
         qc = RealAmplitudes(2, reps=1)
-        grad_op = ListOp([StateFn(qc)], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
-        grad = Gradient(grad_method=method).convert(grad_op, qc.ordered_parameters)
+        grad_op = ListOp([StateFn(qc.decompose())], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
+        grad = Gradient(grad_method=method).convert(grad_op)
         value_dict = dict(zip(qc.ordered_parameters, np.random.rand(len(qc.ordered_parameters))))
         correct_values = [
             [(-0.16666259133549044 + 0j)],
@@ -718,7 +718,7 @@ class TestGradients(QiskitOpflowTestCase):
 
         try:
             qc = RealAmplitudes(2, reps=1)
-            grad_op = ListOp([StateFn(qc)], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
+            grad_op = ListOp([StateFn(qc.decompose())], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
             grad = NaturalGradient(grad_method="lin_comb", regularization="ridge").convert(
                 grad_op, qc.ordered_parameters
             )

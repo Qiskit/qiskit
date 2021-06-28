@@ -93,7 +93,6 @@ class SciPyOptimizer(Optimizer):
             "options": self._options,
             **self._kwargs,
         }
-        self._check_dict_is_serializable(settings)
         return settings
 
     def optimize(
