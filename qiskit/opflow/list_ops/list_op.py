@@ -102,6 +102,13 @@ class ListOp(OperatorBase):
         }
 
     @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"oplist": self._oplist,
+                "coeff": self._coeff,
+                "abelian": self._abelian}
+
+    @property
     def oplist(self) -> List[OperatorBase]:
         """The list of ``OperatorBases`` defining the underlying function of this
         Operator.
