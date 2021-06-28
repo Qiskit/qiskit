@@ -1560,7 +1560,7 @@ class QuantumCircuit:
                 the `mpl`, `latex` and `latex_source` outputs. Defaults to 1.0.
             filename (str): file path to save image to. Defaults to None.
             style (dict or str): dictionary of style or file name of style json file.
-                This option is only used by the `mpl` output type.
+                This option is only used by the `mpl` or `latex` output type.
                 If `style` is a str, it is used as the path to a json file
                 which contains a style dict. The file will be opened, parsed, and
                 then any style elements in the dict will replace the default values
@@ -2779,11 +2779,21 @@ class QuantumCircuit:
 
         return self.append(DCXGate(), [qubit1, qubit2], [])
 
-    def ccx(self, control_qubit1, control_qubit2, target_qubit):
+    def ccx(
+        self,
+        control_qubit1,
+        control_qubit2,
+        target_qubit,
+        ctrl_state=None,
+    ):
         """Apply :class:`~qiskit.circuit.library.CCXGate`."""
         from .library.standard_gates.x import CCXGate
 
-        return self.append(CCXGate(), [control_qubit1, control_qubit2, target_qubit], [])
+        return self.append(
+            CCXGate(ctrl_state=ctrl_state),
+            [control_qubit1, control_qubit2, target_qubit],
+            [],
+        )
 
     def toffoli(self, control_qubit1, control_qubit2, target_qubit):
         """Apply :class:`~qiskit.circuit.library.CCXGate`."""
