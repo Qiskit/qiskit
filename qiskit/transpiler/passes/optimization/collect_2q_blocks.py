@@ -15,7 +15,6 @@
 from collections import defaultdict
 
 from qiskit.circuit import Gate
-from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
