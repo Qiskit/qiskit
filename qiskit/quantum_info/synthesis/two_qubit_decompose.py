@@ -552,8 +552,6 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylGeneral):
         self.qubit_pair = qubit_pair
         super().__init__(unitary)
 
-    def specialize(self):
-        pass
 
     @staticmethod
     def _apply_rzx(circ: QuantumCircuit, angle: float):
