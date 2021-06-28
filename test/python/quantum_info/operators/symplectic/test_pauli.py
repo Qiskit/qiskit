@@ -69,6 +69,12 @@ class TestPauliConversions(QiskitTestCase):
         pauli = Pauli(label)
         self.assertEqual(Pauli(str(pauli)), pauli)
 
+    @data("S", "XX-")
+    def test_invalid_labels(self, label):
+        """Test raise if invalid labels are supplied"""
+        with self.assertRaises(QiskitError):
+            Pauli(label)
+
     @data(*pauli_group_labels(1), *pauli_group_labels(2))
     def test_to_operator(self, label):
         """Test Pauli operator conversion"""
