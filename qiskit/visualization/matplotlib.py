@@ -1215,7 +1215,7 @@ class MatplotlibDrawer:
 
                 # conditional gate
                 if op.condition:
-                    cond_is_bit = bool(isinstance(op.op.condition[0], Clbit))
+                    cond_is_bit = bool(isinstance(op.condition[0], Clbit))
                     c_xy = [
                         c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
                         for ii in self._clbit_dict
@@ -1223,7 +1223,7 @@ class MatplotlibDrawer:
                     mask = 0
                     if cond_is_bit:
                         for index, cbit in enumerate(self._clbit):
-                            if cbit == op.op.condition[0]:
+                            if cbit == op.condition[0]:
                                 mask = 1 << index
                                 break
                     else:
@@ -1255,8 +1255,8 @@ class MatplotlibDrawer:
                     clbit_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
                     xpos, ypos = clbit_b
                     if cond_is_bit and self._cregbundle:
-                        cond_reg = self._bit_locations[op.op.condition[0]]["register"]
-                        ctrl_bit = self._bit_locations[op.op.condition[0]]["index"]
+                        cond_reg = self._bit_locations[op.condition[0]]["register"]
+                        ctrl_bit = self._bit_locations[op.condition[0]]["index"]
                         label = "%s_%s=%s" % (cond_reg.name, ctrl_bit, hex(val))
                     elif self._cregbundle:
                         label = hex(val)
