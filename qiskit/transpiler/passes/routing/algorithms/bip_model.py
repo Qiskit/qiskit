@@ -41,7 +41,7 @@ class BIPMappingModel:
         problem (Model):
             A CPLEX problem model object, which is set by calling
             :method:`create_cpx_problem`. After calling :method:`solve_cpx_problem`,
-            the solution will be stored in :attr:`solution`).
+            the solution will be stored in :attr:`solution`). None if it's not yet set.
     """
 
     def __init__(self, dag, coupling_map, dummy_timesteps=None):
@@ -115,10 +115,9 @@ class BIPMappingModel:
         logger.info("Model depth: %d", self.depth)
         logger.info("Dummy steps: %d", dummy_timesteps)
 
-
     @property
     def depth(self):
-        """Number of timesteps (including dummy steps)."""
+        """Number of time-steps (including dummy steps)."""
         return len(self.gates)
 
     def is_su4layer(self, depth: int) -> bool:
@@ -145,7 +144,7 @@ class BIPMappingModel:
 
     # pylint: disable=invalid-name
     def _is_dummy_step(self, t: int):
-        """Check if the time step t is a dummy step or not."""
+        """Check if the time-step t is a dummy step or not."""
         return len(self.gates[t]) == 0
 
     def create_cpx_problem(self, objective: str, line_symm: bool = False):

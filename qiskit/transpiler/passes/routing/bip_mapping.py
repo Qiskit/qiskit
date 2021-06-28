@@ -44,12 +44,12 @@ class BIPMapping(TransformationPass):
     The BIP problem represents the layer-by-layer mapping of 2-qubit gates, assuming all the gates
     in a layer can be run on the ``coupling_map``. In the problem, the variables :math:`w` represent
     the layout of qubits for each layer and the variables :math:`x` represent which pair fo qubits
-    should be swapped inbetween layers. Based on the values in the solution of the BIP problem,
+    should be swapped in between layers. Based on the values in the solution of the BIP problem,
     the mapped circuit will be constructed.
 
-    If you have circuits that need to be mapped and want to specify physical qubits (e.g. running
-    Quantum Volume circuits), you have to specify ``coupling_map`` which contains only the qubits
-    to be used. Do not use ``initial_layout`` for that purpose because the BIP mapper gracefully
+    If you want to fix physical qubits to be used in the mapping (e.g. running Quantum Volume
+    circuits), you have to specify ``coupling_map`` which contains only the qubits to be used.
+    Please do not use ``initial_layout`` for that purpose because the BIP mapper gracefully
     ignores ``initial_layout`` (and try to determines its best layout).
 
     .. warning::
@@ -86,7 +86,7 @@ class BIPMapping(TransformationPass):
             time_limit (float): Time limit for solving BIP in seconds
             threads (int): Number of threads to be allowed for CPLEX to solve BIP
             max_swaps_inbetween_layers (int):
-                Number of swaps allowed inbetween layers. If None, automatically set.
+                Number of swaps allowed in between layers. If None, automatically set.
                 Large value could decrease the probability to build infeasible BIP problem but also
                 could reduce the chance of finding a feasible solution within the ``time_limit``.
 
