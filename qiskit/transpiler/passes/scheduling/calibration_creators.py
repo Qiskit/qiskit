@@ -96,7 +96,7 @@ class RZXCalibrationBuilder(CalibrationCreator):
         if not backend.configuration().open_pulse:
             raise QiskitError(
                 "Calibrations can only be added to Pulse-enabled backends, "
-                "but {0} is not enabled with Pulse.".format(backend.name())
+                "but {} is not enabled with Pulse.".format(backend.name())
             )
 
         self._inst_map = backend.defaults().instruction_schedule_map
