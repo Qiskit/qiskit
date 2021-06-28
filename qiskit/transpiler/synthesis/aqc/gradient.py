@@ -61,6 +61,7 @@ class DefaultGradient(GradientBase):
 
     def get_gradient(self, thetas: Union[List[float], np.ndarray], target_matrix: np.ndarray):
         # Pauli matrices with additional an additional coefficient
+
         x = np.multiply(-1j / 2, X)
         y = np.multiply(-1j / 2, Y)
         z = np.multiply(-1j / 2, Z)
