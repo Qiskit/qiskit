@@ -20,7 +20,7 @@ from math import pi
 import numpy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.circuit import Gate, Parameter
+from qiskit.circuit import Gate, Parameter, ParameterVector
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
@@ -1602,6 +1602,21 @@ class TestTextDrawerParams(QiskitTestCase):
         circuit = QuantumCircuit(3)
         circuit.initialize(ket)
         self.assertEqual(circuit.draw(output="text", initial_state=True).single_string(), expected)
+
+    def test_text_general_overwide_params(self):
+        """Test that parameters in any general quantum circuit which are too wide get truncated."""
+        expected = "\n".join(
+            [
+                "     ┌──────────────────────────────────┐",
+                "q_0: ┤ circuit-0(theta[0],theta[1],...) ├",
+                "     └──────────────────────────────────┘",
+            ]
+        )
+        theta = ParameterVector("theta", 12)
+        circuit = QuantumCircuit(1)
+        gate = Gate(name="circuit-0", num_qubits=1, params=theta)
+        circuit.append(gate, [0])
+        self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
 
 class TestTextDrawerVerticalCompressionLow(QiskitTestCase):

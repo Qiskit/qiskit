@@ -857,7 +857,7 @@ class TextDrawing:
             except TypeError:
                 ret.append("%s" % param)
 
-        if (isinstance(op, Initialize)) and (len(",".join(ret)) > 100):
+        if len(",".join(ret)) > 100:
             ret = ret[0:2]
             ret.append("...")
         return ret
