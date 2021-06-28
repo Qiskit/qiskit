@@ -81,10 +81,10 @@ class AQC:
         assert isinstance(target_matrix, np.ndarray)
         assert isinstance(cnots, np.ndarray)
         assert isinstance(thetas0, np.ndarray)
+
         gradient_backend = "default"
         num_qubits = int(round(np.log2(target_matrix.shape[0])))
-        # todo: don't change parameters that are already specified in the constructor!
-        self._adjust_optimization_parameters(num_qubits)
+        self._compute_optional_parameters(num_qubits)
 
         logger.debug("Optimizing via FISTA ...")
         circuit = ParametricCircuit(num_qubits=num_qubits, cnots=cnots, thetas=thetas0)
@@ -100,11 +100,14 @@ class AQC:
             group=True,
         )
         thetas, _, _, _ = optimizer.optimize(target_matrix, circuit)
+        print(f"FISTA thetas:\n{thetas}")
         # TODO: remove
         assert np.allclose(thetas, circuit.thetas, atol=EPS, rtol=EPS)
 
         logger.debug("Compressing the circuit ...")
         compressed_circuit = EulerCompressor(synth=False).compress(circuit)
+        print(f"compressed_circuit.thetas {compressed_circuit.thetas}")
+        print(f"compressed_circuit.cnots {compressed_circuit.cnots}")
 
         logger.debug("Re-optimizing via gradient descent ...")
         # todo: why re-instantiate the gradient? is it stateful? just rest should be enough!
@@ -115,28 +118,19 @@ class AQC:
         assert np.allclose(thetas_min, compressed_circuit.thetas, atol=EPS, rtol=EPS)
         return compressed_circuit
 
-    def _adjust_optimization_parameters(self, num_qubits: int):
+    def _compute_optional_parameters(self, num_qubits: int) -> None:
         """
+        Computes parameters that initially were set to ``None``.
 
         Args:
-            num_qubits:
-
-        Returns:
-
+            num_qubits: a number of qubits in an optimization problem
         """
         if num_qubits <= 3:
-            self._maxiter = 200
-            self._eta = 0.1
+            self._maxiter = self._maxiter or 200
+            self._eta = self._eta or 0.1
         elif num_qubits == 4:
-            self._maxiter = 350
-            self._eta = 0.06
+            self._maxiter = self._maxiter or 350
+            self._eta = self._eta or 0.06
         elif num_qubits >= 5:
-            self._maxiter = 500
-            self._eta = 0.03
-
-    # TODO: remove
-    # @staticmethod
-    # def _message(msg: str, verbose: int = 0):
-    #     if verbose >= 1:
-    #         print(msg)
-    #     logger.debug(msg)
+            self._maxiter = self._maxiter or 500
+            self._eta = self._eta or 0.03

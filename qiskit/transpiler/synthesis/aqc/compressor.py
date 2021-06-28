@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Circuit compressor classes."""
-
+import logging
 from abc import abstractmethod, ABC
 from typing import Tuple, List, Dict
 
@@ -18,6 +18,8 @@ import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator, OneQubitEulerDecomposer
 from .parametric_circuit import ParametricCircuit
+
+logger = logging.getLogger(__name__)
 
 
 class CompressorBase(ABC):
@@ -100,9 +102,9 @@ class EulerCompressor(CompressorBase):
         # Determine which cnot indices are to be affected by the compression:
         # [[start1, end1], [start2, end2], ... ]
         ranges = self._zero_runs(spar)
-        Z = np.shape(ranges)[0]
+        num_ranges = np.shape(ranges)[0]
 
-        for z in range(Z):
+        for z in range(num_ranges):
             a = ranges[z, 0]
             b = ranges[z, 1] + 1
             # Slice the section of cnots that will be affected by the compression rules
@@ -121,9 +123,10 @@ class EulerCompressor(CompressorBase):
                 if np.shape(syn_sec)[1] > 2:
                     syn_sec = self._minimal(syn_sec, self._niter)
 
-            L1 = np.shape(cmp_cnots)[1]
+            num_cnots1 = np.shape(cmp_cnots)[1]
 
-            old_cnot = np.array(cmp_cnots[:, b - 1])  # keep the rightmost cnot that is deleted
+            old_cnots = np.array(cmp_cnots[:, b - 1])  # keep the rightmost cnot that is deleted
+            logger.debug("old cnot = %s", old_cnots)
             # print('old_cnot = ', old_cnot)
 
             cmp_cnots = np.delete(cmp_cnots, np.arange(a, b), 1)
@@ -152,19 +155,19 @@ class EulerCompressor(CompressorBase):
             # print('cmp_cnot = ', cmp_cnots)
             # print('After =', (cmp_thetas))
 
-            L2 = np.shape(cmp_cnots)[1]
+            num_cnots2 = np.shape(cmp_cnots)[1]
 
             # print('L2 = ', L2)
             # print('ranges = ', ranges)
             # Redefine ranges in order to shift the indices depending on the compression
-            ranges += L2 - L1
+            ranges += num_cnots2 - num_cnots1
             # print('ranges = ', ranges)
             L2n = ranges[z, 1] + 1
             # print('Bookkeeping : ', cmp_cnots, cmp_thetas, old_cnot, old_thetas, L2n)
 
             #
             cmp_thetas = self._extra_angles(
-                cmp_cnots, L2n, cmp_thetas, old_cnot, old_thetas, n
+                cmp_cnots, L2n, cmp_thetas, old_cnots, old_thetas, n
             )  # update angles
             # print(cmp_thetas)
             # cpcp
