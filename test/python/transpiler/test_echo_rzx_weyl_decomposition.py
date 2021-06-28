@@ -48,9 +48,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
 
         unitary_circuit = qi.Operator(circuit).data
 
-        dag = circuit_to_dag(circuit)
-        pass_ = EchoRZXWeylDecomposition(self.inst_map)
-        after = dag_to_circuit(pass_.run(dag))
+        after = EchoRZXWeylDecomposition(self.inst_map)(circuit)
 
         unitary_after = qi.Operator(after).data
 
