@@ -45,8 +45,8 @@ class TestAqc(QiskitTestCase):
 
     def test_aqc_hardcoded(self):
         """Tests AQC on a hardcoded circuit/matrix."""
-        print("\nRunning {:s}() ...".format(self.test_aqc_hardcoded.__name__))
-        print("Here we test approximation of hardcoded matrix")
+
+        np.random.seed(12345)
 
         num_qubits = int(round(np.log2(np.array(ORIGINAL_CIRCUIT).shape[0])))
         cnots = make_cnot_network(
@@ -123,32 +123,32 @@ class TestAqc(QiskitTestCase):
         return int(nqubits), int(depth), float(diff_before), float(diff_after)
 
     # @unittest.skip("temporary skipping of the long test")
-    def test_aqc_random(self):
-        """Tests AQC on random unitary matrices."""
-        print("\nRunning {:s}() ...".format(self.test_aqc_random.__name__))
-        print("Here we test approximate compiling for different")
-        print("qubit numbers and circuit depths, using random target")
-        print("matrix and initial thetas.")
-
-        num_layers = [
-            (n, L) for n in range(3, 7) for L in np.random.permutation(np.arange(10, 100))[0:10]
-        ]
-
-        results = Parallel(n_jobs=-1, prefer="processes")(
-            delayed(self._aqc_random)(n, L) for n, L in num_layers
-        )
-        print("")
-        sys.stderr.flush()
-        sys.stdout.flush()
-
-        # Print out the results.
-        for num_qubits, depth, diff_before, diff_after in results:
-            print(
-                "#qubits: {:d}, circuit depth: {:d};  relative residual:  "
-                "initial: {:0.4f}, optimized: {:0.4f}".format(
-                    num_qubits, depth, diff_before, diff_after
-                )
-            )
+    # def test_aqc_random(self):
+    #     """Tests AQC on random unitary matrices."""
+    #     print("\nRunning {:s}() ...".format(self.test_aqc_random.__name__))
+    #     print("Here we test approximate compiling for different")
+    #     print("qubit numbers and circuit depths, using random target")
+    #     print("matrix and initial thetas.")
+    #
+    #     num_layers = [
+    #         (n, L) for n in range(3, 7) for L in np.random.permutation(np.arange(10, 100))[0:10]
+    #     ]
+    #
+    #     results = Parallel(n_jobs=-1, prefer="processes")(
+    #         delayed(self._aqc_random)(n, L) for n, L in num_layers
+    #     )
+    #     print("")
+    #     sys.stderr.flush()
+    #     sys.stdout.flush()
+    #
+    #     # Print out the results.
+    #     for num_qubits, depth, diff_before, diff_after in results:
+    #         print(
+    #             "#qubits: {:d}, circuit depth: {:d};  relative residual:  "
+    #             "initial: {:0.4f}, optimized: {:0.4f}".format(
+    #                 num_qubits, depth, diff_before, diff_after
+    #             )
+    #         )
 
 
 if __name__ == "__main__":

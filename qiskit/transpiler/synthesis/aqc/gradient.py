@@ -60,13 +60,13 @@ class DefaultGradient(GradientBase):
         self._num_cnots = cnots.shape[1]
 
     def get_gradient(self, thetas: Union[List[float], np.ndarray], target_matrix: np.ndarray):
-        # Get the gradient of the cost function
+        # Pauli matrices with additional an additional coefficient
         x = np.multiply(-1j / 2, X)
         y = np.multiply(-1j / 2, Y)
         z = np.multiply(-1j / 2, Z)
+
         n = self._num_qubits
         cnots = self._cnots
-
         num_cnots = np.shape(cnots)[1]
 
         # compute parametric circuit and prepare required matrices for gradient computations
