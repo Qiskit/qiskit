@@ -88,22 +88,25 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
 
         self.assertTrue(np.allclose(unitary_circuit, unitary_after))
 
-        alpha = TwoQubitWeylDecomposition(unitary_circuit).a
-        beta = TwoQubitWeylDecomposition(unitary_circuit).b
-        gamma = TwoQubitWeylDecomposition(unitary_circuit).c
+        self.assertRZXgates(unitary_circuit)
 
-        # check whether after circuit has correct number of rzx gates
-        expected_rzx_number = 0
-        if not alpha == 0:
-            expected_rzx_number += 2
-        if not beta == 0:
-            expected_rzx_number += 2
-        if not gamma == 0:
-            expected_rzx_number += 2
-
-        circuit_rzx_number = QuantumCircuit.count_ops(after)["rzx"]
-
-        self.assertEqual(expected_rzx_number, circuit_rzx_number)
+      def assertRZXgates(unitary_circuit):
+            alpha = TwoQubitWeylDecomposition(unitary_circuit).a
+            beta = TwoQubitWeylDecomposition(unitary_circuit).b
+            gamma = TwoQubitWeylDecomposition(unitary_circuit).c
+    
+            # check whether after circuit has correct number of rzx gates
+            expected_rzx_number = 0
+            if not alpha == 0:
+                expected_rzx_number += 2
+            if not beta == 0:
+                expected_rzx_number += 2
+            if not gamma == 0:
+                expected_rzx_number += 2
+    
+            circuit_rzx_number = QuantumCircuit.count_ops(after)["rzx"]
+    
+            self.assertEqual(expected_rzx_number, circuit_rzx_number)
 
     def test_weyl_unitaries_random_circuit(self):
         """Weyl decomposition for random two-qubit circuit."""
