@@ -642,7 +642,7 @@ class QCircuitImage:
         else:
             # Add the open and closed buttons to indicate the condition value
             if cond_is_bit:
-                extra_gap = list(cond_reg).index(op.op.condition[0])
+                extra_gap = list(cond_reg).index(op.condition[0])
                 gap += extra_gap
                 control = "\\control" if if_value is True else "\\controlo"
                 self._latex[cwire + extra_gap][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
