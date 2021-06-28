@@ -28,7 +28,7 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
-from qiskit.circuit import ControlledGate, Gate
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
@@ -260,7 +260,12 @@ class MatplotlibDrawer:
         }
 
     def draw(self, filename=None, verbose=False):
-        """Draw method called from circuit_drawer"""
+        """Main entry point to 'matplotlib' ('mpl') drawer. Called from
+        ``visualization.circuit_drawer`` and from ``QuantumCircuit.draw`` through circuit_drawer.
+        """
+        # All information for the drawing is first loaded into self._data for the gates and into
+        # self._qubit_dict and self._clbit_dict for the qubits, clbits, and wires,
+        # followed by the coordinates for each gate.
 
         # get layer widths
         self._get_layer_widths()
@@ -271,6 +276,9 @@ class MatplotlibDrawer:
         # load the coordinates for each gate and compute number of folds
         max_anc = self._get_coords(n_lines)
         num_folds = max(0, max_anc - 1) // self._fold if self._fold > 0 else 0
+
+        # Then the window size limits are computed, followed by one of the four possible ways
+        # of scaling the drawing.
 
         # compute the window size
         if max_anc > self._fold > 0:
@@ -288,7 +296,7 @@ class MatplotlibDrawer:
         self._ax.set_xlim(xl, xr)
         self._ax.set_ylim(yb, yt)
 
-        # update figure size and for backward compatibility,
+        # update figure size and, for backward compatibility,
         # need to scale by a default value equal to (self._fs * 3.01 / 72 / 0.65)
         base_fig_w = (xr - xl) * 0.8361111
         base_fig_h = (yt - yb) * 0.8361111
@@ -323,7 +331,8 @@ class MatplotlibDrawer:
             self._lwidth15 = 1.5 * scale
             self._lwidth2 = 2.0 * scale
 
-        # now draw global phase, register names and numbers, wires, and gates
+        # Once the scaling factor has been determined, the global phase, register names
+        # and numbers, wires, and gates are drawn
         if self._global_phase:
             self._plt_mod.text(
                 xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
