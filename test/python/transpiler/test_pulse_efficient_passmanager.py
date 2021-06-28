@@ -31,14 +31,11 @@ import numpy as np
 import qiskit.quantum_info as qi
 
 
-
 class TestPulseEfficientPassManager(QiskitTestCase):
     """Test the pulse-efficient pass manager"""
 
     def setUp(self):
         super().setUp()
-        self.passes = []
-        self.backends = (FakeParis(), FakeAthens())
 
     def test_empty_circuit(self):
         """Test empty circuit"""
@@ -69,7 +66,7 @@ class TestPulseEfficientPassManager(QiskitTestCase):
 
         unitary_circuit = qi.Operator(circuit).data
 
-        result = transpile(circuit, self.backends[0], optimization_level="pulse_efficient")
+        result = transpile(circuit, FakeParis(), optimization_level="pulse_efficient")
 
         unitary_result = qi.Operator(result).data
 
@@ -92,7 +89,7 @@ class TestPulseEfficientPassManager(QiskitTestCase):
 
         unitary_circuit = qi.Operator(circuit).data
 
-        result = transpile(circuit, self.backends[1], optimization_level="pulse_efficient")
+        result = transpile(circuit, FakeAthens(), optimization_level="pulse_efficient")
 
         alpha = TwoQubitWeylDecomposition(unitary_circuit).a
         beta = TwoQubitWeylDecomposition(unitary_circuit).b
@@ -119,7 +116,7 @@ class TestPulseEfficientPassManager(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.rzz(theta, qr[1], qr[0])
 
-        result = transpile(circuit, self.backends[1], optimization_level="pulse_efficient")
+        result = transpile(circuit, FakeParis(), optimization_level="pulse_efficient")
 
         unitary_result = qi.Operator(result).data
 
@@ -156,7 +153,7 @@ class TestPulseEfficientPassManager(QiskitTestCase):
 
         unitary_circuit = qi.Operator(circuit).data
 
-        result = transpile(circuit, self.backends[0], optimization_level="pulse_efficient")
+        result = transpile(circuit, FakeParis(), optimization_level="pulse_efficient")
 
         unitary_result = qi.Operator(result).data
 
@@ -181,7 +178,7 @@ class TestPulseEfficientPassManager(QiskitTestCase):
         circuit.swap(qr[1], qr[4])
         circuit.h(qr[3])
 
-        result = transpile(circuit, self.backends[0], optimization_level="pulse_efficient")
+        result = transpile(circuit, FakeParis(), optimization_level="pulse_efficient")
 
         self.assertIn("rzx", result.calibrations)
 
@@ -210,7 +207,7 @@ class TestPulseEfficientPassManager(QiskitTestCase):
         circuit.swap(qr[1], qr[4])
         circuit.h(qr[3])
 
-        result = transpile(circuit, self.backends[0], optimization_level="pulse_efficient")
+        result = transpile(circuit, FakeParis(), optimization_level="pulse_efficient")
 
         after_dag = circuit_to_dag(result)
 

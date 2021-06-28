@@ -71,11 +71,6 @@ class EchoRZXWeylDecomposition(TransformationPass):
                 physical_q0 = trivial_layout[control]
                 physical_q1 = trivial_layout[target]
 
-                # config = self.backend.configuration()
-                # if [physical_q0, physical_q1] not in config.coupling_map:
-                #     raise TranspilerError('Qubits %s and %s are not connected on the backend'
-                #                           % (physical_q0, physical_q1))
-
                 qubit_pair = (physical_q0, physical_q1)
 
                 unitary = qi.Operator(node.op).data
