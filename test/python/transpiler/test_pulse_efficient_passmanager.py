@@ -31,10 +31,6 @@ import numpy as np
 import qiskit.quantum_info as qi
 
 
-def emptycircuit():
-    """Empty circuit"""
-    return QuantumCircuit()
-
 
 class TestPulseEfficientTranspilerPass(QiskitTestCase):
     """Test the pulse-efficient pass manager"""
@@ -47,7 +43,7 @@ class TestPulseEfficientTranspilerPass(QiskitTestCase):
     def test_empty_circuit(self):
         """Test empty circuit"""
 
-        circuit = emptycircuit()
+        circuit = QuantumCircuit()
 
         unitary_circuit = qi.Operator(circuit).data
 
