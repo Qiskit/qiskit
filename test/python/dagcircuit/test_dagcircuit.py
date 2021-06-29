@@ -643,24 +643,24 @@ class TestDagNodeSelection(QiskitTestCase):
         qr = self.dag.qregs["qr"]
         cr = self.dag.cregs["cr"]
         expected = [
-            (qr[0], []),
-            (qr[1], []),
+            qr[0],
+            qr[1],
             ("cx", [self.qubit0, self.qubit1]),
             ("h", [self.qubit0]),
-            (qr[2], []),
+            qr[2],
             ("cx", [self.qubit2, self.qubit1]),
             ("cx", [self.qubit0, self.qubit2]),
             ("h", [self.qubit2]),
-            (qr[0], []),
-            (qr[1], []),
-            (qr[2], []),
-            (cr[0], []),
-            (cr[0], []),
-            (cr[1], []),
-            (cr[1], []),
+            qr[0],
+            qr[1],
+            qr[2],
+            cr[0],
+            cr[0],
+            cr[1],
+            cr[1],
         ]
         self.assertEqual(
-            [(i.op.name if isinstance(i, DAGOpNode) else i.wire, i.qargs) for i in named_nodes],
+            [((i.op.name, i.qargs) if isinstance(i, DAGOpNode) else i.wire) for i in named_nodes],
             expected,
         )
 
@@ -1134,6 +1134,20 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertEqual(dag, from_nx_dag)
 
+    def test_node_params_equal_unequal(self):
+        """Test node params are equal or unequal."""
+        qc1 = QuantumCircuit(1)
+        qc2 = QuantumCircuit(1)
+        qc3 = QuantumCircuit(1)
+        qc1.p(pi / 4, 0)
+        dag1 = circuit_to_dag(qc1)
+        qc2.p(pi / 4, 0)
+        dag2 = circuit_to_dag(qc2)
+        qc3.p(pi / 2, 0)
+        dag3 = circuit_to_dag(qc3)
+        self.assertEqual(dag1, dag2)
+        self.assertNotEqual(dag2, dag3)
+
 
 class TestDagSubstitute(QiskitTestCase):
     """Test substituting a dag node with a sub-dag"""
@@ -1471,22 +1485,33 @@ class TestConditional(QiskitTestCase):
         )
 
 
-class TestNodeEqual(QiskitTestCase):
-    """Test dag nodes are equal."""
+class TestDAGDeprecations(QiskitTestCase):
+    """Test DAG deprecations"""
 
-    def test_node_params_equal_unequal(self):
-        """Test node params are equal or unequal."""
-        qc1 = QuantumCircuit(1)
-        qc2 = QuantumCircuit(1)
-        qc3 = QuantumCircuit(1)
-        qc1.p(pi / 4, 0)
-        dag1 = circuit_to_dag(qc1)
-        qc2.p(pi / 4, 0)
-        dag2 = circuit_to_dag(qc2)
-        qc3.p(pi / 2, 0)
-        dag3 = circuit_to_dag(qc3)
-        self.assertEqual(dag1, dag2)
-        self.assertNotEqual(dag2, dag3)
+    def test_DAGNode_deprecations(self):
+        """Test DAGNode deprecations."""
+        from qiskit.dagcircuit import DAGNode
+
+        qr = QuantumRegister(1, "qr")
+        cr = ClassicalRegister(1, "cr")
+        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
+            op_node = DAGNode(type="op", op=HGate(), qargs=[qr[0]], cargs=[cr[0]])
+        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
+            in_node = DAGNode(type="in", wire=qr[0])
+        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
+            out_node = DAGNode(type="out", wire=cr[0])
+        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
+            _ = op_node.type
+        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
+            _ = op_node.op
+        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
+            _ = op_node.qargs
+        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
+            _ = op_node.cargs
+        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
+            _ = in_node.wire
+        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
+            _ = out_node.wire
 
 
 if __name__ == "__main__":

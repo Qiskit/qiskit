@@ -22,7 +22,7 @@ from qiskit.exceptions import QiskitError
 class DAGNode:
     """Parent class for DAGOpNode, DAGInNode, and DAGOutNode."""
 
-    __slots__ = ["_type", "_op", "_qargs", "cargs", "_wire", "sort_key", "_node_id"]
+    __slots__ = ["_type", "_op", "_qargs", "_cargs", "_wire", "_node_id"]
 
     def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None, wire=None, nid=-1):
         """Create a node"""
@@ -52,8 +52,24 @@ class DAGNode:
                 DeprecationWarning,
                 2,
             )
-        self._qargs = qargs if qargs is not None else []
-        self.cargs = cargs if cargs is not None else []
+        if qargs is not None:
+            warnings.warn(
+                "The DAGNode 'qargs' attribute is deprecated as of 0.18.0 and "
+                "will be removed no earlier than 3 months after the release date. "
+                "You can use DAGOpNode instead of DAGNode.",
+                DeprecationWarning,
+                2,
+            )
+        self._qargs = qargs
+        if cargs is not None:
+            warnings.warn(
+                "The DAGNode 'cargs' attribute is deprecated as of 0.18.0 and "
+                "will be removed no earlier than 3 months after the release date. "
+                "You can use DAGOpNode instead of DAGNode.",
+                DeprecationWarning,
+                2,
+            )
+        self._cargs = cargs
         if wire is not None:
             warnings.warn(
                 "The DAGNode 'wire' kwarg is deprecated as of 0.18.0 and "
@@ -64,7 +80,6 @@ class DAGNode:
             )
         self._wire = wire
         self._node_id = nid
-        self.sort_key = str(self._qargs)
 
     @property
     def type(self):
@@ -164,13 +179,52 @@ class DAGNode:
         """
         Returns list of Qubit, else an empty list.
         """
+        warnings.warn(
+            "The DAGNode 'qargs' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "Use DAGOpNode instead of DAGNode.",
+            DeprecationWarning,
+            2,
+        )
         return self._qargs
 
     @qargs.setter
     def qargs(self, new_qargs):
         """Sets the qargs to be the given list of qargs."""
+        warnings.warn(
+            "The DAGNode 'qargs' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "Use DAGOpNode instead of DAGNode.",
+            DeprecationWarning,
+            2,
+        )
         self._qargs = new_qargs
-        self.sort_key = str(new_qargs)
+
+    @property
+    def cargs(self):
+        """
+        Returns list of Clbit, else an empty list.
+        """
+        warnings.warn(
+            "The DAGNode 'cargs' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "Use DAGOpNode instead of DAGNode.",
+            DeprecationWarning,
+            2,
+        )
+        return self._cargs
+
+    @cargs.setter
+    def cargs(self, new_cargs):
+        """Sets the cargs to be the given list of cargs."""
+        warnings.warn(
+            "The DAGNode 'cargs' attribute is deprecated as of 0.18.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "Use DAGOpNode instead of DAGNode.",
+            DeprecationWarning,
+            2,
+        )
+        self._cargs = new_cargs
 
     @property
     def wire(self):
@@ -266,13 +320,16 @@ class DAGNode:
 class DAGOpNode(DAGNode):
     """Object to represent an Instruction at a node in the DAGCircuit."""
 
-    __slots__ = ["_type", "op"]
+    __slots__ = ["_type", "op", "qargs", "cargs", "sort_key"]
 
     def __init__(self, op, qargs=None, cargs=None):
         """Create an Instruction node"""
-        super().__init__(qargs=qargs, cargs=cargs)
-        self._type = "op"
+        super().__init__()
+        self._type = "op"  # Remove when DAGNode.type is removed
         self.op = op
+        self.qargs = qargs
+        self.cargs = cargs
+        self.sort_key = str(self.qargs)
 
     @property
     def name(self):
@@ -312,22 +369,28 @@ class DAGOpNode(DAGNode):
 class DAGInNode(DAGNode):
     """Object to represent an incoming wire node in the DAGCircuit."""
 
-    __slots__ = ["_type", "wire"]
+    __slots__ = ["_type", "wire", "sort_key"]
 
     def __init__(self, wire):
         """Create an incoming node"""
         super().__init__()
-        self._type = "in"
+        self._type = "in"  # Remove when DAGNode.type is removed
         self.wire = wire
+        # TODO sort_key which is used in dagcircuit.topological_nodes
+        # only works as str([]) for DAGInNodes. Need to figure out why.
+        self.sort_key = str([])
 
 
 class DAGOutNode(DAGNode):
     """Object to represent an outgoing wire node in the DAGCircuit."""
 
-    __slots__ = ["_type", "wire"]
+    __slots__ = ["_type", "wire", "sort_key"]
 
     def __init__(self, wire):
         """Create an outgoing node"""
         super().__init__()
-        self._type = "out"
+        self._type = "out"  # Remove when DAGNode.type is removed
         self.wire = wire
+        # TODO sort_key which is used in dagcircuit.topological_nodes
+        # only works as str([]) for DAGOutNodes. Need to figure out why.
+        self.sort_key = str([])
