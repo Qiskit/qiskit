@@ -290,7 +290,7 @@ class CircuitSampler(ConverterBase):
 
         if circuit_sfns:
             self._transpiled_circ_templates = None
-            if self._statevector:
+            if self._statevector or circuit_sfns[0].from_operator:
                 circuits = [op_c.to_circuit(meas=False) for op_c in circuit_sfns]
             else:
                 circuits = [op_c.to_circuit(meas=True) for op_c in circuit_sfns]
