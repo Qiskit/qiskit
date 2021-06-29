@@ -19,7 +19,7 @@ from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.schedule import ScheduleBlock, Schedule
 from qiskit.pulse.transforms import canonicalization
 from qiskit.pulse.frame import FramesConfiguration
-from qiskit.pulse.transforms.frames import resolve_frames
+from qiskit.pulse.transforms.frames import map_frames
 
 InstructionSched = Union[Tuple[int, Instruction], Instruction]
 
@@ -57,7 +57,7 @@ def target_qobj_transform(
         sched = canonicalization.remove_directives(sched)
 
     # remove any instructions on frames
-    sched = resolve_frames(sched, frames_config)
+    sched = map_frames(sched, frames_config)
 
     return sched
 

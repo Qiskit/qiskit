@@ -18,8 +18,9 @@ from qiskit import schedule, assemble
 from qiskit.circuit import Parameter, QuantumCircuit, Gate
 import qiskit.pulse as pulse
 from qiskit.pulse.transforms import target_qobj_transform
+from qiskit.pulse.transforms.frames import requires_frame_mapping
 from qiskit.test import QiskitTestCase
-from qiskit.pulse.transforms import resolve_frames, block_to_schedule
+from qiskit.pulse.transforms import map_frames, block_to_schedule
 from qiskit.pulse.transforms.resolved_frame import ResolvedFrame
 from qiskit.pulse.parameter_manager import ParameterManager
 from qiskit.pulse.frame import Frame, FramesConfiguration, FrameDefinition
@@ -223,7 +224,7 @@ class TestResolvedFrames(QiskitTestCase):
             self.assertAlmostEqual(frame1_.phase(time) % (2 * np.pi), phase % (2 * np.pi), places=8)
 
         # Check that the proper phase instructions are added to the frame resolved schedules.
-        resolved = resolve_frames(sched, frames_config).instructions
+        resolved = map_frames(sched, frames_config).instructions
 
         params = [
             (160, 160, self.freq1, self.freq0, 3),
@@ -400,3 +401,31 @@ class TestFrameAssembly(QiskitTestCase):
         qobj_resolved = assemble(transform(self.expected_schedule), self.backend)
 
         self.assertEqual(qobj.experiments, qobj_resolved.experiments)
+
+
+class TestRequiresFrameMapping(QiskitTestCase):
+    """Test the condition on whether a Schedule requires mapping."""
+
+    def test_requires_mapping(self):
+        """Test a few simple schedules."""
+
+        # No frame mapping needed.
+        with pulse.build() as sched:
+            pulse.play(pulse.Gaussian(160, 0.2, 40), pulse.DriveChannel(1))
+            pulse.shift_phase(1.57, Frame("d", 0))
+
+        self.assertFalse(requires_frame_mapping(block_to_schedule(sched)))
+
+        # Frame(Q0) needs frame mapping
+        with pulse.build() as sched:
+            pulse.play(pulse.Gaussian(160, 0.2, 40), pulse.DriveChannel(1))
+            pulse.shift_phase(1.57, Frame("Q", 0))
+
+        self.assertTrue(requires_frame_mapping(block_to_schedule(sched)))
+
+        # The signal needs frame mapping
+        signal = pulse.Signal(pulse.Gaussian(160, 0.2, 40), Frame("d", 0))
+        with pulse.build() as sched:
+            pulse.play(signal, pulse.DriveChannel(1))
+
+        self.assertTrue(requires_frame_mapping(block_to_schedule(sched)))

@@ -105,4 +105,4 @@ from qiskit.pulse.transforms.canonicalization import (
 )
 
 from qiskit.pulse.transforms.dag import block_to_dag
-from qiskit.pulse.transforms.frames import resolve_frames
+from qiskit.pulse.transforms.frames import map_frames

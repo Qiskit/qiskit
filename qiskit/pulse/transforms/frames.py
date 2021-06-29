@@ -24,12 +24,34 @@ from qiskit.pulse.frame import FramesConfiguration
 from qiskit.pulse.instructions import ShiftPhase, ShiftFrequency, Play, SetFrequency, SetPhase
 
 
-def resolve_frames(
+def requires_frame_mapping(schedule: Schedule) -> bool:
+    """Returns True if there are frame instructions or :class:`Signal`s that need mapping.
+
+    Returns:
+        True if:
+            - There are Signals in the Schedule
+            - A SetFrequency, SetPhase, ShiftFrequency, ShiftPhase has a frame that does not
+                correspond to any PulseChannel.
+    """
+    for time, inst in schedule.instructions:
+        if isinstance(inst, Play):
+            if isinstance(inst.operands[0], Signal):
+                return True
+
+        if isinstance(inst, (SetFrequency, SetPhase, ShiftFrequency, ShiftPhase)):
+            if inst.channel is None:
+                return True
+
+    return False
+
+
+def map_frames(
     schedule: Union[Schedule, ScheduleBlock], frames_config: FramesConfiguration
 ) -> Schedule:
     """
-    Parse the schedule and replace instructions on Frames by instructions on the
-    appropriate channels.
+    Parse the schedule and replace instructions on Frames that do not have a pulse channel
+    by instructions on the appropriate channels. Also replace Signals with play Pulse
+    instructions with the appropriate phase/frequency shifts and sets.
 
     Args:
         schedule: The schedule for which to replace frames with the appropriate
@@ -49,20 +71,7 @@ def resolve_frames(
     if isinstance(schedule, ScheduleBlock):
         schedule = block_to_schedule(schedule)
 
-    # Check that the schedule has any frame instructions that need resolving.
-    # A schedule needs resolving if:
-    # - A pulse in a frame different from the channel's frame is played, and
-    # - A Set/Shift instruction is applied on a frame which does not correspond to a channel frame.
-    for time, inst in schedule.instructions:
-        if isinstance(inst, Play):
-            if isinstance(inst.operands[0], Signal):
-                break
-
-        if isinstance(inst, (SetFrequency, SetPhase, ShiftFrequency, ShiftPhase)):
-            frame = inst.frame
-            if not frames_config[frame].has_physical_channel:
-                break
-    else:
+    if not requires_frame_mapping(schedule):
         return schedule
 
     resolved_frames = {}
