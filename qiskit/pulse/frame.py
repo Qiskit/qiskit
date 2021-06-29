@@ -168,7 +168,7 @@ class FramesConfiguration:
         frame: Frame,
         frequency: float,
         has_physical_channel: Optional[bool] = False,
-        purpose: Optional[str] = None
+        purpose: Optional[str] = None,
     ):
         """Add a frame to the frame configuration.
 
@@ -181,9 +181,9 @@ class FramesConfiguration:
             has_physical_channel: Whether this frame is the native frame of a physical channel.
             purpose: A human readable string describing the purpose of the frame.
         """
-        self._frames[frame] = FrameDefinition(frequency=frequency,
-                                              has_physical_channel=has_physical_channel,
-                                              purpose=purpose)
+        self._frames[frame] = FrameDefinition(
+            frequency=frequency, has_physical_channel=has_physical_channel, purpose=purpose
+        )
 
     @property
     def definitions(self) -> List[FrameDefinition]:

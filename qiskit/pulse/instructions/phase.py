@@ -93,14 +93,14 @@ class ShiftPhase(Instruction):
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
         if self.channel is not None:
-            return (self.channel, )
+            return (self.channel,)
 
         return tuple()
 
     @property
     def frames(self) -> Tuple[Frame]:
         """Return the frames this instructions acts on."""
-        return (self.frame, )
+        return (self.frame,)
 
     @property
     def duration(self) -> int:
@@ -184,7 +184,7 @@ class SetPhase(Instruction):
     @property
     def frames(self) -> Tuple[Frame]:
         """Return the frames this instructions acts on."""
-        return (self.frame, )
+        return (self.frame,)
 
     @property
     def duration(self) -> int:

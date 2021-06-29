@@ -140,12 +140,8 @@ class TestSetFrequency(QiskitTestCase):
         self.assertEqual(set_freq.duration, 0)
         self.assertEqual(set_freq.frequency, 4.5e9)
         self.assertEqual(set_freq.operands, (4.5e9, channels.DriveChannel(1).frame))
-        self.assertEqual(
-            set_freq, instructions.SetFrequency(4.5e9, Frame("d", 1), name="test")
-        )
-        self.assertNotEqual(
-            set_freq, instructions.SetFrequency(4.5e8, Frame("d", 1), name="test")
-        )
+        self.assertEqual(set_freq, instructions.SetFrequency(4.5e9, Frame("d", 1), name="test"))
+        self.assertNotEqual(set_freq, instructions.SetFrequency(4.5e8, Frame("d", 1), name="test"))
         self.assertEqual(repr(set_freq), "SetFrequency(4500000000.0, Frame(d1), name='test')")
 
     def test_frame(self):
@@ -175,12 +171,8 @@ class TestShiftPhase(QiskitTestCase):
         self.assertEqual(shift_phase.duration, 0)
         self.assertEqual(shift_phase.phase, 1.57)
         self.assertEqual(shift_phase.operands, (1.57, channels.DriveChannel(0).frame))
-        self.assertEqual(
-            shift_phase, instructions.ShiftPhase(1.57, Frame("d", 0), name="test")
-        )
-        self.assertNotEqual(
-            shift_phase, instructions.ShiftPhase(1.57j, Frame("d", 0), name="test")
-        )
+        self.assertEqual(shift_phase, instructions.ShiftPhase(1.57, Frame("d", 0), name="test"))
+        self.assertNotEqual(shift_phase, instructions.ShiftPhase(1.57j, Frame("d", 0), name="test"))
         self.assertEqual(repr(shift_phase), "ShiftPhase(1.57, Frame(d0))")
 
     def test_frame(self):

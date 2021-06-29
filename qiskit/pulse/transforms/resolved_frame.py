@@ -29,6 +29,7 @@ from qiskit.pulse.exceptions import PulseError
 @dataclass
 class TimeFrequencyPhase:
     """Class to help keep track of time, frequency and phase."""
+
     time: float
     frequency: float
     phase: float

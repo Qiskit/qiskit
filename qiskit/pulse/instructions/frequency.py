@@ -17,7 +17,7 @@ from typing import Optional, Union, Tuple
 import warnings
 
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.pulse.channels import PulseChannel, DriveChannel , MeasureChannel, ControlChannel
+from qiskit.pulse.channels import PulseChannel, DriveChannel, MeasureChannel, ControlChannel
 from qiskit.pulse.frame import Frame
 from qiskit.pulse.instructions.instruction import Instruction
 
@@ -96,7 +96,7 @@ class SetFrequency(Instruction):
     @property
     def frames(self) -> Tuple[Frame]:
         """Return the frames this instructions acts on."""
-        return (self.frame, )
+        return (self.frame,)
 
     @property
     def duration(self) -> int:
@@ -171,7 +171,7 @@ class ShiftFrequency(Instruction):
     @property
     def frames(self) -> Tuple[Frame]:
         """Return the frames this instructions acts on."""
-        return (self.frame, )
+        return (self.frame,)
 
     @property
     def duration(self) -> int:

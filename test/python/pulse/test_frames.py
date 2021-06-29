@@ -61,16 +61,13 @@ class TestFramesConfiguration(QiskitTestCase):
         """Test that frame configs can be properly created."""
 
         config = {
-            Frame("Q", 0): {
-                "frequency": 5.5e9,
-                "purpose": "Frame of qubit 0"
-            },
+            Frame("Q", 0): {"frequency": 5.5e9, "purpose": "Frame of qubit 0"},
             Frame("Q", 1): {
                 "frequency": 5.2e9,
             },
             Frame("Q", 2): {
                 "frequency": 5.2e9,
-            }
+            },
         }
 
         frames_config = FramesConfiguration.from_dict(config)
@@ -87,19 +84,22 @@ class TestFramesConfiguration(QiskitTestCase):
             self.assertEqual(frames_config[Frame("Q", idx)].sample_duration, 0.1e-9)
             self.assertEqual(frames_config[Frame("Q", idx)].phase, 0.0)
 
-
     def test_merge_two_configs(self):
         """Test to see if we can merge two configs."""
 
-        config1 = FramesConfiguration.from_dict({
-            Frame("Q", 0): {"frequency": 5.5e9},
-            Frame("Q", 1): {"frequency": 5.2e9},
-        })
+        config1 = FramesConfiguration.from_dict(
+            {
+                Frame("Q", 0): {"frequency": 5.5e9},
+                Frame("Q", 1): {"frequency": 5.2e9},
+            }
+        )
 
-        config2 = FramesConfiguration.from_dict({
-            Frame("Q", 1): {"frequency": 4.5e9},
-            Frame("Q", 2): {"frequency": 4.2e9},
-        })
+        config2 = FramesConfiguration.from_dict(
+            {
+                Frame("Q", 1): {"frequency": 4.5e9},
+                Frame("Q", 2): {"frequency": 4.2e9},
+            }
+        )
 
         for frame, frame_def in config2.items():
             config1[frame] = frame_def
@@ -166,7 +166,7 @@ class TestResolvedFrames(QiskitTestCase):
         r_frame.set_frequency_phase(6, 3.0, 1.0)
 
         # Frequency and phases at the time they are set.
-        expected = [(0, 1, 0), (2, 2, .5), (4, 3, .5), (6, 3, 1)]
+        expected = [(0, 1, 0), (2, 2, 0.5), (4, 3, 0.5), (6, 3, 1)]
         for time, freq, phase in expected:
             self.assertEqual(r_frame.frequency(time), freq)
             self.assertEqual(r_frame.phase(time), phase)
@@ -175,7 +175,7 @@ class TestResolvedFrames(QiskitTestCase):
         # As we have one sample in between times when phases are set, the total
         # phase is the phase at the setting time pulse the phase advance during
         # one sample.
-        expected = [(1, 1, 0), (3, 2, .5), (5, 3, .5), (7, 3, 1)]
+        expected = [(1, 1, 0), (3, 2, 0.5), (5, 3, 0.5), (7, 3, 1)]
         time_step = 1
 
         for time, freq, phase in expected:
@@ -201,16 +201,18 @@ class TestResolvedFrames(QiskitTestCase):
             pulse.play(sig0, d0)
             pulse.play(sig1, d0)
 
-        frames_config = FramesConfiguration.from_dict({
-            pulse.Frame("Q", 0): {
-                "frequency": self.freq0,
-                "purpose": "Frame of qubit 0.",
-            },
-            pulse.Frame("Q", 1): {
-                "frequency": self.freq1,
-                "purpose": "Frame of qubit 1.",
-            },
-        })
+        frames_config = FramesConfiguration.from_dict(
+            {
+                pulse.Frame("Q", 0): {
+                    "frequency": self.freq0,
+                    "purpose": "Frame of qubit 0.",
+                },
+                pulse.Frame("Q", 1): {
+                    "frequency": self.freq1,
+                    "purpose": "Frame of qubit 1.",
+                },
+            }
+        )
         frames_config.sample_duration = self.dt_
 
         frame0_ = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(self.freq0), self.dt_)
@@ -261,7 +263,7 @@ class TestResolvedFrames(QiskitTestCase):
 
         # Test the phase right before the shift phase instruction
         phase = np.angle(np.exp(2.0j * np.pi * self.freq0 * 159 * self.dt_))
-        self.assertAlmostEqual(frame.phase(159) % (2*np.pi), phase % (2*np.pi), places=8)
+        self.assertAlmostEqual(frame.phase(159) % (2 * np.pi), phase % (2 * np.pi), places=8)
 
         # Test the phase at and after the shift phase instruction
         phase = np.angle(np.exp(2.0j * np.pi * self.freq0 * 160 * self.dt_)) + 1.0
@@ -305,10 +307,12 @@ class TestResolvedFrames(QiskitTestCase):
             pulse.play(pulse.Signal(xp12, frame12), d_chan)
             pulse.play(xp01, d_chan)
 
-        frames_config = FramesConfiguration.from_dict({
-            frame01: {"frequency": 5.5e9, "purpose": "Frame of 0 <-> 1."},
-            frame12: {"frequency": 5.2e9, "purpose": "Frame of 1 <-> 2."},
-        })
+        frames_config = FramesConfiguration.from_dict(
+            {
+                frame01: {"frequency": 5.5e9, "purpose": "Frame of 0 <-> 1."},
+                frame12: {"frequency": 5.2e9, "purpose": "Frame of 1 <-> 2."},
+            }
+        )
         frames_config.sample_duration = 0.222e-9
 
         transform = lambda sched: target_qobj_transform(sched, frames_config=frames_config)
@@ -335,17 +339,28 @@ class TestFrameAssembly(QiskitTestCase):
         frames_config.add_frame(Frame("t", self.qubit), freq12, purpose="Frame of qutrit.")
         frames_config.sample_duration = self.backend.configuration().dt
 
-        self.xp01 = self.defaults.instruction_schedule_map.get(
-            'x', qubits=self.qubit
-        ).instructions[0][1].pulse
+        self.xp01 = (
+            self.defaults.instruction_schedule_map.get("x", qubits=self.qubit)
+            .instructions[0][1]
+            .pulse
+        )
 
         self.xp12 = pulse.Gaussian(160, 0.1, 40)
 
         # Create the expected schedule with all the explicit frames
         with pulse.build(backend=self.backend, default_alignment="sequential") as expected_schedule:
-            pulse.play(pulse.Signal(self.xp01, pulse.Frame("d", self.qubit)), pulse.drive_channel(self.qubit))
-            pulse.play(pulse.Signal(self.xp12, pulse.Frame("t", self.qubit)), pulse.drive_channel(self.qubit))
-            pulse.play(pulse.Signal(self.xp01, pulse.Frame("d", self.qubit)), pulse.drive_channel(self.qubit))
+            pulse.play(
+                pulse.Signal(self.xp01, pulse.Frame("d", self.qubit)),
+                pulse.drive_channel(self.qubit),
+            )
+            pulse.play(
+                pulse.Signal(self.xp12, pulse.Frame("t", self.qubit)),
+                pulse.drive_channel(self.qubit),
+            )
+            pulse.play(
+                pulse.Signal(self.xp01, pulse.Frame("d", self.qubit)),
+                pulse.drive_channel(self.qubit),
+            )
             pulse.measure(qubits=[self.qubit])
 
         self.expected_schedule = expected_schedule
@@ -357,7 +372,9 @@ class TestFrameAssembly(QiskitTestCase):
         """
 
         with pulse.build(backend=self.backend, default_alignment="sequential") as xp12_schedule:
-            pulse.play(pulse.Signal(self.xp12, Frame("t", self.qubit)), pulse.drive_channel(self.qubit))
+            pulse.play(
+                pulse.Signal(self.xp12, Frame("t", self.qubit)), pulse.drive_channel(self.qubit)
+            )
 
         # Create a quantum circuit and attach the pulse to it.
         circ = QuantumCircuit(1)
