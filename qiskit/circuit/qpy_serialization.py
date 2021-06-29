@@ -205,7 +205,7 @@ After each INSTRUCTION_PARAM the next ``size`` bytes are the parameter's data.
 The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, ``'e'``, ``'s'``,
 or ``'n'`` which dictate the format. For ``'i'`` it's an integer, ``'f'`` it's
 a double, ``'s'`` if it's a string (encoded as utf8), ``'p'`` defines a
-:class:`~qiskit.circuit.Paramter` object  which is represented by a PARAM
+:class:`~qiskit.circuit.Parameter` object  which is represented by a PARAM
 struct (see below), ``e`` defines a :class:`~qiskit.circuit.ParameterExpression`
 object (that's not a :class:`~qiskit.circuit.Paramter`) which is represented by
 a PARAM_EXPR struct (see below), and ``'n'`` represents an object from numpy
