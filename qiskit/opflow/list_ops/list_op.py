@@ -56,7 +56,7 @@ class ListOp(OperatorBase):
     def __init__(
         self,
         oplist: Sequence[OperatorBase],
-        combo_fn: Optional[Callable] = None,
+        combo_fn: Callable = lambda x: x,
         coeff: Union[complex, ParameterExpression] = 1.0,
         abelian: bool = False,
         grad_combo_fn: Optional[Callable] = None,
@@ -64,8 +64,8 @@ class ListOp(OperatorBase):
         """
         Args:
             oplist: The list of ``OperatorBases`` defining this Operator's underlying function.
-            combo_fn: The recombination function to combine classical results of the
-                ``oplist`` Operators' eval functions (e.g. sum). Default is lambda x: x.
+            combo_fn (callable): The recombination function to combine classical results of the
+                ``oplist`` Operators' eval functions (e.g. sum).
             coeff: A coefficient multiplying the operator
             abelian: Indicates whether the Operators in ``oplist`` are known to mutually commute.
             grad_combo_fn: The gradient of recombination function. If None, the gradient will
@@ -75,12 +75,7 @@ class ListOp(OperatorBase):
         """
         super().__init__()
         self._oplist = self._check_input_types(oplist)
-        if combo_fn is None:
-            self._combo_fn = lambda x: x
-            self._using_default_combo_fn = True
-        else:
-            self._combo_fn = combo_fn
-            self._using_default_combo_fn = False
+        self._combo_fn = combo_fn
         self._coeff = coeff
         self._abelian = abelian
         self._grad_combo_fn = grad_combo_fn
@@ -109,11 +104,13 @@ class ListOp(OperatorBase):
     @property
     def settings(self) -> Dict:
         """Return settings."""
-        if type(self) is ListOp and (
-            not self._using_default_combo_fn or self._grad_combo_fn is not None
-        ):
-            raise NotImplementedError
-        return {"oplist": self._oplist, "coeff": self._coeff, "abelian": self._abelian}
+        return {
+            "oplist": self._oplist,
+            "combo_fn": self._combo_fn,
+            "coeff": self._coeff,
+            "abelian": self._abelian,
+            "grad_combo_fn": self._grad_combo_fn,
+        }
 
     @property
     def oplist(self) -> List[OperatorBase]:
