@@ -64,7 +64,7 @@ class Delay(Instruction):
 
     def __repr__(self):
         """Return the official string representing the delay."""
-        return "%s(duration=%s[unit=%s])" % (self.__class__.__name__, self.params[0], self.unit)
+        return f"{self.__class__.__name__}(duration={self.params[0]}[unit={self.unit}])"
 
     def validate_parameter(self, parameter):
         """Delay parameter (i.e. duration) must be int, float or ParameterExpression."""
@@ -72,7 +72,10 @@ class Delay(Instruction):
             return parameter
         elif isinstance(parameter, float):
             if self.unit == "dt":
-                raise CircuitError("Integer duration is expected for 'dt' unit.")
+                parameter_int = int(parameter)
+                if parameter != parameter_int:
+                    raise CircuitError("Integer duration is expected for 'dt' unit.")
+                return parameter_int
             return parameter
         elif isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:
