@@ -94,6 +94,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         with open(datafilename, "w") as datafile:
             json.dump(data, datafile)
 
+
     def test_empty_circuit(self):
         """Test empty circuit"""
         circuit = QuantumCircuit()
@@ -105,6 +106,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/5393"""
         circuit = QuantumCircuit(2, 3)
         self.circuit_drawer(circuit, filename="no_op_circut.png")
+
 
     def test_long_name(self):
         """Test to see that long register names can be seen completely
@@ -638,13 +640,6 @@ class TestMatplotlibDrawer(QiskitTestCase):
         initial_state[5] = 1
         circuit.initialize(initial_state)
         self.circuit_drawer(circuit, filename="wide_params.png")
-
-    def something(self):
-        """just for testing"""
-        circuit = QuantumCircuit(3)
-        circuit.h(0)
-        circuit.x(1)
-        self.circuit_drawer(circuit, filename="something.png")
 
 
 if __name__ == "__main__":
