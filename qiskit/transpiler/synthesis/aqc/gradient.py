@@ -61,7 +61,10 @@ class DefaultGradient(GradientBase):
 
     def get_gradient(self, thetas: Union[List[float], np.ndarray], target_matrix: np.ndarray):
 
-        # the partial derivative of
+        # the partial derivative of the circuit with respect to an angle
+        # is the same circuit with the corresponding pauli gate inserted
+        # next to the rotation gate (it commutes) and multiplied by a
+        # global phase of -1j / 2.
         pauli_x = np.array([[0, 1], [1, 0]])
         pauli_y = np.array([[0, -1j], [1j, 0]])
         pauli_z = np.array([[1, 0], [0, -1]])
@@ -132,7 +135,6 @@ class DefaultGradient(GradientBase):
 
         # full sized circuit matrix
         circuit_matrix = np.dot(cnot_matrix, rotation_matrix)
-        circuit_matrix = np.multiply(-1j / 2, circuit_matrix)
 
         # compute error
         error = 0.5 * (la.norm(circuit_matrix - target_matrix, "fro") ** 2)
