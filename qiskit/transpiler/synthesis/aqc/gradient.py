@@ -17,7 +17,7 @@ from typing import Union, List, Tuple
 import numpy as np
 from numpy import linalg as la
 
-from .elementary_operations import op_ry, op_rz, op_unitary, op_cnot, op_rx, X, Y, Z
+from .elementary_operations import op_ry, op_rz, op_unitary, op_cnot, op_rx
 
 
 class GradientBase(ABC):
@@ -111,7 +111,7 @@ class DefaultGradient(GradientBase):
             cnot_q1q2 = op_cnot(n, q1, q2)
 
             # compute the cnot unit matrix and store in cnot_unit_collection
-            cnot_unit_collection[:, d * cnot_index: d * (cnot_index + 1)] = la.multi_dot(
+            cnot_unit_collection[:, d * cnot_index : d * (cnot_index + 1)] = la.multi_dot(
                 [full_q2, full_q1, cnot_q1q2]
             )
 
@@ -121,16 +121,16 @@ class DefaultGradient(GradientBase):
         cnot_matrix = np.eye(d)
         for cnot_index in range(num_cnots - 1, -1, -1):
             cnot_matrix = np.dot(
-                cnot_matrix, cnot_unit_collection[:, d * cnot_index: d * (cnot_index + 1)]
+                cnot_matrix, cnot_unit_collection[:, d * cnot_index : d * (cnot_index + 1)]
             )
-            cnot_right_collection[:, d * cnot_index: d * (cnot_index + 1)] = cnot_matrix
+            cnot_right_collection[:, d * cnot_index : d * (cnot_index + 1)] = cnot_matrix
         # now we multiply from the left-hand side of the circuit
         cnot_matrix = np.eye(d)
         for cnot_index in range(num_cnots):
             cnot_matrix = np.dot(
-                cnot_unit_collection[:, d * cnot_index: d * (cnot_index + 1)], cnot_matrix
+                cnot_unit_collection[:, d * cnot_index : d * (cnot_index + 1)], cnot_matrix
             )
-            cnot_left_collection[:, d * cnot_index: d * (cnot_index + 1)] = cnot_matrix
+            cnot_left_collection[:, d * cnot_index : d * (cnot_index + 1)] = cnot_matrix
 
         # this is the matrix corresponding to the initial rotations
         # we start with 1 and kronecker product each qubit's rotations
@@ -185,7 +185,8 @@ class DefaultGradient(GradientBase):
                     single_q1 = np.dot(rz1, ry1)
                     single_q2 = la.multi_dot([pauli_x, rx2, ry2])
 
-                # we place single qubit matrices at the corresponding locations in the (2^n, 2^n) matrix
+                # we place single qubit matrices at the corresponding locations in
+                # the (2^n, 2^n) matrix
                 full_q1 = op_unitary(single_q1, n, q1)
                 full_q2 = op_unitary(single_q2, n, q2)
 
@@ -198,20 +199,20 @@ class DefaultGradient(GradientBase):
                 # of it (if there are any) and to the right of it (if there are any)
                 if cnot_index == 0:
                     der_cnot_matrix = np.dot(
-                        cnot_right_collection[:, d: 2 * d],
+                        cnot_right_collection[:, d : 2 * d],
                         der_cnot_unit,
                     )
                 elif num_cnots - 1 == cnot_index:
                     der_cnot_matrix = np.dot(
                         der_cnot_unit,
-                        cnot_left_collection[:, d * (num_cnots - 2): d * (num_cnots - 1)],
+                        cnot_left_collection[:, d * (num_cnots - 2) : d * (num_cnots - 1)],
                     )
                 else:
                     der_cnot_matrix = la.multi_dot(
                         [
-                            cnot_right_collection[:, d * (cnot_index + 1): d * (cnot_index + 2)],
+                            cnot_right_collection[:, d * (cnot_index + 1) : d * (cnot_index + 2)],
                             der_cnot_unit,
-                            cnot_left_collection[:, d * (cnot_index - 1): d * cnot_index],
+                            cnot_left_collection[:, d * (cnot_index - 1) : d * cnot_index],
                         ]
                     )
 
@@ -242,9 +243,7 @@ class DefaultGradient(GradientBase):
                     ry1 = np.dot(pauli_y, ry1)
                 elif i - 3 * q == 2:
                     rz2 = np.dot(pauli_z, rz2)
-                der_rotation_matrix = np.kron(
-                    der_rotation_matrix, la.multi_dot([rz0, ry1, rz2])
-                )
+                der_rotation_matrix = np.kron(der_rotation_matrix, la.multi_dot([rz0, ry1, rz2]))
 
             # the matrix corresponding to the full circuit partial derivative
             # is the usual cnot part multiplied by the partial derivative of
