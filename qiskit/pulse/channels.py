@@ -167,13 +167,12 @@ class PulseChannel(Channel, metaclass=ABCMeta):
     """Base class of transmit Channels. Pulses can be played on these channels."""
 
     def __init__(self, index: int):
-        self._frame = Frame(self.prefix, index)
         super().__init__(index)
 
     @property
     def frame(self) -> Frame:
         """Return the default frame of this channel."""
-        return self._frame
+        return Frame(self.prefix, self._index)
 
 
 class DriveChannel(PulseChannel):
