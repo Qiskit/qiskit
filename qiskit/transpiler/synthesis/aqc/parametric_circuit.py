@@ -270,43 +270,52 @@ class ParametricCircuit:
             2^n x 2^n numpy matrix corresponding to this circuit.
         """
 
+        # this is the matrix corresponding to the cnot unit part of the circuit
         cnot_matrix = np.eye(2 ** self._num_qubits)
-        for i in range(self._num_cnots):
-            p = 4 * i
-            ry1 = op_ry(self._thetas[0 + p])
-            rz1 = op_rz(self._thetas[1 + p])
-            ry2 = op_ry(self._thetas[2 + p])
-            rx2 = op_rx(self._thetas[3 + p])
+        for cnot_index in range(self._num_cnots):
+            theta_index = 4 * cnot_index
 
-            # Extract where the CNOT goes
-            q1 = int(self._cnots[0, i])
-            q2 = int(self._cnots[1, i])
+            # cnot qubit indices for the cnot unit identified by cnot_index
+            q1 = int(self._cnots[0, cnot_index])
+            q2 = int(self._cnots[1, cnot_index])
+
+            # rotations that are applied on the q1 qubit
+            ry1 = op_ry(self._thetas[0 + theta_index])
+            rz1 = op_rz(self._thetas[1 + theta_index])
+
+            # rotations that are applied on the q2 qubit
+            ry2 = op_ry(self._thetas[2 + theta_index])
+            rx2 = op_rx(self._thetas[3 + theta_index])
+
+            # combine the rotations on qubits q1 and q2
             single_q1 = np.dot(rz1, ry1)
             single_q2 = np.dot(rx2, ry2)
 
-            # these matrices span all qubits
+            # we place single qubit matrices at the corresponding locations in the (2^n, 2^n) matrix
             full_q1 = op_unitary(single_q1, self._num_qubits, q1)
             full_q2 = op_unitary(single_q2, self._num_qubits, q2)
+
+            # we place a cnot matrix at the qubits q1 and q2 in the full matrix
             cnot_q1q2 = op_cnot(self._num_qubits, q1, q2)  # todo: verify the size of cnot1
 
-            # Build the CNOT unit, our basic structure
+            # compute the cnot unit matrix
             cnot_unit = la.multi_dot([full_q2, full_q1, cnot_q1q2])
 
             # Concatenate the CNOT unit
             cnot_matrix = np.dot(cnot_unit, cnot_matrix)
 
-        # Add the first rotation gates: ZYZ. Single qubit operations.
+        # this is the matrix corresponding to the initial rotation part of the circuit
         rotation_matrix = 1
+        # we start with 1 and kronecker product each qubit's rotations
         for qubit in range(self._num_qubits):
-            # compute an index where angles for the first 3 rotations of the qubit k start in
-            # the thetas array.
-            p = 4 * self._num_cnots + 3 * qubit
-            ry1 = op_rz(self._thetas[0 + p])
-            rz1 = op_ry(self._thetas[1 + p])
-            ry2 = op_rz(self._thetas[2 + p])
-            rotation_matrix = np.kron(rotation_matrix, la.multi_dot([ry1, rz1, ry2]))
+            theta_index = 4 * self._num_cnots + 3 * qubit
+            rz0 = op_rz(self._thetas[0 + theta_index])
+            ry1 = op_ry(self._thetas[1 + theta_index])
+            rz2 = op_rz(self._thetas[2 + theta_index])
+            rotation_matrix = np.kron(rotation_matrix, la.multi_dot([rz0, ry1, rz2]))
 
-        # combine all together
+        # the matrix corresponding to the full circuit is the cnot part and
+        # rotation part multiplied together
         circuit_matrix = np.dot(cnot_matrix, rotation_matrix)
         return circuit_matrix
 
