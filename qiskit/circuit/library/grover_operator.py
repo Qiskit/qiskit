@@ -240,7 +240,7 @@ class GroverOperator(QuantumCircuit):
 
     def _build(self):
         num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
-        inner = QuantumCircuit(QuantumRegister(num_state_qubits, name="state"))
+        inner = QuantumCircuit(QuantumRegister(num_state_qubits, name="state"), name="Q")
         num_ancillas = numpy.max(
             [
                 self.oracle.num_ancillas,
