@@ -128,3 +128,11 @@ class QuasiDistribution(dict):
                 format ``"0x1a"``
         """
         return {hex(key): value for key, value in self.items()}
+
+    def stddev(self, shots):
+        """Calculate stddev dict"""
+        ret = {}
+        for key, prob in self.items():
+            std_err = sqrt(abs(prob) * (1 - abs(prob)) / shots)
+            ret[key] = std_err
+        return ret
