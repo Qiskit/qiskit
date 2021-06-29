@@ -81,7 +81,7 @@ class Decompose(TransformationPass):
         if hasattr(node.op, "label") and node.op.label is not None:
             has_label = True
 
-        if self.gates == [None] and self.gate is None: # check if no gates given
+        if self.gates == [None] and self.gate is None:  # check if no gates given
             return True
         elif has_label and (  # check if label or label wildcard is given
             node.op.label in self.gates or any(fnmatch(node.op.label, p) for p in strings_list)
