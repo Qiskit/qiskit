@@ -29,8 +29,10 @@ except ImportError:
 class BaseReadoutMitigator(ABC):
     """Base readout error mitigator class."""
 
-    def quasi_probabilities(
-        data: Counts, qubits: Iterable[int] = None, shots: Optional[int] = None
+    def quasi_probabilities(self,
+                            data: Counts,
+                            qubits: Iterable[int] = None,
+                            shots: Optional[int] = None
     ) -> (Dict[str, float], Dict[str, float]):
         """Convert counts to a dictionary of quasi-probabilities
 
@@ -57,12 +59,12 @@ class BaseReadoutMitigator(ABC):
             QiskitError: if qubits is not None and does not match the number of count clbits.
         """
 
-    def expectation_value(
-        data: Counts,
-        diagonal: np.ndarray,
-        qubits: Iterable[int] = None,
-        shots: Optional[int] = None,
-    ) -> List[float, float]:
+    def expectation_value(self,
+                          data: Counts,
+                          diagonal: np.ndarray,
+                          qubits: Iterable[int] = None,
+                          shots: Optional[int] = None,
+                          ) -> Tuple[float, float]:
         """Calculate the expectation value of a diagonal Hermitian operator.
 
         Args:
