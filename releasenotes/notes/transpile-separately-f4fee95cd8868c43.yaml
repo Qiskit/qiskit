@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Add the `split_transpile` option to :class:`~qiskit.opflow.CircuitSampler`.
+    This reduce the transpilation time because a parameterized circuit of ansatz is transpiled only
+    once.
