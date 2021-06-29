@@ -17,13 +17,29 @@
 
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
-from ddt import ddt, data
-import numpy
 
-from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.utils import QuantumInstance
-from qiskit.opflow import StateFn, Zero, One, H, X, I, Z, Plus, Minus, CircuitSampler, ListOp
+import numpy
+from ddt import data, ddt
+
+from qiskit import BasicAer
+from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit.library import RealAmplitudes
+from qiskit.opflow import (
+    CircuitSampler,
+    H,
+    I,
+    ListOp,
+    Minus,
+    One,
+    PauliExpectation,
+    Plus,
+    StateFn,
+    X,
+    Z,
+    Zero,
+)
 from qiskit.opflow.exceptions import OpflowError
+from qiskit.utils import QuantumInstance
 
 
 @ddt
@@ -216,6 +232,38 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         sampler = CircuitSampler(backend)
         res = sampler.convert(~Plus @ Plus).eval()
         self.assertAlmostEqual(res, 1 + 0j, places=2)
+
+    def test_split_transpile(self):
+        """Test split transpile for CircuitSampler"""
+        ansatz = StateFn(RealAmplitudes(num_qubits=3, reps=1, entanglement="linear"))
+        observable = StateFn(X ^ I ^ I, is_measurement=True)
+        expectation = PauliExpectation(False).convert(observable @ ansatz)
+        param_bindings = dict(zip(ansatz.parameters, [1] * len(ansatz.parameters)))
+        sampled = CircuitSampler(
+            QuantumInstance(
+                BasicAer.get_backend("qasm_simulator"),
+                seed_simulator=15,
+                seed_transpiler=15,
+                initial_layout=[0, 1, 2],
+                coupling_map=[[0, 1], [0, 2]],
+            ),
+            attach_results=True,
+            split_transpile=False,
+        ).convert(expectation, param_bindings)
+        counts_expected = sampled[1].execution_results["counts"]
+        sampled = CircuitSampler(
+            QuantumInstance(
+                BasicAer.get_backend("qasm_simulator"),
+                seed_simulator=15,
+                seed_transpiler=15,
+                initial_layout=[0, 1, 2],
+                coupling_map=[[0, 1], [0, 2]],
+            ),
+            attach_results=True,
+            split_transpile=True,
+        ).convert(expectation, param_bindings)
+        counts_target = sampled[1].execution_results["counts"]
+        self.assertDictEqual(counts_target, counts_expected)
 
 
 if __name__ == "__main__":

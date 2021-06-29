@@ -31,6 +31,7 @@ from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.providers import Backend, BaseBackend
+from qiskit.transpiler.layout import Layout
 from qiskit.utils.backend_utils import is_aer_provider, is_statevector_backend
 from qiskit.utils.quantum_instance import QuantumInstance
 
@@ -197,34 +198,41 @@ class CircuitSampler(ConverterBase):
                 ]
 
                 common_circuit = operator[1].to_circuit_op().reduce().to_circuit()
+                len_common_circuit = len(common_circuit)
                 try:
                     # 1. transpile a common circuit
+                    common_circuit.measure_all()
                     transpiled_common_circuit = self.quantum_instance.transpile(common_circuit)[0]
+                    layout = Layout(
+                        {
+                            i: qr[0]
+                            for i, (_, qr, _) in enumerate(
+                                transpiled_common_circuit[-common_circuit.num_qubits :]
+                            )
+                        }
+                    )
+                    transpiled_common_circuit.remove_final_measurements()
 
                     # 2. transpile diff circuits
                     diff_circuits = []
                     for circuit in circuits:
                         diff_circuit = circuit.copy()
-                        del diff_circuit.data[0 : len(common_circuit)]
+                        del diff_circuit.data[0 : len_common_circuit]
                         diff_circuits.append(diff_circuit)
 
-                    if transpiled_common_circuit._layout is not None:
-                        layout = transpiled_common_circuit._layout.copy()
-                        used_qubits = set(
-                            used_qubit
-                            for diff_circuit in diff_circuits
-                            for used_qubit in diff_circuit.qubits
-                        )
-                        for q in list(layout.get_virtual_bits().keys()):
-                            if q not in used_qubits:
-                                del layout[q]
-                        orig_layout = self.quantum_instance.compile_config["initial_layout"]
-                        self.quantum_instance.compile_config["initial_layout"] = layout
+                    used_qubits = set(
+                        used_qubit
+                        for diff_circuit in diff_circuits
+                        for used_qubit in diff_circuit.qubits
+                    )
+                    for q in list(layout.get_virtual_bits().keys()):
+                        if q not in used_qubits:
+                            del layout[q]
+                    orig_layout = self.quantum_instance.compile_config["initial_layout"]
 
+                    self.quantum_instance.compile_config["initial_layout"] = layout
                     diff_circuits = self.quantum_instance.transpile(diff_circuits)
-
-                    if transpiled_common_circuit._layout is not None:
-                        self.quantum_instance.compile_config["initial_layout"] = orig_layout
+                    self.quantum_instance.compile_config["initial_layout"] = orig_layout
 
                     # 3. combine
                     transpiled_circuits = []
@@ -240,6 +248,7 @@ class CircuitSampler(ConverterBase):
                     # 4. set transpiled circuit cache
                     self._transpiled_circ_cache = transpiled_circuits
                     self._transpile_before_bind = True
+
                 except QiskitError:
                     logger.debug(
                         r"CircuitSampler failed to transpile circuits with unbound "
@@ -375,6 +384,7 @@ class CircuitSampler(ConverterBase):
 
             try:
                 self._transpiled_circ_cache = self.quantum_instance.transpile(circuits)
+
             except QiskitError:
                 logger.debug(
                     r"CircuitSampler failed to transpile circuits with unbound "
