@@ -1,9 +1,13 @@
 ---
 features:
   - |
-    Add :class:`~qiskit.algorithms.optimizers.SciPyOptimizer` as a simple wrapper class of `scipy.optimize.minimize`.
-    :class:`~qiskit.algorithms.optimizers.SciPyOptimizer` enable to use all optimization solvers and
-    enable to use all parameters (e.g. callback) which are supported by `scipy.optimize.minimize`.
+    Add a new optimizer class,
+    :class:`~qiskit.algorithms.optimizers.SciPyOptimizer`, to the
+    :mod:`~qiskit.algorithms.optimizers`. This class is a simple wrapper class
+    of the ``scipy.optimize.minimize`` function
+    (`documentation <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html>`__)
+    which enables the use of all optimization solvers and enable to use all
+    parameters (e.g. callback) which are supported by ``scipy.optimize.minimize``.
     For example:
 
     .. code-block:: python
@@ -17,12 +21,17 @@ features:
 
         optimizer = SciPyOptimizer("BFGS", options={"maxiter": 1000}, callback=callback)
 
-    You can continue to use existing qiskit optimizers such as :class:`~qiskit.algorithms.optimizers.CG` and :class:`~qiskit.algorithms.optimizers.L_BFGS_B`.
 deprecations:
   - |
-    Argument parameters `epsilon` and `factr` of `~qiskit.algorithms.optimizers.L_BFGS_B`
-    and `factr` of `~qiskit.algorithms.optimizers.P_BFGS` are deprecated.
-    You can just use `eps` instead of `epsilon`. `factr` is replaced with ftol.
-    The relationship between the two is :code:`ftol = factr * numpy.finfo(float).eps`.
-    See `scipy.optimize.minimize(method=’L-BFGS-B’) <https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html>`__
-    for more information.
+    The kwargs ``epsilon`` and ``factr`` for the
+    :class:`qiskit.algorithms.optimizers.L_BFGS_B` constructor
+    and ``factr`` kwarg of the `qiskit.algorithms.optimizers.P_BFGS` are
+    deprecated and will be removed in a future release. Instead you can just
+    use the ``eps`` karg instead of ``epsilon``. The ``factr`` kwarg is
+    replaced with ``ftol``. The relationship between the two is
+    :code:`ftol = factr * numpy.finfo(float).eps`. This change was made
+    to be consistent with the usage of the ``scipy.optimize.minimize``
+    functions ``'L-BFGS-B'`` method. See the:
+    ``scipy.optimize.minimize(method='L-BFGS-B')``
+    `documentation <https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html>`__
+    for more information on how these new parameters are used.

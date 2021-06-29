@@ -1,8 +1,11 @@
 ---
 features:
   - |
-    A class method `initialize_from` is added to `Schedule` and `ScheduleBlock`.
-    This method initializes an empty schedule by taking attributes from other schedule.
+    A new constructor method
+    :meth:`~qiskit.pulse.Schedule.initialize_from` ws added to the
+    :class:`~qiskit.pulse.Schedule` and :class:`~qiskit.pulse.ScheduleBlock`
+    classes. This method initializes a new empty schedule which
+    takes the attributes from other schedule. For example:
 
     .. code-block:: python
 

@@ -1,4 +1,14 @@
 ---
 features:
   - |
-    Add qiskit-ignis TensoredMeasFitter error mitigation to :class:`~qiskit.utils.QuantumInstance`.
+    The ``measurement_error_mitgation`` kwarg for the
+    :class:`~qiskit.utils.QuantumInstance` constructor can now be set to the
+    :class:`~qiskit.ignis.mitigation.TensoredMeasFitter` class from
+    qiskit-ignis in addition to
+    :class:`~qiskit.ignis.mitigation.CompleteMeasFitter` that was already
+    supported. If you use :class:`~qiskit.ignis.mitigation.TensoredMeasFitter`
+    you will need to also set the new ``mit_pattern`` kwarg to specify the
+    qubits on which to use :class:`~qiskit.ignis.mitigation.TensoredMeasFitter`
+    on. You can refer to the documentation for the ``mit_pattern`` in
+    :class:`~qiskit.ignis.mitigation.TensoredMeasFitter` documentation for
+    the expected format.
