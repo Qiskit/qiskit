@@ -24,7 +24,7 @@ from qiskit.pulse.frame import FramesConfiguration
 from qiskit.pulse.instructions import ShiftPhase, ShiftFrequency, Play, SetFrequency, SetPhase
 
 
-def requires_frame_mapping(schedule: Schedule) -> bool:
+def requires_frame_mapping(schedule: Union[Schedule, ScheduleBlock]) -> bool:
     """Returns True if there are frame instructions or :class:`Signal`s that need mapping.
 
     Returns:
@@ -33,6 +33,9 @@ def requires_frame_mapping(schedule: Schedule) -> bool:
             - A SetFrequency, SetPhase, ShiftFrequency, ShiftPhase has a frame that does not
                 correspond to any PulseChannel.
     """
+    if isinstance(schedule, ScheduleBlock):
+        schedule = block_to_schedule(schedule)
+
     for time, inst in schedule.instructions:
         if isinstance(inst, Play):
             if isinstance(inst.operands[0], Signal):

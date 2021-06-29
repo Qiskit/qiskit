@@ -25,6 +25,7 @@ from qiskit.pulse.transforms.resolved_frame import ResolvedFrame
 from qiskit.pulse.parameter_manager import ParameterManager
 from qiskit.pulse.frame import Frame, FramesConfiguration, FrameDefinition
 from qiskit.test.mock import FakeAthens
+from qiskit.exceptions import QiskitError
 
 
 class TestFrame(QiskitTestCase):
@@ -375,6 +376,11 @@ class TestFrameAssembly(QiskitTestCase):
         expected_resolved = transform(self.expected_schedule)
 
         self.assertEqual(sched_resolved, expected_resolved)
+
+        try:
+            assemble(circ, self.backend)
+        except QiskitError as error:
+            self.assertEqual(error.message, "Calibrations with frames are not yet supported.")
 
     def test_transforms_frame_resolution(self):
         """Test that resolving frames multiple times does not change the schedule."""
