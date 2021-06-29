@@ -140,16 +140,20 @@ class CDKMRippleCarryAdder(Adder):
         qc_uma.cx(2, 1)
         uma_gate = qc_uma.to_gate()
 
+        inner = QuantumCircuit(*self.qregs, name=name)
+
         # build ripple-carry adder circuit
-        self.append(maj_gate, [qr_a[0], qr_b[0], qr_c[0]])
+        inner.append(maj_gate, [qr_a[0], qr_b[0], qr_c[0]])
 
         for i in range(num_state_qubits - 1):
-            self.append(maj_gate, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
+            inner.append(maj_gate, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
 
         if kind in ["full", "half"]:
-            self.cx(qr_a[-1], qr_z[0])
+            inner.cx(qr_a[-1], qr_z[0])
 
         for i in reversed(range(num_state_qubits - 1)):
-            self.append(uma_gate, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
+            inner.append(uma_gate, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
 
-        self.append(uma_gate, [qr_a[0], qr_b[0], qr_c[0]])
+        inner.append(uma_gate, [qr_a[0], qr_b[0], qr_c[0]])
+
+        self.append(inner.to_gate(), self.qubits)
