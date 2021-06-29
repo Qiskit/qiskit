@@ -60,7 +60,8 @@ class DefaultGradient(GradientBase):
         self._num_cnots = cnots.shape[1]
 
     def get_gradient(self, thetas: Union[List[float], np.ndarray], target_matrix: np.ndarray):
-        # The Pauli matrices:
+
+        # the partial derivative of
         pauli_x = np.array([[0, 1], [1, 0]])
         pauli_y = np.array([[0, -1j], [1j, 0]])
         pauli_z = np.array([[1, 0], [0, -1]])
@@ -184,8 +185,9 @@ class DefaultGradient(GradientBase):
                         ]
                     )
                 der_circuit_matrix = np.dot(der_cnot_matrix, rotation_matrix)
+                der_circuit_matrix = np.multiply(-1j / 2, der_circuit_matrix)
                 der[i + theta_index] = -np.real(
-                    -1j / 2 * np.trace(np.dot(der_circuit_matrix.conj().T, target_matrix))
+                    np.trace(np.dot(der_circuit_matrix.conj().T, target_matrix))
                 )
 
         for i in range(3 * n):
@@ -205,8 +207,9 @@ class DefaultGradient(GradientBase):
                     der_rotation_matrix, la.multi_dot([rz0, ry1, rz2])
                 )
             der_circuit_matrix = np.dot(cnot_matrix, der_rotation_matrix)
+            der_circuit_matrix = np.multiply(-1j / 2, der_circuit_matrix)
             der[4 * num_cnots + i] = -np.real(
-                -1j / 2 * np.trace(np.dot(der_circuit_matrix.conj().T, target_matrix))
+                np.trace(np.dot(der_circuit_matrix.conj().T, target_matrix))
             )
 
         # return error, gradient
