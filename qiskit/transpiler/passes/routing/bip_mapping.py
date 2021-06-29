@@ -47,13 +47,18 @@ class BIPMapping(TransformationPass):
     should be swapped in between layers. Based on the values in the solution of the BIP problem,
     the mapped circuit will be constructed.
 
+    The BIP mapper depends on ``docplex`` to represent the BIP problem and CPLEX (``cplex``)
+    to solve it. Those packages can be installed with ``pip install qiskit-terra[bip-mapper]``.
+    Since the free version of CPLEX can solve only small BIP problems, i.e. mapping of circuits
+    with less than about 5 qubits, the paid version of CPLEX may be needed to map larger circuits.
+
     If you want to fix physical qubits to be used in the mapping (e.g. running Quantum Volume
-    circuits), you have to specify ``coupling_map`` which contains only the qubits to be used.
+    circuits), you need to supply ``coupling_map`` which contains only the qubits to be used.
     Please do not use ``initial_layout`` for that purpose because the BIP mapper gracefully
     ignores ``initial_layout`` (and try to determines its best layout).
 
     .. warning::
-        The BIP mapper scales badly with respect to the number of qubits or gates.
+        The BIP mapper does not scale very well with respect to the number of qubits or gates.
         For example, it would not work with ``coupling_map`` beyond 10 qubits because
         the BIP solver (CPLEX) could not find any solution within the default time limit.
 

@@ -7,10 +7,17 @@ features:
     `arXiv:2106.06446 <https://arxiv.org/abs/2106.06446>`_ has been added.
 
     The ``BIPMapping`` pass (named "mapping" to refer to "layout and routing")
-    employs BIP (binary integer programming) to represent the mapping problem and
-    relies on CPLEX solver to solve the problem. Since the free version of CPLEX
-    can solve only small BIP problems, i.e. mapping of circuits with about less
-    than 5 qubits, the paid version of CPLEX may be needed to map larger circuits.
+    represent the optimization of the mapping as a BIP (binary integer programming)
+    problem and relies on CPLEX (``cplex``) to solve the BIP problem.
+    The dependent libraries including CPLEX can be installed along with qiskit-terra:
+
+    .. code-block::
+
+      pip install qiskit-terra[bip-mapper]
+
+    Since the free version of CPLEX can solve only small BIP problems, i.e. mapping
+    of circuits with less than about 5 qubits, the paid version of CPLEX may be
+    needed to map larger circuits.
 
     The BIP mapper scales badly with respect to the number of qubits or gates.
     For example, it would not work with ``coupling_map`` beyond 10 qubits because
@@ -20,7 +27,7 @@ features:
     (e.g. running Quantum Volume (QV) circuits), you need to specify ``coupling_map``
     which contains only the qubits to be used.
 
-    A minimal example code to build pass manager to transpile a QV circuit:
+    Here is a minimal example code to build pass manager to transpile a QV circuit:
 
     .. code-block:: python
 
@@ -29,7 +36,7 @@ features:
 
       backend = ...
       basis_gates = backend.configuration().basis_gates
-      coupling_map = CouplingMap.from_line(num_qubits)  # supply our own coupling map
+      coupling_map = CouplingMap.from_line(num_qubits)  # supply your own coupling map
 
       def _not_mapped(property_set):
           return not property_set["is_swap_mapped"]
@@ -51,7 +58,7 @@ features:
       pm.append(BIPMapping(coupling_map))
       pm.append(CheckMap(coupling_map))
       pm.append(Error(msg="BIP mapper failed to map", action="raise"),
-              condition=_not_mapped)
+                condition=_not_mapped)
       # post optimization
       pm.append([
           Depth(),
