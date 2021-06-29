@@ -210,9 +210,9 @@ class DefaultGradient(GradientBase):
                 else:
                     der_cnot_matrix = la.multi_dot(
                         [
-                            right_cnot_collection[:, 2 ** n * (cnot_index + 1): 2 ** n * (cnot_index + 2)],
+                            cnot_right_collection[:, d * (cnot_index + 1): d * (cnot_index + 2)],
                             der_cnot_unit,
-                            left_cnot_collection[:, 2 ** n * (cnot_index - 1): 2 ** n * cnot_index],
+                            cnot_left_collection[:, d * (cnot_index - 1): d * cnot_index],
                         ]
                     )
 
