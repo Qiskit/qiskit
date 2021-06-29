@@ -1,10 +1,12 @@
 ---
 features:
   - |
-    Allowed users to set a custom isometry tolerance. Instead of hard-coding a 
-    fixed value for floating-point epsilon tolerances, allow users to 
-    optionally specify what value of the tolerance they would like to use 
-    instead. For example::
+    A new kwarg, ``epsilon``, has been added to the constructor for the
+    :class:`~qiskit.extensions.Isometry` class and the corresponding
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.isometry`. This kwarg enables
+    optionally setting the epsilon tolerance used by an
+    :class:`~qiskit.extensions.Isometry` gate. For example::
 
         import numpy as np
         from qiskit import QuantumRegister, QuantumCircuit
@@ -17,5 +19,3 @@ features:
         qc = QuantumCircuit(q)
 
         qc.isometry(iso, q[:num_q_input], q[num_q_input:], epsilon=tolerance)
-
-

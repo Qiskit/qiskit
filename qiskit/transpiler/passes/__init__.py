@@ -84,6 +84,7 @@ Scheduling
    ALAPSchedule
    ASAPSchedule
    RZXCalibrationBuilder
+   RZXCalibrationBuilderNoEcho
 
 Circuit Analysis
 ================
@@ -184,6 +185,7 @@ from .synthesis import UnitarySynthesis
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
 from .scheduling import RZXCalibrationBuilder
+from .scheduling import RZXCalibrationBuilderNoEcho
 from .scheduling import TimeUnitConversion
 
 # additional utility passes

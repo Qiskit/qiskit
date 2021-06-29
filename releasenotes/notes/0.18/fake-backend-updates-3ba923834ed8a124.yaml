@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    A new fake backend class is available under ``qiskit.test.mock` for the
+    A new fake backend class is available under ``qiskit.test.mock`` for the
     ``ibmq_guadalupe`` backend.  As with the other fake backends, this includes
     a snapshot of calibration data (i.e. ``backend.defaults()``) and error data
     (i.e. ``backend.properties()``) taken from the real system, and can be used
