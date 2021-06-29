@@ -15,7 +15,7 @@ from abc import abstractmethod, ABC
 from typing import Tuple, List, Dict
 
 import numpy as np
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit import QuantumCircuit, QuantumRegister, QiskitError
 from qiskit.quantum_info import Operator, OneQubitEulerDecomposer
 from .parametric_circuit import ParametricCircuit
 
@@ -97,11 +97,11 @@ class EulerCompressor(CompressorBase):
 
         # Determine the sparsity pattern:
         # vector that tells where four angles after a CNOT are 0s, of dimension L-1
-        spar = self._sparsity(circuit.cnots, circuit.thetas, self._eps)
+        sparsity = self._sparsity(circuit.cnots, circuit.thetas, self._eps)
 
         # Determine which cnot indices are to be affected by the compression:
         # [[start1, end1], [start2, end2], ... ]
-        ranges = self._zero_runs(spar)
+        ranges = self._zero_runs(sparsity)
         num_ranges = np.shape(ranges)[0]
 
         for z in range(num_ranges):
@@ -125,32 +125,30 @@ class EulerCompressor(CompressorBase):
 
             num_cnots1 = np.shape(compressed_cnots)[1]
 
-            old_cnots = np.array(compressed_cnots[:, b - 1])  # keep the rightmost cnot that is deleted
-            logger.debug("old cnot = %s", old_cnots)
-            # print('old_cnot = ', old_cnot)
+            # keep the rightmost cnot that is deleted
+            old_cnots = np.array(compressed_cnots[:, b - 1])
+            logger.debug("Old cnots: %s", old_cnots)
 
             compressed_cnots = np.delete(compressed_cnots, np.arange(a, b), 1)
+            logger.debug("Compressed cnots: %s", compressed_cnots)
 
-            # print('cmp_cnot = ', cmp_cnots)
-
+            # keep the angles corresponding to old_cnot
             old_thetas = np.array(
                 compressed_thetas[4 * (b - 1) : 4 * b]
-            )  # keep the angles corresponding to old_cnot
-            # print('Before =', (old_thetas))
-            compressed_thetas = np.delete(
-                compressed_thetas, np.arange(4 * a, 4 * b)
-            )  # delete angles corresponding to deleted cnots
-            # print('After =', (cmp_thetas))
+            )
+            logger.debug("Old thetas: %s", old_thetas)
 
-            # c = 0  # length of syn_sec
+            # delete angles corresponding to deleted cnots
+            compressed_thetas = np.delete(compressed_thetas, np.arange(4 * a, 4 * b))
+            logger.debug("After deletion: %s", compressed_thetas)
 
             # If there is still a CNOT:
             if np.shape(syn_sec)[0] != 0:
                 compressed_cnots = np.insert(compressed_cnots, a, np.transpose(syn_sec), 1)
-                c = np.shape(syn_sec)[1]  # length of syn_sec
-                compressed_thetas = np.insert(
-                    compressed_thetas, 4 * a, np.zeros(4 * c)
-                )  # insert zero angles for inserted cnots
+                syn_sec_size = np.shape(syn_sec)[1]
+
+                # insert zero angles for inserted cnots
+                compressed_thetas = np.insert(compressed_thetas, 4 * a, np.zeros(4 * syn_sec_size))
 
             # print('cmp_cnot = ', cmp_cnots)
             # print('After =', (cmp_thetas))
@@ -165,33 +163,33 @@ class EulerCompressor(CompressorBase):
             L2n = ranges[z, 1] + 1
             # print('Bookkeeping : ', cmp_cnots, cmp_thetas, old_cnot, old_thetas, L2n)
 
-            #
+            # update angles
             compressed_thetas = self._extra_angles(
                 compressed_cnots, L2n, compressed_thetas, old_cnots, old_thetas, n
-            )  # update angles
-            # print(cmp_thetas)
-            # cpcp
-        if self._verbose >= 1:
-            print("Sparsity pattern: {}".format(spar))
+            )
+            logger.debug("Compressed thetas: %s", compressed_thetas)
+
+        logger.debug("Sparsity pattern: %s", sparsity)
+
         return ParametricCircuit(num_qubits=n, cnots=compressed_cnots, thetas=compressed_thetas)
         # return cmp_cnots, cmp_thetas, spar  # added cmp_thetas as an output
 
-    def _extra_angles(self, lcnots, L, thetas, rcnot, rthetas, n, checks=True):
+    def _extra_angles(self, lcnots, L, thetas, rcnot, rthetas, num_qubits, checks=True):
         # Internal routines to identify naked CNOT units and compress the circuit
 
         # 1. Build a qiskit circuit,
-        v_base = ParametricCircuit(num_qubits=n, cnots=lcnots, thetas=thetas)
+        v_base = ParametricCircuit(num_qubits=num_qubits, cnots=lcnots, thetas=thetas)
         # todo: why is tol=-1. ?
         qc = v_base.to_circuit(reverse=True, tol=-1.0)
         # Vbase.Plot(qc)
 
-        qc2add = QuantumCircuit(n, 1)
+        qc2add = QuantumCircuit(num_qubits, 1)
         qc2add.ry(rthetas[0], rcnot[0] - 1)
         qc2add.rz(rthetas[1], rcnot[0] - 1)
         qc2add.ry(rthetas[2], rcnot[1] - 1)
         qc2add.rx(rthetas[3], rcnot[1] - 1)
 
-        p = 3 * n + 5 * L
+        p = 3 * num_qubits + 5 * L
 
         # print(qc.data)
         # print(len(qc.data), p, L)
@@ -199,7 +197,7 @@ class EulerCompressor(CompressorBase):
 
         # print(instr)
 
-        q = QuantumRegister(n, name="q")
+        q = QuantumRegister(num_qubits, name="q")
         qcirc = QuantumCircuit(q)
         for ops in instructions:
             qcirc.append(ops[0], ops[1], ops[2])
@@ -208,15 +206,15 @@ class EulerCompressor(CompressorBase):
         # plt.show()
 
         # 2. Transform it into CNOT unit structure and extract thetas
-        qbit_map = dict()
-        for ii in range(n):
+        qbit_map = {}
+        for ii in range(num_qubits):
             qbit_map[ii] = ii
         _, cnots, gate_list = self._reduce(qcirc.data, qbit_map)
         th_in, qct_in = self._extract_thetas(cnots, gate_list)
 
         if len(qc.data) > p:
             instructions = qct_in.data + qc.data[p:]
-            q = QuantumRegister(n, name="q")
+            q = QuantumRegister(num_qubits, name="q")
             qct = QuantumCircuit(q)
             for ops in instructions:
                 qct.append(ops[0], ops[1], ops[2])
@@ -225,11 +223,11 @@ class EulerCompressor(CompressorBase):
             # print('Patching Circuits and Angles --- ')
             # print(th_in, len(th_in), L)
             # print(thetas, thetas[3*n + 4*L:], len(thetas))
-            th = np.zeros([3 * n + 4 * np.shape(cnots)[1]])
+            th = np.zeros([3 * num_qubits + 4 * np.shape(cnots)[1]])
             # print(len(th))
-            th[0 : len(th_in) - 3 * n] = th_in[: len(th_in) - 3 * n]
-            th[len(th_in) - 3 * n : -3 * n] = thetas[4 * L : -3 * n]
-            th[-3 * n :] = th_in[-3 * n :]
+            th[0 : len(th_in) - 3 * num_qubits] = th_in[: len(th_in) - 3 * num_qubits]
+            th[len(th_in) - 3 * num_qubits: -3 * num_qubits] = thetas[4 * L: -3 * num_qubits]
+            th[-3 * num_qubits:] = th_in[-3 * num_qubits:]
             # print(len(th), 3*n + 4*np.shape(cnots)[1])
 
             # pcpc
@@ -245,29 +243,29 @@ class EulerCompressor(CompressorBase):
 
         # Internal checks
         if checks:
-            U1 = Operator(qcirc).data
-            V1 = Operator(qct).data
-            alpha = np.angle(np.trace(np.dot(V1.conj().T, U1)))
-            u_new1 = np.exp(-1j * alpha) * U1
-            diff = np.linalg.norm(u_new1 - V1)
+            u1 = Operator(qcirc).data   # todo: what is u1? (was U1)
+            v1 = Operator(qct).data     # todo: what is v1? (was V1)
+            alpha = np.angle(np.trace(np.dot(v1.conj().T, u1)))
+            u_new1 = np.exp(-1j * alpha) * u1
+            diff = np.linalg.norm(u_new1 - v1)
 
             if np.abs(diff) > 0.001:
-                print("Internal inconsistency: failed compression")
+                raise QiskitError("Internal inconsistency: failed compression, difference: " + diff)
 
         return th
 
     @staticmethod
-    def _sparsity(cnots, thetas, eps):
+    def _sparsity(cnots: np.ndarray, thetas: np.ndarray, eps: float) -> np.ndarray:
         # if the 4 angles between 2 CNOT units are all equal to zero, then spar is 0 there
-        L = np.shape(cnots)[1]
-        sums = np.zeros(L - 1)
-        for l in range(L - 1):
-            sums[l] = np.sum(np.abs(thetas[4 * l : 4 * (l + 1)]))
-        spar = np.zeros(L - 1)
+        num_cnots = np.shape(cnots)[1]
+        sums = np.zeros(num_cnots - 1)
+        for i in range(num_cnots - 1):
+            sums[i] = np.sum(np.abs(thetas[4 * i : 4 * (i + 1)]))
+        sparsity = np.zeros(num_cnots - 1)
         idx = sums > eps
-        spar[idx] = 1
-        spar = spar.astype(int)
-        return spar
+        sparsity[idx] = 1
+        sparsity = sparsity.astype(int)
+        return sparsity
 
     @staticmethod
     def _zero_runs(a):
@@ -285,20 +283,21 @@ class EulerCompressor(CompressorBase):
         synthesis algorithm from paper
         """
         num_cnots = np.shape(cnots)[1]
-        A = np.eye(num_qubits)
+        # todo: what is A? initial code: A
+        mat_a = np.eye(num_qubits)
         for cnot_index in range(num_cnots):
             j = cnots[0, cnot_index] - 1
             k = cnots[1, cnot_index] - 1
-            # todo: what is B?
-            B = np.eye(num_qubits)
-            B[k, j] = 1
-            A = np.dot(B, A)
-            A = np.mod(A, 2)
-        A = A.astype(int)
+            # todo: what is B? initial code: B
+            mat_b = np.eye(num_qubits)
+            mat_b[k, j] = 1
+            mat_a = np.dot(mat_b, mat_a)
+            mat_a = np.mod(mat_a, 2)
+        mat_a = mat_a.astype(int)
         syn_cnots = np.array([[0], [0]])
         for j in range(1, num_qubits):
             for k in range(j):
-                if A[j, k] == 1:
+                if mat_a[j, k] == 1:
                     syn_cnots = np.insert(syn_cnots, 0, np.array([[k + 1], [j + 1]]).T, 1)
         syn_cnots = syn_cnots[:, 0 : np.shape(syn_cnots)[1] - 1]
         if np.shape(syn_cnots)[0] != 0:
@@ -313,12 +312,12 @@ class EulerCompressor(CompressorBase):
         num_cnots = np.shape(cnots)[1]
         perm = np.random.permutation(num_cnots - 1)
         for p in perm:
-            j = cnots[0, p]
-            k = cnots[1, p]
-            l = cnots[0, p + 1]  # todo: bad index: l
+            i = cnots[0, p]
+            j = cnots[1, p]
+            k = cnots[0, p + 1]
             m = cnots[1, p + 1]
-            if j != m and k != l:
-                com_cnots[0:2, p : p + 2] = np.array([[l, j], [m, k]])
+            if i != m and j != k:
+                com_cnots[0:2, p : p + 2] = np.array([[k, i], [m, j]])
                 break
         return com_cnots
 
@@ -345,8 +344,8 @@ class EulerCompressor(CompressorBase):
                 if num_indices == 3:
                     j = sec[0, 0]
                     k = sec[1, 0]
-                    l = sec[0, 1]  # todo: bad index: l
-                    m = sec[1, 1]
+                    v = sec[0, 1]
+                    w = sec[1, 1]
                     p = sec[0, 2]
                     q = sec[1, 2]
 
@@ -354,20 +353,20 @@ class EulerCompressor(CompressorBase):
                     # 1) long on the left
                     if k - j > 1:
                         # 1.1) up then down
-                        if m == p and j == l and k == q:
-                            red_sec = np.array([[p, l], [q, m]])
+                        if w == p and j == v and k == q:
+                            red_sec = np.array([[p, v], [q, w]])
                         # 1.2) down then up
-                        if l == q and j == p and k == m:
-                            red_sec = np.array([[p, l], [q, m]])
+                        if v == q and j == p and k == w:
+                            red_sec = np.array([[p, v], [q, w]])
 
                     # 2) long on the right
                     if q - p > 1:
                         # 2.1) up then down
-                        if k == l and j == p and m == q:
-                            red_sec = np.array([[l, j], [m, k]])
+                        if k == v and j == p and w == q:
+                            red_sec = np.array([[v, j], [w, k]])
                         # 2.2) down then up
-                        if j == m and l == p and k == q:
-                            red_sec = np.array([[l, m], [j, k]])
+                        if j == w and v == p and k == q:
+                            red_sec = np.array([[v, w], [j, k]])
 
                     # print('1, ', red_cnots)
                     red_cnots = np.delete(red_cnots, np.arange(i, i + 3), 1)
@@ -397,10 +396,10 @@ class EulerCompressor(CompressorBase):
                 if num_indices == 2:
                     j = sec[0, 0]
                     k = sec[1, 0]
-                    l = sec[0, 1]  # todo: bad index: l
-                    m = sec[1, 1]
+                    v = sec[0, 1]
+                    w = sec[1, 1]
 
-                    if j == l and k == m:
+                    if j == v and k == w:
                         red_sec = [[], []]
 
                     # print('1, ', red_cnots)
@@ -572,14 +571,14 @@ class EulerCompressor(CompressorBase):
                     angles[1],
                 ]  # this is how qiskit output the angles for ZYZ
 
-        L = np.shape(cnots)[1]
+        num_thetas = np.shape(cnots)[1]
         n = len(gate_list)
-        p = 3 * n + 4 * L
+        p = 3 * n + 4 * num_thetas
         thetas_t = np.zeros(p)
         qct = QuantumCircuit(n, 1)
 
         for k in range(n):
-            p = 3 * k + 4 * L
+            p = 3 * k + 4 * num_thetas
             thetas_t[0 + p] = thetas[k][-1]
             thetas_t[1 + p] = thetas[k][-2]
             thetas_t[2 + p] = thetas[k][-3]
@@ -592,10 +591,10 @@ class EulerCompressor(CompressorBase):
         for k in range(n):
             kk[k] = 0
 
-        for l in range(L):
-            p = 4 * l
-            q1 = cnots[0][l] - 1
-            q2 = cnots[1][l] - 1
+        for i in range(num_thetas):
+            p = 4 * i
+            q1 = cnots[0][i] - 1
+            q2 = cnots[1][i] - 1
 
             thetas_t[0 + p] = thetas[q1][-5 - kk[q1]]
             thetas_t[1 + p] = thetas[q1][-4 - kk[q1]]
