@@ -29,9 +29,10 @@ class BooleanExpression(ClassicalElement):
         """
         Args:
             expression (str): The logical expression string.
-            var_order(list): A list with the order in which variables will be created. (default: by appearance)
-            name (str): Optional. Instruction gate name. Otherwise part of
-                        the expression is going to be used.
+            var_order(list): A list with the order in which variables will be created.
+               (default: by appearance)
+            name (str): Optional. Instruction gate name. Otherwise part of the expression is
+               going to be used.
         """
 
         self._tweedledum_bool_expression = BoolFunction.from_expression(expression, var_order)

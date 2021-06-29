@@ -51,7 +51,8 @@ class PhaseOracle(QuantumCircuit):
 
         Args:
             expression: A Python-like boolean expression.
-            var_order(list): A list with the order in which variables will be created. (default: by appearance)
+            var_order(list): A list with the order in which variables will be created.
+               (default: by appearance)
             synthesizer: Optional. A function to convert a BooleanExpression into a QuantumCircuit
                If None is provided, Tweedledum's `pkrm_synth` with `phase_esop` will be used.
         """
