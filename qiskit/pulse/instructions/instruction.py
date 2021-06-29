@@ -85,8 +85,8 @@ class Instruction(ABC):
         self._initialize_parameter_table(operands)
 
         for channel in self.channels:
-            if not isinstance(channel, (Frame, Channel)):
-                raise PulseError("Expected a channel, got {} instead.".format(channel))
+            if not isinstance(channel, Channel):
+                raise PulseError(f"Expected a channel, got {channel} instead.")
 
     @property
     def name(self) -> str:
@@ -408,5 +408,5 @@ class Instruction(ABC):
     def __repr__(self) -> str:
         operands = ", ".join(str(op) for op in self.operands)
         return "{}({}{})".format(
-            self.__class__.__name__, operands, ", name='{}'".format(self.name) if self.name else ""
+            self.__class__.__name__, operands, f", name='{self.name}'" if self.name else ""
         )
