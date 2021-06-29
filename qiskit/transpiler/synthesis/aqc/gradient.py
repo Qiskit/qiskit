@@ -121,14 +121,14 @@ class DefaultGradient(GradientBase):
         cnot_matrix = np.eye(d)
         for cnot_index in range(num_cnots - 1, -1, -1):
             cnot_matrix = np.dot(
-                cnot_matrix, cnot_right_collection[:, d * cnot_index: d * (cnot_index + 1)]
+                cnot_matrix, cnot_unit_collection[:, d * cnot_index: d * (cnot_index + 1)]
             )
             cnot_right_collection[:, d * cnot_index: d * (cnot_index + 1)] = cnot_matrix
         # now we multiply from the left-hand side of the circuit
         cnot_matrix = np.eye(d)
         for cnot_index in range(num_cnots):
             cnot_matrix = np.dot(
-                cnot_left_collection[:, d * cnot_index: d * (cnot_index + 1)], cnot_matrix
+                cnot_unit_collection[:, d * cnot_index: d * (cnot_index + 1)], cnot_matrix
             )
             cnot_left_collection[:, d * cnot_index: d * (cnot_index + 1)] = cnot_matrix
 
