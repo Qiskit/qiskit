@@ -394,7 +394,7 @@ class TestFrameAssembly(QiskitTestCase):
 
         self.assertEqual(resolved1, resolved2)
 
-    def test_assmble_frames(self):
+    def test_assemble_frames(self):
         """Test that the assembler resolves the frames of schedule experiments."""
 
         # Assemble a schedule with frames.

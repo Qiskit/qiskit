@@ -98,14 +98,14 @@ def map_frames(
             chan_frame = channel_trackers[chan].frame
 
             if inst.frame not in resolved_frames:
-                raise PulseError(f"{inst.frame} is not configured and cannot " f"be resolved.")
+                raise PulseError(f"{inst.frame} is not configured and cannot be resolved.")
 
             resolved_frame = resolved_frames[inst.frame]
 
             frame_freq = resolved_frame.frequency(time)
             frame_phase = resolved_frame.phase(time)
 
-            # If the frequency and phase of the channel has already been set once in
+            # If the frequency and phase of the channel have already been set once in
             # the past we compute shifts.
             if channel_trackers[chan].is_initialized():
                 freq_diff = frame_freq - channel_trackers[chan].frequency(time)
@@ -117,8 +117,8 @@ def map_frames(
                 if abs(phase_diff) > resolved_frame.tolerance:
                     sched.insert(time, ShiftPhase(phase_diff, chan_frame), inplace=True)
 
-            # If the channel's phase and frequency has not been set in the past
-            # we set it now
+            # If the channel's phase and frequency have not been set in the past
+            # we set it now.
             else:
                 if frame_freq != 0:
                     sched.insert(time, SetFrequency(frame_freq, chan_frame), inplace=True)
@@ -132,13 +132,13 @@ def map_frames(
             play = Play(inst.pulse, chan)
             sched.insert(time, play, inplace=True)
 
-        # Insert phase and frequency commands that are ties to physical channels.
+        # Insert phase and frequency commands that are tied to physical channels.
         elif isinstance(inst, (SetFrequency, ShiftFrequency)):
-            if frames_config[inst.frame].has_physical_channel:
+            if inst.channel is not None:
                 sched.insert(time, inst, inplace=True)
 
         elif isinstance(inst, (SetPhase, ShiftPhase)):
-            if frames_config[inst.frame].has_physical_channel:
+            if inst.channel is not None:
                 sched.insert(time, inst, inplace=True)
 
         elif isinstance(

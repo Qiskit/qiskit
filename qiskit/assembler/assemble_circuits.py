@@ -365,7 +365,9 @@ def assemble_circuits(
             if m_los:
                 qobj_config_dict["meas_lo_freq"] = [freq / 1e9 for freq in m_los]
 
-        qobj_config_dict.pop("frames_config", None)
+        # Needed so that the backend can map the frames.
+        if "frames_config" in qobj_config_dict:
+            qobj_config_dict["frames_config"] = qobj_config_dict["frames_config"].to_dict()
 
         qobj_config = QasmQobjConfig(**qobj_config_dict)
 

@@ -164,6 +164,7 @@ class ResolvedFrame(Tracker):
         self._purpose = definition.purpose
         self._tolerance = definition.tolerance
         self._has_physical_channel = definition.has_physical_channel
+        self._frame = frame
 
     @property
     def purpose(self) -> str:
@@ -177,7 +178,8 @@ class ResolvedFrame(Tracker):
 
     def set_frame_instructions(self, schedule: Schedule):
         """
-        Add all matching frame instructions in this schedule to self.
+        Add all matching frame instructions in this schedule to self if and only if
+        self does not correspond to a frame that is the native frame of a channel.
 
         Args:
             schedule: The schedule from which to extract frame operations.
@@ -190,8 +192,8 @@ class ResolvedFrame(Tracker):
         frame_instructions = schedule.filter(instruction_types=frame_instruction_types)
 
         for time, inst in frame_instructions.instructions:
-            if isinstance(inst, frame_instruction_types) and self.identifier == inst.frame.name:
-                if not self._has_physical_channel:
+            if isinstance(inst, frame_instruction_types) and self._frame.name == inst.frame.name:
+                if inst.channel is None:
                     if isinstance(inst, ShiftFrequency):
                         self.set_frequency(time, self.frequency(time) + inst.frequency)
                     elif isinstance(inst, SetFrequency):
