@@ -56,7 +56,7 @@ class ListOp(OperatorBase):
     def __init__(
         self,
         oplist: Sequence[OperatorBase],
-        combo_fn: Callable = lambda x: x,
+        combo_fn: Optional[Callable] = None,
         coeff: Union[complex, ParameterExpression] = 1.0,
         abelian: bool = False,
         grad_combo_fn: Optional[Callable] = None,
@@ -64,8 +64,8 @@ class ListOp(OperatorBase):
         """
         Args:
             oplist: The list of ``OperatorBases`` defining this Operator's underlying function.
-            combo_fn (callable): The recombination function to combine classical results of the
-                ``oplist`` Operators' eval functions (e.g. sum).
+            combo_fn: The recombination function to combine classical results of the
+                ``oplist`` Operators' eval functions (e.g. sum). Default is lambda x: x.
             coeff: A coefficient multiplying the operator
             abelian: Indicates whether the Operators in ``oplist`` are known to mutually commute.
             grad_combo_fn: The gradient of recombination function. If None, the gradient will
@@ -131,6 +131,8 @@ class ListOp(OperatorBase):
         Returns:
             The combination function.
         """
+        if self._combo_fn is None:
+            return lambda x: x
         return self._combo_fn
 
     @property
