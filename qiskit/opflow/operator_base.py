@@ -48,9 +48,10 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         self._instance_id = next(self._count)
 
     @property
+    @abstractmethod
     def settings(self) -> Dict:
         """Return settings."""
-        return {}
+        raise NotImplementedError
 
     @property
     def instance_id(self) -> int:
