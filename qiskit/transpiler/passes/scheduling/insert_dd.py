@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Dynamical Decoupling insertion pass."""
+
 from collections import defaultdict
 from typing import List
 import numpy as np
@@ -54,21 +55,33 @@ class InsertDD(TransformationPass):
         super().__init__()
         self._durations = durations
         self._dd_sequence = dd_sequence
+        self._qubits = qubits
+        self._spacing = spacing
+
+        #def udd10_pos(j):
+        #    return np.sin(np.pi*j/(2*40 + 2))**2
+
+        #def equispaced_pos(j):
+        #    return 1/num
 
     def run(self, dag):
-        """Run the InsertDD pass on `dag`.
+        """Run the InsertDD pass on dag.
 
         Args:
             dag (DAGCircuit): a scheduled DAG.
 
         Returns:
-            DAGCircuit: equivalent circuit with delays interrupted by DD, where possible.
+            DAGCircuit: equivalent circuit with delays interrupted by DD,
+                where possible.
 
         Raises:
             TranspilerError: if the circuit is not mapped on physical qubits.
         """
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError('DD runs on physical circuits only.')
+
+        if dag.duration is None:
+            raise TranspilerError('DD runs after circuit is scheduled.')
 
         new_dag = dag._copy_circuit_metadata()
 

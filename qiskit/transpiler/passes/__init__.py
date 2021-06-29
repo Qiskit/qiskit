@@ -82,8 +82,10 @@ Scheduling
 .. autosummary::
    :toctree: ../stubs/
 
+   TimeUnitConversion
    ALAPSchedule
    ASAPSchedule
+<<<<<<< HEAD
    RZXCalibrationBuilder
    AlignMeasures
    ValidatePulseGates
@@ -92,7 +94,10 @@ Decoupling
 =============
 .. autosummary::
    :toctree: ../stubs/
+=======
+>>>>>>> add test
    InsertDD
+   RZXCalibrationBuilder
 
 Circuit Analysis
 ================
@@ -191,15 +196,20 @@ from .analysis import DAGLongestPath
 from .synthesis import UnitarySynthesis
 
 # circuit scheduling
+from .scheduling import TimeUnitConversion
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
+from .scheduling import InsertDD
 from .scheduling import RZXCalibrationBuilder
+<<<<<<< HEAD
 from .scheduling import TimeUnitConversion
 from .scheduling import AlignMeasures
 from .scheduling import ValidatePulseGates
 
 # dynamical decoupling
 from .decoupling import InsertDD
+=======
+>>>>>>> add test
 
 # additional utility passes
 from .utils import CheckMap
