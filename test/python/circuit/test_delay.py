@@ -48,7 +48,7 @@ class TestDelayClass(QiskitTestCase):
             qc.delay(100, 0, unit="my_unit")
 
     def test_fail_if_negative_duration_is_supplied(self):
-        qc= QuantumCircuit(1)
+        qc = QuantumCircuit(1)
         with self.assertRaises(CircuitError):
             qc.delay(-1, 0, unit="dt")
         with self.assertRaises(CircuitError):
