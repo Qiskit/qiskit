@@ -114,10 +114,17 @@ def get_param_str(op, drawer, ndigits=3):
         param_list = [f"{op.params[0]}[{op.unit}]"]
     else:
         param_list = []
+        truncate_params = False
         for count, param in enumerate(op.params):
             # Latex drawer will cause an xy-pic error and mpl drawer will overwrite
-            # the right edge if param string too long, so limit params.
-            if (drawer == "latex" and count > 3) or (drawer == "mpl" and count > 15):
+            # the right edge, and text drawer will result in a very wide
+            # drawing if param string is too long, so limit params.
+            truncate_params = (
+                (drawer == "latex" and count > 3)
+                or (drawer == "mpl" and count > 15)
+                or (drawer == "text" and (len(",".join(param_list)) > 30))
+            )
+            if truncate_params:
                 param_list.append("...")
                 break
             try:

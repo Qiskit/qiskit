@@ -1593,7 +1593,7 @@ class TestTextDrawerParams(QiskitTestCase):
                 "        ┌────────────────────────────────────────────────────────┐",
                 "q_0: |0>┤0                                                       ├",
                 "        │                                                        │",
-                "q_1: |0>┤1 initialize(0.049507+0.049507j,0.099015+0.099015j,...) ├",
+                "q_1: |0>┤1 Initialize(0.049507+0.049507j,0.099015+0.099015j,...) ├",
                 "        │                                                        │",
                 "q_2: |0>┤2                                                       ├",
                 "        └────────────────────────────────────────────────────────┘",
@@ -1609,12 +1609,12 @@ class TestTextDrawerParams(QiskitTestCase):
         """Test that parameters in any general quantum circuit which are too wide get truncated."""
         expected = "\n".join(
             [
-                "     ┌──────────────────────────────────┐",
-                "q_0: ┤ circuit-0(theta[0],theta[1],...) ├",
-                "     └──────────────────────────────────┘",
+                "     ┌────────────────────────────────────────────────────┐",
+                "q_0: ┤ circuit-0(theta[0],theta[1],theta[2],theta[3],...) ├",
+                "     └────────────────────────────────────────────────────┘",
             ]
         )
-        theta = ParameterVector("theta", 12)
+        theta = ParameterVector("theta", 10)
         circuit = QuantumCircuit(1)
         gate = Gate(name="circuit-0", num_qubits=1, params=theta)
         circuit.append(gate, [0])
