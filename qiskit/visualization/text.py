@@ -621,8 +621,8 @@ class TextDrawing:
         """Generates a list with lines. These lines form the text drawing.
 
         Args:
-            line_length (int): Optional. Breaks the circuit drawing to this length. This
-                               is useful when the drawing does not fit in the console. If
+            line_length (int): Optional. Breaks the circuit drawing to this length. This is
+                               useful when the drawing does not fit in the console. If
                                None (default), it will try to guess the console width using
                                shutil.get_terminal_size(). If you don't want pagination
                                at all, set line_length=-1.
@@ -835,29 +835,6 @@ class TextDrawing:
     def label_for_conditional(node):
         """Creates the label for a conditional instruction."""
         return "= %s" % node.op.condition[1]
-
-    @staticmethod
-    def params_for_label(instruction):
-        """Get the params and format them to add them to a label. None if there
-        are no params or if the params are numpy.ndarrays."""
-        op = instruction.op
-        if not hasattr(op, "params"):
-            return None
-        if any(isinstance(param, ndarray) for param in op.params):
-            return None
-
-        ret = []
-        for param in op.params:
-            try:
-                str_param = pi_check(param, ndigits=5)
-                ret.append("%s" % str_param)
-            except TypeError:
-                ret.append("%s" % param)
-
-        if len(",".join(ret)) > 100:
-            ret = ret[0:2]
-            ret.append("...")
-        return ret
 
     @staticmethod
     def special_label(node):
