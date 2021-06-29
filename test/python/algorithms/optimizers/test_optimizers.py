@@ -30,7 +30,6 @@ from qiskit.algorithms.optimizers import (
     GradientDescent,
     L_BFGS_B,
     NELDER_MEAD,
-    Optimizer,
     P_BFGS,
     POWELL,
     SLSQP,
@@ -40,7 +39,6 @@ from qiskit.algorithms.optimizers import (
     SciPyOptimizer,
 )
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.exceptions import QiskitError
 from qiskit.utils import algorithm_globals
 
 try:
@@ -343,8 +341,11 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
             self.assertDictEqual(settings, expected)
 
         settings.pop("name")
-        # fidelity cannot be serialized, so it must be added back in
+        # no idea why pylint complains about unexpected args (like "name") which are
+        # definitely not in the settings dict
+        # pylint: disable=unexpected-keyword-arg
         with self.subTest(msg="fidelity missing"):
+            # fidelity cannot be serialized, so it must be added back in
             with self.assertRaises(TypeError):
                 _ = QNSPSA(**settings)
 
