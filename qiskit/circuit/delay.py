@@ -75,12 +75,15 @@ class Delay(Instruction):
                 )
             return parameter
         elif isinstance(parameter, float):
-            if self.unit == "dt":
-                raise CircuitError("Integer duration is expected for 'dt' unit.")
             if parameter < 0:
                 raise CircuitError(
                     f"Duration for Delay instruction must be positive. Found {parameter}"
                 )
+            if self.unit == "dt":
+                parameter_int = int(parameter)
+                if parameter != parameter_int:
+                    raise CircuitError("Integer duration is expected for 'dt' unit.")
+                return parameter_int
             return parameter
         elif isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:
