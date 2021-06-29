@@ -11,6 +11,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Utility script to verify qiskit copyright file headers"""
+
 import argparse
 import multiprocessing
 import os
@@ -22,6 +24,7 @@ pep263 = re.compile(r"^[ \t\f]*#.*?coding[:=][ \t]*([-_.a-zA-Z0-9]+)")
 
 
 def discover_files(code_paths):
+    """Find all .py, .pyx, .pxd files in a list of trees"""
     out_paths = []
     for path in code_paths:
         if os.path.isfile(path):
@@ -30,12 +33,17 @@ def discover_files(code_paths):
             for directory in os.walk(path):
                 dir_path = directory[0]
                 for subfile in directory[2]:
-                    if subfile.endswith(".py") or subfile.endswith(".pyx"):
+                    if (
+                        subfile.endswith(".py")
+                        or subfile.endswith(".pyx")
+                        or subfile.endswith(".pxd")
+                    ):
                         out_paths.append(os.path.join(dir_path, subfile))
     return out_paths
 
 
 def validate_header(file_path):
+    """Validate the header for a single file"""
     header = """# This code is part of Qiskit.
 #
 """
@@ -70,7 +78,7 @@ def validate_header(file_path):
     return (file_path, True, None)
 
 
-def main():
+def _main():
     default_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qiskit"
     )
@@ -80,12 +88,12 @@ def main():
         type=str,
         nargs="*",
         default=[default_path],
-        help="Paths to scan by default uses ../qiskit from the" " script",
+        help="Paths to scan by default uses ../qiskit from the script",
     )
     args = parser.parse_args()
     files = discover_files(args.paths)
-    pool = multiprocessing.Pool()
-    res = pool.map(validate_header, files)
+    with multiprocessing.Pool() as pool:
+        res = pool.map(validate_header, files)
     failed_files = [x for x in res if x[1] is False]
     if len(failed_files) > 0:
         for failed_file in failed_files:
@@ -96,4 +104,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    _main()

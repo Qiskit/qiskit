@@ -474,6 +474,24 @@ class LoadFromQasmTest(QiskitTestCase):
         expected.u(-0.5235987755982988, 6.283185307179586, 3.141592653589793, qr[0])
         self.assertEqualUnroll("u", circuit, expected)
 
+    def test_from_qasm_str_delay(self):
+        """Test delay instruction/opaque-gate
+        See: https://github.com/Qiskit/qiskit-terra/issues/6510
+        """
+        qasm_string = """OPENQASM 2.0;
+                         include "qelib1.inc";
+
+                         opaque delay(time) q;
+
+                         qreg q[1];
+                         delay(172) q[0];"""
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+
+        qr = QuantumRegister(1, name="q")
+        expected = QuantumCircuit(qr, name="circuit")
+        expected.delay(172, qr[0])
+        self.assertEqualUnroll("u", circuit, expected)
+
     def assertEqualUnroll(self, basis, circuit, expected):
         """Compares the dags after unrolling to basis"""
         circuit_dag = circuit_to_dag(circuit)
