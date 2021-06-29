@@ -62,12 +62,11 @@ class DefaultGradient(GradientBase):
     def get_gradient(self, thetas: Union[List[float], np.ndarray], target_matrix: np.ndarray):
 
         # the partial derivative of the circuit with respect to an angle
-        # is the same circuit with the corresponding pauli gate inserted
-        # next to the rotation gate (it commutes) and multiplied by a
-        # global phase of -1j / 2
-        pauli_x = np.array([[0, 1], [1, 0]])
-        pauli_y = np.array([[0, -1j], [1j, 0]])
-        pauli_z = np.array([[1, 0], [0, -1]])
+        # is the same circuit with the corresponding pauli gate, multiplied
+        # by a global phase of -1j / 2, next to the rotation gate (it commutes)
+        pauli_x = np.multiply(-1j / 2, [[0, 1], [1, 0]])
+        pauli_y = np.multiply(-1j / 2, [[0, -1j], [1j, 0]])
+        pauli_z = np.multiply(-1j / 2, [[1, 0], [0, -1]])
 
         n = self._num_qubits
         d = int(2 ** n)
@@ -220,8 +219,6 @@ class DefaultGradient(GradientBase):
                 # is the partial derivative of the cnot part multiplied by the usual
                 # rotation part
                 der_circuit_matrix = np.dot(der_cnot_matrix, rotation_matrix)
-                # we multiply the extra -1j / 2 global phase
-                der_circuit_matrix = np.multiply(-1j / 2, der_circuit_matrix)
                 # we compute the partial derivative of the cost function
                 der[i + theta_index] = -np.real(
                     np.trace(np.dot(der_circuit_matrix.conj().T, target_matrix))
@@ -253,8 +250,6 @@ class DefaultGradient(GradientBase):
             # is the usual cnot part multiplied by the partial derivative of
             # the rotation part
             der_circuit_matrix = np.dot(cnot_matrix, der_rotation_matrix)
-            # we multiply the extra -1j / 2 global phase
-            der_circuit_matrix = np.multiply(-1j / 2, der_circuit_matrix)
             # we compute the partial derivative of the cost function
             der[4 * num_cnots + i] = -np.real(
                 np.trace(np.dot(der_circuit_matrix.conj().T, target_matrix))
