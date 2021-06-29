@@ -25,15 +25,16 @@ from .classical_element import ClassicalElement
 class BooleanExpression(ClassicalElement):
     """The Boolean Expression gate."""
 
-    def __init__(self, expression: str, name: str = None) -> None:
+    def __init__(self, expression: str, var_order: list = None, name: str = None) -> None:
         """
         Args:
             expression (str): The logical expression string.
+            var_order(list): A list with the order in which variables will be created. (default: by appearance)
             name (str): Optional. Instruction gate name. Otherwise part of
                         the expression is going to be used.
         """
 
-        self._tweedledum_bool_expression = BoolFunction.from_expression(expression)
+        self._tweedledum_bool_expression = BoolFunction.from_expression(expression, var_order)
 
         short_expr_for_name = (expression[:10] + "...") if len(expression) > 13 else expression
         num_qubits = (
