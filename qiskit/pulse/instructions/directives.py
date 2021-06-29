@@ -17,6 +17,7 @@ from typing import Optional, Tuple
 
 from qiskit.pulse import channels as chans
 from qiskit.pulse.instructions import instruction
+from qiskit.pulse.frame import Frame
 
 
 class Directive(instruction.Instruction, ABC):
@@ -51,6 +52,16 @@ class RelativeBarrier(Directive):
     def channels(self) -> Tuple[chans.Channel]:
         """Returns the channels that this schedule uses."""
         return self.operands
+
+    @property
+    def frames(self) -> Tuple[Frame]:
+        """Returns the frames that this schedule uses."""
+        frames = set()
+        for chan in self.channels:
+            if isinstance(chan, chans.PulseChannel):
+                frames.update(chan.frame)
+
+        return tuple(frames)
 
     def __eq__(self, other):
         """Verify two barriers are equivalent."""

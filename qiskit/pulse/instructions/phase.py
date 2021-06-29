@@ -19,10 +19,9 @@ from typing import Optional, Union, Tuple
 import warnings
 
 from qiskit.circuit import ParameterExpression
-from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.channels import PulseChannel, DriveChannel, MeasureChannel, ControlChannel
 from qiskit.pulse.frame import Frame
 from qiskit.pulse.instructions.instruction import Instruction
-from qiskit.pulse.exceptions import PulseError
 
 
 class ShiftPhase(Instruction):
@@ -72,11 +71,18 @@ class ShiftPhase(Instruction):
         return self.operands[0]
 
     @property
-    def channel(self) -> Union[PulseChannel, Frame]:
+    def channel(self) -> PulseChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` or frame that this instruction is
         scheduled on.
         """
-        raise PulseError(f"{self} applies to a {type(self.operands[1])}")
+        if self.frame.prefix == "d":
+            return DriveChannel(self.frame.index)
+
+        if self.frame.prefix == "m":
+            return MeasureChannel(self.frame.index)
+
+        if self.frame.prefix == "u":
+            return ControlChannel(self.frame.index)
 
     @property
     def frame(self) -> Frame:
@@ -86,7 +92,15 @@ class ShiftPhase(Instruction):
     @property
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
+        if self.channel is not None:
+            return (self.channel, )
+
         return tuple()
+
+    @property
+    def frames(self) -> Tuple[Frame]:
+        """Return the frames this instructions acts on."""
+        return (self.frame, )
 
     @property
     def duration(self) -> int:
@@ -141,11 +155,18 @@ class SetPhase(Instruction):
         return self.operands[0]
 
     @property
-    def channel(self) -> Union[PulseChannel, Frame]:
+    def channel(self) -> PulseChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` or frame that this instruction is
         scheduled on.
         """
-        raise PulseError(f"{self} applies to a {type(self.operands[1])}")
+        if self.frame.prefix == "d":
+            return DriveChannel(self.frame.index)
+
+        if self.frame.prefix == "m":
+            return MeasureChannel(self.frame.index)
+
+        if self.frame.prefix == "u":
+            return ControlChannel(self.frame.index)
 
     @property
     def frame(self) -> Frame:
@@ -155,7 +176,15 @@ class SetPhase(Instruction):
     @property
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
+        if self.channel is not None:
+            return (self.channel,)
+
         return tuple()
+
+    @property
+    def frames(self) -> Tuple[Frame]:
+        """Return the frames this instructions acts on."""
+        return (self.frame, )
 
     @property
     def duration(self) -> int:

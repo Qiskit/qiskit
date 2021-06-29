@@ -99,6 +99,11 @@ class Play(Instruction):
         return (self.channel,)
 
     @property
+    def frames(self) -> Tuple[Frame]:
+        """Return the frames this instructions acts on."""
+        return (self.frame, )
+
+    @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
         return self.pulse.duration

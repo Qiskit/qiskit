@@ -813,6 +813,10 @@ class _TestDirective(directives.Directive):
     def channels(self):
         return self.operands
 
+    @property
+    def frames(self):
+        return tuple()
+
 
 class TestRemoveDirectives(QiskitTestCase):
     """Test removing of directives."""

@@ -122,11 +122,11 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         sched = Schedule()
         sched = sched.append(Play(gp0, self.config.drive(0)))
-        sched = sched.insert(60, ShiftPhase(-1.57, self.config.drive(0)))
+        sched = sched.insert(60, ShiftPhase(-1.57, self.config.drive(0).frame))
         sched = sched.insert(30, Play(gp1, self.config.drive(0)))
         sched = sched.insert(60, Play(gp0, self.config.control([0, 1])[0]))
         sched = sched.insert(80, Snapshot("label", "snap_type"))
-        sched = sched.insert(90, ShiftPhase(1.57, self.config.drive(0)))
+        sched = sched.insert(90, ShiftPhase(1.57, self.config.drive(0).frame))
         sched = sched.insert(
             90, Acquire(10, self.config.acquire(0), MemorySlot(0), RegisterSlot(0))
         )
@@ -152,11 +152,11 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         sched = Schedule()
         sched += Play(gp0, self.config.drive(0))
-        sched |= ShiftPhase(-1.57, self.config.drive(0)) << 60
+        sched |= ShiftPhase(-1.57, self.config.drive(0).frame) << 60
         sched |= Play(gp1, self.config.drive(0)) << 30
         sched |= Play(gp0, self.config.control(qubits=[0, 1])[0]) << 60
         sched |= Snapshot("label", "snap_type") << 60
-        sched |= ShiftPhase(1.57, self.config.drive(0)) << 90
+        sched |= ShiftPhase(1.57, self.config.drive(0).frame) << 90
         sched |= Acquire(10, self.config.acquire(0), MemorySlot(0)) << 90
         sched += sched
 
@@ -314,7 +314,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched_pulse = Play(gp0, self.config.drive(0)) | sched1
         self.assertEqual(sched_pulse.name, "pulse_name")
 
-        sched_fc = ShiftPhase(0.1, self.config.drive(0), name="fc_name") | sched1
+        sched_fc = ShiftPhase(0.1, self.config.drive(0).frame, name="fc_name") | sched1
         self.assertEqual(sched_fc.name, "fc_name")
 
         sched_snapshot = snapshot | sched1
@@ -417,9 +417,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         reference_sched = Schedule()
         reference_sched = reference_sched.insert(10, Delay(10, DriveChannel(0)))
         reference_sched = reference_sched.insert(10, Delay(50, DriveChannel(1)))
-        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0).frame))
 
-        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1)))
+        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1).frame))
 
         self.assertEqual(reference_sched.duration, 100)
         self.assertEqual(reference_sched.duration, 100)
@@ -429,9 +429,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         reference_sched = Schedule()
         reference_sched = reference_sched.insert(10, Delay(10, DriveChannel(0)))
         reference_sched = reference_sched.insert(10, Delay(50, DriveChannel(1)))
-        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0).frame))
 
-        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1)))
+        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1).frame))
 
         self.assertEqual(reference_sched.ch_duration(DriveChannel(0)), 20)
         self.assertEqual(reference_sched.ch_duration(DriveChannel(1)), 100)
@@ -444,9 +444,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         reference_sched = Schedule()
         reference_sched = reference_sched.insert(10, Delay(10, DriveChannel(0)))
         reference_sched = reference_sched.insert(10, Delay(50, DriveChannel(1)))
-        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0).frame))
 
-        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1)))
+        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1).frame))
 
         self.assertEqual(reference_sched.ch_start_time(DriveChannel(0)), 10)
         self.assertEqual(reference_sched.ch_start_time(DriveChannel(1)), 10)
@@ -456,9 +456,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         reference_sched = Schedule()
         reference_sched = reference_sched.insert(10, Delay(10, DriveChannel(0)))
         reference_sched = reference_sched.insert(10, Delay(50, DriveChannel(1)))
-        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0).frame))
 
-        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1)))
+        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1).frame))
 
         self.assertEqual(reference_sched.ch_stop_time(DriveChannel(0)), 20)
         self.assertEqual(reference_sched.ch_stop_time(DriveChannel(1)), 100)
@@ -468,9 +468,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         reference_sched = Schedule()
         reference_sched = reference_sched.insert(10, Delay(10, DriveChannel(0)))
         reference_sched = reference_sched.insert(10, Delay(50, DriveChannel(1)))
-        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0).frame))
 
-        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1)))
+        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1).frame))
 
         self.assertEqual(reference_sched.timeslots[DriveChannel(0)], [(10, 10), (10, 20)])
         self.assertEqual(reference_sched.timeslots[DriveChannel(1)], [(10, 60), (100, 100)])
@@ -638,7 +638,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = Schedule(name="fake_experiment")
         sched = sched.insert(0, Play(lp0, self.config.drive(0)))
         sched = sched.insert(10, Play(lp0, self.config.drive(1)))
-        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
+        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0).frame))
         sched = sched.insert(60, Acquire(5, AcquireChannel(0), MemorySlot(0)))
         sched = sched.insert(60, Acquire(5, AcquireChannel(1), MemorySlot(1)))
         sched = sched.insert(90, Play(lp0, self.config.drive(0)))
@@ -675,10 +675,10 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = Schedule(name="fake_experiment")
         sched = sched.insert(0, Play(lp0, self.config.drive(0)))
         sched = sched.insert(10, Play(lp0, self.config.drive(1)))
-        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
-        sched = sched.insert(40, SetFrequency(8.0, self.config.drive(0)))
-        sched = sched.insert(50, ShiftFrequency(4.0e6, self.config.drive(0)))
-        sched = sched.insert(55, SetPhase(3.14, self.config.drive(0)))
+        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0).frame))
+        sched = sched.insert(40, SetFrequency(8.0, self.config.drive(0).frame))
+        sched = sched.insert(50, ShiftFrequency(4.0e6, self.config.drive(0).frame))
+        sched = sched.insert(55, SetPhase(3.14, self.config.drive(0).frame))
         for i in range(2):
             sched = sched.insert(60, Acquire(5, self.config.acquire(i), MemorySlot(i)))
         sched = sched.insert(90, Play(lp0, self.config.drive(0)))
@@ -737,7 +737,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = Schedule(name="fake_experiment")
         sched = sched.insert(0, Play(lp0, self.config.drive(0)))
         sched = sched.insert(10, Play(lp0, self.config.drive(1)))
-        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
+        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0).frame))
         for i in range(2):
             sched = sched.insert(60, Acquire(5, self.config.acquire(i), MemorySlot(i)))
         sched = sched.insert(90, Play(lp0, self.config.drive(0)))
@@ -789,7 +789,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = Schedule(name="fake_experiment")
         sched = sched.insert(0, Play(lp0, self.config.drive(0)))
         sched = sched.insert(10, Play(lp0, self.config.drive(1)))
-        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
+        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0).frame))
         for i in range(2):
             sched = sched.insert(60, Acquire(5, self.config.acquire(i), MemorySlot(i)))
 
@@ -837,7 +837,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = Schedule(name="fake_experiment")
         sched = sched.insert(0, Play(lp0, self.config.drive(0)))
         sched = sched.insert(10, Play(lp0, self.config.drive(1)))
-        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
+        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0).frame))
 
         filtered, excluded = self._filter_and_test_consistency(sched, lambda x: True)
         for i in filtered.instructions:
@@ -866,7 +866,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = Schedule(name="fake_experiment")
         sched = sched.insert(0, Play(lp0, self.config.drive(0)))
         sched = sched.insert(10, Play(lp0, self.config.drive(1)))
-        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
+        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0).frame))
         for i in range(2):
             sched = sched.insert(60, Acquire(5, self.config.acquire(i), MemorySlot(i)))
         sched = sched.insert(90, Play(lp0, self.config.drive(0)))
@@ -916,28 +916,29 @@ class TestScheduleEquality(BaseTestSchedule):
     def test_different_channels(self):
         """Test equality is False if different channels."""
         self.assertNotEqual(
-            Schedule(ShiftPhase(0, DriveChannel(0))), Schedule(ShiftPhase(0, DriveChannel(1)))
+            Schedule(ShiftPhase(0, DriveChannel(0).frame)),
+            Schedule(ShiftPhase(0, DriveChannel(1).frame)),
         )
 
     def test_same_time_equal(self):
         """Test equal if instruction at same time."""
 
         self.assertEqual(
-            Schedule((0, ShiftPhase(0, DriveChannel(1)))),
-            Schedule((0, ShiftPhase(0, DriveChannel(1)))),
+            Schedule((0, ShiftPhase(0, DriveChannel(1).frame))),
+            Schedule((0, ShiftPhase(0, DriveChannel(1).frame))),
         )
 
     def test_different_time_not_equal(self):
         """Test that not equal if instruction at different time."""
         self.assertNotEqual(
-            Schedule((0, ShiftPhase(0, DriveChannel(1)))),
-            Schedule((1, ShiftPhase(0, DriveChannel(1)))),
+            Schedule((0, ShiftPhase(0, DriveChannel(1).frame))),
+            Schedule((1, ShiftPhase(0, DriveChannel(1).frame))),
         )
 
     def test_single_channel_out_of_order(self):
         """Test that schedule with single channel equal when out of order."""
         instructions = [
-            (0, ShiftPhase(0, DriveChannel(0))),
+            (0, ShiftPhase(0, DriveChannel(0).frame)),
             (15, Play(Waveform(np.ones(10)), DriveChannel(0))),
             (5, Play(Waveform(np.ones(10)), DriveChannel(0))),
         ]
@@ -947,7 +948,7 @@ class TestScheduleEquality(BaseTestSchedule):
     def test_multiple_channels_out_of_order(self):
         """Test that schedule with multiple channels equal when out of order."""
         instructions = [
-            (0, ShiftPhase(0, DriveChannel(1))),
+            (0, ShiftPhase(0, DriveChannel(1).frame)),
             (1, Acquire(10, AcquireChannel(0), MemorySlot(1))),
         ]
 
@@ -968,8 +969,8 @@ class TestScheduleEquality(BaseTestSchedule):
         """Test that names are ignored when checking equality."""
 
         self.assertEqual(
-            Schedule((0, ShiftPhase(0, DriveChannel(1), name="fc1")), name="s1"),
-            Schedule((0, ShiftPhase(0, DriveChannel(1), name="fc2")), name="s2"),
+            Schedule((0, ShiftPhase(0, DriveChannel(1).frame, name="fc1")), name="s1"),
+            Schedule((0, ShiftPhase(0, DriveChannel(1).frame, name="fc2")), name="s2"),
         )
 
 

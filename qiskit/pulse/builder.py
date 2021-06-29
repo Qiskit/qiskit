@@ -232,6 +232,7 @@ from qiskit.pulse import (
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
+from qiskit.pulse.frame import Frame
 
 #: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
@@ -873,9 +874,9 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:  # pylint: disable=in
 
 # Contexts
 
-# pylint: disable=unused-argument
+
 @contextmanager
-def align_left(ignore_frames: bool = False) -> ContextManager[None]:
+def align_left() -> ContextManager[None]:
     """Left alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled as early as possible
@@ -900,15 +901,11 @@ def align_left(ignore_frames: bool = False) -> ContextManager[None]:
 
         assert pulse_prog.ch_start_time(d0) == pulse_prog.ch_start_time(d1)
 
-    Args:
-        ignore_frames: If true then frame instructions will be ignored. This
-            should be set to true if the played Signals in this context
-            do not share any frames.
     Yields:
         None
     """
     builder = _active_builder()
-    builder.push_context(transforms.AlignLeft(ignore_frames))
+    builder.push_context(transforms.AlignLeft())
     try:
         yield
     finally:
@@ -916,9 +913,8 @@ def align_left(ignore_frames: bool = False) -> ContextManager[None]:
         builder.append_block(current)
 
 
-# pylint: disable=unused-argument
 @contextmanager
-def align_right(ignore_frames: bool = False) -> AlignmentKind:
+def align_right() -> AlignmentKind:
     """Right alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled as late as possible
@@ -943,16 +939,11 @@ def align_right(ignore_frames: bool = False) -> AlignmentKind:
 
         assert pulse_prog.ch_stop_time(d0) == pulse_prog.ch_stop_time(d1)
 
-    Args:
-        ignore_frames: If true then frame instructions will be ignore. This
-            should be set to true if the played Signals in this context
-            do not share any frames.
-
     Yields:
         None
     """
     builder = _active_builder()
-    builder.push_context(transforms.AlignRight(ignore_frames))
+    builder.push_context(transforms.AlignRight())
     try:
         yield
     finally:
@@ -1249,7 +1240,7 @@ def circuit_scheduler_settings(**settings) -> ContextManager[None]:
 
 
 @contextmanager
-def phase_offset(phase: float, *channels: chans.PulseChannel) -> ContextManager[None]:
+def phase_offset(phase: float, *frames: Frame) -> ContextManager[None]:
     """Shift the phase of input channels on entry into context and undo on exit.
 
     Examples:
@@ -1260,7 +1251,7 @@ def phase_offset(phase: float, *channels: chans.PulseChannel) -> ContextManager[
 
         from qiskit import pulse
 
-        d0 = pulse.DriveChannel(0)
+        d0 = pulse.DriveChannel(0).frame
 
         with pulse.build() as pulse_prog:
             with pulse.phase_offset(math.pi, d0):
@@ -1270,23 +1261,23 @@ def phase_offset(phase: float, *channels: chans.PulseChannel) -> ContextManager[
 
     Args:
         phase: Amount of phase offset in radians.
-        channels: Channels to offset phase of.
+        frames: Channels to offset phase of.
 
     Yields:
         None
     """
-    for channel in channels:
-        shift_phase(phase, channel)
+    for frame in frames:
+        shift_phase(phase, frame)
     try:
         yield
     finally:
-        for channel in channels:
-            shift_phase(-phase, channel)
+        for frame in frames:
+            shift_phase(-phase, frame)
 
 
 @contextmanager
 def frequency_offset(
-    frequency: float, *channels: chans.PulseChannel, compensate_phase: bool = False
+    frequency: float, *frames: Frame, compensate_phase: bool = False
 ) -> ContextManager[None]:
     """Shift the frequency of inputs channels on entry into context and undo on exit.
 
@@ -1301,7 +1292,7 @@ def frequency_offset(
 
         with pulse.build(backend) as pulse_prog:
             # shift frequency by 1GHz
-            with pulse.frequency_offset(1e9, d0):
+            with pulse.frequency_offset(1e9, d0.frame):
                 pulse.play(pulse.Constant(10, 1.0), d0)
 
         assert len(pulse_prog.instructions) == 3
@@ -1310,14 +1301,14 @@ def frequency_offset(
             # Shift frequency by 1GHz.
             # Undo accumulated phase in the shifted frequency frame
             # when exiting the context.
-            with pulse.frequency_offset(1e9, d0, compensate_phase=True):
+            with pulse.frequency_offset(1e9, d0.frame, compensate_phase=True):
                 pulse.play(pulse.Constant(10, 1.0), d0)
 
         assert len(pulse_prog.instructions) == 4
 
     Args:
         frequency: Amount of frequency offset in Hz.
-        channels: Channels to offset frequency of.
+        frames: Frames to offset frequency of.
         compensate_phase: Compensate for accumulated phase accumulated with
             respect to the channels' frame at its initial frequency.
 
@@ -1331,8 +1322,8 @@ def frequency_offset(
     #  offset context may change the t0 when the parent context is transformed.
     t0 = builder.get_context().duration
 
-    for channel in channels:
-        shift_frequency(frequency, channel)
+    for frame in frames:
+        shift_frequency(frequency, frame)
     try:
         yield
     finally:
@@ -1340,11 +1331,11 @@ def frequency_offset(
             duration = builder.get_context().duration - t0
             dt = active_backend().configuration().dt
             accumulated_phase = 2 * np.pi * ((duration * dt * frequency) % 1)
-            for channel in channels:
-                shift_phase(-accumulated_phase, channel)
+            for frame in frames:
+                shift_phase(-accumulated_phase, frame)
 
-        for channel in channels:
-            shift_frequency(-frequency, channel)
+        for frame in frames:
+            shift_frequency(-frequency, frame)
 
 
 # Channels
@@ -1541,13 +1532,11 @@ def acquire(
             instructions.Acquire(duration, qubit_or_channel, reg_slot=register, **metadata)
         )
     else:
-        raise exceptions.PulseError(
-            'Register of type: "{}" is not supported'.format(type(register))
-        )
+        raise exceptions.PulseError(f'Register of type: "{type(register)}" is not supported')
 
 
-def set_frequency(frequency: float, channel: chans.PulseChannel, name: Optional[str] = None):
-    """Set the ``frequency`` of a pulse ``channel``.
+def set_frequency(frequency: float, frame: Frame, name: Optional[str] = None):
+    """Set the ``frequency`` of a ``frame``.
 
     Examples:
 
@@ -1555,21 +1544,21 @@ def set_frequency(frequency: float, channel: chans.PulseChannel, name: Optional[
 
         from qiskit import pulse
 
-        d0 = pulse.DriveChannel(0)
+        d0 = pulse.Frame("d", 0)
 
         with pulse.build() as pulse_prog:
             pulse.set_frequency(1e9, d0)
 
     Args:
         frequency: Frequency in Hz to set channel to.
-        channel: Channel to set frequency of.
+        frame: Channel to set frequency of.
         name: Name of the instruction.
     """
-    append_instruction(instructions.SetFrequency(frequency, channel, name=name))
+    append_instruction(instructions.SetFrequency(frequency, frame, name=name))
 
 
-def shift_frequency(frequency: float, channel: chans.PulseChannel, name: Optional[str] = None):
-    """Shift the ``frequency`` of a pulse ``channel``.
+def shift_frequency(frequency: float, frame: Frame, name: Optional[str] = None):
+    """Shift the ``frequency`` of a ``frame``.
 
     Examples:
 
@@ -1578,21 +1567,21 @@ def shift_frequency(frequency: float, channel: chans.PulseChannel, name: Optiona
 
         from qiskit import pulse
 
-        d0 = pulse.DriveChannel(0)
+        d0 = pulse.Frame("d", 0)
 
         with pulse.build() as pulse_prog:
             pulse.shift_frequency(1e9, d0)
 
     Args:
         frequency: Frequency in Hz to shift channel frequency by.
-        channel: Channel to shift frequency of.
+        frame: Frame to shift frequency of.
         name: Name of the instruction.
     """
-    append_instruction(instructions.ShiftFrequency(frequency, channel, name=name))
+    append_instruction(instructions.ShiftFrequency(frequency, frame, name=name))
 
 
-def set_phase(phase: float, channel: chans.PulseChannel, name: Optional[str] = None):
-    """Set the ``phase`` of a pulse ``channel``.
+def set_phase(phase: float, frame: Frame, name: Optional[str] = None):
+    """Set the ``phase`` of a ``frame``.
 
     Examples:
 
@@ -1603,21 +1592,21 @@ def set_phase(phase: float, channel: chans.PulseChannel, name: Optional[str] = N
 
         from qiskit import pulse
 
-        d0 = pulse.DriveChannel(0)
+        d0 = pulse.Frame("d", 0)
 
         with pulse.build() as pulse_prog:
             pulse.set_phase(math.pi, d0)
 
     Args:
         phase: Phase in radians to set channel carrier signal to.
-        channel: Channel to set phase of.
+        frame: Frame to set phase of.
         name: Name of the instruction.
     """
-    append_instruction(instructions.SetPhase(phase, channel, name=name))
+    append_instruction(instructions.SetPhase(phase, frame, name=name))
 
 
-def shift_phase(phase: float, channel: chans.PulseChannel, name: Optional[str] = None):
-    """Shift the ``phase`` of a pulse ``channel``.
+def shift_phase(phase: float, frame: Frame, name: Optional[str] = None):
+    """Shift the ``phase`` of a ``frame``.
 
     Examples:
 
@@ -1627,17 +1616,17 @@ def shift_phase(phase: float, channel: chans.PulseChannel, name: Optional[str] =
 
         from qiskit import pulse
 
-        d0 = pulse.DriveChannel(0)
+        d0 = pulse.Frame("d", 0)
 
         with pulse.build() as pulse_prog:
             pulse.shift_phase(math.pi, d0)
 
     Args:
         phase: Phase in radians to shift channel carrier signal by.
-        channel: Channel to shift phase of.
+        frame: Frame to shift phase of.
         name: Name of the instruction.
     """
-    append_instruction(instructions.ShiftPhase(phase, channel, name))
+    append_instruction(instructions.ShiftPhase(phase, frame, name))
 
 
 def snapshot(label: str, snapshot_type: str = "statevector"):

@@ -81,11 +81,11 @@ class TestPulseParameters(QiskitTestCase):
         """Test the ``parameter`` attributes."""
         schedule = pulse.Schedule()
         self.assertFalse(schedule.is_parameterized())
-        schedule += pulse.SetFrequency(self.alpha, DriveChannel(0))
+        schedule += pulse.SetFrequency(self.alpha, DriveChannel(0).frame)
         self.assertEqual(schedule.parameters, {self.alpha})
-        schedule += pulse.ShiftFrequency(self.gamma, DriveChannel(0))
+        schedule += pulse.ShiftFrequency(self.gamma, DriveChannel(0).frame)
         self.assertEqual(schedule.parameters, {self.alpha, self.gamma})
-        schedule += pulse.SetPhase(self.phi, DriveChannel(1))
+        schedule += pulse.SetPhase(self.phi, DriveChannel(1).frame)
         self.assertTrue(schedule.is_parameterized())
         self.assertEqual(schedule.parameters, {self.alpha, self.gamma, self.phi})
         schedule.assign_parameters({self.phi: self.alpha, self.gamma: self.shift})
@@ -98,10 +98,10 @@ class TestPulseParameters(QiskitTestCase):
     def test_straight_schedule_bind(self):
         """Nothing fancy, 1:1 mapping."""
         schedule = pulse.Schedule()
-        schedule += pulse.SetFrequency(self.alpha, DriveChannel(0))
-        schedule += pulse.ShiftFrequency(self.gamma, DriveChannel(0))
-        schedule += pulse.SetPhase(self.phi, DriveChannel(1))
-        schedule += pulse.ShiftPhase(self.theta, DriveChannel(1))
+        schedule += pulse.SetFrequency(self.alpha, DriveChannel(0).frame)
+        schedule += pulse.ShiftFrequency(self.gamma, DriveChannel(0).frame)
+        schedule += pulse.SetPhase(self.phi, DriveChannel(1).frame)
+        schedule += pulse.ShiftPhase(self.theta, DriveChannel(1).frame)
 
         schedule.assign_parameters(
             {
@@ -122,9 +122,9 @@ class TestPulseParameters(QiskitTestCase):
     def test_multiple_parameters(self):
         """Expressions of parameters with partial assignment."""
         schedule = pulse.Schedule()
-        schedule += pulse.SetFrequency(self.alpha + self.beta, DriveChannel(0))
-        schedule += pulse.ShiftFrequency(self.gamma + self.beta, DriveChannel(0))
-        schedule += pulse.SetPhase(self.phi, DriveChannel(1))
+        schedule += pulse.SetFrequency(self.alpha + self.beta, DriveChannel(0).frame)
+        schedule += pulse.ShiftFrequency(self.gamma + self.beta, DriveChannel(0).frame)
+        schedule += pulse.SetPhase(self.phi, DriveChannel(1).frame)
 
         # Partial bind
         delta = 1e9
@@ -148,8 +148,8 @@ class TestPulseParameters(QiskitTestCase):
             return variable - 1
 
         schedule = pulse.Schedule()
-        schedule += pulse.SetFrequency(get_frequency(self.alpha), DriveChannel(0))
-        schedule += pulse.ShiftFrequency(get_shift(self.gamma), DriveChannel(0))
+        schedule += pulse.SetFrequency(get_frequency(self.alpha), DriveChannel(0).frame)
+        schedule += pulse.ShiftFrequency(get_shift(self.gamma), DriveChannel(0).frame)
 
         schedule.assign_parameters({self.alpha: self.freq / 2, self.gamma: self.shift + 1})
 
@@ -160,7 +160,7 @@ class TestPulseParameters(QiskitTestCase):
     def test_substitution(self):
         """Test Parameter substitution (vs bind)."""
         schedule = pulse.Schedule()
-        schedule += pulse.SetFrequency(self.alpha, DriveChannel(0))
+        schedule += pulse.SetFrequency(self.alpha, DriveChannel(0).frame)
 
         schedule.assign_parameters({self.alpha: 2 * self.beta})
         self.assertEqual(schedule.instructions[0][1].frequency, 2 * self.beta)
@@ -170,7 +170,7 @@ class TestPulseParameters(QiskitTestCase):
     def test_substitution_with_existing(self):
         """Test that substituting one parameter with an existing parameter works."""
         schedule = pulse.Schedule()
-        schedule += pulse.SetFrequency(self.alpha, DriveChannel(self.qubit))
+        schedule += pulse.SetFrequency(self.alpha, DriveChannel(self.qubit).frame)
 
         schedule.assign_parameters({self.alpha: 1e9 * self.qubit})
         self.assertEqual(schedule.instructions[0][1].frequency, 1e9 * self.qubit)
@@ -180,7 +180,7 @@ class TestPulseParameters(QiskitTestCase):
     def test_channels(self):
         """Test that channel indices can also be parameterized and assigned."""
         schedule = pulse.Schedule()
-        schedule += pulse.ShiftPhase(self.phase, DriveChannel(2 * self.qubit))
+        schedule += pulse.ShiftPhase(self.phase, DriveChannel(2 * self.qubit).frame)
 
         schedule.assign_parameters({self.qubit: 4})
         self.assertEqual(schedule.instructions[0][1].frame, Frame("d", 8))

@@ -20,6 +20,7 @@ from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.pulse.frame import Frame
 
 
 class Acquire(Instruction):
@@ -91,6 +92,11 @@ class Acquire(Instruction):
     def channels(self) -> Tuple[Union[AcquireChannel, MemorySlot, RegisterSlot]]:
         """Returns the channels that this schedule uses."""
         return tuple(self.operands[ind] for ind in (1, 2, 3) if self.operands[ind] is not None)
+
+    @property
+    def frames(self) -> Tuple[Frame]:
+        """Acquire does not act on frames so return an empty tuple."""
+        return tuple()
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:

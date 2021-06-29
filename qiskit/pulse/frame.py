@@ -62,6 +62,11 @@ class Frame:
         return self._identifier[0]
 
     @property
+    def index(self) -> Union[int, ParameterExpression]:
+        """Return the index of the frame."""
+        return self._identifier[1]
+
+    @property
     def name(self) -> str:
         """Return the shorthand alias for this frame, which is based on its type and index."""
         if isinstance(self._identifier[1], Parameter):

@@ -16,6 +16,7 @@ from typing import Optional, Union, Tuple
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.pulse.frame import Frame
 
 
 class Delay(Instruction):
@@ -62,6 +63,11 @@ class Delay(Instruction):
     def channels(self) -> Tuple[Channel]:
         """Returns the channels that this schedule uses."""
         return (self.channel,)
+
+    @property
+    def frames(self) -> Tuple[Frame]:
+        """Delay does not apply on frames."""
+        return tuple()
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:

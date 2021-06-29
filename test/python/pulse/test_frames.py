@@ -248,8 +248,9 @@ class TestResolvedFrames(QiskitTestCase):
         sig = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame("Q", 0))
 
         with pulse.build() as sched:
-            pulse.play(sig, pulse.DriveChannel(0))
-            pulse.shift_phase(1.0, pulse.Frame("Q", 0))
+            with pulse.align_sequential():
+                pulse.play(sig, pulse.DriveChannel(0))
+                pulse.shift_phase(1.0, pulse.Frame("Q", 0))
 
         frame = ResolvedFrame(pulse.Frame("Q", 0), FrameDefinition(self.freq0), self.dt_)
         frame.set_frame_instructions(block_to_schedule(sched))
@@ -279,62 +280,6 @@ class TestResolvedFrames(QiskitTestCase):
         self.assertAlmostEqual(frame.frequency(10), self.freq1, places=8)
         self.assertAlmostEqual(frame.frequency(15), self.freq1, places=8)
         self.assertAlmostEqual(frame.frequency(16), self.freq0, places=8)
-
-    def test_broadcasting(self):
-        """Test that resolved frames broadcast to control channels."""
-
-        sig = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame("Q", 0))
-
-        with pulse.build() as sched:
-            with pulse.align_left():
-                pulse.play(sig, pulse.DriveChannel(3))
-                pulse.shift_phase(1.23, pulse.Frame("Q", 0))
-                with pulse.align_left(ignore_frames=True):
-                    pulse.play(sig, pulse.DriveChannel(3))
-                    pulse.play(sig, pulse.ControlChannel(0))
-
-        frames_config = FramesConfiguration.from_dict({
-            pulse.Frame("Q", 0): {
-                "frequency": self.freq0,
-                "purpose": "Frame of qubit 0.",
-            }
-        })
-        frames_config.sample_duration = self.dt_
-
-        resolved = resolve_frames(sched, frames_config).instructions
-
-        phase = (np.angle(np.exp(2.0j * np.pi * self.freq0 * 160 * self.dt_)) + 1.23) % (2 * np.pi)
-
-        # Check that the frame resolved schedule has the correct phase and frequency instructions
-        # at the right place.
-        # First, ensure that resolved starts with a SetFrequency and SetPhase.
-        self.assertEqual(resolved[0][0], 0)
-        set_freq = resolved[0][1]
-        self.assertTrue(isinstance(set_freq, pulse.SetFrequency))
-        self.assertAlmostEqual(set_freq.frequency, self.freq0, places=8)
-
-        self.assertEqual(resolved[1][0], 0)
-        play_pulse = resolved[1][1]
-        self.assertTrue(isinstance(play_pulse, pulse.Play))
-
-        # Next, check that we do phase shifts on the DriveChannel after the first Gaussian.
-        self.assertEqual(resolved[2][0], 160)
-        shift_phase = resolved[2][1]
-        self.assertTrue(isinstance(shift_phase, pulse.ShiftPhase))
-        self.assertAlmostEqual(shift_phase.phase, 1.23, places=8)
-
-        # Up to now, no pulse has been applied on the ControlChannel so we should
-        # encounter a Set instructions at time 160 which is when the first pulse
-        # is played on ControlChannel(0)
-        self.assertEqual(resolved[3][0], 160)
-        set_freq = resolved[3][1]
-        self.assertTrue(isinstance(set_freq, pulse.SetFrequency))
-        self.assertAlmostEqual(set_freq.frequency, self.freq0, places=8)
-
-        self.assertEqual(resolved[4][0], 160)
-        set_phase = resolved[4][1]
-        self.assertTrue(isinstance(set_phase, pulse.SetPhase))
-        self.assertAlmostEqual(set_phase.phase % (2 * np.pi), phase, places=8)
 
     def test_implicit_frame(self):
         """If a frame is not specified then the frame of the channel is assumed."""
