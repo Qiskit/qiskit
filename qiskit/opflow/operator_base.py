@@ -50,7 +50,15 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
     @property
     @abstractmethod
     def settings(self) -> Dict:
-        """Return settings."""
+        """Return settings of this object in a dictionary.
+
+        You can, for example, use this ``settings`` dictionary to serialize the
+        object in JSON format, if the JSON encoder you use supports all types in
+        the dictionary.
+
+        Returns:
+            Object settings in a dictionary.
+        """
         raise NotImplementedError
 
     @property
