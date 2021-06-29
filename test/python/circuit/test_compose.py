@@ -18,7 +18,14 @@ import unittest
 
 from qiskit import transpile
 from qiskit.pulse import Schedule
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Parameter, Gate, Instruction
+from qiskit.circuit import (
+    QuantumRegister,
+    ClassicalRegister,
+    QuantumCircuit,
+    Parameter,
+    Gate,
+    Instruction,
+)
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate
 from qiskit.test import QiskitTestCase
 
@@ -558,20 +565,20 @@ class TestCircuitCompose(QiskitTestCase):
         qc_a = QuantumCircuit(1)
         qc_a.x(0)
 
-        qc_b = QuantumCircuit(1, name='B')
+        qc_b = QuantumCircuit(1, name="B")
         qc_b.h(0)
 
         qc_a.compose(qc_b, wrap=True, inplace=True)
 
-        self.assertDictEqual(qc_a.count_ops(), {'B': 1, 'x': 1})
-        self.assertDictEqual(qc_a.decompose().count_ops(), {'h': 1, 'u3': 1})
+        self.assertDictEqual(qc_a.count_ops(), {"B": 1, "x": 1})
+        self.assertDictEqual(qc_a.decompose().count_ops(), {"h": 1, "u3": 1})
 
     def test_wrapping_unitary_circuit(self):
         """Test a unitary circuit will be wrapped as Gate, else as Instruction."""
         qc_init = QuantumCircuit(1)
         qc_init.x(0)
 
-        qc_unitary = QuantumCircuit(1, name='a')
+        qc_unitary = QuantumCircuit(1, name="a")
         qc_unitary.ry(0.23, 0)
 
         qc_nonunitary = QuantumCircuit(1)
