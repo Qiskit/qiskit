@@ -217,7 +217,7 @@ class CircuitSampler(ConverterBase):
                     diff_circuits = []
                     for circuit in circuits:
                         diff_circuit = circuit.copy()
-                        del diff_circuit.data[0 : len_common_circuit]
+                        del diff_circuit.data[0:len_common_circuit]
                         diff_circuits.append(diff_circuit)
 
                     used_qubits = set(
