@@ -859,6 +859,7 @@ class TextDrawing:
             ret.append("...")
         return ret
 
+    @staticmethod
     def special_label(node):
         """Some instructions have special labels"""
         labels = {IGate: "I", SXGate: "√X", SXdgGate: "√Xdg"}
