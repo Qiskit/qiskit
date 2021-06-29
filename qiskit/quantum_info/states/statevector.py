@@ -422,10 +422,8 @@ class Statevector(QuantumState, TolerancesMixin):
 
         if isinstance(oper, SparsePauliOp):
             return sum(
-                [
-                    coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
-                    for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)
-                ]
+                coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
+                for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)
             )
 
         val = self.evolve(oper, qargs=qargs)
@@ -782,7 +780,7 @@ class Statevector(QuantumState, TolerancesMixin):
         # circuit decomposition definition if it exists, otherwise we
         # cannot compose this gate and raise an error.
         if obj.definition is None:
-            raise QiskitError("Cannot apply Instruction: {}".format(obj.name))
+            raise QiskitError(f"Cannot apply Instruction: {obj.name}")
         if not isinstance(obj.definition, QuantumCircuit):
             raise QiskitError(
                 "{} instruction definition is {}; expected QuantumCircuit".format(
@@ -795,7 +793,7 @@ class Statevector(QuantumState, TolerancesMixin):
         for instr, qregs, cregs in obj.definition:
             if cregs:
                 raise QiskitError(
-                    "Cannot apply instruction with classical registers: {}".format(instr.name)
+                    f"Cannot apply instruction with classical registers: {instr.name}"
                 )
             # Get the integer position of the flat register
             if qargs is None:

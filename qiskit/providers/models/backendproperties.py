@@ -60,7 +60,7 @@ class Nduv:
         return cls(**data)
 
     def to_dict(self):
-        """Return a dictionary format representation of the BackendStatus.
+        """Return a dictionary format representation of the object.
 
         Returns:
             dict: The dictionary form of the Nduv.
@@ -80,7 +80,7 @@ class Nduv:
         return False
 
     def __repr__(self):
-        return "Nduv(%s, %s, %s, %s)" % (repr(self.date), self.name, self.unit, self.value)
+        return f"Nduv({repr(self.date)}, {self.name}, {self.unit}, {self.value})"
 
 
 class Gate:
@@ -302,9 +302,7 @@ class BackendProperties:
                 if name:
                     result = result[name]
             elif name:
-                raise BackendPropertyError(
-                    "Provide qubits to get {n} of {g}".format(n=name, g=gate)
-                )
+                raise BackendPropertyError(f"Provide qubits to get {name} of {gate}")
         except KeyError as ex:
             raise BackendPropertyError(f"Could not find the desired property for {gate}") from ex
         return result

@@ -14,11 +14,16 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 import numpy as np
-from qiskit.algorithms.phase_estimators import PhaseEstimation, HamiltonianPhaseEstimation
+from qiskit.algorithms.phase_estimators import (
+    PhaseEstimation,
+    HamiltonianPhaseEstimation,
+    IterativePhaseEstimation,
+)
 from qiskit.opflow.evolutions import PauliTrotterEvolution, MatrixEvolution
 import qiskit
+from qiskit import QuantumCircuit
 from qiskit.opflow import H, X, Y, Z, I, StateFn
 
 
@@ -131,7 +136,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     def _setup_from_bound(self, evolution, op_class):
         hamiltonian = 0.5 * X + Y + Z
         state_preparation = None
-        bound = 1.2 * sum([abs(hamiltonian.coeff * coeff) for coeff in hamiltonian.coeffs])
+        bound = 1.2 * sum(abs(hamiltonian.coeff * coeff) for coeff in hamiltonian.coeffs)
         if op_class == "MatrixOp":
             hamiltonian = hamiltonian.to_matrix_op()
         backend = qiskit.BasicAer.get_backend("statevector_simulator")
@@ -178,56 +183,95 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
     """Evolution tests."""
 
     # pylint: disable=invalid-name
-    def one_phase(self, unitary_circuit, state_preparation=None, n_eval_qubits=6, backend=None):
+    def one_phase(
+        self,
+        unitary_circuit,
+        state_preparation=None,
+        backend_type=None,
+        phase_estimator=None,
+        num_iterations=6,
+    ):
         """Run phase estimation with operator, eigenvalue pair `unitary_circuit`,
-        `state_preparation`. Return the bit string with the largest amplitude.
+        `state_preparation`. Return the estimated phase as a value in :math:`[0,1)`.
         """
-        if backend is None:
-            backend = qiskit.BasicAer.get_backend("qasm_simulator")
+        if backend_type is None:
+            backend_type = "qasm_simulator"
+        backend = qiskit.BasicAer.get_backend(backend_type)
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
-        p_est = PhaseEstimation(num_evaluation_qubits=n_eval_qubits, quantum_instance=qi)
+        if phase_estimator is None:
+            phase_estimator = IterativePhaseEstimation
+        if phase_estimator == IterativePhaseEstimation:
+            p_est = IterativePhaseEstimation(num_iterations=num_iterations, quantum_instance=qi)
+        elif phase_estimator == PhaseEstimation:
+            p_est = PhaseEstimation(num_evaluation_qubits=6, quantum_instance=qi)
+        else:
+            raise ValueError("Unrecognized phase_estimator")
         result = p_est.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
         phase = result.phase
         return phase
 
-    @data("qasm_simulator", "statevector_simulator")
-    def test_qpe_Z0(self, backend_type):
-        """eigenproblem Z, |0>"""
-        backend = qiskit.BasicAer.get_backend(backend_type)
-
+    @data(
+        (X.to_circuit(), 0.5, "statevector_simulator", IterativePhaseEstimation),
+        (X.to_circuit(), 0.5, "qasm_simulator", IterativePhaseEstimation),
+        (None, 0.0, "qasm_simulator", IterativePhaseEstimation),
+        (X.to_circuit(), 0.5, "qasm_simulator", PhaseEstimation),
+        (None, 0.0, "qasm_simulator", PhaseEstimation),
+        (X.to_circuit(), 0.5, "statevector_simulator", PhaseEstimation),
+    )
+    @unpack
+    def test_qpe_Z(self, state_preparation, expected_phase, backend_type, phase_estimator):
+        """eigenproblem Z, |0> and |1>"""
         unitary_circuit = Z.to_circuit()
-        state_preparation = None  # prepare |0>
-        phase = self.one_phase(unitary_circuit, state_preparation, backend=backend)
-        self.assertEqual(phase, 0.0)
+        phase = self.one_phase(
+            unitary_circuit,
+            state_preparation,
+            backend_type=backend_type,
+            phase_estimator=phase_estimator,
+        )
+        self.assertEqual(phase, expected_phase)
 
-    @data("qasm_simulator", "statevector_simulator")
-    def test_qpe_Z1(self, backend_type):
-        """eigenproblem Z, |1>"""
-        backend = qiskit.BasicAer.get_backend(backend_type)
-
-        unitary_circuit = Z.to_circuit()
-        state_preparation = X.to_circuit()  # prepare |1>
-        phase = self.one_phase(unitary_circuit, state_preparation, backend=backend)
-        self.assertEqual(phase, 0.5)
-
-    @data("plus", "minus")
-    def test_qpe_Xplus(self, state):
-        """eigenproblem X, |+>"""
+    @data(
+        (H.to_circuit(), 0.0, IterativePhaseEstimation),
+        ((H @ X).to_circuit(), 0.5, IterativePhaseEstimation),
+        (H.to_circuit(), 0.0, PhaseEstimation),
+        ((H @ X).to_circuit(), 0.5, PhaseEstimation),
+    )
+    @unpack
+    def test_qpe_X_plus_minus(self, state_preparation, expected_phase, phase_estimator):
+        """eigenproblem X, (|+>, |->)"""
         unitary_circuit = X.to_circuit()
-        if state == "minus":  # prepare |->
-            state_preparation = X.to_circuit()
-            state_preparation.h(0)
-        else:  # prepare |+>
-            state_preparation = H.to_circuit()
+        phase = self.one_phase(unitary_circuit, state_preparation, phase_estimator=phase_estimator)
+        self.assertEqual(phase, expected_phase)
 
-        phase = self.one_phase(unitary_circuit, state_preparation)
-        if state == "minus":
-            self.assertEqual(phase, 0.5)
-        else:
-            self.assertEqual(phase, 0.0)
+    @data(
+        (X.to_circuit(), 0.125, IterativePhaseEstimation),
+        (I.to_circuit(), 0.875, IterativePhaseEstimation),
+        (X.to_circuit(), 0.125, PhaseEstimation),
+        (I.to_circuit(), 0.875, PhaseEstimation),
+    )
+    @unpack
+    def test_qpe_RZ(self, state_preparation, expected_phase, phase_estimator):
+        """eigenproblem RZ, (|0>, |1>)"""
+        alpha = np.pi / 2
+        unitary_circuit = QuantumCircuit(1)
+        unitary_circuit.rz(alpha, 0)
+        phase = self.one_phase(unitary_circuit, state_preparation, phase_estimator=phase_estimator)
+        self.assertEqual(phase, expected_phase)
+
+    def test_check_num_iterations(self):
+        """test check for num_iterations greater than zero"""
+        unitary_circuit = X.to_circuit()
+        state_preparation = None
+        with self.assertRaises(ValueError):
+            self.one_phase(unitary_circuit, state_preparation, num_iterations=-1)
 
     def phase_estimation(
-        self, unitary_circuit, state_preparation=None, num_evaluation_qubits=6, backend=None
+        self,
+        unitary_circuit,
+        state_preparation=None,
+        num_evaluation_qubits=6,
+        backend=None,
+        construct_circuit=False,
     ):
         """Run phase estimation with operator, eigenvalue pair `unitary_circuit`,
         `state_preparation`. Return all results
@@ -238,10 +282,17 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         phase_est = PhaseEstimation(
             num_evaluation_qubits=num_evaluation_qubits, quantum_instance=qi
         )
-        result = phase_est.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
+        if construct_circuit:
+            pe_circuit = phase_est.construct_circuit(unitary_circuit, state_preparation)
+            result = phase_est.estimate_from_pe_circuit(pe_circuit, unitary_circuit.num_qubits)
+        else:
+            result = phase_est.estimate(
+                unitary=unitary_circuit, state_preparation=state_preparation
+            )
         return result
 
-    def test_qpe_Zplus(self):
+    @data(True, False)
+    def test_qpe_Zplus(self, construct_circuit):
         """superposition eigenproblem Z, |+>"""
         unitary_circuit = Z.to_circuit()
         state_preparation = H.to_circuit()  # prepare |+>
@@ -249,6 +300,7 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
             unitary_circuit,
             state_preparation,
             backend=qiskit.BasicAer.get_backend("statevector_simulator"),
+            construct_circuit=construct_circuit,
         )
 
         phases = result.filter_phases(1e-15, as_float=True)

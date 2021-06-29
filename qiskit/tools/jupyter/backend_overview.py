@@ -135,9 +135,7 @@ def backend_widget(backend):
     config = backend.configuration().to_dict()
     props = backend.properties().to_dict()
 
-    name = widgets.HTML(
-        value="<h4>{name}</h4>".format(name=backend.name()), layout=widgets.Layout()
-    )
+    name = widgets.HTML(value=f"<h4>{backend.name()}</h4>", layout=widgets.Layout())
 
     num_qubits = config["n_qubits"]
 
@@ -147,12 +145,12 @@ def backend_widget(backend):
             qv_val = config["quantum_volume"]
 
     qubit_count = widgets.HTML(
-        value="<h5><b>{qubits}</b></h5>".format(qubits=num_qubits),
+        value=f"<h5><b>{num_qubits}</b></h5>",
         layout=widgets.Layout(justify_content="center"),
     )
 
     qv_value = widgets.HTML(
-        value="<h5>{qubits}</h5>".format(qubits=qv_val),
+        value=f"<h5>{qv_val}</h5>",
         layout=widgets.Layout(justify_content="center"),
     )
 
@@ -182,10 +180,10 @@ def backend_widget(backend):
     least_busy = widgets.HTML(value="<h5></h5>", layout=widgets.Layout(justify_content="center"))
 
     t1_units = props["qubits"][0][0]["unit"]
-    avg_t1 = round(sum([q[0]["value"] for q in props["qubits"]]) / num_qubits, 1)
-    avg_t2 = round(sum([q[1]["value"] for q in props["qubits"]]) / num_qubits, 1)
+    avg_t1 = round(sum(q[0]["value"] for q in props["qubits"]) / num_qubits, 1)
+    avg_t2 = round(sum(q[1]["value"] for q in props["qubits"]) / num_qubits, 1)
     t12_widget = widgets.HTML(
-        value="<h5>{t1} / {t2} {units}</h5>".format(t1=avg_t1, t2=avg_t2, units=t1_units),
+        value=f"<h5>{avg_t1} / {avg_t2} {t1_units}</h5>",
         layout=widgets.Layout(),
     )
 
@@ -203,9 +201,7 @@ def backend_widget(backend):
                             num_cx += 1
         avg_cx_err = round(sum_cx_err / (num_cx), 4)
 
-    cx_widget = widgets.HTML(
-        value="<h5>{cx_err}</h5>".format(cx_err=avg_cx_err), layout=widgets.Layout()
-    )
+    cx_widget = widgets.HTML(value=f"<h5>{avg_cx_err}</h5>", layout=widgets.Layout())
 
     avg_meas_err = 0
     for qub in props["qubits"]:
@@ -213,9 +209,7 @@ def backend_widget(backend):
             if item["name"] == "readout_error":
                 avg_meas_err += item["value"]
     avg_meas_err = round(avg_meas_err / num_qubits, 4)
-    meas_widget = widgets.HTML(
-        value="<h5>{meas_err}</h5>".format(meas_err=avg_meas_err), layout=widgets.Layout()
-    )
+    meas_widget = widgets.HTML(value=f"<h5>{avg_meas_err}</h5>", layout=widgets.Layout())
 
     out = widgets.VBox(
         [
