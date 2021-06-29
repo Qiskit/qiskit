@@ -112,7 +112,19 @@ of the ``register[0]``'s position in the containing circuit's qubits list.
 
 The standalone boolean determines whether the register is constructed as a
 standalone register that was added to the circuit or was created from existing
-bits.
+bits. A register is considered standalone if it has bits constructed solely
+as part of it, for example::
+
+    qr = QuantumRegister(2)
+    qc = QuantumCircuit(qr)
+
+the register ``qr`` would be a standalone register. While something like::
+
+    bits = [Qubit(), Qubit()]
+    qr = QuantumRegister(bits=bits)
+    qc = QuantumCircuit(bits=bits)
+
+``qr`` would have ``standalone`` set to ``False``.
 
 
 CUSTOM_DEFINITIONS
