@@ -25,6 +25,7 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.test import providers
+from qiskit.qasm2.functions import load
 
 
 class StreamHandlerRaiseException(StreamHandler):
@@ -45,7 +46,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         self.seed = 88
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
         qasm_filename = os.path.join(qasm_dir, "example.qasm")
-        transpiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
+        transpiled_circuit = load(filename=qasm_filename)
         transpiled_circuit.name = "test"
         transpiled_circuit = transpile(transpiled_circuit, backend=self.backend)
         self.qobj = assemble(transpiled_circuit, shots=1000, seed_simulator=self.seed)
