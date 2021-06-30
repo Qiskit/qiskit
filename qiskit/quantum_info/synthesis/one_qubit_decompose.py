@@ -80,6 +80,9 @@ class OneQubitEulerDecomposer:
         * - 'XYX'
           - :math:`X(\phi) Y(\theta) X(\lambda)`
           - :math:`e^{i\gamma} R_X(\phi).R_Y(\theta).R_X(\lambda)`
+        * - 'XZX'
+          - :math:`X(\phi) Z(\theta) X(\lambda)`
+          - :math:`e^{i\gamma} R_X(\phi).R_Z(\theta).R_X(\lambda)`
         * - 'U3'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
           - :math:`e^{i\gamma} U_3(\theta,\phi,\lambda)`
@@ -116,7 +119,7 @@ class OneQubitEulerDecomposer:
         """Initialize decomposer
 
         Supported bases are: 'U', 'PSX', 'ZSXX', 'ZSX', 'U321', 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ',
-        'XYX'.
+        'XYX', 'XZX'.
 
         Args:
             basis (str): the decomposition basis [Default: 'U3']
@@ -184,6 +187,7 @@ class OneQubitEulerDecomposer:
             "ZYZ": (self._params_zyz, self._circuit_zyz),
             "ZXZ": (self._params_zxz, self._circuit_zxz),
             "XYX": (self._params_xyx, self._circuit_xyx),
+            "XZX": (self._params_xzx, self._circuit_xzx),
         }
         if basis not in basis_methods:
             raise QiskitError(f"OneQubitEulerDecomposer: unsupported basis {basis}")
@@ -262,6 +266,15 @@ class OneQubitEulerDecomposer:
         return theta, newphi, newlam, phase + (newphi + newlam - phi - lam) / 2
 
     @staticmethod
+    def _params_xzx(umat):
+        det = np.linalg.det(umat)
+        phase = (-1j * np.log(det)).real / 2
+        mat = umat / np.sqrt(det)
+        mat_zxz = _h_conjugate(mat)
+        theta, phi, lam, phase_zxz = OneQubitEulerDecomposer._params_zxz(mat_zxz)
+        return theta, phi, lam, phase + phase_zxz
+
+    @staticmethod
     def _params_u3(mat):
         """Return the Euler angles and phase for the U3 basis."""
         # The determinant of U3 gate depends on its params
@@ -336,6 +349,16 @@ class OneQubitEulerDecomposer:
             gphase += phi / 2
             circuit._append(RZGate(phi), [qr[0]], [])
         circuit.global_phase = gphase
+        return circuit
+
+    @staticmethod
+    def _circuit_xzx(theta, phi, lam, phase):
+        # TODO: handle special cases
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr, global_phase=phase)
+        circuit.append(RXGate(lam), qargs=qr)
+        circuit.append(RZGate(theta), qargs=qr)
+        circuit.append(RXGate(phi), qargs=qr)
         return circuit
 
     @staticmethod
@@ -527,3 +550,14 @@ def _mod_2pi(angle: float, atol: float = 0):
     if abs(wrapped - np.pi) < atol:
         wrapped = -np.pi
     return wrapped
+
+
+def _h_conjugate(su2):
+    """Return su2 conjugated by Hadamard gate. No warning if input matrix is not in su2."""
+    return np.array(
+        [
+            [su2[0, 0].real + 1j * su2[1, 0].imag, 1j * su2[0, 0].imag + su2[1, 0].real],
+            [1j * su2[0, 0].imag - su2[1, 0].real, su2[0, 0].real - 1j * su2[1, 0].imag],
+        ],
+        dtype=complex,
+    )

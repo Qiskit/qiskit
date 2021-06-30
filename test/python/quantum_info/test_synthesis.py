@@ -440,7 +440,7 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
         )
 
 
-ONEQ_BASES = ["U3", "U321", "U", "U1X", "PSX", "ZSX", "ZSXX", "ZYZ", "ZXZ", "XYX", "RR"]
+ONEQ_BASES = ["U3", "U321", "U", "U1X", "PSX", "ZSX", "ZSXX", "ZYZ", "ZXZ", "XYX", "RR", "XZX"]
 SIMP_TOL = [
     (False, 1.0e-14),
     (True, 1.0e-12),
