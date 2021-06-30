@@ -1080,23 +1080,23 @@ class TwoQubitBasisDecomposer:
         euler_q1 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
         global_phase = 0.0
 
-        # CI TESTING 
+        # CI TESTING
         test_decomp_u3 = TwoQubitBasisDecomposer(CXGate())
-        print('TESTING DECOMPOSITION')
+        print("TESTING DECOMPOSITION")
         print(test_decomp_u3(self.basis.unitary_matrix))
         np.set_printoptions(precision=3, suppress=True)
         # decompose source unitaries to zxz
         zxz_decomposer = OneQubitEulerDecomposer("ZXZ")
         for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
             euler_angles = zxz_decomposer.angles_and_phase(decomposition[idecomp])
-            print(f'euler_angles, qubit 0, num {iqubit}: {np.array(euler_angles)}')            
+            print(f"euler_angles, qubit 0, num {iqubit}: {np.array(euler_angles)}")
             euler_q0[iqubit, [1, 2, 0]] = euler_angles[:3]
             global_phase += euler_angles[3]
         # decompose target unitaries to xzx
         xzx_decomposer = OneQubitEulerDecomposer("XZX")
         for iqubit, idecomp in enumerate(range(1, num_1q_uni, 2)):
             euler_angles = xzx_decomposer.angles_and_phase(decomposition[idecomp])
-            print(f'euler_angles, qubit 1, num {iqubit}: {np.array(euler_angles)}')
+            print(f"euler_angles, qubit 1, num {iqubit}: {np.array(euler_angles)}")
             euler_q1[iqubit, [1, 2, 0]] = euler_angles[:3]
             global_phase += euler_angles[3]
         qc = QuantumCircuit(2)
