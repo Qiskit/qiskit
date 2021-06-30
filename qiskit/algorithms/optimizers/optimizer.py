@@ -159,7 +159,7 @@ class Optimizer(ABC):
 
     @property
     @abstractmethod
-    def settings(self):
+    def settings(self) -> Dict[str, Any]:
         """The optimizer settings in a dictionary format.
 
         The settings can for instance be used for JSON-serialization (if all settings are
@@ -239,11 +239,6 @@ class Optimizer(ABC):
                 self.__class__.__name__,
             )
         pass
-
-    @property
-    def settings(self) -> Dict[str, Any]:
-        """The optimizer settings in a dictionary format."""
-        raise NotImplementedError("Dictionary conversion not implemented for this optimizer.")
 
     @property
     def gradient_support_level(self):
