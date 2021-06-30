@@ -41,6 +41,7 @@ class CompressorBase(ABC):
 
 class EulerCompressor(CompressorBase):
     """
+    todo: reformat as in Qiskit
     This is the first implementation by Andrea Simonetto where two strategies have been used.
     First, consecutive bare CNOTs (that stem from block with all zero thetas) are compressed by
     using mirror relation as described in "Equivalent Quantum Circuits", Garcia-Escartin and
@@ -121,6 +122,7 @@ class EulerCompressor(CompressorBase):
             # If there is still a CNOT:
             if np.shape(syn_sec)[0] != 0:
                 if np.shape(syn_sec)[1] > 2:
+                    # todo: minimal is not a good name here, rename
                     syn_sec = self._minimal(syn_sec, self._niter)
 
             num_cnots1 = np.shape(compressed_cnots)[1]
@@ -133,9 +135,7 @@ class EulerCompressor(CompressorBase):
             logger.debug("Compressed cnots: %s", compressed_cnots)
 
             # keep the angles corresponding to old_cnot
-            old_thetas = np.array(
-                compressed_thetas[4 * (b - 1) : 4 * b]
-            )
+            old_thetas = np.array(compressed_thetas[4 * (b - 1) : 4 * b])
             logger.debug("Old thetas: %s", old_thetas)
 
             # delete angles corresponding to deleted cnots
@@ -170,6 +170,9 @@ class EulerCompressor(CompressorBase):
             logger.debug("Compressed thetas: %s", compressed_thetas)
 
         logger.debug("Sparsity pattern: %s", sparsity)
+
+        # todo: verify that the output is better than the original circuit.
+        #  if so, return the original circuit
 
         return ParametricCircuit(num_qubits=n, cnots=compressed_cnots, thetas=compressed_thetas)
         # return cmp_cnots, cmp_thetas, spar  # added cmp_thetas as an output
@@ -226,8 +229,8 @@ class EulerCompressor(CompressorBase):
             th = np.zeros([3 * num_qubits + 4 * np.shape(cnots)[1]])
             # print(len(th))
             th[0 : len(th_in) - 3 * num_qubits] = th_in[: len(th_in) - 3 * num_qubits]
-            th[len(th_in) - 3 * num_qubits: -3 * num_qubits] = thetas[4 * L: -3 * num_qubits]
-            th[-3 * num_qubits:] = th_in[-3 * num_qubits:]
+            th[len(th_in) - 3 * num_qubits : -3 * num_qubits] = thetas[4 * L : -3 * num_qubits]
+            th[-3 * num_qubits :] = th_in[-3 * num_qubits :]
             # print(len(th), 3*n + 4*np.shape(cnots)[1])
 
             # pcpc
@@ -243,8 +246,8 @@ class EulerCompressor(CompressorBase):
 
         # Internal checks
         if checks:
-            u1 = Operator(qcirc).data   # todo: what is u1? (was U1)
-            v1 = Operator(qct).data     # todo: what is v1? (was V1)
+            u1 = Operator(qcirc).data  # todo: what is u1? (was U1)
+            v1 = Operator(qct).data  # todo: what is v1? (was V1)
             alpha = np.angle(np.trace(np.dot(v1.conj().T, u1)))
             u_new1 = np.exp(-1j * alpha) * u1
             diff = np.linalg.norm(u_new1 - v1)
@@ -256,6 +259,7 @@ class EulerCompressor(CompressorBase):
 
     @staticmethod
     def _sparsity(cnots: np.ndarray, thetas: np.ndarray, eps: float) -> np.ndarray:
+        # todo: seems like Liam knows what's going on up here.
         # if the 4 angles between 2 CNOT units are all equal to zero, then spar is 0 there
         num_cnots = np.shape(cnots)[1]
         sums = np.zeros(num_cnots - 1)
@@ -269,6 +273,7 @@ class EulerCompressor(CompressorBase):
 
     @staticmethod
     def _zero_runs(a):
+        # todo: Liam
         # from https://stackoverflow.com/a/24892274
         # Create an array that is 1 where a is 0, and pad each end with an extra 0.
         iszero = np.concatenate(([0], np.equal(a, 0).view(np.int8), [0]))
@@ -279,6 +284,7 @@ class EulerCompressor(CompressorBase):
 
     @staticmethod
     def _cnot_synthesis(num_qubits: int, cnots: np.ndarray):
+        # todo: Liam
         """
         synthesis algorithm from paper
         """
@@ -307,6 +313,7 @@ class EulerCompressor(CompressorBase):
 
     @staticmethod
     def _commute(cnots: np.ndarray):
+        # todo: Liam
         # randomly permutes one pair of consecutive cnots that can commute
         com_cnots = np.array(cnots)
         num_cnots = np.shape(cnots)[1]
@@ -323,6 +330,7 @@ class EulerCompressor(CompressorBase):
 
     @staticmethod
     def _reduce_for_minimal(cnots: np.ndarray):
+        # todo: Liam to provide some comments?
         """
         This is reduce() function that is called in minimal().
         Do not confuse it with another reduce().
@@ -382,6 +390,7 @@ class EulerCompressor(CompressorBase):
 
     @staticmethod
     def _compress_equals(cnots: np.ndarray):
+        # todo: Liam
         # compress equal consecutive cnots
         red_cnots = np.array(cnots)
         num_cnots = np.shape(red_cnots)[1]
@@ -416,6 +425,7 @@ class EulerCompressor(CompressorBase):
 
     @staticmethod
     def _minimal(cnots: np.ndarray, niter: int):
+        # todo: Liam
         # alternates between commute and reduce
         min_cnots = np.array(cnots)
         for _ in range(niter):
