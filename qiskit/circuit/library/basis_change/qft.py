@@ -75,13 +75,15 @@ class QFT(BlueprintCircuit):
 
     """
 
-    def __init__(self,
-                 num_qubits: Optional[int] = None,
-                 approximation_degree: int = 0,
-                 do_swaps: bool = True,
-                 inverse: bool = False,
-                 insert_barriers: bool = False,
-                 name: str = 'qft') -> None:
+    def __init__(
+        self,
+        num_qubits: Optional[int] = None,
+        approximation_degree: int = 0,
+        do_swaps: bool = True,
+        inverse: bool = False,
+        insert_barriers: bool = False,
+        name: str = "qft",
+    ) -> None:
         """Construct a new QFT circuit.
 
         Args:
@@ -126,7 +128,7 @@ class QFT(BlueprintCircuit):
             self._invalidate()
 
             if num_qubits:
-                self.qregs = [QuantumRegister(num_qubits, name='q')]
+                self.qregs = [QuantumRegister(num_qubits, name="q")]
             else:
                 self.qregs = []
 
@@ -150,7 +152,7 @@ class QFT(BlueprintCircuit):
             ValueError: If the approximation degree is smaller than 0.
         """
         if approximation_degree < 0:
-            raise ValueError('Approximation degree cannot be smaller than 0.')
+            raise ValueError("Approximation degree cannot be smaller than 0.")
 
         if approximation_degree != self._approximation_degree:
             self._invalidate()
@@ -208,22 +210,23 @@ class QFT(BlueprintCircuit):
         """Invalidate the current build of the circuit."""
         self._data = None
 
-    def inverse(self) -> 'QFT':
+    def inverse(self) -> "QFT":
         """Invert this circuit.
 
         Returns:
             The inverted circuit.
         """
 
-        if self.name in ('qft', 'iqft'):
-            name = 'qft' if self._inverse else 'iqft'
+        if self.name in ("qft", "iqft"):
+            name = "qft" if self._inverse else "iqft"
         else:
-            name = self.name + '_dg'
+            name = self.name + "_dg"
 
         inverted = self.copy(name=name)
         inverted._data = []
 
         from qiskit.circuit.parametertable import ParameterTable
+
         inverted._parameter_table = ParameterTable()
 
         for inst, qargs, cargs in reversed(self._data):
@@ -242,7 +245,7 @@ class QFT(BlueprintCircuit):
         if self.num_qubits is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError('The number of qubits has not been set.')
+                raise AttributeError("The number of qubits has not been set.")
 
         return valid
 
@@ -252,7 +255,9 @@ class QFT(BlueprintCircuit):
 
         for j in reversed(range(self.num_qubits)):
             self.h(j)
-            num_entanglements = max(0, j-max(0, self.approximation_degree - (self.num_qubits-j-1)))
+            num_entanglements = max(
+                0, j - max(0, self.approximation_degree - (self.num_qubits - j - 1))
+            )
             for k in reversed(range(j - num_entanglements, j)):
                 lam = np.pi / (2 ** (j - k))
                 self.cp(lam, j, k)

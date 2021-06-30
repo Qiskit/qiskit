@@ -33,9 +33,7 @@ class MplPlotter(BasePlotter):
     This plotter arranges bits along y axis of 2D canvas with vertical offset.
     """
 
-    def __init__(self,
-                 canvas: core.DrawerCanvas,
-                 axis: Optional[plt.Axes] = None):
+    def __init__(self, canvas: core.DrawerCanvas, axis: Optional[plt.Axes] = None):
         """Create new plotter.
 
         Args:
@@ -48,8 +46,8 @@ class MplPlotter(BasePlotter):
 
         if axis is None:
             fig_height = self.canvas.vmax - self.canvas.vmin
-            fig_h = self.canvas.formatter['general.fig_unit_height'] * fig_height
-            fig_w = self.canvas.formatter['general.fig_width']
+            fig_h = self.canvas.formatter["general.fig_unit_height"] * fig_height
+            fig_w = self.canvas.formatter["general.fig_width"]
 
             self.figure = plt.figure(figsize=(fig_w, fig_h))
             self.ax = self.figure.add_subplot(1, 1, 1)
@@ -61,22 +59,25 @@ class MplPlotter(BasePlotter):
 
     def initialize_canvas(self):
         """Format appearance of matplotlib canvas."""
-        self.ax.set_facecolor(self.canvas.formatter['color.background'])
+        self.ax.set_facecolor(self.canvas.formatter["color.background"])
 
         # axis lines
-        self.ax.spines['right'].set_color("none")
-        self.ax.spines['left'].set_color("none")
-        self.ax.spines['top'].set_color("none")
+        self.ax.spines["right"].set_color("none")
+        self.ax.spines["left"].set_color("none")
+        self.ax.spines["top"].set_color("none")
 
         # axis labels
         self.ax.set_yticks([])
-        axis_config = self.canvas.layout['time_axis_map'](time_window=self.canvas.time_range)
+        axis_config = self.canvas.layout["time_axis_map"](time_window=self.canvas.time_range)
 
         self.ax.set_xticks(list(axis_config.axis_map.keys()))
-        self.ax.set_xticklabels(list(axis_config.axis_map.values()),
-                                fontsize=self.canvas.formatter['text_size.axis_label'])
-        self.ax.set_xlabel(axis_config.label,
-                           fontsize=self.canvas.formatter['text_size.axis_label'])
+        self.ax.set_xticklabels(
+            list(axis_config.axis_map.values()),
+            fontsize=self.canvas.formatter["text_size.axis_label"],
+        )
+        self.ax.set_xlabel(
+            axis_config.label, fontsize=self.canvas.formatter["text_size.axis_label"]
+        )
 
         # boundary
         self.ax.set_xlim(*self.canvas.time_range)
@@ -92,14 +93,15 @@ class MplPlotter(BasePlotter):
 
             if isinstance(data, drawings.BoxData):
                 # box data
-                if data.data_type in [str(types.BoxType.SCHED_GATE.value),
-                                      str(types.BoxType.DELAY.value)]:
+                if data.data_type in [
+                    str(types.BoxType.SCHED_GATE.value),
+                    str(types.BoxType.DELAY.value),
+                ]:
                     # draw a smoothly rounded rectangle
                     xs, ys1, ys2 = self._time_bucket_outline(xvals, yvals)
-                    self.ax.fill_between(x=xs,
-                                         y1=ys1 + offsets[0],
-                                         y2=ys2 + offsets[0],
-                                         **data.styles)
+                    self.ax.fill_between(
+                        x=xs, y1=ys1 + offsets[0], y2=ys2 + offsets[0], **data.styles
+                    )
 
                 else:
                     # draw a rectangle
@@ -117,7 +119,7 @@ class MplPlotter(BasePlotter):
             elif isinstance(data, drawings.TextData):
                 # text data
                 if data.latex is not None:
-                    s = r'${latex}$'.format(latex=data.latex)
+                    s = fr"${data.latex}$"
                 else:
                     s = data.text
 
@@ -128,12 +130,14 @@ class MplPlotter(BasePlotter):
                 self.ax.plot(xvals.repeat(len(offsets)), offsets, **data.styles)
 
             else:
-                VisualizationError('Data {name} is not supported by {plotter}'
-                                   ''.format(name=data, plotter=self.__class__.__name__))
+                VisualizationError(
+                    "Data {name} is not supported by {plotter}"
+                    "".format(name=data, plotter=self.__class__.__name__)
+                )
 
-    def _time_bucket_outline(self,
-                             xvals: np.ndarray,
-                             yvals: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def _time_bucket_outline(
+        self, xvals: np.ndarray, yvals: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Generate outline of time bucket. Edges are smoothly faded.
 
         Args:
@@ -149,12 +153,16 @@ class MplPlotter(BasePlotter):
         width = x1 - x0
         y_mid = 0.5 * (y0 + y1)
 
-        risefall = int(min(self.canvas.formatter['time_bucket.edge_dt'], max(width / 2 - 2, 0)))
+        risefall = int(min(self.canvas.formatter["time_bucket.edge_dt"], max(width / 2 - 2, 0)))
         edge = np.sin(np.pi / 2 * np.arange(0, risefall) / risefall)
 
-        xs = np.concatenate([np.arange(x0, x0 + risefall),
-                             [x0 + risefall, x1 - risefall],
-                             np.arange(x1 - risefall + 1, x1 + 1)])
+        xs = np.concatenate(
+            [
+                np.arange(x0, x0 + risefall),
+                [x0 + risefall, x1 - risefall],
+                np.arange(x1 - risefall + 1, x1 + 1),
+            ]
+        )
 
         l1 = (y1 - y_mid) * np.concatenate([edge, [1, 1], edge[::-1]])
         l2 = (y0 - y_mid) * np.concatenate([edge, [1, 1], edge[::-1]])
@@ -166,9 +174,7 @@ class MplPlotter(BasePlotter):
         Args:
             filename: File path to output image data.
         """
-        plt.savefig(filename,
-                    bbox_inches='tight',
-                    dpi=self.canvas.formatter['general.dpi'])
+        plt.savefig(filename, bbox_inches="tight", dpi=self.canvas.formatter["general.dpi"])
 
     def get_image(self, interactive: bool = False) -> matplotlib.pyplot.Figure:
         """Get image data to return.
@@ -178,8 +184,7 @@ class MplPlotter(BasePlotter):
         Returns:
             Matplotlib figure data.
         """
-        if matplotlib.get_backend() in ['module://ipykernel.pylab.backend_inline',
-                                        'nbAgg']:
+        if matplotlib.get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(self.figure)
 
         if self.figure and interactive:
