@@ -859,7 +859,7 @@ def _write_circuit(file_obj, circuit):
             REGISTER_ARRAY_PACK = "%sI" % reg.size
             file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *(qubit_indices[bit] for bit in reg)))
         for reg in circuit.cregs:
-            standalone = reg[0]._register is not None
+            standalone = all(bit._register is reg for bit in reg)
             reg_name = reg.name.encode("utf8")
             file_obj.write(struct.pack(REGISTER_PACK, b"c", standalone, reg.size, len(reg_name)))
             file_obj.write(reg_name)
@@ -1014,7 +1014,7 @@ def _read_circuit(file_obj):
             circ.add_bits(clbits)
         for name, bit_indices in shared_creg.items():
             bits = [circ.clbits[i] for i in bit_indices]
-            qreg = ClassicalRegister(name=name, bits=bits)
+            creg = ClassicalRegister(name=name, bits=bits)
             circ.add_register(creg)
             out_registers["c"][name] = creg
     else:

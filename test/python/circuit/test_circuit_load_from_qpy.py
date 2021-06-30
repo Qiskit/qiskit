@@ -18,6 +18,7 @@ import io
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
@@ -263,8 +264,8 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circs = load(qpy_file)
         self.assertEqual(circuits, new_circs)
 
-    def test_standalone_register(self):
-        """Test a circuit with standalone registers."""
+    def test_shared_bit_register(self):
+        """Test a circuit with shared bit registers."""
         qubits = [Qubit() for _ in range(5)]
         qc = QuantumCircuit()
         qc.add_bits(qubits)
@@ -281,3 +282,22 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_qc = load(qpy_file)[0]
         self.assertEqual(qc, new_qc)
+
+    def test_hybrid_standalone_register(self):
+        """Test qpy serialization with registers that mix bit types"""
+        qr = QuantumRegister(5, "foo")
+        qr = QuantumRegister(name="bar", bits=qr[:3] + [Qubit(), Qubit()])
+        cr = ClassicalRegister(5, "foo")
+        cr = ClassicalRegister(name="classical_bar", bits=cr[:3] + [Clbit(), Clbit()])
+        qc = QuantumCircuit(qr, cr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.measure(qr, cr)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
