@@ -22,6 +22,7 @@ from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
+from qiskit.opflow import X, Y, Z
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.qpy_serialization import dump, load
 
@@ -248,6 +249,15 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
+
+    def test_string_parameter(self):
+        """Test a PauliGate instruction that has string parameters."""
+        circ = (X ^ Y ^ Z).to_circuit_op().to_circuit()
+        qpy_file = io.BytesIO()
+        dump(circ, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(circ, new_circuit)
 
     def test_multiple_circuits(self):
         """Test multiple circuits can be serialized together."""
