@@ -99,7 +99,7 @@ class GSLS(Optimizer):
 
     @property
     def settings(self) -> Dict[str, Any]:
-        return self._options.copy()
+        return {key: self._options.get(key, None) for key in self._OPTIONS}
 
     def optimize(
         self,
