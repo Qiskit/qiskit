@@ -270,7 +270,9 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
             "perturbation_dims": 5,
             "trust_region": False,
             "initial_hessian": None,
+            "lse_solver": None,
             "hessian_delay": 0,
+            "callback": None,
         }
         spsa = SPSA(**options)
 
@@ -322,7 +324,9 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
             "regularization": 0.1,
             "resamplings": 2,
             "perturbation_dims": 5,
+            "lse_solver": None,
             "initial_hessian": None,
+            "callback": None,
             "hessian_delay": 0,
         }
         spsa = QNSPSA(**options)

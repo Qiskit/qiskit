@@ -307,12 +307,6 @@ class SPSA(Optimizer):
 
     @property
     def settings(self):
-        if self.callback is not None:
-            raise ValueError("Cannot serialize SPSA with callback.")
-
-        if self.lse_solver is not None:
-            raise ValueError("Cannot serialize SPSA with ``lse_solver``.")
-
         # if learning rate or perturbation are custom iterators expand them
         if callable(self.learning_rate):
             iterator = self.learning_rate()
@@ -338,7 +332,9 @@ class SPSA(Optimizer):
             "second_order": self.second_order,
             "hessian_delay": self.hessian_delay,
             "regularization": self.regularization,
+            "lse_solver": self.lse_solver,
             "initial_hessian": self.initial_hessian,
+            "callback": self.callback
         }
 
     def _point_sample(self, loss, x, eps, delta1, delta2):

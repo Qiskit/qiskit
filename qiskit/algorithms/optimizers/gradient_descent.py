@@ -134,9 +134,6 @@ class GradientDescent(Optimizer):
 
     @property
     def settings(self) -> Dict[str, Any]:
-        if self.callback is not None:
-            raise ValueError("Cannot serialize GradientDescent with callback.")
-
         # if learning rate or perturbation are custom iterators expand them
         if callable(self.learning_rate):
             iterator = self.learning_rate()
@@ -149,6 +146,7 @@ class GradientDescent(Optimizer):
             "tol": self.tol,
             "learning_rate": learning_rate,
             "perturbation": self.perturbation,
+            "callback": self.callback
         }
 
     def _minimize(self, loss, grad, initial_point):
