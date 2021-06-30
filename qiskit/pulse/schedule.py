@@ -131,7 +131,7 @@ class Schedule:
         if name is None:
             name = self.prefix + str(next(self.instances_counter))
             if sys.platform != "win32" and not is_main_process():
-                name += "-{}".format(mp.current_process().pid)
+                name += f"-{mp.current_process().pid}"
 
         self._name = name
         self._parameter_manager = ParameterManager()
@@ -604,7 +604,7 @@ class Schedule:
         for channel in schedule.channels:
 
             if channel not in self._timeslots:
-                raise PulseError("The channel {} is not present in the schedule".format(channel))
+                raise PulseError(f"The channel {channel} is not present in the schedule")
 
             channel_timeslots = self._timeslots[channel]
             other_timeslots = _get_timeslots(schedule)
@@ -822,7 +822,7 @@ class Schedule:
         instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])
         if len(self.instructions) > 25:
             instructions += ", ..."
-        return '{}({}, name="{}")'.format(self.__class__.__name__, instructions, name)
+        return f'{self.__class__.__name__}({instructions}, name="{name}")'
 
 
 def _require_schedule_conversion(function: Callable) -> Callable:
@@ -932,7 +932,7 @@ class ScheduleBlock:
         if name is None:
             name = self.prefix + str(next(self.instances_counter))
             if sys.platform != "win32" and not is_main_process():
-                name += "-{}".format(mp.current_process().pid)
+                name += f"-{mp.current_process().pid}"
 
         self._name = name
         self._parameter_manager = ParameterManager()
@@ -1433,7 +1433,7 @@ class ParameterizedSchedule:
     def __init__(
         self,
         *schedules,
-        parameters: Optional[Dict[str, Union[float, complex]]] = None,
+        parameters: Optional[Dict[str, complex]] = None,
         name: Optional[str] = None,
     ):
 
@@ -1456,7 +1456,7 @@ class ParameterizedSchedule:
             elif isinstance(schedule, Schedule):
                 full_schedules.append(schedule)
             else:
-                raise PulseError("Input type: {} not supported".format(type(schedule)))
+                raise PulseError(f"Input type: {type(schedule)} not supported")
 
         self._parameterized = tuple(parameterized)
         self._schedules = tuple(full_schedules)
@@ -1469,8 +1469,8 @@ class ParameterizedSchedule:
 
     def bind_parameters(
         self,
-        *args: Union[int, float, complex, ParameterExpression],
-        **kwargs: Union[int, float, complex, ParameterExpression],
+        *args: Union[complex, ParameterExpression],
+        **kwargs: Union[complex, ParameterExpression],
     ) -> Schedule:
         """Generate the Schedule from params to evaluate command expressions"""
         bound_schedule = Schedule(name=self.name)
@@ -1517,8 +1517,8 @@ class ParameterizedSchedule:
 
     def __call__(
         self,
-        *args: Union[int, float, complex, ParameterExpression],
-        **kwargs: Union[int, float, complex, ParameterExpression],
+        *args: Union[complex, ParameterExpression],
+        **kwargs: Union[complex, ParameterExpression],
     ) -> Schedule:
         return self.bind_parameters(*args, **kwargs)
 
@@ -1710,9 +1710,7 @@ def _interval_index(intervals: List[Interval], interval: Interval) -> int:
     index = _locate_interval_index(intervals, interval)
     found_interval = intervals[index]
     if found_interval != interval:
-        raise PulseError(
-            "The interval: {} does not exist in intervals: {}".format(interval, intervals)
-        )
+        raise PulseError(f"The interval: {interval} does not exist in intervals: {intervals}")
     return index
 
 
@@ -1801,6 +1799,6 @@ def _get_timeslots(schedule: ScheduleComponent) -> TimeSlots:
     elif isinstance(schedule, Schedule):
         timeslots = schedule.timeslots
     else:
-        raise PulseError("Invalid schedule type {} is specified.".format(type(schedule)))
+        raise PulseError(f"Invalid schedule type {type(schedule)} is specified.")
 
     return timeslots

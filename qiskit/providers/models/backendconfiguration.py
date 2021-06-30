@@ -127,7 +127,7 @@ class GateConfig:
         return False
 
     def __repr__(self):
-        out_str = "GateConfig(%s, %s, %s" % (self.name, self.parameters, self.qasm_def)
+        out_str = f"GateConfig({self.name}, {self.parameters}, {self.qasm_def}"
         for i in ["coupling_map", "latency_map", "conditional", "description"]:
             if hasattr(self, i):
                 out_str += ", " + repr(getattr(self, i))
@@ -191,7 +191,7 @@ class UchannelLO:
         return False
 
     def __repr__(self):
-        return "UchannelLO(%s, %s)" % (self.q, self.scale)
+        return f"UchannelLO({self.q}, {self.scale})"
 
 
 class QasmBackendConfiguration:
@@ -244,6 +244,7 @@ class QasmBackendConfiguration:
         dt=None,
         dtm=None,
         processor_type=None,
+        parametric_pulses=None,
         **kwargs,
     ):
         """Initialize a QasmBackendConfiguration Object
@@ -297,6 +298,8 @@ class QasmBackendConfiguration:
                 - family: Processor family of this backend.
                 - revision: Revision version of this processor.
                 - segment: Segment this processor belongs to within a larger chip.
+            parametric_pulses (list): A list of pulse shapes which are supported on the backend.
+                For example: ``['gaussian', 'constant']``
 
             **kwargs: optional fields
         """
@@ -354,6 +357,8 @@ class QasmBackendConfiguration:
             self.dtm = dtm * 1e-9
         if processor_type is not None:
             self.processor_type = processor_type
+        if parametric_pulses is not None:
+            self.parametric_pulses = parametric_pulses
 
         # convert lo range from GHz to Hz
         if "qubit_lo_range" in kwargs.keys():
@@ -440,6 +445,7 @@ class QasmBackendConfiguration:
             "dt",
             "dtm",
             "processor_type",
+            "parametric_pulses",
         ]:
             if hasattr(self, kwarg):
                 out_dict[kwarg] = getattr(self, kwarg)
@@ -796,7 +802,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             Qubit drive channel.
         """
         if not 0 <= qubit < self.n_qubits:
-            raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
+            raise BackendConfigurationError(f"Invalid index for {qubit}-qubit system.")
         return DriveChannel(qubit)
 
     def measure(self, qubit: int) -> MeasureChannel:
@@ -809,7 +815,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             Qubit measurement stimulus line.
         """
         if not 0 <= qubit < self.n_qubits:
-            raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
+            raise BackendConfigurationError(f"Invalid index for {qubit}-qubit system.")
         return MeasureChannel(qubit)
 
     def acquire(self, qubit: int) -> AcquireChannel:
@@ -822,7 +828,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             Qubit measurement acquisition line.
         """
         if not 0 <= qubit < self.n_qubits:
-            raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
+            raise BackendConfigurationError(f"Invalid index for {qubit}-qubit systems.")
         return AcquireChannel(qubit)
 
     def control(self, qubits: Iterable[int] = None, channel: int = None) -> List[ControlChannel]:

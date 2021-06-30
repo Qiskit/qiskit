@@ -78,14 +78,15 @@ class TestFakeBackends(QiskitTestCase):
                 "Unable to run fake_backend %s without qiskit-aer"
                 % backend.configuration().backend_name
             )
-        job = execute(
-            self.circuit,
-            backend,
-            optimization_level=optimization_level,
-            seed_simulator=42,
-            seed_transpiler=42,
-        )
-        result = job.result()
+        with self.assertWarns(DeprecationWarning):
+            job = execute(
+                self.circuit,
+                backend,
+                optimization_level=optimization_level,
+                seed_simulator=42,
+                seed_transpiler=42,
+            )
+            result = job.result()
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
         self.assertEqual(max_count, "11")

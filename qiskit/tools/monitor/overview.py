@@ -155,7 +155,7 @@ def backend_monitor(backend):
             error = format(props.gate_error(gate.gate, qubits), ".5f")
         except QiskitError:
             pass
-        mstr = sep.join(["{}{}_{}".format(ttype, qubits[0], qubits[1]), ttype, str(error)])
+        mstr = sep.join([f"{ttype}{qubits[0]}_{qubits[1]}", ttype, str(error)])
         print(offset + mstr)
 
 
@@ -215,16 +215,16 @@ def backend_overview():
 
             str_list[6] += " " * (max_len - len(str_list[6])) + offset
             str_list[6] += "Avg. T1:      %s" % round(
-                sum([q[0]["value"] for q in props["qubits"]]) / num_qubits, 1
+                sum(q[0]["value"] for q in props["qubits"]) / num_qubits, 1
             )
             str_list[7] += " " * (max_len - len(str_list[7])) + offset
             str_list[7] += "Avg. T2:      %s" % round(
-                sum([q[1]["value"] for q in props["qubits"]]) / num_qubits, 1
+                sum(q[1]["value"] for q in props["qubits"]) / num_qubits, 1
             )
             count += 1
             if count == num_backends:
                 break
-            max_len = max([len(s) for s in str_list])
+            max_len = max(len(s) for s in str_list)
 
         print("\n".join(str_list))
         print("\n" * 2)
