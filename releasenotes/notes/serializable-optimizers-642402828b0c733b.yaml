@@ -1,29 +1,6 @@
 ---
 features:
   - |
-    Enable dumping :class:`~qiskit.algorithms.optimizers.Optimizer` objects to JSON-serializable
-    dictionaries and load from these. 
-
-    For instance optimizers can be dumped and loaded via the central `Optimizer` class
-
-    .. code-block::python
-
-        from qiskit.algorithms.optimizers import Optimizer, GradientDescent
-
-        optimizer = GradientDescent(maxiter=200, learning_rate=0.01)
-        as_dict = optimizer.to_dict()
-        print(as_dict)
-
-        loaded = Optimizer.from_dict(as_dict)  # same settings as ``optimizer``
-
-    Or they can be initialized via manually defined dictionaries
-
-    .. code-block::
-
-        from qiskit.algorithms.optimizers import SPSA
-
-        spsa = SPSA.from_dict({"maxiter": 100, "learning_rate": 0.01, "perturbation": 0.01})
-
-
-
-        
+    Add a :meth:`~qiskit.algorithms.optimizers.Optimizer.settings` property to the optimizers to
+    return the optimizer settings in form of a dictionary. This can e.g. be used to JSON-serialize
+    the optimizers -- if you use an appropriate encoder for the dictionary values.

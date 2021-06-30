@@ -162,7 +162,8 @@ class Optimizer(ABC):
     def settings(self):
         """The optimizer settings in a dictionary format.
 
-        The settings can for instance be used for JSON-serialization, such that the
+        The settings can for instance be used for JSON-serialization (if all settings are
+        serializable, which e.g. doesn't hold per default for callables), such that the
         optimizer object can be reconstructed as
 
         .. code-block::
