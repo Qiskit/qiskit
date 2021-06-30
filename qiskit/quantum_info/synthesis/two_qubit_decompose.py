@@ -1080,16 +1080,23 @@ class TwoQubitBasisDecomposer:
         euler_q1 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
         global_phase = 0.0
 
+        # CI TESTING 
+        test_decomp_u3 = TwoQubitBasisDecomposer(CXGate())
+        print('TESTING DECOMPOSITION')
+        print(test_decomp_u3(self.basis.unitary_matrix))
+        np.set_printoptions(precision=3, suppress=True)
         # decompose source unitaries to zxz
         zxz_decomposer = OneQubitEulerDecomposer("ZXZ")
         for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
             euler_angles = zxz_decomposer.angles_and_phase(decomposition[idecomp])
+            print(f'euler_angles, qubit 0, num {iqubit}: {np.array(euler_angles)}')            
             euler_q0[iqubit, [1, 2, 0]] = euler_angles[:3]
             global_phase += euler_angles[3]
         # decompose target unitaries to xzx
         xzx_decomposer = OneQubitEulerDecomposer("XZX")
         for iqubit, idecomp in enumerate(range(1, num_1q_uni, 2)):
             euler_angles = xzx_decomposer.angles_and_phase(decomposition[idecomp])
+            print(f'euler_angles, qubit 1, num {iqubit}: {np.array(euler_angles)}')
             euler_q1[iqubit, [1, 2, 0]] = euler_angles[:3]
             global_phase += euler_angles[3]
         qc = QuantumCircuit(2)
@@ -1180,62 +1187,6 @@ class TwoQubitBasisDecomposer:
             4,
         ]
         return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity ** i for i in range(4)])
-
-
-def _su2_axis_angle(mat):
-    """
-    Parameterize 2x2 unitary matrix as axis-angle.
-
-    Args:
-        mat (ndarray): single qubit unitary matrix to convert
-
-    Returns:
-        tuple(axis, angle, phase): where axis is vector in SO(3), angle is the rotation
-            angle in radians, and phase scales mat as exp(𝑖 * phase)
-            away from the symmetry of su2. If the matrix is a scalar operator the axis will
-            be the zero vector, the angle will be zero, and the phase gives the scalar constant as
-            exp(𝑖 * phase) · 𝕀.
-    """
-    axis = np.zeros(3)
-    det = np.linalg.det(mat)
-    umat = mat / np.sqrt(det)
-    u00 = umat[0, 0]
-    u10 = umat[1, 0]
-    phase = (-1j * np.log(det)).real / 2
-    quat = np.array([u00.real, -u10.imag, u10.real, -u00.imag])  # 1st element scalar
-    pure_quat_norm = np.linalg.norm(quat[1:])
-    if pure_quat_norm:
-        angle = 2 * math.atan2(pure_quat_norm, quat[0])
-        axis[:] = quat[1:] / pure_quat_norm
-    else:
-        angle = 0
-    return axis, angle, phase
-
-
-def _axis_angle_su2(axis, angle, phase=None):
-    """Convert axis-angle-phase to matrix in U(2). If zero vector is supplied,
-    or angle is zero, return identity.
-
-    Args:
-        axis (ndarray): The three element axis of rotation.
-        angle (float): The angle of rotation in radians.
-        phase (float, None): If None, returned matrix will be in SU(2).
-    Returns:
-        ndarray: su2 representation of quaternion
-    """
-    if angle == 0 or np.allclose(axis, np.zeros(3)):
-        return np.array([[1, 0], [0, 1]])
-    half_angle = angle / 2
-    quat = np.array([math.cos(half_angle), *(axis * math.sin(half_angle))])
-    matrix = np.array(
-        [
-            [quat[0] - 1j * quat[3], -(quat[2] + 1j * quat[1])],
-            [quat[2] - 1j * quat[1], quat[0] + 1j * quat[3]],
-        ]
-    )
-    if phase:
-        matrix *= cmath.exp(1j * phase)
-    return matrix
 
 
 two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CXGate())
