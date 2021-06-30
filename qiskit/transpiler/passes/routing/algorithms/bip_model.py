@@ -325,7 +325,7 @@ class BIPMappingModel:
         """Set the minimum balanced (weighted sum of error_rate and depth) objective function."""
         raise NotImplementedError("objective: 'balanced' is not implemented")
 
-    def solve_cpx_problem(self, time_limit: float = 60, threads: int = None):
+    def solve_cpx_problem(self, time_limit: float = 60, threads: int = None) -> str:
         """Solve the BIP problem using CPLEX.
 
         Args:
@@ -335,9 +335,11 @@ class BIPMappingModel:
             threads:
                 Number of threads to be allowed for CPLEX to use.
 
+        Returns:
+            Status string that CPLEX returned after solving the BIP problem.
+
         Raises:
             MissingOptionalLibraryError: If CPLEX is not installed
-            TranspilerError: if fails to solve the problem within given ``time_limit``.
         """
         if not HAS_CPLEX:
             raise MissingOptionalLibraryError(
@@ -354,9 +356,7 @@ class BIPMappingModel:
 
         status = self.problem.solve_details.status
         logger.info("BIP solution status: %s", status)
-        if self.solution is None:
-            logger.warning("BIP solution status: %s", status)
-            raise TranspilerError("Failed to solve a BIP problem.")
+        return status
 
     def get_layout(self, t: int) -> Layout:
         """Get layout at time-step t.

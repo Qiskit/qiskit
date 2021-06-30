@@ -129,7 +129,8 @@ class BIPMapping(TransformationPass):
             DAGCircuit: A mapped DAG. If failing to map, returns the original dag.
 
         Raises:
-            TranspilerError: if it fails to solve BIP problem within the time limit
+            TranspilerError: if the number of virtual and physical qubits are not the same.
+            AssertionError: if the final layout is not valid.
         """
         if self.coupling_map is None:
             return dag
@@ -139,7 +140,7 @@ class BIPMapping(TransformationPass):
 
         if len(dag.qubits) != self.coupling_map.size():
             raise TranspilerError(
-                "BIPMapping pass requires the number of virtual and physical qubits are the same."
+                "BIPMapping requires the number of virtual and physical qubits are the same."
             )
 
         if self.property_set["layout"]:
@@ -161,10 +162,9 @@ class BIPMapping(TransformationPass):
 
         model.create_cpx_problem(objective=self.objective)
 
-        try:
-            model.solve_cpx_problem(time_limit=self.time_limit, threads=self.threads)
-        except TranspilerError as err:
-            logger.warning("%s dag was not mapped in BIPMapping.", err.message)
+        status = model.solve_cpx_problem(time_limit=self.time_limit, threads=self.threads)
+        if model.solution is None:
+            logger.warning("Failed to solve a BIP problem. Status: %s", status)
             return original_dag
 
         # Get the optimized initial layout
@@ -204,7 +204,10 @@ class BIPMapping(TransformationPass):
 
         # Check final layout
         final_layout = model.get_layout(model.depth - 1)
-        assert layout == final_layout
+        if layout != final_layout:
+            raise AssertionError(
+                f"Bug: final layout {final_layout} != the layout computed from swaps {layout}"
+            )
 
         self.property_set["layout"] = optimized_layout
         self.property_set["final_layout"] = final_layout
