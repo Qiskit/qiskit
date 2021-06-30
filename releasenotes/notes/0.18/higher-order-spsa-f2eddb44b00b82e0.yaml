@@ -5,7 +5,7 @@ features:
     has been added to the :mod:`qiskit.algorithms.optimizers` module. This
     class implements the
     `Quantum Natural SPSA (QN-SPSA) <https://arxiv.org/abs/2103.09232>`__
-    algorithm, which a generalization of 2-SPSA algorithm, estimates the
+    algorithm, a generalization of the 2-SPSA algorithm, estimates the
     Quantum Fisher Information Matrix instead of a the Hessian to obtain a
     stochastic estimate of the Quantum Natural Gradient. For examples on
     how to use this new optimizer refer to the
@@ -16,7 +16,7 @@ features:
     :mod:`qiskit.algorithms.optimizers` module. When set to ``True`` this
     enables using
     `second-order SPSA <https://ieeexplore.ieee.org/document/657661>`__.
-    Second order SPSA is an extension of the ordinary SPSA algorithm that
+    Second order SPSA, or 2-SPSA, is an extension of the ordinary SPSA algorithm that
     enables estimating the Hessian alongside the gradient, which is used
     to precondition the gradient before the parameter update step. As a
     second-order method, this tries to improve convergence of SPSA.
