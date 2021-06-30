@@ -1,13 +1,13 @@
 ---
-upgrade:
+features:
   - |
-    Updating :class:`~qiskit.circuit.Delay` to be able to accept a parameterized duration
-    in addition to an integer duration [dt] and a float duration [s].
-    That means, if necessary, you can specify a duration of delay as a
-    :class:`~qiskit.circuit.ParameterExpression` object when appending it to a circuit,
-    and assign some value to the parameter afterward.
+    The :class:`~qiskit.circuit.Delay` class now can accept a
+    :class:`~qiskit.circuit.ParameterExpression` or
+    :class:`~qiskit.circuit.Parameter` value for the ``duration`` kwarg on its
+    constructor and for its :attr:`~qiskit.circuit.Delay.duration` attribute.
 
     For example::
+
         idle_dur = Parameter('t')
         qc = QuantumCircuit(1, 1)
         qc.x(0)

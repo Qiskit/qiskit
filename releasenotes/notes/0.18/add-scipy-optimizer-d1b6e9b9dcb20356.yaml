@@ -25,8 +25,8 @@ deprecations:
   - |
     The kwargs ``epsilon`` and ``factr`` for the
     :class:`qiskit.algorithms.optimizers.L_BFGS_B` constructor
-    and ``factr`` kwarg of the `qiskit.algorithms.optimizers.P_BFGS` are
-    deprecated and will be removed in a future release. Instead you can just
+    and ``factr`` kwarg of the :class:`~qiskit.algorithms.optimizers.P_BFGS`
+    optimizer class are deprecated and will be removed in a future release. Instead you can just
     use the ``eps`` karg instead of ``epsilon``. The ``factr`` kwarg is
     replaced with ``ftol``. The relationship between the two is
     :code:`ftol = factr * numpy.finfo(float).eps`. This change was made

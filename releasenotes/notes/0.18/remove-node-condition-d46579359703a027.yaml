@@ -1,16 +1,16 @@
 ---
 deprecations:
   - |
-    Support for passing the ``condition`` kwarg to the
-    :class:`~qiskit.dagcircuit.DAGDepNode` has been deprecated and will be
-    removed in a future release. The ``condition`` attribute to the
-    :class:`~qiskit.dagcircuit.DAGDepNode` has also been deprecated and
+    The ``condition`` kwarg to the
+    :class:`~qiskit.dagcircuit.DAGDepNode` constructor along with the
+    corresponding :attr:`~qiskit.dagcircuit.DAGDepNode.condition` attribute
+    of the :class:`~qiskit.dagcircuit.DAGDepNode` has also been deprecated and
     will be removed in a future release. Instead, you can access the
-    ``condition`` of a `DAGDepNode` if the node is of type ``op``, by using
+    ``condition`` of a ``DAGDepNode`` if the node is of type ``op``, by using
     `DAGDepNode.op.condition`.
   - |
-    Support for the ``condition`` attribute to the
-    :class:`~qiskit.dagcircuit.DAGNode` has been deprecated and
+    The :attr:`~qiskit.dagcircuit.DAGNode.condition` attribute of the
+    :class:`~qiskit.dagcircuit.DAGNode` class has been deprecated and
     will be removed in a future release. Instead, you can access the
-    ``condition`` of a `DAGNode` if the node is of type ``op``, by using
-    `DAGNode.op.condition`.
+    ``condition`` of a ``DAGNode`` object if the node is of type ``op``, by
+    using ``DAGNode.op.condition``.

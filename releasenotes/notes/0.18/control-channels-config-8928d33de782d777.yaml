@@ -1,5 +1,9 @@
 ---
-upgrade:
+features:
   - |
-    Exposes the control_channels of the backend configuration to the users as
-    a property.
+    A new attribute,
+    :attr:`~qiskit.providers.models.PulseBackendConfiguration.control_channels`,
+    has been added to the
+    :class:`~qiskit.providers.models.PulseBackendConfiguration` class. This
+    attribute represents the control channels on a backend as mapping of
+    qubits to a list of :class:`~qiskit.pulse.channels.ControlChannel` objects.

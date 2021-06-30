@@ -1,10 +1,13 @@
 ---
 upgrade:
   - |
-    The output program representation of the pulse builder is replaced with
-    :class:`~qiskit.pulse.ScheduleBlock`. This new representation disables some timing
-    related operations such as shift and insert. However, this enables parameterized
-    instruction durations within the builder context. For example:
+    The output program representation from the pulse builder
+    (:func:`qiskit.pulse.builder.build`) has changed from a
+    :class:`~qiskit.pulse.Schedule` to a
+    :class:`~qiskit.pulse.ScheduleBlock`. This new representation disables
+    some timing related operations such as shift and insert. However, this
+    enables parameterized instruction durations within the builder context.
+    For example:
 
     .. code-block:: python
 
@@ -25,9 +28,14 @@ upgrade:
     or you can attach them to your quantum circuit as pulse gates.
 deprecations:
   - |
-    Builder syntax :func:`pulse.inline` is deprecated. Instead of using this context,
-    you can just remove alignment contexts within the inline context.
-
-    Builder syntax :func:`pulse.pad` is deprecated. Because :class:`ScheduleBlock` doesn't
-    support the `.insert` method (and there is no insert syntax in the builder),
-    timeslot placeholders to block the insertion of other instructions is no longer necessary.
+    The pulse builder (:func:`qiskit.pulse.builder.build`) syntax
+    :func:`qiskit.pulse.builder.inline` is deprecated and will be removed in a
+    future release. Instead of using this context, you can just remove alignment
+    contexts within the inline context.
+  - |
+    The pulse builder (:func:`qiskit.pulse.builder.build`) syntax
+    :func:`qiskit.pulse.builder.pad` is deprecated and will be removed in a
+    future release. This was done because the :class:`~qiskit.pulse.ScheduleBlock`
+    now being returned by the pulse builder  doesn't support the ``.insert`` method
+    (and there is no insert syntax in the builder). The use of timeslot placeholders
+    to block the insertion of other instructions is no longer necessary.
