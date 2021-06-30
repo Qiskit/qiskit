@@ -56,7 +56,7 @@ class ListOp(OperatorBase):
     def __init__(
         self,
         oplist: Sequence[OperatorBase],
-        combo_fn: Callable = lambda x: x,
+        combo_fn: Optional[Callable] = None,
         coeff: Union[complex, ParameterExpression] = 1.0,
         abelian: bool = False,
         grad_combo_fn: Optional[Callable] = None,
@@ -64,8 +64,8 @@ class ListOp(OperatorBase):
         """
         Args:
             oplist: The list of ``OperatorBases`` defining this Operator's underlying function.
-            combo_fn (callable): The recombination function to combine classical results of the
-                ``oplist`` Operators' eval functions (e.g. sum).
+            combo_fn: The recombination function to combine classical results of the
+                ``oplist`` Operators' eval functions (e.g. sum). Default is lambda x: x.
             coeff: A coefficient multiplying the operator
             abelian: Indicates whether the Operators in ``oplist`` are known to mutually commute.
             grad_combo_fn: The gradient of recombination function. If None, the gradient will
@@ -102,6 +102,17 @@ class ListOp(OperatorBase):
         }
 
     @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {
+            "oplist": self._oplist,
+            "combo_fn": self._combo_fn,
+            "coeff": self._coeff,
+            "abelian": self._abelian,
+            "grad_combo_fn": self._grad_combo_fn,
+        }
+
+    @property
     def oplist(self) -> List[OperatorBase]:
         """The list of ``OperatorBases`` defining the underlying function of this
         Operator.
@@ -120,6 +131,8 @@ class ListOp(OperatorBase):
         Returns:
             The combination function.
         """
+        if self._combo_fn is None:
+            return lambda x: x
         return self._combo_fn
 
     @property
@@ -333,7 +346,7 @@ class ListOp(OperatorBase):
         # Note: this can end up, when we have list operators containing other list operators, as a
         #       ragged array and numpy 1.19 raises a deprecation warning unless this is explicitly
         #       done as object type now - was implicit before.
-        mat = self.combo_fn(
+        mat = self.combo_fn(  # pylint: disable=not-callable
             np.asarray(
                 [op.to_matrix(massive=massive) * self.coeff for op in self.oplist], dtype=object
             )
@@ -352,6 +365,7 @@ class ListOp(OperatorBase):
         """
 
         # Combination function must be able to handle classical values
+        # pylint: disable=not-callable
         return self.combo_fn([op.to_spmatrix() for op in self.oplist]) * self.coeff
 
     def eval(
@@ -405,7 +419,7 @@ class ListOp(OperatorBase):
         evals = [op.eval(front) for op in self.oplist]
 
         # Handle application of combo_fn for DictStateFn resp VectorStateFn operators
-        if self._combo_fn != ListOp([])._combo_fn:
+        if self._combo_fn is not None:  # If not using default.
             if (
                 all(isinstance(op, DictStateFn) for op in evals)
                 or all(isinstance(op, VectorStateFn) for op in evals)
@@ -418,7 +432,7 @@ class ListOp(OperatorBase):
                         "Combo_fn not yet supported for mixed measurement "
                         "and non-measurement StateFns"
                     )
-                result = self.combo_fn(evals)
+                result = self.combo_fn(evals)  # pylint: disable=not-callable
                 if isinstance(result, list):
                     multiplied = self.coeff * np.array(result)
                     return multiplied.tolist()
@@ -429,7 +443,7 @@ class ListOp(OperatorBase):
         elif any(isinstance(op, OperatorBase) for op in evals):
             raise TypeError("Cannot handle mixed scalar and Operator eval results.")
         else:
-            result = self.combo_fn(evals)
+            result = self.combo_fn(evals)  # pylint: disable=not-callable
             if isinstance(result, list):
                 multiplied = self.coeff * np.array(result)
                 return multiplied.tolist()
