@@ -1,7 +1,12 @@
 ---
 features:
   - |
-    Add the standard :class:`~qiskit.algorithms.optimizers.GradientDescent` optimizer
-    to the collection of optimizers in the `qiskit.algorithms.optimizers` module.
-    For a detailed description and examples on how to use this class, please refer
-    to the class docstring / online docs of the class.
+    A new optimizer class,
+    :class:`~qiskit.algorithms.optimizers.GradientDescent`, has been added
+    to the :mod:`qiskit.algorithms.optimizers` module. This optimizer class
+    implements a standard gradient descent optimization algorithm for use
+    with quantum variational algorithms, such as
+    :class:`~qiskit.algorithms.VQE`.
+    For a detailed description and examples on how to use this class, please
+    refer to the :class:`~qiskit.algorithms.optimizers.GradientDescent` class
+    documentation.

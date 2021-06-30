@@ -8,4 +8,4 @@ features:
     to construct ansatz circuits that consist of time-evolved operators, where
     the evolution time is a variational parameter. Examples of such ansatz
     circuits include ``UCCSD`` class in the ``chemistry`` module of
-    Qiskit Nature or the :class:`~qiskit.algorithms.QAOAAnsatz` class.
+    Qiskit Nature or the :class:`~qiskit.circuit.library.QAOAAnsatz` class.
