@@ -125,7 +125,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
     else:
         bit_labels = {
-            bit: "%s[%s]" % (reg.name, idx)
+            bit: f"{reg.name}[{idx}]"
             for reg in list(dag.qregs.values()) + list(dag.cregs.values())
             for (idx, bit) in enumerate(reg)
         }

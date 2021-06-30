@@ -44,4 +44,4 @@ class TrotterizationFactory:
         elif mode == "qdrift":
             return QDrift(reps=reps)
 
-        raise ValueError("Trotter mode {} not supported".format(mode))
+        raise ValueError(f"Trotter mode {mode} not supported")

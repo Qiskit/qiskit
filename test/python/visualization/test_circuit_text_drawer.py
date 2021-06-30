@@ -450,9 +450,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         expected = "\n".join(
             [
                 "                   ┌─────────┐",
-                "q_0: |0>─────■─────┤ RZ(π/2) ├",
+                "q_0: |0>─────■─────┤ Rz(π/2) ├",
                 "        ┌────┴────┐└────┬────┘",
-                "q_1: |0>┤ RZ(π/2) ├─────┼─────",
+                "q_1: |0>┤ Rz(π/2) ├─────┼─────",
                 "        └─────────┘     │     ",
                 "q_2: |0>────────────────■─────",
                 "                              ",
@@ -469,9 +469,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         expected = "\n".join(
             [
                 "                   ┌─────────┐",
-                "q_0: |0>─────■─────┤ RY(π/2) ├",
+                "q_0: |0>─────■─────┤ Ry(π/2) ├",
                 "        ┌────┴────┐└────┬────┘",
-                "q_1: |0>┤ RY(π/2) ├─────┼─────",
+                "q_1: |0>┤ Ry(π/2) ├─────┼─────",
                 "        └─────────┘     │     ",
                 "q_2: |0>────────────────■─────",
                 "                              ",
@@ -488,9 +488,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         expected = "\n".join(
             [
                 "                   ┌─────────┐",
-                "q_0: |0>─────■─────┤ RX(π/2) ├",
+                "q_0: |0>─────■─────┤ Rx(π/2) ├",
                 "        ┌────┴────┐└────┬────┘",
-                "q_1: |0>┤ RX(π/2) ├─────┼─────",
+                "q_1: |0>┤ Rx(π/2) ├─────┼─────",
                 "        └─────────┘     │     ",
                 "q_2: |0>────────────────■─────",
                 "                              ",
@@ -1038,7 +1038,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                 "             └───┘    └───┘",
                 "q1_1: |0>──────────────────",
                 "         ┌───────────┐     ",
-                "q1_2: |0>┤ RZ(1e-07) ├─────",
+                "q1_2: |0>┤ Rz(1e-07) ├─────",
                 "         └───────────┘     ",
             ]
         )
@@ -1060,7 +1060,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                 "              │      ",
                 "q_1: |0>──────X──────",
                 "        ┌───────────┐",
-                "q_2: |0>┤ RZ(11111) ├",
+                "q_2: |0>┤ Rz(11111) ├",
                 "        └───────────┘",
             ]
         )
@@ -1106,13 +1106,14 @@ class TestTextDrawerLabels(QiskitTestCase):
         """Test a controlled gate with a label (as a as a whole)."""
         expected = "\n".join(
             [
-                "        ┌──────────────────────┐",
-                "q_0: |0>┤0                     ├",
-                "        │  a controlled H gate │",
-                "q_1: |0>┤1                     ├",
-                "        └──────────────────────┘",
+                "         a controlled H gate ",
+                "q_0: |0>──────────■──────────",
+                "                ┌─┴─┐        ",
+                "q_1: |0>────────┤ H ├────────",
+                "                └───┘        ",
             ]
         )
+
         circuit = QuantumCircuit(2)
         circuit.append(HGate().control(1, label="a controlled H gate"), [0, 1])
 
@@ -1277,7 +1278,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "q_0: |0>┤0         ├",
                 "        │          │",
                 "q_1: |0>┤          ├",
-                "        │  unitary │",
+                "        │  Unitary │",
                 "q_2: |0>┤          ├",
                 "        │          │",
                 "q_3: |0>┤1         ├",
@@ -1314,7 +1315,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
             [
                 "        ┌──────────────┐",
                 "q_0: |0>┤0             ├",
-                "        │  MULTIPLEXER │",
+                "        │  Multiplexer │",
                 "q_1: |0>┤1             ├",
                 "        └──────────────┘",
             ]
@@ -1353,14 +1354,15 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/2286"""
         expected = "\n".join(
             [
-                "           ┌───────────┐",
-                "q_0: |0>─■─┤0          ├",
-                "         │ │  cz label │",
-                "q_1: |0>─■─┤1          ├",
-                "           └───────────┘",
+                "            cz label ",
+                "q_0: |0>─■─────■─────",
+                "         │     │     ",
+                "q_1: |0>─■─────■─────",
+                "                     ",
             ]
         )
         qr = QuantumRegister(2, "q")
+
         circ = QuantumCircuit(qr)
         circ.append(CZGate(), [qr[0], qr[1]])
         circ.append(CZGate(label="cz label"), [qr[0], qr[1]])
@@ -1562,7 +1564,7 @@ class TestTextDrawerParams(QiskitTestCase):
         expected = "\n".join(
             [
                 "     ┌─────────────────────┐",
-                "q_0: ┤ RX((π - x)*(π - y)) ├",
+                "q_0: ┤ Rx((π - x)*(π - y)) ├",
                 "     └─────────────────────┘",
             ]
         )
@@ -2295,7 +2297,7 @@ class TestTextConditional(QiskitTestCase):
             [
                 "         ┌──────────────┐",
                 "qr_0: |0>┤0             ├",
-                "         │  MULTIPLEXER │",
+                "         │  Multiplexer │",
                 "qr_1: |0>┤1             ├",
                 "         └──────╥───────┘",
                 "qr_2: |0>───────╫────────",
@@ -2411,10 +2413,13 @@ class TestTextNonRational(QiskitTestCase):
 
     def test_text_pifrac(self):
         """u drawing with -5pi/8 fraction"""
+        # fmt: off
         expected = "\n".join(
-            ["        ┌──────────────┐", "q_0: |0>┤ U(π,-5π/8,0) ├", "        └──────────────┘"]
+            ["        ┌──────────────┐",
+             "q_0: |0>┤ U(π,-5π/8,0) ├",
+             "        └──────────────┘"]
         )
-
+        # fmt: on
         qr = QuantumRegister(1, "q")
         circuit = QuantumCircuit(qr)
         circuit.u(pi, -5 * pi / 8, 0, qr[0])
@@ -2427,7 +2432,7 @@ class TestTextNonRational(QiskitTestCase):
             [
                 "     ┌────────────────────────────────────┐",
                 "q_0: ┤0                                   ├",
-                "     │  initialize(0.5+0.1j,0,0,0.86023j) │",
+                "     │  Initialize(0.5+0.1j,0,0,0.86023j) │",
                 "q_1: ┤1                                   ├",
                 "     └────────────────────────────────────┘",
             ]
@@ -2444,7 +2449,7 @@ class TestTextNonRational(QiskitTestCase):
             [
                 "        ┌────────────────────────────────┐",
                 "q_0: |0>┤0                               ├",
-                "        │  initialize(π/10,0,0,0.94937j) │",
+                "        │  Initialize(π/10,0,0,0.94937j) │",
                 "q_1: |0>┤1                               ├",
                 "        └────────────────────────────────┘",
             ]
@@ -2456,12 +2461,13 @@ class TestTextNonRational(QiskitTestCase):
 
     def test_text_complex_piimaginary(self):
         """Complex numbers including pi show up in the text
+
         See https://github.com/Qiskit/qiskit-terra/issues/3640"""
         expected = "\n".join(
             [
                 "        ┌────────────────────────────────┐",
                 "q_0: |0>┤0                               ├",
-                "        │  initialize(0.94937,0,0,π/10j) │",
+                "        │  Initialize(0.94937,0,0,π/10j) │",
                 "q_1: |0>┤1                               ├",
                 "        └────────────────────────────────┘",
             ]
