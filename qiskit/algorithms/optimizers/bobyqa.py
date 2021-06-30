@@ -65,10 +65,7 @@ class BOBYQA(Optimizer):
 
     @property
     def settings(self) -> Dict[str, Any]:
-        return {
-            "name": "BOBYQA",
-            "maxiter": self._maxiter,
-        }
+        return {"maxiter": self._maxiter}
 
     def optimize(
         self,

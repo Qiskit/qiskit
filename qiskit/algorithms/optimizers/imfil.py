@@ -67,7 +67,6 @@ class IMFIL(Optimizer):
     @property
     def settings(self) -> Dict[str, Any]:
         return {
-            "name": "IMFIL",
             "maxiter": self._maxiter,
         }
 

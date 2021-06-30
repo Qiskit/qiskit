@@ -119,7 +119,6 @@ class AQGD(Optimizer):
     @property
     def settings(self) -> Dict[str, Any]:
         return {
-            "name": "AQGD",
             "maxiter": self._maxiter,
             "eta": self._eta,
             "momentum": self._momenta_coeff,

@@ -196,7 +196,6 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
 
         optimizer = SciPyOptimizer(method, options=options)
         serialized = optimizer.settings
-        serialized["method"] = serialized.pop("name")
         from_dict = SciPyOptimizer(**serialized)
 
         self.assertEqual(from_dict._method, method.lower())
@@ -275,11 +274,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         }
         spsa = SPSA(**options)
 
-        settings = spsa.settings
-        expected = options.copy()
-        expected["name"] = "SPSA"
-
-        self.assertDictEqual(settings, expected)
+        self.assertDictEqual(spsa.settings, options)
 
     def test_spsa_custom_iterators(self):
         """Test serialization works with custom iterators for learning rate and perturbation."""
@@ -335,13 +330,11 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         settings = spsa.settings
         expected = options.copy()
         expected.pop("fidelity")  # fidelity cannot be serialized
-        expected["name"] = "QNSPSA"
 
         with self.subTest(msg="check constructed dictionary"):
             self.assertDictEqual(settings, expected)
 
-        settings.pop("name")
-        # no idea why pylint complains about unexpected args (like "name") which are
+        # no idea why pylint complains about unexpected args (like "second_order") which are
         # definitely not in the settings dict
         # pylint: disable=unexpected-keyword-arg
         with self.subTest(msg="fidelity missing"):

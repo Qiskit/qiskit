@@ -13,6 +13,7 @@
 """Optimizer interface"""
 
 from typing import Dict, Any
+import warnings
 
 from enum import IntEnum
 import logging
@@ -140,7 +141,14 @@ class Optimizer(ABC):
 
     @property
     def setting(self):
-        """Return setting"""
+        """DEPRECATED. Return setting"""
+        warnings.warn(
+            "The Optimizer.setting property is deprecated as of Qiskit Terra 0.18.0 "
+            "and will be removed no sooner than 3 months after the release date. "
+            "Use the Optimizer.settings property for a similar replacement instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         ret = "Optimizer: {}\n".format(self.__class__.__name__)
         params = ""
         for key, value in self.__dict__.items():
@@ -148,6 +156,23 @@ class Optimizer(ABC):
                 params += "-- {}: {}\n".format(key[1:], value)
         ret += "{}".format(params)
         return ret
+
+    @property
+    @abstractmethod
+    def settings(self):
+        """The optimizer settings in a dictionary format.
+
+        The settings can for instance be used for JSON-serialization, such that the
+        optimizer object can be reconstructed as
+
+        .. code-block::
+
+            settings = optimizer.settings
+            # JSON serialize and send to another server
+            optimizer = OptimizerClass(**settings)
+
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def optimize(

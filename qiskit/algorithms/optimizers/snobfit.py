@@ -89,7 +89,6 @@ class SNOBFIT(Optimizer):
     @property
     def settings(self) -> Dict[str, Any]:
         return {
-            "name": "SNOBFIT",
             "maxiter": self._maxiter,
             "maxfail": self._maxfail,
             "maxmp": self._maxmp,

@@ -327,7 +327,6 @@ class SPSA(Optimizer):
             perturbation = self.perturbation
 
         return {
-            "name": "SPSA",
             "maxiter": self.maxiter,
             "learning_rate": learning_rate,
             "perturbation": perturbation,

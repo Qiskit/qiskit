@@ -145,7 +145,6 @@ class GradientDescent(Optimizer):
             learning_rate = self.learning_rate
 
         return {
-            "name": "GradientDescent",
             "maxiter": self.maxiter,
             "tol": self.tol,
             "learning_rate": learning_rate,

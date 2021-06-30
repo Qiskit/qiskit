@@ -203,9 +203,6 @@ class QNSPSA(SPSA):
         # re-use serialization from SPSA
         settings = super().settings
 
-        # update name
-        settings["name"] = "QNSPSA"
-
         # remove SPSA-specific arguments not in QNSPSA
         settings.pop("trust_region")
         settings.pop("second_order")

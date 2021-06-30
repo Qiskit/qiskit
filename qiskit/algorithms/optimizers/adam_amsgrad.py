@@ -116,10 +116,17 @@ class ADAM(Optimizer):
 
     @property
     def settings(self) -> Dict[str, Any]:
-        settings = {"name": "ADAM"}
-        settings.update(self._options)
-
-        return settings
+        return {
+            "maxiter": self._maxiter,
+            "tol": self._tol,
+            "lr": self._lr,
+            "beta_1": self._beta_1,
+            "beta_2": self._beta_2,
+            "noise_factor": self._noise_factor,
+            "eps": self._eps,
+            "amsgrad": self._amsgrad,
+            "snapshot_dir": self._snapshot_dir,
+        }
 
     def get_support_level(self):
         """Return support level dictionary"""
