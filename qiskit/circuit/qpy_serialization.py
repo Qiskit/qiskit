@@ -986,40 +986,64 @@ def _read_circuit(file_obj):
         }
         qubit_count = 0
         # Add quantum registers and bits
+        # Start with standalone registers (those created outside a circuit
+        # with contiguous indices in order)
         for name, start in standalone_qreg_starts.items():
+            # If there is a hole between the start of the register and the
+            # current qubits and standalone bits to fill the gap.
             if start > qubit_count:
                 qubits = [Qubit() for _ in range(start - qubit_count)]
                 circ.add_bits(qubits)
             qubit_indices = standalone_qreg[name]
             num_reg_bits = len(qubit_indices)
+            # Create a standlone register of the appropriate length (from
+            # the number of indices in the qpy data) and add it to the circuit
             qreg = QuantumRegister(num_reg_bits, name)
             circ.add_register(qreg)
             out_registers["q"][name] = qreg
+            # Update qubit count to the current position after the register
             qubit_count = start + num_reg_bits
+        # If we don't have sufficient qubits in the circuit after adding
+        # all the standalone register add more clbits to fill the circuit
         if qubit_count < num_qubits:
             qubits = [Qubit() for _ in range(num_qubits - qubit_count)]
             circ.add_bits(qubits)
+        # Add any shared registers over bits in the circuit
         for name, bit_indices in shared_qreg.items():
+            # Collect the bit objects for each index in the register,
+            # create a register from those bits, and add it to the circuit
             bits = [circ.qubits[i] for i in bit_indices]
             qreg = QuantumRegister(name=name, bits=bits)
             circ.add_register(qreg)
             out_registers["q"][name] = qreg
-        # Add classical registers and bits
         clbit_count = 0
+        # Add classical registers and bits
+        # Start with standalone registers (those created outside a circuit
+        # with contiguous indices in order)
         for name, start in standalone_creg_starts.items():
+            # If there is a hole between the start of the register and the
+            # current qubits and standalone bits to fill the gap.
             if start > clbit_count:
                 clbits = [Clbit() for _ in range(start - clbit_count)]
                 circ.add_bits(clbits)
             clbit_indices = standalone_creg[name]
             num_reg_bits = len(clbit_indices)
+            # Create a standlone register of the appropriate length (from
+            # the number of indices in the qpy data) and add it to the circuit
             creg = ClassicalRegister(num_reg_bits, name)
             circ.add_register(creg)
             out_registers["c"][name] = creg
+            # Update clbit count to the current position after the register
             clbit_count = start + num_reg_bits
+        # If we don't have sufficient clbits in the circuit after adding
+        # all the standalone registers add more clbits to fill the circuit
         if clbit_count < num_clbits:
             clbits = [Clbit() for _ in range(num_qubits - clbit_count)]
             circ.add_bits(clbits)
+        # Add any shared registers over bits in the circuit
         for name, bit_indices in shared_creg.items():
+            # Collect the bit objects for each index in the register,
+            # create a register from those bits, and add it to the circuit
             bits = [circ.clbits[i] for i in bit_indices]
             creg = ClassicalRegister(name=name, bits=bits)
             circ.add_register(creg)
