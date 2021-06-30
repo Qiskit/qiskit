@@ -14,6 +14,8 @@ Symplectic Pauli Table Class
 """
 # pylint: disable=invalid-name
 
+from typing import Dict
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -180,6 +182,11 @@ class PauliTable(BaseOperator, AdjointMixin):
         if isinstance(other, PauliTable):
             return np.all(self._array == other._array)
         return False
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"data": self._array}
 
     # ---------------------------------------------------------------------
     # Direct array access
