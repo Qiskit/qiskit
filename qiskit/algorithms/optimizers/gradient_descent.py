@@ -146,7 +146,7 @@ class GradientDescent(Optimizer):
             "tol": self.tol,
             "learning_rate": learning_rate,
             "perturbation": self.perturbation,
-            "callback": self.callback
+            "callback": self.callback,
         }
 
     def _minimize(self, loss, grad, initial_point):

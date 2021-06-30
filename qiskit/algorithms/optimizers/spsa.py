@@ -334,7 +334,7 @@ class SPSA(Optimizer):
             "regularization": self.regularization,
             "lse_solver": self.lse_solver,
             "initial_hessian": self.initial_hessian,
-            "callback": self.callback
+            "callback": self.callback,
         }
 
     def _point_sample(self, loss, x, eps, delta1, delta2):
