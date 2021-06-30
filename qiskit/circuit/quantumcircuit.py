@@ -888,6 +888,11 @@ class QuantumCircuit:
             range(other.num_clbits, num_clbits),
             inplace=True,
         )
+
+        # Replace information from tensored circuit into self when inplace = True
+        if inplace:
+            self.__dict__.update(dest.__dict__)
+            return None
         return dest
 
     @property
