@@ -11,12 +11,14 @@ fixes:
     .. jupyter-execute::
 
        from qiskit import QuantumCircuit
+
        qasm = """OPENQASM 2.0;
-                 include "qelib1.inc";
-                 opaque delay(time) q;
-                 qreg q[1];
-                 delay(172) q[0];
-                 u3(0.1,0.2,0.3) q[0]; """
+       include "qelib1.inc";
+       opaque delay(time) q;
+       qreg q[1];
+       delay(172) q[0];
+       u3(0.1,0.2,0.3) q[0];
+       """
        circuit = QuantumCircuit.from_qasm_str(qasm)
        circuit.draw()
 
