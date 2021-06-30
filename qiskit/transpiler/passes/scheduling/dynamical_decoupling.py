@@ -12,12 +12,9 @@
 
 """Dynamical Decoupling insertion pass."""
 
-from collections import defaultdict
-from typing import List
-import numpy as np
 import itertools
 
-from qiskit.dagcircuit import DAGCircuit
+import numpy as np
 from qiskit.circuit import Delay, Reset
 from qiskit.circuit.library import IGate, UGate
 from qiskit.quantum_info import Operator
@@ -119,10 +116,10 @@ class DynamicalDecoupling(TransformationPass):
         if len(self._dd_sequence) != 1:
             if len(self._dd_sequence) % 2 != 0:
                 raise TranspilerError("DD sequence must contain an even number of gates (or 1).")
-            I = Operator(IGate())
-            for g in self._dd_sequence:
-                I = I.compose(Operator(g))
-            if not I.equiv(IGate()):
+            noop = Operator(IGate())
+            for gate in self._dd_sequence:
+                noop = noop.compose(Operator(gate))
+            if not noop.equiv(IGate()):
                 raise TranspilerError("The DD sequence does not make an identity operation.")
 
         if self._qubits is None:
@@ -202,10 +199,10 @@ class DynamicalDecoupling(TransformationPass):
                         + [mid] * int((num_pulses - 1) / 2)
                         + [end]
                     )
-                    for g, d in itertools.zip_longest(self._dd_sequence, delays):
-                        new_dag.apply_operation_back(Delay(d), [dag_qubit])
-                        if g is not None:
-                            new_dag.apply_operation_back(g, [dag_qubit])
+                    for gate, idle in itertools.zip_longest(self._dd_sequence, delays):
+                        new_dag.apply_operation_back(Delay(idle), [dag_qubit])
+                        if gate is not None:
+                            new_dag.apply_operation_back(gate, [dag_qubit])
             else:
                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
 
