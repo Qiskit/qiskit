@@ -129,7 +129,7 @@ class DynamicalDecoupling(TransformationPass):
             self._qubits = range(dag.num_qubits())
 
         if self._spacing:
-            raise TranspilerError('only balanced spacing is supported now.')
+            raise TranspilerError("only balanced spacing is supported now.")
 
         new_dag = dag._copy_circuit_metadata()
 
@@ -195,11 +195,13 @@ class DynamicalDecoupling(TransformationPass):
                     end = int(mid / 2)
                     unused_slack = slack - 2 * end - (num_pulses - 1) * mid
                     int((num_pulses - 1) / 2)
-                    delays = [end] + \
-                             [mid] * int((num_pulses - 1) / 2) + \
-                             [mid + unused_slack] + \
-                             [mid] * int((num_pulses - 1) / 2) + \
-                             [end]
+                    delays = (
+                        [end]
+                        + [mid] * int((num_pulses - 1) / 2)
+                        + [mid + unused_slack]
+                        + [mid] * int((num_pulses - 1) / 2)
+                        + [end]
+                    )
                     for g, d in itertools.zip_longest(self._dd_sequence, delays):
                         new_dag.apply_operation_back(Delay(d), [dag_qubit])
                         if g is not None:

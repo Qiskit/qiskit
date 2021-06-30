@@ -160,6 +160,44 @@ class TestDynamicalDecoupling(QiskitTestCase):
 
         self.assertEqual(ghz4_dd, expected)
 
+    def test_insert_dd_ghz_xy4(self):
+        """Test XY4 sequence of DD gates."""
+        dd_sequence = [XGate(), YGate(), XGate(), YGate()]
+        pm = PassManager(
+            [ALAPSchedule(self.durations), DynamicalDecoupling(self.durations, dd_sequence)]
+        )
+
+        ghz4_dd = pm.run(self.ghz4.measure_all(inplace=False))
+
+        expected = self.ghz4.copy()
+        expected = expected.compose(Delay(50), [1], front=True)
+        expected = expected.compose(Delay(750), [2], front=True)
+        expected = expected.compose(Delay(950), [3], front=True)
+
+        expected = expected.compose(Delay(37), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(75), [0])
+        expected = expected.compose(YGate(), [0])
+        expected = expected.compose(Delay(76), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(75), [0])
+        expected = expected.compose(YGate(), [0])
+        expected = expected.compose(Delay(37), [0])
+
+        expected = expected.compose(Delay(12), [1])
+        expected = expected.compose(XGate(), [1])
+        expected = expected.compose(Delay(25), [1])
+        expected = expected.compose(YGate(), [1])
+        expected = expected.compose(Delay(26), [1])
+        expected = expected.compose(XGate(), [1])
+        expected = expected.compose(Delay(25), [1])
+        expected = expected.compose(YGate(), [1])
+        expected = expected.compose(Delay(12), [1])
+
+        expected.measure_all()
+
+        self.assertEqual(ghz4_dd, expected)
+
     def test_insert_midmeas_hahn_alap(self):
         """Test a single X gate as Hahn echo can absorb in the downstream circuit."""
         dd_sequence = [XGate()]
