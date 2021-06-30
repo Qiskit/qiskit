@@ -86,6 +86,7 @@ Scheduling
    ALAPSchedule
    ASAPSchedule
 <<<<<<< HEAD
+<<<<<<< HEAD
    RZXCalibrationBuilder
    AlignMeasures
    ValidatePulseGates
@@ -97,6 +98,9 @@ Decoupling
 =======
 >>>>>>> add test
    InsertDD
+=======
+   DynamicalDecoupling
+>>>>>>> add balanced spacing of pulses
    RZXCalibrationBuilder
 
 Circuit Analysis
@@ -199,7 +203,7 @@ from .synthesis import UnitarySynthesis
 from .scheduling import TimeUnitConversion
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
-from .scheduling import InsertDD
+from .scheduling import DynamicalDecoupling
 from .scheduling import RZXCalibrationBuilder
 <<<<<<< HEAD
 from .scheduling import TimeUnitConversion
