@@ -197,7 +197,7 @@ class CircuitSampler(ConverterBase):
                     for op_c in list(self._circuit_ops_cache.values())
                 ]
 
-                common_circuit = operator[1].to_circuit_op().reduce().to_circuit()
+                common_circuit = operator[1].to_circuit_op().reduce().to_circuit().copy()
                 len_common_circuit = len(common_circuit)
                 try:
                     # 1. transpile a common circuit
