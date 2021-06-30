@@ -276,6 +276,21 @@ class TestParameterSetter(ParameterTestBase):
 
         self.assertEqual(assigned, ref_obj)
 
+    def test_complex_valued_parameter(self):
+        """Test complex valued parameter can be casted to a complex value."""
+        amp = Parameter("amp")
+
+        test_sched = pulse.ScheduleBlock()
+        test_sched.append(
+            pulse.Play(
+                pulse.Constant(160, amp=1j * amp),
+                pulse.DriveChannel(0),
+            ),
+            inplace=True,
+        )
+        test_assigned = test_sched.assign_parameters({amp: 0.1}, inplace=False)
+        self.assertTrue(isinstance(test_assigned.blocks[0].pulse.amp, complex))
+
     def test_set_parameter_to_complex_schedule(self):
         """Test get parameters from complicated schedule."""
         test_block = deepcopy(self.test_sched)
