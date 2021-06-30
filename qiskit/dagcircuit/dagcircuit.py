@@ -954,23 +954,21 @@ class DAGCircuit:
         self_bit_indices = {bit: idx for idx, bit in enumerate(self.qubits + self.clbits)}
         other_bit_indices = {bit: idx for idx, bit in enumerate(other.qubits + other.clbits)}
 
-        self_qreg_indices = {
-            (regname, tuple(self_bit_indices[bit] for bit in reg))
-            for regname, reg in self.qregs.items()
-        }
-        self_creg_indices = {
-            (regname, tuple(self_bit_indices[bit] for bit in reg))
-            for regname, reg in self.cregs.items()
-        }
+        self_qreg_indices = [
+            (regname, [self_bit_indices[bit] for bit in reg]) for regname, reg in self.qregs.items()
+        ]
+        self_creg_indices = [
+            (regname, [self_bit_indices[bit] for bit in reg]) for regname, reg in self.cregs.items()
+        ]
 
-        other_qreg_indices = {
-            (regname, tuple(other_bit_indices[bit] for bit in reg))
+        other_qreg_indices = [
+            (regname, [other_bit_indices[bit] for bit in reg])
             for regname, reg in other.qregs.items()
-        }
-        other_creg_indices = {
-            (regname, tuple(other_bit_indices[bit] for bit in reg))
+        ]
+        other_creg_indices = [
+            (regname, [other_bit_indices[bit] for bit in reg])
             for regname, reg in other.cregs.items()
-        }
+        ]
         if self_qreg_indices != other_qreg_indices or self_creg_indices != other_creg_indices:
             return False
 
