@@ -352,10 +352,12 @@ class OneQubitEulerDecomposer:
         return circuit
 
     @staticmethod
-    def _circuit_xzx(theta, phi, lam, phase):
+    def _circuit_xzx(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL):
         # TODO: handle special cases
         qr = QuantumRegister(1, "qr")
         circuit = QuantumCircuit(qr, global_phase=phase)
+        if not simplify:
+            atol = -1.0
         circuit.append(RXGate(lam), qargs=qr)
         circuit.append(RZGate(theta), qargs=qr)
         circuit.append(RXGate(phi), qargs=qr)
