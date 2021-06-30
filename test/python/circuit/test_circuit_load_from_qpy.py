@@ -27,6 +27,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.opflow import X, Y, Z
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.qpy_serialization import dump, load
+from qiskit.quantum_info.random import random_unitary
 
 
 class TestLoadFromQPY(QiskitTestCase):
@@ -306,6 +307,31 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure(qr, cr)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+
+    def test_mixed_registers(self):
+        """Test circuit with mix of standalone and shared registers."""
+        qubits = [Qubit() for _ in range(5)]
+        clbits = [Clbit() for _ in range(5)]
+        qc = QuantumCircuit()
+        qc.add_bits(qubits)
+        qc.add_bits(clbits)
+        qr = QuantumRegister(bits=qubits)
+        cr = ClassicalRegister(bits=clbits)
+        qc.add_register(qr)
+        qc.add_register(cr)
+        qr_standalone = QuantumRegister(2, "standalone")
+        qc.add_register(qr_standalone)
+        cr_standalone = ClassicalRegister(2, "classical_standalone")
+        qc.add_register(cr_standalone)
+        qc.unitary(random_unitary(32, seed=42), qr)
+        qc.unitary(random_unitary(4, seed=100), qr_standalone)
+        qc.measure(qr, cr)
+        qc.measure(qr_standalone, cr_standalone)
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
