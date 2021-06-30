@@ -135,7 +135,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         if self._bounds is None:
             beta_bound = (None, None)
             gamma_bound = (0, 2 * np.pi)
-            return [beta_bound for _ in range(self.reps)] + [gamma_bound for _ in range(self.reps)]
+            return [beta_bound if p.name[0] == "β" else gamma_bound for p in self.parameters]
 
         return self._bounds
 
@@ -239,20 +239,3 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """
         self._mixer = mixer_operator
         self._invalidate()
-
-    # def _build(self):
-    #     if self._data is not None:
-    #         return
-
-    #     super()._build()
-
-    #     # rename the variables in QAOA fashion, with β for the cost Hamiltonian and
-    #     # γ for the mixer
-    #     print(self.draw())
-    #     betas = ParameterVector("β", self.num_parameters - self.reps)
-    #     gammas = ParameterVector("γ", self.reps)
-    #     remappings = []
-    #     for beta, gamma in zip(betas, gammas):
-    #         remappings += [beta, gamma]
-
-    #     self.assign_parameters(remappings, inplace=True)

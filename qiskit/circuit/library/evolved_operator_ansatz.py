@@ -79,7 +79,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
                 raise ValueError("The reps cannot be smaller than 1.")
             return False
 
-        self._parameter_prefix = _validate_prefix(parameter_prefix, self.operators)
+        self._parameter_prefix = _validate_prefix(self._parameter_prefix, self.operators)
 
         return True
 
