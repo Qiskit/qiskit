@@ -23,7 +23,6 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
 from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
 from qiskit.transpiler.passes.layout.trivial_layout import TrivialLayout
@@ -127,7 +126,8 @@ class BIPMapping(TransformationPass):
             dag (DAGCircuit): DAG to map.
 
         Returns:
-            DAGCircuit: A mapped DAG. If failing to map, returns the original dag.
+            DAGCircuit: A mapped DAG. If there is no 2q-gate in DAG or it fails to map,
+                returns the original dag.
 
         Raises:
             TranspilerError: if the number of virtual and physical qubits are not the same.
@@ -155,10 +155,8 @@ class BIPMapping(TransformationPass):
         )
 
         if len(model.su4layers) == 0:
-            logger.info("BIPMapping applied trivial layout for a circuit without 2q-gates.")
-            pass_ = ApplyLayout()
-            pass_.property_set["layout"] = self.property_set["layout"]
-            return pass_.run(dag)
+            logger.info("BIPMapping is skipped due to no 2q-gates.")
+            return original_dag
 
         model.create_cpx_problem(objective=self.objective)
 
