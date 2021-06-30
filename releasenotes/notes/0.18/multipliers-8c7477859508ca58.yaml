@@ -1,16 +1,19 @@
 ---
 features:
   - |
-    Add a new circuit library submodule to perform classical multiplication of two equally-sized
-    qubit registers. For two registers :math:`|a\rangle_n` and :math:`|b\rangle_n` on :math:`n`
-    qubits, the two new classes :class:`~qiskit.circuit.library.RGQFTMultiplier` and
-    :class:`~qiskit.circuit.library.HRSCumulativeMultiplier` perform the operation
+    Added two new classes,
+    :class:`~qiskit.circuit.library.RGQFTMultiplier` and
+    :class:`~qiskit.circuit.library.HRSCumulativeMultiplier`, to the
+    :mod:`qiskit.circuit.library` module. These classes are used to perform
+    classical multiplication of two equally-sized qubit registers. For two
+    registers :math:`|a\rangle_n` and :math:`|b\rangle_n` on :math:`n`
+    qubits, the two new classes perform the operation
 
     .. math::
 
       |a\rangle_n |b\rangle_n |0\rangle_{2n} \mapsto |a\rangle_n |b\rangle_n |a \cdot b\rangle_{2n}.
 
-    Example::
+    For example::
 
       from qiskit.circuit import QuantumCircuit
       from qiskit.circuit.library import RGQFTMultiplier
@@ -41,6 +44,3 @@ features:
       # skip both input registers
       result = state[:-2*num_state_qubits]
       print(result)  # '1001' = 9 = 3 * 3
-
-
-
