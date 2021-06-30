@@ -13,6 +13,7 @@
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 # pylint: disable=cyclic-import
 from typing import Optional, Set, List, Tuple
+import numpy as np
 
 from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz
 from qiskit.circuit.parameter import Parameter
@@ -52,7 +53,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 circuit.
             name (str): A name of the circuit, default 'qaoa'
         """
-        super().__init__(name=name)
+        super().__init__(parameter_prefix=['β', 'γ'], name=name)
 
         self._cost_operator = None
         self._reps = reps
@@ -131,6 +132,10 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             an unbounded parameter in the corresponding direction. If None is returned, problem is
             fully unbounded or is not built yet.
         """
+        if self._bounds is None:
+            beta_bound = (None, None)
+            gamma_bound = (0, 2 * np.pi)
+            return [beta_bound for _ in range(self.reps)] + [gamma_bound for _ in range(self.reps)]
 
         return self._bounds
 
@@ -234,3 +239,20 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """
         self._mixer = mixer_operator
         self._invalidate()
+
+    # def _build(self):
+    #     if self._data is not None:
+    #         return
+
+    #     super()._build()
+
+    #     # rename the variables in QAOA fashion, with β for the cost Hamiltonian and
+    #     # γ for the mixer
+    #     print(self.draw())
+    #     betas = ParameterVector("β", self.num_parameters - self.reps)
+    #     gammas = ParameterVector("γ", self.reps)
+    #     remappings = []
+    #     for beta, gamma in zip(betas, gammas):
+    #         remappings += [beta, gamma]
+
+    #     self.assign_parameters(remappings, inplace=True)

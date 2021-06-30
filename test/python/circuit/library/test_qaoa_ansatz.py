@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 """Test QAOA ansatz from the library."""
+
+import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 from qiskit.circuit.library import HGate, RXGate, YGate, RYGate, RZGate
@@ -76,6 +78,19 @@ class TestQAOAAnsatz(QiskitTestCase):
         self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0][0], HGate)
         self.assertIsInstance(circuit.data[1][0], RYGate)
+
+    def test_parameter_bounds(self):
+        """Test the parameter bounds."""
+        circuit = QAOAAnsatz(I, reps=2)
+        bounds = circuit.parameter_bounds
+
+        for lower, upper in bounds[:2]:
+            self.assertIsNone(lower)
+            self.assertIsNone(upper)
+
+        for lower, upper in bounds[2:]:
+            self.assertAlmostEqual(lower, 0)
+            self.assertAlmostEqual(upper, 2 * np.pi)
 
     def test_all_custom_parameters(self):
         """Test circuit with all custom parameters."""

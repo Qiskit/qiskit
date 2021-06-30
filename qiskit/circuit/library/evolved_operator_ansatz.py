@@ -12,7 +12,7 @@
 
 """The evolved operator ansatz."""
 
-from typing import Optional
+from typing import Optional, Union, List
 
 import numpy as np
 
@@ -32,6 +32,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         evolution=None,
         insert_barriers: bool = False,
         name: str = "EvolvedOps",
+        parameter_prefix: Union[str, List[str]] = "t",
         initial_state: Optional[QuantumCircuit] = None,
     ):
         """
@@ -45,6 +46,9 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
                 Defaults to Trotterization.
             insert_barriers: Whether to insert barriers in between each evolution.
             name: The name of the circuit.
+            parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
+                will be used for each parameters. Can also be a list to specify a prefix per
+                operator.
             initial_state: A `QuantumCircuit` object to prepend to the circuit.
         """
         if evolution is None:
@@ -62,6 +66,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         self._reps = reps
         self._insert_barriers = insert_barriers
         self._initial_state = initial_state
+        self._parameter_prefix = parameter_prefix
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         if self.operators is None:
@@ -73,6 +78,8 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
             if raise_on_failure:
                 raise ValueError("The reps cannot be smaller than 1.")
             return False
+
+        self._parameter_prefix = _validate_prefix(parameter_prefix, self.operators)
 
         return True
 
@@ -182,7 +189,8 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         coeff = Parameter("c")
         circuits = []
         is_evolved_operator = []
-        for op in self.operators:
+        prefixes = []
+        for op, prefix in zip(self.operators, self._parameter_prefix):
             # if the operator is already the evolved circuit just append it
             if isinstance(op, QuantumCircuit):
                 circuits.append(op)
@@ -196,6 +204,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
 
                 evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
                 circuits.append(evolved_op.to_circuit())
+                prefixes.append(prefix)
                 is_evolved_operator.append(True)  # has time coeff
 
         # set the registers
@@ -207,10 +216,18 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
             # the register already exists, probably because of a previous composition
             pass
 
-        # build the circuit
-        times = ParameterVector("t", self.reps * sum(is_evolved_operator))
+        # get the time parameters
+        if len(set(prefixes)) == 1:  # check if unique, then use the same for all
+            times = ParameterVector(prefixes[0], self.reps * sum(is_evolved_operator))
+        else:
+            parameters = [ParameterVector(prefix, self.reps) for prefix in prefixes]
+            times = []
+            for i in range(self.reps):
+                for parameterset in parameters:
+                    times.append(parameterset[i])
         times_it = iter(times)
 
+        # build the circuit
         first = True
         for _ in range(self.reps):
             for is_evolved, circuit in zip(is_evolved_operator, circuits):
@@ -241,3 +258,13 @@ def _validate_operators(operators):
             raise ValueError("All operators must act on the same number of qubits.")
 
     return operators
+
+
+def _validate_prefix(parameter_prefix, operators):
+    print(parameter_prefix, operators)
+    if isinstance(parameter_prefix, str):
+        return len(operators) * [parameter_prefix]
+    if len(parameter_prefix) != len(operators):
+        raise ValueError("The number of parameter prefixes must match the operators.")
+
+    return parameter_prefix
