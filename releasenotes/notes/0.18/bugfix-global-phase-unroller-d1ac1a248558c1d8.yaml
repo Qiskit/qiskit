@@ -1,6 +1,7 @@
 ---
 fixes:
   - |
-    Fixed an issue where :class:`~qiskit.transpiler.passes.Unroller` didn't
-    preserve global phase in case of nested instructions with one rule in
-    their definition.
+    Fixed an issue with :class:`~qiskit.transpiler.passes.Unroller` transpiler
+    pass where it didn't preserve global phase in case of nested instructions
+    with one rule in their definition.
+    Fixed `#6134 <https://github.com/Qiskit/qiskit-terra/issues/6134>`__

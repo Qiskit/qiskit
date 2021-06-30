@@ -1,12 +1,12 @@
 ---
 fixes:
   - |
-    Parameter attribute of :class:`~qiskit.circuit.ControlledGate` built from
-    :class:`~qiskit.extensions.UnitaryGate` should be the unitary matrix of
-    :class:`~qiskit.extensions.UnitaryGate`. Previously,
-    :meth:`~qiskit.extensions.UnitaryGate.control` was building a
-    :class:`~qiskit.circuit.ControlledGate` with parameter attribute set to the
-    controlled version of :class:`~qiskit.extensions.UnitaryGate` matrix.
-    This led to a modification of the parameter of base :class:`~qiskit.extensions.UnitaryGate`
-    and subsequent call on :meth:`~qiskit.circuit.ControlledGate.inverse` was creating
-    the inverse of a double-controlled :class:`~qiskit.extensions.UnitaryGate`.
+    Fixed an issue where the :attr:`~qiskit.circuit.ControlledGate.params`
+    attribute of :class:`~qiskit.circuit.ControlledGate` built from an
+    :class:`~qiskit.extensions.UnitaryGate` was incorrectly set to the
+    unitary matrix of the controlled version of the base
+    :class:`~qiskit.extensions.UnitaryGate` instead of the original
+    uncontrolled base gate. This has been corrected so the attribute is
+    now correctly being set to the unitary matrix of the base
+    :class:`~qiskit.extensions.UnitaryGate`.
+    Fixed `#5780 <https://github.com/Qiskit/qiskit-terra/pull/5780>`__

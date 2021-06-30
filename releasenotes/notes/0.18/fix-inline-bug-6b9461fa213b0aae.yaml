@@ -1,9 +1,15 @@
 ---
 fixes:
   - |
-    Fix py:func:`~qiskit.pulse.transforms.inline_subroutines` to support subroutines
-    defined in the nested schedules.
-other:
+    Fixed an issue with the :func:`qiskit.pulse.transforms.inline_subroutines`
+    function which would previously incorrectly not remove all the nested
+    components when called on nested schedules.
+    Fixed `#6321 <https://github.com/Qiskit/qiskit-terra/issues/6321>`__
+features:
   - |
-    py:meth:`~qiskit.pulse.Schedule.children` becomes public. This returns tuple of
-    schedule components stored in the schedule. This returns nested schedules without flattening.
+    A new method :meth:`~qiskit.pulse.Schedule.children` for the
+    :class:`~qiskit.pulse.Schedule` class has been added. This method is used
+    to return the child schedule components of the
+    :class:`~qiskit.pulse.Schedule` object as a tuple. It returns nested
+    schedules without flattening. This method is equivalent to the private
+    ``_children()`` method but has a public and stable interface.

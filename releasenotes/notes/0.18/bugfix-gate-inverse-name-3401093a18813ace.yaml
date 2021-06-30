@@ -1,8 +1,10 @@
 ---
 fixes:
   - |
-    Fixed bug in assigning name attribute to ``inverse()`` function of 
-    :class:`~qiskit.circuit.Gate` (inherited from :class:`~qiskit.circuit.Instruction`).
-    Earlier, the inverse() function returned a gate with label None. Now 
-    the label of inverse is built using the label calling it.
-    `#6563 <https://github.com/Qiskit/qiskit-terra/pull/6563>` for more details.
+    Fixed an issue in assigning the :attr:`~qiskit.circuit.Gate.name`
+    attribute when the :meth:`~qiskit.circuit.Gate.inverse`` method of
+    :class:`~qiskit.circuit.Gate` on multiple calls. Prior to this fix
+    when the :meth:`~qiskit.circuit.Gate.inverse`` was called it would
+    unconditionally append ``_dg`` on each call to inverse. This has
+    been corrected so on a second call of
+    :meth:`~qiskit.circuit.Gate.inverse`` the ``_dg`` suffix is now removed.

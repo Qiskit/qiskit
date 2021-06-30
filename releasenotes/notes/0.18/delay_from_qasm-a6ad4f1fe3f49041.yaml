@@ -6,7 +6,7 @@ fixes:
     :meth:`~qiskit.QuantumCircuit.from_qasm_str` constructors for the
     :class:`~qiskit.QuantumCircuit` class, if the OpenQASM2 circuit
     contains an instruction with the name ``delay`` this will be mapped to
-    a :class:`qiskit.circuit.Delay` instruction. For example::
+    a :class:`qiskit.circuit.Delay` instruction. For example:
 
     .. jupyter-execute::
 
