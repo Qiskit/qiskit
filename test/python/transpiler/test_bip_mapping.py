@@ -35,8 +35,12 @@ class TestBIPMapping(QiskitTestCase):
         """Returns the original circuit if the circuit is empty."""
         coupling = CouplingMap([[0, 1]])
         circuit = QuantumCircuit(2)
-        actual = BIPMapping(coupling)(circuit)
-        self.assertEqual(circuit, actual)
+        property_set = {"layout": Layout.generate_trivial_layout(*circuit.qubits)}
+        actual = BIPMapping(coupling)(circuit, property_set)
+
+        q = QuantumRegister(2, name="q")
+        expected = QuantumCircuit(q)
+        self.assertEqual(expected, actual)
 
     def test_no_two_qubit_gates(self):
         """Returns the original circuit if the circuit has no 2q-gates
@@ -49,9 +53,14 @@ class TestBIPMapping(QiskitTestCase):
         circuit = QuantumCircuit(2)
         circuit.h(0)
 
-        actual = BIPMapping(coupling)(circuit)
+        property_set = {"layout": Layout.generate_trivial_layout(*circuit.qubits)}
+        actual = BIPMapping(coupling)(circuit, property_set)
 
-        self.assertEqual(circuit, actual)
+        q = QuantumRegister(2, name="q")
+        expected = QuantumCircuit(q)
+        expected.h(0)
+
+        self.assertEqual(expected, actual)
 
     def test_trivial_case(self):
         """No need to have any swap, the CX are distance 1 to each other
