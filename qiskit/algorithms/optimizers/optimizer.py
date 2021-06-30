@@ -13,7 +13,6 @@
 """Optimizer interface"""
 
 from typing import Dict, Any
-import warnings
 
 from enum import IntEnum
 import logging
@@ -141,14 +140,7 @@ class Optimizer(ABC):
 
     @property
     def setting(self):
-        """DEPRECATED. Return setting"""
-        warnings.warn(
-            "The Optimizer.setting property is deprecated as of Qiskit Terra 0.18.0 "
-            "and will be removed no sooner than 3 months after the release date. "
-            "Use the Optimizer.settings property for a similar replacement instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        """Return setting"""
         ret = f"Optimizer: {self.__class__.__name__}\n"
         params = ""
         for key, value in self.__dict__.items():
