@@ -26,11 +26,7 @@ def rzx_templates(template_list: List[str] = None):
     """
 
     if template_list is None:
-<<<<<<< HEAD
-        template_list = ['zz1', 'zz2', 'zz3', 'zz4', 'yz', 'xz', 'cy']
-=======
         template_list = ["zz1", "zz2", "zz3", "yz", "xz", "cy"]
->>>>>>> main
 
     templates = []
     if "zz1" in template_list:
@@ -39,13 +35,9 @@ def rzx_templates(template_list: List[str] = None):
         templates.append(rzx_zz2())
     if "zz3" in template_list:
         templates.append(rzx_zz3())
-<<<<<<< HEAD
     if 'zz4' in template_list:
         templates.append(rzx_zz4())
     if 'yz' in template_list:
-=======
-    if "yz" in template_list:
->>>>>>> main
         templates.append(rzx_yz())
     if "xz" in template_list:
         templates.append(rzx_xz())
