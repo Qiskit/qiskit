@@ -1417,10 +1417,13 @@ class QuantumCircuit:
                 )
             else:
                 # decompose gate using definitions if they are not defined in OpenQASM2
-                if instruction.name not in existing_gate_names and \
-                    instruction not in existing_composite_circuits:
-                    if instruction.name in [instruction.name for instruction \
-                        in existing_composite_circuits]:
+                if (
+                    instruction.name not in existing_gate_names
+                    and instruction not in existing_composite_circuits
+                ):
+                    if instruction.name in [
+                        instruction.name for instruction in existing_composite_circuits
+                    ]:
                         # append instruction id to name to make it unique
                         instruction.name += f"_{id(instruction)}"
 

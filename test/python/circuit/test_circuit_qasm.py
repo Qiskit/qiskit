@@ -261,10 +261,10 @@ nG0(pi,pi/2) q[0],r[0];\n"""
 
     def test_circuit_qasm_with_mcx_gate(self):
         """Test circuit qasm() method with MCXGate
-            See https://github.com/Qiskit/qiskit-terra/issues/4943
+        See https://github.com/Qiskit/qiskit-terra/issues/4943
         """
         qc = QuantumCircuit(4)
-        qc.mcx([0,1,2], 3)
+        qc.mcx([0, 1, 2], 3)
 
         # qasm output doesn't support parameterized gate yet.
         # param0 for "gate mcuq(param0) is not used inside the definition
