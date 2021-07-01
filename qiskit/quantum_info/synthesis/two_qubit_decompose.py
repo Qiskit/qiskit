@@ -1102,6 +1102,8 @@ class TwoQubitBasisDecomposer:
         """
         best_nbasis = 3  # by assumption
         num_1q_uni = len(decomposition)
+        # create structure to hold euler angles: 1st index represents unitary "group" wrt cx
+        # 2nd index represents index of euler triple.
         euler_q0 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
         euler_q1 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
         global_phase = 0.0
@@ -1150,28 +1152,35 @@ class TwoQubitBasisDecomposer:
 
         qc.rz(euler_q0[1][1], 0)
         x12 = euler_q0[1][2] + euler_q0[2][0]
-        isNonZero = False
-        if not math.isclose(x12, 0, abs_tol=1e-10):
-            qc.global_phase += math.pi
-            isNonZero = True
-            if not math.isclose(abs(x12), math.pi):
-                raise QiskitError(f"expected angle of π but got {x12}")
+        x12_isNonZero = not math.isclose(x12, 0, abs_tol=1e-10)
+        x12_isPi = math.isclose(x12, math.pi)
+        x12_isHalfPi = math.isclose(x12, math.pi / 2)
+        if x12_isPi or x12_isHalfPi:
             qc.sx(0)
+            qc.global_phase -= math.pi / 4
+        elif x12_isNonZero:
+            # this is non-optimal but doesn't seem to occur currently
+            qc.compose(self._decomposer1q(Operator(RXGate(x12)).data), [0], inplace=True)
+        if math.isclose(euler_q1[1][1], math.pi / 2):
+            qc.sx(1)
+            qc.global_phase -= math.pi / 4
         else:
-            qc.global_phase -= math.pi / 2
-        if not math.isclose(euler_q1[1][1], math.pi / 2):
-            raise QiskitError(f"expected angle of π/2 but got {euler_q1[1][1]}")
-        qc.sx(1)
+            # this is non-optimal but doesn't seem to occur currently
+            qc.compose(self._decomposer1q(Operator(RXGate(euler_q1[1][1])).data), [1], inplace=True)
         qc.rz(euler_q1[1][2] + euler_q1[2][0], 1)
 
         qc.cx(1, 0)
 
-        if isNonZero:
+        if x12_isPi:
             qc.sx(0)
+            qc.global_phase -= math.pi / 4
         qc.rz(euler_q0[2][1], 0)
-        if not math.isclose(euler_q1[2][1], math.pi / 2):
-            raise QiskitError(f"expected angle of π/2 but got {euler_q1[2][1]}")
-        qc.sx(1)
+        if math.isclose(euler_q1[2][1], math.pi / 2):
+            qc.sx(1)
+            qc.global_phase -= math.pi / 4
+        else:
+            # this is non-optimal but doesn't seem to occur currently
+            qc.compose(self._decomposer1q(Operator(RXGate(euler_q1[2][1])).data), [1], inplace=True)
 
         qc.cx(1, 0)
 
