@@ -75,10 +75,9 @@ class DynamicalDecoupling(TransformationPass):
         Args:
             durations (InstructionDurations): Durations of instructions to be
                 used in scheduling.
-            dd_sequence (list[str]): sequence of gates (by name) to apply
-                in idle spots.
+            dd_sequence (list[Gate]): sequence of gates to apply in idle spots.
             qubits (list[int]): physical qubits on which to apply DD.
-                If None, all qubits will undergo DD.
+                If None, all qubits will undergo DD (when possible).
             spacing (callable): a function that specifies spacing between DD
                 gates. It maps natural numbers, i, to the fraction of the total
                 slack that must be allocated to the i'th delay window. If None,
@@ -169,7 +168,7 @@ class DynamicalDecoupling(TransformationPass):
                     new_dag.apply_operation_back(self._dd_sequence[0], [dag_qubit])
                     new_dag.apply_operation_back(Delay(slack - begin), [dag_qubit])
                     theta_r, phi_r, lam_r = succ.op.params
-                    succ.op.params = Optimize1qGates.compose_u3(
+                    succ.op.params = Optimize1qGates.compose_u3
                         theta_r, phi_r, lam_r, theta, phi, lam
                     )
                     new_dag.global_phase = _mod_2pi(new_dag.global_phase + phase)
@@ -190,7 +189,7 @@ class DynamicalDecoupling(TransformationPass):
             else:
                 # balanced spacing (d/2, d, d, ..., d, d, d/2)
                 # careful here that we add up to the original delay duration
-                num_pulses = len(self._dd_sequence)
+                seq = len(self._dd_sequence)
                 mid = int(slack / num_pulses)
                 end = int(mid / 2)
                 unused_slack = slack - 2 * end - (num_pulses - 1) * mid
@@ -206,8 +205,6 @@ class DynamicalDecoupling(TransformationPass):
                     if gate is not None:
                         new_dag.apply_operation_back(gate, [dag_qubit])
 
-        new_dag.duration = dag.duration
-        new_dag.unit = dag.unit
         return new_dag
 
 
