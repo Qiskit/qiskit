@@ -46,7 +46,8 @@ class SparsePauliOp(LinearOp):
         """Initialize an operator object.
 
         Args:
-            data (PauliTable): Pauli table of terms.
+            data (array or str or or SparsePauliOp, ScalarOp or PauliTable): input data to construct a
+                :class:`~qiskit.quantum_info.PauliTable`.
             coeffs (np.ndarray): complex coefficients for Pauli terms.
 
         Raises:
