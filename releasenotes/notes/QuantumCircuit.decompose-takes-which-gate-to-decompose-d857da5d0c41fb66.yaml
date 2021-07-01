@@ -1,7 +1,8 @@
 ---
 features:
   - |
-    Allows specification of gates to decompose inside `circuit.decompose()`.
+    Allows specification of gates to decompose inside `circuit.decompose()` (and
+    in the :class:`qiskit.transpiler.passes.basis.Decompose` pass).
     It takes input as a list of strings or gates as well as single strings or gates
     and also supports wildcards.
 
@@ -13,4 +14,4 @@ features:
 deprecations:
   - |
     There is a deprecation of the `gate` param for
-    the :class:`Decompose` and is replaced by `gates_to_decompose`.
+    the :class:`qiskit.transpiler.passes.basis.Decompose` and is replaced by `gates_to_decompose`.
