@@ -7,7 +7,7 @@ features:
     `arXiv:2106.06446 <https://arxiv.org/abs/2106.06446>`_ has been added.
 
     The ``BIPMapping`` pass (named "mapping" to refer to "layout and routing")
-    represent the optimization of the mapping as a BIP (binary integer programming)
+    represents the mapping problem as a BIP (binary integer programming)
     problem and relies on CPLEX (``cplex``) to solve the BIP problem.
     The dependent libraries including CPLEX can be installed along with qiskit-terra:
 
