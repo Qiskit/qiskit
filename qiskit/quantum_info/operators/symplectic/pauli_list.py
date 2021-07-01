@@ -1063,15 +1063,11 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         base_z, base_x, base_phase = cls._from_array(z, x, phase)
         return cls(BasePauli(base_z, base_x, base_phase))
 
-    
     def _qwc_anti_commutation_graph(self):
-        """Create edges (i, j) if i and j are not commutable.
-            Args:
-                None
-            Returns:
-                A list of pairs of indices of the PauliList that are not commutable
-            """
-        #creating the anti commutation graph
+        """Create anti commutation graph with edges (i, j) if i and j are not commutable.
+        Returns:
+            List[Tuple(int,int)]: A list of pairs of indices of the PauliList that are not commutable
+        """
         anti_commutation_graph=[]
         for i in range(self._num_paulis):
             for j in range(i,self._num_paulis):
@@ -1080,18 +1076,17 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return anti_commutation_graph
 
     def group_subops_pauli_list(self):
-        """Given a PauliList, group commutable Paulis in the PauliList (using the Qubit Wise Commutativity(QWC)
-        definition which is assumed for Abelian Grouping.
-            Args:
-                None
+        """Given a PauliList, group commutable Paulis in the PauliList
+        (using the Qubit Wise Commutativity(QWC) definition which is assumed
+        for Abelian Grouping.
             Returns:
-                List of PauliLists where each PauliList contains grouped Pauli operators that are commutable
+                List[PauliList]: List of PauliLists where each PauliList contains grouped Pauli operators
+                that are commutable
         """
         import retworkx as rx
         from collections import defaultdict
         nodes = range(self._num_paulis)
         edges = self._qwc_anti_commutation_graph()
-        
         graph = rx.PyGraph()
         graph.add_nodes_from(nodes)
         graph.add_edges_from_no_data(edges)
@@ -1099,6 +1094,5 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         coloring_dict = rx.graph_greedy_color(graph)
         groups = defaultdict(list)
         for idx, color in coloring_dict.items():
-            groups[color].append(idx)   
+            groups[color].append(idx)
         return [PauliList([self[i] for i in x]) for x in groups.values()]
-

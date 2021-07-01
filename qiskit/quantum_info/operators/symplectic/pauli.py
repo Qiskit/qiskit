@@ -550,13 +550,15 @@ class Pauli(BasePauli):
     def qwc_anticommutes(self,other):
         """Return True if Paulis are anticommutable using the Qubit Wise Commutativity (QWC)
         definition.
+
         Args:
-            other: Pauli operator
+            other (Pauli): another Pauli operator
+
         Returns:
             bool: True if Pauli's anticommute, False if they commute.
         """
-        for i in range(len(self)):
-            if self[i].anticommutes(other[i]):
+        for i,pauliop in enumerate(self):
+            if pauliop.anticommutes(other[i]):
                 return True
         return False
 
