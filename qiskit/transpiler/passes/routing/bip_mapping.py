@@ -43,7 +43,7 @@ class BIPMapping(TransformationPass):
 
     The BIP problem represents the layer-by-layer mapping of 2-qubit gates, assuming all the gates
     in a layer can be run on the ``coupling_map``. In the problem, the variables :math:`w` represent
-    the layout of qubits for each layer and the variables :math:`x` represent which pair fo qubits
+    the layout of qubits for each layer and the variables :math:`x` represent which pair of qubits
     should be swapped in between layers. Based on the values in the solution of the BIP problem,
     the mapped circuit will be constructed.
 
