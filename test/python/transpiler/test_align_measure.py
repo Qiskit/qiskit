@@ -19,6 +19,7 @@ from qiskit.transpiler.passes import AlignMeasures
 
 
 class TestAlignMeasures(QiskitTestCase):
+    """A test for measurement alignment pass."""
 
     def setUp(self):
         super().setUp()
