@@ -812,6 +812,7 @@ class TwoQubitBasisDecomposer:
             self.decomp2_supercontrolled,
             self.decomp3_supercontrolled,
         ]
+        self._rqc = None
 
     def traces(self, target):
         """Give the expected traces :math:`|Tr(U \\cdot Utarget^dag)|` for different number of
