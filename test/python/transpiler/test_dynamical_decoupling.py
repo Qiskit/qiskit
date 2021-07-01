@@ -273,7 +273,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
         )
 
         with self.assertRaises(TranspilerError):
-            ghz4_dd = pm.run(self.ghz4)
+            pm.run(self.ghz4)
 
 
 if __name__ == "__main__":

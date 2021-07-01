@@ -168,7 +168,7 @@ class DynamicalDecoupling(TransformationPass):
                     new_dag.apply_operation_back(self._dd_sequence[0], [dag_qubit])
                     new_dag.apply_operation_back(Delay(slack - begin), [dag_qubit])
                     theta_r, phi_r, lam_r = succ.op.params
-                    succ.op.params = Optimize1qGates.compose_u3
+                    succ.op.params = Optimize1qGates.compose_u3(
                         theta_r, phi_r, lam_r, theta, phi, lam
                     )
                     new_dag.global_phase = _mod_2pi(new_dag.global_phase + phase)
@@ -189,7 +189,7 @@ class DynamicalDecoupling(TransformationPass):
             else:
                 # balanced spacing (d/2, d, d, ..., d, d, d/2)
                 # careful here that we add up to the original delay duration
-                seq = len(self._dd_sequence)
+                num_pulses = len(self._dd_sequence)
                 mid = int(slack / num_pulses)
                 end = int(mid / 2)
                 unused_slack = slack - 2 * end - (num_pulses - 1) * mid
