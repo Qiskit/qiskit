@@ -134,12 +134,13 @@ class UnitaryGate(Gate):
             QiskitError: Invalid ctrl_state.
             ExtensionError: Non-unitary controlled unitary.
         """
-        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits, ctrl_state=None)
+        mat = self.to_matrix()
+        cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
         iso = isometry.Isometry(cmat, 0, 0)
         cunitary = ControlledGate(
             "c-unitary",
             num_qubits=self.num_qubits + num_ctrl_qubits,
-            params=[cmat],
+            params=[mat],
             label=label,
             num_ctrl_qubits=num_ctrl_qubits,
             definition=iso.definition,
