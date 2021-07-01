@@ -315,6 +315,10 @@ class OneQubitEulerDecomposer:
         if abs(theta) < atol:
             lam, phi = lam + phi, 0
             if abs(_mod_2pi(lam, atol)) > atol:
+                # NOTE: The following normalization is safe, because the gphase correction below
+                #       fixes a particular diagonal entry to 1, which prevents any potential phase
+                #       slippage coming from _mod_2pi injecting multiples of 2pi.
+                lam = _mod_2pi(lam)
                 circuit._append(k_gate(lam), [qr[0]], [])
                 gphase += lam / 2
             circuit.global_phase = gphase
@@ -326,7 +330,8 @@ class OneQubitEulerDecomposer:
             abs(_mod_2pi(lam + np.pi)) < atol or abs(_mod_2pi(phi + np.pi)) < atol
         ):
             lam, theta, phi = lam + np.pi, -theta, phi + np.pi
-        if abs(_mod_2pi(lam)) > atol:
+        lam = _mod_2pi(lam)
+        if abs(lam) > atol:
             gphase += lam / 2
             circuit._append(k_gate(lam), [qr[0]], [])
         circuit._append(a_gate(theta), [qr[0]], [])
