@@ -77,6 +77,13 @@ class PauliSumOp(PrimitiveOp):
         """Return the Pauli coefficients."""
         return self.coeff * self.primitive.coeffs
 
+    @property
+    def settings(self) -> Dict:
+        """Return operator settings."""
+        data = super().settings
+        data.update({"grouping_type": self._grouping_type})
+        return data
+
     def matrix_iter(self, sparse=False):
         """Return a matrix representation iterator.
 
