@@ -921,7 +921,27 @@ class TwoQubitBasisDecomposer:
         if _num_basis_uses is not None:
             best_nbasis = _num_basis_uses
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
+
+        zxz_decomposer = OneQubitEulerDecomposer("ZXZ")
+        xzx_decomposer = OneQubitEulerDecomposer("XZX")
+        decomposition_euler = [
+            xzx_decomposer(x) if i % 2 else zxz_decomposer(x) for i, x in enumerate(decomposition)
+        ]
+        q = QuantumRegister(2)
+        return_circuit = QuantumCircuit(q)
+        return_circuit.global_phase = target_decomposed.global_phase
+        return_circuit.global_phase -= best_nbasis * self.basis.global_phase
+        if best_nbasis == 2:
+            return_circuit.global_phase += np.pi
+        for i in range(best_nbasis):
+            return_circuit.compose(decomposition_euler[2 * i], [q[0]], inplace=True)
+            return_circuit.compose(decomposition_euler[2 * i + 1], [q[1]], inplace=True)
+            return_circuit.append(self.gate, [q[0], q[1]])
+        return_circuit.compose(decomposition_euler[2 * best_nbasis], [q[0]], inplace=True)
+        return_circuit.compose(decomposition_euler[2 * best_nbasis + 1], [q[1]], inplace=True)
+        self._rqc = return_circuit
         # attempt pulse optimal decomposition
+
         try:
             if self.pulse_optimize in {None, True}:
                 return_circuit = self._pulse_optimal_chooser(
@@ -934,8 +954,8 @@ class TwoQubitBasisDecomposer:
                 raise
 
         # do default decomposition
-        decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
         q = QuantumRegister(2)
+        decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
         return_circuit = QuantumCircuit(q)
         return_circuit.global_phase = target_decomposed.global_phase
         return_circuit.global_phase -= best_nbasis * self.basis.global_phase
@@ -1000,6 +1020,11 @@ class TwoQubitBasisDecomposer:
         euler_q0 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
         euler_q1 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
         global_phase = 0.0
+
+        # CI TESTING
+        print("TESTING DECOMPOSITION")
+        print(self._rqc)
+        np.set_printoptions(precision=3, suppress=True)
 
         # decompose source unitaries to zxz
         zxz_decomposer = OneQubitEulerDecomposer("ZXZ")
@@ -1081,10 +1106,10 @@ class TwoQubitBasisDecomposer:
         global_phase = 0.0
 
         # CI TESTING
-        test_decomp_u3 = TwoQubitBasisDecomposer(CXGate())
         print("TESTING DECOMPOSITION")
-        print(test_decomp_u3(self.basis.unitary_matrix))
+        print(self._rqc)
         np.set_printoptions(precision=3, suppress=True)
+
         # decompose source unitaries to zxz
         zxz_decomposer = OneQubitEulerDecomposer("ZXZ")
         for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):

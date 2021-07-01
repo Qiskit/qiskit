@@ -1137,6 +1137,11 @@ class TestTwoQubitDecompose(CheckDecompositions):
             requested_basis = set(oneq_gates + [kak_gate_name])
             self.assertTrue(decomposition_basis.issubset(requested_basis))
 
+
+@ddt
+class TestPulseOptimalDecompose(CheckDecompositions):
+    """Check pulse optimal decomposition."""
+
     @combine(seed=range(10), name="seed_{seed}")
     def test_sx_virtz_3cnot_optimal(self, seed):
         """Test 3 CNOT ZSX pulse optimal decomposition"""
