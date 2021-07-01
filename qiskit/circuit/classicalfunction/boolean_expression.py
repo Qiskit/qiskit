@@ -25,7 +25,7 @@ from .classical_element import ClassicalElement
 class BooleanExpression(ClassicalElement):
     """The Boolean Expression gate."""
 
-    def __init__(self, expression: str, var_order: list = None, name: str = None) -> None:
+    def __init__(self, expression: str, name: str = None, var_order: list = None) -> None:
         """
         Args:
             expression (str): The logical expression string.
