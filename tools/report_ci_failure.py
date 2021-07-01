@@ -47,7 +47,7 @@ class CIFailureReporter:
             job_name (str): name of the failed ci job.
         """
         if branch != "main" and not self.stable_branch_regex.search(branch):
-            return None
+            return
         key_label = self._key_label(branch, job_name)
         issue_number = self._get_report_issue_number(key_label)
         if issue_number:

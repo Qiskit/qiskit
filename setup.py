@@ -127,6 +127,7 @@ setup(
     python_requires=">=3.6",
     extras_require={
         "visualization": visualization_extras,
+        "bip-mapper": ["cplex", "docplex"],
         "crosstalk-pass": z3_requirements,
         "all": visualization_extras + z3_requirements,
     },
