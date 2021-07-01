@@ -69,6 +69,7 @@ class UnitarySynthesis(TransformationPass):
         backend_props: BackendProperties = None,
         pulse_optimize: Union[bool, None] = None,
         natural_direction: Union[bool, None] = None,
+        synth_gates: Union[List[str], None] = None,
     ):
         """Synthesize unitaries over some basis gates.
 
@@ -93,7 +94,9 @@ class UnitarySynthesis(TransformationPass):
                 coupling map is unidirectional.  If there is no
                 coupling map, the gate direction with the shorter
                 duration from the backend properties will be used.
-
+            synth_gates: List of gates to synthesize. If None and 
+                `pulse_optimize` == False, default to ['unitary']. If None and
+                `pulse_optimzie` == True, default to ['unitary', 'swap']
         """
         super().__init__()
         self._basis_gates = basis_gates
@@ -102,6 +105,13 @@ class UnitarySynthesis(TransformationPass):
         self._backend_props = backend_props
         self._pulse_optimize = pulse_optimize
         self._natural_direction = natural_direction
+        if synth_gates:
+            self._synth_gates = synth_gates
+        else:
+            if pulse_optimize:
+                self._synth_gates = ["unitary", "swap"]
+            else:
+                self._synth_gates = ["unitary"]
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the UnitarySynthesis pass on `dag`.
@@ -131,7 +141,7 @@ class UnitarySynthesis(TransformationPass):
                 kak_gate, euler_basis=euler_basis, pulse_optimize=self._pulse_optimize
             )
 
-        for node in dag.named_nodes("unitary", "swap"):
+        for node in dag.named_nodes(*self._synth_gates):
             if self._basis_gates and node.name in self._basis_gates:
                 continue
             synth_dag = None

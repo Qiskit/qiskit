@@ -680,7 +680,7 @@ class TwoQubitBasisDecomposer:
             Default 'U3'.
         pulse_optimize (None or bool): If True, try to do decomposition which minimizes
             local unitaries in between entangling gates. This will raise an exception if an
-            optimal decomposition not implemented. Currently, only {CX, SX, RZ} is known.
+            optimal decomposition is not implemented. Currently, only [{CX, SX, RZ}] is known.
             If False, don't attempt optimization. If None, attempt optimization but don't raise
             if unknown.
     """

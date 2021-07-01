@@ -1,0 +1,119 @@
+---
+features:
+  - |
+    Update
+    :class:`~qiskit.quantum_info.synthesis.TwoQubitBasisDecomposer` to
+    do pulse optimal decomposition for a basis with CX, √X, and
+    virtual Rz gates as described in
+    https://arxiv.org/pdf/2008.08571. Pulse optimal here means that
+    the duration of gates between the CX gates of the decomposition is
+    reduced in exchange for possibly more local gates before or after
+    all the CX gates such that when composed into a circuit leaves the
+    possibility of single qubit compression with neighboring gates
+    reducing the overall sequence duration.
+
+    A new keyword argument, `pulse_optimize`, is added to the initialization of
+    the class to indicate,
+
+    * None: Attempt pulse optimal decomposition. If a pulse optimal
+      decomposition is unkown for the basis of the decomposer drop
+      back to the standard decomposition without warning.
+    * True: Attempt pulse optimal decomposition. If a pulse optimal
+      decomposition is unkown for the basis of the decomposer, raise
+      `QiskitError`.
+    * False: Do not attempt pulse optimal decomposition.
+
+    .. code-block:: python
+         
+         decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX", pulse_optimize=True)
+         circuit = decomposer(unitary_matrix)
+
+  - |
+    Update :class:`~qiskit.transpiler.passes.synthesis.UnitarySynthesis` to
+    take the ``pulse_optimize`` keyword argument to be used for pulse
+    optimal synthesis of nodes. A keyword argument, ``synth_gates``, is
+    added to specify for which gate names to attempt synthesis. If
+    ``None`` and ``pulse_optimize`` is `False`, use "unitary". If `None`
+    and `pulse_optimize` is `True`, use "unitary" and "swap". Since
+    the direction of the CX gate in the synthesis is arbitrary, another
+    keyword argument, `natural_direction`, is added to consider first
+    a coupling map and next CX gates durations in choosing for which
+    direction of CX to generate the synthesis.
+
+    .. code-block:: python
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.transpiler import PassManager, CouplingMap
+        from qiskit.transpiler.passes import TrivialLayout, UnitarySynthesis
+        from qiskit.test.mock import FakeVigo
+        from qiskit.quantum_info.random import random_unitary
+        
+        backend = FakeVigo()
+        conf = backend.configuration()
+        coupling_map = CouplingMap(conf.coupling_map)
+        triv_layout_pass = TrivialLayout(coupling_map)
+        circ = QuantumCircuit(2)
+        circ.unitary(random_unitary(4), [0, 1])
+        unisynth_pass = UnitarySynthesis(
+            basis_gates=conf.basis_gates,
+            coupling_map=None,
+            backend_props=backend.properties(),
+            pulse_optimize=True,
+            natural_direction=True,
+            synth_gates=['unitary'])
+        pm = PassManager([triv_layout_pass, unisynth_pass])
+        optimal_circ = pm.run(circ)
+
+  - |
+    Add :meth:`~qiskit.circuit.QuantumCircuit.get_instructions`
+    return all instructions in circuit matching "name" along with its
+    associated qubit and clbit lists.      
+issues:
+  - |
+    List known issues here, or remove this section.  All of the list items in
+    this section are combined when the release notes are rendered, so the text
+    needs to be worded so that it does not depend on any information only
+    available in another section, such as the prelude. This may mean repeating
+    some details.
+upgrade:
+  - |
+    List upgrade notes here, or remove this section.  All of the list items in
+    this section are combined when the release notes are rendered, so the text
+    needs to be worded so that it does not depend on any information only
+    available in another section, such as the prelude. This may mean repeating
+    some details.
+deprecations:
+  - |
+    List deprecations notes here, or remove this section.  All of the list
+    items in this section are combined when the release notes are rendered, so
+    the text needs to be worded so that it does not depend on any information
+    only available in another section, such as the prelude. This may mean
+    repeating some details.
+critical:
+  - |
+    Add critical notes here, or remove this section.  All of the list items in
+    this section are combined when the release notes are rendered, so the text
+    needs to be worded so that it does not depend on any information only
+    available in another section, such as the prelude. This may mean repeating
+    some details.
+security:
+  - |
+    Add security notes here, or remove this section.  All of the list items in
+    this section are combined when the release notes are rendered, so the text
+    needs to be worded so that it does not depend on any information only
+    available in another section, such as the prelude. This may mean repeating
+    some details.
+fixes:
+  - |
+    Add normal bug fixes here, or remove this section.  All of the list items
+    in this section are combined when the release notes are rendered, so the
+    text needs to be worded so that it does not depend on any information only
+    available in another section, such as the prelude. This may mean repeating
+    some details.
+other:
+  - |
+    Add other notes here, or remove this section.  All of the list items in
+    this section are combined when the release notes are rendered, so the text
+    needs to be worded so that it does not depend on any information only
+    available in another section, such as the prelude. This may mean repeating
+    some details.
