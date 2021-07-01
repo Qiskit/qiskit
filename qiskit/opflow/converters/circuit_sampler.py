@@ -346,15 +346,8 @@ class CircuitSampler(ConverterBase):
                 circ_index = (i * reps) + j
                 circ_results = results.data(circ_index)
 
-                if "expval_measurement" in circ_results.get("snapshots", {}).get(
-                    "expectation_value", {}
-                ):
-                    snapshot_data = results.data(circ_index)["snapshots"]
-                    avg = snapshot_data["expectation_value"]["expval_measurement"][0]["value"]
-                    if isinstance(avg, (list, tuple)):
-                        # Aer versions before 0.4 use a list snapshot format
-                        # which must be converted to a complex value.
-                        avg = avg[0] + 1j * avg[1]
+                if "expval_measurement" in circ_results:
+                    avg = circ_results["expval_measurement"]
                     # Will be replaced with just avg when eval is called later
                     num_qubits = circuit_sfns[0].num_qubits
                     result_sfn = DictStateFn(
