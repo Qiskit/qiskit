@@ -3045,7 +3045,7 @@ def _insert_composite_gate_definition_qasm(
 
     # Generate gate definition string
     for instruction in existing_composite_circuits:
-        if hasattr(instruction, '_qasm_definition'):
+        if hasattr(instruction, "_qasm_definition"):
             qasm_string = instruction._qasm_definition
         else:
             qasm_string = _get_composite_circuit_qasm_from_instruction(
