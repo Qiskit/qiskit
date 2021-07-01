@@ -298,5 +298,5 @@ qreg q[9];
 mcx_gray q[0],q[1],q[2],q[3],q[4],q[5];
 mcx_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
 mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];\n"""
-        print(qc.qasm())
+
         self.assertEqual(qc.qasm(), expected_qasm)
