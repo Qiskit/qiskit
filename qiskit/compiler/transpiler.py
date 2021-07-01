@@ -859,7 +859,7 @@ def _parse_alignment(backend, alignment, num_circuits):
         alignment = 1
     else:
         if alignment is None:
-            alignment = getattr(backend.configuration().to_dict(), "alignment", 1)
+            alignment = getattr(backend.configuration(), "alignment", 1)
 
     if not isinstance(alignment, int) or alignment == 0:
         raise TranspilerError(f"Alignment should be nonzero integer value. Not {alignment}.")
