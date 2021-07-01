@@ -64,7 +64,7 @@ class Instruction:
                 list of parameters
             duration (int or float): instruction's duration. it must be integer if ``unit`` is 'dt'
             unit (str): time unit of duration
-            label: An optional label for identifying the instruction.
+            label (str or None): An optional label for identifying the instruction.
 
         Raises:
             CircuitError: when the register is not in the correct format.
