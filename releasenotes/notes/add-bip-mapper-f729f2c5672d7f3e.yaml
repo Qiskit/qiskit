@@ -2,7 +2,7 @@
 features:
   - |
     A new transpiler pass class :class:`qiskit.transpiler.passes.BIPMapping`
-    that try to find the best layout and routing at once by solving a BIP
+    that tries to find the best layout and routing at once by solving a BIP
     (binary integer programming) problem as described in
     `arXiv:2106.06446 <https://arxiv.org/abs/2106.06446>`_ has been added.
 
