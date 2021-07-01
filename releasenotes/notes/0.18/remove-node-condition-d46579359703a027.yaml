@@ -7,7 +7,7 @@ deprecations:
     of the :class:`~qiskit.dagcircuit.DAGDepNode` has also been deprecated and
     will be removed in a future release. Instead, you can access the
     ``condition`` of a ``DAGDepNode`` if the node is of type ``op``, by using
-    `DAGDepNode.op.condition`.
+    ``DAGDepNode.op.condition``.
   - |
     The :attr:`~qiskit.dagcircuit.DAGNode.condition` attribute of the
     :class:`~qiskit.dagcircuit.DAGNode` class has been deprecated and

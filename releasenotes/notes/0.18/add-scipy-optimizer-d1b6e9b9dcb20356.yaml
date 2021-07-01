@@ -3,7 +3,7 @@ features:
   - |
     Add a new optimizer class,
     :class:`~qiskit.algorithms.optimizers.SciPyOptimizer`, to the
-    :mod:`~qiskit.algorithms.optimizers`. This class is a simple wrapper class
+    :mod:`qiskit.algorithms.optimizers` module. This class is a simple wrapper class
     of the ``scipy.optimize.minimize`` function
     (`documentation <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html>`__)
     which enables the use of all optimization solvers and enable to use all
