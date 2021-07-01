@@ -84,6 +84,7 @@ Scheduling
    ALAPSchedule
    ASAPSchedule
    RZXCalibrationBuilder
+   AlignMeasures
 
 Circuit Analysis
 ================
@@ -185,6 +186,7 @@ from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
 from .scheduling import RZXCalibrationBuilder
 from .scheduling import TimeUnitConversion
+from .scheduling import AlignMeasures
 
 # additional utility passes
 from .utils import CheckMap
