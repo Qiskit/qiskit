@@ -17,7 +17,6 @@
 import copy
 import itertools
 import functools
-import warnings
 import numbers
 import multiprocessing as mp
 from collections import OrderedDict, defaultdict
