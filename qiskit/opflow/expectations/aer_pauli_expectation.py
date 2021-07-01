@@ -125,7 +125,7 @@ class AerPauliExpectation(ExpectationBase):
             if isinstance(operator, ComposedOp):
                 return 0.0
             elif isinstance(operator, ListOp):
-                return operator._combo_fn([sum_variance(op) for op in operator.oplist])
+                return operator.combo_fn([sum_variance(op) for op in operator.oplist])
             raise TypeError(f"Variance cannot be computed for {operator.__class__.__name__}.")
 
         return sum_variance(exp_op)
