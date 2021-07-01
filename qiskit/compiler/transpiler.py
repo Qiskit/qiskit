@@ -57,12 +57,12 @@ def transpile(
     instruction_durations: Optional[InstructionDurationsType] = None,
     dt: Optional[float] = None,
     approximation_degree: Optional[float] = None,
+    alignment: Optional[int] = None,
     seed_transpiler: Optional[int] = None,
     optimization_level: Optional[int] = None,
     pass_manager: Optional[PassManager] = None,
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
     output_name: Optional[Union[str, List[str]]] = None,
-    alignment: Optional[int] = None,
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -148,6 +148,11 @@ def transpile(
             If ``None`` (default), ``backend.configuration().dt`` is used.
         approximation_degree (float): heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
+        alignment: An optional control hardware restriction on instruction time allocation.
+            The location of specific instructions is adjusted to be at quantized time that is
+            multiple of this value. This information will be provided by the backend configuration.
+            If the backend doesn't have any restriction on the alignment,
+            then this adjustment routine will be ignored.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -187,11 +192,6 @@ def transpile(
 
         output_name: A list with strings to identify the output circuits. The length of
             the list should be exactly the length of the ``circuits`` parameter.
-        alignment: An optional control hardware restriction on instruction time allocation.
-            The location of measure instruction is adjusted to be at quantized time that is
-            multiple of this value. This information will be provided by the backend configuration.
-            If the backend doesn't have any restriction on the alignment,
-            then this adjustment routine is ignored.
 
     Returns:
         The transpiled circuit(s).
@@ -362,14 +362,6 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
     else:
         raise TranspilerError("optimization_level can range from 0 to 3.")
 
-    if transpile_config["alignment"] != 1:
-        # This is a temp pass to manage measurement channel clock synchronization
-        _align_measure = AlignMeasures(
-            alignment=transpile_config["alignment"],
-            durations=pass_manager_config.instruction_durations,
-        )
-        pass_manager.append(_align_measure)
-
     result = pass_manager.run(
         circuit, callback=transpile_config["callback"], output_name=transpile_config["output_name"]
     )
@@ -521,7 +513,7 @@ def _parse_transpile_args(
         callback,
         backend_num_qubits,
         faulty_qubits_map,
-        alignment
+        alignment,
     ):
         transpile_args = {
             "pass_manager_config": PassManagerConfig(

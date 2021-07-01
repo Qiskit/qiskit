@@ -19,10 +19,8 @@ from qiskit.circuit.delay import Delay
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.scheduling.alap import ALAPSchedule
 
 
 class AlignMeasures(TransformationPass):
@@ -31,10 +29,9 @@ class AlignMeasures(TransformationPass):
     This is control electronics aware optimization pass.
     """
 
-    def __init__(self, alignment: int, durations: InstructionDurations):
+    def __init__(self, alignment: int):
         super().__init__()
         self.alignment = alignment
-        self.durations = durations
 
     def run(self, dag: DAGCircuit):
         """Run the measurement alignment pass on `dag`.
@@ -50,20 +47,33 @@ class AlignMeasures(TransformationPass):
         """
         time_unit = self.property_set["time_unit"]
 
-        if len(dag.op_nodes(Delay)) == 0 or len(dag.op_nodes(Measure)) == 0:
-            # delay is only instruction that induce misalignment
-            # other instructions cannot be arbitrarily stretched
-            # if we don't find any delay skip rescheduling for performance reason
+        require_validation = False
+
+        if any(delay_node.op.duration % self.alignment for delay_node in dag.op_nodes(Delay)):
+            # delay is only instruction that can move measurement instruction
+            # to the position which is not multiple of alignment.
+            # if any delay with non-multiple of alignment is found we should run validation.
+            require_validation = True
+
+        if len(dag.op_nodes(Measure)) == 0:
+            # if no measurement is involved we don't need to run validation.
+            # since this pass assumes backend execution, this is really rare case.
+            require_validation = False
+
+        if not require_validation:
+            # return input as-is to avoid unnecessary scheduling.
+            # because following procedure regenerate new DAGCircuit,
+            # we should avoid continuing if not necessary from performance viewpoint.
             return dag
 
         # if circuit is not yet scheduled, schedule with ALAP method
         if dag.duration is None:
-            scheduler = ALAPSchedule(durations=self.durations)
-            scheduler.property_set["time_unit"] = time_unit
-            # run ALAP schedule to find measurement times
-            for required_pass in scheduler.requires:
-                dag = required_pass.run(dag)
-            dag = scheduler.run(dag)
+            raise TranspilerError(
+                f"This circuit {dag.name} may involve a delay instruction violating the "
+                "pulse controller alignment. To adjust instructions to "
+                "right timing, you should call one of scheduling passes first. "
+                "This is usually done by calling transpiler with scheduling_method='alap'."
+            )
 
         new_dag = dag._copy_circuit_metadata()
 
