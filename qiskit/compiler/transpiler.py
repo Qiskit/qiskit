@@ -31,7 +31,7 @@ from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
-from qiskit.transpiler.passes import ApplyLayout
+from qiskit.transpiler.passes import ApplyLayout, AlignMeasures
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import (
     level_0_pass_manager,
@@ -62,6 +62,7 @@ def transpile(
     pass_manager: Optional[PassManager] = None,
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
     output_name: Optional[Union[str, List[str]]] = None,
+    alignment: Optional[int] = None,
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -186,6 +187,11 @@ def transpile(
 
         output_name: A list with strings to identify the output circuits. The length of
             the list should be exactly the length of the ``circuits`` parameter.
+        alignment: An optional control hardware restriction on instruction time allocation.
+            The location of measure instruction is adjusted to be at quantized time that is
+            multiple of this value. This information will be provided by the backend configuration.
+            If the backend doesn't have any restriction on the alignment,
+            then this adjustment routine is ignored.
 
     Returns:
         The transpiled circuit(s).
@@ -263,6 +269,7 @@ def transpile(
         optimization_level,
         callback,
         output_name,
+        alignment,
     )
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
@@ -355,6 +362,14 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
     else:
         raise TranspilerError("optimization_level can range from 0 to 3.")
 
+    if transpile_config["alignment"] != 1:
+        # This is a temp pass to manage measurement channel clock synchronization
+        _align_measure = AlignMeasures(
+            alignment=transpile_config["alignment"],
+            durations=pass_manager_config.instruction_durations,
+        )
+        pass_manager.append(_align_measure)
+
     result = pass_manager.run(
         circuit, callback=transpile_config["callback"], output_name=transpile_config["output_name"]
     )
@@ -443,6 +458,7 @@ def _parse_transpile_args(
     optimization_level,
     callback,
     output_name,
+    alignment,
 ) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -480,6 +496,7 @@ def _parse_transpile_args(
     callback = _parse_callback(callback, num_circuits)
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
+    alignment = _parse_alignment(backend, alignment, num_circuits)
     if scheduling_method and any(d is None for d in durations):
         raise TranspilerError(
             "Transpiling a circuit with a scheduling method"
@@ -504,6 +521,7 @@ def _parse_transpile_args(
         callback,
         backend_num_qubits,
         faulty_qubits_map,
+        alignment
     ):
         transpile_args = {
             "pass_manager_config": PassManagerConfig(
@@ -524,6 +542,7 @@ def _parse_transpile_args(
             "callback": args[13],
             "backend_num_qubits": args[14],
             "faulty_qubits_map": args[15],
+            "alignment": args[16],
         }
         list_transpile_args.append(transpile_args)
 
@@ -833,3 +852,16 @@ def _parse_output_name(output_name, circuits):
             )
     else:
         return [circuit.name for circuit in circuits]
+
+
+def _parse_alignment(backend, alignment, num_circuits):
+    if backend is None and alignment is None:
+        alignment = 1
+    else:
+        if alignment is None:
+            alignment = getattr(backend.configuration().to_dict(), "alignment", 1)
+
+    if not isinstance(alignment, int) or alignment == 0:
+        raise TranspilerError(f"Alignment should be nonzero integer value. Not {alignment}.")
+
+    return [alignment] * num_circuits
