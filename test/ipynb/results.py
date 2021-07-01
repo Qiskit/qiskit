@@ -19,7 +19,6 @@ from PIL import Image, ImageChops, ImageDraw
 
 SWD = os.path.dirname(os.path.abspath(__file__))
 
-
 class Results:
     """Result object to analyse image comparisons"""
 
@@ -34,6 +33,7 @@ class Results:
         if os.path.exists(datafilename):
             with open(datafilename) as datafile:
                 self.data = json.load(datafile)
+
 
     @staticmethod
     def _black_or_b(diff_image, image, reference, opacity=0.85):
@@ -64,6 +64,7 @@ class Results:
         diff_name = current.split(".")
         diff_name.insert(-1, "diff")
         diff_name = ".".join(diff_name)
+
         current = Image.open(current)
         expected = Image.open(expected)
 
@@ -146,16 +147,16 @@ class Results:
         ret = ""
 
         if len(self.mismatch) >= 2:
-            Results._zipfiles(self.mismatch, "mpl/mismatch.zip")
+            Results._zipfiles(self.mismatch, "mpl/Circuit/mismatch.zip")
             ret += (
-                '<div><a href="mpl/mismatch.zip">'
+                '<div><a href="mpl/Circuit/mismatch.zip">'
                 "Download %s mismatch results as a zip</a></div>" % len(self.mismatch)
             )
 
         if len(self.missing) >= 2:
-            Results._zipfiles(self.missing, "mpl/missing.zip")
+            Results._zipfiles(self.missing, "mpl/Circuit/missing.zip")
             ret += (
-                '<div><a href="mpl/missing.zip">'
+                '<div><a href="mpl/Circuit/missing.zip">'
                 "Download %s missing results as a zip</a></div>" % len(self.missing)
             )
 
@@ -194,8 +195,8 @@ class Results:
 
 if __name__ == "__main__":
     RESULT_FILES = []
-    for file in os.listdir(os.path.join(SWD, "mpl")):
+    for file in os.listdir(os.path.join(SWD, "mpl/Circuit")):
         if file.endswith(".png") and not file.endswith(".diff.png"):
             RESULT_FILES.append(file)
-    RESULTS = Results(sorted(RESULT_FILES), "mpl")
+    RESULTS = Results(sorted(RESULT_FILES), "mpl/Circuit")
     RESULTS.diff_images()
