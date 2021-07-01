@@ -27,15 +27,15 @@ class Decompose(TransformationPass):
     @deprecate_arguments({"gate": "gates_to_decompose"})
     def __init__(
         self,
-        gates_to_decompose: Optional[Union[Type[Gate], List[Type[Gate]], List[str], str]] = None,
         gate: Optional[Type[Gate]] = None,
+        gates_to_decompose: Optional[Union[Type[Gate], List[Type[Gate]], List[str], str]] = None,
     ) -> None:
         """Decompose initializer.
 
         Args:
+            gate: DEPRECATED gate to decompose.
             gates_to_decompose: optional subset of gates to be decomposed,
                 identified by gate label, name or type. Defaults to all gates.
-            gate: DEPRECATED gate to decompose.
         """
         super().__init__()
 
