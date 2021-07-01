@@ -3,7 +3,7 @@ prelude: |
     This release includes many new features and bug fixes. The highlights of
     this release are the introduction of two new transpiler
     passes, :class:`~qiskit.transpiler.passes.BIPMapping` and
-    :class:`~qiskit.transpiler.passes.InsertDD`, which when combined with
+    :class:`~qiskit.transpiler.passes.DynamicalDecoupling`, which when combined with
     the new ``pulse_optimize`` kwarg on the
     :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass enables recreating
     the Quantum Volume 64 results using the techniques
