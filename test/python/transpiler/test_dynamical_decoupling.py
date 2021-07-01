@@ -21,6 +21,7 @@ from qiskit.quantum_info import Operator
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule, DynamicalDecoupling
 from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.test import QiskitTestCase
 
@@ -260,6 +261,19 @@ class TestDynamicalDecoupling(QiskitTestCase):
                 Operator(UGate(3 * pi / 4, -pi / 2, pi / 2)) & Operator(RXGate(pi / 4))
             )
         )
+
+    def test_insert_dd_bad_sequence(self):
+        """Test DD raises when non-identity sequence is inserted."""
+        dd_sequence = [XGate(), YGate()]
+        pm = PassManager(
+            [
+                ALAPSchedule(self.durations),
+                DynamicalDecoupling(self.durations, dd_sequence),
+            ]
+        )
+
+        with self.assertRaises(TranspilerError):
+            ghz4_dd = pm.run(self.ghz4)
 
 
 if __name__ == "__main__":

@@ -15,11 +15,12 @@
 import itertools
 
 import numpy as np
-from qiskit.circuit import Delay, Reset
-from qiskit.circuit.library import IGate, UGate
+from qiskit.circuit.delay import Delay
+from qiskit.circuit.reset import Reset
+from qiskit.circuit.library.standard_gates import IGate, UGate
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
-from qiskit.transpiler.passes import Optimize1qGates
+from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -131,80 +132,79 @@ class DynamicalDecoupling(TransformationPass):
         new_dag = dag._copy_circuit_metadata()
 
         for nd in dag.topological_op_nodes():
-            if isinstance(nd.op, Delay):
-                dag_qubit = nd.qargs[0]
-                physical_qubit = new_dag.qubits.index(dag_qubit)
-                if physical_qubit not in self._qubits:  # skip unwanted qubits
-                    new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
-                    continue
-
-                pred = next(dag.predecessors(nd))
-                succ = next(dag.successors(nd))
-                if self._skip_reset_qubits:  # discount initial delays
-                    if pred.type == "in" or isinstance(pred, Reset):
-                        new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
-                        continue
-
-                dd_sequence = []
-                dd_sequence_duration = 0
-                for g in self._dd_sequence:
-                    g.duration = self._durations.get(g, physical_qubit)
-                    dd_sequence.append(g)
-                    dd_sequence_duration += g.duration
-                slack = nd.op.duration - dd_sequence_duration
-                if slack <= 0:  # dd doesn't fit
-                    new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
-                    continue
-
-                if len(self._dd_sequence) == 1:  # special case of using a single gate for DD
-                    udg = self._dd_sequence[0].inverse().to_matrix()
-                    theta, phi, lam, phase = OneQubitEulerDecomposer().angles_and_phase(udg)
-                    # absorb the inverse into the successor (from left in circuit)
-                    if succ.type == "op" and isinstance(succ.op, UGate):
-                        begin = int(slack / 2)
-                        new_dag.apply_operation_back(Delay(begin), [dag_qubit])
-                        new_dag.apply_operation_back(dd_sequence[0], [dag_qubit])
-                        new_dag.apply_operation_back(Delay(slack - begin), [dag_qubit])
-                        theta_r, phi_r, lam_r = succ.op.params
-                        succ.op.params = Optimize1qGates.compose_u3(
-                            theta_r, phi_r, lam_r, theta, phi, lam
-                        )
-                        new_dag.global_phase = _mod_2pi(new_dag.global_phase + phase)
-                    # absorb the inverse into the predecessor (from right in circuit)
-                    elif pred.type == "op" and isinstance(pred.op, UGate):
-                        begin = int(slack / 2)
-                        new_dag.apply_operation_back(Delay(begin), [dag_qubit])
-                        new_dag.apply_operation_back(dd_sequence[0], [dag_qubit])
-                        new_dag.apply_operation_back(Delay(slack - begin), [dag_qubit])
-                        theta_l, phi_l, lam_l = pred.op.params
-                        pred.op.params = Optimize1qGates.compose_u3(
-                            theta, phi, lam, theta_l, phi_l, lam_l
-                        )
-                        new_dag.global_phase = _mod_2pi(new_dag.global_phase + phase)
-                    # don't do anything if there's no single-qubit gate to absorb the inverse
-                    else:
-                        new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
-                else:
-                    # balanced spacing (d/2, d, d, ..., d, d, d/2)
-                    # careful here that we add up to the original delay duration
-                    num_pulses = len(self._dd_sequence)
-                    mid = int(slack / num_pulses)
-                    end = int(mid / 2)
-                    unused_slack = slack - 2 * end - (num_pulses - 1) * mid
-                    int((num_pulses - 1) / 2)
-                    delays = (
-                        [end]
-                        + [mid] * int((num_pulses - 1) / 2)
-                        + [mid + unused_slack]
-                        + [mid] * int((num_pulses - 1) / 2)
-                        + [end]
-                    )
-                    for gate, idle in itertools.zip_longest(self._dd_sequence, delays):
-                        new_dag.apply_operation_back(Delay(idle), [dag_qubit])
-                        if gate is not None:
-                            new_dag.apply_operation_back(gate, [dag_qubit])
-            else:
+            if not isinstance(nd.op, Delay):
                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
+                continue
+
+            dag_qubit = nd.qargs[0]
+            physical_qubit = new_dag.qubits.index(dag_qubit)
+            if physical_qubit not in self._qubits:  # skip unwanted qubits
+                new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
+                continue
+
+            pred = next(dag.predecessors(nd))
+            succ = next(dag.successors(nd))
+            if self._skip_reset_qubits:  # discount initial delays
+                if pred.type == "in" or isinstance(pred, Reset):
+                    new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
+                    continue
+
+            dd_sequence_duration = 0
+            for gate in self._dd_sequence:
+                gate.duration = self._durations.get(gate, physical_qubit)
+                dd_sequence_duration += gate.duration
+
+            slack = nd.op.duration - dd_sequence_duration
+            if slack <= 0:  # dd doesn't fit
+                new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
+                continue
+
+            if len(self._dd_sequence) == 1:  # special case of using a single gate for DD
+                udg = self._dd_sequence[0].inverse().to_matrix()
+                theta, phi, lam, phase = OneQubitEulerDecomposer().angles_and_phase(udg)
+                # absorb the inverse into the successor (from left in circuit)
+                if succ.type == "op" and isinstance(succ.op, UGate):
+                    begin = int(slack / 2)
+                    new_dag.apply_operation_back(Delay(begin), [dag_qubit])
+                    new_dag.apply_operation_back(self._dd_sequence[0], [dag_qubit])
+                    new_dag.apply_operation_back(Delay(slack - begin), [dag_qubit])
+                    theta_r, phi_r, lam_r = succ.op.params
+                    succ.op.params = Optimize1qGates.compose_u3(
+                        theta_r, phi_r, lam_r, theta, phi, lam
+                    )
+                    new_dag.global_phase = _mod_2pi(new_dag.global_phase + phase)
+                # absorb the inverse into the predecessor (from right in circuit)
+                elif pred.type == "op" and isinstance(pred.op, UGate):
+                    begin = int(slack / 2)
+                    new_dag.apply_operation_back(Delay(begin), [dag_qubit])
+                    new_dag.apply_operation_back(self._dd_sequence[0], [dag_qubit])
+                    new_dag.apply_operation_back(Delay(slack - begin), [dag_qubit])
+                    theta_l, phi_l, lam_l = pred.op.params
+                    pred.op.params = Optimize1qGates.compose_u3(
+                        theta, phi, lam, theta_l, phi_l, lam_l
+                    )
+                    new_dag.global_phase = _mod_2pi(new_dag.global_phase + phase)
+                # don't do anything if there's no single-qubit gate to absorb the inverse
+                else:
+                    new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
+            else:
+                # balanced spacing (d/2, d, d, ..., d, d, d/2)
+                # careful here that we add up to the original delay duration
+                num_pulses = len(self._dd_sequence)
+                mid = int(slack / num_pulses)
+                end = int(mid / 2)
+                unused_slack = slack - 2 * end - (num_pulses - 1) * mid
+                delays = (
+                    [end]
+                    + [mid] * int((num_pulses - 1) / 2)
+                    + [mid + unused_slack]
+                    + [mid] * int((num_pulses - 1) / 2)
+                    + [end]
+                )
+                for idle, gate in itertools.zip_longest(delays, self._dd_sequence):
+                    new_dag.apply_operation_back(Delay(idle), [dag_qubit])
+                    if gate is not None:
+                        new_dag.apply_operation_back(gate, [dag_qubit])
 
         new_dag.duration = dag.duration
         new_dag.unit = dag.unit
