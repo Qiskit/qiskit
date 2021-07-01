@@ -50,8 +50,9 @@ from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import TimeUnitConversion
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
-from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import AlignMeasures
+from qiskit.transpiler.passes import ValidatePulseGates
+from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
 
@@ -203,7 +204,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
     # 11. Call measure alignment. Should come after scheduling.
-    _measure_align = AlignMeasures(alignment=alignment, durations=instruction_durations)
+    _alignments = [
+        ValidatePulseGates(alignment=alignment), AlignMeasures(alignment=alignment)
+    ]
 
     # Build pass manager
     pm1 = PassManager()
@@ -223,6 +226,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm1.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     pm1.append(_scheduling)
     if alignment != 1:
-        pm1.append(_measure_align)
+        pm1.append(_alignments)
 
     return pm1

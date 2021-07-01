@@ -19,7 +19,7 @@ from qiskit.circuit.delay import Delay
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass, AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 
@@ -135,3 +135,36 @@ class AlignMeasures(TransformationPass):
         new_dag.unit = time_unit
 
         return new_dag
+
+
+class ValidatePulseGates(AnalysisPass):
+    """Check custom gate length.
+
+    This is control electronics aware validation pass.
+    """
+
+    def __init__(self, alignment: int):
+        super().__init__()
+        self.alignment = alignment
+
+    def run(self, dag: DAGCircuit):
+        """Run the measurement alignment pass on `dag`.
+
+        Args:
+            dag (DAGCircuit): DAG to be checked.
+
+        Returns:
+            DAGCircuit: DAG with consistent timing and op nodes annotated with duration.
+
+        Raises:
+            TranspilerError: When pulse gate violate pulse controller alignment.
+        """
+        for gate, insts in dag.calibrations.items():
+            for qubit_param_pair, schedule in insts.items():
+                if schedule.duration % self.alignment != 0:
+                    raise TranspilerError(
+                        f"Pulse gate duration is not multiple of {self.alignment}. "
+                        "This pulse cannot be played on the specified backend. "
+                        f"Please modify the duration of the custom gate schedule {schedule.name} "
+                        f"which is associated with the gate {gate} of qubit {qubit_param_pair[0]}."
+                    )
