@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Transpiler testing"""
+"""Testing measurement alignment pass."""
 
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
