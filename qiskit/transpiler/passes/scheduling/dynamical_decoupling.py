@@ -116,10 +116,10 @@ class DynamicalDecoupling(TransformationPass):
         if len(self._dd_sequence) != 1:
             if len(self._dd_sequence) % 2 != 0:
                 raise TranspilerError("DD sequence must contain an even number of gates (or 1).")
-            noop = Operator(IGate())
+            noop = np.eye(2)
             for gate in self._dd_sequence:
-                noop = noop.compose(Operator(gate))
-            if not noop.equiv(IGate()):
+                noop = noop.dot(gate.to_matrix())
+            if not np.allclose(noop, np.eye(2), rtol=1e-5, atol=1e-8):
                 raise TranspilerError("The DD sequence does not make an identity operation.")
 
         if self._qubits is None:
