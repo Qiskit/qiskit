@@ -96,7 +96,7 @@ class BIPMapping(TransformationPass):
                 could reduce the chance of finding a feasible solution within the ``time_limit``.
 
         Raises:
-            MissingOptionalLibraryError: if cplex is not installed.
+            MissingOptionalLibraryError: if cplex or docplex are not installed.
         """
         if not HAS_DOCPLEX or not HAS_CPLEX:
             raise MissingOptionalLibraryError(
