@@ -1560,7 +1560,7 @@ class QuantumCircuit:
                 the `mpl`, `latex` and `latex_source` outputs. Defaults to 1.0.
             filename (str): file path to save image to. Defaults to None.
             style (dict or str): dictionary of style or file name of style json file.
-                This option is only used by the `mpl` output type.
+                This option is only used by the `mpl` or `latex` output type.
                 If `style` is a str, it is used as the path to a json file
                 which contains a style dict. The file will be opened, parsed, and
                 then any style elements in the dict will replace the default values
@@ -1833,8 +1833,11 @@ class QuantumCircuit:
                 # Controls necessarily join all the cbits in the
                 # register that they use.
                 if instr.condition and not unitary_only:
-                    creg = instr.condition[0]
-                    for bit in creg:
+                    if isinstance(instr.condition[0], Clbit):
+                        condition_bits = [instr.condition[0]]
+                    else:
+                        condition_bits = instr.condition[0]
+                    for bit in condition_bits:
                         idx = bit_indices[bit]
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
