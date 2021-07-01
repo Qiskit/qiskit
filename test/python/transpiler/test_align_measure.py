@@ -15,7 +15,7 @@
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.passes import AlignMeasures, ALAPSchedule
+from qiskit.transpiler.passes import AlignMeasures, ALAPSchedule, TimeUnitConversion
 
 
 class TestAlignMeasures(QiskitTestCase):
@@ -38,6 +38,7 @@ class TestAlignMeasures(QiskitTestCase):
                 ("measure", (1,), 1600),
             ]
         )
+        self.time_conversion_pass = TimeUnitConversion(inst_durations=instruction_durations)
         self.scheduling_pass = ALAPSchedule(durations=instruction_durations)
         self.align_measure_pass = AlignMeasures(alignment=16)
 
@@ -68,7 +69,10 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.delay(100, 0, unit="dt")
         circuit.measure(0, 0)
 
-        scheduled_circuit = self.scheduling_pass(circuit, property_set={"time_unit": "dt"})
+        timed_circuit = self.time_conversion_pass(circuit)
+        scheduled_circuit = self.scheduling_pass(
+            timed_circuit, property_set={"time_unit": "dt"}
+        )
         aligned_circuit = self.align_measure_pass(
             scheduled_circuit, property_set={"time_unit": "dt"}
         )
@@ -111,7 +115,10 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.sx(0)
         circuit.measure(0, 0)
 
-        scheduled_circuit = self.scheduling_pass(circuit, property_set={"time_unit": "dt"})
+        timed_circuit = self.time_conversion_pass(circuit)
+        scheduled_circuit = self.scheduling_pass(
+            timed_circuit, property_set={"time_unit": "dt"}
+        )
         aligned_circuit = self.align_measure_pass(
             scheduled_circuit, property_set={"time_unit": "dt"}
         )
@@ -158,7 +165,10 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.delay(120, 0, unit="dt")
         circuit.measure(0, 1)
 
-        scheduled_circuit = self.scheduling_pass(circuit, property_set={"time_unit": "dt"})
+        timed_circuit = self.time_conversion_pass(circuit)
+        scheduled_circuit = self.scheduling_pass(
+            timed_circuit, property_set={"time_unit": "dt"}
+        )
         aligned_circuit = self.align_measure_pass(
             scheduled_circuit, property_set={"time_unit": "dt"}
         )
@@ -216,7 +226,10 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.cx(0, 1)
         circuit.measure(0, 0)
 
-        scheduled_circuit = self.scheduling_pass(circuit, property_set={"time_unit": "dt"})
+        timed_circuit = self.time_conversion_pass(circuit)
+        scheduled_circuit = self.scheduling_pass(
+            timed_circuit, property_set={"time_unit": "dt"}
+        )
         aligned_circuit = self.align_measure_pass(
             scheduled_circuit, property_set={"time_unit": "dt"}
         )
