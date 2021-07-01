@@ -1226,7 +1226,7 @@ class QuantumCircuit:
         if not set(cargs).issubset(self._clbit_set):
             raise CircuitError("cargs not in this circuit")
 
-    def to_instruction(self, parameter_map=None):
+    def to_instruction(self, parameter_map=None, label=None):
         """Create an Instruction out of this circuit.
 
         Args:
@@ -1234,6 +1234,7 @@ class QuantumCircuit:
                parameters in the circuit to parameters to be used in the
                instruction. If None, existing circuit parameters will also
                parameterize the instruction.
+            label (str): Optional gate label.
 
         Returns:
             qiskit.circuit.Instruction: a composite instruction encapsulating this circuit
@@ -1241,7 +1242,7 @@ class QuantumCircuit:
         """
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
 
-        return circuit_to_instruction(self, parameter_map)
+        return circuit_to_instruction(self, parameter_map, label=label)
 
     def to_gate(self, parameter_map=None, label=None):
         """Create a Gate out of this circuit.
@@ -1766,8 +1767,11 @@ class QuantumCircuit:
                 # Controls necessarily join all the cbits in the
                 # register that they use.
                 if instr.condition and not unitary_only:
-                    creg = instr.condition[0]
-                    for bit in creg:
+                    if isinstance(instr.condition[0], Clbit):
+                        condition_bits = [instr.condition[0]]
+                    else:
+                        condition_bits = instr.condition[0]
+                    for bit in condition_bits:
                         idx = bit_indices[bit]
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
