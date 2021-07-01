@@ -189,7 +189,8 @@ class Gradient(GradientBase):
         elif isinstance(operator, ListOp):
             grad_ops = [self.get_gradient(op, param) for op in operator.oplist]
 
-            if operator._combo_fn is None:  # If using default
+            # pylint: disable=comparison-with-callable
+            if operator.combo_fn == ListOp.default_combo_fn:  # If using default
                 return ListOp(oplist=grad_ops)
             elif isinstance(operator, SummedOp):
                 return SummedOp(oplist=[grad for grad in grad_ops if grad != ~Zero @ One]).reduce()
