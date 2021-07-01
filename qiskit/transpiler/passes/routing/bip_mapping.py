@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 class BIPMapping(TransformationPass):
     r"""Map a DAGCircuit onto a given ``coupling_map``, allocating qubits and adding swap gates.
 
-    The BIP mapper try to find the best layout and routing at once by
+    The BIP mapper tries to find the best layout and routing at once by
     solving a BIP (binary integer programming) problem as described in [1].
 
     The BIP problem represents the layer-by-layer mapping of 2-qubit gates, assuming all the gates
