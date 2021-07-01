@@ -14,7 +14,7 @@
 
 from functools import reduce
 from numbers import Number
-from typing import Callable, Dict, Iterator, List, Optional, Set, Sequence, Union, cast
+from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Sequence, Union, cast
 
 import numpy as np
 from scipy.sparse import spmatrix
@@ -122,6 +122,11 @@ class ListOp(OperatorBase):
         """
         return self._oplist
 
+    @staticmethod
+    def default_combo_fn(x: Any) -> Any:
+        """ListOp default combo function i.e. lambda x: x"""
+        return x
+
     @property
     def combo_fn(self) -> Callable:
         """The function defining how to combine ``oplist`` (or Numbers, or NumPy arrays) to
@@ -132,7 +137,7 @@ class ListOp(OperatorBase):
             The combination function.
         """
         if self._combo_fn is None:
-            return lambda x: x
+            return ListOp.default_combo_fn
         return self._combo_fn
 
     @property
