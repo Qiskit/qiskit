@@ -192,7 +192,7 @@ class DynamicalDecoupling(TransformationPass):
                 num_pulses = len(self._dd_sequence)
                 mid = int(slack / num_pulses)
                 end = int(mid / 2)
-                unused_slack = slack - 2 * end - (num_pulses - 1) * mid
+                unused_slack = slack - (num_pulses - 1) * mid - 2 * end
                 delays = (
                     [end]
                     + [mid] * int((num_pulses - 1) / 2)

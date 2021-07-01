@@ -30,12 +30,43 @@ class TestDynamicalDecoupling(QiskitTestCase):
     """Tests DynamicalDecoupling pass."""
 
     def setUp(self):
+        """Circuits to test DD on.
+
+             ┌───┐
+        q_0: ┤ H ├──■────────────
+             └───┘┌─┴─┐
+        q_1: ─────┤ X ├──■───────
+                  └───┘┌─┴─┐
+        q_2: ──────────┤ X ├──■──
+                       └───┘┌─┴─┐
+        q_3: ───────────────┤ X ├
+                            └───┘
+
+                  ┌──────────┐
+        q_0: ──■──┤ U(π,0,π) ├──────────■──
+             ┌─┴─┐└──────────┘        ┌─┴─┐
+        q_1: ┤ X ├─────■───────────■──┤ X ├
+             └───┘   ┌─┴─┐    ┌─┐┌─┴─┐└───┘
+        q_2: ────────┤ X ├────┤M├┤ X ├─────
+                     └───┘    └╥┘└───┘
+        c: 1/══════════════════╩═══════════
+                               0
+        """
         super().setUp()
+
         self.ghz4 = QuantumCircuit(4)
         self.ghz4.h(0)
         self.ghz4.cx(0, 1)
         self.ghz4.cx(1, 2)
         self.ghz4.cx(2, 3)
+
+        self.midmeas = QuantumCircuit(3, 1)
+        self.midmeas.cx(0, 1)
+        self.midmeas.cx(1, 2)
+        self.midmeas.u(pi, 0, pi, 0)
+        self.midmeas.measure(2, 0)
+        self.midmeas.cx(1, 2)
+        self.midmeas.cx(0, 1)
 
         self.durations = InstructionDurations(
             [
@@ -51,22 +82,34 @@ class TestDynamicalDecoupling(QiskitTestCase):
             ]
         )
 
-        self.midmeas = QuantumCircuit(3, 1)
-        self.midmeas.cx(0, 1)
-        self.midmeas.cx(1, 2)
-        self.midmeas.u(pi, 0, pi, 0)
-        self.midmeas.measure(2, 0)
-        self.midmeas.cx(1, 2)
-        self.midmeas.cx(0, 1)
-
     def test_insert_dd_ghz(self):
-        """Test DD gates are inserted in correct spots."""
+        """Test DD gates are inserted in correct spots.
+
+                   ┌───┐            ┌────────────────┐      ┌───┐      »
+        q_0: ──────┤ H ├─────────■──┤ Delay(100[dt]) ├──────┤ X ├──────»
+             ┌─────┴───┴─────┐ ┌─┴─┐└────────────────┘┌─────┴───┴─────┐»
+        q_1: ┤ Delay(50[dt]) ├─┤ X ├────────■─────────┤ Delay(50[dt]) ├»
+             ├───────────────┴┐└───┘      ┌─┴─┐       └───────────────┘»
+        q_2: ┤ Delay(750[dt]) ├───────────┤ X ├───────────────■────────»
+             ├────────────────┤           └───┘             ┌─┴─┐      »
+        q_3: ┤ Delay(950[dt]) ├─────────────────────────────┤ X ├──────»
+             └────────────────┘                             └───┘      »
+        «     ┌────────────────┐      ┌───┐       ┌────────────────┐
+        «q_0: ┤ Delay(200[dt]) ├──────┤ X ├───────┤ Delay(100[dt]) ├─────────────────
+        «     └─────┬───┬──────┘┌─────┴───┴──────┐└─────┬───┬──────┘┌───────────────┐
+        «q_1: ──────┤ X ├───────┤ Delay(100[dt]) ├──────┤ X ├───────┤ Delay(50[dt]) ├
+        «           └───┘       └────────────────┘      └───┘       └───────────────┘
+        «q_2: ───────────────────────────────────────────────────────────────────────
+        «
+        «q_3: ───────────────────────────────────────────────────────────────────────
+        «
+        """
         dd_sequence = [XGate(), XGate()]
         pm = PassManager(
             [ALAPSchedule(self.durations), DynamicalDecoupling(self.durations, dd_sequence)]
         )
 
-        ghz4_dd = pm.run(self.ghz4.measure_all(inplace=False))
+        ghz4_dd = pm.run(self.ghz4)
 
         expected = self.ghz4.copy()
         expected = expected.compose(Delay(50), [1], front=True)
@@ -85,12 +128,34 @@ class TestDynamicalDecoupling(QiskitTestCase):
         expected = expected.compose(XGate(), [1])
         expected = expected.compose(Delay(50), [1])
 
-        expected.measure_all()
-
         self.assertEqual(ghz4_dd, expected)
 
     def test_insert_dd_ghz_one_qubit(self):
-        """Test DD gates are inserted on only one qubit."""
+        """Test DD gates are inserted on only one qubit.
+
+                      ┌───┐            ┌────────────────┐      ┌───┐       »
+           q_0: ──────┤ H ├─────────■──┤ Delay(100[dt]) ├──────┤ X ├───────»
+                ┌─────┴───┴─────┐ ┌─┴─┐└────────────────┘┌─────┴───┴──────┐»
+           q_1: ┤ Delay(50[dt]) ├─┤ X ├────────■─────────┤ Delay(300[dt]) ├»
+                ├───────────────┴┐└───┘      ┌─┴─┐       └────────────────┘»
+           q_2: ┤ Delay(750[dt]) ├───────────┤ X ├───────────────■─────────»
+                ├────────────────┤           └───┘             ┌─┴─┐       »
+           q_3: ┤ Delay(950[dt]) ├─────────────────────────────┤ X ├───────»
+                └────────────────┘                             └───┘       »
+        meas: 4/═══════════════════════════════════════════════════════════»
+                                                                           »
+        «        ┌────────────────┐┌───┐┌────────────────┐ ░ ┌─┐
+        «   q_0: ┤ Delay(200[dt]) ├┤ X ├┤ Delay(100[dt]) ├─░─┤M├─────────
+        «        └────────────────┘└───┘└────────────────┘ ░ └╥┘┌─┐
+        «   q_1: ──────────────────────────────────────────░──╫─┤M├──────
+        «                                                  ░  ║ └╥┘┌─┐
+        «   q_2: ──────────────────────────────────────────░──╫──╫─┤M├───
+        «                                                  ░  ║  ║ └╥┘┌─┐
+        «   q_3: ──────────────────────────────────────────░──╫──╫──╫─┤M├
+        «                                                  ░  ║  ║  ║ └╥┘
+        «meas: 4/═════════════════════════════════════════════╩══╩══╩══╩═
+        «                                                     0  1  2  3
+        """
         dd_sequence = [XGate(), XGate()]
         pm = PassManager(
             [
@@ -119,7 +184,27 @@ class TestDynamicalDecoupling(QiskitTestCase):
         self.assertEqual(ghz4_dd, expected)
 
     def test_insert_dd_ghz_everywhere(self):
-        """Test DD gates even on initial idle spots."""
+        """Test DD gates even on initial idle spots.
+
+                   ┌───┐            ┌────────────────┐┌───┐┌────────────────┐┌───┐»
+        q_0: ──────┤ H ├─────────■──┤ Delay(100[dt]) ├┤ Y ├┤ Delay(200[dt]) ├┤ Y ├»
+             ┌─────┴───┴─────┐ ┌─┴─┐└────────────────┘└───┘└────────────────┘└───┘»
+        q_1: ┤ Delay(50[dt]) ├─┤ X ├───────────────────────────────────────────■──»
+             ├───────────────┴┐├───┤┌────────────────┐┌───┐┌────────────────┐┌─┴─┐»
+        q_2: ┤ Delay(162[dt]) ├┤ Y ├┤ Delay(326[dt]) ├┤ Y ├┤ Delay(162[dt]) ├┤ X ├»
+             ├────────────────┤├───┤├────────────────┤├───┤├────────────────┤└───┘»
+        q_3: ┤ Delay(212[dt]) ├┤ Y ├┤ Delay(426[dt]) ├┤ Y ├┤ Delay(212[dt]) ├─────»
+             └────────────────┘└───┘└────────────────┘└───┘└────────────────┘     »
+        «     ┌────────────────┐
+        «q_0: ┤ Delay(100[dt]) ├─────────────────────────────────────────────
+        «     ├───────────────┬┘┌───┐┌────────────────┐┌───┐┌───────────────┐
+        «q_1: ┤ Delay(50[dt]) ├─┤ Y ├┤ Delay(100[dt]) ├┤ Y ├┤ Delay(50[dt]) ├
+        «     └───────────────┘ └───┘└────────────────┘└───┘└───────────────┘
+        «q_2: ────────■──────────────────────────────────────────────────────
+        «           ┌─┴─┐
+        «q_3: ──────┤ X ├────────────────────────────────────────────────────
+        «           └───┘
+        """
         dd_sequence = [YGate(), YGate()]
         pm = PassManager(
             [
@@ -128,7 +213,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
             ]
         )
 
-        ghz4_dd = pm.run(self.ghz4.measure_all(inplace=False))
+        ghz4_dd = pm.run(self.ghz4)
 
         expected = self.ghz4.copy()
         expected = expected.compose(Delay(50), [1], front=True)
@@ -157,18 +242,44 @@ class TestDynamicalDecoupling(QiskitTestCase):
         expected = expected.compose(YGate(), [1])
         expected = expected.compose(Delay(50), [1])
 
-        expected.measure_all()
-
         self.assertEqual(ghz4_dd, expected)
 
     def test_insert_dd_ghz_xy4(self):
-        """Test XY4 sequence of DD gates."""
+        """Test XY4 sequence of DD gates.
+
+                   ┌───┐            ┌───────────────┐      ┌───┐      ┌───────────────┐»
+        q_0: ──────┤ H ├─────────■──┤ Delay(37[dt]) ├──────┤ X ├──────┤ Delay(75[dt]) ├»
+             ┌─────┴───┴─────┐ ┌─┴─┐└───────────────┘┌─────┴───┴─────┐└─────┬───┬─────┘»
+        q_1: ┤ Delay(50[dt]) ├─┤ X ├────────■────────┤ Delay(12[dt]) ├──────┤ X ├──────»
+             ├───────────────┴┐└───┘      ┌─┴─┐      └───────────────┘      └───┘      »
+        q_2: ┤ Delay(750[dt]) ├───────────┤ X ├──────────────■─────────────────────────»
+             ├────────────────┤           └───┘            ┌─┴─┐                       »
+        q_3: ┤ Delay(950[dt]) ├────────────────────────────┤ X ├───────────────────────»
+             └────────────────┘                            └───┘                       »
+        «           ┌───┐      ┌───────────────┐      ┌───┐      ┌───────────────┐»
+        «q_0: ──────┤ Y ├──────┤ Delay(76[dt]) ├──────┤ X ├──────┤ Delay(75[dt]) ├»
+        «     ┌─────┴───┴─────┐└─────┬───┬─────┘┌─────┴───┴─────┐└─────┬───┬─────┘»
+        «q_1: ┤ Delay(25[dt]) ├──────┤ Y ├──────┤ Delay(26[dt]) ├──────┤ X ├──────»
+        «     └───────────────┘      └───┘      └───────────────┘      └───┘      »
+        «q_2: ────────────────────────────────────────────────────────────────────»
+        «                                                                         »
+        «q_3: ────────────────────────────────────────────────────────────────────»
+        «                                                                         »
+        «           ┌───┐      ┌───────────────┐
+        «q_0: ──────┤ Y ├──────┤ Delay(37[dt]) ├─────────────────
+        «     ┌─────┴───┴─────┐└─────┬───┬─────┘┌───────────────┐
+        «q_1: ┤ Delay(25[dt]) ├──────┤ Y ├──────┤ Delay(12[dt]) ├
+        «     └───────────────┘      └───┘      └───────────────┘
+        «q_2: ───────────────────────────────────────────────────
+        «
+        «q_3: ───────────────────────────────────────────────────
+        """
         dd_sequence = [XGate(), YGate(), XGate(), YGate()]
         pm = PassManager(
             [ALAPSchedule(self.durations), DynamicalDecoupling(self.durations, dd_sequence)]
         )
 
-        ghz4_dd = pm.run(self.ghz4.measure_all(inplace=False))
+        ghz4_dd = pm.run(self.ghz4)
 
         expected = self.ghz4.copy()
         expected = expected.compose(Delay(50), [1], front=True)
@@ -195,12 +306,30 @@ class TestDynamicalDecoupling(QiskitTestCase):
         expected = expected.compose(YGate(), [1])
         expected = expected.compose(Delay(12), [1])
 
-        expected.measure_all()
-
         self.assertEqual(ghz4_dd, expected)
 
     def test_insert_midmeas_hahn_alap(self):
-        """Test a single X gate as Hahn echo can absorb in the downstream circuit."""
+        """Test a single X gate as Hahn echo can absorb in the downstream circuit.
+
+        global phase: 3π/2
+                               ┌────────────────┐       ┌───┐       ┌────────────────┐»
+        q_0: ────────■─────────┤ Delay(625[dt]) ├───────┤ X ├───────┤ Delay(625[dt]) ├»
+                   ┌─┴─┐       └────────────────┘┌──────┴───┴──────┐└────────────────┘»
+        q_1: ──────┤ X ├───────────────■─────────┤ Delay(1000[dt]) ├────────■─────────»
+             ┌─────┴───┴──────┐      ┌─┴─┐       └───────┬─┬───────┘      ┌─┴─┐       »
+        q_2: ┤ Delay(700[dt]) ├──────┤ X ├───────────────┤M├──────────────┤ X ├───────»
+             └────────────────┘      └───┘               └╥┘              └───┘       »
+        c: 1/═════════════════════════════════════════════╩═══════════════════════════»
+                                                          0                           »
+        «     ┌───────────────┐
+        «q_0: ┤ U(0,π/2,-π/2) ├───■──
+        «     └───────────────┘ ┌─┴─┐
+        «q_1: ──────────────────┤ X ├
+        «     ┌────────────────┐└───┘
+        «q_2: ┤ Delay(700[dt]) ├─────
+        «     └────────────────┘
+        «c: 1/═══════════════════════
+        """
         dd_sequence = [XGate()]
         pm = PassManager(
             [ALAPSchedule(self.durations), DynamicalDecoupling(self.durations, dd_sequence)]
@@ -230,7 +359,27 @@ class TestDynamicalDecoupling(QiskitTestCase):
         self.assertEqual(Operator(combined_u), Operator(XGate()) & Operator(XGate()))
 
     def test_insert_midmeas_hahn_asap(self):
-        """Test a single X gate as Hahn echo can absorb in the upstream circuit."""
+        """Test a single X gate as Hahn echo can absorb in the upstream circuit.
+
+                               ┌──────────────────┐ ┌────────────────┐┌─────────┐»
+        q_0: ────────■─────────┤ U(3π/4,-π/2,π/2) ├─┤ Delay(600[dt]) ├┤ Rx(π/4) ├»
+                   ┌─┴─┐       └──────────────────┘┌┴────────────────┤└─────────┘»
+        q_1: ──────┤ X ├────────────────■──────────┤ Delay(1000[dt]) ├─────■─────»
+             ┌─────┴───┴──────┐       ┌─┴─┐        └───────┬─┬───────┘   ┌─┴─┐   »
+        q_2: ┤ Delay(700[dt]) ├───────┤ X ├────────────────┤M├───────────┤ X ├───»
+             └────────────────┘       └───┘                └╥┘           └───┘   »
+        c: 1/═══════════════════════════════════════════════╩════════════════════»
+                                                            0                    »
+        «     ┌────────────────┐
+        «q_0: ┤ Delay(600[dt]) ├──■──
+        «     └────────────────┘┌─┴─┐
+        «q_1: ──────────────────┤ X ├
+        «     ┌────────────────┐└───┘
+        «q_2: ┤ Delay(700[dt]) ├─────
+        «     └────────────────┘
+        «c: 1/═══════════════════════
+        «
+        """
         dd_sequence = [RXGate(pi / 4)]
         pm = PassManager(
             [ASAPSchedule(self.durations), DynamicalDecoupling(self.durations, dd_sequence)]
