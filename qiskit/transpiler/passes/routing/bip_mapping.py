@@ -55,7 +55,7 @@ class BIPMapping(TransformationPass):
     If you want to fix physical qubits to be used in the mapping (e.g. running Quantum Volume
     circuits), you need to supply ``coupling_map`` which contains only the qubits to be used.
     Please do not use ``initial_layout`` for that purpose because the BIP mapper gracefully
-    ignores ``initial_layout`` (and try to determines its best layout).
+    ignores ``initial_layout`` (and tries to determines its best layout).
 
     .. warning::
         The BIP mapper does not scale very well with respect to the number of qubits or gates.
