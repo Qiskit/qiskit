@@ -464,9 +464,9 @@ class MatplotlibDrawer:
             index = self._bit_locations[reg]["index"]
 
             # show register name and number if more than 1 register
-            if register.size > 1:
+            if len(self._qubit) > 1:
                 if self._layout is None:
-                    qubit_name = f"${register.name}_{index}$"
+                    qubit_name = f"${{{register.name}}}_{{{index}}}$"
                 else:
                     if self._layout[index]:
                         virt_bit = self._layout[index]
@@ -474,18 +474,20 @@ class MatplotlibDrawer:
                             virt_reg = next(
                                 reg for reg in self._layout.get_registers() if virt_bit in reg
                             )
-                            qubit_name = (
-                                f"${virt_reg.name}_{virt_reg[:].index(virt_bit)}"
-                                f" \\mapsto {index}$"
+                            qubit_name = "${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$".format(
+                                name=virt_reg.name,
+                                index=virt_reg[:].index(virt_bit),
+                                physical=index,
                             )
-                        except StopIteration:
-                            qubit_name = f"${virt_bit} \\mapsto {index}$"
-                    else:
-                        qubit_name = f"${index}$"
 
-            # if only 1 register, just show the register name
+                        except StopIteration:
+                            qubit_name = "${{{name}}} \\mapsto {{{physical}}}$".format(
+                                name=virt_bit, physical=index
+                            )
+                    else:
+                        qubit_name = f"${{{index}}}$"
             else:
-                qubit_name = f"${register.name}$"
+                qubit_name = f"{register.name}"
 
             qubit_name = _fix_double_script(qubit_name) + initial_qbit
             text_width = self._get_text_width(qubit_name, self._fs) * 1.15
