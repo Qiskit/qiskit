@@ -211,6 +211,8 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         times = ParameterVector("t", self.reps * sum(is_evolved_operator))
         times_it = iter(times)
 
+        inner = QuantumCircuit(*self.qregs, name=self.name)
+
         first = True
         for _ in range(self.reps):
             for is_evolved, circuit in zip(is_evolved_operator, circuits):
@@ -218,17 +220,24 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
                     first = False
                 else:
                     if self._insert_barriers:
-                        self.barrier()
+                        inner.barrier()
 
                 if is_evolved:
                     bound = circuit.assign_parameters({coeff: next(times_it)})
                 else:
                     bound = circuit
 
-                self.compose(bound, inplace=True)
+                inner.compose(bound, inplace=True)
 
         if self.initial_state:
-            self.compose(self.initial_state, front=True, inplace=True)
+            inner.compose(self.initial_state, front=True, inplace=True)
+
+        if self._insert_barriers:
+            instr = inner.to_instruction()
+        else:
+            instr = inner.to_gate()
+
+        self.append(instr, self.qubits)
 
 
 def _validate_operators(operators):
