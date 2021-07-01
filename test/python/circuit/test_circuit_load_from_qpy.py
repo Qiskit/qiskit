@@ -14,6 +14,7 @@
 """Test cases for the circuit qasm_file and qasm_string method."""
 
 import io
+import random
 
 import numpy as np
 
@@ -327,6 +328,36 @@ class TestLoadFromQPY(QiskitTestCase):
         qr_standalone = QuantumRegister(2, "standalone")
         qc.add_register(qr_standalone)
         cr_standalone = ClassicalRegister(2, "classical_standalone")
+        qc.add_register(cr_standalone)
+        qc.unitary(random_unitary(32, seed=42), qr)
+        qc.unitary(random_unitary(4, seed=100), qr_standalone)
+        qc.measure(qr, cr)
+        qc.measure(qr_standalone, cr_standalone)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+
+    def test_standalone_and_shared_out_of_order(self):
+        """Test circuit with register bits inserted out of order."""
+        qr_standalone = QuantumRegister(2, "standalone")
+        qubits = [Qubit() for _ in range(5)]
+        clbits = [Clbit() for _ in range(5)]
+        qc = QuantumCircuit()
+        qc.add_bits(qubits)
+        qc.add_bits(clbits)
+        random.shuffle(qubits)
+        random.shuffle(clbits)
+        qr = QuantumRegister(bits=qubits)
+        cr = ClassicalRegister(bits=clbits)
+        qc.add_register(qr)
+        qc.add_register(cr)
+        qr_standalone = QuantumRegister(2, "standalone")
+        cr_standalone = ClassicalRegister(2, "classical_standalone")
+        qc.add_bits([qr_standalone[1], qr_standalone[0]])
+        qc.add_bits([cr_standalone[1], cr_standalone[0]])
+        qc.add_register(qr_standalone)
         qc.add_register(cr_standalone)
         qc.unitary(random_unitary(32, seed=42), qr)
         qc.unitary(random_unitary(4, seed=100), qr_standalone)
