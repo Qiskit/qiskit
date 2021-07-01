@@ -46,10 +46,8 @@ from .delay import Delay
 try:
     import pygments
     from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
-    from qiskit.qasm.pygments import (
-        OpenQASMLexer,
-        QasmTerminalStyle,
-    )  # pylint: disable=ungrouped-imports
+    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
+    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
 
     HAS_PYGMENTS = True
 except Exception:  # pylint: disable=broad-except
@@ -364,11 +362,7 @@ class QuantumCircuit:
                  └──────────┘
         """
         reverse_circ = QuantumCircuit(
-            self.qubits,
-            self.clbits,
-            *self.qregs,
-            *self.cregs,
-            name=self.name + "_reverse",
+            self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + "_reverse"
         )
 
         for inst, qargs, cargs in reversed(self.data):
@@ -476,7 +470,7 @@ class QuantumCircuit:
             QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
         """
         repeated_circ = QuantumCircuit(
-            self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + "**{}".format(reps)
+            self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + f"**{reps}"
         )
 
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
@@ -1429,7 +1423,8 @@ class QuantumCircuit:
 
                     existing_composite_circuits.append(instruction)
 
-                string_temp += "%s %s;\n" % (
+                # Insert qasm representation of the original instruction
+                string_temp += "{} {};\n".format(
                     instruction.qasm(),
                     ",".join([bit_labels[j] for j in qargs + cargs]),
                 )
@@ -2455,9 +2450,7 @@ class QuantumCircuit:
         from .library.standard_gates.rx import CRXGate
 
         return self.append(
-            CRXGate(theta, label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit],
-            [],
+            CRXGate(theta, label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
     def rxx(self, theta, qubit1, qubit2):
@@ -3039,8 +3032,6 @@ def _insert_composite_gate_definition_qasm(
 ):
     """Insert composite gate definition QASM code right after extension library in the header"""
 
-    from qiskit.extensions.unitary import UnitaryGate
-
     gate_definition_string = ""
 
     # Cycle through all gate definitions and add all undefined gates to the list
@@ -3051,7 +3042,7 @@ def _insert_composite_gate_definition_qasm(
 
     # Generate gate definition string
     for instruction in existing_composite_circuits:
-        if isinstance(instruction, UnitaryGate):
+        if hasattr(instruction, '_qasm_definition'):
             qasm_string = instruction._qasm_definition
         else:
             qasm_string = _get_composite_circuit_qasm_from_instruction(
