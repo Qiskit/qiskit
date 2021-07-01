@@ -48,6 +48,20 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         self._instance_id = next(self._count)
 
     @property
+    @abstractmethod
+    def settings(self) -> Dict:
+        """Return settings of this object in a dictionary.
+
+        You can, for example, use this ``settings`` dictionary to serialize the
+        object in JSON format, if the JSON encoder you use supports all types in
+        the dictionary.
+
+        Returns:
+            Object settings in a dictionary.
+        """
+        raise NotImplementedError
+
+    @property
     def instance_id(self) -> int:
         """Return the unique instance id."""
         return self._instance_id
