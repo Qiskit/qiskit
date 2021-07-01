@@ -31,7 +31,7 @@ from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
-from qiskit.transpiler.passes import ApplyLayout, AlignMeasures
+from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import (
     level_0_pass_manager,

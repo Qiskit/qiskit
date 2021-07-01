@@ -249,9 +249,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
     # 10. Call measure alignment. Should come after scheduling.
-    _alignments = [
-        ValidatePulseGates(alignment=alignment), AlignMeasures(alignment=alignment)
-    ]
+    _alignments = [ValidatePulseGates(alignment=alignment), AlignMeasures(alignment=alignment)]
 
     # Build pass manager
     pm3 = PassManager()

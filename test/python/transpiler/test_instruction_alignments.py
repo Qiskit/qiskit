@@ -20,7 +20,7 @@ from qiskit.transpiler.passes import (
     AlignMeasures,
     ValidatePulseGates,
     ALAPSchedule,
-    TimeUnitConversion
+    TimeUnitConversion,
 )
 
 
@@ -76,9 +76,7 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.measure(0, 0)
 
         timed_circuit = self.time_conversion_pass(circuit)
-        scheduled_circuit = self.scheduling_pass(
-            timed_circuit, property_set={"time_unit": "dt"}
-        )
+        scheduled_circuit = self.scheduling_pass(timed_circuit, property_set={"time_unit": "dt"})
         aligned_circuit = self.align_measure_pass(
             scheduled_circuit, property_set={"time_unit": "dt"}
         )
@@ -122,9 +120,7 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.measure(0, 0)
 
         timed_circuit = self.time_conversion_pass(circuit)
-        scheduled_circuit = self.scheduling_pass(
-            timed_circuit, property_set={"time_unit": "dt"}
-        )
+        scheduled_circuit = self.scheduling_pass(timed_circuit, property_set={"time_unit": "dt"})
         aligned_circuit = self.align_measure_pass(
             scheduled_circuit, property_set={"time_unit": "dt"}
         )
@@ -172,9 +168,7 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.measure(0, 1)
 
         timed_circuit = self.time_conversion_pass(circuit)
-        scheduled_circuit = self.scheduling_pass(
-            timed_circuit, property_set={"time_unit": "dt"}
-        )
+        scheduled_circuit = self.scheduling_pass(timed_circuit, property_set={"time_unit": "dt"})
         aligned_circuit = self.align_measure_pass(
             scheduled_circuit, property_set={"time_unit": "dt"}
         )
@@ -233,9 +227,7 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.measure(0, 0)
 
         timed_circuit = self.time_conversion_pass(circuit)
-        scheduled_circuit = self.scheduling_pass(
-            timed_circuit, property_set={"time_unit": "dt"}
-        )
+        scheduled_circuit = self.scheduling_pass(timed_circuit, property_set={"time_unit": "dt"})
         aligned_circuit = self.align_measure_pass(
             scheduled_circuit, property_set={"time_unit": "dt"}
         )
@@ -291,7 +283,7 @@ class TestPulseGateValidation(QiskitTestCase):
 
         circuit = QuantumCircuit(1)
         circuit.x(0)
-        circuit.add_calibration("x", qubits=(0, ), schedule=custom_gate)
+        circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
 
         with self.assertRaises(TranspilerError):
             self.pulse_gate_validation_pass(circuit)
@@ -307,7 +299,7 @@ class TestPulseGateValidation(QiskitTestCase):
 
         circuit = QuantumCircuit(1)
         circuit.x(0)
-        circuit.add_calibration("x", qubits=(0, ), schedule=custom_gate)
+        circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
 
         # just not raise an error
         self.pulse_gate_validation_pass(circuit)
