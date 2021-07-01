@@ -94,7 +94,7 @@ class UnitarySynthesis(TransformationPass):
                 coupling map is unidirectional.  If there is no
                 coupling map, the gate direction with the shorter
                 duration from the backend properties will be used.
-            synth_gates: List of gates to synthesize. If None and 
+            synth_gates: List of gates to synthesize. If None and
                 `pulse_optimize` == False, default to ['unitary']. If None and
                 `pulse_optimzie` == True, default to ['unitary', 'swap']
         """
