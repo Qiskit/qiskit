@@ -119,7 +119,7 @@ class DynamicalDecoupling(TransformationPass):
             noop = np.eye(2)
             for gate in self._dd_sequence:
                 noop = noop.dot(gate.to_matrix())
-            if not np.allclose(noop, np.eye(2), rtol=1e-5, atol=1e-8):
+            if not Operator(noop).equiv(IGate()):
                 raise TranspilerError("The DD sequence does not make an identity operation.")
 
         if self._qubits is None:
