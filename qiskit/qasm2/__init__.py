@@ -39,6 +39,21 @@ Pygments
 from numpy import pi
 from .qasm import Qasm
 from .exceptions import QasmError
+from .grammar.qasm2Lexer import qasm2Lexer
+from .grammar.qasm2Parser import qasm2Parser
+from .grammar.qasm2Listener import qasm2Listener
+
+from .qasm2astelem import *
+from .qasm2ast import Qasm2AST
+from .qasm2listener import Qasm2Listener
+
+from .grammar.expressionLexer import expressionLexer
+from .grammar.expressionParser import expressionParser
+from .grammar.expressionListener import expressionListener
+
+from .qasm2expression import Qasm2Expression
+from .qasm2expressionlistener import Qasm2ExpressionListener
+
 from .functions import load, dump
 
 try:
