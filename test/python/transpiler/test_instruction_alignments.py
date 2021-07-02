@@ -214,7 +214,7 @@ class TestAlignMeasures(QiskitTestCase):
         «c: 2/═══════════════════
         «
 
-        Delay for the another channel paired by multi-qubit instruction is also scheduled.
+        Delay for the other channel paired by multi-qubit instruction is also scheduled.
         Delay (1872dt) = X (160dt) + Delay (100dt + extra 12dt) + Measure (1600dt).
         """
         circuit = QuantumCircuit(2, 2)
