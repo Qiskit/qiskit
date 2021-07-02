@@ -149,10 +149,20 @@ def transpile(
         approximation_degree (float): heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
         alignment: An optional control hardware restriction on instruction time allocation.
-            The location of specific instructions is adjusted to be at quantized time that is
-            multiple of this value. This information will be provided by the backend configuration.
+            The location of instructions is adjusted to be at quantized time that is
+            multiple of this value, or data point length of pulse gate instruction
+            should be multiple of this value though it can define the pulse envelope with dt step.
+            By providing this argument, such instruction alignment and gate length validation
+            are triggered. This information will be provided by the backend configuration.
             If the backend doesn't have any restriction on the alignment,
             then ``alignment`` is None and no adjustment will be performed.
+
+            .. note::
+
+                Note that currently this instruction time optimization is performed only for
+                ``measure`` gate instructions. Here we assume a hardware that
+                ``measure`` gate should start from time which is multiple of the alignment value.
+
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
