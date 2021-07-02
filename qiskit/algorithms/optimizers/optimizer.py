@@ -150,7 +150,6 @@ class Optimizer(ABC):
         return ret
 
     @property
-    @abstractmethod
     def settings(self) -> Dict[str, Any]:
         """The optimizer settings in a dictionary format.
 
@@ -165,7 +164,7 @@ class Optimizer(ABC):
             optimizer = OptimizerClass(**settings)
 
         """
-        raise NotImplementedError
+        raise NotImplementedError("The settings method is not implemented per default.")
 
     @abstractmethod
     def optimize(
