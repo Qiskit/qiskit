@@ -33,13 +33,16 @@ class SparseVectorStateFn(StateFn):
 
     This class uses ``scipy.sparse.spmatrix`` for the internal representation.
     """
+
     primitive: scipy.sparse.spmatrix
 
     # TODO allow normalization somehow?
-    def __init__(self,
-                 primitive: scipy.sparse.spmatrix,
-                 coeff: Union[complex, ParameterExpression] = 1.0,
-                 is_measurement: bool = False) -> None:
+    def __init__(
+        self,
+        primitive: scipy.sparse.spmatrix,
+        coeff: Union[complex, ParameterExpression] = 1.0,
+        is_measurement: bool = False,
+    ) -> None:
         """
         Args:
             primitive: The underlying sparse vector.
@@ -52,17 +55,17 @@ class SparseVectorStateFn(StateFn):
 
         """
         if primitive.shape[0] != 1:
-            raise ValueError('The primitive must be a row vector of shape (x, 1).')
+            raise ValueError("The primitive must be a row vector of shape (x, 1).")
 
         # check if the primitive is a statevector of 2^n elements
         self._num_qubits = int(np.log2(primitive.shape[1]))
         if np.log2(primitive.shape[1]) != self._num_qubits:
-            raise ValueError('The number of vector elements must be a power of 2.')
+            raise ValueError("The number of vector elements must be a power of 2.")
 
         super().__init__(primitive, coeff=coeff, is_measurement=is_measurement)
 
     def primitive_strings(self) -> Set[str]:
-        return {'SparseVector'}
+        return {"SparseVector"}
 
     @property
     def num_qubits(self) -> int:
@@ -71,8 +74,9 @@ class SparseVectorStateFn(StateFn):
     def add(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:
             raise ValueError(
-                'Sum over statefns with different numbers of qubits, {} and {}, is not well '
-                'defined'.format(self.num_qubits, other.num_qubits))
+                "Sum over statefns with different numbers of qubits, {} and {}, is not well "
+                "defined".format(self.num_qubits, other.num_qubits)
+            )
 
         # Right now doesn't make sense to add a StateFn to a Measurement
         if isinstance(other, SparseVectorStateFn) and self.is_measurement == other.is_measurement:
@@ -83,9 +87,24 @@ class SparseVectorStateFn(StateFn):
         return SummedOp([self, other])
 
     def adjoint(self) -> "SparseVectorStateFn":
-        return SparseVectorStateFn(self.primitive.conjugate(),
-                                   coeff=self.coeff.conjugate(),
-                                   is_measurement=(not self.is_measurement))
+        return SparseVectorStateFn(
+            self.primitive.conjugate(),
+            coeff=self.coeff.conjugate(),
+            is_measurement=(not self.is_measurement),
+        )
+
+    def equals(self, other: OperatorBase) -> bool:
+        if not isinstance(other, SparseVectorStateFn) or not self.coeff == other.coeff:
+            return False
+
+        if self.primitive.shape != other.primitive.shape:
+            return False
+
+        if self.primitive.count_nonzero() != other.primitive.count_nonzero():
+            return False
+
+        # equal if no elements are different (using != for efficiency)
+        return (self.primitive != other.primitive).nnz == 0
 
     def to_dict_fn(self) -> StateFn:
         """Convert this state function to a ``DictStateFn``.
@@ -97,11 +116,11 @@ class SparseVectorStateFn(StateFn):
 
         num_qubits = self.num_qubits
         dok = self.primitive.todok()
-        new_dict = {format(i[0], 'b').zfill(num_qubits): v for i, v in dok.items()}
+        new_dict = {format(i[1], "b").zfill(num_qubits): v for i, v in dok.items()}
         return DictStateFn(new_dict, coeff=self.coeff, is_measurement=self.is_measurement)
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
-        OperatorBase._check_massive('to_matrix', False, self.num_qubits, massive)
+        OperatorBase._check_massive("to_matrix", False, self.num_qubits, massive)
         vec = self.primitive.toarray() * self.coeff
         return vec if not self.is_measurement else vec.reshape(1, -1)
 
@@ -115,19 +134,23 @@ class SparseVectorStateFn(StateFn):
         """Convert this state function to a ``CircuitStateFn``."""
         # pylint: disable=cyclic-import
         from .circuit_state_fn import CircuitStateFn
+
         csfn = CircuitStateFn.from_vector(self.primitive) * self.coeff
         return csfn.adjoint() if self.is_measurement else csfn
 
     def __str__(self) -> str:
         prim_str = str(self.primitive)
         if self.coeff == 1.0:
-            return "{}({})".format('SparseVectorStateFn' if not self.is_measurement
-                                   else 'MeasurementSparseVector', prim_str)
+            return "{}({})".format(
+                "SparseVectorStateFn" if not self.is_measurement else "MeasurementSparseVector",
+                prim_str,
+            )
         else:
-            return "{}({}) * {}".format('SparseVectorStateFn' if not self.is_measurement
-                                        else 'SparseMeasurementVector',
-                                        prim_str,
-                                        self.coeff)
+            return "{}({}) * {}".format(
+                "SparseVectorStateFn" if not self.is_measurement else "SparseMeasurementVector",
+                prim_str,
+                self.coeff,
+            )
 
     # pylint: disable=too-many-return-statements
     def eval(
@@ -140,12 +163,15 @@ class SparseVectorStateFn(StateFn):
             return self
 
         if not self.is_measurement and isinstance(front, OperatorBase):
-            raise ValueError('Cannot compute overlap with StateFn or Operator if not Measurement. '
-                             'Try taking sf.adjoint() first to convert to measurement.')
+            raise ValueError(
+                "Cannot compute overlap with StateFn or Operator if not Measurement. "
+                "Try taking sf.adjoint() first to convert to measurement."
+            )
 
         if isinstance(front, ListOp) and front.distributive:
-            return front.combo_fn([self.eval(front.coeff * front_elem)
-                                   for front_elem in front.oplist])
+            return front.combo_fn(
+                [self.eval(front.coeff * front_elem) for front_elem in front.oplist]
+            )
 
         if not isinstance(front, OperatorBase):
             front = StateFn(front)
@@ -155,15 +181,22 @@ class SparseVectorStateFn(StateFn):
         from .operator_state_fn import OperatorStateFn
         from .circuit_state_fn import CircuitStateFn
         from .dict_state_fn import DictStateFn
+
         if isinstance(front, DictStateFn):
-            return np.round(sum([v * self.primitive.data[int(b, 2)] * front.coeff
-                                 for (b, v) in front.primitive.items()]) * self.coeff,
-                            decimals=EVAL_SIG_DIGITS)
+            return np.round(
+                sum(
+                    v * self.primitive.data[int(b, 2)] * front.coeff
+                    for (b, v) in front.primitive.items()
+                )
+                * self.coeff,
+                decimals=EVAL_SIG_DIGITS,
+            )
 
         if isinstance(front, VectorStateFn):
             # Need to extract the element or np.array([1]) is returned.
-            return np.round(np.dot(self.to_matrix(), front.to_matrix())[0],
-                            decimals=EVAL_SIG_DIGITS)
+            return np.round(
+                np.dot(self.to_matrix(), front.to_matrix())[0], decimals=EVAL_SIG_DIGITS
+            )
 
         if isinstance(front, CircuitStateFn):
             # Don't reimplement logic from CircuitStateFn
@@ -174,20 +207,20 @@ class SparseVectorStateFn(StateFn):
 
         return front.adjoint().eval(self.adjoint().primitive).adjoint() * self.coeff  # type: ignore
 
-    def sample(self,
-               shots: int = 1024,
-               massive: bool = False,
-               reverse_endianness: bool = False) -> dict:
+    def sample(
+        self, shots: int = 1024, massive: bool = False, reverse_endianness: bool = False
+    ) -> dict:
         as_dict = self.to_dict_fn().primitive
         all_states = sum(as_dict.keys())
         deterministic_counts = {key: value / all_states for key, value in as_dict.items()}
         # Don't need to square because probabilities_dict already does.
         probs = np.array(list(deterministic_counts.values()))
         unique, counts = np.unique(
-            algorithm_globals.random.choice(list(deterministic_counts.keys()),
-                                            size=shots,
-                                            p=(probs / sum(probs))),
-            return_counts=True)
+            algorithm_globals.random.choice(
+                list(deterministic_counts.keys()), size=shots, p=(probs / sum(probs))
+            ),
+            return_counts=True,
+        )
         counts = dict(zip(unique, counts))
         if reverse_endianness:
             scaled_dict = {bstr[::-1]: (prob / shots) for (bstr, prob) in counts.items()}

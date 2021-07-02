@@ -16,10 +16,11 @@ Random symplectic operator functions
 import numpy as np
 from numpy.random import default_rng
 
-from .pauli import Pauli
 from .clifford import Clifford
-from .stabilizer_table import StabilizerTable
+from .pauli import Pauli
+from .pauli_list import PauliList
 from .pauli_table import PauliTable
+from .stabilizer_table import StabilizerTable
 
 
 def random_pauli(num_qubits, group_phase=False, seed=None):
@@ -47,6 +48,34 @@ def random_pauli(num_qubits, group_phase=False, seed=None):
     phase = rng.integers(4) if group_phase else 0
     pauli = Pauli((z, x, phase))
     return pauli
+
+
+def random_pauli_list(num_qubits, size=1, seed=None, phase=True):
+    """Return a random PauliList.
+
+    Args:
+        num_qubits (int): the number of qubits.
+        size (int): Optional. The length of the Pauli list (Default: 1).
+        seed (int or np.random.Generator): Optional. Set a fixed seed or generator for RNG.
+        phase (bool): If True the Pauli phases are randomized, otherwise the phases are fixed to 0.
+                     [Default: True]
+
+    Returns:
+        PauliList: a random PauliList.
+    """
+    if seed is None:
+        rng = np.random.default_rng()
+    elif isinstance(seed, np.random.Generator):
+        rng = seed
+    else:
+        rng = default_rng(seed)
+
+    z = rng.integers(2, size=(size, num_qubits)).astype(bool)
+    x = rng.integers(2, size=(size, num_qubits)).astype(bool)
+    if phase:
+        _phase = rng.integers(4, size=(size))
+        return PauliList.from_symplectic(z, x, _phase)
+    return PauliList.from_symplectic(z, x)
 
 
 def random_pauli_table(num_qubits, size=1, seed=None):
@@ -239,15 +268,19 @@ def _inverse_tril(mat, block_inverse_threshold):
 
     if dim <= 5:
         inv = mat.copy()
-        inv[2, 0] = (mat[2, 0] ^ (mat[1, 0] & mat[2, 1]))
+        inv[2, 0] = mat[2, 0] ^ (mat[1, 0] & mat[2, 1])
         if dim > 3:
-            inv[3, 1] = (mat[3, 1] ^ (mat[2, 1] & mat[3, 2]))
+            inv[3, 1] = mat[3, 1] ^ (mat[2, 1] & mat[3, 2])
             inv[3, 0] = mat[3, 0] ^ (mat[3, 2] & mat[2, 0]) ^ (mat[1, 0] & inv[3, 1])
         if dim > 4:
             inv[4, 2] = (mat[4, 2] ^ (mat[3, 2] & mat[4, 3])) & 1
             inv[4, 1] = mat[4, 1] ^ (mat[4, 3] & mat[3, 1]) ^ (mat[2, 1] & inv[4, 2])
-            inv[4, 0] = mat[4, 0] ^ (mat[1, 0] & inv[4, 1]) ^ (
-                mat[2, 0] & inv[4, 2]) ^ (mat[3, 0] & mat[4, 3])
+            inv[4, 0] = (
+                mat[4, 0]
+                ^ (mat[1, 0] & inv[4, 1])
+                ^ (mat[2, 0] & inv[4, 2])
+                ^ (mat[3, 0] & mat[4, 3])
+            )
         return inv % 2
 
     # For higher dimensions we use Numpy's inverse function
