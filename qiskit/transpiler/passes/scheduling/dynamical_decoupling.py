@@ -133,7 +133,6 @@ class DynamicalDecoupling(TransformationPass):
 
         if self._spacing:
             if sum(self._spacing) != 1 or any(a < 0 for a in self._spacing):
-                pass
                 raise TranspilerError(
                     "The spacings must be given in terms of fractions "
                     "of the slack period and sum to 1."
