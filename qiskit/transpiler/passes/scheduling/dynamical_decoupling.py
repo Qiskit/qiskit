@@ -167,7 +167,6 @@ class DynamicalDecoupling(TransformationPass):
             for gate in self._dd_sequence:
                 gate.duration = self._durations.get(gate, physical_qubit)
                 dd_sequence_duration += gate.duration
-
             slack = nd.op.duration - dd_sequence_duration
             if slack <= 0:  # dd doesn't fit
                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
@@ -202,7 +201,8 @@ class DynamicalDecoupling(TransformationPass):
             taus[middle_index] += unused_slack  # now we add up to original delay duration
 
             for tau, gate in itertools.zip_longest(taus, self._dd_sequence):
-                new_dag.apply_operation_back(Delay(tau), [dag_qubit])
+                if tau > 0:
+                    new_dag.apply_operation_back(Delay(tau), [dag_qubit])
                 if gate is not None:
                     new_dag.apply_operation_back(gate, [dag_qubit])
 

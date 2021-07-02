@@ -412,7 +412,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
             )
         )
 
-    def test_insert_midmeas_uhrig(self):
+    def test_insert_ghz_uhrig(self):
         """Test custom spacing (following Uhrig DD [1]).
 
         [1] Uhrig, G. "Keeping a quantum bit alive by optimized π-pulse sequences."
@@ -494,6 +494,50 @@ class TestDynamicalDecoupling(QiskitTestCase):
         expected = expected.compose(Delay(300), [1])
 
         self.assertEqual(ghz4_dd, expected)
+
+    def test_asymmetric_xy4_in_t2(self):
+        """Test insertion of XY4 sequence with unbalanced spacing.
+
+        global phase: π
+             ┌───┐┌───┐┌────────────────┐┌───┐┌────────────────┐┌───┐┌────────────────┐»
+        q_0: ┤ H ├┤ X ├┤ Delay(450[dt]) ├┤ Y ├┤ Delay(450[dt]) ├┤ X ├┤ Delay(450[dt]) ├»
+             └───┘└───┘└────────────────┘└───┘└────────────────┘└───┘└────────────────┘»
+        «     ┌───┐┌────────────────┐┌───┐
+        «q_0: ┤ Y ├┤ Delay(450[dt]) ├┤ H ├
+        «     └───┘└────────────────┘└───┘
+        """
+        dd_sequence = [XGate(), YGate()] * 2
+        spacing = [0] + [1 / 4] * 4
+        pm = PassManager(
+            [
+                ALAPSchedule(self.durations),
+                DynamicalDecoupling(self.durations, dd_sequence, spacing=spacing),
+            ]
+        )
+
+        t2 = QuantumCircuit(1)
+        t2.h(0)
+        t2.delay(2000, 0)
+        t2.h(0)
+
+        expected = QuantumCircuit(1)
+        expected.h(0)
+        expected.x(0)
+        expected.delay(450, 0)
+        expected.y(0)
+        expected.delay(450, 0)
+        expected.x(0)
+        expected.delay(450, 0)
+        expected.y(0)
+        expected.delay(450, 0)
+        expected.h(0)
+        expected.global_phase = pi
+
+        t2_dd = pm.run(t2)
+
+        self.assertEqual(t2_dd, expected)
+        # check global phase is correct
+        self.assertEqual(Operator(t2), Operator(expected))
 
     def test_insert_dd_bad_sequence(self):
         """Test DD raises when non-identity sequence is inserted."""
