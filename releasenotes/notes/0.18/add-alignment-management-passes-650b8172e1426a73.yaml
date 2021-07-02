@@ -46,9 +46,9 @@ features:
       qc.x(0)
       qc.delay(110, 0, unit="dt")
       qc.measure(0, 0)
-      qc.draw()
+      qc.draw('mpl')
 
     .. jupyter-execute::
 
-      qct = transpile(qc, backend, alignment=16)
-      qct.draw()
+      qct = transpile(qc, backend, scheduling_method='alap', alignment=16)
+      qct.draw('mpl')
