@@ -43,7 +43,7 @@ class AlignMeasures(TransformationPass):
             DAGCircuit: DAG with consistent timing and op nodes annotated with duration.
 
         Raises:
-            TranspilerError: When instruction duration is not provided.
+            TranspilerError: If circuit is not scheduled.
         """
         time_unit = self.property_set["time_unit"]
 
@@ -88,7 +88,6 @@ class AlignMeasures(TransformationPass):
                     idle_duration = until - qubit_stop_times[q]
                     new_dag.apply_operation_back(Delay(idle_duration, unit), [q])
 
-        bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in dag.topological_op_nodes():
             start_time = max(qubit_time_available[q] for q in node.qargs)
 
@@ -99,20 +98,6 @@ class AlignMeasures(TransformationPass):
             if not isinstance(node.op, Delay):
                 pad_with_delays(node.qargs, until=start_time, unit=time_unit)
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
-
-                # validate node.op.duration
-                if node.op.duration is None:
-                    indices = [bit_indices[qarg] for qarg in node.qargs]
-                    raise TranspilerError(
-                        f"Duration of {node.op.name} on qubits " f"{indices} is not found."
-                    )
-
-                if isinstance(node.op.duration, ParameterExpression):
-                    indices = [bit_indices[qarg] for qarg in node.qargs]
-                    raise TranspilerError(
-                        f"Parameterized duration ({node.op.duration}) "
-                        f"of {node.op.name} on qubits {indices} is not bounded."
-                    )
 
                 stop_time = start_time + node.op.duration
                 # update time table
