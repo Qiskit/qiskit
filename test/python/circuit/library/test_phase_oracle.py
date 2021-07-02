@@ -68,8 +68,8 @@ class TestPhaseOracle(QiskitTestCase):
         self.assertListEqual(expected_invalid, result_invalid)
 
     @data(
-        ('((A & C) | (B & D)) & ~(C & D)', None, [3, 7, 12, 13]),
-        ('((A & C) | (B & D)) & ~(C & D)', ['A', 'B', 'C', 'D'], [5, 7, 10, 11]),
+        ("((A & C) | (B & D)) & ~(C & D)", None, [3, 7, 12, 13]),
+        ("((A & C) | (B & D)) & ~(C & D)", ["A", "B", "C", "D"], [5, 7, 10, 11]),
     )
     @unpack
     def test_variable_order(self, expression, var_order, good_states):
