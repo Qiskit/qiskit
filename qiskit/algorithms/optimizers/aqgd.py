@@ -13,7 +13,7 @@
 """Analytical Quantum Gradient Descent (AQGD) optimizer."""
 
 import logging
-from typing import Callable, Tuple, List, Dict, Union
+from typing import Callable, Tuple, List, Dict, Union, Any
 
 import numpy as np
 from qiskit.utils.validation import validate_range_exclusive_max
@@ -114,6 +114,17 @@ class AQGD(Optimizer):
             "gradient": OptimizerSupportLevel.ignored,
             "bounds": OptimizerSupportLevel.ignored,
             "initial_point": OptimizerSupportLevel.required,
+        }
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return {
+            "maxiter": self._maxiter,
+            "eta": self._eta,
+            "momentum": self._momenta_coeff,
+            "param_tol": self._param_tol,
+            "tol": self._tol,
+            "averaging": self._averaging,
         }
 
     def _compute_objective_fn_and_gradient(
