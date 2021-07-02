@@ -49,7 +49,8 @@ class AlignMeasures(TransformationPass):
 
         require_validation = False
 
-        if any(delay_node.op.duration % self.alignment for delay_node in dag.op_nodes(Delay)):
+        delays = [delay_node for delay_node in dag.op_nodes(Delay) if delay_node is not None]
+        if any(delay_node.op.duration % self.alignment for delay_node in delays):
             # delay is the only instruction that can move other instructions
             # to the position which is not multiple of alignment.
             # if any delay with non-multiple of alignment is found we should run validation.
