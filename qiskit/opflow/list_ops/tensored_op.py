@@ -13,7 +13,7 @@
 """ TensoredOp Class """
 
 from functools import partial, reduce
-from typing import List, Union, cast
+from typing import List, Union, cast, Dict
 
 import numpy as np
 
@@ -52,6 +52,11 @@ class TensoredOp(ListOp):
     @property
     def distributive(self) -> bool:
         return False
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"oplist": self._oplist, "coeff": self._coeff, "abelian": self._abelian}
 
     def _expand_dim(self, num_qubits: int) -> "TensoredOp":
         """Appends I ^ num_qubits to ``oplist``. Choice of PauliOp as

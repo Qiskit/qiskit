@@ -202,14 +202,15 @@ The contents of each INSTRUCTION_PARAM is:
     }
 
 After each INSTRUCTION_PARAM the next ``size`` bytes are the parameter's data.
-The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, 'e', or ``'n'`` which dictate
-the format. For ``'i'`` it's an integer, ``'f'`` it's a double, ``'p'`` defines
-a :class:`~qiskit.circuit.Paramter` object  which is represented by a PARAM
+The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, ``'e'``, ``'s'``,
+or ``'n'`` which dictate the format. For ``'i'`` it's an integer, ``'f'`` it's
+a double, ``'s'`` if it's a string (encoded as utf8), ``'p'`` defines a
+:class:`~qiskit.circuit.Parameter` object  which is represented by a PARAM
 struct (see below), ``e`` defines a :class:`~qiskit.circuit.ParameterExpression`
 object (that's not a :class:`~qiskit.circuit.Paramter`) which is represented by
-a PARAM_EXPR struct (see below), and ``'n'`` represents an object from numpy (
-either an ``ndarray`` or a numpy type) which means the data is .npy format [#f2]_
-data.
+a PARAM_EXPR struct (see below), and ``'n'`` represents an object from numpy
+(either an ``ndarray`` or a numpy type) which means the data is .npy
+format [#f2]_ data.
 
 
 PARAMETER
@@ -519,6 +520,8 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
         elif type_str == "n":
             container = io.BytesIO(data)
             param = np.load(container)
+        elif type_str == "s":
+            param = data.decode("utf8")
         elif type_str == "p":
             container = io.BytesIO(data)
             param = _read_parameter(container)
@@ -702,6 +705,10 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
             type_key = "f"
             data = struct.pack("<d", param)
             size = struct.calcsize("<d")
+        elif isinstance(param, str):
+            type_key = "s"
+            data = param.encode("utf8")
+            size = len(data)
         elif isinstance(param, Parameter):
             type_key = "p"
             _write_parameter(container, param)
@@ -764,7 +771,7 @@ def _write_custom_instruction(file_obj, name, instruction):
         file_obj.write(data)
 
 
-def dump(file_obj, circuits):
+def dump(circuits, file_obj):
     """Write QPY binary data to a file
 
     This function is used to save a circuit to a file for later use or transfer
@@ -788,24 +795,24 @@ def dump(file_obj, circuits):
     .. code-block:: python
 
         with open('bell.qpy', 'wb') as fd:
-            qpy_serialization.dump(fd, qc)
+            qpy_serialization.dump(qc, fd)
 
-    or a gzip compressed filed:
+    or a gzip compressed file:
 
     .. code-block:: python
 
         import gzip
 
         with gzip.open('bell.qpy.gz', 'wb') as fd:
-            qpy_serialization.dump(fd, qc)
+            qpy_serialization.dump(qc, fd)
 
     Which will save the qpy serialized circuit to the provided file.
 
     Args:
-        file_obj (file): The file like object to write the QPY data too
         circuits (list or QuantumCircuit): The quantum circuit object(s) to
             store in the specified file like object. This can either be a
             single QuantumCircuit object or a list of QuantumCircuits.
+        file_obj (file): The file like object to write the QPY data too
     """
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
@@ -935,7 +942,7 @@ def load(file_obj):
             "file, %s, is newer than the current qiskit version %s. "
             "This may result in an error if the QPY file uses "
             "instructions not present in this current qiskit "
-            "version" % (".".join(header_version_parts), __version__)
+            "version" % (".".join([str(x) for x in header_version_parts]), __version__)
         )
     circuits = []
     for _ in range(file_header[5]):
