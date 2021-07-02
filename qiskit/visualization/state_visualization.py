@@ -292,7 +292,7 @@ def plot_bloch_multivector(
     fig.suptitle(title, fontsize=16, y=1.01)
     if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
         plt.close(fig)
-    if filename == None:
+    if filename is None:
         return fig
     else:
         return fig.savefig(filename)
