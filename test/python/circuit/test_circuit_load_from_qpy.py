@@ -456,7 +456,7 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
 
-    def test_circuit_with_conditional(self):
+    def test_circuit_with_conditional_with_label(self):
         """Test that instructions with conditions are correctly serialized."""
         qc = QuantumCircuit(1, 1)
         gate = XGate(label="My conditional x gate")
