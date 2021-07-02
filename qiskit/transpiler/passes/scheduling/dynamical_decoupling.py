@@ -18,7 +18,7 @@ import numpy as np
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.reset import Reset
 from qiskit.circuit.library.standard_gates import IGate, UGate
-from qiskit.quantum_info import Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.basepasses import TransformationPass
@@ -39,6 +39,9 @@ class DynamicalDecoupling(TransformationPass):
     absorbed into a neighboring gate in the circuit (so we would still be
     replacing Delay with something that is equivalent to the identity).
     This can be used, for instance, as a Hahn echo.
+
+    This pass ensures that the inserted sequence preserves the circuit exactly
+    (including global phase).
 
     .. jupyter-execute::
 
@@ -78,10 +81,11 @@ class DynamicalDecoupling(TransformationPass):
             dd_sequence (list[Gate]): sequence of gates to apply in idle spots.
             qubits (list[int]): physical qubits on which to apply DD.
                 If None, all qubits will undergo DD (when possible).
-            spacing (callable): a function that specifies spacing between DD
-                gates. It maps natural numbers, i, to the fraction of the total
-                slack that must be allocated to the i'th delay window. If None,
-                equal spacing will be used.
+            spacing (list[float]): a list of spacings between the DD gates.
+                The available slack will be divided according to this.
+                The list length must be one more than the length of dd_sequence,
+                and the elements must sum to 1. If None, a balanced spacing
+                will be used [d/2, d, d, ..., d, d, d/2].
             skip_reset_qubits (bool): if True, does not insert DD on idle
                 periods that immediately follow initialized/reset qubits (as
                 qubits in the ground state are less susceptile to decoherence).
@@ -112,21 +116,32 @@ class DynamicalDecoupling(TransformationPass):
         if dag.duration is None:
             raise TranspilerError("DD runs after circuit is scheduled.")
 
-        # we support only even number of DD pulses (or just 1, as a special case)
-        if len(self._dd_sequence) != 1:
-            if len(self._dd_sequence) % 2 != 0:
+        num_pulses = len(self._dd_sequence)
+        sequence_gphase = 0
+        if num_pulses != 1:
+            if num_pulses % 2 != 0:
                 raise TranspilerError("DD sequence must contain an even number of gates (or 1).")
             noop = np.eye(2)
             for gate in self._dd_sequence:
                 noop = noop.dot(gate.to_matrix())
-            if not Operator(noop).equiv(IGate()):
+            if not matrix_equal(noop, IGate().to_matrix(), ignore_phase=True):
                 raise TranspilerError("The DD sequence does not make an identity operation.")
+            sequence_gphase = np.angle(noop[0][0])
 
         if self._qubits is None:
             self._qubits = range(dag.num_qubits())
 
         if self._spacing:
-            raise TranspilerError("only balanced spacing is supported now.")
+            if sum(self._spacing) != 1 or any(a < 0 for a in self._spacing):
+                pass
+                raise TranspilerError(
+                    "The spacings must be given in terms of fractions "
+                    "of the slack period and sum to 1."
+                )
+        else:  # default to balanced spacing
+            mid = 1 / num_pulses
+            end = mid / 2
+            self._spacing = [end] + [mid] * (num_pulses - 1) + [end]
 
         new_dag = dag._copy_circuit_metadata()
 
@@ -158,52 +173,40 @@ class DynamicalDecoupling(TransformationPass):
                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
                 continue
 
-            if len(self._dd_sequence) == 1:  # special case of using a single gate for DD
-                udg = self._dd_sequence[0].inverse().to_matrix()
-                theta, phi, lam, phase = OneQubitEulerDecomposer().angles_and_phase(udg)
+            if num_pulses == 1:  # special case of using a single gate for DD
+                u_inv = self._dd_sequence[0].inverse().to_matrix()
+                theta, phi, lam, phase = OneQubitEulerDecomposer().angles_and_phase(u_inv)
                 # absorb the inverse into the successor (from left in circuit)
                 if succ.type == "op" and isinstance(succ.op, UGate):
-                    begin = int(slack / 2)
-                    new_dag.apply_operation_back(Delay(begin), [dag_qubit])
-                    new_dag.apply_operation_back(self._dd_sequence[0], [dag_qubit])
-                    new_dag.apply_operation_back(Delay(slack - begin), [dag_qubit])
                     theta_r, phi_r, lam_r = succ.op.params
                     succ.op.params = Optimize1qGates.compose_u3(
                         theta_r, phi_r, lam_r, theta, phi, lam
                     )
-                    new_dag.global_phase = _mod_2pi(new_dag.global_phase + phase)
+                    sequence_gphase += phase
                 # absorb the inverse into the predecessor (from right in circuit)
                 elif pred.type == "op" and isinstance(pred.op, UGate):
-                    begin = int(slack / 2)
-                    new_dag.apply_operation_back(Delay(begin), [dag_qubit])
-                    new_dag.apply_operation_back(self._dd_sequence[0], [dag_qubit])
-                    new_dag.apply_operation_back(Delay(slack - begin), [dag_qubit])
                     theta_l, phi_l, lam_l = pred.op.params
                     pred.op.params = Optimize1qGates.compose_u3(
                         theta, phi, lam, theta_l, phi_l, lam_l
                     )
-                    new_dag.global_phase = _mod_2pi(new_dag.global_phase + phase)
+                    sequence_gphase += phase
                 # don't do anything if there's no single-qubit gate to absorb the inverse
                 else:
                     new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
-            else:
-                # balanced spacing (d/2, d, d, ..., d, d, d/2)
-                # careful here that we add up to the original delay duration
-                num_pulses = len(self._dd_sequence)
-                mid = int(slack / num_pulses)
-                end = int(mid / 2)
-                unused_slack = slack - (num_pulses - 1) * mid - 2 * end
-                delays = (
-                    [end]
-                    + [mid] * int((num_pulses - 1) / 2)
-                    + [mid + unused_slack]
-                    + [mid] * int((num_pulses - 1) / 2)
-                    + [end]
-                )
-                for idle, gate in itertools.zip_longest(delays, self._dd_sequence):
-                    new_dag.apply_operation_back(Delay(idle), [dag_qubit])
-                    if gate is not None:
-                        new_dag.apply_operation_back(gate, [dag_qubit])
+                    continue
+
+            # insert the actual DD sequence
+            taus = [int(slack * a) for a in self._spacing]
+            unused_slack = slack - sum(taus)  # unused, due to rounding to int multiples of dt
+            middle_index = int((len(taus) - 1) / 2)  # arbitrary: redistribute to middle
+            taus[middle_index] += unused_slack  # now we add up to original delay duration
+
+            for tau, gate in itertools.zip_longest(taus, self._dd_sequence):
+                new_dag.apply_operation_back(Delay(tau), [dag_qubit])
+                if gate is not None:
+                    new_dag.apply_operation_back(gate, [dag_qubit])
+
+            new_dag.global_phase = _mod_2pi(new_dag.global_phase + sequence_gphase)
 
         return new_dag
 

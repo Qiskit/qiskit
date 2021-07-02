@@ -13,6 +13,7 @@
 """Test dynamical decoupling insertion pass."""
 
 import unittest
+import numpy as np
 from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, Delay
@@ -410,6 +411,89 @@ class TestDynamicalDecoupling(QiskitTestCase):
                 Operator(UGate(3 * pi / 4, -pi / 2, pi / 2)) & Operator(RXGate(pi / 4))
             )
         )
+
+    def test_insert_midmeas_uhrig(self):
+        """Test custom spacing (following Uhrig DD [1]).
+
+        [1] Uhrig, G. "Keeping a quantum bit alive by optimized π-pulse sequences."
+        Physical Review Letters 98.10 (2007): 100504.
+
+                   ┌───┐            ┌──────────────┐      ┌───┐       ┌──────────────┐┌───┐»
+        q_0: ──────┤ H ├─────────■──┤ Delay(3[dt]) ├──────┤ X ├───────┤ Delay(8[dt]) ├┤ X ├»
+             ┌─────┴───┴─────┐ ┌─┴─┐└──────────────┘┌─────┴───┴──────┐└──────────────┘└───┘»
+        q_1: ┤ Delay(50[dt]) ├─┤ X ├───────■────────┤ Delay(300[dt]) ├─────────────────────»
+             ├───────────────┴┐└───┘     ┌─┴─┐      └────────────────┘                     »
+        q_2: ┤ Delay(750[dt]) ├──────────┤ X ├──────────────■──────────────────────────────»
+             ├────────────────┤          └───┘            ┌─┴─┐                            »
+        q_3: ┤ Delay(950[dt]) ├───────────────────────────┤ X ├────────────────────────────»
+             └────────────────┘                           └───┘                            »
+        «     ┌───────────────┐┌───┐┌───────────────┐┌───┐┌───────────────┐┌───┐┌───────────────┐»
+        «q_0: ┤ Delay(13[dt]) ├┤ X ├┤ Delay(16[dt]) ├┤ X ├┤ Delay(20[dt]) ├┤ X ├┤ Delay(16[dt]) ├»
+        «     └───────────────┘└───┘└───────────────┘└───┘└───────────────┘└───┘└───────────────┘»
+        «q_1: ───────────────────────────────────────────────────────────────────────────────────»
+        «                                                                                        »
+        «q_2: ───────────────────────────────────────────────────────────────────────────────────»
+        «                                                                                        »
+        «q_3: ───────────────────────────────────────────────────────────────────────────────────»
+        «                                                                                        »
+        «     ┌───┐┌───────────────┐┌───┐┌──────────────┐┌───┐┌──────────────┐
+        «q_0: ┤ X ├┤ Delay(13[dt]) ├┤ X ├┤ Delay(8[dt]) ├┤ X ├┤ Delay(3[dt]) ├
+        «     └───┘└───────────────┘└───┘└──────────────┘└───┘└──────────────┘
+        «q_1: ────────────────────────────────────────────────────────────────
+        «
+        «q_2: ────────────────────────────────────────────────────────────────
+        «
+        «q_3: ────────────────────────────────────────────────────────────────
+        «
+        """
+        n = 8
+        dd_sequence = [XGate()] * n
+
+        # uhrig specifies the location of the k'th pulse
+        def uhrig(k):
+            return np.sin(np.pi * (k + 1) / (2 * n + 2)) ** 2
+
+        # convert that to spacing between pulses (whatever finite duration pulses have)
+        spacing = []
+        for k in range(n):
+            spacing.append(uhrig(k) - sum(spacing))
+        spacing.append(1 - sum(spacing))
+
+        pm = PassManager(
+            [
+                ALAPSchedule(self.durations),
+                DynamicalDecoupling(self.durations, dd_sequence, qubits=[0], spacing=spacing),
+            ]
+        )
+
+        ghz4_dd = pm.run(self.ghz4)
+
+        expected = self.ghz4.copy()
+        expected = expected.compose(Delay(50), [1], front=True)
+        expected = expected.compose(Delay(750), [2], front=True)
+        expected = expected.compose(Delay(950), [3], front=True)
+
+        expected = expected.compose(Delay(3), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(8), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(13), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(16), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(20), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(16), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(13), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(8), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(3), [0])
+
+        expected = expected.compose(Delay(300), [1])
+
+        self.assertEqual(ghz4_dd, expected)
 
     def test_insert_dd_bad_sequence(self):
         """Test DD raises when non-identity sequence is inserted."""
