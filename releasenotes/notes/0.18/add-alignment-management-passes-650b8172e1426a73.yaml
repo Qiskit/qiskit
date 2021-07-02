@@ -32,7 +32,6 @@ features:
     The backends from IBM Quantum Services (accessible via the
     `qiskit-ibmq-provider <https://pypi.org/project/qiskit-ibmq-provider/>`__
     package) will provide the alignment information in the near future.
-    information to provide better optimization of circuits before execution.
   - |
     Added a new kwarg, ``alignment``, to the :func:`~qiskit.compiler.transpile`
     function. This kwarg takes an integer is used to manually set an alignment
@@ -44,6 +43,8 @@ features:
 
       from qiskit import circuit, transpile
       from qiskit.test.mock import FakeAlmaden
+
+      backend = FakeAlmaden
 
       qc = circuit.QuantumCircuit(1, 1)
       qc.x(0)
