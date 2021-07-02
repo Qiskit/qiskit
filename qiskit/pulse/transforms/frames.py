@@ -89,7 +89,9 @@ def map_frames(
     channel_trackers = {}
     for ch in schedule.channels:
         if isinstance(ch, chans.PulseChannel):
-            channel_trackers[ch] = ChannelTracker(ch, frames_config.sample_duration)
+            channel_trackers[ch] = ChannelTracker(
+                ch, frames_config[ch.frame].frequency, frames_config.sample_duration
+            )
 
     sched = Schedule(name=schedule.name, metadata=schedule.metadata)
 
@@ -108,15 +110,14 @@ def map_frames(
 
             # If the frequency and phase of the channel have already been set once in
             # the past we compute shifts.
-            if channel_trackers[chan].is_initialized():
-                freq_diff = frame_freq - channel_trackers[chan].frequency(time)
-                phase_diff = (frame_phase - channel_trackers[chan].phase(time)) % (2 * np.pi)
+            freq_diff = frame_freq - channel_trackers[chan].frequency(time)
+            phase_diff = (frame_phase - channel_trackers[chan].phase(time)) % (2 * np.pi)
 
-                if abs(freq_diff) > resolved_frame.tolerance:
-                    sched.insert(time, ShiftFrequency(freq_diff, chan_frame), inplace=True)
+            if abs(freq_diff) > resolved_frame.tolerance:
+                sched.insert(time, ShiftFrequency(freq_diff, chan_frame), inplace=True)
 
-                if abs(phase_diff) > resolved_frame.tolerance:
-                    sched.insert(time, ShiftPhase(phase_diff, chan_frame), inplace=True)
+            if abs(phase_diff) > resolved_frame.tolerance:
+                sched.insert(time, ShiftPhase(phase_diff, chan_frame), inplace=True)
 
             # Update the frequency and phase of this channel.
             channel_trackers[chan].set_frequency_phase(time, frame_freq, frame_phase)

@@ -213,21 +213,18 @@ class ResolvedFrame(Tracker):
 class ChannelTracker(Tracker):
     """Class to track the phase and frequency of channels when resolving frames."""
 
-    def __init__(self, channel: PulseChannel, sample_duration: float):
+    def __init__(self, channel: PulseChannel, frequency: float, sample_duration: float):
         """
         Args:
             channel: The channel that this tracker tracks.
-            sample_duration: Duration of a sample.
+            frequency: The starting frequency of the channel tracker.
+            sample_duration: The sample duration on the backend.
         """
         super().__init__(channel.name, sample_duration)
         self._channel = channel
-        self._frame = Frame(channel.prefix, channel.index)
+        self._frequencies_phases = [TimeFrequencyPhase(time=0, frequency=frequency, phase=0.0)]
 
     @property
     def frame(self) -> Frame:
         """Return the native frame of this channel."""
-        return self._frame
-
-    def is_initialized(self) -> bool:
-        """Return true if the channel has been initialized."""
-        return len(self._frequencies_phases) > 0
+        return self._channel.frame
