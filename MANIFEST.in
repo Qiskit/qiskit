@@ -1,6 +1,8 @@
 include LICENSE.txt
 include requirements.txt
-include qiskit/qasm/libs/*.inc
+include qiskit/qasm2/*.py
+include qiskit/qasm2/grammar/*.py
+include qiskit/qasm2/libs/*.inc
 include qiskit/schemas/*.json
 include qiskit/schemas/examples/*.json
 include qiskit/VERSION.txt
@@ -12,6 +14,6 @@ recursive-include qiskit/test/mock/backends *.json
 # Include the tests files.
 recursive-include test *.py
 include test/python/pickles/*.pickle
-include test/python/qasm/*.qasm
+include test/python/qasm2/*.qasm
 include test/python/visualization/references/*.png
 include test/python/notebooks/*.ipynb
