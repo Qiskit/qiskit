@@ -1362,6 +1362,7 @@ class QuantumCircuit:
         from qiskit.qasm2.functions import dump
 
         ret_str = dump(self, filename=filename)
+
         if formatted:
             if not HAS_PYGMENTS:
                 raise MissingOptionalLibraryError(
