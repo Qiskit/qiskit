@@ -19,6 +19,7 @@ from PIL import Image, ImageChops, ImageDraw
 
 SWD = os.path.dirname(os.path.abspath(__file__))
 
+
 class Results:
     """Result object to analyse image comparisons"""
 
@@ -145,16 +146,16 @@ class Results:
         ret = ""
 
         if len(self.mismatch) >= 2:
-            Results._zipfiles(self.mismatch, "mpl/Graphs/mismatch.zip")
+            Results._zipfiles(self.mismatch, "mpl/graph/mismatch.zip")
             ret += (
-                '<div><a href="mpl/Graphs/mismatch.zip">'
+                '<div><a href="mpl/graph/mismatch.zip">'
                 "Download %s mismatch results as a zip</a></div>" % len(self.mismatch)
             )
 
         if len(self.missing) >= 2:
-            Results._zipfiles(self.missing, "mpl/Graphs/missing.zip")
+            Results._zipfiles(self.missing, "mpl/graph/missing.zip")
             ret += (
-                '<div><a href="mpl/Graphs/missing.zip">'
+                '<div><a href="mpl/graph/missing.zip">'
                 "Download %s missing results as a zip</a></div>" % len(self.missing)
             )
 
@@ -193,8 +194,8 @@ class Results:
 
 if __name__ == "__main__":
     RESULT_FILES = []
-    for file in os.listdir(os.path.join(SWD, "mpl/Graphs")):
+    for file in os.listdir(os.path.join(SWD, "mpl/graph")):
         if file.endswith(".png") and not file.endswith(".diff.png"):
             RESULT_FILES.append(file)
-    RESULTS_graph = Results(sorted(RESULT_FILES), "mpl/Graphs")
+    RESULTS_graph = Results(sorted(RESULT_FILES), "mpl/graph")
     RESULTS_graph.diff_images()

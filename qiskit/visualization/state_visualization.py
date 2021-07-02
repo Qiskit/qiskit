@@ -233,7 +233,9 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_bloch_multivector(state, filename=None, title="", figsize=None, *, rho=None, reverse_bits=False):
+def plot_bloch_multivector(
+    state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None
+):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -290,7 +292,7 @@ def plot_bloch_multivector(state, filename=None, title="", figsize=None, *, rho=
     fig.suptitle(title, fontsize=16, y=1.01)
     if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
         plt.close(fig)
-    if filename==None:
+    if filename == None:
         return fig
     else:
         return fig.savefig(filename)
@@ -1196,7 +1198,7 @@ class TextMatrix:
         return self.__str__()
 
 
-def state_drawer(state, filename=None, output=None,**drawer_args):
+def state_drawer(state, output=None, **drawer_args):
     """Returns a visualization of the state.
 
     **repr**: ASCII TextMatrix of the state's ``_repr_``.
@@ -1242,6 +1244,7 @@ def state_drawer(state, filename=None, output=None,**drawer_args):
             default_output = config.get("state_drawer", "repr")
         output = default_output
     output = output.lower()
+    # filename = drawer_args.pop('filename')
 
     # Choose drawing backend:
     drawers = {
@@ -1272,7 +1275,7 @@ def state_drawer(state, filename=None, output=None,**drawer_args):
 
     try:
         draw_func = drawers[output]
-        return draw_func(state, filename, **drawer_args)
+        return draw_func(state, **drawer_args)
     except KeyError as err:
         raise ValueError(
             """'{}' is not a valid option for drawing {} objects. Please choose from:
