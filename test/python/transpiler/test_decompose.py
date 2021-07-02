@@ -21,42 +21,42 @@ from qiskit.circuit.library import HGate, CCXGate, U2Gate
 from qiskit.quantum_info.operators import Operator
 from qiskit.test import QiskitTestCase
 
-# example complex circuit
-#       ┌────────┐               ┌───┐┌─────────────┐
-# q2_0: ┤0       ├────────────■──┤ H ├┤0            ├
-#       │        │            │  └───┘│  circuit-57 │
-# q2_1: ┤1 gate1 ├────────────■───────┤1            ├
-#       │        │┌────────┐  │       └─────────────┘
-# q2_2: ┤2       ├┤0       ├──■──────────────────────
-#       └────────┘│        │  │
-# q2_3: ──────────┤1 gate2 ├──■──────────────────────
-#                 │        │┌─┴─┐
-# q2_4: ──────────┤2       ├┤ X ├────────────────────
-#                 └────────┘└───┘
-circ1 = QuantumCircuit(3)
-circ1.h(0)
-circ1.t(1)
-circ1.x(2)
-my_gate = circ1.to_gate(label="gate1")
-circ2 = QuantumCircuit(3)
-circ2.h(0)
-circ2.cx(0, 1)
-circ2.x(2)
-my_gate2 = circ2.to_gate(label="gate2")
-circ3 = QuantumCircuit(2)
-circ3.x(0)
-q_bits = QuantumRegister(5)
-qc = QuantumCircuit(q_bits)
-qc.append(my_gate, q_bits[:3])
-qc.append(my_gate2, q_bits[2:])
-qc.mct(q_bits[:4], q_bits[4])
-qc.h(0)
-qc.append(circ3, [0, 1])
-COMPLEX_CIRC = qc
-
-
 class TestDecompose(QiskitTestCase):
     """Tests the decompose pass."""
+    def setUp(self):
+        super().setUp()
+        # example complex circuit
+        #       ┌────────┐               ┌───┐┌─────────────┐
+        # q2_0: ┤0       ├────────────■──┤ H ├┤0            ├
+        #       │        │            │  └───┘│  circuit-57 │
+        # q2_1: ┤1 gate1 ├────────────■───────┤1            ├
+        #       │        │┌────────┐  │       └─────────────┘
+        # q2_2: ┤2       ├┤0       ├──■──────────────────────
+        #       └────────┘│        │  │
+        # q2_3: ──────────┤1 gate2 ├──■──────────────────────
+        #                 │        │┌─┴─┐
+        # q2_4: ──────────┤2       ├┤ X ├────────────────────
+        #                 └────────┘└───┘
+        circ1 = QuantumCircuit(3)
+        circ1.h(0)
+        circ1.t(1)
+        circ1.x(2)
+        my_gate = circ1.to_gate(label="gate1")
+        circ2 = QuantumCircuit(3)
+        circ2.h(0)
+        circ2.cx(0, 1)
+        circ2.x(2)
+        my_gate2 = circ2.to_gate(label="gate2")
+        circ3 = QuantumCircuit(2)
+        circ3.x(0)
+        q_bits = QuantumRegister(5)
+        qc = QuantumCircuit(q_bits)
+        qc.append(my_gate, q_bits[:3])
+        qc.append(my_gate2, q_bits[2:])
+        qc.mct(q_bits[:4], q_bits[4])
+        qc.h(0)
+        qc.append(circ3, [0, 1])
+        self.complex_circuit = qc
 
     def test_basic(self):
         """Test decompose a single H into u2."""
@@ -188,7 +188,7 @@ class TestDecompose(QiskitTestCase):
 
     def test_decompose_only_given_label(self):
         """Test decomposition parameters so that only a given label is decomposed."""
-        decom_circ = COMPLEX_CIRC.decompose(["gate2"])
+        decom_circ = self.complex_circuit.decompose(["gate2"])
         dag = circuit_to_dag(decom_circ)
 
         self.assertEqual(len(dag.op_nodes()), 7)
@@ -202,7 +202,7 @@ class TestDecompose(QiskitTestCase):
 
     def test_decompose_only_given_name(self):
         """Test decomposition parameters so that only given name is decomposed."""
-        decom_circ = COMPLEX_CIRC.decompose(["mcx"])
+        decom_circ = self.complex_circuit.decompose(["mcx"])
         dag = circuit_to_dag(decom_circ)
 
         self.assertEqual(len(dag.op_nodes()), 13)
@@ -222,7 +222,7 @@ class TestDecompose(QiskitTestCase):
 
     def test_decompose_mixture_of_names_and_labels(self):
         """Test decomposition parameters so that mixture of names and labels is decomposed"""
-        decom_circ = COMPLEX_CIRC.decompose(["mcx", "gate2"])
+        decom_circ = self.complex_circuit.decompose(["mcx", "gate2"])
         dag = circuit_to_dag(decom_circ)
 
         self.assertEqual(len(dag.op_nodes()), 15)
@@ -244,7 +244,7 @@ class TestDecompose(QiskitTestCase):
 
     def test_decompose_name_wildcards(self):
         """Test decomposition parameters so that name wildcards is decomposed"""
-        decom_circ = COMPLEX_CIRC.decompose(["circuit-*"])
+        decom_circ = self.complex_circuit.decompose(["circuit-*"])
         dag = circuit_to_dag(decom_circ)
 
         self.assertEqual(len(dag.op_nodes()), 5)
@@ -256,7 +256,7 @@ class TestDecompose(QiskitTestCase):
 
     def test_decompose_label_wildcards(self):
         """Test decomposition parameters so that label wildcards is decomposed"""
-        decom_circ = COMPLEX_CIRC.decompose(["gate*"])
+        decom_circ = self.complex_circuit.decompose(["gate*"])
         dag = circuit_to_dag(decom_circ)
 
         self.assertEqual(len(dag.op_nodes()), 9)
