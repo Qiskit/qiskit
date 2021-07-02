@@ -23,8 +23,10 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.library import XGate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
+from qiskit.extensions import UnitaryGate
 from qiskit.opflow import X, Y, Z
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.qpy_serialization import dump, load
@@ -363,6 +365,103 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.unitary(random_unitary(4, seed=100), qr_standalone)
         qc.measure(qr, cr)
         qc.measure(qr_standalone, cr_standalone)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+
+    def test_unitary_gate_with_label(self):
+        """Test that numpy array parameters are correctly serialized with a label"""
+        qc = QuantumCircuit(1)
+        unitary = np.array([[0, 1], [1, 0]])
+        unitary_gate = UnitaryGate(unitary, "My Special unitary")
+        qc.append(unitary_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+
+    def test_opaque_gate_with_label(self):
+        """Test that custom opaque gate is correctly serialized with a label"""
+        custom_gate = Gate("black_box", 1, [])
+        custom_gate.label = "My Special Black Box"
+        qc = QuantumCircuit(1)
+        qc.append(custom_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+
+    def test_opaque_instruction_with_label(self):
+        """Test that custom opaque instruction is correctly serialized with a label"""
+        custom_gate = Instruction("black_box", 1, 0, [])
+        custom_gate.label = "My Special Black Box Instruction"
+        qc = QuantumCircuit(1)
+        qc.append(custom_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+
+    def test_custom_gate_with_label(self):
+        """Test that custom  gate is correctly serialized with a label"""
+        custom_gate = Gate("black_box", 1, [])
+        custom_definition = QuantumCircuit(1)
+        custom_definition.h(0)
+        custom_definition.rz(1.5, 0)
+        custom_definition.sdg(0)
+        custom_gate.definition = custom_definition
+        custom_gate.label = "My special black box with a definition"
+
+        qc = QuantumCircuit(1)
+        qc.append(custom_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+
+    def test_custom_instruction(self):
+        """Test that custom instruction is correctly serialized with a label"""
+        custom_gate = Instruction("black_box", 1, 0, [])
+        custom_definition = QuantumCircuit(1)
+        custom_definition.h(0)
+        custom_definition.rz(1.5, 0)
+        custom_definition.sdg(0)
+        custom_gate.definition = custom_definition
+        custom_gate.label = "My Special Black Box Instruction with a definition"
+        qc = QuantumCircuit(1)
+        qc.append(custom_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+
+    def test_standard_gate_with_label(self):
+        """Test a standard gate with a label."""
+        qc = QuantumCircuit(1)
+        gate = XGate()
+        gate.label = "My special X gate"
+        qc.append(gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+
+    def test_circuit_with_conditional(self):
+        """Test that instructions with conditions are correctly serialized."""
+        qc = QuantumCircuit(1, 1)
+        gate = XGate(label="My conditional x gate")
+        gate.c_if(qc.cregs[0], 1)
+        qc.append(gate, [0])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)

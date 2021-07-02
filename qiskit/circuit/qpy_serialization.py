@@ -170,6 +170,7 @@ The contents of INSTRUCTIONS is a list of INSTRUCTION metadata objects
 
     struct {
         uint16_t name_size;
+        uint16_t label_size;
         uint16_t num_parameters;
         uint32_t num_qargs;
         uint32_t num_cargs;
@@ -181,9 +182,11 @@ The contents of INSTRUCTIONS is a list of INSTRUCTION metadata objects
 This metadata object is immediately followed by ``name_size`` bytes of utf8 bytes
 for the ``name``. ``name`` here is the Qiskit class name for the Instruction
 class if it's defined in Qiskit. Otherwise it falls back to the custom
-instruction name. Following the ``name`` bytes if ``has_conditional`` is ``True``
-then there are ``conditonal_reg_name_size`` bytes of utf8 data for the name of
-the condtional register name.
+instruction name. Following the ``name`` bytes there are ``label_size`` bytes of
+utf8 data for the label if one was set on the instruction. Following the label
+bytes if ``has_conditional`` is ``True`` then there are
+``conditonal_reg_name_size`` bytes of utf8 data for the name of the condtional
+register name.
 
 This is immediately followed by the INSTRUCTION_ARG structs for the list of
 arguments of that instruction. These are in the order of all quantum arguments
@@ -374,6 +377,7 @@ INSTRUCTION = namedtuple(
     "INSTRUCTION",
     [
         "name_size",
+        "label_size",
         "num_parameters",
         "num_qargs",
         "num_cargs",
@@ -382,7 +386,7 @@ INSTRUCTION = namedtuple(
         "value",
     ],
 )
-INSTRUCTION_PACK = "!HHII?Hq"
+INSTRUCTION_PACK = "!HHHII?Hq"
 INSTRUCTION_SIZE = struct.calcsize(INSTRUCTION_PACK)
 # Instruction argument format
 INSTRUCTION_ARG = namedtuple("INSTRUCTION_ARG", ["type", "size"])
@@ -482,17 +486,19 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
     instruction_raw = file_obj.read(INSTRUCTION_SIZE)
     instruction = struct.unpack(INSTRUCTION_PACK, instruction_raw)
     name_size = instruction[0]
+    label_size = instruction[1]
     qargs = []
     cargs = []
     params = []
     gate_name = file_obj.read(name_size).decode("utf8")
-    num_qargs = instruction[2]
-    num_cargs = instruction[3]
-    num_params = instruction[1]
-    has_condition = instruction[4]
-    register_name_size = instruction[5]
+    label = file_obj.read(label_size).decode("utf8")
+    num_qargs = instruction[3]
+    num_cargs = instruction[4]
+    num_params = instruction[2]
+    has_condition = instruction[5]
+    register_name_size = instruction[6]
     condition_register = file_obj.read(register_name_size).decode("utf8")
-    condition_value = instruction[6]
+    condition_value = instruction[7]
     condition_tuple = None
     if has_condition:
         condition_tuple = (registers["c"][condition_register], condition_value)
@@ -541,6 +547,8 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
     if gate_name in ("Gate", "Instruction"):
         inst_obj = _parse_custom_instruction(custom_instructions, gate_name, params)
         inst_obj.condition = condition_tuple
+        if label_size > 0:
+            inst_obj.label = label
         circuit._append(inst_obj, qargs, cargs)
         return
     elif hasattr(library, gate_name):
@@ -554,6 +562,8 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
     elif gate_name in custom_instructions:
         inst_obj = _parse_custom_instruction(custom_instructions, gate_name, params)
         inst_obj.condition = condition_tuple
+        if label_size > 0:
+            inst_obj.label = label
         circuit._append(inst_obj, qargs, cargs)
         return
     else:
@@ -562,6 +572,8 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
         params = [len(qargs)]
     gate = gate_class(*params)
     gate.condition = condition_tuple
+    if label_size > 0:
+        gate.label = label
     circuit._append(gate, qargs, cargs)
 
 
@@ -679,9 +691,15 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         condition_value = instruction_tuple[0].condition[1]
 
     gate_class_name = gate_class_name.encode("utf8")
+    label = getattr(instruction_tuple[0], "label")
+    if label:
+        label_raw = label.encode("utf8")
+    else:
+        label_raw = b""
     instruction_raw = struct.pack(
         INSTRUCTION_PACK,
         len(gate_class_name),
+        len(label_raw),
         len(instruction_tuple[0].params),
         instruction_tuple[0].num_qubits,
         instruction_tuple[0].num_clbits,
@@ -691,6 +709,7 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
     )
     file_obj.write(instruction_raw)
     file_obj.write(gate_class_name)
+    file_obj.write(label_raw)
     file_obj.write(condition_register)
     # Encode instruciton args
     for qbit in instruction_tuple[1]:
