@@ -12,11 +12,11 @@
 
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 # pylint: disable=cyclic-import
-from typing import Optional, Set, List, Tuple, Union
+from typing import Optional, Set, List, Tuple
 
+from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz
 
 
 class QAOAAnsatz(EvolvedOperatorAnsatz):
@@ -197,7 +197,6 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
     # we can't directly specify OperatorBase as a return type, it causes a circular import
     # and pylint objects if return type is not documented
-    # pylint: disable=missing-return-type-doc
     @property
     def mixer_operator(self):
         """Returns an optional mixer operator expressed as an operator or a quantum circuit.

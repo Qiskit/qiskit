@@ -13,7 +13,7 @@
 """ ComposedOp Class """
 
 from functools import partial, reduce
-from typing import List, Optional, Union, cast
+from typing import List, Optional, Union, cast, Dict
 
 import numpy as np
 
@@ -53,6 +53,11 @@ class ComposedOp(ListOp):
     @property
     def distributive(self) -> bool:
         return False
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"oplist": self._oplist, "coeff": self._coeff, "abelian": self._abelian}
 
     # TODO take advantage of the mixed product property, tensorpower each element in the composition
     # def tensorpower(self, other):

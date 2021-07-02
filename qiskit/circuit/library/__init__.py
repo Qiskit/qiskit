@@ -96,6 +96,7 @@ Generalized Gates
    GRY
    GRZ
    RVGate
+   PauliGate
 
 Boolean Logic Circuits
 ======================
@@ -146,7 +147,19 @@ Adders
 .. autosummary::
    :toctree: ../stubs/
 
+   DraperQFTAdder
+   CDKMRippleCarryAdder
+   VBERippleCarryAdder
    WeightedAdder
+
+Multipliers
++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   HRSCumulativeMultiplier
+   RGQFTMultiplier
 
 Comparators
 +++++++++++
@@ -337,6 +350,7 @@ from .generalized_gates import (
     GRY,
     GRZ,
     RVGate,
+    PauliGate,
 )
 from .boolean_logic import (
     AND,
@@ -355,8 +369,14 @@ from .arithmetic import (
     WeightedAdder,
     QuadraticForm,
     LinearAmplitudeFunction,
+    VBERippleCarryAdder,
+    CDKMRippleCarryAdder,
+    DraperQFTAdder,
     PiecewiseChebyshev,
+    HRSCumulativeMultiplier,
+    RGQFTMultiplier,
 )
+
 from .n_local import (
     NLocal,
     TwoLocal,

@@ -44,6 +44,7 @@ Routing
    LookaheadSwap
    StochasticSwap
    SabreSwap
+   BIPMapping
 
 Basis Change
 ============
@@ -119,6 +120,7 @@ Additional Passes
    CXDirection
    GateDirection
    MergeAdjacentBarriers
+   RemoveBarriers
    BarrierBeforeFinalMeasurements
    RemoveFinalMeasurements
    DAGFixedPoint
@@ -143,6 +145,7 @@ from .routing import LayoutTransformation
 from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
+from .routing import BIPMapping
 
 # basis change
 from .basis import Decompose
@@ -197,3 +200,4 @@ from .utils import MergeAdjacentBarriers
 from .utils import DAGFixedPoint
 from .utils import FixedPoint
 from .utils import Error
+from .utils import RemoveBarriers
