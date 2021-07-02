@@ -185,7 +185,7 @@ def qasm_dump(qc: QuantumCircuit) -> str:
 
                 # Insert composite circuit qasm definition right after header and extension lib
                 string_temp = string_temp.replace(
-                    qc.extension_lib, "%s\n%s" % (qc.extension_lib, qasm_string)
+                    qc.extension_lib, f"{qc.extension_lib}\n{qasm_string}"
                 )
 
                 existing_composite_circuits.append(instruction)
