@@ -23,7 +23,7 @@ import multiprocessing as mp
 from collections import OrderedDict, defaultdict
 from typing import Union
 import numpy as np
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
@@ -468,7 +468,7 @@ class QuantumCircuit:
             QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
         """
         repeated_circ = QuantumCircuit(
-            self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + "**{}".format(reps)
+            self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + f"**{reps}"
         )
 
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
@@ -553,7 +553,7 @@ class QuantumCircuit:
         controlled_gate = gate.control(num_ctrl_qubits, label, ctrl_state)
         control_qreg = QuantumRegister(num_ctrl_qubits)
         controlled_circ = QuantumCircuit(
-            control_qreg, self.qubits, *self.qregs, name="c_{}".format(self.name)
+            control_qreg, self.qubits, *self.qregs, name=f"c_{self.name}"
         )
         controlled_circ.append(controlled_gate, controlled_circ.qubits)
 
@@ -991,7 +991,7 @@ class QuantumCircuit:
                 ]
             else:
                 raise CircuitError(
-                    "Not able to expand a %s (%s)" % (bit_representation, type(bit_representation))
+                    f"Not able to expand a {bit_representation} ({type(bit_representation)})"
                 )
         except IndexError as ex:
             raise CircuitError("Index out of range.") from ex
@@ -1122,7 +1122,7 @@ class QuantumCircuit:
                     else:
                         if parameter.name in self._parameter_table.get_names():
                             raise CircuitError(
-                                "Name conflict on adding parameter: {}".format(parameter.name)
+                                f"Name conflict on adding parameter: {parameter.name}"
                             )
                         self._parameter_table[parameter] = [(instruction, param_index)]
 
@@ -1225,7 +1225,7 @@ class QuantumCircuit:
         if not set(cargs).issubset(self._clbit_set):
             raise CircuitError("cargs not in this circuit")
 
-    def to_instruction(self, parameter_map=None):
+    def to_instruction(self, parameter_map=None, label=None):
         """Create an Instruction out of this circuit.
 
         Args:
@@ -1233,6 +1233,7 @@ class QuantumCircuit:
                parameters in the circuit to parameters to be used in the
                instruction. If None, existing circuit parameters will also
                parameterize the instruction.
+            label (str): Optional gate label.
 
         Returns:
             qiskit.circuit.Instruction: a composite instruction encapsulating this circuit
@@ -1240,7 +1241,7 @@ class QuantumCircuit:
         """
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
 
-        return circuit_to_instruction(self, parameter_map)
+        return circuit_to_instruction(self, parameter_map, label=label)
 
     def to_gate(self, parameter_map=None, label=None):
         """Create a Gate out of this circuit.
@@ -1308,7 +1309,7 @@ class QuantumCircuit:
             gate_qargs = ",".join(
                 ["q%i" % index for index in [definition_bit_labels[qubit] for qubit in qargs]]
             )
-            composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
+            composite_circuit_gates += f"{data.qasm()} {gate_qargs}; "
 
         if composite_circuit_gates:
             composite_circuit_gates = composite_circuit_gates.rstrip(" ")
@@ -1329,18 +1330,24 @@ class QuantumCircuit:
 
         return qasm_string
 
-    def qasm(self, formatted=False, filename=None):
+    def qasm(self, formatted=False, filename=None, encoding=None):
         """Return OpenQASM string.
 
         Args:
             formatted (bool): Return formatted Qasm string.
             filename (str): Save Qasm to file with name 'filename'.
+            encoding (str): Optionally specify the encoding to use for the
+                output file if ``filename`` is specified. By default this is
+                set to the system's default encoding (ie whatever
+                ``locale.getpreferredencoding()`` returns) and can be set to
+                any valid codec or alias from stdlib's
+                `codec module <https://docs.python.org/3/library/codecs.html#standard-encodings>`__
 
         Returns:
             str: If formatted=False.
 
         Raises:
-            ImportError: If pygments is not installed and ``formatted`` is
+            MissingOptionalLibraryError: If pygments is not installed and ``formatted`` is
                 ``True``.
             QasmError: If circuit has free parameters.
         """
@@ -1357,10 +1364,10 @@ class QuantumCircuit:
         ret_str = dump(self, filename=filename)
         if formatted:
             if not HAS_PYGMENTS:
-                raise ImportError(
-                    "To use the formatted output pygments>2.4 "
-                    "must be installed. To install pygments run "
-                    '"pip install pygments".'
+                raise MissingOptionalLibraryError(
+                    libname="pygments>2.4",
+                    name="formatted QASM output",
+                    pip_install="pip install pygments",
                 )
             code = pygments.highlight(
                 ret_str, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
@@ -1410,7 +1417,7 @@ class QuantumCircuit:
                 the `mpl`, `latex` and `latex_source` outputs. Defaults to 1.0.
             filename (str): file path to save image to. Defaults to None.
             style (dict or str): dictionary of style or file name of style json file.
-                This option is only used by the `mpl` output type.
+                This option is only used by the `mpl` or `latex` output type.
                 If `style` is a str, it is used as the path to a json file
                 which contains a style dict. The file will be opened, parsed, and
                 then any style elements in the dict will replace the default values
@@ -1585,9 +1592,13 @@ class QuantumCircuit:
             # Assuming here that there is no conditional
             # snapshots or barriers ever.
             if instr.condition:
-                # Controls operate over all bits in the
-                # classical register they use.
-                for cbit in instr.condition[0]:
+                # Controls operate over all bits of a classical register
+                # or over a single bit
+                if isinstance(instr.condition[0], Clbit):
+                    condition_bits = [instr.condition[0]]
+                else:
+                    condition_bits = instr.condition[0]
+                for cbit in condition_bits:
                     idx = bit_indices[cbit]
                     if idx not in reg_ints:
                         reg_ints.append(idx)
@@ -1679,13 +1690,15 @@ class QuantumCircuit:
                 # Controls necessarily join all the cbits in the
                 # register that they use.
                 if instr.condition and not unitary_only:
-                    creg = instr.condition[0]
-                    for bit in creg:
+                    if isinstance(instr.condition[0], Clbit):
+                        condition_bits = [instr.condition[0]]
+                    else:
+                        condition_bits = instr.condition[0]
+                    for bit in condition_bits:
                         idx = bit_indices[bit]
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
                                 graphs_touched.append(k)
-                                num_touched += 1
                                 break
 
                 for item in args:
@@ -1694,8 +1707,10 @@ class QuantumCircuit:
                         if reg_int in sub_graphs[k]:
                             if k not in graphs_touched:
                                 graphs_touched.append(k)
-                                num_touched += 1
                                 break
+
+                graphs_touched = list(set(graphs_touched))
+                num_touched = len(graphs_touched)
 
                 # If the gate touches more than one subgraph
                 # join those graphs together and return
@@ -2010,7 +2025,7 @@ class QuantumCircuit:
 
         Returns:
             Optional(QuantumCircuit): A copy of the circuit with bound parameters, if
-            ``inplace`` is True, otherwise None.
+            ``inplace`` is False, otherwise None.
 
         Examples:
 
@@ -2636,11 +2651,21 @@ class QuantumCircuit:
 
         return self.append(DCXGate(), [qubit1, qubit2], [])
 
-    def ccx(self, control_qubit1, control_qubit2, target_qubit):
+    def ccx(
+        self,
+        control_qubit1,
+        control_qubit2,
+        target_qubit,
+        ctrl_state=None,
+    ):
         """Apply :class:`~qiskit.circuit.library.CCXGate`."""
         from .library.standard_gates.x import CCXGate
 
-        return self.append(CCXGate(), [control_qubit1, control_qubit2, target_qubit], [])
+        return self.append(
+            CCXGate(ctrl_state=ctrl_state),
+            [control_qubit1, control_qubit2, target_qubit],
+            [],
+        )
 
     def toffoli(self, control_qubit1, control_qubit2, target_qubit):
         """Apply :class:`~qiskit.circuit.library.CCXGate`."""
@@ -2686,7 +2711,7 @@ class QuantumCircuit:
         if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
             required = gate.num_ancilla_qubits
             if ancilla_qubits is None:
-                raise AttributeError("No ancillas provided, but {} are needed!".format(required))
+                raise AttributeError(f"No ancillas provided, but {required} are needed!")
 
             # convert ancilla qubits to a list if they were passed as int or qubit
             if not hasattr(ancilla_qubits, "__len__"):
@@ -2694,9 +2719,7 @@ class QuantumCircuit:
 
             if len(ancilla_qubits) < required:
                 actually = len(ancilla_qubits)
-                raise ValueError(
-                    "At least {} ancillas required, but {} given.".format(required, actually)
-                )
+                raise ValueError(f"At least {required} ancillas required, but {actually} given.")
             # size down if too many ancillas were provided
             ancilla_qubits = ancilla_qubits[:required]
         else:
@@ -2766,7 +2789,7 @@ class QuantumCircuit:
             self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
 
     # Functions only for scheduled circuits
-    def qubit_duration(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+    def qubit_duration(self, *qubits: Union[Qubit, int]) -> float:
         """Return the duration between the start and stop time of the first and last instructions,
         excluding delays, over the supplied qubits. Its time unit is ``self.unit``.
 
@@ -2778,7 +2801,7 @@ class QuantumCircuit:
         """
         return self.qubit_stop_time(*qubits) - self.qubit_start_time(*qubits)
 
-    def qubit_start_time(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+    def qubit_start_time(self, *qubits: Union[Qubit, int]) -> float:
         """Return the start time of the first instruction, excluding delays,
         over the supplied qubits. Its time unit is ``self.unit``.
 
@@ -2820,7 +2843,7 @@ class QuantumCircuit:
 
         return 0  # If there are no instructions over bits
 
-    def qubit_stop_time(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+    def qubit_stop_time(self, *qubits: Union[Qubit, int]) -> float:
         """Return the stop time of the last instruction, excluding delays, over the supplied qubits.
         Its time unit is ``self.unit``.
 

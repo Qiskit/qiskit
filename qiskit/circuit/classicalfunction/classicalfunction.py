@@ -15,11 +15,14 @@
 import ast
 from typing import Callable, Optional
 
+from tweedledum.classical import simulate
+from tweedledum.synthesis import pkrm_synth
+
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.exceptions import MissingOptionalLibraryError, QiskitError
+from qiskit.exceptions import QiskitError
 from .classical_element import ClassicalElement
-from .utils import HAS_TWEEDLEDUM
 from .classical_function_visitor import ClassicalFunctionVisitor
+from .utils import tweedledum2qiskit
 
 
 class ClassicalFunction(ClassicalElement):
@@ -35,17 +38,10 @@ class ClassicalFunction(ClassicalElement):
             name (str): Optional. Default: "*classicalfunction*". ClassicalFunction name.
 
         Raises:
-            MissingOptionalLibraryError: If tweedledum is not installed.
             QiskitError: If source is not a string.
         """
         if not isinstance(source, str):
             raise QiskitError("ClassicalFunction needs a source code as a string.")
-        if not HAS_TWEEDLEDUM:
-            raise MissingOptionalLibraryError(
-                libname="tweedledum",
-                name="classical function compiler",
-                pip_install="pip install tweedledum",
-            )
         self._ast = ast.parse(source)
         self._network = None
         self._scopes = None
@@ -53,7 +49,7 @@ class ClassicalFunction(ClassicalElement):
         self._truth_table = None
         super().__init__(
             name or "*classicalfunction*",
-            num_qubits=sum([qreg.size for qreg in self.qregs]),
+            num_qubits=sum(qreg.size for qreg in self.qregs),
             params=[],
         )
 
@@ -111,8 +107,6 @@ class ClassicalFunction(ClassicalElement):
         Returns:
             bool: result of the evaluation.
         """
-        from tweedledum.classical import simulate  # pylint: disable=no-name-in-module
-
         return simulate(self._network, bitstring)
 
     def simulate_all(self):
@@ -133,8 +127,6 @@ class ClassicalFunction(ClassicalElement):
     def truth_table(self):
         """Returns (and computes) the truth table"""
         if self._truth_table is None:
-            from tweedledum.classical import simulate  # pylint: disable=no-name-in-module
-
             self._truth_table = simulate(self._network)
         return self._truth_table
 
@@ -160,9 +152,6 @@ class ClassicalFunction(ClassicalElement):
 
         if synthesizer:
             return synthesizer(self)
-
-        from .utils import tweedledum2qiskit
-        from tweedledum.synthesis import pkrm_synth  # pylint: disable=no-name-in-module
 
         return tweedledum2qiskit(pkrm_synth(self.truth_table[0]), name=self.name, qregs=qregs)
 

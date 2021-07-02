@@ -37,7 +37,7 @@ from qiskit.opflow import I, X, Y, Z, StateFn, CircuitStateFn, ListOp, CircuitSa
 from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
 from qiskit.opflow.gradients.qfi import QFI
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
-from qiskit.circuit import Parameter, ParameterExpression
+from qiskit.circuit import Parameter
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import RealAmplitudes
 
@@ -552,12 +552,13 @@ class TestGradients(QiskitOpflowTestCase):
                     grad_method=method, regularization=regularization
                 ).convert(operator=op)
                 values_dict = [{params[0]: np.pi / 4, params[1]: np.pi / 2}]
-                correct_values = (
-                    [[-2.36003979, 2.06503481]] if regularization == "ridge" else [[-4.2, 0]]
-                )
+
+                # reference values obtained by classically computing the natural gradients
+                correct_values = [[-3.26, 1.63]] if regularization == "ridge" else [[-4.24, 0]]
+
                 for i, value_dict in enumerate(values_dict):
                     np.testing.assert_array_almost_equal(
-                        nat_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=0
+                        nat_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
                     )
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
@@ -609,7 +610,7 @@ class TestGradients(QiskitOpflowTestCase):
             correct_values = [[0.0]] if regularization == "ridge" else [[-1.41421342]]
             for i, value_dict in enumerate(values_dict):
                 np.testing.assert_array_almost_equal(
-                    nat_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=0
+                    nat_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=3
                 )
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
@@ -1019,26 +1020,26 @@ class TestParameterGradients(QiskitOpflowTestCase):
         with self.subTest("linear"):
             expr = 2 * x + y
 
-            grad = Gradient.parameter_expression_grad(expr, x)
+            grad = expr.gradient(x)
             self.assertEqual(grad, 2)
 
-            grad = Gradient.parameter_expression_grad(expr, y)
+            grad = expr.gradient(y)
             self.assertEqual(grad, 1)
 
         with self.subTest("polynomial"):
             expr = x * x * x - x * y + y * y
 
-            grad = Gradient.parameter_expression_grad(expr, x)
+            grad = expr.gradient(x)
             self.assertEqual(grad, 3 * x * x - y)
 
-            grad = Gradient.parameter_expression_grad(expr, y)
+            grad = expr.gradient(y)
             self.assertEqual(grad, -1 * x + 2 * y)
 
     def test_converted_to_float_if_bound(self):
         """Test the gradient is a float when no free symbols are left."""
         x = Parameter("x")
         expr = 2 * x + 1
-        grad = Gradient.parameter_expression_grad(expr, x)
+        grad = expr.gradient(x)
         self.assertIsInstance(grad, float)
 
 

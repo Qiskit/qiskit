@@ -55,6 +55,16 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
 
 def _disassemble_circuit(qobj) -> CircuitModule:
     run_config = qobj.config.to_dict()
+
+    # convert lo freq back to Hz
+    qubit_lo_freq = run_config.get("qubit_lo_freq", [])
+    if qubit_lo_freq:
+        run_config["qubit_lo_freq"] = [freq * 1e9 for freq in qubit_lo_freq]
+
+    meas_lo_freq = run_config.get("meas_lo_freq", [])
+    if meas_lo_freq:
+        run_config["meas_lo_freq"] = [freq * 1e9 for freq in meas_lo_freq]
+
     user_qobj_header = qobj.header.to_dict()
     return CircuitModule((_experiments_to_circuits(qobj), run_config, user_qobj_header))
 
@@ -116,7 +126,7 @@ def _experiments_to_circuits(qobj):
                     _inst = instr_method(*params, *qubits, *clbits)
             elif name == "bfunc":
                 conditional["value"] = int(i.val, 16)
-                full_bit_size = sum([creg_dict[x].size for x in creg_dict])
+                full_bit_size = sum(creg_dict[x].size for x in creg_dict)
                 mask_map = {}
                 raw_map = {}
                 raw = []

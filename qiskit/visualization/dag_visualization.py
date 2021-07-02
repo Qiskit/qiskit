@@ -20,6 +20,7 @@ import os
 import sys
 import tempfile
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from .exceptions import VisualizationError
 
 try:
@@ -56,7 +57,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
     Raises:
         VisualizationError: when style is not recognized.
-        ImportError: when pydot or pillow are not installed.
+        MissingOptionalLibraryError: when pydot or pillow are not installed.
 
     Example:
         .. jupyter-execute::
@@ -81,7 +82,11 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     try:
         import pydot
     except ImportError as ex:
-        raise ImportError("dag_drawer requires pydot. " "Run 'pip install pydot'.") from ex
+        raise MissingOptionalLibraryError(
+            libname="PyDot",
+            name="dag_drawer",
+            pip_install="pip install pydot",
+        ) from ex
     # NOTE: use type str checking to avoid potential cyclical import
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)
@@ -120,7 +125,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
     else:
         bit_labels = {
-            bit: "%s[%s]" % (reg.name, idx)
+            bit: f"{reg.name}[{idx}]"
             for reg in list(dag.qregs.values()) + list(dag.cregs.values())
             for (idx, bit) in enumerate(reg)
         }
@@ -165,9 +170,10 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         return None
     elif ("ipykernel" in sys.modules) and ("spyder" not in sys.modules):
         if not HAS_PIL:
-            raise ImportError(
-                "dag_drawer requires pillow for drawing in jupyter directly. "
-                "Run 'pip install pillow'."
+            raise MissingOptionalLibraryError(
+                libname="pillow",
+                name="dag_drawer",
+                pip_install="pip install pillow",
             )
 
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -179,9 +185,10 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
             return image
     else:
         if not HAS_PIL:
-            raise ImportError(
-                "dag_drawer requires pillow for drawing to a window directly. "
-                "Run 'pip install pillow'."
+            raise MissingOptionalLibraryError(
+                libname="pillow",
+                name="dag_drawer",
+                pip_install="pip install pillow",
             )
         with tempfile.TemporaryDirectory() as tmpdirname:
             tmp_path = os.path.join(tmpdirname, "dag.png")
