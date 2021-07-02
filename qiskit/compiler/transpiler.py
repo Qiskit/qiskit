@@ -160,8 +160,8 @@ def transpile(
             .. note::
 
                 Note that currently this instruction time optimization is performed only for
-                ``measure`` gate instructions. Here we assume a hardware that
-                ``measure`` gate should start from time which is multiple of the alignment value.
+                ``measure`` instructions. Here we assume a hardware whose
+                measurements should start at a time which is a multiple of the alignment value.
 
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
