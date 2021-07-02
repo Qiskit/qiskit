@@ -77,7 +77,7 @@ class EulerCompressor(CompressorBase):
         via commutation & mirror rules plus the synthesis algorithm (if connectivity is Full)
         Note: synthesis does not keep connectivity, the rest does
 
-        # applies cnot_synthesis and minimal to the sparsity pattern
+        # applies cnot_synthesis and three_qubit_shuffle to the sparsity pattern
         # synth=False - compliant with coupling map, otherwise (True) may introduce connections
         # between qubits, breaking coupling map, use for full connectivity only
 
@@ -87,17 +87,42 @@ class EulerCompressor(CompressorBase):
         Returns:
             compressed parametric circuit.
         """
+
+        # (1) sparsity determines which CNOT units are bare (i.e. have rotations set to zero)
+        # (2) zero_runs determines which CNOTs are consecutive (i.e. have all rotations between set to zero)
+        # For each word of consecutive CNOTs:
+        # (3) synthesis computes an equivalent word
+        #     synthesis currently does not respect hardware connectivity
+        # (4) three_qubit_shuffle computes an equivalent word by
+        #     alternating between random allowable commutations and up to three qubit reductions
+        #     (a) commute randomly chooses a pair of commutable CNOTs to commute
+        #     (b) three_qubit_reduce applies three qubit reductions
+        #     (c) two_qubit_reduce applies two qubit reductions (i.e. identical CNOTs cancel)
+        # (5) If the new word is shorter, it replaces the old word and
+        #     extra_angles shifts the leftover angles from the original word to the left
+        # A new CNOT structure is returned along with angles for warm-starting the optimization
+
+        # Liam: I changed variable names and commented
+        # Liam: I added an if statement to only replace sections with smaller sections
+        # Liam: I replaced np.shape(.)[0] with (.).size
+        # Liam: I renamed compress_equals to two_qubit_reduce
+        # Liam: I renamed reduce_for_minimal to three_qubit_reduce
+        # Liam: I renamed minimal to three_qubit_shuffle (a dance it seems)
+        # Liam: I finished changed variable names and commented for:
+        #       sparsity, zero_runs, cnot_synthesis, three_qubit_shuffle,
+        #       commute, two_qubit_reduce, and three_qubit_reduce
+
         assert isinstance(circuit, ParametricCircuit)
 
         n = circuit.num_qubits
         cnots = circuit.cnots
         compressed_cnots = np.array(cnots)
 
-        # Initialize the compressed theta for bookeeping/the warm start
+        # Initialize the compressed theta for book-keeping/the warm-start
         compressed_thetas = np.array(circuit.thetas)
 
         # Determine the sparsity pattern:
-        # vector that tells where four angles after a CNOT are 0s, of dimension L-1
+        # vector that tells where four angles after a CNOT are 0s, of dimension num_cnots - 1
         sparsity = self._sparsity(circuit.cnots, circuit.thetas, self._eps)
 
         # Determine which cnot indices are to be affected by the compression:
@@ -105,74 +130,75 @@ class EulerCompressor(CompressorBase):
         ranges = self._zero_runs(sparsity)
         num_ranges = np.shape(ranges)[0]
 
-        for z in range(num_ranges):
-            a = ranges[z, 0]
-            b = ranges[z, 1] + 1
+        for word_index in range(num_ranges):
+            # the cnot indices of beginning and end of word to be reduced
+            cnot_index1 = ranges[word_index, 0]
+            cnot_index2 = ranges[word_index, 1] + 1
             # Slice the section of cnots that will be affected by the compression rules
-            sec = np.array(compressed_cnots[0:2, a:b])
+            section = np.array(compressed_cnots[0:2, cnot_index1:cnot_index2])
 
-            # Apply synthesis or not
+            # Apply synthesis if full connectivity
             if self._synth:
                 # TODO: check if this works
-                syn_sec = self._cnot_synthesis(n, sec)
+                new_section = self._cnot_synthesis(n, section)
             else:
-                syn_sec = sec
+                new_section = section
 
-            # Apply commutation and mirror rules
+            # Apply three_qubit_shuffle
             # If there is still a CNOT:
-            if np.shape(syn_sec)[0] != 0:
-                if np.shape(syn_sec)[1] > 2:
-                    # todo: minimal is not a good name here, rename
-                    syn_sec = self._minimal(syn_sec, self._niter)
+            if new_section.size != 0:
+                if np.shape(new_section)[1] > 2:
+                    new_section = self._three_qubit_shuffle(new_section, self._niter)
 
-            num_cnots1 = np.shape(compressed_cnots)[1]
+            # if the new_section is strictly better than section, then replace the latter with the former
+            # both cnot_synthesis and three_qubit_shuffle only return new words if they are strictly shorter
+            if new_section.size < section.size:
 
-            # keep the rightmost cnot that is deleted
-            old_cnots = np.array(compressed_cnots[:, b - 1])
-            logger.debug("Old cnots: %s", old_cnots)
+                num_cnots1 = np.shape(compressed_cnots)[1]
 
-            compressed_cnots = np.delete(compressed_cnots, np.arange(a, b), 1)
-            logger.debug("Compressed cnots: %s", compressed_cnots)
+                # keep the rightmost cnot that is deleted
+                old_cnots = np.array(compressed_cnots[:, cnot_index2 - 1])
+                logger.debug("Old cnots: %s", old_cnots)
 
-            # keep the angles corresponding to old_cnot
-            old_thetas = np.array(compressed_thetas[4 * (b - 1) : 4 * b])
-            logger.debug("Old thetas: %s", old_thetas)
+                compressed_cnots = np.delete(compressed_cnots, np.arange(cnot_index1, cnot_index2), 1)
+                logger.debug("Compressed cnots: %s", compressed_cnots)
 
-            # delete angles corresponding to deleted cnots
-            compressed_thetas = np.delete(compressed_thetas, np.arange(4 * a, 4 * b))
-            logger.debug("After deletion: %s", compressed_thetas)
+                # keep the angles corresponding to old_cnot
+                old_thetas = np.array(compressed_thetas[4 * (cnot_index2 - 1) : 4 * cnot_index2])
+                logger.debug("Old thetas: %s", old_thetas)
 
-            # If there is still a CNOT:
-            if np.shape(syn_sec)[0] != 0:
-                compressed_cnots = np.insert(compressed_cnots, a, np.transpose(syn_sec), 1)
-                syn_sec_size = np.shape(syn_sec)[1]
+                # delete angles corresponding to deleted cnots
+                compressed_thetas = np.delete(compressed_thetas, np.arange(4 * cnot_index1, 4 * cnot_index2))
+                logger.debug("After deletion: %s", compressed_thetas)
 
-                # insert zero angles for inserted cnots
-                compressed_thetas = np.insert(compressed_thetas, 4 * a, np.zeros(4 * syn_sec_size))
+                # If there is still a CNOT:
+                if new_section.size != 0:
+                    compressed_cnots = np.insert(compressed_cnots, cnot_index1, np.transpose(new_section), 1)
+                    new_section_size = np.shape(new_section)[1]
 
-            # print('cmp_cnot = ', cmp_cnots)
-            # print('After =', (cmp_thetas))
+                    # insert zero angles for inserted cnots
+                    compressed_thetas = np.insert(compressed_thetas, 4 * cnot_index1, np.zeros(4 * new_section_size))
 
-            num_cnots2 = np.shape(compressed_cnots)[1]
+                # print('cmp_cnot = ', cmp_cnots)
+                # print('After =', (cmp_thetas))
 
-            # print('L2 = ', L2)
-            # print('ranges = ', ranges)
-            # Redefine ranges in order to shift the indices depending on the compression
-            ranges += num_cnots2 - num_cnots1
-            # print('ranges = ', ranges)
-            L2n = ranges[z, 1] + 1
-            # print('Bookkeeping : ', cmp_cnots, cmp_thetas, old_cnot, old_thetas, L2n)
+                num_cnots2 = np.shape(compressed_cnots)[1]
 
-            # update angles
-            compressed_thetas = self._extra_angles(
-                compressed_cnots, L2n, compressed_thetas, old_cnots, old_thetas, n
-            )
-            logger.debug("Compressed thetas: %s", compressed_thetas)
+                # print('L2 = ', L2)
+                # print('ranges = ', ranges)
+                # Redefine ranges in order to shift the indices depending on the compression
+                ranges += num_cnots2 - num_cnots1
+                # print('ranges = ', ranges)
+                L2n = ranges[word_index, 1] + 1
+                # print('Bookkeeping : ', cmp_cnots, cmp_thetas, old_cnot, old_thetas, L2n)
+
+                # update angles
+                compressed_thetas = self._extra_angles(
+                    compressed_cnots, L2n, compressed_thetas, old_cnots, old_thetas, n
+                )
+                logger.debug("Compressed thetas: %s", compressed_thetas)
 
         logger.debug("Sparsity pattern: %s", sparsity)
-
-        # todo: verify that the output is better than the original circuit.
-        #  if so, return the original circuit
 
         return ParametricCircuit(num_qubits=n, cnots=compressed_cnots, thetas=compressed_thetas)
         # return cmp_cnots, cmp_thetas, spar  # added cmp_thetas as an output
@@ -259,24 +285,24 @@ class EulerCompressor(CompressorBase):
 
     @staticmethod
     def _sparsity(cnots: np.ndarray, thetas: np.ndarray, eps: float) -> np.ndarray:
-        # todo: seems like Liam knows what's going on up here.
-        # if the 4 angles between 2 CNOT units are all equal to zero, then spar is 0 there
+        # there are (num_cnots - 1) groups of 4 angles between each pair of consecutive cnots
+        # sparsity is 0 corresponding to groups that are zero
         num_cnots = np.shape(cnots)[1]
-        sums = np.zeros(num_cnots - 1)
-        for i in range(num_cnots - 1):
-            sums[i] = np.sum(np.abs(thetas[4 * i : 4 * (i + 1)]))
+        angle_sums = np.zeros(num_cnots - 1)
+        for cnot_index in range(num_cnots - 1):
+            angle_sums[i] = np.sum(np.abs(thetas[4 * cnot_index : 4 * (cnot_index + 1)]))
         sparsity = np.zeros(num_cnots - 1)
-        idx = sums > eps
-        sparsity[idx] = 1
+        nonzero_indices = angle_sums > eps
+        sparsity[nonzero_indices] = 1
         sparsity = sparsity.astype(int)
         return sparsity
 
     @staticmethod
-    def _zero_runs(a):
-        # todo: Liam
+    def _zero_runs(vector):
+        # determines the indices of vector that define runs of zeros
         # from https://stackoverflow.com/a/24892274
-        # Create an array that is 1 where a is 0, and pad each end with an extra 0.
-        iszero = np.concatenate(([0], np.equal(a, 0).view(np.int8), [0]))
+        # Create an array that is 1 where vector is 0, and pad each end with an extra 0.
+        iszero = np.concatenate(([0], np.equal(vector, 0).view(np.int8), [0]))
         absdiff = np.abs(np.diff(iszero))
         # Runs start and end where absdiff is 1.
         ranges = np.where(absdiff == 1)[0].reshape(-1, 2)
@@ -284,161 +310,158 @@ class EulerCompressor(CompressorBase):
 
     @staticmethod
     def _cnot_synthesis(num_qubits: int, cnots: np.ndarray):
-        # todo: Liam
         """
         synthesis algorithm from paper
         """
+        # given a word of CNOTs, perform Guassian elimination on LT(n,Z2) to compute
+        # an equivalent word that uses each CNOT at most once
+
         num_cnots = np.shape(cnots)[1]
-        # todo: what is A? initial code: A
-        mat_a = np.eye(num_qubits)
+        cnot_matrix_product = np.eye(num_qubits)
         for cnot_index in range(num_cnots):
+            # indices of control and target qubit of new CNOT to multiply
             j = cnots[0, cnot_index] - 1
             k = cnots[1, cnot_index] - 1
-            # todo: what is B? initial code: B
-            mat_b = np.eye(num_qubits)
-            mat_b[k, j] = 1
-            mat_a = np.dot(mat_b, mat_a)
-            mat_a = np.mod(mat_a, 2)
-        mat_a = mat_a.astype(int)
-        syn_cnots = np.array([[0], [0]])
+
+            # new CNOT matrix to multiply into product
+            cnot_matrix = np.eye(num_qubits)
+            cnot_matrix[k, j] = 1
+            cnot_matrix_product = np.dot(cnot_matrix, cnot_matrix_product)
+            cnot_matrix_product = np.mod(cnot_matrix_product, 2)
+        cnot_matrix_product = cnot_matrix_product.astype(int)
+        synthesized_cnots = np.array([[0], [0]])
+
+        # perform Gaussian elimination on cnot_matrix_product
+        # cnot_matrix_product is lower triangular, so j > k
+        # one step of Gaussian elimination does not have to actually be computed
+        # instead, the step is just read off of the matrix:
+        # the entries are iterated through in order,
+        # each corresponding to a CNOT,
+        # if the entry is 1 instead of 0,
+        # the CNOT is added to the equivalent word
         for j in range(1, num_qubits):
             for k in range(j):
-                if mat_a[j, k] == 1:
-                    syn_cnots = np.insert(syn_cnots, 0, np.array([[k + 1], [j + 1]]).T, 1)
-        syn_cnots = syn_cnots[:, 0 : np.shape(syn_cnots)[1] - 1]
-        if np.shape(syn_cnots)[0] != 0:
-            if np.shape(syn_cnots)[1] >= num_cnots:
-                syn_cnots = np.array(cnots)
-        return syn_cnots
+                if cnot_matrix_product[j, k] == 1:
+                    synthesized_cnots = np.insert(synthesized_cnots, 0, np.array([[k + 1], [j + 1]]).T, 1)
+        synthesized_cnots = synthesized_cnots[:, 0 : np.shape(synthesized_cnots)[1] - 1]
+
+        # only replace with synthesized_cnots if it is shorter
+        if np.shape(synthesized_cnots)[0] != 0:
+            if np.shape(synthesized_cnots)[1] >= num_cnots:
+                synthesized_cnots = np.array(cnots)
+        return synthesized_cnots
 
     @staticmethod
     def _commute(cnots: np.ndarray):
-        # todo: Liam
         # randomly permutes one pair of consecutive cnots that can commute
-        com_cnots = np.array(cnots)
+        commuted_cnots = np.array(cnots)
         num_cnots = np.shape(cnots)[1]
         perm = np.random.permutation(num_cnots - 1)
         for p in perm:
+            # control and target qubit of first CNOT
             i = cnots[0, p]
             j = cnots[1, p]
+
+            # control and target qubit of second CNOT
             k = cnots[0, p + 1]
             m = cnots[1, p + 1]
+
+            # if they can be permuted, then permute them
             if i != m and j != k:
-                com_cnots[0:2, p : p + 2] = np.array([[k, i], [m, j]])
+                commuted_cnots[0:2, p : p + 2] = np.array([[k, i], [m, j]])
                 break
-        return com_cnots
+        return commuted_cnots
 
     @staticmethod
-    def _reduce_for_minimal(cnots: np.ndarray):
-        # todo: Liam to provide some comments?
-        """
-        This is reduce() function that is called in minimal().
-        Do not confuse it with another reduce().
-        """
+    def _three_qubit_reduce(cnots: np.ndarray):
         # makes mirror reductions in consecutive cnots
-        red_cnots = np.array(cnots)
-        num_cnots = np.shape(red_cnots)[1]
+        reduced_cnots = np.array(cnots)
+        num_cnots = np.shape(reduced_cnots)[1]
 
-        for i in range(num_cnots - 2):
-            if np.shape(red_cnots)[1] > i + 2:
-                # print('** In reduce i = ', i)
-                sec = red_cnots[0:2, i : i + 3]
-                indices = np.unique(sec)
+        # check each three consecutive cnots for possible reductions
+        for cnot_index in range(num_cnots - 2):
+            if np.shape(reduced_cnots)[1] > cnot_index + 2:
+                section = reduced_cnots[0:2, cnot_index : cnot_index + 3]
+                indices = np.unique(section)
                 num_indices = np.shape(indices)[0]
-                red_sec = sec
-                # TODO: remove
-                # print('parameters: ', indices, num_indices, sec, red_cnots,
-                #       L, i, np.shape(red_cnots)[1])
+                reduced_section = section
                 if num_indices == 3:
-                    j = sec[0, 0]
-                    k = sec[1, 0]
-                    v = sec[0, 1]
-                    w = sec[1, 1]
-                    p = sec[0, 2]
-                    q = sec[1, 2]
+                    # the control/target qubits of the three CNOTs
+                    j = section[0, 0]
+                    k = section[1, 0]
+                    v = section[0, 1]
+                    w = section[1, 1]
+                    p = section[0, 2]
+                    q = section[1, 2]
 
                     # Define the 4 possible mirror configurations
                     # 1) long on the left
                     if k - j > 1:
                         # 1.1) up then down
                         if w == p and j == v and k == q:
-                            red_sec = np.array([[p, v], [q, w]])
+                            reduced_section = np.array([[p, v], [q, w]])
                         # 1.2) down then up
                         if v == q and j == p and k == w:
-                            red_sec = np.array([[p, v], [q, w]])
+                            reduced_section = np.array([[p, v], [q, w]])
 
                     # 2) long on the right
                     if q - p > 1:
                         # 2.1) up then down
                         if k == v and j == p and w == q:
-                            red_sec = np.array([[v, j], [w, k]])
+                            reduced_section = np.array([[v, j], [w, k]])
                         # 2.2) down then up
                         if j == w and v == p and k == q:
-                            red_sec = np.array([[v, w], [j, k]])
+                            reduced_section = np.array([[v, w], [j, k]])
 
-                    # print('1, ', red_cnots)
-                    red_cnots = np.delete(red_cnots, np.arange(i, i + 3), 1)
-                    # print('2, ', red_cnots)
-                    red_cnots = np.insert(red_cnots, i, np.transpose(red_sec), 1)
-                    # print('3, ', red_cnots)
-
-        # todo: why this is needed? we don't use num_cnots
-        # new_num_cnots = np.shape(red_cnots)[1]
-        # if new_num_cnots != num_cnots:
-        #     num_cnots = new_num_cnots
-        return red_cnots
+                    reduced_cnots = np.delete(reduced_cnots, np.arange(cnot_index, cnot_index + 3), 1)
+                    reduced_cnots = np.insert(reduced_cnots, cnot_index, np.transpose(reduced_sec), 1)
+        return reduced_cnots
 
     @staticmethod
-    def _compress_equals(cnots: np.ndarray):
-        # todo: Liam
+    def _two_qubit_reduce(cnots: np.ndarray):
         # compress equal consecutive cnots
-        red_cnots = np.array(cnots)
-        num_cnots = np.shape(red_cnots)[1]
+        reduced_cnots = np.array(cnots)
+        num_cnots = np.shape(reduced_cnots)[1]
 
-        for i in range(num_cnots - 1):
-            if np.shape(red_cnots)[1] > i + 1:
-                # print('In eq compress i = ', i)
-                sec = red_cnots[0:2, i : i + 2]
-                indices = np.unique(sec)
+        # check each pair of consecutive CNOTs to see if they are identical
+        for cnot_index in range(num_cnots - 1):
+            if np.shape(reduced_cnots)[1] > cnot_index + 1:
+                section = reduced_cnots[0:2, cnot_index : cnot_index + 2]
+                indices = np.unique(section)
                 num_indices = np.shape(indices)[0]
-                red_sec = sec
+                reduced_section = section
                 if num_indices == 2:
-                    j = sec[0, 0]
-                    k = sec[1, 0]
-                    v = sec[0, 1]
-                    w = sec[1, 1]
+                    # control/target qubits of the two CNOTs
+                    j = section[0, 0]
+                    k = section[1, 0]
+                    v = section[0, 1]
+                    w = section[1, 1]
 
+                    # delete both if they are identical
                     if j == v and k == w:
-                        red_sec = [[], []]
+                        reduced_section = [[], []]
 
-                    # print('1, ', red_cnots)
-                    red_cnots = np.delete(red_cnots, np.arange(i, i + 2), 1)
-                    # print('2, ', red_cnots)
-                    red_cnots = np.insert(red_cnots, i, np.transpose(red_sec), 1)
-                    # print('3, ', red_cnots)
-
-        # # todo: why this is needed? we don't use num_cnots
-        # new_num_cnots = np.shape(red_cnots)[1]
-        # if new_num_cnots != num_cnots:
-        #     num_cnots = new_num_cnots
+                    reduced_cnots = np.delete(reduced_cnots, np.arange(cnot_index, cnot_index + 2), 1)
+                    reduced_cnots = np.insert(reduced_cnots, cnot_index, np.transpose(reduced_section), 1)
         return red_cnots
 
     @staticmethod
-    def _minimal(cnots: np.ndarray, niter: int):
-        # todo: Liam
-        # alternates between commute and reduce
-        min_cnots = np.array(cnots)
+    def _three_qubit_shuffle(cnots: np.ndarray, niter: int):
+        # alternates between commute and two_qubit_reduce/three_qubit_reduce
+        num_cnots = np.shape(cnots)[1]
+        reduced_cnots = np.array(cnots)
         for _ in range(niter):
-            # print('External i = ', i, ' cnots = ', min_cnots)
-            for _ in range(np.shape(cnots)[1]):
-                min_cnots = EulerCompressor._reduce_for_minimal(min_cnots)
-            # print('reduce ', min_cnots)
-            for _ in range(np.shape(cnots)[1]):
-                min_cnots = EulerCompressor._compress_equals(min_cnots)
-            # print('compress equals ', min_cnots)
-            min_cnots = EulerCompressor._commute(min_cnots)
-            # print('commute ', min_cnots)
-        return min_cnots
+            for _ in range(num_cnots):
+                reduced_cnots = EulerCompressor._three_qubit_reduce(reduced_cnots)
+            for _ in range(num_cnots):
+                reduced_cnots = EulerCompressor._two_qubit_reduce(reduced_cnots)
+            reduced_cnots = EulerCompressor._commute(reduced_cnots)
+
+        # only replace if reduced_cnots is shorter than cnots
+        if np.shape(reduced_cnots)[0] != 0:
+            if np.shape(reduced_cnots)[1] >= num_cnots:
+                reduced_cnots = np.array(cnots)
+        return reduced_cnots
 
     @staticmethod
     def _reduce(qc_data, qubit_map) -> Tuple[QuantumCircuit, List, Dict]:
