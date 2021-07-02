@@ -57,7 +57,7 @@ class PhaseOracle(QuantumCircuit):
                If None is provided, Tweedledum's `pkrm_synth` with `phase_esop` will be used.
         """
         if not isinstance(expression, ClassicalElement):
-            expression = BooleanExpression(expression, var_order)
+            expression = BooleanExpression(expression, var_order=var_order)
 
         self.boolean_expression = expression
 
