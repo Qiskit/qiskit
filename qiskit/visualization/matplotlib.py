@@ -48,7 +48,6 @@ from qiskit.exceptions import MissingOptionalLibraryError
 WID = 0.65
 HIG = 0.65
 
-BASE_SIZE = 3.01
 PORDER_GATE = 5
 PORDER_LINE = 3
 PORDER_REGLINE = 2
@@ -292,7 +291,7 @@ class MatplotlibDrawer:
 
         xl = -self._style["margin"][0]
         xr = xmax + self._style["margin"][1]
-        yb = -ymax - self._style["margin"][2] + 1 - 0.5
+        yb = -ymax - self._style["margin"][2] + 0.5
         yt = self._style["margin"][3] + 0.5
         self._ax.set_xlim(xl, xr)
         self._ax.set_ylim(yb, yt)
@@ -747,10 +746,10 @@ class MatplotlibDrawer:
             for layer_num in range(max_anc):
                 if self._fold > 0:
                     x_coord = layer_num % self._fold + self._x_offset + 0.53
-                    y_coord = -(layer_num // self._fold) * (n_lines + 1) + 0.7
+                    y_coord = -(layer_num // self._fold) * (n_lines + 1) + 0.65
                 else:
                     x_coord = layer_num + self._x_offset + 0.53
-                    y_coord = 0.7
+                    y_coord = 0.65
                 self._ax.text(
                     x_coord,
                     y_coord,
