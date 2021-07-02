@@ -1068,11 +1068,11 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Returns:
             List[Tuple(int,int)]: A list of pairs of indices of the PauliList that are not commutable
         """
-        anti_commutation_graph=[]
+        anti_commutation_graph = []
         for i in range(self._num_paulis):
-            for j in range(i,self._num_paulis):
-                if i!=j and self[i].qwc_anticommutes(self[j]):
-                    anti_commutation_graph.append((i,j))
+            for j in range(i, self._num_paulis):
+                if i != j and self[i].qwc_anticommutes(self[j]):
+                    anti_commutation_graph.append((i, j))
         return anti_commutation_graph
 
     def group_subops_pauli_list(self):
@@ -1085,6 +1085,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         import retworkx as rx
         from collections import defaultdict
+
         nodes = range(self._num_paulis)
         edges = self._qwc_anti_commutation_graph()
         graph = rx.PyGraph()

@@ -547,7 +547,7 @@ class Pauli(BasePauli):
         """
         return np.logical_not(self.commutes(other, qargs=qargs))
 
-    def qwc_anticommutes(self,other):
+    def qwc_anticommutes(self, other):
         """Return True if Paulis are anticommutable using the Qubit Wise Commutativity (QWC)
         definition.
 
@@ -557,7 +557,7 @@ class Pauli(BasePauli):
         Returns:
             bool: True if Pauli's anticommute, False if they commute.
         """
-        for i,pauliop in enumerate(self):
+        for i, pauliop in enumerate(self):
             if pauliop.anticommutes(other[i]):
                 return True
         return False
