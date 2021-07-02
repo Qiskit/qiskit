@@ -60,7 +60,7 @@ def format_parameter_value(
     # no DAC that recognizes the resolution of 1e-15 but they are AlmostEqual in tests.
     from sympy import srepr
 
-    math_expr = srepr(operand)
+    math_expr = srepr(operand).replace("*I", "j")
     try:
         # value is assigned
         evaluated = complex(math_expr)
