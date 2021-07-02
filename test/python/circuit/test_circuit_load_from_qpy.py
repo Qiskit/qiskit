@@ -426,7 +426,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circ)
         self.assertEqual(qc.decompose(), new_circ.decompose())
 
-    def test_custom_instruction(self):
+    def test_custom_instruction_with_label(self):
         """Test that custom instruction is correctly serialized with a label"""
         custom_gate = Instruction("black_box", 1, 0, [])
         custom_definition = QuantumCircuit(1)
