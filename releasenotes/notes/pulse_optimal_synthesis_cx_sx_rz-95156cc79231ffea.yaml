@@ -15,13 +15,13 @@ features:
     A new keyword argument, `pulse_optimize`, is added to the initialization of
     the class to indicate,
 
-    * None: Attempt pulse optimal decomposition. If a pulse optimal
+    :None: Attempt pulse optimal decomposition. If a pulse optimal
       decomposition is unkown for the basis of the decomposer drop
       back to the standard decomposition without warning.
-    * True: Attempt pulse optimal decomposition. If a pulse optimal
+    :True: Attempt pulse optimal decomposition. If a pulse optimal
       decomposition is unkown for the basis of the decomposer, raise
       `QiskitError`.
-    * False: Do not attempt pulse optimal decomposition.
+    :False: Do not attempt pulse optimal decomposition.
 
     .. code-block:: python
          
@@ -33,8 +33,8 @@ features:
     take the ``pulse_optimize`` keyword argument to be used for pulse
     optimal synthesis of nodes. A keyword argument, ``synth_gates``, is
     added to specify for which gate names to attempt synthesis. If
-    ``None`` and ``pulse_optimize`` is `False`, use "unitary". If `None`
-    and `pulse_optimize` is `True`, use "unitary" and "swap". Since
+    ``None`` and ``pulse_optimize`` is `False` or `None`, use ``"unitary"``. If `None`
+    and `pulse_optimize` is `True`, use ``"unitary"`` and ``"swap"``. Since
     the direction of the CX gate in the synthesis is arbitrary, another
     keyword argument, `natural_direction`, is added to consider first
     a coupling map and next CX gates durations in choosing for which

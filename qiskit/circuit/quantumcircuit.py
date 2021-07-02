@@ -1806,7 +1806,7 @@ class QuantumCircuit:
             name (str): The name of instruction to.
 
         Returns:
-            list(Instruction, list(Qubits), list(Clbits)): list of instructions
+            list(tuple): list of (instruction, qargs, cargs).
         """
         return [match for match in self._data if match[0].name == name]
 
