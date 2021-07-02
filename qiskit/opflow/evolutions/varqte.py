@@ -876,17 +876,20 @@ class VarQTE(EvolutionBase):
                          alpha=0.5)
             plt.scatter(time, error_bounds, color='royalblue', marker='o', s=8,
                         alpha=0.5)
-            plt.plot(time, phase_agnostic_true_error, color='indigo', label='actual error',
+            plt.plot(time, phase_agnostic_true_error, color='indigo',
+                     label=r'$B(|\psi_t\rangle\langle\psi_t|, '
+                           r'|\psi^*_t\rangle\langle\psi^*_t|)$',
                      alpha=0.5)
-            plt.plot(time, error_bounds, color='royalblue', label='error bound', alpha=0.5)
+            plt.plot(time, error_bounds, color='royalblue', label=r'$\epsilon_t$', alpha=0.5)
 
             # plt.scatter(time, true_error, color='purple', marker='o', s=40, label='actual error')
             plt.legend(loc='best')
             plt.ylabel('error')
-            plt.ylim(bottom=-0.01)
+            # plt.ylim(bottom=-0.01)
             # plt.ylim((-0.01, 0.25))
-            # plt.autoscale(enable=True)
-            # plt.yticks(np.linspace(0, 1, 11))
+            plt.autoscale(enable=True)
+            plt.ylim((-0.0001, 0.52))
+            plt.yticks(np.linspace(0, 0.5, 11))
             # plt.autoscale(enable=True)
             # plt.autoscale(enable=True)
                           # plt.xticks(range(counter-1))
@@ -951,9 +954,9 @@ class VarQTE(EvolutionBase):
                 plt.ylabel('fidelity')
                 # plt.autoscale(enable=True)
                 # plt.xticks(range(counter-1))
-                plt.ylim((0, 1.03))
+                plt.ylim((0.899, 1.03))
                 # plt.autoscale(enable=True)
-                plt.yticks(np.linspace(0, 1, 11))
+                plt.yticks(np.linspace(0.9, 1, 11))
                 plt.legend(loc='best')
                 plt.savefig(os.path.join(data_dir, 'reverse_fidelity.png'))
                 plt.close()
@@ -964,17 +967,19 @@ class VarQTE(EvolutionBase):
                         alpha=0.5)
             plt.scatter(time, fidelity_bounds, color='royalblue', marker='o', s=8,
                         alpha=0.5)
-            plt.plot(time, fid, color='indigo', label='fidelity', alpha=0.5)
-            plt.plot(time, fidelity_bounds, color='royalblue', label='fidelity bound', alpha=0.5)
+            plt.plot(time, fid, color='indigo', label=r'$|\langle\psi_t|\psi^*_t\rangle|^2$',
+                     alpha=0.5)
+            plt.plot(time, fidelity_bounds, color='royalblue',
+                     label=r'$(1 - \frac{\epsilon_t^2}{2})^2$', alpha=0.5)
             plt.xlabel('time')
             plt.ylabel('fidelity')
             # plt.autoscale(enable=True)
             # plt.xticks(range(counter-1))
             # plt.ylim((0.9, 1.003))
             # plt.yticks(np.linspace(0.9, 1, 6))
-            plt.ylim((0, 1.03))
+            plt.ylim((0.699, 1.003))
             # plt.autoscale(enable=True)
-            plt.yticks(np.linspace(0, 1, 11))
+            plt.yticks(np.linspace(0.7, 1, 11))
             plt.legend(loc='best')
             plt.savefig(os.path.join(data_dir, 'fidelity.png'))
             plt.close()
@@ -983,13 +988,13 @@ class VarQTE(EvolutionBase):
                 plt.figure(4, figsize=(9, 7))
                 # plt.title('Energy with error bounds')
                 plt.scatter(time, true_energy, color='indigo', marker='o', s=8,
-                            label='target state', alpha=0.5)
+                            label=r'$E_t^*$', alpha=0.5)
                 plt.scatter(time, trained_energy, color='royalblue', marker='o', s=8,
-                            label='prepared state', alpha=0.5)
+                            label=r'$E_t$', alpha=0.5)
                 plt.plot(time, true_energy, color='indigo', alpha=0.5)
                 plt.plot(time, trained_energy, color='royalblue', alpha=0.5)
                 energy_error_bounds = np.load(os.path.join(data_dir, 'energy_error_bound.npy'))
-                plt.plot(time, trained_energy + energy_error_bounds, label='error bound',
+                plt.plot(time, trained_energy + energy_error_bounds, label=r'$E_t \pm \zeta$',
                          color='turquoise', alpha=0.5)
                 plt.plot(time, trained_energy - energy_error_bounds,
                          color='turquoise', alpha=0.5)
@@ -1009,8 +1014,8 @@ class VarQTE(EvolutionBase):
                         alpha=0.5)
             plt.scatter(time, trained_energy, color='royalblue', marker='o', s=8,
                         alpha=0.5)
-            plt.plot(time, true_energy, color='indigo', label='target state', alpha=0.5)
-            plt.plot(time, trained_energy, color='royalblue', label='prepared state', alpha=0.5)
+            plt.plot(time, true_energy, color='indigo', label=r'$E_t^*$', alpha=0.5)
+            plt.plot(time, trained_energy, color='royalblue', label=r'$E_t$', alpha=0.5)
             plt.xlabel('time')
             plt.ylabel('energy')
             plt.legend(loc='best')
@@ -1054,6 +1059,9 @@ class VarQTE(EvolutionBase):
                 plt.plot(time, grad_errors, color='purple', alpha=0.5)
                 plt.xlabel('time')
                 plt.ylabel('gradient error')
+                plt.ylim((-0.0001, 0.01))
+                # plt.autoscale(enable=True)
+                plt.yticks(np.linspace(0, 0.01, 11))
                 # plt.legend(loc='best')
                 # plt.autoscale(enable=True)
                 plt.savefig(os.path.join(data_dir, 'grad_errors.png'))

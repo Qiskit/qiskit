@@ -5,7 +5,7 @@ import os
 os.environ['QISKIT_IN_PARALLEL'] = 'False'
 
 from scipy.integrate import Radau, ode, solve_ivp, RK45, RK23
-from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
+# from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
 
 
 
@@ -24,9 +24,9 @@ from qiskit.opflow import Z, I, Y, X
 np.random.seed = 11
 
 # Evolution time
-t = 0.01
+t = 1
 #num time steps
-nts = 10
+nts = 100
 depths = [1]
 
 
@@ -45,12 +45,12 @@ ode_solvers_names = ['ForwardEuler', 'RK45']
 
 # ode_solvers = [ RK45]
 # ode_solvers_names = ['RK45']
-regs = ['ridge', 'perturb_diag', None]
-reg_names = ['ridge', 'perturb_diag', 'lstsq']
+# regs = ['ridge', 'perturb_diag', None]
+# reg_names = ['ridge', 'perturb_diag', 'lstsq']
 # regs = ['perturb_diag', None]
 # reg_names = ['perturb_diag', 'None']
-# regs = [None]
-# reg_names = ['lstsq']
+regs = [None]
+reg_names = ['lstsq']
 error_based_odes = [False, True]
 error_based_ode_names = ['nat_grad', 'error']
 # error_based_odes = [False]
@@ -72,8 +72,10 @@ for l, error_based_ode in enumerate(error_based_odes):
                 # Define Ansatz
                 ansatz = EfficientSU2(observable.num_qubits, reps=d)
                 parameters = ansatz.ordered_parameters
-                init_param_values = [0.,  0., 0., 0., 0., 0., 0., 0., 0.,  0.69551298, 0.59433922,
-                                     1.16511845]
+                init_param_values = np.zeros(len(parameters))
+                init_param_values[-3] = 0.69551298
+                init_param_values[-2] = 0.59433922
+                init_param_values[-1] = 1.16511845
                 print(init_param_values)
 
                 # Now we stack the observable and the quantum state together.
