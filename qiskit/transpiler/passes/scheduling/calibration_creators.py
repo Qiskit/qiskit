@@ -13,7 +13,7 @@
 """Calibration creators."""
 
 import math
-from typing import List, Union
+from typing import List, Union, Optional, Dict, Tuple
 from abc import abstractmethod
 import numpy as np
 
@@ -28,7 +28,7 @@ from qiskit.pulse import (
 )
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.exceptions import QiskitError
-from qiskit.providers import basebackend
+from qiskit.providers import BaseBackend
 from qiskit.dagcircuit import DAGNode
 from qiskit.circuit.library.standard_gates import RZXGate
 from qiskit.transpiler.basepasses import TransformationPass
@@ -64,7 +64,7 @@ class CalibrationCreator(TransformationPass):
 
                     schedule = self.get_calibration(params, qubits)
 
-                    dag.add_calibration(node.op, qubits, schedule, params=params)
+                    dag.add_calibration(node.op.name, qubits, schedule, params=params)
 
         return dag
 
@@ -82,26 +82,37 @@ class RZXCalibrationBuilder(CalibrationCreator):
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """
 
-    def __init__(self, backend: basebackend):
+    def __init__(
+        self, backend: Optional[BaseBackend] = None,
+            inst_map: Optional[Dict[str, Dict[Tuple[int], Schedule]]] = None
+    ):
         """
         Initializes a RZXGate calibration builder.
 
         Args:
+            inst_map: Instruction schedule map.
             backend: Backend for which to construct the gates.
 
         Raises:
             QiskitError: if open pulse is not supported by the backend.
         """
-        super().__init__()
-        if not backend.configuration().open_pulse:
-            raise QiskitError(
-                "Calibrations can only be added to Pulse-enabled backends, "
-                "but {} is not enabled with Pulse.".format(backend.name())
-            )
 
-        self._inst_map = backend.defaults().instruction_schedule_map
-        self._config = backend.configuration()
-        self._channel_map = backend.configuration().qubit_channel_mapping
+        super().__init__()
+
+        if backend is not None:
+            self._inst_map = backend.defaults().instruction_schedule_map
+            if not backend.configuration().open_pulse:
+                raise QiskitError(
+                    "Calibrations can only be added to Pulse-enabled backends, "
+                    "but {} is not enabled with Pulse.".format(backend.name())
+                )
+        elif inst_map is not None:
+            self._inst_map = inst_map
+        else:
+            raise QiskitError(
+                    "Either a backend or an instruction schedule map must be specified.")
+
+        # self._inst_map = inst_map
 
     def supported(self, node_op: DAGNode) -> bool:
         """
@@ -328,6 +339,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
                 support the specified direction of the cx.
         """
         theta = params[0]
+
         q1, q2 = qubits[0], qubits[1]
 
         if not self._inst_map.has("cx", qubits):

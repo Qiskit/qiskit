@@ -35,6 +35,7 @@ from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import (
     level_0_pass_manager,
+    pulse_efficient_pass_manager,
     level_1_pass_manager,
     level_2_pass_manager,
     level_3_pass_manager,
@@ -58,7 +59,8 @@ def transpile(
     dt: Optional[float] = None,
     approximation_degree: Optional[float] = None,
     seed_transpiler: Optional[int] = None,
-    optimization_level: Optional[int] = None,
+    inst_map: Dict[str, Dict[Tuple[int], Schedule]] = None,
+    optimization_level: Union[Optional[int], Optional[str]] = None,
     pass_manager: Optional[PassManager] = None,
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
     output_name: Optional[Union[str, List[str]]] = None,
@@ -186,6 +188,7 @@ def transpile(
 
         output_name: A list with strings to identify the output circuits. The length of
             the list should be exactly the length of the ``circuits`` parameter.
+        inst_map: Instruction schedule map.
 
     Returns:
         The transpiled circuit(s).
@@ -221,6 +224,7 @@ def transpile(
             translation_method=translation_method,
             approximation_degree=approximation_degree,
             backend=backend,
+            inst_map=inst_map,
         )
 
         warnings.warn(
@@ -260,6 +264,7 @@ def transpile(
         dt,
         approximation_degree,
         seed_transpiler,
+        inst_map,
         optimization_level,
         callback,
         output_name,
@@ -352,8 +357,12 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         pass_manager = level_2_pass_manager(pass_manager_config)
     elif level == 3:
         pass_manager = level_3_pass_manager(pass_manager_config)
+    elif level == "pulse_efficient":
+        pass_manager = pulse_efficient_pass_manager(pass_manager_config)
     else:
-        raise TranspilerError("optimization_level can range from 0 to 3.")
+        raise TranspilerError(
+            "optimization_level can range from 0 to 3, or can be 'pulse_efficient'."
+        )
 
     result = pass_manager.run(
         circuit, callback=transpile_config["callback"], output_name=transpile_config["output_name"]
@@ -440,6 +449,7 @@ def _parse_transpile_args(
     dt,
     approximation_degree,
     seed_transpiler,
+    inst_map,
     optimization_level,
     callback,
     output_name,
@@ -475,6 +485,7 @@ def _parse_transpile_args(
     translation_method = _parse_translation_method(translation_method, num_circuits)
     approximation_degree = _parse_approximation_degree(approximation_degree, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
+    inst_map = _parse_inst_map(inst_map, backend, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
     callback = _parse_callback(callback, num_circuits)
@@ -499,6 +510,7 @@ def _parse_transpile_args(
         durations,
         approximation_degree,
         seed_transpiler,
+        inst_map,
         optimization_level,
         output_name,
         callback,
@@ -518,12 +530,13 @@ def _parse_transpile_args(
                 instruction_durations=args[8],
                 approximation_degree=args[9],
                 seed_transpiler=args[10],
+                inst_map=args[11],
             ),
-            "optimization_level": args[11],
-            "output_name": args[12],
-            "callback": args[13],
-            "backend_num_qubits": args[14],
-            "faulty_qubits_map": args[15],
+            "optimization_level": args[12],
+            "output_name": args[13],
+            "callback": args[14],
+            "backend_num_qubits": args[15],
+            "faulty_qubits_map": args[16],
         }
         list_transpile_args.append(transpile_args)
 
@@ -768,6 +781,16 @@ def _parse_seed_transpiler(seed_transpiler, num_circuits):
     if not isinstance(seed_transpiler, list):
         seed_transpiler = [seed_transpiler] * num_circuits
     return seed_transpiler
+
+
+def _parse_inst_map(inst_map, backend, num_circuits):
+    if inst_map is None:
+        if backend.defaults():
+            backend_defaults = backend.defaults()
+            inst_map = backend_defaults.instruction_schedule_map
+    if not isinstance(inst_map, list):
+        inst_map = [inst_map] * num_circuits
+    return inst_map
 
 
 def _parse_optimization_level(optimization_level, num_circuits):

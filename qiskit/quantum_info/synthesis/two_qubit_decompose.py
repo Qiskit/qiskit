@@ -28,7 +28,7 @@ import math
 import io
 import base64
 import warnings
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, Tuple
 
 import logging
 
@@ -129,12 +129,12 @@ class TwoQubitWeylDecomposition:
 
         Make explicitly-instantiated subclass __new__  call base __new__ with fidelity=None"""
         super().__init_subclass__(**kwargs)
-        cls.__new__ = lambda cls, *a, fidelity=None, **k: TwoQubitWeylDecomposition.__new__(
-            cls, *a, fidelity=None, **k
+        cls.__new__ = lambda cls, *a, fidelity=None, inst_map=None, qubit_pair=None, **k: TwoQubitWeylDecomposition.__new__(
+            cls, *a, fidelity=None, inst_map=None, qubit_pair=None, **k
         )
 
     @staticmethod
-    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9)):
+    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9), inst_map=None, qubit_pair=None):
         """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
 
         The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
@@ -542,6 +542,71 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
         self.K1r = self.K1r @ np.asarray(RXGate(k2rphi))
         self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
         self.K2r = np.asarray(RYGate(k2rtheta)) @ np.asarray(RXGate(k2rlambda))
+
+
+class TwoQubitWeylEchoRZX(TwoQubitWeylGeneral):
+    """Decompose two-qubit unitary in terms of echoed cross-resonance gates."""
+
+    def __init__(self, unitary, inst_map, qubit_pair: Tuple):
+        self.inst_map = inst_map
+        self.qubit_pair = qubit_pair
+        super().__init__(unitary)
+
+
+    @staticmethod
+    def _apply_rzx(circ: QuantumCircuit, angle: float):
+        """Echoed RZX gate"""
+        circ.rzx(-angle, 0, 1)
+        circ.x(0)
+        circ.rzx(angle, 0, 1)
+        circ.x(0)
+
+    @staticmethod
+    def _apply_reverse_rzx(circ: QuantumCircuit, angle: float):
+        """Reverse direction of the echoed RZX gate"""
+        circ.h(0)
+        circ.h(1)
+        circ.rzx(-angle, 1, 0)
+        circ.x(1)
+        circ.rzx(angle, 1, 0)
+        circ.x(1)
+        circ.h(0)
+        circ.h(1)
+
+    def is_native_cx(self, qubit_pair: Tuple) -> bool:
+        """Check that a CX for a qubit pair is native."""
+        cx1 = self.inst_map.get("cx", qubit_pair)
+        cx2 = self.inst_map.get("cx", qubit_pair[::-1])
+        return cx1.duration < cx2.duration
+
+    def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
+        """Appends Ud(a, b, c) to the circuit."""
+        del simplify
+        circ.h(0)
+        if abs(self.a) > atol:
+            if self.is_native_cx(self.qubit_pair):
+                self._apply_rzx(circ, self.a)
+            else:
+                self._apply_reverse_rzx(circ, self.a)
+        circ.h(0)
+        circ.sdg(0)
+        circ.h(0)
+        circ.sdg(1)
+        if abs(self.b) > atol:
+            if self.is_native_cx(self.qubit_pair):
+                self._apply_rzx(circ, self.b)
+            else:
+                self._apply_reverse_rzx(circ, self.b)
+        circ.h(0)
+        circ.s(0)
+        circ.s(1)
+        circ.h(1)
+        if abs(self.c) > atol:
+            if self.is_native_cx(self.qubit_pair):
+                self._apply_rzx(circ, self.c)
+            else:
+                self._apply_reverse_rzx(circ, self.c)
+        circ.h(1)
 
 
 class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
