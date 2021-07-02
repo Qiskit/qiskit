@@ -42,9 +42,9 @@ features:
     .. jupyter-execute::
 
       from qiskit import circuit, transpile
-      from qiskit.test.mock import FakeAlmaden
+      from qiskit.test.mock import FakeArmonk
 
-      backend = FakeAlmaden
+      backend = FakeArmonk()
 
       qc = circuit.QuantumCircuit(1, 1)
       qc.x(0)
