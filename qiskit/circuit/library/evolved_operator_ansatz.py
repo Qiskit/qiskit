@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit.circuit import Parameter, ParameterVector, QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.exceptions import QiskitError
 
 from .blueprintcircuit import BlueprintCircuit
 
@@ -232,10 +233,10 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         if self.initial_state:
             inner.compose(self.initial_state, front=True, inplace=True)
 
-        if self._insert_barriers:
-            instr = inner.to_instruction()
-        else:
+        try:
             instr = inner.to_gate()
+        except QiskitError:
+            instr = inner.to_instruction()
 
         self.append(instr, self.qubits)
 
