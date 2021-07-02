@@ -13,6 +13,7 @@
 """Replace a schedule with frames by one with instructions on PulseChannels only."""
 
 from typing import Union
+import numpy as np
 
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.resolved_frame import ResolvedFrame, ChannelTracker
@@ -109,22 +110,13 @@ def map_frames(
             # the past we compute shifts.
             if channel_trackers[chan].is_initialized():
                 freq_diff = frame_freq - channel_trackers[chan].frequency(time)
-                phase_diff = frame_phase - channel_trackers[chan].phase(time)
+                phase_diff = (frame_phase - channel_trackers[chan].phase(time)) % (2 * np.pi)
 
                 if abs(freq_diff) > resolved_frame.tolerance:
                     sched.insert(time, ShiftFrequency(freq_diff, chan_frame), inplace=True)
 
                 if abs(phase_diff) > resolved_frame.tolerance:
                     sched.insert(time, ShiftPhase(phase_diff, chan_frame), inplace=True)
-
-            # If the channel's phase and frequency have not been set in the past
-            # we set it now.
-            else:
-                if frame_freq != 0:
-                    sched.insert(time, SetFrequency(frame_freq, chan_frame), inplace=True)
-
-                if frame_phase != 0:
-                    sched.insert(time, SetPhase(frame_phase, chan_frame), inplace=True)
 
             # Update the frequency and phase of this channel.
             channel_trackers[chan].set_frequency_phase(time, frame_freq, frame_phase)
@@ -133,11 +125,7 @@ def map_frames(
             sched.insert(time, play, inplace=True)
 
         # Insert phase and frequency commands that are tied to physical channels.
-        elif isinstance(inst, (SetFrequency, ShiftFrequency)):
-            if inst.channel is not None:
-                sched.insert(time, inst, inplace=True)
-
-        elif isinstance(inst, (SetPhase, ShiftPhase)):
+        elif isinstance(inst, (SetFrequency, ShiftFrequency, SetPhase, ShiftPhase)):
             if inst.channel is not None:
                 sched.insert(time, inst, inplace=True)
 

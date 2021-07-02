@@ -204,6 +204,9 @@ class FramesConfiguration:
         """Return the items in the frames config."""
         return self._frames.items()
 
+    def get(self, frame: Frame, default: FrameDefinition) -> FrameDefinition:
+        return self._frames.get(frame, default)
+
     def __getitem__(self, frame: Frame) -> FrameDefinition:
         """Return the frame definition."""
         return self._frames[frame]
