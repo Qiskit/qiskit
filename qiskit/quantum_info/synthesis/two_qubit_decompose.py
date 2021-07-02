@@ -963,9 +963,9 @@ class TwoQubitBasisDecomposer:
             QiskitError: Decomposition for selected basis not implemented.
         """
         circuit = None
-        if self.pulse_optimize and best_nbasis not in {0, 1}:
+        if self.pulse_optimize and best_nbasis in {0, 1}:
             # already pulse optimal
-            pass
+            return None
         elif self.pulse_optimize and best_nbasis > 3:
             raise QiskitError(
                 f"Unexpected number of entangling gates ({best_nbasis}) in decomposition."
@@ -999,26 +999,26 @@ class TwoQubitBasisDecomposer:
         best_nbasis = 2  # by assumption
         num_1q_uni = len(decomposition)
         # list of euler angle decompositions on qubits 0 and 1
-        euler_q0 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
-        euler_q1 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
+        euler_q0 = np.empty((num_1q_uni // 2, 3), dtype=float)
+        euler_q1 = np.empty((num_1q_uni // 2, 3), dtype=float)
         global_phase = 0.0
 
         # decompose source unitaries to zxz
         zxz_decomposer = OneQubitEulerDecomposer("ZXZ")
-        for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
-            euler_angles = zxz_decomposer.angles_and_phase(decomposition[idecomp])
+        for iqubit, decomp in enumerate(decomposition[0::2]):
+            euler_angles = zxz_decomposer.angles_and_phase(decomp)
             euler_q0[iqubit, [1, 2, 0]] = euler_angles[:3]
             global_phase += euler_angles[3]
         # decompose target unitaries to xzx
         xzx_decomposer = OneQubitEulerDecomposer("XZX")
-        for iqubit, idecomp in enumerate(range(1, num_1q_uni, 2)):
-            euler_angles = xzx_decomposer.angles_and_phase(decomposition[idecomp])
+        for iqubit, decomp in enumerate(decomposition[1::2]):
+            euler_angles = xzx_decomposer.angles_and_phase(decomp)
             euler_q1[iqubit, [1, 2, 0]] = euler_angles[:3]
             global_phase += euler_angles[3]
-
         qc = QuantumCircuit(2)
         qc.global_phase = target_decomposed.global_phase
         qc.global_phase -= best_nbasis * self.basis.global_phase
+        qc.global_phase += global_phase
 
         # TODO: make this more effecient to avoid double decomposition
         # prepare beginning 0th qubit local unitary
@@ -1026,7 +1026,7 @@ class TwoQubitBasisDecomposer:
         circ.rz(euler_q0[0][0], 0)
         circ.rx(euler_q0[0][1], 0)
         circ.rz(euler_q0[0][2] + euler_q0[1][0] + math.pi / 2, 0)
-        # re-decomopse to basis of 1q decomposer
+        # re-decompose to basis of 1q decomposer
         qceuler = self._decomposer1q(Operator(circ).data)
         qc.compose(qceuler, [0], inplace=True)
 
@@ -1046,6 +1046,7 @@ class TwoQubitBasisDecomposer:
         qc.rz(euler_q0[1][1] - math.pi, 0)
         qc.sx(0)
         qc.rz(euler_q1[1][1], 1)
+        qc.global_phase += math.pi / 2
 
         qc.cx(0, 1)
 
@@ -1061,7 +1062,6 @@ class TwoQubitBasisDecomposer:
         circ.rx(euler_q1[2][2], 0)
         qceuler = self._decomposer1q(Operator(circ).data)
         qc.compose(qceuler, [1], inplace=True)
-        qc.global_phase += math.pi / 2  # not sure source of this
         return qc
 
     def _get_sx_vz_3cx_efficient_euler(self, decomposition, target_decomposed):
@@ -1080,25 +1080,26 @@ class TwoQubitBasisDecomposer:
         num_1q_uni = len(decomposition)
         # create structure to hold euler angles: 1st index represents unitary "group" wrt cx
         # 2nd index represents index of euler triple.
-        euler_q0 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
-        euler_q1 = np.empty((int(num_1q_uni / 2), 3), dtype=float)
+        euler_q0 = np.empty((num_1q_uni // 2, 3), dtype=float)
+        euler_q1 = np.empty((num_1q_uni // 2, 3), dtype=float)
         global_phase = 0.0
 
         # decompose source unitaries to zxz
         zxz_decomposer = OneQubitEulerDecomposer("ZXZ")
-        for iqubit, idecomp in enumerate(range(0, num_1q_uni, 2)):
-            euler_angles = zxz_decomposer.angles_and_phase(decomposition[idecomp])
+        for iqubit, decomp in enumerate(decomposition[0::2]):
+            euler_angles = zxz_decomposer.angles_and_phase(decomp)
             euler_q0[iqubit, [1, 2, 0]] = euler_angles[:3]
             global_phase += euler_angles[3]
         # decompose target unitaries to xzx
         xzx_decomposer = OneQubitEulerDecomposer("XZX")
-        for iqubit, idecomp in enumerate(range(1, num_1q_uni, 2)):
-            euler_angles = xzx_decomposer.angles_and_phase(decomposition[idecomp])
+        for iqubit, decomp in enumerate(decomposition[1::2]):
+            euler_angles = xzx_decomposer.angles_and_phase(decomp)
             euler_q1[iqubit, [1, 2, 0]] = euler_angles[:3]
             global_phase += euler_angles[3]
         qc = QuantumCircuit(2)
         qc.global_phase = target_decomposed.global_phase
         qc.global_phase -= best_nbasis * self.basis.global_phase
+        qc.global_phase += global_phase
 
         # TODO: make this more effecient to avoid double decomposition
         circ = QuantumCircuit(1)

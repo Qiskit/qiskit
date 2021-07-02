@@ -95,8 +95,9 @@ class UnitarySynthesis(TransformationPass):
                 coupling map, the gate direction with the shorter
                 duration from the backend properties will be used.
             synth_gates: List of gates to synthesize. If None and
-                `pulse_optimize` == False, default to ['unitary']. If None and
-                `pulse_optimzie` == True, default to ['unitary', 'swap']
+                `pulse_optimize` is False or None, default to
+                ['unitary']. If None and `pulse_optimzie` == True,
+                default to ['unitary', 'swap']
         """
         super().__init__()
         self._basis_gates = basis_gates

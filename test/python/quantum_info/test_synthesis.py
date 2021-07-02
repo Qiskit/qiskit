@@ -16,8 +16,8 @@ import unittest
 import contextlib
 import logging
 from test import combine
-from ddt import ddt
 
+from ddt import ddt
 import numpy as np
 
 from qiskit import execute, QiskitError

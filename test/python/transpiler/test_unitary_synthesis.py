@@ -207,10 +207,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         # the decomposer defaults to the [1, 0] direction but the coupling
         # map specifies a [0, 1] direction. Check that this is respected.
         self.assertTrue(
-            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))
+            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))  # pylint: disable=no-member
         )
         self.assertTrue(
-            all(([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx")))
+            all(([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx")))  # pylint: disable=no-member
         )
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
@@ -250,10 +250,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         # the decomposer defaults to the [1, 0] direction but the coupling
         # map specifies a [0, 1] direction. Check that this is respected.
         self.assertTrue(
-            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))
+            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))  # pylint: disable=no-member
         )
         self.assertTrue(
-            all(([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx")))
+            all(([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx")))  # pylint: disable=no-member
         )
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
@@ -293,10 +293,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         # the decomposer defaults to the [1, 0] direction but the coupling
         # map specifies a [0, 1] direction. Check that this is respected.
         self.assertTrue(
-            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))
+            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))  # pylint: disable=no-member
         )
         self.assertTrue(
-            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx")))
+            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx")))  # pylint: disable=no-member
         )
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
