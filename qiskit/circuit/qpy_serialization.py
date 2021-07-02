@@ -426,7 +426,7 @@ def _read_registers(file_obj, num_registers):
         register = struct.unpack(REGISTER_PACK, register_raw)
         name = file_obj.read(register[3]).decode("utf8")
         standalone = register[1]
-        REGISTER_ARRAY_PACK = "%sI" % register[2]
+        REGISTER_ARRAY_PACK = "!%sI" % register[2]
         bit_indices_raw = file_obj.read(struct.calcsize(REGISTER_ARRAY_PACK))
         bit_indices = list(struct.unpack(REGISTER_ARRAY_PACK, bit_indices_raw))
         if register[0].decode("utf8") == "q":
@@ -863,14 +863,14 @@ def _write_circuit(file_obj, circuit):
             reg_name = reg.name.encode("utf8")
             file_obj.write(struct.pack(REGISTER_PACK, b"q", standalone, reg.size, len(reg_name)))
             file_obj.write(reg_name)
-            REGISTER_ARRAY_PACK = "%sI" % reg.size
+            REGISTER_ARRAY_PACK = "!%sI" % reg.size
             file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *(qubit_indices[bit] for bit in reg)))
         for reg in circuit.cregs:
             standalone = all(bit._register is reg for bit in reg)
             reg_name = reg.name.encode("utf8")
             file_obj.write(struct.pack(REGISTER_PACK, b"c", standalone, reg.size, len(reg_name)))
             file_obj.write(reg_name)
-            REGISTER_ARRAY_PACK = "%sI" % reg.size
+            REGISTER_ARRAY_PACK = "!%sI" % reg.size
             file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *(clbit_indices[bit] for bit in reg)))
     instruction_buffer = io.BytesIO()
     custom_instructions = {}
