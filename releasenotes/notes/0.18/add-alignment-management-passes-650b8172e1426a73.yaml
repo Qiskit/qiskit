@@ -1,0 +1,57 @@
+---
+features:
+
+  - |
+    Added two new passes :class:`~qiskit.transpiler.passes.AlignMeasures` and
+    :class:`~qiskit.transpiler.passes.ValidatePulseGates` to the
+    :mod:`qiskit.transpiler.passes` module. These passes are a harware aware
+    optimization and validation routine that is used to manage alignment
+    restrictions on time allocation of instructions for a backend.
+
+    If a backend has a restriction on the alignment
+    :class:`~qiskit.circuit.Measure` instructions the
+    :class:`~qiskit.transpiler.passes.AlignMeasures` pass is used to adjust
+    delays in a scheduled circuit to ensure that the
+    :class:`~qiskit.circuit.Measure` instructions in the circuit are aligned
+    give the constraints of the backend. The
+    :class:`~qiskit.transpiler.passes.ValidatePulseGates` pass is used to
+    check if any custom pulse gates (gates that have a custom pulse definition
+    in the :attr:`~qiskit.circuit.QuantumCircuit.calibrations` attribute of
+    a :class:`~qiskit.circuit.QuantumCircuit` object) will check the pulse
+    definitions are valid given an alignment constraint for the target
+    backend.
+
+    In the built-in :mod:`~qiskit.transpiler.preset_passmangers` used by the
+    :func:`~qiskit.compiler.transpiler` function these passes get automatically
+    triggered if the alignment constraint, either via the dedicated
+    ``alignment`` kwarg on :func:`~qiskit.compiler.transpiler` or as an
+    ``alignment`` attribute in the
+    :class:`~qiskit.providers.models.BackendConfiguration` object of the
+    backend being targetted, is set to > 1 these passes will be run.
+
+    The backends from IBM Quantum Services (accessible via the
+    `qiskit-ibmq-provider <https://pypi.org/project/qiskit-ibmq-provider/>`__
+    package) will provide the alignment information in the near future.
+    information to provide better optimization of circuits before execution.
+  - |
+    Added a new kwarg, ``alignment``, to the :func:`~qiskit.compiler.transpile`
+    function. This kwarg takes an integer is used to manually set an alignment
+    constraint for scheduling a circuit. When set the location of instructions
+    in the scheduled circuit is adjusted to be at quantized time that is
+    multiple of this value. For example:
+
+    .. jupyter-execute::
+
+      from qiskit import circuit, transpile
+      from qiskit.test.mock import FakeAlmaden
+
+      qc = circuit.QuantumCircuit(1, 1)
+      qc.x(0)
+      qc.delay(110, 0, unit="dt")
+      qc.measure(0, 0)
+      qc.draw()
+
+    .. jupyter-execute::
+
+      qct = transpile(qc, backend, alignment=16)
+      qct.draw()
