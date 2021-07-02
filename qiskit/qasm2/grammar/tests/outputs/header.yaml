@@ -1,0 +1,15 @@
+# indent w/ 2 spaces
+source: |
+  OPENQASM 3.0;
+  include "std_gates.inc";
+reference: |
+  program
+    header
+      version
+        OPENQASM
+        3.0
+        ;
+      include
+        include
+        "std_gates.inc"
+        ;

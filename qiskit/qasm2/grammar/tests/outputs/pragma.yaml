@@ -1,0 +1,22 @@
+# indent w/ 2 spaces
+source: |
+  #pragma { __directive_info__ = 0; }
+reference: |
+  program
+    header
+    globalStatement
+      pragma
+        #pragma
+        {
+        statement
+          assignmentStatement
+            classicalAssignment
+              indexIdentifier
+                __directive_info__
+              assignmentOperator
+                =
+              expression
+                expressionTerminator
+                  0
+            ;
+        }

@@ -1,0 +1,55 @@
+# indent w/ 2 spaces
+source: |
+  gate test_gate(theta) a, b {
+    reset a;
+    barrier b;
+    CX a, b;
+  }
+reference: |
+  program
+    header
+    globalStatement
+      quantumGateDefinition
+        gate
+        quantumGateSignature
+          test_gate
+          (
+          identifierList
+            theta
+          )
+          identifierList
+            a
+            ,
+            b
+        quantumBlock
+          {
+          quantumStatement
+            quantumInstruction
+              quantumGateCall
+                quantumGateName
+                  reset
+                indexIdentifierList
+                  indexIdentifier
+                    a
+            ;
+          quantumStatement
+            quantumInstruction
+              quantumBarrier
+                barrier
+                indexIdentifierList
+                  indexIdentifier
+                    b
+            ;
+          quantumStatement
+            quantumInstruction
+              quantumGateCall
+                quantumGateName
+                  CX
+                indexIdentifierList
+                  indexIdentifier
+                    a
+                  ,
+                  indexIdentifier
+                    b
+            ;
+          }

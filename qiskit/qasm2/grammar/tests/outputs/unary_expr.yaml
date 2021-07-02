@@ -1,0 +1,15 @@
+# indent w/ 2 spaces
+source: |
+  !my_var;
+reference: |
+  program
+    header
+    statement
+      expressionStatement
+        expression
+          unaryExpression
+            unaryOperator
+              !
+            expressionTerminator
+              my_var
+        ;
