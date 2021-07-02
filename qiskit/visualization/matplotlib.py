@@ -386,15 +386,14 @@ class MatplotlibDrawer:
 
                 # if single qubit, no params, and no labels, layer_width is 1
                 if (
-                    (
-                        (len(node.qargs) - num_ctrl_qubits) == 1
-                        and len(gate_text) < 3
-                        and (not hasattr(op, "params") or len(op.params) == 0)
-                        and ctrl_text is None
-                    )
-                    or isinstance(op, SwapGate)
-                    or isinstance(base_type, SwapGate)
+                    (len(node.qargs) - num_ctrl_qubits) == 1
+                    and len(gate_text) < 3
+                    and (not hasattr(op, "params") or len(op.params) == 0)
+                    and ctrl_text is None
                 ):
+                    continue
+
+                if isinstance(op, SwapGate) or isinstance(base_type, SwapGate):
                     continue
 
                 # small increments at end of the 3 _get_text_width calls are for small
@@ -1267,7 +1266,6 @@ class MatplotlibDrawer:
         qubit_b = min(xy, key=lambda xy: xy[1])
         qubit_t = max(xy, key=lambda xy: xy[1])
         base_type = None if not hasattr(op, "base_gate") else op.base_gate
-        fc = self._data[node]["fc"]
         ec = self._data[node]["ec"]
         tc = self._data[node]["tc"]
         lc = self._data[node]["lc"]
