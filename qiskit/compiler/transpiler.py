@@ -517,13 +517,13 @@ def _parse_transpile_args(
         scheduling_method,
         durations,
         approximation_degree,
+        alignment,
         seed_transpiler,
         optimization_level,
         output_name,
         callback,
         backend_num_qubits,
         faulty_qubits_map,
-        alignment,
     ):
         transpile_args = {
             "pass_manager_config": PassManagerConfig(
@@ -537,14 +537,14 @@ def _parse_transpile_args(
                 scheduling_method=args[7],
                 instruction_durations=args[8],
                 approximation_degree=args[9],
-                seed_transpiler=args[10],
+                alignment=args[10],
+                seed_transpiler=args[11],
             ),
-            "optimization_level": args[11],
-            "output_name": args[12],
-            "callback": args[13],
-            "backend_num_qubits": args[14],
-            "faulty_qubits_map": args[15],
-            "alignment": args[16],
+            "optimization_level": args[12],
+            "output_name": args[13],
+            "callback": args[14],
+            "backend_num_qubits": args[15],
+            "faulty_qubits_map": args[16],
         }
         list_transpile_args.append(transpile_args)
 

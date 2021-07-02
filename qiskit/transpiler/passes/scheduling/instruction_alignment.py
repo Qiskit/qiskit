@@ -135,7 +135,7 @@ class ValidatePulseGates(AnalysisPass):
     This is control electronics aware validation pass.
     """
 
-    def __init__(self, alignment: int):
+    def __init__(self, alignment: int = 1):
         super().__init__()
         self.alignment = alignment
 
@@ -151,6 +151,10 @@ class ValidatePulseGates(AnalysisPass):
         Raises:
             TranspilerError: When pulse gate violate pulse controller alignment.
         """
+        if self.alignment == 1:
+            # we can define arbitrary length pulse with dt resolution
+            return
+
         for gate, insts in dag.calibrations.items():
             for qubit_param_pair, schedule in insts.items():
                 if schedule.duration % self.alignment != 0:
