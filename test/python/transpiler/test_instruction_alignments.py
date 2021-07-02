@@ -67,7 +67,7 @@ class TestAlignMeasures(QiskitTestCase):
         c: 1/════════════════════════╩═
                                      0
 
-        This type of experiment slightly change delay duration of interest.
+        This type of experiment slightly changes delay duration of interest.
         However the quantization error should be less than alignment * dt.
         """
         circuit = QuantumCircuit(1, 1)
