@@ -152,7 +152,7 @@ def transpile(
             The location of specific instructions is adjusted to be at quantized time that is
             multiple of this value. This information will be provided by the backend configuration.
             If the backend doesn't have any restriction on the alignment,
-            then this adjustment routine will be ignored.
+            then ``alignment`` is None and no adjustment will be performed.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
