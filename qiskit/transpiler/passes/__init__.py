@@ -86,6 +86,8 @@ Scheduling
    ASAPSchedule
    RZXCalibrationBuilder
    RZXCalibrationBuilderNoEcho
+   AlignMeasures
+   ValidatePulseGates
 
 Circuit Analysis
 ================
@@ -189,6 +191,8 @@ from .scheduling import ASAPSchedule
 from .scheduling import RZXCalibrationBuilder
 from .scheduling import RZXCalibrationBuilderNoEcho
 from .scheduling import TimeUnitConversion
+from .scheduling import AlignMeasures
+from .scheduling import ValidatePulseGates
 
 # additional utility passes
 from .utils import CheckMap
