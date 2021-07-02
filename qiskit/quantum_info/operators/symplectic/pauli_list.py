@@ -1077,7 +1077,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return anti_commutation_graph
 
     def group_subops_pauli_list(self):
-        """Given a PauliList, group commutable Paulis using the Qubit Wise Commutativity (QWC) definition.
+        """Partition a  PauliList into sets of mutually qubit-wise commuting Pauli strings.
 
         Returns:
             List[PauliList]: List of PauliLists where each PauliList contains commutable Pauli operators.
