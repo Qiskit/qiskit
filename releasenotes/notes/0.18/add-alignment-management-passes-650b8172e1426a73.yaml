@@ -8,8 +8,8 @@ features:
     optimization and validation routine that is used to manage alignment
     restrictions on time allocation of instructions for a backend.
 
-    If a backend has a restriction on the alignment
-    :class:`~qiskit.circuit.Measure` instructions the
+    If a backend has a restriction on the alignment of
+    :class:`~qiskit.circuit.Measure` instructions (in terms of quantization in time), the
     :class:`~qiskit.transpiler.passes.AlignMeasures` pass is used to adjust
     delays in a scheduled circuit to ensure that the
     :class:`~qiskit.circuit.Measure` instructions in the circuit are aligned
@@ -22,22 +22,18 @@ features:
     backend.
 
     In the built-in :mod:`~qiskit.transpiler.preset_passmangers` used by the
-    :func:`~qiskit.compiler.transpiler` function these passes get automatically
+    :func:`~qiskit.compiler.transpile` function, these passes get automatically
     triggered if the alignment constraint, either via the dedicated
     ``alignment`` kwarg on :func:`~qiskit.compiler.transpiler` or as an
     ``alignment`` attribute in the
     :class:`~qiskit.providers.models.BackendConfiguration` object of the
-    backend being targetted, is set to > 1 these passes will be run.
+    backend being targetted, is set to > 1.
 
     The backends from IBM Quantum Services (accessible via the
     `qiskit-ibmq-provider <https://pypi.org/project/qiskit-ibmq-provider/>`__
     package) will provide the alignment information in the near future.
-  - |
-    Added a new kwarg, ``alignment``, to the :func:`~qiskit.compiler.transpile`
-    function. This kwarg takes an integer is used to manually set an alignment
-    constraint for scheduling a circuit. When set the location of instructions
-    in the scheduled circuit is adjusted to be at quantized time that is
-    multiple of this value. For example:
+     
+     For example:
 
     .. jupyter-execute::
 
