@@ -17,7 +17,6 @@ from typing import List
 
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.measure import Measure
-from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass, AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -29,7 +28,7 @@ class AlignMeasures(TransformationPass):
     This is control electronics aware optimization pass.
     """
 
-    def __init__(self, alignment: int):
+    def __init__(self, alignment: int = 1):
         super().__init__()
         self.alignment = alignment
 
@@ -47,18 +46,21 @@ class AlignMeasures(TransformationPass):
         """
         time_unit = self.property_set["time_unit"]
 
-        require_validation = False
+        require_validation = True
 
-        delays = [delay_node for delay_node in dag.op_nodes(Delay) if delay_node is not None]
-        if any(delay_node.op.duration % self.alignment for delay_node in delays):
+        if all(delay_node.op.duration % self.alignment == 0 for delay_node in dag.op_nodes(Delay)):
             # delay is the only instruction that can move other instructions
             # to the position which is not multiple of alignment.
-            # if any delay with non-multiple of alignment is found we should run validation.
-            require_validation = True
+            # if all delays are multiple of alignment then we can avoid validation.
+            require_validation = False
 
         if len(dag.op_nodes(Measure)) == 0:
             # if no measurement is involved we don't need to run validation.
             # since this pass assumes backend execution, this is really rare case.
+            require_validation = False
+
+        if self.alignment == 1:
+            # we can place measure at arbitrary time of dt.
             require_validation = False
 
         if not require_validation:
