@@ -76,6 +76,10 @@ class AlignMeasures(TransformationPass):
                 "This is usually done by calling transpiler with scheduling_method='alap'."
             )
 
+        # the following lines are basically copied from ASAPSchedule pass
+        #
+        # * some validations for non-scheduled nodes are dropped, since we assume scheduled input
+        # * pad_with_delay is called only with non-delay node to avoid consecutive delay
         new_dag = dag._copy_circuit_metadata()
 
         qubit_time_available = defaultdict(int)
