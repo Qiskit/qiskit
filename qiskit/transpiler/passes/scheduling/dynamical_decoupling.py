@@ -64,10 +64,36 @@ class DynamicalDecoupling(TransformationPass):
              ("x", None, 50), ("measure", None, 1000)]
         )
 
+    .. jupyter-execute::
+
+        // balanced X-X sequence on all qubits
         dd_sequence = [XGate(), XGate()]
 
         pm = PassManager([ALAPSchedule(durations),
                           DynamicalDecoupling(durations, dd_sequence)])
+        circ_dd = pm.run(circ)
+        timeline_drawer(circ_dd)
+
+    .. jupyter-execute::
+
+        // Uhrig sequence on qubit 0
+        n = 8
+        dd_sequence = [XGate()] * n
+
+        def uhrig_pulse_location(k):
+            return np.sin(np.pi * (k + 1) / (2 * n + 2)) ** 2
+
+        spacing = []
+        for k in range(n):
+            spacing.append(uhrig_pulse_location(k) - sum(spacing))
+        spacing.append(1 - sum(spacing))
+
+        pm = PassManager(
+            [
+                ALAPSchedule(self.durations),
+                DynamicalDecoupling(self.durations, dd_sequence, qubits=[0], spacing=spacing),
+            ]
+        )
         circ_dd = pm.run(circ)
         timeline_drawer(circ_dd)
     """
