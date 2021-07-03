@@ -78,12 +78,12 @@ def map_frames(
     if not requires_frame_mapping(schedule):
         return schedule
 
-    resolved_frames = {}
+    frame_trackers = {}
     for frame, frame_def in frames_config.items():
-        resolved_frames[frame] = ResolvedFrame(frame, frame_def, frames_config.sample_duration)
+        frame_trackers[frame] = ResolvedFrame(frame, frame_def, frames_config.sample_duration)
 
         # Extract shift and set frame operations from the schedule.
-        resolved_frames[frame].set_frame_instructions(schedule)
+        frame_trackers[frame].set_frame_instructions(schedule)
 
     # Used to keep track of the frequency and phase of the channels
     channel_trackers = {}
@@ -97,26 +97,39 @@ def map_frames(
 
     for time, inst in schedule.instructions:
         if isinstance(inst, Play):
-            chan = inst.channel
-            chan_frame = channel_trackers[chan].frame
 
-            if inst.frame not in resolved_frames:
+            if inst.frame not in frame_trackers:
                 raise PulseError(f"{inst.frame} is not configured and cannot be resolved.")
 
-            resolved_frame = resolved_frames[inst.frame]
+            # The channel on which the pulse or signal is played.
+            chan = inst.channel
 
-            frame_freq = resolved_frame.frequency(time)
-            frame_phase = resolved_frame.phase(time)
+            # The frame of the instruction: for a pulse this is simply the channel frame.
+            inst_frame = inst.frame
 
-            # If the frequency and phase of the channel have already been set once in
-            # the past we compute shifts.
-            freq_diff = frame_freq - channel_trackers[chan].frequency(time)
-            phase_diff = (frame_phase - channel_trackers[chan].phase(time)) % (2 * np.pi)
+            # The frame to which the instruction will be mapped.
+            chan_frame = channel_trackers[chan].frame
 
-            if abs(freq_diff) > resolved_frame.tolerance:
+            # Get trackers
+            frame_tracker = frame_trackers[inst_frame]
+            chan_tracker = channel_trackers[chan]
+
+            # Get the current frequency and phase of the frame.
+            frame_freq = frame_tracker.frequency(time)
+            frame_phase = frame_tracker.phase(time)
+
+            # Get the current frequency and phase of the channel.
+            chan_freq = chan_tracker.frequency(time)
+            chan_phase = chan_tracker.phase(time)
+
+            # Compute the differences
+            freq_diff = frame_freq - chan_freq
+            phase_diff = (frame_phase - chan_phase + np.pi) % (2 * np.pi) - np.pi
+
+            if abs(freq_diff) > frame_tracker.tolerance:
                 sched.insert(time, ShiftFrequency(freq_diff, chan_frame), inplace=True)
 
-            if abs(phase_diff) > resolved_frame.tolerance:
+            if abs(phase_diff) > frame_tracker.tolerance:
                 sched.insert(time, ShiftPhase(phase_diff, chan_frame), inplace=True)
 
             # Update the frequency and phase of this channel.
