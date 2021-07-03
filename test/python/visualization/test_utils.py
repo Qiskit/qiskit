@@ -210,7 +210,8 @@ class TestVisualizationUtils(QiskitTestCase):
         u2(0,3.14159265358979) q[0];
         u2(0,3.14159265358979) q[1];
         """
-        qc = QuantumCircuit.from_qasm_str(qasm)
+        with self.assertWarns(DeprecationWarning):
+            qc = QuantumCircuit.from_qasm_str(qasm)
 
         (_, _, layered_ops) = utils._get_layered_instructions(qc, justify="left")
 
@@ -277,7 +278,8 @@ class TestVisualizationUtils(QiskitTestCase):
         u2(0,3.14159265358979) q[0];
         u2(0,3.14159265358979) q[1];
         """
-        qc = QuantumCircuit.from_qasm_str(qasm)
+        with self.assertWarns(DeprecationWarning):
+            qc = QuantumCircuit.from_qasm_str(qasm)
 
         (_, _, layered_ops) = utils._get_layered_instructions(qc, justify="right")
 

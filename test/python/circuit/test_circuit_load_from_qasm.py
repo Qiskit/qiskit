@@ -40,7 +40,8 @@ class LoadFromQasmTest(QiskitTestCase):
 
         If all is correct we should get the qasm file loaded in _qasm_file_path
         """
-        q_circuit = QuantumCircuit.from_qasm_file(self.qasm_file_path)
+        with self.assertWarns(DeprecationWarning):
+            q_circuit = QuantumCircuit.from_qasm_file(self.qasm_file_path)
         qr_a = QuantumRegister(4, "a")
         qr_b = QuantumRegister(4, "b")
         cr_c = ClassicalRegister(4, "c")
@@ -59,7 +60,8 @@ class LoadFromQasmTest(QiskitTestCase):
         from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate, UGate
 
         all_gates_qasm = os.path.join(self.qasm_dir, "all_gates.qasm")
-        qasm_circuit = QuantumCircuit.from_qasm_file(all_gates_qasm)
+        with self.assertWarns(DeprecationWarning):
+            qasm_circuit = QuantumCircuit.from_qasm_file(all_gates_qasm)
 
         ref_circuit = QuantumCircuit(3, 3)
 
@@ -118,7 +120,8 @@ class LoadFromQasmTest(QiskitTestCase):
 
         If all is correct we should get a QiskitError
         """
-        self.assertRaises(QiskitError, QuantumCircuit.from_qasm_file, "")
+        with self.assertWarns(DeprecationWarning):
+            self.assertRaises(QiskitError, QuantumCircuit.from_qasm_file, "")
 
     def test_fail_qasm_string(self):
         """
@@ -126,7 +129,8 @@ class LoadFromQasmTest(QiskitTestCase):
 
         If all is correct we should get a QiskitError
         """
-        self.assertRaises(QiskitError, QuantumCircuit.from_qasm_str, "")
+        with self.assertWarns(DeprecationWarning):
+            self.assertRaises(QiskitError, QuantumCircuit.from_qasm_str, "")
 
     def test_qasm_text(self):
         """
@@ -142,7 +146,8 @@ class LoadFromQasmTest(QiskitTestCase):
         qasm_string += "measure a[3]->c[3];\nmeasure b[0]->d[0];\n"
         qasm_string += "measure b[1]->d[1];\nmeasure b[2]->d[2];\n"
         qasm_string += "measure b[3]->d[3];"
-        q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         qr_a = QuantumRegister(4, "a")
         qr_b = QuantumRegister(4, "b")
@@ -184,7 +189,8 @@ class LoadFromQasmTest(QiskitTestCase):
             )
             + "\n"
         )
-        q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         qr = QuantumRegister(1, "q")
         cr0 = ClassicalRegister(4, "c0")
@@ -216,7 +222,8 @@ class LoadFromQasmTest(QiskitTestCase):
             )
             + "\n"
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         qr = QuantumRegister(3, "q")
         expected = QuantumCircuit(qr)
@@ -227,34 +234,35 @@ class LoadFromQasmTest(QiskitTestCase):
     def test_qasm_example_file(self):
         """Loads qasm/example.qasm."""
         qasm_filename = os.path.join(self.qasm_dir, "example.qasm")
-        expected_circuit = QuantumCircuit.from_qasm_str(
-            "\n".join(
-                [
-                    "OPENQASM 2.0;",
-                    'include "qelib1.inc";',
-                    "qreg q[3];",
-                    "qreg r[3];",
-                    "creg c[3];",
-                    "creg d[3];",
-                    "h q[2];",
-                    "cx q[2],r[2];",
-                    "measure r[2] -> d[2];",
-                    "h q[1];",
-                    "cx q[1],r[1];",
-                    "measure r[1] -> d[1];",
-                    "h q[0];",
-                    "cx q[0],r[0];",
-                    "measure r[0] -> d[0];",
-                    "barrier q[0],q[1],q[2];",
-                    "measure q[2] -> c[2];",
-                    "measure q[1] -> c[1];",
-                    "measure q[0] -> c[0];",
-                ]
+        with self.assertWarns(DeprecationWarning):
+            expected_circuit = QuantumCircuit.from_qasm_str(
+                "\n".join(
+                    [
+                        "OPENQASM 2.0;",
+                        'include "qelib1.inc";',
+                        "qreg q[3];",
+                        "qreg r[3];",
+                        "creg c[3];",
+                        "creg d[3];",
+                        "h q[2];",
+                        "cx q[2],r[2];",
+                        "measure r[2] -> d[2];",
+                        "h q[1];",
+                        "cx q[1],r[1];",
+                        "measure r[1] -> d[1];",
+                        "h q[0];",
+                        "cx q[0],r[0];",
+                        "measure r[0] -> d[0];",
+                        "barrier q[0],q[1],q[2];",
+                        "measure q[2] -> c[2];",
+                        "measure q[1] -> c[1];",
+                        "measure q[0] -> c[0];",
+                    ]
+                )
+                + "\n"
             )
-            + "\n"
-        )
 
-        q_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
+            q_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
 
         self.assertEqual(q_circuit, expected_circuit)
         self.assertEqual(len(q_circuit.cregs), 2)
@@ -279,9 +287,9 @@ class LoadFromQasmTest(QiskitTestCase):
         include "qelib1.inc";
         qreg q[3];
         h q;"""
-        q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
-
-        self.assertEqual(q_circuit.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
+            self.assertEqual(q_circuit.qasm(), expected_qasm)
 
     def test_from_qasm_str_custom_gate1(self):
         """Test load custom gates (simple case)"""
@@ -290,7 +298,8 @@ class LoadFromQasmTest(QiskitTestCase):
                         gate rinv q {sdg q; h q; sdg q; h q; }
                         qreg qr[1];
                         rinv qr[0];"""
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         rinv_q = QuantumRegister(1, name="q")
         rinv_gate = QuantumCircuit(rinv_q, name="rinv")
@@ -319,7 +328,8 @@ class LoadFromQasmTest(QiskitTestCase):
                          qreg qr[3];
                          swap2 qr[0], qr[1];
                          swap2 qr[1], qr[2];"""
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         ab_args = QuantumRegister(2, name="ab")
         swap_gate = QuantumCircuit(ab_args, name="swap2")
@@ -349,7 +359,8 @@ class LoadFromQasmTest(QiskitTestCase):
                          }
                          qreg qr[3];
                          cswap2 qr[1], qr[0], qr[2];"""
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         abc_args = QuantumRegister(3, name="abc")
         cswap_gate = QuantumCircuit(abc_args, name="cswap2")
@@ -373,7 +384,8 @@ class LoadFromQasmTest(QiskitTestCase):
                          gate my_gate(phi,lambda) q {u(1.5707963267948966,phi,lambda) q;}
                          qreg qr[1];
                          my_gate(pi, pi) qr[0];"""
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         my_gate_circuit = QuantumCircuit(1, name="my_gate")
         phi = Parameter("phi")
@@ -397,7 +409,8 @@ class LoadFromQasmTest(QiskitTestCase):
                          gate my_gate(phi,lambda) q {u(pi/2,phi,lambda) q;} // biop with pi
                          qreg qr[1];
                          my_gate(pi, pi) qr[0];"""
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         my_gate_circuit = QuantumCircuit(1, name="my_gate")
         phi = Parameter("phi")
@@ -422,7 +435,8 @@ class LoadFromQasmTest(QiskitTestCase):
                            {rx(phi+pi) q; ry(lambda/2) q;}  // parameters used in expressions
                          qreg qr[1];
                          my_gate(pi, pi) qr[0];"""
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         my_gate_circuit = QuantumCircuit(1, name="my_gate")
         phi = Parameter("phi")
@@ -448,7 +462,8 @@ class LoadFromQasmTest(QiskitTestCase):
                             {u(asin(cos(phi)/2), phi+pi, lambda/2) q;}  // build func
                          qreg qr[1];
                          my_gate(pi, pi) qr[0];"""
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         qr = QuantumRegister(1, name="qr")
         expected = QuantumCircuit(qr, name="circuit")
@@ -467,7 +482,8 @@ class LoadFromQasmTest(QiskitTestCase):
                            {my_other_gate(phi, phi+pi) r;}
                          qreg qr[1];
                          my_gate(pi) qr[0];"""
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         qr = QuantumRegister(1, name="qr")
         expected = QuantumCircuit(qr, name="circuit")
@@ -485,7 +501,8 @@ class LoadFromQasmTest(QiskitTestCase):
 
                          qreg q[1];
                          delay(172) q[0];"""
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
         qr = QuantumRegister(1, name="q")
         expected = QuantumCircuit(qr, name="circuit")

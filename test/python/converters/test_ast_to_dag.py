@@ -59,7 +59,8 @@ measure r[0] -> d[0];
 measure r[1] -> d[1];
 measure r[2] -> d[2];
 """
-        expected_dag = circuit_to_dag(QuantumCircuit.from_qasm_str(expected_result))
+        with self.assertWarns(DeprecationWarning):
+            expected_dag = circuit_to_dag(QuantumCircuit.from_qasm_str(expected_result))
         self.assertEqual(dag_circuit, expected_dag)
 
 
