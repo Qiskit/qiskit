@@ -171,14 +171,14 @@ class DynamicalDecoupling(TransformationPass):
         new_dag = dag._copy_circuit_metadata()
 
         qubit_index_map = {qubit: index for index, qubit in enumerate(new_dag.qubits)}
-        physical_qubit_sequence_duration_map = {}
+        index_sequence_duration_map = {}
         for qubit in new_dag.qubits:
             physical_qubit = qubit_index_map[qubit]
             dd_sequence_duration = 0
             for gate in self._dd_sequence:
                 gate.duration = self._durations.get(gate, physical_qubit)
                 dd_sequence_duration += gate.duration
-            physical_qubit_sequence_duration_map[physical_qubit] = dd_sequence_duration
+            index_sequence_duration_map[physical_qubit] = dd_sequence_duration
 
         for nd in dag.topological_op_nodes():
             if not isinstance(nd.op, Delay):
@@ -198,7 +198,7 @@ class DynamicalDecoupling(TransformationPass):
                     new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
                     continue
 
-            dd_sequence_duration = physical_qubit_sequence_duration_map[physical_qubit]
+            dd_sequence_duration = index_sequence_duration_map[physical_qubit]
             slack = nd.op.duration - dd_sequence_duration
             if slack <= 0:  # dd doesn't fit
                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
