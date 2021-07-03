@@ -144,7 +144,8 @@ class CommonUtilitiesMixin:
             # Run result in backend to test that is valid.
             self.generate_ground_truth(result, filename)
 
-        expected = QuantumCircuit.from_qasm_file(filename)
+        with self.assertWarns(DeprecationWarning):
+            expected = QuantumCircuit.from_qasm_file(filename)
 
         self.assertEqual(result, expected)
 
