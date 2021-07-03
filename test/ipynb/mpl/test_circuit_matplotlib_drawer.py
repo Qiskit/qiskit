@@ -35,6 +35,7 @@ from qiskit.circuit.library import (
     ZGate,
     CYGate,
     CHGate,
+    SGate
 )
 from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
@@ -482,6 +483,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Tests loading a user style"""
         circuit = QuantumCircuit(7)
         circuit.h(0)
+        circuit.append(HGate(label="H2"), [1])
         circuit.x(0)
         circuit.cx(0, 1)
         circuit.ccx(0, 1, 2)
@@ -492,7 +494,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(DCXGate().control(1), [0, 1, 2])
         circuit.append(DCXGate().control(2), [0, 1, 2, 3])
         circuit.z(4)
-        circuit.s(4)
+        circuit.append(SGate(label="S1"), [4])
         circuit.sdg(4)
         circuit.t(4)
         circuit.tdg(4)
@@ -508,7 +510,15 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.barrier(5, 6)
         circuit.reset(5)
 
-        self.circuit_drawer(circuit, style={"name": "user_style"}, filename="user_style.png")
+        self.circuit_drawer(
+            circuit,
+            style={
+                "name": "user_style",
+                "displaytext": {"H2": "H_2"},
+                "displaycolor": {"H2": ("#EEDD00", "#FF0000")},
+            },
+            filename="user_style.png",
+        )
 
     def test_subfont_change(self):
         """Tests changing the subfont size"""

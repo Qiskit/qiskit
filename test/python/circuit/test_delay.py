@@ -47,6 +47,13 @@ class TestDelayClass(QiskitTestCase):
         with self.assertRaises(CircuitError):
             qc.delay(100, 0, unit="my_unit")
 
+    def test_fail_if_negative_duration_is_supplied(self):
+        qc = QuantumCircuit(1)
+        with self.assertRaises(CircuitError):
+            qc.delay(-1, 0, unit="dt")
+        with self.assertRaises(CircuitError):
+            qc.delay(-1.5, 0, unit="s")
+
     def test_add_delay_on_single_qubit_to_circuit(self):
         qc = QuantumCircuit(1)
         qc.h(0)
@@ -109,6 +116,8 @@ class TestParameterizedDelay(QiskitTestCase):
             qc.assign_parameters({dur: 1 + 1j}, inplace=True)
         with self.assertRaises(CircuitError):
             qc.assign_parameters({dur: 0.5}, inplace=True)
+        with self.assertRaises(CircuitError):
+            qc.assign_parameters({dur: -1}, inplace=True)
 
     def test_can_assign_multiple_duration_parameters(self):
         durs = ParameterVector("dur", 2)

@@ -13,7 +13,7 @@
 """CVaRMeasurement class."""
 
 
-from typing import Callable, Optional, Tuple, Union, cast
+from typing import Callable, Optional, Tuple, Union, cast, Dict
 
 import numpy as np
 
@@ -91,6 +91,11 @@ class CVaRMeasurement(OperatorStateFn):
         """
         return self._alpha
 
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"primitive": self._primitive, "coeff": self._coeff, "alpha": self._alpha}
+
     def add(self, other: OperatorBase) -> SummedOp:
         return SummedOp([self, other])
 
@@ -138,7 +143,7 @@ class CVaRMeasurement(OperatorStateFn):
         raise NotImplementedError
 
     def __str__(self) -> str:
-        return "CVaRMeasurement({}) * {}".format(str(self.primitive), self.coeff)
+        return f"CVaRMeasurement({str(self.primitive)}) * {self.coeff}"
 
     def eval(
         self, front: Union[str, dict, np.ndarray, OperatorBase, Statevector] = None

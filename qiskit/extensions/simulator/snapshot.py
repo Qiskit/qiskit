@@ -31,7 +31,8 @@ class Snapshot(Instruction):
             label (str): the snapshot label for result data.
             snapshot_type (str): the type of the snapshot.
             num_qubits (int): the number of qubits for the snapshot type [Default: 0].
-            num_clbits (int): the number of classical bits for the snapshot type [Default: 0].
+            num_clbits (int): the number of classical bits for the snapshot type
+                              [Default: 0].
             params (list or None): the parameters for snapshot_type [Default: None].
 
         Raises:
@@ -39,16 +40,14 @@ class Snapshot(Instruction):
         """
         if not isinstance(label, str):
             raise ExtensionError("Snapshot label must be a string.")
-        self._label = label
         self._snapshot_type = snapshot_type
         if params is None:
             params = []
-        super().__init__("snapshot", num_qubits, num_clbits, params)
+        super().__init__("snapshot", num_qubits, num_clbits, params, label=label)
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
         instruction = super().assemble()
-        instruction.label = self._label
         instruction.snapshot_type = self._snapshot_type
         return instruction
 

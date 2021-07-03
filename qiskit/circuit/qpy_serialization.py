@@ -202,14 +202,15 @@ The contents of each INSTRUCTION_PARAM is:
     }
 
 After each INSTRUCTION_PARAM the next ``size`` bytes are the parameter's data.
-The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, 'e', or ``'n'`` which dictate
-the format. For ``'i'`` it's an integer, ``'f'`` it's a double, ``'p'`` defines
-a :class:`~qiskit.circuit.Paramter` object  which is represented by a PARAM
+The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, ``'e'``, ``'s'``,
+or ``'n'`` which dictate the format. For ``'i'`` it's an integer, ``'f'`` it's
+a double, ``'s'`` if it's a string (encoded as utf8), ``'p'`` defines a
+:class:`~qiskit.circuit.Parameter` object  which is represented by a PARAM
 struct (see below), ``e`` defines a :class:`~qiskit.circuit.ParameterExpression`
 object (that's not a :class:`~qiskit.circuit.Paramter`) which is represented by
-a PARAM_EXPR struct (see below), and ``'n'`` represents an object from numpy (
-either an ``ndarray`` or a numpy type) which means the data is .npy format [#f2]_
-data.
+a PARAM_EXPR struct (see below), and ``'n'`` represents an object from numpy
+(either an ``ndarray`` or a numpy type) which means the data is .npy
+format [#f2]_ data.
 
 
 PARAMETER
@@ -519,6 +520,8 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
         elif type_str == "n":
             container = io.BytesIO(data)
             param = np.load(container)
+        elif type_str == "s":
+            param = data.decode("utf8")
         elif type_str == "p":
             container = io.BytesIO(data)
             param = _read_parameter(container)
@@ -638,9 +641,7 @@ def _write_parameter_expression(file_obj, param):
             container.seek(0)
             data = container.read()
         else:
-            raise TypeError(
-                "Invalid expression type in symbol map for %s: %s" % (param, type(value))
-            )
+            raise TypeError(f"Invalid expression type in symbol map for {param}: {type(value)}")
 
         elem_header = struct.pack(PARAM_EXPR_MAP_ELEM_PACK, type_str.encode("utf8"), len(data))
         file_obj.write(elem_header)
@@ -665,7 +666,7 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         gate_class_name = instruction_tuple[0].name
 
     has_condition = False
-    condition_register = "".encode("utf8")
+    condition_register = b""
     condition_value = 0
     if instruction_tuple[0].condition:
         has_condition = True
@@ -688,14 +689,10 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
     file_obj.write(condition_register)
     # Encode instruciton args
     for qbit in instruction_tuple[1]:
-        instruction_arg_raw = struct.pack(
-            INSTRUCTION_ARG_PACK, "q".encode("utf8"), index_map["q"][qbit]
-        )
+        instruction_arg_raw = struct.pack(INSTRUCTION_ARG_PACK, b"q", index_map["q"][qbit])
         file_obj.write(instruction_arg_raw)
     for clbit in instruction_tuple[2]:
-        instruction_arg_raw = struct.pack(
-            INSTRUCTION_ARG_PACK, "c".encode("utf8"), index_map["c"][clbit]
-        )
+        instruction_arg_raw = struct.pack(INSTRUCTION_ARG_PACK, b"c", index_map["c"][clbit])
         file_obj.write(instruction_arg_raw)
     # Encode instruction params
     for param in instruction_tuple[0].params:
@@ -708,6 +705,10 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
             type_key = "f"
             data = struct.pack("<d", param)
             size = struct.calcsize("<d")
+        elif isinstance(param, str):
+            type_key = "s"
+            data = param.encode("utf8")
+            size = len(data)
         elif isinstance(param, Parameter):
             type_key = "p"
             _write_parameter(container, param)
@@ -728,7 +729,7 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
             size = len(data)
         else:
             raise TypeError(
-                "Invalid parameter type %s for gate %s," % (instruction_tuple[0], type(param))
+                f"Invalid parameter type {instruction_tuple[0]} for gate {type(param)},"
             )
         instruction_param_raw = struct.pack(INSTRUCTION_PARAM_PACK, type_key.encode("utf8"), size)
         file_obj.write(instruction_param_raw)
@@ -738,9 +739,9 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
 
 def _write_custom_instruction(file_obj, name, instruction):
     if isinstance(instruction, Gate):
-        type_str = "g".encode("utf8")
+        type_str = b"g"
     else:
-        type_str = "i".encode("utf8")
+        type_str = b"i"
     has_definition = False
     size = 0
     data = None
@@ -770,7 +771,7 @@ def _write_custom_instruction(file_obj, name, instruction):
         file_obj.write(data)
 
 
-def dump(file_obj, circuits):
+def dump(circuits, file_obj):
     """Write QPY binary data to a file
 
     This function is used to save a circuit to a file for later use or transfer
@@ -794,31 +795,31 @@ def dump(file_obj, circuits):
     .. code-block:: python
 
         with open('bell.qpy', 'wb') as fd:
-            qpy_serialization.dump(fd, qc)
+            qpy_serialization.dump(qc, fd)
 
-    or a gzip compressed filed:
+    or a gzip compressed file:
 
     .. code-block:: python
 
         import gzip
 
         with gzip.open('bell.qpy.gz', 'wb') as fd:
-            qpy_serialization.dump(fd, qc)
+            qpy_serialization.dump(qc, fd)
 
     Which will save the qpy serialized circuit to the provided file.
 
     Args:
-        file_obj (file): The file like object to write the QPY data too
         circuits (list or QuantumCircuit): The quantum circuit object(s) to
             store in the specified file like object. This can either be a
             single QuantumCircuit object or a list of QuantumCircuits.
+        file_obj (file): The file like object to write the QPY data too
     """
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
     version_parts = [int(x) for x in __version__.split(".")[0:3]]
     header = struct.pack(
         FILE_HEADER_PACK,
-        "QISKIT".encode("utf8"),
+        b"QISKIT",
         1,
         version_parts[0],
         version_parts[1],
@@ -854,16 +855,16 @@ def _write_circuit(file_obj, circuit):
     if num_registers > 0:
         for reg in circuit.qregs:
             reg_name = reg.name.encode("utf8")
-            file_obj.write(struct.pack(REGISTER_PACK, "q".encode("utf8"), reg.size, len(reg_name)))
+            file_obj.write(struct.pack(REGISTER_PACK, b"q", reg.size, len(reg_name)))
             file_obj.write(reg_name)
             REGISTER_ARRAY_PACK = "%sI" % reg.size
-            file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *[qubit_indices[bit] for bit in reg]))
+            file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *(qubit_indices[bit] for bit in reg)))
         for reg in circuit.cregs:
             reg_name = reg.name.encode("utf8")
-            file_obj.write(struct.pack(REGISTER_PACK, "c".encode("utf8"), reg.size, len(reg_name)))
+            file_obj.write(struct.pack(REGISTER_PACK, b"c", reg.size, len(reg_name)))
             file_obj.write(reg_name)
             REGISTER_ARRAY_PACK = "%sI" % reg.size
-            file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *[clbit_indices[bit] for bit in reg]))
+            file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *(clbit_indices[bit] for bit in reg)))
     instruction_buffer = io.BytesIO()
     custom_instructions = {}
     index_map = {}
@@ -941,7 +942,7 @@ def load(file_obj):
             "file, %s, is newer than the current qiskit version %s. "
             "This may result in an error if the QPY file uses "
             "instructions not present in this current qiskit "
-            "version" % (".".join(header_version_parts), __version__)
+            "version" % (".".join([str(x) for x in header_version_parts]), __version__)
         )
     circuits = []
     for _ in range(file_header[5]):
