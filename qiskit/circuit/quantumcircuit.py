@@ -15,33 +15,35 @@
 """Quantum circuit object."""
 
 import copy
-import itertools
 import functools
-import warnings
-import numbers
+import itertools
 import multiprocessing as mp
+import numbers
+import warnings
 from collections import OrderedDict, defaultdict
 from typing import Union
+
 import numpy as np
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
-from qiskit.utils.multiprocessing import is_main_process
-from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.parameter import Parameter
-from qiskit.qasm.qasm import Qasm
-from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_function, deprecate_arguments
-from .parameterexpression import ParameterExpression
-from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.parameter import Parameter
+from qiskit.exceptions import MissingOptionalLibraryError, QiskitError
+from qiskit.qasm.exceptions import QasmError
+from qiskit.qasm.qasm import Qasm
+from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
+from qiskit.utils.multiprocessing import is_main_process
+
+from .bit import Bit
 from .classicalregister import ClassicalRegister, Clbit
+from .delay import Delay
+from .instructionset import InstructionSet
+from .parameterexpression import ParameterExpression
 from .parametertable import ParameterTable, ParameterView
 from .parametervector import ParameterVector, ParameterVectorElement
-from .instructionset import InstructionSet
-from .register import Register
-from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
-from .delay import Delay
+from .quantumregister import AncillaQubit, AncillaRegister, QuantumRegister, Qubit
+from .register import Register
 
 try:
     import pygments
@@ -1271,9 +1273,9 @@ class QuantumCircuit:
             QuantumCircuit: a circuit one level decomposed
         """
         # pylint: disable=cyclic-import
-        from qiskit.transpiler.passes.basis.decompose import Decompose
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
+        from qiskit.transpiler.passes.basis.decompose import Decompose
 
         pass_ = Decompose()
         decomposed_dag = pass_.run(circuit_to_dag(self))
@@ -2029,8 +2031,8 @@ class QuantumCircuit:
             QuantumCircuit: Returns circuit with measurements removed when `inplace = False`.
         """
         # pylint: disable=cyclic-import
-        from qiskit.transpiler.passes import RemoveFinalMeasurements
         from qiskit.converters import circuit_to_dag
+        from qiskit.transpiler.passes import RemoveFinalMeasurements
 
         if inplace:
             circ = self
@@ -3020,8 +3022,7 @@ class QuantumCircuit:
 
 def _circuit_from_qasm(qasm):
     # pylint: disable=cyclic-import
-    from qiskit.converters import ast_to_dag
-    from qiskit.converters import dag_to_circuit
+    from qiskit.converters import ast_to_dag, dag_to_circuit
 
     ast = qasm.parse()
     dag = ast_to_dag(ast)
