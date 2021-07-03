@@ -446,9 +446,8 @@ class Drag(ParametricPulse):
             argmax_x = self.duration / 2 - (self.sigma / self.beta) * math.sqrt(
                 self.beta ** 2 - self.sigma ** 2
             )
-            if argmax_x < 0:
-                # If the max point is out of range, either end of the pulse will do
-                argmax_x = 0
+            # If the max point is out of range, either end of the pulse will do
+            argmax_x = max(argmax_x, 0)
 
             # 2. Find the value at that maximum
             max_val = continuous.drag(
