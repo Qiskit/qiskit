@@ -1381,7 +1381,7 @@ class Layer:
             if isinstance(creg, Clbit):
                 bit_reg = self._clbit_locations[creg]["register"]
                 bit_index = self._clbit_locations[creg]["index"]
-                label_bool = "= T" if val == True else "= F"
+                label_bool = "= T" if val is True else "= F"
                 label = "%s_%s %s" % (bit_reg.name, bit_index, label_bool)
                 self.set_clbit(creg, BoxOnClWire(label=label, top_connect=top_connect))
             else:
@@ -1390,13 +1390,15 @@ class Layer:
         else:
             if isinstance(creg, Clbit):
                 clbit = [creg]
-                label_bool = "= T" if val == True else "= F"
+                label_bool = "= T" if val is True else "= F"
                 self._set_multibox(label_bool, clbits=clbit, top_connect=top_connect)
             else:
-                clbit = [bit for bit in self.clbits if self._clbit_locations[bit]["register"] == creg]
+                clbit = [
+                    bit for bit in self.clbits if self._clbit_locations[bit]["register"] == creg
+                ]
                 cond_bin = bin(val)[2:].zfill(len(clbit))
                 self.set_cond_bullets(cond_bin, clbits=clbit)
-    
+
     def set_cond_bullets(self, val, clbits):
         """Sets bullets for classical conditioning when cregbundle=False.
 
