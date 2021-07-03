@@ -74,15 +74,11 @@ class qasm2Listener(ParseTreeListener):
         pass
 
     # Enter a parse tree produced by qasm2Parser#quantumDeclarationStatement.
-    def enterQuantumDeclarationStatement(
-        self, ctx: qasm2Parser.QuantumDeclarationStatementContext
-    ):
+    def enterQuantumDeclarationStatement(self, ctx: qasm2Parser.QuantumDeclarationStatementContext):
         pass
 
     # Exit a parse tree produced by qasm2Parser#quantumDeclarationStatement.
-    def exitQuantumDeclarationStatement(
-        self, ctx: qasm2Parser.QuantumDeclarationStatementContext
-    ):
+    def exitQuantumDeclarationStatement(self, ctx: qasm2Parser.QuantumDeclarationStatementContext):
         pass
 
     # Enter a parse tree produced by qasm2Parser#classicalDeclarationStatement.
@@ -218,39 +214,27 @@ class qasm2Listener(ParseTreeListener):
         pass
 
     # Enter a parse tree produced by qasm2Parser#singleDesignatorDeclaration.
-    def enterSingleDesignatorDeclaration(
-        self, ctx: qasm2Parser.SingleDesignatorDeclarationContext
-    ):
+    def enterSingleDesignatorDeclaration(self, ctx: qasm2Parser.SingleDesignatorDeclarationContext):
         pass
 
     # Exit a parse tree produced by qasm2Parser#singleDesignatorDeclaration.
-    def exitSingleDesignatorDeclaration(
-        self, ctx: qasm2Parser.SingleDesignatorDeclarationContext
-    ):
+    def exitSingleDesignatorDeclaration(self, ctx: qasm2Parser.SingleDesignatorDeclarationContext):
         pass
 
     # Enter a parse tree produced by qasm2Parser#doubleDesignatorDeclaration.
-    def enterDoubleDesignatorDeclaration(
-        self, ctx: qasm2Parser.DoubleDesignatorDeclarationContext
-    ):
+    def enterDoubleDesignatorDeclaration(self, ctx: qasm2Parser.DoubleDesignatorDeclarationContext):
         pass
 
     # Exit a parse tree produced by qasm2Parser#doubleDesignatorDeclaration.
-    def exitDoubleDesignatorDeclaration(
-        self, ctx: qasm2Parser.DoubleDesignatorDeclarationContext
-    ):
+    def exitDoubleDesignatorDeclaration(self, ctx: qasm2Parser.DoubleDesignatorDeclarationContext):
         pass
 
     # Enter a parse tree produced by qasm2Parser#noDesignatorDeclaration.
-    def enterNoDesignatorDeclaration(
-        self, ctx: qasm2Parser.NoDesignatorDeclarationContext
-    ):
+    def enterNoDesignatorDeclaration(self, ctx: qasm2Parser.NoDesignatorDeclarationContext):
         pass
 
     # Exit a parse tree produced by qasm2Parser#noDesignatorDeclaration.
-    def exitNoDesignatorDeclaration(
-        self, ctx: qasm2Parser.NoDesignatorDeclarationContext
-    ):
+    def exitNoDesignatorDeclaration(self, ctx: qasm2Parser.NoDesignatorDeclarationContext):
         pass
 
     # Enter a parse tree produced by qasm2Parser#bitDeclaration.
@@ -578,15 +562,11 @@ class qasm2Listener(ParseTreeListener):
         pass
 
     # Enter a parse tree produced by qasm2Parser#multiplicativeExpression.
-    def enterMultiplicativeExpression(
-        self, ctx: qasm2Parser.MultiplicativeExpressionContext
-    ):
+    def enterMultiplicativeExpression(self, ctx: qasm2Parser.MultiplicativeExpressionContext):
         pass
 
     # Exit a parse tree produced by qasm2Parser#multiplicativeExpression.
-    def exitMultiplicativeExpression(
-        self, ctx: qasm2Parser.MultiplicativeExpressionContext
-    ):
+    def exitMultiplicativeExpression(self, ctx: qasm2Parser.MultiplicativeExpressionContext):
         pass
 
     # Enter a parse tree produced by qasm2Parser#unaryExpression.
@@ -874,15 +854,11 @@ class qasm2Listener(ParseTreeListener):
         pass
 
     # Enter a parse tree produced by qasm2Parser#calibrationArgumentList.
-    def enterCalibrationArgumentList(
-        self, ctx: qasm2Parser.CalibrationArgumentListContext
-    ):
+    def enterCalibrationArgumentList(self, ctx: qasm2Parser.CalibrationArgumentListContext):
         pass
 
     # Exit a parse tree produced by qasm2Parser#calibrationArgumentList.
-    def exitCalibrationArgumentList(
-        self, ctx: qasm2Parser.CalibrationArgumentListContext
-    ):
+    def exitCalibrationArgumentList(self, ctx: qasm2Parser.CalibrationArgumentListContext):
         pass
 
     # Enter a parse tree produced by qasm2Parser#metaComment.

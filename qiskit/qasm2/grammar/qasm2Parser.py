@@ -1101,9 +1101,7 @@ class qasm2Parser(Parser):
     class ProgramContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -1322,9 +1320,7 @@ class qasm2Parser(Parser):
     class HeaderContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -1399,9 +1395,7 @@ class qasm2Parser(Parser):
     class VersionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -1454,9 +1448,7 @@ class qasm2Parser(Parser):
     class IncludeContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -1500,9 +1492,7 @@ class qasm2Parser(Parser):
     class IoIdentifierContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -1542,9 +1532,7 @@ class qasm2Parser(Parser):
     class IoContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -1596,9 +1584,7 @@ class qasm2Parser(Parser):
     class GlobalStatementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -1615,9 +1601,7 @@ class qasm2Parser(Parser):
             return self.getTypedRuleContext(qasm2Parser.CalibrationContext, 0)
 
         def quantumDeclarationStatement(self):
-            return self.getTypedRuleContext(
-                qasm2Parser.QuantumDeclarationStatementContext, 0
-            )
+            return self.getTypedRuleContext(qasm2Parser.QuantumDeclarationStatementContext, 0)
 
         def pragma(self):
             return self.getTypedRuleContext(qasm2Parser.PragmaContext, 0)
@@ -1685,9 +1669,7 @@ class qasm2Parser(Parser):
     class StatementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -1698,9 +1680,7 @@ class qasm2Parser(Parser):
             return self.getTypedRuleContext(qasm2Parser.AssignmentStatementContext, 0)
 
         def classicalDeclarationStatement(self):
-            return self.getTypedRuleContext(
-                qasm2Parser.ClassicalDeclarationStatementContext, 0
-            )
+            return self.getTypedRuleContext(qasm2Parser.ClassicalDeclarationStatementContext, 0)
 
         def branchingStatement(self):
             return self.getTypedRuleContext(qasm2Parser.BranchingStatementContext, 0)
@@ -1795,9 +1775,7 @@ class qasm2Parser(Parser):
     class QuantumDeclarationStatementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -1820,9 +1798,7 @@ class qasm2Parser(Parser):
 
     def quantumDeclarationStatement(self):
 
-        localctx = qasm2Parser.QuantumDeclarationStatementContext(
-            self, self._ctx, self.state
-        )
+        localctx = qasm2Parser.QuantumDeclarationStatementContext(self, self._ctx, self.state)
         self.enterRule(localctx, 16, self.RULE_quantumDeclarationStatement)
         try:
             self.enterOuterAlt(localctx, 1)
@@ -1841,9 +1817,7 @@ class qasm2Parser(Parser):
     class ClassicalDeclarationStatementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -1869,9 +1843,7 @@ class qasm2Parser(Parser):
 
     def classicalDeclarationStatement(self):
 
-        localctx = qasm2Parser.ClassicalDeclarationStatementContext(
-            self, self._ctx, self.state
-        )
+        localctx = qasm2Parser.ClassicalDeclarationStatementContext(self, self._ctx, self.state)
         self.enterRule(localctx, 18, self.RULE_classicalDeclarationStatement)
         try:
             self.enterOuterAlt(localctx, 1)
@@ -1913,9 +1885,7 @@ class qasm2Parser(Parser):
     class ClassicalAssignmentContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -1995,9 +1965,7 @@ class qasm2Parser(Parser):
     class AssignmentStatementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2008,9 +1976,7 @@ class qasm2Parser(Parser):
             return self.getTypedRuleContext(qasm2Parser.ClassicalAssignmentContext, 0)
 
         def quantumMeasurementAssignment(self):
-            return self.getTypedRuleContext(
-                qasm2Parser.QuantumMeasurementAssignmentContext, 0
-            )
+            return self.getTypedRuleContext(qasm2Parser.QuantumMeasurementAssignmentContext, 0)
 
         def getRuleIndex(self):
             return qasm2Parser.RULE_assignmentStatement
@@ -2055,9 +2021,7 @@ class qasm2Parser(Parser):
     class ReturnSignatureContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2099,9 +2063,7 @@ class qasm2Parser(Parser):
     class DesignatorContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2148,9 +2110,7 @@ class qasm2Parser(Parser):
     class DoubleDesignatorContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2207,9 +2167,7 @@ class qasm2Parser(Parser):
     class IdentifierListContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2268,9 +2226,7 @@ class qasm2Parser(Parser):
     class QuantumDeclarationContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2342,9 +2298,7 @@ class qasm2Parser(Parser):
     class QuantumArgumentContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2416,9 +2370,7 @@ class qasm2Parser(Parser):
     class QuantumArgumentListContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2477,9 +2429,7 @@ class qasm2Parser(Parser):
     class BitTypeContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2519,9 +2469,7 @@ class qasm2Parser(Parser):
     class SingleDesignatorTypeContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2575,9 +2523,7 @@ class qasm2Parser(Parser):
     class DoubleDesignatorTypeContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2611,9 +2557,7 @@ class qasm2Parser(Parser):
     class NoDesignatorTypeContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2663,9 +2607,7 @@ class qasm2Parser(Parser):
     class ClassicalTypeContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2757,9 +2699,7 @@ class qasm2Parser(Parser):
     class ConstantDeclarationContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2809,9 +2749,7 @@ class qasm2Parser(Parser):
     class SingleDesignatorDeclarationContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2840,9 +2778,7 @@ class qasm2Parser(Parser):
 
     def singleDesignatorDeclaration(self):
 
-        localctx = qasm2Parser.SingleDesignatorDeclarationContext(
-            self, self._ctx, self.state
-        )
+        localctx = qasm2Parser.SingleDesignatorDeclarationContext(self, self._ctx, self.state)
         self.enterRule(localctx, 50, self.RULE_singleDesignatorDeclaration)
         self._la = 0  # Token type
         try:
@@ -2871,9 +2807,7 @@ class qasm2Parser(Parser):
     class DoubleDesignatorDeclarationContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2902,9 +2836,7 @@ class qasm2Parser(Parser):
 
     def doubleDesignatorDeclaration(self):
 
-        localctx = qasm2Parser.DoubleDesignatorDeclarationContext(
-            self, self._ctx, self.state
-        )
+        localctx = qasm2Parser.DoubleDesignatorDeclarationContext(self, self._ctx, self.state)
         self.enterRule(localctx, 52, self.RULE_doubleDesignatorDeclaration)
         self._la = 0  # Token type
         try:
@@ -2933,9 +2865,7 @@ class qasm2Parser(Parser):
     class NoDesignatorDeclarationContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -2961,9 +2891,7 @@ class qasm2Parser(Parser):
 
     def noDesignatorDeclaration(self):
 
-        localctx = qasm2Parser.NoDesignatorDeclarationContext(
-            self, self._ctx, self.state
-        )
+        localctx = qasm2Parser.NoDesignatorDeclarationContext(self, self._ctx, self.state)
         self.enterRule(localctx, 54, self.RULE_noDesignatorDeclaration)
         self._la = 0  # Token type
         try:
@@ -2990,9 +2918,7 @@ class qasm2Parser(Parser):
     class BitDeclarationContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -3073,26 +2999,18 @@ class qasm2Parser(Parser):
     class ClassicalDeclarationContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
         def singleDesignatorDeclaration(self):
-            return self.getTypedRuleContext(
-                qasm2Parser.SingleDesignatorDeclarationContext, 0
-            )
+            return self.getTypedRuleContext(qasm2Parser.SingleDesignatorDeclarationContext, 0)
 
         def doubleDesignatorDeclaration(self):
-            return self.getTypedRuleContext(
-                qasm2Parser.DoubleDesignatorDeclarationContext, 0
-            )
+            return self.getTypedRuleContext(qasm2Parser.DoubleDesignatorDeclarationContext, 0)
 
         def noDesignatorDeclaration(self):
-            return self.getTypedRuleContext(
-                qasm2Parser.NoDesignatorDeclarationContext, 0
-            )
+            return self.getTypedRuleContext(qasm2Parser.NoDesignatorDeclarationContext, 0)
 
         def bitDeclaration(self):
             return self.getTypedRuleContext(qasm2Parser.BitDeclarationContext, 0)
@@ -3155,9 +3073,7 @@ class qasm2Parser(Parser):
     class ClassicalTypeListContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -3216,9 +3132,7 @@ class qasm2Parser(Parser):
     class ClassicalArgumentContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -3343,9 +3257,7 @@ class qasm2Parser(Parser):
     class ClassicalArgumentListContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -3404,9 +3316,7 @@ class qasm2Parser(Parser):
     class AliasStatementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -3460,9 +3370,7 @@ class qasm2Parser(Parser):
     class IndexIdentifierContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -3542,19 +3450,13 @@ class qasm2Parser(Parser):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    localctx = qasm2Parser.IndexIdentifierContext(
-                        self, _parentctx, _parentState
-                    )
-                    self.pushNewRecursionContext(
-                        localctx, _startState, self.RULE_indexIdentifier
-                    )
+                    localctx = qasm2Parser.IndexIdentifierContext(self, _parentctx, _parentState)
+                    self.pushNewRecursionContext(localctx, _startState, self.RULE_indexIdentifier)
                     self.state = 472
                     if not self.precpred(self._ctx, 1):
                         from antlr4.error.Errors import FailedPredicateException
 
-                        raise FailedPredicateException(
-                            self, "self.precpred(self._ctx, 1)"
-                        )
+                        raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
                     self.state = 473
                     self.match(qasm2Parser.T__16)
                     self.state = 474
@@ -3574,9 +3476,7 @@ class qasm2Parser(Parser):
     class IndexIdentifierListContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -3635,9 +3535,7 @@ class qasm2Parser(Parser):
     class RangeDefinitionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -3813,9 +3711,7 @@ class qasm2Parser(Parser):
     class QuantumGateDefinitionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -3859,9 +3755,7 @@ class qasm2Parser(Parser):
     class QuantumGateSignatureContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -3929,9 +3823,7 @@ class qasm2Parser(Parser):
     class QuantumGateNameContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -3978,9 +3870,7 @@ class qasm2Parser(Parser):
     class QuantumBlockContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4104,9 +3994,7 @@ class qasm2Parser(Parser):
     class QuantumLoopContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4148,9 +4036,7 @@ class qasm2Parser(Parser):
     class QuantumLoopBlockContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4267,9 +4153,7 @@ class qasm2Parser(Parser):
     class QuantumStatementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4339,9 +4223,7 @@ class qasm2Parser(Parser):
     class QuantumInstructionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4420,9 +4302,7 @@ class qasm2Parser(Parser):
     class QuantumPhaseContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4439,9 +4319,7 @@ class qasm2Parser(Parser):
             if i is None:
                 return self.getTypedRuleContexts(qasm2Parser.QuantumGateModifierContext)
             else:
-                return self.getTypedRuleContext(
-                    qasm2Parser.QuantumGateModifierContext, i
-                )
+                return self.getTypedRuleContext(qasm2Parser.QuantumGateModifierContext, i)
 
         def indexIdentifierList(self):
             return self.getTypedRuleContext(qasm2Parser.IndexIdentifierListContext, 0)
@@ -4508,9 +4386,7 @@ class qasm2Parser(Parser):
     class QuantumResetContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4549,9 +4425,7 @@ class qasm2Parser(Parser):
     class QuantumMeasurementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4590,9 +4464,7 @@ class qasm2Parser(Parser):
     class QuantumMeasurementAssignmentContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4621,9 +4493,7 @@ class qasm2Parser(Parser):
 
     def quantumMeasurementAssignment(self):
 
-        localctx = qasm2Parser.QuantumMeasurementAssignmentContext(
-            self, self._ctx, self.state
-        )
+        localctx = qasm2Parser.QuantumMeasurementAssignmentContext(self, self._ctx, self.state)
         self.enterRule(localctx, 96, self.RULE_quantumMeasurementAssignment)
         self._la = 0  # Token type
         try:
@@ -4667,9 +4537,7 @@ class qasm2Parser(Parser):
     class QuantumBarrierContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4714,9 +4582,7 @@ class qasm2Parser(Parser):
     class QuantumGateModifierContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4774,9 +4640,7 @@ class qasm2Parser(Parser):
     class PowModifierContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4825,9 +4689,7 @@ class qasm2Parser(Parser):
     class CtrlModifierContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4887,9 +4749,7 @@ class qasm2Parser(Parser):
     class QuantumGateCallContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -4903,9 +4763,7 @@ class qasm2Parser(Parser):
             if i is None:
                 return self.getTypedRuleContexts(qasm2Parser.QuantumGateModifierContext)
             else:
-                return self.getTypedRuleContext(
-                    qasm2Parser.QuantumGateModifierContext, i
-                )
+                return self.getTypedRuleContext(qasm2Parser.QuantumGateModifierContext, i)
 
         def LPAREN(self):
             return self.getToken(qasm2Parser.LPAREN, 0)
@@ -4978,9 +4836,7 @@ class qasm2Parser(Parser):
     class UnaryOperatorContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5008,9 +4864,7 @@ class qasm2Parser(Parser):
             self.state = 623
             _la = self._input.LA(1)
             if not (
-                _la == qasm2Parser.T__29
-                or _la == qasm2Parser.T__30
-                or _la == qasm2Parser.MINUS
+                _la == qasm2Parser.T__29 or _la == qasm2Parser.T__30 or _la == qasm2Parser.MINUS
             ):
                 self._errHandler.recoverInline(self)
             else:
@@ -5027,9 +4881,7 @@ class qasm2Parser(Parser):
     class ComparisonOperatorContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5083,9 +4935,7 @@ class qasm2Parser(Parser):
     class EqualityOperatorContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5125,9 +4975,7 @@ class qasm2Parser(Parser):
     class LogicalOperatorContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5167,9 +5015,7 @@ class qasm2Parser(Parser):
     class ExpressionStatementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5211,9 +5057,7 @@ class qasm2Parser(Parser):
     class ExpressionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5276,19 +5120,13 @@ class qasm2Parser(Parser):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    localctx = qasm2Parser.ExpressionContext(
-                        self, _parentctx, _parentState
-                    )
-                    self.pushNewRecursionContext(
-                        localctx, _startState, self.RULE_expression
-                    )
+                    localctx = qasm2Parser.ExpressionContext(self, _parentctx, _parentState)
+                    self.pushNewRecursionContext(localctx, _startState, self.RULE_expression)
                     self.state = 640
                     if not self.precpred(self._ctx, 1):
                         from antlr4.error.Errors import FailedPredicateException
 
-                        raise FailedPredicateException(
-                            self, "self.precpred(self._ctx, 1)"
-                        )
+                        raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
                     self.state = 641
                     self.match(qasm2Parser.T__16)
                     self.state = 642
@@ -5308,9 +5146,7 @@ class qasm2Parser(Parser):
     class LogicalAndExpressionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5334,9 +5170,7 @@ class qasm2Parser(Parser):
     def logicalAndExpression(self, _p: int = 0):
         _parentctx = self._ctx
         _parentState = self.state
-        localctx = qasm2Parser.LogicalAndExpressionContext(
-            self, self._ctx, _parentState
-        )
+        localctx = qasm2Parser.LogicalAndExpressionContext(self, self._ctx, _parentState)
         _prevctx = localctx
         _startState = 120
         self.enterRecursionRule(localctx, 120, self.RULE_logicalAndExpression, _p)
@@ -5363,9 +5197,7 @@ class qasm2Parser(Parser):
                     if not self.precpred(self._ctx, 1):
                         from antlr4.error.Errors import FailedPredicateException
 
-                        raise FailedPredicateException(
-                            self, "self.precpred(self._ctx, 1)"
-                        )
+                        raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
                     self.state = 652
                     self.match(qasm2Parser.T__37)
                     self.state = 653
@@ -5385,9 +5217,7 @@ class qasm2Parser(Parser):
     class BitOrExpressionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5428,19 +5258,13 @@ class qasm2Parser(Parser):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    localctx = qasm2Parser.BitOrExpressionContext(
-                        self, _parentctx, _parentState
-                    )
-                    self.pushNewRecursionContext(
-                        localctx, _startState, self.RULE_bitOrExpression
-                    )
+                    localctx = qasm2Parser.BitOrExpressionContext(self, _parentctx, _parentState)
+                    self.pushNewRecursionContext(localctx, _startState, self.RULE_bitOrExpression)
                     self.state = 662
                     if not self.precpred(self._ctx, 1):
                         from antlr4.error.Errors import FailedPredicateException
 
-                        raise FailedPredicateException(
-                            self, "self.precpred(self._ctx, 1)"
-                        )
+                        raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
                     self.state = 663
                     self.match(qasm2Parser.T__38)
                     self.state = 664
@@ -5460,9 +5284,7 @@ class qasm2Parser(Parser):
     class XOrExpressionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5503,19 +5325,13 @@ class qasm2Parser(Parser):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    localctx = qasm2Parser.XOrExpressionContext(
-                        self, _parentctx, _parentState
-                    )
-                    self.pushNewRecursionContext(
-                        localctx, _startState, self.RULE_xOrExpression
-                    )
+                    localctx = qasm2Parser.XOrExpressionContext(self, _parentctx, _parentState)
+                    self.pushNewRecursionContext(localctx, _startState, self.RULE_xOrExpression)
                     self.state = 673
                     if not self.precpred(self._ctx, 1):
                         from antlr4.error.Errors import FailedPredicateException
 
-                        raise FailedPredicateException(
-                            self, "self.precpred(self._ctx, 1)"
-                        )
+                        raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
                     self.state = 674
                     self.match(qasm2Parser.T__39)
                     self.state = 675
@@ -5535,9 +5351,7 @@ class qasm2Parser(Parser):
     class BitAndExpressionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5578,19 +5392,13 @@ class qasm2Parser(Parser):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    localctx = qasm2Parser.BitAndExpressionContext(
-                        self, _parentctx, _parentState
-                    )
-                    self.pushNewRecursionContext(
-                        localctx, _startState, self.RULE_bitAndExpression
-                    )
+                    localctx = qasm2Parser.BitAndExpressionContext(self, _parentctx, _parentState)
+                    self.pushNewRecursionContext(localctx, _startState, self.RULE_bitAndExpression)
                     self.state = 684
                     if not self.precpred(self._ctx, 1):
                         from antlr4.error.Errors import FailedPredicateException
 
-                        raise FailedPredicateException(
-                            self, "self.precpred(self._ctx, 1)"
-                        )
+                        raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
                     self.state = 685
                     self.match(qasm2Parser.T__40)
                     self.state = 686
@@ -5610,9 +5418,7 @@ class qasm2Parser(Parser):
     class EqualityExpressionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5656,9 +5462,7 @@ class qasm2Parser(Parser):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    localctx = qasm2Parser.EqualityExpressionContext(
-                        self, _parentctx, _parentState
-                    )
+                    localctx = qasm2Parser.EqualityExpressionContext(self, _parentctx, _parentState)
                     self.pushNewRecursionContext(
                         localctx, _startState, self.RULE_equalityExpression
                     )
@@ -5666,9 +5470,7 @@ class qasm2Parser(Parser):
                     if not self.precpred(self._ctx, 1):
                         from antlr4.error.Errors import FailedPredicateException
 
-                        raise FailedPredicateException(
-                            self, "self.precpred(self._ctx, 1)"
-                        )
+                        raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
                     self.state = 696
                     self.equalityOperator()
                     self.state = 697
@@ -5688,9 +5490,7 @@ class qasm2Parser(Parser):
     class ComparisonExpressionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5717,9 +5517,7 @@ class qasm2Parser(Parser):
     def comparisonExpression(self, _p: int = 0):
         _parentctx = self._ctx
         _parentState = self.state
-        localctx = qasm2Parser.ComparisonExpressionContext(
-            self, self._ctx, _parentState
-        )
+        localctx = qasm2Parser.ComparisonExpressionContext(self, self._ctx, _parentState)
         _prevctx = localctx
         _startState = 130
         self.enterRecursionRule(localctx, 130, self.RULE_comparisonExpression, _p)
@@ -5746,9 +5544,7 @@ class qasm2Parser(Parser):
                     if not self.precpred(self._ctx, 1):
                         from antlr4.error.Errors import FailedPredicateException
 
-                        raise FailedPredicateException(
-                            self, "self.precpred(self._ctx, 1)"
-                        )
+                        raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
                     self.state = 708
                     self.comparisonOperator()
                     self.state = 709
@@ -5768,9 +5564,7 @@ class qasm2Parser(Parser):
     class BitShiftExpressionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5812,9 +5606,7 @@ class qasm2Parser(Parser):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    localctx = qasm2Parser.BitShiftExpressionContext(
-                        self, _parentctx, _parentState
-                    )
+                    localctx = qasm2Parser.BitShiftExpressionContext(self, _parentctx, _parentState)
                     self.pushNewRecursionContext(
                         localctx, _startState, self.RULE_bitShiftExpression
                     )
@@ -5822,9 +5614,7 @@ class qasm2Parser(Parser):
                     if not self.precpred(self._ctx, 1):
                         from antlr4.error.Errors import FailedPredicateException
 
-                        raise FailedPredicateException(
-                            self, "self.precpred(self._ctx, 1)"
-                        )
+                        raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
                     self.state = 720
                     _la = self._input.LA(1)
                     if not (_la == qasm2Parser.T__41 or _la == qasm2Parser.T__42):
@@ -5849,16 +5639,12 @@ class qasm2Parser(Parser):
     class AdditiveExpressionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
         def multiplicativeExpression(self):
-            return self.getTypedRuleContext(
-                qasm2Parser.MultiplicativeExpressionContext, 0
-            )
+            return self.getTypedRuleContext(qasm2Parser.MultiplicativeExpressionContext, 0)
 
         def additiveExpression(self):
             return self.getTypedRuleContext(qasm2Parser.AdditiveExpressionContext, 0)
@@ -5901,9 +5687,7 @@ class qasm2Parser(Parser):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    localctx = qasm2Parser.AdditiveExpressionContext(
-                        self, _parentctx, _parentState
-                    )
+                    localctx = qasm2Parser.AdditiveExpressionContext(self, _parentctx, _parentState)
                     self.pushNewRecursionContext(
                         localctx, _startState, self.RULE_additiveExpression
                     )
@@ -5911,9 +5695,7 @@ class qasm2Parser(Parser):
                     if not self.precpred(self._ctx, 1):
                         from antlr4.error.Errors import FailedPredicateException
 
-                        raise FailedPredicateException(
-                            self, "self.precpred(self._ctx, 1)"
-                        )
+                        raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
                     self.state = 731
                     _la = self._input.LA(1)
                     if not (_la == qasm2Parser.PLUS or _la == qasm2Parser.MINUS):
@@ -5938,9 +5720,7 @@ class qasm2Parser(Parser):
     class MultiplicativeExpressionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -5951,9 +5731,7 @@ class qasm2Parser(Parser):
             return self.getTypedRuleContext(qasm2Parser.UnaryExpressionContext, 0)
 
         def multiplicativeExpression(self):
-            return self.getTypedRuleContext(
-                qasm2Parser.MultiplicativeExpressionContext, 0
-            )
+            return self.getTypedRuleContext(qasm2Parser.MultiplicativeExpressionContext, 0)
 
         def MUL(self):
             return self.getToken(qasm2Parser.MUL, 0)
@@ -5978,9 +5756,7 @@ class qasm2Parser(Parser):
     def multiplicativeExpression(self, _p: int = 0):
         _parentctx = self._ctx
         _parentState = self.state
-        localctx = qasm2Parser.MultiplicativeExpressionContext(
-            self, self._ctx, _parentState
-        )
+        localctx = qasm2Parser.MultiplicativeExpressionContext(self, self._ctx, _parentState)
         _prevctx = localctx
         _startState = 136
         self.enterRecursionRule(localctx, 136, self.RULE_multiplicativeExpression, _p)
@@ -6050,9 +5826,7 @@ class qasm2Parser(Parser):
                     if not self.precpred(self._ctx, 1):
                         from antlr4.error.Errors import FailedPredicateException
 
-                        raise FailedPredicateException(
-                            self, "self.precpred(self._ctx, 1)"
-                        )
+                        raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
                     self.state = 744
                     _la = self._input.LA(1)
                     if not (
@@ -6136,9 +5910,7 @@ class qasm2Parser(Parser):
     class UnaryExpressionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -6180,9 +5952,7 @@ class qasm2Parser(Parser):
     class PowerExpressionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -6238,9 +6008,7 @@ class qasm2Parser(Parser):
     class ExpressionTerminatorContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -6309,9 +6077,7 @@ class qasm2Parser(Parser):
     def expressionTerminator(self, _p: int = 0):
         _parentctx = self._ctx
         _parentState = self.state
-        localctx = qasm2Parser.ExpressionTerminatorContext(
-            self, self._ctx, _parentState
-        )
+        localctx = qasm2Parser.ExpressionTerminatorContext(self, self._ctx, _parentState)
         _prevctx = localctx
         _startState = 142
         self.enterRecursionRule(localctx, 142, self.RULE_expressionTerminator, _p)
@@ -6402,9 +6168,7 @@ class qasm2Parser(Parser):
                         if not self.precpred(self._ctx, 2):
                             from antlr4.error.Errors import FailedPredicateException
 
-                            raise FailedPredicateException(
-                                self, "self.precpred(self._ctx, 2)"
-                            )
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 2)")
                         self.state = 782
                         self.match(qasm2Parser.LBRACKET)
                         self.state = 783
@@ -6424,9 +6188,7 @@ class qasm2Parser(Parser):
                         if not self.precpred(self._ctx, 1):
                             from antlr4.error.Errors import FailedPredicateException
 
-                            raise FailedPredicateException(
-                                self, "self.precpred(self._ctx, 1)"
-                            )
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
                         self.state = 787
                         self.incrementor()
                         pass
@@ -6446,9 +6208,7 @@ class qasm2Parser(Parser):
     class BooleanLiteralContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -6488,9 +6248,7 @@ class qasm2Parser(Parser):
     class IncrementorContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -6530,9 +6288,7 @@ class qasm2Parser(Parser):
     class BuiltInCallContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -6620,9 +6376,7 @@ class qasm2Parser(Parser):
     class BuiltInMathContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -6681,9 +6435,7 @@ class qasm2Parser(Parser):
     class CastOperatorContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -6720,9 +6472,7 @@ class qasm2Parser(Parser):
     class ExpressionListContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -6781,9 +6531,7 @@ class qasm2Parser(Parser):
     class EqualsExpressionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -6825,9 +6573,7 @@ class qasm2Parser(Parser):
     class AssignmentOperatorContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -6893,9 +6639,7 @@ class qasm2Parser(Parser):
     class SetDeclarationContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -6966,9 +6710,7 @@ class qasm2Parser(Parser):
     class ProgramBlockContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -7132,9 +6874,7 @@ class qasm2Parser(Parser):
     class BranchingStatementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -7200,9 +6940,7 @@ class qasm2Parser(Parser):
     class LoopSignatureContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -7276,9 +7014,7 @@ class qasm2Parser(Parser):
     class LoopStatementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -7320,9 +7056,7 @@ class qasm2Parser(Parser):
     class EndStatementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -7361,9 +7095,7 @@ class qasm2Parser(Parser):
     class ReturnStatementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -7456,9 +7188,7 @@ class qasm2Parser(Parser):
     class ControlDirectiveContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -7527,9 +7257,7 @@ class qasm2Parser(Parser):
     class ExternDeclarationContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -7629,9 +7357,7 @@ class qasm2Parser(Parser):
     class ExternCallContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -7737,9 +7463,7 @@ class qasm2Parser(Parser):
     class SubroutineDefinitionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -7849,9 +7573,7 @@ class qasm2Parser(Parser):
     class SubroutineBlockContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -7987,9 +7709,7 @@ class qasm2Parser(Parser):
     class SubroutineCallContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -8105,9 +7825,7 @@ class qasm2Parser(Parser):
     class PragmaContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -8235,9 +7953,7 @@ class qasm2Parser(Parser):
     class TimingTypeContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -8277,9 +7993,7 @@ class qasm2Parser(Parser):
     class TimingBoxContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -8329,9 +8043,7 @@ class qasm2Parser(Parser):
     class TimingIdentifierContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -8411,9 +8123,7 @@ class qasm2Parser(Parser):
     class TimingInstructionNameContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -8453,9 +8163,7 @@ class qasm2Parser(Parser):
     class TimingInstructionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -8576,9 +8284,7 @@ class qasm2Parser(Parser):
     class TimingStatementContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -8636,16 +8342,12 @@ class qasm2Parser(Parser):
     class CalibrationContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
         def calibrationGrammarDeclaration(self):
-            return self.getTypedRuleContext(
-                qasm2Parser.CalibrationGrammarDeclarationContext, 0
-            )
+            return self.getTypedRuleContext(qasm2Parser.CalibrationGrammarDeclarationContext, 0)
 
         def calibrationDefinition(self):
             return self.getTypedRuleContext(qasm2Parser.CalibrationDefinitionContext, 0)
@@ -8693,9 +8395,7 @@ class qasm2Parser(Parser):
     class CalibrationGrammarDeclarationContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -8718,9 +8418,7 @@ class qasm2Parser(Parser):
 
     def calibrationGrammarDeclaration(self):
 
-        localctx = qasm2Parser.CalibrationGrammarDeclarationContext(
-            self, self._ctx, self.state
-        )
+        localctx = qasm2Parser.CalibrationGrammarDeclarationContext(self, self._ctx, self.state)
         self.enterRule(localctx, 202, self.RULE_calibrationGrammarDeclaration)
         try:
             self.enterOuterAlt(localctx, 1)
@@ -8741,9 +8439,7 @@ class qasm2Parser(Parser):
     class CalibrationDefinitionContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -8769,9 +8465,7 @@ class qasm2Parser(Parser):
             return self.getTypedRuleContext(qasm2Parser.ReturnSignatureContext, 0)
 
         def calibrationArgumentList(self):
-            return self.getTypedRuleContext(
-                qasm2Parser.CalibrationArgumentListContext, 0
-            )
+            return self.getTypedRuleContext(qasm2Parser.CalibrationArgumentListContext, 0)
 
         def getRuleIndex(self):
             return qasm2Parser.RULE_calibrationDefinition
@@ -8894,9 +8588,7 @@ class qasm2Parser(Parser):
     class CalibrationGrammarContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -8939,9 +8631,7 @@ class qasm2Parser(Parser):
     class CalibrationArgumentListContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -8964,9 +8654,7 @@ class qasm2Parser(Parser):
 
     def calibrationArgumentList(self):
 
-        localctx = qasm2Parser.CalibrationArgumentListContext(
-            self, self._ctx, self.state
-        )
+        localctx = qasm2Parser.CalibrationArgumentListContext(self, self._ctx, self.state)
         self.enterRule(localctx, 208, self.RULE_calibrationArgumentList)
         try:
             self.state = 1023
@@ -8995,9 +8683,7 @@ class qasm2Parser(Parser):
     class MetaCommentContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -9073,9 +8759,7 @@ class qasm2Parser(Parser):
         if predIndex == 1:
             return self.precpred(self._ctx, 1)
 
-    def logicalAndExpression_sempred(
-        self, localctx: LogicalAndExpressionContext, predIndex: int
-    ):
+    def logicalAndExpression_sempred(self, localctx: LogicalAndExpressionContext, predIndex: int):
         if predIndex == 2:
             return self.precpred(self._ctx, 1)
 
@@ -9087,33 +8771,23 @@ class qasm2Parser(Parser):
         if predIndex == 4:
             return self.precpred(self._ctx, 1)
 
-    def bitAndExpression_sempred(
-        self, localctx: BitAndExpressionContext, predIndex: int
-    ):
+    def bitAndExpression_sempred(self, localctx: BitAndExpressionContext, predIndex: int):
         if predIndex == 5:
             return self.precpred(self._ctx, 1)
 
-    def equalityExpression_sempred(
-        self, localctx: EqualityExpressionContext, predIndex: int
-    ):
+    def equalityExpression_sempred(self, localctx: EqualityExpressionContext, predIndex: int):
         if predIndex == 6:
             return self.precpred(self._ctx, 1)
 
-    def comparisonExpression_sempred(
-        self, localctx: ComparisonExpressionContext, predIndex: int
-    ):
+    def comparisonExpression_sempred(self, localctx: ComparisonExpressionContext, predIndex: int):
         if predIndex == 7:
             return self.precpred(self._ctx, 1)
 
-    def bitShiftExpression_sempred(
-        self, localctx: BitShiftExpressionContext, predIndex: int
-    ):
+    def bitShiftExpression_sempred(self, localctx: BitShiftExpressionContext, predIndex: int):
         if predIndex == 8:
             return self.precpred(self._ctx, 1)
 
-    def additiveExpression_sempred(
-        self, localctx: AdditiveExpressionContext, predIndex: int
-    ):
+    def additiveExpression_sempred(self, localctx: AdditiveExpressionContext, predIndex: int):
         if predIndex == 9:
             return self.precpred(self._ctx, 1)
 
@@ -9123,9 +8797,7 @@ class qasm2Parser(Parser):
         if predIndex == 10:
             return self.precpred(self._ctx, 1)
 
-    def expressionTerminator_sempred(
-        self, localctx: ExpressionTerminatorContext, predIndex: int
-    ):
+    def expressionTerminator_sempred(self, localctx: ExpressionTerminatorContext, predIndex: int):
         if predIndex == 11:
             return self.precpred(self._ctx, 2)
 

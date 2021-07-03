@@ -256,9 +256,7 @@ def prepare_target_list(regs: list, targets: list) -> list:
         _reg = find_register_named(regs, _regname)
         if not _reg:
             raise QasmError(
-                "prepare_target_list could not find register {} in {} ".format(
-                    _regname, regs
-                )
+                "prepare_target_list could not find register {} in {} ".format(_regname, regs)
             )
         if _indices:
             _targlist.append(_reg[_indices[0] : _indices[1]])
@@ -393,9 +391,7 @@ class Qasm2Translator:
             qc.add_register(_qr)
         else:
             raise QasmError(
-                "Quantum declaration of unknown or unsuppored quantum type {}".format(
-                    quantum_type
-                )
+                "Quantum declaration of unknown or unsuppored quantum type {}".format(quantum_type)
             )
 
     @staticmethod
@@ -447,9 +443,7 @@ class Qasm2Translator:
             qc.add_register(_cr)
         else:
             raise QasmError(
-                "Quantum declaration of unknown or unsuppored quantum type {}".format(
-                    bit_type
-                )
+                "Quantum declaration of unknown or unsuppored quantum type {}".format(bit_type)
             )
 
     @staticmethod
@@ -715,9 +709,7 @@ class Qasm2Translator:
                     except Exception as ex:
                         traceback.print_tb(ex.__traceback__)
                         raise QasmError(
-                            "translate_code_entry {} failed with Exception {}".format(
-                                entry, ex
-                            )
+                            "translate_code_entry {} failed with Exception {}".format(entry, ex)
                         )
             if _gate:
                 Qasm2Translator.apply_gate(
@@ -779,9 +771,7 @@ class Qasm2Translator:
                     except Exception as ex:
                         traceback.print_tb(ex.__traceback__)
                         raise QasmError(
-                            "translate_code_entry {} failed with Exception {}".format(
-                                entry, ex
-                            )
+                            "translate_code_entry {} failed with Exception {}".format(entry, ex)
                         )
             if _gate:
                 instruction = Qasm2Translator.apply_gate(
@@ -791,9 +781,7 @@ class Qasm2Translator:
                     entry["target_list"],
                 )
                 instruction.c_if(
-                    find_register_named(
-                        qc.cregs, entry["comparison_expression_list"][0]
-                    ),
+                    find_register_named(qc.cregs, entry["comparison_expression_list"][0]),
                     int(entry["comparison_expression_list"][2]),
                 )
             else:
@@ -808,9 +796,7 @@ class Qasm2Translator:
 
         else:
             raise QasmError(
-                "Translation of code entry {} failed due to unknown code entry type.".format(
-                    entry
-                )
+                "Translation of code entry {} failed due to unknown code entry type.".format(entry)
             )
 
     def translate(self) -> QuantumCircuit:

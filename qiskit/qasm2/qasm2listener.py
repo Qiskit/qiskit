@@ -283,15 +283,11 @@ class Qasm2Listener(qasm2Listener):
         _ = self.ast.pop()
 
     # Enter a parse tree produced by qasm2Parser#quantumDeclarationStatement.
-    def enterQuantumDeclarationStatement(
-        self, ctx: qasm2Parser.QuantumDeclarationStatementContext
-    ):
+    def enterQuantumDeclarationStatement(self, ctx: qasm2Parser.QuantumDeclarationStatementContext):
         self.ast.push(ctx)
 
     # Exit a parse tree produced by qasm2Parser#quantumDeclarationStatement.
-    def exitQuantumDeclarationStatement(
-        self, ctx: qasm2Parser.QuantumDeclarationStatementContext
-    ):
+    def exitQuantumDeclarationStatement(self, ctx: qasm2Parser.QuantumDeclarationStatementContext):
         _ = self.ast.pop()
 
     # Enter a parse tree produced by qasm2Parser#classicalDeclarationStatement.
@@ -437,39 +433,27 @@ class Qasm2Listener(qasm2Listener):
         _ = self.ast.pop()
 
     # Enter a parse tree produced by qasm2Parser#singleDesignatorDeclaration.
-    def enterSingleDesignatorDeclaration(
-        self, ctx: qasm2Parser.SingleDesignatorDeclarationContext
-    ):
+    def enterSingleDesignatorDeclaration(self, ctx: qasm2Parser.SingleDesignatorDeclarationContext):
         self.ast.push(ctx)
 
     # Exit a parse tree produced by qasm2Parser#singleDesignatorDeclaration.
-    def exitSingleDesignatorDeclaration(
-        self, ctx: qasm2Parser.SingleDesignatorDeclarationContext
-    ):
+    def exitSingleDesignatorDeclaration(self, ctx: qasm2Parser.SingleDesignatorDeclarationContext):
         _ = self.ast.pop()
 
     # Enter a parse tree produced by qasm2Parser#doubleDesignatorDeclaration.
-    def enterDoubleDesignatorDeclaration(
-        self, ctx: qasm2Parser.DoubleDesignatorDeclarationContext
-    ):
+    def enterDoubleDesignatorDeclaration(self, ctx: qasm2Parser.DoubleDesignatorDeclarationContext):
         self.ast.push(ctx)
 
     # Exit a parse tree produced by qasm2Parser#doubleDesignatorDeclaration.
-    def exitDoubleDesignatorDeclaration(
-        self, ctx: qasm2Parser.DoubleDesignatorDeclarationContext
-    ):
+    def exitDoubleDesignatorDeclaration(self, ctx: qasm2Parser.DoubleDesignatorDeclarationContext):
         _ = self.ast.pop()
 
     # Enter a parse tree produced by qasm2Parser#noDesignatorDeclaration.
-    def enterNoDesignatorDeclaration(
-        self, ctx: qasm2Parser.NoDesignatorDeclarationContext
-    ):
+    def enterNoDesignatorDeclaration(self, ctx: qasm2Parser.NoDesignatorDeclarationContext):
         self.ast.push(ctx)
 
     # Exit a parse tree produced by qasm2Parser#noDesignatorDeclaration.
-    def exitNoDesignatorDeclaration(
-        self, ctx: qasm2Parser.NoDesignatorDeclarationContext
-    ):
+    def exitNoDesignatorDeclaration(self, ctx: qasm2Parser.NoDesignatorDeclarationContext):
         _ = self.ast.pop()
 
     # Enter a parse tree produced by qasm2Parser#bitDeclaration.
@@ -598,16 +582,10 @@ class Qasm2Listener(qasm2Listener):
                 self.ast.scratch["declaration"].append(_txt)
             self.ast.scratch["op"] = self.ast.scratch["declaration"][0]
             if self.ast.scratch["declaration"][1] == "(":
-                self.ast.scratch["parameter_list"] = self.ast.scratch["declaration"][
-                    2
-                ].split(",")
-                self.ast.scratch["target_list"] = self.ast.scratch["declaration"][
-                    4
-                ].split(",")
+                self.ast.scratch["parameter_list"] = self.ast.scratch["declaration"][2].split(",")
+                self.ast.scratch["target_list"] = self.ast.scratch["declaration"][4].split(",")
             else:
-                self.ast.scratch["target_list"] = self.ast.scratch["declaration"][
-                    1
-                ].split(",")
+                self.ast.scratch["target_list"] = self.ast.scratch["declaration"][1].split(",")
 
     # Exit a parse tree produced by qasm2Parser#quantumGateSignature.
     def exitQuantumGateSignature(self, ctx: qasm2Parser.QuantumGateSignatureContext):
@@ -874,15 +852,11 @@ class Qasm2Listener(qasm2Listener):
         _ = self.ast.pop()
 
     # Enter a parse tree produced by qasm2Parser#multiplicativeExpression.
-    def enterMultiplicativeExpression(
-        self, ctx: qasm2Parser.MultiplicativeExpressionContext
-    ):
+    def enterMultiplicativeExpression(self, ctx: qasm2Parser.MultiplicativeExpressionContext):
         self.ast.push(ctx)
 
     # Exit a parse tree produced by qasm2Parser#multiplicativeExpression.
-    def exitMultiplicativeExpression(
-        self, ctx: qasm2Parser.MultiplicativeExpressionContext
-    ):
+    def exitMultiplicativeExpression(self, ctx: qasm2Parser.MultiplicativeExpressionContext):
         _ = self.ast.pop()
 
     # Enter a parse tree produced by qasm2Parser#unaryExpression.
@@ -1193,23 +1167,17 @@ class Qasm2Listener(qasm2Listener):
         _ = self.ast.pop()
 
     # Enter a parse tree produced by qasm2Parser#calibrationArgumentList.
-    def enterCalibrationArgumentList(
-        self, ctx: qasm2Parser.CalibrationArgumentListContext
-    ):
+    def enterCalibrationArgumentList(self, ctx: qasm2Parser.CalibrationArgumentListContext):
         self.ast.push(ctx)
 
     # Exit a parse tree produced by qasm2Parser#calibrationArgumentList.
-    def exitCalibrationArgumentList(
-        self, ctx: qasm2Parser.CalibrationArgumentListContext
-    ):
+    def exitCalibrationArgumentList(self, ctx: qasm2Parser.CalibrationArgumentListContext):
         _ = self.ast.pop()
 
     # Enter a parse tree produced by qasm2Parser#metaComment.
     def enterMetaComment(self, ctx: qasm2Parser.MetaCommentContext):
         self.ast.push(ctx)
-        self.ast.scratch = CodeBodyMetaComment(
-            self.ast.peek_filenum(), ctx.start.line, ctx, list()
-        )
+        self.ast.scratch = CodeBodyMetaComment(self.ast.peek_filenum(), ctx.start.line, ctx, list())
         for child in ctx.getChildren():
             self.ast.scratch["metacomment_list"].append(child.getText())
 
