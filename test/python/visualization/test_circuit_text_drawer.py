@@ -2956,6 +2956,7 @@ class TestTextConditional(QiskitTestCase):
         )
 
         self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
+
     def test_text_conditional_reverse_bits_1(self):
         """Classical condition on 2q2c circuit with cregbundle=False and reverse bits"""
         qr = QuantumRegister(2, "qr")
