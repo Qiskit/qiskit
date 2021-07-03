@@ -17,7 +17,7 @@ import itertools
 import numpy as np
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.reset import Reset
-from qiskit.circuit.library.standard_gates import IGate, UGate
+from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 from qiskit.transpiler.passes.optimization import Optimize1qGates
@@ -170,13 +170,23 @@ class DynamicalDecoupling(TransformationPass):
 
         new_dag = dag._copy_circuit_metadata()
 
+        qubit_index_map = {qubit: index for index, qubit in enumerate(new_dag.qubits)}
+        physical_qubit_sequence_duration_map = {}
+        for qubit in new_dag.qubits:
+            physical_qubit = qubit_index_map[qubit]
+            dd_sequence_duration = 0
+            for gate in self._dd_sequence:
+                gate.duration = self._durations.get(gate, physical_qubit)
+                dd_sequence_duration += gate.duration
+            physical_qubit_sequence_duration_map[physical_qubit] = dd_sequence_duration
+
         for nd in dag.topological_op_nodes():
             if not isinstance(nd.op, Delay):
                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
                 continue
 
             dag_qubit = nd.qargs[0]
-            physical_qubit = new_dag.qubits.index(dag_qubit)
+            physical_qubit = qubit_index_map[dag_qubit]
             if physical_qubit not in self._qubits:  # skip unwanted qubits
                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
                 continue
@@ -184,14 +194,11 @@ class DynamicalDecoupling(TransformationPass):
             pred = next(dag.predecessors(nd))
             succ = next(dag.successors(nd))
             if self._skip_reset_qubits:  # discount initial delays
-                if pred.type == "in" or isinstance(pred, Reset):
+                if pred.type == "in" or isinstance(pred.op, Reset):
                     new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
                     continue
 
-            dd_sequence_duration = 0
-            for gate in self._dd_sequence:
-                gate.duration = self._durations.get(gate, physical_qubit)
-                dd_sequence_duration += gate.duration
+            dd_sequence_duration = physical_qubit_sequence_duration_map[physical_qubit]
             slack = nd.op.duration - dd_sequence_duration
             if slack <= 0:  # dd doesn't fit
                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
@@ -201,14 +208,14 @@ class DynamicalDecoupling(TransformationPass):
                 u_inv = self._dd_sequence[0].inverse().to_matrix()
                 theta, phi, lam, phase = OneQubitEulerDecomposer().angles_and_phase(u_inv)
                 # absorb the inverse into the successor (from left in circuit)
-                if succ.type == "op" and isinstance(succ.op, UGate):
+                if succ.type == "op" and isinstance(succ.op, (UGate, U3Gate)):
                     theta_r, phi_r, lam_r = succ.op.params
                     succ.op.params = Optimize1qGates.compose_u3(
                         theta_r, phi_r, lam_r, theta, phi, lam
                     )
                     sequence_gphase += phase
                 # absorb the inverse into the predecessor (from right in circuit)
-                elif pred.type == "op" and isinstance(pred.op, UGate):
+                elif pred.type == "op" and isinstance(pred.op, (UGate, U3Gate)):
                     theta_l, phi_l, lam_l = pred.op.params
                     pred.op.params = Optimize1qGates.compose_u3(
                         theta, phi, lam, theta_l, phi_l, lam_l
