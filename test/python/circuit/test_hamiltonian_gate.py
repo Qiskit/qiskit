@@ -98,7 +98,8 @@ class TestHamiltonianCircuit(QiskitTestCase):
         qc.hamiltonian(operator=matrix, time=1, qubits=qr[0])
 
         with self.assertRaises(ExtensionError):
-            qc.qasm()
+            with self.assertWarns(DeprecationWarning):
+                qc.qasm()
 
     def test_2q_hamiltonian(self):
         """test 2 qubit hamiltonian"""

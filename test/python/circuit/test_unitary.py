@@ -81,7 +81,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         qc.x(qr[0])
         qc.append(UnitaryGate(matrix), [qr[0]])
         # test of qasm output
-        self.log.info(qc.qasm())
+        with self.assertWarns(DeprecationWarning):
+            self.log.info(qc.qasm())
         # test of text drawer
         self.log.info(qc)
         dag = circuit_to_dag(qc)
@@ -107,7 +108,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         passman.append(CXCancellation())
         qc2 = passman.run(qc)
         # test of qasm output
-        self.log.info(qc2.qasm())
+        with self.assertWarns(DeprecationWarning):
+            self.log.info(qc2.qasm())
         # test of text drawer
         self.log.info(qc2)
         dag = circuit_to_dag(qc)
@@ -227,7 +229,8 @@ class TestUnitaryCircuit(QiskitTestCase):
             "custom_gate q0[0];\n"
             "custom_gate q0[1];\n"
         )
-        self.assertEqual(expected_qasm, qc.qasm())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected_qasm, qc.qasm())
 
     def test_qasm_unitary_twice(self):
         """test that a custom unitary can be converted to qasm and that if
@@ -253,8 +256,9 @@ class TestUnitaryCircuit(QiskitTestCase):
             "custom_gate q0[0];\n"
             "custom_gate q0[1];\n"
         )
-        self.assertEqual(expected_qasm, qc.qasm())
-        self.assertEqual(expected_qasm, qc.qasm())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected_qasm, qc.qasm())
+            self.assertEqual(expected_qasm, qc.qasm())
 
     def test_qasm_2q_unitary(self):
         """test that a 2 qubit custom unitary can be converted to qasm"""
@@ -281,7 +285,8 @@ class TestUnitaryCircuit(QiskitTestCase):
             "custom_gate q0[0],q0[1];\n"
             "custom_gate q0[1],q0[0];\n"
         )
-        self.assertEqual(expected_qasm, qc.qasm())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected_qasm, qc.qasm())
 
     def test_unitary_decomposition(self):
         """Test decomposition for unitary gates over 2 qubits."""

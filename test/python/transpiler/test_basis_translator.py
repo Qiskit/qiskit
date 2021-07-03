@@ -825,7 +825,8 @@ class TestBasisExamples(QiskitTestCase):
             "qasm",
             "TestBasisTranslator_skip_target.qasm",
         )
-        circ = circ.from_qasm_file(qasm_file)
+        with self.assertWarns(DeprecationWarning):
+            circ = circ.from_qasm_file(qasm_file)
         circ_transpiled = transpile(
             circ,
             basis_gates=["id", "rz", "sx", "x", "cx"],

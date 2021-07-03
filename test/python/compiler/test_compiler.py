@@ -103,7 +103,8 @@ class TestCompiler(QiskitTestCase):
         qobj = assemble(qc_b, shots=shots, seed_simulator=88)
         job = backend.run(qobj)
         result = job.result()
-        qasm_to_check = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm_to_check = qc.qasm()
         self.assertEqual(len(qasm_to_check), 173)
 
         counts = result.get_counts(qc)
@@ -395,7 +396,8 @@ class TestCompiler(QiskitTestCase):
     def test_random_parameter_circuit(self):
         """Run a circuit with randomly generated parameters."""
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
-        circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "random_n5_d5.qasm"))
+        with self.assertWarns(DeprecationWarning):
+            circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "random_n5_d5.qasm"))
         coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         shots = 1024
         qobj = execute(

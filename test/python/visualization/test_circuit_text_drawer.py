@@ -1752,7 +1752,8 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
             ]
         )
 
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit, vertical_compression="low")), expected)
 
     def test_text_conditional_1_bundle(self):
@@ -1780,7 +1781,8 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
             ]
         )
 
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(_text_circuit_drawer(circuit, vertical_compression="low", cregbundle=True)),
             expected,
@@ -1915,7 +1917,8 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
             ]
         )
 
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(_text_circuit_drawer(circuit, vertical_compression="medium")), expected
         )
@@ -1944,7 +1947,8 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
             ]
         )
 
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(_text_circuit_drawer(circuit, vertical_compression="medium", cregbundle=True)),
             expected,
@@ -1977,7 +1981,8 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 "             =1 ",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(_text_circuit_drawer(circuit, vertical_compression="medium")), expected
         )
@@ -2006,7 +2011,8 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 "         1 └─────┘",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(_text_circuit_drawer(circuit, vertical_compression="medium", cregbundle=True)),
             expected,
@@ -2039,7 +2045,8 @@ class TestTextConditional(QiskitTestCase):
             ]
         )
 
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
 
     def test_text_conditional_1(self):
@@ -2065,7 +2072,8 @@ class TestTextConditional(QiskitTestCase):
             ]
         )
 
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_conditional_2_cregbundle(self):
@@ -2090,7 +2098,8 @@ class TestTextConditional(QiskitTestCase):
                 "               └─────┘",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
 
     def test_text_conditional_2(self):
@@ -2119,7 +2128,8 @@ class TestTextConditional(QiskitTestCase):
                 "               =2 ",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_conditional_3_cregbundle(self):
@@ -2144,7 +2154,8 @@ class TestTextConditional(QiskitTestCase):
                 "               └─────┘",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
 
     def test_text_conditional_3(self):
@@ -2177,7 +2188,8 @@ class TestTextConditional(QiskitTestCase):
                 "               =3 ",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_conditional_4(self):
@@ -2214,7 +2226,8 @@ class TestTextConditional(QiskitTestCase):
                 "               =4 ",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_conditional_5(self):
@@ -2255,7 +2268,8 @@ class TestTextConditional(QiskitTestCase):
                 "               =5 ",
             ]
         )
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_conditional_cz_no_space_cregbundle(self):

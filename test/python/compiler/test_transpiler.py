@@ -597,7 +597,8 @@ class TestTranspile(QiskitTestCase):
     def test_final_measurement_barrier_for_devices(self):
         """Verify BarrierBeforeFinalMeasurements pass is called in default pipeline for devices."""
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
-        circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "example.qasm"))
+        with self.assertWarns(DeprecationWarning):
+            circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "example.qasm"))
         layout = Layout.generate_trivial_layout(*circ.qregs)
         orig_pass = BarrierBeforeFinalMeasurements()
         with patch.object(BarrierBeforeFinalMeasurements, "run", wraps=orig_pass.run) as mock_pass:
@@ -611,7 +612,8 @@ class TestTranspile(QiskitTestCase):
     def test_do_not_run_gatedirection_with_symmetric_cm(self):
         """When the coupling map is symmetric, do not run GateDirection."""
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
-        circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "example.qasm"))
+        with self.assertWarns(DeprecationWarning):
+            circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "example.qasm"))
         layout = Layout.generate_trivial_layout(*circ.qregs)
         coupling_map = []
         for node1, node2 in FakeRueschlikon().configuration().coupling_map:
@@ -670,7 +672,8 @@ class TestTranspile(QiskitTestCase):
         backend = FakeRueschlikon()
         cmap = backend.configuration().coupling_map
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
-        circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "move_measurements.qasm"))
+        with self.assertWarns(DeprecationWarning):
+            circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "move_measurements.qasm"))
 
         lay = [0, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6]
         out = transpile(circ, initial_layout=lay, coupling_map=cmap)
