@@ -105,9 +105,7 @@ class Qasm2ExpressionListener(expressionListener):
 
     # Enter a parse tree produced by expressionParser#UNARYOPGRP.
     def enterUNARYOPGRP(self, ctx: expressionParser.UNARYOPGRPContext):
-        self.qasm2expr.expregstack.push(
-            ExpReg(ctx.getChild(0).getText(), [ctx.getChild(1)])
-        )
+        self.qasm2expr.expregstack.push(ExpReg(ctx.getChild(0).getText(), [ctx.getChild(1)]))
 
     # Exit a parse tree produced by expressionParser#UNARYOPGRP.
     def exitUNARYOPGRP(self, ctx: expressionParser.UNARYOPGRPContext):
@@ -127,9 +125,7 @@ class Qasm2ExpressionListener(expressionListener):
             _tos.result = math.sqrt(_tos.operands[0])
         else:
             raise QasmError(
-                "Qasm2ExpressionListener::exitMULOPGRP unknown operator {}.".format(
-                    _tos.op
-                )
+                "Qasm2ExpressionListener::exitMULOPGRP unknown operator {}.".format(_tos.op)
             )
         if _parent.operands:
             _parent.operands[_parent.index] = _tos.result
@@ -213,9 +209,7 @@ class Qasm2ExpressionListener(expressionListener):
             _tos.result = _tos.operands[0] ** _tos.operands[1]
         else:
             raise QasmError(
-                "Qasm2ExpressionListener::exitMULOPGRP unknown operator {}.".format(
-                    _tos.op
-                )
+                "Qasm2ExpressionListener::exitMULOPGRP unknown operator {}.".format(_tos.op)
             )
         if _parent.operands:
             _parent.operands[_parent.index] = _tos.result
@@ -259,9 +253,7 @@ class Qasm2ExpressionListener(expressionListener):
             _tos.result = _tos.operands[0] - _tos.operands[1]
         else:
             raise QasmError(
-                "Qasm2ExpressionListener::exitADDOPGRP unknown operator {}.".format(
-                    _tos.op
-                )
+                "Qasm2ExpressionListener::exitADDOPGRP unknown operator {}.".format(_tos.op)
             )
         if _parent.operands:
             _parent.operands[_parent.index] = _tos.result

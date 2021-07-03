@@ -42,7 +42,7 @@ class Qasm2Loader:
         qasm_filepath: str = None,
         name: str = None,
         include_path: str = ".",
-        default_include: bool = True
+        default_include: bool = True,
     ) -> None:
         """
         Init the loader with all factors for a load.
@@ -76,9 +76,7 @@ class Qasm2Loader:
 
         """
         if qasm_str is not None and qasm_filepath is not None:
-            raise QasmError(
-                "Only one or the other is allowed of qasm_str and qasm_filepath"
-            )
+            raise QasmError("Only one or the other is allowed of qasm_str and qasm_filepath")
         self.qasm_str = qasm_str
         self.qasm_filepath = qasm_filepath
         self.name = name
@@ -88,9 +86,7 @@ class Qasm2Loader:
         self.qt = None  # pylint: disable=invalid-name
         self.qc = None
 
-    def ast_qasm_str(
-        self, qasm_str: str, filename: str, name: str, dbg: list = None
-    ) -> Qasm2AST:
+    def ast_qasm_str(self, qasm_str: str, filename: str, name: str, dbg: list = None) -> Qasm2AST:
         """
         Translate OpenQASM source string to AST
 
@@ -126,9 +122,7 @@ class Qasm2Loader:
         ast.set_datetime_finish(datetime.datetime.now().isoformat())
         return ast
 
-    def ast_qasm_file(
-        self, filepath: str, name: str = None, dbg: list = None
-    ) -> Qasm2AST:
+    def ast_qasm_file(self, filepath: str, name: str = None, dbg: list = None) -> Qasm2AST:
         """
         Translate OpenQASM file to AST
 
@@ -160,7 +154,7 @@ class Qasm2Loader:
         *,
         filename: str = "OpenQASM string source",
         dbg: list = None,
-        profile_sortby: str = None
+        profile_sortby: str = None,
     ) -> Tuple:
         """
         Create the ast and the circuit corresponding to the OpenQASM input.
@@ -221,9 +215,7 @@ class Qasm2Loader:
         elif self.qasm_str:
             self.ast = self.ast_qasm_str(self.qasm_str, filename, self.name, dbg)
         else:
-            raise QasmError(
-                "No OpenQASM source provided, neither a string nor a filename"
-            )
+            raise QasmError("No OpenQASM source provided, neither a string nor a filename")
 
         self.qt = Qasm2Translator(self.ast)
 

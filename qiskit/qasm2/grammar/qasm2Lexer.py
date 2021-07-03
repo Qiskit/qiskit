@@ -682,7 +682,7 @@ class qasm2Lexer(Lexer):
     LineComment = 117
     BlockComment = 118
 
-    channelNames = [u"DEFAULT_TOKEN_CHANNEL", u"HIDDEN"]
+    channelNames = ["DEFAULT_TOKEN_CHANNEL", "HIDDEN"]
 
     modeNames = ["DEFAULT_MODE"]
 

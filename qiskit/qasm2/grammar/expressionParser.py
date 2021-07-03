@@ -134,9 +134,7 @@ class expressionParser(Parser):
     class StartContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -206,9 +204,7 @@ class expressionParser(Parser):
     class ExprContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -601,20 +597,14 @@ class expressionParser(Parser):
                     if la_ == 1:
                         localctx = expressionParser.MULOPGRPContext(
                             self,
-                            expressionParser.ExprContext(
-                                self, _parentctx, _parentState
-                            ),
+                            expressionParser.ExprContext(self, _parentctx, _parentState),
                         )
-                        self.pushNewRecursionContext(
-                            localctx, _startState, self.RULE_expr
-                        )
+                        self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
                         self.state = 51
                         if not self.precpred(self._ctx, 11):
                             from antlr4.error.Errors import FailedPredicateException
 
-                            raise FailedPredicateException(
-                                self, "self.precpred(self._ctx, 11)"
-                            )
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 11)")
                         self.state = 52
                         self.mulop()
                         self.state = 53
@@ -624,20 +614,14 @@ class expressionParser(Parser):
                     elif la_ == 2:
                         localctx = expressionParser.ADDOPGRPContext(
                             self,
-                            expressionParser.ExprContext(
-                                self, _parentctx, _parentState
-                            ),
+                            expressionParser.ExprContext(self, _parentctx, _parentState),
                         )
-                        self.pushNewRecursionContext(
-                            localctx, _startState, self.RULE_expr
-                        )
+                        self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
                         self.state = 55
                         if not self.precpred(self._ctx, 10):
                             from antlr4.error.Errors import FailedPredicateException
 
-                            raise FailedPredicateException(
-                                self, "self.precpred(self._ctx, 10)"
-                            )
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 10)")
                         self.state = 56
                         self.addop()
                         self.state = 57
@@ -647,20 +631,14 @@ class expressionParser(Parser):
                     elif la_ == 3:
                         localctx = expressionParser.EMULOPIGRPContext(
                             self,
-                            expressionParser.ExprContext(
-                                self, _parentctx, _parentState
-                            ),
+                            expressionParser.ExprContext(self, _parentctx, _parentState),
                         )
-                        self.pushNewRecursionContext(
-                            localctx, _startState, self.RULE_expr
-                        )
+                        self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
                         self.state = 59
                         if not self.precpred(self._ctx, 7):
                             from antlr4.error.Errors import FailedPredicateException
 
-                            raise FailedPredicateException(
-                                self, "self.precpred(self._ctx, 7)"
-                            )
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 7)")
                         self.state = 60
                         self.mulop()
                         self.state = 61
@@ -670,20 +648,14 @@ class expressionParser(Parser):
                     elif la_ == 4:
                         localctx = expressionParser.EADDOPIGRPContext(
                             self,
-                            expressionParser.ExprContext(
-                                self, _parentctx, _parentState
-                            ),
+                            expressionParser.ExprContext(self, _parentctx, _parentState),
                         )
-                        self.pushNewRecursionContext(
-                            localctx, _startState, self.RULE_expr
-                        )
+                        self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
                         self.state = 63
                         if not self.precpred(self._ctx, 4):
                             from antlr4.error.Errors import FailedPredicateException
 
-                            raise FailedPredicateException(
-                                self, "self.precpred(self._ctx, 4)"
-                            )
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 4)")
                         self.state = 64
                         self.addop()
                         self.state = 65
@@ -705,9 +677,7 @@ class expressionParser(Parser):
     class AddopContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -747,9 +717,7 @@ class expressionParser(Parser):
     class MulopContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
@@ -803,9 +771,7 @@ class expressionParser(Parser):
     class UnaryopContext(ParserRuleContext):
         __slots__ = "parser"
 
-        def __init__(
-            self, parser, parent: ParserRuleContext = None, invokingState: int = -1
-        ):
+        def __init__(self, parser, parent: ParserRuleContext = None, invokingState: int = -1):
             super().__init__(parent, invokingState)
             self.parser = parser
 

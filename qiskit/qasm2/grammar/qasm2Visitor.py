@@ -36,9 +36,7 @@ class qasm2Visitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by qasm2Parser#quantumDeclarationStatement.
-    def visitQuantumDeclarationStatement(
-        self, ctx: qasm2Parser.QuantumDeclarationStatementContext
-    ):
+    def visitQuantumDeclarationStatement(self, ctx: qasm2Parser.QuantumDeclarationStatementContext):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by qasm2Parser#classicalDeclarationStatement.
@@ -116,21 +114,15 @@ class qasm2Visitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by qasm2Parser#singleDesignatorDeclaration.
-    def visitSingleDesignatorDeclaration(
-        self, ctx: qasm2Parser.SingleDesignatorDeclarationContext
-    ):
+    def visitSingleDesignatorDeclaration(self, ctx: qasm2Parser.SingleDesignatorDeclarationContext):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by qasm2Parser#doubleDesignatorDeclaration.
-    def visitDoubleDesignatorDeclaration(
-        self, ctx: qasm2Parser.DoubleDesignatorDeclarationContext
-    ):
+    def visitDoubleDesignatorDeclaration(self, ctx: qasm2Parser.DoubleDesignatorDeclarationContext):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by qasm2Parser#noDesignatorDeclaration.
-    def visitNoDesignatorDeclaration(
-        self, ctx: qasm2Parser.NoDesignatorDeclarationContext
-    ):
+    def visitNoDesignatorDeclaration(self, ctx: qasm2Parser.NoDesignatorDeclarationContext):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by qasm2Parser#bitDeclaration.
@@ -166,9 +158,7 @@ class qasm2Visitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by qasm2Parser#indexEqualsAssignmentList.
-    def visitIndexEqualsAssignmentList(
-        self, ctx: qasm2Parser.IndexEqualsAssignmentListContext
-    ):
+    def visitIndexEqualsAssignmentList(self, ctx: qasm2Parser.IndexEqualsAssignmentListContext):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by qasm2Parser#rangeDefinition.
@@ -270,9 +260,7 @@ class qasm2Visitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by qasm2Parser#multiplicativeExpression.
-    def visitMultiplicativeExpression(
-        self, ctx: qasm2Parser.MultiplicativeExpressionContext
-    ):
+    def visitMultiplicativeExpression(self, ctx: qasm2Parser.MultiplicativeExpressionContext):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by qasm2Parser#unaryExpression.
@@ -348,9 +336,7 @@ class qasm2Visitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by qasm2Parser#controlDirectiveStatement.
-    def visitControlDirectiveStatement(
-        self, ctx: qasm2Parser.ControlDirectiveStatementContext
-    ):
+    def visitControlDirectiveStatement(self, ctx: qasm2Parser.ControlDirectiveStatementContext):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by qasm2Parser#controlDirective.
@@ -432,9 +418,7 @@ class qasm2Visitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by qasm2Parser#calibrationArgumentList.
-    def visitCalibrationArgumentList(
-        self, ctx: qasm2Parser.CalibrationArgumentListContext
-    ):
+    def visitCalibrationArgumentList(self, ctx: qasm2Parser.CalibrationArgumentListContext):
         return self.visitChildren(ctx)
 
 
