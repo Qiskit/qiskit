@@ -13,5 +13,7 @@ recursive-include qiskit/test/mock/backends *.json
 recursive-include test *.py
 include test/python/pickles/*.pickle
 include test/python/qasm/*.qasm
+include test/python/qasm2/*.qasm
+include test/python/qasm2/output/*.txt
 include test/python/visualization/references/*.png
 include test/python/notebooks/*.ipynb
