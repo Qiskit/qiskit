@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A generalized SPSA optimizer including support for Hessians."""
+"""The QN-SPSA optimizer."""
 
-from typing import Iterator, Optional, Union, Callable, Dict
+from typing import Any, Iterator, Optional, Union, Callable, Dict
 
 import numpy as np
 from qiskit.providers import Backend
@@ -188,6 +188,26 @@ class QNSPSA(SPSA):
         hessian_estimate = -0.5 * diff * (rank_one + rank_one.T) / 2
 
         return gradient_estimate, hessian_estimate
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        """The optimizer settings in a dictionary format.
+
+        .. note::
+
+            The ``fidelity`` property cannot be serialized and will not be contained
+            in the dictionary. To construct a ``QNSPSA`` object from a dictionary you
+            have to add it manually with the key ``"fidelity"``.
+
+        """
+        # re-use serialization from SPSA
+        settings = super().settings
+
+        # remove SPSA-specific arguments not in QNSPSA
+        settings.pop("trust_region")
+        settings.pop("second_order")
+
+        return settings
 
     @staticmethod
     def get_fidelity(
