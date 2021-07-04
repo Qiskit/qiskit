@@ -42,9 +42,7 @@ def get_pretty_tree(
 
     if tree.getChildCount() > 0:
         for i in range(0, tree.getChildCount()):
-            pretty_tree += get_pretty_tree(
-                tree.getChild(i), rule_names=rule_names, level=level + 1
-            )
+            pretty_tree += get_pretty_tree(tree.getChild(i), rule_names=rule_names, level=level + 1)
 
     return pretty_tree
 
@@ -62,11 +60,7 @@ def build_parse_tree(input_str: str, using_file: bool = False) -> str:
     Returns:
         Parse tree string in indented format.
     """
-    input = (
-        FileStream(input_str, encoding="utf-8")
-        if using_file
-        else InputStream(input_str)
-    )
+    input = FileStream(input_str, encoding="utf-8") if using_file else InputStream(input_str)
     pretty_tree = ""
     # antlr errors (lexing and parsing) sent to stdout -> redirect to variable err
     with io.StringIO() as err, redirect_stderr(err):
@@ -111,9 +105,7 @@ class TestGrammar:
             test_dict = yaml.load(test_file, Loader=yaml.FullLoader)
 
         if sorted(list(test_dict.keys())) != ["reference", "source"]:
-            raise KeyError(
-                "Reference YAML file contain only ``source`` and ``reference`` keys."
-            )
+            raise KeyError("Reference YAML file contain only ``source`` and ``reference`` keys.")
 
         qasm_source = test_dict["source"]
         parse_tree = build_parse_tree(qasm_source)
