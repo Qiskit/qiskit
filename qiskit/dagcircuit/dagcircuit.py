@@ -1547,9 +1547,7 @@ class DAGCircuit:
             else:
                 return -1
 
-        return rx.collect_bicolor_runs(
-            self._multi_graph, filter_fn, color_fn
-        )
+        return rx.collect_bicolor_runs(self._multi_graph, filter_fn, color_fn)
 
     def nodes_on_wire(self, wire, only_ops=False):
         """
