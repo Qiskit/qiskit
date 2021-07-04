@@ -14,6 +14,8 @@
 
 from collections import defaultdict
 
+from qiskit.transpiler.basepasses import AnalysisPass
+
 
 class Collect2qBlocks(AnalysisPass):
     """Collect two-qubit subcircuits."""
