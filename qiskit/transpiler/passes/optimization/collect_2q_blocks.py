@@ -34,29 +34,6 @@ class Collect2qBlocks(AnalysisPass):
         tuples of "op" node.
         """
         self.property_set["commutation_set"] = defaultdict(list)
+        self.property_set["block_list"] = dag.collect_2q_runs()
 
-        def filter_fn(node):
-            if node.type == "op":
-                return (
-                    isinstance(node._op, Gate)
-                    and len(node._qargs) <= 2
-                    and not node._op.condition
-                    and not node._op.is_parameterized()
-                )
-            else:
-                return None
-
-        to_qid = dict()
-        for i, qubit in enumerate(dag.qubits):
-            to_qid[qubit] = i
-
-        def color_fn(edge):
-            if isinstance(edge, Qubit):
-                return to_qid[edge]
-            else:
-                return -1
-
-        self.property_set["block_list"] = retworkx.collect_bicolor_runs(
-            dag._multi_graph, filter_fn, color_fn
-        )
         return dag
