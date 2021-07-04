@@ -14,12 +14,6 @@
 
 from collections import defaultdict
 
-import retworkx
-
-from qiskit.circuit import Gate
-from qiskit.circuit.quantumregister import Qubit
-from qiskit.transpiler.basepasses import AnalysisPass
-
 
 class Collect2qBlocks(AnalysisPass):
     """Collect two-qubit subcircuits."""
