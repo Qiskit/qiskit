@@ -27,29 +27,29 @@ class AlignMeasures(TransformationPass):
 
     This is a control electronics aware optimization pass.
 
-    Since quantum gates (instructions) are implemented by shaped analog stimulus signals,
-    of course this depends on the architecture, these signals may be digitally stored in the
-    waveform memory of the control electronics and converted into analog voltage signals
-    by an electronics called digital to analog converters (DAC).
+    In many quantum computing architectures gates (instructions) are implemented with 
+    shaped analog stimulus signals. These signals are digitally stored in the
+    waveform memory of the control electronics and converted into analog voltage signals 
+    by electronic components called digital to analog converters (DAC).
 
     In a typical hardware implementation of superconducting quantum processors,
-    for example, a single qubit instruction is implemented by a
-    microwave signal with the duration around several 10s ns with the
-    time resolution of few to sub-ns, as reported by ``backend.configuration().dt``.
-    In such systems requiring higher DAC bandwidth, a control electronics often
-    defines a `pulse granularity`, in other word a data chunk, to allow the DAC to
+    a single qubit instruction is implemented by a
+    microwave signal with the duration of around several tens of ns with a per-sample
+    time resolution of ~0.1-10ns, as reported by ``backend.configuration().dt``.
+    In such systems requiring higher DAC bandwidth, control electronics often
+    defines a `pulse granularity`, in other words a data chunk, to allow the DAC to
     perform the signal conversion in parallel to gain the bandwidth.
 
-    Measurement alignment is required if a backend only allows to trigger ``measure``
-    instruction at a certain multiple value of this pulse granularity.
+    Measurement alignment is required if a backend only allows triggering ``measure``
+    instructions at a certain multiple value of this pulse granularity.
     This value is usually provided by ``backend.configuration().alignment``.
 
     In Qiskit SDK, the duration of delay can take arbitrary value in units of ``dt``,
-    thus circuits involving delays may violate above alignment constraint (i.e. misalignment).
-    This pass shifts the measure instructions to new time position to fix the misalignment,
+    thus circuits involving delays may violate the above alignment constraint (i.e. misalignment).
+    This pass shifts measurement instructions to a new time position to fix the misalignment,
     by inserting extra delay right before the measure instructions.
-    The input of this pass should be scheduled ``DAGCircuit``, thus you need to
-    set one of scheduling pass (``ALAPSchedule`` or ``ASAPSchedule``) before calling this.
+    The input of this pass should be scheduled ``DAGCircuit``, thus one should
+    select one of the scheduling passes (``ALAPSchedule`` or ``ASAPSchedule``) before calling this.
 
     Example:
 
@@ -64,7 +64,7 @@ class AlignMeasures(TransformationPass):
                                          0
 
         Note that delay of 100 dt induces a misalignment of 4 dt at the measurement.
-        This pass appends extra 12 dt time shift to the input circuit.
+        This pass appends an extra 12 dt time shift to the input circuit.
 
         .. parsed-literal::
 
@@ -79,8 +79,8 @@ class AlignMeasures(TransformationPass):
 
     Note:
 
-        Backend may allow user to execute circuits violating the alignment constraint.
-        However it may return meaningless measurement data mainly due to the phase error.
+        The Backend may allow users to execute circuits violating the alignment constraint.
+        However, it may return meaningless measurement data mainly due to the phase error.
 
     """
 
