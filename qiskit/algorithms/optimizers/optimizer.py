@@ -12,6 +12,8 @@
 
 """Optimizer interface"""
 
+from typing import Dict, Any
+
 from enum import IntEnum
 import logging
 from abc import ABC, abstractmethod
@@ -139,13 +141,30 @@ class Optimizer(ABC):
     @property
     def setting(self):
         """Return setting"""
-        ret = "Optimizer: {}\n".format(self.__class__.__name__)
+        ret = f"Optimizer: {self.__class__.__name__}\n"
         params = ""
         for key, value in self.__dict__.items():
             if key[0] == "_":
-                params += "-- {}: {}\n".format(key[1:], value)
-        ret += "{}".format(params)
+                params += f"-- {key[1:]}: {value}\n"
+        ret += f"{params}"
         return ret
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        """The optimizer settings in a dictionary format.
+
+        The settings can for instance be used for JSON-serialization (if all settings are
+        serializable, which e.g. doesn't hold per default for callables), such that the
+        optimizer object can be reconstructed as
+
+        .. code-block::
+
+            settings = optimizer.settings
+            # JSON serialize and send to another server
+            optimizer = OptimizerClass(**settings)
+
+        """
+        raise NotImplementedError("The settings method is not implemented per default.")
 
     @abstractmethod
     def optimize(
@@ -275,7 +294,7 @@ class Optimizer(ABC):
     def print_options(self):
         """Print algorithm-specific options."""
         for name in sorted(self._options):
-            logger.debug("{:s} = {:s}".format(name, str(self._options[name])))
+            logger.debug("%s = %s", name, str(self._options[name]))
 
     def set_max_evals_grouped(self, limit):
         """Set max evals grouped"""

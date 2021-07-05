@@ -210,7 +210,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             interval = _fisher_confint(result, alpha, observed=True)
 
         if interval is None:
-            raise NotImplementedError("CI `{}` is not implemented.".format(kind))
+            raise NotImplementedError(f"CI `{kind}` is not implemented.")
 
         if apply_post_processing:
             return tuple(result.post_processing(value) for value in interval)

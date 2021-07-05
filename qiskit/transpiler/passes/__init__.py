@@ -44,6 +44,7 @@ Routing
    LookaheadSwap
    StochasticSwap
    SabreSwap
+   BIPMapping
 
 Basis Change
 ============
@@ -84,6 +85,8 @@ Scheduling
    ALAPSchedule
    ASAPSchedule
    RZXCalibrationBuilder
+   AlignMeasures
+   ValidatePulseGates
 
 Circuit Analysis
 ================
@@ -144,6 +147,7 @@ from .routing import LayoutTransformation
 from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
+from .routing import BIPMapping
 
 # basis change
 from .basis import Decompose
@@ -185,6 +189,8 @@ from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
 from .scheduling import RZXCalibrationBuilder
 from .scheduling import TimeUnitConversion
+from .scheduling import AlignMeasures
+from .scheduling import ValidatePulseGates
 
 # additional utility passes
 from .utils import CheckMap

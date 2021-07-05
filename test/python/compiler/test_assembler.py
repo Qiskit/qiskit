@@ -272,9 +272,9 @@ class TestCircuitAssembler(QiskitTestCase):
         qobj = assemble(qc)
         validate_qobj_against_schema(qobj)
 
-        first_measure, second_measure = [
+        first_measure, second_measure = (
             op for op in qobj.experiments[0].instructions if op.name == "measure"
-        ]
+        )
 
         self.assertTrue(hasattr(first_measure, "register"))
         self.assertEqual(first_measure.register, first_measure.memory)

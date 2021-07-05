@@ -337,8 +337,7 @@ class TestDrawCanvas(QiskitTestCase):
         names = ["D0", "D1"]
         chans = [[pulse.DriveChannel(0)], [pulse.DriveChannel(1)]]
 
-        for name, chan in zip(names, chans):
-            yield name, chan
+        yield from zip(names, chans)
 
     def generate_dummy_obj(self, data: types.PulseInstruction, **kwargs):
         dummy_obj = drawings.ElementaryData(
