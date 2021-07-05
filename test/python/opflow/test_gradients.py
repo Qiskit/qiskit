@@ -925,7 +925,8 @@ class TestGradients(QiskitOpflowTestCase):
 
         shots = 8000
         backend = BasicAer.get_backend(backend_type)
-        q_instance = QuantumInstance(backend=backend, shots=shots)
+        q_instance = QuantumInstance(backend=backend, shots=shots, seed_simulator=2,
+                                     seed_transpiler=2)
         if method == "fin_diff":
             np.random.seed(8)
             prob_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.0)).gradient_wrapper(
@@ -949,8 +950,12 @@ class TestGradients(QiskitOpflowTestCase):
             self.assertTrue(np.allclose(result[0], correct_values[i][0], atol=0.1))
             self.assertTrue(np.allclose(result[1], correct_values[i][1], atol=0.1))
 
-    @idata(["statevector_simulator", "qasm_simulator"])
-    def test_gradient_wrapper2(self, backend_type):
+    @data(
+        ("statevector_simulator", 1e-7),
+        ("qasm_simulator", 2e-1)
+    )
+    @unpack
+    def test_gradient_wrapper2(self, backend_type, atol):
         """Test the gradient wrapper for gradients checking that statevector and qasm gives the
            same results
 
@@ -976,18 +981,19 @@ class TestGradients(QiskitOpflowTestCase):
         obs = (Z ^ X) - (Y ^ Y)
         op = StateFn(obs, is_measurement=True) @ CircuitStateFn(primitive=qc)
 
-        shots = 10000 if backend_type == "qasm_simulator" else 1
+        shots = 8192 if backend_type == "qasm_simulator" else 1
 
         values = [[0, np.pi / 2], [np.pi / 4, np.pi / 4], [np.pi / 3, np.pi / 9]]
         correct_values = [[-4.0, 0], [-2.0, -4.82842712], [-0.68404029, -7.01396121]]
         for i, value in enumerate(values):
             backend = BasicAer.get_backend(backend_type)
-            q_instance = QuantumInstance(backend=backend, shots=shots)
+            q_instance = QuantumInstance(backend=backend, shots=shots, seed_simulator=2,
+                                         seed_transpiler=2)
             grad = NaturalGradient(grad_method=method).gradient_wrapper(
                 operator=op, bind_params=params, backend=q_instance
             )
             result = grad(value)
-            self.assertTrue(np.allclose(result, correct_values[i], atol=0.1))
+            self.assertTrue(np.allclose(result, correct_values[i], atol=atol))
 
     @slow_test
     def test_vqe(self):
