@@ -23,7 +23,7 @@ from qiskit.qasm2 import (
     Qasm2Expression,
     QasmError,
 )
-from .qasm2expression import ExpReg  #pylint: disable=relative-beyond-top-level
+from .qasm2expression import ExpReg  # pylint: disable=relative-beyond-top-level
 
 # This class defines a complete listener for a parse tree produced by expressionParser.
 class Qasm2ExpressionListener(expressionListener):

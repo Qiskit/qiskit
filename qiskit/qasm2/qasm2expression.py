@@ -56,7 +56,7 @@ class ExpReg:
         _val = None
         if isinstance(num, float):
             _val = num
-        if num == "pi" or num == "π":
+        if num in ["pi", "π"]:
             _val = np.pi
         else:
             _val = float(num)
@@ -129,6 +129,10 @@ class ExpRegStack(List[ExpReg]):
 
 
 class Qasm2Expression:
+    """
+    Data structure for parsing parameter expressions, complete with stack.
+    """
+
     def __init__(
         self,
         input_src: str,

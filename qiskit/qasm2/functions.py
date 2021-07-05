@@ -18,8 +18,8 @@ from os import linesep
 from typing import List, BinaryIO, TextIO
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from .qasm import Qasm  #pylint: disable=relative-beyond-top-level
-from .funhelp import qasm_load, qasm_dump  #pylint: disable=relative-beyond-top-level
+from .qasm import Qasm  # pylint: disable=relative-beyond-top-level
+from .funhelp import qasm_load, qasm_dump  # pylint: disable=relative-beyond-top-level
 
 
 def _load_from_string(qasm_src: str or List[str]) -> QuantumCircuit:

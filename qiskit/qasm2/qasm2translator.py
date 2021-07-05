@@ -500,17 +500,17 @@ class Qasm2Translator:
                 try:
                     # isinstance(gate, Gate):
                     _instruction = qc.append(gate, _targlist)
-                except:  #pylint: disable=bare-except  # hack hack hack
+                except:  # pylint: disable=bare-except  # hack hack hack
                     # elif isinstance(gate, Instruction):
                     _instruction = qc.append(gate(), _targlist)
         except Exception as ex:
             print(
-                "In Qasm2Translator.apply_gate gate {} params: {} targets: {} yielding paramlist {} targlist {} param_dict {}".format(  #pylint: disable=line-too-long
+                "In Qasm2Translator.apply_gate gate {} params: {} targets: {} yielding paramlist {} targlist {} param_dict {}".format(  # pylint: disable=line-too-long
                     gate, params, targets, _paramlist, _targlist, param_dict
                 )
             )
             traceback.print_tb(ex.__traceback__)
-            raise QasmError(  #pylint: disable=raise-missing-from
+            raise QasmError(  # pylint: disable=raise-missing-from
                 "Error caught in Qasm2Translator.apply_gate(): Message: {} Cause: {} Context: {}".format(
                     ex, ex.__cause__, ex.__context__
                 )
@@ -605,8 +605,8 @@ class Qasm2Translator:
 
                     except Exception as ex:
                         traceback.print_tb(ex.__traceback__)
-                        raise QasmError(  #pylint: disable=raise-missing-from
-                            "gate_def_to_gate: Translation of code step {} failed with Exception {}".format(  #pylint: disable=line-too-long
+                        raise QasmError(  # pylint: disable=raise-missing-from
+                            "gate_def_to_gate: Translation of code step {} failed with Exception {}".format(  # pylint: disable=line-too-long
                                 _step, ex
                             )
                         )
@@ -622,7 +622,7 @@ class Qasm2Translator:
 
             else:
                 raise QasmError(
-                    "gate_def_to_gate: Not a standard gate, not a Qasm2 keyword gate, and no def not found for {} in {}.".format(  #pylint: disable=line-too-long
+                    "gate_def_to_gate: Not a standard gate, not a Qasm2 keyword gate, and no def not found for {} in {}.".format(  # pylint: disable=line-too-long
                         _op, _step
                     )
                 )
@@ -709,7 +709,7 @@ class Qasm2Translator:
                         _gate = self.gate_for_gate_def(_gatedef)
                     except Exception as ex:
                         traceback.print_tb(ex.__traceback__)
-                        raise QasmError(  #pylint: disable=raise-missing-from
+                        raise QasmError(  # pylint: disable=raise-missing-from
                             "translate_code_entry {} failed with Exception {}".format(entry, ex)
                         )
             if _gate:
@@ -721,7 +721,7 @@ class Qasm2Translator:
                 )
             else:
                 raise QasmError(
-                    "translate_code_entry: Not a standard gate, not a Qasm2 keyword gate, and no def not found for {} in {}.".format(  #pylint: disable=line-too-long
+                    "translate_code_entry: Not a standard gate, not a Qasm2 keyword gate, and no def not found for {} in {}.".format(  # pylint: disable=line-too-long
                         _op, entry
                     )
                 )
@@ -752,7 +752,7 @@ class Qasm2Translator:
             _comparison_operator = entry["comparison_expression_list"][1]
             if _comparison_operator != "==":
                 raise QasmError(
-                    "translate_code_entry {} failed for an unsupported branch comparison operator {}".format(  #pylint: disable=line-too-long
+                    "translate_code_entry {} failed for an unsupported branch comparison operator {}".format(  # pylint: disable=line-too-long
                         entry, _comparison_operator
                     )
                 )
@@ -771,7 +771,7 @@ class Qasm2Translator:
                         _gate = self.gate_for_gate_def(_op)
                     except Exception as ex:
                         traceback.print_tb(ex.__traceback__)
-                        raise QasmError(  #pylint: disable=raise-missing-from
+                        raise QasmError(  # pylint: disable=raise-missing-from
                             "translate_code_entry {} failed with Exception {}".format(entry, ex)
                         )
             if _gate:
@@ -787,7 +787,7 @@ class Qasm2Translator:
                 )
             else:
                 raise QasmError(
-                    "translate_code_entry: Not a standard gate, not a Qasm2 keyword gate, and no def not found for {} in {}.".format(  #pylint: disable=line-too-long
+                    "translate_code_entry: Not a standard gate, not a Qasm2 keyword gate, and no def not found for {} in {}.".format(  # pylint: disable=line-too-long
                         _op, entry
                     )
                 )
@@ -820,10 +820,12 @@ class Qasm2Translator:
                 self.translate_code_entry(self.qc, entry)
         except Exception as ex:
             print(
-                "Error caught in Qasm2Translator.translate():\nMessage:\n{}\nCause:\n{}\nContext:\n{}".format(  #pylint: disable=line-too-long
+                "Error caught in Qasm2Translator.translate():\nMessage:\n{}\nCause:\n{}\nContext:\n{}".format(  # pylint: disable=line-too-long
                     ex, ex.__cause__, ex.__context__
                 )
             )
             traceback.print_tb(ex.__traceback__)
-            raise QasmError("Error encountered in translation: {}".format(ex))  #pylint: disable=raise-missing-from
+            raise QasmError(  # pylint disable=raise-missing-from
+                "Error encountered in translation: {}".format(ex)
+            )  # pylint: disable=raise-missing-from
         return self.qc

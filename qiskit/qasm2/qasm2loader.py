@@ -142,9 +142,8 @@ class Qasm2Loader:
             The AST for the file input.
 
         """
-        _f = open(filepath, "r")
-        qasm_str = _f.read()
-        _f.close()
+        with open(filepath, "r") as _f:
+            qasm_str = _f.read()
         if name is None:
             name = os.path.basename(filepath)
         return self.ast_qasm_str(qasm_str, filepath, name, dbg)

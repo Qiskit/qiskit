@@ -181,9 +181,8 @@ class Qasm2Listener(qasm2Listener):
                         filename, self.include_path
                     )
                 )
-        _f = open(fullpath, "r")
-        _src = _f.read()
-        _f.close()
+        with open(fullpath, "r") as _f:
+            _src = _f.read()
         self.ast.push_filenum(self.ast.append_filepath(fullpath))
         self.ast.append_source(_src)
         _q = Qasm2Listener(self.ast, _src, self.debug_fh)
@@ -523,9 +522,7 @@ class Qasm2Listener(qasm2Listener):
             if isinstance(self.ast.scratch["index_identifier_list"], list):
                 self.ast.scratch["index_identifier_list"].append(ctx.getText())
 
-        elif isinstance(self.ast.scratch, CodeBodySubroutineCall) or isinstance(
-            self.ast.scratch, CodeBodyBranchingStatement
-        ):
+        elif isinstance(self.ast.scratch, (CodeBodySubroutineCall, CodeBodyBranchingStatement)):
             self.ast.scratch["target_list"].append(ctx.getText())
 
     # Exit a parse tree produced by qasm2Parser#indexIdentifier.
