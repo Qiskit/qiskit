@@ -1545,7 +1545,7 @@ class DAGCircuit:
             if isinstance(edge, Qubit):
                 return to_qid[edge]
             else:
-                return -1
+                return None
 
         return rx.collect_bicolor_runs(self._multi_graph, filter_fn, color_fn)
 
