@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-
+Parses and interprets parameter expressions passed to Gates.
+Should be part of Qasm2Listener but keeping separate until the grammar
+discussion levels off.
 """
 import math
 from antlr4 import CommonTokenStream, InputStream, ParseTreeWalker
@@ -21,11 +23,13 @@ from qiskit.qasm2 import (
     Qasm2Expression,
     QasmError,
 )
-from .qasm2expression import ExpReg
+from .qasm2expression import ExpReg  #pylint: disable=relative-beyond-top-level
 
 # This class defines a complete listener for a parse tree produced by expressionParser.
 class Qasm2ExpressionListener(expressionListener):
-    """ """
+    """
+    ANTLR4 listener for parameter expressions.
+    """
 
     def __init__(
         self,

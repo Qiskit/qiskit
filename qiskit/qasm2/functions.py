@@ -18,8 +18,8 @@ from os import linesep
 from typing import List, BinaryIO, TextIO
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from .qasm import Qasm
-from .funhelp import qasm_load, qasm_dump
+from .qasm import Qasm  #pylint: disable=relative-beyond-top-level
+from .funhelp import qasm_load, qasm_dump  #pylint: disable=relative-beyond-top-level
 
 
 def _load_from_string(qasm_src: str or List[str]) -> QuantumCircuit:
@@ -144,9 +144,8 @@ def dump(qc: QuantumCircuit, file: BinaryIO or TextIO = None, filename: str = No
     qasm_src = qasm_dump(qc)
 
     if filename:
-        f_f = open(filename, "w")
-        f_f.write(qasm_src)
-        f_f.close()
+        with open(filename, "w") as f_f:
+            f_f.write(qasm_src)
     elif file:
         if "b" in file.mode:
             file.write(bytes(qasm_src, "utf-8"))
