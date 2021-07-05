@@ -27,9 +27,9 @@ class AlignMeasures(TransformationPass):
 
     This is a control electronics aware optimization pass.
 
-    In many quantum computing architectures gates (instructions) are implemented with 
+    In many quantum computing architectures gates (instructions) are implemented with
     shaped analog stimulus signals. These signals are digitally stored in the
-    waveform memory of the control electronics and converted into analog voltage signals 
+    waveform memory of the control electronics and converted into analog voltage signals
     by electronic components called digital to analog converters (DAC).
 
     In a typical hardware implementation of superconducting quantum processors,
@@ -191,17 +191,18 @@ class ValidatePulseGates(AnalysisPass):
     This is a control electronics aware analysis pass.
 
     Quantum gates (instructions) are often implemented with shaped analog stimulus signals.
-    These signals may be digitally stored in the waveform memory of the control electronics 
+    These signals may be digitally stored in the waveform memory of the control electronics
     and converted into analog voltage signals by electronic components known as
     digital to analog converters (DAC).
 
-    In Qiskit SDK, we can define the pulse-level implementation of custom quantum gate instructions, as a
-    `pulse gate<https://qiskit.org/documentation/tutorials/circuits_advanced/05_pulse_gates.html>`_
-    , thus user gates should satisfy all waveform memory constraints imposed by the backend.
+    In Qiskit SDK, we can define the pulse-level implementation of custom quantum gate
+    instructions, as a :ref:`pulse gate <https://qiskit.org/documentation/tutorials/
+    circuits_advanced/05_pulse_gates.html>`, thus user gates should satisfy
+    all waveform memory constraints imposed by the backend.
 
     This pass validates all attached calibration entries and raises ``TranspilerError`` to
     kill the transpilation process if any invalid calibration entry is found.
-    This pass saves users from waiting until job execution time to get an invalid pulse error from 
+    This pass saves users from waiting until job execution time to get an invalid pulse error from
     the backend control electronics.
     """
 
