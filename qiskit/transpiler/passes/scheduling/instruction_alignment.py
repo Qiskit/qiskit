@@ -190,19 +190,19 @@ class ValidatePulseGates(AnalysisPass):
 
     This is a control electronics aware analysis pass.
 
-    Since quantum gates (instructions) are implemented by shaped analog stimulus signals,
-    of course this depends on the architecture, these signals may be digitally stored in the
-    waveform memory of the control electronics and converted into analog voltage signals
-    by an electronics called digital to analog converters (DAC).
+    Quantum gates (instructions) are often implemented with shaped analog stimulus signals.
+    These signals may be digitally stored in the waveform memory of the control electronics 
+    and converted into analog voltage signals by electronic components known as
+    digital to analog converters (DAC).
 
-    In Qiskit SDK, we can define custom quantum gate instructions as a calibration, as known as
+    In Qiskit SDK, we can define the pulse-level implementation of custom quantum gate instructions, as a
     `pulse gate<https://qiskit.org/documentation/tutorials/circuits_advanced/05_pulse_gates.html>`_
     , thus user gates should satisfy all waveform memory constraints imposed by the backend.
 
     This pass validates all attached calibration entries and raises ``TranspilerError`` to
     kill the transpilation process if any invalid calibration entry is found.
-    This pass saves users from waiting queue to get invalid pulse error which might be raised
-    by the backend control electronics.
+    This pass saves users from waiting until job execution time to get an invalid pulse error from 
+    the backend control electronics.
     """
 
     def __init__(self, alignment: int = 1):
