@@ -33,7 +33,8 @@ class AlignMeasures(TransformationPass):
     by an electronics called digital to analog converters (DAC).
 
     In a typical hardware implementation of superconducting quantum processors,
-    a duration of single qubit instruction is around several 10s ns with the
+    for example, a single qubit instruction is implemented by a
+    microwave signal with the duration around several 10s ns with the
     time resolution of few to sub-ns, as reported by ``backend.configuration().dt``.
     In such systems requiring higher DAC bandwidth, a control electronics often
     defines a `pulse granularity`, in other word a data chunk, to allow the DAC to
