@@ -20,5 +20,6 @@ from .calibration_creators import (
     RZXCalibrationBuilder,
     RZXCalibrationBuilderNoEcho,
 )
+from .dynamical_decoupling import DynamicalDecoupling
 from .rzx_templates import rzx_templates
 from .instruction_alignment import AlignMeasures, ValidatePulseGates
