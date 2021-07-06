@@ -1057,7 +1057,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Args:
             z (np.ndarray): 2D boolean Numpy array.
             x (np.ndarray): 2D boolean Numpy array.
-            phase (np.ndarray or None): Optional, 1D integer array from Z_4.make t
+            phase (np.ndarray or None): Optional, 1D integer array from Z_4.
 
         Returns:
             PauliList: the constructed PauliList.
