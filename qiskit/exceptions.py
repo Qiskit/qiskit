@@ -13,6 +13,7 @@
 """Exceptions for errors raised by Qiskit."""
 
 from typing import Optional
+import warnings
 
 
 class QiskitError(Exception):
@@ -31,7 +32,14 @@ class QiskitError(Exception):
 class QiskitIndexError(QiskitError, IndexError):
     """Raised when a sequence subscript is out of range."""
 
-    pass
+    def __init__(self, *args):
+        """Set the error message."""
+        warnings.warn(
+            "QiskitIndexError class is being deprecated and it is going to be remove in the future",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(*args)
 
 
 class QiskitUserConfigError(QiskitError):
@@ -53,11 +61,11 @@ class MissingOptionalLibraryError(QiskitError, ImportError):
             pip_install: pip install command, if any
             msg: Descriptive message, if any
         """
-        message = ["The '{}' library is required to use '{}'.".format(libname, name)]
+        message = [f"The '{libname}' library is required to use '{name}'."]
         if pip_install:
-            message.append("You can install it with '{}'.".format(pip_install))
+            message.append(f"You can install it with '{pip_install}'.")
         if msg:
-            message.append(" {}.".format(msg))
+            message.append(f" {msg}.")
 
         super().__init__(" ".join(message))
         self.message = " ".join(message)
