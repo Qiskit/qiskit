@@ -25,7 +25,7 @@ from qiskit.transpiler.basepasses import AnalysisPass
 class VF2Layout(AnalysisPass):
     """If possible, chooses a Layout as a Subgraph Isomorphism Probrem, using VF2."""
 
-    def __init__(self, coupling_map, strict_direction=False, seed=None):
+    def __init__(self, coupling_map, strict_direction=False, seed=None, id_order=False):
         """If possible, chooses a Layout as a Subgraph Isomorphism Probrem, using VF2.
 
         If not possible, does not set the layout property. In all the cases,
@@ -40,11 +40,13 @@ class VF2Layout(AnalysisPass):
             strict_direction (bool): If True, considers the direction of the coupling map.
                                      Default is False.
             seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
+            id_order (bool or None): Forces the id_order parameter. If None, is automatically selected.
         """
         super().__init__()
         self.coupling_map = coupling_map
         self.strict_direction = strict_direction
         self.seed = seed
+        self.id_order = id_order
 
     def run(self, dag):
         """run the layout method"""
@@ -71,13 +73,16 @@ class VF2Layout(AnalysisPass):
             shuffled_cm_graph.add_nodes_from(cm_nodes)
             new_edges = [(cm_nodes[edge[0]], cm_nodes[edge[1]]) for edge in cm_graph.edge_list()]
             shuffled_cm_graph.add_edges_from_no_data(new_edges)
-            cm_nodes = {n: i for i, n in enumerate(cm_nodes)}
+            cm_nodes = [k for k, v in sorted(enumerate(cm_nodes), key=lambda item: item[1])]
             cm_graph = shuffled_cm_graph
-
         im_graph.add_nodes_from(range(len(qubits)))
         im_graph.add_edges_from_no_data(interactions)
 
-        mapping = vf2_mapping(cm_graph, im_graph, subgraph=True, id_order=True, induced=False)
+        if self.id_order:
+            id_order = self.id_order
+        else:
+            id_order = im_graph.num_edges() < 300
+        mapping = vf2_mapping(cm_graph, im_graph, subgraph=True, id_order=id_order, induced=False)
 
         if mapping:
             stop_reason = "solution found"

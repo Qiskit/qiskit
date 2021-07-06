@@ -1,6 +1,6 @@
 contextvars>=2.4;python_version<'3.7'
 jsonschema>=2.6
-retworkx @ git+https://github.com/mtreinish/retworkx@vf2-mapping
+retworkx @ git+https://github.com/1ucian0/retworkx@368_375
 numpy>=1.17
 ply>=3.10
 psutil>=5
