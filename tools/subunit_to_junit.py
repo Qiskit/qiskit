@@ -71,7 +71,7 @@ def filter_by_result(
     if output_path is None:
         output_to = sys.stdout
     else:
-        output_to = open(output_path, "w")
+        output_to = open(output_path, "w")  # pylint: disable=consider-using-with
 
     try:
         result = result_factory(output_to)
