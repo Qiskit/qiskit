@@ -310,7 +310,7 @@ class OneQubitEulerDecomposer:
                 enabled, we take the opportunity to commute half-rotations in the outer gates past
                 the middle gate, which permits us to coalesce them at the cost of reversing the sign
                 of theta.
-        
+
         Returns:
             QuantumCircuit: The assembled circuit.
         """
