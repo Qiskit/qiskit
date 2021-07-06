@@ -22,6 +22,8 @@ from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.stabilizer_table import StabilizerTable
+import retworkx as rx
+from collections import defaultdict
 
 
 class PauliList(BasePauli, LinearMixin, GroupMixin):
@@ -1055,7 +1057,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Args:
             z (np.ndarray): 2D boolean Numpy array.
             x (np.ndarray): 2D boolean Numpy array.
-            phase (np.ndarray or None): Optional, 1D integer array from Z_4.
+            phase (np.ndarray or None): Optional, 1D integer array from Z_4.make t
 
         Returns:
             PauliList: the constructed PauliList.
@@ -1082,8 +1084,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Returns:
             List[PauliList]: List of PauliLists where each PauliList contains commutable Pauli operators.
         """
-        import retworkx as rx
-        from collections import defaultdict
 
         nodes = range(self._num_paulis)
         edges = self._qw_anticommutation_graph()
