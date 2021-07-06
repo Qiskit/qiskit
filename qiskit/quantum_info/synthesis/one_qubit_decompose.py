@@ -314,11 +314,12 @@ class OneQubitEulerDecomposer:
         # Early return for the middle-gate-free case
         if abs(theta) < atol:
             lam, phi = lam + phi, 0
-            if abs(_mod_2pi(lam, atol)) > atol:
-                # NOTE: The following normalization is safe, because the gphase correction below
-                #       fixes a particular diagonal entry to 1, which prevents any potential phase
-                #       slippage coming from _mod_2pi injecting multiples of 2pi.
-                lam = _mod_2pi(lam)
+            # NOTE: The following normalization is safe, because the gphase correction below
+            #       fixes a particular diagonal entry to 1, which prevents any potential phase
+            #       slippage coming from _mod_2pi injecting multiples of 2pi.
+            lam = _mod_2pi(lam, atol)
+            if abs(lam) > atol:
+
                 circuit._append(k_gate(lam), [qr[0]], [])
                 gphase += lam / 2
             circuit.global_phase = gphase
