@@ -551,7 +551,7 @@ class Pauli(BasePauli):
         """Return True if Paulis anticommute using the Qubit Wise Commutativity (QWC) definition.
 
         Args:
-            other (Pauli): another Pauli operator
+            other (Pauli): another Pauli operator.
 
         Returns:
             bool: True if Pauli's anticommute, False if they commute.
