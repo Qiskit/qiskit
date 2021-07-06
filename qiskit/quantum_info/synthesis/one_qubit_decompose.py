@@ -330,7 +330,7 @@ class OneQubitEulerDecomposer:
             abs(_mod_2pi(lam + np.pi)) < atol or abs(_mod_2pi(phi + np.pi)) < atol
         ):
             lam, theta, phi = lam + np.pi, -theta, phi + np.pi
-        lam = _mod_2pi(lam)
+        lam = _mod_2pi(lam, atol)
         if abs(lam) > atol:
             gphase += lam / 2
             circuit._append(k_gate(lam), [qr[0]], [])
