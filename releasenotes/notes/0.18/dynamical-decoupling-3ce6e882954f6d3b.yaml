@@ -1,14 +1,14 @@
 ---
 features:
   - |
-    Added a transpiler pass
-    (:class:`~qiskit.transpiler.passes.DynamicalDecoupling`)
-    for inserting dynamical decoupling sequences in
-    idle periods of a circuit (after mapping to physical qubits and scheduling).
-    The pass allows control over the sequence of DD gates, the spacing between
-    them, and the qubits to apply on.
+    Added a transpiler pass,
+    :class:`~qiskit.transpiler.passes.DynamicalDecoupling`, to
+    :mod:`qiskit.transpiler.passes` for inserting dynamical decoupling sequences
+    in idle periods of a circuit (after mapping to physical qubits and
+    scheduling). The pass allows control over the sequence of DD gates, the
+    spacing between them, and the qubits to apply on. For example:
 
-    .. code-block:: python
+    .. jupyter-execute::
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import XGate
@@ -34,4 +34,4 @@ features:
         pm = PassManager([ALAPSchedule(durations),
                           DynamicalDecoupling(durations, dd_sequence)])
         circ_dd = pm.run(circ)
-        timeline_drawer(circ_dd) 
+        timeline_drawer(circ_dd)
