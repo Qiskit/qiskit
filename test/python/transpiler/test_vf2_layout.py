@@ -14,7 +14,7 @@
 
 import unittest
 import numpy
-from retworkx.generators import hexagonal_lattice_graph
+import retworkx
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import CouplingMap
@@ -31,6 +31,8 @@ class LayoutTestCase(QiskitTestCase):
     seed = 42
 
     def assertLayout(self, dag, coupling_map, property_set, strict_direction=False):
+        """Checks if the circuit in dag was a perfect layout in property_set for the given
+        coupling_map """
         self.assertEqual(property_set["VF2Layout_stop_reason"], "solution found")
 
         layout = property_set["layout"]
@@ -105,7 +107,7 @@ class TestVF2LayoutSimple(LayoutTestCase):
 class TestVF2LayoutLattice(LayoutTestCase):
     """Fit in 25x25 hexagonal lattice coupling map"""
 
-    cmap25 = CouplingMap(hexagonal_lattice_graph(25, 25).edge_list())
+    cmap25 = CouplingMap(retworkx.generators.hexagonal_lattice_graph(25, 25).edge_list())
 
     def graph_state_from_pygraph(self, graph):
         """Creates a GraphState circuit from a PyGraph"""
@@ -120,7 +122,7 @@ class TestVF2LayoutLattice(LayoutTestCase):
 
     def test_hexagonal_lattice_graph_20_in_25(self):
         """A 20x20 interaction map in 25x25 coupling map"""
-        graph_20_20 = hexagonal_lattice_graph(20, 20)
+        graph_20_20 = retworkx.generators.hexagonal_lattice_graph(20, 20)
         circuit = self.graph_state_from_pygraph(graph_20_20)
 
         dag = circuit_to_dag(circuit)
@@ -130,7 +132,7 @@ class TestVF2LayoutLattice(LayoutTestCase):
 
     def test_hexagonal_lattice_graph_9_in_25(self):
         """A 9x9 interaction map in 25x25 coupling map"""
-        graph_9_9 = hexagonal_lattice_graph(9, 9)
+        graph_9_9 = retworkx.generators.hexagonal_lattice_graph(9, 9)
         circuit = self.graph_state_from_pygraph(graph_9_9)
 
         dag = circuit_to_dag(circuit)
@@ -140,6 +142,7 @@ class TestVF2LayoutLattice(LayoutTestCase):
 
 
 class TestVF2LayoutBackend(LayoutTestCase):
+    """Tests VF2Layout against backends"""
     def test_5q_circuit_Rueschlikon_no_solution(self):
         """5 qubits in Rueschlikon, no solution
 
