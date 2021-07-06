@@ -383,18 +383,11 @@ def execute(
                         key,
                     )
                 del run_kwargs[key]
-            elif key == "shots" and run_kwargs[key] is None:
-                run_kwargs[key] = 1024
-            elif key == "max_credits" and run_kwargs[key] is None:
-                run_kwargs[key] = 10
-            elif key == "meas_level" and run_kwargs[key] is None:
-                run_kwargs[key] = MeasLevel.CLASSIFIED
-            elif key == "meas_return" and run_kwargs[key] is None:
-                run_kwargs[key] = MeasReturnType.AVERAGE
-            elif key == "memory_slot_size" and run_kwargs[key] is None:
-                run_kwargs[key] = 100
+            elif run_kwargs[key] is None:
+                del run_kwargs[key]
 
-        run_kwargs["parameter_binds"] = parameter_binds
+        if parameter_binds:
+            run_kwargs["parameter_binds"] = parameter_binds
         run_kwargs.update(run_config)
         job = backend.run(experiments, **run_kwargs)
         end_time = time()
