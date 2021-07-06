@@ -297,14 +297,22 @@ class OneQubitEulerDecomposer:
         K(phi) . A(theta) . K(lam) , where K and A are an orthogonal pair drawn from RZGate, RYGate,
         and RXGate.
 
-        Behavior flags:
-            `simplify` indicates whether gates should be elided / coalesced where possible.
-            `allow_non_canonical` indicates whether we are permitted to reverse the sign of the
-                middle parameter, theta, in the output.  When this and `simplify` are both enabled,
-                we take the opportunity to commute half-rotations in the outer gates past the middle
-                gate, which permits us to coalesce them at the cost of reversing the sign of theta.
-
-        NOTE: The input value of `theta` is expected to lie in [0, pi).
+        Args:
+            theta (float): The middle KAK parameter.  Expected to lie in [0, pi).
+            phi (float): The first KAK parameter.
+            lam (float): The final KAK parameter.
+            phase (float): The input global phase.
+            k_gate (Callable): The constructor for the K gate Instruction.
+            a_gate (Callable): The constructor for the A gate Instruction.
+            simplify (bool): Indicates whether gates should be elided / coalesced where possible.
+            allow_non_canonical (bool): Indicates whether we are permitted to reverse the sign of
+                the middle parameter, theta, in the output.  When this and `simplify` are both
+                enabled, we take the opportunity to commute half-rotations in the outer gates past
+                the middle gate, which permits us to coalesce them at the cost of reversing the sign
+                of theta.
+        
+        Returns:
+            QuantumCircuit: The assembled circuit.
         """
         gphase = phase - (phi + lam) / 2
         qr = QuantumRegister(1, "qr")
