@@ -51,7 +51,7 @@ class AlignMeasures(TransformationPass):
     The input of this pass should be scheduled ``DAGCircuit``, thus one should
     select one of the scheduling passes (``ALAPSchedule`` or ``ASAPSchedule``) before calling this.
 
-    Example:
+    Examples:
 
         We assume executing the following circuit on a backend with ``alignment=16``.
 
@@ -77,11 +77,10 @@ class AlignMeasures(TransformationPass):
         This pass always inserts a positive delay before measurements
         rather than reducing other delays.
 
-    Note:
+    Notes:
 
         The Backend may allow users to execute circuits violating the alignment constraint.
         However, it may return meaningless measurement data mainly due to the phase error.
-
     """
 
     def __init__(self, alignment: int = 1):
