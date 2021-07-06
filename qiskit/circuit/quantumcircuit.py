@@ -1422,18 +1422,15 @@ class QuantumCircuit:
                         instruction.name += f"_{id(instruction)}"
 
                     existing_composite_circuits.append(instruction)
+                    _add_sub_instruction_to_existing_composite_circuits(
+                        instruction, existing_gate_names, existing_composite_circuits
+                    )
 
                 # Insert qasm representation of the original instruction
                 string_temp += "{} {};\n".format(
                     instruction.qasm(),
                     ",".join([bit_labels[j] for j in qargs + cargs]),
                 )
-
-        # Cycle through all gate definitions and add all undefined gates to the list
-        for instruction in existing_composite_circuits:
-            _add_to_existing_composite_circuits(
-                instruction, existing_gate_names, existing_composite_circuits
-            )
 
         # insert gate definitions
         string_temp = _insert_composite_gate_definition_qasm(
@@ -2986,16 +2983,21 @@ def _compare_parameters(param1, param2):
     # else sort by name
     return _standard_compare(param1.name, param2.name)
 
-def _add_to_existing_composite_circuits(
+def _add_sub_instruction_to_existing_composite_circuits(
     instruction, existing_gate_names, existing_composite_circuits
 ):
+    """Recursively add undefined sub-instructions in the definition of the given
+    instruction to existing_composite_circuit list.
+    """
     for sub_instruction, _, _ in instruction.definition:
-        if sub_instruction.name not in existing_gate_names:
-            if sub_instruction not in existing_composite_circuits:
-                existing_composite_circuits.insert(0, sub_instruction)
-                _add_to_existing_composite_circuits(
-                    sub_instruction, existing_gate_names, existing_composite_circuits
-                )
+        if (
+            sub_instruction.name not in existing_gate_names
+            and sub_instruction not in existing_composite_circuits
+        ):
+            existing_composite_circuits.insert(0, sub_instruction)
+            _add_sub_instruction_to_existing_composite_circuits(
+                sub_instruction, existing_gate_names, existing_composite_circuits
+            )
 
 def _get_composite_circuit_qasm_from_instruction(instruction):
     """Returns OpenQASM string composite circuit given an instruction.
