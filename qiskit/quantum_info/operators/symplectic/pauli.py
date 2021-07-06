@@ -547,6 +547,20 @@ class Pauli(BasePauli):
         """
         return np.logical_not(self.commutes(other, qargs=qargs))
 
+    def qw_anticommutes(self, other):
+        """Return True if Paulis anticommute using the Qubit Wise Commutativity (QWC) definition.
+
+        Args:
+            other (Pauli): another Pauli operator.
+
+        Returns:
+            bool: True if Pauli's anticommute, False if they commute.
+        """
+        for i, pauliop in enumerate(self):
+            if pauliop.anticommutes(other[i]):
+                return True
+        return False
+
     def evolve(self, other, qargs=None):
         r"""Heisenberg picture evolution of a Pauli by a Clifford.
 

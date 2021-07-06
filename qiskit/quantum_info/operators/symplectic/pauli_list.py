@@ -1062,3 +1062,37 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         base_z, base_x, base_phase = cls._from_array(z, x, phase)
         return cls(BasePauli(base_z, base_x, base_phase))
+
+    def _qw_anticommutation_graph(self):
+        """Create qubit wise anti commutation graph with edges (i, j) if i and j are not commutable.
+
+        Returns:
+            List[Tuple(int,int)]: A list of pairs of indices of the PauliList that are not commutable.
+        """
+        anti_commutation_graph = []
+        for i in range(self._num_paulis):
+            for j in range(i, self._num_paulis):
+                if i != j and self[i].qw_anticommutes(self[j]):
+                    anti_commutation_graph.append((i, j))
+        return anti_commutation_graph
+
+    def group_subops_pauli_list(self):
+        """Partition a  PauliList into sets of mutually qubit-wise commuting Pauli strings.
+
+        Returns:
+            List[PauliList]: List of PauliLists where each PauliList contains commutable Pauli operators.
+        """
+        import retworkx as rx
+        from collections import defaultdict
+
+        nodes = range(self._num_paulis)
+        edges = self._qw_anticommutation_graph()
+        graph = rx.PyGraph()
+        graph.add_nodes_from(nodes)
+        graph.add_edges_from_no_data(edges)
+        # Keys in coloring_dict are nodes, values are colors
+        coloring_dict = rx.graph_greedy_color(graph)
+        groups = defaultdict(list)
+        for idx, color in coloring_dict.items():
+            groups[color].append(idx)
+        return [PauliList([self[i] for i in x]) for x in groups.values()]
