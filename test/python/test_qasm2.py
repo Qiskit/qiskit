@@ -12,11 +12,12 @@
 
 """Test Qasm2 functional interface to QASM loading"""
 
+import os
 import tempfile
 import unittest
 
 from qiskit.qasm2.functions import load, dump
-from qiskit.test import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase
 
 
 class TestQasm2(QiskitTestCase):
@@ -25,18 +26,22 @@ class TestQasm2(QiskitTestCase):
     def setUp(self):
         super().setUp()
 
+        # Files used in test are in a subdir
+        _qasm2_testfiles_path = os.path.join(os.path.dirname(__file__), "qasm2")
+        _qasm2_outputfiles_path = os.path.join(os.path.dirname(__file__), "qasm2", "output")
+
         # Source file path
-        self.qasm_file_path = self._get_resource_path("yiqing.qasm", Path.QASM2)
+        self.qasm_file_path = os.path.join(_qasm2_testfiles_path, "yiqing.qasm")
         # Captured circuit draw
-        self._circ_draw_path = self._get_resource_path("output/yiqing_circ_draw.txt", Path.QASM2)
+        self._circ_draw_path = os.path.join(_qasm2_outputfiles_path, "yiqing_circ_draw.txt")
+
         with open(self._circ_draw_path, "r") as y_f:
             self._circ_draw = y_f.read()
 
         # The file with export output from QuantumCircuit
         # It differs in order from the original source file.
-        self._circ_export_path = self._get_resource_path(
-            "output/yiqing_circ_export.txt", Path.QASM2
-        )
+        self._circ_export_path = os.path.join(_qasm2_outputfiles_path, "yiqing_circ_export.txt")
+
         with open(self._circ_export_path, "r") as y_f:
             self._circ_export = y_f.read()
 
