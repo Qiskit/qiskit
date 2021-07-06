@@ -150,7 +150,9 @@ class DynamicalDecoupling(TransformationPass):
             sequence_gphase = np.angle(noop[0][0])
 
         if self._qubits is None:
-            self._qubits = range(dag.num_qubits())
+            self._qubits = set(range(dag.num_qubits()))
+        else:
+            self._qubits = set(self._qubits)
 
         if self._spacing:
             if sum(self._spacing) != 1 or any(a < 0 for a in self._spacing):

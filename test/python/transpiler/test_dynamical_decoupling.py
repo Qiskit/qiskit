@@ -80,6 +80,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
                 ("u", None, 100),
                 ("rx", None, 100),
                 ("measure", None, 1000),
+                ("reset", None, 1500),
             ]
         )
 
@@ -538,6 +539,48 @@ class TestDynamicalDecoupling(QiskitTestCase):
         self.assertEqual(t2_dd, expected)
         # check global phase is correct
         self.assertEqual(Operator(t2), Operator(expected))
+
+    def test_dd_after_reset(self):
+        """Test skip_reset_qubits option works.
+
+                  ┌─────────────────┐┌───┐┌────────────────┐┌───┐┌─────────────────┐»
+        q_0: ─|0>─┤ Delay(1000[dt]) ├┤ H ├┤ Delay(190[dt]) ├┤ X ├┤ Delay(1710[dt]) ├»
+                  └─────────────────┘└───┘└────────────────┘└───┘└─────────────────┘»
+        «     ┌───┐┌───┐
+        «q_0: ┤ X ├┤ H ├
+        «     └───┘└───┘
+        """
+        dd_sequence = [XGate(), XGate()]
+        spacing = [0.1, 0.9]
+        pm = PassManager(
+            [
+                ALAPSchedule(self.durations),
+                DynamicalDecoupling(
+                    self.durations, dd_sequence, spacing=spacing, skip_reset_qubits=True
+                ),
+            ]
+        )
+
+        t2 = QuantumCircuit(1)
+        t2.reset(0)
+        t2.delay(1000)
+        t2.h(0)
+        t2.delay(2000, 0)
+        t2.h(0)
+
+        expected = QuantumCircuit(1)
+        expected.reset(0)
+        expected.delay(1000)
+        expected.h(0)
+        expected.delay(190, 0)
+        expected.x(0)
+        expected.delay(1710, 0)
+        expected.x(0)
+        expected.h(0)
+
+        t2_dd = pm.run(t2)
+
+        self.assertEqual(t2_dd, expected)
 
     def test_insert_dd_bad_sequence(self):
         """Test DD raises when non-identity sequence is inserted."""
