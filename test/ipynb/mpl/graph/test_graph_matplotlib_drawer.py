@@ -82,7 +82,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
     @staticmethod
     def save_data(image_filename, testname):
         """Saves result data of a test"""
-        datafilename = "result_test_graph.json"
+        datafilename = "result_test.json"
         if os.path.exists(datafilename):
             with open(datafilename) as datafile:
                 data = json.load(datafile)
