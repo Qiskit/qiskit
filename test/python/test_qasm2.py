@@ -29,22 +29,20 @@ class TestQasm2(QiskitTestCase):
         self.qasm_file_path = self._get_resource_path("yiqing.qasm", Path.QASM2)
         # Captured circuit draw
         self._circ_draw_path = self._get_resource_path("output/yiqing_circ_draw.txt", Path.QASM2)
-        y_f = open(self._circ_draw_path, "r")
-        self._circ_draw = y_f.read()
-        y_f.close()
+        with open(self._circ_draw_path, "r") as y_f:
+            self._circ_draw = y_f.read()
 
         # The file with export output from QuantumCircuit
         # It differs in order from the original source file.
         self._circ_export_path = self._get_resource_path(
             "output/yiqing_circ_export.txt", Path.QASM2
         )
-        y_f = open(self._circ_export_path, "r")
-        self._circ_export = y_f.read()
-        y_f.close()
+        with open(self._circ_export_path, "r") as y_f:
+            self._circ_export = y_f.read()
 
-        y_f = open(self.qasm_file_path, "r")
-        lines = y_f.read()
-        y_f.close()
+        with open(self.qasm_file_path, "r") as y_f:
+            lines = y_f.read()
+
         # file was prepared on Linux, so it's '\n' not os.linesep
         lines_list = lines.split("\n")
 
