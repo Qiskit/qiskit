@@ -35,7 +35,7 @@ def rzx_templates(template_list: List[str] = None):
         templates.append(rzx_zz2())
     if "zz3" in template_list:
         templates.append(rzx_zz3())
-    if 'yz' in template_list:
+    if "yz" in template_list:
         templates.append(rzx_yz())
     if "xz" in template_list:
         templates.append(rzx_xz())
