@@ -123,11 +123,11 @@ class Layout:
 
     def __delitem__(self, key):
         if isinstance(key, int):
-            del self._p2v[key]
             del self._v2p[self._p2v[key]]
+            del self._p2v[key]
         elif isinstance(key, Qubit):
-            del self._v2p[key]
             del self._p2v[self._v2p[key]]
+            del self._v2p[key]
         else:
             raise LayoutError(
                 "The key to remove should be of the form"
