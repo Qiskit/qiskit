@@ -319,18 +319,18 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         # check whether the configuration is valid
         self._check_configuration()
 
-        inner = QuantumCircuit(*self.qregs, name=self.name)
-        qr_state = inner.qubits[: self.num_state_qubits]
-        qr_target = inner.qubits[self.num_state_qubits]
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
+        qr_state = circuit.qubits[: self.num_state_qubits]
+        qr_target = circuit.qubits[self.num_state_qubits]
 
         rotation_coeffs = self._get_rotation_coefficients()
 
         if self.basis == "x":
-            inner.rx(self.coeffs[0], qr_target)
+            circuit.rx(self.coeffs[0], qr_target)
         elif self.basis == "y":
-            inner.ry(self.coeffs[0], qr_target)
+            circuit.ry(self.coeffs[0], qr_target)
         else:
-            inner.rz(self.coeffs[0], qr_target)
+            circuit.rz(self.coeffs[0], qr_target)
 
         for c in rotation_coeffs:
             qr_control = []
@@ -346,18 +346,18 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             # apply controlled rotations
             if len(qr_control) > 1:
                 if self.basis == "x":
-                    inner.mcrx(rotation_coeffs[c], qr_control, qr_target)
+                    circuit.mcrx(rotation_coeffs[c], qr_control, qr_target)
                 elif self.basis == "y":
-                    inner.mcry(rotation_coeffs[c], qr_control, qr_target)
+                    circuit.mcry(rotation_coeffs[c], qr_control, qr_target)
                 else:
-                    inner.mcrz(rotation_coeffs[c], qr_control, qr_target)
+                    circuit.mcrz(rotation_coeffs[c], qr_control, qr_target)
 
             elif len(qr_control) == 1:
                 if self.basis == "x":
-                    inner.crx(rotation_coeffs[c], qr_control[0], qr_target)
+                    circuit.crx(rotation_coeffs[c], qr_control[0], qr_target)
                 elif self.basis == "y":
-                    inner.cry(rotation_coeffs[c], qr_control[0], qr_target)
+                    circuit.cry(rotation_coeffs[c], qr_control[0], qr_target)
                 else:
-                    inner.crz(rotation_coeffs[c], qr_control[0], qr_target)
+                    circuit.crz(rotation_coeffs[c], qr_control[0], qr_target)
 
-        self.append(inner.to_gate(), self.qubits)
+        self.append(circuit.to_gate(), self.qubits)

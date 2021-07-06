@@ -240,7 +240,7 @@ class GroverOperator(QuantumCircuit):
 
     def _build(self):
         num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
-        inner = QuantumCircuit(QuantumRegister(num_state_qubits, name="state"), name="Q")
+        circuit = QuantumCircuit(QuantumRegister(num_state_qubits, name="state"), name="Q")
         num_ancillas = numpy.max(
             [
                 self.oracle.num_ancillas,
@@ -249,37 +249,37 @@ class GroverOperator(QuantumCircuit):
             ]
         )
         if num_ancillas > 0:
-            inner.add_register(AncillaRegister(num_ancillas, name="ancilla"))
+            circuit.add_register(AncillaRegister(num_ancillas, name="ancilla"))
 
-        inner.compose(self.oracle, list(range(self.oracle.num_qubits)), inplace=True)
+        circuit.compose(self.oracle, list(range(self.oracle.num_qubits)), inplace=True)
         if self._insert_barriers:
-            inner.barrier()
-        inner.compose(
+            circuit.barrier()
+        circuit.compose(
             self.state_preparation.inverse(),
             list(range(self.state_preparation.num_qubits)),
             inplace=True,
         )
         if self._insert_barriers:
-            inner.barrier()
-        inner.compose(
+            circuit.barrier()
+        circuit.compose(
             self.zero_reflection, list(range(self.zero_reflection.num_qubits)), inplace=True
         )
         if self._insert_barriers:
-            inner.barrier()
-        inner.compose(
+            circuit.barrier()
+        circuit.compose(
             self.state_preparation, list(range(self.state_preparation.num_qubits)), inplace=True
         )
 
         # minus sign
-        inner.global_phase = numpy.pi
+        circuit.global_phase = numpy.pi
 
-        self.add_register(*inner.qregs)
+        self.add_register(*circuit.qregs)
         if self._insert_barriers:
-            inner_wrapped = inner.to_instruction()
+            circuit_wrapped = circuit.to_instruction()
         else:
-            inner_wrapped = inner.to_gate()
+            circuit_wrapped = circuit.to_gate()
 
-        self.compose(inner_wrapped, qubits=self.qubits, inplace=True)
+        self.compose(circuit_wrapped, qubits=self.qubits, inplace=True)
 
 
 # TODO use the oracle compiler or the bit string oracle

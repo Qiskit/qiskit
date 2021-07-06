@@ -73,7 +73,7 @@ class AND(QuantumCircuit):
         qr_variable = QuantumRegister(num_variable_qubits, name="variable")
         qr_result = QuantumRegister(1, name="result")
 
-        inner = QuantumCircuit(qr_variable, qr_result, name="and")
+        circuit = QuantumCircuit(qr_variable, qr_result, name="and")
 
         # determine the control qubits: all that have a nonzero flag
         flags = flags or [1] * num_variable_qubits
@@ -86,15 +86,15 @@ class AND(QuantumCircuit):
         num_ancillas = MCXGate.get_num_ancilla_qubits(len(control_qubits), mode=mcx_mode)
         if num_ancillas > 0:
             qr_ancilla = AncillaRegister(num_ancillas, "ancilla")
-            inner.add_register(qr_ancilla)
+            circuit.add_register(qr_ancilla)
         else:
             qr_ancilla = []
 
         if len(flip_qubits) > 0:
-            inner.x(flip_qubits)
-        inner.mcx(control_qubits, qr_result[:], qr_ancilla[:], mode=mcx_mode)
+            circuit.x(flip_qubits)
+        circuit.mcx(control_qubits, qr_result[:], qr_ancilla[:], mode=mcx_mode)
         if len(flip_qubits) > 0:
-            inner.x(flip_qubits)
+            circuit.x(flip_qubits)
 
-        super().__init__(*inner.qregs, name="and")
-        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)
+        super().__init__(*circuit.qregs, name="and")
+        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)

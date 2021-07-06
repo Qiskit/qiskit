@@ -280,11 +280,11 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         # check whether the configuration is valid
         self._check_configuration()
 
-        inner = QuantumCircuit(*self.qregs, name=self.name)
-        qr_state = inner.qubits[: self.num_state_qubits]
-        qr_target = [inner.qubits[self.num_state_qubits]]
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
+        qr_state = circuit.qubits[: self.num_state_qubits]
+        qr_target = [circuit.qubits[self.num_state_qubits]]
         # Ancilla for the comparator circuit
-        qr_ancilla = inner.qubits[self.num_state_qubits + 1 :]
+        qr_ancilla = circuit.qubits[self.num_state_qubits + 1 :]
 
         # apply comparators and controlled linear rotations
         for i, point in enumerate(self.breakpoints[:-1]):
@@ -295,7 +295,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                     coeffs=self.mapped_coeffs[i],
                     basis=self.basis,
                 )
-                inner.append(poly_r.to_gate(), qr_state[:] + qr_target)
+                circuit.append(poly_r.to_gate(), qr_state[:] + qr_target)
 
             else:
                 # apply Comparator
@@ -303,7 +303,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                 qr_state_full = qr_state[:] + [qr_ancilla[0]]  # add compare qubit
                 qr_remaining_ancilla = qr_ancilla[1:]  # take remaining ancillas
 
-                inner.append(
+                circuit.append(
                     comp.to_gate(), qr_state_full[:] + qr_remaining_ancilla[: comp.num_ancillas]
                 )
 
@@ -313,12 +313,12 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                     coeffs=self.mapped_coeffs[i],
                     basis=self.basis,
                 )
-                inner.append(poly_r.to_gate().control(), [qr_ancilla[0]] + qr_state[:] + qr_target)
+                circuit.append(poly_r.to_gate().control(), [qr_ancilla[0]] + qr_state[:] + qr_target)
 
                 # uncompute comparator
-                inner.append(
+                circuit.append(
                     comp.to_gate().inverse(),
                     qr_state_full[:] + qr_remaining_ancilla[: comp.num_ancillas],
                 )
 
-        self.append(inner.to_gate(), self.qubits)
+        self.append(circuit.to_gate(), self.qubits)

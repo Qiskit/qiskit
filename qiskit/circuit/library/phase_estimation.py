@@ -83,17 +83,17 @@ class PhaseEstimation(QuantumCircuit):
         """
         qr_eval = QuantumRegister(num_evaluation_qubits, "eval")
         qr_state = QuantumRegister(unitary.num_qubits, "q")
-        inner = QuantumCircuit(qr_eval, qr_state, name=name)
+        circuit = QuantumCircuit(qr_eval, qr_state, name=name)
 
         if iqft is None:
             iqft = QFT(num_evaluation_qubits, inverse=True, do_swaps=False).reverse_bits()
 
-        inner.h(qr_eval)  # hadamards on evaluation qubits
+        circuit.h(qr_eval)  # hadamards on evaluation qubits
 
         for j in range(num_evaluation_qubits):  # controlled powers
-            inner.compose(unitary.power(2 ** j).control(), qubits=[j] + qr_state[:], inplace=True)
+            circuit.compose(unitary.power(2 ** j).control(), qubits=[j] + qr_state[:], inplace=True)
 
-        inner.compose(iqft, qubits=qr_eval[:], inplace=True)  # final QFT
+        circuit.compose(iqft, qubits=qr_eval[:], inplace=True)  # final QFT
 
-        super().__init__(*inner.qregs, name=inner.name)
-        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)
+        super().__init__(*circuit.qregs, name=circuit.name)
+        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)

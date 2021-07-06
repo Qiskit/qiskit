@@ -77,13 +77,13 @@ class GraphState(QuantumCircuit):
             raise CircuitError("The adjacency matrix must be symmetric.")
 
         num_qubits = len(adjacency_matrix)
-        inner = QuantumCircuit(num_qubits, name="graph: %s" % (adjacency_matrix))
+        circuit = QuantumCircuit(num_qubits, name="graph: %s" % (adjacency_matrix))
 
-        inner.h(range(num_qubits))
+        circuit.h(range(num_qubits))
         for i in range(num_qubits):
             for j in range(i + 1, num_qubits):
                 if adjacency_matrix[i][j] == 1:
-                    inner.cz(i, j)
+                    circuit.cz(i, j)
 
-        super().__init__(*inner.qregs, name=inner.name)
-        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)
+        super().__init__(*circuit.qregs, name=circuit.name)
+        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)

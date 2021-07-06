@@ -82,17 +82,17 @@ class FourierChecking(QuantumCircuit):
                 "{1, -1}."
             )
 
-        inner = QuantumCircuit(num_qubits, name=f"fc: {f}, {g}")
+        circuit = QuantumCircuit(num_qubits, name=f"fc: {f}, {g}")
 
-        inner.h(inner.qubits)
+        circuit.h(circuit.qubits)
 
-        inner.diagonal(f, inner.qubits)
+        circuit.diagonal(f, circuit.qubits)
 
-        inner.h(inner.qubits)
+        circuit.h(circuit.qubits)
 
-        inner.diagonal(g, inner.qubits)
+        circuit.diagonal(g, circuit.qubits)
 
-        inner.h(inner.qubits)
+        circuit.h(circuit.qubits)
 
-        super().__init__(*inner.qregs, name=inner.name)
-        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)
+        super().__init__(*circuit.qregs, name=circuit.name)
+        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)

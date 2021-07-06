@@ -93,7 +93,7 @@ class Diagonal(QuantumCircuit):
 
         num_qubits = int(num_qubits)
 
-        inner = QuantumCircuit(num_qubits, name="Diagonal")
+        circuit = QuantumCircuit(num_qubits, name="Diagonal")
 
         # Since the diagonal is a unitary, all its entries have absolute value
         # one and the diagonal is fully specified by the phases of its entries.
@@ -107,12 +107,12 @@ class Diagonal(QuantumCircuit):
             num_act_qubits = int(np.log2(n))
             ctrl_qubits = list(range(num_qubits - num_act_qubits + 1, num_qubits))
             target_qubit = num_qubits - num_act_qubits
-            inner.ucrz(angles_rz, ctrl_qubits, target_qubit)
+            circuit.ucrz(angles_rz, ctrl_qubits, target_qubit)
             n //= 2
-        inner.global_phase += diag_phases[0]
+        circuit.global_phase += diag_phases[0]
 
         super().__init__(num_qubits, name="Diagonal")
-        self.append(inner.to_gate(), self.qubits)
+        self.append(circuit.to_gate(), self.qubits)
 
 
 # extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)

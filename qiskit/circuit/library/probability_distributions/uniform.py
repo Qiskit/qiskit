@@ -62,8 +62,8 @@ class UniformDistribution(QuantumCircuit):
             stacklevel=2,
         )
 
-        inner = QuantumCircuit(num_qubits, name=name)
-        inner.h(inner.qubits)
+        circuit = QuantumCircuit(num_qubits, name=name)
+        circuit.h(circuit.qubits)
 
-        super().__init__(*inner.qregs, name=name)
-        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)
+        super().__init__(*circuit.qregs, name=name)
+        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)

@@ -83,19 +83,19 @@ class RGQFTMultiplier(Multiplier):
         self.add_register(qr_a, qr_b, qr_out)
 
         # build multiplication circuit
-        inner = QuantumCircuit(*self.qregs, name=name)
+        circuit = QuantumCircuit(*self.qregs, name=name)
 
-        inner.append(QFT(self.num_result_qubits, do_swaps=False).to_gate(), qr_out[:])
+        circuit.append(QFT(self.num_result_qubits, do_swaps=False).to_gate(), qr_out[:])
 
         for j in range(1, num_state_qubits + 1):
             for i in range(1, num_state_qubits + 1):
                 for k in range(1, self.num_result_qubits + 1):
                     lam = (2 * np.pi) / (2 ** (i + j + k - 2 * num_state_qubits))
-                    inner.append(
+                    circuit.append(
                         PhaseGate(lam).control(2),
                         [qr_a[num_state_qubits - j], qr_b[num_state_qubits - i], qr_out[k - 1]],
                     )
 
-        inner.append(QFT(self.num_result_qubits, do_swaps=False).inverse().to_gate(), qr_out[:])
+        circuit.append(QFT(self.num_result_qubits, do_swaps=False).inverse().to_gate(), qr_out[:])
 
-        self.append(inner.to_gate(), self.qubits)
+        self.append(circuit.to_gate(), self.qubits)

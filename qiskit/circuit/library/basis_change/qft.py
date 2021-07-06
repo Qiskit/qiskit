@@ -253,23 +253,23 @@ class QFT(BlueprintCircuit):
         if num_qubits == 0:
             return
 
-        inner = QuantumCircuit(*self.qregs, name=self.name)
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
         for j in reversed(range(num_qubits)):
-            inner.h(j)
+            circuit.h(j)
             num_entanglements = max(0, j - max(0, self.approximation_degree - (num_qubits - j - 1)))
             for k in reversed(range(j - num_entanglements, j)):
                 lam = np.pi / (2 ** (j - k))
-                inner.cp(lam, j, k)
+                circuit.cp(lam, j, k)
 
             if self.insert_barriers:
-                inner.barrier()
+                circuit.barrier()
 
         if self._do_swaps:
             for i in range(num_qubits // 2):
-                inner.swap(i, num_qubits - i - 1)
+                circuit.swap(i, num_qubits - i - 1)
 
         if self._inverse:
-            inner._data = inner.inverse()
+            circuit._data = circuit.inverse()
 
-        wrapped = inner.to_instruction() if self.insert_barriers else inner.to_gate()
+        wrapped = circuit.to_instruction() if self.insert_barriers else circuit.to_gate()
         self.compose(wrapped, qubits=self.qubits, inplace=True)

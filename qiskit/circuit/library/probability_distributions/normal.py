@@ -175,11 +175,11 @@ class NormalDistribution(QuantumCircuit):
             bounds = (-1, 1) if dim == 1 else [(-1, 1)] * dim
 
         if not isinstance(num_qubits, list):  # univariate case
-            inner = QuantumCircuit(num_qubits, name=name)
+            circuit = QuantumCircuit(num_qubits, name=name)
 
             x = np.linspace(bounds[0], bounds[1], num=2 ** num_qubits)
         else:  # multivariate case
-            inner = QuantumCircuit(sum(num_qubits), name=name)
+            circuit = QuantumCircuit(sum(num_qubits), name=name)
 
             # compute the evaluation points using numpy's meshgrid
             # indexing 'ij' yields the "column-based" indexing
@@ -207,16 +207,16 @@ class NormalDistribution(QuantumCircuit):
         # use default the isometry (or initialize w/o resets) algorithm to construct the circuit
         # pylint: disable=no-member
         if upto_diag:
-            inner.isometry(np.sqrt(normalized_probabilities), inner.qubits, None)
+            circuit.isometry(np.sqrt(normalized_probabilities), circuit.qubits, None)
         else:
             from qiskit.extensions import Initialize  # pylint: disable=cyclic-import
 
             initialize = Initialize(np.sqrt(normalized_probabilities))
-            circuit = initialize.gates_to_uncompute().inverse()
-            inner.compose(circuit, inplace=True)
+            distribution = initialize.gates_to_uncompute().inverse()
+            circuit.compose(distribution, inplace=True)
 
-        super().__init__(*inner.qregs, name=name)
-        self.compose(inner.to_instruction(), qubits=self.qubits, inplace=True)
+        super().__init__(*circuit.qregs, name=name)
+        self.compose(circuit.to_instruction(), qubits=self.qubits, inplace=True)
 
     @property
     def values(self) -> np.ndarray:

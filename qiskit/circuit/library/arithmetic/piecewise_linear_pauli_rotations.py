@@ -243,11 +243,11 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
     def _build(self):
         super()._build()
 
-        inner = QuantumCircuit(*self.qregs, name=self.name)
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
 
-        qr_state = inner.qubits[: self.num_state_qubits]
-        qr_target = [inner.qubits[self.num_state_qubits]]
-        qr_ancilla = inner.ancillas
+        qr_state = circuit.qubits[: self.num_state_qubits]
+        qr_target = [circuit.qubits[self.num_state_qubits]]
+        qr_ancilla = circuit.ancillas
 
         # apply comparators and controlled linear rotations
         for i, point in enumerate(self.breakpoints):
@@ -259,7 +259,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                     offset=self.mapped_offsets[i],
                     basis=self.basis,
                 )
-                inner.append(lin_r.to_gate(), qr_state[:] + qr_target)
+                circuit.append(lin_r.to_gate(), qr_state[:] + qr_target)
 
             else:
                 qr_compare = [qr_ancilla[0]]
@@ -269,7 +269,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                 comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
                 qr = qr_state[:] + qr_compare[:]  # add ancilla as compare qubit
 
-                inner.append(comp.to_gate(), qr[:] + qr_helper[: comp.num_ancillas])
+                circuit.append(comp.to_gate(), qr[:] + qr_helper[: comp.num_ancillas])
 
                 # apply controlled rotation
                 lin_r = LinearPauliRotations(
@@ -278,9 +278,9 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                     offset=self.mapped_offsets[i],
                     basis=self.basis,
                 )
-                inner.append(lin_r.to_gate().control(), qr_compare[:] + qr_state[:] + qr_target)
+                circuit.append(lin_r.to_gate().control(), qr_compare[:] + qr_state[:] + qr_target)
 
                 # uncompute comparator
-                inner.append(comp.to_gate().inverse(), qr[:] + qr_helper[: comp.num_ancillas])
+                circuit.append(comp.to_gate().inverse(), qr[:] + qr_helper[: comp.num_ancillas])
 
-        self.append(inner.to_gate(), self.qubits)
+        self.append(circuit.to_gate(), self.qubits)

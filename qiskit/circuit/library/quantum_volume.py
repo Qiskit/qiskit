@@ -96,22 +96,22 @@ class QuantumVolume(QuantumCircuit):
 
         # For each layer, generate a permutation of qubits
         # Then generate and apply a Haar-random SU(4) to each pair
-        inner = QuantumCircuit(num_qubits, name=name)
+        circuit = QuantumCircuit(num_qubits, name=name)
         perm_0 = list(range(num_qubits))
         for d in range(depth):
             perm = rng.permutation(perm_0)
             if not classical_permutation:
                 layer_perm = Permutation(num_qubits, perm)
-                inner.compose(layer_perm, inplace=True)
+                circuit.compose(layer_perm, inplace=True)
             for w in range(width):
                 seed_u = unitary_seeds[d][w]
                 su4 = random_unitary(4, seed=seed_u).to_instruction()
                 su4.label = "su4_" + str(seed_u)
                 if classical_permutation:
                     physical_qubits = int(perm[2 * w]), int(perm[2 * w + 1])
-                    inner.compose(su4, [physical_qubits[0], physical_qubits[1]], inplace=True)
+                    circuit.compose(su4, [physical_qubits[0], physical_qubits[1]], inplace=True)
                 else:
-                    inner.compose(su4, [2 * w, 2 * w + 1], inplace=True)
+                    circuit.compose(su4, [2 * w, 2 * w + 1], inplace=True)
 
-        super().__init__(*inner.qregs, name=inner.name)
-        self.compose(inner.to_instruction(), qubits=self.qubits, inplace=True)
+        super().__init__(*circuit.qregs, name=circuit.name)
+        self.compose(circuit.to_instruction(), qubits=self.qubits, inplace=True)

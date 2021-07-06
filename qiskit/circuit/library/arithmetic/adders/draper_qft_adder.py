@@ -96,21 +96,21 @@ class DraperQFTAdder(Adder):
         qr_sum = qr_b[:] if kind == "fixed" else qr_b[:] + qr_z[:]
         num_qubits_qft = num_state_qubits if kind == "fixed" else num_state_qubits + 1
 
-        inner = QuantumCircuit(*self.qregs, name=name)
+        circuit = QuantumCircuit(*self.qregs, name=name)
 
         # build QFT adder circuit
-        inner.append(QFT(num_qubits_qft, do_swaps=False).to_gate(), qr_sum[:])
+        circuit.append(QFT(num_qubits_qft, do_swaps=False).to_gate(), qr_sum[:])
 
         for j in range(num_state_qubits):
             for k in range(num_state_qubits - j):
                 lam = np.pi / (2 ** k)
-                inner.cp(lam, qr_a[j], qr_b[j + k])
+                circuit.cp(lam, qr_a[j], qr_b[j + k])
 
         if kind == "half":
             for j in range(num_state_qubits):
                 lam = np.pi / (2 ** (j + 1))
-                inner.cp(lam, qr_a[num_state_qubits - j - 1], qr_z[0])
+                circuit.cp(lam, qr_a[num_state_qubits - j - 1], qr_z[0])
 
-        inner.append(QFT(num_qubits_qft, do_swaps=False).inverse().to_gate(), qr_sum[:])
+        circuit.append(QFT(num_qubits_qft, do_swaps=False).inverse().to_gate(), qr_sum[:])
 
-        self.append(inner.to_gate(), self.qubits)
+        self.append(circuit.to_gate(), self.qubits)
