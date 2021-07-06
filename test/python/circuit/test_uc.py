@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 
 """
 Tests for uniformly controlled single-qubit unitaries.
@@ -35,10 +33,16 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 _id = np.eye(2, 2)
 _not = np.matrix([[0, 1], [1, 0]])
 
-squs_list = [[_not], [_id], [_id, _id], [_id, 1j * _id], [_id, _not, _id, _not],
-             [random_unitary(2).data for i in range(2 ** 2)],
-             [random_unitary(2).data for i in range(2 ** 3)],
-             [random_unitary(2).data for i in range(2 ** 4)]]
+squs_list = [
+    [_not],
+    [_id],
+    [_id, _id],
+    [_id, 1j * _id],
+    [_id, _not, _id, _not],
+    [random_unitary(2).data for i in range(2 ** 2)],
+    [random_unitary(2).data for i in range(2 ** 3)],
+    [random_unitary(2).data for i in range(2 ** 4)],
+]
 
 up_to_diagonal_list = [True, False]
 
@@ -55,9 +59,9 @@ class TestUCGate(QiskitTestCase):
                 qc = QuantumCircuit(q)
                 qc.uc(squs, q[1:], q[0], up_to_diagonal=up_to_diagonal)
                 # Decompose the gate
-                qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'id'])
+                qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
                 # Simulate the decomposed gate
-                simulator = BasicAer.get_backend('unitary_simulator')
+                simulator = BasicAer.get_backend("unitary_simulator")
                 result = execute(qc, simulator).result()
                 unitary = result.get_unitary(qc)
                 if up_to_diagonal:
@@ -71,5 +75,5 @@ def _get_ucg_matrix(squs):
     return block_diag(*squs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
