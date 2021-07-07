@@ -28,7 +28,7 @@ class DAGNode:
         """Create a node"""
         if type is not None:
             warnings.warn(
-                "The DAGNode 'type' kwarg is deprecated as of 0.18.0 and "
+                "The DAGNode 'type' kwarg is deprecated as of 0.19.0 and "
                 "will be removed no earlier than 3 months after the release date. "
                 "Use DAGOpNode, DAGInNode, or DAGOutNode instead of DAGNode.",
                 DeprecationWarning,
@@ -37,7 +37,7 @@ class DAGNode:
         self._type = type
         if op is not None:
             warnings.warn(
-                "The DAGNode 'op' kwarg is deprecated as of 0.18.0 and "
+                "The DAGNode 'op' kwarg is deprecated as of 0.19.0 and "
                 "will be removed no earlier than 3 months after the release date."
                 "Use DAGOpNode instead of DAGNode.",
                 DeprecationWarning,
@@ -46,7 +46,7 @@ class DAGNode:
         self._op = op
         if name is not None:
             warnings.warn(
-                "The DAGNode 'name' attribute is deprecated as of 0.18.0 and "
+                "The DAGNode 'name' attribute is deprecated as of 0.19.0 and "
                 "will be removed no earlier than 3 months after the release date. "
                 "You can use 'DAGNode.op.name' if the DAGNode is of type 'op'.",
                 DeprecationWarning,
@@ -54,7 +54,7 @@ class DAGNode:
             )
         if qargs is not None:
             warnings.warn(
-                "The DAGNode 'qargs' attribute is deprecated as of 0.18.0 and "
+                "The DAGNode 'qargs' attribute is deprecated as of 0.19.0 and "
                 "will be removed no earlier than 3 months after the release date. "
                 "You can use DAGOpNode instead of DAGNode.",
                 DeprecationWarning,
@@ -63,7 +63,7 @@ class DAGNode:
         self._qargs = qargs
         if cargs is not None:
             warnings.warn(
-                "The DAGNode 'cargs' attribute is deprecated as of 0.18.0 and "
+                "The DAGNode 'cargs' attribute is deprecated as of 0.19.0 and "
                 "will be removed no earlier than 3 months after the release date. "
                 "You can use DAGOpNode instead of DAGNode.",
                 DeprecationWarning,
@@ -72,7 +72,7 @@ class DAGNode:
         self._cargs = cargs
         if wire is not None:
             warnings.warn(
-                "The DAGNode 'wire' kwarg is deprecated as of 0.18.0 and "
+                "The DAGNode 'wire' kwarg is deprecated as of 0.19.0 and "
                 "will be removed no earlier than 3 months after the release date."
                 "Use DAGInNode or DAGOutNode instead of DAGNode.",
                 DeprecationWarning,
@@ -85,7 +85,7 @@ class DAGNode:
     def type(self):
         """Returns the type object"""
         warnings.warn(
-            "The DAGNode 'type' attribute is deprecated as of 0.18.0 and "
+            "The DAGNode 'type' attribute is deprecated as of 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
             "Use DAGOpNode, DAGInNode, or DAGOutNode instead of DAGNode.",
             DeprecationWarning,
@@ -97,7 +97,7 @@ class DAGNode:
     def type(self, dag_type):
         """Sets the value of the type object"""
         warnings.warn(
-            "The DAGNode 'type' attribute is deprecated as of 0.18.0 and "
+            "The DAGNode 'type' attribute is deprecated as of 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
             "Use DAGOpNode, DAGInNode, or DAGOutNode instead of DAGNode.",
             DeprecationWarning,
@@ -111,7 +111,7 @@ class DAGNode:
     def op(self):
         """Returns the Instruction object corresponding to the op for the node, else None"""
         warnings.warn(
-            "The DAGNode 'op' attribute is deprecated as of 0.18.0 and "
+            "The DAGNode 'op' attribute is deprecated as of 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
             "Use DAGOpNode instead of DAGNode.",
             DeprecationWarning,
@@ -125,7 +125,7 @@ class DAGNode:
     def op(self, data):
         """Sets the op for the node"""
         warnings.warn(
-            "The DAGNode 'op' attribute is deprecated as of 0.18.0 and "
+            "The DAGNode 'op' attribute is deprecated as of 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
             "Use DAGOpNode instead of DAGNode.",
             DeprecationWarning,
@@ -180,7 +180,7 @@ class DAGNode:
         Returns list of Qubit, else an empty list.
         """
         warnings.warn(
-            "The DAGNode 'qargs' attribute is deprecated as of 0.18.0 and "
+            "The DAGNode 'qargs' attribute is deprecated as of 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
             "Use DAGOpNode instead of DAGNode.",
             DeprecationWarning,
@@ -192,7 +192,7 @@ class DAGNode:
     def qargs(self, new_qargs):
         """Sets the qargs to be the given list of qargs."""
         warnings.warn(
-            "The DAGNode 'qargs' attribute is deprecated as of 0.18.0 and "
+            "The DAGNode 'qargs' attribute is deprecated as of 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
             "Use DAGOpNode instead of DAGNode.",
             DeprecationWarning,
@@ -206,7 +206,7 @@ class DAGNode:
         Returns list of Clbit, else an empty list.
         """
         warnings.warn(
-            "The DAGNode 'cargs' attribute is deprecated as of 0.18.0 and "
+            "The DAGNode 'cargs' attribute is deprecated as of 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
             "Use DAGOpNode instead of DAGNode.",
             DeprecationWarning,
@@ -218,7 +218,7 @@ class DAGNode:
     def cargs(self, new_cargs):
         """Sets the cargs to be the given list of cargs."""
         warnings.warn(
-            "The DAGNode 'cargs' attribute is deprecated as of 0.18.0 and "
+            "The DAGNode 'cargs' attribute is deprecated as of 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
             "Use DAGOpNode instead of DAGNode.",
             DeprecationWarning,
@@ -230,7 +230,7 @@ class DAGNode:
     def wire(self):
         """Returns the Bit object, else None."""
         warnings.warn(
-            "The DAGNode 'wire' attribute is deprecated as of 0.18.0 and "
+            "The DAGNode 'wire' attribute is deprecated as of 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
             "Use DAGInNode or DAGOutNode instead of DAGNode.",
             DeprecationWarning,
@@ -244,7 +244,7 @@ class DAGNode:
     def wire(self, data):
         """Sets the Bit object"""
         warnings.warn(
-            "The DAGNode 'wire' attribute is deprecated as of 0.18.0 and "
+            "The DAGNode 'wire' attribute is deprecated as of 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
             "Use DAGInNode or DAGOutNode instead of DAGNode.",
             DeprecationWarning,
@@ -340,30 +340,6 @@ class DAGOpNode(DAGNode):
     def name(self, new_name):
         """Sets the Instruction name corresponding to the op for this node"""
         self.op.name = new_name
-
-    @property
-    def condition(self):
-        """Returns the condition of the node.op"""
-        warnings.warn(
-            "The DAGOpNode 'condition' attribute is deprecated as of 0.18.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "You can use 'DAGOpNode.op.condition'.",
-            DeprecationWarning,
-            2,
-        )
-        return self.op.condition
-
-    @condition.setter
-    def condition(self, new_condition):
-        """Sets the node.condition which sets the node.op.condition."""
-        warnings.warn(
-            "The DAGOpNode 'condition' attribute is deprecated as of 0.18.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "You can use 'DAGOpNode.op.condition'.",
-            DeprecationWarning,
-            2,
-        )
-        self.op.condition = new_condition
 
 
 class DAGInNode(DAGNode):
