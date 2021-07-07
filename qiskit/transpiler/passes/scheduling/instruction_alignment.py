@@ -52,7 +52,6 @@ class AlignMeasures(TransformationPass):
     select one of the scheduling passes (``ALAPSchedule`` or ``ASAPSchedule``) before calling this.
 
     Examples:
-
         We assume executing the following circuit on a backend with ``alignment=16``.
 
         .. parsed-literal::
@@ -78,7 +77,6 @@ class AlignMeasures(TransformationPass):
         rather than reducing other delays.
 
     Notes:
-
         The Backend may allow users to execute circuits violating the alignment constraint.
         However, it may return meaningless measurement data mainly due to the phase error.
     """
@@ -195,9 +193,9 @@ class ValidatePulseGates(AnalysisPass):
     digital to analog converters (DAC).
 
     In Qiskit SDK, we can define the pulse-level implementation of custom quantum gate
-    instructions, as a :ref:`pulse gate <https://qiskit.org/documentation/tutorials/
-    circuits_advanced/05_pulse_gates.html>`, thus user gates should satisfy
-    all waveform memory constraints imposed by the backend.
+    instructions, as a :ref:`pulse gate
+    <https://qiskit.org/documentation/tutorials/circuits_advanced/05_pulse_gates.html>`,
+    thus user gates should satisfy all waveform memory constraints imposed by the backend.
 
     This pass validates all attached calibration entries and raises ``TranspilerError`` to
     kill the transpilation process if any invalid calibration entry is found.
