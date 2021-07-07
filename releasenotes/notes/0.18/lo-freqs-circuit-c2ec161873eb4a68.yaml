@@ -37,7 +37,7 @@ features:
     ``schedule_los`` may be used as an argument to either the
     :func:`~qiskit.execute_function.execute` or :func:`~qiskit.compiler.assemble` functions. If
     ``schedule_los`` is provided and an LO for a given qubit is missing, the job level values will
-    be used. If the job level values are also missing, an error will be thrown. For example if
+    be used. If the job level values are also missing, an error will be thrown. For example, if
     running on a 3 qubit backend::
 
       import qiskit.pulse
@@ -54,7 +54,7 @@ features:
 
   - |
     The :class:`~qiskit.providers.models.QasmBackendConfiguration` has two
-    new kwargs, ``qubit_lo_range`` and ``meas_lo_range``, on it's constructor.
+    new kwargs, ``qubit_lo_range`` and ``meas_lo_range``, on its constructor.
     These kwargs are equivalent to the kwargs on the
     :class:`~qiskit.providers.models.PulseBackendConfiguration` class
     constructor and are used to determine set the allowed range of values for a

@@ -6,7 +6,7 @@ features:
     class implements the
     `Quantum Natural SPSA (QN-SPSA) <https://arxiv.org/abs/2103.09232>`__
     algorithm, a generalization of the 2-SPSA algorithm, estimates the
-    Quantum Fisher Information Matrix instead of a the Hessian to obtain a
+    Quantum Fisher Information Matrix instead of the Hessian to obtain a
     stochastic estimate of the Quantum Natural Gradient. For examples on
     how to use this new optimizer refer to the
     :class:`~qiskit.algorithms.optimizers.QNSPSA` class documentation.

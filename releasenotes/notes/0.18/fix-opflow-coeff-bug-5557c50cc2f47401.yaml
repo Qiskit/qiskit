@@ -3,7 +3,7 @@ fixes:
   - |
     Fix an issue with the bug with the :mod:`qiskit.opflow.expectations` module
     where coefficient of a statefunction were not been multiplied correctly.
-    Which would result in an incorrect results. This also fixed the calculations
+    This also fixed the calculations
     of Gradients and QFIs when using the
     :class:`~qiskit.opflow.expectations.PauliExpectation` or
     :class:`~qiskit.opflow.expectations.AerPauliExpectation` classes. For

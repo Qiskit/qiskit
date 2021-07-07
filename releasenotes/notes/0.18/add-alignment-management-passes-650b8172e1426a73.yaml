@@ -4,7 +4,7 @@ features:
   - |
     Added two new passes :class:`~qiskit.transpiler.passes.AlignMeasures` and
     :class:`~qiskit.transpiler.passes.ValidatePulseGates` to the
-    :mod:`qiskit.transpiler.passes` module. These passes are a harware aware
+    :mod:`qiskit.transpiler.passes` module. These passes are a hardware aware
     optimization and validation routine that is used to manage alignment
     restrictions on time allocation of instructions for a backend.
 
