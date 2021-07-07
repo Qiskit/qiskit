@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes a bug in :func:`~qiskit.transpiler.passes.Optimize1qGatesDecomposition` previously causing certain
+    short sequences of gates to erroneously not be rewritten.
