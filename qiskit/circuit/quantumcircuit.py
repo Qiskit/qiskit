@@ -2983,6 +2983,7 @@ def _compare_parameters(param1, param2):
     # else sort by name
     return _standard_compare(param1.name, param2.name)
 
+
 def _add_sub_instruction_to_existing_composite_circuits(
     instruction, existing_gate_names, existing_composite_circuits
 ):
@@ -2998,6 +2999,7 @@ def _add_sub_instruction_to_existing_composite_circuits(
             _add_sub_instruction_to_existing_composite_circuits(
                 sub_instruction, existing_gate_names, existing_composite_circuits
             )
+
 
 def _get_composite_circuit_qasm_from_instruction(instruction):
     """Returns OpenQASM string composite circuit given an instruction.
@@ -3040,9 +3042,7 @@ def _get_composite_circuit_qasm_from_instruction(instruction):
     return qasm_string
 
 
-def _insert_composite_gate_definition_qasm(
-    string_temp, existing_composite_circuits, extension_lib
-):
+def _insert_composite_gate_definition_qasm(string_temp, existing_composite_circuits, extension_lib):
     """Insert composite gate definition QASM code right after extension library in the header"""
 
     gate_definition_string = ""

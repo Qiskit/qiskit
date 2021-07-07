@@ -196,7 +196,7 @@ my_gate_{0} qr[0];\n""".format(
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
 gate child_circ q0,q1 { h q0; cx q0,q1; }
-gate parant_circ q0,q1,q2 { child_circ q0,q1; h q2; }
+gate parent_circ q0,q1,q2 { child_circ q0,q1; h q2; }
 gate grandparent_circ q0,q1,q2,q3 { parent_circ q0,q1,q2; x q3; }
 qreg q[4];
 grandparent_circ q[0],q[1],q[2],q[3];\n"""
