@@ -49,7 +49,8 @@ class AlignMeasures(TransformationPass):
     This pass shifts measurement instructions to a new time position to fix the misalignment,
     by inserting extra delay right before the measure instructions.
     The input of this pass should be scheduled :class:`~qiskit.dagcircuit.DAGCircuit`, thus one should
-    select one of the scheduling passes (``ALAPSchedule`` or ``ASAPSchedule``) before calling this.
+    select one of the scheduling passes (:class:`~qiskit.transpiler.passes.ALAPSchedule`
+    or :class:`~qiskit.trasnpiler.passes.ASAPSchedule`) before calling this.
 
     Examples:
         We assume executing the following circuit on a backend with ``alignment=16``.
