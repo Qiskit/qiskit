@@ -25,10 +25,72 @@ from qiskit.transpiler.exceptions import TranspilerError
 class AlignMeasures(TransformationPass):
     """Measurement alignment.
 
-    This is control electronics aware optimization pass.
+    This is a control electronics aware optimization pass.
+
+    In many quantum computing architectures gates (instructions) are implemented with
+    shaped analog stimulus signals. These signals are digitally stored in the
+    waveform memory of the control electronics and converted into analog voltage signals
+    by electronic components called digital to analog converters (DAC).
+
+    In a typical hardware implementation of superconducting quantum processors,
+    a single qubit instruction is implemented by a
+    microwave signal with the duration of around several tens of ns with a per-sample
+    time resolution of ~0.1-10ns, as reported by ``backend.configuration().dt``.
+    In such systems requiring higher DAC bandwidth, control electronics often
+    defines a `pulse granularity`, in other words a data chunk, to allow the DAC to
+    perform the signal conversion in parallel to gain the bandwidth.
+
+    Measurement alignment is required if a backend only allows triggering ``measure``
+    instructions at a certain multiple value of this pulse granularity.
+    This value is usually provided by ``backend.configuration().alignment``.
+
+    In Qiskit SDK, the duration of delay can take arbitrary value in units of ``dt``,
+    thus circuits involving delays may violate the above alignment constraint (i.e. misalignment).
+    This pass shifts measurement instructions to a new time position to fix the misalignment,
+    by inserting extra delay right before the measure instructions.
+    The input of this pass should be scheduled :class:`~qiskit.dagcircuit.DAGCircuit`,
+    thus one should select one of the scheduling passes
+    (:class:`~qiskit.transpiler.passes.ALAPSchedule` or
+    :class:`~qiskit.trasnpiler.passes.ASAPSchedule`) before calling this.
+
+    Examples:
+        We assume executing the following circuit on a backend with ``alignment=16``.
+
+        .. parsed-literal::
+
+                 ┌───┐┌────────────────┐┌─┐
+            q_0: ┤ X ├┤ Delay(100[dt]) ├┤M├
+                 └───┘└────────────────┘└╥┘
+            c: 1/════════════════════════╩═
+                                         0
+
+        Note that delay of 100 dt induces a misalignment of 4 dt at the measurement.
+        This pass appends an extra 12 dt time shift to the input circuit.
+
+        .. parsed-literal::
+
+                 ┌───┐┌────────────────┐┌─┐
+            q_0: ┤ X ├┤ Delay(112[dt]) ├┤M├
+                 └───┘└────────────────┘└╥┘
+            c: 1/════════════════════════╩═
+                                         0
+
+        This pass always inserts a positive delay before measurements
+        rather than reducing other delays.
+
+    Notes:
+        The Backend may allow users to execute circuits violating the alignment constraint.
+        However, it may return meaningless measurement data mainly due to the phase error.
     """
 
     def __init__(self, alignment: int = 1):
+        """Create new pass.
+
+        Args:
+            alignment: Integer number representing the minimum time resolution to
+                trigger measure instruction in units of ``dt``. This value depends on
+                the control electronics of your quantum processor.
+        """
         super().__init__()
         self.alignment = alignment
 
@@ -132,10 +194,32 @@ class AlignMeasures(TransformationPass):
 class ValidatePulseGates(AnalysisPass):
     """Check custom gate length.
 
-    This is control electronics aware validation pass.
+    This is a control electronics aware analysis pass.
+
+    Quantum gates (instructions) are often implemented with shaped analog stimulus signals.
+    These signals may be digitally stored in the waveform memory of the control electronics
+    and converted into analog voltage signals by electronic components known as
+    digital to analog converters (DAC).
+
+    In Qiskit SDK, we can define the pulse-level implementation of custom quantum gate
+    instructions, as a `pulse gate
+    <https://qiskit.org/documentation/tutorials/circuits_advanced/05_pulse_gates.html>`__,
+    thus user gates should satisfy all waveform memory constraints imposed by the backend.
+
+    This pass validates all attached calibration entries and raises ``TranspilerError`` to
+    kill the transpilation process if any invalid calibration entry is found.
+    This pass saves users from waiting until job execution time to get an invalid pulse error from
+    the backend control electronics.
     """
 
     def __init__(self, alignment: int = 1):
+        """Create new pass.
+
+        Args:
+            alignment: Integer number representing the minimum time resolution to
+                define the pulse gate length in units of ``dt``. This value depends on
+                the control electronics of your quantum processor.
+        """
         super().__init__()
         self.alignment = alignment
 
