@@ -382,6 +382,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
 
     def test_opaque_gate_with_label(self):
         """Test that custom opaque gate is correctly serialized with a label"""
@@ -394,6 +395,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
 
     def test_opaque_instruction_with_label(self):
         """Test that custom opaque instruction is correctly serialized with a label"""
@@ -406,6 +408,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
 
     def test_custom_gate_with_label(self):
         """Test that custom  gate is correctly serialized with a label"""
@@ -425,6 +428,7 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertEqual(qc.decompose(), new_circ.decompose())
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
 
     def test_custom_instruction_with_label(self):
         """Test that custom instruction is correctly serialized with a label"""
@@ -443,6 +447,7 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertEqual(qc.decompose(), new_circ.decompose())
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
 
     def test_standard_gate_with_label(self):
         """Test a standard gate with a label."""
@@ -455,6 +460,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
 
     def test_circuit_with_conditional_with_label(self):
         """Test that instructions with conditions are correctly serialized."""
@@ -467,3 +473,4 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
