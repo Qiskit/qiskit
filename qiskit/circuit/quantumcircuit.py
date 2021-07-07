@@ -31,7 +31,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_function, deprecate_arguments
+from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -1241,7 +1241,7 @@ class QuantumCircuit:
         if not set(cargs).issubset(self._clbit_set):
             raise CircuitError("cargs not in this circuit")
 
-    def to_instruction(self, parameter_map=None):
+    def to_instruction(self, parameter_map=None, label=None):
         """Create an Instruction out of this circuit.
 
         Args:
@@ -1249,6 +1249,7 @@ class QuantumCircuit:
                parameters in the circuit to parameters to be used in the
                instruction. If None, existing circuit parameters will also
                parameterize the instruction.
+            label (str): Optional gate label.
 
         Returns:
             qiskit.circuit.Instruction: a composite instruction encapsulating this circuit
@@ -1256,7 +1257,7 @@ class QuantumCircuit:
         """
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
 
-        return circuit_to_instruction(self, parameter_map)
+        return circuit_to_instruction(self, parameter_map, label=label)
 
     def to_gate(self, parameter_map=None, label=None):
         """Create a Gate out of this circuit.
@@ -1847,8 +1848,11 @@ class QuantumCircuit:
                 # Controls necessarily join all the cbits in the
                 # register that they use.
                 if instr.condition and not unitary_only:
-                    creg = instr.condition[0]
-                    for bit in creg:
+                    if isinstance(instr.condition[0], Clbit):
+                        condition_bits = [instr.condition[0]]
+                    else:
+                        condition_bits = instr.condition[0]
+                    for bit in condition_bits:
                         idx = bit_indices[bit]
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
@@ -2138,10 +2142,7 @@ class QuantumCircuit:
 
         return parameters
 
-    @deprecate_arguments({"param_dict": "parameters"})
-    def assign_parameters(
-        self, parameters, inplace=False, param_dict=None
-    ):  # pylint: disable=unused-argument
+    def assign_parameters(self, parameters, inplace=False):
         """Assign parameters to new parameters or values.
 
         The keys of the parameter dictionary must be Parameter instances in the current circuit. The
@@ -2153,11 +2154,9 @@ class QuantumCircuit:
                 parameter values. If a dict, it specifies the mapping from ``current_parameter`` to
                 ``new_parameter``, where ``new_parameter`` can be a new parameter object or a
                 numeric value. If an iterable, the elements are assigned to the existing parameters
-                in the order they were inserted. You can call ``QuantumCircuit.parameters`` to check
-                this order.
+                in the order of ``QuantumCircuit.parameters``.
             inplace (bool): If False, a copy of the circuit with the bound parameters is
                 returned. If True the circuit instance itself is modified.
-            param_dict (dict): Deprecated, use ``parameters`` instead.
 
         Raises:
             CircuitError: If parameters is a dict and contains parameters not present in the
@@ -2248,8 +2247,7 @@ class QuantumCircuit:
                 bound_circuit._assign_parameter(self.parameters[i], value)
         return None if inplace else bound_circuit
 
-    @deprecate_arguments({"value_dict": "values"})
-    def bind_parameters(self, values, value_dict=None):  # pylint: disable=unused-argument
+    def bind_parameters(self, values):
         """Assign numeric parameters to values yielding a new circuit.
 
         To assign new Parameter objects or bind the values in-place, without yielding a new
@@ -2257,7 +2255,6 @@ class QuantumCircuit:
 
         Args:
             values (dict or iterable): {parameter: value, ...} or [value1, value2, ...]
-            value_dict (dict): Deprecated, use ``values`` instead.
 
         Raises:
             CircuitError: If values is a dict and contains parameters not present in the circuit.
