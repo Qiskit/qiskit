@@ -13,15 +13,18 @@
 """Tests for plot_histogram."""
 
 import unittest
-import matplotlib as mpl
 
 from qiskit.test import QiskitTestCase
-from qiskit.tools.visualization import plot_histogram
+from qiskit.tools.visualization import plot_histogram, HAS_MATPLOTLIB
+
+if HAS_MATPLOTLIB:
+    import matplotlib as mpl
 
 
 class TestPlotHistogram(QiskitTestCase):
     """Qiskit plot_histogram tests."""
 
+    @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
     def test_different_counts_lengths(self):
         """Test plotting two different length dists works"""
         exact_dist = {
