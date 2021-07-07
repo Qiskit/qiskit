@@ -992,117 +992,86 @@ def _read_circuit(file_obj):
         circ = QuantumCircuit(name=name, global_phase=global_phase, metadata=metadata)
         registers = _read_registers(file_obj, num_registers)
 
-        register_bits = set()
-        # Add quantum registers and bits
-        for register_name in registers["q"]:
-            standalone, indices = registers["q"][register_name]
-            if standalone:
-                start = min(indices)
-                count = start
-                out_of_order = False
-                for index in indices:
-                    if not out_of_order and index != count:
-                        out_of_order = True
-                    count += 1
-                    if index in register_bits:
-                        raise QiskitError("Duplicate register bits found")
-                    register_bits.add(index)
+        for bit_type_label, bit_type, reg_type in [
+            ("q", Qubit, QuantumRegister),
+            ("c", Clbit, ClassicalRegister),
+        ]:
+            register_bits = set()
+            # Add quantum registers and bits
+            for register_name in registers[bit_type_label]:
+                standalone, indices = registers[bit_type_label][register_name]
+                if standalone:
+                    start = min(indices)
+                    count = start
+                    out_of_order = False
+                    for index in indices:
+                        if not out_of_order and index != count:
+                            out_of_order = True
+                        count += 1
+                        if index in register_bits:
+                            raise QiskitError("Duplicate register bits found")
+                        register_bits.add(index)
 
-                num_reg_bits = len(indices)
-                # Create a standlone register of the appropriate length (from
-                # the number of indices in the qpy data) and add it to the circuit
-                qreg = QuantumRegister(num_reg_bits, register_name)
-                # If any bits from qreg are out of order in the circuit handle
-                # is case
-                if out_of_order:
-                    sorted_indices = np.argsort(indices)
-                    for index in sorted_indices:
-                        pos = indices[index]
-                        # Fill any holes between the current register bit and the
-                        # next one
-                        if pos > len(circ.qubits):
-                            qubits = [Qubit() for _ in range(pos - len(circ.qubits))]
-                            circ.add_bits(qubits)
-                        circ.add_bits([qreg[index]])
-                    circ.add_register(qreg)
+                    num_reg_bits = len(indices)
+                    # Create a standlone register of the appropriate length (from
+                    # the number of indices in the qpy data) and add it to the circuit
+                    reg = reg_type(num_reg_bits, register_name)
+                    # If any bits from qreg are out of order in the circuit handle
+                    # is case
+                    if out_of_order:
+                        sorted_indices = np.argsort(indices)
+                        for index in sorted_indices:
+                            pos = indices[index]
+                            if bit_type_label == "q":
+                                bit_len = len(circ.qubits)
+                            else:
+                                bit_len = len(circ.clbits)
+                            # Fill any holes between the current register bit and the
+                            # next one
+                            if pos > bit_len:
+                                bits = [bit_type() for _ in range(pos - bit_len)]
+                                circ.add_bits(bits)
+                            circ.add_bits([reg[index]])
+                        circ.add_register(reg)
+                    else:
+                        if bit_type_label == "q":
+                            bit_len = len(circ.qubits)
+                        else:
+                            bit_len = len(circ.clbits)
+                        # If there is a hole between the start of the register and the
+                        # current bits and standalone bits to fill the gap.
+                        if start > len(circ.qubits):
+                            bits = [bit_type() for _ in range(start - bit_len)]
+                            circ.add_bits(bit_len)
+                        circ.add_register(reg)
+                        out_registers[bit_type_label][register_name] = reg
                 else:
-                    # If there is a hole between the start of the register and the
-                    # current qubits and standalone bits to fill the gap.
-                    if start > len(circ.qubits):
-                        qubits = [Qubit() for _ in range(start - len(circ.qubits))]
-                        circ.add_bits(qubits)
-                    circ.add_register(qreg)
-                    out_registers["q"][register_name] = qreg
-            else:
-                for index in indices:
-                    # Add any missing qubits
-                    qubits = [Qubit() for _ in range(index + 1 - len(circ.qubits))]
-                    circ.add_bits(qubits)
-                    if index in register_bits:
-                        raise QiskitError("Duplicate register bits found")
-                    register_bits.add(index)
-                bits = [circ.qubits[i] for i in indices]
-                qreg = QuantumRegister(name=register_name, bits=bits)
-                circ.add_register(qreg)
-                out_registers["q"][register_name] = qreg
-        # If we don't have sufficient qubits in the circuit after adding
-        # all the standalone register add more clbits to fill the circuit
+                    for index in indices:
+                        if bit_type_label == "q":
+                            bit_len = len(circ.qubits)
+                        else:
+                            bit_len = len(circ.clbits)
+                        # Add any missing bits
+                        bits = [bit_type() for _ in range(index + 1 - bit_len)]
+                        circ.add_bits(bits)
+                        if index in register_bits:
+                            raise QiskitError("Duplicate register bits found")
+                        register_bits.add(index)
+                    if bit_type_label == "q":
+                        bits = [circ.qubits[i] for i in indices]
+                    else:
+                        bits = [circ.clbits[i] for i in indices]
+                    reg = reg_type(name=register_name, bits=bits)
+                    circ.add_register(reg)
+                    out_registers[bit_type_label][register_name] = reg
+        # If we don't have sufficient bits in the circuit after adding
+        # all the registers add more bits to fill the circuit
         if len(circ.qubits) < num_qubits:
             qubits = [Qubit() for _ in range(num_qubits - len(circ.qubits))]
             circ.add_bits(qubits)
-
-        register_bits = set()
-        # Add Classical registers and bis
-        for register_name in registers["c"]:
-            standalone, indices = registers["c"][register_name]
-            # Add a standalone register
-            if standalone:
-                start = min(indices)
-                count = start
-                out_of_order = False
-                for index in indices:
-                    if not out_of_order and index != count:
-                        out_of_order = True
-                    count += 1
-                    if index in register_bits:
-                        raise QiskitError("Duplicate register bits found")
-                    register_bits.add(index)
-                num_reg_bits = len(indices)
-                # Create a standlone register of the appropriate length (from
-                # the number of indices in the qpy data) and add it to the circuit
-                creg = ClassicalRegister(num_reg_bits, register_name)
-                if out_of_order:
-                    sorted_indices = np.argsort(indices)
-                    for index in sorted_indices:
-                        pos = indices[index]
-                        # Fill any holes between the current register bit and the
-                        # next one
-                        if pos > len(circ.clbits):
-                            clbits = [Clbit() for _ in range(pos - len(circ.clbits))]
-                            circ.add_bits(clbits)
-                        circ.add_bits([creg[index]])
-                    circ.add_register(creg)
-                else:
-                    # If there is a hole between the start of the register and the
-                    # current qubits and standalone bits to fill the gap.
-                    if start > len(circ.clbits):
-                        # Add any missing clbits
-                        clbits = [Clbit() for _ in range(start - len(circ.clbits))]
-                        circ.add_bits(clbits)
-                    circ.add_register(creg)
-                    out_registers["c"][register_name] = creg
-            # Add a shared register
-            else:
-                for index in indices:
-                    clbits = [Clbit() for _ in range(index + 1 - len(circ.clbits))]
-                    circ.add_bits(clbits)
-                    if index in register_bits:
-                        raise QiskitError("Duplicate register bits found")
-                    register_bits.add(index)
-                bits = [circ.clbits[i] for i in indices]
-                creg = ClassicalRegister(name=register_name, bits=bits)
-                circ.add_register(creg)
-                out_registers["c"][register_name] = creg
+        if len(circ.clbits) < num_clbits:
+            clbits = [Clbit() for _ in range(num_qubits - len(circ.clbits))]
+            circ.add_bits(clbits)
     else:
         circ = QuantumCircuit(
             num_qubits,
