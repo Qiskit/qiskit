@@ -3,7 +3,7 @@ features:
   - |
     The :meth:`QuantumCircuit.compose` method includes now a ``wrap`` keyword
     that allows to choose whether composed circuits should be wrapped into
-    an instruction of not. Per default this keyword is ``False``, i.e. no wrapping.
+    an instruction or not. Per default this keyword is ``False``, i.e. no wrapping.
 
     For instance
 
@@ -16,4 +16,3 @@ features:
         other.x([0, 1])
         print(circuit.compose(other, wrap=True))  # wrapped
         print(circuit.compose(other, wrap=False))  # not wrapped
-
