@@ -182,7 +182,7 @@ my_gate_{0} qr[0];\n""".format(
         child_circ.h(0)
         child_circ.cx(0, 1)
 
-        parent_circ = QuantumCircuit(3, name="parant_circ")
+        parent_circ = QuantumCircuit(3, name="parent_circ")
         parent_circ.append(child_circ, range(2))
         parent_circ.h(2)
 
@@ -197,7 +197,7 @@ my_gate_{0} qr[0];\n""".format(
 include "qelib1.inc";
 gate child_circ q0,q1 { h q0; cx q0,q1; }
 gate parant_circ q0,q1,q2 { child_circ q0,q1; h q2; }
-gate grandparent_circ q0,q1,q2,q3 { parant_circ q0,q1,q2; x q3; }
+gate grandparent_circ q0,q1,q2,q3 { parent_circ q0,q1,q2; x q3; }
 qreg q[4];
 grandparent_circ q[0],q[1],q[2],q[3];\n"""
 
