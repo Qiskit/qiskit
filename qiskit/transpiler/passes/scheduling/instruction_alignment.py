@@ -48,9 +48,10 @@ class AlignMeasures(TransformationPass):
     thus circuits involving delays may violate the above alignment constraint (i.e. misalignment).
     This pass shifts measurement instructions to a new time position to fix the misalignment,
     by inserting extra delay right before the measure instructions.
-    The input of this pass should be scheduled :class:`~qiskit.dagcircuit.DAGCircuit`, thus one should
-    select one of the scheduling passes (:class:`~qiskit.transpiler.passes.ALAPSchedule`
-    or :class:`~qiskit.trasnpiler.passes.ASAPSchedule`) before calling this.
+    The input of this pass should be scheduled :class:`~qiskit.dagcircuit.DAGCircuit`,
+    thus one should select one of the scheduling passes
+    (:class:`~qiskit.transpiler.passes.ALAPSchedule` or
+    :class:`~qiskit.trasnpiler.passes.ASAPSchedule`) before calling this.
 
     Examples:
         We assume executing the following circuit on a backend with ``alignment=16``.
@@ -83,6 +84,13 @@ class AlignMeasures(TransformationPass):
     """
 
     def __init__(self, alignment: int = 1):
+        """Create new pass.
+
+        Args:
+            alignment: Integer number representing the minimum time resolution to
+                trigger measure instruction in units of ``dt``. This value depends on
+                the control electronics of your quantum processor.
+        """
         super().__init__()
         self.alignment = alignment
 
@@ -205,6 +213,13 @@ class ValidatePulseGates(AnalysisPass):
     """
 
     def __init__(self, alignment: int = 1):
+        """Create new pass.
+
+        Args:
+            alignment: Integer number representing the minimum time resolution to
+                trigger measure instruction in units of ``dt``. This value depends on
+                the control electronics of your quantum processor.
+        """
         super().__init__()
         self.alignment = alignment
 
