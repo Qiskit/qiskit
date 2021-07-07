@@ -666,7 +666,7 @@ class QuantumCircuit:
 
         return self
 
-    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
+    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False, wrap=False):
         """Compose circuit with ``other`` circuit or instruction, optionally permuting wires.
 
         ``other`` can be narrower or of equal width to ``self``.
@@ -678,6 +678,8 @@ class QuantumCircuit:
             clbits (list[Clbit|int]): clbits of self to compose onto.
             front (bool): If True, front composition will be performed (not implemented yet).
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
+            wrap (bool): If True, wraps the other circuit into a gate (or instruction, depending on
+                whether it contains only unitary instructions) before composing it onto self.
 
         Returns:
             QuantumCircuit: the composed circuit (returns None if inplace==True).
@@ -714,7 +716,19 @@ class QuantumCircuit:
         else:
             dest = self.copy()
 
+        if wrap:
+            try:
+                other = other.to_gate()
+            except QiskitError:
+                other = other.to_instruction()
+
         if not isinstance(other, QuantumCircuit):
+            if qubits is None:
+                qubits = list(range(other.num_qubits))
+
+            if clbits is None:
+                clbits = list(range(other.num_clbits))
+
             if front:
                 dest.data.insert(0, (other, qubits, clbits))
             else:
