@@ -247,8 +247,8 @@ def _plot_histogram_data(data, labels, number_to_keep):
     """Generate the data needed for plotting counts.
 
     Parameters:
-        data (list or dict): This is either a list of dictionaries or a single
-            dict containing the values to represent (ex {'001': 130})
+        data (list of dict): This is a list of dictionaries (or a list of a single
+            dict) containing the values to represent (ex {'001': 130})
         labels (list): The list of bitstring labels for the plot.
         number_to_keep (int): The number of terms to plot and rest
             is made into a single bar called 'rest'.
@@ -264,10 +264,27 @@ def _plot_histogram_data(data, labels, number_to_keep):
 
     all_pvalues = []
     all_inds = []
+    # pre-calculate the items that will be kept, using the normalized dictionaries
+    # equally weights each dictionary
+    if number_to_keep is not None:
+        item_counter = Counter()
+        for execution in data:
+            values_total = sum(execution.values())
+            normalized_execution = {k: v / values_total for k, v in execution.items()}
+            item_counter.update(normalized_execution)
+        keys_to_keep = list(map(lambda elem: elem[0], item_counter.most_common(number_to_keep))) + [
+            "rest"
+        ]
+        labels = keys_to_keep
+
     for execution in data:
         if number_to_keep is not None:
-            data_temp = dict(Counter(execution).most_common(number_to_keep))
-            data_temp["rest"] = sum(execution.values()) - sum(data_temp.values())
+            data_temp = {k: execution.get(k, 0) for k in labels}
+            # data_temp = filter(lambda elem: elem[0] in keys_to_keep, execution.items()))
+            if "rest" in execution.keys():
+                data_temp["rest"] = execution["rest"]
+            else:
+                data_temp["rest"] = sum(execution.values()) - sum(data_temp.values())
             execution = data_temp
         values = []
         for key in labels:
@@ -281,6 +298,8 @@ def _plot_histogram_data(data, labels, number_to_keep):
                 labels_dict[key] = 1
                 values.append(execution[key])
         values = np.array(values, dtype=float)
+        if number_to_keep is not None:
+            assert len(values) <= number_to_keep + 1
         pvalues = values / sum(values)
         all_pvalues.append(pvalues)
         numelem = len(values)
