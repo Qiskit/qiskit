@@ -15,6 +15,7 @@ N-qubit Pauli Operator Class
 # pylint: disable=invalid-name
 # pylint: disable=bad-docstring-quotes  # for deprecate_function decorator
 
+from typing import Dict
 import re
 
 import numpy as np
@@ -252,6 +253,11 @@ class Pauli(BasePauli):
             except QiskitError:
                 return False
         return np.all(self._z == other._z) and np.all(self._x == other._x)
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"data": self.to_label()}
 
     # ---------------------------------------------------------------------
     # Direct array access
