@@ -205,7 +205,6 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                 state_preparation = QuantumCircuit(1)
                 state_preparation.ry(angle, 0)
                 grover_op = GroverOperator(oracle, state_preparation)
-                grover_op.global_phase = np.pi
                 for power in range(m):
                     circuit.compose(
                         grover_op.power(2 ** power).control(),
@@ -251,7 +250,6 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                 state_preparation = QuantumCircuit(1)
                 state_preparation.ry(angle, 0)
                 grover_op = GroverOperator(oracle, state_preparation)
-                grover_op.global_phase = np.pi
                 for _ in range(k):
                     circuit.compose(grover_op, inplace=True)
 
@@ -296,7 +294,6 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                     state_preparation = QuantumCircuit(1)
                     state_preparation.ry(angle, 0)
                     grover_op = GroverOperator(oracle, state_preparation)
-                    grover_op.global_phase = np.pi
                     for _ in range(2 ** power):
                         circuit.compose(grover_op, inplace=True)
                 circuits += [circuit]
