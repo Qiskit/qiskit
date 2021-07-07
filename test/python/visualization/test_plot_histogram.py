@@ -14,14 +14,21 @@
 
 import unittest
 
-from qiskit.test import QiskitTestCase
+from io import BytesIO
+from PIL import Image
+
 from qiskit.tools.visualization import plot_histogram, HAS_MATPLOTLIB
+
+# from .visualization import path_to_diagram_reference
+from .visualization import QiskitVisualizationTestCase
+
 
 if HAS_MATPLOTLIB:
     import matplotlib as mpl
+    import matplotlib.pyplot as plt
 
 
-class TestPlotHistogram(QiskitTestCase):
+class TestPlotHistogram(QiskitVisualizationTestCase):
     """Qiskit plot_histogram tests."""
 
     @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
@@ -109,6 +116,99 @@ class TestPlotHistogram(QiskitTestCase):
 
         fig = plot_histogram([raw_dist, exact_dist])
         self.assertIsInstance(fig, mpl.figure.Figure)
+
+    @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_plot_histogram_bars_align(self):
+        """Test issue #6692"""
+        data_noisy = {
+            "00000": 0.22,
+            "00001": 0.003,
+            "00010": 0.005,
+            "00100": 0.004,
+            "00101": 0.001,
+            "00110": 0.004,
+            "00111": 0.001,
+            "01000": 0.005,
+            "01010": 0.002,
+            "01100": 0.225,
+            "01101": 0.001,
+            "01110": 0.003,
+            "01111": 0.003,
+            "10000": 0.012,
+            "10001": 0.002,
+            "10010": 0.001,
+            "10011": 0.001,
+            "10100": 0.247,
+            "10101": 0.004,
+            "10110": 0.003,
+            "10111": 0.001,
+            "11000": 0.225,
+            "11001": 0.005,
+            "11010": 0.002,
+            "11100": 0.015,
+            "11101": 0.004,
+            "11110": 0.001,
+        }
+        data_ideal = {
+            "00000": 0.25,
+            "01100": 0.25,
+            "10100": 0.25,
+            "11000": 0.25,
+        }
+        data_ideal_reduced = {
+            "00000": 0.25,
+            "01100": 0.25,
+            "10100": 0.25,
+            "11000": 0.25,
+            "rest": 0,
+        }
+        data_noisy_reduced = {
+            "00000": 0.22,
+            "01100": 0.225,
+            "10100": 0.247,
+            "11000": 0.225,
+            "11100": 0.015,
+            "rest": 0.083,
+        }
+        fig_reduced = plot_histogram([data_ideal, data_noisy], number_to_keep=5)
+        fig_manual_reduced = plot_histogram([data_ideal_reduced, data_noisy_reduced])
+        self.assertIsInstance(fig_reduced, mpl.figure.Figure)
+
+        # Check images nearly match (ordering of bars is different)
+        # img_ref = path_to_diagram_reference("plot_histogram_reduced_states.png")
+        # img_manual_ref = path_to_diagram_reference("plot_histogram_reduced_states_manual.png")
+        with BytesIO() as img_buffer:
+            fig_reduced.savefig(img_buffer, format="png")
+            img_buffer.seek(0)
+            with BytesIO() as img_manual_buffer:
+                fig_manual_reduced.savefig(img_manual_buffer, format="png")
+                img_manual_buffer.seek(0)
+                self.assertImagesAreEqual(
+                    Image.open(img_buffer), Image.open(img_manual_buffer), 0.01
+                )
+                # self.assertImagesAreEqual(Image.open(img_manual_buffer), img_manual_ref, 0.01)
+            # self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.01)
+        plt.close(fig_reduced)
+        plt.close(fig_manual_reduced)
+
+    @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_plot_histogram_number_to_keep(self):
+        """Test that histograms using number_to_keep produce outputs."""
+        data_ideal = {
+            "000": 0.25,
+            "110": 0.25,
+            "011": 0.25,
+            "101": 0.25,
+        }
+        data_noisy = {
+            "000": 0.24,
+            "110": 0.25,
+            "011": 0.24,
+            "101": 0.24,
+            "001": 0.03,
+        }
+        fig_few_items = plot_histogram([data_ideal, data_noisy], number_to_keep=4)
+        self.assertIsInstance(fig_few_items, mpl.figure.Figure)
 
 
 if __name__ == "__main__":
