@@ -1,10 +1,11 @@
 ---
 upgrade:
   - |
-    All library circuits, i.e. all circuit imports in :mod:`qiskit.circuit.library`, are now 
-    wrapped in a :class:`~qiskit.circuit.Instruction` (or :class:`~qiskit.circuit.Gate`, if 
-    they are unitary). For example, importing and drawing the :class:`~qiskit.circuit.library.QFT`
-    circuit 
+    All library circuit classes, i.e. all :class:`~qiskit.circuit.QuantumCircuit` derived
+    classes in :mod:`qiskit.circuit.library`, are now wrapped in a
+    :class:`~qiskit.circuit.Instruction` (or :class:`~qiskit.circuit.Gate`, if they are
+    unitary). For example, importing and drawing the :class:`~qiskit.circuit.library.QFT`
+    circuit:
 
     .. code-block::python
 
@@ -37,7 +38,8 @@ upgrade:
         q_2: ┤2     ├
              └──────┘
 
-    To obtain the old circuit, you can call the `decompose` method on the circuit
+    To obtain the old circuit, you can call the
+    :meth:`~qiskit.circuit.QuantumCircuit.decompose` method on the circuit
 
     .. code-block::python
 
@@ -46,4 +48,7 @@ upgrade:
         qft = QFT(3)
         print(qft.decompose().draw())
         
-
+    This change was primarily made for consistency as before this release some
+    circuit classes in :mod:`qiskit.circuit.library` were previously wrapped
+    in an :class:`~qiskit.circuit.Instruction` or :class:`~qiskit.circuit.Gate`
+    but not all.
