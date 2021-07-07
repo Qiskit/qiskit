@@ -1244,7 +1244,6 @@ def state_drawer(state, output=None, **drawer_args):
             default_output = config.get("state_drawer", "repr")
         output = default_output
     output = output.lower()
-    # filename = drawer_args.pop('filename')
 
     # Choose drawing backend:
     drawers = {
