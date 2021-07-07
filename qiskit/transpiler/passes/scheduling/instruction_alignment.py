@@ -202,8 +202,8 @@ class ValidatePulseGates(AnalysisPass):
     digital to analog converters (DAC).
 
     In Qiskit SDK, we can define the pulse-level implementation of custom quantum gate
-    instructions, as a :ref:`pulse gate
-    <https://qiskit.org/documentation/tutorials/circuits_advanced/05_pulse_gates.html>`,
+    instructions, as a `pulse gate
+    <https://qiskit.org/documentation/tutorials/circuits_advanced/05_pulse_gates.html>`__,
     thus user gates should satisfy all waveform memory constraints imposed by the backend.
 
     This pass validates all attached calibration entries and raises ``TranspilerError`` to
