@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Expand a gate in a circuit using its decomposition rules."""
+import warnings
 from typing import Type, Union, List, Optional
 from fnmatch import fnmatch
 
@@ -42,8 +43,40 @@ class Decompose(TransformationPass):
         if not isinstance(gates_to_decompose, list):
             gates_to_decompose = [gates_to_decompose]
 
-        self.gate = gate
-        self.gates = gates_to_decompose
+        if gate is not None:
+            self.gates = [gate]
+        else:
+            self.gates = gates_to_decompose
+
+    @property
+    def gate(self) -> Gate:
+        """Returns the gate"""
+        warnings.warn(
+            "The gate argument is deprecated as of 0.18.0, and "
+            "will be removed no earlier than 3 months after that "
+            "release date. You should use the gates_to_decompose argument "
+            "instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.gates[0]
+
+    @gate.setter
+    def gate(self, value):
+        """Sets the gate
+
+        Args:
+            value: new value for gate
+        """
+        warnings.warn(
+            "The gate argument is deprecated as of 0.18.0, and "
+            "will be removed no earlier than 3 months after that "
+            "release date. You should use the gates_to_decompose argument "
+            "instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.gates = [value]
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Decompose pass on `dag`.
@@ -81,7 +114,7 @@ class Decompose(TransformationPass):
         if hasattr(node.op, "label") and node.op.label is not None:
             has_label = True
 
-        if self.gates == [None] and self.gate is None:  # check if no gates given
+        if self.gates == [None]:  # check if no gates given
             return True
         elif has_label and (  # check if label or label wildcard is given
             node.op.label in self.gates or any(fnmatch(node.op.label, p) for p in strings_list)
@@ -93,7 +126,6 @@ class Decompose(TransformationPass):
             return True
         elif not has_label and (  # check if Gate type given
             any(isinstance(node.op, op) for op in gate_type_list)
-            or (self.gate is not None and isinstance(node.op, self.gate))
         ):
             return True
         else:
