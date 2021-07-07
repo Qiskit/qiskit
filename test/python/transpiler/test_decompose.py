@@ -21,8 +21,10 @@ from qiskit.circuit.library import HGate, CCXGate, U2Gate
 from qiskit.quantum_info.operators import Operator
 from qiskit.test import QiskitTestCase
 
+
 class TestDecompose(QiskitTestCase):
     """Tests the decompose pass."""
+
     def setUp(self):
         super().setUp()
         # example complex circuit

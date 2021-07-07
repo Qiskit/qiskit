@@ -56,7 +56,7 @@ class Decompose(TransformationPass):
         """
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
-            if self.should_decompose(node):
+            if self.__should_decompose(node):
                 if not node.op.definition:
                     continue
                 # TODO: allow choosing among multiple decomposition rules
@@ -71,7 +71,7 @@ class Decompose(TransformationPass):
 
         return dag
 
-    def should_decompose(self, node) -> bool:
+    def __should_decompose(self, node) -> bool:
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose)."""
         has_label = False
