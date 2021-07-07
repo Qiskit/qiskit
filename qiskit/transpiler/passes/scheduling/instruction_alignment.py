@@ -217,7 +217,7 @@ class ValidatePulseGates(AnalysisPass):
 
         Args:
             alignment: Integer number representing the minimum time resolution to
-                trigger measure instruction in units of ``dt``. This value depends on
+                define the pulse gate length in units of ``dt``. This value depends on
                 the control electronics of your quantum processor.
         """
         super().__init__()
