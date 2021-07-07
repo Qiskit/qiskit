@@ -164,6 +164,7 @@ class TwoLocal(NLocal):
         parameter_prefix: str = "θ",
         insert_barriers: bool = False,
         initial_state: Optional[Any] = None,
+        name: str = "TwoLocal",
     ) -> None:
         """Construct a new two-local circuit.
 
@@ -209,6 +210,7 @@ class TwoLocal(NLocal):
             insert_barriers=insert_barriers,
             initial_state=initial_state,
             parameter_prefix=parameter_prefix,
+            name=name,
         )
 
     def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> QuantumCircuit:
