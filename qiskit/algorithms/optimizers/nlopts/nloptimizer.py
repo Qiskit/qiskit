@@ -96,6 +96,10 @@ class NLoptOptimizer(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
+    @property
+    def settings(self):
+        return {"max_evals": self._options.get("max_evals", 1000)}
+
     def optimize(
         self,
         num_vars,
