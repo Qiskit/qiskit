@@ -23,6 +23,7 @@ from numpy import pi
 
 from qiskit.visualization.state_visualization import state_drawer
 from qiskit import BasicAer, execute
+from qiskit.quantum_info import DensityMatrix
 from qiskit import *
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
@@ -106,6 +107,18 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         self.graph_drawer(state=state, output="bloch", filename="bloch_multivector.png")
 
+    def test_plot_state_hinton(self):
+        """test plot_state_hinton"""
+        circuit = QuantumCircuit(2)
+        cirucit.h(0)
+        circuit.cx(0, 1)
+
+        # getting the state using backend
+        backend = BasicAer.get_backend("statevector_simulator")
+        result = execute(circuit, backend).result()
+        state = result.get_statevector(circuit)
+
+        self.graph_drawer(state=state, output="hinton", filename="state_hinton.png")
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)

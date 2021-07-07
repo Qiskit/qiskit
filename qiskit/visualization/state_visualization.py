@@ -34,13 +34,16 @@ from qiskit.circuit.tools.pi_check import pi_check
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None):
+def plot_state_hinton(
+	state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None, filename=None
+	):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
     Args:
         state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
+        filename (str): file path to save image to.
         ax_real (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. If this is specified without an
@@ -169,7 +172,10 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
     if ax_real is None and ax_imag is None:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
