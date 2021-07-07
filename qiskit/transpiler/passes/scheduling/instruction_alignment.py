@@ -48,7 +48,7 @@ class AlignMeasures(TransformationPass):
     thus circuits involving delays may violate the above alignment constraint (i.e. misalignment).
     This pass shifts measurement instructions to a new time position to fix the misalignment,
     by inserting extra delay right before the measure instructions.
-    The input of this pass should be scheduled ``DAGCircuit``, thus one should
+    The input of this pass should be scheduled :class:`~qiskit.dagcircuit.DAGCircuit`, thus one should
     select one of the scheduling passes (``ALAPSchedule`` or ``ASAPSchedule``) before calling this.
 
     Examples:
