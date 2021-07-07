@@ -1035,12 +1035,11 @@ def _read_circuit(file_obj):
                     out_registers["q"][register_name] = qreg
             else:
                 for index in indices:
-                    if index not in circ._qubit_set:
-                        qubits = [Qubit() for _ in range(index + 1 - len(circ.qubits))]
-                        circ.add_bits(qubits)
-                    else:
-                        if index in register_bits:
-                            raise QiskitError("Duplicate register bits found")
+                    # Add any missing qubits
+                    qubits = [Qubit() for _ in range(index + 1 - len(circ.qubits))]
+                    circ.add_bits(qubits)
+                    if index in register_bits:
+                        raise QiskitError("Duplicate register bits found")
                     register_bits.add(index)
                 bits = [circ.qubits[i] for i in indices]
                 qreg = QuantumRegister(name=register_name, bits=bits)
@@ -1087,6 +1086,7 @@ def _read_circuit(file_obj):
                     # If there is a hole between the start of the register and the
                     # current qubits and standalone bits to fill the gap.
                     if start > len(circ.clbits):
+                        # Add any missing clbits
                         clbits = [Clbit() for _ in range(start - len(circ.clbits))]
                         circ.add_bits(clbits)
                     circ.add_register(creg)
@@ -1094,12 +1094,10 @@ def _read_circuit(file_obj):
             # Add a shared register
             else:
                 for index in indices:
-                    if index not in circ._clbit_set:
-                        clbits = [Clbit() for _ in range(index + 1 - len(circ.clbits))]
-                        circ.add_bits(clbits)
-                    else:
-                        if index in register_bits:
-                            raise QiskitError("Duplicate register bits found")
+                    clbits = [Clbit() for _ in range(index + 1 - len(circ.clbits))]
+                    circ.add_bits(clbits)
+                    if index in register_bits:
+                        raise QiskitError("Duplicate register bits found")
                     register_bits.add(index)
                 bits = [circ.clbits[i] for i in indices]
                 creg = ClassicalRegister(name=register_name, bits=bits)
