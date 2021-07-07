@@ -281,91 +281,120 @@ class OneQubitEulerDecomposer:
         return theta, phi, lam, phase - 0.5 * (theta + phi + lam)
 
     @staticmethod
-    def _circuit_zyz(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL):
+    def _circuit_kak(
+        theta,
+        phi,
+        lam,
+        phase,
+        simplify=True,
+        atol=DEFAULT_ATOL,
+        allow_non_canonical=True,
+        k_gate=RZGate,
+        a_gate=RYGate,
+    ):
+        """
+        Installs the angles phi, theta, and lam into a KAK-type decomposition of the form
+        K(phi) . A(theta) . K(lam) , where K and A are an orthogonal pair drawn from RZGate, RYGate,
+        and RXGate.
+
+        Args:
+            theta (float): The middle KAK parameter.  Expected to lie in [0, pi).
+            phi (float): The first KAK parameter.
+            lam (float): The final KAK parameter.
+            phase (float): The input global phase.
+            k_gate (Callable): The constructor for the K gate Instruction.
+            a_gate (Callable): The constructor for the A gate Instruction.
+            simplify (bool): Indicates whether gates should be elided / coalesced where possible.
+            allow_non_canonical (bool): Indicates whether we are permitted to reverse the sign of
+                the middle parameter, theta, in the output.  When this and `simplify` are both
+                enabled, we take the opportunity to commute half-rotations in the outer gates past
+                the middle gate, which permits us to coalesce them at the cost of reversing the sign
+                of theta.
+
+        Returns:
+            QuantumCircuit: The assembled circuit.
+        """
         gphase = phase - (phi + lam) / 2
         qr = QuantumRegister(1, "qr")
         circuit = QuantumCircuit(qr)
         if not simplify:
             atol = -1.0
+        # Early return for the middle-gate-free case
         if abs(theta) < atol:
-            tot = _mod_2pi(phi + lam, atol)
-            if abs(tot) > atol:
-                circuit._append(RZGate(tot), [qr[0]], [])
-                gphase += tot / 2
+            lam, phi = lam + phi, 0
+            # NOTE: The following normalization is safe, because the gphase correction below
+            #       fixes a particular diagonal entry to 1, which prevents any potential phase
+            #       slippage coming from _mod_2pi injecting multiples of 2pi.
+            lam = _mod_2pi(lam, atol)
+            if abs(lam) > atol:
+
+                circuit._append(k_gate(lam), [qr[0]], [])
+                gphase += lam / 2
             circuit.global_phase = gphase
             return circuit
         if abs(theta - np.pi) < atol:
             gphase += phi
             lam, phi = lam - phi, 0
+        if allow_non_canonical and (
+            abs(_mod_2pi(lam + np.pi)) < atol or abs(_mod_2pi(phi + np.pi)) < atol
+        ):
+            lam, theta, phi = lam + np.pi, -theta, phi + np.pi
         lam = _mod_2pi(lam, atol)
         if abs(lam) > atol:
             gphase += lam / 2
-            circuit._append(RZGate(lam), [qr[0]], [])
-        circuit._append(RYGate(theta), [qr[0]], [])
+            circuit._append(k_gate(lam), [qr[0]], [])
+        circuit._append(a_gate(theta), [qr[0]], [])
         phi = _mod_2pi(phi, atol)
         if abs(phi) > atol:
             gphase += phi / 2
-            circuit._append(RZGate(phi), [qr[0]], [])
+            circuit._append(k_gate(phi), [qr[0]], [])
         circuit.global_phase = gphase
         return circuit
 
-    @staticmethod
-    def _circuit_zxz(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL):
-        gphase = phase - (phi + lam) / 2
-        qr = QuantumRegister(1, "qr")
-        circuit = QuantumCircuit(qr)
-        if not simplify:
-            atol = -1.0
-        if abs(theta) < atol:
-            tot = _mod_2pi(phi + lam)
-            if abs(tot) > atol:
-                circuit._append(RZGate(tot), [qr[0]], [])
-                gphase += tot / 2
-            circuit.global_phase = gphase
-            return circuit
-        if abs(theta - np.pi) < atol:
-            gphase += phi
-            lam, phi = lam - phi, 0
-        lam = _mod_2pi(lam, atol)
-        if abs(lam) > atol:
-            gphase += lam / 2
-            circuit._append(RZGate(lam), [qr[0]], [])
-        circuit._append(RXGate(theta), [qr[0]], [])
-        phi = _mod_2pi(phi, atol)
-        if abs(phi) > atol:
-            gphase += phi / 2
-            circuit._append(RZGate(phi), [qr[0]], [])
-        circuit.global_phase = gphase
-        return circuit
+    def _circuit_zyz(
+        self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, allow_non_canonical=True
+    ):
+        return self._circuit_kak(
+            theta,
+            phi,
+            lam,
+            phase,
+            simplify=simplify,
+            atol=atol,
+            allow_non_canonical=allow_non_canonical,
+            k_gate=RZGate,
+            a_gate=RYGate,
+        )
 
-    @staticmethod
-    def _circuit_xyx(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL):
-        gphase = phase - (phi + lam) / 2
-        qr = QuantumRegister(1, "qr")
-        circuit = QuantumCircuit(qr)
-        if not simplify:
-            atol = -1.0
-        if abs(theta) < atol:
-            tot = _mod_2pi(phi + lam, atol)
-            if abs(tot) > atol:
-                circuit._append(RXGate(tot), [qr[0]], [])
-                gphase += tot / 2
-            circuit.global_phase = gphase
-            return circuit
-        if abs(theta - np.pi) < atol:
-            gphase += phi
-            lam, phi = lam - phi, 0
-        lam = _mod_2pi(lam, atol)
-        if abs(lam) > atol:
-            gphase += lam / 2
-            circuit._append(RXGate(lam), [qr[0]], [])
-        circuit._append(RYGate(theta), [qr[0]], [])
-        phi = _mod_2pi(phi, atol)
-        if abs(phi) > atol:
-            gphase += phi / 2
-            circuit._append(RXGate(phi), [qr[0]], [])
-        circuit.global_phase = gphase
-        return circuit
+    def _circuit_zxz(
+        self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, allow_non_canonical=True
+    ):
+        return self._circuit_kak(
+            theta,
+            phi,
+            lam,
+            phase,
+            simplify=simplify,
+            atol=atol,
+            allow_non_canonical=allow_non_canonical,
+            k_gate=RZGate,
+            a_gate=RXGate,
+        )
+
+    def _circuit_xyx(
+        self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, allow_non_canonical=True
+    ):
+        return self._circuit_kak(
+            theta,
+            phi,
+            lam,
+            phase,
+            simplify=simplify,
+            atol=atol,
+            allow_non_canonical=allow_non_canonical,
+            k_gate=RXGate,
+            a_gate=RYGate,
+        )
 
     @staticmethod
     def _circuit_u3(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL):
@@ -407,35 +436,44 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _circuit_psx_gen(theta, phi, lam, phase, atol, pfun, xfun, xpifun=None):
-        """Generic X90, phase decomposition"""
+        """
+        Generic X90, phase decomposition
+
+        NOTE: `pfun` is responsible for eliding gates where appropriate (e.g., at angle value 0).
+        """
         qr = QuantumRegister(1, "qr")
         circuit = QuantumCircuit(qr, global_phase=phase)
-        # Check for decomposition into minimimal number required SX pulses
+        # Early return for zero SX decomposition
         if np.abs(theta) < atol:
-            # Zero SX gate decomposition
             pfun(circuit, qr, lam + phi)
             return circuit
+        # Early return for single SX decomposition
         if abs(theta - np.pi / 2) < atol:
-            # Single SX gate decomposition
             pfun(circuit, qr, lam - np.pi / 2)
             xfun(circuit, qr)
             pfun(circuit, qr, phi + np.pi / 2)
             return circuit
-        # General two-SX gate decomposition
-        # Shift theta and phi so decomposition is
-        # P(phi).SX.P(theta).SX.P(lam)
+        # General double SX decomposition
         if abs(theta - np.pi) < atol:
             circuit.global_phase += lam
             phi, lam = phi - lam, 0
+        if abs(_mod_2pi(lam + np.pi)) < atol or abs(_mod_2pi(phi)) < atol:
+            lam, theta, phi = lam + np.pi, -theta, phi + np.pi
+            circuit.global_phase -= theta
+        # Shift theta and phi to turn the decomposition from
+        # RZ(phi).RY(theta).RZ(lam) = RZ(phi).RX(-pi/2).RZ(theta).RX(pi/2).RZ(lam)
+        # into RZ(phi+pi).SX.RZ(theta+pi).SX.RZ(lam) .
+        theta, phi = theta + np.pi, phi + np.pi
         circuit.global_phase -= np.pi / 2
+        # Emit circuit
         pfun(circuit, qr, lam)
-        if xpifun and abs(_mod_2pi(theta + np.pi)) < atol:
+        if xpifun and abs(_mod_2pi(theta)) < atol:
             xpifun(circuit, qr)
         else:
             xfun(circuit, qr)
-            pfun(circuit, qr, theta + np.pi)
+            pfun(circuit, qr, theta)
             xfun(circuit, qr)
-        pfun(circuit, qr, phi + np.pi)
+        pfun(circuit, qr, phi)
 
         return circuit
 
