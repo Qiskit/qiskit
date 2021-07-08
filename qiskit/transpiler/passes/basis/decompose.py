@@ -40,9 +40,6 @@ class Decompose(TransformationPass):
         """
         super().__init__()
 
-        if (gates_to_decompose is not None) and (not isinstance(gates_to_decompose, list)):
-            gates_to_decompose = [gates_to_decompose]
-
         if gate is not None:
             self.gates_to_decompose = [gate]
         else:
@@ -108,23 +105,26 @@ class Decompose(TransformationPass):
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose)."""
         has_label = False
-        
-        if self.gates_to_decompose is not None:
-            strings_list = [s for s in self.gates_to_decompose if isinstance(s, str)]
-            gate_type_list = [g for g in self.gates_to_decompose if isinstance(g, type)]
+
+        if not isinstance(self.gates_to_decompose, list):
+            gates = [self.gates_to_decompose]
+        else:
+            gates = self.gates_to_decompose
+
+        strings_list = [s for s in gates if isinstance(s, str)]
+        gate_type_list = [g for g in gates if isinstance(g, type)]
 
         if hasattr(node.op, "label") and node.op.label is not None:
             has_label = True
 
-        if self.gates_to_decompose is None:  # check if no gates given
+        if gates == [None]:  # check if no gates given
             return True
         elif has_label and (  # check if label or label wildcard is given
-            node.op.label in self.gates_to_decompose
-            or any(fnmatch(node.op.label, p) for p in strings_list)
+            node.op.label in gates or any(fnmatch(node.op.label, p) for p in strings_list)
         ):
             return True
         elif not has_label and (  # check if name or name wildcard is given
-            node.name in self.gates_to_decompose or any(fnmatch(node.name, p) for p in strings_list)
+            node.name in gates or any(fnmatch(node.name, p) for p in strings_list)
         ):
             return True
         elif not has_label and (  # check if Gate type given
