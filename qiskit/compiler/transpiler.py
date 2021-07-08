@@ -33,6 +33,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.pulse_constraints import PulseConstraints
 from qiskit.transpiler.preset_passmanagers import (
     level_0_pass_manager,
     level_1_pass_manager,
@@ -57,7 +58,7 @@ def transpile(
     instruction_durations: Optional[InstructionDurationsType] = None,
     dt: Optional[float] = None,
     approximation_degree: Optional[float] = None,
-    alignment: Optional[int] = None,
+    pulse_constraints: Optional[Dict[str, int]] = None,
     seed_transpiler: Optional[int] = None,
     optimization_level: Optional[int] = None,
     pass_manager: Optional[PassManager] = None,
@@ -148,21 +149,25 @@ def transpile(
             If ``None`` (default), ``backend.configuration().dt`` is used.
         approximation_degree (float): heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
-        alignment: An optional control hardware restriction on instruction time allocation.
-            The location of instructions is adjusted to be at quantized time that is
-            multiple of this value, or data point length of pulse gate instruction
-            should be multiple of this value though it can define the pulse envelope with dt step.
-            By providing this argument, such instruction alignment and gate length validation
-            are triggered. This information will be provided by the backend configuration.
-            If the backend doesn't have any restriction on the alignment,
-            then ``alignment`` is None and no adjustment will be performed.
+        pulse_constraints: An optional control hardware restrictions instruction time resolution.
+            A quantum computer backend may report a set of restrictions, namely:
 
-            .. note::
+            - granularity: An integer value representing minimum pulse gate
+              resolution in units of ``dt``. A user-defined pulse gate should have
+              duration of a multiple of this granularity value.
+            - min_length: An integer value representing minimum pulse gate
+              length in units of ``dt``. A user-defined pulse gate should be longer
+              than this length.
+            - control_alignment: An integer value representing a time resolution of gate
+              instruction starting time. Gate instruction should start at time which
+              is a multiple of the alignment value.
+            - measure_alignment: An integer value representing a time resolution of measure
+              instruction starting time. Measure instruction should start at time which
+              is a multiple of the alignment value.
 
-                Note that currently this instruction time optimization is performed only for
-                ``measure`` instructions. Here we assume a hardware whose
-                measurements should start at a time which is a multiple of the alignment value.
-
+            This information will be provided by the backend configuration.
+            If the backend doesn't have any restriction on the pulse time resolutions,
+            then ``pulse_constraints`` is None and no adjustment will be performed.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -279,7 +284,7 @@ def transpile(
         optimization_level,
         callback,
         output_name,
-        alignment,
+        pulse_constraints,
     )
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
@@ -460,7 +465,7 @@ def _parse_transpile_args(
     optimization_level,
     callback,
     output_name,
-    alignment,
+    pulse_constraints,
 ) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -498,7 +503,7 @@ def _parse_transpile_args(
     callback = _parse_callback(callback, num_circuits)
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
-    alignment = _parse_alignment(backend, alignment, num_circuits)
+    pulse_constraints = _parse_pulse_constraints(backend, pulse_constraints, num_circuits)
     if scheduling_method and any(d is None for d in durations):
         raise TranspilerError(
             "Transpiling a circuit with a scheduling method"
@@ -517,7 +522,7 @@ def _parse_transpile_args(
         scheduling_method,
         durations,
         approximation_degree,
-        alignment,
+        pulse_constraints,
         seed_transpiler,
         optimization_level,
         output_name,
@@ -537,7 +542,7 @@ def _parse_transpile_args(
                 scheduling_method=args[7],
                 instruction_durations=args[8],
                 approximation_degree=args[9],
-                alignment=args[10],
+                pulse_constraints=args[10],
                 seed_transpiler=args[11],
             ),
             "optimization_level": args[12],
@@ -856,14 +861,26 @@ def _parse_output_name(output_name, circuits):
         return [circuit.name for circuit in circuits]
 
 
-def _parse_alignment(backend, alignment, num_circuits):
-    if backend is None and alignment is None:
-        alignment = 1
+def _parse_pulse_constraints(backend, pulse_constraints, num_circuits):
+
+    if backend is None and pulse_constraints is None:
+        pulse_constraints = PulseConstraints()
     else:
-        if alignment is None:
-            alignment = getattr(backend.configuration(), "alignment", 1)
+        if pulse_constraints is None:
+            # get constraints from backend
+            pulse_constraints = getattr(
+                backend.configuration(), "pulse_constraints", PulseConstraints(),
+            )
+        else:
+            pulse_constraints = PulseConstraints(**pulse_constraints)
 
-    if not isinstance(alignment, int) or alignment == 0:
-        raise TranspilerError(f"Alignment should be nonzero integer value. Not {alignment}.")
+    # validation
+    fields = ["granularity", "min_length", "control_alignment", "measure_alignment"]
+    for field in fields:
+        constraint_value = getattr(pulse_constraints, field, None)
+        if not isinstance(constraint_value, int) or constraint_value < 1:
+            raise TranspilerError(
+                f"Pulse constraint {field} should be nonzero integer. Not {constraint_value}."
+            )
 
-    return [alignment] * num_circuits
+    return [pulse_constraints] * num_circuits

@@ -1,0 +1,48 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Pulse Constraints class."""
+
+
+class PulseConstraints:
+    """Pass Manager Configuration."""
+
+    def __init__(
+            self,
+            granularity: int = 1,
+            min_length: int = 1,
+            control_alignment: int = 1,
+            measure_alignment: int = 1,
+    ):
+        """Initialize a PulseConstraints object
+
+        Args:
+            granularity: An integer value representing minimum pulse gate
+                resolution in units of ``dt``. A user-defined pulse gate should have
+                duration of a multiple of this granularity value.
+            min_length: An integer value representing minimum pulse gate
+                length in units of ``dt``. A user-defined pulse gate should be longer
+                than this length.
+            control_alignment: An integer value representing a time resolution of gate
+                instruction starting time. Gate instruction should start at time which
+                is a multiple of the alignment value.
+            measure_alignment: An integer value representing a time resolution of measure
+                instruction starting time. Measure instruction should start at time which
+                is a multiple of the alignment value.
+
+        Notes:
+            This information will be provided by the backend configuration.
+        """
+        self.granularity = granularity
+        self.min_length = min_length
+        self.control_alignment = control_alignment
+        self.measure_alignment = measure_alignment
