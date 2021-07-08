@@ -306,7 +306,7 @@ def plot_bloch_multivector(
 
 @deprecate_arguments({"rho": "state"})
 def plot_state_city(
-    state, title="", figsize=None, color=None, alpha=1, ax_real=None, ax_imag=None, *, rho=None
+    state, title="", figsize=None, color=None, alpha=1, ax_real=None, ax_imag=None, *, rho=None, filename=None
 ):
     """Plot the cityscape of quantum state.
 
@@ -530,11 +530,15 @@ def plot_state_city(
     if ax_real is None and ax_imag is None:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, rho=None):
+def plot_state_paulivec(
+	state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None):
     """Plot the paulivec representation of a quantum state.
 
     Plot a bargraph of the mixed state rho over the pauli matrices
@@ -616,7 +620,11 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
     if return_fig:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
+
 
 
 def n_choose_k(n, k):
@@ -686,6 +694,7 @@ def plot_state_qsphere(
     use_degrees=False,
     *,
     rho=None,
+    filename=None,
 ):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
@@ -949,7 +958,10 @@ def plot_state_qsphere(
     if return_fig:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def generate_facecolors(x, y, z, dx, dy, dz, color):
