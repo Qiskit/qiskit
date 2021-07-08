@@ -869,10 +869,11 @@ def _parse_pulse_constraints(backend, pulse_constraints, num_circuits):
         if pulse_constraints is None:
             # get constraints from backend
             pulse_constraints = getattr(
-                backend.configuration(), "pulse_constraints", PulseConstraints(),
+                backend.configuration(),
+                "pulse_constraints",
+                PulseConstraints(),
             )
-        else:
-            pulse_constraints = PulseConstraints(**pulse_constraints)
+    pulse_constraints = PulseConstraints(**pulse_constraints)
 
     # validation
     fields = ["granularity", "min_length", "control_alignment", "measure_alignment"]

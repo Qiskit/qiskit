@@ -17,11 +17,11 @@ class PulseConstraints:
     """Pass Manager Configuration."""
 
     def __init__(
-            self,
-            granularity: int = 1,
-            min_length: int = 1,
-            control_alignment: int = 1,
-            measure_alignment: int = 1,
+        self,
+        granularity: int = 1,
+        min_length: int = 1,
+        control_alignment: int = 1,
+        measure_alignment: int = 1,
     ):
         """Initialize a PulseConstraints object
 

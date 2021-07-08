@@ -20,6 +20,7 @@ from qiskit.circuit.delay import Delay
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.pulse import Play
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass, AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -235,27 +236,32 @@ class ValidatePulseGates(AnalysisPass):
 
         for gate, insts in dag.calibrations.items():
             for qubit_param_pair, schedule in insts.items():
-                if schedule.duration % self.granularity != 0:
-                    raise TranspilerError(
-                        f"Pulse gate duration is not multiple of {self.granularity}. "
-                        "This pulse cannot be played on the specified backend. "
-                        f"Please modify the duration of the custom gate schedule {schedule.name} "
-                        f"which is associated with the gate {gate} of qubit {qubit_param_pair[0]}."
-                    )
-                if schedule.duration < self.min_length:
-                    raise TranspilerError(
-                        f"Pulse gate duration is less than {self.min_length}. "
-                        "This pulse cannot be played on the specified backend. "
-                        f"Please modify the duration of the custom gate schedule {schedule.name} "
-                        f"which is associated with the gate {gate} of qubit {qubit_param_pair[0]}."
-                    )
+                for _, inst in schedule.instructions:
+                    if isinstance(inst, Play):
+                        pulse = inst.pulse
+                        if pulse.duration % self.granularity != 0:
+                            raise TranspilerError(
+                                f"Pulse duration is not multiple of {self.granularity}. "
+                                "This pulse cannot be played on the specified backend. "
+                                f"Please modify the duration of the custom gate pulse {pulse.name} "
+                                f"which is associated with the gate {gate} of "
+                                f"qubit {qubit_param_pair[0]}."
+                            )
+                        if pulse.duration < self.min_length:
+                            raise TranspilerError(
+                                f"Pulse gate duration is less than {self.min_length}. "
+                                "This pulse cannot be played on the specified backend. "
+                                f"Please modify the duration of the custom gate pulse {pulse.name} "
+                                f"which is associated with the gate {gate} of "
+                                "qubit {qubit_param_pair[0]}."
+                            )
 
 
 def _check_alignment_required(
-        dag: DAGCircuit,
-        alignment: int,
-        instructions: Union[Instruction, List[Instruction]],
-):
+    dag: DAGCircuit,
+    alignment: int,
+    instructions: Union[Instruction, List[Instruction]],
+) -> bool:
     """Check DAG nodes and return a boolean representing if instruction scheduling is necessary.
 
     Args:
@@ -287,7 +293,7 @@ def _check_alignment_required(
                 f"Parametrized delay with {repr(duration)} is found in circuit {dag.name}. "
                 f"This backend requires alignment={alignment}. "
                 "Please make sure all assigned values are multiple values of the alignment.",
-                UserWarning
+                UserWarning,
             )
         else:
             # duration is bound:
