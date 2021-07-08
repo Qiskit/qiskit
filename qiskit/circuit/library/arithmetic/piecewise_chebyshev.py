@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Piecewise polynomial Chebyshev approximation to a given f(x)."""
-
 from typing import Callable, List, Optional
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
@@ -64,7 +63,8 @@ class PiecewiseChebyshev(BlueprintCircuit):
     ) -> None:
         r"""
         Args:
-            f_x: the function to be approximated.
+            f_x: the function to be approximated. Constant functions should be specified
+             as f_x = constant.
             degree: the degree of the polynomials.
                 Defaults to ``1``.
             breakpoints: the breakpoints to define the piecewise-linear function.
@@ -214,6 +214,9 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         Returns:
             The polynomials for the piecewise approximation.
+
+        Raises:
+            TypeError: If the input function is not in the correct format.
         """
         if self.num_state_qubits is None:
             return [[]]
@@ -232,13 +235,24 @@ class PiecewiseChebyshev(BlueprintCircuit):
         polynomials = []
         for i in range(0, num_intervals - 1):
             # Calculate the polynomial approximating the function on the current interval
-            poly = Chebyshev.interpolate(
-                self.f_x, self.degree, domain=[breakpoints[i], breakpoints[i + 1]]
-            )
-            # Convert polynomial to the standard basis and rescale it for the rotation gates
-            poly = 2 * poly.convert(kind=np.polynomial.Polynomial).coef
-            # Convert to list and append
-            polynomials.append(poly.tolist())
+            try:
+                # If the function is constant don't call Chebyshev (not necessary and gives errors)
+                if isinstance(self.f_x, (float, int)):
+                    # Append directly to list of polynomials
+                    polynomials.append([self.f_x])
+                else:
+                    poly = Chebyshev.interpolate(
+                        self.f_x, self.degree, domain=[breakpoints[i], breakpoints[i + 1]]
+                    )
+                    # Convert polynomial to the standard basis and rescale it for the rotation gates
+                    poly = 2 * poly.convert(kind=np.polynomial.Polynomial).coef
+                    # Convert to list and append
+                    polynomials.append(poly.tolist())
+            except ValueError as err:
+                raise TypeError(' <lambda>() missing 1 required positional argument: \'' +
+                                self.f_x.__code__.co_varnames[0] + '\'.' +
+                                ' Constant functions should be specified as \'f_x = constant\'.')\
+                    from err
 
         # If the last breakpoint is < 2 ** num_qubits, add the identity polynomial
         if breakpoints[-1] < 2 ** self.num_state_qubits:
