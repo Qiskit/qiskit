@@ -178,7 +178,7 @@ class LogNormalDistribution(QuantumCircuit):
             circuit.compose(distribution, inplace=True)
 
         super().__init__(*circuit.qregs, name=name)
-        self.compose(circuit.to_instruction(), qubits=self.qubits, inplace=True)
+        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)
 
     @property
     def values(self) -> np.ndarray:
