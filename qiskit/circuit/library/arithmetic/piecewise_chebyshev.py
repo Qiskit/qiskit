@@ -249,10 +249,12 @@ class PiecewiseChebyshev(BlueprintCircuit):
                     # Convert to list and append
                     polynomials.append(poly.tolist())
             except ValueError as err:
-                raise TypeError(' <lambda>() missing 1 required positional argument: \'' +
-                                self.f_x.__code__.co_varnames[0] + '\'.' +
-                                ' Constant functions should be specified as \'f_x = constant\'.')\
-                    from err
+                raise TypeError(
+                    " <lambda>() missing 1 required positional argument: '"
+                    + self.f_x.__code__.co_varnames[0]
+                    + "'."
+                    + " Constant functions should be specified as 'f_x = constant'."
+                ) from err
 
         # If the last breakpoint is < 2 ** num_qubits, add the identity polynomial
         if breakpoints[-1] < 2 ** self.num_state_qubits:
