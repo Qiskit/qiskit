@@ -1,11 +1,11 @@
 ---
 features:  
   - |
-    The :meth:`QuantumCircuit.compose` method includes now a ``wrap`` keyword
-    that allows to choose whether composed circuits should be wrapped into
-    an instruction or not. Per default this keyword is ``False``, i.e. no wrapping.
-
-    For instance
+    A new kwarg, ``wrap``, has been added to the
+    :meth:`~qiskit.circuit.QuantumCircuit.compose` method of
+    :class:`~qiskit.circuit.QuantumCircuit`. This enables choosing whether
+    composed circuits should be wrapped into an instruction or not. By
+    default this is ``False``, i.e. no wrapping. For example:
 
     .. jupyter-execute::
 
