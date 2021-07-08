@@ -286,7 +286,7 @@ class Result:
         else:
             return dict_list
 
-    def get_statevector(self, experiment=None, decimals=None):
+    def get_statevector(self, experiment=None, decimals=None, label=None):
         """Get the final statevector of an experiment.
 
         Args:
@@ -294,18 +294,29 @@ class Result:
                 experiment, as specified by ``data()``.
             decimals (int): the number of decimals in the statevector.
                 If None, does not round.
+            label (str or None): key name of save statevector used when calling ``save_statevector()``
 
         Returns:
             list[complex]: list of 2^num_qubits complex amplitudes.
 
         Raises:
-            QiskitError: if there is no statevector for the experiment.
+            QiskitError: if there is no statevector for the experiment or if the given 
+                statevector label is not in the result.
         """
+
+        if label == None:
+            _label = 'statevector'
+        else:
+            _label = label
+
         try:
-            return postprocess.format_statevector(self.data(experiment)['statevector'],
+            return postprocess.format_statevector(self.data(experiment)[_label],
                                                   decimals=decimals)
         except KeyError as ex:
-            raise QiskitError(f'No statevector for experiment "{repr(experiment)}"') from ex
+            if label == None:
+                raise QiskitError(f'No statevector for experiment "{repr(experiment)}"') from ex
+            else:
+                raise QiskitError(f'No statevector "{label}" for experiment "{repr(experiment)}"')
 
     def get_unitary(self, experiment=None, decimals=None):
         """Get the final unitary of an experiment.
