@@ -44,7 +44,6 @@ from qiskit.transpiler.passes import (
     BarrierBeforeFinalMeasurements,
     SabreSwap,
 )
-from qiskit.transpiler.passes.routing.algorithms.bip_model import HAS_CPLEX, HAS_DOCPLEX
 from qiskit.exceptions import QiskitError
 
 
