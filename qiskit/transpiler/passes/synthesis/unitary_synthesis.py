@@ -169,10 +169,10 @@ class UnitarySynthesis(TransformationPass):
         physical_gate_fidelity = None
         wires = None
         if self._natural_direction in {None, True} and layout and self._coupling_map:
-            neighbors = self._coupling_map.neighbors(dag.qubits.index(node.qargs[0]))
-            zero_one = dag.qubits.index(node.qargs[1]) in neighbors
-            neighbors = self._coupling_map.neighbors(dag.qubits.index(node.qargs[1]))
-            one_zero = dag.qubits.index(node.qargs[0]) in neighbors
+            neighbors0 = self._coupling_map.neighbors(dag.qubits.index(node.qargs[0]))
+            zero_one = dag.qubits.index(node.qargs[1]) in neighbors0
+            neighbors1 = self._coupling_map.neighbors(dag.qubits.index(node.qargs[1]))
+            one_zero = dag.qubits.index(node.qargs[0]) in neighbors1
             if zero_one and not one_zero:
                 natural_direction = [0, 1]
             if one_zero and not zero_one:
@@ -218,10 +218,10 @@ class UnitarySynthesis(TransformationPass):
         # if a natural direction exists but the synthesis is in the opposite direction,
         # resynthesize a new operator which is the original conjugated by swaps.
         # this new operator is doubly mirrored from the original and is locally equivalent.
-        synth_direction = next(
-            ((synth_dag.qubits.index(q) for q in op.qargs) for op in synth_dag.two_qubit_ops()),
-            None,
-        )
+        if synth_dag.two_qubit_ops():
+            synth_direction = [
+                synth_dag.qubits.index(qubit) for qubit in synth_dag.two_qubit_ops()[0].qargs
+            ]
         if natural_direction and self._pulse_optimize and synth_direction != natural_direction:
             su4_mat_mm = deepcopy(su4_mat)
             su4_mat_mm[[1, 2]] = su4_mat_mm[[2, 1]]

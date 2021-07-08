@@ -468,6 +468,66 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertIn("sx", num_ops)
         self.assertLessEqual(num_ops["sx"], 14)
 
+    def test_qv_natural(self):
+        from qiskit.circuit.library import QuantumVolume
+        from qiskit.transpiler.passes import (
+            Collect2qBlocks,
+            ConsolidateBlocks,
+            Optimize1qGates,
+            BIPMapping,
+            Depth,
+            FixedPoint,
+        )
+
+        qv64 = QuantumVolume(2, seed=15)
+
+        def construct_passmanager(basis_gates, coupling_map, synthesis_fidelity, pulse_optimize):
+            def _repeat_condition(property_set):
+                return not property_set["depth_fixed_point"]
+
+            _map = [BIPMapping(coupling_map, objective="depth", time_limit=100)]
+            _check_depth = [Depth(), FixedPoint("depth")]
+            _optimize = [
+                Collect2qBlocks(),
+                ConsolidateBlocks(basis_gates=basis_gates),
+                UnitarySynthesis(
+                    basis_gates,
+                    synthesis_fidelity,
+                    coupling_map,
+                    pulse_optimize=True,
+                    natural_direction=True,
+                ),
+                Optimize1qGates(basis_gates),
+            ]
+
+            pm = PassManager()
+            pm.append(_map)  # map to hardware by inserting swaps
+            pm.append(
+                _check_depth + _optimize, do_while=_repeat_condition
+            )  # translate to & optimize over hardware native gates
+            return pm
+
+        coupling_map = CouplingMap([[1, 0], [1, 2], [3, 2], [3, 4], [5, 4]])
+        basis_gates = ["rz", "sx", "cx"]
+
+        pm = construct_passmanager(
+            basis_gates=basis_gates,
+            coupling_map=coupling_map,
+            synthesis_fidelity=0.99,
+            pulse_optimize=True,
+        )
+
+        qv64_compiled = pm.run(qv64.decompose())
+        edges = [list(edge) for edge in coupling_map.get_edges()]
+        self.assertTrue(
+            all(
+                [
+                    [qv64_compiled.qubits.index(qubit) for qubit in qlist] in edges
+                    for _, qlist, _ in qv64_compiled.get_instructions("cx")
+                ]
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
