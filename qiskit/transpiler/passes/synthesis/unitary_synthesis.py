@@ -168,11 +168,12 @@ class UnitarySynthesis(TransformationPass):
         synth_direction = None
         physical_gate_fidelity = None
         wires = None
+        dag_qubit_index = {qubit: index for index, qubit in enumerate(dag.qubits)}
         if self._natural_direction in {None, True} and layout and self._coupling_map:
-            neighbors0 = self._coupling_map.neighbors(dag.qubits.index(node.qargs[0]))
-            zero_one = dag.qubits.index(node.qargs[1]) in neighbors0
-            neighbors1 = self._coupling_map.neighbors(dag.qubits.index(node.qargs[1]))
-            one_zero = dag.qubits.index(node.qargs[0]) in neighbors1
+            neighbors0 = self._coupling_map.neighbors(dag_qubit_index[node.qargs[0]])
+            zero_one = dag_qubit_index[node.qargs[1]] in neighbors0
+            neighbors1 = self._coupling_map.neighbors(dag_qubit_index[node.qargs[1]])
+            one_zero = dag_qubit_index[node.qargs[0]] in neighbors1
             if zero_one and not one_zero:
                 natural_direction = [0, 1]
             if one_zero and not zero_one:
@@ -184,14 +185,14 @@ class UnitarySynthesis(TransformationPass):
             try:
                 len_0_1 = self._backend_props.gate_length(
                     decomposer2q.gate.name,
-                    [dag.qubits.index(node.qargs[0]), dag.qubits.index(node.qargs[1])],
+                    [dag_qubit_index[node.qargs[0]], dag_qubit_index[node.qargs[1]]],
                 )
             except BackendPropertyError:
                 pass
             try:
                 len_1_0 = self._backend_props.gate_length(
                     decomposer2q.gate.name,
-                    [dag.qubits.index(node.qargs[1]), dag.qubits.index(node.qargs[0])],
+                    [dag_qubit_index[node.qargs[1]], dag_qubit_index[node.qargs[0]]],
                 )
             except BackendPropertyError:
                 pass
@@ -202,7 +203,7 @@ class UnitarySynthesis(TransformationPass):
                 natural_direction = [1, 0]
             if natural_direction:
                 physical_gate_fidelity = 1 - self._backend_props.gate_error(
-                    "cx", [dag.qubits.index(node.qargs[i]) for i in natural_direction]
+                    "cx", [dag_qubit_index[node.qargs[i]] for i in natural_direction]
                 )
         if self._natural_direction is True and natural_direction is None:
             raise TranspilerError(
@@ -218,9 +219,10 @@ class UnitarySynthesis(TransformationPass):
         # if a natural direction exists but the synthesis is in the opposite direction,
         # resynthesize a new operator which is the original conjugated by swaps.
         # this new operator is doubly mirrored from the original and is locally equivalent.
+        synth_dag_qubit_index = {qubit: index for index, qubit in enumerate(synth_dag.qubits)}
         if synth_dag.two_qubit_ops():
             synth_direction = [
-                synth_dag.qubits.index(qubit) for qubit in synth_dag.two_qubit_ops()[0].qargs
+                synth_dag_qubit_index[qubit] for qubit in synth_dag.two_qubit_ops()[0].qargs
             ]
         if natural_direction and self._pulse_optimize and synth_direction != natural_direction:
             su4_mat_mm = deepcopy(su4_mat)
