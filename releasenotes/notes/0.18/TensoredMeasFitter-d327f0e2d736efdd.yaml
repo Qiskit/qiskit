@@ -7,7 +7,7 @@ features:
     qiskit-ignis in addition to
     :class:`~qiskit.ignis.mitigation.CompleteMeasFitter` that was already
     supported. If you use :class:`~qiskit.ignis.mitigation.TensoredMeasFitter`
-    you will need to also set the new ``mit_pattern`` kwarg to specify the
+    you will also be able to set the new ``mit_pattern`` kwarg to specify the
     qubits on which to use :class:`~qiskit.ignis.mitigation.TensoredMeasFitter`
     You can refer to the documentation for ``mit_pattern`` in the
     :class:`~qiskit.ignis.mitigation.TensoredMeasFitter` documentation for
