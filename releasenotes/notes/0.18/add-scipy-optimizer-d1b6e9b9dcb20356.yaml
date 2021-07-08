@@ -6,7 +6,7 @@ features:
     :mod:`qiskit.algorithms.optimizers` module. This class is a simple wrapper class
     of the ``scipy.optimize.minimize`` function
     (`documentation <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html>`__)
-    which enables the use of all optimization solvers and enable to use all
+    which enables the use of all optimization solvers and all
     parameters (e.g. callback) which are supported by ``scipy.optimize.minimize``.
     For example:
 
@@ -26,7 +26,7 @@ deprecations:
     The kwargs ``epsilon`` and ``factr`` for the
     :class:`qiskit.algorithms.optimizers.L_BFGS_B` constructor
     and ``factr`` kwarg of the :class:`~qiskit.algorithms.optimizers.P_BFGS`
-    optimizer class are deprecated and will be removed in a future release. Instead, you can just
+    optimizer class are deprecated and will be removed in a future release. Instead, please
     use the ``eps`` karg instead of ``epsilon``. The ``factr`` kwarg is
     replaced with ``ftol``. The relationship between the two is
     :code:`ftol = factr * numpy.finfo(float).eps`. This change was made

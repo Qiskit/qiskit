@@ -9,6 +9,6 @@ features:
     supported. If you use :class:`~qiskit.ignis.mitigation.TensoredMeasFitter`
     you will need to also set the new ``mit_pattern`` kwarg to specify the
     qubits on which to use :class:`~qiskit.ignis.mitigation.TensoredMeasFitter`
-    on. You can refer to the documentation for the ``mit_pattern`` in
+    You can refer to the documentation for ``mit_pattern`` in the
     :class:`~qiskit.ignis.mitigation.TensoredMeasFitter` documentation for
     the expected format.
