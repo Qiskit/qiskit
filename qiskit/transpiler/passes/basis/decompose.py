@@ -44,9 +44,9 @@ class Decompose(TransformationPass):
             gates_to_decompose = [gates_to_decompose]
 
         if gate is not None:
-            self.gates = [gate]
+            self.gates_to_decompose = [gate]
         else:
-            self.gates = gates_to_decompose
+            self.gates_to_decompose = gates_to_decompose
 
     @property
     def gate(self) -> Gate:
@@ -76,7 +76,7 @@ class Decompose(TransformationPass):
             DeprecationWarning,
             stacklevel=2,
         )
-        self.gates = [value]
+        self.gates_to_decompose = [value]
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Decompose pass on `dag`.
@@ -89,7 +89,7 @@ class Decompose(TransformationPass):
         """
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
-            if self.__should_decompose(node):
+            if self._should_decompose(node):
                 if not node.op.definition:
                     continue
                 # TODO: allow choosing among multiple decomposition rules
@@ -104,24 +104,25 @@ class Decompose(TransformationPass):
 
         return dag
 
-    def __should_decompose(self, node) -> bool:
+    def _should_decompose(self, node) -> bool:
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose)."""
         has_label = False
-        strings_list = [s for s in self.gates if isinstance(s, str)]
-        gate_type_list = [g for g in self.gates if isinstance(g, type)]
+        strings_list = [s for s in self.gates_to_decompose if isinstance(s, str)]
+        gate_type_list = [g for g in self.gates_to_decompose if isinstance(g, type)]
 
         if hasattr(node.op, "label") and node.op.label is not None:
             has_label = True
 
-        if self.gates == [None]:  # check if no gates given
+        if self.gates_to_decompose == [None]:  # check if no gates given
             return True
         elif has_label and (  # check if label or label wildcard is given
-            node.op.label in self.gates or any(fnmatch(node.op.label, p) for p in strings_list)
+            node.op.label in self.gates_to_decompose
+            or any(fnmatch(node.op.label, p) for p in strings_list)
         ):
             return True
         elif not has_label and (  # check if name or name wildcard is given
-            node.name in self.gates or any(fnmatch(node.name, p) for p in strings_list)
+            node.name in self.gates_to_decompose or any(fnmatch(node.name, p) for p in strings_list)
         ):
             return True
         elif not has_label and (  # check if Gate type given
