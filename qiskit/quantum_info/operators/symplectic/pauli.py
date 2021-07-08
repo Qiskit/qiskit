@@ -516,14 +516,11 @@ class Pauli(BasePauli):
     # Utility methods
     # ---------------------------------------------------------------------
 
-    def commutes(self, other, qargs=None, qubit_wise=False):
+    def commutes(self, other, qargs=None):
         """Return True if the Pauli commutes with other.
-
         Args:
             other (Pauli or PauliList): another Pauli operator.
             qargs (list): qubits to apply dot product on (default: None).
-            qubit_wise (bool): for checking qubit_wise commutativity (default: False).
-
         Returns:
             bool: True if Pauli's commute, False if they anti-commute.
         """
@@ -531,16 +528,10 @@ class Pauli(BasePauli):
             qargs = getattr(other, "qargs", None)
         if not isinstance(other, BasePauli):
             other = Pauli(other)
-        if not qubit_wise:
-            ret = super().commutes(other, qargs=qargs)
-            if len(ret) == 1:
-                return ret[0]
-            return ret
-        else:
-            for i, op in enumerate(self):
-                if not op.commutes(other[i]):
-                    return False
-            return True
+        ret = super().commutes(other, qargs=qargs)
+        if len(ret) == 1:
+            return ret[0]
+        return ret
 
     def anticommutes(self, other, qargs=None):
         """Return True if other Pauli anticommutes with self.

@@ -1071,12 +1071,16 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Returns:
             List[Tuple(int,int)]: A list of pairs of indices of the PauliList that are not commutable.
         """
-        noncommutation_graph = []
-        for i in range(self._num_paulis):
-            for j in range(i + 1, self._num_paulis):
-                if not self[i].commutes(self[j], qubit_wise=True):
-                    noncommutation_graph.append((i, j))
-        return noncommutation_graph
+        # convert a Pauli operator into int vector where {I: 0, X: 2, Y: 3, Z: 1}
+        mat1 = np.array(
+            [op.z + 2 * op.x for op in self],
+            dtype=np.int8,
+        )
+        mat2 = mat1[:, None]
+        # mat3[i, j] is True if i and j are qubit-wise commutable
+        mat3 = (((mat1 * mat2) * (mat1 - mat2)) == 0).all(axis=2)
+        # convert into list where tuple elements are qubit-wise non-commuting operators
+        return list(zip(*np.where(np.triu(np.logical_not(mat3), k=1))))
 
     def group_subops_pauli_list(self):
         """Partition a PauliList into sets of mutually qubit-wise commuting Pauli strings.
