@@ -33,7 +33,7 @@ unsafe-load-any-extension=no
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code
-extension-pkg-whitelist=
+extension-pkg-whitelist=retworkx, numpy, tweedledum
 
 
 [MESSAGES CONTROL]
@@ -71,7 +71,8 @@ disable=spelling,       # way too noisy
     unnecessary-pass,   # allow for methods with just "pass", for clarity
     no-else-return,     # relax "elif" after a clause with a return
     docstring-first-line-empty, # relax docstring style
-    import-outside-toplevel
+    import-outside-toplevel,
+    bad-continuation, bad-whitespace # differences of opinion with black
 
 
 
@@ -212,7 +213,7 @@ max-nested-blocks=5
 [FORMAT]
 
 # Maximum number of characters on a single line.
-max-line-length=100
+max-line-length=105
 
 # Regexp for a line that is allowed to be longer than the limit.
 ignore-long-lines=^\s*(# )?<?https?://\S+>?$
@@ -296,7 +297,7 @@ ignore-mixin-members=yes
 # (useful for modules/projects where namespaces are manipulated during runtime
 # and thus existing member attributes cannot be deduced by static analysis. It
 # supports qualified module names, as well as Unix pattern matching.
-ignored-modules=matplotlib.cm,numpy.random,retworkx
+ignored-modules=
 
 # List of class names for which member attributes should not be checked (useful
 # for classes with dynamically set attributes). This supports the use of

@@ -36,7 +36,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==1.7.1
+            pip install cibuildwheel==1.11.0
             pip install -U twine
             cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
@@ -80,7 +80,32 @@ stages:
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==1.7.1
+          pip install cibuildwheel==1.11.0
+          pip install -U twine
+          cibuildwheel --output-dir wheelhouse .
+      - task: PublishBuildArtifacts@1
+        inputs: {pathtoPublish: 'wheelhouse'}
+        condition: succeededOrFailed()
+      - bash: |
+          twine upload wheelhouse/*
+        env:
+          TWINE_PASSWORD: $(TWINE_PASSWORD)
+    - job: 'macos_arm'
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      pool: {vmImage: 'macOS-latest'}
+      variables:
+        python.version: '3.7'
+        CIBW_BEFORE_BUILD: pip install -U Cython
+        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
+        CIBW_ARCHS_MACOS: universal2
+        TWINE_USERNAME: qiskit
+        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
+      steps:
+      - task: UsePythonVersion@0
+      - bash: |
+          set -e
+          python -m pip install --upgrade pip
+          pip install cibuildwheel==1.11.0
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -107,12 +132,10 @@ stages:
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x64}}
-        - script: choco install vcpython27 -f -y
-          displayName: Install Visual C++ for Python 2.7
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==1.7.1
+            pip install cibuildwheel==1.11.0
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
@@ -166,7 +189,7 @@ stages:
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             python setup.py sdist
             pip install -U -c constraints.txt dist/qiskit-terra*.tar.gz
-            pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
+            pip install -U "cplex" "qiskit-aer" "z3-solver" -c constraints.txt
             mkdir -p /tmp/terra-tests
             cp -r test /tmp/terra-tests/.
             cp .stestr.conf /tmp/terra-tests/.
@@ -249,8 +272,8 @@ stages:
         - bash: |
             set -e
             source test-job/bin/activate
-            pycodestyle qiskit test
-            pylint -rn qiskit test
+            black --check qiskit test tools examples setup.py
+            pylint -rn qiskit test tools
             tools/verify_headers.py qiskit test
             python tools/find_optional_imports.py
             reno lint
@@ -739,8 +762,7 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            # TODO: Remove aqua and ignis from source after next aqua release
-            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "git+https://github.com/Qiskit/qiskit-ignis" "git+https://github.com/Qiskit/qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz pandoc
             pip check

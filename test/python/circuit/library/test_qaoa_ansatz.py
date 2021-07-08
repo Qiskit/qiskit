@@ -20,12 +20,14 @@ from qiskit.test import QiskitTestCase
 
 class TestQAOAAnsatz(QiskitTestCase):
     """Test QAOAAnsatz."""
+
     def test_default_qaoa(self):
         """Test construction of the default circuit."""
         circuit = QAOAAnsatz(I, 1)
 
         parameters = circuit.parameters
 
+        circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0][0], HGate)
         self.assertIsInstance(circuit.data[1][0], RXGate)
@@ -37,9 +39,24 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = QAOAAnsatz(initial_state=initial_state, cost_operator=I, reps=1)
 
         parameters = circuit.parameters
+        circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0][0], YGate)
         self.assertIsInstance(circuit.data[1][0], RXGate)
+
+    def test_invalid_reps(self):
+        """Test negative reps."""
+        circuit = QAOAAnsatz(I, reps=-1)
+        with self.assertRaises(AttributeError):
+            _ = circuit.count_ops()
+
+    def test_zero_reps(self):
+        """Test zero reps."""
+        circuit = QAOAAnsatz(I ^ 4, reps=0)
+        reference = QuantumCircuit(4)
+        reference.h(range(4))
+
+        self.assertEqual(circuit.decompose(), reference)
 
     def test_custom_circuit_mixer(self):
         """Test circuit with a custom mixer as a circuit"""
@@ -48,6 +65,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
 
         parameters = circuit.parameters
+        circuit = circuit.decompose()
         self.assertEqual(0, len(parameters))
         self.assertIsInstance(circuit.data[0][0], HGate)
         self.assertIsInstance(circuit.data[1][0], RYGate)
@@ -58,6 +76,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
 
         parameters = circuit.parameters
+        circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0][0], HGate)
         self.assertIsInstance(circuit.data[1][0], RYGate)
@@ -68,10 +87,12 @@ class TestQAOAAnsatz(QiskitTestCase):
         initial_state.y(0)
         mixer = Z
 
-        circuit = QAOAAnsatz(cost_operator=I, reps=2, initial_state=initial_state,
-                             mixer_operator=mixer)
+        circuit = QAOAAnsatz(
+            cost_operator=I, reps=2, initial_state=initial_state, mixer_operator=mixer
+        )
 
         parameters = circuit.parameters
+        circuit = circuit.decompose()
         self.assertEqual(2, len(parameters))
         self.assertIsInstance(circuit.data[0][0], YGate)
         self.assertIsInstance(circuit.data[1][0], RZGate)

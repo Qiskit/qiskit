@@ -53,20 +53,20 @@ class QAOA(VQE):
     the evolution to a feasible subspace of the full Hilbert space.
     """
 
-    def __init__(self,
-                 optimizer: Optimizer = None,
-                 reps: int = 1,
-                 initial_state: Optional[QuantumCircuit] = None,
-                 mixer: Union[QuantumCircuit, OperatorBase] = None,
-                 initial_point: Optional[np.ndarray] = None,
-                 gradient: Optional[Union[GradientBase, Callable[[Union[np.ndarray, List]],
-                                                                 List]]] = None,
-                 expectation: Optional[ExpectationBase] = None,
-                 include_custom: bool = False,
-                 max_evals_grouped: int = 1,
-                 callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-                 quantum_instance: Optional[
-                     Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
+    def __init__(
+        self,
+        optimizer: Optimizer = None,
+        reps: int = 1,
+        initial_state: Optional[QuantumCircuit] = None,
+        mixer: Union[QuantumCircuit, OperatorBase] = None,
+        initial_point: Optional[np.ndarray] = None,
+        gradient: Optional[Union[GradientBase, Callable[[Union[np.ndarray, List]], List]]] = None,
+        expectation: Optional[ExpectationBase] = None,
+        include_custom: bool = False,
+        max_evals_grouped: int = 1,
+        callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+    ) -> None:
         """
         Args:
             optimizer: A classical optimizer.
@@ -107,31 +107,30 @@ class QAOA(VQE):
                 ansatz, the evaluated mean and the evaluated standard deviation.
             quantum_instance: Quantum Instance or Backend
         """
-        validate_min('reps', reps, 1)
+        validate_min("reps", reps, 1)
 
         self._reps = reps
         self._mixer = mixer
         self._initial_state = initial_state
 
-        super().__init__(ansatz=None,
-                         optimizer=optimizer,
-                         initial_point=initial_point,
-                         gradient=gradient,
-                         expectation=expectation,
-                         include_custom=include_custom,
-                         max_evals_grouped=max_evals_grouped,
-                         callback=callback,
-                         quantum_instance=quantum_instance)
+        super().__init__(
+            ansatz=None,
+            optimizer=optimizer,
+            initial_point=initial_point,
+            gradient=gradient,
+            expectation=expectation,
+            include_custom=include_custom,
+            max_evals_grouped=max_evals_grouped,
+            callback=callback,
+            quantum_instance=quantum_instance,
+        )
 
-    def _check_operator(self, operator: OperatorBase) -> OperatorBase:
+    def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
         if operator.num_qubits != self.ansatz.num_qubits:
-            self.ansatz = QAOAAnsatz(operator,
-                                     self._reps,
-                                     initial_state=self._initial_state,
-                                     mixer_operator=self._mixer)
-        operator = super()._check_operator(operator)
-        return operator
+            self.ansatz = QAOAAnsatz(
+                operator, self._reps, initial_state=self._initial_state, mixer_operator=self._mixer
+            ).decompose()  # TODO remove decompose once #6674 is fixed
 
     @property
     def initial_state(self) -> Optional[QuantumCircuit]:

@@ -30,10 +30,8 @@ class Eigensolver(ABC):
 
     @abstractmethod
     def compute_eigenvalues(
-            self,
-            operator: OperatorBase,
-            aux_operators: Optional[List[Optional[OperatorBase]]] = None
-    ) -> 'EigensolverResult':
+        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
+    ) -> "EigensolverResult":
         """
         Computes eigenvalues. Operator and aux_operators can be supplied here and
         if not None will override any already set into algorithm so it can be reused with
@@ -63,7 +61,7 @@ class Eigensolver(ABC):
 
 
 class EigensolverResult(AlgorithmResult):
-    """ Eigensolver Result."""
+    """Eigensolver Result."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -73,30 +71,30 @@ class EigensolverResult(AlgorithmResult):
 
     @property
     def eigenvalues(self) -> Optional[np.ndarray]:
-        """ returns eigen values """
+        """returns eigen values"""
         return self._eigenvalues
 
     @eigenvalues.setter
     def eigenvalues(self, value: np.ndarray) -> None:
-        """ set eigen values """
+        """set eigen values"""
         self._eigenvalues = value
 
     @property
     def eigenstates(self) -> Optional[np.ndarray]:
-        """ return eigen states """
+        """return eigen states"""
         return self._eigenstates
 
     @eigenstates.setter
     def eigenstates(self, value: np.ndarray) -> None:
-        """ set eigen states """
+        """set eigen states"""
         self._eigenstates = value
 
     @property
     def aux_operator_eigenvalues(self) -> Optional[np.ndarray]:
-        """ return aux operator eigen values """
+        """return aux operator eigen values"""
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
     def aux_operator_eigenvalues(self, value: np.ndarray) -> None:
-        """ set aux operator eigen values """
+        """set aux operator eigen values"""
         self._aux_operator_eigenvalues = value

@@ -24,6 +24,7 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 import retworkx as rx
 from qiskit.transpiler.exceptions import CouplingError
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
 class CouplingMap:
@@ -85,7 +86,8 @@ class CouplingMap:
             raise CouplingError("Physical qubits should be integers.")
         if physical_qubit in self.physical_qubits:
             raise CouplingError(
-                "The physical qubit %s is already in the coupling graph" % physical_qubit)
+                "The physical qubit %s is already in the coupling graph" % physical_qubit
+            )
         self.graph.add_node(physical_qubit)
         self._dist_matrix = None  # invalidate
         self._qubit_list = None  # invalidate
@@ -194,10 +196,12 @@ class CouplingMap:
             CouplingError: When there is no path between physical_qubit1, physical_qubit2.
         """
         paths = rx.digraph_dijkstra_shortest_paths(
-            self.graph, source=physical_qubit1, target=physical_qubit2, as_undirected=True)
+            self.graph, source=physical_qubit1, target=physical_qubit2, as_undirected=True
+        )
         if not paths:
             raise CouplingError(
-                "Nodes %s and %s are not connected" % (str(physical_qubit1), str(physical_qubit2)))
+                f"Nodes {str(physical_qubit1)} and {str(physical_qubit2)} are not connected"
+            )
         return paths[physical_qubit2]
 
     @property
@@ -262,18 +266,17 @@ class CouplingMap:
         cols = np.array([edge[1] for edge in reduced_cmap], dtype=int)
         data = np.ones_like(rows)
 
-        mat = sp.coo_matrix((data, (rows, cols)),
-                            shape=(reduced_qubits, reduced_qubits)).tocsr()
+        mat = sp.coo_matrix((data, (rows, cols)), shape=(reduced_qubits, reduced_qubits)).tocsr()
 
         if cs.connected_components(mat)[0] != 1:
-            raise CouplingError('coupling_map must be connected.')
+            raise CouplingError("coupling_map must be connected.")
 
         return CouplingMap(reduced_cmap)
 
     @classmethod
     def from_full(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
-        cmap = cls(description='full')
+        cmap = cls(description="full")
         if bidirectional:
             cmap.graph = rx.generators.directed_mesh_graph(num_qubits)
         else:
@@ -287,37 +290,36 @@ class CouplingMap:
     @classmethod
     def from_line(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
-        cmap = cls(description='line')
-        cmap.graph = rx.generators.directed_path_graph(
-            num_qubits, bidirectional=bidirectional)
+        cmap = cls(description="line")
+        cmap.graph = rx.generators.directed_path_graph(num_qubits, bidirectional=bidirectional)
         return cmap
 
     @classmethod
     def from_ring(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
-        cmap = cls(description='ring')
-        cmap.graph = rx.generators.directed_cycle_graph(
-            num_qubits, bidirectional=bidirectional)
+        cmap = cls(description="ring")
+        cmap.graph = rx.generators.directed_cycle_graph(num_qubits, bidirectional=bidirectional)
         return cmap
 
     @classmethod
     def from_grid(cls, num_rows, num_columns, bidirectional=True):
         """Return qubits connected on a grid of num_rows x num_columns."""
-        cmap = cls(description='grid')
+        cmap = cls(description="grid")
         cmap.graph = rx.generators.directed_grid_graph(
-            num_rows, num_columns, bidirectional=bidirectional)
+            num_rows, num_columns, bidirectional=bidirectional
+        )
         return cmap
 
     def largest_connected_component(self):
         """Return a set of qubits in the largest connected component."""
-        return max(rx.strongly_connected_components(self.graph), key=len)
+        return max(rx.weakly_connected_components(self.graph), key=len)
 
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
         if self.get_edges():
             string += "["
-            string += ", ".join(["[%s, %s]" % (src, dst) for (src, dst) in self.get_edges()])
+            string += ", ".join([f"[{src}, {dst}]" for (src, dst) in self.get_edges()])
             string += "]"
         return string
 
@@ -333,17 +335,27 @@ class CouplingMap:
             PIL.Image: Drawn coupling map.
 
         Raises:
-            ImportError: when pydot or pillow are not installed.
+            MissingOptionalLibraryError: when pydot or pillow are not installed.
         """
-
         try:
             import pydot
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="pydot",
+                name="coupling map drawer",
+                pip_install="pip install pydot",
+            ) from ex
+
+        try:
             from PIL import Image
         except ImportError as ex:
-            raise ImportError("CouplingMap.draw requires pydot and pillow. "
-                              "Run 'pip install pydot pillow'.") from ex
+            raise MissingOptionalLibraryError(
+                libname="pillow",
+                name="coupling map drawer",
+                pip_install="pip install pillow",
+            ) from ex
         dot_str = self.graph.to_dot()
         dot = pydot.graph_from_dot_data(dot_str)[0]
-        png = dot.create_png(prog='neato')
+        png = dot.create_png(prog="neato")
 
         return Image.open(io.BytesIO(png))

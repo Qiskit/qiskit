@@ -56,9 +56,16 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             qc.append(matrix.power(power).control(), list(range(circ_qubits)))
     """
 
-    def __init__(self, num_state_qubits: int, main_diag: float, off_diag: float,
-                 tolerance: float = 1e-2, evolution_time: float = 1.0, trotter_steps: int = 1,
-                 name: str = 'tridi') -> None:
+    def __init__(
+        self,
+        num_state_qubits: int,
+        main_diag: float,
+        off_diag: float,
+        tolerance: float = 1e-2,
+        evolution_time: float = 1.0,
+        trotter_steps: int = 1,
+        name: str = "tridi",
+    ) -> None:
         """
         Args:
             num_state_qubits: the number of qubits where the unitary acts.
@@ -80,8 +87,12 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         # store parameters
         self.main_diag = main_diag
         self.off_diag = off_diag
-        super().__init__(num_state_qubits=num_state_qubits, tolerance=tolerance,
-                         evolution_time=evolution_time, name=name)
+        super().__init__(
+            num_state_qubits=num_state_qubits,
+            tolerance=tolerance,
+            evolution_time=evolution_time,
+            name=name,
+        )
         self.trotter_steps = trotter_steps
 
     @property
@@ -162,8 +173,9 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         """
         self._evolution_time = evolution_time
         # Update the number of trotter steps. Max 7 for now, upper bounds too loose.
-        self.trotter_steps = int(np.ceil(np.sqrt(((evolution_time * np.abs(self.off_diag)) ** 3) /
-                                                 2 / self.tolerance)))
+        self.trotter_steps = int(
+            np.ceil(np.sqrt(((evolution_time * np.abs(self.off_diag)) ** 3) / 2 / self.tolerance))
+        )
 
     @property
     def trotter_steps(self) -> int:
@@ -181,9 +193,12 @@ class TridiagonalToeplitz(LinearSystemMatrix):
     @property
     def matrix(self) -> np.ndarray:
         """Returns the tridiagonal Toeplitz matrix built according to the main and off diagonal
-         entries."""
-        matrix = diags([self.off_diag, self.main_diag, self.off_diag], [-1, 0, 1],
-                       shape=(2 ** self.num_state_qubits, 2 ** self.num_state_qubits)).toarray()
+        entries."""
+        matrix = diags(
+            [self.off_diag, self.main_diag, self.off_diag],
+            [-1, 0, 1],
+            shape=(2 ** self.num_state_qubits, 2 ** self.num_state_qubits),
+        ).toarray()
         return matrix
 
     def eigs_bounds(self) -> Tuple[float, float]:
@@ -208,7 +223,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         if self.trotter_steps < 1:
             valid = False
             if raise_on_failure:
-                raise AttributeError('The number of trotter steps should be a positive integer.')
+                raise AttributeError("The number of trotter steps should be a positive integer.")
             return False
 
         return valid
@@ -219,7 +234,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         Args:
             num_state_qubits: The number of qubits to represent the matrix.
         """
-        qr_state = QuantumRegister(num_state_qubits, 'state')
+        qr_state = QuantumRegister(num_state_qubits, "state")
         self.qregs = [qr_state]
         self._ancillas = []
         self._qubits = qr_state[:]
@@ -251,7 +266,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             The quantum circuit implementing the matrix consisting of entries in the main diagonal.
         """
         theta *= self.main_diag
-        qc = QuantumCircuit(self.num_state_qubits, name='main_diag')
+        qc = QuantumCircuit(self.num_state_qubits, name="main_diag")
         qc.x(0)
         qc.p(theta, 0)
         qc.x(0)
@@ -259,7 +274,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
 
         # pylint: disable=unused-argument
         def control(num_ctrl_qubits=1, label=None, ctrl_state=None):
-            qc_control = QuantumCircuit(self.num_state_qubits + 1, name='main_diag')
+            qc_control = QuantumCircuit(self.num_state_qubits + 1, name="main_diag")
             qc_control.p(theta, 0)
             return qc_control
 
@@ -280,9 +295,9 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         qr = QuantumRegister(self.num_state_qubits)
         if self.num_state_qubits > 1:
             qr_ancilla = AncillaRegister(max(1, self.num_state_qubits - 2))
-            qc = QuantumCircuit(qr, qr_ancilla, name='off_diags')
+            qc = QuantumCircuit(qr, qr_ancilla, name="off_diags")
         else:
-            qc = QuantumCircuit(qr, name='off_diags')
+            qc = QuantumCircuit(qr, name="off_diags")
             qr_ancilla = None
 
         qc.u(-2 * theta, 3 * np.pi / 2, np.pi / 2, qr[0])
@@ -302,8 +317,10 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             # Multicontrolled rotation
             if len(q_controls) > 1:
                 ugate = UGate(-2 * theta, 3 * np.pi / 2, np.pi / 2)
-                qc.append(MCMTVChain(ugate, len(q_controls), 1), q_controls[:] + [qr[i]] +
-                          qr_ancilla[:len(q_controls) - 1])
+                qc.append(
+                    MCMTVChain(ugate, len(q_controls), 1),
+                    q_controls[:] + [qr[i]] + qr_ancilla[: len(q_controls) - 1],
+                )
             else:
                 qc.cu(-2 * theta, 3 * np.pi / 2, np.pi / 2, 0, q_controls[0], qr[i])
 
@@ -319,9 +336,9 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             qr_state = QuantumRegister(self.num_state_qubits + 1)
             if self.num_state_qubits > 1:
                 qr_ancilla = AncillaRegister(max(1, self.num_state_qubits - 1))
-                qc_control = QuantumCircuit(qr_state, qr_ancilla, name='off_diags')
+                qc_control = QuantumCircuit(qr_state, qr_ancilla, name="off_diags")
             else:
-                qc_control = QuantumCircuit(qr_state, name='off_diags')
+                qc_control = QuantumCircuit(qr_state, name="off_diags")
                 qr_ancilla = None
             # Control will be qr[0]
             q_control = qr_state[0]
@@ -344,8 +361,10 @@ class TridiagonalToeplitz(LinearSystemMatrix):
                 # Multicontrolled x rotation
                 if len(q_controls) > 1:
                     ugate = UGate(-2 * theta, 3 * np.pi / 2, np.pi / 2)
-                    qc_control.append(MCMTVChain(ugate, len(q_controls), 1), q_controls[:] +
-                                      [qr[i]] + qr_ancilla[:len(q_controls) - 1])
+                    qc_control.append(
+                        MCMTVChain(ugate, len(q_controls), 1).to_gate(),
+                        q_controls[:] + [qr[i]] + qr_ancilla[: len(q_controls) - 1],
+                    )
                 else:
                     qc_control.cu(-2 * theta, 3 * np.pi / 2, np.pi / 2, 0, q_controls[0], qr[i])
 
@@ -361,8 +380,12 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         return qc
 
     def inverse(self):
-        return TridiagonalToeplitz(self.num_state_qubits, self.main_diag, self.off_diag,
-                                   evolution_time=-1 * self.evolution_time)
+        return TridiagonalToeplitz(
+            self.num_state_qubits,
+            self.main_diag,
+            self.off_diag,
+            evolution_time=-1 * self.evolution_time,
+        )
 
     def power(self, power: int, matrix_power: bool = False) -> QuantumCircuit:
         """Build powers of the circuit.
@@ -380,39 +403,55 @@ class TridiagonalToeplitz(LinearSystemMatrix):
 
         # pylint: disable=unused-argument
         def control(num_ctrl_qubits=1, label=None, ctrl_state=None):
-            qr_state = QuantumRegister(self.num_state_qubits + 1, 'state')
+            qr_state = QuantumRegister(self.num_state_qubits + 1, "state")
             if self.num_state_qubits > 1:
                 qr_ancilla = AncillaRegister(max(1, self.num_state_qubits - 1))
-                qc = QuantumCircuit(qr_state, qr_ancilla, name='exp(iHk)')
+                qc = QuantumCircuit(qr_state, qr_ancilla, name="exp(iHk)")
             else:
-                qc = QuantumCircuit(qr_state, name='exp(iHk)')
+                qc = QuantumCircuit(qr_state, name="exp(iHk)")
                 qr_ancilla = None
             # Control will be qr[0]
             q_control = qr_state[0]
             qr = qr_state[1:]
             # A1 commutes, so one application with evolution_time*2^{j} to the last qubit is enough
-            qc.append(self._main_diag_circ(self.evolution_time * power).control(), [q_control] +
-                      qr[:])
+            qc.append(
+                self._main_diag_circ(self.evolution_time * power).control().to_gate(),
+                [q_control] + qr[:],
+            )
 
             # Update trotter steps to compensate the error
             trotter_steps_new = int(np.ceil(np.sqrt(power) * self.trotter_steps))
 
             # exp(iA2t/2m)
-            qc.u(self.off_diag * self.evolution_time * power / trotter_steps_new, 3 * np.pi / 2,
-                 np.pi / 2, qr[0])
+            qc.u(
+                self.off_diag * self.evolution_time * power / trotter_steps_new,
+                3 * np.pi / 2,
+                np.pi / 2,
+                qr[0],
+            )
             # for _ in range(power):
             for _ in range(0, trotter_steps_new):
                 if qr_ancilla:
-                    qc.append(self._off_diag_circ(self.evolution_time * power /
-                                                  trotter_steps_new).control(),
-                              [q_control] + qr[:] + qr_ancilla[:])
+                    qc.append(
+                        self._off_diag_circ(self.evolution_time * power / trotter_steps_new)
+                        .control()
+                        .to_gate(),
+                        [q_control] + qr[:] + qr_ancilla[:],
+                    )
                 else:
-                    qc.append(self._off_diag_circ(self.evolution_time * power /
-                                                  trotter_steps_new).control(),
-                              [q_control] + qr[:])
+                    qc.append(
+                        self._off_diag_circ(self.evolution_time * power / trotter_steps_new)
+                        .control()
+                        .to_gate(),
+                        [q_control] + qr[:],
+                    )
             # exp(-iA2t/2m)
-            qc.u(-self.off_diag * self.evolution_time * power / trotter_steps_new, 3 * np.pi / 2,
-                 np.pi / 2, qr[0])
+            qc.u(
+                -self.off_diag * self.evolution_time * power / trotter_steps_new,
+                3 * np.pi / 2,
+                np.pi / 2,
+                qr[0],
+            )
             return qc
 
         qc_raw.control = control
