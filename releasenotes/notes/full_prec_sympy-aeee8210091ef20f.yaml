@@ -7,7 +7,7 @@ other:
 
     .. code-block:: python
 
-      >> from qiskit.circuit import Parameter
-      >> x = Parameter('x')
-      >> str(x.bind({x:0.5}))
-     '0.5'   // instead of '0.500000000000000'
+      >>> from qiskit.circuit import Parameter
+      >>> x = Parameter('x')
+      >>> str(x.bind({x:0.5}))
+      '0.5'   // instead of '0.500000000000000'
