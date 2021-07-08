@@ -149,7 +149,7 @@ def transpile(
             If ``None`` (default), ``backend.configuration().dt`` is used.
         approximation_degree (float): heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
-        pulse_constraints: An optional control hardware restrictions instruction time resolution.
+        pulse_constraints: An optional control hardware restriction on instruction time resolution.
             A quantum computer backend may report a set of restrictions, namely:
 
             - granularity: An integer value representing minimum pulse gate
