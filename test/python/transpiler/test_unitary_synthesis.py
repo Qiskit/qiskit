@@ -21,13 +21,23 @@ from ddt import ddt, data
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeVigo
 from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import QuantumVolume
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.transpiler import PassManager, CouplingMap
-from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes import (
+    Collect2qBlocks,
+    ConsolidateBlocks,
+    Optimize1qGates,
+    BIPMapping,
+    Depth,
+    FixedPoint,
+    TrivialLayout,
+)
+from qiskit.transpiler.passes.routing.algorithms.bip_model import HAS_CPLEX, HAS_DOCPLEX
 from qiskit.exceptions import QiskitError
 
 
@@ -468,17 +478,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertIn("sx", num_ops)
         self.assertLessEqual(num_ops["sx"], 14)
 
+    @unittest.skipUnless(HAS_CPLEX, "cplex is required to run this test")
+    @unittest.skipUnless(HAS_DOCPLEX, "docplex is required to run this test")
     def test_qv_natural(self):
-        from qiskit.circuit.library import QuantumVolume
-        from qiskit.transpiler.passes import (
-            Collect2qBlocks,
-            ConsolidateBlocks,
-            Optimize1qGates,
-            BIPMapping,
-            Depth,
-            FixedPoint,
-        )
-
+        """Test natural_direction flag with qv circuit and BIPMapping."""
         qv64 = QuantumVolume(2, seed=15)
 
         def construct_passmanager(basis_gates, coupling_map, synthesis_fidelity, pulse_optimize):
@@ -494,7 +497,7 @@ class TestUnitarySynthesis(QiskitTestCase):
                     basis_gates,
                     synthesis_fidelity,
                     coupling_map,
-                    pulse_optimize=True,
+                    pulse_optimize=pulse_optimize,
                     natural_direction=True,
                 ),
                 Optimize1qGates(basis_gates),
@@ -521,10 +524,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         edges = [list(edge) for edge in coupling_map.get_edges()]
         self.assertTrue(
             all(
-                [
-                    [qv64_compiled.qubits.index(qubit) for qubit in qlist] in edges
-                    for _, qlist, _ in qv64_compiled.get_instructions("cx")
-                ]
+                [qv64_compiled.qubits.index(qubit) for qubit in qlist] in edges
+                for _, qlist, _ in qv64_compiled.get_instructions("cx")
             )
         )
 
