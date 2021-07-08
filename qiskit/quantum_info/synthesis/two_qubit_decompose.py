@@ -1130,13 +1130,21 @@ class TwoQubitBasisDecomposer:
             qc.global_phase -= math.pi / 4
         elif x12_isNonZero:
             # this is non-optimal but doesn't seem to occur currently
-            qc.compose(self._decomposer1q(Operator(RXGate(x12)).data), [0], inplace=True)
+            if self.pulse_optimize is None:
+                qc.compose(self._decomposer1q(Operator(RXGate(x12)).data), [0], inplace=True)
+            else:
+                raise QiskitError("possible non-pulse-optimal decomposition encountered")
         if math.isclose(euler_q1[1][1], math.pi / 2):
             qc.sx(1)
             qc.global_phase -= math.pi / 4
         else:
             # this is non-optimal but doesn't seem to occur currently
-            qc.compose(self._decomposer1q(Operator(RXGate(euler_q1[1][1])).data), [1], inplace=True)
+            if self.pulse_optimize is None:
+                qc.compose(
+                    self._decomposer1q(Operator(RXGate(euler_q1[1][1])).data), [1], inplace=True
+                )
+            else:
+                raise QiskitError("possible non-pulse-optimal decomposition encountered")
         qc.rz(euler_q1[1][2] + euler_q1[2][0], 1)
 
         qc.cx(1, 0)
@@ -1150,7 +1158,12 @@ class TwoQubitBasisDecomposer:
             qc.global_phase -= math.pi / 4
         else:
             # this is non-optimal but doesn't seem to occur currently
-            qc.compose(self._decomposer1q(Operator(RXGate(euler_q1[2][1])).data), [1], inplace=True)
+            if self.pulse_optimize is None:
+                qc.compose(
+                    self._decomposer1q(Operator(RXGate(euler_q1[2][1])).data), [1], inplace=True
+                )
+            else:
+                raise QiskitError("possible non-pulse-optimal decomposition encountered")
 
         qc.cx(1, 0)
 
