@@ -2,14 +2,13 @@
 features:
   - |
     Added new passes `AlignMeasures` and `ValidatePulseGates` that manage the hardware
-    waveform memory constraints on time allocation of instructions. These passes are triggered
-    when pulse constraints with finite alignment factor > 1 is specified to the transpiler argument.
-    The alignment may indicate the chunk size of the hardware waveform memory,
-    and all instruction should have data point length of multiple of it.
-    Thus these passes are hardware (pulse controller) aware optimization and validation routine.
-    This value may be provided by the backend configuration field, or you can
-    set arbitrary pulse constraints dictionary directly to the transpiler.
-    If backend doesn't provide the pulse constraints information, then constraints with
+    instruction scheduling constraints. These passes are triggered when timing constraints
+    with finite alignment factor > 1 is specified to the transpiler argument,
+    or such constraints are reported by the backend configuration.
+    These passes are hardware (pulse controller) aware optimization and validation routine.
+    See :class:`~qiskit.transpiler.timing_constraints.TimingConstraints` for details.
+
+    If backend doesn't provide the timing constraints information, then a constraint object with
     all alignment factors of 1 is set by default. In this case, execution of these passes
     are just skipped. Backends assigned to IBM Quantum Services will shortly provide this
-    new information to provide better optimization of circuits before execution.
+    new information to offer better optimization of circuits before execution.

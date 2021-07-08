@@ -166,7 +166,7 @@ def transpile(
               is a multiple of the alignment value.
 
             This information will be provided by the backend configuration.
-            If the backend doesn't have any restriction on the pulse time resolutions,
+            If the backend doesn't have any restriction on the instruction time allocation,
             then ``timing_constraints`` is None and no adjustment will be performed.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
