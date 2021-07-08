@@ -83,11 +83,13 @@ Scheduling
 .. autosummary::
    :toctree: ../stubs/
 
+   TimeUnitConversion
    ALAPSchedule
    ASAPSchedule
-   RZXCalibrationBuilder
+   DynamicalDecoupling
    AlignMeasures
    ValidatePulseGates
+   RZXCalibrationBuilder
 
 Circuit Analysis
 ================
@@ -187,12 +189,13 @@ from .analysis import DAGLongestPath
 from .synthesis import UnitarySynthesis
 
 # circuit scheduling
+from .scheduling import TimeUnitConversion
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
-from .scheduling import RZXCalibrationBuilder
-from .scheduling import TimeUnitConversion
+from .scheduling import DynamicalDecoupling
 from .scheduling import AlignMeasures
 from .scheduling import ValidatePulseGates
+from .scheduling import RZXCalibrationBuilder
 
 # additional utility passes
 from .utils import CheckMap
