@@ -547,13 +547,15 @@ class TestUnitarySynthesis(QiskitTestCase):
         edges = [list(edge) for edge in coupling_map.get_edges()]
         self.assertTrue(
             all(
+                # pylint: disable=no-member
                 [qv64_1.qubits.index(qubit) for qubit in qlist] in edges
+                # pylint: disable=no-member
                 for _, qlist, _ in qv64_1.get_instructions("cx")
             )
         )
         self.assertEqual(Operator(qv64_1), Operator(qv64_2))
-        op1_cnt = qv64_1.count_ops()
-        op2_cnt = qv64_2.count_ops()
+        op1_cnt = qv64_1.count_ops()  # pylint: disable=no-member
+        op2_cnt = qv64_2.count_ops()  # pylint: disable=no-member
         self.assertTrue(
             all((op1_cnt[name] < op2_cnt[name] for name in op1_cnt.keys() if name != "cx"))
         )
