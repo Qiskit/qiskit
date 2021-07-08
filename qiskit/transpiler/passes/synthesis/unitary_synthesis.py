@@ -224,7 +224,11 @@ class UnitarySynthesis(TransformationPass):
             synth_direction = [
                 synth_dag_qubit_index[qubit] for qubit in synth_dag.two_qubit_ops()[0].qargs
             ]
-        if natural_direction and self._pulse_optimize and synth_direction != natural_direction:
+        if (
+            natural_direction
+            and self._pulse_optimize in {True, None}
+            and synth_direction != natural_direction
+        ):
             su4_mat_mm = deepcopy(su4_mat)
             su4_mat_mm[[1, 2]] = su4_mat_mm[[2, 1]]
             su4_mat_mm[:, [1, 2]] = su4_mat_mm[:, [2, 1]]

@@ -18,6 +18,7 @@ import unittest
 
 from ddt import ddt, data
 
+from qiskit import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeVigo
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -558,6 +559,38 @@ class TestUnitarySynthesis(QiskitTestCase):
         op2_cnt = qv64_2.count_ops()  # pylint: disable=no-member
         self.assertTrue(
             all((op1_cnt[name] < op2_cnt[name] for name in op1_cnt.keys() if name != "cx"))
+        )
+
+    @data(1, 2, 3)
+    def test_coupling_map_transpile(self, opt):
+        """test natural_direction works with transpile/execute"""
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.append(random_unitary(4, seed=1), [0, 1])
+        circ_01 = transpile(
+            circ, basis_gates=["rz", "sx", "cx"], optimization_level=opt, coupling_map=[[0, 1]]
+        )
+        circ_10 = transpile(
+            circ, basis_gates=["rz", "sx", "cx"], optimization_level=opt, coupling_map=[[1, 0]]
+        )
+        circ_01_index = {qubit: index for index, qubit in enumerate(circ_01.qubits)}
+        circ_10_index = {qubit: index for index, qubit in enumerate(circ_10.qubits)}
+
+        self.assertTrue(
+            all(
+                (
+                    (1, 0) == (circ_10_index[qlist[0]], circ_10_index[qlist[1]])
+                    for _, qlist, _ in circ_10.get_instructions("cx")
+                )
+            )
+        )
+        self.assertTrue(
+            all(
+                (
+                    (0, 1) == (circ_01_index[qlist[0]], circ_01_index[qlist[1]])
+                    for _, qlist, _ in circ_01.get_instructions("cx")
+                )
+            )
         )
 
 
