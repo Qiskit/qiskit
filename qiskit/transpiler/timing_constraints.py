@@ -10,20 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Pulse Constraints class."""
+"""Timing Constraints class."""
 
 
-class PulseConstraints:
-    """Pass Manager Configuration."""
+class TimingConstraints:
+    """Hardware Instruction Timing Constraints."""
 
     def __init__(
         self,
         granularity: int = 1,
         min_length: int = 1,
-        control_alignment: int = 1,
-        measure_alignment: int = 1,
+        pulse_alignment: int = 1,
+        acquire_alignment: int = 1,
     ):
-        """Initialize a PulseConstraints object
+        """Initialize a TimingConstraints object
 
         Args:
             granularity: An integer value representing minimum pulse gate
@@ -32,10 +32,10 @@ class PulseConstraints:
             min_length: An integer value representing minimum pulse gate
                 length in units of ``dt``. A user-defined pulse gate should be longer
                 than this length.
-            control_alignment: An integer value representing a time resolution of gate
+            pulse_alignment: An integer value representing a time resolution of gate
                 instruction starting time. Gate instruction should start at time which
                 is a multiple of the alignment value.
-            measure_alignment: An integer value representing a time resolution of measure
+            acquire_alignment: An integer value representing a time resolution of measure
                 instruction starting time. Measure instruction should start at time which
                 is a multiple of the alignment value.
 
@@ -44,5 +44,5 @@ class PulseConstraints:
         """
         self.granularity = granularity
         self.min_length = min_length
-        self.control_alignment = control_alignment
-        self.measure_alignment = measure_alignment
+        self.pulse_alignment = pulse_alignment
+        self.acquire_alignment = acquire_alignment

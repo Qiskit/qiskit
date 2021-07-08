@@ -16,7 +16,7 @@ Level 0 pass manager: no explicit optimization other than mapping to backend.
 """
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.pulse_constraints import PulseConstraints
+from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 
 from qiskit.transpiler.passes import Unroller
@@ -86,7 +86,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
-    pulse_constraints = pass_manager_config.pulse_constraints or PulseConstraints()
+    timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
 
     # 1. Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
@@ -176,9 +176,9 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # 8. Call measure alignment. Should come after scheduling.
     _alignments = [
         ValidatePulseGates(
-            granularity=pulse_constraints.granularity, min_length=pulse_constraints.min_length
+            granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
         ),
-        AlignMeasures(alignment=pulse_constraints.measure_alignment),
+        AlignMeasures(alignment=timing_constraints.acquire_alignment),
     ]
 
     # Build pass manager

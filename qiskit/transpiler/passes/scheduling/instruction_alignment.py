@@ -46,7 +46,7 @@ class AlignMeasures(TransformationPass):
 
     Measurement alignment is required if a backend only allows triggering ``measure``
     instructions at a certain multiple value of this pulse granularity.
-    This value is usually provided by ``backend.configuration().pulse_constraints``.
+    This value is usually provided by ``backend.configuration().timing_constraints``.
 
     In Qiskit SDK, the duration of delay can take arbitrary value in units of ``dt``,
     thus circuits involving delays may violate the above alignment constraint (i.e. misalignment).
