@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    There was a problem when the function to be approximated was constant.
+    Added a fix and an error message explaining how to declare constant 
+    funcions.
+    Also updated the documentation with a message on how to declare a constant 
+    function.
