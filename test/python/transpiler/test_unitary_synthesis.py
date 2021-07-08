@@ -484,8 +484,6 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertIn("sx", num_ops)
         self.assertLessEqual(num_ops["sx"], 14)
 
-    @unittest.skipUnless(HAS_CPLEX, "cplex is required to run this test")
-    @unittest.skipUnless(HAS_DOCPLEX, "docplex is required to run this test")
     def test_qv_natural(self):
         """check that quantum volume circuit compiles for natural direction and is shorter"""
         qv64 = QuantumVolume(5, seed=15)
