@@ -3,7 +3,7 @@ features:
   - |
     A new function, :func:`~qiskit.user_config.set_config`, has been added
     to the :mod:`qiskit.user_config` module. This function enables setting
-    values in a user config from Qiskit API. For example::
+    values in a user config from the Qiskit API. For example::
 
       from qiskit.user_config import set_config
       set_config("circuit_drawer", "mpl", section="default", file="settings.conf")

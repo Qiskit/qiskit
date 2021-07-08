@@ -3,4 +3,4 @@ fixes:
   - |
     Fixed an issue with the phase of the
     :class:`qiskit.opflow.gradients.QFI` class when the ``qfi_method`` is set
-    to ``lin_comb_full`` which caused the incorrect observable being evaluated.
+    to ``lin_comb_full`` which caused the incorrect observable to be evaluated.

@@ -5,5 +5,5 @@ features:
     :attr:`~qiskit.providers.models.PulseBackendConfiguration.control_channels`,
     has been added to the
     :class:`~qiskit.providers.models.PulseBackendConfiguration` class. This
-    attribute represents the control channels on a backend as mapping of
+    attribute represents the control channels on a backend as a mapping of
     qubits to a list of :class:`~qiskit.pulse.channels.ControlChannel` objects.

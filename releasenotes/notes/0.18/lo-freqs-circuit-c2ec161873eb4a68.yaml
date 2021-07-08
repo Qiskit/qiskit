@@ -46,7 +46,7 @@ features:
               backend,
               default_qubit_los=[5e9, 4.9e9, 5.1e9],
               default_meas_los=[5.5e9, 6.5e9, 7.1e9]),
-              schedule_los={pulse.DriveChannel(0):5.5e9}, pulse.MeasureChannel(2):6.5e9}
+              schedule_los={pulse.DriveChannel(0):5.5e9, pulse.MeasureChannel(2):6.5e9}
             )
 
     This will apply drive LO ``5.5e9`` to qubit 0 and meas LO ``6.5e9`` to qubit 2 and will use the
@@ -57,7 +57,7 @@ features:
     new kwargs, ``qubit_lo_range`` and ``meas_lo_range``, on its constructor.
     These kwargs are equivalent to the kwargs on the
     :class:`~qiskit.providers.models.PulseBackendConfiguration` class
-    constructor and are used to determine set the allowed range of values for a
-    LO frequencies for a Qasm backend. When set these values get set as the
+    constructor and are used to set the allowed range of values for a
+    LO frequencies for a Qasm backend. When set, these values are assigned to the
     :attr:`~qiskit.providers.models.QasmBackendConfiguration.qubit_lo_range` and
     :attr:`~qiskit.providers.models.QasmBackendConfiguration.meas_lo_range` attributes.

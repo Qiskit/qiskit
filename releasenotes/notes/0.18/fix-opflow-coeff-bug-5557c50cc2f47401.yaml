@@ -1,8 +1,8 @@
 ---
 fixes:
   - |
-    Fix an issue with the bug with the :mod:`qiskit.opflow.expectations` module
-    where coefficient of a statefunction were not been multiplied correctly.
+    Fixed an issue with the :mod:`qiskit.opflow.expectations` module
+    where coefficients of a statefunction were not being multiplied correctly.
     This also fixed the calculations
     of Gradients and QFIs when using the
     :class:`~qiskit.opflow.expectations.PauliExpectation` or
