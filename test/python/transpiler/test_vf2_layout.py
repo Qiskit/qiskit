@@ -32,7 +32,7 @@ class LayoutTestCase(QiskitTestCase):
 
     def assertLayout(self, dag, coupling_map, property_set, strict_direction=False):
         """Checks if the circuit in dag was a perfect layout in property_set for the given
-        coupling_map """
+        coupling_map"""
         self.assertEqual(property_set["VF2Layout_stop_reason"], "solution found")
 
         layout = property_set["layout"]
@@ -143,6 +143,7 @@ class TestVF2LayoutLattice(LayoutTestCase):
 
 class TestVF2LayoutBackend(LayoutTestCase):
     """Tests VF2Layout against backends"""
+
     def test_5q_circuit_Rueschlikon_no_solution(self):
         """5 qubits in Rueschlikon, no solution
 
