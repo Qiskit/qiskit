@@ -121,27 +121,29 @@ class VBERippleCarryAdder(Adder):
         qc_sum.cx(0, 2)
         sum_gate = qc_sum.to_gate()
 
+        circuit = QuantumCircuit(*self.qregs, name=name)
+
         # handle all cases for the first qubits, depending on whether cin is available
         i = 0
         if kind == "half":
             i += 1
-            self.ccx(qr_a[0], qr_b[0], carries[0])
+            circuit.ccx(qr_a[0], qr_b[0], carries[0])
         elif kind == "fixed":
             i += 1
             if num_state_qubits == 1:
-                self.cx(qr_a[0], qr_b[0])
+                circuit.cx(qr_a[0], qr_b[0])
             else:
-                self.ccx(qr_a[0], qr_b[0], carries[0])
+                circuit.ccx(qr_a[0], qr_b[0], carries[0])
 
         for inp, out in zip(carries[:-1], carries[1:]):
-            self.append(carry_gate, [inp, qr_a[i], qr_b[i], out])
+            circuit.append(carry_gate, [inp, qr_a[i], qr_b[i], out])
             i += 1
 
         if kind in ["full", "half"]:  # final CX (cancels for the 'fixed' case)
-            self.cx(qr_a[-1], qr_b[-1])
+            circuit.cx(qr_a[-1], qr_b[-1])
 
         if len(carries) > 1:
-            self.append(sum_gate, [carries[-2], qr_a[-1], qr_b[-1]])
+            circuit.append(sum_gate, [carries[-2], qr_a[-1], qr_b[-1]])
 
         i -= 2
         for j, (inp, out) in enumerate(zip(reversed(carries[:-1]), reversed(carries[1:]))):
@@ -150,10 +152,12 @@ class VBERippleCarryAdder(Adder):
                     i += 1
                 else:
                     continue
-            self.append(carry_gate_dg, [inp, qr_a[i], qr_b[i], out])
-            self.append(sum_gate, [inp, qr_a[i], qr_b[i]])
+            circuit.append(carry_gate_dg, [inp, qr_a[i], qr_b[i], out])
+            circuit.append(sum_gate, [inp, qr_a[i], qr_b[i]])
             i -= 1
 
         if kind in ["half", "fixed"] and num_state_qubits > 1:
-            self.ccx(qr_a[0], qr_b[0], carries[0])
-            self.cx(qr_a[0], qr_b[0])
+            circuit.ccx(qr_a[0], qr_b[0], carries[0])
+            circuit.cx(qr_a[0], qr_b[0])
+
+        self.append(circuit.to_gate(), self.qubits)
