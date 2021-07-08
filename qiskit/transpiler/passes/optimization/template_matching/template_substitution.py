@@ -512,7 +512,7 @@ class TemplateSubstitution:
                         if len(cpn) == 1:
                             param_symbols.add(sym.Eq(parse_expr(cpn)))
                         else:
-                            param_symbols.add(sym.symbols(str(cpn.split('$')[1][1:])))
+                            param_symbols.add(sym.symbols(str(cpn.split('$')[1].split('\\')[-1])))
 
                 equations.append(sym.Eq(parse_expr(str(params)), param_symbols))
                 for param in params.parameters:
