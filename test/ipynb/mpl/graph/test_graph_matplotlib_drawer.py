@@ -131,20 +131,20 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         self.graph_drawer(state=state, output="qsphere", filename="qsphere.png")
 
-    def test_plot_state_city(self):
-        """test for plot_state_qsphere"""
-        circuit = QuantumCircuit(1)
-        circuit.x(0)
+#     def test_plot_state_city(self):
+#         """test for plot_state_city"""
+#         circuit = QuantumCircuit(1)
+#         circuit.x(0)
 
-        # getting the state using backend
-        backend = BasicAer.get_backend("statevector_simulator")
-        result = execute(circuit, backend).result()
-        state = result.get_statevector(circuit)
+#         # getting the state using backend
+#         backend = BasicAer.get_backend("statevector_simulator")
+#         result = execute(circuit, backend).result()
+#         state = result.get_statevector(circuit)
 
-        self.graph_drawer(state=state, output="city", filename="state_city.png")
+#         self.graph_drawer(state=state, output="city", filename="state_city.png")
 
     def test_plot_state_paulivec(self):
-        """test for plot_state_qsphere"""
+        """test for plot_state_paulivec"""
         circuit = QuantumCircuit(1)
         circuit.x(0)
 
