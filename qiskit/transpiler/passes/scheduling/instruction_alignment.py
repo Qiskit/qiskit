@@ -12,11 +12,15 @@
 
 """Align measurement instructions."""
 
+import warnings
 from collections import defaultdict
-from typing import List
+from typing import List, Union
 
 from qiskit.circuit.delay import Delay
+from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.pulse import Play
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass, AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -42,7 +46,7 @@ class AlignMeasures(TransformationPass):
 
     Measurement alignment is required if a backend only allows triggering ``measure``
     instructions at a certain multiple value of this pulse granularity.
-    This value is usually provided by ``backend.configuration().alignment``.
+    This value is usually provided by ``backend.configuration().timing_constraints``.
 
     In Qiskit SDK, the duration of delay can take arbitrary value in units of ``dt``,
     thus circuits involving delays may violate the above alignment constraint (i.e. misalignment).
@@ -108,24 +112,7 @@ class AlignMeasures(TransformationPass):
         """
         time_unit = self.property_set["time_unit"]
 
-        require_validation = True
-
-        if all(delay_node.op.duration % self.alignment == 0 for delay_node in dag.op_nodes(Delay)):
-            # delay is the only instruction that can move other instructions
-            # to the position which is not multiple of alignment.
-            # if all delays are multiple of alignment then we can avoid validation.
-            require_validation = False
-
-        if len(dag.op_nodes(Measure)) == 0:
-            # if no measurement is involved we don't need to run validation.
-            # since this pass assumes backend execution, this is really rare case.
-            require_validation = False
-
-        if self.alignment == 1:
-            # we can place measure at arbitrary time of dt.
-            require_validation = False
-
-        if not require_validation:
+        if not _check_alignment_required(dag, self.alignment, Measure):
             # return input as-is to avoid unnecessary scheduling.
             # because following procedure regenerate new DAGCircuit,
             # we should avoid continuing if not necessary from performance viewpoint.
@@ -212,16 +199,24 @@ class ValidatePulseGates(AnalysisPass):
     the backend control electronics.
     """
 
-    def __init__(self, alignment: int = 1):
+    def __init__(
+        self,
+        granularity: int = 1,
+        min_length: int = 1,
+    ):
         """Create new pass.
 
         Args:
-            alignment: Integer number representing the minimum time resolution to
+            granularity: Integer number representing the minimum time resolution to
                 define the pulse gate length in units of ``dt``. This value depends on
+                the control electronics of your quantum processor.
+            min_length: Integer number representing the minimum data point length to
+                define the pulse gate in units of ``dt``. This value depends on
                 the control electronics of your quantum processor.
         """
         super().__init__()
-        self.alignment = alignment
+        self.granularity = granularity
+        self.min_length = min_length
 
     def run(self, dag: DAGCircuit):
         """Run the measurement alignment pass on `dag`.
@@ -233,18 +228,78 @@ class ValidatePulseGates(AnalysisPass):
             DAGCircuit: DAG with consistent timing and op nodes annotated with duration.
 
         Raises:
-            TranspilerError: When pulse gate violate pulse controller alignment.
+            TranspilerError: When pulse gate violate pulse controller constraints.
         """
-        if self.alignment == 1:
+        if self.granularity == 1 and self.min_length == 1:
             # we can define arbitrary length pulse with dt resolution
             return
 
         for gate, insts in dag.calibrations.items():
             for qubit_param_pair, schedule in insts.items():
-                if schedule.duration % self.alignment != 0:
-                    raise TranspilerError(
-                        f"Pulse gate duration is not multiple of {self.alignment}. "
-                        "This pulse cannot be played on the specified backend. "
-                        f"Please modify the duration of the custom gate schedule {schedule.name} "
-                        f"which is associated with the gate {gate} of qubit {qubit_param_pair[0]}."
-                    )
+                for _, inst in schedule.instructions:
+                    if isinstance(inst, Play):
+                        pulse = inst.pulse
+                        if pulse.duration % self.granularity != 0:
+                            raise TranspilerError(
+                                f"Pulse duration is not multiple of {self.granularity}. "
+                                "This pulse cannot be played on the specified backend. "
+                                f"Please modify the duration of the custom gate pulse {pulse.name} "
+                                f"which is associated with the gate {gate} of "
+                                f"qubit {qubit_param_pair[0]}."
+                            )
+                        if pulse.duration < self.min_length:
+                            raise TranspilerError(
+                                f"Pulse gate duration is less than {self.min_length}. "
+                                "This pulse cannot be played on the specified backend. "
+                                f"Please modify the duration of the custom gate pulse {pulse.name} "
+                                f"which is associated with the gate {gate} of "
+                                "qubit {qubit_param_pair[0]}."
+                            )
+
+
+def _check_alignment_required(
+    dag: DAGCircuit,
+    alignment: int,
+    instructions: Union[Instruction, List[Instruction]],
+) -> bool:
+    """Check DAG nodes and return a boolean representing if instruction scheduling is necessary.
+
+    Args:
+        dag: DAG circuit to check.
+        alignment: Instruction alignment condition.
+        instructions: Target instructions.
+
+    Returns:
+        If instruction scheduling is necessary.
+    """
+    if not isinstance(instructions, list):
+        instructions = [instructions]
+
+    if alignment == 1:
+        # disable alignment if arbitrary t0 value can be used
+        return False
+
+    if all(len(dag.op_nodes(inst)) == 0 for inst in instructions):
+        # disable alignment if target instruction is not involved
+        return False
+
+    # check delay durations
+    for delay_node in dag.op_nodes(Delay):
+        duration = delay_node.op.duration
+        if isinstance(duration, ParameterExpression):
+            # duration is parametrized:
+            # raise user warning if backend alignment is not 1.
+            warnings.warn(
+                f"Parametrized delay with {repr(duration)} is found in circuit {dag.name}. "
+                f"This backend requires alignment={alignment}. "
+                "Please make sure all assigned values are multiple values of the alignment.",
+                UserWarning,
+            )
+        else:
+            # duration is bound:
+            # check duration and trigger alignment if it violates constraint
+            if duration % alignment != 0:
+                return True
+
+    # disable alignment if all delays are multiple values of the alignment
+    return False
