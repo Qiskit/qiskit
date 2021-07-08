@@ -694,7 +694,7 @@ def plot_state_qsphere(
     use_degrees=False,
     *,
     rho=None,
-    filename=None
+    filename=None,
 ):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
