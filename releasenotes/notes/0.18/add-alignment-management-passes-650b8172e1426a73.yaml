@@ -9,11 +9,10 @@ features:
     restrictions on time allocation of instructions for a backend.
 
     If a backend has a restriction on the alignment of
-    :class:`~qiskit.circuit.Measure` instructions (in terms of quantization in time), the
+    instructions (in terms of quantization in time), the
     :class:`~qiskit.transpiler.passes.AlignMeasures` pass is used to adjust
-    delays in a scheduled circuit to ensure that the
-    :class:`~qiskit.circuit.Measure` instructions in the circuit are aligned
-    given the constraints of the backend. The
+    delays in a scheduled circuit to ensure that instructions in the circuit
+    are aligned given the constraints of the backend. The
     :class:`~qiskit.transpiler.passes.ValidatePulseGates` pass is used to
     check if any custom pulse gates (gates that have a custom pulse definition
     in the :attr:`~qiskit.circuit.QuantumCircuit.calibrations` attribute of
@@ -23,10 +22,10 @@ features:
     In the built-in :mod:`~qiskit.transpiler.preset_passmangers` used by the
     :func:`~qiskit.compiler.transpile` function, these passes get automatically
     triggered if the alignment constraint, either via the dedicated
-    ``alignment`` kwarg on :func:`~qiskit.compiler.transpile` or as an
-    ``alignment`` attribute in the
+    ``timing_constraints`` kwarg on :func:`~qiskit.compiler.transpile` or has an
+    ``timing_constraints`` attribute in the
     :class:`~qiskit.providers.models.BackendConfiguration` object of the
-    backend being targetted, is set to > 1.
+    backend being targetted.
 
     The backends from IBM Quantum Services (accessible via the
     `qiskit-ibmq-provider <https://pypi.org/project/qiskit-ibmq-provider/>`__
@@ -49,5 +48,6 @@ features:
 
     .. jupyter-execute::
 
-      qct = transpile(qc, backend, scheduling_method='alap', alignment=16)
+      qct = transpile(qc, backend, scheduling_method='alap',
+                      timing_constraints={'acquire_alignment': 16})
       qct.draw('mpl')
