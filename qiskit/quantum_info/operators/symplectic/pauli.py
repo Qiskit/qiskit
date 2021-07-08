@@ -542,7 +542,7 @@ class Pauli(BasePauli):
                     return False
             return True
 
-    def anticommutes(self, other, qargs=None, qubit_wise=False):
+    def anticommutes(self, other, qargs=None):
         """Return True if other Pauli anticommutes with self.
 
         Args:
@@ -553,7 +553,7 @@ class Pauli(BasePauli):
         Returns:
             bool: True if Pauli's anticommute, False if they commute.
         """
-        return np.logical_not(self.commutes(other, qargs=qargs, qubit_wise=qubit_wise))
+        return np.logical_not(self.commutes(other, qargs=qargs))
 
     def evolve(self, other, qargs=None):
         r"""Heisenberg picture evolution of a Pauli by a Clifford.

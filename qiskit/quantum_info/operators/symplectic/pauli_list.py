@@ -1065,27 +1065,27 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         base_z, base_x, base_phase = cls._from_array(z, x, phase)
         return cls(BasePauli(base_z, base_x, base_phase))
 
-    def _qubit_wise_anticommutation_graph(self):
-        """Create qubit wise anti commutation graph with edges (i, j) if i and j are not commutable.
+    def _noncommutation_graph(self):
+        """Create qubit wise non-commutation graph with edges (i, j) if i and j are not commutable.
 
         Returns:
             List[Tuple(int,int)]: A list of pairs of indices of the PauliList that are not commutable.
         """
-        anti_commutation_graph = []
+        noncommutation_graph = []
         for i in range(self._num_paulis):
-            for j in range(i, self._num_paulis):
-                if i != j and self[i].anticommutes(self[j], qubit_wise=True):
-                    anti_commutation_graph.append((i, j))
-        return anti_commutation_graph
+            for j in range(i+1, self._num_paulis):
+                if (not self[i].commutes(self[j], qubit_wise=True)):
+                    noncommutation_graph.append((i, j))
+        return noncommutation_graph
 
     def group_subops_pauli_list(self):
-        """Partition a  PauliList into sets of mutually qubit-wise commuting Pauli strings.
+        """Partition a PauliList into sets of mutually qubit-wise commuting Pauli strings.
 
         Returns:
             List[PauliList]: List of PauliLists where each PauliList contains commutable Pauli operators.
         """
         nodes = range(self._num_paulis)
-        edges = self._qubit_wise_anticommutation_graph()
+        edges = self._noncommutation_graph()
         graph = rx.PyGraph()
         graph.add_nodes_from(nodes)
         graph.add_edges_from_no_data(edges)
