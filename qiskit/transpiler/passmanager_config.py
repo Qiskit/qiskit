@@ -55,7 +55,7 @@ class PassManagerConfig:
                 (1.0=no approximation, 0.0=maximal approximation)
             seed_transpiler (int): Sets random seed for the stochastic parts of
                 the transpiler.
-            timing_constraints (PulseConstraints): Hardware time alignment restrictions.
+            timing_constraints (TimingConstraints): Hardware time alignment restrictions.
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
