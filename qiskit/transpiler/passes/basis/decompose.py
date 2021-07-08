@@ -40,7 +40,7 @@ class Decompose(TransformationPass):
         """
         super().__init__()
 
-        if not isinstance(gates_to_decompose, list):
+        if (gates_to_decompose is not None) and (not isinstance(gates_to_decompose, list)):
             gates_to_decompose = [gates_to_decompose]
 
         if gate is not None:
@@ -59,7 +59,7 @@ class Decompose(TransformationPass):
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.gates[0]
+        return self.gates_to_decompose[0]
 
     @gate.setter
     def gate(self, value):
@@ -108,13 +108,15 @@ class Decompose(TransformationPass):
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose)."""
         has_label = False
-        strings_list = [s for s in self.gates_to_decompose if isinstance(s, str)]
-        gate_type_list = [g for g in self.gates_to_decompose if isinstance(g, type)]
+        
+        if self.gates_to_decompose is not None:
+            strings_list = [s for s in self.gates_to_decompose if isinstance(s, str)]
+            gate_type_list = [g for g in self.gates_to_decompose if isinstance(g, type)]
 
         if hasattr(node.op, "label") and node.op.label is not None:
             has_label = True
 
-        if self.gates_to_decompose == [None]:  # check if no gates given
+        if self.gates_to_decompose is None:  # check if no gates given
             return True
         elif has_label and (  # check if label or label wildcard is given
             node.op.label in self.gates_to_decompose
