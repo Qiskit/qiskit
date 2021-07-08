@@ -522,7 +522,7 @@ class Pauli(BasePauli):
         Args:
             other (Pauli or PauliList): another Pauli operator.
             qargs (list): qubits to apply dot product on (default: None).
-            qubit_wise (bool): for checking qubit_wise commutativity
+            qubit_wise (bool): for checking qubit_wise commutativity (default: False).
 
         Returns:
             bool: True if Pauli's commute, False if they anti-commute.
@@ -548,7 +548,6 @@ class Pauli(BasePauli):
         Args:
             other (Pauli): another Pauli operator.
             qargs (list): qubits to apply dot product on (default: None).
-            qubit_wise (bool): for checking qubit_wise anticommutativity
 
         Returns:
             bool: True if Pauli's anticommute, False if they commute.

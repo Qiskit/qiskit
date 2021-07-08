@@ -12,9 +12,9 @@
 """
 Optimized list of Pauli operators
 """
-
+from collections import defaultdict
 import numpy as np
-
+import retworkx as rx
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.mixins import GroupMixin, LinearMixin
@@ -22,8 +22,6 @@ from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.stabilizer_table import StabilizerTable
-import retworkx as rx
-from collections import defaultdict
 
 
 class PauliList(BasePauli, LinearMixin, GroupMixin):
@@ -1066,7 +1064,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return cls(BasePauli(base_z, base_x, base_phase))
 
     def _noncommutation_graph(self):
-        """Create qubit wise non-commutation graph with edges (i, j) if i and j are not commutable.
+        """Create an edge list representing the qubit-wise non-commutation graph.
+
+        An edge (i, j) is present if i and j are not commutable.
 
         Returns:
             List[Tuple(int,int)]: A list of pairs of indices of the PauliList that are not commutable.
