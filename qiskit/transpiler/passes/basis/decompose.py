@@ -66,7 +66,7 @@ class Decompose(TransformationPass):
         """Sets the gate
 
         Args:
-            value: new value for gate
+            value (Gate): new value for gate
         """
         warnings.warn(
             "The gate argument is deprecated as of 0.18.0, and "
