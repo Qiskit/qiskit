@@ -28,14 +28,21 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.transpiler import PassManager, CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.exceptions import QiskitError
 from qiskit.transpiler.passes import (
     Collect2qBlocks,
     ConsolidateBlocks,
     Optimize1qGates,
-    BIPMapping,
+    SabreLayout,
     Depth,
     FixedPoint,
-    TrivialLayout,
+    FullAncillaAllocation,
+    EnlargeWithAncilla,
+    ApplyLayout,
+    Unroll3qOrMore,
+    CheckMap,
+    BarrierBeforeFinalMeasurements,
+    SabreSwap,
 )
 from qiskit.transpiler.passes.routing.algorithms.bip_model import HAS_CPLEX, HAS_DOCPLEX
 from qiskit.exceptions import QiskitError
@@ -481,14 +488,22 @@ class TestUnitarySynthesis(QiskitTestCase):
     @unittest.skipUnless(HAS_CPLEX, "cplex is required to run this test")
     @unittest.skipUnless(HAS_DOCPLEX, "docplex is required to run this test")
     def test_qv_natural(self):
-        """Test natural_direction flag with qv circuit and BIPMapping."""
-        qv64 = QuantumVolume(2, seed=15)
+        """check that quantum volume circuit compiles for natural direction and is shorter"""
+        qv64 = QuantumVolume(5, seed=15)
 
         def construct_passmanager(basis_gates, coupling_map, synthesis_fidelity, pulse_optimize):
             def _repeat_condition(property_set):
                 return not property_set["depth_fixed_point"]
 
-            _map = [BIPMapping(coupling_map, objective="depth", time_limit=100)]
+            seed = 2
+            _map = [SabreLayout(coupling_map, max_iterations=2, seed=seed)]
+            _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
+            _unroll3q = Unroll3qOrMore()
+            _swap_check = CheckMap(coupling_map)
+            _swap = [
+                BarrierBeforeFinalMeasurements(),
+                SabreSwap(coupling_map, heuristic="lookahead", seed=seed),
+            ]
             _check_depth = [Depth(), FixedPoint("depth")]
             _optimize = [
                 Collect2qBlocks(),
@@ -505,28 +520,47 @@ class TestUnitarySynthesis(QiskitTestCase):
 
             pm = PassManager()
             pm.append(_map)  # map to hardware by inserting swaps
+            pm.append(_embed)
+            pm.append(_unroll3q)
+            pm.append(_swap_check)
+            pm.append(_swap)
             pm.append(
                 _check_depth + _optimize, do_while=_repeat_condition
             )  # translate to & optimize over hardware native gates
             return pm
 
-        coupling_map = CouplingMap([[1, 0], [1, 2], [3, 2], [3, 4], [5, 4]])
+        coupling_map = CouplingMap([[0, 1], [1, 2], [3, 2], [3, 4], [5, 4]])
         basis_gates = ["rz", "sx", "cx"]
 
-        pm = construct_passmanager(
+        pm1 = construct_passmanager(
             basis_gates=basis_gates,
             coupling_map=coupling_map,
             synthesis_fidelity=0.99,
             pulse_optimize=True,
         )
+        pm2 = construct_passmanager(
+            basis_gates=basis_gates,
+            coupling_map=coupling_map,
+            synthesis_fidelity=0.99,
+            pulse_optimize=False,
+        )
 
-        qv64_compiled = pm.run(qv64.decompose())
+        qv64_1 = pm1.run(qv64.decompose())
+        qv64_2 = pm2.run(qv64.decompose())
         edges = [list(edge) for edge in coupling_map.get_edges()]
         self.assertTrue(
             all(
-                [qv64_compiled.qubits.index(qubit) for qubit in qlist] in edges
-                for _, qlist, _ in qv64_compiled.get_instructions("cx")
+                [
+                    [qv64_1.qubits.index(qubit) for qubit in qlist] in edges
+                    for _, qlist, _ in qv64_1.get_instructions("cx")
+                ]
             )
+        )
+        self.assertEqual(Operator(qv64_1), Operator(qv64_2))
+        op1_cnt = qv64_1.count_ops()
+        op2_cnt = qv64_2.count_ops()
+        self.assertTrue(
+            all((op1_cnt[name] < op2_cnt[name] for name in op1_cnt.keys() if name is not "cx"))
         )
 
 
