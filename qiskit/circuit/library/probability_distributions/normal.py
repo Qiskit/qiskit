@@ -16,6 +16,7 @@ from typing import Tuple, Union, List, Optional
 import warnings
 import numpy as np
 from qiskit.circuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
 
 
 class NormalDistribution(QuantumCircuit):
@@ -216,7 +217,13 @@ class NormalDistribution(QuantumCircuit):
             circuit.compose(distribution, inplace=True)
 
         super().__init__(*circuit.qregs, name=name)
-        self.compose(circuit.to_instruction(), qubits=self.qubits, inplace=True)
+
+        try:
+            instr = circuit.to_gate()
+        except QiskitError:
+            instr = circuit.to_instruction()
+
+        self.compose(instr, qubits=self.qubits, inplace=True)
 
     @property
     def values(self) -> np.ndarray:
