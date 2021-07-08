@@ -1073,8 +1073,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         noncommutation_graph = []
         for i in range(self._num_paulis):
-            for j in range(i+1, self._num_paulis):
-                if (not self[i].commutes(self[j], qubit_wise=True)):
+            for j in range(i + 1, self._num_paulis):
+                if not self[i].commutes(self[j], qubit_wise=True):
                     noncommutation_graph.append((i, j))
         return noncommutation_graph
 
