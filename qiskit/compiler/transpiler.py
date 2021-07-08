@@ -868,11 +868,7 @@ def _parse_timing_constraints(backend, timing_constraints, num_circuits):
     else:
         if timing_constraints is None:
             # get constraints from backend
-            timing_constraints = getattr(
-                backend.configuration(),
-                "timing_constraints",
-                {}
-            )
+            timing_constraints = getattr(backend.configuration(), "timing_constraints", {})
         timing_constraints = TimingConstraints(**timing_constraints)
 
     return [timing_constraints] * num_circuits
