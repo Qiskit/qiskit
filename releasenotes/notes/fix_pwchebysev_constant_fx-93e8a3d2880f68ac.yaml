@@ -7,6 +7,6 @@ fixes:
     input function. The fix avoids calling interpolate for constant functions
     but this means that such functions cannot be given in lambda type.
     Added a fix and an error message explaining how to declare constant 
-    funcions.
+    functions.
     Also updated the documentation with a message on how to declare a constant 
     function.
