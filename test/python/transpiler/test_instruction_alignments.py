@@ -305,6 +305,27 @@ class TestPulseGateValidation(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             self.pulse_gate_validation_pass(circuit)
 
+    def test_short_pulse_duration_multiple_pulse(self):
+        """Kill pass manager if invalid pulse gate is found."""
+
+        # this is invalid duration pulse
+        # however total gate schedule length is 64, which accidentally satisfies the constraints
+        # this should fail in the validation
+        custom_gate = pulse.Schedule(name="custom_x_gate")
+        custom_gate.insert(
+            0, pulse.Play(pulse.Constant(32, 0.1), pulse.DriveChannel(0)), inplace=True
+        )
+        custom_gate.insert(
+            32, pulse.Play(pulse.Constant(32, 0.1), pulse.DriveChannel(0)), inplace=True
+        )
+
+        circuit = QuantumCircuit(1)
+        circuit.x(0)
+        circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
+
+        with self.assertRaises(TranspilerError):
+            self.pulse_gate_validation_pass(circuit)
+
     def test_valid_pulse_duration(self):
         """No error raises if valid calibration is provided."""
 
