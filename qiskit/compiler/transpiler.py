@@ -875,13 +875,4 @@ def _parse_timing_constraints(backend, timing_constraints, num_circuits):
             )
     timing_constraints = TimingConstraints(**timing_constraints)
 
-    # validation
-    fields = ["granularity", "min_length", "pulse_alignment", "acquire_alignment"]
-    for field in fields:
-        constraint_value = getattr(timing_constraints, field, None)
-        if not isinstance(constraint_value, int) or constraint_value < 1:
-            raise TranspilerError(
-                f"Timing constraint {field} should be nonzero integer. Not {constraint_value}."
-            )
-
     return [timing_constraints] * num_circuits

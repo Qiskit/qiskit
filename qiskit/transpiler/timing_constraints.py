@@ -12,6 +12,8 @@
 
 """Timing Constraints class."""
 
+from qiskit.transpiler.exceptions import TranspilerError
+
 
 class TimingConstraints:
     """Hardware Instruction Timing Constraints."""
@@ -41,8 +43,17 @@ class TimingConstraints:
 
         Notes:
             This information will be provided by the backend configuration.
+
+        Raises:
+            TranspilerError: When any invalid constraint value is passed.
         """
         self.granularity = granularity
         self.min_length = min_length
         self.pulse_alignment = pulse_alignment
         self.acquire_alignment = acquire_alignment
+
+        for key, value in self.__dict__.items():
+            if not isinstance(value, int) or value < 1:
+                raise TranspilerError(
+                    f"Timing constraint {key} should be nonzero integer. Not {value}."
+                )
