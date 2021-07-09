@@ -1099,13 +1099,13 @@ class TwoQubitBasisDecomposer:
             return qc2
 
         def print_logic_flags():
-            print(f'x12 = {x12}')
-            print(f'x12_isNonZero = {x12_isNonZero}')
-            print(f'x12_isPi = {x12_isPi}')
-            print(f'x10_isPi = {x10_isPi}')
-            print(f'x12_isNegPi = {x12_isNegPi}')
-            print(f'x10_isZero = {x10_isZero}')
-            print(f'x12_isHalfPi = {x12_isHalfPi}')            
+            print(f"x12 = {x12}")
+            print(f"x12_isNonZero = {x12_isNonZero}")
+            print(f"x12_isPi = {x12_isPi}")
+            print(f"x10_isPi = {x10_isPi}")
+            print(f"x12_isNegPi = {x12_isNegPi}")
+            print(f"x10_isZero = {x10_isZero}")
+            print(f"x12_isHalfPi = {x12_isHalfPi}")
 
         # decompose source unitaries to zxz
         zxz_decomposer = OneQubitEulerDecomposer("ZXZ")
