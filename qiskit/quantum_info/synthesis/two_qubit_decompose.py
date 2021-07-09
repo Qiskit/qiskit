@@ -1155,7 +1155,7 @@ class TwoQubitBasisDecomposer:
         if x12_isHalfPi:
             qc.sx(0)
             qc.global_phase -= math.pi / 4
-        elif x12_isNonZero and not (x12_isPi and x10_isPi) and not (x12_isNegPi and x10_isZero):
+        elif x12_isNonZero and not ((x12_isPi and x10_isPi) or (x12_isNegPi and x10_isZero)):
             # this is non-optimal but doesn't seem to occur currently
             if self.pulse_optimize is None:
                 qc.compose(self._decomposer1q(Operator(RXGate(x12)).data), [0], inplace=True)
