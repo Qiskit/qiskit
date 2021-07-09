@@ -9,9 +9,10 @@ features:
     restrictions on time allocation of instructions for a backend.
 
     If a backend has a restriction on the alignment of
-    instructions (in terms of quantization in time), the
+    :class:`~qiskit.circuit.Measure` instructions (in terms of quantization in time), the
     :class:`~qiskit.transpiler.passes.AlignMeasures` pass is used to adjust
-    delays in a scheduled circuit to ensure that instructions in the circuit
+    delays in a scheduled circuit to ensure that any
+    :class:`~qiskit.circuit.Measure` instructions in the circuit
     are aligned given the constraints of the backend. The
     :class:`~qiskit.transpiler.passes.ValidatePulseGates` pass is used to
     check if any custom pulse gates (gates that have a custom pulse definition
