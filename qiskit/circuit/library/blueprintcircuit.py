@@ -115,10 +115,10 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().append(instruction, qargs, cargs)
 
-    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
+    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False, wrap=False):
         if self._data is None:
             self._build()
-        return super().compose(other, qubits, clbits, front, inplace)
+        return super().compose(other, qubits, clbits, front, inplace, wrap)
 
     def inverse(self):
         if self._data is None:

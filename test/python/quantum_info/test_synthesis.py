@@ -262,7 +262,7 @@ class TestEulerAngles1Q(CheckDecompositions):
         self.check_one_qubit_euler_angles(unitary)
 
 
-ANGEXP_ZYZ = [  # Special cases for ZYZ type expansions
+ANGEXP_ZYZ = [
     [(1.0e-13, 0.1, -0.1, 0), (0, 0)],
     [(1.0e-13, 0.2, -0.1, 0), (1, 0)],
     [(1.0e-13, np.pi, np.pi, 0), (0, 0)],
@@ -276,8 +276,24 @@ ANGEXP_ZYZ = [  # Special cases for ZYZ type expansions
     [(0.1, 0.0, 0.0, 0), (0, 1)],
     [(0.1, 1.0e-13, 0.2, 0), (1, 1)],
     [(0.1, 0.2, 0.3, 0), (2, 1)],
+    [(0.1, 0.2, np.pi, 0), (1, 1)],
+    [(0.1, np.pi, 0.1, 0), (1, 1)],
+    [(0.1, np.pi, np.pi, 0), (0, 1)],
 ]
-ANGEXP_PSX = [  # Special cases for Z.X90.Z.X90.Z type expansions
+"""
+Special cases for ZYZ type expansions.  Each list entry is of the format
+
+    (alpha, beta, gamma, delta), (r, s),
+
+and encodes the assertion that
+
+    (K(b) @ A(a) @ K(c), global_phase=d)
+
+re-synthesizes to have r applications of the K gate and s of the A gate.
+"""
+
+
+ANGEXP_PSX = [
     [(0.0, 0.1, -0.1), (0, 0)],
     [(0.0, 0.1, 0.2), (1, 0)],
     [(-np.pi / 2, 0.2, 0.0), (2, 1)],
@@ -288,7 +304,22 @@ ANGEXP_PSX = [  # Special cases for Z.X90.Z.X90.Z type expansions
     [(np.pi, np.pi + 0.1, 0.1), (0, 2)],
     [(np.pi, np.pi + 0.2, -0.1), (1, 2)],
     [(0.1, 0.2, 0.3), (3, 2)],
+    [(0.1, np.pi, 0.2), (2, 2)],
+    [(0.1, 0.2, 0.0), (2, 2)],
+    [(0.1, 0.2, np.pi), (2, 2)],
+    [(0.1, np.pi, 0), (1, 2)],
 ]
+"""
+Special cases for Z.X90.Z.X90.Z type expansions.  Each list entry is of the format
+
+    (alpha, beta, gamma), (r, s),
+
+and encodes the assertion that
+
+    U3(alpha, beta, gamma)
+
+re-synthesizes to have r applications of the P gate and s of the SX gate.
+"""
 
 
 @ddt
