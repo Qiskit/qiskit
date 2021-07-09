@@ -1169,6 +1169,9 @@ class TwoQubitBasisDecomposer:
                     self._decomposer1q(Operator(RXGate(euler_q1[1][1])).data), [1], inplace=True
                 )
             else:
+                print(euler_q0)
+                print(euler_q1)
+                print(get_basic_decomp(euler_q0, euler_q1))
                 raise QiskitError("possible non-pulse-optimal decomposition encountered")
         qc.rz(euler_q1[1][2] + euler_q1[2][0], 1)
 
@@ -1185,6 +1188,9 @@ class TwoQubitBasisDecomposer:
                     self._decomposer1q(Operator(RXGate(euler_q1[2][1])).data), [1], inplace=True
                 )
             else:
+                print(euler_q0)
+                print(euler_q1)
+                print(get_basic_decomp(euler_q0, euler_q1))
                 raise QiskitError("possible non-pulse-optimal decomposition encountered")
 
         qc.cx(1, 0)
