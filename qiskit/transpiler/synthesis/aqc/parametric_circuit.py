@@ -23,7 +23,7 @@ from numpy import linalg as la
 
 from qiskit import QuantumCircuit
 from .cnot_structures import make_cnot_network
-from .elementary_operations import op_rx, op_ry, op_rz, op_unitary, op_cnot
+from .elementary_operations import rx_matrix, ry_matrix, rz_matrix, place_unitary, place_cnot
 from .gradient import GradientBase, DefaultGradient
 
 # TODO: remove gradient parameter in constructor! <- unclear why (Anton)
@@ -228,23 +228,23 @@ class ParametricCircuit:
             q2 = int(self._cnots[1, cnot_index])
 
             # rotations that are applied on the q1 qubit
-            ry1 = op_ry(self._thetas[0 + theta_index])
-            rz1 = op_rz(self._thetas[1 + theta_index])
+            ry1 = ry_matrix(self._thetas[0 + theta_index])
+            rz1 = rz_matrix(self._thetas[1 + theta_index])
 
             # rotations that are applied on the q2 qubit
-            ry2 = op_ry(self._thetas[2 + theta_index])
-            rx2 = op_rx(self._thetas[3 + theta_index])
+            ry2 = ry_matrix(self._thetas[2 + theta_index])
+            rx2 = rx_matrix(self._thetas[3 + theta_index])
 
             # combine the rotations on qubits q1 and q2
             single_q1 = np.dot(rz1, ry1)
             single_q2 = np.dot(rx2, ry2)
 
             # we place single qubit matrices at the corresponding locations in the (2^n, 2^n) matrix
-            full_q1 = op_unitary(single_q1, self._num_qubits, q1)
-            full_q2 = op_unitary(single_q2, self._num_qubits, q2)
+            full_q1 = place_unitary(single_q1, self._num_qubits, q1)
+            full_q2 = place_unitary(single_q2, self._num_qubits, q2)
 
             # we place a cnot matrix at the qubits q1 and q2 in the full matrix
-            cnot_q1q2 = op_cnot(self._num_qubits, q1, q2)  # todo: verify the size of cnot1
+            cnot_q1q2 = place_cnot(self._num_qubits, q1, q2)  # todo: verify the size of cnot1
 
             # compute the cnot unit matrix
             cnot_unit = la.multi_dot([full_q2, full_q1, cnot_q1q2])
@@ -257,9 +257,9 @@ class ParametricCircuit:
         # we start with 1 and kronecker product each qubit's rotations
         for qubit in range(self._num_qubits):
             theta_index = 4 * self._num_cnots + 3 * qubit
-            rz0 = op_rz(self._thetas[0 + theta_index])
-            ry1 = op_ry(self._thetas[1 + theta_index])
-            rz2 = op_rz(self._thetas[2 + theta_index])
+            rz0 = rz_matrix(self._thetas[0 + theta_index])
+            ry1 = ry_matrix(self._thetas[1 + theta_index])
+            rz2 = rz_matrix(self._thetas[2 + theta_index])
             rotation_matrix = np.kron(rotation_matrix, la.multi_dot([rz0, ry1, rz2]))
 
         # the matrix corresponding to the full circuit is the cnot part and

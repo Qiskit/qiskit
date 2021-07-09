@@ -14,7 +14,7 @@
 Gradient descent optimizers for AQC.
 """
 from abc import ABC, abstractmethod
-from typing import Tuple, Union
+from typing import Tuple
 
 import numpy as np
 from numpy import linalg as la

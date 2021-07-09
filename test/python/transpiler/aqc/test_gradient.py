@@ -9,24 +9,17 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 Tests analytical gradient vs the one computed via finite differences.
 """
-import sys
+
 import unittest
 
-# if os.getcwd() not in sys.path:
-#     sys.path.append(os.getcwd())
 import numpy as np
-from joblib import Parallel, delayed
+from scipy.stats import unitary_group
 
-import qiskit.transpiler.synthesis.aqc.utils as ut
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.parametric_circuit import ParametricCircuit
-
-
-# TODO: remove print("\n{:s}\n{:s}\n{:s}\n".format("@" * 80, __doc__, "@" * 80))
 
 
 class TestGradientAgainstFiniteDiff(QiskitTestCase):
@@ -37,23 +30,22 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
     expansion for small deltas.
     """
 
-    def _gradient_test(self, num_qubits: int, depth: int) -> (int, int, list, list):
+    def test_gradient(self):
         """
         Gradient test for specified number of qubits and circuit depth.
         """
-        print(".", end="", flush=True)
-        self.assertTrue(isinstance(num_qubits, (int, np.int64)))
-        self.assertTrue(isinstance(depth, (int, np.int64)))
-        # TODO: remove, unused: _TINY = float(np.power(np.finfo(np.float64).tiny, 0.2))
+        num_qubits = 3
+        num_cnots = 14
+
         circuit = ParametricCircuit(
-            num_qubits=num_qubits, layout="spin", connectivity="full", depth=depth
+            num_qubits=num_qubits, layout="spin", connectivity="full", depth=num_cnots
         )
-        circuit.init_gradient_backend(backend="default")
 
         # Generate random target matrix and random starting point. Repeat until
         # sufficiently large gradient has been encountered.
+        # This operation is pretty fast.
         while True:
-            target_matrix = ut.random_special_unitary(num_qubits=num_qubits)
+            target_matrix = self._random_special_unitary(num_qubits=num_qubits)
             thetas = np.random.rand(circuit.num_thetas) * (2.0 * np.pi)
             circuit.set_thetas(thetas)
             fobj0, grad0 = circuit.get_gradient(target_matrix=target_matrix)
@@ -69,9 +61,10 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
         # and then gradually decrease it towards zero.
         tau = 1.0
         diff_prev = 0.0
-        orders = list()
-        errors = list()
-        for step in range(16):
+        orders = []
+        errors = []
+        steps = 8
+        for step in range(steps):
             # Estimate gradient approximation error.
             for i in range(thetas.size):
                 np.copyto(thetas_delta, thetas)
@@ -100,42 +93,33 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
             tau /= 2.0
             diff_prev = diff
 
-        # Important when run inside a parallel process:
-        sys.stderr.flush()
-        sys.stdout.flush()
-        return int(num_qubits), int(depth), errors, orders
+        # check errors
+        prev_error = errors[0]
+        for error in errors[1:]:
+            self.assertLess(error, prev_error)
+            prev_error = error
 
-    def test_gradient_test(self):
-        """Tests gradient."""
-        print("\nRunning {:s}() ...".format(self.test_gradient_test.__name__))
-        print("Here we compare gradient of a circuit against the one computed")
-        print("via finite difference. Also, we try to reveal quadratic nature")
-        print("of the gradient difference (quadratic term in Taylor expansion).")
-        print("Ideally, the accuracy of gradient approximation improves from")
-        print("left to right as delta goes down to zero, and the order of")
-        print("approximation residual approaches 2 (quadratic Taylor's term).")
-        print("\n")
+        # check orders, skipping first zero
+        orders = np.asarray(orders[1:0])
+        # pylint:disable=misplaced-comparison-constant
+        self.assertTrue(np.all(2 <= orders))
+        self.assertTrue(np.all(orders < 3))
 
-        nL = [(n, L) for n in range(2, 7) for L in np.random.permutation(np.arange(10, 30))[0:10]]
+    def _random_special_unitary(self, num_qubits: int) -> np.ndarray:
+        """
+        Generates a random SU matrix.
 
-        results = Parallel(n_jobs=-1, prefer="processes")(
-            delayed(self._gradient_test)(n, L) for n, L in nL
-        )
-        print("")
-        sys.stderr.flush()
-        sys.stdout.flush()
+        Args:
+            num_qubits: number of qubits.
 
-        # Print out the results.
-        np.set_printoptions(precision=3, linewidth=256)  # reduced precision!
-        for num_qubits, depth, errors, orders in results:
-            print(
-                "#qubits: {:d}, circuit depth: {:d}\n"
-                "Accuracy: {}\nOrder: {}\n{:s}".format(
-                    num_qubits, depth, np.array(errors), np.array(orders), "-" * 80
-                )
-            )
+        Returns:
+            random SU matrix of size 2^n x 2^n.
+        """
+        d = int(2 ** num_qubits)
+        unitary = unitary_group.rvs(d)
+        unitary = unitary / (np.linalg.det(unitary) ** (1.0 / float(d)))
+        return unitary
 
 
 if __name__ == "__main__":
-    np.set_printoptions(precision=6, linewidth=256)
     unittest.main()

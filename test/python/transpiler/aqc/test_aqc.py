@@ -14,25 +14,17 @@ Tests AQC framework using hardcoded and randomly generated circuits.
 """
 import unittest
 
+from test.python.transpiler.aqc.test_sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
+
 import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.aqc import AQC
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
-# from .test_sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
-from test.python.transpiler.aqc.test_sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 
 
 class TestAqc(QiskitTestCase):
     """Main tests of approximate quantum compiler."""
-
-    def setUp(self) -> None:
-        super().setUp()
-        self._maxiter = 1000
-        self._eta = 0.01  # .1 for n=3, .01 for n=5
-        self._tol = 0.01
-        self._eps = 0.0
-        self._reg = 0.7
 
     def test_aqc(self):
         """Tests AQC on a hardcoded circuit/matrix."""
@@ -46,10 +38,10 @@ class TestAqc(QiskitTestCase):
 
         aqc = AQC(
             method="nesterov",
-            maxiter=self._maxiter,
-            eta=self._eta,
-            tol=self._tol,
-            eps=self._eps,
+            maxiter=1000,
+            eta=0.01,
+            tol=0.01,
+            eps=0.0,
         )
 
         optimized_circuit = aqc.compile_unitary(

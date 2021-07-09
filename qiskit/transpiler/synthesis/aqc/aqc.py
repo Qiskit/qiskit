@@ -73,7 +73,7 @@ class AQC:
 
         optimizer = GDOptimizer(self._method, self._maxiter, self._eta, self._tol, self._eps)
 
-        thetas, error = optimizer.optimize(target_matrix, parametric_circuit)
+        _, _ = optimizer.optimize(target_matrix, parametric_circuit)
         return parametric_circuit
 
     def _compute_optional_parameters(self, num_qubits: int) -> None:
