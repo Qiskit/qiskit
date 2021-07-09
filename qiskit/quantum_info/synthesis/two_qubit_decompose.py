@@ -1150,18 +1150,16 @@ class TwoQubitBasisDecomposer:
         else:
             circ.rz(euler_q0[0][2] + euler_q0[1][0], 0)
         circ.h(0)
-        # qceuler = self._decomposer1q(Operator(circ).data)
-        # qc.compose(qceuler, [0], inplace=True)
-        qc.compose(circ, [0], inplace=True)
+        qceuler = self._decomposer1q(Operator(circ).data)
+        qc.compose(qceuler, [0], inplace=True)
 
         circ = QuantumCircuit(1)
         circ.rx(euler_q1[0][0], 0)
         circ.rz(euler_q1[0][1], 0)
         circ.rx(euler_q1[0][2] + euler_q1[1][0], 0)
         circ.h(0)
-        # qceuler = self._decomposer1q(Operator(circ).data)
-        # qc.compose(qceuler, [1], inplace=True)
-        qc.compose(circ, [1], inplace=True)
+        qceuler = self._decomposer1q(Operator(circ).data)
+        qc.compose(qceuler, [1], inplace=True)
 
         qc.cx(1, 0)
 
@@ -1229,18 +1227,16 @@ class TwoQubitBasisDecomposer:
         circ.rz(euler_q0[2][2] + euler_q0[3][0], 0)
         circ.rx(euler_q0[3][1], 0)
         circ.rz(euler_q0[3][2], 0)
-        # qceuler = self._decomposer1q(Operator(circ).data)
-        # qc.compose(qceuler, [0], inplace=True)
-        qc.compose(circ, [0], inplace=True)
+        qceuler = self._decomposer1q(Operator(circ).data)
+        qc.compose(qceuler, [0], inplace=True)
 
         circ = QuantumCircuit(1)
         circ.h(0)
         circ.rx(euler_q1[2][2] + euler_q1[3][0], 0)
         circ.rz(euler_q1[3][1], 0)
         circ.rx(euler_q1[3][2], 0)
-        # qceuler = self._decomposer1q(Operator(circ).data)
-        # qc.compose(qceuler, [1], inplace=True)
-        qc.compose(circ, [1], inplace=True)
+        qceuler = self._decomposer1q(Operator(circ).data)
+        qc.compose(qceuler, [1], inplace=True)
         print(qc)
         return qc
 
