@@ -1240,7 +1240,7 @@ class TwoQubitBasisDecomposer:
         circ.rx(euler_q1[3][2], 0)
         # qceuler = self._decomposer1q(Operator(circ).data)
         # qc.compose(qceuler, [1], inplace=True)
-        qc.compose(circ, [1], inplace=True)        
+        qc.compose(circ, [1], inplace=True)
         print(qc)
         return qc
 
