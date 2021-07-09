@@ -1119,6 +1119,8 @@ class TwoQubitBasisDecomposer:
         x12_isNonZero = not math.isclose(x12, 0, abs_tol=1e-10)
         x12_isPi = math.isclose(x12, math.pi)
         x10_isPi = math.isclose(euler_q0[1][0], math.pi)
+        x12_isNegPi = math.isclose(x12, -math.pi)
+        x10_isZero = math.isclose(euler_q0[1][0], 0)
         x12_isHalfPi = math.isclose(x12, math.pi / 2)
         # TODO: make this more effecient to avoid double decomposition
         circ = QuantumCircuit(1)
@@ -1127,6 +1129,9 @@ class TwoQubitBasisDecomposer:
         if x12_isPi and x10_isPi:
             circ.rz(euler_q0[0][2], 0)
             circ.global_phase += math.pi
+        elif x12_isNegPi and x10_isZero:
+            # -pi donated to next rz, which vanishes in conjugation of rx
+            circ.rz(euler_q0[0][2] + math.pi)
         else:
             circ.rz(euler_q0[0][2] + euler_q0[1][0], 0)
         circ.h(0)
@@ -1143,14 +1148,14 @@ class TwoQubitBasisDecomposer:
 
         qc.cx(1, 0)
 
-        if x12_isPi and x10_isPi:
+        if (x12_isPi and x10_isPi) or (x12_isNegPi and x10_isZero):
             qc.rz(-euler_q0[1][1], 0)
         else:
             qc.rz(euler_q0[1][1], 0)
         if x12_isHalfPi:
             qc.sx(0)
             qc.global_phase -= math.pi / 4
-        elif x12_isNonZero and not (x12_isPi and x10_isPi):
+        elif x12_isNonZero and not (x12_isPi and x10_isPi) and not (x12_isNegPi and x10_isZero):
             # this is non-optimal but doesn't seem to occur currently
             if self.pulse_optimize is None:
                 qc.compose(self._decomposer1q(Operator(RXGate(x12)).data), [0], inplace=True)
