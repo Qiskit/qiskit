@@ -1105,6 +1105,7 @@ class TwoQubitBasisDecomposer:
             print(f"x12_isHalfPi = {x12_isHalfPi}")
             print(f"x12_isOddMult = {x12_isOddMult}")
             print(f"x12_phase = {x12_phase}")
+            print(f"x02_add = {x02_add}")
 
         # decompose source unitaries to zxz
         zxz_decomposer = OneQubitEulerDecomposer("ZXZ")
@@ -1125,7 +1126,6 @@ class TwoQubitBasisDecomposer:
         qc.global_phase += global_phase
 
         x12 = euler_q0[1][2] + euler_q0[2][0]
-        x12_div, x12_mod = divmod(x12, math.pi)
         x12_isNonZero = not math.isclose(x12, 0, abs_tol=atol)
         x12_isOddMult = None
         x12_isPiMult = math.isclose(math.sin(x12), 0, abs_tol=atol)
@@ -1145,22 +1145,23 @@ class TwoQubitBasisDecomposer:
         circ = QuantumCircuit(1)
         circ.rz(euler_q0[0][0], 0)
         circ.rx(euler_q0[0][1], 0)
-
         if x12_isNonZero and x12_isPiMult:
             circ.rz(euler_q0[0][2] - x02_add, 0)
         else:
             circ.rz(euler_q0[0][2] + euler_q0[1][0], 0)
         circ.h(0)
-        qceuler = self._decomposer1q(Operator(circ).data)
-        qc.compose(qceuler, [0], inplace=True)
+        # qceuler = self._decomposer1q(Operator(circ).data)
+        # qc.compose(qceuler, [0], inplace=True)
+        qc.compose(circ, [0], inplace=True)
 
         circ = QuantumCircuit(1)
         circ.rx(euler_q1[0][0], 0)
         circ.rz(euler_q1[0][1], 0)
         circ.rx(euler_q1[0][2] + euler_q1[1][0], 0)
         circ.h(0)
-        qceuler = self._decomposer1q(Operator(circ).data)
-        qc.compose(qceuler, [1], inplace=True)
+        # qceuler = self._decomposer1q(Operator(circ).data)
+        # qc.compose(qceuler, [1], inplace=True)
+        qc.compose(circ, [1], inplace=True)
 
         qc.cx(1, 0)
 
@@ -1228,16 +1229,19 @@ class TwoQubitBasisDecomposer:
         circ.rz(euler_q0[2][2] + euler_q0[3][0], 0)
         circ.rx(euler_q0[3][1], 0)
         circ.rz(euler_q0[3][2], 0)
-        qceuler = self._decomposer1q(Operator(circ).data)
-        qc.compose(qceuler, [0], inplace=True)
+        # qceuler = self._decomposer1q(Operator(circ).data)
+        # qc.compose(qceuler, [0], inplace=True)
+        qc.compose(circ, [0], inplace=True)
 
         circ = QuantumCircuit(1)
         circ.h(0)
         circ.rx(euler_q1[2][2] + euler_q1[3][0], 0)
         circ.rz(euler_q1[3][1], 0)
         circ.rx(euler_q1[3][2], 0)
-        qceuler = self._decomposer1q(Operator(circ).data)
-        qc.compose(qceuler, [1], inplace=True)
+        # qceuler = self._decomposer1q(Operator(circ).data)
+        # qc.compose(qceuler, [1], inplace=True)
+        qc.compose(circ, [1], inplace=True)        
+        print(qc)
         return qc
 
     def num_basis_gates(self, unitary):
