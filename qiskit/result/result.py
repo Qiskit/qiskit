@@ -316,7 +316,7 @@ class Result:
             if label == None:
                 raise QiskitError(f'No statevector for experiment "{repr(experiment)}"') from ex
             else:
-                raise QiskitError(f'No statevector "{label}" for experiment "{repr(experiment)}"')
+                raise QiskitError(f'No statevector "{label}" for experiment "{repr(experiment)}"') from ex
 
     def get_unitary(self, experiment=None, decimals=None):
         """Get the final unitary of an experiment.
