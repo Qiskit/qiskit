@@ -1199,18 +1199,16 @@ class TestPulseOptimalDecompose(CheckDecompositions):
     def _remove_pre_post_1q(self, circ):
         """remove single qubit operations before and after all multi-qubit ops"""
         dag = circuit_to_dag(circ)
-        delList = []
+        del_list = []
         for node in dag.topological_op_nodes():
             if len(node.qargs) > 1:
                 break
-            else:
-                delList.append(node)
+            del_list.append(node)
         for node in reversed(list(dag.topological_op_nodes())):
             if len(node.qargs) > 1:
                 break
-            else:
-                delList.append(node)
-        for node in delList:
+            del_list.append(node)
+        for node in del_list:
             dag.remove_op_node(node)
         return dag_to_circuit(dag)
 
