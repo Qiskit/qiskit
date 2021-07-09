@@ -513,8 +513,9 @@ class TemplateSubstitution:
                             param_symbols.add(sym.Eq(parse_expr(cpn)))
                         else:
                             param_symbols.add(sym.symbols(str(cpn.split('$')[1].split('\\')[-1])))
+                else:
+                    equations.append(sym.Eq(parse_expr(str(params)), circuit_params[t_idx]))
 
-                equations.append(sym.Eq(parse_expr(str(params)), param_symbols))
                 for param in params.parameters:
                     symbols.add(param)
 
