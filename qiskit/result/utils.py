@@ -26,8 +26,9 @@ def marginal_counts(result, indices=None, inplace=False, format_marginal=False):
     Args:
         result (dict or Result): result to be marginalized
             (a Result object or a dict(str, int) of counts).
-        indices (list(int) or None): The bit positions of interest
-            to marginalize over. If ``None`` (default), do not marginalize at all.
+        indices (set(int) or None): The bit positions of interest. Bit indices not
+            spcified will be ignored. If ``None`` (default), do not marginalize at all,
+            this is equivalent to providing a set of all bit positions.
         inplace (bool): Default: False. Operates on the original Result
             argument if True, leading to loss of original Job Result.
             It has no effect if ``result`` is a dict.
