@@ -79,6 +79,7 @@ def plot_histogram(
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
+        filename (str): file path to save image to.
 
     Returns:
         matplotlib.Figure:
