@@ -63,9 +63,6 @@ class LinearAmplitudeFunction(QuantumCircuit):
     :math:`[a, b]` and otherwise 0. The breakpoints :math:`p_i` can be specified by the
     ``breakpoints`` argument.
 
-    Examples:
-
-
     References:
 
         [1]: Woerner, S., & Egger, D. J. (2018).
@@ -148,12 +145,11 @@ class LinearAmplitudeFunction(QuantumCircuit):
 
         # use PWLPauliRotations to implement the function
         pwl_pauli_rotation = PiecewiseLinearPauliRotations(
-            num_state_qubits, mapped_breakpoints, 2 * slope_angles, 2 * offset_angles
+            num_state_qubits, mapped_breakpoints, 2 * slope_angles, 2 * offset_angles, name=name
         )
 
         super().__init__(*pwl_pauli_rotation.qregs, name=name)
-        self._data = pwl_pauli_rotation.data.copy()
-        # self.compose(pwl_pauli_rotation, inplace=True)
+        self.append(pwl_pauli_rotation.to_gate(), self.qubits)
 
     def post_processing(self, scaled_value: float) -> float:
         r"""Map the function value of the approximated :math:`\hat{f}` to :math:`f`.
@@ -192,9 +188,9 @@ def _check_sorted_and_in_range(breakpoints, domain):
 def _check_sizes_match(slope, offset, breakpoints):
     size = len(slope)
     if len(offset) != size:
-        raise ValueError("Size mismatch of slope ({}) and offset ({}).".format(size, len(offset)))
+        raise ValueError(f"Size mismatch of slope ({size}) and offset ({len(offset)}).")
     if breakpoints is not None:
         if len(breakpoints) != size:
             raise ValueError(
-                "Size mismatch of slope ({}) and breakpoints ({}).".format(size, len(breakpoints))
+                f"Size mismatch of slope ({size}) and breakpoints ({len(breakpoints)})."
             )

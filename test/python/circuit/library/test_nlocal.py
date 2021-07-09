@@ -51,6 +51,24 @@ class TestNLocal(QiskitTestCase):
         with self.assertRaises(ValueError):
             _ = NLocal(reps=-1)
 
+    def test_if_reps_is_str(self):
+        """Test to check if proper error is raised for str value of reps"""
+        with self.assertRaises(TypeError):
+            _ = NLocal(reps="3")
+
+    def test_if_reps_is_float(self):
+        """Test to check if proper error is raised for float value of reps"""
+        with self.assertRaises(TypeError):
+            _ = NLocal(reps=5.6)
+
+    def test_if_reps_is_npint32(self):
+        """Equality test for reps with int value and np.int32 value"""
+        self.assertEqual(NLocal(reps=3), NLocal(reps=np.int32(3)))
+
+    def test_if_reps_is_npint64(self):
+        """Equality test for reps with int value and np.int64 value"""
+        self.assertEqual(NLocal(reps=3), NLocal(reps=np.int64(3)))
+
     def test_reps_setter_when_negative(self):
         """Test to check if setter raises error for reps < 0"""
         nlocal = NLocal(reps=1)
@@ -165,7 +183,7 @@ class TestNLocal(QiskitTestCase):
         for other in others:
             nlocal = NLocal(num_qubits, entanglement_blocks=first_circuit, reps=1)
             nlocal += other
-            with self.subTest(msg="type: {}".format(type(other))):
+            with self.subTest(msg=f"type: {type(other)}"):
                 self.assertCircuitEqual(nlocal, reference)
 
     def test_parameter_getter_from_automatic_repetition(self):
@@ -192,7 +210,7 @@ class TestNLocal(QiskitTestCase):
         nlocal = NLocal(2, entanglement_blocks=circuit, reps=reps)
         nlocal.assign_parameters(params, inplace=True)
 
-        param_set = set(p for p in params if isinstance(p, ParameterExpression))
+        param_set = {p for p in params if isinstance(p, ParameterExpression)}
         with self.subTest(msg="Test the parameters of the non-transpiled circuit"):
             # check the parameters of the final circuit
             self.assertEqual(nlocal.parameters, param_set)
@@ -215,7 +233,7 @@ class TestNLocal(QiskitTestCase):
         nlocal = NLocal(1, entanglement_blocks=circuit, reps=1)
         nlocal.assign_parameters(params, inplace=True)
 
-        param_set = set(p for p in params if isinstance(p, ParameterExpression))
+        param_set = {p for p in params if isinstance(p, ParameterExpression)}
         with self.subTest(msg="Test the parameters of the non-transpiled circuit"):
             # check the parameters of the final circuit
             self.assertEqual(nlocal.parameters, param_set)
@@ -266,9 +284,10 @@ class TestNLocal(QiskitTestCase):
                     reps=3,
                     skip_unentangled_qubits=True,
                 )
+                decomposed = nlocal.decompose()
 
-                skipped_set = set(nlocal.qubits[i] for i in skipped)
-                dag = circuit_to_dag(nlocal)
+                skipped_set = {decomposed.qubits[i] for i in skipped}
+                dag = circuit_to_dag(decomposed)
                 idle = set(dag.idle_wires())
                 self.assertEqual(skipped_set, idle)
 
@@ -397,6 +416,31 @@ class TestNLocal(QiskitTestCase):
 
         self.assertCircuitEqual(nlocal, circuit)
 
+    def test_initial_state_as_circuit_object(self):
+        """Test setting `initial_state` to `QuantumCircuit` object"""
+        ref = QuantumCircuit(2)
+        ref.cx(0, 1)
+        ref.x(0)
+        ref.h(1)
+        ref.x(1)
+        ref.cx(0, 1)
+        ref.x(0)
+        ref.x(1)
+
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.h(1)
+
+        expected = NLocal(
+            num_qubits=2,
+            rotation_blocks=XGate(),
+            entanglement_blocks=CXGate(),
+            initial_state=qc,
+            reps=1,
+        )
+
+        self.assertCircuitEqual(ref, expected)
+
 
 @ddt
 class TestTwoLocal(QiskitTestCase):
@@ -475,7 +519,7 @@ class TestTwoLocal(QiskitTestCase):
         """Test different possibilities to set parameters."""
         two = TwoLocal(3, rotation_blocks="rx", entanglement="cz", reps=2)
         params = [0, 1, 2, Parameter("x"), Parameter("y"), Parameter("z"), 6, 7, 0]
-        params_set = set(param for param in params if isinstance(param, Parameter))
+        params_set = {param for param in params if isinstance(param, Parameter)}
 
         with self.subTest(msg="dict assign and copy"):
             ordered = two.ordered_parameters
@@ -532,7 +576,7 @@ class TestTwoLocal(QiskitTestCase):
         for i in range(3):
             reference.rz(next(param_iter), i)
 
-        self.assertCircuitEqual(circuit, reference)
+        self.assertCircuitEqual(circuit.decompose(), reference)
 
     def test_composing_two(self):
         """Test adding two two-local circuits."""
@@ -713,6 +757,31 @@ class TestTwoLocal(QiskitTestCase):
         ref.ry(parameters[3], 1)
 
         self.assertCircuitEqual(two.assign_parameters(parameters), ref)
+
+    def test_circuit_with_numpy_integers(self):
+        """Test if TwoLocal can be made from numpy integers"""
+        num_qubits = 6
+        reps = 3
+        expected_np32 = [
+            (i, j)
+            for i in np.arange(num_qubits, dtype=np.int32)
+            for j in np.arange(num_qubits, dtype=np.int32)
+            if i < j
+        ]
+        expected_np64 = [
+            (i, j)
+            for i in np.arange(num_qubits, dtype=np.int64)
+            for j in np.arange(num_qubits, dtype=np.int64)
+            if i < j
+        ]
+
+        two_np32 = TwoLocal(num_qubits, "ry", "cx", entanglement=expected_np32, reps=reps)
+        two_np64 = TwoLocal(num_qubits, "ry", "cx", entanglement=expected_np64, reps=reps)
+
+        expected_cx = reps * num_qubits * (num_qubits - 1) / 2
+
+        self.assertEqual(two_np32.decompose().count_ops()["cx"], expected_cx)
+        self.assertEqual(two_np64.decompose().count_ops()["cx"], expected_cx)
 
 
 if __name__ == "__main__":

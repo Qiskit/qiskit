@@ -212,7 +212,8 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         target = ((X + Z) / np.sqrt(2)).to_instruction()
         qc = QuantumCircuit(1)
         qc.u(np.pi / 2, 0, np.pi, 0)
-        self.assertEqual(transpile(target.definition, basis_gates=["u"]), qc)
+        qc_out = transpile(target.definition, basis_gates=["u"])
+        self.assertEqual(qc_out, qc)
 
     def test_to_pauli_op(self):
         """test to_pauli_op method"""

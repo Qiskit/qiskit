@@ -15,13 +15,13 @@
 See https://arxiv.org/abs/1304.3061
 """
 
-from typing import Optional, List, Callable, Union, Dict
+from typing import Optional, List, Callable, Union, Dict, Tuple
 import logging
+import warnings
 from time import time
 import numpy as np
 
-from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Parameter
+from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
@@ -38,7 +38,8 @@ from qiskit.opflow import (
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
-from qiskit.utils.quantum_instance import QuantumInstance
+from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils import QuantumInstance, algorithm_globals
 from ..optimizers import Optimizer, SLSQP
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
@@ -83,14 +84,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     will default it to :math:`-2\pi`; similarly, if the ansatz returns ``None``
     as the upper bound, the default value will be :math:`2\pi`.
 
-    .. note::
-
-        The VQE stores the parameters of ``ansatz`` sorted by name to map the values
-        provided by the optimizer to the circuit. This is done to ensure reproducible results,
-        for example such that running the optimization twice with same random seeds yields the
-        same result. Also, the ``optimal_point`` of the result object can be used as initial
-        point of another VQE run by passing it as ``initial_point`` to the initializer.
-
     """
 
     def __init__(
@@ -104,6 +97,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
         quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        sort_parameters_by_name: Optional[bool] = None,
     ) -> None:
         """
 
@@ -139,79 +133,132 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 These are: the evaluation count, the optimizer parameters for the
                 ansatz, the evaluated mean and the evaluated standard deviation.`
             quantum_instance: Quantum Instance or Backend
+            sort_parameters_by_name: Deprecated. If True, the initial point is bound to the ansatz
+                parameters strictly sorted by name instead of the default circuit order. That means
+                that the ansatz parameters are e.g. sorted as ``x[0] x[1] x[10] x[2] ...`` instead
+                of ``x[0] x[1] x[2] ... x[10]``. Set this to ``True`` to obtain the behavior prior
+                to Qiskit Terra 0.18.0.
         """
         validate_min("max_evals_grouped", max_evals_grouped, 1)
+
+        if sort_parameters_by_name is not None:
+            warnings.warn(
+                "The ``sort_parameters_by_name`` attribute is deprecated and will be "
+                "removed no sooner than 3 months after the release date of Qiskit Terra "
+                "0.18.0.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if ansatz is None:
             ansatz = RealAmplitudes()
 
         if optimizer is None:
             optimizer = SLSQP()
 
-        # set the initial point to the preferred parameters of the ansatz
-        if initial_point is None and hasattr(ansatz, "preferred_init_points"):
-            initial_point = ansatz.preferred_init_points
+        if quantum_instance is not None:
+            if not isinstance(quantum_instance, QuantumInstance):
+                quantum_instance = QuantumInstance(quantum_instance)
+
+        super().__init__()
 
         self._max_evals_grouped = max_evals_grouped
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
         self._expectation = expectation
-        self._user_valid_expectation = self._expectation is not None
         self._include_custom = include_custom
-        self._expect_op = None
 
-        super().__init__(
-            ansatz=ansatz,
-            optimizer=optimizer,
-            cost_fn=self._energy_evaluation,
-            gradient=gradient,
-            initial_point=initial_point,
-            quantum_instance=quantum_instance,
-        )
-        self._ret = VQEResult()
+        # set ansatz -- still supporting pre 0.18.0 sorting
+        self._sort_parameters_by_name = sort_parameters_by_name
+        self._ansatz_params = None
+        self._ansatz = None
+        self.ansatz = ansatz
+
+        self._optimizer = optimizer
+        self._initial_point = initial_point
+        self._gradient = gradient
+        self._quantum_instance = None
+
+        if quantum_instance is not None:
+            self.quantum_instance = quantum_instance
+
         self._eval_time = None
+        self._eval_count = 0
         self._optimizer.set_max_evals_grouped(max_evals_grouped)
         self._callback = callback
 
-        self._eval_count = 0
         logger.info(self.print_settings())
 
-    def _try_set_expectation_value_from_factory(self, operator: OperatorBase) -> None:
-        if operator is not None and self.quantum_instance is not None:
-            self._set_expectation(
-                ExpectationFactory.build(
-                    operator=operator,
-                    backend=self.quantum_instance,
-                    include_custom=self._include_custom,
-                )
-            )
+        # TODO remove this once the stateful methods are deleted
+        self._ret = None
 
-    def _set_expectation(self, exp: ExpectationBase) -> None:
-        self._expectation = exp
-        self._user_valid_expectation = False
-        self._expect_op = None
+    @property
+    def ansatz(self) -> Optional[QuantumCircuit]:
+        """Returns the ansatz."""
+        return self._ansatz
 
-    @VariationalAlgorithm.quantum_instance.setter
+    @ansatz.setter
+    def ansatz(self, ansatz: Optional[QuantumCircuit]):
+        """Sets the ansatz.
+
+        Args:
+            ansatz: The parameterized circuit used as an ansatz.
+
+        """
+        self._ansatz = ansatz
+        if ansatz is not None:
+            if self._sort_parameters_by_name:
+                self._ansatz_params = sorted(ansatz.parameters, key=lambda p: p.name)
+            else:
+                self._ansatz_params = list(ansatz.parameters)
+
+    @property
+    def gradient(self) -> Optional[Union[GradientBase, Callable]]:
+        """Returns the gradient."""
+        return self._gradient
+
+    @gradient.setter
+    def gradient(self, gradient: Optional[Union[GradientBase, Callable]]):
+        """Sets the gradient."""
+        self._gradient = gradient
+
+    @property
+    def quantum_instance(self) -> Optional[QuantumInstance]:
+        """Returns quantum instance."""
+        return self._quantum_instance
+
+    @quantum_instance.setter
     def quantum_instance(
         self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
     ) -> None:
         """set quantum_instance"""
-        super(VQE, self.__class__).quantum_instance.__set__(self, quantum_instance)
-
+        if not isinstance(quantum_instance, QuantumInstance):
+            quantum_instance = QuantumInstance(quantum_instance)
+        self._quantum_instance = quantum_instance
         self._circuit_sampler = CircuitSampler(
-            self._quantum_instance, param_qobj=is_aer_provider(self._quantum_instance.backend)
+            quantum_instance, param_qobj=is_aer_provider(quantum_instance.backend)
         )
 
     @property
-    def expectation(self) -> ExpectationBase:
+    def initial_point(self) -> Optional[np.ndarray]:
+        """Returns initial point"""
+        return self._initial_point
+
+    @initial_point.setter
+    def initial_point(self, initial_point: np.ndarray):
+        """Sets initial point"""
+        self._initial_point = initial_point
+
+    @property
+    def expectation(self) -> Optional[ExpectationBase]:
         """The expectation value algorithm used to construct the expectation measurement from
         the observable."""
         return self._expectation
 
     @expectation.setter
-    def expectation(self, exp: ExpectationBase) -> None:
-        self._set_expectation(exp)
-        self._user_valid_expectation = self._expectation is not None
+    def expectation(self, exp: Optional[ExpectationBase]) -> None:
+        self._expectation = exp
 
-    def _check_operator_varform(self, operator: OperatorBase):
+    def _check_operator_ansatz(self, operator: OperatorBase):
         """Check that the number of qubits of operator and ansatz match."""
         if operator is not None and self.ansatz is not None:
             if operator.num_qubits != self.ansatz.num_qubits:
@@ -226,25 +273,30 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                         "number of qubits using `num_qubits`."
                     ) from ex
 
-    @VariationalAlgorithm.optimizer.setter  # type: ignore
+    @property
+    def optimizer(self) -> Optional[Optimizer]:
+        """Returns optimizer"""
+        return self._optimizer
+
+    @optimizer.setter
     def optimizer(self, optimizer: Optimizer):
         """Sets optimizer"""
-        super(VQE, self.__class__).optimizer.__set__(self, optimizer)  # type: ignore
+        self._optimizer = optimizer
         if optimizer is not None:
             optimizer.set_max_evals_grouped(self._max_evals_grouped)
 
     @property
     def setting(self):
         """Prepare the setting of VQE as a string."""
-        ret = "Algorithm: {}\n".format(self.__class__.__name__)
+        ret = f"Algorithm: {self.__class__.__name__}\n"
         params = ""
         for key, value in self.__dict__.items():
             if key[0] == "_":
                 if "initial_point" in key and value is None:
                     params += "-- {}: {}\n".format(key[1:], "Random seed")
                 else:
-                    params += "-- {}: {}\n".format(key[1:], value)
-        ret += "{}".format(params)
+                    params += f"-- {key[1:]}: {value}\n"
+        ret += f"{params}"
         return ret
 
     def print_settings(self):
@@ -258,18 +310,14 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         ret += "==================== Setting of {} ============================\n".format(
             self.__class__.__name__
         )
-        ret += "{}".format(self.setting)
+        ret += f"{self.setting}"
         ret += "===============================================================\n"
-        if hasattr(self._ansatz, "setting"):
-            ret += "{}".format(self._ansatz.setting)
-        elif hasattr(self._ansatz, "print_settings"):
-            ret += "{}".format(self._ansatz.print_settings())
-        elif isinstance(self._ansatz, QuantumCircuit):
-            ret += "ansatz is a custom circuit"
+        if self.ansatz is not None:
+            ret += "{}".format(self.ansatz.draw(output="text"))
         else:
             ret += "ansatz has not been set"
         ret += "===============================================================\n"
-        ret += "{}".format(self._optimizer.setting)
+        ret += f"{self._optimizer.setting}"
         ret += "===============================================================\n"
         return ret
 
@@ -277,7 +325,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self,
         parameter: Union[List[float], List[Parameter], np.ndarray],
         operator: OperatorBase,
-    ) -> OperatorBase:
+        return_expectation: bool = False,
+    ) -> Union[OperatorBase, Tuple[OperatorBase, ExpectationBase]]:
         r"""
         Generate the ansatz circuit and expectation value measurement, and return their
         runnable composition.
@@ -285,40 +334,45 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         Args:
             parameter: Parameters for the ansatz circuit.
             operator: Qubit operator of the Observable
+            return_expectation: If True, return the ``ExpectationBase`` expectation converter used
+                in the construction of the expectation value. Useful e.g. to compute the standard
+                deviation of the expectation value.
 
         Returns:
             The Operator equalling the measurement of the ansatz :class:`StateFn` by the
-            Observable's expectation :class:`StateFn`.
+            Observable's expectation :class:`StateFn`, and, optionally, the expectation converter.
 
         Raises:
             AlgorithmError: If no operator has been provided.
+            AlgorithmError: If no expectation is passed and None could be inferred via the
+                ExpectationFactory.
         """
         if operator is None:
             raise AlgorithmError("The operator was never provided.")
 
-        operator = self._check_operator(operator)
+        self._check_operator_ansatz(operator)
 
-        if isinstance(self.ansatz, QuantumCircuit):
-            param_dict = dict(zip(self._ansatz_params, parameter))  # type: Dict
-            wave_function = self.ansatz.assign_parameters(param_dict)
-        else:
-            wave_function = self.ansatz.construct_circuit(parameter)
-
-        # Expectation was never created , try to create one
-        if self._expectation is None:
-            self._try_set_expectation_value_from_factory(operator)
-
-        # If setting the expectation failed, raise an Error:
-        if self._expectation is None:
-            raise AlgorithmError(
-                "No expectation set and could not automatically set one, please "
-                "try explicitly setting an expectation or specify a backend so it "
-                "can be chosen automatically."
+        # if expectation was never created, try to create one
+        if self.expectation is None:
+            expectation = ExpectationFactory.build(
+                operator=operator,
+                backend=self.quantum_instance,
+                include_custom=self._include_custom,
             )
+        else:
+            expectation = self.expectation
 
-        observable_meas = self.expectation.convert(StateFn(operator, is_measurement=True))
+        param_dict = dict(zip(self._ansatz_params, parameter))  # type: Dict
+        wave_function = self.ansatz.assign_parameters(param_dict)
+
+        observable_meas = expectation.convert(StateFn(operator, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
-        return observable_meas.compose(ansatz_circuit_op).reduce()
+        expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
+
+        if return_expectation:
+            return expect_op, expectation
+
+        return expect_op
 
     def construct_circuit(
         self,
@@ -354,36 +408,32 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def supports_aux_operators(cls) -> bool:
         return True
 
-    def _eval_aux_ops(self, aux_operators: List[OperatorBase], threshold: float = 1e-12) -> None:
+    def _eval_aux_ops(
+        self,
+        parameters: np.ndarray,
+        aux_operators: List[OperatorBase],
+        expectation: ExpectationBase,
+        threshold: float = 1e-12,
+    ) -> np.ndarray:
         # Create new CircuitSampler to avoid breaking existing one's caches.
         sampler = CircuitSampler(self.quantum_instance)
 
-        aux_op_meas = self.expectation.convert(StateFn(ListOp(aux_operators), is_measurement=True))
-        aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.get_optimal_circuit()))
+        aux_op_meas = expectation.convert(StateFn(ListOp(aux_operators), is_measurement=True))
+        aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.ansatz.bind_parameters(parameters)))
         values = np.real(sampler.convert(aux_op_expect).eval())
 
         # Discard values below threshold
         aux_op_results = values * (np.abs(values) > threshold)
         # Deal with the aux_op behavior where there can be Nones or Zero qubit Paulis in the list
         _aux_op_nones = [op is None for op in aux_operators]
-        self._ret.aux_operator_eigenvalues = [
+        aux_operator_eigenvalues = [
             None if is_none else [result]
             for (is_none, result) in zip(_aux_op_nones, aux_op_results)
         ]
         # As this has mixed types, since it can included None, it needs to explicitly pass object
         # data type to avoid numpy 1.19 warning message about implicit conversion being deprecated
-        self._ret.aux_operator_eigenvalues = np.array(
-            [self._ret.aux_operator_eigenvalues], dtype=object
-        )
-
-    def _check_operator(self, operator: OperatorBase) -> OperatorBase:
-        """set operator"""
-        self._expect_op = None
-        self._check_operator_varform(operator)
-        # Expectation was not passed by user, try to create one
-        if not self._user_valid_expectation:
-            self._try_set_expectation_value_from_factory(operator)
-        return operator
+        aux_operator_eigenvalues = np.array([aux_operator_eigenvalues], dtype=object)
+        return aux_operator_eigenvalues
 
     def compute_minimum_eigenvalue(
         self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
@@ -392,13 +442,19 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         if self.quantum_instance is None:
             raise AlgorithmError(
-                "A QuantumInstance or Backend " "must be supplied to run the quantum algorithm."
+                "A QuantumInstance or Backend must be supplied to run the quantum algorithm."
             )
+        self.quantum_instance.circuit_summary = True
 
-        if operator is None:
-            raise AlgorithmError("The operator was never provided.")
+        # this sets the size of the ansatz, so it must be called before the initial point
+        # validation
+        self._check_operator_ansatz(operator)
 
-        operator = self._check_operator(operator)
+        # set an expectation for this algorithm run (will be reset to None at the end)
+        initial_point = _validate_initial_point(self.initial_point, self.ansatz)
+
+        bounds = _validate_bounds(self.ansatz)
+
         # We need to handle the array entries being Optional i.e. having value None
         if aux_operators:
             zero_op = I.tensorpower(operator.num_qubits) * 0.0
@@ -414,103 +470,129 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             aux_operators = None
 
-        self._quantum_instance.circuit_summary = True
-
-        self._eval_count = 0
-
         # Convert the gradient operator into a callable function that is compatible with the
         # optimization routine.
-        if self._gradient:
-            if isinstance(self._gradient, GradientBase):
-                self._gradient = self._gradient.gradient_wrapper(
-                    ~StateFn(operator) @ StateFn(self._ansatz),
-                    bind_params=self._ansatz_params,
-                    backend=self._quantum_instance,
-                )
-        if not self._expect_op:
-            self._expect_op = self.construct_expectation(self._ansatz_params, operator)
-        vqresult = self.find_minimum(
-            initial_point=self.initial_point,
-            ansatz=self.ansatz,
-            cost_fn=self._energy_evaluation,
-            gradient_fn=self._gradient,
-            optimizer=self.optimizer,
+        if isinstance(self._gradient, GradientBase):
+            gradient = self._gradient.gradient_wrapper(
+                ~StateFn(operator) @ StateFn(self._ansatz),
+                bind_params=self._ansatz_params,
+                backend=self._quantum_instance,
+            )
+        else:
+            gradient = self._gradient
+
+        self._eval_count = 0
+        energy_evaluation, expectation = self.get_energy_evaluation(
+            operator, return_expectation=True
         )
 
-        self._ret = VQEResult()
-        self._ret.combine(vqresult)
+        start_time = time()
+        opt_params, opt_value, nfev = self.optimizer.optimize(
+            num_vars=len(initial_point),
+            objective_function=energy_evaluation,
+            gradient_function=gradient,
+            variable_bounds=bounds,
+            initial_point=initial_point,
+        )
+        eval_time = time() - start_time
 
-        if vqresult.optimizer_evals is not None and self._eval_count >= vqresult.optimizer_evals:
-            self._eval_count = vqresult.optimizer_evals
-        self._eval_time = vqresult.optimizer_time
+        result = VQEResult()
+        result.optimal_point = opt_params
+        result.optimal_parameters = dict(zip(self._ansatz_params, opt_params))
+        result.optimal_value = opt_value
+        result.cost_function_evals = nfev
+        result.optimizer_time = eval_time
+        result.eigenvalue = opt_value + 0j
+        result.eigenstate = self._get_eigenstate(result.optimal_parameters)
+
         logger.info(
             "Optimization complete in %s seconds.\nFound opt_params %s in %s evals",
-            self._eval_time,
-            vqresult.optimal_point,
+            eval_time,
+            result.optimal_point,
             self._eval_count,
         )
 
-        self._ret.eigenvalue = vqresult.optimal_value + 0j
-        self._ret.eigenstate = self.get_optimal_vector()
-        self._ret.eigenvalue = self.get_optimal_cost()
-        if aux_operators:
-            self._eval_aux_ops(aux_operators)
-            self._ret.aux_operator_eigenvalues = self._ret.aux_operator_eigenvalues[0]
+        # TODO delete as soon as get_optimal_vector etc are removed
+        self._ret = result
 
-        self._ret.cost_function_evals = self._eval_count
+        if aux_operators is not None:
+            aux_values = self._eval_aux_ops(opt_params, aux_operators, expectation=expectation)
+            result.aux_operator_eigenvalues = aux_values[0]
 
-        return self._ret
+        return result
 
-    def _energy_evaluation(
-        self, parameters: Union[List[float], np.ndarray]
-    ) -> Union[float, List[float]]:
-        """Evaluate energy at given parameters for the ansatz.
+    def get_energy_evaluation(
+        self,
+        operator: OperatorBase,
+        return_expectation: bool = False,
+    ) -> Callable[[np.ndarray], Union[float, List[float]]]:
+        """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 
         This is the objective function to be passed to the optimizer that is used for evaluation.
 
         Args:
-            parameters: The parameters for the ansatz.
+            operator: The operator whose energy to evaluate.
+            return_expectation: If True, return the ``ExpectationBase`` expectation converter used
+                in the construction of the expectation value. Useful e.g. to evaluate other
+                operators with the same expectation value converter.
+
 
         Returns:
-            Energy of the hamiltonian of each parameter.
-
+            Energy of the hamiltonian of each parameter, and, optionally, the expectation
+            converter.
 
         Raises:
-            RuntimeError: If the ansatz has no parameters.
+            RuntimeError: If the circuit is not parameterized (i.e. has 0 free parameters).
+
         """
         num_parameters = self.ansatz.num_parameters
-        if self._ansatz.num_parameters == 0:
-            raise RuntimeError("The ansatz cannot have 0 parameters.")
+        if num_parameters == 0:
+            raise RuntimeError("The ansatz must be parameterized, but has 0 free parameters.")
 
-        parameter_sets = np.reshape(parameters, (-1, num_parameters))
-        # Create dict associating each parameter with the lists of parameterization values for it
-        param_bindings = dict(
-            zip(self._ansatz_params, parameter_sets.transpose().tolist())
-        )  # type: Dict
-
-        start_time = time()
-        sampled_expect_op = self._circuit_sampler.convert(self._expect_op, params=param_bindings)
-        means = np.real(sampled_expect_op.eval())
-
-        if self._callback is not None:
-            variance = np.real(self._expectation.compute_variance(sampled_expect_op))
-            estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)
-            for i, param_set in enumerate(parameter_sets):
-                self._eval_count += 1
-                self._callback(self._eval_count, param_set, means[i], estimator_error[i])
-        else:
-            self._eval_count += len(means)
-
-        end_time = time()
-        logger.info(
-            "Energy evaluation returned %s - %.5f (ms), eval count: %s",
-            means,
-            (end_time - start_time) * 1000,
-            self._eval_count,
+        expect_op, expectation = self.construct_expectation(
+            self._ansatz_params, operator, return_expectation=True
         )
 
-        return means if len(means) > 1 else means[0]
+        def energy_evaluation(parameters):
+            parameter_sets = np.reshape(parameters, (-1, num_parameters))
+            # Create dict associating each parameter with the lists of parameterization values for it
+            param_bindings = dict(zip(self._ansatz_params, parameter_sets.transpose().tolist()))
 
+            start_time = time()
+            sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
+            means = np.real(sampled_expect_op.eval())
+
+            if self._callback is not None:
+                variance = np.real(expectation.compute_variance(sampled_expect_op))
+                estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)
+                for i, param_set in enumerate(parameter_sets):
+                    self._eval_count += 1
+                    self._callback(self._eval_count, param_set, means[i], estimator_error[i])
+            else:
+                self._eval_count += len(means)
+
+            end_time = time()
+            logger.info(
+                "Energy evaluation returned %s - %.5f (ms), eval count: %s",
+                means,
+                (end_time - start_time) * 1000,
+                self._eval_count,
+            )
+
+            return means if len(means) > 1 else means[0]
+
+        if return_expectation:
+            return energy_evaluation, expectation
+
+        return energy_evaluation
+
+    @deprecate_function(
+        """
+The VQE.get_optimal_cost method is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate.
+This information is part of the returned result object and can be
+queried as VQEResult.eigenvalue."""
+    )
     def get_optimal_cost(self) -> float:
         """Get the minimal cost or energy found by the VQE."""
         if self._ret.optimal_point is None:
@@ -519,6 +601,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             )
         return self._ret.optimal_value
 
+    @deprecate_function(
+        """
+The VQE.get_optimal_circuit method is deprecated as of Qiskit Terra
+0.18.0 and will be removed no sooner than 3 months after the releasedate.
+This information is part of the returned result object and can be
+queried as VQEResult.ansatz.bind_parameters(VQEResult.optimal_point)."""
+    )
     def get_optimal_circuit(self) -> QuantumCircuit:
         """Get the circuit with the optimal parameters."""
         if self._ret.optimal_point is None:
@@ -528,34 +617,42 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             )
         return self.ansatz.assign_parameters(self._ret.optimal_parameters)
 
+    @deprecate_function(
+        """
+The VQE.get_optimal_vector method is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate.
+This information is part of the returned result object and can be
+queried as VQEResult.eigenvector."""
+    )
     def get_optimal_vector(self) -> Union[List[float], Dict[str, int]]:
         """Get the simulation outcome of the optimal circuit."""
-        from qiskit.utils.run_circuits import find_regs_by_name
-
-        if self._ret.optimal_point is None:
+        if self._ret.optimal_parameters is None:
             raise AlgorithmError(
-                "Cannot find optimal vector before running the " "algorithm to find optimal params."
+                "Cannot find optimal circuit before running the "
+                "algorithm to find optimal vector."
             )
-        qc = self.get_optimal_circuit()
-        min_vector = {}
-        if self._quantum_instance.is_statevector:
-            ret = self._quantum_instance.execute(qc)
-            min_vector = ret.get_statevector(qc)
+        return self._get_eigenstate(self._ret.optimal_parameters)
+
+    def _get_eigenstate(self, optimal_parameters) -> Union[List[float], Dict[str, int]]:
+        """Get the simulation outcome of the ansatz, provided with parameters."""
+        optimal_circuit = self.ansatz.bind_parameters(optimal_parameters)
+        state_fn = self._circuit_sampler.convert(StateFn(optimal_circuit)).eval()
+        if self.quantum_instance.is_statevector:
+            state = state_fn.primitive.data  # VectorStateFn -> Statevector -> np.array
         else:
-            c = ClassicalRegister(qc.width(), name="c")
-            q = find_regs_by_name(qc, "q")
-            qc.add_register(c)
-            qc.barrier(q)
-            qc.measure(q, c)
-            ret = self._quantum_instance.execute(qc)
-            counts = ret.get_counts(qc)
-            # normalize, just as done in CircuitSampler.sample_circuits
-            shots = self._quantum_instance._run_config.shots
-            min_vector = {b: (v / shots) ** 0.5 for (b, v) in counts.items()}
-        return min_vector
+            state = state_fn.to_dict_fn().primitive  # SparseVectorStateFn -> DictStateFn -> dict
+
+        return state
 
     @property
-    def optimal_params(self) -> List[float]:
+    @deprecate_function(
+        """
+The VQE.optimal_params property is deprecated as of Qiskit Terra 0.18.0
+and will be removed no sooner than 3 months after the releasedate.
+This information is part of the returned result object and can be
+queried as VQEResult.optimal_point."""
+    )
+    def optimal_params(self) -> np.ndarray:
         """The optimal parameters for the ansatz."""
         if self._ret.optimal_point is None:
             raise AlgorithmError("Cannot find optimal params before running the algorithm.")
@@ -578,3 +675,60 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
     def cost_function_evals(self, value: int) -> None:
         """Sets number of cost function evaluations"""
         self._cost_function_evals = value
+
+    @property
+    def eigenstate(self) -> Optional[np.ndarray]:
+        """return eigen state"""
+        return self._eigenstate
+
+    @eigenstate.setter
+    def eigenstate(self, value: np.ndarray) -> None:
+        """set eigen state"""
+        self._eigenstate = value
+
+
+def _validate_initial_point(point, ansatz):
+    expected_size = ansatz.num_parameters
+
+    # try getting the initial point from the ansatz
+    if point is None and hasattr(ansatz, "preferred_init_points"):
+        point = ansatz.preferred_init_points
+    # if the point is None choose a random initial point
+
+    if point is None:
+        # get bounds if ansatz has them set, otherwise use [-2pi, 2pi] for each parameter
+        bounds = getattr(ansatz, "parameter_bounds", None)
+        if bounds is None:
+            bounds = [(-2 * np.pi, 2 * np.pi)] * expected_size
+
+        # replace all Nones by [-2pi, 2pi]
+        lower_bounds = []
+        upper_bounds = []
+        for lower, upper in bounds:
+            lower_bounds.append(lower if lower is not None else -2 * np.pi)
+            upper_bounds.append(upper if upper is not None else 2 * np.pi)
+
+        # sample from within bounds
+        point = algorithm_globals.random.uniform(lower_bounds, upper_bounds)
+
+    elif len(point) != expected_size:
+        raise ValueError(
+            f"The dimension of the initial point ({len(point)}) does not match the "
+            f"number of parameters in the circuit ({expected_size})."
+        )
+
+    return point
+
+
+def _validate_bounds(ansatz):
+    if hasattr(ansatz, "parameter_bounds") and ansatz.parameter_bounds is not None:
+        bounds = ansatz.parameter_bounds
+        if len(bounds) != ansatz.num_parameters:
+            raise ValueError(
+                f"The number of bounds ({len(bounds)}) does not match the number of "
+                f"parameters in the circuit ({ansatz.num_parameters})."
+            )
+    else:
+        bounds = [(None, None)] * ansatz.num_parameters
+
+    return bounds
