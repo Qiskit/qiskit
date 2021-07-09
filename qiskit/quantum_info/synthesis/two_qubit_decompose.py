@@ -1084,6 +1084,19 @@ class TwoQubitBasisDecomposer:
         euler_q1 = np.empty((num_1q_uni // 2, 3), dtype=float)
         global_phase = 0.0
 
+        def get_basic_decomp(euler_q0, euler_q1):
+            qc2 = QuantumCircuit(2)
+            for i in range(4):
+                qc2.rz(euler_q0[i, 0], 0)
+                qc2.rx(euler_q0[i, 1], 0)
+                qc2.rz(euler_q0[i, 2], 0)
+                qc2.rx(euler_q1[i, 0], 1)
+                qc2.rz(euler_q1[i, 1], 1)
+                qc2.rx(euler_q1[i, 2], 1)
+                if i < 3:
+                    qc2.cx(0, 1)
+            return qc2
+
         # decompose source unitaries to zxz
         zxz_decomposer = OneQubitEulerDecomposer("ZXZ")
         for iqubit, decomp in enumerate(decomposition[0::2]):
@@ -1142,6 +1155,9 @@ class TwoQubitBasisDecomposer:
             if self.pulse_optimize is None:
                 qc.compose(self._decomposer1q(Operator(RXGate(x12)).data), [0], inplace=True)
             else:
+                print(euler_q0)
+                print(euler_q1)
+                print(get_basic_decomp(euler_q0, euler_q1))
                 raise QiskitError("possible non-pulse-optimal decomposition encountered")
         if math.isclose(euler_q1[1][1], math.pi / 2):
             qc.sx(1)
