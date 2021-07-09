@@ -1130,7 +1130,7 @@ class TwoQubitBasisDecomposer:
         x12_isOddMult = None
         x12_isPiMult = math.isclose(math.sin(x12), 0, abs_tol=atol)
         if x12_isPiMult:
-            x12_isOddMult = bool(abs(math.cos(x12)))
+            x12_isOddMult = math.isclose(math.cos(x12), -1, abs_tol=atol)
             x12_phase = math.pi * math.cos(x12)
         x02_add = x12 - euler_q0[1][0]
         x12_isHalfPi = math.isclose(x12, math.pi / 2, abs_tol=atol)
