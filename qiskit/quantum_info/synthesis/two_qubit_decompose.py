@@ -1171,6 +1171,7 @@ class TwoQubitBasisDecomposer:
                 qc.rz(-euler_q0[1][1], 0)
             else:
                 qc.rz(euler_q0[1][1], 0)
+                qc.global_phase += math.pi
         if x12_isHalfPi:
             qc.sx(0)
             qc.global_phase -= math.pi / 4
