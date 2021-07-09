@@ -486,7 +486,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertLessEqual(num_ops["sx"], 14)
 
     def test_qv_natural(self):
-        """check that quantum volume circuit compiles for natural direction and is shorter"""
+        """check that quantum volume circuit compiles for natural direction"""
         qv64 = QuantumVolume(5, seed=15)
 
         def construct_passmanager(basis_gates, coupling_map, synthesis_fidelity, pulse_optimize):

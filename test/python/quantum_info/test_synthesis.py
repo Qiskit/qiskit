@@ -1180,10 +1180,6 @@ class TestPulseOptimalDecompose(CheckDecompositions):
         unitary = random_unitary(4, seed=seed)
         decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX", pulse_optimize=True)
         circ = decomposer(unitary)
-        np.set_printoptions(linewidth=200, precision=3, suppress=True)
-        print(circ)
-        print(unitary)
-        print(Operator(circ).data)
         self.assertEqual(Operator(unitary), Operator(circ))
         self.assertEqual(self._remove_pre_post_1q(circ).count_ops().get("sx"), 2)
 

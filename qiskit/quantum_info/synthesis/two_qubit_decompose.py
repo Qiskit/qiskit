@@ -1085,28 +1085,6 @@ class TwoQubitBasisDecomposer:
         global_phase = 0.0
         atol = 1e-10  # absolute tolerance for floats
 
-        def get_basic_decomp():
-            qc2 = QuantumCircuit(2, global_phase=qc.global_phase + global_phase)
-            for i in range(4):
-                qc2.rz(euler_q0[i, 0], 0)
-                qc2.rx(euler_q0[i, 1], 0)
-                qc2.rz(euler_q0[i, 2], 0)
-                qc2.rx(euler_q1[i, 0], 1)
-                qc2.rz(euler_q1[i, 1], 1)
-                qc2.rx(euler_q1[i, 2], 1)
-                if i < 3:
-                    qc2.cx(0, 1)
-            return qc2
-
-        def print_logic_flags():
-            print(f"x12 = {x12}")
-            print(f"x12_isNonZero = {x12_isNonZero}")
-            print(f"x12_isPiMult = {x12_isPiMult}")
-            print(f"x12_isHalfPi = {x12_isHalfPi}")
-            print(f"x12_isOddMult = {x12_isOddMult}")
-            print(f"x12_phase = {x12_phase}")
-            print(f"x02_add = {x02_add}")
-
         # decompose source unitaries to zxz
         zxz_decomposer = OneQubitEulerDecomposer("ZXZ")
         for iqubit, decomp in enumerate(decomposition[0::2]):
@@ -1134,12 +1112,6 @@ class TwoQubitBasisDecomposer:
             x12_phase = math.pi * math.cos(x12)
         x02_add = x12 - euler_q0[1][0]
         x12_isHalfPi = math.isclose(x12, math.pi / 2, abs_tol=atol)
-        print_logic_flags()
-        basic_circ = get_basic_decomp()
-        np.set_printoptions(linewidth=200, precision=3, suppress=True)
-        print(Operator(basic_circ).data)
-        print(target_decomposed.unitary_matrix)
-        print(basic_circ)
 
         # TODO: make this more effecient to avoid double decomposition
         circ = QuantumCircuit(1)
@@ -1179,10 +1151,6 @@ class TwoQubitBasisDecomposer:
             if self.pulse_optimize is None:
                 qc.compose(self._decomposer1q(Operator(RXGate(x12)).data), [0], inplace=True)
             else:
-                print_logic_flags()
-                print(euler_q0)
-                print(euler_q1)
-                print(get_basic_decomp())
                 raise QiskitError("possible non-pulse-optimal decomposition encountered")
         if math.isclose(euler_q1[1][1], math.pi / 2, abs_tol=atol):
             qc.sx(1)
@@ -1194,10 +1162,6 @@ class TwoQubitBasisDecomposer:
                     self._decomposer1q(Operator(RXGate(euler_q1[1][1])).data), [1], inplace=True
                 )
             else:
-                print_logic_flags()
-                print(euler_q0)
-                print(euler_q1)
-                print(get_basic_decomp())
                 raise QiskitError("possible non-pulse-optimal decomposition encountered")
         qc.rz(euler_q1[1][2] + euler_q1[2][0], 1)
 
@@ -1214,10 +1178,6 @@ class TwoQubitBasisDecomposer:
                     self._decomposer1q(Operator(RXGate(euler_q1[2][1])).data), [1], inplace=True
                 )
             else:
-                print_logic_flags()
-                print(euler_q0)
-                print(euler_q1)
-                print(get_basic_decomp())
                 raise QiskitError("possible non-pulse-optimal decomposition encountered")
 
         qc.cx(1, 0)
@@ -1237,7 +1197,7 @@ class TwoQubitBasisDecomposer:
         circ.rx(euler_q1[3][2], 0)
         qceuler = self._decomposer1q(Operator(circ).data)
         qc.compose(qceuler, [1], inplace=True)
-        print(qc)
+
         return qc
 
     def num_basis_gates(self, unitary):
