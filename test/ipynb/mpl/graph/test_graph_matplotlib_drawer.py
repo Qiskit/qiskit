@@ -60,7 +60,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.graph_drawer = TestGraphMatplotlibDrawer.save_data_wrap(state_drawer, str(self))
+        self.graph_state_drawer = TestGraphMatplotlibDrawer.save_data_wrap(state_drawer, str(self))
         self.graph_count_drawer = TestGraphMatplotlibDrawer.save_data_wrap(
             plot_histogram, str(self)
         )
@@ -107,7 +107,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         result = execute(circuit, backend).result()
         state = result.get_statevector(circuit)
 
-        self.graph_drawer(state=state, output="bloch", filename="bloch_multivector.png")
+        self.graph_state_drawer(state=state, output="bloch", filename="bloch_multivector.png")
 
     def test_plot_state_hinton(self):
         """test plot_state_hinton"""
@@ -119,7 +119,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         result = execute(circuit, backend).result()
         state = result.get_statevector(circuit)
 
-        self.graph_drawer(state=state, output="hinton", filename="hinton.png")
+        self.graph_state_drawer(state=state, output="hinton", filename="hinton.png")
 
     def test_plot_state_qsphere(self):
         """test for plot_state_qsphere"""
@@ -131,7 +131,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         result = execute(circuit, backend).result()
         state = result.get_statevector(circuit)
 
-        self.graph_drawer(state=state, output="qsphere", filename="qsphere.png")
+        self.graph_state_drawer(state=state, output="qsphere", filename="qsphere.png")
 
     def test_plot_state_city(self):
         """test for plot_state_city"""
@@ -143,7 +143,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         result = execute(circuit, backend).result()
         state = result.get_statevector(circuit)
 
-        self.graph_drawer(state=state, output="city", filename="state_city.png")
+        self.graph_state_drawer(state=state, output="city", filename="state_city.png")
 
     def test_plot_state_paulivec(self):
         """test for plot_state_paulivec"""
@@ -155,19 +155,13 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         result = execute(circuit, backend).result()
         state = result.get_statevector(circuit)
 
-        self.graph_drawer(state=state, output="paulivec", filename="paulivec.png")
+        self.graph_state_drawer(state=state, output="paulivec", filename="paulivec.png")
 
     def test_plot_histogram(self):
         """for testing the plot_histogram"""
-        circuit = QuantumCircuit(2, 2)
-        circuit.h(0)
-        circuit.cx(0, 1)
-        circuit.measure([0, 1], [0, 1])
+        # specifing counts because we do not want oscillation of result until a changes is made to plot_histogram
 
-        # execute the quantum circuit
-        backend = BasicAer.get_backend("qasm_simulator")  # the device to run on
-        result = execute(circuit, backend, shots=1000).result()
-        counts = result.get_counts(circuit)
+        counts = {"11": 500, "00": 500}
 
         self.graph_count_drawer(counts, filename="histogram.png")
 
