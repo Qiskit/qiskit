@@ -22,6 +22,7 @@ import numpy as np
 
 from qiskit import execute, QiskitError
 from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library import (
     HGate,
@@ -1180,6 +1181,7 @@ class TestPulseOptimalDecompose(CheckDecompositions):
         decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX", pulse_optimize=True)
         circ = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(circ))
+        self.assertEqual(self._remove_pre_post_1q(circ).count_ops().get("sx"), 2)
 
     @combine(seed=range(10), name="seed_{seed}")
     def test_sx_virtz_2cnot_optimal(self, seed):
@@ -1193,6 +1195,24 @@ class TestPulseOptimalDecompose(CheckDecompositions):
         tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(tgt_a, tgt_b, 0) @ tgt_k2
         circ = decomposer(tgt_unitary)
         self.assertEqual(Operator(tgt_unitary), Operator(circ))
+
+    def _remove_pre_post_1q(self, circ):
+        """remove single qubit operations before and after all multi-qubit ops"""
+        dag = circuit_to_dag(circ)
+        delList = []
+        for node in dag.topological_op_nodes():
+            if len(node.qargs) > 1:
+                break
+            else:
+                delList.append(node)
+        for node in reversed(list(dag.topological_op_nodes())):
+            if len(node.qargs) > 1:
+                break
+            else:
+                delList.append(node)
+        for node in delList:
+            dag.remove_op_node(node)
+        return dag_to_circuit(dag)
 
 
 @ddt

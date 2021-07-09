@@ -1096,16 +1096,26 @@ class TwoQubitBasisDecomposer:
             euler_angles = xzx_decomposer.angles_and_phase(decomp)
             euler_q1[iqubit, [1, 2, 0]] = euler_angles[:3]
             global_phase += euler_angles[3]
+
         qc = QuantumCircuit(2)
         qc.global_phase = target_decomposed.global_phase
         qc.global_phase -= best_nbasis * self.basis.global_phase
         qc.global_phase += global_phase
 
+        x12 = euler_q0[1][2] + euler_q0[2][0]
+        x12_isNonZero = not math.isclose(x12, 0, abs_tol=1e-10)
+        x12_isPi = math.isclose(x12, math.pi)
+        x10_isPi = math.isclose(euler_q0[1][0], math.pi)
+        x12_isHalfPi = math.isclose(x12, math.pi / 2)
         # TODO: make this more effecient to avoid double decomposition
         circ = QuantumCircuit(1)
         circ.rz(euler_q0[0][0], 0)
         circ.rx(euler_q0[0][1], 0)
-        circ.rz(euler_q0[0][2] + euler_q0[1][0], 0)
+        if x12_isPi and x10_isPi:
+            circ.rz(euler_q0[0][2], 0)
+            circ.global_phase += math.pi
+        else:
+            circ.rz(euler_q0[0][2] + euler_q0[1][0], 0)
         circ.h(0)
         qceuler = self._decomposer1q(Operator(circ).data)
         qc.compose(qceuler, [0], inplace=True)
@@ -1120,15 +1130,14 @@ class TwoQubitBasisDecomposer:
 
         qc.cx(1, 0)
 
-        qc.rz(euler_q0[1][1], 0)
-        x12 = euler_q0[1][2] + euler_q0[2][0]
-        x12_isNonZero = not math.isclose(x12, 0, abs_tol=1e-10)
-        x12_isPi = math.isclose(x12, math.pi)
-        x12_isHalfPi = math.isclose(x12, math.pi / 2)
-        if x12_isPi or x12_isHalfPi:
+        if x12_isPi and x10_isPi:
+            qc.rz(-euler_q0[1][1], 0)
+        else:
+            qc.rz(euler_q0[1][1], 0)
+        if x12_isHalfPi:
             qc.sx(0)
             qc.global_phase -= math.pi / 4
-        elif x12_isNonZero:
+        elif x12_isNonZero and not (x12_isPi and x10_isPi):
             # this is non-optimal but doesn't seem to occur currently
             if self.pulse_optimize is None:
                 qc.compose(self._decomposer1q(Operator(RXGate(x12)).data), [0], inplace=True)
@@ -1149,9 +1158,6 @@ class TwoQubitBasisDecomposer:
 
         qc.cx(1, 0)
 
-        if x12_isPi:
-            qc.sx(0)
-            qc.global_phase -= math.pi / 4
         qc.rz(euler_q0[2][1], 0)
         if math.isclose(euler_q1[2][1], math.pi / 2):
             qc.sx(1)
