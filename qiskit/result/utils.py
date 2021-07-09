@@ -44,6 +44,9 @@ def marginal_counts(result, indices=None, inplace=False, format_marginal=False):
     Raises:
         QiskitError: in case of invalid indices to marginalize over.
     """
+    if indices is None:
+        return result
+
     if isinstance(result, Result):
         if not inplace:
             result = deepcopy(result)
