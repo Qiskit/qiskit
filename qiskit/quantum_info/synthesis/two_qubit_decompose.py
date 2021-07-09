@@ -1201,7 +1201,8 @@ class TwoQubitBasisDecomposer:
         qc.compose(qceuler, [1], inplace=True)
 
         # TODO: fix the sign problem to avoid correction here
-        if target_decomposed.unitary_matrix[0, 0] == -(Operator(qc).data[0, 0]):
+        if cmath.isclose(target_decomposed.unitary_matrix[0, 0],
+                         -(Operator(qc).data[0, 0], abs_tol=atol)):
             qc.global_phase += math.pi
         return qc
 
