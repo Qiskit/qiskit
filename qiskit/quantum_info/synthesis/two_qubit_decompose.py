@@ -1056,7 +1056,6 @@ class TwoQubitBasisDecomposer:
         circ.rz(euler_q0[2][2], 0)
         qceuler = self._decomposer1q(Operator(circ).data)
         qc.compose(qceuler, [0], inplace=True)
-
         circ = QuantumCircuit(1)
         circ.rx(euler_q1[1][2] + euler_q1[2][0], 0)
         circ.rz(euler_q1[2][1], 0)
