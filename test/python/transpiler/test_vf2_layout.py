@@ -303,7 +303,7 @@ class TestVF2LayoutOther(LayoutTestCase):
     def test_seed(self):
         """Different seeds yield different results"""
         seed_1 = 42
-        seed_2 = 43
+        seed_2 = 45
 
         cmap5 = FakeTenerife().configuration().coupling_map
 
