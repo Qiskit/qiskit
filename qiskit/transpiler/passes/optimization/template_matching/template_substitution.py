@@ -503,16 +503,22 @@ class TemplateSubstitution:
         equations, symbols, sol, fake_bind = [], set(), {}, {}
         for t_idx, params in enumerate(template_params):
             if isinstance(params, ParameterExpression):
-                #import pdb; pdb.set_trace()
+                import pdb; pdb.set_trace()
 
-                param_symbols = set()
                 if isinstance(circuit_params[t_idx], ParameterExpression):
-                    for param in circuit_params[t_idx].parameters:
-                        cpn = param.name
-                        if len(cpn) == 1:
-                            param_symbols.add(sym.Eq(parse_expr(cpn)))
-                        else:
-                            param_symbols.add(sym.symbols(str(cpn.split('$')[1].split('\\')[-1])))
+                    if len(circuit_params[t_idx].parameters):
+                        for param in circuit_params[t_idx].parameters:
+                            cpn = param.name
+                            if len(cpn) == 1:
+                                psym = sym.Eq(parse_expr(cpn))
+                            else:
+                                psym = sym.symbols(str(cpn.split('$')[1].split('\\')[-1]))
+
+                            symbols.add(param)
+                            equations.append(sym.Eq(parse_expr(str(params)), psym))
+                    else:
+                        equations.append(sym.Eq(parse_expr(str(params)), circuit_params[t_idx]))
+
                 else:
                     equations.append(sym.Eq(parse_expr(str(params)), circuit_params[t_idx]))
 
