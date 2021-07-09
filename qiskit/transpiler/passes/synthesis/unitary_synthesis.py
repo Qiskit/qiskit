@@ -93,11 +93,16 @@ class UnitarySynthesis(TransformationPass):
                 determined by first checking to see whether the
                 coupling map is unidirectional.  If there is no
                 coupling map, the gate direction with the shorter
-                duration from the backend properties will be used.
+                duration from the backend properties will be used. If
+                set to True, and a natural direction can not be
+                determined, raises TranspileError. If set to None, no
+                exception will be raised if a natural direction can
+                not be determined.
             synth_gates: List of gates to synthesize. If None and
                 `pulse_optimize` is False or None, default to
                 ['unitary']. If None and `pulse_optimzie` == True,
                 default to ['unitary', 'swap']
+
         """
         super().__init__()
         self._basis_gates = basis_gates
