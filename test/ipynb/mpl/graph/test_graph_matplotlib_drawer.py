@@ -30,6 +30,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.quantum_info.random import random_unitary
 from qiskit.tools.visualization import HAS_MATPLOTLIB
+from qiskit.visualization.counts_visualization import plot_histogram
 
 
 if HAS_MATPLOTLIB:
@@ -60,6 +61,9 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.graph_drawer = TestGraphMatplotlibDrawer.save_data_wrap(state_drawer, str(self))
+        self.graph_count_drawer = TestGraphMatplotlibDrawer.save_data_wrap(
+            plot_histogram, str(self)
+        )
 
     def tearDown(self):
         super().tearDown()
@@ -72,8 +76,6 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         def wrapper(*args, **kwargs):
             image_filename = kwargs["filename"]
             with cwd(RESULTDIR):
-                state = kwargs["state"]
-                output = kwargs["output"]
                 results = func(*args, **kwargs)
                 TestGraphMatplotlibDrawer.save_data(image_filename, testname)
             return results
@@ -119,17 +121,17 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         self.graph_drawer(state=state, output="hinton", filename="hinton.png")
 
-#     def test_plot_state_qsphere(self):
-#         """test for plot_state_qsphere"""
-#         circuit = QuantumCircuit(1)
-#         circuit.x(0)
+    def test_plot_state_qsphere(self):
+        """test for plot_state_qsphere"""
+        circuit = QuantumCircuit(1)
+        circuit.x(0)
 
-#         # getting the state using backend
-#         backend = BasicAer.get_backend("statevector_simulator")
-#         result = execute(circuit, backend).result()
-#         state = result.get_statevector(circuit)
+        # getting the state using backend
+        backend = BasicAer.get_backend("statevector_simulator")
+        result = execute(circuit, backend).result()
+        state = result.get_statevector(circuit)
 
-#         self.graph_drawer(state=state, output="qsphere", filename="qsphere.png")
+        self.graph_drawer(state=state, output="qsphere", filename="qsphere.png")
 
     def test_plot_state_city(self):
         """test for plot_state_city"""
@@ -154,6 +156,20 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         state = result.get_statevector(circuit)
 
         self.graph_drawer(state=state, output="paulivec", filename="paulivec.png")
+
+    def test_plot_histogram(self):
+        """for testing the plot_histogram"""
+        circuit = QuantumCircuit(2, 2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.measure([0, 1], [0, 1])
+
+        # execute the quantum circuit
+        backend = BasicAer.get_backend("qasm_simulator")  # the device to run on
+        result = execute(circuit, backend, shots=1000).result()
+        counts = result.get_counts(circuit)
+
+        self.graph_count_drawer(counts, filename="histogram.png")
 
 
 if __name__ == "__main__":
