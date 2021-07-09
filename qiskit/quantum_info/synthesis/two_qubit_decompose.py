@@ -1131,7 +1131,7 @@ class TwoQubitBasisDecomposer:
             circ.global_phase += math.pi
         elif x12_isNegPi and x10_isZero:
             # -pi donated to next rz, which vanishes in conjugation of rx
-            circ.rz(euler_q0[0][2] + math.pi)
+            circ.rz(euler_q0[0][2] + math.pi, 0)
         else:
             circ.rz(euler_q0[0][2] + euler_q0[1][0], 0)
         circ.h(0)
