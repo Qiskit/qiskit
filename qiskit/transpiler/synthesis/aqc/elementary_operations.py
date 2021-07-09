@@ -17,11 +17,6 @@ import numpy as np
 
 from qiskit.circuit.library import XGate, YGate, ZGate, RXGate, RZGate
 
-# todo: move all of them to gradient.py?
-X = XGate().to_matrix()
-Y = YGate().to_matrix()
-Z = ZGate().to_matrix()
-
 
 def op_unitary(unitary: np.ndarray, n: int, j: int) -> np.ndarray:
     """

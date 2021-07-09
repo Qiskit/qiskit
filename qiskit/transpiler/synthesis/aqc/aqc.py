@@ -14,16 +14,10 @@
 Main entry point to Approximate Quantum Compiler.
 """
 
-import logging
 import numpy as np
-from .optimizers import FISTAOptimizer, GDOptimizer
+
+from .optimizers import GDOptimizer
 from .parametric_circuit import ParametricCircuit
-from .compressor import EulerCompressor
-
-logger = logging.getLogger(__name__)
-
-# tolerance constant for equality checks
-EPS = 100.0 * np.finfo(np.float64).eps
 
 
 class AQC:
@@ -31,7 +25,6 @@ class AQC:
     Main entry point to Approximate Quantum Compiler.
     """
 
-    # TODO: rename "reg" to something more meaningful, lambda ?
     def __init__(
         self,
         method: str = "nesterov",
@@ -39,9 +32,6 @@ class AQC:
         eta: float = 0.1,
         tol: float = 1e-5,
         eps: float = 0,
-        reg: float = 0.2,
-        group=False,
-        group_size=4,
     ):
         """
 
@@ -51,9 +41,6 @@ class AQC:
             eta:
             tol:
             eps:
-            reg:
-            group:
-            group_size:
         """
         super().__init__()
         self._method = method
@@ -61,9 +48,6 @@ class AQC:
         self._eta = eta
         self._tol = tol
         self._eps = eps
-        self._reg = reg
-        self._group = group
-        self._group_size = group_size
 
     def compile_unitary(
         self, target_matrix: np.ndarray, cnots: np.ndarray, thetas0: np.ndarray
@@ -82,38 +66,15 @@ class AQC:
         assert isinstance(cnots, np.ndarray)
         assert isinstance(thetas0, np.ndarray)
 
-        gradient_backend = "default"
         num_qubits = int(round(np.log2(target_matrix.shape[0])))
         self._compute_optional_parameters(num_qubits)
 
-        logger.debug("Optimizing via FISTA ...")
-        circuit = ParametricCircuit(num_qubits=num_qubits, cnots=cnots, thetas=thetas0)
-        circuit.init_gradient_backend(gradient_backend)
-        circuit.set_thetas(thetas0)
-        optimizer = FISTAOptimizer(
-            method=self._method,
-            maxiter=self._maxiter,
-            eta=self._eta,
-            tol=self._tol,
-            eps=self._eps,
-            reg=self._reg,
-            group=True,
-        )
-        thetas, _, _, _ = optimizer.optimize(target_matrix, circuit)
-        # TODO: remove
-        assert np.allclose(thetas, circuit.thetas, atol=EPS, rtol=EPS)
+        parametric_circuit = ParametricCircuit(num_qubits=num_qubits, cnots=cnots, thetas=thetas0)
 
-        logger.debug("Compressing the circuit ...")
-        compressed_circuit = EulerCompressor(synth=False).compress(circuit)
-
-        logger.debug("Re-optimizing via gradient descent ...")
-        # todo: why re-instantiate the gradient? is it stateful? just rest should be enough!
-        compressed_circuit.init_gradient_backend(gradient_backend)
         optimizer = GDOptimizer(self._method, self._maxiter, self._eta, self._tol, self._eps)
-        thetas, _, _, thetas_min = optimizer.optimize(target_matrix, compressed_circuit)
-        # TODO: remove
-        assert np.allclose(thetas_min, compressed_circuit.thetas, atol=EPS, rtol=EPS)
-        return compressed_circuit
+
+        thetas, error = optimizer.optimize(target_matrix, parametric_circuit)
+        return parametric_circuit
 
     def _compute_optional_parameters(self, num_qubits: int) -> None:
         """

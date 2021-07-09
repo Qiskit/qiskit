@@ -24,7 +24,6 @@ from numpy import linalg as la
 from qiskit import QuantumCircuit
 from .cnot_structures import make_cnot_network
 from .elementary_operations import op_rx, op_ry, op_rz, op_unitary, op_cnot
-from .fast_gradient.fast_gradient import FastGradient
 from .gradient import GradientBase, DefaultGradient
 
 # TODO: remove gradient parameter in constructor! <- unclear why (Anton)
@@ -94,7 +93,7 @@ class ParametricCircuit:
         self._cnots = cnots.copy()  # todo: why copy, do we modify it?
         self._num_cnots = cnots.shape[1]
         self._thetas = np.full(self.num_thetas, fill_value=0, dtype=np.float64)
-        self._gradient = gradient
+        self._gradient = gradient or DefaultGradient(self._num_qubits, self._cnots)
 
         if thetas is not None:
             self.set_thetas(thetas)
@@ -171,57 +170,6 @@ class ParametricCircuit:
         if thetas.size != self.num_thetas:
             raise ValueError("wrong size of array of theta parameters")
         np.copyto(self._thetas, thetas.ravel())  # todo: do we need copy and ravel?
-
-    def set_nonzero_thetas(self, thetas: np.ndarray, nonzero_mask: np.ndarray):
-        """
-        TODO: unclear the goal of this methods. why it is here???
-        Updates those theta parameters that can take arbitrary values.
-
-        Args:
-            thetas: new parameters; this vector is generally shorter than
-                    the internal one and contains only those parameters
-                    that can take arbitrary values.
-            nonzero_mask: boolean mask where True corresponds to a parameter
-                          with an arbitrary value, and False corresponds to
-                          a parameter with exactly zero value.
-
-        Raises:
-            ValueError: if incorrect parameters are passed.
-        """
-        assert isinstance(thetas, np.ndarray) and thetas.dtype == np.float64
-        assert isinstance(nonzero_mask, np.ndarray) and nonzero_mask.dtype == bool
-        if nonzero_mask.size != self.num_thetas:
-            raise ValueError("wrong size of a mask of nonzero theta parameters")
-        if np.count_nonzero(nonzero_mask) != thetas.size:
-            raise ValueError("mismatch between the mask and the vector of thetas")
-        self._thetas.fill(0.0)
-        self._thetas[nonzero_mask.ravel()] = thetas.ravel()
-
-    def init_gradient_backend(self, backend: str):
-        """
-        Instantiates the gradient backend object. Rationale: gradient object
-        can be very large, if some sort of caching is being used internally.
-        As such, transforming a circuit (e.g. by compression) can be expensive,
-        if we need to reinitialize the gradient object after any circuit
-        transformation. Instead, we use this function to choose desired gradient
-        backend right before running an actual optimization.
-
-        Args:
-            backend: name of gradient backend.
-
-        Raises:
-            ValueError: when an unsupported backed is passed.
-        """
-        assert isinstance(backend, str)
-        if self._gradient:
-            del self._gradient  # dispose existing backend, if any
-            self._gradient = None
-        if backend == "default":
-            self._gradient = DefaultGradient(self._num_qubits, self._cnots)
-        elif backend == "fast":
-            self._gradient = FastGradient(self._num_qubits, self._cnots)
-        else:
-            raise ValueError(f"Unsupported gradient backend {backend}")
 
     # def get_gradient(self, thetas: (np.ndarray, None),
     #                  target_matrix: np.ndarray) -> (float, np.ndarray):

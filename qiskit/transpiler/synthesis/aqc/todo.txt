@@ -1,8 +1,0 @@
-(1) In circuit_to_numpy() we do not inverse the QuantumCircuit,
-    Can this cause a problem?
-    Suggestion: a) introduce a global flag for bit ordering reversing,
-                   and use this flag everywhere.
-                b) Make sure we generate matrices from circuit in coherence
-                   with bit ordering!!!
-
-(2)

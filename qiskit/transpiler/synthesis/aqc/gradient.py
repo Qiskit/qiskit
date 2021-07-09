@@ -41,7 +41,6 @@ class GradientBase(ABC):
         raise NotImplementedError("Abstract method is called!")
 
 
-# TODO: replace with FastGradient?
 class DefaultGradient(GradientBase):
     """A default implementation of a gradient computation."""
 
@@ -60,7 +59,6 @@ class DefaultGradient(GradientBase):
         self._num_cnots = cnots.shape[1]
 
     def get_gradient(self, thetas: Union[List[float], np.ndarray], target_matrix: np.ndarray):
-
         # the partial derivative of the circuit with respect to an angle
         # is the same circuit with the corresponding pauli gate, multiplied
         # by a global phase of -1j / 2, next to the rotation gate (it commutes)

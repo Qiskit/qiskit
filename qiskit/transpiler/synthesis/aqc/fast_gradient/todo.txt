@@ -1,7 +1,0 @@
-(*) use cmath module to build gate matrices everywhere
-
-(*) we can avoud one extra copy while initializing UCF and FUC.
-
-(*) avoid finalization on every step of gradient computation.
-
-(*0 too big temporary array in PMatrix::_init_index_matrix()
