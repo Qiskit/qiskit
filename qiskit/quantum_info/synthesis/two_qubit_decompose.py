@@ -1063,9 +1063,6 @@ class TwoQubitBasisDecomposer:
         qceuler = self._decomposer1q(Operator(circ).data)
         qc.compose(qceuler, [1], inplace=True)
 
-        # TODO: fix the sign problem to avoid correction here
-        if target_decomposed.unitary_matrix[0, 0] == -(Operator(qc).data[0, 0]):
-            qc.global_phase += math.pi
         return qc
 
     def _get_sx_vz_3cx_efficient_euler(self, decomposition, target_decomposed):
@@ -1203,6 +1200,9 @@ class TwoQubitBasisDecomposer:
         qceuler = self._decomposer1q(Operator(circ).data)
         qc.compose(qceuler, [1], inplace=True)
 
+        # TODO: fix the sign problem to avoid correction here
+        if target_decomposed.unitary_matrix[0, 0] == -(Operator(qc).data[0, 0]):
+            qc.global_phase += math.pi
         return qc
 
     def num_basis_gates(self, unitary):
