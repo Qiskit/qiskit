@@ -1086,7 +1086,7 @@ class TwoQubitBasisDecomposer:
         atol = 1e-10  # absolute tolerance for floats
 
         def get_basic_decomp():
-            qc2 = QuantumCircuit(2, global_phase=qc.global_phase+global_phase)
+            qc2 = QuantumCircuit(2, global_phase=qc.global_phase + global_phase)
             for i in range(4):
                 qc2.rz(euler_q0[i, 0], 0)
                 qc2.rx(euler_q0[i, 1], 0)
@@ -1140,7 +1140,7 @@ class TwoQubitBasisDecomposer:
         print(Operator(basic_circ).data)
         print(target_decomposed.unitary_matrix)
         print(basic_circ)
-        
+
         # TODO: make this more effecient to avoid double decomposition
         circ = QuantumCircuit(1)
         circ.rz(euler_q0[0][0], 0)
