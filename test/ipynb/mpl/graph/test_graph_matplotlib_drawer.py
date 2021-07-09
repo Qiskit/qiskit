@@ -156,6 +156,5 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_drawer(state=state, output="paulivec", filename="paulivec.png")
 
 
-
 if __name__ == "__main__":
     unittest.main(verbosity=1)

@@ -35,8 +35,8 @@ from qiskit.circuit.tools.pi_check import pi_check
 
 @deprecate_arguments({"rho": "state"})
 def plot_state_hinton(
-	state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None, filename=None
-	):
+    state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None, filename=None
+):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
     Args:
@@ -306,7 +306,16 @@ def plot_bloch_multivector(
 
 @deprecate_arguments({"rho": "state"})
 def plot_state_city(
-    state, title="", figsize=None, color=None, alpha=1, ax_real=None, ax_imag=None, *, rho=None, filename=None
+    state,
+    title="",
+    figsize=None,
+    color=None,
+    alpha=1,
+    ax_real=None,
+    ax_imag=None,
+    *,
+    rho=None,
+    filename=None,
 ):
     """Plot the cityscape of quantum state.
 
@@ -538,7 +547,8 @@ def plot_state_city(
 
 @deprecate_arguments({"rho": "state"})
 def plot_state_paulivec(
-	state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None):
+    state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
+):
     """Plot the paulivec representation of a quantum state.
 
     Plot a bargraph of the mixed state rho over the pauli matrices
@@ -626,7 +636,6 @@ def plot_state_paulivec(
         return fig.savefig(filename)
 
 
-
 def n_choose_k(n, k):
     """Return the number of combinations for n choose k.
 
@@ -694,7 +703,7 @@ def plot_state_qsphere(
     use_degrees=False,
     *,
     rho=None,
-    filename=None
+    filename=None,
 ):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
