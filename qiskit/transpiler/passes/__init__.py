@@ -88,7 +88,10 @@ Scheduling
    DynamicalDecoupling
    AlignMeasures
    ValidatePulseGates
-   RZXCalibrationBuilder
+   
+Transformation
+=================
+RZXCalibrationBuilder
 
 Circuit Analysis
 ================
@@ -193,7 +196,9 @@ from .scheduling import ASAPSchedule
 from .scheduling import DynamicalDecoupling
 from .scheduling import AlignMeasures
 from .scheduling import ValidatePulseGates
-from .scheduling import RZXCalibrationBuilder
+
+# circuit transformation
+from .transformation import RZXCalibrationBuilder
 
 # additional utility passes
 from .utils import CheckMap
