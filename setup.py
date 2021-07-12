@@ -94,6 +94,9 @@ z3_requirements = [
 ]
 
 
+bip_requirements = ["cplex", "docplex"]
+
+
 setup(
     name="qiskit-terra",
     version="0.18.0",
@@ -127,9 +130,9 @@ setup(
     python_requires=">=3.6",
     extras_require={
         "visualization": visualization_extras,
-        "bip-mapper": ["cplex", "docplex"],
+        "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
-        "all": visualization_extras + z3_requirements,
+        "all": visualization_extras + z3_requirements + bip_requirements,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
