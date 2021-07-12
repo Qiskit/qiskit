@@ -15,6 +15,7 @@
 from typing import List, Optional, Union
 import numpy
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector, Operator, DensityMatrix
 from .standard_gates import MCXGate
 
@@ -274,10 +275,10 @@ class GroverOperator(QuantumCircuit):
         circuit.global_phase = numpy.pi
 
         self.add_register(*circuit.qregs)
-        if self._insert_barriers:
-            circuit_wrapped = circuit.to_instruction()
-        else:
+        try:
             circuit_wrapped = circuit.to_gate()
+        except QiskitError:
+            circuit_wrapped = circuit.to_instruction()
 
         self.compose(circuit_wrapped, qubits=self.qubits, inplace=True)
 

@@ -29,7 +29,7 @@ class PassManagerConfig:
         backend_properties=None,
         approximation_degree=None,
         seed_transpiler=None,
-        alignment=None,
+        timing_constraints=None,
     ):
         """Initialize a PassManagerConfig object
 
@@ -55,7 +55,7 @@ class PassManagerConfig:
                 (1.0=no approximation, 0.0=maximal approximation)
             seed_transpiler (int): Sets random seed for the stochastic parts of
                 the transpiler.
-            alignment (int): Hardware instruction alignment restriction.
+            timing_constraints (TimingConstraints): Hardware time alignment restrictions.
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -68,4 +68,4 @@ class PassManagerConfig:
         self.backend_properties = backend_properties
         self.approximation_degree = approximation_degree
         self.seed_transpiler = seed_transpiler
-        self.alignment = alignment
+        self.timing_constraints = timing_constraints
