@@ -843,8 +843,8 @@ stages:
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
-          set -e
-          pushd test/qpy_compat
-          ./run_tests.sh
-          popd
+            set -e
+            pushd test/qpy_compat
+            ./run_tests.sh
+            popd
           displayName: 'Run backwards compat tests'
