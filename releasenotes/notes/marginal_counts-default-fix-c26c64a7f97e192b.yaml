@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a bug in the ``qiskit.result.marginal_counts`` function when the
+    ``indices`` argument is not supplied. Also clarified the function's
+    documentation.
