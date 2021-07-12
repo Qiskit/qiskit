@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    The latex circuit drawer wrongly rendered custom instructions involving classical bits.
-    See  `#3202 <https://github.com/Qiskit/qiskit-terra/issues/3202>`__ for more information.

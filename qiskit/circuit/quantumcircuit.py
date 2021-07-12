@@ -1750,6 +1750,17 @@ class QuantumCircuit:
                 multi_qubit_gates += 1
         return multi_qubit_gates
 
+    def get_instructions(self, name):
+        """Get instructions matching name.
+
+        Args:
+            name (str): The name of instruction to.
+
+        Returns:
+            list(tuple): list of (instruction, qargs, cargs).
+        """
+        return [match for match in self._data if match[0].name == name]
+
     def num_connected_components(self, unitary_only=False):
         """How many non-entangled subcircuits can the circuit be factored to.
 
