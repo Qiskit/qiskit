@@ -817,10 +817,10 @@ class TestGates(TestBuilder):
     def test_u1(self):
         """Test u1 gate."""
         with pulse.build(self.backend) as schedule:
-            pulse.u1(np.pi, 0)
+            pulse.u1(np.pi / 2, 0)
 
         reference_qc = circuit.QuantumCircuit(1)
-        reference_qc.append(circuit.library.U1Gate(np.pi), [0])
+        reference_qc.append(circuit.library.U1Gate(np.pi / 2), [0])
         reference = compiler.schedule(reference_qc, self.backend)
 
         self.assertScheduleEqual(schedule, reference)
@@ -828,10 +828,10 @@ class TestGates(TestBuilder):
     def test_u2(self):
         """Test u2 gate."""
         with pulse.build(self.backend) as schedule:
-            pulse.u2(np.pi, 0, 0)
+            pulse.u2(np.pi / 2, 0, 0)
 
         reference_qc = circuit.QuantumCircuit(1)
-        reference_qc.append(circuit.library.U2Gate(np.pi, 0), [0])
+        reference_qc.append(circuit.library.U2Gate(np.pi / 2, 0), [0])
         reference = compiler.schedule(reference_qc, self.backend)
 
         self.assertScheduleEqual(schedule, reference)
@@ -839,10 +839,10 @@ class TestGates(TestBuilder):
     def test_u3(self):
         """Test u3 gate."""
         with pulse.build(self.backend) as schedule:
-            pulse.u3(np.pi, 0, np.pi / 2, 0)
+            pulse.u3(np.pi / 8, np.pi / 16, np.pi / 4, 0)
 
         reference_qc = circuit.QuantumCircuit(1)
-        reference_qc.append(circuit.library.U3Gate(np.pi, 0, np.pi / 2), [0])
+        reference_qc.append(circuit.library.U3Gate(np.pi / 8, np.pi / 16, np.pi / 4), [0])
         reference = compiler.schedule(reference_qc, self.backend)
 
         self.assertScheduleEqual(schedule, reference)

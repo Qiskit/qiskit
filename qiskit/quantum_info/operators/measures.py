@@ -19,7 +19,7 @@ import warnings
 import numpy as np
 from scipy import sparse
 
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.circuit.gate import Gate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
@@ -42,10 +42,10 @@ def process_fidelity(channel, target=None, require_cp=True, require_tp=True):
     r"""Return the process fidelity of a noisy quantum channel.
 
 
-    The process fidelity :math:`F_{\text{pro}}(\mathcal{E}, \methcal{F})`
+    The process fidelity :math:`F_{\text{pro}}(\mathcal{E}, \mathcal{F})`
     between two quantum channels :math:`\mathcal{E}, \mathcal{F}` is given by
 
-    .. math:
+    .. math::
         F_{\text{pro}}(\mathcal{E}, \mathcal{F})
             = F(\rho_{\mathcal{E}}, \rho_{\mathcal{F}})
 
@@ -349,8 +349,10 @@ def _cvxpy_check(name):
     # Check CVXPY version
     version = cvxpy.__version__
     if version[0] != "1":
-        raise ImportError(
-            "Incompatible CVXPY version {} found." " Install version >=1.0.".format(version)
+        raise MissingOptionalLibraryError(
+            "CVXPY >= 1.0",
+            "diamond_norm",
+            msg=f"Incompatible CVXPY version {version} found.",
         )
 
 
@@ -382,7 +384,7 @@ def _input_formatter(obj, fallback_class, func_name, arg_name):
         "SuperOp, Choi) object instead.".format(func_name, arg_name),
         DeprecationWarning,
     )
-    warnings.warn("Treating array input as a {} object".format(fallback_class.__name__))
+    warnings.warn(f"Treating array input as a {fallback_class.__name__} object")
     return fallback_class(obj)
 
 

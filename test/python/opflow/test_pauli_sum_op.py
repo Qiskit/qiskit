@@ -63,6 +63,14 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         summed_op = SummedOp([X, Y])
         self.assertEqual(pauli_sum, summed_op)
 
+        a = Parameter("a")
+        b = Parameter("b")
+        actual = a * PauliSumOp.from_list([("X", 2)]) + b * PauliSumOp.from_list([("Y", 1)])
+        expected = SummedOp(
+            [PauliSumOp.from_list([("X", 2)], a), PauliSumOp.from_list([("Y", 1)], b)]
+        )
+        self.assertEqual(actual, expected)
+
     def test_mul(self):
         """multiplication test"""
         target = 2 * (X + Z)
@@ -204,7 +212,8 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         target = ((X + Z) / np.sqrt(2)).to_instruction()
         qc = QuantumCircuit(1)
         qc.u(np.pi / 2, 0, np.pi, 0)
-        self.assertEqual(transpile(target.definition, basis_gates=["u"]), qc)
+        qc_out = transpile(target.definition, basis_gates=["u"])
+        self.assertEqual(qc_out, qc)
 
     def test_to_pauli_op(self):
         """test to_pauli_op method"""

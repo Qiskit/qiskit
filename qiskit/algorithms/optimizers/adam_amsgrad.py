@@ -12,7 +12,7 @@
 
 """The Adam and AMSGRAD optimizers."""
 
-from typing import Optional, Callable, Tuple, List
+from typing import Any, Optional, Callable, Dict, Tuple, List
 import os
 
 import csv
@@ -42,6 +42,12 @@ class ADAM(Optimizer):
         [2]: Sashank J. Reddi and Satyen Kale and Sanjiv Kumar (2018),
              On the Convergence of Adam and Beyond.
              `arXiv:1904.09237 <https://arxiv.org/abs/1904.09237>`_
+
+    .. note::
+
+        This component has some function that is normally random. If you want to reproduce behavior
+        then you should set the random number generator seed in the algorithm_globals
+        (``qiskit.utils.algorithm_globals.random_seed = seed``).
 
     """
 
@@ -114,6 +120,20 @@ class ADAM(Optimizer):
                 writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                 writer.writeheader()
 
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return {
+            "maxiter": self._maxiter,
+            "tol": self._tol,
+            "lr": self._lr,
+            "beta_1": self._beta_1,
+            "beta_2": self._beta_2,
+            "noise_factor": self._noise_factor,
+            "eps": self._eps,
+            "amsgrad": self._amsgrad,
+            "snapshot_dir": self._snapshot_dir,
+        }
+
     def get_support_level(self):
         """Return support level dictionary"""
         return {
@@ -150,7 +170,7 @@ class ADAM(Optimizer):
         Args:
             load_dir: The directory containing ``adam_params.csv``.
         """
-        with open(os.path.join(load_dir, "adam_params.csv"), mode="r") as csv_file:
+        with open(os.path.join(load_dir, "adam_params.csv")) as csv_file:
             if self._amsgrad:
                 fieldnames = ["v", "v_eff", "m", "t"]
             else:
@@ -246,6 +266,7 @@ class ADAM(Optimizer):
                 point: is a 1D numpy.ndarray[float] containing the solution\n
                 value: is a float with the objective function value\n
                 nfev: is the number of objective function calls
+
         """
         super().optimize(
             num_vars, objective_function, gradient_function, variable_bounds, initial_point
