@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue with the
+    :meth:`~qiskit.circuit.QuantumCircuit.num_connected_components` method of
+    :class:`~qiskit.circuit.QuantumCircuit` which was returning the incorrect
+    number of components when the circuit contains two or more gates conditioned
+    on classical registers.
+    Fixed `#6477 <https://github.com/Qiskit/qiskit-terra/issues/6477>`__
