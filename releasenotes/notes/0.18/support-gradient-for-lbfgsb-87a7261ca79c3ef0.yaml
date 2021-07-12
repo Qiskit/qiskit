@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed an issue with :class:`~qiskit.algorithms.VQE` algorithm class
+    when run with the :class:`~qiskit.algorithms.optimizers.L_BFGS_B`
+    or :class:`~qiskit.algorithms.optimizers.P_BFGS` optimizer classes and
+    gradients are used, the gradient was incorrectly passed as a numpy array
+    instead of the expected list of floats resulting in an error. This has
+    been resolved so you can use gradients with :class:`~qiskit.algorithms.VQE`
+    and the :class:`~qiskit.algorithms.optimizers.L_BFGS_B` or
+    :class:`~qiskit.algorithms.optimizers.P_BFGS` optimizers.

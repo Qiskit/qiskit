@@ -1,0 +1,75 @@
+---
+features:
+  - |
+    A new transpiler pass class :class:`qiskit.transpiler.passes.BIPMapping`
+    that tries to find the best layout and routing at once by solving a BIP
+    (binary integer programming) problem as described in
+    `arXiv:2106.06446 <https://arxiv.org/abs/2106.06446>`__ has been added.
+
+    The ``BIPMapping`` pass (named "mapping" to refer to "layout and routing")
+    represents the mapping problem as a BIP (binary integer programming)
+    problem and relies on CPLEX (``cplex``) to solve the BIP problem.
+    The dependent libraries including CPLEX can be installed along with qiskit-terra:
+
+    .. code-block::
+
+      pip install qiskit-terra[bip-mapper]
+
+    Since the free version of CPLEX can solve only small BIP problems, i.e. mapping
+    of circuits with less than about 5 qubits, the paid version of CPLEX may be
+    needed to map larger circuits.
+
+    The BIP mapper scales badly with respect to the number of qubits or gates.
+    For example, it would not work with ``coupling_map`` beyond 10 qubits because
+    the BIP solver (CPLEX) could not find any solution within the default time limit.
+
+    Note that, if you want to fix physical qubits to be used in the mapping
+    (e.g. running Quantum Volume (QV) circuits), you need to specify ``coupling_map``
+    which contains only the qubits to be used.
+
+    Here is a minimal example code to build pass manager to transpile a QV circuit:
+
+    .. code-block:: python
+
+      num_qubits = 4  # QV16
+      circ = QuantumVolume(num_qubits=num_qubits)
+
+      backend = ...
+      basis_gates = backend.configuration().basis_gates
+      coupling_map = CouplingMap.from_line(num_qubits)  # supply your own coupling map
+
+      def _not_mapped(property_set):
+          return not property_set["is_swap_mapped"]
+
+      def _opt_control(property_set):
+          return not property_set["depth_fixed_point"]
+
+      from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+      pm = PassManager()
+      # preparation
+      pm.append([
+          Unroll3qOrMore(),
+          TrivialLayout(coupling_map),
+          FullAncillaAllocation(coupling_map),
+          EnlargeWithAncilla(),
+          BarrierBeforeFinalMeasurements()
+      ])
+      # mapping
+      pm.append(BIPMapping(coupling_map))
+      pm.append(CheckMap(coupling_map))
+      pm.append(Error(msg="BIP mapper failed to map", action="raise"),
+                condition=_not_mapped)
+      # post optimization
+      pm.append([
+          Depth(),
+          FixedPoint("depth"),
+          Collect2qBlocks(),
+          ConsolidateBlocks(basis_gates=basis_gates),
+          UnitarySynthesis(basis_gates),
+          Optimize1qGatesDecomposition(basis_gates),
+          CommutativeCancellation(),
+          UnrollCustomDefinitions(sel, basis_gates),
+          BasisTranslator(sel, basis_gates)
+      ], do_while=_opt_control)
+
+      transpile_circ = pm.run(circ)
