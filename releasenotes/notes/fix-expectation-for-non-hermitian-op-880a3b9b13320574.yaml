@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fixes the bug that :meth:`~qiskit.opflow.PauliExpectation.convert`
-    converts non-Hermitian observables to it's adjoint.

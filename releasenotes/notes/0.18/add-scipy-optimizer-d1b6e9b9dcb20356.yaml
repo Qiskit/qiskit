@@ -1,0 +1,37 @@
+---
+features:
+  - |
+    Add a new optimizer class,
+    :class:`~qiskit.algorithms.optimizers.SciPyOptimizer`, to the
+    :mod:`qiskit.algorithms.optimizers` module. This class is a simple wrapper class
+    of the ``scipy.optimize.minimize`` function
+    (`documentation <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html>`__)
+    which enables the use of all optimization solvers and all
+    parameters (e.g. callback) which are supported by ``scipy.optimize.minimize``.
+    For example:
+
+    .. code-block:: python
+
+        from qiskit.algorithms.optimizers import SciPyOptimizer
+
+        values = []
+
+        def callback(x):
+            values.append(x)
+
+        optimizer = SciPyOptimizer("BFGS", options={"maxiter": 1000}, callback=callback)
+
+deprecations:
+  - |
+    The kwargs ``epsilon`` and ``factr`` for the
+    :class:`qiskit.algorithms.optimizers.L_BFGS_B` constructor
+    and ``factr`` kwarg of the :class:`~qiskit.algorithms.optimizers.P_BFGS`
+    optimizer class are deprecated and will be removed in a future release. Instead, please
+    use the ``eps`` karg instead of ``epsilon``. The ``factr`` kwarg is
+    replaced with ``ftol``. The relationship between the two is
+    :code:`ftol = factr * numpy.finfo(float).eps`. This change was made
+    to be consistent with the usage of the ``scipy.optimize.minimize``
+    functions ``'L-BFGS-B'`` method. See the:
+    ``scipy.optimize.minimize(method='L-BFGS-B')``
+    `documentation <https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html>`__
+    for more information on how these new parameters are used.
