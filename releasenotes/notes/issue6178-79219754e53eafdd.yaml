@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    The text circuit drawer wrongly rendered custom instructions involving classical bits.
-    See  `#6178 <https://github.com/Qiskit/qiskit-terra/issues/6178>`__ for more information.
