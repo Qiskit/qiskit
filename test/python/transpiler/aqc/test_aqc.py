@@ -14,7 +14,7 @@ Tests AQC framework using hardcoded and randomly generated circuits.
 """
 import unittest
 
-from test.python.transpiler.aqc.test_sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
+from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 
 import numpy as np
 
@@ -47,11 +47,10 @@ class TestAqc(QiskitTestCase):
         optimized_circuit = aqc.compile_unitary(
             target_matrix=np.array(ORIGINAL_CIRCUIT),
             cnots=cnots,
-            thetas0=np.array(INITIAL_THETAS),
+            thetas=np.array(INITIAL_THETAS),
         )
 
         error = 0.5 * (np.linalg.norm(optimized_circuit.to_matrix() - ORIGINAL_CIRCUIT, "fro") ** 2)
-        print(error)
         self.assertTrue(error < 1e-3)
 
 

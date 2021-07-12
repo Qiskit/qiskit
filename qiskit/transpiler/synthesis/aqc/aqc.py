@@ -12,6 +12,7 @@
 """
 Main entry point to Approximate Quantum Compiler.
 """
+from typing import Optional
 
 import numpy as np
 
@@ -20,8 +21,27 @@ from .parametric_circuit import ParametricCircuit
 
 
 class AQC:
-    """
-    Main entry point to Approximate Quantum Compiler.
+    r"""
+    Implementation of Approximate Quantum Compiler as described in the paper.
+
+    We are interested in compiling a quantum circuit, which we formalize as finding the best
+    circuit representation in terms of an ordered gate sequence of a target unitary matrix
+    :math:`U\in \U(d)`, with some additional hardware constraints. In particular, we look at
+    representations that could be constrained in terms of hardware connectivity, as well
+    as gate depth, and we choose a gate basis in terms of CNOT and rotation gates.
+    We recall that the combination of CNOT and rotation gates is universal in :math:`\SU(d)` and
+    therefore it does not limit compilation.
+
+    To properly define what we mean by best circuit representation, we define the metric
+    as the Frobenius norm between the unitary matrix of the compiled circuit :math:`V` and
+    the target unitary matrix :math:`U`, i.e., :math:`\|V - U\|_{\mathrm{F}}`. This choice
+    is motivated by mathematical programming considerations, and it is related to other
+    formulations that appear in the literature.
+
+    References:
+
+        [1]: Liam Madden, Andrea Simonetto, Best Approximate Quantum Compiling Problems.
+            `arXiv:2106.05649 <https://arxiv.org/abs/2106.05649>`_
     """
 
     def __init__(
@@ -33,7 +53,6 @@ class AQC:
         eps: float = 0,
     ):
         """
-
         Args:
             method: gradient descent method, either ``vanilla`` or ``nesterov``.
                 Default value ``nesterov``.
@@ -51,7 +70,10 @@ class AQC:
         self._eps = eps
 
     def compile_unitary(
-        self, target_matrix: np.ndarray, cnots: np.ndarray, thetas0: np.ndarray
+        self,
+        target_matrix: np.ndarray,
+        cnots: np.ndarray,
+        thetas: Optional[np.ndarray] = None,
     ) -> ParametricCircuit:
         """
         Approximately compiles a circuit represented as a unitary matrix using a passed cnot unit
@@ -60,19 +82,18 @@ class AQC:
         Args:
             target_matrix: a unitary matrix to approximate.
             cnots: a cnot structure to be used to construct an approximate circuit.
-            thetas0: initial values of angles/parameters to start optimization from.
+            thetas: initial values of angles/parameters to start optimization from.
 
         Returns:
             A parametric circuit that approximate target matrix.
         """
         assert isinstance(target_matrix, np.ndarray)
         assert isinstance(cnots, np.ndarray)
-        assert isinstance(thetas0, np.ndarray)
 
         num_qubits = int(round(np.log2(target_matrix.shape[0])))
         self._compute_optional_parameters(num_qubits)
 
-        parametric_circuit = ParametricCircuit(num_qubits=num_qubits, cnots=cnots, thetas=thetas0)
+        parametric_circuit = ParametricCircuit(num_qubits=num_qubits, cnots=cnots, thetas=thetas)
 
         optimizer = GDOptimizer(self._method, self._maxiter, self._eta, self._tol, self._eps)
 

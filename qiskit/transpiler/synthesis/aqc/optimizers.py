@@ -76,24 +76,18 @@ class GDOptimizer(OptimizerBase):
         """
         Gradient descent algorithm. See the base class description.
         """
-        # thetas0 = circuit.thetas.copy()
-
         aux = np.empty(0)
         if self._method == "nesterov":
             aux = circuit.thetas
-        # obj = np.zeros(self._maxiter)
-        # gra = np.zeros(self._maxiter)
 
         error, der = circuit.get_gradient(target_matrix)
         # todo: add callback and pass error and derivative to the callback
-        # obj[0] = error
-        # gra[0] = la.norm(der)
         gra = la.norm(der)  # grad_norm
 
         iter_count = 1
         thetas = circuit.thetas
         thetas_best = circuit.thetas
-        max_error = np.inf
+        error_min = np.inf
 
         while gra > self._tol and iter_count < self._maxiter:
             # add noise if required
@@ -114,20 +108,13 @@ class GDOptimizer(OptimizerBase):
             # prepare for the next iteration
             error, der = circuit.get_gradient(target_matrix)
             # todo: add callback and pass error and derivative to the callback
-            # obj[i] = error
-            # gra[i] = la.norm(der)
             gra = la.norm(der)
-            if error < max_error:
+            if error < error_min:
                 thetas_best = thetas
-                max_error = error
+                error_min = error
             iter_count += 1
-        # obj = obj[0:i]
-        # gra = gra[0:i]
 
         # update thetas in the circuit
         circuit.set_thetas(thetas_best)
 
-        # final thetas, objective, and gradient, min thetas
-        # return thetas, obj, gra, thetas_min
-        # return thetas, objective function value
-        return thetas_best, max_error
+        return thetas_best, error_min

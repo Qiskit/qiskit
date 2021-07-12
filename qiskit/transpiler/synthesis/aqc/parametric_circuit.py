@@ -60,13 +60,12 @@ class ParametricCircuit:
         assert cnots.dtype == np.int64 or cnots.dtype == int
 
         self._num_qubits = num_qubits
-        self._cnots = cnots.copy()  # todo: why copy, do we modify it?
+        self._cnots = cnots
         self._num_cnots = cnots.shape[1]
-        self._thetas = np.full(self.num_thetas, fill_value=0, dtype=np.float64)
+        if thetas is None:
+            thetas = np.random.uniform(0, 2 * np.pi, self.num_thetas)
+        self._thetas = thetas
         self._gradient = gradient or DefaultGradient(self._num_qubits, self._cnots)
-
-        if thetas is not None:
-            self.set_thetas(thetas)
 
     @property
     def num_qubits(self) -> int:
@@ -90,7 +89,7 @@ class ParametricCircuit:
         Returns:
             Number of angular parameters per a single CNOT.
         """
-        return int(4)
+        return 4
 
     @property
     def num_thetas(self) -> int:
@@ -130,7 +129,7 @@ class ParametricCircuit:
         assert isinstance(thetas, np.ndarray) and thetas.dtype == np.float64
         if thetas.size != self.num_thetas:
             raise ValueError("wrong size of array of theta parameters")
-        np.copyto(self._thetas, thetas.ravel())  # todo: do we need copy and ravel?
+        self._thetas = thetas
 
     def get_gradient(self, target_matrix: np.ndarray) -> (float, np.ndarray):
         """
