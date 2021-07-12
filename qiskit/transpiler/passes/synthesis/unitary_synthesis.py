@@ -185,7 +185,7 @@ class UnitarySynthesis(TransformationPass):
             if one_zero and not zero_one:
                 natural_direction = [1, 0]
 
-        elif self._natural_direction in {None, True} and layout and self._backend_props:
+        if self._natural_direction in {None, True} and natural_direction is None and layout and self._backend_props:
             len_0_1 = inf
             len_1_0 = inf
             try:
