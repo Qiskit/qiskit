@@ -204,7 +204,10 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
             UnitarySynthesis(
-                basis_gates, approximation_degree=approximation_degree, coupling_map=coupling_map
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_properties,
             ),
         ]
     else:

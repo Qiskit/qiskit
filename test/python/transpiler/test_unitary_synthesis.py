@@ -383,7 +383,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         with self.assertRaises(QiskitError):
             pm.run(qc)
 
-    def test_two_qubit_natural_direction_true_coupling_map_raises(self):
+    def test_two_qubit_natural_direction_true_duration_fallback(self):
         """Verify not attempting pulse optimal decomposition when pulse_optimize==False."""
         # this assumes iswawp pulse optimal decomposition doesn't exist
         backend = FakeVigo()
@@ -402,8 +402,13 @@ class TestUnitarySynthesis(QiskitTestCase):
             natural_direction=True,
         )
         pm = PassManager([triv_layout_pass, unisynth_pass])
-        with self.assertRaises(QiskitError):
-            pm.run(qc)
+        qc_out = pm.run(qc)
+        self.assertTrue(
+            all(
+                # pylint: disable=no-member
+                ([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out.get_instructions("cx"))
+            )
+        )
 
     def test_two_qubit_natural_direction_true_gate_length_raises(self):
         """Verify not attempting pulse optimal decomposition when pulse_optimize==False."""
@@ -589,6 +594,26 @@ class TestUnitarySynthesis(QiskitTestCase):
                 (
                     (0, 1) == (circ_01_index[qlist[0]], circ_01_index[qlist[1]])
                     for _, qlist, _ in circ_01.get_instructions("cx")
+                )
+            )
+        )
+
+    @data(1, 2, 3)
+    def test_coupling_map_unequal_durations(self, opt):
+        """Test direction with transpile/execute with backend durations."""
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.append(random_unitary(4, seed=1), [1, 0])
+        backend = FakeVigo()
+        tqc = transpile(
+            circ, backend=backend, optimization_level=opt, translation_method="synthesis"
+        )
+        tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
+        self.assertTrue(
+            all(
+                (
+                    (0, 1) == (tqc_index[qlist[0]], tqc_index[qlist[1]])
+                    for _, qlist, _ in tqc.get_instructions("cx")
                 )
             )
         )
