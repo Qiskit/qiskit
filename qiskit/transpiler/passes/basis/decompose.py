@@ -41,7 +41,7 @@ class Decompose(TransformationPass):
         super().__init__()
 
         if gate is not None:
-            self.gates_to_decompose = [gate]
+            self.gates_to_decompose = gate
         else:
             self.gates_to_decompose = gates_to_decompose
 
@@ -73,7 +73,7 @@ class Decompose(TransformationPass):
             DeprecationWarning,
             stacklevel=2,
         )
-        self.gates_to_decompose = [value]
+        self.gates_to_decompose = value
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Decompose pass on `dag`.

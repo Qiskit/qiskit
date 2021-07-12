@@ -71,6 +71,20 @@ class TestDecompose(QiskitTestCase):
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
         self.assertEqual(op_nodes[0].name, "u2")
+    
+    def test_decompose_none(self):
+        """Test decompose a single H into u2."""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        dag = circuit_to_dag(circuit)
+        pass_ = Decompose(HGate)
+        with self.assertWarns(DeprecationWarning):
+            pass_.gate = None
+        after_dag = pass_.run(dag)
+        op_nodes = after_dag.op_nodes()
+        self.assertEqual(len(op_nodes), 1)
+        self.assertEqual(op_nodes[0].name, "u2")
 
     def test_decompose_only_h(self):
         """Test to decompose a single H, without the rest"""
