@@ -1,7 +1,0 @@
----
-features:
-  - |
-    Add the standard :class:`~qiskit.algorithms.optimizers.GradientDescent` optimizer
-    to the collection of optimizers in the `qiskit.algorithms.optimizers` module.
-    For a detailed description and examples on how to use this class, please refer
-    to the class docstring / online docs of the class.
