@@ -503,16 +503,14 @@ class TemplateSubstitution:
         equations, symbols, sol, fake_bind = [], set(), {}, {}
         for t_idx, params in enumerate(template_params):
             if isinstance(params, ParameterExpression):
-                import pdb; pdb.set_trace()
-
                 if isinstance(circuit_params[t_idx], ParameterExpression):
                     if len(circuit_params[t_idx].parameters):
                         for param in circuit_params[t_idx].parameters:
                             cpn = param.name
-                            if len(cpn) == 1:
-                                psym = sym.Eq(parse_expr(cpn))
-                            else:
+                            if '$' in cpn:
                                 psym = sym.symbols(str(cpn.split('$')[1].split('\\')[-1]))
+                            else:
+                                psym = sym.Eq(parse_expr(cpn))
 
                             symbols.add(param)
                             equations.append(sym.Eq(parse_expr(str(params)), psym))
@@ -534,13 +532,19 @@ class TemplateSubstitution:
             try:
                 sol[str(key)] = float(sym_sol[key])
             except TypeError:
-                return None
+                sol[str(key)] = sym_sol[key]
+                #return None
 
         if not sol:
             return None
 
-        for param in symbols:
-            fake_bind[param] = sol[str(param)]
+        import pdb; pdb.set_trace()
+        #for param in symbols:
+        for param in sol:
+            if '$' in str(param):
+                fake_bind[param] = sol[str(param).split('$')[1].split('\\')[-1]]
+            else:
+                fake_bind[param] = sol[str(param)]
 
         for node in template_dag_dep.get_nodes():
             bound_params = []
