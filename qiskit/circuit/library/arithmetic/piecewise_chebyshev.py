@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Piecewise polynomial Chebyshev approximation to a given f(x)."""
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Union
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 
@@ -55,7 +55,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
     def __init__(
         self,
-        f_x: Callable[[int], float],
+        f_x: Union[float, Callable[[int], float]],
         degree: Optional[int] = None,
         breakpoints: Optional[List[int]] = None,
         num_state_qubits: Optional[int] = None,
@@ -120,7 +120,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         return valid
 
     @property
-    def f_x(self) -> Callable[[int], float]:
+    def f_x(self) -> Union[float, Callable[[int], float]]:
         """The function to be approximated.
 
         Returns:
@@ -129,7 +129,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         return self._f_x
 
     @f_x.setter
-    def f_x(self, f_x: Optional[Callable[[int], float]]) -> None:
+    def f_x(self, f_x: Optional[Union[float, Callable[[int], float]]]) -> None:
         """Set the function to be approximated.
 
         Note that this may change the underlying quantum register, if the number of state qubits
