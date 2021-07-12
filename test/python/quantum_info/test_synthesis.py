@@ -16,12 +16,13 @@ import unittest
 import contextlib
 import logging
 from test import combine
-from ddt import ddt
 
+from ddt import ddt
 import numpy as np
 
 from qiskit import execute, QiskitError
 from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library import (
     HGate,
@@ -469,7 +470,7 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
         )
 
 
-ONEQ_BASES = ["U3", "U321", "U", "U1X", "PSX", "ZSX", "ZSXX", "ZYZ", "ZXZ", "XYX", "RR"]
+ONEQ_BASES = ["U3", "U321", "U", "U1X", "PSX", "ZSX", "ZSXX", "ZYZ", "ZXZ", "XYX", "RR", "XZX"]
 SIMP_TOL = [
     (False, 1.0e-14),
     (True, 1.0e-12),
@@ -1017,16 +1018,19 @@ class TestTwoQubitDecompose(CheckDecompositions):
             traces_pred = decomposer.traces(TwoQubitWeylDecomposition(tgt))
 
         for i in range(4):
-            decomp_circuit = decomposer(tgt, _num_basis_uses=i)
-            result = execute(decomp_circuit, UnitarySimulatorPy(), optimization_level=0).result()
-            decomp_unitary = result.get_unitary()
-            tr_actual = np.trace(decomp_unitary.conj().T @ tgt)
-            self.assertAlmostEqual(
-                traces_pred[i],
-                tr_actual,
-                places=13,
-                msg=f"Trace doesn't match for {i}-basis decomposition",
-            )
+            with self.subTest(i=i):
+                decomp_circuit = decomposer(tgt, _num_basis_uses=i)
+                result = execute(
+                    decomp_circuit, UnitarySimulatorPy(), optimization_level=0
+                ).result()
+                decomp_unitary = result.get_unitary()
+                tr_actual = np.trace(decomp_unitary.conj().T @ tgt)
+                self.assertAlmostEqual(
+                    traces_pred[i],
+                    tr_actual,
+                    places=13,
+                    msg=f"Trace doesn't match for {i}-basis decomposition",
+                )
 
     def test_cx_equivalence_0cx(self, seed=0):
         """Check circuits with  0 cx gates locally equivalent to identity"""
@@ -1164,6 +1168,49 @@ class TestTwoQubitDecompose(CheckDecompositions):
             decomposition_basis = set(decomposer(unitary).count_ops())
             requested_basis = set(oneq_gates + [kak_gate_name])
             self.assertTrue(decomposition_basis.issubset(requested_basis))
+
+
+@ddt
+class TestPulseOptimalDecompose(CheckDecompositions):
+    """Check pulse optimal decomposition."""
+
+    @combine(seed=range(10), name="seed_{seed}")
+    def test_sx_virtz_3cnot_optimal(self, seed):
+        """Test 3 CNOT ZSX pulse optimal decomposition"""
+        unitary = random_unitary(4, seed=seed)
+        decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX", pulse_optimize=True)
+        circ = decomposer(unitary)
+        self.assertEqual(Operator(unitary), Operator(circ))
+        self.assertEqual(self._remove_pre_post_1q(circ).count_ops().get("sx"), 2)
+
+    @combine(seed=range(10), name="seed_{seed}")
+    def test_sx_virtz_2cnot_optimal(self, seed):
+        """Test 2 CNOT ZSX pulse optimal decomposition"""
+        rng = np.random.default_rng(seed)
+        decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX", pulse_optimize=True)
+        tgt_k1 = np.kron(random_unitary(2, seed=rng).data, random_unitary(2, seed=rng).data)
+        tgt_k2 = np.kron(random_unitary(2, seed=rng).data, random_unitary(2, seed=rng).data)
+        tgt_phase = rng.random() * 2 * np.pi
+        tgt_a, tgt_b = rng.random(size=2) * np.pi / 4
+        tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(tgt_a, tgt_b, 0) @ tgt_k2
+        circ = decomposer(tgt_unitary)
+        self.assertEqual(Operator(tgt_unitary), Operator(circ))
+
+    def _remove_pre_post_1q(self, circ):
+        """remove single qubit operations before and after all multi-qubit ops"""
+        dag = circuit_to_dag(circ)
+        del_list = []
+        for node in dag.topological_op_nodes():
+            if len(node.qargs) > 1:
+                break
+            del_list.append(node)
+        for node in reversed(list(dag.topological_op_nodes())):
+            if len(node.qargs) > 1:
+                break
+            del_list.append(node)
+        for node in del_list:
+            dag.remove_op_node(node)
+        return dag_to_circuit(dag)
 
 
 @ddt

@@ -69,6 +69,21 @@ class TestGroverOperator(QiskitTestCase):
             grover_op, oracle=np.diag((-1) ** mark.data), zero_reflection=diffuse.data
         )
 
+    def test_stateprep_contains_instruction(self):
+        """Test wrapping works if the state preparation is not unitary."""
+        oracle = QuantumCircuit(1)
+        oracle.z(0)
+
+        instr = QuantumCircuit(1)
+        instr.s(0)
+        instr = instr.to_instruction()
+
+        stateprep = QuantumCircuit(1)
+        stateprep.append(instr, [0])
+
+        grover_op = GroverOperator(oracle, stateprep)
+        self.assertEqual(grover_op.num_qubits, 1)
+
     def test_reflection_qubits(self):
         """Test setting idle qubits doesn't apply any operations on these qubits."""
         oracle = QuantumCircuit(4)
