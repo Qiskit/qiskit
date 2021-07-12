@@ -56,7 +56,7 @@ class Decompose(TransformationPass):
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.gates_to_decompose[0]
+        return self.gates_to_decompose
 
     @gate.setter
     def gate(self, value):
