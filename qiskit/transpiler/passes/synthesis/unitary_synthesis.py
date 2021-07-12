@@ -92,7 +92,8 @@ class UnitarySynthesis(TransformationPass):
                 `pulse_optimize` == True. The natural direction is
                 determined by first checking to see whether the
                 coupling map is unidirectional.  If there is no
-                coupling map, the gate direction with the shorter
+                coupling map or the coupling map is bidirectional,
+                the gate direction with the shorter
                 duration from the backend properties will be used. If
                 set to True, and a natural direction can not be
                 determined, raises TranspileError. If set to None, no
