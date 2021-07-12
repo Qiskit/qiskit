@@ -66,6 +66,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    XGate
    YGate
    ZGate
+   BRGGate
 
 """
 
@@ -98,3 +99,4 @@ from .y import YGate, CYGate
 from .z import ZGate, CZGate
 
 from .multi_control_rotation_gates import mcrx, mcry, mcrz
+from .brg import BRGGate
