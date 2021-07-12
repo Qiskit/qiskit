@@ -24,7 +24,6 @@ sphinx-autodoc-typehints
 jupyter-sphinx
 sphinx-panels<0.6.0
 pygments>=2.4
-tweedledum>=1.0,<2.0
 networkx>=2.2
 scikit-learn>=0.20.0
 scikit-quant<=0.7;platform_system != 'Windows'
