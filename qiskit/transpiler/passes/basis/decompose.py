@@ -104,6 +104,9 @@ class Decompose(TransformationPass):
     def _should_decompose(self, node) -> bool:
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose)."""
+        if self.gates_to_decompose is None:  # check if no gates given
+            return True
+
         has_label = False
 
         if not isinstance(self.gates_to_decompose, list):
@@ -117,9 +120,7 @@ class Decompose(TransformationPass):
         if hasattr(node.op, "label") and node.op.label is not None:
             has_label = True
 
-        if gates == [None]:  # check if no gates given
-            return True
-        elif has_label and (  # check if label or label wildcard is given
+        if has_label and (  # check if label or label wildcard is given
             node.op.label in gates or any(fnmatch(node.op.label, p) for p in strings_list)
         ):
             return True
