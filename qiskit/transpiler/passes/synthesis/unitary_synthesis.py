@@ -170,7 +170,7 @@ class UnitarySynthesis(TransformationPass):
 
     def _synth_natural_direction(self, node, dag, decomposer2q):
         layout = self.property_set["layout"]
-        natural_direction = None
+        preferred_direction = None
         synth_direction = None
         physical_gate_fidelity = None
         wires = None
@@ -181,12 +181,12 @@ class UnitarySynthesis(TransformationPass):
             neighbors1 = self._coupling_map.neighbors(dag_qubit_index[node.qargs[1]])
             one_zero = dag_qubit_index[node.qargs[0]] in neighbors1
             if zero_one and not one_zero:
-                natural_direction = [0, 1]
+                preferred_direction = [0, 1]
             if one_zero and not zero_one:
-                natural_direction = [1, 0]
+                preferred_direction = [1, 0]
         if (
             self._natural_direction in {None, True}
-            and natural_direction is None
+            and preferred_direction is None
             and layout
             and self._backend_props
         ):
@@ -208,14 +208,14 @@ class UnitarySynthesis(TransformationPass):
                 pass
 
             if len_0_1 < len_1_0:
-                natural_direction = [0, 1]
+                preferred_direction = [0, 1]
             elif len_1_0 < len_0_1:
-                natural_direction = [1, 0]
-            if natural_direction:
+                preferred_direction = [1, 0]
+            if preferred_direction:
                 physical_gate_fidelity = 1 - self._backend_props.gate_error(
-                    "cx", [dag_qubit_index[node.qargs[i]] for i in natural_direction]
+                    "cx", [dag_qubit_index[node.qargs[i]] for i in preferred_direction]
                 )
-        if self._natural_direction is True and natural_direction is None:
+        if self._natural_direction is True and preferred_direction is None:
             raise TranspilerError(
                 f"No preferred direction of {node.name} gate "
                 "could be determined from coupling map or "
@@ -235,9 +235,9 @@ class UnitarySynthesis(TransformationPass):
                 synth_dag_qubit_index[qubit] for qubit in synth_dag.two_qubit_ops()[0].qargs
             ]
         if (
-            natural_direction
+            preferred_direction
             and self._pulse_optimize in {True, None}
-            and synth_direction != natural_direction
+            and synth_direction != preferred_direction
         ):
             su4_mat_mm = deepcopy(su4_mat)
             su4_mat_mm[[1, 2]] = su4_mat_mm[[2, 1]]
