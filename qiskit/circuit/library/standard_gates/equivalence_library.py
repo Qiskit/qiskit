@@ -12,7 +12,6 @@
 
 """Standard gates."""
 
-
 import warnings
 from qiskit.qasm import pi
 from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, QuantumRegister
@@ -66,9 +65,7 @@ from . import (
     BRGGate,
 )
 
-
 _sel = StandardEquivalenceLibrary = EquivalenceLibrary()
-
 
 # Import existing gate definitions
 
@@ -235,7 +232,6 @@ for inst, qargs, cargs in [
 ]:
     def_rzx.append(inst, qargs, cargs)
 _sel.add_equivalence(RZXGate(theta), def_rzx)
-
 
 # RYGate
 
@@ -744,7 +740,6 @@ y_to_ry.append(RYGate(theta=pi), [q[0]])
 y_to_ry.global_phase = pi / 2
 _sel.add_equivalence(YGate(), y_to_ry)
 
-
 # HGate, RXGate(pi).RYGate(pi/2) equivalence
 
 q = QuantumRegister(1, "q")
@@ -763,16 +758,15 @@ h_to_rr.append(RGate(theta=pi, phi=0), [q[0]])
 h_to_rr.global_phase = pi / 2
 _sel.add_equivalence(HGate(), h_to_rr)
 
-
-#BRGGate
+# BRGGate
 
 q = QuantumRegister(3, 'q')
 def_brg = QuantumCircuit(q)
 for inst, qargs, cargs in [
-          (CXGate(), [q[1], q[2]], []),
-          (CXGate(), [q[0], q[1]], []),
-          (CXGate(), [q[1], q[2]], []),
-          (CXGate(), [q[0], q[1]], [])
+    (CXGate(), [q[1], q[2]], []),
+    (CXGate(), [q[0], q[1]], []),
+    (CXGate(), [q[1], q[2]], []),
+    (CXGate(), [q[0], q[1]], [])
 ]:
     def_brg.append(inst, qargs, cargs)
 _sel.add_equivalence(BRGGate(), def_brg)
