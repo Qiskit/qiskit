@@ -21,6 +21,7 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
 from qiskit.transpiler.synthesis.aqc.parametric_circuit import ParametricCircuit
 
 
@@ -34,16 +35,17 @@ class TestParametricCircuit(QiskitTestCase):
         num_qubits = np.random.randint(2, 10)
         num_cnots = np.random.randint(10, 100)
 
-        circuit = ParametricCircuit(
-            num_qubits=num_qubits, layout="spin", connectivity="full", depth=num_cnots
+        cnots = make_cnot_network(
+            num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=num_cnots
         )
+
+        circuit = ParametricCircuit(num_qubits, cnots)
 
         thetas = np.random.rand(circuit.num_thetas) * (2.0 * np.pi)
         circuit.set_thetas(thetas)
         residual = self._compare_circuits(
             target_circuit=circuit.to_matrix(), approx_circuit=circuit.to_circuit(reverse=False)
         )
-        print(residual)
         self.assertLess(residual, 1e-10)
 
     def test_basic_functions(self):
@@ -52,11 +54,12 @@ class TestParametricCircuit(QiskitTestCase):
         # pick random number of qubits and cnots.
         num_qubits = np.random.randint(2, 10)
         num_cnots = np.random.randint(10, 100)
-        # for num_qubits in range(2, 10):
-        #     for num_cnots in np.random.permutation(range(10, 100))[0:10]:
-        circuit = ParametricCircuit(
-            num_qubits=num_qubits, layout="spin", connectivity="full", depth=num_cnots
+
+        cnots = make_cnot_network(
+            num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=num_cnots
         )
+
+        circuit = ParametricCircuit(num_qubits, cnots)
 
         thetas = np.random.rand(circuit.num_thetas) * (2.0 * np.pi)
         circuit.set_thetas(thetas)

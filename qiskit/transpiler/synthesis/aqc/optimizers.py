@@ -9,10 +9,10 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 Gradient descent optimizers for AQC.
 """
+
 from abc import ABC, abstractmethod
 from typing import Tuple
 
@@ -58,7 +58,7 @@ class GDOptimizer(OptimizerBase):
         """
         Args:
             method: gradient descent method, either ``vanilla`` or ``nesterov``.
-            maxiter: maximum number of iterations to run.
+            maxiter: a maximum number of iterations to run.
             eta: learning rate/step size.
             tol: defines an error tolerance when to stop the optimizer.
             eps: size of the noise to be added to escape local minima.

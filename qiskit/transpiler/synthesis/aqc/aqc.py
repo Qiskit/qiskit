@@ -9,7 +9,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 Main entry point to Approximate Quantum Compiler.
 """
@@ -36,11 +35,13 @@ class AQC:
         """
 
         Args:
-            method:
-            maxiter:
-            eta:
-            tol:
-            eps:
+            method: gradient descent method, either ``vanilla`` or ``nesterov``.
+                Default value ``nesterov``.
+            maxiter: a maximum number of iterations to run. Default ``100``.
+            eta: learning rate/step size. Default value ``0.1``.
+            tol: defines an error tolerance when to stop the optimizer. Default value ``1e-5``.
+            eps: size of the noise to be added to escape local minima. Default value ``0``,
+                so no noise is added.
         """
         super().__init__()
         self._method = method
@@ -53,11 +54,13 @@ class AQC:
         self, target_matrix: np.ndarray, cnots: np.ndarray, thetas0: np.ndarray
     ) -> ParametricCircuit:
         """
+        Approximately compiles a circuit represented as a unitary matrix using a passed cnot unit
+        structure and starting from arbitrary specified values of angles/parameters.
 
         Args:
-            target_matrix:
-            cnots:
-            thetas0:
+            target_matrix: a unitary matrix to approximate.
+            cnots: a cnot structure to be used to construct an approximate circuit.
+            thetas0: initial values of angles/parameters to start optimization from.
 
         Returns:
             A parametric circuit that approximate target matrix.

@@ -32,9 +32,11 @@ class GradientBase(ABC):
     ) -> Tuple[float, np.ndarray]:
         """
         Computes gradient and objective function.
+
         Args:
             thetas: an array of angles.
             target_matrix: an original circuit represented as a unitary matrix.
+
         Returns:
             objective function value, gradient.
         """

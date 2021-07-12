@@ -9,33 +9,20 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 This is the Parametric Circuit class: anything that you need for a circuit
 to be parametrized and used for approximate compiling optimization.
 """
 
-# Avoid excessive deprecation warnings in Qiskit on Linux system.
 from typing import Optional
 
 import numpy as np
 from numpy import linalg as la
 
 from qiskit import QuantumCircuit
-from .cnot_structures import make_cnot_network
 from .elementary_operations import rx_matrix, ry_matrix, rz_matrix, place_unitary, place_cnot
 from .gradient import GradientBase, DefaultGradient
 
-# TODO: remove gradient parameter in constructor! <- unclear why (Anton)
-# TODO: describe kwargs "layout", "connectivity", "depth" in constructor.
-#  <- make them explicit parameters
-
-# TODO: make ParametricCircuit more abstract and independent of the CNOT unit that we choose
-# TODO: actually computes V from thetas for the specific cnot structure,
-#  same computation are done in the gradient implementations - badness
-# TODO: document kwargs in constructor.
-
-# TODO: do we need kwargs???
 # Individual parameters passed in kwargs of ParametricCircuit and their combination.
 # The definitions help to identify misspelled parameter.
 PARAM_LAYOUT = "layout"
@@ -45,25 +32,22 @@ ALL_PARAMS = {PARAM_LAYOUT, PARAM_CONNECTIVITY, PARAM_DEPTH}
 
 
 class ParametricCircuit:
-
     """A class that represents an approximating circuit."""
 
     def __init__(
         self,
         num_qubits: int,
-        cnots: Optional[np.ndarray] = None,
+        cnots: np.ndarray,
         thetas: Optional[np.ndarray] = None,
         gradient: Optional[GradientBase] = None,
-        **kwargs,
     ) -> None:
         """
         Args:
             num_qubits: the number of qubits.
-            cnots: is an array of dimensions 2 x L indicating where the
-                   CNOT units will be placed.
+            cnots: is an array of dimensions ``(2, L)`` indicating where the CNOT units will
+                be placed.
             thetas: vector of circuit parameters.
             gradient: object that computes gradient and objective function.
-            kwargs: other parameters.
 
         Raises:
             ValueError: if an unsupported parameter is passed.
@@ -71,20 +55,6 @@ class ParametricCircuit:
 
         assert isinstance(num_qubits, int) and num_qubits >= 1
         assert (gradient is None) or isinstance(gradient, GradientBase)
-
-        # If CNOT structure was not specified explicitly, it must be defined
-        # in the few properties in "kwargs" or chosen by default.
-        if cnots is None:
-            for key in kwargs:
-                if key not in ALL_PARAMS:
-                    raise ValueError(f"Misspelled parameter {key}")
-
-            cnots = make_cnot_network(
-                num_qubits=num_qubits,
-                network_layout=kwargs.get(PARAM_LAYOUT, "spin"),
-                connectivity_type=kwargs.get(PARAM_CONNECTIVITY, "full"),
-                depth=kwargs.get(PARAM_DEPTH, int(0)),
-            )
         assert isinstance(cnots, np.ndarray)
         assert cnots.size > 0 and cnots.shape == (2, cnots.size // 2)
         assert cnots.dtype == np.int64 or cnots.dtype == int
@@ -121,15 +91,6 @@ class ParametricCircuit:
             Number of angular parameters per a single CNOT.
         """
         return int(4)
-
-    # todo: two properties: num_angles and num_thetas, keep only one! or num_parameters as in QC
-    @property
-    def num_angles(self) -> int:
-        """
-        Returns:
-            Number of angles/rotations in this circuit
-        """
-        return 3 * self._num_qubits + 4 * self._num_cnots
 
     @property
     def num_thetas(self) -> int:
@@ -171,31 +132,9 @@ class ParametricCircuit:
             raise ValueError("wrong size of array of theta parameters")
         np.copyto(self._thetas, thetas.ravel())  # todo: do we need copy and ravel?
 
-    # def get_gradient(self, thetas: (np.ndarray, None),
-    #                  target_matrix: np.ndarray) -> (float, np.ndarray):
-    #     """
-    #     Computes gradient and objective function given the current
-    #     circuit parameters. N O T E, if the argument 'thetas' is not None,
-    #     then the new thetas will overwrite parameters of this circuit before
-    #     gradient computation, beware.
-    #     Args:
-    #         thetas: if None, then the gradient will be evaluated on the current
-    #                 parameters, otherwise the parameters will be updated by
-    #                 these new thetas before the gradient computation.
-    #         target_matrix: the matrix we are going to approximate.
-    #     Returns:
-    #         objective function value, gradient.
-    #     """
-    #     if self._gradient is None:
-    #         raise RuntimeError("Gradient backend has not been instantiated")
-    #     if thetas is not None:
-    #         self.set_thetas(thetas)
-    #     return self._gradient.get_gradient(self._thetas, target_matrix)
-
     def get_gradient(self, target_matrix: np.ndarray) -> (float, np.ndarray):
         """
-        Computes gradient and objective function given the current
-        circuit parameters.
+        Computes gradient and objective function given the current circuit parameters.
 
         Args:
             target_matrix: the matrix we are going to approximate.
@@ -215,7 +154,7 @@ class ParametricCircuit:
         Circuit builds a matrix representation of this parametric circuit.
 
         Returns:
-            2^n x 2^n numpy matrix corresponding to this circuit.
+            A matrix of size ``(2^n, 2^n)`` corresponding to this circuit.
         """
 
         # this is the matrix corresponding to the cnot unit part of the circuit
@@ -269,23 +208,21 @@ class ParametricCircuit:
 
     def to_circuit(self, tol: float = 0.0, reverse: bool = False) -> QuantumCircuit:
         """
-        Makes a Qiskit quantum circuit from this parametric one.
-        N O T E, reverse=False is a bit misleading default value. By setting it
-        to False, we actually reverse the bit order to comply with Qiskit bit
-        ordering convention, which is opposite to conventional one. Keep it
-        always equal False, unless the tensor product ordering is changed in
-        gradient computation.
+        Makes a Qiskit quantum circuit from this parametric one. Note, ``reverse=False`` is a bit
+        misleading default value. By setting it to ``False``, we actually reverse the bit order to
+        comply with Qiskit bit ordering convention, which is opposite to conventional one. Keep it
+        always equal ``False``, unless the tensor product ordering is changed in gradient
+        computation.
 
         Args:
-            tol: angle parameter less or equal this (small) value is considered
-                 equal zero and corresponding gate is not inserted into the
-                 output circuit (because it becomes identity one in this case).
-            reverse: recommended False value.   todo: make it always False
+            tol: angle parameter less or equal this (small) value is considered equal zero and
+                corresponding gate is not inserted into the output circuit (because it becomes
+                identity one in this case).
+            reverse: recommended False value.
 
         Returns:
             A quantum circuit converted from this parametric circuit.
         """
-        # todo: do we need this variables?
         n = self._num_qubits
         thetas = self._thetas
         cnots = self._cnots
@@ -293,9 +230,6 @@ class ParametricCircuit:
 
         for k in range(n):
             p = 4 * self._num_cnots + 3 * k
-            # TODO: revise the code
-            # if reverse:
-            #     k = k   # pylint: disable=self-assigning-variable
             if not reverse:
                 k = n - k - 1
             if np.abs(thetas[2 + p]) > tol:
@@ -310,10 +244,6 @@ class ParametricCircuit:
             # Extract where the CNOT goes
             q1 = int(cnots[0, c]) - 1  # 1-based index
             q2 = int(cnots[1, c]) - 1  # 1-based index
-            # TODO: revise the code
-            # if reverse:
-            #     q1 = q1
-            #     q2 = q2
             if not reverse:
                 q1 = n - q1 - 1
                 q2 = n - q2 - 1

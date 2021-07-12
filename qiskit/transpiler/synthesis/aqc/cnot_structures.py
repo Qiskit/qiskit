@@ -16,10 +16,8 @@ import logging
 
 import numpy as np
 
-# N O T E: we use 1-based indices like in Matlab.
+# N O T E: we use 1-based indices like in Matlab. To be updated.
 
-# TODO: Both constants are used only once, do we need them as dedicated constants or should we
-#  move them to the code?
 _NETWORK_LAYOUTS = {"sequ", "spin", "cart", "cyclic_spin", "cyclic_line"}
 _CONNECTIVITY_TYPES = {"full", "line", "star"}
 
@@ -53,8 +51,8 @@ def get_connectivity_types() -> list:
 
 def lower_limit(num_qubits: int) -> int:
     """
-    Returns lower limit on the number of CNOT units that guarantees
-    exact representation of a unitary operator by quantum gates.
+    Returns lower limit on the number of CNOT units that guarantees exact representation of
+    a unitary operator by quantum gates.
 
     Args:
         num_qubits: number of qubits.
@@ -74,25 +72,21 @@ def make_cnot_network(
     depth: int = 0,
 ) -> np.ndarray:
     """
-    Generates a network consisting of building blocks each containing a CNOT
-    gate and possibly some single-qubit ones. This network models a quantum
-    operator in question.
-    Note, each building block has 2 input and outputs corresponding to a pair
-    of qubits. What we actually return here is a chain of indices of qubit
-    pairs shared by every building block in a row.
+    Generates a network consisting of building blocks each containing a CNOT gate and possibly some
+    single-qubit ones. This network models a quantum operator in question. Note, each building
+    block has 2 input and outputs corresponding to a pair of qubits. What we actually return here
+    is a chain of indices of qubit pairs shared by every building block in a row.
 
     Args:
         num_qubits: number of qubits.
-        network_layout: type of network geometry, {"sequ", "spin", "cart"}.
-        connectivity_type: type of inter-qubit connectivity,
-                              {"full", "line", "star"}.
-        depth: depth of the CNOT-network, i.e. the number of layers,
-                  where each layer consists of a single CNOT-block; default
-                  value will be selected, if L <= 0.
+        network_layout: type of network geometry, ``{"sequ", "spin", "cart"}``.
+        connectivity_type: type of inter-qubit connectivity, ``{"full", "line", "star"}``.
+        depth: depth of the CNOT-network, i.e. the number of layers, where each layer consists of
+            a single CNOT-block; default value will be selected, if ``L <= 0``.
 
     Returns:
-        2xN matrix that defines layers in cnot-network, where N is either
-             equal L, or defined by a concrete type of the network.
+        A matrix of size ``(2, N)`` matrix that defines layers in cnot-network, where ``N``
+            is either equal ``L``, or defined by a concrete type of the network.
 
     Raises:
          ValueError: if unsupported type of CNOT-network layout is passed.
@@ -104,8 +98,8 @@ def make_cnot_network(
 
     if depth <= 0:
         new_depth = lower_limit(num_qubits)
-        logger.warning(
-            "#CNOT units chosen as the lower limit: %d, got a non-positive value: %d",
+        logger.debug(
+            "number of CNOT units chosen as the lower limit: %d, got a non-positive value: %d",
             new_depth,
             depth,
         )
@@ -116,7 +110,7 @@ def make_cnot_network(
         return _sequential_network(num_qubits=num_qubits, links=links, depth=depth)
 
     elif network_layout == "spin":
-        return _spin_network(num_qubits=num_qubits, links=dict(), depth=depth)
+        return _spin_network(num_qubits=num_qubits, depth=depth)
 
     elif network_layout == "cart":
         cnots = _cartan_network(num_qubits=num_qubits)
@@ -126,11 +120,9 @@ def make_cnot_network(
         return cnots
 
     elif network_layout == "cyclic_spin":
-        # TODO: move this elif to a separate method as for cart, spin, etc
         assert connectivity_type == "full", f"'{network_layout}' layout expects 'full' connectivity"
 
-        # TODO: replace with np.zeros
-        cnots = np.full((2, depth), fill_value=0, dtype=np.int64)
+        cnots = np.zeros((2, depth), dtype=np.int64)
         z = 0
         while True:
             for i in range(0, num_qubits, 2):
@@ -158,8 +150,7 @@ def make_cnot_network(
     elif network_layout == "cyclic_line":
         assert connectivity_type == "line", f"'{network_layout}' layout expects 'line' connectivity"
 
-        # TODO: replace with np.zeros
-        cnots = np.full((2, depth), fill_value=0, dtype=np.int64)
+        cnots = np.zeros((2, depth), dtype=np.int64)
         for i in range(depth):
             cnots[0, i] = (i + 0) % num_qubits
             cnots[1, i] = (i + 1) % num_qubits
@@ -175,18 +166,17 @@ def make_cnot_network(
 
 def generate_random_cnots(num_qubits: int, depth: int, set_depth_limit: bool = True) -> np.ndarray:
     """
-    Generates a random CNot network for debugging and testing.
-    N O T E: 1-based index.
+    Generates a random CNot network for debugging and testing. Note: there's 1-based index.
 
     Args:
         num_qubits: number of qubits.
-        depth: depth of the network; it will be bounded by the lower limit (function lower_limit()),
-            if exceeded.
+        depth: depth of the network; it will be bounded by the lower limit (function
+            ``lower_limit()``), if exceeded.
         set_depth_limit: apply theoretical upper limit on cnot circuit depth.
 
     Returns:
-        2-x-depth matrix where each column contains two distinct indices from
-            the range [1 ... num_qubits];
+        A matrix of size ``(2, N)``, where each column contains two distinct indices from
+            the range ``[1 ... num_qubits]``;
     """
     assert isinstance(num_qubits, (np.int64, int)) and 1 <= num_qubits <= 16
     # pylint: disable=misplaced-comparison-constant
@@ -209,7 +199,7 @@ def get_connectivity(num_qubits: int, connectivity: str) -> dict:
 
     Args:
         num_qubits: number of qubits.
-        connectivity: type of connectivity structure, {"full", "line", "star"}.
+        connectivity: type of connectivity structure, ``{"full", "line", "star"}``.
 
     Returns:
         dictionary of allowed links between qubits.
@@ -247,7 +237,7 @@ def get_connectivity(num_qubits: int, connectivity: str) -> dict:
 
 def _sequential_network(num_qubits: int, links: dict, depth: int = 0) -> np.ndarray:
     """
-    TODO: description
+    Generates a sequential network.
 
     Args:
         num_qubits: number of qubits.
@@ -255,12 +245,11 @@ def _sequential_network(num_qubits: int, links: dict, depth: int = 0) -> np.ndar
         depth: depth of the network (number of layers of building blocks).
 
     Returns:
-        2xL matrix that defines layers in qubit network.
+        A matrix of ``(2, N)`` that defines layers in qubit network.
     """
     assert len(links) > 0 and depth > 0
     layer = 0
-    # TODO: replace with np.zeros
-    cnots = np.full((2, depth), fill_value=0, dtype=np.int64)
+    cnots = np.zeros((2, depth), dtype=np.int64)
     while True:
         for i in range(1, num_qubits):
             for j in range(i + 1, num_qubits + 1):
@@ -272,23 +261,19 @@ def _sequential_network(num_qubits: int, links: dict, depth: int = 0) -> np.ndar
                         return cnots
 
 
-def _spin_network(num_qubits: int, links: dict, depth: int = 0) -> np.ndarray:
+def _spin_network(num_qubits: int, depth: int = 0) -> np.ndarray:
     """
-    TODO: links is not used, why???
-    TODO: description
+    Generates a spin-like network.
 
     Args:
         num_qubits: number of qubits.
-        links: dictionary of connectivity links.
         depth: depth of the network (number of layers of building blocks).
 
     Returns:
-        2xL matrix that defines layers in qubit network.
+        A matrix of size ``2 x L`` that defines layers in qubit network.
     """
-    assert isinstance(links, dict) and depth > 0  # and len(links) > 0
     layer = 0
-    # TODO: replace with np.zeros
-    cnots = np.full((2, depth), fill_value=0, dtype=np.int64)
+    cnots = np.zeros((2, depth), dtype=np.int64)
     while True:
         for i in range(1, num_qubits, 2):  # <--- starts from 1
             cnots[0, layer] = i
@@ -307,7 +292,6 @@ def _spin_network(num_qubits: int, links: dict, depth: int = 0) -> np.ndarray:
 
 def _cartan_network(num_qubits: int) -> np.ndarray:
     """
-    TODO: description
     Cartan decomposition in a recursive way, starting from n = 3.
 
     Args:

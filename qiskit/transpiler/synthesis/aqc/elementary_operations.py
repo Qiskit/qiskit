@@ -20,12 +20,13 @@ from qiskit.circuit.library import RXGate, RZGate, RYGate
 
 def place_unitary(unitary: np.ndarray, n: int, j: int) -> np.ndarray:
     """
-    I(j - 1) tensor product U tensor product I(n - j).
+    Computes I(j - 1) tensor product U tensor product I(n - j), where U is a unitary matrix
+    of size ``(2, 2)``.
 
     Args:
-        unitary: 2x2, single qubit unitary or bigger?
-        n: num qubits
-        j: position where to place a unitary
+        unitary: a unitary matrix of size ``(2, 2)``.
+        n: num qubits.
+        j: position where to place a unitary.
 
     Returns:
         a unitary of n qubits with u in position j.
@@ -35,12 +36,12 @@ def place_unitary(unitary: np.ndarray, n: int, j: int) -> np.ndarray:
 
 def place_cnot(n: int, j: int, k: int) -> np.ndarray:
     """
-    Places a CNOT from j to k (what is target, what is control?), todo: e.g. j = 1, k = 5
+    Places a CNOT from j to k.
 
     Args:
-        n: num qubits
-        j: todo: target/control location of CNOT
-        k: todo: target/control location of CNOT
+        n: number of qubits.
+        j: control qubit.
+        k: target qubit.
 
     Returns:
         a unitary of n qubits with CNOT placed at ``j`` and ``k``.
@@ -73,10 +74,10 @@ def rx_matrix(phi: float) -> np.ndarray:
     Computes an RX rotation by the angle of ``phi``.
 
     Args:
-        phi: rotation angle
+        phi: rotation angle.
 
     Returns:
-        an RX rotation matrix
+        an RX rotation matrix.
     """
     return RXGate(phi).to_matrix()
 
@@ -86,10 +87,10 @@ def ry_matrix(phi: float) -> np.ndarray:
     Computes an RY rotation by the angle of ``phi``.
 
     Args:
-        phi: rotation angle
+        phi: rotation angle.
 
     Returns:
-        an RY rotation matrix
+        an RY rotation matrix.
     """
     return RYGate(phi).to_matrix()
 
@@ -99,9 +100,9 @@ def rz_matrix(phi: float) -> np.ndarray:
     Computes an RZ rotation by the angle of ``phi``.
 
     Args:
-        phi: rotation angle
+        phi: rotation angle.
 
     Returns:
-        an RZ rotation matrix
+        an RZ rotation matrix.
     """
     return RZGate(phi).to_matrix()

@@ -19,6 +19,7 @@ import numpy as np
 from scipy.stats import unitary_group
 
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
 from qiskit.transpiler.synthesis.aqc.parametric_circuit import ParametricCircuit
 
 
@@ -37,9 +38,11 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
         num_qubits = 3
         num_cnots = 14
 
-        circuit = ParametricCircuit(
-            num_qubits=num_qubits, layout="spin", connectivity="full", depth=num_cnots
+        cnots = make_cnot_network(
+            num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=num_cnots
         )
+
+        circuit = ParametricCircuit(num_qubits=num_qubits, cnots=cnots)
 
         # Generate random target matrix and random starting point. Repeat until
         # sufficiently large gradient has been encountered.
