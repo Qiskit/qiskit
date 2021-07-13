@@ -65,7 +65,7 @@ class Arrow3D(FancyArrowPatch):
 
     def draw(self, renderer):
         xs3d, ys3d, zs3d = self._verts3d
-        x_s, y_s, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        x_s, y_s, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
         self.set_positions((x_s[0], y_s[0]), (x_s[1], y_s[1]))
         FancyArrowPatch.draw(self, renderer)
 
