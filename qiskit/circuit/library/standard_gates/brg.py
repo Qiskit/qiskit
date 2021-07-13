@@ -1,12 +1,7 @@
 """bridge gate."""
 
-import numpy as np
-
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.library.standard_gates import CXGate
-from qiskit.circuit import EquivalenceLibrary
 
 
 class BRGGate(Gate):
@@ -36,6 +31,7 @@ class BRGGate(Gate):
     The bridge gate is used as a transformation rules in mapping.
 
     """
+    # pylint: disable = E1101
 
     def __init__(self, label=None):
         """Create new BrG gate."""
