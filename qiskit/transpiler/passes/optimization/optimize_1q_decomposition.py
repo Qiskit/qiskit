@@ -79,7 +79,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             #     The U3 decomposer is only going to emit a sequence of length 1 anyhow.
             if "u3" in self._target_basis and len(run) == 1 and isinstance(run[0].op, U3Gate):
                 # Toss U3 gates equivalent to the identity; there we get off easy.
-                if np.array_equal(run[0].op.to_matrix(), np.eye(2)):
+                if np.allclose(run[0].op.to_matrix(), np.eye(2), 1e-15, 0):
                     dag.remove_op_node(run[0])
                     continue
                 # We might rewrite into lower `u`s if they're available.
