@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    Two new options, ``'value'`` and ``'value_desc'`` were added to the
+    ``sort`` kwarg of the :func:`qiskit.visualization.plot_histogram` function.
+    When ``sort`` is set to either of these options the output visualization
+    will sort the x axis based on the maximum probability for each bitstring.
+    For example:
+
+    .. jupyter-execute::
+
+      from qiskit.visualization import plot_histogram
+
+      counts = {
+        '000': 5,
+        '001': 25,
+        '010': 125,
+        '011': 625,
+        '100': 3125,
+        '101': 15625,
+        '110': 78125,
+        '111': 390625,
+      }
+      plot_histogram(counts, sort='value')

@@ -132,7 +132,7 @@ class ExcitationPreserving(TwoLocal):
         """
         supported_modes = ["iswap", "fsim"]
         if mode not in supported_modes:
-            raise ValueError("Unsupported mode {}, choose one of {}".format(mode, supported_modes))
+            raise ValueError(f"Unsupported mode {mode}, choose one of {supported_modes}")
 
         theta = Parameter("θ")
         swap = QuantumCircuit(2, name="Interaction")
