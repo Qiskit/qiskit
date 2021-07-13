@@ -68,11 +68,6 @@ class CalibrationCreator(TransformationPass):
 
         return dag
 
-         warnings.warn("The scheduling.calibration_creators.py has been deprecated "
-                      "and replaced by transformation.calibration_creators.py.",
-                      DeprecationWarning, stacklevel=2)
-
-
 class RZXCalibrationBuilder(CalibrationCreator):
     """
     Creates calibrations for RZXGate(theta) by stretching and compressing
@@ -106,6 +101,10 @@ class RZXCalibrationBuilder(CalibrationCreator):
         self._inst_map = backend.defaults().instruction_schedule_map
         self._config = backend.configuration()
         self._channel_map = backend.configuration().qubit_channel_mapping
+	
+	warnings.warn("The scheduling.calibration_creators.py has been deprecated "
+                      "and replaced by transformation.calibration_creators.py.",
+                      DeprecationWarning, stacklevel=2)
 
     def supported(self, node_op: DAGNode) -> bool:
         """

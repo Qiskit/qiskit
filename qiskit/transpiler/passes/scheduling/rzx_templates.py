@@ -46,8 +46,10 @@ def rzx_templates(template_list: List[str] = None):
 
     rzx_dict = {"template_list": templates, "user_cost_dict": cost_dict}
 
+    warnings.warn(
+        "The scheduling.rzx_templates.py has been deprecated "
+        "and replaced by transformation.rzx_templates.py.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return rzx_dict
-
-   warnings.warn("The scheduling.rzx_templates.py has been deprecated "
-                      "and replaced by transformation.rzx_templates.py.",
-                      DeprecationWarning, stacklevel=2)
