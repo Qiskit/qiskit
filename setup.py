@@ -94,9 +94,12 @@ z3_requirements = [
 ]
 
 
+bip_requirements = ["cplex", "docplex"]
+
+
 setup(
     name="qiskit-terra",
-    version="0.18.0",
+    version="0.19.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -127,9 +130,9 @@ setup(
     python_requires=">=3.6",
     extras_require={
         "visualization": visualization_extras,
-        "bip-mapper": ["cplex", "docplex"],
+        "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
-        "all": visualization_extras + z3_requirements,
+        "all": visualization_extras + z3_requirements + bip_requirements,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
