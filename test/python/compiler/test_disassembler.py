@@ -243,38 +243,15 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(circuits[0], qc)
         self.assertEqual({}, header)
 
-    def assertCircuitCalibrationsEqual(self, circuits, output_circuits):
+    def assertCircuitCalibrationsEqual(self, in_circuits, out_circuits):
         """Verify circuit calibrations are equivalent pre-assembly and post-disassembly"""
-        self.assertTrue(
-            all(
-                len(circuit.calibrations) == len(out_qc.calibrations)
-                for circuit, out_qc in zip(circuits, output_circuits)
-            ),
-        )
-        self.assertTrue(
-            all(
-                circuit.calibrations.keys() == out_qc.calibrations.keys()
-                for circuit, out_qc in zip(circuits, output_circuits)
-            ),
-        )
-        self.assertEqual(
-            {tuple(qc_cal.keys()) for qc in circuits for qc_cal in qc.calibrations.values()},
-            {
-                tuple(out_qc_cal.keys())
-                for out_qc in output_circuits
-                for out_qc_cal in out_qc.calibrations.values()
-            },
-        )
-        self.assertTrue(
-            all(
-                _parametric_to_waveforms(qc_sched) == _parametric_to_waveforms(out_qc_sched)
-                for qc, out_qc in zip(circuits, output_circuits)
-                for (_, qc_gate), (_, out_qc_gate) in zip(
-                    qc.calibrations.items(), out_qc.calibrations.items()
-                )
-                for qc_sched, out_qc_sched in zip(qc_gate.values(), out_qc_gate.values())
-            ),
-        )
+        for in_qc, out_qc in zip(in_circuits, out_circuits):
+            self.assertEqual(in_qc.calibrations.keys(), out_qc.calibrations.keys())
+            for gate_name, gate_cals in in_qc.calibrations.items():
+                self.assertEqual(gate_cals.keys(), out_qc.calibrations[gate_name].keys())
+            for (_, in_gate), (_, out_gate) in zip(in_qc.calibrations.items(), out_qc.calibrations.items()):
+                for in_sched, out_sched in zip(in_gate.values(), out_gate.values()):
+                    self.assertEqual(map(_parametric_to_waveforms, (in_sched, out_sched)))
 
     def test_single_circuit_calibrations(self):
         """Test that disassembler parses single circuit QOBJ calibrations (from QOBJ-level)."""
