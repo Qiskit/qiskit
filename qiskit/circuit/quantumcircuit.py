@@ -30,7 +30,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_function, deprecate_arguments
+from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -2089,10 +2089,7 @@ class QuantumCircuit:
 
         return parameters
 
-    @deprecate_arguments({"param_dict": "parameters"})
-    def assign_parameters(
-        self, parameters, inplace=False, param_dict=None
-    ):  # pylint: disable=unused-argument
+    def assign_parameters(self, parameters, inplace=False):
         """Assign parameters to new parameters or values.
 
         The keys of the parameter dictionary must be Parameter instances in the current circuit. The
@@ -2104,11 +2101,9 @@ class QuantumCircuit:
                 parameter values. If a dict, it specifies the mapping from ``current_parameter`` to
                 ``new_parameter``, where ``new_parameter`` can be a new parameter object or a
                 numeric value. If an iterable, the elements are assigned to the existing parameters
-                in the order they were inserted. You can call ``QuantumCircuit.parameters`` to check
-                this order.
+                in the order of ``QuantumCircuit.parameters``.
             inplace (bool): If False, a copy of the circuit with the bound parameters is
                 returned. If True the circuit instance itself is modified.
-            param_dict (dict): Deprecated, use ``parameters`` instead.
 
         Raises:
             CircuitError: If parameters is a dict and contains parameters not present in the
@@ -2199,8 +2194,7 @@ class QuantumCircuit:
                 bound_circuit._assign_parameter(self.parameters[i], value)
         return None if inplace else bound_circuit
 
-    @deprecate_arguments({"value_dict": "values"})
-    def bind_parameters(self, values, value_dict=None):  # pylint: disable=unused-argument
+    def bind_parameters(self, values):
         """Assign numeric parameters to values yielding a new circuit.
 
         To assign new Parameter objects or bind the values in-place, without yielding a new
@@ -2208,7 +2202,6 @@ class QuantumCircuit:
 
         Args:
             values (dict or iterable): {parameter: value, ...} or [value1, value2, ...]
-            value_dict (dict): Deprecated, use ``values`` instead.
 
         Raises:
             CircuitError: If values is a dict and contains parameters not present in the circuit.
