@@ -14,13 +14,14 @@
 
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
+import warnings
 
 import numpy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.parametertable import ParameterTable
-from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.exceptions import QiskitError
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -112,6 +113,7 @@ class NLocal(BlueprintCircuit):
         Raises:
             ImportError: If an ``initial_state`` is specified but Qiskit Aqua is not installed.
             ValueError: If reps parameter is less than or equal to 0.
+            TypeError: If reps parameter is not an int value.
         """
         super().__init__(name=name)
 
@@ -133,6 +135,9 @@ class NLocal(BlueprintCircuit):
         self._initial_state, self._initial_state_circuit = None, None
         self._data = None
         self._bounds = None
+
+        if int(reps) != reps:
+            raise TypeError("The value of reps should be int")
 
         if reps < 0:
             raise ValueError("The value of reps should be larger than or equal to 0")
@@ -201,7 +206,7 @@ class NLocal(BlueprintCircuit):
         except AttributeError:
             pass
 
-        raise TypeError("Adding a {} to an NLocal is not supported.".format(type(layer)))
+        raise TypeError(f"Adding a {type(layer)} to an NLocal is not supported.")
 
     @property
     def rotation_blocks(self) -> List[Instruction]:
@@ -510,12 +515,12 @@ class NLocal(BlueprintCircuit):
         Returns:
             The class name and the attributes/parameters of the instance as ``str``.
         """
-        ret = "NLocal: {}\n".format(self.__class__.__name__)
+        ret = f"NLocal: {self.__class__.__name__}\n"
         params = ""
         for key, value in self.__dict__.items():
             if key[0] == "_":
-                params += "-- {}: {}\n".format(key[1:], value)
-        ret += "{}".format(params)
+                params += f"-- {key[1:]}: {value}\n"
+        ret += f"{params}"
         return ret
 
     @property
@@ -583,49 +588,69 @@ class NLocal(BlueprintCircuit):
 
         # check if entanglement is list of something
         if not isinstance(entanglement, (tuple, list)):
-            raise ValueError("Invalid value of entanglement: {}".format(entanglement))
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
         num_i = len(entanglement)
 
         # entanglement is List[str]
-        if all(isinstance(e, str) for e in entanglement):
+        if all(isinstance(en, str) for en in entanglement):
             return get_entangler_map(n, self.num_qubits, entanglement[i % num_i], offset=i)
 
         # entanglement is List[int]
-        if all(isinstance(e, int) for e in entanglement):
-            return [entanglement]
+        if all(isinstance(en, (int, numpy.integer)) for en in entanglement):
+            return [[int(en) for en in entanglement]]
 
         # check if entanglement is List[List]
-        if not all(isinstance(e, (tuple, list)) for e in entanglement):
-            raise ValueError("Invalid value of entanglement: {}".format(entanglement))
+        if not all(isinstance(en, (tuple, list)) for en in entanglement):
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
         num_j = len(entanglement[i % num_i])
 
         # entanglement is List[List[str]]
-        if all(isinstance(e2, str) for e in entanglement for e2 in e):
+        if all(isinstance(e2, str) for en in entanglement for e2 in en):
             return get_entangler_map(
                 n, self.num_qubits, entanglement[i % num_i][j % num_j], offset=i
             )
 
         # entanglement is List[List[int]]
-        if all(isinstance(e2, int) for e in entanglement for e2 in e):
+        if all(isinstance(e2, (int, numpy.int32, numpy.int64)) for en in entanglement for e2 in en):
+            for ind, en in enumerate(entanglement):
+                entanglement[ind] = tuple(map(int, en))
             return entanglement
 
         # check if entanglement is List[List[List]]
-        if not all(isinstance(e2, (tuple, list)) for e in entanglement for e2 in e):
-            raise ValueError("Invalid value of entanglement: {}".format(entanglement))
+        if not all(isinstance(e2, (tuple, list)) for en in entanglement for e2 in en):
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
         # entanglement is List[List[List[int]]]
-        if all(isinstance(e3, int) for e in entanglement for e2 in e for e3 in e2):
+        if all(
+            isinstance(e3, (int, numpy.int32, numpy.int64))
+            for en in entanglement
+            for e2 in en
+            for e3 in e2
+        ):
+            for en in entanglement:
+                for ind, e2 in enumerate(en):
+                    en[ind] = tuple(map(int, e2))
             return entanglement[i % num_i]
 
         # check if entanglement is List[List[List[List]]]
-        if not all(isinstance(e3, (tuple, list)) for e in entanglement for e2 in e for e3 in e2):
-            raise ValueError("Invalid value of entanglement: {}".format(entanglement))
+        if not all(isinstance(e3, (tuple, list)) for en in entanglement for e2 in en for e3 in e2):
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
         # entanglement is List[List[List[List[int]]]]
-        if all(isinstance(e4, int) for e in entanglement for e2 in e for e3 in e2 for e4 in e3):
+        if all(
+            isinstance(e4, (int, numpy.int32, numpy.int64))
+            for en in entanglement
+            for e2 in en
+            for e3 in e2
+            for e4 in e3
+        ):
+            for en in entanglement:
+                for e2 in en:
+                    for ind, e3 in enumerate(e2):
+                        e2[ind] = tuple(map(int, e3))
             return entanglement[i % num_i][j % num_j]
 
-        raise ValueError("Invalid value of entanglement: {}".format(entanglement))
+        raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
     @property
     def initial_state(self) -> Any:
@@ -653,7 +678,20 @@ class NLocal(BlueprintCircuit):
         self._initial_state = initial_state
 
         # construct the circuit of the initial state
-        self._initial_state_circuit = initial_state.construct_circuit(mode="circuit")
+        # if initial state is an instance of QuantumCircuit do not call construct circuit
+        if isinstance(self._initial_state, QuantumCircuit):
+            self._initial_state_circuit = self._initial_state.copy()
+        else:
+            warnings.warn(
+                "The initial_state argument of the NLocal class "
+                "should be a QuantumCircuit. Passing any other type is "
+                "deprecated as of Qiskit Terra 0.18.0, and "
+                "will be removed no earlier than 3 months after that "
+                "release date.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self._initial_state_circuit = initial_state.construct_circuit(mode="circuit")
 
         # the initial state dictates the number of qubits since we do not have information
         # about on which qubits the initial state acts
@@ -755,12 +793,10 @@ class NLocal(BlueprintCircuit):
 
         return self
 
-    @deprecate_arguments({"param_dict": "parameters"})
     def assign_parameters(
         self,
         parameters: Union[dict, List[float], List[Parameter], ParameterVector],
         inplace: bool = False,
-        param_dict: Optional[dict] = None,  # pylint: disable=unused-argument
     ) -> Optional[QuantumCircuit]:
         """Assign parameters to the n-local circuit.
 
@@ -827,7 +863,7 @@ class NLocal(BlueprintCircuit):
 
         return block.copy()
 
-    def _build_rotation_layer(self, param_iter, i):
+    def _build_rotation_layer(self, circuit, param_iter, i):
         """Build a rotation layer."""
         # if the unentangled qubits are skipped, compute the set of qubits that are not entangled
         if self._skip_unentangled_qubits:
@@ -860,9 +896,9 @@ class NLocal(BlueprintCircuit):
                 layer.compose(parameterized_block, indices, inplace=True)
 
             # add the layer to the circuit
-            self.compose(layer, inplace=True)
+            circuit.compose(layer, inplace=True)
 
-    def _build_entanglement_layer(self, param_iter, i):
+    def _build_entanglement_layer(self, circuit, param_iter, i):
         """Build an entanglement layer."""
         # iterate over all entanglement blocks
         for j, block in enumerate(self.entanglement_blocks):
@@ -876,9 +912,9 @@ class NLocal(BlueprintCircuit):
                 layer.compose(parameterized_block, indices, inplace=True)
 
             # add the layer to the circuit
-            self.compose(layer, inplace=True)
+            circuit.compose(layer, inplace=True)
 
-    def _build_additional_layers(self, which):
+    def _build_additional_layers(self, circuit, which):
         if which == "appended":
             blocks = self._appended_blocks
             entanglements = self._appended_entanglement
@@ -895,7 +931,7 @@ class NLocal(BlueprintCircuit):
             for indices in ent:
                 layer.compose(block, indices, inplace=True)
 
-            self.compose(layer, inplace=True)
+            circuit.compose(layer, inplace=True)
 
     def _build(self) -> None:
         """Build the circuit."""
@@ -909,40 +945,52 @@ class NLocal(BlueprintCircuit):
         if self.num_qubits == 0:
             return
 
-        # use the initial state circuit if it is not None
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
+
+        # use the initial state as starting circuit, if it is set
         if self._initial_state:
-            circuit = self._initial_state.construct_circuit("circuit", register=self.qregs[0])
-            self.compose(circuit, inplace=True)
+            if isinstance(self._initial_state, QuantumCircuit):
+                initial = self._initial_state.copy()
+            else:
+                initial = self._initial_state.construct_circuit("circuit", register=self.qregs[0])
+            circuit.compose(initial, inplace=True)
 
         param_iter = iter(self.ordered_parameters)
 
         # build the prepended layers
-        self._build_additional_layers("prepended")
+        self._build_additional_layers(circuit, "prepended")
 
         # main loop to build the entanglement and rotation layers
         for i in range(self.reps):
             # insert barrier if specified and there is a preceding layer
             if self._insert_barriers and (i > 0 or len(self._prepended_blocks) > 0):
-                self.barrier()
+                circuit.barrier()
 
             # build the rotation layer
-            self._build_rotation_layer(param_iter, i)
+            self._build_rotation_layer(circuit, param_iter, i)
 
             # barrier in between rotation and entanglement layer
             if self._insert_barriers and len(self._rotation_blocks) > 0:
-                self.barrier()
+                circuit.barrier()
 
             # build the entanglement layer
-            self._build_entanglement_layer(param_iter, i)
+            self._build_entanglement_layer(circuit, param_iter, i)
 
         # add the final rotation layer
         if not self._skip_final_rotation_layer:
             if self.insert_barriers and self.reps > 0:
-                self.barrier()
-            self._build_rotation_layer(param_iter, self.reps)
+                circuit.barrier()
+            self._build_rotation_layer(circuit, param_iter, self.reps)
 
         # add the appended layers
-        self._build_additional_layers("appended")
+        self._build_additional_layers(circuit, "appended")
+
+        try:
+            block = circuit.to_gate()
+        except QiskitError:
+            block = circuit.to_instruction()
+
+        self.append(block, self.qubits)
 
     # pylint: disable=unused-argument
     def _parameter_generator(self, rep: int, block: int, indices: List[int]) -> Optional[Parameter]:
@@ -1066,4 +1114,4 @@ def get_entangler_map(
         return sca
 
     else:
-        raise ValueError("Unsupported entanglement type: {}".format(entanglement))
+        raise ValueError(f"Unsupported entanglement type: {entanglement}")

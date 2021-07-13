@@ -156,7 +156,7 @@ def _experiments_to_circuits(qobj):
                     _inst = instr_method(*params, *qubits, *clbits)
             elif name == "bfunc":
                 conditional["value"] = int(i.val, 16)
-                full_bit_size = sum([creg_dict[x].size for x in creg_dict])
+                full_bit_size = sum(creg_dict[x].size for x in creg_dict)
                 mask_map = {}
                 raw_map = {}
                 raw = []

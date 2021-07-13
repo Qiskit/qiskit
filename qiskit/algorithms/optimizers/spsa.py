@@ -70,6 +70,12 @@ class SPSA(Optimizer):
     (Note that either both or none must be set.) For further details on the automatic calibration,
     please refer to the supplementary information section IV. of [3].
 
+    .. note::
+
+        This component has some function that is normally random. If you want to reproduce behavior
+        then you should set the random number generator seed in the algorithm_globals
+        (``qiskit.utils.algorithm_globals.random_seed = seed``).
+
 
     Examples:
 
@@ -125,8 +131,8 @@ class SPSA(Optimizer):
         blocking: bool = False,
         allowed_increase: Optional[float] = None,
         trust_region: bool = False,
-        learning_rate: Optional[Union[float, Callable[[], Iterator]]] = None,
-        perturbation: Optional[Union[float, Callable[[], Iterator]]] = None,
+        learning_rate: Optional[Union[float, np.array, Callable[[], Iterator]]] = None,
+        perturbation: Optional[Union[float, np.array, Callable[[], Iterator]]] = None,
         last_avg: int = 1,
         resamplings: Union[int, Dict[int, int]] = 1,
         perturbation_dims: Optional[int] = None,
@@ -150,12 +156,12 @@ class SPSA(Optimizer):
             trust_region: If ``True``, restricts the norm of the update step to be :math:`\leq 1`.
             learning_rate: The update step is the learning rate is multiplied with the gradient.
                 If the learning rate is a float, it remains constant over the course of the
-                optimization. It can also be a callable returning an iterator which yields the
-                learning rates for each optimization step.
+                optimization. If a NumPy array, the :math:`i`-th element is the learning rate for
+                the :math:`i`-th iteration. It can also be a callable returning an iterator which
+                yields the learning rates for each optimization step.
                 If ``learning_rate`` is set ``perturbation`` must also be provided.
             perturbation: Specifies the magnitude of the perturbation for the finite difference
-                approximation of the gradients. Can be either a float or a generator yielding
-                the perturbation magnitudes per step.
+                approximation of the gradients. See ``learning_rate`` for the supported types.
                 If ``perturbation`` is set ``learning_rate`` must also be provided.
             last_avg: Return the average of the ``last_avg`` parameters instead of just the
                 last parameter values.
@@ -184,6 +190,10 @@ class SPSA(Optimizer):
             callback: A callback function passed information in each iteration step. The
                 information is, in this order: the number of function evaluations, the parameters,
                 the function value, the stepsize, whether the step was accepted.
+
+        Raises:
+            ValueError: If ``learning_rate`` or ``perturbation`` is an array with less elements
+                than the number of iterations.
         """
         super().__init__()
 
@@ -192,15 +202,14 @@ class SPSA(Optimizer):
         self.trust_region = trust_region
         self.callback = callback
 
-        if isinstance(learning_rate, float):
-            self.learning_rate = lambda: constant(learning_rate)
-        else:
-            self.learning_rate = learning_rate
+        # if learning rate and perturbation are arrays, check they are sufficiently long
+        for attr, name in zip([learning_rate, perturbation], ["learning_rate", "perturbation"]):
+            if isinstance(attr, (list, np.ndarray)):
+                if len(attr) < maxiter:
+                    raise ValueError(f"Length of {name} is smaller than maxiter ({maxiter}).")
 
-        if isinstance(perturbation, float):
-            self.perturbation = lambda: constant(perturbation)
-        else:
-            self.perturbation = perturbation
+        self.learning_rate = learning_rate
+        self.perturbation = perturbation
 
         # SPSA specific arguments
         self.blocking = blocking
@@ -212,9 +221,6 @@ class SPSA(Optimizer):
         # 2-SPSA specific arguments
         if regularization is None:
             regularization = 0.01
-
-        if lse_solver is None:
-            lse_solver = np.linalg.solve
 
         self.second_order = second_order
         self.hessian_delay = hessian_delay
@@ -305,6 +311,38 @@ class SPSA(Optimizer):
         losses = [loss(initial_point) for _ in range(avg)]
         return np.std(losses)
 
+    @property
+    def settings(self):
+        # if learning rate or perturbation are custom iterators expand them
+        if callable(self.learning_rate):
+            iterator = self.learning_rate()
+            learning_rate = np.array([next(iterator) for _ in range(self.maxiter)])
+        else:
+            learning_rate = self.learning_rate
+
+        if callable(self.perturbation):
+            iterator = self.perturbation()
+            perturbation = np.array([next(iterator) for _ in range(self.maxiter)])
+        else:
+            perturbation = self.perturbation
+
+        return {
+            "maxiter": self.maxiter,
+            "learning_rate": learning_rate,
+            "perturbation": perturbation,
+            "trust_region": self.trust_region,
+            "blocking": self.blocking,
+            "allowed_increase": self.allowed_increase,
+            "resamplings": self.resamplings,
+            "perturbation_dims": self.perturbation_dims,
+            "second_order": self.second_order,
+            "hessian_delay": self.hessian_delay,
+            "regularization": self.regularization,
+            "lse_solver": self.lse_solver,
+            "initial_hessian": self.initial_hessian,
+            "callback": self.callback,
+        }
+
     def _point_sample(self, loss, x, eps, delta1, delta2):
         """A single sample of the gradient at position ``x`` in direction ``delta``."""
         # points to evaluate
@@ -362,7 +400,7 @@ class SPSA(Optimizer):
 
         return gradient_estimate / num_samples, hessian_estimate / num_samples
 
-    def _compute_update(self, loss, x, k, eps):
+    def _compute_update(self, loss, x, k, eps, lse_solver):
         # compute the perturbations
         if isinstance(self.resamplings, dict):
             num_samples = self.resamplings.get(k, 1)
@@ -381,7 +419,7 @@ class SPSA(Optimizer):
                 spd_hessian = _make_spd(smoothed, self.regularization)
 
                 # solve for the gradient update
-                gradient = np.real(self.lse_solver(spd_hessian, gradient))
+                gradient = np.real(lse_solver(spd_hessian, gradient))
 
         return gradient
 
@@ -389,16 +427,17 @@ class SPSA(Optimizer):
         # ensure learning rate and perturbation are correctly set: either none or both
         # this happens only here because for the calibration the loss function is required
         if self.learning_rate is None and self.perturbation is None:
-            get_learning_rate, get_perturbation = self.calibrate(loss, initial_point)
-            # get iterator
-            eta = get_learning_rate()
-            eps = get_perturbation()
-        elif self.learning_rate is None or self.perturbation is None:
-            raise ValueError("If one of learning rate or perturbation is set, both must be set.")
+            get_eta, get_eps = self.calibrate(loss, initial_point)
         else:
-            # get iterator
-            eta = self.learning_rate()
-            eps = self.perturbation()
+            get_eta, get_eps = _validate_pert_and_learningrate(
+                self.perturbation, self.learning_rate
+            )
+        eta, eps = get_eta(), get_eps()
+
+        if self.lse_solver is None:
+            lse_solver = np.linalg.solve
+        else:
+            lse_solver = self.lse_solver
 
         # prepare some initials
         x = np.asarray(initial_point)
@@ -427,7 +466,7 @@ class SPSA(Optimizer):
         for k in range(1, self.maxiter + 1):
             iteration_start = time()
             # compute update
-            update = self._compute_update(loss, x, k, next(eps))
+            update = self._compute_update(loss, x, k, next(eps), lse_solver)
 
             # trust region
             if self.trust_region:
@@ -577,3 +616,36 @@ def _make_spd(matrix, bias=0.01):
     identity = np.identity(matrix.shape[0])
     psd = scipy.linalg.sqrtm(matrix.dot(matrix))
     return psd + bias * identity
+
+
+def _validate_pert_and_learningrate(perturbation, learning_rate):
+    if learning_rate is None or perturbation is None:
+        raise ValueError("If one of learning rate or perturbation is set, both must be set.")
+
+    if isinstance(perturbation, float):
+
+        def get_eps():
+            return constant(perturbation)
+
+    elif isinstance(perturbation, (list, np.ndarray)):
+
+        def get_eps():
+            return iter(perturbation)
+
+    else:
+        get_eps = perturbation
+
+    if isinstance(learning_rate, float):
+
+        def get_eta():
+            return constant(learning_rate)
+
+    elif isinstance(learning_rate, (list, np.ndarray)):
+
+        def get_eta():
+            return iter(learning_rate)
+
+    else:
+        get_eta = learning_rate
+
+    return get_eta, get_eps

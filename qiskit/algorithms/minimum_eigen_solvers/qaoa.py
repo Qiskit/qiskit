@@ -125,14 +125,12 @@ class QAOA(VQE):
             quantum_instance=quantum_instance,
         )
 
-    def _check_operator(self, operator: OperatorBase) -> OperatorBase:
+    def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
         if operator.num_qubits != self.ansatz.num_qubits:
             self.ansatz = QAOAAnsatz(
                 operator, self._reps, initial_state=self._initial_state, mixer_operator=self._mixer
-            )
-        operator = super()._check_operator(operator)
-        return operator
+            ).decompose()  # TODO remove decompose once #6674 is fixed
 
     @property
     def initial_state(self) -> Optional[QuantumCircuit]:

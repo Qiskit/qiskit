@@ -99,6 +99,7 @@ class ExcitationPreserving(TwoLocal):
         parameter_prefix: str = "θ",
         insert_barriers: bool = False,
         initial_state: Optional[Any] = None,
+        name: str = "ExcitationPreserving",
     ) -> None:
         """Create a new ExcitationPreserving 2-local circuit.
 
@@ -132,7 +133,7 @@ class ExcitationPreserving(TwoLocal):
         """
         supported_modes = ["iswap", "fsim"]
         if mode not in supported_modes:
-            raise ValueError("Unsupported mode {}, choose one of {}".format(mode, supported_modes))
+            raise ValueError(f"Unsupported mode {mode}, choose one of {supported_modes}")
 
         theta = Parameter("θ")
         swap = QuantumCircuit(2, name="Interaction")
@@ -153,6 +154,7 @@ class ExcitationPreserving(TwoLocal):
             parameter_prefix=parameter_prefix,
             insert_barriers=insert_barriers,
             initial_state=initial_state,
+            name=name,
         )
 
     @property
